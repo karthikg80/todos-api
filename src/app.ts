@@ -1,25 +1,26 @@
 import express, { Request, Response, NextFunction } from 'express';
+import { ITodoService } from './interfaces/ITodoService';
 import { TodoService } from './todoService';
 import { validateCreateTodo, validateUpdateTodo, validateId, ValidationError } from './validation';
 
-export function createApp(todoService: TodoService = new TodoService()) {
+export function createApp(todoService: ITodoService = new TodoService()) {
   const app = express();
 
   app.use(express.json());
 
   // GET /todos - Get all todos
-  app.get('/todos', (req: Request, res: Response) => {
-    const todos = todoService.findAll();
+  app.get('/todos', async (req: Request, res: Response) => {
+    const todos = await todoService.findAll();
     res.json(todos);
   });
 
   // GET /todos/:id - Get a specific todo
-  app.get('/todos/:id', (req: Request, res: Response) => {
+  app.get('/todos/:id', async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
       validateId(id);
 
-      const todo = todoService.findById(id);
+      const todo = await todoService.findById(id);
       if (!todo) {
         return res.status(404).json({ error: 'Todo not found' });
       }
@@ -34,10 +35,10 @@ export function createApp(todoService: TodoService = new TodoService()) {
   });
 
   // POST /todos - Create a new todo
-  app.post('/todos', (req: Request, res: Response) => {
+  app.post('/todos', async (req: Request, res: Response) => {
     try {
       const dto = validateCreateTodo(req.body);
-      const todo = todoService.create(dto);
+      const todo = await todoService.create(dto);
       res.status(201).json(todo);
     } catch (error) {
       if (error instanceof ValidationError) {
@@ -48,13 +49,13 @@ export function createApp(todoService: TodoService = new TodoService()) {
   });
 
   // PUT /todos/:id - Update a todo
-  app.put('/todos/:id', (req: Request, res: Response) => {
+  app.put('/todos/:id', async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
       validateId(id);
 
       const dto = validateUpdateTodo(req.body);
-      const todo = todoService.update(id, dto);
+      const todo = await todoService.update(id, dto);
 
       if (!todo) {
         return res.status(404).json({ error: 'Todo not found' });
@@ -70,12 +71,12 @@ export function createApp(todoService: TodoService = new TodoService()) {
   });
 
   // DELETE /todos/:id - Delete a todo
-  app.delete('/todos/:id', (req: Request, res: Response) => {
+  app.delete('/todos/:id', async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
       validateId(id);
 
-      const deleted = todoService.delete(id);
+      const deleted = await todoService.delete(id);
       if (!deleted) {
         return res.status(404).json({ error: 'Todo not found' });
       }

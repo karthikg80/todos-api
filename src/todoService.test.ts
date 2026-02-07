@@ -8,9 +8,9 @@ describe('TodoService', () => {
   });
 
   describe('create', () => {
-    it('should create a new todo', () => {
+    it('should create a new todo', async () => {
       const dto = { title: 'Test Todo', description: 'Test description' };
-      const todo = service.create(dto);
+      const todo = await service.create(dto);
 
       expect(todo.id).toBeDefined();
       expect(todo.title).toBe('Test Todo');
@@ -20,34 +20,34 @@ describe('TodoService', () => {
       expect(todo.updatedAt).toBeInstanceOf(Date);
     });
 
-    it('should create todo without description', () => {
+    it('should create todo without description', async () => {
       const dto = { title: 'Test Todo' };
-      const todo = service.create(dto);
+      const todo = await service.create(dto);
 
       expect(todo.title).toBe('Test Todo');
       expect(todo.description).toBeUndefined();
     });
 
-    it('should generate unique IDs', () => {
-      const todo1 = service.create({ title: 'Todo 1' });
-      const todo2 = service.create({ title: 'Todo 2' });
+    it('should generate unique IDs', async () => {
+      const todo1 = await service.create({ title: 'Todo 1' });
+      const todo2 = await service.create({ title: 'Todo 2' });
 
       expect(todo1.id).not.toBe(todo2.id);
     });
   });
 
   describe('findAll', () => {
-    it('should return empty array when no todos', () => {
-      const todos = service.findAll();
+    it('should return empty array when no todos', async () => {
+      const todos = await service.findAll();
       expect(todos).toEqual([]);
     });
 
-    it('should return all todos', () => {
-      service.create({ title: 'Todo 1' });
-      service.create({ title: 'Todo 2' });
-      service.create({ title: 'Todo 3' });
+    it('should return all todos', async () => {
+      await service.create({ title: 'Todo 1' });
+      await service.create({ title: 'Todo 2' });
+      await service.create({ title: 'Todo 3' });
 
-      const todos = service.findAll();
+      const todos = await service.findAll();
       expect(todos).toHaveLength(3);
       expect(todos[0].title).toBe('Todo 1');
       expect(todos[1].title).toBe('Todo 2');
@@ -56,23 +56,23 @@ describe('TodoService', () => {
   });
 
   describe('findById', () => {
-    it('should find todo by ID', () => {
-      const created = service.create({ title: 'Test Todo' });
-      const found = service.findById(created.id);
+    it('should find todo by ID', async () => {
+      const created = await service.create({ title: 'Test Todo' });
+      const found = await service.findById(created.id);
 
       expect(found).toEqual(created);
     });
 
-    it('should return undefined for non-existent ID', () => {
-      const found = service.findById('non-existent-id');
-      expect(found).toBeUndefined();
+    it('should return null for non-existent ID', async () => {
+      const found = await service.findById('non-existent-id');
+      expect(found).toBeNull();
     });
   });
 
   describe('update', () => {
-    it('should update todo title', () => {
-      const created = service.create({ title: 'Original Title' });
-      const updated = service.update(created.id, { title: 'Updated Title' });
+    it('should update todo title', async () => {
+      const created = await service.create({ title: 'Original Title' });
+      const updated = await service.update(created.id, { title: 'Updated Title' });
 
       expect(updated).toBeDefined();
       expect(updated!.title).toBe('Updated Title');
@@ -80,25 +80,25 @@ describe('TodoService', () => {
       expect(updated!.updatedAt.getTime()).toBeGreaterThanOrEqual(created.updatedAt.getTime());
     });
 
-    it('should update todo description', () => {
-      const created = service.create({ title: 'Test', description: 'Original' });
-      const updated = service.update(created.id, { description: 'Updated' });
+    it('should update todo description', async () => {
+      const created = await service.create({ title: 'Test', description: 'Original' });
+      const updated = await service.update(created.id, { description: 'Updated' });
 
       expect(updated!.description).toBe('Updated');
       expect(updated!.title).toBe('Test');
     });
 
-    it('should update todo completed status', () => {
-      const created = service.create({ title: 'Test' });
+    it('should update todo completed status', async () => {
+      const created = await service.create({ title: 'Test' });
       expect(created.completed).toBe(false);
 
-      const updated = service.update(created.id, { completed: true });
+      const updated = await service.update(created.id, { completed: true });
       expect(updated!.completed).toBe(true);
     });
 
-    it('should update multiple fields', () => {
-      const created = service.create({ title: 'Original' });
-      const updated = service.update(created.id, {
+    it('should update multiple fields', async () => {
+      const created = await service.create({ title: 'Original' });
+      const updated = await service.update(created.id, {
         title: 'Updated',
         description: 'New description',
         completed: true
@@ -109,41 +109,41 @@ describe('TodoService', () => {
       expect(updated!.completed).toBe(true);
     });
 
-    it('should return undefined for non-existent ID', () => {
-      const updated = service.update('non-existent-id', { title: 'Test' });
-      expect(updated).toBeUndefined();
+    it('should return null for non-existent ID', async () => {
+      const updated = await service.update('non-existent-id', { title: 'Test' });
+      expect(updated).toBeNull();
     });
 
-    it('should update the updatedAt timestamp', () => {
-      const created = service.create({ title: 'Test' });
+    it('should update the updatedAt timestamp', async () => {
+      const created = await service.create({ title: 'Test' });
       const originalUpdatedAt = created.updatedAt;
 
       // Small delay to ensure timestamp difference
-      const updated = service.update(created.id, { title: 'Updated' });
+      const updated = await service.update(created.id, { title: 'Updated' });
       expect(updated!.updatedAt.getTime()).toBeGreaterThanOrEqual(originalUpdatedAt.getTime());
     });
   });
 
   describe('delete', () => {
-    it('should delete todo', () => {
-      const created = service.create({ title: 'Test' });
-      const deleted = service.delete(created.id);
+    it('should delete todo', async () => {
+      const created = await service.create({ title: 'Test' });
+      const deleted = await service.delete(created.id);
 
       expect(deleted).toBe(true);
-      expect(service.findById(created.id)).toBeUndefined();
+      expect(await service.findById(created.id)).toBeNull();
     });
 
-    it('should return false for non-existent ID', () => {
-      const deleted = service.delete('non-existent-id');
+    it('should return false for non-existent ID', async () => {
+      const deleted = await service.delete('non-existent-id');
       expect(deleted).toBe(false);
     });
 
-    it('should remove todo from list', () => {
-      const todo1 = service.create({ title: 'Todo 1' });
-      const todo2 = service.create({ title: 'Todo 2' });
+    it('should remove todo from list', async () => {
+      const todo1 = await service.create({ title: 'Todo 1' });
+      const todo2 = await service.create({ title: 'Todo 2' });
 
-      service.delete(todo1.id);
-      const todos = service.findAll();
+      await service.delete(todo1.id);
+      const todos = await service.findAll();
 
       expect(todos).toHaveLength(1);
       expect(todos[0].id).toBe(todo2.id);
@@ -151,13 +151,13 @@ describe('TodoService', () => {
   });
 
   describe('clear', () => {
-    it('should clear all todos', () => {
-      service.create({ title: 'Todo 1' });
-      service.create({ title: 'Todo 2' });
-      service.create({ title: 'Todo 3' });
+    it('should clear all todos', async () => {
+      await service.create({ title: 'Todo 1' });
+      await service.create({ title: 'Todo 2' });
+      await service.create({ title: 'Todo 3' });
 
-      service.clear();
-      const todos = service.findAll();
+      await service.clear();
+      const todos = await service.findAll();
 
       expect(todos).toHaveLength(0);
     });

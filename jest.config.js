@@ -13,5 +13,9 @@ module.exports = {
   },
   transformIgnorePatterns: [
     'node_modules/(?!(uuid)/)'
-  ]
+  ],
+  globalSetup: '<rootDir>/test/setup.ts',
+  globalTeardown: '<rootDir>/test/teardown.ts',
+  setupFilesAfterEnv: ['<rootDir>/test/jest.setup.ts'],
+  testTimeout: 10000
 };

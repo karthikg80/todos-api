@@ -1,10 +1,11 @@
 import { Todo, CreateTodoDto, UpdateTodoDto } from './types';
 import { randomUUID } from 'crypto';
+import { ITodoService } from './interfaces/ITodoService';
 
-export class TodoService {
+export class TodoService implements ITodoService {
   private todos: Map<string, Todo> = new Map();
 
-  create(dto: CreateTodoDto): Todo {
+  async create(dto: CreateTodoDto): Promise<Todo> {
     const now = new Date();
     const todo: Todo = {
       id: randomUUID(),
@@ -19,18 +20,18 @@ export class TodoService {
     return todo;
   }
 
-  findAll(): Todo[] {
+  async findAll(): Promise<Todo[]> {
     return Array.from(this.todos.values());
   }
 
-  findById(id: string): Todo | undefined {
-    return this.todos.get(id);
+  async findById(id: string): Promise<Todo | null> {
+    return this.todos.get(id) ?? null;
   }
 
-  update(id: string, dto: UpdateTodoDto): Todo | undefined {
+  async update(id: string, dto: UpdateTodoDto): Promise<Todo | null> {
     const todo = this.todos.get(id);
     if (!todo) {
-      return undefined;
+      return null;
     }
 
     const updated: Todo = {
@@ -43,11 +44,11 @@ export class TodoService {
     return updated;
   }
 
-  delete(id: string): boolean {
+  async delete(id: string): Promise<boolean> {
     return this.todos.delete(id);
   }
 
-  clear(): void {
+  async clear(): Promise<void> {
     this.todos.clear();
   }
 }
