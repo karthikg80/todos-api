@@ -1,0 +1,14 @@
+.git
+.gitignore
+node_modules
+dist
+coverage
+*.log
+.DS_Store
+.env
+.env.local
+docker-compose.yml
+prisma.config.ts.backup
+test/
+src/**/*.test.ts
+*.md
