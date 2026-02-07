@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node dist/server.js",
+    "start": "npx prisma migrate deploy && node dist/server.js",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
-    "build": "tsc && npx prisma generate",
-    "postinstall": "npm run build && npx prisma migrate deploy",
+    "build": "npx prisma generate && tsc",
+    "postinstall": "npm run build",
     "test": "NODE_ENV=test jest --runInBand",
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage --runInBand",
@@ -32,12 +32,12 @@
     "express": "^5.2.1",
     "uuid": "^13.0.0",
     "prisma": "^6.19.2",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "@types/node": "^25.2.1"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.2.1",
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
     "jest": "^30.2.0",
