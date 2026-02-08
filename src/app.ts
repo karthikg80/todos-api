@@ -18,6 +18,9 @@ export function createApp(
 ) {
   const app = express();
 
+  // Trust Railway proxy for rate limiting and IP detection
+  app.set('trust proxy', 1);
+
   // Enable CORS for all routes
   app.use(cors());
 
