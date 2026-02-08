@@ -187,6 +187,38 @@ export function createApp(
     }
   });
 
+  // POST /auth/resend-verification - Resend verification email
+  app.post('/auth/resend-verification', authLimiter, async (req: Request, res: Response) => {
+    if (!authService) {
+      return res.status(501).json({ error: 'Authentication not configured' });
+    }
+
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: 'Email required' });
+      }
+
+      const user = await authService.getUserByEmail(email);
+
+      if (!user) {
+        // Don't reveal if email exists
+        return res.json({ message: 'If the email exists and is not verified, a verification link has been sent' });
+      }
+
+      if (user.isVerified) {
+        return res.status(400).json({ error: 'Email already verified' });
+      }
+
+      await authService.sendVerificationEmail(user.id);
+      res.json({ message: 'Verification email sent successfully' });
+    } catch (error) {
+      console.error('Resend verification error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // POST /auth/forgot-password - Request password reset
   app.post('/auth/forgot-password', authLimiter, async (req: Request, res: Response) => {
     if (!authService) {

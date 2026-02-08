@@ -71,6 +71,14 @@ export class AuthService {
       },
     });
 
+    // Send verification email
+    try {
+      await this.sendVerificationEmail(user.id);
+    } catch (error) {
+      console.error('Failed to send verification email:', error);
+      // Continue anyway - user can resend later
+    }
+
     // Generate JWT token
     const token = this.generateToken({
       userId: user.id,
@@ -162,6 +170,26 @@ export class AuthService {
         id: true,
         email: true,
         name: true,
+        isVerified: true,
+        role: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
+  /**
+   * Get user by email (including verification status)
+   */
+  async getUserByEmail(email: string) {
+    return this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        isVerified: true,
+        role: true,
         createdAt: true,
         updatedAt: true,
       },

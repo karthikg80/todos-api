@@ -38,7 +38,11 @@ export class TodoService implements ITodoService {
 
     const updated: Todo = {
       ...todo,
-      ...dto,
+      ...(dto.title !== undefined && { title: dto.title }),
+      ...(dto.description !== undefined && { description: dto.description }),
+      ...(dto.completed !== undefined && { completed: dto.completed }),
+      ...(dto.category !== undefined && { category: dto.category === null ? undefined : dto.category }),
+      ...(dto.dueDate !== undefined && { dueDate: dto.dueDate === null ? undefined : dto.dueDate }),
       updatedAt: new Date()
     };
 

@@ -33,9 +33,30 @@ export function validateCreateTodo(data: any): CreateTodoDto {
     }
   }
 
+  if (data.category !== undefined) {
+    if (typeof data.category !== 'string') {
+      throw new ValidationError('Category must be a string');
+    }
+    if (data.category.length > 50) {
+      throw new ValidationError('Category cannot exceed 50 characters');
+    }
+  }
+
+  if (data.dueDate !== undefined) {
+    if (typeof data.dueDate !== 'string') {
+      throw new ValidationError('Due date must be a string');
+    }
+    const date = new Date(data.dueDate);
+    if (isNaN(date.getTime())) {
+      throw new ValidationError('Invalid due date format');
+    }
+  }
+
   return {
     title: data.title.trim(),
-    description: data.description?.trim()
+    description: data.description?.trim(),
+    category: data.category?.trim(),
+    dueDate: data.dueDate ? new Date(data.dueDate) : undefined
   };
 }
 
@@ -74,6 +95,35 @@ export function validateUpdateTodo(data: any): UpdateTodoDto {
       throw new ValidationError('Completed must be a boolean');
     }
     update.completed = data.completed;
+  }
+
+  if (data.category !== undefined) {
+    if (data.category === null) {
+      update.category = null;
+    } else {
+      if (typeof data.category !== 'string') {
+        throw new ValidationError('Category must be a string');
+      }
+      if (data.category.length > 50) {
+        throw new ValidationError('Category cannot exceed 50 characters');
+      }
+      update.category = data.category.trim();
+    }
+  }
+
+  if (data.dueDate !== undefined) {
+    if (data.dueDate === null) {
+      update.dueDate = null;
+    } else {
+      if (typeof data.dueDate !== 'string') {
+        throw new ValidationError('Due date must be a string');
+      }
+      const date = new Date(data.dueDate);
+      if (isNaN(date.getTime())) {
+        throw new ValidationError('Invalid due date format');
+      }
+      update.dueDate = date;
+    }
   }
 
   if (Object.keys(update).length === 0) {
