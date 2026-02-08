@@ -1194,8 +1194,8 @@
             <div id="authView" class="view active">
                 <div class="auth-container">
                     <div class="auth-tabs">
-                        <button class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
-                        <button class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+                        <button class="auth-tab active" onclick="switchAuthTab('login', this)">Login</button>
+                        <button class="auth-tab" onclick="switchAuthTab('register', this)">Register</button>
                     </div>
 
                     <div class="message" id="authMessage"></div>
@@ -1473,11 +1473,13 @@
         }
 
         // Switch auth tabs
-        function switchAuthTab(tab) {
+        function switchAuthTab(tab, triggerEl) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
             document.querySelectorAll('.auth-form').forEach(f => f.style.display = 'none');
 
-            event.target.classList.add('active');
+            if (triggerEl) {
+                triggerEl.classList.add('active');
+            }
             document.getElementById(tab + 'Form').style.display = 'block';
             hideMessage('authMessage');
         }
