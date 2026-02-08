@@ -7,38 +7,43 @@ import { Todo, CreateTodoDto, UpdateTodoDto } from '../types';
 export interface ITodoService {
   /**
    * Create a new todo item
+   * @param userId - The user ID who owns the todo
    * @param dto - Data transfer object containing todo details
    * @returns Promise resolving to the created todo
    */
-  create(dto: CreateTodoDto): Promise<Todo>;
+  create(userId: string, dto: CreateTodoDto): Promise<Todo>;
 
   /**
-   * Retrieve all todo items
-   * @returns Promise resolving to array of all todos
+   * Retrieve all todo items for a user
+   * @param userId - The user ID to filter todos by
+   * @returns Promise resolving to array of user's todos
    */
-  findAll(): Promise<Todo[]>;
+  findAll(userId: string): Promise<Todo[]>;
 
   /**
-   * Find a todo by its ID
+   * Find a todo by its ID (belonging to the specified user)
+   * @param userId - The user ID who owns the todo
    * @param id - The todo ID to search for
    * @returns Promise resolving to the todo if found, null otherwise
    */
-  findById(id: string): Promise<Todo | null>;
+  findById(userId: string, id: string): Promise<Todo | null>;
 
   /**
-   * Update an existing todo
+   * Update an existing todo (belonging to the specified user)
+   * @param userId - The user ID who owns the todo
    * @param id - The todo ID to update
    * @param dto - Data transfer object containing updated fields
    * @returns Promise resolving to updated todo if found, null otherwise
    */
-  update(id: string, dto: UpdateTodoDto): Promise<Todo | null>;
+  update(userId: string, id: string, dto: UpdateTodoDto): Promise<Todo | null>;
 
   /**
-   * Delete a todo by ID
+   * Delete a todo by ID (belonging to the specified user)
+   * @param userId - The user ID who owns the todo
    * @param id - The todo ID to delete
    * @returns Promise resolving to true if deleted, false if not found
    */
-  delete(id: string): Promise<boolean>;
+  delete(userId: string, id: string): Promise<boolean>;
 
   /**
    * Clear all todos (primarily for testing)

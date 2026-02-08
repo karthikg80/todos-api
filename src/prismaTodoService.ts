@@ -9,30 +9,32 @@ import { Todo, CreateTodoDto, UpdateTodoDto } from './types';
 export class PrismaTodoService implements ITodoService {
   constructor(private prisma: PrismaClient) {}
 
-  async create(dto: CreateTodoDto): Promise<Todo> {
+  async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     const todo = await this.prisma.todo.create({
       data: {
         title: dto.title,
         description: dto.description,
         completed: false,
+        userId,
       },
     });
 
     return this.mapPrismaToTodo(todo);
   }
 
-  async findAll(): Promise<Todo[]> {
+  async findAll(userId: string): Promise<Todo[]> {
     const todos = await this.prisma.todo.findMany({
+      where: { userId },
       orderBy: { createdAt: 'desc' },
     });
 
     return todos.map(this.mapPrismaToTodo);
   }
 
-  async findById(id: string): Promise<Todo | null> {
+  async findById(userId: string, id: string): Promise<Todo | null> {
     try {
-      const todo = await this.prisma.todo.findUnique({
-        where: { id },
+      const todo = await this.prisma.todo.findFirst({
+        where: { id, userId },
       });
 
       return todo ? this.mapPrismaToTodo(todo) : null;
@@ -42,10 +44,10 @@ export class PrismaTodoService implements ITodoService {
     }
   }
 
-  async update(id: string, dto: UpdateTodoDto): Promise<Todo | null> {
+  async update(userId: string, id: string, dto: UpdateTodoDto): Promise<Todo | null> {
     try {
       const todo = await this.prisma.todo.update({
-        where: { id },
+        where: { id, userId },
         data: {
           title: dto.title,
           description: dto.description,
@@ -63,10 +65,10 @@ export class PrismaTodoService implements ITodoService {
     }
   }
 
-  async delete(id: string): Promise<boolean> {
+  async delete(userId: string, id: string): Promise<boolean> {
     try {
       await this.prisma.todo.delete({
-        where: { id },
+        where: { id, userId },
       });
       return true;
     } catch (error: any) {
@@ -92,6 +94,7 @@ export class PrismaTodoService implements ITodoService {
       title: prismaTodo.title,
       description: prismaTodo.description || undefined,
       completed: prismaTodo.completed,
+      userId: prismaTodo.userId,
       createdAt: prismaTodo.createdAt,
       updatedAt: prismaTodo.updatedAt,
     };

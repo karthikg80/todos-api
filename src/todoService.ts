@@ -5,13 +5,14 @@ import { ITodoService } from './interfaces/ITodoService';
 export class TodoService implements ITodoService {
   private todos: Map<string, Todo> = new Map();
 
-  async create(dto: CreateTodoDto): Promise<Todo> {
+  async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     const now = new Date();
     const todo: Todo = {
       id: randomUUID(),
       title: dto.title,
       description: dto.description,
       completed: false,
+      userId,
       createdAt: now,
       updatedAt: now
     };
@@ -20,17 +21,18 @@ export class TodoService implements ITodoService {
     return todo;
   }
 
-  async findAll(): Promise<Todo[]> {
-    return Array.from(this.todos.values());
+  async findAll(userId: string): Promise<Todo[]> {
+    return Array.from(this.todos.values()).filter(todo => todo.userId === userId);
   }
 
-  async findById(id: string): Promise<Todo | null> {
-    return this.todos.get(id) ?? null;
-  }
-
-  async update(id: string, dto: UpdateTodoDto): Promise<Todo | null> {
+  async findById(userId: string, id: string): Promise<Todo | null> {
     const todo = this.todos.get(id);
-    if (!todo) {
+    return (todo && todo.userId === userId) ? todo : null;
+  }
+
+  async update(userId: string, id: string, dto: UpdateTodoDto): Promise<Todo | null> {
+    const todo = this.todos.get(id);
+    if (!todo || todo.userId !== userId) {
       return null;
     }
 
@@ -44,7 +46,11 @@ export class TodoService implements ITodoService {
     return updated;
   }
 
-  async delete(id: string): Promise<boolean> {
+  async delete(userId: string, id: string): Promise<boolean> {
+    const todo = this.todos.get(id);
+    if (!todo || todo.userId !== userId) {
+      return false;
+    }
     return this.todos.delete(id);
   }
 
