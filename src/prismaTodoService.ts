@@ -9,6 +9,14 @@ import { Todo, CreateTodoDto, UpdateTodoDto } from './types';
 export class PrismaTodoService implements ITodoService {
   constructor(private prisma: PrismaClient) {}
 
+  private hasPrismaCode(error: unknown, codes: string[]): boolean {
+    if (!error || typeof error !== 'object' || !('code' in error)) {
+      return false;
+    }
+    const code = (error as { code?: unknown }).code;
+    return typeof code === 'string' && codes.includes(code);
+  }
+
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     // Calculate next order: max order + 1 for this user
     const maxOrderTodo = await this.prisma.todo.findFirst({
@@ -66,9 +74,12 @@ export class PrismaTodoService implements ITodoService {
       });
 
       return todo ? this.mapPrismaToTodo(todo) : null;
-    } catch (error) {
-      // Handle invalid UUID or other errors
-      return null;
+    } catch (error: unknown) {
+      // Invalid UUID in id filter.
+      if (this.hasPrismaCode(error, ['P2023'])) {
+        return null;
+      }
+      throw error;
     }
   }
 
@@ -106,9 +117,12 @@ export class PrismaTodoService implements ITodoService {
       });
 
       return this.mapPrismaToTodo(todo);
-    } catch (error) {
-      // Handle invalid UUID or other Prisma errors
-      return null;
+    } catch (error: unknown) {
+      // Invalid UUID or race where row disappears before update.
+      if (this.hasPrismaCode(error, ['P2023', 'P2025'])) {
+        return null;
+      }
+      throw error;
     }
   }
 
@@ -128,9 +142,12 @@ export class PrismaTodoService implements ITodoService {
         where: { id },
       });
       return true;
-    } catch (error) {
-      // Handle invalid UUID or other Prisma errors
-      return false;
+    } catch (error: unknown) {
+      // Invalid UUID or race where row disappears before delete.
+      if (this.hasPrismaCode(error, ['P2023', 'P2025'])) {
+        return false;
+      }
+      throw error;
     }
   }
 

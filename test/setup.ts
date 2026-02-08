@@ -3,6 +3,7 @@ process.env.NODE_ENV = 'test';
 
 import { execSync } from 'child_process';
 import * as dotenv from 'dotenv';
+import { shouldSetupDatabaseForArgs } from './dbTestConfig';
 
 // Load environment variables
 dotenv.config();
@@ -12,6 +13,12 @@ dotenv.config();
  * Ensures test database schema is up to date.
  */
 export default async function globalSetup() {
+  if (!shouldSetupDatabaseForArgs(process.argv.slice(2))) {
+    console.log('\n⏭️  Skipping test database setup (no DB-backed tests selected)\n');
+    process.env.SKIP_DB_TEST_SETUP = 'true';
+    return;
+  }
+
   console.log('\n🔧 Setting up test database...\n');
 
   // Set database URL to test database

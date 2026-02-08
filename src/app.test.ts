@@ -304,4 +304,40 @@ describe('Todos API', () => {
       expect(response.body[0].title).toBe('Todo 2');
     });
   });
+
+  describe('Auth email normalization', () => {
+    it('should normalize email for /auth/resend-verification', async () => {
+      const mockAuthService = {
+        getUserByEmail: jest.fn().mockResolvedValue({
+          id: 'user-1',
+          isVerified: false,
+        }),
+        sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
+      } as any;
+
+      const authApp = createApp(new TodoService(), mockAuthService);
+
+      await request(authApp)
+        .post('/auth/resend-verification')
+        .send({ email: '  MiXeD@Example.COM  ' })
+        .expect(200);
+
+      expect(mockAuthService.getUserByEmail).toHaveBeenCalledWith('mixed@example.com');
+    });
+
+    it('should normalize email for /auth/forgot-password', async () => {
+      const mockAuthService = {
+        requestPasswordReset: jest.fn().mockResolvedValue(undefined),
+      } as any;
+
+      const authApp = createApp(new TodoService(), mockAuthService);
+
+      await request(authApp)
+        .post('/auth/forgot-password')
+        .send({ email: '  MiXeD@Example.COM  ' })
+        .expect(200);
+
+      expect(mockAuthService.requestPasswordReset).toHaveBeenCalledWith('mixed@example.com');
+    });
+  });
 });

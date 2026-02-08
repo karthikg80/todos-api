@@ -197,12 +197,13 @@ export function createApp(
 
     try {
       const { email } = req.body;
+      const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-      if (!email) {
+      if (!normalizedEmail) {
         return res.status(400).json({ error: 'Email required' });
       }
 
-      const user = await authService.getUserByEmail(email);
+      const user = await authService.getUserByEmail(normalizedEmail);
 
       if (!user) {
         // Don't reveal if email exists
@@ -229,12 +230,13 @@ export function createApp(
 
     try {
       const email = req.body.email as string;
+      const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-      if (!email) {
+      if (!normalizedEmail) {
         return res.status(400).json({ error: 'Email required' });
       }
 
-      await authService.requestPasswordReset(email);
+      await authService.requestPasswordReset(normalizedEmail);
       res.json({ message: 'If the email exists, a reset link has been sent' });
     } catch (error) {
       console.error('Forgot password error:', error);
