@@ -1895,12 +1895,20 @@
 
                 if (response && response.ok) {
                     todos = todos.filter(t => t.id !== id);
+                    selectedTodos.delete(id);
                     renderTodos();
+                    updateCategoryFilter();
 
                     // Add undo action
                     addUndoAction('delete', todoData, 'Todo deleted');
+                    await loadTodos();
+                    return;
                 }
+
+                const errorData = response ? await response.json().catch(() => ({})) : {};
+                showMessage('todosMessage', errorData.error || 'Failed to delete todo', 'error');
             } catch (error) {
+                showMessage('todosMessage', 'Network error while deleting todo', 'error');
                 console.error('Delete todo error:', error);
             }
         }
@@ -2312,20 +2320,24 @@
 
             const selectedIds = Array.from(selectedTodos);
             const deletedTodos = [];
+            let deletedCount = 0;
 
             for (const todoId of selectedIds) {
-                const todo = todos.find(t => t.id === todoId);
-                if (todo) {
-                    deletedTodos.push({ ...todo });
-                }
-
                 try {
                     const response = await apiCall(`${API_URL}/todos/${todoId}`, {
                         method: 'DELETE'
                     });
 
                     if (response && response.ok) {
+                        const todo = todos.find(t => t.id === todoId);
+                        if (todo) {
+                            deletedTodos.push({ ...todo });
+                        }
                         todos = todos.filter(t => t.id !== todoId);
+                        deletedCount += 1;
+                    } else {
+                        const errorData = response ? await response.json().catch(() => ({})) : {};
+                        console.error('Failed to delete todo:', todoId, errorData.error || 'Unknown error');
                     }
                 } catch (error) {
                     console.error('Failed to delete todo:', error);
@@ -2338,6 +2350,10 @@
 
             selectedTodos.clear();
             renderTodos();
+            updateCategoryFilter();
+            if (deletedCount > 0) {
+                await loadTodos();
+            }
         }
 
         // ========== PHASE A: KEYBOARD SHORTCUTS ==========
