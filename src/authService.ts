@@ -222,11 +222,20 @@ export class AuthService {
       }
     }
 
+    // Check if the email is actually changing
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    const emailIsChanging = normalizedEmail && currentUser && normalizedEmail !== currentUser.email;
+
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
       data: {
         name: data.name,
         email: normalizedEmail,
+        // Reset verification when email changes
+        ...(emailIsChanging && { isVerified: false, verificationToken: null }),
       },
       select: {
         id: true,
@@ -236,6 +245,16 @@ export class AuthService {
         updatedAt: true,
       },
     });
+
+    // Send new verification email when email changes
+    if (emailIsChanging) {
+      try {
+        await this.sendVerificationEmail(userId);
+      } catch (error) {
+        console.error('Failed to send verification email after email change:', error);
+        // Continue anyway - user can resend later
+      }
+    }
 
     return updatedUser;
   }
@@ -387,14 +406,20 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        resetToken: null,
-        resetTokenExpiry: null,
-      },
-    });
+    // Update password and revoke all refresh tokens in parallel
+    await Promise.all([
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password: hashedPassword,
+          resetToken: null,
+          resetTokenExpiry: null,
+        },
+      }),
+      this.prisma.refreshToken.deleteMany({
+        where: { userId: user.id },
+      }),
+    ]);
   }
 
   /**
