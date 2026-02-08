@@ -2478,7 +2478,12 @@
                         }
                     }
 
-                    todos.unshift(todoToRender);
+                    todos.push(todoToRender);
+                    todos.sort((a, b) => {
+                        const aOrder = Number.isInteger(a.order) ? a.order : Number.MAX_SAFE_INTEGER;
+                        const bOrder = Number.isInteger(b.order) ? b.order : Number.MAX_SAFE_INTEGER;
+                        return aOrder - bOrder;
+                    });
                     renderTodos();
                     updateCategoryFilter();
                 }

@@ -39,7 +39,7 @@ export class AuthService {
   private emailService: EmailService;
 
   constructor(private prisma: PrismaClient) {
-    this.JWT_SECRET = config.jwtSecret;
+    this.JWT_SECRET = process.env.JWT_SECRET || config.jwtSecret;
     this.emailService = new EmailService();
   }
 

@@ -67,4 +67,23 @@ describe('API Contract', () => {
       expect(listAfterDelete.body).toHaveLength(0);
     });
   });
+
+  describe('GET /api-docs.json', () => {
+    it('includes live auth and todo schema fields used by API/UI', async () => {
+      const response = await request(app).get('/api-docs.json').expect(200);
+
+      const schemas = response.body?.components?.schemas;
+      expect(schemas).toBeDefined();
+
+      expect(schemas.AuthResponse.properties.refreshToken).toBeDefined();
+      expect(schemas.User.properties.role).toBeDefined();
+      expect(schemas.User.properties.isVerified).toBeDefined();
+      expect(schemas.Todo.properties.priority).toBeDefined();
+      expect(schemas.Todo.properties.category).toBeDefined();
+      expect(schemas.Todo.properties.dueDate).toBeDefined();
+      expect(schemas.Todo.properties.notes).toBeDefined();
+      expect(schemas.Todo.properties.order).toBeDefined();
+      expect(schemas.Todo.properties.subtasks).toBeDefined();
+    });
+  });
 });

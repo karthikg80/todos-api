@@ -26,16 +26,27 @@ export default async function globalSetup() {
 
   console.log('\n🔧 Setting up test database...\n');
 
+  const testDatabaseUrl = process.env.DATABASE_URL_TEST;
+  if (!testDatabaseUrl) {
+    throw new Error('DATABASE_URL_TEST must be set for integration tests');
+  }
+
+  // Defensive guard against destructive reset targeting non-test DBs.
+  const lowerUrl = testDatabaseUrl.toLowerCase();
+  if (!lowerUrl.includes('test')) {
+    throw new Error('Refusing to reset database because DATABASE_URL_TEST does not look like a test database');
+  }
+
   // Set database URL to test database
-  process.env.DATABASE_URL = process.env.DATABASE_URL_TEST;
+  process.env.DATABASE_URL = testDatabaseUrl;
 
   try {
-    // Push schema to test database (idempotent, no migrations in test)
-    execSync('npx prisma db push --skip-generate', {
+    // Reset and apply migrations for deterministic test schema.
+    execSync('npx prisma migrate reset --force --skip-seed --skip-generate', {
       stdio: 'inherit',
       env: {
         ...process.env,
-        DATABASE_URL: process.env.DATABASE_URL_TEST,
+        DATABASE_URL: testDatabaseUrl,
       },
     });
 
