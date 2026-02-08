@@ -163,7 +163,7 @@ export function createApp(
   });
 
   // POST /auth/refresh - Refresh access token
-  app.post('/auth/refresh', async (req: Request, res: Response) => {
+  app.post('/auth/refresh', authLimiter, async (req: Request, res: Response) => {
     if (!authService) {
       return res.status(501).json({ error: 'Authentication not configured' });
     }
@@ -187,7 +187,7 @@ export function createApp(
   });
 
   // POST /auth/logout - Revoke refresh token
-  app.post('/auth/logout', async (req: Request, res: Response) => {
+  app.post('/auth/logout', authLimiter, async (req: Request, res: Response) => {
     if (!authService) {
       return res.status(501).json({ error: 'Authentication not configured' });
     }
@@ -207,7 +207,7 @@ export function createApp(
   });
 
   // GET /auth/verify - Verify email with token
-  app.get('/auth/verify', async (req: Request, res: Response) => {
+  app.get('/auth/verify', authLimiter, async (req: Request, res: Response) => {
     if (!authService) {
       return res.status(501).json({ error: 'Authentication not configured' });
     }
@@ -282,7 +282,7 @@ export function createApp(
   });
 
   // POST /auth/reset-password - Reset password with token
-  app.post('/auth/reset-password', async (req: Request, res: Response) => {
+  app.post('/auth/reset-password', authLimiter, async (req: Request, res: Response) => {
     if (!authService) {
       return res.status(501).json({ error: 'Authentication not configured' });
     }
@@ -297,6 +297,10 @@ export function createApp(
 
       if (password.length < 8) {
         return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      }
+
+      if (password.length > 72) {
+        return res.status(400).json({ error: 'Password cannot exceed 72 characters' });
       }
 
       await authService.resetPassword(token, password);
@@ -454,6 +458,10 @@ export function createApp(
         if (name && name.length > 100) {
           return res.status(400).json({ error: 'Name too long' });
         }
+      }
+
+      if (email === undefined && name === undefined) {
+        return res.status(400).json({ error: 'At least one field (name or email) must be provided' });
       }
 
       const updatedUser = await authService.updateUserProfile(userId, { name, email });

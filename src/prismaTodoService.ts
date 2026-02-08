@@ -310,6 +310,9 @@ export class PrismaTodoService implements ITodoService {
   }
 
   async clear(): Promise<void> {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('clear() is not allowed in production');
+    }
     await this.prisma.todo.deleteMany();
   }
 

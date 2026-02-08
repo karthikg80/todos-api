@@ -48,6 +48,15 @@ const options: swaggerJsdoc.Options = {
               nullable: true,
               description: 'User display name',
             },
+            isVerified: {
+              type: 'boolean',
+              description: 'Whether the user email is verified',
+            },
+            role: {
+              type: 'string',
+              enum: ['user', 'admin'],
+              description: 'User role',
+            },
             createdAt: {
               type: 'string',
               format: 'date-time',

@@ -32,7 +32,8 @@ export class TodoService implements ITodoService {
       notes: dto.notes,
       userId,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
+      subtasks: [],
     };
 
     this.todos.set(todo.id, todo);

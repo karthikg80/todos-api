@@ -50,6 +50,8 @@ export function validateRegister(data: any): { valid: boolean; errors: Validatio
     errors.push({ field: 'password', message: 'Password must be a string' });
   } else if (!isValidPassword(data.password)) {
     errors.push({ field: 'password', message: 'Password must be at least 8 characters long' });
+  } else if (data.password.length > 72) {
+    errors.push({ field: 'password', message: 'Password cannot exceed 72 characters' });
   }
 
   // Name validation (optional)
