@@ -10,13 +10,20 @@ import { validateCreateTodo, validateUpdateTodo, validateId, ValidationError } f
 import { AuthService } from './authService';
 import { authMiddleware } from './authMiddleware';
 import { adminMiddleware } from './adminMiddleware';
-import { validateRegister, validateLogin } from './authValidation';
+import { validateRegister, validateLogin, isValidEmail } from './authValidation';
 
 export function createApp(
   todoService: ITodoService = new TodoService(),
   authService?: AuthService
 ) {
   const app = express();
+  const hasPrismaCode = (error: unknown, codes: string[]): boolean => {
+    if (!error || typeof error !== 'object' || !('code' in error)) {
+      return false;
+    }
+    const code = (error as { code?: unknown }).code;
+    return typeof code === 'string' && codes.includes(code);
+  };
 
   // Trust Railway proxy for rate limiting and IP detection
   app.set('trust proxy', 1);
@@ -317,6 +324,12 @@ export function createApp(
       if (error.message === 'Invalid role') {
         return res.status(400).json({ error: error.message });
       }
+      if (hasPrismaCode(error, ['P2025'])) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (hasPrismaCode(error, ['P2023'])) {
+        return res.status(400).json({ error: 'Invalid user ID format' });
+      }
       console.error('Update role error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
@@ -339,6 +352,12 @@ export function createApp(
       await authService.deleteUser(id);
       res.json({ message: 'User deleted successfully' });
     } catch (error) {
+      if (hasPrismaCode(error, ['P2025'])) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (hasPrismaCode(error, ['P2023'])) {
+        return res.status(400).json({ error: 'Invalid user ID format' });
+      }
       console.error('Delete user error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
@@ -386,10 +405,14 @@ export function createApp(
 
       // Validate input
       if (email !== undefined) {
-        if (typeof email !== 'string' || email.trim() === '') {
+        if (typeof email !== 'string') {
           return res.status(400).json({ error: 'Invalid email' });
         }
-        if (email.length > 255) {
+        const normalizedEmail = email.trim().toLowerCase();
+        if (normalizedEmail === '' || !isValidEmail(normalizedEmail)) {
+          return res.status(400).json({ error: 'Invalid email format' });
+        }
+        if (normalizedEmail.length > 255) {
           return res.status(400).json({ error: 'Email too long' });
         }
       }

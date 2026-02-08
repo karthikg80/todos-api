@@ -8,7 +8,7 @@ export interface ValidationError {
 /**
  * Validate email format
  */
-function isValidEmail(email: string): boolean {
+export function isValidEmail(email: string): boolean {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email);
 }

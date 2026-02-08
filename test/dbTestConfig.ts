@@ -1,3 +1,5 @@
+import path from 'path';
+
 const DEFAULT_DB_REQUIRED_TEST_PATTERNS = [
   'src/auth.api.test.ts',
   'src/authService.test.ts',
@@ -18,16 +20,32 @@ function getConfiguredPatterns(): string[] {
 
 export function shouldSetupDatabaseForArgs(args: string[]): boolean {
   const patterns = getConfiguredPatterns();
-  const hasExplicitTestSelection = args.some((arg) => arg.endsWith('.ts'));
+  const explicitSelections = args.filter((arg) => arg.endsWith('.ts'));
+  const hasExplicitTestSelection = explicitSelections.length > 0;
 
   if (!hasExplicitTestSelection) {
     return true;
   }
 
-  return args.some((arg) => patterns.some((pattern) => arg.includes(pattern)));
+  return explicitSelections.some((arg) => isPatternMatch(arg, patterns));
 }
 
 export function isDbRequiredTestPath(testPath: string): boolean {
   const patterns = getConfiguredPatterns();
-  return patterns.some((pattern) => testPath.endsWith(pattern) || testPath.includes(pattern));
+  return isPatternMatch(testPath, patterns);
+}
+
+function isPatternMatch(target: string, patterns: string[]): boolean {
+  const normalizedTarget = target.replace(/\\/g, '/');
+  const targetBase = path.basename(normalizedTarget);
+
+  return patterns.some((pattern) => {
+    const normalizedPattern = pattern.replace(/\\/g, '/');
+    const patternBase = path.basename(normalizedPattern);
+    return (
+      normalizedTarget.includes(normalizedPattern) ||
+      targetBase === patternBase ||
+      normalizedTarget.endsWith(patternBase)
+    );
+  });
 }
