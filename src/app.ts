@@ -1,4 +1,6 @@
 import express, { Request, Response, NextFunction } from 'express';
+import path from 'path';
+import cors from 'cors';
 import { ITodoService } from './interfaces/ITodoService';
 import { TodoService } from './todoService';
 import { validateCreateTodo, validateUpdateTodo, validateId, ValidationError } from './validation';
@@ -12,7 +14,13 @@ export function createApp(
 ) {
   const app = express();
 
+  // Enable CORS for all routes
+  app.use(cors());
+
   app.use(express.json());
+
+  // Serve static files from public directory
+  app.use(express.static(path.join(__dirname, '../public')));
 
   // ===== Authentication Routes (Public) =====
 
