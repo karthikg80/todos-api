@@ -1786,9 +1786,17 @@
                     renderTodos();
                     updateCategoryFilter();
                 } else {
+                    todos = [];
+                    selectedTodos.clear();
+                    renderTodos();
+                    updateCategoryFilter();
                     showMessage('todosMessage', 'Failed to load todos', 'error');
                 }
             } catch (error) {
+                todos = [];
+                selectedTodos.clear();
+                renderTodos();
+                updateCategoryFilter();
                 console.error('Load todos error:', error);
             }
         }
@@ -2678,6 +2686,11 @@
             document.getElementById('navTabs').style.display = 'flex';
             document.getElementById('userBar').style.display = 'flex';
             document.querySelectorAll('.nav-tab')[0].classList.add('active');
+            // Prevent previous account data from flashing while fetching current user's data.
+            todos = [];
+            selectedTodos.clear();
+            renderTodos();
+            updateCategoryFilter();
             loadTodos();
         }
 

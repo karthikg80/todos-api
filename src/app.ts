@@ -32,6 +32,19 @@ export function createApp(
     const code = (error as { code?: unknown }).code;
     return typeof code === 'string' && codes.includes(code);
   };
+  const resolveTodoUserId = (req: Request, res: Response): string | null => {
+    // In auth-enabled mode, todo routes must never fall back to a shared user.
+    if (authService) {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return null;
+      }
+      return userId;
+    }
+
+    return req.user?.userId || 'default-user';
+  };
 
   // Trust Railway proxy for rate limiting and IP detection
   app.set('trust proxy', 1);
@@ -449,7 +462,8 @@ export function createApp(
 
   // GET /todos - Get all todos for authenticated user
   app.get('/todos', async (req: Request, res: Response) => {
-    const userId = req.user?.userId || 'default-user';
+    const userId = resolveTodoUserId(req, res);
+    if (!userId) return;
     const todos = await todoService.findAll(userId);
     res.json(todos);
   });
@@ -458,7 +472,8 @@ export function createApp(
   app.get('/todos/:id', async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       validateId(id);
 
       const todo = await todoService.findById(userId, id);
@@ -478,7 +493,8 @@ export function createApp(
   // PUT /todos/reorder - Reorder todos in bulk for authenticated user
   app.put('/todos/reorder', async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       const items = validateReorderTodos(req.body);
       const reorderedTodos = await todoService.reorder(userId, items);
 
@@ -498,7 +514,8 @@ export function createApp(
   // POST /todos - Create a new todo for authenticated user
   app.post('/todos', async (req: Request, res: Response) => {
     try {
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       const dto = validateCreateTodo(req.body);
       const todo = await todoService.create(userId, dto);
       res.status(201).json(todo);
@@ -514,7 +531,8 @@ export function createApp(
   app.put('/todos/:id', async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       validateId(id);
 
       const dto = validateUpdateTodo(req.body);
@@ -537,7 +555,8 @@ export function createApp(
   app.delete('/todos/:id', async (req: Request, res: Response) => {
     try {
       const id = req.params.id as string;
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       validateId(id);
 
       const deleted = await todoService.delete(userId, id);
@@ -558,7 +577,8 @@ export function createApp(
   app.get('/todos/:id/subtasks', async (req: Request, res: Response) => {
     try {
       const todoId = req.params.id as string;
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       validateId(todoId);
 
       const subtasks = await todoService.findSubtasks(userId, todoId);
@@ -579,7 +599,8 @@ export function createApp(
   app.post('/todos/:id/subtasks', async (req: Request, res: Response) => {
     try {
       const todoId = req.params.id as string;
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       validateId(todoId);
       const dto = validateCreateSubtask(req.body);
 
@@ -602,7 +623,8 @@ export function createApp(
     try {
       const todoId = req.params.id as string;
       const subtaskId = req.params.subtaskId as string;
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       validateId(todoId);
       validateId(subtaskId);
       const dto = validateUpdateSubtask(req.body);
@@ -626,7 +648,8 @@ export function createApp(
     try {
       const todoId = req.params.id as string;
       const subtaskId = req.params.subtaskId as string;
-      const userId = req.user?.userId || 'default-user';
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
       validateId(todoId);
       validateId(subtaskId);
 
