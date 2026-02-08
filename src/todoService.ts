@@ -1,4 +1,12 @@
-import { Todo, CreateTodoDto, UpdateTodoDto } from './types';
+import {
+  Todo,
+  Subtask,
+  CreateTodoDto,
+  UpdateTodoDto,
+  CreateSubtaskDto,
+  UpdateSubtaskDto,
+  ReorderTodoItemDto,
+} from './types';
 import { randomUUID } from 'crypto';
 import { ITodoService } from './interfaces/ITodoService';
 
@@ -71,6 +79,128 @@ export class TodoService implements ITodoService {
       return false;
     }
     return this.todos.delete(id);
+  }
+
+  async reorder(userId: string, items: ReorderTodoItemDto[]): Promise<Todo[] | null> {
+    const now = new Date();
+    const userTodos = new Map(
+      Array.from(this.todos.values())
+        .filter((todo) => todo.userId === userId)
+        .map((todo) => [todo.id, todo])
+    );
+
+    for (const item of items) {
+      if (!userTodos.has(item.id)) {
+        return null;
+      }
+    }
+
+    for (const item of items) {
+      const todo = userTodos.get(item.id)!;
+      const updatedTodo: Todo = {
+        ...todo,
+        order: item.order,
+        updatedAt: now,
+      };
+      this.todos.set(item.id, updatedTodo);
+    }
+
+    return this.findAll(userId);
+  }
+
+  async findSubtasks(userId: string, todoId: string): Promise<Subtask[] | null> {
+    const todo = this.todos.get(todoId);
+    if (!todo || todo.userId !== userId) {
+      return null;
+    }
+
+    return [...(todo.subtasks || [])].sort((a, b) => a.order - b.order);
+  }
+
+  async createSubtask(userId: string, todoId: string, dto: CreateSubtaskDto): Promise<Subtask | null> {
+    const todo = this.todos.get(todoId);
+    if (!todo || todo.userId !== userId) {
+      return null;
+    }
+
+    const subtasks = [...(todo.subtasks || [])];
+    const maxOrder = subtasks.length > 0 ? Math.max(...subtasks.map((s) => s.order)) : -1;
+    const now = new Date();
+    const subtask: Subtask = {
+      id: randomUUID(),
+      title: dto.title,
+      completed: false,
+      order: maxOrder + 1,
+      todoId,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const updatedTodo: Todo = {
+      ...todo,
+      subtasks: [...subtasks, subtask],
+      updatedAt: now,
+    };
+    this.todos.set(todoId, updatedTodo);
+    return subtask;
+  }
+
+  async updateSubtask(
+    userId: string,
+    todoId: string,
+    subtaskId: string,
+    dto: UpdateSubtaskDto
+  ): Promise<Subtask | null> {
+    const todo = this.todos.get(todoId);
+    if (!todo || todo.userId !== userId || !todo.subtasks) {
+      return null;
+    }
+
+    const idx = todo.subtasks.findIndex((subtask) => subtask.id === subtaskId);
+    if (idx === -1) {
+      return null;
+    }
+
+    const now = new Date();
+    const current = todo.subtasks[idx];
+    const updatedSubtask: Subtask = {
+      ...current,
+      ...(dto.title !== undefined && { title: dto.title }),
+      ...(dto.completed !== undefined && { completed: dto.completed }),
+      ...(dto.order !== undefined && { order: dto.order }),
+      updatedAt: now,
+    };
+
+    const updatedSubtasks = [...todo.subtasks];
+    updatedSubtasks[idx] = updatedSubtask;
+
+    const updatedTodo: Todo = {
+      ...todo,
+      subtasks: updatedSubtasks,
+      updatedAt: now,
+    };
+    this.todos.set(todoId, updatedTodo);
+    return updatedSubtask;
+  }
+
+  async deleteSubtask(userId: string, todoId: string, subtaskId: string): Promise<boolean> {
+    const todo = this.todos.get(todoId);
+    if (!todo || todo.userId !== userId || !todo.subtasks) {
+      return false;
+    }
+
+    const nextSubtasks = todo.subtasks.filter((subtask) => subtask.id !== subtaskId);
+    if (nextSubtasks.length === todo.subtasks.length) {
+      return false;
+    }
+
+    const updatedTodo: Todo = {
+      ...todo,
+      subtasks: nextSubtasks,
+      updatedAt: new Date(),
+    };
+    this.todos.set(todoId, updatedTodo);
+    return true;
   }
 
   async clear(): Promise<void> {

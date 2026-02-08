@@ -6,7 +6,15 @@ import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
 import { ITodoService } from './interfaces/ITodoService';
 import { TodoService } from './todoService';
-import { validateCreateTodo, validateUpdateTodo, validateId, ValidationError } from './validation';
+import {
+  validateCreateTodo,
+  validateUpdateTodo,
+  validateCreateSubtask,
+  validateUpdateSubtask,
+  validateReorderTodos,
+  validateId,
+  ValidationError
+} from './validation';
 import { AuthService } from './authService';
 import { authMiddleware } from './authMiddleware';
 import { adminMiddleware } from './adminMiddleware';
@@ -318,7 +326,7 @@ export function createApp(
         return res.status(400).json({ error: 'Invalid role. Must be "user" or "admin"' });
       }
 
-      await authService.updateUserRole(id, role);
+      await authService.updateUserRole(id, role as 'user' | 'admin');
       res.json({ message: 'User role updated successfully' });
     } catch (error: any) {
       if (error.message === 'Invalid role') {
@@ -467,6 +475,26 @@ export function createApp(
     }
   });
 
+  // PUT /todos/reorder - Reorder todos in bulk for authenticated user
+  app.put('/todos/reorder', async (req: Request, res: Response) => {
+    try {
+      const userId = req.user?.userId || 'default-user';
+      const items = validateReorderTodos(req.body);
+      const reorderedTodos = await todoService.reorder(userId, items);
+
+      if (!reorderedTodos) {
+        return res.status(404).json({ error: 'One or more todos not found' });
+      }
+
+      res.json(reorderedTodos);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
   // POST /todos - Create a new todo for authenticated user
   app.post('/todos', async (req: Request, res: Response) => {
     try {
@@ -515,6 +543,96 @@ export function createApp(
       const deleted = await todoService.delete(userId, id);
       if (!deleted) {
         return res.status(404).json({ error: 'Todo not found' });
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // GET /todos/:id/subtasks - Get all subtasks for a todo
+  app.get('/todos/:id/subtasks', async (req: Request, res: Response) => {
+    try {
+      const todoId = req.params.id as string;
+      const userId = req.user?.userId || 'default-user';
+      validateId(todoId);
+
+      const subtasks = await todoService.findSubtasks(userId, todoId);
+      if (subtasks === null) {
+        return res.status(404).json({ error: 'Todo not found' });
+      }
+
+      res.json(subtasks);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // POST /todos/:id/subtasks - Create a subtask for a todo
+  app.post('/todos/:id/subtasks', async (req: Request, res: Response) => {
+    try {
+      const todoId = req.params.id as string;
+      const userId = req.user?.userId || 'default-user';
+      validateId(todoId);
+      const dto = validateCreateSubtask(req.body);
+
+      const subtask = await todoService.createSubtask(userId, todoId, dto);
+      if (!subtask) {
+        return res.status(404).json({ error: 'Todo not found' });
+      }
+
+      res.status(201).json(subtask);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // PUT /todos/:id/subtasks/:subtaskId - Update a subtask
+  app.put('/todos/:id/subtasks/:subtaskId', async (req: Request, res: Response) => {
+    try {
+      const todoId = req.params.id as string;
+      const subtaskId = req.params.subtaskId as string;
+      const userId = req.user?.userId || 'default-user';
+      validateId(todoId);
+      validateId(subtaskId);
+      const dto = validateUpdateSubtask(req.body);
+
+      const subtask = await todoService.updateSubtask(userId, todoId, subtaskId, dto);
+      if (!subtask) {
+        return res.status(404).json({ error: 'Todo or subtask not found' });
+      }
+
+      res.json(subtask);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        return res.status(400).json({ error: error.message });
+      }
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // DELETE /todos/:id/subtasks/:subtaskId - Delete a subtask
+  app.delete('/todos/:id/subtasks/:subtaskId', async (req: Request, res: Response) => {
+    try {
+      const todoId = req.params.id as string;
+      const subtaskId = req.params.subtaskId as string;
+      const userId = req.user?.userId || 'default-user';
+      validateId(todoId);
+      validateId(subtaskId);
+
+      const deleted = await todoService.deleteSubtask(userId, todoId, subtaskId);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Todo or subtask not found' });
       }
 
       res.status(204).send();

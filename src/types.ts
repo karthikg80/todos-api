@@ -55,3 +55,8 @@ export interface UpdateSubtaskDto {
   completed?: boolean;
   order?: number;
 }
+
+export interface ReorderTodoItemDto {
+  id: string;
+  order: number;
+}

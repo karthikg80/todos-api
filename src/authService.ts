@@ -451,7 +451,7 @@ export class AuthService {
   /**
    * Update user role (admin only)
    */
-  async updateUserRole(userId: string, role: string): Promise<void> {
+  async updateUserRole(userId: string, role: 'user' | 'admin'): Promise<void> {
     if (!['user', 'admin'].includes(role)) {
       throw new Error('Invalid role');
     }

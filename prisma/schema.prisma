@@ -13,6 +13,17 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  user
+  admin
+}
+
+enum TodoPriority {
+  low
+  medium
+  high
+}
+
 model User {
   id                String         @id @default(uuid())
   email             String         @unique @db.VarChar(255)
@@ -22,7 +33,7 @@ model User {
   verificationToken String?        @unique @db.VarChar(255) @map("verification_token")
   resetToken        String?        @unique @db.VarChar(255) @map("reset_token")
   resetTokenExpiry  DateTime?      @map("reset_token_expiry")
-  role              String         @default("user") @db.VarChar(20)
+  role              UserRole       @default(user)
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
 
@@ -53,7 +64,7 @@ model Todo {
   category    String?   @db.VarChar(50)
   dueDate     DateTime? @map("due_date")
   order       Int       @default(0)
-  priority    String    @default("medium") @db.VarChar(10)
+  priority    TodoPriority @default(medium)
   notes       String?   @db.Text
   userId      String    @map("user_id")
   createdAt   DateTime  @default(now()) @map("created_at")

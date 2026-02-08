@@ -1,4 +1,8 @@
-import { CreateTodoDto, UpdateTodoDto } from './types';
+import {
+  CreateTodoDto,
+  UpdateTodoDto,
+  ReorderTodoItemDto,
+} from './types';
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -195,6 +199,48 @@ export function validateId(id: string): void {
   if (!id || typeof id !== 'string') {
     throw new ValidationError('Invalid ID format');
   }
+
+  const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!uuidPattern.test(id)) {
+    throw new ValidationError('Invalid ID format');
+  }
+}
+
+export function validateReorderTodos(data: any): ReorderTodoItemDto[] {
+  if (!Array.isArray(data)) {
+    throw new ValidationError('Request body must be an array');
+  }
+
+  if (data.length === 0) {
+    throw new ValidationError('At least one todo order item is required');
+  }
+
+  const seenIds = new Set<string>();
+  const items = data.map((item, index) => {
+    if (!item || typeof item !== 'object') {
+      throw new ValidationError(`Item at index ${index} must be an object`);
+    }
+
+    const id = item.id;
+    const order = item.order;
+    if (typeof id !== 'string') {
+      throw new ValidationError(`Item at index ${index} has invalid id`);
+    }
+    validateId(id);
+
+    if (typeof order !== 'number' || !Number.isInteger(order) || order < 0) {
+      throw new ValidationError(`Item at index ${index} has invalid order`);
+    }
+
+    if (seenIds.has(id)) {
+      throw new ValidationError('Duplicate todo IDs are not allowed');
+    }
+    seenIds.add(id);
+
+    return { id, order };
+  });
+
+  return items;
 }
 
 export function validateCreateSubtask(data: any) {

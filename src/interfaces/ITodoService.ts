@@ -1,4 +1,12 @@
-import { Todo, CreateTodoDto, UpdateTodoDto } from '../types';
+import {
+  Todo,
+  Subtask,
+  CreateTodoDto,
+  UpdateTodoDto,
+  CreateSubtaskDto,
+  UpdateSubtaskDto,
+  ReorderTodoItemDto,
+} from '../types';
 
 /**
  * Interface defining the contract for Todo service implementations.
@@ -44,6 +52,39 @@ export interface ITodoService {
    * @returns Promise resolving to true if deleted, false if not found
    */
   delete(userId: string, id: string): Promise<boolean>;
+
+  /**
+   * Reorder multiple todos for a user atomically when possible
+   * @param userId - The user ID who owns the todos
+   * @param items - Ordered list of todo IDs and target order values
+   * @returns Promise resolving to reordered todos or null if any todo is missing
+   */
+  reorder(userId: string, items: ReorderTodoItemDto[]): Promise<Todo[] | null>;
+
+  /**
+   * Get all subtasks for a todo
+   */
+  findSubtasks(userId: string, todoId: string): Promise<Subtask[] | null>;
+
+  /**
+   * Create a subtask under a todo
+   */
+  createSubtask(userId: string, todoId: string, dto: CreateSubtaskDto): Promise<Subtask | null>;
+
+  /**
+   * Update a specific subtask
+   */
+  updateSubtask(
+    userId: string,
+    todoId: string,
+    subtaskId: string,
+    dto: UpdateSubtaskDto
+  ): Promise<Subtask | null>;
+
+  /**
+   * Delete a specific subtask
+   */
+  deleteSubtask(userId: string, todoId: string, subtaskId: string): Promise<boolean>;
 
   /**
    * Clear all todos (primarily for testing)

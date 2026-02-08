@@ -2121,9 +2121,27 @@
         }
 
         async function toggleSubtask(todoId, subtaskId) {
-            // For now, just show a message that this feature requires backend API
-            console.log('Toggle subtask:', todoId, subtaskId);
-            // TODO: Implement subtask toggle API
+            const todo = todos.find(t => t.id === todoId);
+            if (!todo || !todo.subtasks) return;
+
+            const subtask = todo.subtasks.find(s => s.id === subtaskId);
+            if (!subtask) return;
+
+            try {
+                const response = await apiCall(`${API_URL}/todos/${todoId}/subtasks/${subtaskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ completed: !subtask.completed })
+                });
+
+                if (response && response.ok) {
+                    const updatedSubtask = await response.json();
+                    todo.subtasks = todo.subtasks.map(s => s.id === subtaskId ? updatedSubtask : s);
+                    renderTodos();
+                }
+            } catch (error) {
+                console.error('Toggle subtask failed:', error);
+            }
         }
 
         // ========== PHASE A: DRAG & DROP FUNCTIONALITY ==========
@@ -2185,19 +2203,17 @@
 
             renderTodos();
 
-            // Persist complete ordering on backend to avoid duplicate/stale order values.
+            // Persist complete ordering on backend in a single request.
             try {
-                const updateResponses = await Promise.all(
-                    todos.map((todo) =>
-                        apiCall(`${API_URL}/todos/${todo.id}`, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ order: todo.order })
-                        })
+                const response = await apiCall(`${API_URL}/todos/reorder`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(
+                        todos.map((todo) => ({ id: todo.id, order: todo.order }))
                     )
-                );
+                });
 
-                if (updateResponses.some((response) => !response || !response.ok)) {
+                if (!response || !response.ok) {
                     console.error('Failed to persist full todo ordering, reloading from server');
                     await loadTodos();
                 }

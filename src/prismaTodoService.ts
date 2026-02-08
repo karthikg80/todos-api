@@ -1,6 +1,14 @@
 import { PrismaClient } from '@prisma/client';
 import { ITodoService } from './interfaces/ITodoService';
-import { Todo, CreateTodoDto, UpdateTodoDto } from './types';
+import {
+  Todo,
+  Subtask,
+  CreateTodoDto,
+  UpdateTodoDto,
+  CreateSubtaskDto,
+  UpdateSubtaskDto,
+  ReorderTodoItemDto,
+} from './types';
 
 /**
  * Prisma-based implementation of ITodoService using PostgreSQL database.
@@ -8,6 +16,7 @@ import { Todo, CreateTodoDto, UpdateTodoDto } from './types';
  */
 export class PrismaTodoService implements ITodoService {
   constructor(private prisma: PrismaClient) {}
+  private static readonly NOT_FOUND_ERROR = 'TODO_NOT_FOUND';
 
   private hasPrismaCode(error: unknown, codes: string[]): boolean {
     if (!error || typeof error !== 'object' || !('code' in error)) {
@@ -151,6 +160,155 @@ export class PrismaTodoService implements ITodoService {
     }
   }
 
+  async reorder(userId: string, items: ReorderTodoItemDto[]): Promise<Todo[] | null> {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        for (const item of items) {
+          const updateResult = await tx.todo.updateMany({
+            where: { id: item.id, userId },
+            data: { order: item.order },
+          });
+          if (updateResult.count !== 1) {
+            throw new Error(PrismaTodoService.NOT_FOUND_ERROR);
+          }
+        }
+
+        const todos = await tx.todo.findMany({
+          where: { userId },
+          orderBy: { order: 'asc' },
+          include: {
+            subtasks: {
+              orderBy: { order: 'asc' },
+            },
+          },
+        });
+        return todos.map((todo) => this.mapPrismaToTodo(todo));
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === PrismaTodoService.NOT_FOUND_ERROR) {
+        return null;
+      }
+      if (this.hasPrismaCode(error, ['P2023'])) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async findSubtasks(userId: string, todoId: string): Promise<Subtask[] | null> {
+    try {
+      const todo = await this.prisma.todo.findFirst({
+        where: { id: todoId, userId },
+      });
+      if (!todo) {
+        return null;
+      }
+
+      const subtasks = await this.prisma.subtask.findMany({
+        where: { todoId },
+        orderBy: { order: 'asc' },
+      });
+      return subtasks.map((subtask) => this.mapPrismaToSubtask(subtask));
+    } catch (error: unknown) {
+      if (this.hasPrismaCode(error, ['P2023'])) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async createSubtask(userId: string, todoId: string, dto: CreateSubtaskDto): Promise<Subtask | null> {
+    try {
+      const todo = await this.prisma.todo.findFirst({
+        where: { id: todoId, userId },
+      });
+      if (!todo) {
+        return null;
+      }
+
+      const maxOrder = await this.prisma.subtask.findFirst({
+        where: { todoId },
+        orderBy: { order: 'desc' },
+        select: { order: true },
+      });
+
+      const subtask = await this.prisma.subtask.create({
+        data: {
+          title: dto.title,
+          completed: false,
+          order: (maxOrder?.order ?? -1) + 1,
+          todoId,
+        },
+      });
+
+      return this.mapPrismaToSubtask(subtask);
+    } catch (error: unknown) {
+      if (this.hasPrismaCode(error, ['P2023'])) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async updateSubtask(
+    userId: string,
+    todoId: string,
+    subtaskId: string,
+    dto: UpdateSubtaskDto
+  ): Promise<Subtask | null> {
+    try {
+      const todo = await this.prisma.todo.findFirst({
+        where: { id: todoId, userId },
+      });
+      if (!todo) {
+        return null;
+      }
+
+      const updateData: any = {};
+      if (dto.title !== undefined) updateData.title = dto.title;
+      if (dto.completed !== undefined) updateData.completed = dto.completed;
+      if (dto.order !== undefined) updateData.order = dto.order;
+
+      const updated = await this.prisma.subtask.updateMany({
+        where: { id: subtaskId, todoId },
+        data: updateData,
+      });
+
+      if (updated.count !== 1) {
+        return null;
+      }
+
+      const subtask = await this.prisma.subtask.findUnique({ where: { id: subtaskId } });
+      return subtask ? this.mapPrismaToSubtask(subtask) : null;
+    } catch (error: unknown) {
+      if (this.hasPrismaCode(error, ['P2023', 'P2025'])) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async deleteSubtask(userId: string, todoId: string, subtaskId: string): Promise<boolean> {
+    try {
+      const todo = await this.prisma.todo.findFirst({
+        where: { id: todoId, userId },
+      });
+      if (!todo) {
+        return false;
+      }
+
+      const deleted = await this.prisma.subtask.deleteMany({
+        where: { id: subtaskId, todoId },
+      });
+      return deleted.count === 1;
+    } catch (error: unknown) {
+      if (this.hasPrismaCode(error, ['P2023', 'P2025'])) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
   async clear(): Promise<void> {
     await this.prisma.todo.deleteMany();
   }
@@ -174,6 +332,18 @@ export class PrismaTodoService implements ITodoService {
       createdAt: prismaTodo.createdAt,
       updatedAt: prismaTodo.updatedAt,
       subtasks: prismaTodo.subtasks || undefined,
+    };
+  }
+
+  private mapPrismaToSubtask(prismaSubtask: any): Subtask {
+    return {
+      id: prismaSubtask.id,
+      title: prismaSubtask.title,
+      completed: prismaSubtask.completed,
+      order: prismaSubtask.order,
+      todoId: prismaSubtask.todoId,
+      createdAt: prismaSubtask.createdAt,
+      updatedAt: prismaSubtask.updatedAt,
     };
   }
 }
