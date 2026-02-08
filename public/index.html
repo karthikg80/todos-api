@@ -1388,7 +1388,7 @@
         // Configuration
         const API_URL = window.location.hostname === 'localhost'
             ? 'http://localhost:3000'
-            : 'https://todos.karthikg.in';
+            : window.location.origin;
 
         let currentUser = null;
         let authToken = null;
