@@ -241,6 +241,8 @@ export class AuthService {
         id: true,
         email: true,
         name: true,
+        isVerified: true,
+        role: true,
         createdAt: true,
         updatedAt: true,
       },

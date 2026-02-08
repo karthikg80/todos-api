@@ -1441,6 +1441,11 @@
                 }
             }
 
+            // If no refresh token is available, clear stale auth state on unauthorized responses.
+            if (response.status === 401 && !refreshToken && !options.skipAuth) {
+                logout();
+            }
+
             return response;
         }
 
