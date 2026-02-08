@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { EmailService } from './emailService';
 
 export interface RegisterDto {
   email: string;
@@ -20,6 +21,7 @@ export interface AuthResponse {
     name: string | null;
   };
   token: string;
+  refreshToken?: string;
 }
 
 export interface JwtPayload {
@@ -30,10 +32,13 @@ export interface JwtPayload {
 export class AuthService {
   private readonly SALT_ROUNDS = 10;
   private readonly JWT_SECRET: string;
-  private readonly JWT_EXPIRES_IN = '7d';
+  private readonly JWT_EXPIRES_IN = '15m'; // Short-lived access token
+  private readonly REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
+  private emailService: EmailService;
 
   constructor(private prisma: PrismaClient) {
     this.JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+    this.emailService = new EmailService();
 
     if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
       console.warn('WARNING: JWT_SECRET not set in production environment!');
@@ -161,5 +166,246 @@ export class AuthService {
         updatedAt: true,
       },
     });
+  }
+
+  /**
+   * Update user profile
+   * @throws Error if email already in use
+   */
+  async updateUserProfile(userId: string, data: { name?: string | null; email?: string }) {
+    // If email is being updated, check if it's already in use
+    if (data.email) {
+      const existingUser = await this.prisma.user.findFirst({
+        where: {
+          email: data.email,
+          NOT: { id: userId },
+        },
+      });
+
+      if (existingUser) {
+        throw new Error('Email already in use');
+      }
+    }
+
+    const updatedUser = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        name: data.name,
+        email: data.email,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updatedUser;
+  }
+
+  /**
+   * Create a refresh token for a user
+   */
+  private async createRefreshToken(userId: string): Promise<string> {
+    const token = jwt.sign({ userId }, this.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    const expiresAt = new Date(Date.now() + this.REFRESH_TOKEN_EXPIRES_IN);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        token,
+        userId,
+        expiresAt,
+      },
+    });
+
+    return token;
+  }
+
+  /**
+   * Refresh access token using refresh token
+   */
+  async refreshAccessToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
+    let decoded: any;
+    try {
+      decoded = jwt.verify(refreshToken, this.JWT_SECRET);
+    } catch (error) {
+      throw new Error('Invalid refresh token');
+    }
+
+    const storedToken = await this.prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+      include: { user: true },
+    });
+
+    if (!storedToken) {
+      throw new Error('Refresh token not found');
+    }
+
+    if (storedToken.expiresAt < new Date()) {
+      await this.prisma.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
+      throw new Error('Refresh token expired');
+    }
+
+    const newAccessToken = this.generateToken({
+      userId: storedToken.user.id,
+      email: storedToken.user.email,
+    });
+
+    await this.prisma.refreshToken.delete({
+      where: { id: storedToken.id },
+    });
+
+    const newRefreshToken = await this.createRefreshToken(storedToken.user.id);
+
+    return {
+      token: newAccessToken,
+      refreshToken: newRefreshToken,
+    };
+  }
+
+  /**
+   * Revoke a refresh token
+   */
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
+    await this.prisma.refreshToken.deleteMany({
+      where: { token: refreshToken },
+    });
+  }
+
+  /**
+   * Send verification email
+   */
+  async sendVerificationEmail(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error('User not found');
+
+    const token = EmailService.generateToken();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { verificationToken: token },
+    });
+
+    await this.emailService.sendVerificationEmail(user.email, token);
+  }
+
+  /**
+   * Verify email with token
+   */
+  async verifyEmail(token: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { verificationToken: token },
+    });
+
+    if (!user) throw new Error('Invalid verification token');
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isVerified: true,
+        verificationToken: null,
+      },
+    });
+  }
+
+  /**
+   * Request password reset
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      // Don't reveal if email exists
+      return;
+    }
+
+    const token = EmailService.generateToken();
+    const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        resetToken: token,
+        resetTokenExpiry: expiry,
+      },
+    });
+
+    await this.emailService.sendPasswordResetEmail(user.email, token);
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { resetToken: token },
+    });
+
+    if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
+      throw new Error('Invalid or expired reset token');
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        password: hashedPassword,
+        resetToken: null,
+        resetTokenExpiry: null,
+      },
+    });
+  }
+
+  /**
+   * Check if user is admin
+   */
+  async isAdmin(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    return user?.role === 'admin';
+  }
+
+  /**
+   * Get all users (admin only)
+   */
+  async getAllUsers() {
+    return this.prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isVerified: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * Update user role (admin only)
+   */
+  async updateUserRole(userId: string, role: string): Promise<void> {
+    if (!['user', 'admin'].includes(role)) {
+      throw new Error('Invalid role');
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { role },
+    });
+  }
+
+  /**
+   * Delete user (admin only)
+   */
+  async deleteUser(userId: string): Promise<void> {
+    await this.prisma.user.delete({ where: { id: userId } });
   }
 }
