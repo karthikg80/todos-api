@@ -79,11 +79,12 @@ export class AuthService {
       // Continue anyway - user can resend later
     }
 
-    // Generate JWT token
+    // Generate JWT token and refresh token
     const token = this.generateToken({
       userId: user.id,
       email: user.email,
     });
+    const refreshToken = await this.createRefreshToken(user.id);
 
     return {
       user: {
@@ -92,6 +93,7 @@ export class AuthService {
         name: user.name,
       },
       token,
+      refreshToken,
     };
   }
 
@@ -116,11 +118,12 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
-    // Generate JWT token
+    // Generate JWT token and refresh token
     const token = this.generateToken({
       userId: user.id,
       email: user.email,
     });
+    const refreshToken = await this.createRefreshToken(user.id);
 
     return {
       user: {
@@ -129,6 +132,7 @@ export class AuthService {
         name: user.name,
       },
       token,
+      refreshToken,
     };
   }
 
@@ -201,11 +205,14 @@ export class AuthService {
    * @throws Error if email already in use
    */
   async updateUserProfile(userId: string, data: { name?: string | null; email?: string }) {
+    // Normalize email to lowercase to match registration/login behavior
+    const normalizedEmail = data.email ? data.email.trim().toLowerCase() : undefined;
+
     // If email is being updated, check if it's already in use
-    if (data.email) {
+    if (normalizedEmail) {
       const existingUser = await this.prisma.user.findFirst({
         where: {
-          email: data.email,
+          email: normalizedEmail,
           NOT: { id: userId },
         },
       });
@@ -219,7 +226,7 @@ export class AuthService {
       where: { id: userId },
       data: {
         name: data.name,
-        email: data.email,
+        email: normalizedEmail,
       },
       select: {
         id: true,

@@ -37,7 +37,7 @@ export class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Todo App" <noreply@todo app.com>',
+        from: process.env.SMTP_FROM || '"Todo App" <noreply@todoapp.com>',
         to: email,
         subject: 'Verify your email address',
         html: `

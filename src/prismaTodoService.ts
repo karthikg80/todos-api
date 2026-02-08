@@ -73,51 +73,55 @@ export class PrismaTodoService implements ITodoService {
   }
 
   async update(userId: string, id: string, dto: UpdateTodoDto): Promise<Todo | null> {
-    try {
-      const updateData: any = {};
+    // Verify ownership first — Prisma requires a unique selector for update,
+    // and (id, userId) is not a composite unique in the schema.
+    const existing = await this.prisma.todo.findFirst({
+      where: { id, userId },
+    });
 
-      if (dto.title !== undefined) updateData.title = dto.title;
-      if (dto.description !== undefined) updateData.description = dto.description;
-      if (dto.completed !== undefined) updateData.completed = dto.completed;
-      if (dto.category !== undefined) updateData.category = dto.category;
-      if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate;
-      if (dto.order !== undefined) updateData.order = dto.order;
-      if (dto.priority !== undefined) updateData.priority = dto.priority;
-      if (dto.notes !== undefined) updateData.notes = dto.notes;
-
-      const todo = await this.prisma.todo.update({
-        where: { id, userId },
-        data: updateData,
-        include: {
-          subtasks: {
-            orderBy: { order: 'asc' },
-          },
-        },
-      });
-
-      return this.mapPrismaToTodo(todo);
-    } catch (error: any) {
-      // P2025: Record not found
-      if (error.code === 'P2025') {
-        return null;
-      }
-      throw error;
+    if (!existing) {
+      return null;
     }
+
+    const updateData: any = {};
+
+    if (dto.title !== undefined) updateData.title = dto.title;
+    if (dto.description !== undefined) updateData.description = dto.description;
+    if (dto.completed !== undefined) updateData.completed = dto.completed;
+    if (dto.category !== undefined) updateData.category = dto.category;
+    if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate;
+    if (dto.order !== undefined) updateData.order = dto.order;
+    if (dto.priority !== undefined) updateData.priority = dto.priority;
+    if (dto.notes !== undefined) updateData.notes = dto.notes;
+
+    const todo = await this.prisma.todo.update({
+      where: { id },
+      data: updateData,
+      include: {
+        subtasks: {
+          orderBy: { order: 'asc' },
+        },
+      },
+    });
+
+    return this.mapPrismaToTodo(todo);
   }
 
   async delete(userId: string, id: string): Promise<boolean> {
-    try {
-      await this.prisma.todo.delete({
-        where: { id, userId },
-      });
-      return true;
-    } catch (error: any) {
-      // P2025: Record not found
-      if (error.code === 'P2025') {
-        return false;
-      }
-      throw error;
+    // Verify ownership first — Prisma requires a unique selector for delete,
+    // and (id, userId) is not a composite unique in the schema.
+    const existing = await this.prisma.todo.findFirst({
+      where: { id, userId },
+    });
+
+    if (!existing) {
+      return false;
     }
+
+    await this.prisma.todo.delete({
+      where: { id },
+    });
+    return true;
   }
 
   async clear(): Promise<void> {
