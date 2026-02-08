@@ -919,6 +919,250 @@
                 font-size: 0.75em;
             }
         }
+
+        /* ========== PHASE B: PRIORITY, NOTES, SUBTASKS ========== */
+        .priority-selector {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .priority-btn {
+            padding: 8px 16px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .priority-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .priority-btn.active {
+            border-width: 2px;
+        }
+
+        .priority-btn.low {
+            border-color: #48dbfb;
+            color: #48dbfb;
+        }
+
+        .priority-btn.low.active {
+            background: #48dbfb;
+            color: white;
+        }
+
+        .priority-btn.medium {
+            border-color: #ffa502;
+            color: #ffa502;
+        }
+
+        .priority-btn.medium.active {
+            background: #ffa502;
+            color: white;
+        }
+
+        .priority-btn.high {
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+
+        .priority-btn.high.active {
+            background: #ff4757;
+            color: white;
+        }
+
+        .priority-badge {
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .priority-badge.low {
+            background: #48dbfb;
+            color: white;
+        }
+
+        .priority-badge.medium {
+            background: #ffa502;
+            color: white;
+        }
+
+        .priority-badge.high {
+            background: #ff4757;
+            color: white;
+        }
+
+        .notes-section {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .notes-toggle {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.9em;
+            padding: 4px 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .notes-toggle:hover {
+            text-decoration: underline;
+        }
+
+        .notes-content {
+            margin-top: 8px;
+            padding: 8px;
+            background: var(--card-bg);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .notes-textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.9em;
+            resize: vertical;
+        }
+
+        .notes-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .subtasks-section {
+            margin-top: 12px;
+        }
+
+        .subtask-list {
+            list-style: none;
+            margin-top: 8px;
+        }
+
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 8px;
+            background: var(--card-bg);
+            border-radius: 4px;
+            margin-bottom: 4px;
+            transition: background 0.2s;
+        }
+
+        .subtask-item:hover {
+            background: var(--card-hover);
+        }
+
+        .subtask-item.completed {
+            opacity: 0.6;
+        }
+
+        .subtask-item.completed .subtask-title {
+            text-decoration: line-through;
+            color: var(--text-muted);
+        }
+
+        .subtask-title {
+            flex: 1;
+            color: var(--text-primary);
+            font-size: 0.9em;
+        }
+
+        .subtask-delete {
+            background: none;
+            border: none;
+            color: #ff4757;
+            cursor: pointer;
+            font-size: 1.1em;
+            padding: 2px 6px;
+            opacity: 0.6;
+        }
+
+        .subtask-delete:hover {
+            opacity: 1;
+        }
+
+        .add-subtask-form {
+            display: flex;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .add-subtask-input {
+            flex: 1;
+            padding: 6px 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--input-bg);
+            color: var(--text-primary);
+            font-size: 0.85em;
+        }
+
+        .add-subtask-btn {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+
+        .add-subtask-btn:hover {
+            background: #5568d3;
+        }
+
+        .expand-section {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 6px 8px;
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: color 0.2s;
+            width: fit-content;
+        }
+
+        .expand-section:hover {
+            color: #5568d3;
+        }
+
+        .expand-icon {
+            font-size: 0.8em;
+            transition: transform 0.3s;
+        }
+
+        .expand-icon.expanded {
+            transform: rotate(90deg);
+        }
     </style>
 </head>
 <body>
@@ -1043,10 +1287,25 @@
                 <!-- Add Todo Form -->
                 <div class="add-todo" style="flex-direction: column; gap: 12px;">
                     <input type="text" id="todoInput" placeholder="What needs to be done?" onkeypress="handleTodoKeyPress(event)" style="width: 100%;">
-                    <div style="display: flex; gap: 10px; width: 100%;">
-                        <input type="text" id="todoCategoryInput" placeholder="Category (e.g., Work, Personal)" style="flex: 1; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
-                        <input type="datetime-local" id="todoDueDateInput" style="flex: 1; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
-                        <button class="add-btn" onclick="addTodo()" style="flex-shrink: 0;">Add</button>
+                    <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
+                        <input type="text" id="todoCategoryInput" placeholder="Category (e.g., Work, Personal)" style="flex: 1; min-width: 200px; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+                        <input type="datetime-local" id="todoDueDateInput" style="flex: 1; min-width: 200px; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <label style="font-weight: 500; color: var(--text-primary);">Priority:</label>
+                        <div class="priority-selector">
+                            <button class="priority-btn low" onclick="setPriority('low')" id="priorityLow">Low</button>
+                            <button class="priority-btn medium active" onclick="setPriority('medium')" id="priorityMedium">Medium</button>
+                            <button class="priority-btn high" onclick="setPriority('high')" id="priorityHigh">High</button>
+                        </div>
+                        <button class="add-btn" onclick="addTodo()" style="margin-left: auto;">Add Todo</button>
+                    </div>
+                    <div>
+                        <button class="expand-section" onclick="toggleNotesInput()">
+                            <span class="expand-icon" id="notesExpandIcon">▶</span>
+                            <span>Add notes (optional)</span>
+                        </button>
+                        <textarea id="todoNotesInput" class="notes-textarea" placeholder="Add detailed notes here..." style="display: none; margin-top: 8px;"></textarea>
                     </div>
                 </div>
 
@@ -1526,16 +1785,24 @@
             const input = document.getElementById('todoInput');
             const categoryInput = document.getElementById('todoCategoryInput');
             const dueDateInput = document.getElementById('todoDueDateInput');
+            const notesInput = document.getElementById('todoNotesInput');
 
             const title = input.value.trim();
             if (!title) return;
 
-            const payload = { title };
+            const payload = {
+                title,
+                priority: currentPriority
+            };
+
             if (categoryInput.value.trim()) {
                 payload.category = categoryInput.value.trim();
             }
             if (dueDateInput.value) {
                 payload.dueDate = new Date(dueDateInput.value).toISOString();
+            }
+            if (notesInput.value.trim()) {
+                payload.notes = notesInput.value.trim();
             }
 
             try {
@@ -1550,9 +1817,19 @@
                     todos.unshift(newTodo);
                     renderTodos();
                     updateCategoryFilter();
+
+                    // Clear form
                     input.value = '';
                     categoryInput.value = '';
                     dueDateInput.value = '';
+                    notesInput.value = '';
+
+                    // Reset priority to medium
+                    setPriority('medium');
+
+                    // Hide notes input
+                    notesInput.style.display = 'none';
+                    document.getElementById('notesExpandIcon').classList.remove('expanded');
                 }
             } catch (error) {
                 console.error('Add todo error:', error);
@@ -1713,10 +1990,23 @@
                             <div class="todo-content" style="flex: 1;">
                                 <div class="todo-title">${escapeHtml(todo.title)}</div>
                                 ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ''}
-                                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
+                                    ${getPriorityIcon(todo.priority)} <span class="priority-badge ${todo.priority}">${todo.priority.toUpperCase()}</span>
                                     ${todo.category ? `<span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">🏷️ ${escapeHtml(todo.category)}</span>` : ''}
                                     ${todo.dueDate ? `<span style="background: ${isOverdue ? '#ff4757' : '#48dbfb'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? '⚠️' : '📅'} ${dueDateStr}</span>` : ''}
                                 </div>
+                                ${todo.subtasks && todo.subtasks.length > 0 ? renderSubtasks(todo) : ''}
+                                ${todo.notes ? `
+                                    <div class="notes-section">
+                                        <button class="notes-toggle" onclick="toggleNotes('${todo.id}', event)">
+                                            <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
+                                            <span>📝 Notes</span>
+                                        </button>
+                                        <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
+                                            ${escapeHtml(todo.notes)}
+                                        </div>
+                                    </div>
+                                ` : ''}
                             </div>
                             <button class="delete-btn" onclick="deleteTodo('${todo.id}')">Delete</button>
                         </li>
@@ -1725,6 +2015,96 @@
             `;
 
             updateBulkActionsVisibility();
+        }
+
+        // ========== PHASE B: PRIORITY, NOTES, SUBTASKS ==========
+        let currentPriority = 'medium';
+
+        function handleTodoKeyPress(event) {
+            if (event.key === 'Enter') {
+                addTodo();
+            }
+        }
+
+        function setPriority(priority) {
+            currentPriority = priority;
+
+            // Update button states
+            document.querySelectorAll('.priority-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById(`priority${priority.charAt(0).toUpperCase() + priority.slice(1)}`).classList.add('active');
+        }
+
+        function getPriorityIcon(priority) {
+            const icons = {
+                high: '🔴',
+                medium: '🟡',
+                low: '🟢'
+            };
+            return icons[priority] || icons.medium;
+        }
+
+        function toggleNotesInput() {
+            const notesInput = document.getElementById('todoNotesInput');
+            const icon = document.getElementById('notesExpandIcon');
+
+            if (notesInput.style.display === 'none') {
+                notesInput.style.display = 'block';
+                icon.classList.add('expanded');
+            } else {
+                notesInput.style.display = 'none';
+                icon.classList.remove('expanded');
+            }
+        }
+
+        function toggleNotes(todoId, event) {
+            event.stopPropagation();
+            const content = document.getElementById(`notes-content-${todoId}`);
+            const icon = document.getElementById(`notes-icon-${todoId}`);
+
+            if (content.style.display === 'none') {
+                content.style.display = 'block';
+                icon.classList.add('expanded');
+            } else {
+                content.style.display = 'none';
+                icon.classList.remove('expanded');
+            }
+        }
+
+        function renderSubtasks(todo) {
+            const completedCount = todo.subtasks.filter(s => s.completed).length;
+            const totalCount = todo.subtasks.length;
+
+            return `
+                <div class="subtasks-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <span style="font-size: 0.85em; color: var(--text-secondary);">
+                            ☑️ Subtasks: ${completedCount}/${totalCount}
+                        </span>
+                    </div>
+                    <ul class="subtask-list">
+                        ${todo.subtasks.map(subtask => `
+                            <li class="subtask-item ${subtask.completed ? 'completed' : ''}">
+                                <input
+                                    type="checkbox"
+                                    class="todo-checkbox"
+                                    style="width: 16px; height: 16px;"
+                                    ${subtask.completed ? 'checked' : ''}
+                                    onchange="toggleSubtask('${todo.id}', '${subtask.id}')"
+                                >
+                                <span class="subtask-title">${escapeHtml(subtask.title)}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+
+        async function toggleSubtask(todoId, subtaskId) {
+            // For now, just show a message that this feature requires backend API
+            console.log('Toggle subtask:', todoId, subtaskId);
+            // TODO: Implement subtask toggle API
         }
 
         // ========== PHASE A: DRAG & DROP FUNCTIONALITY ==========
