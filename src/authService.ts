@@ -1,7 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import { EmailService } from './emailService';
+import { config } from './config';
 
 export interface RegisterDto {
   email: string;
@@ -37,12 +39,8 @@ export class AuthService {
   private emailService: EmailService;
 
   constructor(private prisma: PrismaClient) {
-    this.JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+    this.JWT_SECRET = config.jwtSecret;
     this.emailService = new EmailService();
-
-    if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-      console.warn('WARNING: JWT_SECRET not set in production environment!');
-    }
   }
 
   /**
@@ -265,7 +263,7 @@ export class AuthService {
    * Create a refresh token for a user
    */
   private async createRefreshToken(userId: string): Promise<string> {
-    const token = jwt.sign({ userId }, this.JWT_SECRET, {
+    const token = jwt.sign({ userId, jti: randomUUID() }, this.JWT_SECRET, {
       expiresIn: '7d',
     });
 
@@ -286,9 +284,8 @@ export class AuthService {
    * Refresh access token using refresh token
    */
   async refreshAccessToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
-    let decoded: any;
     try {
-      decoded = jwt.verify(refreshToken, this.JWT_SECRET);
+      jwt.verify(refreshToken, this.JWT_SECRET);
     } catch (error) {
       throw new Error('Invalid refresh token');
     }

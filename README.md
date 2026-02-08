@@ -1,6 +1,6 @@
 # Todos REST API
 
-A production-ready REST API for managing todos with CRUD operations, PostgreSQL database persistence, input validation, and comprehensive tests.
+A production-ready REST API for managing todos with JWT auth, PostgreSQL persistence, input validation, and automated tests.
 
 ## Features
 
@@ -9,10 +9,11 @@ A production-ready REST API for managing todos with CRUD operations, PostgreSQL 
 - 🐳 Docker Compose for local development
 - ✅ Input validation with detailed error messages
 - 📘 TypeScript for type safety
-- 🧪 Comprehensive test suite with 91 tests (unit + integration)
+- 🧪 Comprehensive unit + integration test suite
 - 🏗️ Clean architecture with dependency injection
 - 🔄 Graceful shutdown handling
 - 🌍 Environment-based configuration (dev/test/prod)
+- 🔐 Refresh token rotation and auth route protection
 
 ## Prerequisites
 
@@ -44,7 +45,13 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/todos_dev"
 DATABASE_URL_TEST="postgresql://postgres:postgres@localhost:5432/todos_test"
 PORT=3000
 NODE_ENV=development
+JWT_SECRET=your-secret-key-change-in-production
+CORS_ORIGINS=
 ```
+
+Production notes:
+- `JWT_SECRET` must be set to a strong non-default value.
+- `CORS_ORIGINS` must be set (comma-separated allowlist).
 
 ### 3. Start Database
 

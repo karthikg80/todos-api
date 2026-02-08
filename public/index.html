@@ -2756,7 +2756,17 @@
 
         // ========== PHASE E: SERVICE WORKER REGISTRATION ==========
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
+            window.addEventListener('load', async () => {
+                const shouldRegister =
+                    window.location.protocol === 'https:' &&
+                    window.location.hostname !== 'localhost';
+
+                if (!shouldRegister) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(registrations.map((registration) => registration.unregister()));
+                    return;
+                }
+
                 navigator.serviceWorker.register('/service-worker.js')
                     .then((registration) => {
                         console.log('Service Worker registered successfully:', registration.scope);

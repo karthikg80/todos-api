@@ -19,6 +19,7 @@ import { AuthService } from './authService';
 import { authMiddleware } from './authMiddleware';
 import { adminMiddleware } from './adminMiddleware';
 import { validateRegister, validateLogin, isValidEmail } from './authValidation';
+import { config } from './config';
 
 export function createApp(
   todoService: ITodoService = new TodoService(),
@@ -49,8 +50,20 @@ export function createApp(
   // Trust Railway proxy for rate limiting and IP detection
   app.set('trust proxy', 1);
 
-  // Enable CORS for all routes
-  app.use(cors());
+  // Restrict CORS in production; keep open defaults in dev/test unless configured.
+  if (config.corsOrigins.length > 0) {
+    app.use(cors({
+      origin: (origin, callback) => {
+        if (!origin || config.corsOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error('Not allowed by CORS'));
+      },
+      credentials: true,
+    }));
+  } else {
+    app.use(cors());
+  }
 
   app.use(express.json());
 
