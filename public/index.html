@@ -1437,7 +1437,7 @@
                     response = await fetch(url, options);
                 } else {
                     logout();
-                    return null;
+                    return response;
                 }
             }
 
@@ -2185,15 +2185,25 @@
 
             renderTodos();
 
-            // Update order on backend
+            // Persist complete ordering on backend to avoid duplicate/stale order values.
             try {
-                await apiCall(`${API_URL}/todos/${draggedId}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ order: targetIndex })
-                });
+                const updateResponses = await Promise.all(
+                    todos.map((todo) =>
+                        apiCall(`${API_URL}/todos/${todo.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ order: todo.order })
+                        })
+                    )
+                );
+
+                if (updateResponses.some((response) => !response || !response.ok)) {
+                    console.error('Failed to persist full todo ordering, reloading from server');
+                    await loadTodos();
+                }
             } catch (error) {
                 console.error('Failed to update todo order:', error);
+                await loadTodos();
             }
         }
 
@@ -2254,7 +2264,7 @@
             for (const todoId of selectedIds) {
                 try {
                     const response = await apiCall(`${API_URL}/todos/${todoId}`, {
-                        method: 'PATCH',
+                        method: 'PUT',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ completed: true })
                     });
@@ -2388,20 +2398,42 @@
 
         async function restoreTodo(todoData) {
             try {
+                const createPayload = {
+                    title: todoData.title,
+                    description: todoData.description,
+                    category: todoData.category,
+                    dueDate: todoData.dueDate,
+                    priority: todoData.priority,
+                    notes: todoData.notes,
+                };
+
                 const response = await apiCall(`${API_URL}/todos`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        title: todoData.title,
-                        description: todoData.description,
-                        category: todoData.category,
-                        dueDate: todoData.dueDate,
-                    })
+                    body: JSON.stringify(createPayload)
                 });
 
                 if (response && response.ok) {
                     const newTodo = await response.json();
-                    todos.unshift(newTodo);
+                    let todoToRender = newTodo;
+
+                    // Preserve state that is not supported in create payload.
+                    if (todoData.completed === true || Number.isInteger(todoData.order)) {
+                        const updateResponse = await apiCall(`${API_URL}/todos/${newTodo.id}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                completed: !!todoData.completed,
+                                ...(Number.isInteger(todoData.order) ? { order: todoData.order } : {})
+                            })
+                        });
+
+                        if (updateResponse && updateResponse.ok) {
+                            todoToRender = await updateResponse.json();
+                        }
+                    }
+
+                    todos.unshift(todoToRender);
                     renderTodos();
                     updateCategoryFilter();
                 }
@@ -2584,7 +2616,19 @@
         }
 
         // Logout
-        function logout() {
+        async function logout() {
+            const tokenToRevoke = refreshToken || localStorage.getItem('refreshToken');
+
+            if (tokenToRevoke) {
+                fetch(`${API_URL}/auth/logout`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refreshToken: tokenToRevoke })
+                }).catch((error) => {
+                    console.error('Logout token revocation failed:', error);
+                });
+            }
+
             authToken = null;
             refreshToken = null;
             currentUser = null;
