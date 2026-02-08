@@ -26,7 +26,14 @@ export class PrismaTodoService implements ITodoService {
         category: dto.category,
         dueDate: dto.dueDate,
         order: nextOrder,
+        priority: dto.priority || 'medium',
+        notes: dto.notes,
         userId,
+      },
+      include: {
+        subtasks: {
+          orderBy: { order: 'asc' },
+        },
       },
     });
 
@@ -37,6 +44,11 @@ export class PrismaTodoService implements ITodoService {
     const todos = await this.prisma.todo.findMany({
       where: { userId },
       orderBy: { order: 'asc' },
+      include: {
+        subtasks: {
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
     return todos.map(this.mapPrismaToTodo);
@@ -46,6 +58,11 @@ export class PrismaTodoService implements ITodoService {
     try {
       const todo = await this.prisma.todo.findFirst({
         where: { id, userId },
+        include: {
+          subtasks: {
+            orderBy: { order: 'asc' },
+          },
+        },
       });
 
       return todo ? this.mapPrismaToTodo(todo) : null;
@@ -65,10 +82,17 @@ export class PrismaTodoService implements ITodoService {
       if (dto.category !== undefined) updateData.category = dto.category;
       if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate;
       if (dto.order !== undefined) updateData.order = dto.order;
+      if (dto.priority !== undefined) updateData.priority = dto.priority;
+      if (dto.notes !== undefined) updateData.notes = dto.notes;
 
       const todo = await this.prisma.todo.update({
         where: { id, userId },
         data: updateData,
+        include: {
+          subtasks: {
+            orderBy: { order: 'asc' },
+          },
+        },
       });
 
       return this.mapPrismaToTodo(todo);
@@ -113,9 +137,12 @@ export class PrismaTodoService implements ITodoService {
       category: prismaTodo.category || undefined,
       dueDate: prismaTodo.dueDate || undefined,
       order: prismaTodo.order,
+      priority: prismaTodo.priority || 'medium',
+      notes: prismaTodo.notes || undefined,
       userId: prismaTodo.userId,
       createdAt: prismaTodo.createdAt,
       updatedAt: prismaTodo.updatedAt,
+      subtasks: prismaTodo.subtasks || undefined,
     };
   }
 }

@@ -52,11 +52,31 @@ export function validateCreateTodo(data: any): CreateTodoDto {
     }
   }
 
+  if (data.priority !== undefined) {
+    if (typeof data.priority !== 'string') {
+      throw new ValidationError('Priority must be a string');
+    }
+    if (!['low', 'medium', 'high'].includes(data.priority.toLowerCase())) {
+      throw new ValidationError('Priority must be low, medium, or high');
+    }
+  }
+
+  if (data.notes !== undefined) {
+    if (typeof data.notes !== 'string') {
+      throw new ValidationError('Notes must be a string');
+    }
+    if (data.notes.length > 10000) {
+      throw new ValidationError('Notes cannot exceed 10000 characters');
+    }
+  }
+
   return {
     title: data.title.trim(),
     description: data.description?.trim(),
     category: data.category?.trim(),
-    dueDate: data.dueDate ? new Date(data.dueDate) : undefined
+    dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
+    priority: data.priority?.toLowerCase(),
+    notes: data.notes?.trim()
   };
 }
 
@@ -136,6 +156,34 @@ export function validateUpdateTodo(data: any): UpdateTodoDto {
     update.order = data.order;
   }
 
+  if (data.priority !== undefined) {
+    if (data.priority === null) {
+      update.priority = 'medium' as any; // Reset to default
+    } else {
+      if (typeof data.priority !== 'string') {
+        throw new ValidationError('Priority must be a string');
+      }
+      if (!['low', 'medium', 'high'].includes(data.priority.toLowerCase())) {
+        throw new ValidationError('Priority must be low, medium, or high');
+      }
+      update.priority = data.priority.toLowerCase() as any;
+    }
+  }
+
+  if (data.notes !== undefined) {
+    if (data.notes === null) {
+      update.notes = null;
+    } else {
+      if (typeof data.notes !== 'string') {
+        throw new ValidationError('Notes must be a string');
+      }
+      if (data.notes.length > 10000) {
+        throw new ValidationError('Notes cannot exceed 10000 characters');
+      }
+      update.notes = data.notes.trim();
+    }
+  }
+
   if (Object.keys(update).length === 0) {
     throw new ValidationError('At least one field must be provided for update');
   }
@@ -147,4 +195,70 @@ export function validateId(id: string): void {
   if (!id || typeof id !== 'string') {
     throw new ValidationError('Invalid ID format');
   }
+}
+
+export function validateCreateSubtask(data: any) {
+  if (!data || typeof data !== 'object') {
+    throw new ValidationError('Request body must be an object');
+  }
+
+  if (!data.title || typeof data.title !== 'string') {
+    throw new ValidationError('Title is required and must be a string');
+  }
+
+  if (data.title.trim().length === 0) {
+    throw new ValidationError('Title cannot be empty');
+  }
+
+  if (data.title.length > 200) {
+    throw new ValidationError('Title cannot exceed 200 characters');
+  }
+
+  return {
+    title: data.title.trim(),
+  };
+}
+
+export function validateUpdateSubtask(data: any) {
+  if (!data || typeof data !== 'object') {
+    throw new ValidationError('Request body must be an object');
+  }
+
+  const update: any = {};
+
+  if (data.title !== undefined) {
+    if (typeof data.title !== 'string') {
+      throw new ValidationError('Title must be a string');
+    }
+    if (data.title.trim().length === 0) {
+      throw new ValidationError('Title cannot be empty');
+    }
+    if (data.title.length > 200) {
+      throw new ValidationError('Title cannot exceed 200 characters');
+    }
+    update.title = data.title.trim();
+  }
+
+  if (data.completed !== undefined) {
+    if (typeof data.completed !== 'boolean') {
+      throw new ValidationError('Completed must be a boolean');
+    }
+    update.completed = data.completed;
+  }
+
+  if (data.order !== undefined) {
+    if (typeof data.order !== 'number') {
+      throw new ValidationError('Order must be a number');
+    }
+    if (data.order < 0 || !Number.isInteger(data.order)) {
+      throw new ValidationError('Order must be a non-negative integer');
+    }
+    update.order = data.order;
+  }
+
+  if (Object.keys(update).length === 0) {
+    throw new ValidationError('At least one field must be provided for update');
+  }
+
+  return update;
 }

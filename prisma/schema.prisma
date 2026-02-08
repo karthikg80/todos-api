@@ -53,14 +53,33 @@ model Todo {
   category    String?   @db.VarChar(50)
   dueDate     DateTime? @map("due_date")
   order       Int       @default(0)
+  priority    String    @default("medium") @db.VarChar(10)
+  notes       String?   @db.Text
   userId      String    @map("user_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subtasks Subtask[]
 
   @@map("todos")
   @@index([userId, category])
   @@index([userId, dueDate])
   @@index([userId, order])
+  @@index([userId, priority])
+}
+
+model Subtask {
+  id        String   @id @default(uuid())
+  title     String   @db.VarChar(200)
+  completed Boolean  @default(false)
+  order     Int      @default(0)
+  todoId    String   @map("todo_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  todo Todo @relation(fields: [todoId], references: [id], onDelete: Cascade)
+
+  @@map("subtasks")
+  @@index([todoId, order])
 }

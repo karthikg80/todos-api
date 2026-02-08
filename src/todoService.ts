@@ -20,6 +20,8 @@ export class TodoService implements ITodoService {
       category: dto.category,
       dueDate: dto.dueDate,
       order: maxOrder + 1,
+      priority: dto.priority || 'medium',
+      notes: dto.notes,
       userId,
       createdAt: now,
       updatedAt: now
@@ -52,6 +54,8 @@ export class TodoService implements ITodoService {
       ...(dto.category !== undefined && { category: dto.category === null ? undefined : dto.category }),
       ...(dto.dueDate !== undefined && { dueDate: dto.dueDate === null ? undefined : dto.dueDate }),
       ...(dto.order !== undefined && { order: dto.order }),
+      ...(dto.priority !== undefined && { priority: dto.priority }),
+      ...(dto.notes !== undefined && { notes: dto.notes === null ? undefined : dto.notes }),
       updatedAt: new Date()
     };
 
