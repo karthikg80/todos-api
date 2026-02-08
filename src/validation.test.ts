@@ -141,8 +141,13 @@ describe('Validation', () => {
   });
 
   describe('validateId', () => {
-    it('should validate a valid ID', () => {
-      expect(() => validateId('valid-id')).not.toThrow();
+    it('should validate a valid UUID', () => {
+      expect(() => validateId('00000000-0000-1000-8000-000000000000')).not.toThrow();
+    });
+
+    it('should throw error for non-UUID string', () => {
+      expect(() => validateId('valid-id')).toThrow(ValidationError);
+      expect(() => validateId('valid-id')).toThrow('Invalid ID format');
     });
 
     it('should throw error for empty ID', () => {

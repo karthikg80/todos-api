@@ -233,17 +233,13 @@ export function createApp(
 
       const user = await authService.getUserByEmail(normalizedEmail);
 
-      if (!user) {
-        // Don't reveal if email exists
-        return res.json({ message: 'If the email exists and is not verified, a verification link has been sent' });
+      // Use the same response for not-found and already-verified to avoid
+      // leaking whether an email exists or its verification status.
+      if (user && !user.isVerified) {
+        await authService.sendVerificationEmail(user.id);
       }
 
-      if (user.isVerified) {
-        return res.status(400).json({ error: 'Email already verified' });
-      }
-
-      await authService.sendVerificationEmail(user.id);
-      res.json({ message: 'Verification email sent successfully' });
+      res.json({ message: 'If the email exists and is not verified, a verification link has been sent' });
     } catch (error) {
       console.error('Resend verification error:', error);
       res.status(500).json({ error: 'Internal server error' });
@@ -462,10 +458,14 @@ export function createApp(
 
   // GET /todos - Get all todos for authenticated user
   app.get('/todos', async (req: Request, res: Response) => {
-    const userId = resolveTodoUserId(req, res);
-    if (!userId) return;
-    const todos = await todoService.findAll(userId);
-    res.json(todos);
+    try {
+      const userId = resolveTodoUserId(req, res);
+      if (!userId) return;
+      const todos = await todoService.findAll(userId);
+      res.json(todos);
+    } catch (error) {
+      res.status(500).json({ error: 'Internal server error' });
+    }
   });
 
   // GET /todos/:id - Get a specific todo for authenticated user

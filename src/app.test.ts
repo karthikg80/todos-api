@@ -125,12 +125,20 @@ describe('Todos API', () => {
       expect(response.body.title).toBe('Test Todo');
     });
 
-    it('should return 404 for non-existent ID', async () => {
+    it('should return 404 for non-existent UUID', async () => {
       const response = await request(app)
-        .get('/todos/non-existent-id')
+        .get('/todos/00000000-0000-1000-8000-000000000000')
         .expect(404);
 
       expect(response.body.error).toBe('Todo not found');
+    });
+
+    it('should return 400 for invalid ID format', async () => {
+      const response = await request(app)
+        .get('/todos/non-existent-id')
+        .expect(400);
+
+      expect(response.body.error).toContain('Invalid ID format');
     });
   });
 
@@ -203,13 +211,22 @@ describe('Todos API', () => {
       expect(response.body.completed).toBe(true);
     });
 
-    it('should return 404 for non-existent ID', async () => {
+    it('should return 404 for non-existent UUID', async () => {
       const response = await request(app)
-        .put('/todos/non-existent-id')
+        .put('/todos/00000000-0000-1000-8000-000000000000')
         .send({ title: 'Updated' })
         .expect(404);
 
       expect(response.body.error).toBe('Todo not found');
+    });
+
+    it('should return 400 for invalid ID format', async () => {
+      const response = await request(app)
+        .put('/todos/non-existent-id')
+        .send({ title: 'Updated' })
+        .expect(400);
+
+      expect(response.body.error).toContain('Invalid ID format');
     });
 
     it('should return 400 for empty update', async () => {
@@ -275,12 +292,20 @@ describe('Todos API', () => {
         .expect(404);
     });
 
-    it('should return 404 for non-existent ID', async () => {
+    it('should return 404 for non-existent UUID', async () => {
       const response = await request(app)
-        .delete('/todos/non-existent-id')
+        .delete('/todos/00000000-0000-1000-8000-000000000000')
         .expect(404);
 
       expect(response.body.error).toBe('Todo not found');
+    });
+
+    it('should return 400 for invalid ID format', async () => {
+      const response = await request(app)
+        .delete('/todos/non-existent-id')
+        .expect(400);
+
+      expect(response.body.error).toContain('Invalid ID format');
     });
 
     it('should remove todo from list', async () => {

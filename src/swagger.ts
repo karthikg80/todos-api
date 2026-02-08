@@ -83,10 +83,82 @@ const options: swaggerJsdoc.Options = {
               type: 'boolean',
               description: 'Completion status',
             },
+            category: {
+              type: 'string',
+              maxLength: 50,
+              nullable: true,
+              description: 'Todo category',
+            },
+            dueDate: {
+              type: 'string',
+              format: 'date-time',
+              nullable: true,
+              description: 'Due date',
+            },
+            order: {
+              type: 'integer',
+              description: 'Display order (ascending)',
+            },
+            priority: {
+              type: 'string',
+              enum: ['low', 'medium', 'high'],
+              description: 'Priority level',
+            },
+            notes: {
+              type: 'string',
+              maxLength: 10000,
+              nullable: true,
+              description: 'Additional notes',
+            },
             userId: {
               type: 'string',
               format: 'uuid',
               description: 'Owner user ID',
+            },
+            createdAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Creation timestamp',
+            },
+            updatedAt: {
+              type: 'string',
+              format: 'date-time',
+              description: 'Last update timestamp',
+            },
+            subtasks: {
+              type: 'array',
+              items: {
+                $ref: '#/components/schemas/Subtask',
+              },
+              description: 'Child subtasks',
+            },
+          },
+        },
+        Subtask: {
+          type: 'object',
+          properties: {
+            id: {
+              type: 'string',
+              format: 'uuid',
+              description: 'Subtask ID',
+            },
+            title: {
+              type: 'string',
+              maxLength: 200,
+              description: 'Subtask title',
+            },
+            completed: {
+              type: 'boolean',
+              description: 'Completion status',
+            },
+            order: {
+              type: 'integer',
+              description: 'Display order (ascending)',
+            },
+            todoId: {
+              type: 'string',
+              format: 'uuid',
+              description: 'Parent todo ID',
             },
             createdAt: {
               type: 'string',
@@ -108,7 +180,11 @@ const options: swaggerJsdoc.Options = {
             },
             token: {
               type: 'string',
-              description: 'JWT authentication token',
+              description: 'JWT access token (short-lived)',
+            },
+            refreshToken: {
+              type: 'string',
+              description: 'Refresh token for obtaining new access tokens',
             },
           },
         },
