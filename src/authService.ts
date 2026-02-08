@@ -72,12 +72,15 @@ export class AuthService {
     });
 
     // Send verification email
+    // TEMPORARILY DISABLED FOR DEBUGGING
+    /*
     try {
       await this.sendVerificationEmail(user.id);
     } catch (error) {
       console.error('Failed to send verification email:', error);
       // Continue anyway - user can resend later
     }
+    */
 
     // Generate JWT token
     const token = this.generateToken({
