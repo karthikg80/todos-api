@@ -9,6 +9,10 @@ import { isDbRequiredTestPath } from './dbTestConfig';
  * Cleans up test database to ensure test isolation.
  */
 beforeEach(async () => {
+  if (process.env.SKIP_DB_SETUP === 'true') {
+    return;
+  }
+
   const testPath = expect.getState().testPath || '';
   const requiresDb = isDbRequiredTestPath(testPath);
 

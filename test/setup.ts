@@ -13,6 +13,11 @@ dotenv.config();
  * Ensures test database schema is up to date.
  */
 export default async function globalSetup() {
+  if (process.env.SKIP_DB_SETUP === 'true') {
+    console.log('\n⏭️  Skipping test database setup (SKIP_DB_SETUP=true)\n');
+    return;
+  }
+
   if (!shouldSetupDatabaseForArgs(process.argv.slice(2))) {
     console.log('\n⏭️  Skipping test database setup (no DB-backed tests selected)\n');
     process.env.SKIP_DB_TEST_SETUP = 'true';
