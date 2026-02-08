@@ -635,10 +635,25 @@
 
             <!-- Todos View -->
             <div id="todosView" class="view">
-                <div class="add-todo">
-                    <input type="text" id="todoInput" placeholder="What needs to be done?" onkeypress="handleTodoKeyPress(event)">
-                    <button class="add-btn" onclick="addTodo()">Add</button>
+                <!-- Category Filter -->
+                <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <label style="font-weight: 500; color: var(--text-primary);">Filter:</label>
+                    <select id="categoryFilter" onchange="filterTodos()" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); cursor: pointer;">
+                        <option value="">All Categories</option>
+                    </select>
+                    <button onclick="clearFilters()" style="padding: 8px 16px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; color: var(--text-primary);">Clear</button>
                 </div>
+
+                <!-- Add Todo Form -->
+                <div class="add-todo" style="flex-direction: column; gap: 12px;">
+                    <input type="text" id="todoInput" placeholder="What needs to be done?" onkeypress="handleTodoKeyPress(event)" style="width: 100%;">
+                    <div style="display: flex; gap: 10px; width: 100%;">
+                        <input type="text" id="todoCategoryInput" placeholder="Category (e.g., Work, Personal)" style="flex: 1; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+                        <input type="datetime-local" id="todoDueDateInput" style="flex: 1; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
+                        <button class="add-btn" onclick="addTodo()" style="flex-shrink: 0;">Add</button>
+                    </div>
+                </div>
+
                 <div id="todosContent">
                     <div class="loading">
                         <div class="spinner"></div>
@@ -1053,6 +1068,7 @@
                 if (response && response.ok) {
                     todos = await response.json();
                     renderTodos();
+                    updateCategoryFilter();
                 } else {
                     showMessage('todosMessage', 'Failed to load todos', 'error');
                 }
@@ -1064,22 +1080,35 @@
         // Add todo
         async function addTodo() {
             const input = document.getElementById('todoInput');
-            const title = input.value.trim();
+            const categoryInput = document.getElementById('todoCategoryInput');
+            const dueDateInput = document.getElementById('todoDueDateInput');
 
+            const title = input.value.trim();
             if (!title) return;
+
+            const payload = { title };
+            if (categoryInput.value.trim()) {
+                payload.category = categoryInput.value.trim();
+            }
+            if (dueDateInput.value) {
+                payload.dueDate = new Date(dueDateInput.value).toISOString();
+            }
 
             try {
                 const response = await apiCall(`${API_URL}/todos`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title })
+                    body: JSON.stringify(payload)
                 });
 
                 if (response && response.ok) {
                     const newTodo = await response.json();
                     todos.unshift(newTodo);
                     renderTodos();
+                    updateCategoryFilter();
                     input.value = '';
+                    categoryInput.value = '';
+                    dueDateInput.value = '';
                 }
             } catch (error) {
                 console.error('Add todo error:', error);
@@ -1126,6 +1155,40 @@
             }
         }
 
+        // Update category filter dropdown
+        function updateCategoryFilter() {
+            const categories = [...new Set(todos.map(t => t.category).filter(Boolean))];
+            const filterSelect = document.getElementById('categoryFilter');
+            const currentValue = filterSelect.value;
+
+            filterSelect.innerHTML = '<option value="">All Categories</option>' +
+                categories.map(cat => `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`).join('');
+
+            if (categories.includes(currentValue)) {
+                filterSelect.value = currentValue;
+            }
+        }
+
+        // Filter todos by category
+        function filterTodosList(todosList) {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+
+            if (!categoryFilter) return todosList;
+
+            return todosList.filter(todo => todo.category === categoryFilter);
+        }
+
+        // Called when filter changes
+        function filterTodos() {
+            renderTodos();
+        }
+
+        // Clear all filters
+        function clearFilters() {
+            document.getElementById('categoryFilter').value = '';
+            renderTodos();
+        }
+
         // Render todos
         function renderTodos() {
             const container = document.getElementById('todosContent');
@@ -1140,9 +1203,15 @@
                 return;
             }
 
+            const filteredTodos = filterTodosList(todos);
+
             container.innerHTML = `
                 <ul class="todos-list">
-                    ${todos.map(todo => `
+                    ${filteredTodos.map(todo => {
+                        const isOverdue = todo.dueDate && !todo.completed && new Date(todo.dueDate) < new Date();
+                        const dueDateStr = todo.dueDate ? new Date(todo.dueDate).toLocaleString() : '';
+
+                        return `
                         <li class="todo-item ${todo.completed ? 'completed' : ''}">
                             <input
                                 type="checkbox"
@@ -1150,13 +1219,17 @@
                                 ${todo.completed ? 'checked' : ''}
                                 onchange="toggleTodo('${todo.id}')"
                             >
-                            <div class="todo-content">
+                            <div class="todo-content" style="flex: 1;">
                                 <div class="todo-title">${escapeHtml(todo.title)}</div>
                                 ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ''}
+                                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
+                                    ${todo.category ? `<span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">🏷️ ${escapeHtml(todo.category)}</span>` : ''}
+                                    ${todo.dueDate ? `<span style="background: ${isOverdue ? '#ff4757' : '#48dbfb'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? '⚠️' : '📅'} ${dueDateStr}</span>` : ''}
+                                </div>
                             </div>
                             <button class="delete-btn" onclick="deleteTodo('${todo.id}')">Delete</button>
                         </li>
-                    `).join('')}
+                    `}).join('')}
                 </ul>
             `;
         }
