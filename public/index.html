@@ -1770,6 +1770,19 @@
                 const response = await apiCall(`${API_URL}/todos`);
                 if (response && response.ok) {
                     todos = await response.json();
+
+                    // DEBUG: Log what API returned
+                    console.log('📥 Loaded todos from API:', todos.length);
+                    todos.forEach((todo, i) => {
+                        console.log(`Todo ${i}:`, {
+                            id: todo.id,
+                            title: todo.title,
+                            priority: todo.priority,
+                            notes: todo.notes,
+                            notesLength: todo.notes ? todo.notes.length : 0
+                        });
+                    });
+
                     renderTodos();
                     updateCategoryFilter();
                 } else {
