@@ -46,11 +46,14 @@ DATABASE_URL_TEST="postgresql://postgres:postgres@localhost:5432/todos_test"
 PORT=3000
 NODE_ENV=development
 JWT_SECRET=your-secret-key-change-in-production
+JWT_ACCESS_SECRET=your-access-jwt-secret-change-in-production
+JWT_REFRESH_SECRET=your-refresh-jwt-secret-change-in-production
 CORS_ORIGINS=
 ```
 
 Production notes:
-- `JWT_SECRET` must be set to a strong non-default value.
+- `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be set to strong, different values.
+- `JWT_SECRET` is supported as a backward-compatibility fallback only.
 - `CORS_ORIGINS` must be set (comma-separated allowlist).
 
 ### 3. Start Database

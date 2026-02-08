@@ -1,4 +1,4 @@
-import { validateCreateTodo, validateUpdateTodo, validateId, ValidationError } from './validation';
+import { validateCreateTodo, validateUpdateTodo, validateId, validateReorderTodos, ValidationError } from './validation';
 
 describe('Validation', () => {
   describe('validateCreateTodo', () => {
@@ -158,6 +158,24 @@ describe('Validation', () => {
     it('should throw error for non-string ID', () => {
       expect(() => validateId(null as any)).toThrow(ValidationError);
       expect(() => validateId(123 as any)).toThrow(ValidationError);
+    });
+  });
+
+  describe('validateReorderTodos', () => {
+    it('should validate a valid reorder payload', () => {
+      const items = validateReorderTodos([
+        { id: '00000000-0000-1000-8000-000000000001', order: 0 },
+        { id: '00000000-0000-1000-8000-000000000002', order: 1 },
+      ]);
+      expect(items).toHaveLength(2);
+    });
+
+    it('should throw when payload exceeds max item limit', () => {
+      const payload = Array.from({ length: 501 }, (_, i) => ({
+        id: `00000000-0000-1000-8000-${String(i + 1).padStart(12, '0')}`,
+        order: i,
+      }));
+      expect(() => validateReorderTodos(payload)).toThrow('Cannot reorder more than 500 todos at once');
     });
   });
 });

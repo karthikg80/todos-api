@@ -21,5 +21,8 @@ beforeEach(async () => {
   }
 
   // Clean up test database before each test
+  await prisma.refreshToken.deleteMany();
+  await prisma.subtask.deleteMany();
   await prisma.todo.deleteMany();
+  await prisma.user.deleteMany();
 });

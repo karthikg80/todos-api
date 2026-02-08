@@ -33,13 +33,16 @@ export interface JwtPayload {
 
 export class AuthService {
   private readonly SALT_ROUNDS = 10;
-  private readonly JWT_SECRET: string;
+  private readonly ACCESS_JWT_SECRET: string;
+  private readonly REFRESH_JWT_SECRET: string;
   private readonly JWT_EXPIRES_IN = '15m'; // Short-lived access token
   private readonly REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
   private emailService: EmailService;
 
   constructor(private prisma: PrismaClient) {
-    this.JWT_SECRET = process.env.JWT_SECRET || config.jwtSecret;
+    // Allow tests to override via process.env before constructing AuthService.
+    this.ACCESS_JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || config.accessJwtSecret;
+    this.REFRESH_JWT_SECRET = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || config.refreshJwtSecret;
     this.emailService = new EmailService();
   }
 
@@ -140,7 +143,7 @@ export class AuthService {
    */
   verifyToken(token: string): JwtPayload {
     try {
-      const payload = jwt.verify(token, this.JWT_SECRET) as JwtPayload;
+      const payload = jwt.verify(token, this.ACCESS_JWT_SECRET) as JwtPayload;
       return payload;
     } catch (error: any) {
       if (error.name === 'TokenExpiredError') {
@@ -157,7 +160,7 @@ export class AuthService {
    * Generate JWT token for user
    */
   private generateToken(payload: JwtPayload): string {
-    return jwt.sign(payload, this.JWT_SECRET, {
+    return jwt.sign(payload, this.ACCESS_JWT_SECRET, {
       expiresIn: this.JWT_EXPIRES_IN,
     });
   }
@@ -263,7 +266,7 @@ export class AuthService {
    * Create a refresh token for a user
    */
   private async createRefreshToken(userId: string): Promise<string> {
-    const token = jwt.sign({ userId, jti: randomUUID() }, this.JWT_SECRET, {
+    const token = jwt.sign({ userId, jti: randomUUID() }, this.REFRESH_JWT_SECRET, {
       expiresIn: '7d',
     });
 
@@ -285,7 +288,7 @@ export class AuthService {
    */
   async refreshAccessToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
     try {
-      jwt.verify(refreshToken, this.JWT_SECRET);
+      jwt.verify(refreshToken, this.REFRESH_JWT_SECRET);
     } catch (error) {
       throw new Error('Invalid refresh token');
     }
@@ -432,7 +435,10 @@ export class AuthService {
   /**
    * Get all users (admin only)
    */
-  async getAllUsers() {
+  async getAllUsers(options?: { limit?: number; offset?: number }) {
+    const limit = options?.limit ?? 50;
+    const offset = options?.offset ?? 0;
+
     return this.prisma.user.findMany({
       select: {
         id: true,
@@ -444,6 +450,8 @@ export class AuthService {
         updatedAt: true,
       },
       orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: offset,
     });
   }
 

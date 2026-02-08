@@ -219,29 +219,37 @@ export class PrismaTodoService implements ITodoService {
 
   async createSubtask(userId: string, todoId: string, dto: CreateSubtaskDto): Promise<Subtask | null> {
     try {
-      const todo = await this.prisma.todo.findFirst({
-        where: { id: todoId, userId },
-      });
-      if (!todo) {
-        return null;
-      }
+      const subtask = await this.prisma.$transaction(async (tx) => {
+        // Lock the parent todo row so concurrent subtask inserts for the same todo
+        // are serialized and cannot compute the same next order value.
+        const todoRows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id"
+          FROM "todos"
+          WHERE "id" = ${todoId} AND "user_id" = ${userId}
+          FOR UPDATE
+        `;
 
-      const maxOrder = await this.prisma.subtask.findFirst({
-        where: { todoId },
-        orderBy: { order: 'desc' },
-        select: { order: true },
+        if (todoRows.length === 0) {
+          return null;
+        }
+
+        const maxOrder = await tx.subtask.findFirst({
+          where: { todoId },
+          orderBy: { order: 'desc' },
+          select: { order: true },
+        });
+
+        return tx.subtask.create({
+          data: {
+            title: dto.title,
+            completed: false,
+            order: (maxOrder?.order ?? -1) + 1,
+            todoId,
+          },
+        });
       });
 
-      const subtask = await this.prisma.subtask.create({
-        data: {
-          title: dto.title,
-          completed: false,
-          order: (maxOrder?.order ?? -1) + 1,
-          todoId,
-        },
-      });
-
-      return this.mapPrismaToSubtask(subtask);
+      return subtask ? this.mapPrismaToSubtask(subtask) : null;
     } catch (error: unknown) {
       if (this.hasPrismaCode(error, ['P2023'])) {
         return null;

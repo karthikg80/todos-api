@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import cors from 'cors';
+import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './swagger';
@@ -66,6 +67,7 @@ export function createApp(
   }
 
   app.use(express.json());
+  app.use(helmet());
 
   // Serve static files from public directory
   app.use(express.static(path.join(__dirname, '../public')));
@@ -330,7 +332,20 @@ export function createApp(
     }
 
     try {
-      const users = await authService.getAllUsers();
+      const rawLimit = req.query.limit as string | undefined;
+      const rawOffset = req.query.offset as string | undefined;
+
+      const limit = rawLimit ? Number.parseInt(rawLimit, 10) : 50;
+      const offset = rawOffset ? Number.parseInt(rawOffset, 10) : 0;
+
+      if (!Number.isInteger(limit) || limit < 1 || limit > 200) {
+        return res.status(400).json({ error: 'limit must be an integer between 1 and 200' });
+      }
+      if (!Number.isInteger(offset) || offset < 0) {
+        return res.status(400).json({ error: 'offset must be a non-negative integer' });
+      }
+
+      const users = await authService.getAllUsers({ limit, offset });
       res.json(users);
     } catch (error) {
       console.error('Get users error:', error);

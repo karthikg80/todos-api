@@ -11,6 +11,8 @@ export class ValidationError extends Error {
   }
 }
 
+const MAX_REORDER_ITEMS = 500;
+
 export function validateCreateTodo(data: any): CreateTodoDto {
   if (!data || typeof data !== 'object') {
     throw new ValidationError('Request body must be an object');
@@ -213,6 +215,9 @@ export function validateReorderTodos(data: any): ReorderTodoItemDto[] {
 
   if (data.length === 0) {
     throw new ValidationError('At least one todo order item is required');
+  }
+  if (data.length > MAX_REORDER_ITEMS) {
+    throw new ValidationError(`Cannot reorder more than ${MAX_REORDER_ITEMS} todos at once`);
   }
 
   const seenIds = new Set<string>();
