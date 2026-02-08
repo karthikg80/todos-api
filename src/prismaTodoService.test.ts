@@ -101,18 +101,16 @@ describe('PrismaTodoService (Integration)', () => {
       expect(titles).toContain('Todo 3');
     });
 
-    it('should return todos in descending order by creation date', async () => {
+    it('should return todos in ascending order by order field', async () => {
       const todo1 = await service.create(TEST_USER_ID, { title: 'First' });
-      await new Promise(resolve => setTimeout(resolve, 10)); // Small delay
       const todo2 = await service.create(TEST_USER_ID, { title: 'Second' });
-      await new Promise(resolve => setTimeout(resolve, 10));
       const todo3 = await service.create(TEST_USER_ID, { title: 'Third' });
 
       const todos = await service.findAll(TEST_USER_ID);
 
-      expect(todos[0].id).toBe(todo3.id); // Most recent first
+      expect(todos[0].id).toBe(todo1.id); // Lowest order first
       expect(todos[1].id).toBe(todo2.id);
-      expect(todos[2].id).toBe(todo1.id);
+      expect(todos[2].id).toBe(todo3.id);
     });
   });
 

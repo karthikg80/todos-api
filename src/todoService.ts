@@ -32,7 +32,9 @@ export class TodoService implements ITodoService {
   }
 
   async findAll(userId: string): Promise<Todo[]> {
-    return Array.from(this.todos.values()).filter(todo => todo.userId === userId);
+    return Array.from(this.todos.values())
+      .filter(todo => todo.userId === userId)
+      .sort((a, b) => a.order - b.order);
   }
 
   async findById(userId: string, id: string): Promise<Todo | null> {

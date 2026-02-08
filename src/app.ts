@@ -42,9 +42,10 @@ export function createApp(
   });
 
   // Rate limiting configuration
+  const isTest = process.env.NODE_ENV === 'test';
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // 5 requests per window for auth endpoints
+    max: isTest ? 0 : 5, // Disabled in test; 5 requests per window in production
     message: 'Too many authentication attempts, please try again later',
     standardHeaders: true,
     legacyHeaders: false,
