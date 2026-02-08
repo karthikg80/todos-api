@@ -666,6 +666,19 @@
             <div id="profileView" class="view">
                 <div class="message" id="profileMessage"></div>
 
+                <!-- Email Verification Banner -->
+                <div id="verificationBanner" style="display: none; background: #fff3cd; border: 1px solid #ffc107; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <strong style="color: #856404;">⚠️ Email Not Verified</strong>
+                            <p style="color: #856404; margin-top: 4px; font-size: 0.9em;">Please verify your email address to access all features.</p>
+                        </div>
+                        <button onclick="resendVerification()" style="padding: 8px 16px; background: #ffc107; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
+                            Resend Email
+                        </button>
+                    </div>
+                </div>
+
                 <div class="profile-section">
                     <h3>Account Information</h3>
                     <div class="info-row">
@@ -1028,6 +1041,41 @@
             document.getElementById('profileCreated').textContent = new Date(currentUser.createdAt).toLocaleDateString();
             document.getElementById('updateName').value = currentUser.name || '';
             document.getElementById('updateEmail').value = currentUser.email;
+
+            // Show/hide verification banner
+            const verificationBanner = document.getElementById('verificationBanner');
+            if (verificationBanner) {
+                verificationBanner.style.display = currentUser.isVerified ? 'none' : 'block';
+            }
+        }
+
+        // Resend verification email
+        async function resendVerification() {
+            hideMessage('profileMessage');
+
+            if (!currentUser || !currentUser.email) {
+                showMessage('profileMessage', 'User email not found', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/auth/resend-verification`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: currentUser.email })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showMessage('profileMessage', 'Verification email sent! Please check your inbox.', 'success');
+                } else {
+                    showMessage('profileMessage', data.error || 'Failed to send verification email', 'error');
+                }
+            } catch (error) {
+                showMessage('profileMessage', 'Network error. Please try again.', 'error');
+                console.error('Resend verification error:', error);
+            }
         }
 
         // Handle update profile
