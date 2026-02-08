@@ -10,11 +10,22 @@ export class PrismaTodoService implements ITodoService {
   constructor(private prisma: PrismaClient) {}
 
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
+    // Calculate next order: max order + 1 for this user
+    const maxOrderTodo = await this.prisma.todo.findFirst({
+      where: { userId },
+      orderBy: { order: 'desc' },
+      select: { order: true },
+    });
+    const nextOrder = (maxOrderTodo?.order ?? -1) + 1;
+
     const todo = await this.prisma.todo.create({
       data: {
         title: dto.title,
         description: dto.description,
         completed: false,
+        category: dto.category,
+        dueDate: dto.dueDate,
+        order: nextOrder,
         userId,
       },
     });
@@ -25,7 +36,7 @@ export class PrismaTodoService implements ITodoService {
   async findAll(userId: string): Promise<Todo[]> {
     const todos = await this.prisma.todo.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { order: 'asc' },
     });
 
     return todos.map(this.mapPrismaToTodo);
@@ -46,13 +57,18 @@ export class PrismaTodoService implements ITodoService {
 
   async update(userId: string, id: string, dto: UpdateTodoDto): Promise<Todo | null> {
     try {
+      const updateData: any = {};
+
+      if (dto.title !== undefined) updateData.title = dto.title;
+      if (dto.description !== undefined) updateData.description = dto.description;
+      if (dto.completed !== undefined) updateData.completed = dto.completed;
+      if (dto.category !== undefined) updateData.category = dto.category;
+      if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate;
+      if (dto.order !== undefined) updateData.order = dto.order;
+
       const todo = await this.prisma.todo.update({
         where: { id, userId },
-        data: {
-          title: dto.title,
-          description: dto.description,
-          completed: dto.completed,
-        },
+        data: updateData,
       });
 
       return this.mapPrismaToTodo(todo);
@@ -94,6 +110,9 @@ export class PrismaTodoService implements ITodoService {
       title: prismaTodo.title,
       description: prismaTodo.description || undefined,
       completed: prismaTodo.completed,
+      category: prismaTodo.category || undefined,
+      dueDate: prismaTodo.dueDate || undefined,
+      order: prismaTodo.order,
       userId: prismaTodo.userId,
       createdAt: prismaTodo.createdAt,
       updatedAt: prismaTodo.updatedAt,

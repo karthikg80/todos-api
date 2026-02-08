@@ -126,6 +126,16 @@ export function validateUpdateTodo(data: any): UpdateTodoDto {
     }
   }
 
+  if (data.order !== undefined) {
+    if (typeof data.order !== 'number') {
+      throw new ValidationError('Order must be a number');
+    }
+    if (data.order < 0 || !Number.isInteger(data.order)) {
+      throw new ValidationError('Order must be a non-negative integer');
+    }
+    update.order = data.order;
+  }
+
   if (Object.keys(update).length === 0) {
     throw new ValidationError('At least one field must be provided for update');
   }

@@ -7,11 +7,19 @@ export class TodoService implements ITodoService {
 
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     const now = new Date();
+
+    // Calculate next order: max order + 1 for this user
+    const userTodos = Array.from(this.todos.values()).filter(t => t.userId === userId);
+    const maxOrder = userTodos.length > 0 ? Math.max(...userTodos.map(t => t.order)) : -1;
+
     const todo: Todo = {
       id: randomUUID(),
       title: dto.title,
       description: dto.description,
       completed: false,
+      category: dto.category,
+      dueDate: dto.dueDate,
+      order: maxOrder + 1,
       userId,
       createdAt: now,
       updatedAt: now
@@ -43,6 +51,7 @@ export class TodoService implements ITodoService {
       ...(dto.completed !== undefined && { completed: dto.completed }),
       ...(dto.category !== undefined && { category: dto.category === null ? undefined : dto.category }),
       ...(dto.dueDate !== undefined && { dueDate: dto.dueDate === null ? undefined : dto.dueDate }),
+      ...(dto.order !== undefined && { order: dto.order }),
       updatedAt: new Date()
     };
 

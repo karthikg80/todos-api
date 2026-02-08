@@ -52,6 +52,7 @@ model Todo {
   completed   Boolean   @default(false)
   category    String?   @db.VarChar(50)
   dueDate     DateTime? @map("due_date")
+  order       Int       @default(0)
   userId      String    @map("user_id")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
@@ -61,4 +62,5 @@ model Todo {
   @@map("todos")
   @@index([userId, category])
   @@index([userId, dueDate])
+  @@index([userId, order])
 }

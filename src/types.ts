@@ -5,6 +5,7 @@ export interface Todo {
   completed: boolean;
   category?: string;
   dueDate?: Date;
+  order: number;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -23,4 +24,5 @@ export interface UpdateTodoDto {
   completed?: boolean;
   category?: string | null;
   dueDate?: Date | null;
+  order?: number;
 }
