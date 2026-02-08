@@ -94,16 +94,6 @@ export class PrismaTodoService implements ITodoService {
 
   async update(userId: string, id: string, dto: UpdateTodoDto): Promise<Todo | null> {
     try {
-      // Verify ownership first — Prisma requires a unique selector for update,
-      // and (id, userId) is not a composite unique in the schema.
-      const existing = await this.prisma.todo.findFirst({
-        where: { id, userId },
-      });
-
-      if (!existing) {
-        return null;
-      }
-
       const updateData: any = {};
 
       if (dto.title !== undefined) updateData.title = dto.title;
@@ -115,20 +105,34 @@ export class PrismaTodoService implements ITodoService {
       if (dto.priority !== undefined) updateData.priority = dto.priority;
       if (dto.notes !== undefined) updateData.notes = dto.notes;
 
-      const todo = await this.prisma.todo.update({
-        where: { id },
-        data: updateData,
-        include: {
-          subtasks: {
-            orderBy: { order: 'asc' },
+      if (Object.keys(updateData).length === 0) {
+        return this.findById(userId, id);
+      }
+
+      const todo = await this.prisma.$transaction(async (tx) => {
+        const result = await tx.todo.updateMany({
+          where: { id, userId },
+          data: updateData,
+        });
+
+        if (result.count !== 1) {
+          return null;
+        }
+
+        return tx.todo.findFirst({
+          where: { id, userId },
+          include: {
+            subtasks: {
+              orderBy: { order: 'asc' },
+            },
           },
-        },
+        });
       });
 
-      return this.mapPrismaToTodo(todo);
+      return todo ? this.mapPrismaToTodo(todo) : null;
     } catch (error: unknown) {
-      // Invalid UUID or race where row disappears before update.
-      if (this.hasPrismaCode(error, ['P2023', 'P2025'])) {
+      // Invalid UUID format.
+      if (this.hasPrismaCode(error, ['P2023'])) {
         return null;
       }
       throw error;
@@ -137,23 +141,13 @@ export class PrismaTodoService implements ITodoService {
 
   async delete(userId: string, id: string): Promise<boolean> {
     try {
-      // Verify ownership first — Prisma requires a unique selector for delete,
-      // and (id, userId) is not a composite unique in the schema.
-      const existing = await this.prisma.todo.findFirst({
+      const result = await this.prisma.todo.deleteMany({
         where: { id, userId },
       });
-
-      if (!existing) {
-        return false;
-      }
-
-      await this.prisma.todo.delete({
-        where: { id },
-      });
-      return true;
+      return result.count === 1;
     } catch (error: unknown) {
-      // Invalid UUID or race where row disappears before delete.
-      if (this.hasPrismaCode(error, ['P2023', 'P2025'])) {
+      // Invalid UUID format.
+      if (this.hasPrismaCode(error, ['P2023'])) {
         return false;
       }
       throw error;

@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { randomUUID } from 'crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { EmailService } from './emailService';
 import { config } from './config';
 
@@ -165,6 +165,19 @@ export class AuthService {
     });
   }
 
+  private hashRefreshToken(token: string): string {
+    return createHmac('sha256', this.REFRESH_JWT_SECRET).update(token).digest('hex');
+  }
+
+  private timingSafeStringEqual(a: string, b: string): boolean {
+    const aBuffer = Buffer.from(a, 'utf8');
+    const bBuffer = Buffer.from(b, 'utf8');
+    if (aBuffer.length !== bBuffer.length) {
+      return false;
+    }
+    return timingSafeEqual(aBuffer, bBuffer);
+  }
+
   /**
    * Get user by ID (without password)
    */
@@ -269,12 +282,13 @@ export class AuthService {
     const token = jwt.sign({ userId, jti: randomUUID() }, this.REFRESH_JWT_SECRET, {
       expiresIn: '7d',
     });
+    const hashedToken = this.hashRefreshToken(token);
 
     const expiresAt = new Date(Date.now() + this.REFRESH_TOKEN_EXPIRES_IN);
 
     await this.prisma.refreshToken.create({
       data: {
-        token,
+        token: hashedToken,
         userId,
         expiresAt,
       },
@@ -293,13 +307,34 @@ export class AuthService {
       throw new Error('Invalid refresh token');
     }
 
-    const storedToken = await this.prisma.refreshToken.findUnique({
-      where: { token: refreshToken },
+    const hashedToken = this.hashRefreshToken(refreshToken);
+
+    let storedToken = await this.prisma.refreshToken.findUnique({
+      where: { token: hashedToken },
       include: { user: true },
     });
 
+    // Backward compatibility: allow one-time rotation from older plaintext rows.
     if (!storedToken) {
-      throw new Error('Refresh token not found');
+      const legacyToken = await this.prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+        include: { user: true },
+      });
+      if (legacyToken) {
+        storedToken = await this.prisma.refreshToken.update({
+          where: { id: legacyToken.id },
+          data: { token: hashedToken },
+          include: { user: true },
+        });
+      }
+    }
+
+    if (!storedToken) {
+      throw new Error('Invalid refresh token');
+    }
+
+    if (!this.timingSafeStringEqual(storedToken.token, hashedToken)) {
+      throw new Error('Invalid refresh token');
     }
 
     if (storedToken.expiresAt < new Date()) {
@@ -330,8 +365,14 @@ export class AuthService {
    * Revoke a refresh token
    */
   async revokeRefreshToken(refreshToken: string): Promise<void> {
+    const hashedToken = this.hashRefreshToken(refreshToken);
     await this.prisma.refreshToken.deleteMany({
-      where: { token: refreshToken },
+      where: {
+        OR: [
+          { token: hashedToken },
+          { token: refreshToken },
+        ],
+      },
     });
   }
 

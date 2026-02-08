@@ -2,14 +2,17 @@ import { PrismaTodoService } from './prismaTodoService';
 
 describe('PrismaTodoService error handling', () => {
   function createService(todoOverrides: Partial<any>) {
-    const prisma = {
+    const prisma: any = {
       todo: {
         findFirst: jest.fn(),
-        update: jest.fn(),
-        delete: jest.fn(),
+        updateMany: jest.fn(),
+        deleteMany: jest.fn(),
         ...todoOverrides,
       },
-    } as any;
+      $transaction: jest.fn(),
+    };
+
+    prisma.$transaction.mockImplementation(async (callback: (tx: any) => Promise<any>) => callback(prisma));
 
     return new PrismaTodoService(prisma);
   }
@@ -32,7 +35,7 @@ describe('PrismaTodoService error handling', () => {
 
   it('update should return null for expected Prisma not-found/invalid-id errors', async () => {
     const service = createService({
-      findFirst: jest.fn().mockRejectedValue({ code: 'P2023' }),
+      updateMany: jest.fn().mockRejectedValue({ code: 'P2023' }),
     });
 
     await expect(service.update('user-1', 'bad-id', { title: 'x' })).resolves.toBeNull();
@@ -40,7 +43,7 @@ describe('PrismaTodoService error handling', () => {
 
   it('update should rethrow unknown errors', async () => {
     const service = createService({
-      findFirst: jest.fn().mockRejectedValue(new Error('database unavailable')),
+      updateMany: jest.fn().mockRejectedValue(new Error('database unavailable')),
     });
 
     await expect(service.update('user-1', 'todo-1', { title: 'x' })).rejects.toThrow('database unavailable');
@@ -48,7 +51,7 @@ describe('PrismaTodoService error handling', () => {
 
   it('delete should return false for expected Prisma not-found/invalid-id errors', async () => {
     const service = createService({
-      findFirst: jest.fn().mockRejectedValue({ code: 'P2023' }),
+      deleteMany: jest.fn().mockRejectedValue({ code: 'P2023' }),
     });
 
     await expect(service.delete('user-1', 'bad-id')).resolves.toBe(false);
@@ -56,7 +59,7 @@ describe('PrismaTodoService error handling', () => {
 
   it('delete should rethrow unknown errors', async () => {
     const service = createService({
-      findFirst: jest.fn().mockRejectedValue(new Error('database unavailable')),
+      deleteMany: jest.fn().mockRejectedValue(new Error('database unavailable')),
     });
 
     await expect(service.delete('user-1', 'todo-1')).rejects.toThrow('database unavailable');

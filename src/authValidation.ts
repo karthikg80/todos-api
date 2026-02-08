@@ -9,8 +9,59 @@ export interface ValidationError {
  * Validate email format
  */
 export function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  if (email.length > 255) {
+    return false;
+  }
+
+  const atIndex = email.indexOf('@');
+  if (atIndex <= 0 || atIndex !== email.lastIndexOf('@')) {
+    return false;
+  }
+
+  const localPart = email.slice(0, atIndex);
+  const domainPart = email.slice(atIndex + 1);
+
+  if (localPart.length === 0 || localPart.length > 64) {
+    return false;
+  }
+  if (domainPart.length < 3 || domainPart.length > 253) {
+    return false;
+  }
+  if (localPart.startsWith('.') || localPart.endsWith('.')) {
+    return false;
+  }
+  if (email.includes('..')) {
+    return false;
+  }
+
+  const localPartRegex = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/;
+  if (!localPartRegex.test(localPart)) {
+    return false;
+  }
+
+  const domainLabels = domainPart.split('.');
+  if (domainLabels.length < 2) {
+    return false;
+  }
+
+  for (const label of domainLabels) {
+    if (label.length === 0 || label.length > 63) {
+      return false;
+    }
+    if (label.startsWith('-') || label.endsWith('-')) {
+      return false;
+    }
+    if (!/^[A-Za-z0-9-]+$/.test(label)) {
+      return false;
+    }
+  }
+
+  const tld = domainLabels[domainLabels.length - 1];
+  if (!/^[A-Za-z]{2,}$/.test(tld)) {
+    return false;
+  }
+
+  return true;
 }
 
 /**

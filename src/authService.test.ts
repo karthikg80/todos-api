@@ -240,4 +240,47 @@ describe('AuthService', () => {
       expect(user).toBeNull();
     });
   });
+
+  describe('refresh token security', () => {
+    it('should store refresh token hashed in database', async () => {
+      const result = await authService.register({
+        email: 'refreshhash@example.com',
+        password: 'password123',
+      });
+
+      expect(result.refreshToken).toBeDefined();
+
+      const storedTokens = await prisma.refreshToken.findMany({
+        where: { userId: result.user.id },
+      });
+
+      expect(storedTokens).toHaveLength(1);
+      expect(storedTokens[0].token).not.toBe(result.refreshToken);
+      expect(storedTokens[0].token).toMatch(/^[a-f0-9]{64}$/);
+    });
+
+    it('should rotate refresh token on refresh', async () => {
+      const registered = await authService.register({
+        email: 'refreshrotate@example.com',
+        password: 'password123',
+      });
+
+      const refreshed = await authService.refreshAccessToken(registered.refreshToken!);
+
+      expect(refreshed.token).toBeDefined();
+      expect(refreshed.refreshToken).toBeDefined();
+      expect(refreshed.refreshToken).not.toBe(registered.refreshToken);
+    });
+
+    it('should reject refreshing with a revoked token', async () => {
+      const registered = await authService.register({
+        email: 'refreshrevoke@example.com',
+        password: 'password123',
+      });
+
+      await authService.revokeRefreshToken(registered.refreshToken!);
+
+      await expect(authService.refreshAccessToken(registered.refreshToken!)).rejects.toThrow('Invalid refresh token');
+    });
+  });
 });
