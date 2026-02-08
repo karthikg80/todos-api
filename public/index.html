@@ -559,6 +559,221 @@
             margin-right: 20px;
         }
 
+        /* ========== PHASE E: ANIMATIONS & TRANSITIONS ========== */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        .todo-item {
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .todo-item.removing {
+            animation: fadeOut 0.3s ease-out forwards;
+        }
+
+        .add-btn:active {
+            animation: pulse 0.3s ease-out;
+        }
+
+        .delete-btn:active {
+            animation: pulse 0.3s ease-out;
+        }
+
+        /* Undo/Redo Toast Notification */
+        .undo-toast {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: #2d3436;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 1500;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .undo-toast.active {
+            display: flex;
+        }
+
+        .undo-toast button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        /* ========== PHASE E: RESPONSIVE MOBILE VIEW ========== */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 12px;
+                max-width: 100%;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .user-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .theme-toggle {
+                align-self: flex-end;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            .add-todo {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .add-todo input {
+                width: 100%;
+            }
+
+            .add-btn {
+                width: 100%;
+            }
+
+            .todo-item {
+                flex-wrap: wrap;
+                padding: 12px;
+            }
+
+            .todo-content {
+                flex: 1 1 100%;
+                order: 2;
+                margin-top: 8px;
+            }
+
+            .delete-btn {
+                order: 3;
+                margin-top: 8px;
+                width: 100%;
+            }
+
+            .drag-handle {
+                font-size: 1.5em;
+            }
+
+            .bulk-actions-toolbar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .bulk-actions-toolbar button {
+                width: 100%;
+            }
+
+            .bulk-count {
+                margin-left: 0;
+                margin-top: 8px;
+            }
+
+            .keyboard-shortcuts-btn {
+                bottom: 15px;
+                right: 15px;
+                width: 45px;
+                height: 45px;
+                font-size: 1.1em;
+            }
+
+            .shortcuts-content {
+                padding: 20px;
+                max-width: 90%;
+                margin: 20px;
+            }
+
+            .undo-toast {
+                bottom: 70px;
+                right: 15px;
+                left: 15px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 1.3em;
+            }
+
+            .nav-tabs {
+                gap: 5px;
+            }
+
+            .nav-tab {
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+
+            .todo-title {
+                font-size: 0.95em;
+            }
+
+            .search-input {
+                font-size: 0.9em;
+            }
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -1345,21 +1560,28 @@
         }
 
         // Toggle todo
-        async function toggleTodo(id) {
+        async function toggleTodo(id, forceValue = null) {
             const todo = todos.find(t => t.id === id);
             if (!todo) return;
+
+            const newCompletedValue = forceValue !== null ? forceValue : !todo.completed;
 
             try {
                 const response = await apiCall(`${API_URL}/todos/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ completed: !todo.completed })
+                    body: JSON.stringify({ completed: newCompletedValue })
                 });
 
                 if (response && response.ok) {
                     const updatedTodo = await response.json();
                     todos = todos.map(t => t.id === id ? updatedTodo : t);
                     renderTodos();
+
+                    // Add undo action only if user initiated (not programmatic)
+                    if (forceValue === null && newCompletedValue) {
+                        addUndoAction('complete', { id }, 'Todo marked as complete');
+                    }
                 }
             } catch (error) {
                 console.error('Toggle todo error:', error);
@@ -1368,7 +1590,13 @@
 
         // Delete todo
         async function deleteTodo(id) {
+            const todo = todos.find(t => t.id === id);
+            if (!todo) return;
+
             if (!confirm('Delete this todo?')) return;
+
+            // Store todo data for undo
+            const todoData = { ...todo };
 
             try {
                 const response = await apiCall(`${API_URL}/todos/${id}`, {
@@ -1378,6 +1606,9 @@
                 if (response && response.ok) {
                     todos = todos.filter(t => t.id !== id);
                     renderTodos();
+
+                    // Add undo action
+                    addUndoAction('delete', todoData, 'Todo deleted');
                 }
             } catch (error) {
                 console.error('Delete todo error:', error);
@@ -1619,6 +1850,7 @@
             if (selectedTodos.size === 0) return;
 
             const selectedIds = Array.from(selectedTodos);
+            const completedIds = [];
 
             for (const todoId of selectedIds) {
                 try {
@@ -1630,11 +1862,18 @@
 
                     if (response && response.ok) {
                         const todo = todos.find(t => t.id === todoId);
-                        if (todo) todo.completed = true;
+                        if (todo) {
+                            todo.completed = true;
+                            completedIds.push(todoId);
+                        }
                     }
                 } catch (error) {
                     console.error('Failed to complete todo:', error);
                 }
+            }
+
+            if (completedIds.length > 0) {
+                addUndoAction('bulk-complete', completedIds, `${completedIds.length} todos marked as complete`);
             }
 
             selectedTodos.clear();
@@ -1647,8 +1886,14 @@
             if (!confirm(`Delete ${selectedTodos.size} selected todo(s)?`)) return;
 
             const selectedIds = Array.from(selectedTodos);
+            const deletedTodos = [];
 
             for (const todoId of selectedIds) {
+                const todo = todos.find(t => t.id === todoId);
+                if (todo) {
+                    deletedTodos.push({ ...todo });
+                }
+
                 try {
                     const response = await apiCall(`${API_URL}/todos/${todoId}`, {
                         method: 'DELETE'
@@ -1660,6 +1905,10 @@
                 } catch (error) {
                     console.error('Failed to delete todo:', error);
                 }
+            }
+
+            if (deletedTodos.length > 0) {
+                addUndoAction('bulk-delete', deletedTodos, `${deletedTodos.length} todos deleted`);
             }
 
             selectedTodos.clear();
@@ -1675,6 +1924,90 @@
         function closeShortcutsOverlay(event) {
             if (event.target.id === 'shortcutsOverlay') {
                 toggleShortcuts();
+            }
+        }
+
+        // ========== PHASE E: UNDO/REDO FUNCTIONALITY ==========
+        let undoStack = [];
+        let undoTimeout = null;
+
+        function addUndoAction(action, data, message) {
+            undoStack.push({ action, data, timestamp: Date.now() });
+
+            // Keep only last 10 actions
+            if (undoStack.length > 10) {
+                undoStack.shift();
+            }
+
+            showUndoToast(message);
+        }
+
+        function showUndoToast(message) {
+            const toast = document.getElementById('undoToast');
+            const messageEl = document.getElementById('undoMessage');
+
+            messageEl.textContent = message;
+            toast.classList.add('active');
+
+            // Clear existing timeout
+            if (undoTimeout) {
+                clearTimeout(undoTimeout);
+            }
+
+            // Hide after 5 seconds
+            undoTimeout = setTimeout(() => {
+                toast.classList.remove('active');
+            }, 5000);
+        }
+
+        function performUndo() {
+            if (undoStack.length === 0) return;
+
+            const lastAction = undoStack.pop();
+            const toast = document.getElementById('undoToast');
+            toast.classList.remove('active');
+
+            switch (lastAction.action) {
+                case 'delete':
+                    // Restore deleted todo
+                    restoreTodo(lastAction.data);
+                    break;
+                case 'complete':
+                    // Uncomplete todo
+                    toggleTodo(lastAction.data.id, false);
+                    break;
+                case 'bulk-delete':
+                    // Restore multiple todos
+                    lastAction.data.forEach(todo => restoreTodo(todo));
+                    break;
+                case 'bulk-complete':
+                    // Uncomplete multiple todos
+                    lastAction.data.forEach(todoId => toggleTodo(todoId, false));
+                    break;
+            }
+        }
+
+        async function restoreTodo(todoData) {
+            try {
+                const response = await apiCall(`${API_URL}/todos`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: todoData.title,
+                        description: todoData.description,
+                        category: todoData.category,
+                        dueDate: todoData.dueDate,
+                    })
+                });
+
+                if (response && response.ok) {
+                    const newTodo = await response.json();
+                    todos.unshift(newTodo);
+                    renderTodos();
+                    updateCategoryFilter();
+                }
+            } catch (error) {
+                console.error('Failed to restore todo:', error);
             }
         }
 
@@ -1928,6 +2261,19 @@
             }
         }
 
+        // ========== PHASE E: SERVICE WORKER REGISTRATION ==========
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then((registration) => {
+                        console.log('Service Worker registered successfully:', registration.scope);
+                    })
+                    .catch((error) => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+
         // Initialize theme immediately
         initTheme();
 
@@ -1937,6 +2283,12 @@
 
     <!-- Keyboard Shortcuts Button -->
     <button class="keyboard-shortcuts-btn" onclick="toggleShortcuts()" title="Keyboard Shortcuts (?)">⌨️</button>
+
+    <!-- Undo/Redo Toast -->
+    <div id="undoToast" class="undo-toast">
+        <span id="undoMessage">Action performed</span>
+        <button onclick="performUndo()">Undo</button>
+    </div>
 
     <!-- Keyboard Shortcuts Overlay -->
     <div id="shortcutsOverlay" class="shortcuts-overlay" onclick="closeShortcutsOverlay(event)">
