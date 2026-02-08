@@ -1945,6 +1945,12 @@
         function renderTodos() {
             const container = document.getElementById('todosContent');
 
+            // Debug: Log todos with notes
+            const todosWithNotes = todos.filter(t => t.notes);
+            if (todosWithNotes.length > 0) {
+                console.log('Todos with notes:', todosWithNotes.map(t => ({id: t.id, title: t.title, notes: t.notes})));
+            }
+
             if (todos.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -1996,14 +2002,14 @@
                                     ${todo.dueDate ? `<span style="background: ${isOverdue ? '#ff4757' : '#48dbfb'}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? '⚠️' : '📅'} ${dueDateStr}</span>` : ''}
                                 </div>
                                 ${todo.subtasks && todo.subtasks.length > 0 ? renderSubtasks(todo) : ''}
-                                ${todo.notes ? `
+                                ${todo.notes && todo.notes.trim() ? `
                                     <div class="notes-section">
                                         <button class="notes-toggle" onclick="toggleNotes('${todo.id}', event)">
                                             <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
                                             <span>📝 Notes</span>
                                         </button>
                                         <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
-                                            ${escapeHtml(todo.notes)}
+                                            ${escapeHtml(String(todo.notes))}
                                         </div>
                                     </div>
                                 ` : ''}
