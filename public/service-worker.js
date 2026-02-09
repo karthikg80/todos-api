@@ -1,7 +1,7 @@
 // Service Worker for static asset caching only.
-// Version 2.0.0
+// Version 3.0.0
 
-const CACHE_NAME = "todos-app-v2";
+const CACHE_NAME = "todos-app-v3";
 const STATIC_URLS = ["/", "/index.html"];
 
 function isApiPath(pathname) {
@@ -26,6 +26,10 @@ function isCacheableAsset(request, pathname) {
   }
 
   return STATIC_URLS.includes(pathname);
+}
+
+function isNetworkFirstAsset(request) {
+  return request.destination === "script" || request.destination === "style";
 }
 
 // Install event - cache resources
@@ -85,6 +89,27 @@ self.addEventListener("fetch", (event) => {
 
   if (!isCacheableAsset(event.request, requestUrl.pathname)) {
     event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Use network-first for JS/CSS so new deploys become active quickly.
+  if (isNetworkFirstAsset(event.request)) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (
+            response &&
+            response.status === 200 &&
+            response.type === "basic"
+          ) {
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, response.clone());
+            });
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request)),
+    );
     return;
   }
 

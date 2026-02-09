@@ -122,6 +122,17 @@ export function createApp(
     legacyHeaders: false,
   });
 
+  // Separate limiter for non-login recovery/verification actions so normal
+  // login/register traffic does not block resend and forgot-password flows.
+  const emailActionLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 20,
+    skip: () => isTest,
+    message: "Too many email actions, please try again later",
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 100, // 100 requests per window for general API
@@ -265,7 +276,7 @@ export function createApp(
   // POST /auth/resend-verification - Resend verification email
   app.post(
     "/auth/resend-verification",
-    authLimiter,
+    emailActionLimiter,
     async (req: Request, res: Response, next: NextFunction) => {
       if (!authService) {
         return res.status(501).json({ error: "Authentication not configured" });
@@ -301,7 +312,7 @@ export function createApp(
   // POST /auth/forgot-password - Request password reset
   app.post(
     "/auth/forgot-password",
-    authLimiter,
+    emailActionLimiter,
     async (req: Request, res: Response, next: NextFunction) => {
       if (!authService) {
         return res.status(501).json({ error: "Authentication not configured" });
