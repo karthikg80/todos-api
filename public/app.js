@@ -24,6 +24,8 @@ function setAuthState(nextState) {
 
 // Initialize app
 function init() {
+  bindCriticalHandlers();
+
   // Check for reset token in URL
   const urlParams = new URLSearchParams(window.location.search);
   const resetToken = urlParams.get("token");
@@ -35,20 +37,30 @@ function init() {
 
   const token = localStorage.getItem("authToken");
   const refresh = localStorage.getItem("refreshToken");
-  const user = localStorage.getItem("user");
+  const userRaw = localStorage.getItem("user");
+  let user = null;
+
+  if (userRaw) {
+    try {
+      user = JSON.parse(userRaw);
+    } catch (error) {
+      console.error("Invalid stored user data. Clearing auth state.", error);
+      localStorage.removeItem("authToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+    }
+  }
 
   if (token && user) {
     authToken = token;
     refreshToken = refresh;
-    currentUser = JSON.parse(user);
+    currentUser = user;
     setAuthState(AUTH_STATE.AUTHENTICATED);
     showAppView();
     loadUserProfile();
   } else {
     setAuthState(AUTH_STATE.UNAUTHENTICATED);
   }
-
-  bindCriticalHandlers();
   handleVerificationStatusFromUrl();
 }
 
