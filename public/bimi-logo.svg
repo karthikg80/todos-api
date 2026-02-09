@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" version="1.2" baseProfile="tiny-ps">
+  <title>Todos App Logo</title>
+  <rect width="512" height="512" fill="#4F46E5"/>
+  <circle cx="256" cy="256" r="150" fill="white"/>
+  <path d="M 200 256 L 230 286 L 312 204" stroke="#4F46E5" stroke-width="20" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
