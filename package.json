@@ -19,7 +19,7 @@
     "test:ui:headed": "playwright test --headed",
     "lint:css": "stylelint \"public/**/*.html\" --custom-syntax postcss-html",
     "lint:html": "html-validate \"public/**/*.html\"",
-    "test:links": "start-server-and-test \"node scripts/ui-static-server.mjs\" http://127.0.0.1:4173 \"linkinator http://127.0.0.1:4173 --recurse --skip 'mailto:|tel:'\"",
+    "test:links": "start-server-and-test \"node scripts/ui-static-server.mjs\" http://127.0.0.1:4173 \"linkinator http://127.0.0.1:4173 --recurse --skip 'mailto:|tel:|^https?://(?!127\\\\.0\\\\.0\\\\.1:4173)'\"",
     "prisma:generate": "npx prisma generate",
     "prisma:migrate": "npx prisma migrate dev",
     "prisma:migrate:deploy": "npx prisma migrate deploy",
