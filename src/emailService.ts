@@ -18,6 +18,10 @@ export class EmailService {
       host: config.smtpHost || "smtp.ethereal.email",
       port: config.smtpPort,
       secure: config.smtpPort === 465,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
+      dnsTimeout: 5_000,
       auth: {
         user: config.smtpUser || undefined,
         pass: config.smtpPass || undefined,
