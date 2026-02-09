@@ -29,9 +29,7 @@ function isCacheableAsset(request, pathname) {
 }
 
 function isNetworkFirstAsset(request) {
-  return (
-    request.destination === "script" || request.destination === "style"
-  );
+  return request.destination === "script" || request.destination === "style";
 }
 
 // Install event - cache resources
@@ -99,14 +97,18 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          if (response && response.status === 200 && response.type === "basic") {
+          if (
+            response &&
+            response.status === 200 &&
+            response.type === "basic"
+          ) {
             caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, response.clone());
             });
           }
           return response;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(event.request)),
     );
     return;
   }
