@@ -67,7 +67,17 @@ export function createApp(
   }
 
   app.use(express.json());
-  app.use(helmet());
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'"],
+        // Inline style attributes remain in index.html for now.
+        styleSrc: ["'self'", "'unsafe-inline'", 'https:'],
+        scriptSrcAttr: ["'none'"],
+      },
+    },
+  }));
 
   // Serve static files from public directory
   app.use(express.static(path.join(__dirname, '../public')));
