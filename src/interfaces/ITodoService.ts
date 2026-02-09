@@ -6,7 +6,7 @@ import {
   CreateSubtaskDto,
   UpdateSubtaskDto,
   ReorderTodoItemDto,
-} from '../types';
+} from "../types";
 
 /**
  * Interface defining the contract for Todo service implementations.
@@ -69,7 +69,11 @@ export interface ITodoService {
   /**
    * Create a subtask under a todo
    */
-  createSubtask(userId: string, todoId: string, dto: CreateSubtaskDto): Promise<Subtask | null>;
+  createSubtask(
+    userId: string,
+    todoId: string,
+    dto: CreateSubtaskDto,
+  ): Promise<Subtask | null>;
 
   /**
    * Update a specific subtask
@@ -78,13 +82,17 @@ export interface ITodoService {
     userId: string,
     todoId: string,
     subtaskId: string,
-    dto: UpdateSubtaskDto
+    dto: UpdateSubtaskDto,
   ): Promise<Subtask | null>;
 
   /**
    * Delete a specific subtask
    */
-  deleteSubtask(userId: string, todoId: string, subtaskId: string): Promise<boolean>;
+  deleteSubtask(
+    userId: string,
+    todoId: string,
+    subtaskId: string,
+  ): Promise<boolean>;
 
   /**
    * Clear all todos (primarily for testing)

@@ -1,9 +1,9 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { createHash, createHmac, randomUUID, timingSafeEqual } from 'crypto';
-import { EmailService } from './emailService';
-import { config } from './config';
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
+import { EmailService } from "./emailService";
+import { config } from "./config";
 
 export interface RegisterDto {
   email: string;
@@ -33,21 +33,27 @@ export interface JwtPayload {
 
 export interface AdminBootstrapStatus {
   enabled: boolean;
-  reason?: 'not_configured' | 'already_admin' | 'already_provisioned';
+  reason?: "not_configured" | "already_admin" | "already_provisioned";
 }
 
 export class AuthService {
   private readonly SALT_ROUNDS = 10;
   private readonly ACCESS_JWT_SECRET: string;
   private readonly REFRESH_JWT_SECRET: string;
-  private readonly JWT_EXPIRES_IN = '15m'; // Short-lived access token
+  private readonly JWT_EXPIRES_IN = "15m"; // Short-lived access token
   private readonly REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
   private emailService: EmailService;
 
   constructor(private prisma: PrismaClient) {
     // Allow tests to override via process.env before constructing AuthService.
-    this.ACCESS_JWT_SECRET = process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET || config.accessJwtSecret;
-    this.REFRESH_JWT_SECRET = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET || config.refreshJwtSecret;
+    this.ACCESS_JWT_SECRET =
+      process.env.JWT_ACCESS_SECRET ||
+      process.env.JWT_SECRET ||
+      config.accessJwtSecret;
+    this.REFRESH_JWT_SECRET =
+      process.env.JWT_REFRESH_SECRET ||
+      process.env.JWT_SECRET ||
+      config.refreshJwtSecret;
     this.emailService = new EmailService();
   }
 
@@ -62,7 +68,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new Error('Email already registered');
+      throw new Error("Email already registered");
     }
 
     // Hash password
@@ -81,7 +87,7 @@ export class AuthService {
     try {
       await this.sendVerificationEmail(user.id);
     } catch (error) {
-      console.error('Failed to send verification email:', error);
+      console.error("Failed to send verification email:", error);
       // Continue anyway - user can resend later
     }
 
@@ -119,21 +125,21 @@ export class AuthService {
         where: {
           email: {
             equals: dto.email,
-            mode: 'insensitive',
+            mode: "insensitive",
           },
         },
       });
     }
 
     if (!user) {
-      throw new Error('Invalid credentials');
+      throw new Error("Invalid credentials");
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isPasswordValid) {
-      throw new Error('Invalid credentials');
+      throw new Error("Invalid credentials");
     }
 
     // Generate JWT token and refresh token
@@ -163,13 +169,13 @@ export class AuthService {
       const payload = jwt.verify(token, this.ACCESS_JWT_SECRET) as JwtPayload;
       return payload;
     } catch (error: any) {
-      if (error.name === 'TokenExpiredError') {
-        throw new Error('Token expired');
+      if (error.name === "TokenExpiredError") {
+        throw new Error("Token expired");
       }
-      if (error.name === 'JsonWebTokenError') {
-        throw new Error('Invalid token');
+      if (error.name === "JsonWebTokenError") {
+        throw new Error("Invalid token");
       }
-      throw new Error('Token verification failed');
+      throw new Error("Token verification failed");
     }
   }
 
@@ -183,12 +189,14 @@ export class AuthService {
   }
 
   private hashRefreshToken(token: string): string {
-    return createHmac('sha256', this.REFRESH_JWT_SECRET).update(token).digest('hex');
+    return createHmac("sha256", this.REFRESH_JWT_SECRET)
+      .update(token)
+      .digest("hex");
   }
 
   private timingSafeStringEqual(a: string, b: string): boolean {
-    const aBuffer = Buffer.from(a, 'utf8');
-    const bBuffer = Buffer.from(b, 'utf8');
+    const aBuffer = Buffer.from(a, "utf8");
+    const bBuffer = Buffer.from(b, "utf8");
     if (aBuffer.length !== bBuffer.length) {
       return false;
     }
@@ -200,12 +208,10 @@ export class AuthService {
       return false;
     }
 
-    const expected = createHash('sha256')
-      .update(config.adminBootstrapSecret, 'utf8')
+    const expected = createHash("sha256")
+      .update(config.adminBootstrapSecret, "utf8")
       .digest();
-    const provided = createHash('sha256')
-      .update(secret, 'utf8')
-      .digest();
+    const provided = createHash("sha256").update(secret, "utf8").digest();
 
     return timingSafeEqual(expected, provided);
   }
@@ -250,9 +256,14 @@ export class AuthService {
    * Update user profile
    * @throws Error if email already in use
    */
-  async updateUserProfile(userId: string, data: { name?: string | null; email?: string }) {
+  async updateUserProfile(
+    userId: string,
+    data: { name?: string | null; email?: string },
+  ) {
     // Normalize email to lowercase to match registration/login behavior
-    const normalizedEmail = data.email ? data.email.trim().toLowerCase() : undefined;
+    const normalizedEmail = data.email
+      ? data.email.trim().toLowerCase()
+      : undefined;
 
     // If email is being updated, check if it's already in use
     if (normalizedEmail) {
@@ -264,7 +275,7 @@ export class AuthService {
       });
 
       if (existingUser) {
-        throw new Error('Email already in use');
+        throw new Error("Email already in use");
       }
     }
 
@@ -273,7 +284,8 @@ export class AuthService {
       where: { id: userId },
       select: { email: true },
     });
-    const emailIsChanging = normalizedEmail && currentUser && normalizedEmail !== currentUser.email;
+    const emailIsChanging =
+      normalizedEmail && currentUser && normalizedEmail !== currentUser.email;
 
     const updatedUser = await this.prisma.user.update({
       where: { id: userId },
@@ -299,7 +311,10 @@ export class AuthService {
       try {
         await this.sendVerificationEmail(userId);
       } catch (error) {
-        console.error('Failed to send verification email after email change:', error);
+        console.error(
+          "Failed to send verification email after email change:",
+          error,
+        );
         // Continue anyway - user can resend later
       }
     }
@@ -311,9 +326,13 @@ export class AuthService {
    * Create a refresh token for a user
    */
   private async createRefreshToken(userId: string): Promise<string> {
-    const token = jwt.sign({ userId, jti: randomUUID() }, this.REFRESH_JWT_SECRET, {
-      expiresIn: '7d',
-    });
+    const token = jwt.sign(
+      { userId, jti: randomUUID() },
+      this.REFRESH_JWT_SECRET,
+      {
+        expiresIn: "7d",
+      },
+    );
     const hashedToken = this.hashRefreshToken(token);
 
     const expiresAt = new Date(Date.now() + this.REFRESH_TOKEN_EXPIRES_IN);
@@ -332,11 +351,13 @@ export class AuthService {
   /**
    * Refresh access token using refresh token
    */
-  async refreshAccessToken(refreshToken: string): Promise<{ token: string; refreshToken: string }> {
+  async refreshAccessToken(
+    refreshToken: string,
+  ): Promise<{ token: string; refreshToken: string }> {
     try {
       jwt.verify(refreshToken, this.REFRESH_JWT_SECRET);
     } catch (error) {
-      throw new Error('Invalid refresh token');
+      throw new Error("Invalid refresh token");
     }
 
     const hashedToken = this.hashRefreshToken(refreshToken);
@@ -362,18 +383,18 @@ export class AuthService {
     }
 
     if (!storedToken) {
-      throw new Error('Invalid refresh token');
+      throw new Error("Invalid refresh token");
     }
 
     if (!this.timingSafeStringEqual(storedToken.token, hashedToken)) {
-      throw new Error('Invalid refresh token');
+      throw new Error("Invalid refresh token");
     }
 
     if (storedToken.expiresAt < new Date()) {
       await this.prisma.refreshToken.delete({
         where: { id: storedToken.id },
       });
-      throw new Error('Refresh token expired');
+      throw new Error("Refresh token expired");
     }
 
     const newAccessToken = this.generateToken({
@@ -400,10 +421,7 @@ export class AuthService {
     const hashedToken = this.hashRefreshToken(refreshToken);
     await this.prisma.refreshToken.deleteMany({
       where: {
-        OR: [
-          { token: hashedToken },
-          { token: refreshToken },
-        ],
+        OR: [{ token: hashedToken }, { token: refreshToken }],
       },
     });
   }
@@ -413,7 +431,7 @@ export class AuthService {
    */
   async sendVerificationEmail(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new Error('User not found');
+    if (!user) throw new Error("User not found");
 
     const token = EmailService.generateToken();
     await this.prisma.user.update({
@@ -432,7 +450,7 @@ export class AuthService {
       where: { verificationToken: token },
     });
 
-    if (!user) throw new Error('Invalid verification token');
+    if (!user) throw new Error("Invalid verification token");
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -476,7 +494,7 @@ export class AuthService {
     });
 
     if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
-      throw new Error('Invalid or expired reset token');
+      throw new Error("Invalid or expired reset token");
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, this.SALT_ROUNDS);
@@ -502,7 +520,7 @@ export class AuthService {
    */
   async isAdmin(userId: string): Promise<boolean> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    return user?.role === 'admin';
+    return user?.role === "admin";
   }
 
   /**
@@ -522,7 +540,7 @@ export class AuthService {
         createdAt: true,
         updatedAt: true,
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
       skip: offset,
     });
@@ -531,9 +549,9 @@ export class AuthService {
   /**
    * Update user role (admin only)
    */
-  async updateUserRole(userId: string, role: 'user' | 'admin'): Promise<void> {
-    if (!['user', 'admin'].includes(role)) {
-      throw new Error('Invalid role');
+  async updateUserRole(userId: string, role: "user" | "admin"): Promise<void> {
+    if (!["user", "admin"].includes(role)) {
+      throw new Error("Invalid role");
     }
 
     await this.prisma.user.update({
@@ -554,22 +572,22 @@ export class AuthService {
    */
   async getAdminBootstrapStatus(userId: string): Promise<AdminBootstrapStatus> {
     if (!config.adminBootstrapSecret) {
-      return { enabled: false, reason: 'not_configured' };
+      return { enabled: false, reason: "not_configured" };
     }
 
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { role: true },
     });
-    if (!user || user.role === 'admin') {
-      return { enabled: false, reason: 'already_admin' };
+    if (!user || user.role === "admin") {
+      return { enabled: false, reason: "already_admin" };
     }
 
     const adminCount = await this.prisma.user.count({
-      where: { role: 'admin' },
+      where: { role: "admin" },
     });
     if (adminCount > 0) {
-      return { enabled: false, reason: 'already_provisioned' };
+      return { enabled: false, reason: "already_provisioned" };
     }
 
     return { enabled: true };
@@ -580,23 +598,23 @@ export class AuthService {
    */
   async bootstrapAdmin(userId: string, secret: string) {
     if (!config.adminBootstrapSecret) {
-      throw new Error('Admin bootstrap is not configured');
+      throw new Error("Admin bootstrap is not configured");
     }
     if (!this.isValidAdminBootstrapSecret(secret)) {
-      throw new Error('Invalid bootstrap secret');
+      throw new Error("Invalid bootstrap secret");
     }
 
     const updatedUser = await this.prisma.$transaction(async (tx) => {
       const adminCount = await tx.user.count({
-        where: { role: 'admin' },
+        where: { role: "admin" },
       });
       if (adminCount > 0) {
-        throw new Error('Admin already provisioned');
+        throw new Error("Admin already provisioned");
       }
 
       return tx.user.update({
         where: { id: userId },
-        data: { role: 'admin' },
+        data: { role: "admin" },
         select: {
           id: true,
           email: true,

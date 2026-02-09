@@ -1,11 +1,12 @@
-import { PrismaClient } from '@prisma/client';
-import { config } from './config';
+import { PrismaClient } from "@prisma/client";
+import { config } from "./config";
 
 // Singleton Prisma Client instance
 const prismaClientSingleton = () => {
   return new PrismaClient({
     datasourceUrl: config.databaseUrl,
-    log: config.nodeEnv === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log:
+      config.nodeEnv === "development" ? ["query", "error", "warn"] : ["error"],
   });
 };
 
@@ -17,7 +18,7 @@ declare global {
 // Prevent multiple instances in development (hot reload)
 export const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== "production") {
   globalThis.prismaGlobal = prisma;
 }
 

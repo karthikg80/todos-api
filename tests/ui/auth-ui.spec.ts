@@ -1,6 +1,6 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Auth UI', () => {
+test.describe("Auth UI", () => {
   test.beforeEach(async ({ page }) => {
     await page.addStyleTag({
       content: `
@@ -15,25 +15,25 @@ test.describe('Auth UI', () => {
     });
   });
 
-  test('login tab baseline', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.locator('#authView')).toHaveClass(/active/);
-    await expect(page.locator('#loginForm')).toBeVisible();
-    await expect(page.locator('#registerForm')).toBeHidden();
+  test("login tab baseline", async ({ page }) => {
+    await page.goto("/");
+    await expect(page.locator("#authView")).toHaveClass(/active/);
+    await expect(page.locator("#loginForm")).toBeVisible();
+    await expect(page.locator("#registerForm")).toBeHidden();
 
-    await expect(page).toHaveScreenshot('auth-login.png', {
+    await expect(page).toHaveScreenshot("auth-login.png", {
       fullPage: true,
     });
   });
 
-  test('register tab baseline', async ({ page }) => {
-    await page.goto('/');
+  test("register tab baseline", async ({ page }) => {
+    await page.goto("/");
 
-    await page.getByRole('button', { name: 'Register' }).click();
-    await expect(page.locator('#registerForm')).toBeVisible();
-    await expect(page.locator('#loginForm')).toBeHidden();
+    await page.getByRole("button", { name: "Register" }).click();
+    await expect(page.locator("#registerForm")).toBeVisible();
+    await expect(page.locator("#loginForm")).toBeHidden();
 
-    await expect(page).toHaveScreenshot('auth-register.png', {
+    await expect(page).toHaveScreenshot("auth-register.png", {
       fullPage: true,
     });
   });

@@ -1,23 +1,26 @@
-import nodemailer from 'nodemailer';
-import { randomBytes } from 'crypto';
+import nodemailer from "nodemailer";
+import { randomBytes } from "crypto";
+import { config } from "./config";
 
 export class EmailService {
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null;
   private baseUrl: string;
 
   constructor() {
-    this.baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+    this.baseUrl = config.baseUrl;
 
-    // Configure email transporter
-    // For development, you can use Ethereal Email (test account)
-    // For production, use real SMTP credentials (Gmail, SendGrid, etc.)
+    if (!config.emailFeaturesEnabled) {
+      this.transporter = null;
+      return;
+    }
+
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false, // true for 465, false for other ports
+      host: config.smtpHost || "smtp.ethereal.email",
+      port: config.smtpPort,
+      secure: config.smtpPort === 465,
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: config.smtpUser || undefined,
+        pass: config.smtpPass || undefined,
       },
     });
   }
@@ -26,20 +29,23 @@ export class EmailService {
    * Generate a random token
    */
   static generateToken(): string {
-    return randomBytes(32).toString('hex');
+    return randomBytes(32).toString("hex");
   }
 
   /**
    * Send email verification email
    */
   async sendVerificationEmail(email: string, token: string): Promise<void> {
+    if (!this.transporter) {
+      return;
+    }
     const verificationUrl = `${this.baseUrl}/auth/verify?token=${token}`;
 
     try {
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Todo App" <noreply@todoapp.com>',
+        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
         to: email,
-        subject: 'Verify your email address',
+        subject: "Verify your email address",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Welcome to Todo App!</h2>
@@ -60,13 +66,13 @@ export class EmailService {
         `,
       });
 
-      console.log('Verification email sent:', info.messageId);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+      console.log("Verification email sent:", info.messageId);
+      if (process.env.NODE_ENV === "development") {
+        console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
       }
     } catch (error) {
-      console.error('Error sending verification email:', error);
-      throw new Error('Failed to send verification email');
+      console.error("Error sending verification email:", error);
+      throw new Error("Failed to send verification email");
     }
   }
 
@@ -74,13 +80,16 @@ export class EmailService {
    * Send password reset email
    */
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
+    if (!this.transporter) {
+      return;
+    }
     const resetUrl = `${this.baseUrl}/reset-password?token=${token}`;
 
     try {
       const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Todo App" <noreply@todoapp.com>',
+        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
         to: email,
-        subject: 'Reset your password',
+        subject: "Reset your password",
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2>Password Reset Request</h2>
@@ -104,13 +113,13 @@ export class EmailService {
         `,
       });
 
-      console.log('Password reset email sent:', info.messageId);
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+      console.log("Password reset email sent:", info.messageId);
+      if (process.env.NODE_ENV === "development") {
+        console.log("Preview URL:", nodemailer.getTestMessageUrl(info));
       }
     } catch (error) {
-      console.error('Error sending password reset email:', error);
-      throw new Error('Failed to send password reset email');
+      console.error("Error sending password reset email:", error);
+      throw new Error("Failed to send password reset email");
     }
   }
 }

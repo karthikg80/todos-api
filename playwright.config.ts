@@ -1,49 +1,50 @@
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
-  testDir: './tests/ui',
-  snapshotPathTemplate: '{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}',
+  testDir: "./tests/ui",
+  snapshotPathTemplate:
+    "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}",
   timeout: 30_000,
   expect: {
     timeout: 5_000,
     toHaveScreenshot: {
       // Allow minor cross-platform rasterization differences (macOS vs Linux CI).
       maxDiffPixelRatio: 0.05,
-      animations: 'disabled',
+      animations: "disabled",
     },
   },
   fullyParallel: false,
   workers: 1,
-  reporter: [['list'], ['html', { open: 'never' }]],
+  reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: 'http://127.0.0.1:4173',
-    trace: 'on-first-retry',
-    screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
-    reducedMotion: 'reduce',
+    baseURL: "http://127.0.0.1:4173",
+    trace: "on-first-retry",
+    screenshot: "only-on-failure",
+    video: "retain-on-failure",
+    reducedMotion: "reduce",
   },
   projects: [
     {
-      name: 'chromium',
+      name: "chromium",
       use: {
-        ...devices['Desktop Chrome'],
+        ...devices["Desktop Chrome"],
         viewport: { width: 1440, height: 900 },
         deviceScaleFactor: 1,
-        colorScheme: 'light',
+        colorScheme: "light",
       },
     },
     {
-      name: 'chromium-mobile',
+      name: "chromium-mobile",
       use: {
-        ...devices['Pixel 7'],
+        ...devices["Pixel 7"],
         deviceScaleFactor: 1,
-        colorScheme: 'light',
+        colorScheme: "light",
       },
     },
   ],
   webServer: {
-    command: 'node scripts/ui-static-server.mjs',
-    url: 'http://127.0.0.1:4173',
+    command: "node scripts/ui-static-server.mjs",
+    url: "http://127.0.0.1:4173",
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },

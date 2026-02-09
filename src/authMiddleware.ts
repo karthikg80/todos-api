@@ -1,5 +1,5 @@
-import { Request, Response, NextFunction } from 'express';
-import { AuthService } from './authService';
+import { Request, Response, NextFunction } from "express";
+import { AuthService } from "./authService";
 
 // Extend Express Request to include user
 declare global {
@@ -24,14 +24,16 @@ export function authMiddleware(authService: AuthService) {
       const authHeader = req.headers.authorization;
 
       if (!authHeader) {
-        res.status(401).json({ error: 'Authorization header missing' });
+        res.status(401).json({ error: "Authorization header missing" });
         return;
       }
 
       // Check Bearer format
-      const parts = authHeader.split(' ');
-      if (parts.length !== 2 || parts[0] !== 'Bearer') {
-        res.status(401).json({ error: 'Invalid authorization format. Expected: Bearer <token>' });
+      const parts = authHeader.split(" ");
+      if (parts.length !== 2 || parts[0] !== "Bearer") {
+        res.status(401).json({
+          error: "Invalid authorization format. Expected: Bearer <token>",
+        });
         return;
       }
 
@@ -48,15 +50,15 @@ export function authMiddleware(authService: AuthService) {
 
       next();
     } catch (error: any) {
-      if (error.message === 'Token expired') {
-        res.status(401).json({ error: 'Token expired' });
+      if (error.message === "Token expired") {
+        res.status(401).json({ error: "Token expired" });
         return;
       }
-      if (error.message === 'Invalid token') {
-        res.status(401).json({ error: 'Invalid token' });
+      if (error.message === "Invalid token") {
+        res.status(401).json({ error: "Invalid token" });
         return;
       }
-      res.status(401).json({ error: 'Authentication failed' });
+      res.status(401).json({ error: "Authentication failed" });
     }
   };
 }

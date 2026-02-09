@@ -1,293 +1,586 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Todo App - Complete</title>
-    <link rel="stylesheet" href="/styles.css">
-</head>
-<body>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h1>📝 Todo App</h1>
-                <button class="theme-toggle" data-onclick="toggleTheme()" title="Toggle dark mode">🌙</button>
+      <div class="header">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <h1>📝 Todo App</h1>
+          <button
+            class="theme-toggle"
+            data-onclick="toggleTheme()"
+            title="Toggle dark mode"
+          >
+            🌙
+          </button>
+        </div>
+        <div class="user-bar" id="userBar" style="display: none">
+          <div class="user-info">
+            <span id="userEmail"></span>
+            <span id="verifiedBadge"></span>
+            <span id="adminBadge"></span>
+          </div>
+          <button class="logout-btn" data-onclick="logout()">Logout</button>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs (only visible when logged in) -->
+      <div class="nav-tabs" id="navTabs" style="display: none">
+        <button class="nav-tab active" data-onclick="switchView('todos')">
+          Todos
+        </button>
+        <button class="nav-tab" data-onclick="switchView('profile')">
+          Profile
+        </button>
+        <button
+          class="nav-tab"
+          id="adminNavTab"
+          style="display: none"
+          data-onclick="switchView('admin')"
+        >
+          Admin
+        </button>
+      </div>
+
+      <div class="content">
+        <!-- Authentication View -->
+        <div id="authView" class="view active">
+          <div class="auth-container">
+            <div class="auth-tabs">
+              <button
+                class="auth-tab active"
+                data-onclick="switchAuthTab('login', this)"
+              >
+                Login
+              </button>
+              <button
+                class="auth-tab"
+                data-onclick="switchAuthTab('register', this)"
+              >
+                Register
+              </button>
             </div>
-            <div class="user-bar" id="userBar" style="display: none;">
-                <div class="user-info">
-                    <span id="userEmail"></span>
-                    <span id="verifiedBadge"></span>
-                    <span id="adminBadge"></span>
-                </div>
-                <button class="logout-btn" data-onclick="logout()">Logout</button>
-            </div>
+
+            <div class="message" id="authMessage"></div>
+
+            <!-- Login Form -->
+            <form
+              id="loginForm"
+              class="auth-form active"
+              data-onsubmit="handleLogin(event)"
+              style="display: block"
+            >
+              <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input
+                  type="email"
+                  id="loginEmail"
+                  required
+                  placeholder="your@email.com"
+                />
+              </div>
+              <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input
+                  type="password"
+                  id="loginPassword"
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
+              <button type="submit" class="btn">Login</button>
+              <button
+                type="button"
+                class="link-btn"
+                data-onclick="showForgotPassword()"
+              >
+                Forgot Password?
+              </button>
+            </form>
+
+            <!-- Register Form -->
+            <form
+              id="registerForm"
+              class="auth-form"
+              data-onsubmit="handleRegister(event)"
+              style="display: none"
+            >
+              <div class="form-group">
+                <label for="registerName">Name</label>
+                <input
+                  type="text"
+                  id="registerName"
+                  placeholder="Your Name (optional)"
+                />
+              </div>
+              <div class="form-group">
+                <label for="registerEmail">Email</label>
+                <input
+                  type="email"
+                  id="registerEmail"
+                  required
+                  placeholder="your@email.com"
+                />
+              </div>
+              <div class="form-group">
+                <label for="registerPassword">Password</label>
+                <input
+                  type="password"
+                  id="registerPassword"
+                  required
+                  placeholder="••••••••"
+                  minlength="8"
+                />
+              </div>
+              <button type="submit" class="btn">Create Account</button>
+            </form>
+
+            <!-- Forgot Password Form -->
+            <form
+              id="forgotPasswordForm"
+              class="auth-form"
+              data-onsubmit="handleForgotPassword(event)"
+              style="display: none"
+            >
+              <h2 style="margin-bottom: 20px">Reset Password</h2>
+              <div class="form-group">
+                <label for="forgotEmail">Email</label>
+                <input
+                  type="email"
+                  id="forgotEmail"
+                  required
+                  placeholder="your@email.com"
+                />
+              </div>
+              <button type="submit" class="btn">Send Reset Link</button>
+              <button type="button" class="link-btn" data-onclick="showLogin()">
+                Back to Login
+              </button>
+            </form>
+
+            <!-- Reset Password Form -->
+            <form
+              id="resetPasswordForm"
+              class="auth-form"
+              data-onsubmit="handleResetPassword(event)"
+              style="display: none"
+            >
+              <h2 style="margin-bottom: 20px">Set New Password</h2>
+              <div class="form-group">
+                <label for="newPassword">New Password</label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  required
+                  placeholder="••••••••"
+                  minlength="8"
+                />
+              </div>
+              <div class="form-group">
+                <label for="confirmPassword">Confirm Password</label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  required
+                  placeholder="••••••••"
+                  minlength="8"
+                />
+              </div>
+              <button type="submit" class="btn">Reset Password</button>
+            </form>
+          </div>
         </div>
 
-        <!-- Navigation Tabs (only visible when logged in) -->
-        <div class="nav-tabs" id="navTabs" style="display: none;">
-            <button class="nav-tab active" data-onclick="switchView('todos')">Todos</button>
-            <button class="nav-tab" data-onclick="switchView('profile')">Profile</button>
-            <button class="nav-tab" id="adminNavTab" style="display: none;" data-onclick="switchView('admin')">Admin</button>
+        <!-- Todos View -->
+        <div id="todosView" class="view">
+          <!-- Search Bar -->
+          <div class="search-bar">
+            <label for="searchInput" class="sr-only">Search todos</label>
+            <input
+              type="text"
+              id="searchInput"
+              class="search-input"
+              placeholder="Search todos... (Ctrl/Cmd+F)"
+              data-oninput="filterTodos()"
+            />
+            <span class="search-icon">🔍</span>
+          </div>
+
+          <!-- Category Filter -->
+          <div
+            style="
+              margin-bottom: 20px;
+              display: flex;
+              gap: 10px;
+              align-items: center;
+              flex-wrap: wrap;
+            "
+          >
+            <label
+              for="categoryFilter"
+              style="font-weight: 500; color: var(--text-primary)"
+              >Filter:</label
+            >
+            <select
+              id="categoryFilter"
+              data-onchange="filterTodos()"
+              style="
+                padding: 8px 12px;
+                border: 2px solid var(--border-color);
+                border-radius: 6px;
+                background: var(--input-bg);
+                color: var(--text-primary);
+                cursor: pointer;
+              "
+            >
+              <option value="">All Categories</option>
+            </select>
+            <button
+              data-onclick="clearFilters()"
+              style="
+                padding: 8px 16px;
+                background: var(--card-bg);
+                border: 1px solid var(--border-color);
+                border-radius: 6px;
+                cursor: pointer;
+                color: var(--text-primary);
+              "
+            >
+              Clear
+            </button>
+          </div>
+
+          <!-- Bulk Actions Toolbar -->
+          <div
+            id="bulkActionsToolbar"
+            class="bulk-actions-toolbar"
+            style="display: none"
+          >
+            <input
+              type="checkbox"
+              id="selectAllCheckbox"
+              class="bulk-checkbox"
+              data-onchange="toggleSelectAll()"
+            />
+            <label
+              for="selectAllCheckbox"
+              style="cursor: pointer; user-select: none"
+              >Select All</label
+            >
+            <button data-onclick="completeSelected()">
+              ✓ Complete Selected
+            </button>
+            <button data-onclick="deleteSelected()">🗑 Delete Selected</button>
+            <span class="bulk-count" id="bulkCount">0 selected</span>
+          </div>
+
+          <!-- Add Todo Form -->
+          <div class="add-todo" style="flex-direction: column; gap: 12px">
+            <label for="todoInput" class="sr-only">Todo title</label>
+            <input
+              type="text"
+              id="todoInput"
+              placeholder="What needs to be done?"
+              data-onkeypress="handleTodoKeyPress(event)"
+              style="width: 100%"
+            />
+            <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap">
+              <label for="todoCategoryInput" class="sr-only"
+                >Todo category</label
+              >
+              <input
+                type="text"
+                id="todoCategoryInput"
+                placeholder="Category (e.g., Work, Personal)"
+                style="
+                  flex: 1;
+                  min-width: 200px;
+                  padding: 12px;
+                  border: 2px solid var(--border-color);
+                  border-radius: 8px;
+                  background: var(--input-bg);
+                  color: var(--text-primary);
+                "
+              />
+              <label for="todoDueDateInput" class="sr-only"
+                >Todo due date</label
+              >
+              <input
+                type="datetime-local"
+                id="todoDueDateInput"
+                style="
+                  flex: 1;
+                  min-width: 200px;
+                  padding: 12px;
+                  border: 2px solid var(--border-color);
+                  border-radius: 8px;
+                  background: var(--input-bg);
+                  color: var(--text-primary);
+                "
+              />
+            </div>
+            <div
+              style="
+                display: flex;
+                gap: 10px;
+                align-items: center;
+                flex-wrap: wrap;
+              "
+            >
+              <label style="font-weight: 500; color: var(--text-primary)"
+                >Priority:</label
+              >
+              <div class="priority-selector">
+                <button
+                  class="priority-btn low"
+                  data-onclick="setPriority('low')"
+                  id="priorityLow"
+                >
+                  Low
+                </button>
+                <button
+                  class="priority-btn medium active"
+                  data-onclick="setPriority('medium')"
+                  id="priorityMedium"
+                >
+                  Medium
+                </button>
+                <button
+                  class="priority-btn high"
+                  data-onclick="setPriority('high')"
+                  id="priorityHigh"
+                >
+                  High
+                </button>
+              </div>
+              <button
+                class="add-btn"
+                data-onclick="addTodo()"
+                style="margin-left: auto"
+              >
+                Add Todo
+              </button>
+            </div>
+            <div>
+              <button class="expand-section" data-onclick="toggleNotesInput()">
+                <span class="expand-icon" id="notesExpandIcon">▶</span>
+                <span>Add notes (optional)</span>
+              </button>
+              <label for="todoNotesInput" class="sr-only">Todo notes</label>
+              <textarea
+                id="todoNotesInput"
+                class="notes-textarea"
+                placeholder="Add detailed notes here..."
+                style="display: none; margin-top: 8px"
+              ></textarea>
+            </div>
+          </div>
+
+          <div id="todosContent">
+            <div class="loading">
+              <div class="spinner"></div>
+              Loading todos...
+            </div>
+          </div>
         </div>
 
-        <div class="content">
-            <!-- Authentication View -->
-            <div id="authView" class="view active">
-                <div class="auth-container">
-                    <div class="auth-tabs">
-                        <button class="auth-tab active" data-onclick="switchAuthTab('login', this)">Login</button>
-                        <button class="auth-tab" data-onclick="switchAuthTab('register', this)">Register</button>
-                    </div>
+        <!-- Profile View -->
+        <div id="profileView" class="view">
+          <div class="message" id="profileMessage"></div>
 
-                    <div class="message" id="authMessage"></div>
-
-                    <!-- Login Form -->
-                    <form id="loginForm" class="auth-form active" data-onsubmit="handleLogin(event)" style="display: block;">
-                        <div class="form-group">
-                            <label for="loginEmail">Email</label>
-                            <input type="email" id="loginEmail" required placeholder="your@email.com">
-                        </div>
-                        <div class="form-group">
-                            <label for="loginPassword">Password</label>
-                            <input type="password" id="loginPassword" required placeholder="••••••••">
-                        </div>
-                        <button type="submit" class="btn">Login</button>
-                        <button type="button" class="link-btn" data-onclick="showForgotPassword()">Forgot Password?</button>
-                    </form>
-
-                    <!-- Register Form -->
-                    <form id="registerForm" class="auth-form" data-onsubmit="handleRegister(event)" style="display: none;">
-                        <div class="form-group">
-                            <label for="registerName">Name</label>
-                            <input type="text" id="registerName" placeholder="Your Name (optional)">
-                        </div>
-                        <div class="form-group">
-                            <label for="registerEmail">Email</label>
-                            <input type="email" id="registerEmail" required placeholder="your@email.com">
-                        </div>
-                        <div class="form-group">
-                            <label for="registerPassword">Password</label>
-                            <input type="password" id="registerPassword" required placeholder="••••••••" minlength="8">
-                        </div>
-                        <button type="submit" class="btn">Create Account</button>
-                    </form>
-
-                    <!-- Forgot Password Form -->
-                    <form id="forgotPasswordForm" class="auth-form" data-onsubmit="handleForgotPassword(event)" style="display: none;">
-                        <h2 style="margin-bottom: 20px;">Reset Password</h2>
-                        <div class="form-group">
-                            <label for="forgotEmail">Email</label>
-                            <input type="email" id="forgotEmail" required placeholder="your@email.com">
-                        </div>
-                        <button type="submit" class="btn">Send Reset Link</button>
-                        <button type="button" class="link-btn" data-onclick="showLogin()">Back to Login</button>
-                    </form>
-
-                    <!-- Reset Password Form -->
-                    <form id="resetPasswordForm" class="auth-form" data-onsubmit="handleResetPassword(event)" style="display: none;">
-                        <h2 style="margin-bottom: 20px;">Set New Password</h2>
-                        <div class="form-group">
-                            <label for="newPassword">New Password</label>
-                            <input type="password" id="newPassword" required placeholder="••••••••" minlength="8">
-                        </div>
-                        <div class="form-group">
-                            <label for="confirmPassword">Confirm Password</label>
-                            <input type="password" id="confirmPassword" required placeholder="••••••••" minlength="8">
-                        </div>
-                        <button type="submit" class="btn">Reset Password</button>
-                    </form>
-                </div>
+          <!-- Email Verification Banner -->
+          <div
+            id="verificationBanner"
+            style="
+              display: none;
+              background: #fff3cd;
+              border: 1px solid #ffc107;
+              padding: 16px;
+              border-radius: 8px;
+              margin-bottom: 20px;
+            "
+          >
+            <div
+              style="
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              "
+            >
+              <div>
+                <strong style="color: #856404">⚠️ Email Not Verified</strong>
+                <p style="color: #856404; margin-top: 4px; font-size: 0.9em">
+                  Please verify your email address to access all features.
+                </p>
+              </div>
+              <button
+                data-onclick="resendVerification()"
+                style="
+                  padding: 8px 16px;
+                  background: #ffc107;
+                  color: #000;
+                  border: none;
+                  border-radius: 6px;
+                  cursor: pointer;
+                  font-weight: 500;
+                "
+              >
+                Resend Email
+              </button>
             </div>
+          </div>
 
-            <!-- Todos View -->
-            <div id="todosView" class="view">
-                <!-- Search Bar -->
-                <div class="search-bar">
-                    <label for="searchInput" class="sr-only">Search todos</label>
-                    <input type="text" id="searchInput" class="search-input" placeholder="Search todos... (Ctrl/Cmd+F)" data-oninput="filterTodos()">
-                    <span class="search-icon">🔍</span>
-                </div>
-
-                <!-- Category Filter -->
-                <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                    <label for="categoryFilter" style="font-weight: 500; color: var(--text-primary);">Filter:</label>
-                    <select id="categoryFilter" data-onchange="filterTodos()" style="padding: 8px 12px; border: 2px solid var(--border-color); border-radius: 6px; background: var(--input-bg); color: var(--text-primary); cursor: pointer;">
-                        <option value="">All Categories</option>
-                    </select>
-                    <button data-onclick="clearFilters()" style="padding: 8px 16px; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; color: var(--text-primary);">Clear</button>
-                </div>
-
-                <!-- Bulk Actions Toolbar -->
-                <div id="bulkActionsToolbar" class="bulk-actions-toolbar" style="display: none;">
-                    <input type="checkbox" id="selectAllCheckbox" class="bulk-checkbox" data-onchange="toggleSelectAll()">
-                    <label for="selectAllCheckbox" style="cursor: pointer; user-select: none;">Select All</label>
-                    <button data-onclick="completeSelected()">✓ Complete Selected</button>
-                    <button data-onclick="deleteSelected()">🗑 Delete Selected</button>
-                    <span class="bulk-count" id="bulkCount">0 selected</span>
-                </div>
-
-                <!-- Add Todo Form -->
-                <div class="add-todo" style="flex-direction: column; gap: 12px;">
-                    <label for="todoInput" class="sr-only">Todo title</label>
-                    <input type="text" id="todoInput" placeholder="What needs to be done?" data-onkeypress="handleTodoKeyPress(event)" style="width: 100%;">
-                    <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap;">
-                        <label for="todoCategoryInput" class="sr-only">Todo category</label>
-                        <input type="text" id="todoCategoryInput" placeholder="Category (e.g., Work, Personal)" style="flex: 1; min-width: 200px; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
-                        <label for="todoDueDateInput" class="sr-only">Todo due date</label>
-                        <input type="datetime-local" id="todoDueDateInput" style="flex: 1; min-width: 200px; padding: 12px; border: 2px solid var(--border-color); border-radius: 8px; background: var(--input-bg); color: var(--text-primary);">
-                    </div>
-                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <label style="font-weight: 500; color: var(--text-primary);">Priority:</label>
-                        <div class="priority-selector">
-                            <button class="priority-btn low" data-onclick="setPriority('low')" id="priorityLow">Low</button>
-                            <button class="priority-btn medium active" data-onclick="setPriority('medium')" id="priorityMedium">Medium</button>
-                            <button class="priority-btn high" data-onclick="setPriority('high')" id="priorityHigh">High</button>
-                        </div>
-                        <button class="add-btn" data-onclick="addTodo()" style="margin-left: auto;">Add Todo</button>
-                    </div>
-                    <div>
-                        <button class="expand-section" data-onclick="toggleNotesInput()">
-                            <span class="expand-icon" id="notesExpandIcon">▶</span>
-                            <span>Add notes (optional)</span>
-                        </button>
-                        <label for="todoNotesInput" class="sr-only">Todo notes</label>
-                        <textarea id="todoNotesInput" class="notes-textarea" placeholder="Add detailed notes here..." style="display: none; margin-top: 8px;"></textarea>
-                    </div>
-                </div>
-
-                <div id="todosContent">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        Loading todos...
-                    </div>
-                </div>
+          <div class="profile-section">
+            <h3>Account Information</h3>
+            <div class="info-row">
+              <span class="info-label">Email:</span>
+              <span class="info-value" id="profileEmail"></span>
             </div>
-
-            <!-- Profile View -->
-            <div id="profileView" class="view">
-                <div class="message" id="profileMessage"></div>
-
-                <!-- Email Verification Banner -->
-                <div id="verificationBanner" style="display: none; background: #fff3cd; border: 1px solid #ffc107; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <strong style="color: #856404;">⚠️ Email Not Verified</strong>
-                            <p style="color: #856404; margin-top: 4px; font-size: 0.9em;">Please verify your email address to access all features.</p>
-                        </div>
-                        <button data-onclick="resendVerification()" style="padding: 8px 16px; background: #ffc107; color: #000; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;">
-                            Resend Email
-                        </button>
-                    </div>
-                </div>
-
-                <div class="profile-section">
-                    <h3>Account Information</h3>
-                    <div class="info-row">
-                        <span class="info-label">Email:</span>
-                        <span class="info-value" id="profileEmail"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Name:</span>
-                        <span class="info-value" id="profileName"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Status:</span>
-                        <span class="info-value" id="profileStatus"></span>
-                    </div>
-                    <div class="info-row">
-                        <span class="info-label">Member Since:</span>
-                        <span class="info-value" id="profileCreated"></span>
-                    </div>
-                </div>
-
-                <div class="profile-section">
-                    <h3>Update Profile</h3>
-                    <form data-onsubmit="handleUpdateProfile(event)">
-                        <div class="form-group">
-                            <label for="updateName">Name</label>
-                            <input type="text" id="updateName" placeholder="Your Name">
-                        </div>
-                        <div class="form-group">
-                            <label for="updateEmail">Email</label>
-                            <input type="email" id="updateEmail" required placeholder="your@email.com">
-                        </div>
-                        <button type="submit" class="btn">Update Profile</button>
-                    </form>
-                </div>
-
-                <div class="profile-section" id="adminBootstrapSection" style="display: none;">
-                    <h3>Admin Provisioning</h3>
-                    <p style="margin-bottom: 12px; color: var(--text-secondary);">
-                        No admin user exists yet. Enter the bootstrap secret to grant admin access to this account.
-                    </p>
-                    <form data-onsubmit="handleAdminBootstrap(event)">
-                        <div class="form-group">
-                            <label for="adminBootstrapSecret">Bootstrap Secret</label>
-                            <input
-                                type="password"
-                                id="adminBootstrapSecret"
-                                autocomplete="current-password"
-                                placeholder="Enter admin bootstrap secret"
-                                required
-                            >
-                        </div>
-                        <button type="submit" class="btn">Grant Admin Access</button>
-                    </form>
-                </div>
+            <div class="info-row">
+              <span class="info-label">Name:</span>
+              <span class="info-value" id="profileName"></span>
             </div>
-
-            <!-- Admin View -->
-            <div id="adminView" class="view">
-                <div class="message" id="adminMessage"></div>
-                <h2>User Management</h2>
-                <div id="adminContent">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        Loading users...
-                    </div>
-                </div>
+            <div class="info-row">
+              <span class="info-label">Status:</span>
+              <span class="info-value" id="profileStatus"></span>
             </div>
+            <div class="info-row">
+              <span class="info-label">Member Since:</span>
+              <span class="info-value" id="profileCreated"></span>
+            </div>
+          </div>
+
+          <div class="profile-section">
+            <h3>Update Profile</h3>
+            <form data-onsubmit="handleUpdateProfile(event)">
+              <div class="form-group">
+                <label for="updateName">Name</label>
+                <input type="text" id="updateName" placeholder="Your Name" />
+              </div>
+              <div class="form-group">
+                <label for="updateEmail">Email</label>
+                <input
+                  type="email"
+                  id="updateEmail"
+                  required
+                  placeholder="your@email.com"
+                />
+              </div>
+              <button type="submit" class="btn">Update Profile</button>
+            </form>
+          </div>
+
+          <div
+            class="profile-section"
+            id="adminBootstrapSection"
+            style="display: none"
+          >
+            <h3>Admin Provisioning</h3>
+            <p style="margin-bottom: 12px; color: var(--text-secondary)">
+              No admin user exists yet. Enter the bootstrap secret to grant
+              admin access to this account.
+            </p>
+            <form data-onsubmit="handleAdminBootstrap(event)">
+              <div class="form-group">
+                <label for="adminBootstrapSecret">Bootstrap Secret</label>
+                <input
+                  type="password"
+                  id="adminBootstrapSecret"
+                  autocomplete="current-password"
+                  placeholder="Enter admin bootstrap secret"
+                  required
+                />
+              </div>
+              <button type="submit" class="btn">Grant Admin Access</button>
+            </form>
+          </div>
         </div>
+
+        <!-- Admin View -->
+        <div id="adminView" class="view">
+          <div class="message" id="adminMessage"></div>
+          <h2>User Management</h2>
+          <div id="adminContent">
+            <div class="loading">
+              <div class="spinner"></div>
+              Loading users...
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <script src="/app.js" defer></script>
 
     <!-- Keyboard Shortcuts Button -->
-    <button class="keyboard-shortcuts-btn" data-onclick="toggleShortcuts()" title="Keyboard Shortcuts (?)">⌨️</button>
+    <button
+      class="keyboard-shortcuts-btn"
+      data-onclick="toggleShortcuts()"
+      title="Keyboard Shortcuts (?)"
+    >
+      ⌨️
+    </button>
 
     <!-- Undo/Redo Toast -->
     <div id="undoToast" class="undo-toast">
-        <span id="undoMessage">Action performed</span>
-        <button data-onclick="performUndo()">Undo</button>
+      <span id="undoMessage">Action performed</span>
+      <button data-onclick="performUndo()">Undo</button>
     </div>
 
     <!-- Keyboard Shortcuts Overlay -->
-    <div id="shortcutsOverlay" class="shortcuts-overlay" data-onclick="closeShortcutsOverlay(event)">
-        <div class="shortcuts-content" data-onclick="event.stopPropagation()">
-            <h2>⌨️ Keyboard Shortcuts</h2>
-            <div class="shortcut-item">
-                <span class="shortcut-desc">New Todo</span>
-                <kbd class="shortcut-key">Ctrl/Cmd + N</kbd>
-            </div>
-            <div class="shortcut-item">
-                <span class="shortcut-desc">Search Todos</span>
-                <kbd class="shortcut-key">Ctrl/Cmd + F</kbd>
-            </div>
-            <div class="shortcut-item">
-                <span class="shortcut-desc">Clear Search</span>
-                <kbd class="shortcut-key">Esc</kbd>
-            </div>
-            <div class="shortcut-item">
-                <span class="shortcut-desc">Show Shortcuts</span>
-                <kbd class="shortcut-key">?</kbd>
-            </div>
-            <div class="shortcut-item">
-                <span class="shortcut-desc">Select All Todos</span>
-                <kbd class="shortcut-key">Ctrl/Cmd + A</kbd>
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-                <button data-onclick="toggleShortcuts()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">Close</button>
-            </div>
+    <div
+      id="shortcutsOverlay"
+      class="shortcuts-overlay"
+      data-onclick="closeShortcutsOverlay(event)"
+    >
+      <div class="shortcuts-content" data-onclick="event.stopPropagation()">
+        <h2>⌨️ Keyboard Shortcuts</h2>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">New Todo</span>
+          <kbd class="shortcut-key">Ctrl/Cmd + N</kbd>
         </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Search Todos</span>
+          <kbd class="shortcut-key">Ctrl/Cmd + F</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Clear Search</span>
+          <kbd class="shortcut-key">Esc</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Show Shortcuts</span>
+          <kbd class="shortcut-key">?</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Select All Todos</span>
+          <kbd class="shortcut-key">Ctrl/Cmd + A</kbd>
+        </div>
+        <div style="text-align: center; margin-top: 20px">
+          <button
+            data-onclick="toggleShortcuts()"
+            style="
+              padding: 10px 20px;
+              background: #667eea;
+              color: white;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+            "
+          >
+            Close
+          </button>
+        </div>
+      </div>
     </div>
-</body>
+  </body>
 </html>
