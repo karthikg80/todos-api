@@ -79,6 +79,16 @@ async function apiCall(url, options = {}) {
   return response;
 }
 
+async function parseApiBody(response) {
+  const text = await response.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: text };
+  }
+}
+
 // Refresh access token
 async function refreshAccessToken() {
   if (refreshInFlight) {
@@ -491,7 +501,7 @@ async function resendVerification() {
       body: JSON.stringify({ email: currentUser.email }),
     });
 
-    const data = await response.json();
+    const data = await parseApiBody(response);
 
     if (response.ok) {
       showMessage(
