@@ -47,6 +47,8 @@ function init() {
   } else {
     setAuthState(AUTH_STATE.UNAUTHENTICATED);
   }
+
+  bindCriticalHandlers();
 }
 
 // API call with auto-refresh
@@ -495,13 +497,13 @@ async function resendVerification() {
   }
 
   try {
-    const response = await fetch(`${API_URL}/auth/resend-verification`, {
+    const response = await apiCall(`${API_URL}/auth/resend-verification`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email: currentUser.email }),
     });
 
-    const data = await parseApiBody(response);
+    const data = response ? await parseApiBody(response) : {};
 
     if (response.ok) {
       showMessage(
@@ -1529,7 +1531,7 @@ async function deleteUser(userId) {
 }
 
 // Switch view
-function switchView(view) {
+function switchView(view, triggerEl = null) {
   document
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
@@ -1538,7 +1540,9 @@ function switchView(view) {
     .forEach((t) => t.classList.remove("active"));
 
   document.getElementById(view + "View").classList.add("active");
-  event.target.classList.add("active");
+  if (triggerEl) {
+    triggerEl.classList.add("active");
+  }
 
   if (view === "todos") {
     loadTodos();
@@ -1546,6 +1550,45 @@ function switchView(view) {
     updateUserDisplay();
   } else if (view === "admin") {
     loadAdminUsers();
+  }
+}
+
+function bindCriticalHandlers() {
+  const bindClick = (id, handler) => {
+    const element = document.getElementById(id);
+    if (!element || element.dataset.bound === "true") {
+      return;
+    }
+    element.addEventListener("click", (event) => {
+      event.preventDefault();
+      handler(element, event);
+    });
+    element.dataset.bound = "true";
+  };
+
+  bindClick("loginTabButton", (element) => {
+    switchAuthTab("login", element);
+  });
+
+  bindClick("registerTabButton", (element) => {
+    switchAuthTab("register", element);
+  });
+
+  bindClick("forgotPasswordLink", () => {
+    showForgotPassword();
+  });
+
+  bindClick("forgotBackToLoginButton", () => {
+    showLogin();
+  });
+
+  const resendBtn = document.getElementById("resendVerificationButton");
+  if (resendBtn && !resendBtn.dataset.bound) {
+    resendBtn.addEventListener("click", (event) => {
+      event.preventDefault();
+      resendVerification();
+    });
+    resendBtn.dataset.bound = "true";
   }
 }
 
