@@ -624,23 +624,25 @@
                         <li class="todo-item ${todo.completed ? 'completed' : ''}"
                             draggable="true"
                             data-todo-id="${todo.id}"
-                            ondragstart="handleDragStart(event)"
-                            ondragover="handleDragOver(event)"
-                            ondrop="handleDrop(event)"
-                            ondragend="handleDragEnd(event)">
+                            data-ondragstart="handleDragStart(event)"
+                            data-ondragover="handleDragOver(event)"
+                            data-ondrop="handleDrop(event)"
+                            data-ondragend="handleDragEnd(event)">
                             <input
                                 type="checkbox"
                                 class="bulk-checkbox"
+                                aria-label="Select todo ${escapeHtml(todo.title)}"
                                 ${isSelected ? 'checked' : ''}
-                                onchange="toggleSelectTodo('${todo.id}')"
-                                onclick="event.stopPropagation()"
+                                data-onchange="toggleSelectTodo('${todo.id}')"
+                                data-onclick="event.stopPropagation()"
                             >
                             <span class="drag-handle">⋮⋮</span>
                             <input
                                 type="checkbox"
                                 class="todo-checkbox"
+                                aria-label="Mark todo ${escapeHtml(todo.title)} complete"
                                 ${todo.completed ? 'checked' : ''}
-                                onchange="toggleTodo('${todo.id}')"
+                                data-onchange="toggleTodo('${todo.id}')"
                             >
                             <div class="todo-content" style="flex: 1;">
                                 <div class="todo-title">${escapeHtml(todo.title)}</div>
@@ -653,7 +655,7 @@
                                 ${todo.subtasks && todo.subtasks.length > 0 ? renderSubtasks(todo) : ''}
                                 ${todo.notes && todo.notes.trim() ? `
                                     <div class="notes-section">
-                                        <button class="notes-toggle" onclick="toggleNotes('${todo.id}', event)">
+                                        <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
                                             <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
                                             <span>📝 Notes</span>
                                         </button>
@@ -663,7 +665,7 @@
                                     </div>
                                 ` : ''}
                             </div>
-                            <button class="delete-btn" onclick="deleteTodo('${todo.id}')">Delete</button>
+                            <button class="delete-btn" data-onclick="deleteTodo('${todo.id}')">Delete</button>
                         </li>
                     `}).join('')}
                 </ul>
@@ -744,9 +746,10 @@
                                 <input
                                     type="checkbox"
                                     class="todo-checkbox"
+                                    aria-label="Mark subtask ${escapeHtml(subtask.title)} complete"
                                     style="width: 16px; height: 16px;"
                                     ${subtask.completed ? 'checked' : ''}
-                                    onchange="toggleSubtask('${todo.id}', '${subtask.id}')"
+                                    data-onchange="toggleSubtask('${todo.id}', '${subtask.id}')"
                                 >
                                 <span class="subtask-title">${escapeHtml(subtask.title)}</span>
                             </li>
@@ -1194,11 +1197,11 @@
                                 <td>
                                     ${user.id !== currentUser.id ? `
                                         ${user.role === 'user' ? `
-                                            <button class="action-btn promote" onclick="changeUserRole('${user.id}', 'admin')">Make Admin</button>
+                                            <button class="action-btn promote" data-onclick="changeUserRole('${user.id}', 'admin')">Make Admin</button>
                                         ` : `
-                                            <button class="action-btn demote" onclick="changeUserRole('${user.id}', 'user')">Remove Admin</button>
+                                            <button class="action-btn demote" data-onclick="changeUserRole('${user.id}', 'user')">Remove Admin</button>
                                         `}
-                                        <button class="action-btn delete" onclick="deleteUser('${user.id}')">Delete</button>
+                                        <button class="action-btn delete" data-onclick="deleteUser('${user.id}')">Delete</button>
                                     ` : '<em>You</em>'}
                                 </td>
                             </tr>
@@ -1435,17 +1438,23 @@
         }
 
         function bindDeclarativeHandlers() {
-            const events = ['click', 'submit', 'input', 'change', 'keypress'];
+            if (window.__declarativeHandlersBound) {
+                return;
+            }
+            window.__declarativeHandlersBound = true;
+
+            const events = ['click', 'submit', 'input', 'change', 'keypress', 'dragstart', 'dragover', 'drop', 'dragend'];
 
             for (const eventType of events) {
                 const attribute = `on${eventType}`;
-                const selector = `[data-${attribute}]`;
-                document.querySelectorAll(selector).forEach((element) => {
+                document.addEventListener(eventType, (event) => {
+                    const target = event.target;
+                    if (!(target instanceof Element)) return;
+                    const element = target.closest(`[data-${attribute}]`);
+                    if (!element) return;
                     const expression = element.dataset[attribute];
                     if (!expression) return;
-                    element.addEventListener(eventType, (event) => {
-                        invokeBoundExpression(expression, event, element);
-                    });
+                    invokeBoundExpression(expression, event, element);
                 });
             }
         }
