@@ -1,9 +1,9 @@
-import path from 'path';
+import path from "path";
 
 const DEFAULT_DB_REQUIRED_TEST_PATTERNS = [
-  'src/auth.api.test.ts',
-  'src/authService.test.ts',
-  'src/prismaTodoService.test.ts',
+  "src/auth.api.test.ts",
+  "src/authService.test.ts",
+  "src/prismaTodoService.test.ts",
 ];
 
 function getConfiguredPatterns(): string[] {
@@ -13,14 +13,14 @@ function getConfiguredPatterns(): string[] {
   }
 
   return raw
-    .split(',')
+    .split(",")
     .map((pattern) => pattern.trim())
     .filter((pattern) => pattern.length > 0);
 }
 
 export function shouldSetupDatabaseForArgs(args: string[]): boolean {
   const patterns = getConfiguredPatterns();
-  const explicitSelections = args.filter((arg) => arg.endsWith('.ts'));
+  const explicitSelections = args.filter((arg) => arg.endsWith(".ts"));
   const hasExplicitTestSelection = explicitSelections.length > 0;
 
   if (!hasExplicitTestSelection) {
@@ -36,11 +36,11 @@ export function isDbRequiredTestPath(testPath: string): boolean {
 }
 
 function isPatternMatch(target: string, patterns: string[]): boolean {
-  const normalizedTarget = target.replace(/\\/g, '/');
+  const normalizedTarget = target.replace(/\\/g, "/");
   const targetBase = path.basename(normalizedTarget);
 
   return patterns.some((pattern) => {
-    const normalizedPattern = pattern.replace(/\\/g, '/');
+    const normalizedPattern = pattern.replace(/\\/g, "/");
     const patternBase = path.basename(normalizedPattern);
     return (
       normalizedTarget.includes(normalizedPattern) ||

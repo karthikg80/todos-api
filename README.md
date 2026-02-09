@@ -40,6 +40,7 @@ cp .env.example .env
 ```
 
 The `.env` file contains:
+
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/todos_dev"
 DATABASE_URL_TEST="postgresql://postgres:postgres@localhost:5432/todos_test"
@@ -49,14 +50,18 @@ JWT_SECRET=your-secret-key-change-in-production
 JWT_ACCESS_SECRET=your-access-jwt-secret-change-in-production
 JWT_REFRESH_SECRET=your-refresh-jwt-secret-change-in-production
 ADMIN_BOOTSTRAP_SECRET=
+EMAIL_FEATURES_ENABLED=true
 CORS_ORIGINS=
 ```
 
 Production notes:
+
 - `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be set to strong, different values.
 - `JWT_SECRET` is supported as a backward-compatibility fallback only.
 - `CORS_ORIGINS` must be set (comma-separated allowlist).
 - `ADMIN_BOOTSTRAP_SECRET` is optional, and enables first-admin provisioning from the Profile UI.
+- `DATABASE_URL` must be set in production.
+- If `EMAIL_FEATURES_ENABLED=true`, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `BASE_URL`.
 
 ### 3. Start Database
 
@@ -85,10 +90,12 @@ The API will be available at http://localhost:3000
 ## Available Scripts
 
 ### Development
+
 - `npm run dev` - Start server with auto-reload (nodemon)
 - `npm start` - Start server in production mode
 
 ### Database Management
+
 - `npm run db:setup` - One-command setup: start Docker + run migrations
 - `npm run prisma:generate` - Generate Prisma client
 - `npm run prisma:migrate` - Create and apply new migration
@@ -97,22 +104,26 @@ The API will be available at http://localhost:3000
 - `npm run prisma:reset` - Reset database (WARNING: deletes all data)
 
 ### Docker
+
 - `npm run docker:up` - Start PostgreSQL container
 - `npm run docker:down` - Stop PostgreSQL container
 - `npm run docker:reset` - Reset Docker volumes (deletes all data)
 - `npm run docker:logs` - View PostgreSQL logs
 
 ### Testing
+
 - `npm test` - Run all tests
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
 
 ### Build
+
 - `npm run build` - Build TypeScript + generate Prisma client
 
 ## API Endpoints
 
 ### Create a Todo
+
 ```http
 POST /todos
 Content-Type: application/json
@@ -134,6 +145,7 @@ Content-Type: application/json
 ```
 
 ### Get All Todos
+
 ```http
 GET /todos
 
@@ -151,6 +163,7 @@ GET /todos
 ```
 
 ### Get a Single Todo
+
 ```http
 GET /todos/:id
 
@@ -168,6 +181,7 @@ GET /todos/:id
 ```
 
 ### Update a Todo
+
 ```http
 PUT /todos/:id
 Content-Type: application/json
@@ -195,6 +209,7 @@ Content-Type: application/json
 ```
 
 ### Delete a Todo
+
 ```http
 DELETE /todos/:id
 
@@ -209,22 +224,26 @@ DELETE /todos/:id
 ## Validation Rules
 
 ### Title
+
 - ✅ Required
 - ✅ Must be a string
 - ✅ Cannot be empty (after trimming whitespace)
 - ✅ Maximum 200 characters
 
 ### Description
+
 - ✅ Optional
 - ✅ Must be a string if provided
 - ✅ Maximum 1000 characters
 
 ### Completed
+
 - ✅ Must be a boolean if provided
 
 ## Testing
 
 The project includes 91 comprehensive tests:
+
 - **17 tests** - TodoService (in-memory unit tests)
 - **23 tests** - Validation logic
 - **22 tests** - API endpoints
@@ -272,6 +291,7 @@ npm run test:links
 ### Test Database
 
 Tests automatically use a separate test database (`todos_test`) to avoid affecting development data. The test setup:
+
 1. Runs migrations on test database before all tests
 2. Cleans test data before each test
 3. Disconnects Prisma client after all tests
@@ -367,12 +387,13 @@ CREATE TABLE todos (
 
 ## Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection for dev/prod | `postgresql://postgres:postgres@localhost:5432/todos_dev` |
-| `DATABASE_URL_TEST` | PostgreSQL connection for tests | `postgresql://postgres:postgres@localhost:5432/todos_test` |
-| `PORT` | Server port | `3000` |
-| `NODE_ENV` | Environment (development/test/production) | `development` |
+| Variable                 | Description                               | Default                                                    |
+| ------------------------ | ----------------------------------------- | ---------------------------------------------------------- |
+| `DATABASE_URL`           | PostgreSQL connection for dev/prod        | `postgresql://postgres:postgres@localhost:5432/todos_dev`  |
+| `DATABASE_URL_TEST`      | PostgreSQL connection for tests           | `postgresql://postgres:postgres@localhost:5432/todos_test` |
+| `PORT`                   | Server port                               | `3000`                                                     |
+| `NODE_ENV`               | Environment (development/test/production) | `development`                                              |
+| `EMAIL_FEATURES_ENABLED` | Enable verification/reset email delivery  | `true`                                                     |
 
 ## Deployment
 
@@ -387,6 +408,7 @@ This compiles TypeScript and generates the Prisma client.
 ### Run in Production
 
 1. Set environment variables:
+
    ```bash
    export DATABASE_URL="postgresql://user:password@host:5432/todos_prod"
    export NODE_ENV="production"
@@ -394,6 +416,7 @@ This compiles TypeScript and generates the Prisma client.
    ```
 
 2. Run migrations:
+
    ```bash
    npm run prisma:migrate:deploy
    ```
@@ -412,6 +435,7 @@ The PostgreSQL container is configured for local development. For production, us
 ### Port 5432 Already in Use
 
 If you have a local PostgreSQL instance running:
+
 ```bash
 # Stop local PostgreSQL (macOS with Homebrew)
 brew services stop postgresql@18

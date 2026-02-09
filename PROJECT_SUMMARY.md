@@ -7,6 +7,7 @@ This project is a fully functional REST API for managing todos with all requeste
 ## Requirements Fulfilled
 
 ### ✅ CRUD Operations
+
 - **CREATE**: POST /todos - Create new todos with title and optional description
 - **READ**: GET /todos - Get all todos
 - **READ**: GET /todos/:id - Get a specific todo by ID
@@ -14,6 +15,7 @@ This project is a fully functional REST API for managing todos with all requeste
 - **DELETE**: DELETE /todos/:id - Delete a todo
 
 ### ✅ Input Validation
+
 - Title validation (required, non-empty, max 200 chars)
 - Description validation (optional, max 1000 chars)
 - Completed status validation (must be boolean)
@@ -22,6 +24,7 @@ This project is a fully functional REST API for managing todos with all requeste
 - Proper HTTP status codes (400 for validation errors, 404 for not found)
 
 ### ✅ Tests
+
 - **62 total tests** covering all functionality
 - **3 test suites**:
   - validation.test.ts: 23 tests for input validation
@@ -34,6 +37,7 @@ This project is a fully functional REST API for managing todos with all requeste
 ## Technical Implementation
 
 ### Architecture
+
 - Separation of concerns with distinct layers:
   - Types (types.ts)
   - Validation (validation.ts)
@@ -42,6 +46,7 @@ This project is a fully functional REST API for managing todos with all requeste
   - Server (server.ts)
 
 ### Technology Stack
+
 - **Runtime**: Node.js
 - **Framework**: Express 5.x
 - **Language**: TypeScript (strict mode)
@@ -49,6 +54,7 @@ This project is a fully functional REST API for managing todos with all requeste
 - **Storage**: In-memory (Map data structure)
 
 ### Code Quality
+
 - Strict TypeScript configuration
 - Comprehensive error handling
 - RESTful API design
@@ -97,11 +103,13 @@ Time:        ~1s
 ## Usage
 
 Start the server:
+
 ```bash
 npm start
 ```
 
 Run tests:
+
 ```bash
 npm test
 ```
@@ -109,6 +117,7 @@ npm test
 ## Conclusion
 
 The Todos REST API is **COMPLETE** and ready for use. All requirements have been met:
+
 - ✅ Full CRUD operations implemented
 - ✅ Comprehensive input validation with proper error handling
 - ✅ 62 passing tests with excellent coverage

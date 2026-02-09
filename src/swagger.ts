@@ -1,228 +1,229 @@
-import swaggerJsdoc from 'swagger-jsdoc';
+import swaggerJsdoc from "swagger-jsdoc";
 
 const options: swaggerJsdoc.Options = {
   definition: {
-    openapi: '3.0.0',
+    openapi: "3.0.0",
     info: {
-      title: 'Todo API',
-      version: '1.0.0',
-      description: 'A production-ready REST API for managing todos with JWT authentication',
+      title: "Todo API",
+      version: "1.0.0",
+      description:
+        "A production-ready REST API for managing todos with JWT authentication",
       contact: {
-        name: 'API Support',
+        name: "API Support",
       },
     },
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: 'Development server',
+        url: "http://localhost:3000",
+        description: "Development server",
       },
       {
-        url: 'https://todos.karthikg.in',
-        description: 'Production server',
+        url: "https://todos.karthikg.in",
+        description: "Production server",
       },
     ],
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
         },
       },
       schemas: {
         User: {
-          type: 'object',
+          type: "object",
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              description: 'User ID',
+              type: "string",
+              format: "uuid",
+              description: "User ID",
             },
             email: {
-              type: 'string',
-              format: 'email',
-              description: 'User email address',
+              type: "string",
+              format: "email",
+              description: "User email address",
             },
             name: {
-              type: 'string',
+              type: "string",
               nullable: true,
-              description: 'User display name',
+              description: "User display name",
             },
             isVerified: {
-              type: 'boolean',
-              description: 'Whether the user email is verified',
+              type: "boolean",
+              description: "Whether the user email is verified",
             },
             role: {
-              type: 'string',
-              enum: ['user', 'admin'],
-              description: 'User role',
+              type: "string",
+              enum: ["user", "admin"],
+              description: "User role",
             },
             createdAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Account creation timestamp',
+              type: "string",
+              format: "date-time",
+              description: "Account creation timestamp",
             },
             updatedAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Last update timestamp',
+              type: "string",
+              format: "date-time",
+              description: "Last update timestamp",
             },
           },
         },
         Todo: {
-          type: 'object',
+          type: "object",
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              description: 'Todo ID',
+              type: "string",
+              format: "uuid",
+              description: "Todo ID",
             },
             title: {
-              type: 'string',
+              type: "string",
               maxLength: 200,
-              description: 'Todo title',
+              description: "Todo title",
             },
             description: {
-              type: 'string',
+              type: "string",
               maxLength: 1000,
               nullable: true,
-              description: 'Todo description',
+              description: "Todo description",
             },
             completed: {
-              type: 'boolean',
-              description: 'Completion status',
+              type: "boolean",
+              description: "Completion status",
             },
             category: {
-              type: 'string',
+              type: "string",
               maxLength: 50,
               nullable: true,
-              description: 'Todo category',
+              description: "Todo category",
             },
             dueDate: {
-              type: 'string',
-              format: 'date-time',
+              type: "string",
+              format: "date-time",
               nullable: true,
-              description: 'Due date',
+              description: "Due date",
             },
             order: {
-              type: 'integer',
-              description: 'Display order (ascending)',
+              type: "integer",
+              description: "Display order (ascending)",
             },
             priority: {
-              type: 'string',
-              enum: ['low', 'medium', 'high'],
-              description: 'Priority level',
+              type: "string",
+              enum: ["low", "medium", "high"],
+              description: "Priority level",
             },
             notes: {
-              type: 'string',
+              type: "string",
               maxLength: 10000,
               nullable: true,
-              description: 'Additional notes',
+              description: "Additional notes",
             },
             userId: {
-              type: 'string',
-              format: 'uuid',
-              description: 'Owner user ID',
+              type: "string",
+              format: "uuid",
+              description: "Owner user ID",
             },
             createdAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Creation timestamp',
+              type: "string",
+              format: "date-time",
+              description: "Creation timestamp",
             },
             updatedAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Last update timestamp',
+              type: "string",
+              format: "date-time",
+              description: "Last update timestamp",
             },
             subtasks: {
-              type: 'array',
+              type: "array",
               items: {
-                $ref: '#/components/schemas/Subtask',
+                $ref: "#/components/schemas/Subtask",
               },
-              description: 'Child subtasks',
+              description: "Child subtasks",
             },
           },
         },
         Subtask: {
-          type: 'object',
+          type: "object",
           properties: {
             id: {
-              type: 'string',
-              format: 'uuid',
-              description: 'Subtask ID',
+              type: "string",
+              format: "uuid",
+              description: "Subtask ID",
             },
             title: {
-              type: 'string',
+              type: "string",
               maxLength: 200,
-              description: 'Subtask title',
+              description: "Subtask title",
             },
             completed: {
-              type: 'boolean',
-              description: 'Completion status',
+              type: "boolean",
+              description: "Completion status",
             },
             order: {
-              type: 'integer',
-              description: 'Display order (ascending)',
+              type: "integer",
+              description: "Display order (ascending)",
             },
             todoId: {
-              type: 'string',
-              format: 'uuid',
-              description: 'Parent todo ID',
+              type: "string",
+              format: "uuid",
+              description: "Parent todo ID",
             },
             createdAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Creation timestamp',
+              type: "string",
+              format: "date-time",
+              description: "Creation timestamp",
             },
             updatedAt: {
-              type: 'string',
-              format: 'date-time',
-              description: 'Last update timestamp',
+              type: "string",
+              format: "date-time",
+              description: "Last update timestamp",
             },
           },
         },
         AuthResponse: {
-          type: 'object',
+          type: "object",
           properties: {
             user: {
-              $ref: '#/components/schemas/User',
+              $ref: "#/components/schemas/User",
             },
             token: {
-              type: 'string',
-              description: 'JWT access token (short-lived)',
+              type: "string",
+              description: "JWT access token (short-lived)",
             },
             refreshToken: {
-              type: 'string',
-              description: 'Refresh token for obtaining new access tokens',
+              type: "string",
+              description: "Refresh token for obtaining new access tokens",
             },
           },
         },
         Error: {
-          type: 'object',
+          type: "object",
           properties: {
             error: {
-              type: 'string',
-              description: 'Error message',
+              type: "string",
+              description: "Error message",
             },
           },
         },
         ValidationError: {
-          type: 'object',
+          type: "object",
           properties: {
             error: {
-              type: 'string',
-              description: 'Error message',
+              type: "string",
+              description: "Error message",
             },
             errors: {
-              type: 'array',
+              type: "array",
               items: {
-                type: 'object',
+                type: "object",
                 properties: {
                   field: {
-                    type: 'string',
+                    type: "string",
                   },
                   message: {
-                    type: 'string',
+                    type: "string",
                   },
                 },
               },
@@ -233,20 +234,20 @@ const options: swaggerJsdoc.Options = {
     },
     tags: [
       {
-        name: 'Authentication',
-        description: 'User authentication and registration',
+        name: "Authentication",
+        description: "User authentication and registration",
       },
       {
-        name: 'Users',
-        description: 'User profile management',
+        name: "Users",
+        description: "User profile management",
       },
       {
-        name: 'Todos',
-        description: 'Todo CRUD operations',
+        name: "Todos",
+        description: "Todo CRUD operations",
       },
     ],
   },
-  apis: ['./src/app.ts'], // Path to API docs
+  apis: ["./src/app.ts"], // Path to API docs
 };
 
 export const swaggerSpec = swaggerJsdoc(options);

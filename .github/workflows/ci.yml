@@ -25,6 +25,12 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Format check
+        run: npm run format:check
+
+      - name: Audit production dependencies
+        run: npm run audit:prod
+
       - name: Unit tests
         run: npm run test:unit
 
@@ -64,6 +70,12 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Prisma migration status
+        run: npm run prisma:migrate:status
+
+      - name: Prisma migration consistency
+        run: npm run prisma:migrate:check
 
       - name: Integration tests
         run: npm run test:integration

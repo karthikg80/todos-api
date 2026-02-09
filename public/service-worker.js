@@ -1,25 +1,27 @@
 // Service Worker for static asset caching only.
 // Version 2.0.0
 
-const CACHE_NAME = 'todos-app-v2';
-const STATIC_URLS = [
-  '/',
-  '/index.html',
-];
+const CACHE_NAME = "todos-app-v2";
+const STATIC_URLS = ["/", "/index.html"];
 
 function isApiPath(pathname) {
   return (
-    pathname.startsWith('/auth') ||
-    pathname.startsWith('/todos') ||
-    pathname.startsWith('/users') ||
-    pathname.startsWith('/admin') ||
-    pathname.startsWith('/api') ||
-    pathname.startsWith('/api-docs')
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/todos") ||
+    pathname.startsWith("/users") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/api-docs")
   );
 }
 
 function isCacheableAsset(request, pathname) {
-  if (request.destination === 'style' || request.destination === 'script' || request.destination === 'font' || request.destination === 'image') {
+  if (
+    request.destination === "style" ||
+    request.destination === "script" ||
+    request.destination === "font" ||
+    request.destination === "image"
+  ) {
     return true;
   }
 
@@ -27,19 +29,18 @@ function isCacheableAsset(request, pathname) {
 }
 
 // Install event - cache resources
-self.addEventListener('install', (event) => {
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(STATIC_URLS);
-      })
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(STATIC_URLS);
+    }),
   );
   // Activate immediately
   self.skipWaiting();
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -47,17 +48,17 @@ self.addEventListener('activate', (event) => {
           if (cacheName !== CACHE_NAME) {
             return caches.delete(cacheName);
           }
-        })
+        }),
       );
-    })
+    }),
   );
   // Take control immediately
   return self.clients.claim();
 });
 
 // Fetch event
-self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') {
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") {
     return;
   }
 
@@ -75,9 +76,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   // For document navigations, prefer network to avoid stale authenticated shells.
-  if (event.request.mode === 'navigate') {
+  if (event.request.mode === "navigate") {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
+      fetch(event.request).catch(() => caches.match("/index.html")),
     );
     return;
   }
@@ -88,27 +89,31 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        if (response) {
-          return response;
-        }
+    caches.match(event.request).then((response) => {
+      if (response) {
+        return response;
+      }
 
-        return fetch(event.request).then((response) => {
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+      return fetch(event.request)
+        .then((response) => {
+          if (
+            !response ||
+            response.status !== 200 ||
+            response.type !== "basic"
+          ) {
             return response;
           }
 
           const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
 
           return response;
-        }).catch(() => {
-          return caches.match('/index.html');
+        })
+        .catch(() => {
+          return caches.match("/index.html");
         });
-      })
+    }),
   );
 });
