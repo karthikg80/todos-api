@@ -1680,6 +1680,7 @@ function bindCriticalHandlers() {
     }
     element.addEventListener("click", (event) => {
       event.preventDefault();
+      event.stopPropagation();
       handler(element, event);
     });
     element.dataset.bound = "true";
@@ -1705,6 +1706,7 @@ function bindCriticalHandlers() {
   if (resendBtn && !resendBtn.dataset.bound) {
     resendBtn.addEventListener("click", (event) => {
       event.preventDefault();
+      event.stopPropagation();
       resendVerification();
     });
     resendBtn.dataset.bound = "true";
