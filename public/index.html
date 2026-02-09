@@ -38,17 +38,17 @@
 
       <!-- Navigation Tabs (only visible when logged in) -->
       <div class="nav-tabs" id="navTabs" style="display: none">
-        <button class="nav-tab active" data-onclick="switchView('todos')">
+        <button class="nav-tab active" data-onclick="switchView('todos', this)">
           Todos
         </button>
-        <button class="nav-tab" data-onclick="switchView('profile')">
+        <button class="nav-tab" data-onclick="switchView('profile', this)">
           Profile
         </button>
         <button
           class="nav-tab"
           id="adminNavTab"
           style="display: none"
-          data-onclick="switchView('admin')"
+          data-onclick="switchView('admin', this)"
         >
           Admin
         </button>
@@ -60,12 +60,14 @@
           <div class="auth-container">
             <div class="auth-tabs">
               <button
+                id="loginTabButton"
                 class="auth-tab active"
                 data-onclick="switchAuthTab('login', this)"
               >
                 Login
               </button>
               <button
+                id="registerTabButton"
                 class="auth-tab"
                 data-onclick="switchAuthTab('register', this)"
               >
@@ -103,6 +105,7 @@
               <button type="submit" class="btn">Login</button>
               <button
                 type="button"
+                id="forgotPasswordLink"
                 class="link-btn"
                 data-onclick="showForgotPassword()"
               >
@@ -165,7 +168,12 @@
                 />
               </div>
               <button type="submit" class="btn">Send Reset Link</button>
-              <button type="button" class="link-btn" data-onclick="showLogin()">
+              <button
+                type="button"
+                id="forgotBackToLoginButton"
+                class="link-btn"
+                data-onclick="showLogin()"
+              >
                 Back to Login
               </button>
             </form>
@@ -426,6 +434,7 @@
                 </p>
               </div>
               <button
+                id="resendVerificationButton"
                 data-onclick="resendVerification()"
                 style="
                   padding: 8px 16px;
