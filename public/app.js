@@ -17,6 +17,7 @@ const AUTH_STATE = Object.freeze({
 });
 let authState = AUTH_STATE.UNAUTHENTICATED;
 let refreshInFlight = null;
+const EMAIL_ACTION_TIMEOUT_MS = 15000;
 
 function setAuthState(nextState) {
   authState = nextState;
@@ -122,6 +123,32 @@ async function apiCall(url, options = {}) {
   }
 
   return response;
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+async function apiCallWithTimeout(url, options = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await apiCall(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+function isAbortError(error) {
+  return error instanceof Error && error.name === "AbortError";
 }
 
 async function parseApiBody(response) {
@@ -312,15 +339,27 @@ async function handleForgotPassword(event) {
   hideMessage("authMessage");
 
   const email = document.getElementById("forgotEmail").value;
+  const submitBtn = document.querySelector(
+    "#forgotPasswordForm button[type='submit']",
+  );
+  const originalLabel = submitBtn ? submitBtn.textContent : "";
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Sending...";
+  }
 
   try {
-    const response = await fetch(`${API_URL}/auth/forgot-password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
+    const response = await fetchWithTimeout(
+      `${API_URL}/auth/forgot-password`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      },
+      EMAIL_ACTION_TIMEOUT_MS,
+    );
 
-    const data = await response.json();
+    const data = await parseApiBody(response);
 
     if (response.ok) {
       showMessage(
@@ -337,8 +376,21 @@ async function handleForgotPassword(event) {
       );
     }
   } catch (error) {
-    showMessage("authMessage", "Network error. Please try again.", "error");
+    if (isAbortError(error)) {
+      showMessage(
+        "authMessage",
+        "Request timed out. Please try again in a moment.",
+        "error",
+      );
+    } else {
+      showMessage("authMessage", "Network error. Please try again.", "error");
+    }
     console.error("Forgot password error:", error);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalLabel || "Send Reset Link";
+    }
   }
 }
 
@@ -539,12 +591,23 @@ async function resendVerification() {
     return;
   }
 
+  const resendBtn = document.getElementById("resendVerificationButton");
+  const originalLabel = resendBtn ? resendBtn.textContent : "";
+  if (resendBtn) {
+    resendBtn.disabled = true;
+    resendBtn.textContent = "Sending...";
+  }
+
   try {
-    const response = await apiCall(`${API_URL}/auth/resend-verification`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email: currentUser.email }),
-    });
+    const response = await apiCallWithTimeout(
+      `${API_URL}/auth/resend-verification`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: currentUser.email }),
+      },
+      EMAIL_ACTION_TIMEOUT_MS,
+    );
 
     const data = response ? await parseApiBody(response) : {};
 
@@ -562,8 +625,21 @@ async function resendVerification() {
       );
     }
   } catch (error) {
-    showMessage("profileMessage", "Network error. Please try again.", "error");
+    if (isAbortError(error)) {
+      showMessage(
+        "profileMessage",
+        "Request timed out. Please try again in a moment.",
+        "error",
+      );
+    } else {
+      showMessage("profileMessage", "Network error. Please try again.", "error");
+    }
     console.error("Resend verification error:", error);
+  } finally {
+    if (resendBtn) {
+      resendBtn.disabled = false;
+      resendBtn.textContent = originalLabel || "Resend Email";
+    }
   }
 }
 
