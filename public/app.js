@@ -8,6 +8,7 @@
         let refreshToken = null;
         let todos = [];
         let users = [];
+        let adminBootstrapAvailable = false;
 
         // Initialize app
         function init() {
@@ -276,6 +277,7 @@
                     currentUser = { ...currentUser, ...user };
                     localStorage.setItem('user', JSON.stringify(currentUser));
                     updateUserDisplay();
+                    await loadAdminBootstrapStatus();
 
                     // Check if admin and show admin tab
                     if (user.role === 'admin') {
@@ -321,6 +323,74 @@
             const verificationBanner = document.getElementById('verificationBanner');
             if (verificationBanner) {
                 verificationBanner.style.display = currentUser.isVerified ? 'none' : 'block';
+            }
+
+            const adminBootstrapSection = document.getElementById('adminBootstrapSection');
+            if (adminBootstrapSection) {
+                const shouldShow = adminBootstrapAvailable && currentUser.role !== 'admin';
+                adminBootstrapSection.style.display = shouldShow ? 'block' : 'none';
+            }
+        }
+
+        async function loadAdminBootstrapStatus() {
+            adminBootstrapAvailable = false;
+
+            if (!currentUser || currentUser.role === 'admin') {
+                updateUserDisplay();
+                return;
+            }
+
+            try {
+                const response = await apiCall(`${API_URL}/auth/bootstrap-admin/status`);
+                if (response && response.ok) {
+                    const status = await response.json();
+                    adminBootstrapAvailable = !!status.enabled;
+                }
+            } catch (error) {
+                console.error('Load bootstrap status error:', error);
+            } finally {
+                updateUserDisplay();
+            }
+        }
+
+        async function handleAdminBootstrap(event) {
+            event.preventDefault();
+            hideMessage('profileMessage');
+
+            const secretInput = document.getElementById('adminBootstrapSecret');
+            const secret = secretInput.value;
+            if (!secret) {
+                showMessage('profileMessage', 'Bootstrap secret required', 'error');
+                return;
+            }
+
+            try {
+                const response = await apiCall(`${API_URL}/auth/bootstrap-admin`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ secret })
+                });
+
+                const data = response ? await response.json() : {};
+                if (response && response.ok) {
+                    currentUser = { ...currentUser, ...data.user };
+                    localStorage.setItem('user', JSON.stringify(currentUser));
+                    adminBootstrapAvailable = false;
+                    document.getElementById('adminNavTab').style.display = 'block';
+                    updateUserDisplay();
+                    secretInput.value = '';
+                    showMessage('profileMessage', 'Admin access granted for this account', 'success');
+                    return;
+                }
+
+                showMessage('profileMessage', data.error || 'Failed to grant admin access', 'error');
+                if (data.error === 'Admin already provisioned') {
+                    adminBootstrapAvailable = false;
+                    updateUserDisplay();
+                }
+            } catch (error) {
+                showMessage('profileMessage', 'Network error. Please try again.', 'error');
+                console.error('Bootstrap admin error:', error);
             }
         }
 
@@ -1331,6 +1401,7 @@
             document.getElementById('navTabs').style.display = 'none';
             document.getElementById('userBar').style.display = 'none';
             document.getElementById('adminNavTab').style.display = 'none';
+            adminBootstrapAvailable = false;
             showLogin();
         }
 

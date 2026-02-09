@@ -11,6 +11,9 @@ const corsOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
   .filter((origin) => origin.length > 0);
+const adminBootstrapSecret = nodeEnv === 'test'
+  ? (process.env.ADMIN_BOOTSTRAP_SECRET || 'test-admin-bootstrap-secret')
+  : (process.env.ADMIN_BOOTSTRAP_SECRET || '').trim();
 
 if (nodeEnv === 'production') {
   if (accessJwtSecret === insecureDefaultJwtSecret) {
@@ -40,4 +43,5 @@ export const config = {
   accessJwtSecret,
   refreshJwtSecret,
   corsOrigins,
+  adminBootstrapSecret,
 };

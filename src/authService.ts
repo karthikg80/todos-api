@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
+import { createHash, createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { EmailService } from './emailService';
 import { config } from './config';
 
@@ -29,6 +29,11 @@ export interface AuthResponse {
 export interface JwtPayload {
   userId: string;
   email: string;
+}
+
+export interface AdminBootstrapStatus {
+  enabled: boolean;
+  reason?: 'not_configured' | 'already_admin' | 'already_provisioned';
 }
 
 export class AuthService {
@@ -188,6 +193,21 @@ export class AuthService {
       return false;
     }
     return timingSafeEqual(aBuffer, bBuffer);
+  }
+
+  private isValidAdminBootstrapSecret(secret: string): boolean {
+    if (!config.adminBootstrapSecret) {
+      return false;
+    }
+
+    const expected = createHash('sha256')
+      .update(config.adminBootstrapSecret, 'utf8')
+      .digest();
+    const provided = createHash('sha256')
+      .update(secret, 'utf8')
+      .digest();
+
+    return timingSafeEqual(expected, provided);
   }
 
   /**
@@ -527,5 +547,68 @@ export class AuthService {
    */
   async deleteUser(userId: string): Promise<void> {
     await this.prisma.user.delete({ where: { id: userId } });
+  }
+
+  /**
+   * Determine whether admin bootstrap is available to the current user.
+   */
+  async getAdminBootstrapStatus(userId: string): Promise<AdminBootstrapStatus> {
+    if (!config.adminBootstrapSecret) {
+      return { enabled: false, reason: 'not_configured' };
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    if (!user || user.role === 'admin') {
+      return { enabled: false, reason: 'already_admin' };
+    }
+
+    const adminCount = await this.prisma.user.count({
+      where: { role: 'admin' },
+    });
+    if (adminCount > 0) {
+      return { enabled: false, reason: 'already_provisioned' };
+    }
+
+    return { enabled: true };
+  }
+
+  /**
+   * Promote current user to admin when no admin exists and secret matches.
+   */
+  async bootstrapAdmin(userId: string, secret: string) {
+    if (!config.adminBootstrapSecret) {
+      throw new Error('Admin bootstrap is not configured');
+    }
+    if (!this.isValidAdminBootstrapSecret(secret)) {
+      throw new Error('Invalid bootstrap secret');
+    }
+
+    const updatedUser = await this.prisma.$transaction(async (tx) => {
+      const adminCount = await tx.user.count({
+        where: { role: 'admin' },
+      });
+      if (adminCount > 0) {
+        throw new Error('Admin already provisioned');
+      }
+
+      return tx.user.update({
+        where: { id: userId },
+        data: { role: 'admin' },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          isVerified: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    });
+
+    return updatedUser;
   }
 }

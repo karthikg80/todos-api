@@ -47,6 +47,11 @@ export function createApp(
 
     return req.user?.userId || 'default-user';
   };
+  const requireAuthIfConfigured = authService
+    ? authMiddleware(authService)
+    : (_req: Request, res: Response) => {
+        res.status(501).json({ error: 'Authentication not configured' });
+      };
 
   // Trust Railway proxy for rate limiting and IP detection
   app.set('trust proxy', 1);
@@ -322,6 +327,63 @@ export function createApp(
         return res.status(400).json({ error: error.message });
       }
       console.error('Reset password error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // GET /auth/bootstrap-admin/status - Check if first-admin bootstrap is available
+  app.get('/auth/bootstrap-admin/status', requireAuthIfConfigured, async (req: Request, res: Response) => {
+    if (!authService) {
+      return res.status(501).json({ error: 'Authentication not configured' });
+    }
+
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const status = await authService.getAdminBootstrapStatus(userId);
+      res.json(status);
+    } catch (error) {
+      console.error('Bootstrap status error:', error);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  });
+
+  // POST /auth/bootstrap-admin - Promote current user to first admin
+  app.post('/auth/bootstrap-admin', authLimiter, requireAuthIfConfigured, async (req: Request, res: Response) => {
+    if (!authService) {
+      return res.status(501).json({ error: 'Authentication not configured' });
+    }
+
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const secret = typeof req.body.secret === 'string' ? req.body.secret.trim() : '';
+      if (!secret) {
+        return res.status(400).json({ error: 'Bootstrap secret required' });
+      }
+
+      const user = await authService.bootstrapAdmin(userId, secret);
+      res.json({ message: 'Admin access granted', user });
+    } catch (error: any) {
+      if (error.message === 'Admin bootstrap is not configured') {
+        return res.status(400).json({ error: error.message });
+      }
+      if (error.message === 'Invalid bootstrap secret') {
+        return res.status(403).json({ error: error.message });
+      }
+      if (error.message === 'Admin already provisioned') {
+        return res.status(409).json({ error: error.message });
+      }
+      if (hasPrismaCode(error, ['P2025'])) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      console.error('Bootstrap admin error:', error);
       res.status(500).json({ error: 'Internal server error' });
     }
   });

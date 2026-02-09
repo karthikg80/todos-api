@@ -267,6 +267,102 @@ describe('Authentication API', () => {
     });
   });
 
+  describe('Admin bootstrap provisioning', () => {
+    it('should require auth for bootstrap status', async () => {
+      await request(app)
+        .get('/auth/bootstrap-admin/status')
+        .expect(401);
+    });
+
+    it('should allow first user to bootstrap admin with valid secret', async () => {
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          email: 'bootstrap@example.com',
+          password: 'password123',
+        })
+        .expect(201);
+
+      const token = registerResponse.body.token;
+
+      const statusResponse = await request(app)
+        .get('/auth/bootstrap-admin/status')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(statusResponse.body).toEqual({ enabled: true });
+
+      const promoteResponse = await request(app)
+        .post('/auth/bootstrap-admin')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ secret: 'test-admin-bootstrap-secret' })
+        .expect(200);
+
+      expect(promoteResponse.body.user).toBeDefined();
+      expect(promoteResponse.body.user.role).toBe('admin');
+
+      const meResponse = await request(app)
+        .get('/users/me')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(meResponse.body.role).toBe('admin');
+    });
+
+    it('should reject invalid bootstrap secret', async () => {
+      const registerResponse = await request(app)
+        .post('/auth/register')
+        .send({
+          email: 'wrongsecret@example.com',
+          password: 'password123',
+        })
+        .expect(201);
+
+      await request(app)
+        .post('/auth/bootstrap-admin')
+        .set('Authorization', `Bearer ${registerResponse.body.token}`)
+        .send({ secret: 'wrong-secret' })
+        .expect(403);
+    });
+
+    it('should block bootstrap when admin already exists', async () => {
+      const firstUser = await request(app)
+        .post('/auth/register')
+        .send({
+          email: 'firstadmin@example.com',
+          password: 'password123',
+        })
+        .expect(201);
+
+      await request(app)
+        .post('/auth/bootstrap-admin')
+        .set('Authorization', `Bearer ${firstUser.body.token}`)
+        .send({ secret: 'test-admin-bootstrap-secret' })
+        .expect(200);
+
+      const secondUser = await request(app)
+        .post('/auth/register')
+        .send({
+          email: 'seconduser@example.com',
+          password: 'password123',
+        })
+        .expect(201);
+
+      const statusResponse = await request(app)
+        .get('/auth/bootstrap-admin/status')
+        .set('Authorization', `Bearer ${secondUser.body.token}`)
+        .expect(200);
+      expect(statusResponse.body).toEqual({
+        enabled: false,
+        reason: 'already_provisioned',
+      });
+
+      await request(app)
+        .post('/auth/bootstrap-admin')
+        .set('Authorization', `Bearer ${secondUser.body.token}`)
+        .send({ secret: 'test-admin-bootstrap-secret' })
+        .expect(409);
+    });
+  });
+
   describe('Protected Routes', () => {
     let authToken: string;
     let userId: string;
