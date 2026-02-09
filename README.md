@@ -241,6 +241,32 @@ npm run test:watch
 npm run test:coverage
 ```
 
+### UI Testing (Playwright)
+
+```bash
+# Run UI tests
+npm run test:ui
+
+# Update baseline screenshots
+npm run test:ui:update
+
+# Run in headed mode locally
+npm run test:ui:headed
+```
+
+### UI Quality Checks
+
+```bash
+# CSS lint (inline <style> blocks in HTML)
+npm run lint:css
+
+# HTML validation
+npm run lint:html
+
+# Local link crawl
+npm run test:links
+```
+
 ### Test Database
 
 Tests automatically use a separate test database (`todos_test`) to avoid affecting development data. The test setup:
