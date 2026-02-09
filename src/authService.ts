@@ -103,10 +103,22 @@ export class AuthService {
    * @throws Error if credentials are invalid
    */
   async login(dto: LoginDto): Promise<AuthResponse> {
-    // Find user by email
-    const user = await this.prisma.user.findUnique({
+    // Fast path: exact normalized email match.
+    let user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
+
+    // Backward compatibility for legacy rows that were stored with mixed-case emails.
+    if (!user) {
+      user = await this.prisma.user.findFirst({
+        where: {
+          email: {
+            equals: dto.email,
+            mode: 'insensitive',
+          },
+        },
+      });
+    }
 
     if (!user) {
       throw new Error('Invalid credentials');

@@ -154,6 +154,25 @@ describe('AuthService', () => {
 
       expect((result.user as any).password).toBeUndefined();
     });
+
+    it('should login legacy mixed-case email accounts using lowercase input', async () => {
+      const hashedPassword = await bcrypt.hash('legacy-password', 10);
+      await prisma.user.create({
+        data: {
+          email: 'LegacyUser@Example.com',
+          password: hashedPassword,
+          name: 'Legacy User',
+        },
+      });
+
+      const result = await authService.login({
+        email: 'legacyuser@example.com',
+        password: 'legacy-password',
+      });
+
+      expect(result.user.email).toBe('LegacyUser@Example.com');
+      expect(result.token).toBeDefined();
+    });
   });
 
   describe('verifyToken', () => {
