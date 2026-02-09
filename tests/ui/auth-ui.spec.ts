@@ -37,4 +37,50 @@ test.describe("Auth UI", () => {
       fullPage: true,
     });
   });
+
+  test("forgot password link opens reset form", async ({ page }) => {
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "Forgot Password?" }).click();
+
+    await expect(page.locator("#forgotPasswordForm")).toBeVisible();
+    await expect(page.locator("#loginForm")).toBeHidden();
+  });
+
+  test("resend verification click shows response message", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("authToken", "test-token");
+      window.localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: "user-1",
+          email: "user@example.com",
+          name: "Test User",
+          role: "user",
+          isVerified: false,
+          createdAt: "2026-02-09T00:00:00.000Z",
+        }),
+      );
+    });
+
+    await page.goto("/");
+    await page.getByRole("button", { name: "Profile" }).click();
+    await expect(page.locator("#verificationBanner")).toBeVisible();
+
+    await page.getByRole("button", { name: "Resend Email" }).click();
+    await expect(page.locator("#profileMessage")).toHaveClass(/show/);
+  });
+
+  test("forgot password still works with corrupted stored user state", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("authToken", "stale-token");
+      window.localStorage.setItem("user", "{invalid-json");
+    });
+
+    await page.goto("/");
+    await page.getByRole("button", { name: "Forgot Password?" }).click();
+    await expect(page.locator("#forgotPasswordForm")).toBeVisible();
+  });
 });
