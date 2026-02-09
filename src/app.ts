@@ -258,6 +258,8 @@ export function createApp(
         return res.status(501).json({ error: "Authentication not configured" });
       }
 
+      const wantsHtml = (req.get("accept") || "").includes("text/html");
+
       try {
         const token = req.query.token as string;
 
@@ -266,8 +268,14 @@ export function createApp(
         }
 
         await authService.verifyEmail(token);
+        if (wantsHtml) {
+          return res.redirect(303, "/?verified=1");
+        }
         res.json({ message: "Email verified successfully" });
       } catch (error) {
+        if (wantsHtml) {
+          return res.redirect(303, "/?verified=0");
+        }
         next(error);
       }
     },

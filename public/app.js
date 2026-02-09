@@ -49,6 +49,37 @@ function init() {
   }
 
   bindCriticalHandlers();
+  handleVerificationStatusFromUrl();
+}
+
+function handleVerificationStatusFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const verified = urlParams.get("verified");
+  if (!verified) {
+    return;
+  }
+
+  const isSuccess = verified === "1";
+  const message = isSuccess
+    ? "Email verified successfully. You can now log in."
+    : "Email verification failed or expired. Request a new verification email.";
+  const type = isSuccess ? "success" : "error";
+
+  if (currentUser) {
+    if (isSuccess) {
+      currentUser = { ...currentUser, isVerified: true };
+      localStorage.setItem("user", JSON.stringify(currentUser));
+      updateUserDisplay();
+    }
+    const profileTab = document.querySelectorAll(".nav-tab")[1];
+    switchView("profile", profileTab || null);
+    showMessage("profileMessage", message, type);
+  } else {
+    showLogin();
+    showMessage("authMessage", message, type);
+  }
+
+  window.history.replaceState({}, document.title, window.location.pathname);
 }
 
 // API call with auto-refresh
