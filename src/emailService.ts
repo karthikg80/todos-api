@@ -39,7 +39,7 @@ export class EmailService {
     if (!this.transporter) {
       return;
     }
-    const verificationUrl = `${this.baseUrl}/auth/verify?token=${token}`;
+    const verificationUrl = `${this.baseUrl}/auth/verify?token=${encodeURIComponent(token)}`;
 
     try {
       const info = await this.transporter.sendMail({
@@ -83,7 +83,7 @@ export class EmailService {
     if (!this.transporter) {
       return;
     }
-    const resetUrl = `${this.baseUrl}/reset-password?token=${token}`;
+    const resetUrl = `${this.baseUrl}/?token=${encodeURIComponent(token)}`;
 
     try {
       const info = await this.transporter.sendMail({

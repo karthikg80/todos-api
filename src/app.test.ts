@@ -356,4 +356,56 @@ describe("Todos API", () => {
       );
     });
   });
+
+  describe("Auth verification link responses", () => {
+    it("should redirect browser requests to app after successful verification", async () => {
+      const mockAuthService = {
+        verifyEmail: jest.fn().mockResolvedValue(undefined),
+      } as any;
+
+      const authApp = createApp(new TodoService(), mockAuthService);
+
+      await request(authApp)
+        .get("/auth/verify")
+        .set("Accept", "text/html")
+        .query({ token: "verification-token" })
+        .expect(303)
+        .expect("Location", "/?verified=1");
+
+      expect(mockAuthService.verifyEmail).toHaveBeenCalledWith(
+        "verification-token",
+      );
+    });
+
+    it("should redirect browser requests to app with failure marker on invalid token", async () => {
+      const mockAuthService = {
+        verifyEmail: jest.fn().mockRejectedValue(new Error("Invalid token")),
+      } as any;
+
+      const authApp = createApp(new TodoService(), mockAuthService);
+
+      await request(authApp)
+        .get("/auth/verify")
+        .set("Accept", "text/html")
+        .query({ token: "bad-token" })
+        .expect(303)
+        .expect("Location", "/?verified=0");
+    });
+
+    it("should keep JSON response for API clients", async () => {
+      const mockAuthService = {
+        verifyEmail: jest.fn().mockResolvedValue(undefined),
+      } as any;
+
+      const authApp = createApp(new TodoService(), mockAuthService);
+
+      const response = await request(authApp)
+        .get("/auth/verify")
+        .set("Accept", "application/json")
+        .query({ token: "verification-token" })
+        .expect(200);
+
+      expect(response.body).toEqual({ message: "Email verified successfully" });
+    });
+  });
 });
