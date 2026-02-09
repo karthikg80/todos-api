@@ -48,6 +48,7 @@ NODE_ENV=development
 JWT_SECRET=your-secret-key-change-in-production
 JWT_ACCESS_SECRET=your-access-jwt-secret-change-in-production
 JWT_REFRESH_SECRET=your-refresh-jwt-secret-change-in-production
+ADMIN_BOOTSTRAP_SECRET=
 CORS_ORIGINS=
 ```
 
@@ -55,6 +56,7 @@ Production notes:
 - `JWT_ACCESS_SECRET` and `JWT_REFRESH_SECRET` must be set to strong, different values.
 - `JWT_SECRET` is supported as a backward-compatibility fallback only.
 - `CORS_ORIGINS` must be set (comma-separated allowlist).
+- `ADMIN_BOOTSTRAP_SECRET` is optional, and enables first-admin provisioning from the Profile UI.
 
 ### 3. Start Database
 

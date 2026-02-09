@@ -214,6 +214,26 @@
                         <button type="submit" class="btn">Update Profile</button>
                     </form>
                 </div>
+
+                <div class="profile-section" id="adminBootstrapSection" style="display: none;">
+                    <h3>Admin Provisioning</h3>
+                    <p style="margin-bottom: 12px; color: var(--text-secondary);">
+                        No admin user exists yet. Enter the bootstrap secret to grant admin access to this account.
+                    </p>
+                    <form data-onsubmit="handleAdminBootstrap(event)">
+                        <div class="form-group">
+                            <label for="adminBootstrapSecret">Bootstrap Secret</label>
+                            <input
+                                type="password"
+                                id="adminBootstrapSecret"
+                                autocomplete="current-password"
+                                placeholder="Enter admin bootstrap secret"
+                                required
+                            >
+                        </div>
+                        <button type="submit" class="btn">Grant Admin Access</button>
+                    </form>
+                </div>
             </div>
 
             <!-- Admin View -->
