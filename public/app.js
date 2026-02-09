@@ -632,7 +632,11 @@ async function resendVerification() {
         "error",
       );
     } else {
-      showMessage("profileMessage", "Network error. Please try again.", "error");
+      showMessage(
+        "profileMessage",
+        "Network error. Please try again.",
+        "error",
+      );
     }
     console.error("Resend verification error:", error);
   } finally {
