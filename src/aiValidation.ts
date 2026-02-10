@@ -223,3 +223,38 @@ export function validateInsightsQuery(query: any): {
 
   return { days };
 }
+
+export function validateBreakdownTodoInput(data: any): {
+  maxSubtasks: number;
+  force: boolean;
+} {
+  if (data === undefined || data === null) {
+    return { maxSubtasks: 5, force: false };
+  }
+  if (typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  let maxSubtasks = 5;
+  if ((data as Record<string, unknown>).maxSubtasks !== undefined) {
+    const raw = (data as Record<string, unknown>).maxSubtasks;
+    if (!Number.isInteger(raw)) {
+      throw new ValidationError("maxSubtasks must be an integer");
+    }
+    maxSubtasks = raw as number;
+    if (maxSubtasks < 2 || maxSubtasks > 10) {
+      throw new ValidationError("maxSubtasks must be between 2 and 10");
+    }
+  }
+
+  let force = false;
+  if ((data as Record<string, unknown>).force !== undefined) {
+    const raw = (data as Record<string, unknown>).force;
+    if (typeof raw !== "boolean") {
+      throw new ValidationError("force must be a boolean");
+    }
+    force = raw;
+  }
+
+  return { maxSubtasks, force };
+}

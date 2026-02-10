@@ -6,6 +6,7 @@ import {
 } from "../aiSuggestionStore";
 import {
   validateApplySuggestionInput,
+  validateBreakdownTodoInput,
   validateCritiqueTaskInput,
   validateFeedbackSummaryQuery,
   validateInsightsQuery,
@@ -471,6 +472,92 @@ export function createAiRouter({
         const { limit } = validateSuggestionListQuery(req.query);
         const records = await suggestionStore.listByUser(userId, limit);
         res.json(records);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /**
+   * @openapi
+   * /ai/todos/{id}/breakdown:
+   *   post:
+   *     tags:
+   *       - AI
+   *     summary: Generate and create subtasks for an existing todo
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Breakdown generated and subtasks created
+   *       404:
+   *         description: Todo not found
+   *       409:
+   *         description: Todo already has subtasks
+   */
+  router.post(
+    "/todos/:id/breakdown",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveAiUserId(req, res);
+        if (!userId) return;
+
+        const id = String(req.params.id);
+        validateId(id);
+        const { maxSubtasks, force } = validateBreakdownTodoInput(req.body);
+
+        const todo = await todoService.findById(userId, id);
+        if (!todo) {
+          return res.status(404).json({ error: "Todo not found" });
+        }
+
+        const existingCount = Array.isArray(todo.subtasks)
+          ? todo.subtasks.length
+          : 0;
+        if (existingCount > 0 && !force) {
+          return res.status(409).json({
+            error: "Todo already has subtasks. Pass force=true to add more.",
+            existingSubtasks: existingCount,
+          });
+        }
+
+        const feedbackContext = await getFeedbackContext(userId);
+        const breakdown = await aiPlannerService.breakdownTodoIntoSubtasks(
+          {
+            title: todo.title,
+            description: todo.description,
+            notes: todo.notes,
+            priority: todo.priority,
+            maxSubtasks,
+          },
+          feedbackContext,
+        );
+
+        if (
+          !Array.isArray(breakdown.subtasks) ||
+          breakdown.subtasks.length < 1
+        ) {
+          return res
+            .status(400)
+            .json({ error: "Generated breakdown contains no subtasks" });
+        }
+
+        const createdSubtasks = [];
+        for (const item of breakdown.subtasks.slice(0, maxSubtasks)) {
+          const subtask = await todoService.createSubtask(userId, id, {
+            title: item.title,
+          });
+          if (subtask) {
+            createdSubtasks.push(subtask);
+          }
+        }
+
+        res.json({
+          todoId: id,
+          summary: breakdown.summary,
+          createdCount: createdSubtasks.length,
+          subtasks: createdSubtasks,
+        });
       } catch (error) {
         next(error);
       }

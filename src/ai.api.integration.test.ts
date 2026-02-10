@@ -434,4 +434,67 @@ describe("AI API Integration", () => {
       .set("Authorization", `Bearer ${authToken}`)
       .expect(400);
   });
+
+  it("creates subtasks via AI todo breakdown endpoint", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        title: "Launch campaign landing page",
+        priority: "high",
+      })
+      .expect(201);
+
+    const firstBreakdown = await request(app)
+      .post(`/ai/todos/${createdTodo.body.id}/breakdown`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ maxSubtasks: 3 })
+      .expect(200);
+
+    expect(firstBreakdown.body.createdCount).toBe(3);
+    expect(firstBreakdown.body.subtasks).toHaveLength(3);
+
+    await request(app)
+      .post(`/ai/todos/${createdTodo.body.id}/breakdown`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ maxSubtasks: 2 })
+      .expect(409);
+
+    const forcedBreakdown = await request(app)
+      .post(`/ai/todos/${createdTodo.body.id}/breakdown`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ maxSubtasks: 2, force: true })
+      .expect(200);
+
+    expect(forcedBreakdown.body.createdCount).toBe(2);
+
+    const todoFromDb = await prisma.todo.findUnique({
+      where: { id: createdTodo.body.id },
+      include: { subtasks: true },
+    });
+    expect(todoFromDb?.subtasks).toHaveLength(5);
+  });
+
+  it("validates AI todo breakdown payload", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        title: "Prepare docs",
+        priority: "medium",
+      })
+      .expect(201);
+
+    await request(app)
+      .post(`/ai/todos/${createdTodo.body.id}/breakdown`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ maxSubtasks: 1 })
+      .expect(400);
+
+    await request(app)
+      .post(`/ai/todos/${createdTodo.body.id}/breakdown`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ force: "yes" })
+      .expect(400);
+  });
 });
