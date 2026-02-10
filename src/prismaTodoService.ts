@@ -186,7 +186,11 @@ export class PrismaTodoService implements ITodoService {
             updateData.projectId = null;
           } else {
             updateData.category = category;
-            updateData.projectId = await this.ensureProjectId(tx, userId, category);
+            updateData.projectId = await this.ensureProjectId(
+              tx,
+              userId,
+              category,
+            );
           }
         }
 
