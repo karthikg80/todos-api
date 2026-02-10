@@ -148,3 +148,35 @@ export function validateSuggestionStatusInput(data: any): {
 
   return { status: normalized, reason };
 }
+
+export function validateFeedbackSummaryQuery(query: any): {
+  days: number;
+  reasonLimit: number;
+} {
+  let days = 30;
+  if (query.days !== undefined) {
+    if (typeof query.days !== "string" || !/^\d+$/.test(query.days)) {
+      throw new ValidationError("days must be a positive integer");
+    }
+    days = Number.parseInt(query.days, 10);
+    if (days < 1 || days > 90) {
+      throw new ValidationError("days must be between 1 and 90");
+    }
+  }
+
+  let reasonLimit = 5;
+  if (query.reasonLimit !== undefined) {
+    if (
+      typeof query.reasonLimit !== "string" ||
+      !/^\d+$/.test(query.reasonLimit)
+    ) {
+      throw new ValidationError("reasonLimit must be a positive integer");
+    }
+    reasonLimit = Number.parseInt(query.reasonLimit, 10);
+    if (reasonLimit < 1 || reasonLimit > 20) {
+      throw new ValidationError("reasonLimit must be between 1 and 20");
+    }
+  }
+
+  return { days, reasonLimit };
+}
