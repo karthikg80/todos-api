@@ -1727,6 +1727,7 @@ function renderTodos() {
         ? new Date(todo.dueDate).toLocaleString()
         : "";
       const isSelected = selectedTodos.has(todo.id);
+      const hasSubtasks = !!(todo.subtasks && todo.subtasks.length > 0);
 
       return `
         ${categoryHeader}
@@ -1761,7 +1762,7 @@ function renderTodos() {
                     ${todo.category ? `<span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">🏷️ ${escapeHtml(todo.category)}</span>` : ""}
                     ${todo.dueDate ? `<span style="background: ${isOverdue ? "#ff4757" : "#48dbfb"}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? "⚠️" : "📅"} ${dueDateStr}</span>` : ""}
                 </div>
-                ${todo.subtasks && todo.subtasks.length > 0 ? renderSubtasks(todo) : ""}
+                ${hasSubtasks ? renderSubtasks(todo) : ""}
                 ${
                   todo.notes && todo.notes.trim()
                     ? `
@@ -1778,8 +1779,8 @@ function renderTodos() {
                     : ""
                 }
                 <div style="margin-top: 8px;">
-                    <button class="add-btn" style="background: #0f766e; padding: 8px 12px; font-size: 0.85em; width: auto;" data-onclick="aiBreakdownTodo('${todo.id}')">
-                        AI Break Down Into Subtasks
+                    <button class="add-btn" style="background: #0f766e; padding: 8px 12px; font-size: 0.85em; width: auto; ${hasSubtasks ? "opacity: 0.55; cursor: not-allowed;" : ""}" data-onclick="aiBreakdownTodo('${todo.id}')" ${hasSubtasks ? "disabled" : ""}>
+                        ${hasSubtasks ? "AI Subtasks Generated" : "AI Break Down Into Subtasks"}
                     </button>
                 </div>
             </div>
