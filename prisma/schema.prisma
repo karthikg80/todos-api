@@ -137,6 +137,11 @@ model AiSuggestion {
   id        String            @id @default(uuid())
   userId    String            @map("user_id")
   type      AiSuggestionType
+  schemaVersion Int?          @map("schema_version")
+  provider  String?           @db.VarChar(100)
+  model     String?           @db.VarChar(100)
+  promptHash String?          @map("prompt_hash") @db.VarChar(64)
+  inputSummary String?        @map("input_summary") @db.VarChar(500)
   input     Json
   output    Json
   feedback  Json?

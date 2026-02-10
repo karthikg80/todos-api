@@ -181,11 +181,29 @@ export function createApp(
         legacyHeaders: false,
       });
 
+  const aiLimiter = isTest
+    ? noLimit
+    : rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 30,
+        message: "Too many AI requests, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
+
   app.use("/api", apiLimiter);
   app.use("/todos", apiLimiter);
   app.use("/users", apiLimiter);
-  app.use("/ai", apiLimiter);
+  app.use("/ai", aiLimiter);
   app.use("/projects", apiLimiter);
+
+  app.use("/ai", (req: Request, res: Response, next) => {
+    const bytes = Buffer.byteLength(JSON.stringify(req.body || {}), "utf8");
+    if (bytes > 16 * 1024) {
+      return res.status(413).json({ error: "AI request body too large" });
+    }
+    return next();
+  });
 
   app.use(
     "/auth",
@@ -226,6 +244,7 @@ export function createApp(
       aiDailySuggestionLimit,
       aiDailySuggestionLimitByPlan,
       resolveAiUserPlan,
+      projectService,
     }),
   );
 

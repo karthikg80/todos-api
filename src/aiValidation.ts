@@ -75,28 +75,8 @@ export function validatePlanFromGoalInput(data: any): PlanFromGoalInput {
     throw new ValidationError("goal cannot exceed 200 characters");
   }
 
-  let targetDate: Date | undefined;
-  if (data.targetDate !== undefined) {
-    targetDate = parseDate(data.targetDate, "targetDate");
-  }
-
-  let maxTasks = 5;
-  if (data.maxTasks !== undefined) {
-    if (!Number.isInteger(data.maxTasks)) {
-      throw new ValidationError("maxTasks must be an integer");
-    }
-    if (data.maxTasks < MIN_PLAN_TASKS || data.maxTasks > MAX_PLAN_TASKS) {
-      throw new ValidationError(
-        `maxTasks must be between ${MIN_PLAN_TASKS} and ${MAX_PLAN_TASKS}`,
-      );
-    }
-    maxTasks = data.maxTasks;
-  }
-
   return {
     goal: data.goal.trim(),
-    targetDate,
-    maxTasks,
   };
 }
 
@@ -257,4 +237,89 @@ export function validateBreakdownTodoInput(data: any): {
   }
 
   return { maxSubtasks, force };
+}
+
+export function validateSuggestionFeedbackInput(data: any): {
+  rating: number;
+  acceptedTaskTempIds?: string[];
+  rejectedTaskTempIds?: string[];
+  edits?: Array<{ tempId: string; before?: string; after?: string }>;
+} {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  if (!Number.isInteger(data.rating) || data.rating < 1 || data.rating > 5) {
+    throw new ValidationError("rating must be an integer between 1 and 5");
+  }
+
+  const parseTempIdList = (
+    value: unknown,
+    fieldName: string,
+  ): string[] | undefined => {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (!Array.isArray(value)) {
+      throw new ValidationError(`${fieldName} must be an array of strings`);
+    }
+    const parsed = value.map((item) => {
+      if (typeof item !== "string") {
+        throw new ValidationError(`${fieldName} must be an array of strings`);
+      }
+      const trimmed = item.trim();
+      if (!trimmed) {
+        throw new ValidationError(`${fieldName} cannot contain empty values`);
+      }
+      if (trimmed.length > 100) {
+        throw new ValidationError(
+          `${fieldName} values cannot exceed 100 characters`,
+        );
+      }
+      return trimmed;
+    });
+    return parsed;
+  };
+
+  const parseEdits = (
+    value: unknown,
+  ): Array<{ tempId: string; before?: string; after?: string }> | undefined => {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (!Array.isArray(value)) {
+      throw new ValidationError("edits must be an array");
+    }
+    return value.map((item) => {
+      if (!item || typeof item !== "object") {
+        throw new ValidationError("edits must contain objects");
+      }
+      const record = item as Record<string, unknown>;
+      if (typeof record.tempId !== "string" || !record.tempId.trim()) {
+        throw new ValidationError("edits.tempId is required");
+      }
+      const before =
+        typeof record.before === "string" ? record.before.trim() : undefined;
+      const after =
+        typeof record.after === "string" ? record.after.trim() : undefined;
+      return {
+        tempId: record.tempId.trim(),
+        before: before || undefined,
+        after: after || undefined,
+      };
+    });
+  };
+
+  return {
+    rating: data.rating,
+    acceptedTaskTempIds: parseTempIdList(
+      data.acceptedTaskTempIds,
+      "acceptedTaskTempIds",
+    ),
+    rejectedTaskTempIds: parseTempIdList(
+      data.rejectedTaskTempIds,
+      "rejectedTaskTempIds",
+    ),
+    edits: parseEdits(data.edits),
+  };
 }

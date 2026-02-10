@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
+import { PlanSuggestionV1 } from "./ai/planSuggestionSchema";
 
 export type AiSuggestionType = "task_critic" | "plan_from_goal";
 export type AiSuggestionStatus = "pending" | "accepted" | "rejected";
@@ -8,6 +9,11 @@ export interface AiSuggestionRecord {
   id: string;
   userId: string;
   type: AiSuggestionType;
+  schemaVersion?: number;
+  provider?: string;
+  model?: string;
+  promptHash?: string;
+  inputSummary?: string;
   input: Record<string, unknown>;
   output: Record<string, unknown>;
   feedback?: Record<string, unknown>;
@@ -29,6 +35,11 @@ export interface IAiSuggestionStore {
   create(record: {
     userId: string;
     type: AiSuggestionType;
+    schemaVersion?: number;
+    provider?: string;
+    model?: string;
+    promptHash?: string;
+    inputSummary?: string;
     input: Record<string, unknown>;
     output: Record<string, unknown>;
   }): Promise<AiSuggestionRecord>;
@@ -40,6 +51,11 @@ export interface IAiSuggestionStore {
     since: Date,
     reasonLimit: number,
   ): Promise<AiFeedbackSummary>;
+  listByUserAndType(
+    userId: string,
+    type: AiSuggestionType,
+    limit: number,
+  ): Promise<AiSuggestionRecord[]>;
   markApplied(
     userId: string,
     id: string,
@@ -52,6 +68,22 @@ export interface IAiSuggestionStore {
     status: AiSuggestionStatus,
     feedback?: Record<string, unknown>,
   ): Promise<AiSuggestionRecord | null>;
+  saveFeedback(
+    userId: string,
+    id: string,
+    feedback: Record<string, unknown>,
+  ): Promise<AiSuggestionRecord | null>;
+  applyPlanSuggestionTransaction?(params: {
+    userId: string;
+    suggestionId: string;
+    plan: PlanSuggestionV1;
+    reason?: string;
+    injectFailureAfterTodoCount?: number;
+  }): Promise<{
+    suggestion: AiSuggestionRecord | null;
+    appliedTodoIds: string[];
+    idempotent: boolean;
+  }>;
 }
 
 export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
@@ -60,6 +92,11 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
   async create(record: {
     userId: string;
     type: AiSuggestionType;
+    schemaVersion?: number;
+    provider?: string;
+    model?: string;
+    promptHash?: string;
+    inputSummary?: string;
     input: Record<string, unknown>;
     output: Record<string, unknown>;
   }): Promise<AiSuggestionRecord> {
@@ -68,6 +105,11 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
       id: randomUUID(),
       userId: record.userId,
       type: record.type,
+      schemaVersion: record.schemaVersion,
+      provider: record.provider,
+      model: record.model,
+      promptHash: record.promptHash,
+      inputSummary: record.inputSummary,
       input: record.input,
       output: record.output,
       feedback: undefined,
@@ -104,6 +146,16 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
     return this.records.filter(
       (record) => record.userId === userId && record.createdAt >= since,
     ).length;
+  }
+
+  async listByUserAndType(
+    userId: string,
+    type: AiSuggestionType,
+    limit: number,
+  ): Promise<AiSuggestionRecord[]> {
+    return this.records
+      .filter((record) => record.userId === userId && record.type === type)
+      .slice(0, limit);
   }
 
   async summarizeFeedbackByUserSince(
@@ -212,14 +264,61 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
     this.records[index] = updated;
     return updated;
   }
+
+  async saveFeedback(
+    userId: string,
+    id: string,
+    feedback: Record<string, unknown>,
+  ): Promise<AiSuggestionRecord | null> {
+    const index = this.records.findIndex(
+      (record) => record.id === id && record.userId === userId,
+    );
+    if (index === -1) {
+      return null;
+    }
+    const updated = {
+      ...this.records[index],
+      feedback,
+      updatedAt: new Date(),
+    };
+    this.records[index] = updated;
+    return updated;
+  }
 }
 
 export class PrismaAiSuggestionStore implements IAiSuggestionStore {
   constructor(private prisma: PrismaClient) {}
 
+  private mapRecord(record: any): AiSuggestionRecord {
+    return {
+      id: record.id,
+      userId: record.userId,
+      type: record.type as AiSuggestionType,
+      schemaVersion: record.schemaVersion ?? undefined,
+      provider: record.provider || undefined,
+      model: record.model || undefined,
+      promptHash: record.promptHash || undefined,
+      inputSummary: record.inputSummary || undefined,
+      input: record.input as Record<string, unknown>,
+      output: record.output as Record<string, unknown>,
+      feedback: (record.feedback as Record<string, unknown>) || undefined,
+      appliedAt: record.appliedAt || undefined,
+      appliedTodoIds:
+        (record.appliedTodoIds as string[] | null | undefined) || undefined,
+      status: record.status as AiSuggestionStatus,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
   async create(record: {
     userId: string;
     type: AiSuggestionType;
+    schemaVersion?: number;
+    provider?: string;
+    model?: string;
+    promptHash?: string;
+    inputSummary?: string;
     input: Record<string, unknown>;
     output: Record<string, unknown>;
   }): Promise<AiSuggestionRecord> {
@@ -227,26 +326,18 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       data: {
         userId: record.userId,
         type: record.type,
+        schemaVersion: record.schemaVersion,
+        provider: record.provider,
+        model: record.model,
+        promptHash: record.promptHash,
+        inputSummary: record.inputSummary,
         input: record.input as Prisma.InputJsonValue,
         output: record.output as Prisma.InputJsonValue,
         status: "pending",
       },
     });
 
-    return {
-      id: created.id,
-      userId: created.userId,
-      type: created.type as AiSuggestionType,
-      input: created.input as Record<string, unknown>,
-      output: created.output as Record<string, unknown>,
-      feedback: (created.feedback as Record<string, unknown>) || undefined,
-      appliedAt: created.appliedAt || undefined,
-      appliedTodoIds:
-        (created.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: created.status as AiSuggestionStatus,
-      createdAt: created.createdAt,
-      updatedAt: created.updatedAt,
-    };
+    return this.mapRecord(created);
   }
 
   async listByUser(
@@ -259,20 +350,7 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       take: limit,
     });
 
-    return records.map((record) => ({
-      id: record.id,
-      userId: record.userId,
-      type: record.type as AiSuggestionType,
-      input: record.input as Record<string, unknown>,
-      output: record.output as Record<string, unknown>,
-      feedback: (record.feedback as Record<string, unknown>) || undefined,
-      appliedAt: record.appliedAt || undefined,
-      appliedTodoIds:
-        (record.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: record.status as AiSuggestionStatus,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    }));
+    return records.map((record) => this.mapRecord(record));
   }
 
   async getById(
@@ -287,20 +365,7 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       return null;
     }
 
-    return {
-      id: record.id,
-      userId: record.userId,
-      type: record.type as AiSuggestionType,
-      input: record.input as Record<string, unknown>,
-      output: record.output as Record<string, unknown>,
-      feedback: (record.feedback as Record<string, unknown>) || undefined,
-      appliedAt: record.appliedAt || undefined,
-      appliedTodoIds:
-        (record.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: record.status as AiSuggestionStatus,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    };
+    return this.mapRecord(record);
   }
 
   async countByUserSince(userId: string, since: Date): Promise<number> {
@@ -312,6 +377,19 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
         },
       },
     });
+  }
+
+  async listByUserAndType(
+    userId: string,
+    type: AiSuggestionType,
+    limit: number,
+  ): Promise<AiSuggestionRecord[]> {
+    const records = await this.prisma.aiSuggestion.findMany({
+      where: { userId, type },
+      orderBy: { createdAt: "desc" },
+      take: limit,
+    });
+    return records.map((record) => this.mapRecord(record));
   }
 
   async summarizeFeedbackByUserSince(
@@ -392,36 +470,10 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       return null;
     }
     if (existing.status === "rejected") {
-      return {
-        id: existing.id,
-        userId: existing.userId,
-        type: existing.type as AiSuggestionType,
-        input: existing.input as Record<string, unknown>,
-        output: existing.output as Record<string, unknown>,
-        feedback: (existing.feedback as Record<string, unknown>) || undefined,
-        appliedAt: existing.appliedAt || undefined,
-        appliedTodoIds:
-          (existing.appliedTodoIds as string[] | null | undefined) || undefined,
-        status: existing.status as AiSuggestionStatus,
-        createdAt: existing.createdAt,
-        updatedAt: existing.updatedAt,
-      };
+      return this.mapRecord(existing);
     }
     if (existing.status === "accepted" && existing.appliedTodoIds) {
-      return {
-        id: existing.id,
-        userId: existing.userId,
-        type: existing.type as AiSuggestionType,
-        input: existing.input as Record<string, unknown>,
-        output: existing.output as Record<string, unknown>,
-        feedback: (existing.feedback as Record<string, unknown>) || undefined,
-        appliedAt: existing.appliedAt || undefined,
-        appliedTodoIds:
-          (existing.appliedTodoIds as string[] | null | undefined) || undefined,
-        status: existing.status as AiSuggestionStatus,
-        createdAt: existing.createdAt,
-        updatedAt: existing.updatedAt,
-      };
+      return this.mapRecord(existing);
     }
 
     const now = new Date();
@@ -442,20 +494,7 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       if (!latest || latest.userId !== userId) {
         return null;
       }
-      return {
-        id: latest.id,
-        userId: latest.userId,
-        type: latest.type as AiSuggestionType,
-        input: latest.input as Record<string, unknown>,
-        output: latest.output as Record<string, unknown>,
-        feedback: (latest.feedback as Record<string, unknown>) || undefined,
-        appliedAt: latest.appliedAt || undefined,
-        appliedTodoIds:
-          (latest.appliedTodoIds as string[] | null | undefined) || undefined,
-        status: latest.status as AiSuggestionStatus,
-        createdAt: latest.createdAt,
-        updatedAt: latest.updatedAt,
-      };
+      return this.mapRecord(latest);
     }
 
     const record = await this.prisma.aiSuggestion.findUnique({
@@ -464,20 +503,7 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
     if (!record || record.userId !== userId) {
       return null;
     }
-    return {
-      id: record.id,
-      userId: record.userId,
-      type: record.type as AiSuggestionType,
-      input: record.input as Record<string, unknown>,
-      output: record.output as Record<string, unknown>,
-      feedback: (record.feedback as Record<string, unknown>) || undefined,
-      appliedAt: record.appliedAt || undefined,
-      appliedTodoIds:
-        (record.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: record.status as AiSuggestionStatus,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    };
+    return this.mapRecord(record);
   }
 
   async updateStatus(
@@ -504,19 +530,162 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
     if (!record || record.userId !== userId) {
       return null;
     }
-    return {
-      id: record.id,
-      userId: record.userId,
-      type: record.type as AiSuggestionType,
-      input: record.input as Record<string, unknown>,
-      output: record.output as Record<string, unknown>,
-      feedback: (record.feedback as Record<string, unknown>) || undefined,
-      appliedAt: record.appliedAt || undefined,
-      appliedTodoIds:
-        (record.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: record.status as AiSuggestionStatus,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    };
+    return this.mapRecord(record);
+  }
+
+  async saveFeedback(
+    userId: string,
+    id: string,
+    feedback: Record<string, unknown>,
+  ): Promise<AiSuggestionRecord | null> {
+    const result = await this.prisma.aiSuggestion.updateMany({
+      where: { id, userId },
+      data: {
+        feedback: feedback as Prisma.InputJsonValue,
+      },
+    });
+    if (result.count !== 1) {
+      return null;
+    }
+    const record = await this.prisma.aiSuggestion.findUnique({ where: { id } });
+    if (!record || record.userId !== userId) {
+      return null;
+    }
+    return this.mapRecord(record);
+  }
+
+  async applyPlanSuggestionTransaction(params: {
+    userId: string;
+    suggestionId: string;
+    plan: PlanSuggestionV1;
+    reason?: string;
+    injectFailureAfterTodoCount?: number;
+  }): Promise<{
+    suggestion: AiSuggestionRecord | null;
+    appliedTodoIds: string[];
+    idempotent: boolean;
+  }> {
+    const existing = await this.prisma.aiSuggestion.findUnique({
+      where: { id: params.suggestionId },
+    });
+    if (!existing || existing.userId !== params.userId) {
+      return { suggestion: null, appliedTodoIds: [], idempotent: false };
+    }
+    if (
+      existing.status === "accepted" &&
+      Array.isArray(existing.appliedTodoIds) &&
+      existing.appliedTodoIds.length > 0
+    ) {
+      return {
+        suggestion: this.mapRecord(existing),
+        appliedTodoIds: existing.appliedTodoIds as unknown as string[],
+        idempotent: true,
+      };
+    }
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const locked = await tx.aiSuggestion.findUnique({
+        where: { id: params.suggestionId },
+      });
+      if (!locked || locked.userId !== params.userId) {
+        return { suggestion: null, appliedTodoIds: [], idempotent: false };
+      }
+      if (
+        locked.status === "accepted" &&
+        Array.isArray(locked.appliedTodoIds) &&
+        locked.appliedTodoIds.length > 0
+      ) {
+        return {
+          suggestion: this.mapRecord(locked),
+          appliedTodoIds: locked.appliedTodoIds as unknown as string[],
+          idempotent: true,
+        };
+      }
+      if (locked.status === "rejected") {
+        return { suggestion: this.mapRecord(locked), appliedTodoIds: [], idempotent: false };
+      }
+
+      const createdTodoIds: string[] = [];
+      for (const [index, task] of params.plan.tasks.entries()) {
+        let projectId: string | null = null;
+        if (task.projectName) {
+          const project = await tx.project.upsert({
+            where: {
+              userId_name: {
+                userId: params.userId,
+                name: task.projectName,
+              },
+            },
+            create: {
+              userId: params.userId,
+              name: task.projectName,
+            },
+            update: {},
+            select: { id: true },
+          });
+          projectId = project.id;
+        }
+
+        const maxOrder = await tx.todo.findFirst({
+          where: { userId: params.userId },
+          orderBy: { order: "desc" },
+          select: { order: true },
+        });
+        const createdTodo = await tx.todo.create({
+          data: {
+            userId: params.userId,
+            title: task.title,
+            description: task.description || undefined,
+            notes: task.notes || undefined,
+            category: task.category || undefined,
+            projectId,
+            dueDate: task.dueDate ? new Date(`${task.dueDate}T00:00:00.000Z`) : undefined,
+            priority: task.priority,
+            order: (maxOrder?.order ?? -1) + 1,
+          },
+        });
+        createdTodoIds.push(createdTodo.id);
+
+        for (const [subtaskOrder, subtask] of task.subtasks.entries()) {
+          await tx.subtask.create({
+            data: {
+              todoId: createdTodo.id,
+              title: subtask.title,
+              order: subtaskOrder,
+            },
+          });
+        }
+
+        if (
+          typeof params.injectFailureAfterTodoCount === "number" &&
+          params.injectFailureAfterTodoCount > 0 &&
+          index + 1 >= params.injectFailureAfterTodoCount
+        ) {
+          throw new Error("INJECTED_AI_APPLY_FAILURE");
+        }
+      }
+
+      const updated = await tx.aiSuggestion.update({
+        where: { id: params.suggestionId },
+        data: {
+          status: "accepted",
+          appliedAt: new Date(),
+          appliedTodoIds: createdTodoIds as unknown as Prisma.InputJsonValue,
+          feedback: {
+            reason: params.reason || "applied_via_endpoint",
+            source: "apply_endpoint",
+            updatedAt: new Date().toISOString(),
+          } as Prisma.InputJsonValue,
+        },
+      });
+
+      return {
+        suggestion: this.mapRecord(updated),
+        appliedTodoIds: createdTodoIds,
+        idempotent: false,
+      };
+    });
+
+    return result;
   }
 }

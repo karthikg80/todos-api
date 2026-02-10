@@ -11,6 +11,7 @@ import {
   validateFeedbackSummaryQuery,
   validateInsightsQuery,
   validatePlanFromGoalInput,
+  validateSuggestionFeedbackInput,
   validateSuggestionListQuery,
   validateSuggestionStatusInput,
 } from "../aiValidation";
@@ -18,6 +19,12 @@ import { validateId } from "../validation";
 import { ITodoService } from "../interfaces/ITodoService";
 import { CreateTodoDto, Priority } from "../types";
 import { config } from "../config";
+import {
+  PlanSuggestionV1,
+  validatePlanSuggestionV1,
+} from "../ai/planSuggestionSchema";
+import { IProjectService } from "../interfaces/IProjectService";
+import { createHash } from "crypto";
 
 export type UserPlan = "free" | "pro" | "team";
 
@@ -29,6 +36,7 @@ interface AiRouterDeps {
   aiDailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>;
   resolveAiUserPlan?: (userId: string) => Promise<UserPlan>;
   resolveAiUserId: (req: Request, res: Response) => string | null;
+  projectService?: IProjectService;
 }
 
 export function createAiRouter({
@@ -39,6 +47,7 @@ export function createAiRouter({
   aiDailySuggestionLimitByPlan,
   resolveAiUserPlan,
   resolveAiUserId,
+  projectService,
 }: AiRouterDeps): Router {
   const router = Router();
   const defaultLimits: Record<UserPlan, number> = {
@@ -152,49 +161,48 @@ export function createAiRouter({
     return "Keep rating suggestions after each run to continuously improve output quality.";
   };
 
-  const parsePlanTasks = (output: Record<string, unknown>): CreateTodoDto[] => {
-    const rawTasks = output.tasks;
-    if (!Array.isArray(rawTasks)) {
-      return [];
+  const parsePlanDraft = (output: Record<string, unknown>): PlanSuggestionV1 | null => {
+    try {
+      const rawDraft = output.draft ?? output;
+      return validatePlanSuggestionV1(rawDraft);
+    } catch {
+      return null;
     }
+  };
 
-    const priorities: Priority[] = ["low", "medium", "high"];
-    return rawTasks
-      .map((task): CreateTodoDto | null => {
-        if (!task || typeof task !== "object") {
-          return null;
-        }
-        const item = task as Record<string, unknown>;
-        const title = typeof item.title === "string" ? item.title.trim() : "";
-        if (!title) {
-          return null;
-        }
+  const toTodoDto = (task: PlanSuggestionV1["tasks"][number]): CreateTodoDto => ({
+    title: task.title,
+    description: task.description || undefined,
+    notes: task.notes || undefined,
+    dueDate: task.dueDate ? new Date(`${task.dueDate}T00:00:00.000Z`) : undefined,
+    priority: task.priority as Priority,
+    category: task.category || "AI Plan",
+  });
 
-        const description =
-          typeof item.description === "string"
-            ? item.description.trim()
-            : undefined;
-        const priority = priorities.includes(item.priority as Priority)
-          ? (item.priority as Priority)
-          : "medium";
+  const buildPlanFromGoalContext = async (userId: string) => {
+    const [projects, todos, suggestions] = await Promise.all([
+      projectService ? projectService.findAll(userId) : Promise.resolve([]),
+      todoService.findAll(userId, { sortBy: "updatedAt", sortOrder: "desc", limit: 50, page: 1 }),
+      suggestionStore.listByUserAndType(userId, "plan_from_goal", 10),
+    ]);
 
-        let dueDate: Date | undefined;
-        if (
-          typeof item.dueDate === "string" &&
-          !Number.isNaN(Date.parse(item.dueDate))
-        ) {
-          dueDate = new Date(item.dueDate);
-        }
+    const recentPlanSuggestions = suggestions.map((item) => ({
+      status: item.status,
+      rating:
+        item.feedback && typeof item.feedback.rating === "number"
+          ? item.feedback.rating
+          : undefined,
+      reason:
+        item.feedback && typeof item.feedback.reason === "string"
+          ? item.feedback.reason
+          : undefined,
+    }));
 
-        return {
-          title,
-          description,
-          priority,
-          dueDate,
-          category: "AI Plan",
-        };
-      })
-      .filter((task): task is CreateTodoDto => !!task);
+    return {
+      projectNames: projects.slice(0, 10).map((project) => project.name),
+      recentTodoTitles: todos.slice(0, 50).map((todo) => todo.title),
+      recentPlanFeedback: recentPlanSuggestions,
+    };
   };
 
   /**
@@ -273,31 +281,38 @@ export function createAiRouter({
         if (!(await enforceDailyQuota(userId, res))) return;
 
         const input = validatePlanFromGoalInput(req.body);
-        const feedbackContext = await getFeedbackContext(userId);
-        const result = await aiPlannerService.planFromGoal(
-          input,
-          feedbackContext,
-        );
+        const planContext = await buildPlanFromGoalContext(userId);
+        const result = await aiPlannerService.generatePlanFromGoalDraft(input, {
+          ...planContext,
+        });
+
+        const promptSeed = JSON.stringify({
+          goal: input.goal,
+          context: planContext,
+        });
+        const promptHash = createHash("sha256").update(promptSeed).digest("hex");
+        const inputSummary = input.goal.trim().slice(0, 500);
 
         const suggestion = await suggestionStore.create({
           userId,
           type: "plan_from_goal",
+          schemaVersion: result.draft.schemaVersion,
+          provider: result.provider,
+          model: result.model,
+          promptHash,
+          inputSummary,
           input: {
             ...input,
-            targetDate: input.targetDate?.toISOString(),
+            context: planContext,
           },
           output: {
-            ...result,
-            tasks: result.tasks.map((task) => ({
-              ...task,
-              dueDate: task.dueDate?.toISOString(),
-            })),
+            draft: result.draft,
           },
         });
 
         res.json({
-          ...result,
           suggestionId: suggestion.id,
+          draft: result.draft,
         });
       } catch (error) {
         next(error);
@@ -591,6 +606,36 @@ export function createAiRouter({
     },
   );
 
+  router.post(
+    "/suggestions/:id/feedback",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveAiUserId(req, res);
+        if (!userId) return;
+
+        const id = String(req.params.id);
+        validateId(id);
+        const feedback = validateSuggestionFeedbackInput(req.body);
+
+        const updated = await suggestionStore.saveFeedback(userId, id, {
+          ...feedback,
+          source: "feedback_endpoint",
+          updatedAt: new Date().toISOString(),
+        });
+        if (!updated) {
+          return res.status(404).json({ error: "Suggestion not found" });
+        }
+
+        return res.json({
+          suggestionId: updated.id,
+          feedback: updated.feedback,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   /**
    * @openapi
    * /ai/suggestions/{id}/apply:
@@ -640,17 +685,9 @@ export function createAiRouter({
           Array.isArray(suggestion.appliedTodoIds) &&
           suggestion.appliedTodoIds.length > 0
         ) {
-          const todos = [];
-          for (const todoId of suggestion.appliedTodoIds) {
-            const todo = await todoService.findById(userId, todoId);
-            if (todo) {
-              todos.push(todo);
-            }
-          }
-
           return res.json({
-            createdCount: todos.length,
-            todos,
+            createdCount: suggestion.appliedTodoIds.length,
+            todoIds: suggestion.appliedTodoIds,
             suggestion,
             idempotent: true,
           });
@@ -662,37 +699,62 @@ export function createAiRouter({
           });
         }
 
-        const tasks = parsePlanTasks(suggestion.output);
-        if (tasks.length === 0) {
+        const draft = parsePlanDraft(suggestion.output);
+        if (!draft || draft.tasks.length === 0) {
           return res
             .status(400)
             .json({ error: "Suggestion does not contain valid plan tasks" });
         }
+        const injectedFailureRaw =
+          process.env.NODE_ENV === "test"
+            ? req.header("x-ai-apply-fail-after")
+            : undefined;
+        const injectFailureAfterTodoCount =
+          injectedFailureRaw && /^\d+$/.test(injectedFailureRaw)
+            ? Number.parseInt(injectedFailureRaw, 10)
+            : undefined;
+
+        if (suggestionStore.applyPlanSuggestionTransaction) {
+          const applied = await suggestionStore.applyPlanSuggestionTransaction({
+            userId,
+            suggestionId: id,
+            plan: draft,
+            reason,
+            injectFailureAfterTodoCount,
+          });
+          if (!applied.suggestion) {
+            return res.status(404).json({ error: "Suggestion not found" });
+          }
+          return res.json({
+            createdCount: applied.appliedTodoIds.length,
+            todoIds: applied.appliedTodoIds,
+            suggestion: applied.suggestion,
+            idempotent: applied.idempotent,
+          });
+        }
 
         const createdTodos = [];
-        for (const task of tasks) {
-          const todo = await todoService.create(userId, task);
+        for (const task of draft.tasks) {
+          const todo = await todoService.create(userId, toTodoDto(task));
           createdTodos.push(todo);
+          for (const subtask of task.subtasks) {
+            await todoService.createSubtask(userId, todo.id, { title: subtask.title });
+          }
         }
 
         const createdIds = createdTodos.map((todo) => todo.id);
-        const updatedSuggestion = await suggestionStore.markApplied(
-          userId,
-          id,
-          createdIds,
-          {
-            reason: reason || "applied_via_endpoint",
-            source: "apply_endpoint",
-            updatedAt: new Date().toISOString(),
-          },
-        );
+        const updatedSuggestion = await suggestionStore.markApplied(userId, id, createdIds, {
+          reason: reason || "applied_via_endpoint",
+          source: "apply_endpoint",
+          updatedAt: new Date().toISOString(),
+        });
         if (!updatedSuggestion) {
           return res.status(404).json({ error: "Suggestion not found" });
         }
 
-        res.json({
-          createdCount: createdTodos.length,
-          todos: createdTodos,
+        return res.json({
+          createdCount: createdIds.length,
+          todoIds: createdIds,
           suggestion: updatedSuggestion,
           idempotent: false,
         });
