@@ -1747,6 +1747,11 @@ function renderTodos() {
                                 `
                                     : ""
                                 }
+                                <div style="margin-top: 8px;">
+                                    <button class="add-btn" style="background: #0f766e; padding: 8px 12px; font-size: 0.85em; width: auto;" data-onclick="aiBreakdownTodo('${todo.id}')">
+                                        AI Break Down Into Subtasks
+                                    </button>
+                                </div>
                             </div>
                             <button class="delete-btn" data-onclick="deleteTodo('${todo.id}')">Delete</button>
                         </li>
@@ -1878,6 +1883,51 @@ async function toggleSubtask(todoId, subtaskId) {
     }
   } catch (error) {
     console.error("Toggle subtask failed:", error);
+  }
+}
+
+async function aiBreakdownTodo(todoId, force = false) {
+  const todo = todos.find((item) => item.id === todoId);
+  if (!todo) return;
+
+  try {
+    const response = await apiCall(`${API_URL}/ai/todos/${todoId}/breakdown`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxSubtasks: 5, force }),
+    });
+    const data = response ? await parseApiBody(response) : {};
+
+    if (response && response.ok) {
+      await loadTodos();
+      await loadAiInsights();
+      await loadAiFeedbackSummary();
+      showMessage(
+        "todosMessage",
+        `Added ${data.createdCount || 0} AI subtasks for "${todo.title}"`,
+        "success",
+      );
+      return;
+    }
+
+    if (response && response.status === 409) {
+      const proceed = confirm(
+        "This task already has subtasks. Generate additional subtasks anyway?",
+      );
+      if (proceed) {
+        await aiBreakdownTodo(todoId, true);
+      }
+      return;
+    }
+
+    showMessage(
+      "todosMessage",
+      data.error || "Failed to generate subtasks",
+      "error",
+    );
+  } catch (error) {
+    console.error("AI breakdown error:", error);
+    showMessage("todosMessage", "Failed to generate subtasks", "error");
   }
 }
 

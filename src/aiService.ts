@@ -34,6 +34,23 @@ export interface PlanFromGoalOutput {
   tasks: PlanTaskSuggestion[];
 }
 
+export interface BreakdownTodoInput {
+  title: string;
+  description?: string;
+  notes?: string;
+  priority?: Priority;
+  maxSubtasks: number;
+}
+
+export interface BreakdownSubtaskSuggestion {
+  title: string;
+}
+
+export interface BreakdownTodoOutput {
+  summary: string;
+  subtasks: BreakdownSubtaskSuggestion[];
+}
+
 export interface AiGenerationContext {
   rejectionSignals?: string[];
   acceptanceSignals?: string[];
@@ -245,6 +262,48 @@ export function planFromGoalDeterministic(
   };
 }
 
+function truncateTaskTitle(value: string, maxLength = 180): string {
+  const trimmed = value.trim();
+  if (trimmed.length <= maxLength) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+export function breakdownTodoDeterministic(
+  input: BreakdownTodoInput,
+  context?: AiGenerationContext,
+): BreakdownTodoOutput {
+  const rejectionSignals = (context?.rejectionSignals || []).map((signal) =>
+    signal.toLowerCase(),
+  );
+  const needsSpecificity = rejectionSignals.some(
+    (signal) =>
+      signal.includes("generic") ||
+      signal.includes("vague") ||
+      signal.includes("specific"),
+  );
+
+  const base = [
+    `Define done criteria for: ${input.title}`,
+    `Collect inputs and dependencies for: ${input.title}`,
+    `Execute core work for: ${input.title}`,
+    `Review quality and edge cases for: ${input.title}`,
+    `Close out and communicate status for: ${input.title}`,
+  ];
+
+  const subtasks = base.slice(0, input.maxSubtasks).map((title) => ({
+    title: needsSpecificity
+      ? truncateTaskTitle(`${title} (owner + metric + due date)`)
+      : truncateTaskTitle(title),
+  }));
+
+  return {
+    summary: `Generated ${subtasks.length} implementation subtasks.`,
+    subtasks,
+  };
+}
+
 class OpenAiCompatibleProvider implements AiProvider {
   async generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
     const response = await fetch(
@@ -356,6 +415,42 @@ function parsePlanOutput(value: unknown): PlanFromGoalOutput | null {
   };
 }
 
+function parseBreakdownOutput(value: unknown): BreakdownTodoOutput | null {
+  if (!value || typeof value !== "object") return null;
+  const v = value as Record<string, unknown>;
+  if (!Array.isArray(v.subtasks)) {
+    return null;
+  }
+
+  const subtasks: BreakdownSubtaskSuggestion[] = [];
+  for (const subtask of v.subtasks) {
+    if (!subtask || typeof subtask !== "object") {
+      continue;
+    }
+    const s = subtask as Record<string, unknown>;
+    if (typeof s.title !== "string") {
+      continue;
+    }
+    const title = truncateTaskTitle(s.title);
+    if (!title) {
+      continue;
+    }
+    subtasks.push({ title });
+  }
+
+  if (subtasks.length === 0) {
+    return null;
+  }
+
+  return {
+    summary:
+      typeof v.summary === "string" && v.summary.trim().length > 0
+        ? v.summary
+        : `Generated ${subtasks.length} implementation subtasks.`,
+    subtasks,
+  };
+}
+
 export class AiPlannerService {
   private readonly provider?: AiProvider;
 
@@ -443,6 +538,52 @@ export class AiPlannerService {
     } catch (error) {
       console.warn(
         "AI provider plan failed, using deterministic fallback",
+        error,
+      );
+      return fallback;
+    }
+  }
+
+  async breakdownTodoIntoSubtasks(
+    input: BreakdownTodoInput,
+    context?: AiGenerationContext,
+  ): Promise<BreakdownTodoOutput> {
+    const fallback = breakdownTodoDeterministic(input, context);
+    if (!this.provider) {
+      return fallback;
+    }
+
+    try {
+      const contextBlock =
+        context &&
+        (context.rejectionSignals?.length || context.acceptanceSignals?.length)
+          ? {
+              rejectionSignals: context.rejectionSignals || [],
+              acceptanceSignals: context.acceptanceSignals || [],
+            }
+          : undefined;
+      const response = await this.provider.generateJson<unknown>(
+        "You decompose a task into execution subtasks. Return JSON with: summary, subtasks[{title}]. Titles must be concise and action-oriented.",
+        JSON.stringify({
+          title: input.title,
+          description: input.description || "",
+          notes: input.notes || "",
+          priority: input.priority || "medium",
+          maxSubtasks: input.maxSubtasks,
+          context: contextBlock,
+        }),
+      );
+      const parsed = parseBreakdownOutput(response);
+      if (!parsed) {
+        return fallback;
+      }
+      return {
+        ...parsed,
+        subtasks: parsed.subtasks.slice(0, input.maxSubtasks),
+      };
+    } catch (error) {
+      console.warn(
+        "AI provider breakdown failed, using deterministic fallback",
         error,
       );
       return fallback;

@@ -132,6 +132,9 @@ describe("API Contract", () => {
       expect(response.body?.paths?.["/ai/usage"]?.get).toBeDefined();
       expect(response.body?.paths?.["/ai/insights"]?.get).toBeDefined();
       expect(response.body?.paths?.["/ai/feedback-summary"]?.get).toBeDefined();
+      expect(
+        response.body?.paths?.["/ai/todos/{id}/breakdown"]?.post,
+      ).toBeDefined();
     });
   });
 
@@ -387,6 +390,36 @@ describe("API Contract", () => {
       await request(app)
         .post(`/ai/suggestions/${suggestionId}/apply`)
         .expect(409);
+    });
+
+    it("breaks down a todo into subtasks using AI", async () => {
+      const todo = await request(app)
+        .post("/todos")
+        .send({
+          title: "Prepare release checklist",
+          priority: "high",
+        })
+        .expect(201);
+
+      const response = await request(app)
+        .post(`/ai/todos/${todo.body.id}/breakdown`)
+        .send({ maxSubtasks: 4 })
+        .expect(200);
+
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          todoId: todo.body.id,
+          summary: expect.any(String),
+          createdCount: 4,
+        }),
+      );
+      expect(Array.isArray(response.body.subtasks)).toBe(true);
+      expect(response.body.subtasks).toHaveLength(4);
+
+      const fetched = await request(app)
+        .get(`/todos/${todo.body.id}`)
+        .expect(200);
+      expect(fetched.body.subtasks).toHaveLength(4);
     });
 
     it("enforces daily suggestion quota", async () => {
