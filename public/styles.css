@@ -450,6 +450,132 @@ body {
   margin-top: 10px;
 }
 
+.plan-draft-panel {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--input-bg);
+}
+
+.plan-draft-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.plan-draft-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.plan-draft-count {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.plan-draft-actions-top,
+.plan-draft-actions-bottom {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plan-draft-actions-top {
+  margin-bottom: 10px;
+}
+
+.plan-draft-actions-bottom {
+  margin-top: 10px;
+}
+
+.plan-draft-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.plan-draft-task-row {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  padding: 10px;
+}
+
+.plan-draft-task-row.dimmed {
+  opacity: 0.7;
+}
+
+.plan-draft-task-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-draft-title-input,
+.plan-draft-description-input,
+.plan-draft-date-input,
+.plan-draft-project-select,
+.plan-draft-project-input,
+.plan-draft-priority-select,
+.plan-feedback-input {
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.plan-draft-title-input {
+  flex: 1;
+  min-width: 220px;
+  padding: 8px 10px;
+}
+
+.plan-draft-description-input {
+  width: 100%;
+  margin-top: 8px;
+  padding: 8px 10px;
+  min-height: 64px;
+  resize: vertical;
+}
+
+.plan-draft-meta-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.plan-draft-date-input,
+.plan-draft-project-select,
+.plan-draft-project-input,
+.plan-draft-priority-select {
+  padding: 8px 10px;
+}
+
+.plan-draft-project-select,
+.plan-draft-project-input {
+  min-width: 160px;
+  flex: 1;
+}
+
+.plan-draft-subtasks {
+  margin-top: 8px;
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+}
+
+.plan-draft-subtasks ul {
+  margin: 6px 0 0 16px;
+}
+
+.plan-feedback-input {
+  width: 100%;
+  margin-top: 10px;
+  padding: 8px 10px;
+}
+
 .add-btn {
   padding: 12px 24px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
