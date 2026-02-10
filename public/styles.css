@@ -371,6 +371,16 @@ body {
   color: var(--text-primary);
 }
 
+.field-row select {
+  flex: 1;
+  min-width: 180px;
+  padding: 12px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
 .action-row {
   display: flex;
   gap: 10px;
@@ -1294,6 +1304,68 @@ body {
 
 .subtask-delete:hover {
   opacity: 1;
+}
+
+.todo-inline-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.todo-inline-actions select {
+  min-width: 160px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.mini-btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  background: #334155;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.82em;
+  font-weight: 600;
+}
+
+.mini-btn:hover {
+  opacity: 0.9;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 2500;
+  padding: 16px;
+}
+
+.modal-card {
+  width: min(760px, 100%);
+  background: var(--container-bg);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+}
+
+.modal-card h3 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 .add-subtask-form {
