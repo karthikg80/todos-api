@@ -236,6 +236,7 @@ let todos = [];
 let users = [];
 let aiSuggestions = [];
 let aiUsage = null;
+let aiInsights = null;
 let aiFeedbackSummary = null;
 let latestCritiqueSuggestionId = null;
 let latestCritiqueResult = null;
@@ -924,6 +925,24 @@ async function loadAiFeedbackSummary() {
   }
 }
 
+async function loadAiInsights() {
+  try {
+    const response = await apiCall(`${API_URL}/ai/insights?days=7`);
+    if (!response || !response.ok) {
+      aiInsights = null;
+      renderAiPerformanceInsights();
+      return;
+    }
+
+    aiInsights = await response.json();
+    renderAiPerformanceInsights();
+  } catch (error) {
+    console.error("Load AI insights error:", error);
+    aiInsights = null;
+    renderAiPerformanceInsights();
+  }
+}
+
 function renderAiUsageSummary() {
   const container = document.getElementById("aiUsageSummary");
   if (!container) return;
@@ -949,6 +968,53 @@ function renderAiUsageSummary() {
       AI plan: <strong>${escapeHtml(String(aiUsage.plan || "free").toUpperCase())}</strong>.
       Usage today: <strong>${aiUsage.used}/${aiUsage.limit}</strong> used
       (${aiUsage.remaining} remaining). Resets: ${escapeHtml(resetTime)}
+    </div>
+  `;
+}
+
+function renderAiPerformanceInsights() {
+  const container = document.getElementById("aiPerformanceInsights");
+  if (!container) return;
+
+  if (!aiInsights) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const acceptanceRate = aiInsights.acceptanceRate;
+  const recommendation =
+    typeof aiInsights.recommendation === "string"
+      ? aiInsights.recommendation
+      : "";
+  const ratedCount = Number(aiInsights.ratedCount) || 0;
+  const generatedCount = Number(aiInsights.generatedCount) || 0;
+
+  container.innerHTML = `
+    <div style="
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+      padding: 10px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    ">
+      <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+        AI Performance (7d)
+      </div>
+      <div>
+        Generated: <strong>${generatedCount}</strong>,
+        rated: <strong>${ratedCount}</strong>,
+        acceptance: <strong>${
+          acceptanceRate === null || acceptanceRate === undefined
+            ? "N/A"
+            : `${acceptanceRate}%`
+        }</strong>
+      </div>
+      ${
+        recommendation
+          ? `<div style="margin-top: 6px;">Recommendation: ${escapeHtml(recommendation)}</div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -1056,6 +1122,7 @@ async function updateSuggestionStatus(suggestionId, status, reason = null) {
     });
     await loadAiSuggestions();
     await loadAiUsage();
+    await loadAiInsights();
     await loadAiFeedbackSummary();
   } catch (error) {
     console.error("Update suggestion status error:", error);
@@ -1184,6 +1251,7 @@ async function critiqueDraftWithAi() {
       );
       await loadAiSuggestions();
       await loadAiUsage();
+      await loadAiInsights();
       return;
     }
 
@@ -1276,6 +1344,7 @@ async function generatePlanWithAi() {
       );
       await loadAiSuggestions();
       await loadAiUsage();
+      await loadAiInsights();
       return;
     }
 
@@ -1324,6 +1393,7 @@ async function addPlanTasksToTodos() {
       renderPlanPanel();
       await loadAiSuggestions();
       await loadAiUsage();
+      await loadAiInsights();
       await loadAiFeedbackSummary();
       await loadTodos();
       showMessage(
@@ -2308,6 +2378,7 @@ function switchView(view, triggerEl = null) {
     loadTodos();
     loadAiSuggestions();
     loadAiUsage();
+    loadAiInsights();
     loadAiFeedbackSummary();
   } else if (view === "profile") {
     updateUserDisplay();
@@ -2387,6 +2458,7 @@ async function logout() {
   todos = [];
   aiSuggestions = [];
   aiUsage = null;
+  aiInsights = null;
   aiFeedbackSummary = null;
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
@@ -2410,6 +2482,7 @@ function showAppView() {
   loadTodos();
   loadAiSuggestions();
   loadAiUsage();
+  loadAiInsights();
   loadAiFeedbackSummary();
 }
 
