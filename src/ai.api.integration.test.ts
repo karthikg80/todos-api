@@ -132,4 +132,49 @@ describe("AI API Integration", () => {
       .set("Authorization", `Bearer ${authToken}`)
       .expect(409);
   });
+
+  it("returns usage summary and enforces per-day quota", async () => {
+    const todoService = new PrismaTodoService(prisma);
+    const authService = new AuthService(prisma);
+    const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
+    const limitedApp = createApp(
+      todoService,
+      authService,
+      aiSuggestionStore,
+      undefined,
+      1,
+    );
+
+    const register = await request(limitedApp).post("/auth/register").send({
+      email: "ai-limit@example.com",
+      password: "password123",
+      name: "AI Limit",
+    });
+    const token = register.body.token as string;
+
+    await request(limitedApp)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "Quota first request" })
+      .expect(200);
+
+    const blocked = await request(limitedApp)
+      .post("/ai/plan-from-goal")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ goal: "Quota second request", maxTasks: 3 })
+      .expect(429);
+    expect(blocked.body.error).toBe("Daily AI suggestion limit reached");
+
+    const usage = await request(limitedApp)
+      .get("/ai/usage")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+    expect(usage.body).toEqual(
+      expect.objectContaining({
+        used: 1,
+        remaining: 0,
+        limit: 1,
+      }),
+    );
+  });
 });

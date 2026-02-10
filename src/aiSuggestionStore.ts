@@ -24,6 +24,7 @@ export interface IAiSuggestionStore {
   }): Promise<AiSuggestionRecord>;
   listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]>;
   getById(userId: string, id: string): Promise<AiSuggestionRecord | null>;
+  countByUserSince(userId: string, since: Date): Promise<number>;
   updateStatus(
     userId: string,
     id: string,
@@ -72,6 +73,12 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
       (item) => item.id === id && item.userId === userId,
     );
     return record || null;
+  }
+
+  async countByUserSince(userId: string, since: Date): Promise<number> {
+    return this.records.filter(
+      (record) => record.userId === userId && record.createdAt >= since,
+    ).length;
   }
 
   async updateStatus(
@@ -170,6 +177,17 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
+  }
+
+  async countByUserSince(userId: string, since: Date): Promise<number> {
+    return this.prisma.aiSuggestion.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: since,
+        },
+      },
+    });
   }
 
   async updateStatus(

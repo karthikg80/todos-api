@@ -129,10 +129,24 @@ describe("API Contract", () => {
 
       expect(response.body?.paths?.["/ai/task-critic"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/plan-from-goal"]?.post).toBeDefined();
+      expect(response.body?.paths?.["/ai/usage"]?.get).toBeDefined();
     });
   });
 
   describe("AI endpoints", () => {
+    it("returns daily AI usage summary", async () => {
+      const response = await request(app).get("/ai/usage").expect(200);
+
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          used: expect.any(Number),
+          remaining: expect.any(Number),
+          limit: expect.any(Number),
+          resetAt: expect.any(String),
+        }),
+      );
+    });
+
     it("returns critique suggestions for vague tasks", async () => {
       const response = await request(app)
         .post("/ai/task-critic")
@@ -241,6 +255,35 @@ describe("API Contract", () => {
       await request(app)
         .post(`/ai/suggestions/${suggestionId}/apply`)
         .expect(409);
+    });
+
+    it("enforces daily suggestion quota", async () => {
+      const limitedApp = createApp(
+        new TodoService(),
+        undefined,
+        undefined,
+        undefined,
+        1,
+      );
+
+      await request(limitedApp)
+        .post("/ai/task-critic")
+        .send({ title: "First task" })
+        .expect(200);
+
+      const blocked = await request(limitedApp)
+        .post("/ai/plan-from-goal")
+        .send({ goal: "Second request", maxTasks: 3 })
+        .expect(429);
+
+      expect(blocked.body.error).toBe("Daily AI suggestion limit reached");
+      expect(blocked.body.usage).toEqual(
+        expect.objectContaining({
+          used: 1,
+          remaining: 0,
+          limit: 1,
+        }),
+      );
     });
   });
 });

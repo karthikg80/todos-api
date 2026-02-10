@@ -13,11 +13,13 @@ import {
 import { validateId } from "../validation";
 import { ITodoService } from "../interfaces/ITodoService";
 import { CreateTodoDto, Priority } from "../types";
+import { config } from "../config";
 
 interface AiRouterDeps {
   aiPlannerService?: AiPlannerService;
   suggestionStore?: IAiSuggestionStore;
   todoService: ITodoService;
+  aiDailySuggestionLimit?: number;
   resolveAiUserId: (req: Request, res: Response) => string | null;
 }
 
@@ -25,9 +27,47 @@ export function createAiRouter({
   aiPlannerService = new AiPlannerService(),
   suggestionStore = new InMemoryAiSuggestionStore(),
   todoService,
+  aiDailySuggestionLimit,
   resolveAiUserId,
 }: AiRouterDeps): Router {
   const router = Router();
+  const dailyLimit = aiDailySuggestionLimit ?? config.aiDailySuggestionLimit;
+
+  const getCurrentUtcDayStart = (): Date => {
+    const now = new Date();
+    return new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
+  };
+
+  const getNextUtcDayStart = (): Date => {
+    const dayStart = getCurrentUtcDayStart();
+    return new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  };
+
+  const getUsage = async (userId: string) => {
+    const dayStart = getCurrentUtcDayStart();
+    const used = await suggestionStore.countByUserSince(userId, dayStart);
+    const remaining = Math.max(dailyLimit - used, 0);
+    return {
+      used,
+      remaining,
+      limit: dailyLimit,
+      resetAt: getNextUtcDayStart().toISOString(),
+    };
+  };
+
+  const enforceDailyQuota = async (userId: string, res: Response) => {
+    const usage = await getUsage(userId);
+    if (usage.remaining <= 0) {
+      res.status(429).json({
+        error: "Daily AI suggestion limit reached",
+        usage,
+      });
+      return false;
+    }
+    return true;
+  };
 
   const parsePlanTasks = (output: Record<string, unknown>): CreateTodoDto[] => {
     const rawTasks = output.tasks;
@@ -95,6 +135,7 @@ export function createAiRouter({
       try {
         const userId = resolveAiUserId(req, res);
         if (!userId) return;
+        if (!(await enforceDailyQuota(userId, res))) return;
 
         const input = validateCritiqueTaskInput(req.body);
         const result = await aiPlannerService.critiqueTask(input);
@@ -142,6 +183,7 @@ export function createAiRouter({
       try {
         const userId = resolveAiUserId(req, res);
         if (!userId) return;
+        if (!(await enforceDailyQuota(userId, res))) return;
 
         const input = validatePlanFromGoalInput(req.body);
         const result = await aiPlannerService.planFromGoal(input);
@@ -166,6 +208,34 @@ export function createAiRouter({
           ...result,
           suggestionId: suggestion.id,
         });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /**
+   * @openapi
+   * /ai/usage:
+   *   get:
+   *     tags:
+   *       - AI
+   *     summary: Get daily AI usage and remaining quota
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Usage summary
+   */
+  router.get(
+    "/usage",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveAiUserId(req, res);
+        if (!userId) return;
+
+        const usage = await getUsage(userId);
+        res.json(usage);
       } catch (error) {
         next(error);
       }

@@ -25,6 +25,7 @@ export function createApp(
   authService?: AuthService,
   aiSuggestionStore?: IAiSuggestionStore,
   aiPlannerService?: AiPlannerService,
+  aiDailySuggestionLimit?: number,
 ) {
   const app = express();
 
@@ -184,6 +185,7 @@ export function createApp(
       resolveAiUserId,
       suggestionStore: aiSuggestionStore,
       aiPlannerService,
+      aiDailySuggestionLimit,
     }),
   );
 
