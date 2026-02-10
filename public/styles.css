@@ -455,6 +455,24 @@ body {
   list-style: none;
 }
 
+.todo-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0 8px;
+  padding: 8px 10px;
+  font-size: 0.85em;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.todos-list .todo-group-header:first-child {
+  margin-top: 0;
+  border-top: none;
+  padding-top: 0;
+}
+
 .todo-item {
   background: var(--card-bg);
   padding: 16px;
