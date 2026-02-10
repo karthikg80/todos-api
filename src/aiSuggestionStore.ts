@@ -54,8 +54,13 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
     return created;
   }
 
-  async listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]> {
-    return this.records.filter((record) => record.userId === userId).slice(0, limit);
+  async listByUser(
+    userId: string,
+    limit: number,
+  ): Promise<AiSuggestionRecord[]> {
+    return this.records
+      .filter((record) => record.userId === userId)
+      .slice(0, limit);
   }
 
   async updateStatus(
@@ -110,7 +115,10 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
     };
   }
 
-  async listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]> {
+  async listByUser(
+    userId: string,
+    limit: number,
+  ): Promise<AiSuggestionRecord[]> {
     const records = await this.prisma.aiSuggestion.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },

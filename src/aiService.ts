@@ -149,7 +149,9 @@ function distributeDueDates(
   });
 }
 
-function buildTaskTemplate(goal: string): Omit<PlanTaskSuggestion, "dueDate">[] {
+function buildTaskTemplate(
+  goal: string,
+): Omit<PlanTaskSuggestion, "dueDate">[] {
   return [
     {
       title: `Define scope for: ${goal}`,
@@ -206,25 +208,30 @@ export function planFromGoalDeterministic(
 
 class OpenAiCompatibleProvider implements AiProvider {
   async generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T> {
-    const response = await fetch(`${config.aiProviderBaseUrl}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${config.aiProviderApiKey}`,
+    const response = await fetch(
+      `${config.aiProviderBaseUrl}/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.aiProviderApiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.aiProviderModel,
+          response_format: { type: "json_object" },
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.2,
+        }),
       },
-      body: JSON.stringify({
-        model: config.aiProviderModel,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.2,
-      }),
-    });
+    );
 
     if (!response.ok) {
-      throw new Error(`AI provider request failed with status ${response.status}`);
+      throw new Error(
+        `AI provider request failed with status ${response.status}`,
+      );
     }
 
     const data = (await response.json()) as {
@@ -337,7 +344,10 @@ export class AiPlannerService {
       );
       return parseCritiqueOutput(response) || fallback;
     } catch (error) {
-      console.warn("AI provider critique failed, using deterministic fallback", error);
+      console.warn(
+        "AI provider critique failed, using deterministic fallback",
+        error,
+      );
       return fallback;
     }
   }
@@ -368,7 +378,10 @@ export class AiPlannerService {
         tasks: parsed.tasks.slice(0, input.maxTasks),
       };
     } catch (error) {
-      console.warn("AI provider plan failed, using deterministic fallback", error);
+      console.warn(
+        "AI provider plan failed, using deterministic fallback",
+        error,
+      );
       return fallback;
     }
   }
