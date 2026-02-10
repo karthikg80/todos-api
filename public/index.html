@@ -228,12 +228,12 @@
             <span class="search-icon">🔍</span>
           </div>
 
-          <!-- Category Filter -->
+          <!-- Project Filter -->
           <div class="filter-toolbar">
             <label
               for="categoryFilter"
               style="font-weight: 500; color: var(--text-primary)"
-              >Filter:</label
+              >Project:</label
             >
             <select
               id="categoryFilter"
@@ -247,7 +247,7 @@
                 cursor: pointer;
               "
             >
-              <option value="">All Categories</option>
+              <option value="">All Projects</option>
             </select>
             <div class="date-view-tabs">
               <button
@@ -345,6 +345,13 @@
                 style="width: auto; padding: 10px 14px"
               >
                 + Project
+              </button>
+              <button
+                class="add-btn"
+                data-onclick="createSubproject()"
+                style="width: auto; padding: 10px 14px; background: #0f766e"
+              >
+                + Subproject
               </button>
               <label for="todoDueDateInput" class="sr-only"
                 >Todo due date</label

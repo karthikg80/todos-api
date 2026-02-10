@@ -253,6 +253,7 @@ const {
 } = AppStateModule;
 let authState = AUTH_STATE.UNAUTHENTICATED;
 let currentDateView = "all";
+const PROJECT_PATH_SEPARATOR = " / ";
 
 function handleAuthFailure() {
   logout();
@@ -287,7 +288,14 @@ function loadCustomProjects() {
     const raw = localStorage.getItem(projectStorageKey());
     const parsed = raw ? JSON.parse(raw) : [];
     customProjects = Array.isArray(parsed)
-      ? [...new Set(parsed.filter((item) => typeof item === "string"))]
+      ? [
+          ...new Set(
+            parsed
+              .filter((item) => typeof item === "string")
+              .map((item) => normalizeProjectPath(item))
+              .filter(Boolean),
+          ),
+        ].sort(compareProjectPaths)
       : [];
   } catch (error) {
     console.error("Failed to load custom projects:", error);
@@ -1519,8 +1527,9 @@ async function addTodo() {
     priority: currentPriority,
   };
 
-  if (projectSelect.value.trim()) {
-    payload.category = projectSelect.value.trim();
+  const projectPath = normalizeProjectPath(projectSelect.value);
+  if (projectPath) {
+    payload.category = projectPath;
   }
   if (dueDateInput.value) {
     payload.dueDate = new Date(dueDateInput.value).toISOString();
@@ -1637,32 +1646,82 @@ function updateCategoryFilter() {
   const currentValue = filterSelect.value;
 
   filterSelect.innerHTML =
-    '<option value="">All Categories</option>' +
-    categories
-      .map(
-        (cat) =>
-          `<option value="${escapeHtml(cat)}">${escapeHtml(cat)}</option>`,
-      )
-      .join("");
+    '<option value="">All Projects</option>' +
+    categories.map((cat) => renderProjectOptionEntry(cat, currentValue)).join("");
 
   if (categories.includes(currentValue)) {
     filterSelect.value = currentValue;
   }
 }
 
+function splitProjectPath(value) {
+  if (typeof value !== "string") return [];
+  return value
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function normalizeProjectPath(value) {
+  const parts = splitProjectPath(value);
+  return parts.join(PROJECT_PATH_SEPARATOR);
+}
+
+function compareProjectPaths(a, b) {
+  const aParts = splitProjectPath(a);
+  const bParts = splitProjectPath(b);
+  const maxDepth = Math.max(aParts.length, bParts.length);
+  for (let i = 0; i < maxDepth; i += 1) {
+    const aPart = aParts[i] || "";
+    const bPart = bParts[i] || "";
+    if (aPart === bPart) {
+      continue;
+    }
+    return aPart.localeCompare(bPart);
+  }
+  return aParts.length - bParts.length;
+}
+
+function expandProjectTree(paths) {
+  const expanded = new Set();
+  paths.forEach((path) => {
+    const parts = splitProjectPath(path);
+    for (let i = 1; i <= parts.length; i += 1) {
+      expanded.add(parts.slice(0, i).join(PROJECT_PATH_SEPARATOR));
+    }
+  });
+  return [...expanded].sort(compareProjectPaths);
+}
+
+function getProjectDepth(projectPath) {
+  return Math.max(0, splitProjectPath(projectPath).length - 1);
+}
+
+function getProjectLeafName(projectPath) {
+  const parts = splitProjectPath(projectPath);
+  return parts[parts.length - 1] || projectPath;
+}
+
+function renderProjectOptionEntry(projectPath, selectedValue = "") {
+  const depth = getProjectDepth(projectPath);
+  const prefix = depth > 0 ? `${"|- ".repeat(depth)}` : "";
+  const label = `${prefix}${getProjectLeafName(projectPath)}`;
+  return `<option value="${escapeHtml(projectPath)}" ${
+    projectPath === selectedValue ? "selected" : ""
+  }>${escapeHtml(label)}</option>`;
+}
+
 function getAllProjects() {
   const fromTodos = todos
     .map((todo) =>
-      typeof todo.category === "string" ? todo.category.trim() : "",
+      normalizeProjectPath(todo.category),
     )
     .filter((value) => value.length > 0);
-  return [...new Set([...customProjects, ...fromTodos])].sort((a, b) =>
-    a.localeCompare(b),
-  );
+  return expandProjectTree([...customProjects, ...fromTodos]);
 }
 
 function refreshProjectCatalog() {
-  customProjects = [...new Set([...customProjects, ...getAllProjects()])];
+  customProjects = expandProjectTree([...customProjects, ...getAllProjects()]);
   saveCustomProjects();
   updateProjectSelectOptions();
   updateCategoryFilter();
@@ -1675,12 +1734,7 @@ function updateProjectSelectOptions() {
 
   const renderOptions = (selectedValue = "") =>
     `<option value="">No project</option>${projects
-      .map(
-        (project) =>
-          `<option value="${escapeHtml(project)}" ${
-            project === selectedValue ? "selected" : ""
-          }>${escapeHtml(project)}</option>`,
-      )
+      .map((project) => renderProjectOptionEntry(project, selectedValue))
       .join("")}`;
 
   if (todoProjectSelect) {
@@ -1696,54 +1750,93 @@ function updateProjectSelectOptions() {
 }
 
 function createProject() {
-  const name = prompt("Project name:");
+  const name = prompt("Project path (use / for hierarchy, e.g. Work / Client A):");
   if (name === null) {
     return;
   }
-  const trimmed = name.trim();
-  if (!trimmed) {
+  const normalizedPath = normalizeProjectPath(name);
+  if (!normalizedPath) {
     showMessage("todosMessage", "Project name cannot be empty", "error");
     return;
   }
-  if (trimmed.length > 50) {
+  if (normalizedPath.length > 50) {
     showMessage(
       "todosMessage",
-      "Project name cannot exceed 50 characters",
+      "Project path cannot exceed 50 characters",
       "error",
     );
     return;
   }
-  if (!customProjects.includes(trimmed)) {
-    customProjects.push(trimmed);
-    customProjects = [...new Set(customProjects)].sort((a, b) =>
-      a.localeCompare(b),
-    );
+  if (!customProjects.includes(normalizedPath)) {
+    customProjects.push(normalizedPath);
+    customProjects = expandProjectTree(customProjects);
     saveCustomProjects();
     updateProjectSelectOptions();
     updateCategoryFilter();
   }
   const projectSelect = document.getElementById("todoProjectSelect");
   if (projectSelect) {
-    projectSelect.value = trimmed;
+    projectSelect.value = normalizedPath;
   }
-  showMessage("todosMessage", `Project "${trimmed}" created`, "success");
+  showMessage("todosMessage", `Project "${normalizedPath}" created`, "success");
+}
+
+function createSubproject() {
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const parentPath = normalizeProjectPath(projectSelect?.value || "");
+  if (!parentPath) {
+    showMessage(
+      "todosMessage",
+      "Select a parent project first, then create a subproject",
+      "error",
+    );
+    return;
+  }
+
+  const name = prompt(`Subproject name under "${parentPath}":`);
+  if (name === null) {
+    return;
+  }
+  const childName = normalizeProjectPath(name);
+  if (!childName) {
+    showMessage("todosMessage", "Subproject name cannot be empty", "error");
+    return;
+  }
+  const combinedPath = normalizeProjectPath(
+    `${parentPath}${PROJECT_PATH_SEPARATOR}${childName}`,
+  );
+  if (!combinedPath || combinedPath.length > 50) {
+    showMessage(
+      "todosMessage",
+      "Subproject path cannot exceed 50 characters",
+      "error",
+    );
+    return;
+  }
+  if (!customProjects.includes(combinedPath)) {
+    customProjects.push(combinedPath);
+    customProjects = expandProjectTree(customProjects);
+    saveCustomProjects();
+    updateProjectSelectOptions();
+    updateCategoryFilter();
+  }
+  if (projectSelect) {
+    projectSelect.value = combinedPath;
+  }
+  showMessage("todosMessage", `Subproject "${combinedPath}" created`, "success");
 }
 
 function renderProjectOptions(selectedProject = "") {
   return `<option value="">No project</option>${getAllProjects()
-    .map(
-      (project) =>
-        `<option value="${escapeHtml(project)}" ${
-          project === selectedProject ? "selected" : ""
-        }>${escapeHtml(project)}</option>`,
-    )
+    .map((project) => renderProjectOptionEntry(project, selectedProject))
     .join("")}`;
 }
 
 async function moveTodoToProject(todoId, projectValue) {
   const todo = todos.find((item) => item.id === todoId);
   if (!todo) return;
-  const category = typeof projectValue === "string" ? projectValue.trim() : "";
+  const category =
+    typeof projectValue === "string" ? normalizeProjectPath(projectValue) : "";
 
   try {
     const response = await apiCall(`${API_URL}/todos/${todoId}`, {
@@ -1810,7 +1903,9 @@ async function saveEditedTodo() {
     return;
   }
 
-  const project = document.getElementById("editTodoProjectSelect").value.trim();
+  const project = normalizeProjectPath(
+    document.getElementById("editTodoProjectSelect").value,
+  );
   const priority = document.getElementById("editTodoPriority").value;
   const dueDateRaw = document.getElementById("editTodoDueDate").value;
   const description = document
@@ -1938,7 +2033,16 @@ function filterTodosList(todosList) {
   // Category filter
   const categoryFilter = document.getElementById("categoryFilter").value;
   if (categoryFilter) {
-    filtered = filtered.filter((todo) => todo.category === categoryFilter);
+    filtered = filtered.filter((todo) => {
+      const todoProject = normalizeProjectPath(todo.category);
+      if (!todoProject) {
+        return false;
+      }
+      return (
+        todoProject === categoryFilter ||
+        todoProject.startsWith(`${categoryFilter}${PROJECT_PATH_SEPARATOR}`)
+      );
+    });
   }
 
   // Search filter
