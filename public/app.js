@@ -1218,17 +1218,22 @@ function renderAiSuggestionHistory() {
 async function updateSuggestionStatus(suggestionId, status, reason = null) {
   if (!suggestionId) return;
   try {
-    await apiCall(`${API_URL}/ai/suggestions/${suggestionId}/status`, {
+    const response = await apiCall(`${API_URL}/ai/suggestions/${suggestionId}/status`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status, reason }),
     });
+    if (!response || !response.ok) {
+      return false;
+    }
     await loadAiSuggestions();
     await loadAiUsage();
     await loadAiInsights();
     await loadAiFeedbackSummary();
+    return true;
   } catch (error) {
     console.error("Update suggestion status error:", error);
+    return false;
   }
 }
 
@@ -1320,11 +1325,27 @@ function initPlanDraftState(planResult) {
     originalTasks,
     workingTasks: originalTasks.map((task, index) => clonePlanDraftTask(task, index)),
     selectedTaskTempIds: new Set(originalTasks.map((task) => task.tempId)),
+    statusSyncFailed: false,
   };
 }
 
 function clearPlanDraftState() {
   planDraftState = null;
+}
+
+function removeAppliedPlanDraftTasks(appliedTempIds) {
+  if (!planDraftState || !appliedTempIds.size) return;
+  planDraftState.workingTasks = planDraftState.workingTasks.filter(
+    (task) => !appliedTempIds.has(task.tempId),
+  );
+  planDraftState.originalTasks = planDraftState.originalTasks.filter(
+    (task) => !appliedTempIds.has(task.tempId),
+  );
+  planDraftState.selectedTaskTempIds = new Set(
+    planDraftState.workingTasks
+      .map((task) => task.tempId)
+      .filter((tempId) => !appliedTempIds.has(tempId)),
+  );
 }
 
 function isPlanActionBusy() {
@@ -1426,9 +1447,36 @@ function renderPlanPanel() {
   const panel = document.getElementById("aiPlanPanel");
   if (!panel) return;
 
-  if (!latestPlanResult || !planDraftState || !planDraftState.workingTasks.length) {
+  if (!latestPlanResult || !planDraftState) {
     panel.style.display = "none";
     panel.innerHTML = "";
+    return;
+  }
+
+  if (!planDraftState.workingTasks.length) {
+    if (!planDraftState.statusSyncFailed) {
+      panel.style.display = "none";
+      panel.innerHTML = "";
+      return;
+    }
+    const controlsDisabled = isPlanActionBusy() ? "disabled" : "";
+    panel.style.display = "block";
+    panel.innerHTML = `
+      <div class="plan-draft-panel">
+        <div class="plan-draft-title">Plan tasks created</div>
+        <div class="plan-draft-warning">
+          Tasks were created, but marking this AI suggestion as accepted failed.
+        </div>
+        <div class="plan-draft-actions-bottom">
+          <button class="add-btn" ${controlsDisabled} data-onclick="retryMarkPlanSuggestionAccepted()">${
+            isPlanApplyInFlight ? "Retrying..." : "Retry mark accepted"
+          }</button>
+          <button class="add-btn" ${controlsDisabled} style="background: #64748b" data-onclick="dismissPlanSuggestion()">${
+            isPlanDismissInFlight ? "Dismissing..." : "Dismiss"
+          }</button>
+        </div>
+      </div>
+    `;
     return;
   }
 
@@ -1654,7 +1702,47 @@ function resetPlanDraft() {
   planDraftState.selectedTaskTempIds = new Set(
     planDraftState.workingTasks.map((task) => task.tempId),
   );
+  planDraftState.statusSyncFailed = false;
   renderPlanPanel();
+}
+
+async function retryMarkPlanSuggestionAccepted() {
+  if (
+    !latestPlanSuggestionId ||
+    !planDraftState ||
+    !planDraftState.statusSyncFailed ||
+    isPlanActionBusy()
+  ) {
+    return;
+  }
+
+  isPlanApplyInFlight = true;
+  updatePlanGenerateButtonState();
+  renderPlanPanel();
+  try {
+    const accepted = await updateSuggestionStatus(
+      latestPlanSuggestionId,
+      "accepted",
+      getFeedbackReason("planFeedbackReasonInput", "Plan tasks were added"),
+    );
+    if (!accepted) {
+      showMessage(
+        "todosMessage",
+        "Could not mark AI suggestion accepted yet. Retry in a moment.",
+        "warning",
+      );
+      return;
+    }
+    latestPlanSuggestionId = null;
+    latestPlanResult = null;
+    clearPlanDraftState();
+    renderPlanPanel();
+    showMessage("todosMessage", "AI suggestion marked accepted", "success");
+  } finally {
+    isPlanApplyInFlight = false;
+    updatePlanGenerateButtonState();
+    renderPlanPanel();
+  }
 }
 
 async function critiqueDraftWithAi() {
@@ -1864,6 +1952,7 @@ async function addPlanTasksToTodos() {
   renderPlanPanel();
   try {
     let created = 0;
+    const createdTempIds = new Set();
     for (const task of selectedTasks) {
       const payload = buildPlanTaskCreatePayload(task);
       const response = await apiCall(`${API_URL}/todos`, {
@@ -1873,8 +1962,20 @@ async function addPlanTasksToTodos() {
       });
       if (response && response.ok) {
         created += 1;
+        createdTempIds.add(task.tempId);
       } else {
         const data = response ? await parseApiBody(response) : {};
+        if (created > 0) {
+          removeAppliedPlanDraftTasks(createdTempIds);
+          await loadTodos();
+          showMessage(
+            "todosMessage",
+            `Created ${created} of ${selectedTasks.length} tasks. Suggestion not marked accepted; fix remaining items and retry.`,
+            "warning",
+          );
+          renderPlanPanel();
+          return;
+        }
         showMessage(
           "todosMessage",
           data.error || "Failed to apply one or more planned tasks",
@@ -1884,17 +1985,32 @@ async function addPlanTasksToTodos() {
       }
     }
 
-    await updateSuggestionStatus(
+    removeAppliedPlanDraftTasks(createdTempIds);
+
+    const accepted = await updateSuggestionStatus(
       latestPlanSuggestionId,
       "accepted",
       getFeedbackReason("planFeedbackReasonInput", "Plan tasks were added"),
     );
 
+    await loadTodos();
+    if (!accepted) {
+      if (planDraftState) {
+        planDraftState.statusSyncFailed = true;
+      }
+      renderPlanPanel();
+      showMessage(
+        "todosMessage",
+        `Added ${created} AI-planned task(s), but could not mark suggestion accepted. Retry.`,
+        "warning",
+      );
+      return;
+    }
+
     latestPlanSuggestionId = null;
     latestPlanResult = null;
     clearPlanDraftState();
     renderPlanPanel();
-    await loadTodos();
     showMessage("todosMessage", `Added ${created} AI-planned task(s)`, "success");
   } catch (error) {
     console.error("Apply planned tasks error:", error);

@@ -475,6 +475,13 @@ body {
   color: var(--text-secondary);
 }
 
+.plan-draft-warning {
+  margin-top: 6px;
+  margin-bottom: 4px;
+  font-size: 0.9rem;
+  color: #b45309;
+}
+
 .plan-draft-actions-top,
 .plan-draft-actions-bottom {
   display: flex;
