@@ -1,5 +1,11 @@
 import { Priority } from "./types";
 import { config } from "./config";
+import {
+  normalizePlanSuggestionV1,
+  PlanSuggestionV1,
+  validatePlanSuggestionV1,
+} from "./ai/planSuggestionSchema";
+import { createDefaultLlmClient, LlmClient } from "./ai/llmClient";
 
 export interface CritiqueTaskInput {
   title: string;
@@ -17,8 +23,6 @@ export interface CritiqueTaskOutput {
 
 export interface PlanFromGoalInput {
   goal: string;
-  targetDate?: Date;
-  maxTasks: number;
 }
 
 export interface PlanTaskSuggestion {
@@ -32,6 +36,12 @@ export interface PlanFromGoalOutput {
   goal: string;
   summary: string;
   tasks: PlanTaskSuggestion[];
+}
+
+export interface StructuredPlanFromGoalOutput {
+  draft: PlanSuggestionV1;
+  provider?: string;
+  model?: string;
 }
 
 export interface BreakdownTodoInput {
@@ -240,10 +250,9 @@ export function planFromGoalDeterministic(
       signal.includes("vague") ||
       signal.includes("specific"),
   );
-  const baseTasks = buildTaskTemplate(input.goal).slice(0, input.maxTasks);
-  const dueDates = input.targetDate
-    ? distributeDueDates(new Date(), input.targetDate, baseTasks.length)
-    : [];
+  const maxTasks = 5;
+  const baseTasks = buildTaskTemplate(input.goal).slice(0, maxTasks);
+  const dueDates = Array.from({ length: baseTasks.length }, () => undefined);
 
   const tasks = baseTasks.map((task, index) => ({
     ...task,
@@ -453,10 +462,79 @@ function parseBreakdownOutput(value: unknown): BreakdownTodoOutput | null {
 
 export class AiPlannerService {
   private readonly provider?: AiProvider;
+  private readonly llmClient?: LlmClient;
 
-  constructor() {
+  constructor(llmClient?: LlmClient) {
     if (config.aiProviderEnabled) {
       this.provider = new OpenAiCompatibleProvider();
+    }
+    this.llmClient = llmClient || createDefaultLlmClient();
+  }
+
+  private deterministicPlanSuggestion(
+    goal: string,
+    context?: AiGenerationContext,
+  ): PlanSuggestionV1 {
+    const fallback = planFromGoalDeterministic({ goal }, context);
+    return normalizePlanSuggestionV1({
+      schemaVersion: 1,
+      type: "plan_from_goal",
+      confidence: "medium",
+      assumptions: [
+        "Task order assumes dependencies can be handled in sequence.",
+      ],
+      questions: [
+        "Are there deadlines or dependencies that should reprioritize tasks?",
+      ],
+      tasks: fallback.tasks.map((task, index) => ({
+        tempId: `task-${index + 1}`,
+        title: task.title,
+        description: task.description || null,
+        notes: null,
+        category: "AI Plan",
+        projectName: null,
+        dueDate: task.dueDate
+          ? task.dueDate.toISOString().slice(0, 10)
+          : null,
+        priority: task.priority,
+        subtasks: [],
+      })),
+    });
+  }
+
+  async generatePlanFromGoalDraft(
+    input: PlanFromGoalInput,
+    context?: AiGenerationContext | Record<string, unknown>,
+  ): Promise<StructuredPlanFromGoalOutput> {
+    const deterministic = this.deterministicPlanSuggestion(
+      input.goal,
+      context as AiGenerationContext | undefined,
+    );
+    if (!this.llmClient) {
+      return { draft: deterministic };
+    }
+
+    try {
+      const contextRecord: Record<string, unknown> =
+        context && typeof context === "object"
+          ? (context as Record<string, unknown>)
+          : {};
+      const generated = await this.llmClient.generateStructuredPlan(
+        input.goal,
+        contextRecord,
+      );
+      const parsed = validatePlanSuggestionV1(generated.payload);
+      return {
+        draft: normalizePlanSuggestionV1(parsed),
+        provider: generated.provider,
+        model: generated.model,
+      };
+    } catch (error) {
+      console.warn(
+        "AI provider plan failed or returned invalid schema, using deterministic fallback",
+        error,
+      );
+      return { draft: deterministic };
     }
   }
 
@@ -502,46 +580,19 @@ export class AiPlannerService {
     input: PlanFromGoalInput,
     context?: AiGenerationContext,
   ): Promise<PlanFromGoalOutput> {
-    const fallback = planFromGoalDeterministic(input, context);
-    if (!this.provider) {
-      return fallback;
-    }
-
-    try {
-      const contextBlock =
-        context &&
-        (context.rejectionSignals?.length || context.acceptanceSignals?.length)
-          ? {
-              rejectionSignals: context.rejectionSignals || [],
-              acceptanceSignals: context.acceptanceSignals || [],
-            }
-          : undefined;
-      const response = await this.provider.generateJson<unknown>(
-        "You are an execution planner. Return JSON with: goal, summary, tasks[]. Each task must include title, description, priority(low|medium|high), optional dueDate ISO string. Prefer concrete, measurable tasks.",
-        JSON.stringify({
-          goal: input.goal,
-          targetDate: input.targetDate?.toISOString(),
-          maxTasks: input.maxTasks,
-          context: contextBlock,
-        }),
-      );
-
-      const parsed = parsePlanOutput(response);
-      if (!parsed) {
-        return fallback;
-      }
-
-      return {
-        ...parsed,
-        tasks: parsed.tasks.slice(0, input.maxTasks),
-      };
-    } catch (error) {
-      console.warn(
-        "AI provider plan failed, using deterministic fallback",
-        error,
-      );
-      return fallback;
-    }
+    const structured = await this.generatePlanFromGoalDraft(input, context);
+    return {
+      goal: input.goal,
+      summary: `Execution plan with ${structured.draft.tasks.length} steps generated for "${input.goal}".`,
+      tasks: structured.draft.tasks.map((task) => ({
+        title: task.title,
+        description: task.description || "",
+        priority: task.priority,
+        dueDate: task.dueDate
+          ? new Date(`${task.dueDate}T00:00:00.000Z`)
+          : undefined,
+      })),
+    };
   }
 
   async breakdownTodoIntoSubtasks(
