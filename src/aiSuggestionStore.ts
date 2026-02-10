@@ -18,6 +18,13 @@ export interface AiSuggestionRecord {
   updatedAt: Date;
 }
 
+export interface AiFeedbackSummary {
+  acceptedCount: number;
+  rejectedCount: number;
+  acceptedReasons: Array<{ reason: string; count: number }>;
+  rejectedReasons: Array<{ reason: string; count: number }>;
+}
+
 export interface IAiSuggestionStore {
   create(record: {
     userId: string;
@@ -28,6 +35,11 @@ export interface IAiSuggestionStore {
   listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]>;
   getById(userId: string, id: string): Promise<AiSuggestionRecord | null>;
   countByUserSince(userId: string, since: Date): Promise<number>;
+  summarizeFeedbackByUserSince(
+    userId: string,
+    since: Date,
+    reasonLimit: number,
+  ): Promise<AiFeedbackSummary>;
   markApplied(
     userId: string,
     id: string,
@@ -92,6 +104,58 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
     return this.records.filter(
       (record) => record.userId === userId && record.createdAt >= since,
     ).length;
+  }
+
+  async summarizeFeedbackByUserSince(
+    userId: string,
+    since: Date,
+    reasonLimit: number,
+  ): Promise<AiFeedbackSummary> {
+    const acceptedReasons = new Map<string, number>();
+    const rejectedReasons = new Map<string, number>();
+    let acceptedCount = 0;
+    let rejectedCount = 0;
+
+    for (const record of this.records) {
+      if (record.userId !== userId || record.updatedAt < since) {
+        continue;
+      }
+      if (record.status !== "accepted" && record.status !== "rejected") {
+        continue;
+      }
+
+      const reasonRaw = record.feedback?.reason;
+      const reason =
+        typeof reasonRaw === "string" && reasonRaw.trim().length > 0
+          ? reasonRaw.trim()
+          : "unspecified";
+
+      if (record.status === "accepted") {
+        acceptedCount += 1;
+        acceptedReasons.set(reason, (acceptedReasons.get(reason) || 0) + 1);
+      } else {
+        rejectedCount += 1;
+        rejectedReasons.set(reason, (rejectedReasons.get(reason) || 0) + 1);
+      }
+    }
+
+    const toRanked = (counts: Map<string, number>) =>
+      [...counts.entries()]
+        .sort((a, b) => {
+          if (b[1] !== a[1]) {
+            return b[1] - a[1];
+          }
+          return a[0].localeCompare(b[0]);
+        })
+        .slice(0, reasonLimit)
+        .map(([reason, count]) => ({ reason, count }));
+
+    return {
+      acceptedCount,
+      rejectedCount,
+      acceptedReasons: toRanked(acceptedReasons),
+      rejectedReasons: toRanked(rejectedReasons),
+    };
   }
 
   async markApplied(
@@ -248,6 +312,71 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
         },
       },
     });
+  }
+
+  async summarizeFeedbackByUserSince(
+    userId: string,
+    since: Date,
+    reasonLimit: number,
+  ): Promise<AiFeedbackSummary> {
+    const records = await this.prisma.aiSuggestion.findMany({
+      where: {
+        userId,
+        updatedAt: {
+          gte: since,
+        },
+        status: {
+          in: ["accepted", "rejected"],
+        },
+      },
+      select: {
+        status: true,
+        feedback: true,
+      },
+    });
+
+    const acceptedReasons = new Map<string, number>();
+    const rejectedReasons = new Map<string, number>();
+    let acceptedCount = 0;
+    let rejectedCount = 0;
+
+    for (const record of records) {
+      const feedback =
+        record.feedback && typeof record.feedback === "object"
+          ? (record.feedback as Record<string, unknown>)
+          : undefined;
+      const reasonRaw = feedback?.reason;
+      const reason =
+        typeof reasonRaw === "string" && reasonRaw.trim().length > 0
+          ? reasonRaw.trim()
+          : "unspecified";
+
+      if (record.status === "accepted") {
+        acceptedCount += 1;
+        acceptedReasons.set(reason, (acceptedReasons.get(reason) || 0) + 1);
+      } else {
+        rejectedCount += 1;
+        rejectedReasons.set(reason, (rejectedReasons.get(reason) || 0) + 1);
+      }
+    }
+
+    const toRanked = (counts: Map<string, number>) =>
+      [...counts.entries()]
+        .sort((a, b) => {
+          if (b[1] !== a[1]) {
+            return b[1] - a[1];
+          }
+          return a[0].localeCompare(b[0]);
+        })
+        .slice(0, reasonLimit)
+        .map(([reason, count]) => ({ reason, count }));
+
+    return {
+      acceptedCount,
+      rejectedCount,
+      acceptedReasons: toRanked(acceptedReasons),
+      rejectedReasons: toRanked(rejectedReasons),
+    };
   }
 
   async markApplied(

@@ -254,4 +254,71 @@ describe("AI API Integration", () => {
       }),
     );
   });
+
+  it("aggregates feedback reasons across accepted and rejected statuses", async () => {
+    const first = await request(app)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Task 1" })
+      .expect(200);
+    const second = await request(app)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Task 2" })
+      .expect(200);
+    const third = await request(app)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Task 3" })
+      .expect(200);
+
+    await request(app)
+      .put(`/ai/suggestions/${first.body.suggestionId}/status`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ status: "accepted", reason: "Actionable" })
+      .expect(200);
+    await request(app)
+      .put(`/ai/suggestions/${second.body.suggestionId}/status`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ status: "rejected", reason: "Too generic" })
+      .expect(200);
+    await request(app)
+      .put(`/ai/suggestions/${third.body.suggestionId}/status`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ status: "rejected", reason: "Too generic" })
+      .expect(200);
+
+    const summary = await request(app)
+      .get("/ai/feedback-summary?days=30&reasonLimit=5")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(summary.body).toEqual(
+      expect.objectContaining({
+        days: 30,
+        reasonLimit: 5,
+        acceptedCount: 1,
+        rejectedCount: 2,
+        totalRated: 3,
+      }),
+    );
+    expect(summary.body.acceptedReasons).toEqual([
+      { reason: "Actionable", count: 1 },
+    ]);
+    expect(summary.body.rejectedReasons).toEqual([
+      { reason: "Too generic", count: 2 },
+    ]);
+  });
+
+  it("validates feedback-summary query params", async () => {
+    await request(app)
+      .get("/ai/feedback-summary?days=0")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(400);
+
+    await request(app)
+      .get("/ai/feedback-summary?reasonLimit=200")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(400);
+  });
 });

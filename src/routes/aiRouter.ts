@@ -6,6 +6,7 @@ import {
 } from "../aiSuggestionStore";
 import {
   validateCritiqueTaskInput,
+  validateFeedbackSummaryQuery,
   validatePlanFromGoalInput,
   validateSuggestionListQuery,
   validateSuggestionStatusInput,
@@ -277,6 +278,65 @@ export function createAiRouter({
 
         const usage = await getUsage(userId);
         res.json(usage);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /**
+   * @openapi
+   * /ai/feedback-summary:
+   *   get:
+   *     tags:
+   *       - AI
+   *     summary: Aggregate accepted/rejected AI feedback reasons
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: days
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 90
+   *         description: Rolling lookback window in days
+   *       - in: query
+   *         name: reasonLimit
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 20
+   *         description: Max reasons returned per status bucket
+   *     responses:
+   *       200:
+   *         description: Feedback summary
+   */
+  router.get(
+    "/feedback-summary",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveAiUserId(req, res);
+        if (!userId) return;
+
+        const { days, reasonLimit } = validateFeedbackSummaryQuery(req.query);
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        const summary = await suggestionStore.summarizeFeedbackByUserSince(
+          userId,
+          since,
+          reasonLimit,
+        );
+
+        res.json({
+          days,
+          reasonLimit,
+          since: since.toISOString(),
+          acceptedCount: summary.acceptedCount,
+          rejectedCount: summary.rejectedCount,
+          totalRated: summary.acceptedCount + summary.rejectedCount,
+          acceptedReasons: summary.acceptedReasons,
+          rejectedReasons: summary.rejectedReasons,
+        });
       } catch (error) {
         next(error);
       }

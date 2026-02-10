@@ -130,6 +130,7 @@ describe("API Contract", () => {
       expect(response.body?.paths?.["/ai/task-critic"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/plan-from-goal"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/usage"]?.get).toBeDefined();
+      expect(response.body?.paths?.["/ai/feedback-summary"]?.get).toBeDefined();
     });
   });
 
@@ -144,6 +145,36 @@ describe("API Contract", () => {
           remaining: expect.any(Number),
           limit: expect.any(Number),
           resetAt: expect.any(String),
+        }),
+      );
+    });
+
+    it("returns feedback summary over rolling window", async () => {
+      const created = await request(app)
+        .post("/ai/task-critic")
+        .send({ title: "Improve docs" })
+        .expect(200);
+      const suggestionId = created.body.suggestionId as string;
+
+      await request(app)
+        .put(`/ai/suggestions/${suggestionId}/status`)
+        .send({ status: "rejected", reason: "Too generic" })
+        .expect(200);
+
+      const summary = await request(app)
+        .get("/ai/feedback-summary?days=30&reasonLimit=3")
+        .expect(200);
+
+      expect(summary.body).toEqual(
+        expect.objectContaining({
+          days: 30,
+          reasonLimit: 3,
+          acceptedCount: 0,
+          rejectedCount: 1,
+          totalRated: 1,
+          acceptedReasons: [],
+          rejectedReasons: [{ reason: "Too generic", count: 1 }],
+          since: expect.any(String),
         }),
       );
     });
