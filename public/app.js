@@ -242,6 +242,10 @@ let latestCritiqueSuggestionId = null;
 let latestCritiqueResult = null;
 let latestPlanSuggestionId = null;
 let latestPlanResult = null;
+let planDraftState = null;
+let isPlanGenerateInFlight = false;
+let isPlanApplyInFlight = false;
+let isPlanDismissInFlight = false;
 let adminBootstrapAvailable = false;
 let customProjects = [];
 let projectRecords = [];
@@ -1214,17 +1218,25 @@ function renderAiSuggestionHistory() {
 async function updateSuggestionStatus(suggestionId, status, reason = null) {
   if (!suggestionId) return;
   try {
-    await apiCall(`${API_URL}/ai/suggestions/${suggestionId}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, reason }),
-    });
+    const response = await apiCall(
+      `${API_URL}/ai/suggestions/${suggestionId}/status`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, reason }),
+      },
+    );
+    if (!response || !response.ok) {
+      return false;
+    }
     await loadAiSuggestions();
     await loadAiUsage();
     await loadAiInsights();
     await loadAiFeedbackSummary();
+    return true;
   } catch (error) {
     console.error("Update suggestion status error:", error);
+    return false;
   }
 }
 
@@ -1233,6 +1245,156 @@ function getFeedbackReason(inputId, fallbackReason) {
   if (!input) return fallbackReason;
   const raw = String(input.value || "").trim();
   return raw || fallbackReason;
+}
+
+function toPlanDateInputValue(value) {
+  if (!value || typeof value !== "string") return "";
+  const asDate = new Date(value);
+  if (!Number.isNaN(asDate.getTime())) {
+    return asDate.toISOString().slice(0, 10);
+  }
+  const parsed = String(value).trim().slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(parsed) ? parsed : "";
+}
+
+function normalizePlanDraftPriority(priority) {
+  if (priority === "low" || priority === "medium" || priority === "high") {
+    return priority;
+  }
+  return "medium";
+}
+
+function clonePlanDraftTask(task, index = 0) {
+  const fallbackTempId = `task-${index + 1}`;
+  const rawTempId = String(task?.tempId || "").trim();
+  const tempId = rawTempId || fallbackTempId;
+  const title = String(task?.title || "").trim();
+  const description = task?.description ? String(task.description) : "";
+  const projectName =
+    task?.projectName ||
+    task?.category ||
+    task?.project ||
+    task?.projectPath ||
+    "";
+  const subtasks = Array.isArray(task?.subtasks)
+    ? task.subtasks
+        .map((subtask, subtaskIndex) => {
+          const subtaskTitle = String(subtask?.title || "").trim();
+          if (!subtaskTitle) return null;
+          return {
+            tempId:
+              String(subtask?.tempId || "").trim() ||
+              `subtask-${index + 1}-${subtaskIndex + 1}`,
+            title: subtaskTitle,
+          };
+        })
+        .filter((item) => !!item)
+    : [];
+
+  return {
+    tempId,
+    title,
+    description,
+    projectName: String(projectName).trim(),
+    dueDate: toPlanDateInputValue(task?.dueDate),
+    priority: normalizePlanDraftPriority(task?.priority),
+    subtasks,
+  };
+}
+
+function initPlanDraftState(planResult) {
+  const rawTasks = Array.isArray(planResult?.tasks) ? planResult.tasks : [];
+  const seenTempIds = new Set();
+  const tasks = rawTasks
+    .map((task, index) => clonePlanDraftTask(task, index))
+    .map((task, index) => {
+      let nextTempId = task.tempId;
+      if (seenTempIds.has(nextTempId)) {
+        nextTempId = `${task.tempId}-${index + 1}`;
+      }
+      seenTempIds.add(nextTempId);
+      return { ...task, tempId: nextTempId };
+    })
+    .filter((task) => task.title.length > 0);
+
+  if (!tasks.length) {
+    planDraftState = null;
+    return;
+  }
+
+  const originalTasks = tasks.map((task, index) =>
+    clonePlanDraftTask(task, index),
+  );
+  planDraftState = {
+    summary: String(planResult?.summary || "Suggested plan"),
+    originalTasks,
+    workingTasks: originalTasks.map((task, index) =>
+      clonePlanDraftTask(task, index),
+    ),
+    selectedTaskTempIds: new Set(originalTasks.map((task) => task.tempId)),
+    statusSyncFailed: false,
+  };
+}
+
+function clearPlanDraftState() {
+  planDraftState = null;
+}
+
+function removeAppliedPlanDraftTasks(appliedTempIds) {
+  if (!planDraftState || !appliedTempIds.size) return;
+  planDraftState.workingTasks = planDraftState.workingTasks.filter(
+    (task) => !appliedTempIds.has(task.tempId),
+  );
+  planDraftState.originalTasks = planDraftState.originalTasks.filter(
+    (task) => !appliedTempIds.has(task.tempId),
+  );
+  planDraftState.selectedTaskTempIds = new Set(
+    planDraftState.workingTasks
+      .map((task) => task.tempId)
+      .filter((tempId) => !appliedTempIds.has(tempId)),
+  );
+}
+
+function isPlanActionBusy() {
+  return isPlanGenerateInFlight || isPlanApplyInFlight || isPlanDismissInFlight;
+}
+
+function updatePlanGenerateButtonState() {
+  const button = document.getElementById("generatePlanButton");
+  if (!button) return;
+  button.disabled = isPlanActionBusy();
+  button.textContent = isPlanGenerateInFlight
+    ? "Generating..."
+    : "Generate Plan";
+}
+
+function getSelectedPlanDraftTasks() {
+  if (!planDraftState) return [];
+  return planDraftState.workingTasks.filter((task) =>
+    planDraftState.selectedTaskTempIds.has(task.tempId),
+  );
+}
+
+function buildPlanTaskCreatePayload(task) {
+  const title = String(task.title || "").trim();
+  const description = String(task.description || "").trim();
+  const projectName = normalizeProjectPath(task.projectName || "");
+
+  const payload = {
+    title,
+    priority: normalizePlanDraftPriority(task.priority),
+    description,
+  };
+
+  if (projectName) {
+    payload.category = projectName;
+  }
+
+  if (task.dueDate) {
+    payload.dueDate = `${task.dueDate}T12:00:00.000Z`;
+  }
+
+  return payload;
 }
 
 function renderCritiquePanel() {
@@ -1294,54 +1456,313 @@ function renderPlanPanel() {
   const panel = document.getElementById("aiPlanPanel");
   if (!panel) return;
 
-  if (!latestPlanResult) {
+  if (!latestPlanResult || !planDraftState) {
     panel.style.display = "none";
     panel.innerHTML = "";
     return;
   }
 
+  if (!planDraftState.workingTasks.length) {
+    if (!planDraftState.statusSyncFailed) {
+      panel.style.display = "none";
+      panel.innerHTML = "";
+      return;
+    }
+    const controlsDisabled = isPlanActionBusy() ? "disabled" : "";
+    panel.style.display = "block";
+    panel.innerHTML = `
+      <div class="plan-draft-panel">
+        <div class="plan-draft-title">Plan tasks created</div>
+        <div class="plan-draft-warning">
+          Tasks were created, but marking this AI suggestion as accepted failed.
+        </div>
+        <div class="plan-draft-actions-bottom">
+          <button class="add-btn" ${controlsDisabled} data-onclick="retryMarkPlanSuggestionAccepted()">${
+            isPlanApplyInFlight ? "Retrying..." : "Retry mark accepted"
+          }</button>
+          <button class="add-btn" ${controlsDisabled} style="background: #64748b" data-onclick="dismissPlanSuggestion()">${
+            isPlanDismissInFlight ? "Dismissing..." : "Dismiss"
+          }</button>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  const projects = getAllProjects();
+  const hasProjects = projects.length > 0;
+  const selectedCount = getSelectedPlanDraftTasks().length;
+  const totalCount = planDraftState.workingTasks.length;
+  const controlsDisabled = isPlanActionBusy() ? "disabled" : "";
+
   panel.style.display = "block";
   panel.innerHTML = `
-    <div style="
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px;
-      background: var(--input-bg);
-    ">
-      <div style="font-weight: 600; margin-bottom: 6px;">${escapeHtml(latestPlanResult.summary)}</div>
-      <ol style="margin: 8px 0 10px 18px;">
-        ${latestPlanResult.tasks
-          .map(
-            (task) => `
-          <li style="margin-bottom: 6px;">
-            <strong>${escapeHtml(task.title)}</strong><br />
-            <span style="font-size: 0.9rem;">${escapeHtml(task.description)}</span>
-          </li>
-        `,
-          )
+    <div class="plan-draft-panel">
+      <div class="plan-draft-header-row">
+        <div class="plan-draft-title">${escapeHtml(planDraftState.summary)}</div>
+        <span class="plan-draft-count">${selectedCount}/${totalCount} selected</span>
+      </div>
+      <div class="plan-draft-actions-top">
+        <button class="mini-btn" ${controlsDisabled} data-onclick="selectAllPlanDraftTasks()">Select all</button>
+        <button class="mini-btn" ${controlsDisabled} data-onclick="selectNoPlanDraftTasks()">Select none</button>
+        <button class="mini-btn" ${controlsDisabled} data-onclick="resetPlanDraft()">Reset to AI draft</button>
+      </div>
+      <div class="plan-draft-task-list">
+        ${planDraftState.workingTasks
+          .map((task, index) => {
+            const isSelected = planDraftState.selectedTaskTempIds.has(
+              task.tempId,
+            );
+            const selectedAttr = isSelected ? "checked" : "";
+            const firstInputId = `planDraftTitleInput-${index}`;
+            const projectOptions = hasProjects
+              ? `<select
+                    id="planDraftProjectInput-${index}"
+                    class="plan-draft-project-select"
+                    aria-label="Project for ${escapeHtml(task.title || `task ${index + 1}`)}"
+                    data-onchange="updatePlanDraftTaskProject(${index}, event)"
+                  >
+                    <option value="">No project</option>
+                    ${projects
+                      .map((project) =>
+                        renderProjectOptionEntry(
+                          project,
+                          String(task.projectName || ""),
+                        ),
+                      )
+                      .join("")}
+                  </select>`
+              : `<input
+                    id="planDraftProjectInput-${index}"
+                    type="text"
+                    class="plan-draft-project-input"
+                    maxlength="50"
+                    placeholder="Project (optional)"
+                    aria-label="Project for ${escapeHtml(task.title || `task ${index + 1}`)}"
+                    value="${escapeHtml(String(task.projectName || ""))}"
+                    data-onchange="updatePlanDraftTaskProject(${index}, event)"
+                  />`;
+
+            const subtasksMarkup =
+              Array.isArray(task.subtasks) && task.subtasks.length > 0
+                ? `
+                  <details class="plan-draft-subtasks">
+                    <summary>Subtasks (${task.subtasks.length})</summary>
+                    <ul>
+                      ${task.subtasks
+                        .map(
+                          (subtask) => `<li>${escapeHtml(subtask.title)}</li>`,
+                        )
+                        .join("")}
+                    </ul>
+                  </details>
+                `
+                : "";
+
+            return `
+              <div class="plan-draft-task-row ${isSelected ? "" : "dimmed"}">
+                <div class="plan-draft-task-head">
+                  <input
+                    type="checkbox"
+                    class="bulk-checkbox"
+                    aria-label="Include task ${index + 1}"
+                    ${selectedAttr}
+                    ${controlsDisabled}
+                    data-onchange="setPlanDraftTaskSelected(${index}, event)"
+                  />
+                  <label for="${firstInputId}" class="sr-only">Task title ${index + 1}</label>
+                  <input
+                    id="${firstInputId}"
+                    type="text"
+                    class="plan-draft-title-input"
+                    maxlength="200"
+                    value="${escapeHtml(task.title)}"
+                    ${controlsDisabled}
+                    data-onchange="updatePlanDraftTaskTitle(${index}, event)"
+                  />
+                </div>
+                <label for="planDraftDescriptionInput-${index}" class="sr-only">Task description ${index + 1}</label>
+                <textarea
+                  id="planDraftDescriptionInput-${index}"
+                  class="plan-draft-description-input"
+                  rows="2"
+                  maxlength="1000"
+                  placeholder="Description (optional)"
+                  ${controlsDisabled}
+                  data-onchange="updatePlanDraftTaskDescription(${index}, event)"
+                >${escapeHtml(String(task.description || ""))}</textarea>
+                <div class="plan-draft-meta-row">
+                  <label for="planDraftDueDateInput-${index}" class="sr-only">Due date ${index + 1}</label>
+                  <input
+                    id="planDraftDueDateInput-${index}"
+                    type="date"
+                    class="plan-draft-date-input"
+                    value="${escapeHtml(String(task.dueDate || ""))}"
+                    ${controlsDisabled}
+                    data-onchange="updatePlanDraftTaskDueDate(${index}, event)"
+                  />
+                  ${projectOptions}
+                  <label for="planDraftPriorityInput-${index}" class="sr-only">Priority ${index + 1}</label>
+                  <select
+                    id="planDraftPriorityInput-${index}"
+                    class="plan-draft-priority-select"
+                    ${controlsDisabled}
+                    aria-label="Priority for ${escapeHtml(task.title || `task ${index + 1}`)}"
+                    data-onchange="updatePlanDraftTaskPriority(${index}, event)"
+                  >
+                    <option value="low" ${task.priority === "low" ? "selected" : ""}>Low</option>
+                    <option value="medium" ${task.priority === "medium" ? "selected" : ""}>Medium</option>
+                    <option value="high" ${task.priority === "high" ? "selected" : ""}>High</option>
+                  </select>
+                </div>
+                ${subtasksMarkup}
+              </div>
+            `;
+          })
           .join("")}
-      </ol>
+      </div>
       <input
         id="planFeedbackReasonInput"
         type="text"
         maxlength="300"
         placeholder="Feedback reason (optional): why you accepted/rejected this plan"
-        style="
-          width: 100%;
-          margin-bottom: 8px;
-          padding: 8px;
-          border: 1px solid var(--border-color);
-          border-radius: 6px;
-          background: var(--card-bg);
-          color: var(--text-primary);
-        "
+        ${controlsDisabled}
+        class="plan-feedback-input"
       />
-      <div style="display: flex; gap: 8px;">
-        <button class="add-btn" data-onclick="addPlanTasksToTodos()">Add Plan Tasks</button>
-        <button class="add-btn" style="background: #64748b" data-onclick="dismissPlanSuggestion()">Dismiss</button>
+      <div class="plan-draft-actions-bottom">
+        <button class="add-btn" ${controlsDisabled} data-onclick="addPlanTasksToTodos()">${
+          isPlanApplyInFlight ? "Applying..." : "Apply selected tasks"
+        }</button>
+        <button class="add-btn" ${controlsDisabled} style="background: #64748b" data-onclick="dismissPlanSuggestion()">${
+          isPlanDismissInFlight ? "Dismissing..." : "Dismiss"
+        }</button>
       </div>
     </div>
   `;
+
+  if (panel.dataset.focusPending === "true") {
+    panel.dataset.focusPending = "false";
+    const firstTitleInput = document.getElementById("planDraftTitleInput-0");
+    firstTitleInput?.focus();
+  }
+}
+
+function setPlanDraftTaskSelected(index, event) {
+  if (!planDraftState || isPlanActionBusy()) return;
+  const task = planDraftState.workingTasks[index];
+  if (!task) return;
+  const checked = !!event?.target?.checked;
+  if (checked) {
+    planDraftState.selectedTaskTempIds.add(task.tempId);
+  } else {
+    planDraftState.selectedTaskTempIds.delete(task.tempId);
+  }
+  renderPlanPanel();
+}
+
+function updatePlanDraftTaskTitle(index, event) {
+  if (!planDraftState) return;
+  const task = planDraftState.workingTasks[index];
+  if (!task) return;
+  task.title = String(event?.target?.value || "").slice(0, 200);
+}
+
+function updatePlanDraftTaskDescription(index, event) {
+  if (!planDraftState) return;
+  const task = planDraftState.workingTasks[index];
+  if (!task) return;
+  task.description = String(event?.target?.value || "").slice(0, 1000);
+}
+
+function updatePlanDraftTaskDueDate(index, event) {
+  if (!planDraftState) return;
+  const task = planDraftState.workingTasks[index];
+  if (!task) return;
+  const nextValue = String(event?.target?.value || "").trim();
+  task.dueDate = /^\d{4}-\d{2}-\d{2}$/.test(nextValue) ? nextValue : "";
+}
+
+function updatePlanDraftTaskProject(index, event) {
+  if (!planDraftState) return;
+  const task = planDraftState.workingTasks[index];
+  if (!task) return;
+  task.projectName = String(event?.target?.value || "")
+    .slice(0, 50)
+    .trim();
+}
+
+function updatePlanDraftTaskPriority(index, event) {
+  if (!planDraftState) return;
+  const task = planDraftState.workingTasks[index];
+  if (!task) return;
+  task.priority = normalizePlanDraftPriority(
+    String(event?.target?.value || ""),
+  );
+}
+
+function selectAllPlanDraftTasks() {
+  if (!planDraftState || isPlanActionBusy()) return;
+  planDraftState.selectedTaskTempIds = new Set(
+    planDraftState.workingTasks.map((task) => task.tempId),
+  );
+  renderPlanPanel();
+}
+
+function selectNoPlanDraftTasks() {
+  if (!planDraftState || isPlanActionBusy()) return;
+  planDraftState.selectedTaskTempIds.clear();
+  renderPlanPanel();
+}
+
+function resetPlanDraft() {
+  if (!planDraftState || isPlanActionBusy()) return;
+  planDraftState.workingTasks = planDraftState.originalTasks.map(
+    (task, index) => clonePlanDraftTask(task, index),
+  );
+  planDraftState.selectedTaskTempIds = new Set(
+    planDraftState.workingTasks.map((task) => task.tempId),
+  );
+  planDraftState.statusSyncFailed = false;
+  renderPlanPanel();
+}
+
+async function retryMarkPlanSuggestionAccepted() {
+  if (
+    !latestPlanSuggestionId ||
+    !planDraftState ||
+    !planDraftState.statusSyncFailed ||
+    isPlanActionBusy()
+  ) {
+    return;
+  }
+
+  isPlanApplyInFlight = true;
+  updatePlanGenerateButtonState();
+  renderPlanPanel();
+  try {
+    const accepted = await updateSuggestionStatus(
+      latestPlanSuggestionId,
+      "accepted",
+      getFeedbackReason("planFeedbackReasonInput", "Plan tasks were added"),
+    );
+    if (!accepted) {
+      showMessage(
+        "todosMessage",
+        "Could not mark AI suggestion accepted yet. Retry in a moment.",
+        "warning",
+      );
+      return;
+    }
+    latestPlanSuggestionId = null;
+    latestPlanResult = null;
+    clearPlanDraftState();
+    renderPlanPanel();
+    showMessage("todosMessage", "AI suggestion marked accepted", "success");
+  } finally {
+    isPlanApplyInFlight = false;
+    updatePlanGenerateButtonState();
+    renderPlanPanel();
+  }
 }
 
 async function critiqueDraftWithAi() {
@@ -1449,6 +1870,9 @@ async function dismissCritiqueSuggestion() {
 }
 
 async function generatePlanWithAi() {
+  if (isPlanActionBusy()) {
+    return;
+  }
   const goalInput = document.getElementById("goalInput");
   const targetDateInput = document.getElementById("goalTargetDateInput");
 
@@ -1458,6 +1882,8 @@ async function generatePlanWithAi() {
     return;
   }
 
+  isPlanGenerateInFlight = true;
+  updatePlanGenerateButtonState();
   try {
     const response = await apiCall(`${API_URL}/ai/plan-from-goal`, {
       method: "POST",
@@ -1475,6 +1901,11 @@ async function generatePlanWithAi() {
     if (response && response.ok) {
       latestPlanSuggestionId = data.suggestionId;
       latestPlanResult = data;
+      initPlanDraftState(data);
+      const planPanel = document.getElementById("aiPlanPanel");
+      if (planPanel) {
+        planPanel.dataset.focusPending = "true";
+      }
       renderPlanPanel();
       showMessage(
         "todosMessage",
@@ -1506,73 +1937,144 @@ async function generatePlanWithAi() {
   } catch (error) {
     console.error("Generate plan error:", error);
     showMessage("todosMessage", "Failed to generate AI plan", "error");
+  } finally {
+    isPlanGenerateInFlight = false;
+    updatePlanGenerateButtonState();
+    renderPlanPanel();
   }
 }
 
 async function addPlanTasksToTodos() {
-  if (!latestPlanSuggestionId) {
+  if (!latestPlanSuggestionId || !planDraftState || isPlanActionBusy()) {
     return;
   }
 
+  const selectedTasks = getSelectedPlanDraftTasks();
+  if (selectedTasks.length === 0) {
+    showMessage(
+      "todosMessage",
+      "Select at least one plan task to apply",
+      "error",
+    );
+    return;
+  }
+
+  const invalidTask = selectedTasks.find(
+    (task) => String(task.title || "").trim().length === 0,
+  );
+  if (invalidTask) {
+    showMessage(
+      "todosMessage",
+      "Each selected task must include a title before applying",
+      "error",
+    );
+    return;
+  }
+
+  isPlanApplyInFlight = true;
+  updatePlanGenerateButtonState();
+  renderPlanPanel();
   try {
-    const response = await apiCall(
-      `${API_URL}/ai/suggestions/${latestPlanSuggestionId}/apply`,
-      {
+    let created = 0;
+    const createdTempIds = new Set();
+    for (const task of selectedTasks) {
+      const payload = buildPlanTaskCreatePayload(task);
+      const response = await apiCall(`${API_URL}/todos`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          reason: getFeedbackReason(
-            "planFeedbackReasonInput",
-            "Plan tasks were added",
-          ),
-        }),
-      },
+        body: JSON.stringify(payload),
+      });
+      if (response && response.ok) {
+        created += 1;
+        createdTempIds.add(task.tempId);
+      } else {
+        const data = response ? await parseApiBody(response) : {};
+        if (created > 0) {
+          removeAppliedPlanDraftTasks(createdTempIds);
+          await loadTodos();
+          showMessage(
+            "todosMessage",
+            `Created ${created} of ${selectedTasks.length} tasks. Suggestion not marked accepted; fix remaining items and retry.`,
+            "warning",
+          );
+          renderPlanPanel();
+          return;
+        }
+        showMessage(
+          "todosMessage",
+          data.error || "Failed to apply one or more planned tasks",
+          "error",
+        );
+        return;
+      }
+    }
+
+    removeAppliedPlanDraftTasks(createdTempIds);
+
+    const accepted = await updateSuggestionStatus(
+      latestPlanSuggestionId,
+      "accepted",
+      getFeedbackReason("planFeedbackReasonInput", "Plan tasks were added"),
     );
 
-    const data = response ? await parseApiBody(response) : {};
-    if (response && response.ok) {
-      const created = Number.isInteger(data.createdCount)
-        ? data.createdCount
-        : 0;
-      latestPlanSuggestionId = null;
-      latestPlanResult = null;
+    await loadTodos();
+    if (!accepted) {
+      if (planDraftState) {
+        planDraftState.statusSyncFailed = true;
+      }
       renderPlanPanel();
-      await loadAiSuggestions();
-      await loadAiUsage();
-      await loadAiInsights();
-      await loadAiFeedbackSummary();
-      await loadTodos();
       showMessage(
         "todosMessage",
-        `Added ${created} AI-planned tasks`,
-        "success",
+        `Added ${created} AI-planned task(s), but could not mark suggestion accepted. Retry.`,
+        "warning",
       );
       return;
     }
 
+    latestPlanSuggestionId = null;
+    latestPlanResult = null;
+    clearPlanDraftState();
+    renderPlanPanel();
     showMessage(
       "todosMessage",
-      data.error || "Failed to apply AI suggestion",
-      "error",
+      `Added ${created} AI-planned task(s)`,
+      "success",
     );
   } catch (error) {
     console.error("Apply planned tasks error:", error);
     showMessage("todosMessage", "Failed to apply AI suggestion", "error");
+  } finally {
+    isPlanApplyInFlight = false;
+    updatePlanGenerateButtonState();
+    renderPlanPanel();
   }
 }
 
 async function dismissPlanSuggestion() {
-  await updateSuggestionStatus(
-    latestPlanSuggestionId,
-    "rejected",
-    getFeedbackReason(
-      "planFeedbackReasonInput",
-      "Plan did not match intended approach",
-    ),
-  );
-  latestPlanSuggestionId = null;
-  latestPlanResult = null;
+  if (!latestPlanSuggestionId || isPlanActionBusy()) {
+    return;
+  }
+  isPlanDismissInFlight = true;
+  updatePlanGenerateButtonState();
   renderPlanPanel();
+  try {
+    await updateSuggestionStatus(
+      latestPlanSuggestionId,
+      "rejected",
+      getFeedbackReason(
+        "planFeedbackReasonInput",
+        "Plan did not match intended approach",
+      ),
+    );
+    latestPlanSuggestionId = null;
+    latestPlanResult = null;
+    clearPlanDraftState();
+    showMessage("todosMessage", "AI plan dismissed", "success");
+  } finally {
+    isPlanDismissInFlight = false;
+    updatePlanGenerateButtonState();
+    renderPlanPanel();
+  }
 }
 
 // Add todo
@@ -2079,6 +2581,7 @@ function openEditTodoModal(todoId) {
   document.getElementById("editTodoNotes").value = todo.notes || "";
 
   document.getElementById("editTodoModal").style.display = "flex";
+  document.getElementById("editTodoTitle")?.focus();
 }
 
 function closeEditTodoModal() {
@@ -3222,6 +3725,7 @@ async function logout() {
   latestCritiqueResult = null;
   latestPlanSuggestionId = null;
   latestPlanResult = null;
+  clearPlanDraftState();
   showAuthView();
 }
 
@@ -3262,6 +3766,11 @@ function showAuthView() {
 // Show/hide messages
 function showMessage(id, message, type) {
   const el = document.getElementById(id);
+  if (!el) return;
+  if (!el.getAttribute("aria-live")) {
+    el.setAttribute("aria-live", "polite");
+    el.setAttribute("aria-atomic", "true");
+  }
   el.textContent = message;
   el.className = `message ${type} show`;
 }
