@@ -196,5 +196,51 @@ describe("API Contract", () => {
         .expect(200);
       expect(updated.body.status).toBe("accepted");
     });
+
+    it("applies a pending plan suggestion and creates todos", async () => {
+      const createdPlan = await request(app)
+        .post("/ai/plan-from-goal")
+        .send({
+          goal: "Improve onboarding",
+          maxTasks: 3,
+        })
+        .expect(200);
+
+      const suggestionId = createdPlan.body.suggestionId as string;
+      expect(suggestionId).toBeDefined();
+
+      const applied = await request(app)
+        .post(`/ai/suggestions/${suggestionId}/apply`)
+        .expect(200);
+
+      expect(applied.body.createdCount).toBe(3);
+      expect(Array.isArray(applied.body.todos)).toBe(true);
+      expect(applied.body.todos).toHaveLength(3);
+      expect(applied.body.suggestion.status).toBe("accepted");
+      expect(applied.body.todos[0].category).toBe("AI Plan");
+
+      const todos = await request(app).get("/todos").expect(200);
+      expect(todos.body).toHaveLength(3);
+    });
+
+    it("prevents applying rejected suggestions", async () => {
+      const createdPlan = await request(app)
+        .post("/ai/plan-from-goal")
+        .send({
+          goal: "Refine docs",
+          maxTasks: 3,
+        })
+        .expect(200);
+      const suggestionId = createdPlan.body.suggestionId as string;
+
+      await request(app)
+        .put(`/ai/suggestions/${suggestionId}/status`)
+        .send({ status: "rejected" })
+        .expect(200);
+
+      await request(app)
+        .post(`/ai/suggestions/${suggestionId}/apply`)
+        .expect(409);
+    });
   });
 });

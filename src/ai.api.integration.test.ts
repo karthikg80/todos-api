@@ -94,4 +94,42 @@ describe("AI API Integration", () => {
 
     expect(rejectResponse.body.status).toBe("rejected");
   });
+
+  it("applies plan suggestion and creates persisted todos", async () => {
+    const planResponse = await request(app)
+      .post("/ai/plan-from-goal")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        goal: "Ship AI planner",
+        maxTasks: 3,
+      })
+      .expect(200);
+
+    const suggestionId = planResponse.body.suggestionId as string;
+    expect(suggestionId).toBeDefined();
+
+    const applyResponse = await request(app)
+      .post(`/ai/suggestions/${suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(applyResponse.body.createdCount).toBe(3);
+    expect(applyResponse.body.suggestion.status).toBe("accepted");
+    expect(applyResponse.body.todos).toHaveLength(3);
+
+    const me = await request(app)
+      .get("/users/me")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const dbTodos = await prisma.todo.findMany({
+      where: { userId: me.body.id, category: "AI Plan" },
+    });
+    expect(dbTodos).toHaveLength(3);
+
+    await request(app)
+      .post(`/ai/suggestions/${suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(409);
+  });
 });

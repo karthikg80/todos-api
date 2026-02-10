@@ -180,6 +180,7 @@ export function createApp(
   app.use(
     "/ai",
     createAiRouter({
+      todoService,
       resolveAiUserId,
       suggestionStore: aiSuggestionStore,
       aiPlannerService,

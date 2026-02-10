@@ -1139,38 +1139,45 @@ async function generatePlanWithAi() {
 }
 
 async function addPlanTasksToTodos() {
-  if (!latestPlanResult || !Array.isArray(latestPlanResult.tasks)) {
+  if (!latestPlanSuggestionId) {
     return;
   }
 
-  let created = 0;
-  for (const task of latestPlanResult.tasks) {
-    try {
-      const response = await apiCall(`${API_URL}/todos`, {
+  try {
+    const response = await apiCall(
+      `${API_URL}/ai/suggestions/${latestPlanSuggestionId}/apply`,
+      {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: task.title,
-          description: task.description,
-          priority: task.priority || "medium",
-          dueDate: task.dueDate || undefined,
-          category: "AI Plan",
-        }),
-      });
-      if (response && response.ok) {
-        created += 1;
-      }
-    } catch (error) {
-      console.error("Create planned task error:", error);
-    }
-  }
+      },
+    );
 
-  await updateSuggestionStatus(latestPlanSuggestionId, "accepted");
-  latestPlanSuggestionId = null;
-  latestPlanResult = null;
-  renderPlanPanel();
-  await loadTodos();
-  showMessage("todosMessage", `Added ${created} AI-planned tasks`, "success");
+    const data = response ? await parseApiBody(response) : {};
+    if (response && response.ok) {
+      const created = Number.isInteger(data.createdCount)
+        ? data.createdCount
+        : 0;
+      latestPlanSuggestionId = null;
+      latestPlanResult = null;
+      renderPlanPanel();
+      await loadAiSuggestions();
+      await loadTodos();
+      showMessage(
+        "todosMessage",
+        `Added ${created} AI-planned tasks`,
+        "success",
+      );
+      return;
+    }
+
+    showMessage(
+      "todosMessage",
+      data.error || "Failed to apply AI suggestion",
+      "error",
+    );
+  } catch (error) {
+    console.error("Apply planned tasks error:", error);
+    showMessage("todosMessage", "Failed to apply AI suggestion", "error");
+  }
 }
 
 async function dismissPlanSuggestion() {
