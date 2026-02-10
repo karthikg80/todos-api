@@ -113,6 +113,7 @@ model AiSuggestion {
   type      AiSuggestionType
   input     Json
   output    Json
+  feedback  Json?
   status    AiSuggestionStatus @default(pending)
   createdAt DateTime          @default(now()) @map("created_at")
   updatedAt DateTime          @updatedAt @map("updated_at")

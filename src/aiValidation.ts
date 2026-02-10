@@ -119,6 +119,7 @@ export function validateSuggestionListQuery(query: any): { limit: number } {
 
 export function validateSuggestionStatusInput(data: any): {
   status: AiSuggestionStatus;
+  reason?: string;
 } {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Request body must be an object");
@@ -133,5 +134,17 @@ export function validateSuggestionStatusInput(data: any): {
     throw new ValidationError('status must be "accepted" or "rejected"');
   }
 
-  return { status: normalized };
+  let reason: string | undefined;
+  if (data.reason !== undefined) {
+    if (typeof data.reason !== "string") {
+      throw new ValidationError("reason must be a string");
+    }
+    const trimmed = data.reason.trim();
+    if (trimmed.length > 300) {
+      throw new ValidationError("reason cannot exceed 300 characters");
+    }
+    reason = trimmed || undefined;
+  }
+
+  return { status: normalized, reason };
 }

@@ -206,9 +206,15 @@ describe("API Contract", () => {
 
       const updated = await request(app)
         .put(`/ai/suggestions/${suggestionId}/status`)
-        .send({ status: "accepted" })
+        .send({ status: "accepted", reason: "Helpful rewrite" })
         .expect(200);
       expect(updated.body.status).toBe("accepted");
+      expect(updated.body.feedback).toEqual(
+        expect.objectContaining({
+          reason: "Helpful rewrite",
+          source: "manual_status_update",
+        }),
+      );
     });
 
     it("applies a pending plan suggestion and creates todos", async () => {

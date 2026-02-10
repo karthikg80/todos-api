@@ -956,6 +956,11 @@ function renderAiSuggestionHistory() {
           background: var(--input-bg);
         ">
           ${escapeHtml(suggestion.type)}: ${escapeHtml(suggestion.status)}
+          ${
+            suggestion.feedback && suggestion.feedback.reason
+              ? ` (${escapeHtml(String(suggestion.feedback.reason))})`
+              : ""
+          }
         </span>
       `,
         )
@@ -964,13 +969,13 @@ function renderAiSuggestionHistory() {
   `;
 }
 
-async function updateSuggestionStatus(suggestionId, status) {
+async function updateSuggestionStatus(suggestionId, status, reason = null) {
   if (!suggestionId) return;
   try {
     await apiCall(`${API_URL}/ai/suggestions/${suggestionId}/status`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, reason }),
     });
     await loadAiSuggestions();
     await loadAiUsage();
@@ -1129,7 +1134,11 @@ async function applyCritiqueSuggestion() {
     notesIcon.classList.add("expanded");
   }
 
-  await updateSuggestionStatus(latestCritiqueSuggestionId, "accepted");
+  await updateSuggestionStatus(
+    latestCritiqueSuggestionId,
+    "accepted",
+    "Applied to draft",
+  );
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
   renderCritiquePanel();
@@ -1137,7 +1146,11 @@ async function applyCritiqueSuggestion() {
 }
 
 async function dismissCritiqueSuggestion() {
-  await updateSuggestionStatus(latestCritiqueSuggestionId, "rejected");
+  await updateSuggestionStatus(
+    latestCritiqueSuggestionId,
+    "rejected",
+    "Not useful for current context",
+  );
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
   renderCritiquePanel();
@@ -1240,7 +1253,11 @@ async function addPlanTasksToTodos() {
 }
 
 async function dismissPlanSuggestion() {
-  await updateSuggestionStatus(latestPlanSuggestionId, "rejected");
+  await updateSuggestionStatus(
+    latestPlanSuggestionId,
+    "rejected",
+    "Plan did not match intended approach",
+  );
   latestPlanSuggestionId = null;
   latestPlanResult = null;
   renderPlanPanel();

@@ -60,16 +60,23 @@ describe("AI API Integration", () => {
     const updateResponse = await request(app)
       .put(`/ai/suggestions/${suggestionId}/status`)
       .set("Authorization", `Bearer ${authToken}`)
-      .send({ status: "accepted" })
+      .send({ status: "accepted", reason: "Great output quality" })
       .expect(200);
 
     expect(updateResponse.body.status).toBe("accepted");
+    expect(updateResponse.body.feedback).toEqual(
+      expect.objectContaining({
+        reason: "Great output quality",
+        source: "manual_status_update",
+      }),
+    );
 
     const persisted = await prisma.aiSuggestion.findUnique({
       where: { id: suggestionId },
     });
     expect(persisted).toBeTruthy();
     expect(persisted?.status).toBe("accepted");
+    expect((persisted?.feedback as any)?.reason).toBe("Great output quality");
   });
 
   it("creates plan suggestion and supports rejection status", async () => {

@@ -267,9 +267,13 @@ export function createAiRouter({
 
         const id = String(req.params.id);
         validateId(id);
-        const { status } = validateSuggestionStatusInput(req.body);
+        const { status, reason } = validateSuggestionStatusInput(req.body);
 
-        const updated = await suggestionStore.updateStatus(userId, id, status);
+        const updated = await suggestionStore.updateStatus(userId, id, status, {
+          reason: reason || null,
+          source: "manual_status_update",
+          updatedAt: new Date().toISOString(),
+        });
         if (!updated) {
           return res.status(404).json({ error: "Suggestion not found" });
         }
@@ -345,6 +349,11 @@ export function createAiRouter({
           userId,
           id,
           "accepted",
+          {
+            reason: "applied_via_endpoint",
+            source: "apply_endpoint",
+            updatedAt: new Date().toISOString(),
+          },
         );
 
         res.json({
