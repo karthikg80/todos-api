@@ -20,7 +20,10 @@ async function installAiPlanMockApi(
     eventLog: [],
   };
 
-  const users = new Map<string, { id: string; email: string; password: string }>();
+  const users = new Map<
+    string,
+    { id: string; email: string; password: string }
+  >();
   const todosByUser = new Map<string, Array<Record<string, unknown>>>();
   const accessTokens = new Map<string, string>();
   let userSeq = 1;
@@ -85,7 +88,9 @@ async function installAiPlanMockApi(
     if (pathname === "/users/me" && method === "GET") {
       const userId = authUserId(route);
       if (!userId) return json(401, { error: "Unauthorized" });
-      const user = Array.from(users.values()).find((item) => item.id === userId);
+      const user = Array.from(users.values()).find(
+        (item) => item.id === userId,
+      );
       if (!user) return json(404, { error: "User not found" });
       return json(200, {
         id: user.id,
@@ -113,7 +118,10 @@ async function installAiPlanMockApi(
       if (!userId) return json(401, { error: "Unauthorized" });
 
       todoCreateCount += 1;
-      if (options.failTodoCreateAt && todoCreateCount === options.failTodoCreateAt) {
+      if (
+        options.failTodoCreateAt &&
+        todoCreateCount === options.failTodoCreateAt
+      ) {
         return json(500, { error: "Create failed intentionally" });
       }
 
@@ -199,7 +207,10 @@ async function installAiPlanMockApi(
       });
     }
 
-    if (pathname === "/ai/suggestions/suggestion-1/status" && method === "PUT") {
+    if (
+      pathname === "/ai/suggestions/suggestion-1/status" &&
+      method === "PUT"
+    ) {
       const body = (await parseBody(route)) as Record<string, unknown>;
       state.suggestionStatusPayloads.push(body);
       state.eventLog.push("suggestion-status");
@@ -248,7 +259,9 @@ test.describe("AI plan draft apply", () => {
     await page.locator('input[aria-label="Include task 2"]').uncheck();
     await page.getByRole("button", { name: "Apply selected tasks" }).click();
 
-    await expect(page.locator("#todosMessage")).toContainText("Added 1 AI-planned");
+    await expect(page.locator("#todosMessage")).toContainText(
+      "Added 1 AI-planned",
+    );
     expect(state.createdTodoPayloads).toHaveLength(1);
     expect(state.createdTodoPayloads[0]).toMatchObject({
       title: "Edited Alpha Title",

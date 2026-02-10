@@ -1218,11 +1218,14 @@ function renderAiSuggestionHistory() {
 async function updateSuggestionStatus(suggestionId, status, reason = null) {
   if (!suggestionId) return;
   try {
-    const response = await apiCall(`${API_URL}/ai/suggestions/${suggestionId}/status`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status, reason }),
-    });
+    const response = await apiCall(
+      `${API_URL}/ai/suggestions/${suggestionId}/status`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, reason }),
+      },
+    );
     if (!response || !response.ok) {
       return false;
     }
@@ -1319,11 +1322,15 @@ function initPlanDraftState(planResult) {
     return;
   }
 
-  const originalTasks = tasks.map((task, index) => clonePlanDraftTask(task, index));
+  const originalTasks = tasks.map((task, index) =>
+    clonePlanDraftTask(task, index),
+  );
   planDraftState = {
     summary: String(planResult?.summary || "Suggested plan"),
     originalTasks,
-    workingTasks: originalTasks.map((task, index) => clonePlanDraftTask(task, index)),
+    workingTasks: originalTasks.map((task, index) =>
+      clonePlanDraftTask(task, index),
+    ),
     selectedTaskTempIds: new Set(originalTasks.map((task) => task.tempId)),
     statusSyncFailed: false,
   };
@@ -1356,7 +1363,9 @@ function updatePlanGenerateButtonState() {
   const button = document.getElementById("generatePlanButton");
   if (!button) return;
   button.disabled = isPlanActionBusy();
-  button.textContent = isPlanGenerateInFlight ? "Generating..." : "Generate Plan";
+  button.textContent = isPlanGenerateInFlight
+    ? "Generating..."
+    : "Generate Plan";
 }
 
 function getSelectedPlanDraftTasks() {
@@ -1501,7 +1510,9 @@ function renderPlanPanel() {
       <div class="plan-draft-task-list">
         ${planDraftState.workingTasks
           .map((task, index) => {
-            const isSelected = planDraftState.selectedTaskTempIds.has(task.tempId);
+            const isSelected = planDraftState.selectedTaskTempIds.has(
+              task.tempId,
+            );
             const selectedAttr = isSelected ? "checked" : "";
             const firstInputId = `planDraftTitleInput-${index}`;
             const projectOptions = hasProjects
@@ -1514,7 +1525,10 @@ function renderPlanPanel() {
                     <option value="">No project</option>
                     ${projects
                       .map((project) =>
-                        renderProjectOptionEntry(project, String(task.projectName || "")),
+                        renderProjectOptionEntry(
+                          project,
+                          String(task.projectName || ""),
+                        ),
                       )
                       .join("")}
                   </select>`
@@ -1536,7 +1550,9 @@ function renderPlanPanel() {
                     <summary>Subtasks (${task.subtasks.length})</summary>
                     <ul>
                       ${task.subtasks
-                        .map((subtask) => `<li>${escapeHtml(subtask.title)}</li>`)
+                        .map(
+                          (subtask) => `<li>${escapeHtml(subtask.title)}</li>`,
+                        )
                         .join("")}
                     </ul>
                   </details>
@@ -1670,14 +1686,18 @@ function updatePlanDraftTaskProject(index, event) {
   if (!planDraftState) return;
   const task = planDraftState.workingTasks[index];
   if (!task) return;
-  task.projectName = String(event?.target?.value || "").slice(0, 50).trim();
+  task.projectName = String(event?.target?.value || "")
+    .slice(0, 50)
+    .trim();
 }
 
 function updatePlanDraftTaskPriority(index, event) {
   if (!planDraftState) return;
   const task = planDraftState.workingTasks[index];
   if (!task) return;
-  task.priority = normalizePlanDraftPriority(String(event?.target?.value || ""));
+  task.priority = normalizePlanDraftPriority(
+    String(event?.target?.value || ""),
+  );
 }
 
 function selectAllPlanDraftTasks() {
@@ -1696,8 +1716,8 @@ function selectNoPlanDraftTasks() {
 
 function resetPlanDraft() {
   if (!planDraftState || isPlanActionBusy()) return;
-  planDraftState.workingTasks = planDraftState.originalTasks.map((task, index) =>
-    clonePlanDraftTask(task, index),
+  planDraftState.workingTasks = planDraftState.originalTasks.map(
+    (task, index) => clonePlanDraftTask(task, index),
   );
   planDraftState.selectedTaskTempIds = new Set(
     planDraftState.workingTasks.map((task) => task.tempId),
@@ -1931,7 +1951,11 @@ async function addPlanTasksToTodos() {
 
   const selectedTasks = getSelectedPlanDraftTasks();
   if (selectedTasks.length === 0) {
-    showMessage("todosMessage", "Select at least one plan task to apply", "error");
+    showMessage(
+      "todosMessage",
+      "Select at least one plan task to apply",
+      "error",
+    );
     return;
   }
 
@@ -2011,7 +2035,11 @@ async function addPlanTasksToTodos() {
     latestPlanResult = null;
     clearPlanDraftState();
     renderPlanPanel();
-    showMessage("todosMessage", `Added ${created} AI-planned task(s)`, "success");
+    showMessage(
+      "todosMessage",
+      `Added ${created} AI-planned task(s)`,
+      "success",
+    );
   } catch (error) {
     console.error("Apply planned tasks error:", error);
     showMessage("todosMessage", "Failed to apply AI suggestion", "error");
