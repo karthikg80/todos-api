@@ -6,28 +6,28 @@ const HTML_TAG_PATTERN = /<[^>]*>/g;
 export const planSubtaskSuggestionSchema = z.object({
   tempId: z.string().trim().min(1).max(100),
   title: z.string().trim().min(1).max(140),
-});
+}).strict();
 
 export const planTaskSuggestionSchema = z.object({
   tempId: z.string().trim().min(1).max(100),
   title: z.string().trim().min(1).max(140),
-  description: z.string().trim().max(1000).nullable(),
-  notes: z.string().trim().max(2000).nullable(),
-  category: z.string().trim().max(50).nullable(),
-  projectName: z.string().trim().max(50).nullable(),
-  dueDate: z.string().regex(ISO_DATE_PATTERN).nullable(),
+  description: z.string().trim().max(1000).nullable().optional(),
+  notes: z.string().trim().max(2000).nullable().optional(),
+  category: z.string().trim().max(50).nullable().optional(),
+  projectName: z.string().trim().max(50).nullable().optional(),
+  dueDate: z.string().regex(ISO_DATE_PATTERN).nullable().optional(),
   priority: z.enum(["low", "medium", "high"]),
-  subtasks: z.array(planSubtaskSuggestionSchema).max(20),
-});
+  subtasks: z.array(planSubtaskSuggestionSchema).max(20).default([]),
+}).strict();
 
 export const planSuggestionV1Schema = z.object({
   schemaVersion: z.literal(1),
   type: z.literal("plan_from_goal"),
   confidence: z.enum(["low", "medium", "high"]),
-  assumptions: z.array(z.string().trim().min(1).max(300)).max(10),
-  questions: z.array(z.string().trim().min(1).max(300)).max(10),
+  assumptions: z.array(z.string().trim().min(1).max(300)).max(10).default([]),
+  questions: z.array(z.string().trim().min(1).max(300)).max(10).default([]),
   tasks: z.array(planTaskSuggestionSchema).min(1).max(20),
-});
+}).strict();
 
 export type PlanSuggestionV1 = z.infer<typeof planSuggestionV1Schema>;
 

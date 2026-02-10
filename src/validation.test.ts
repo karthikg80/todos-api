@@ -270,5 +270,87 @@ describe("Validation", () => {
         }),
       ).toThrow();
     });
+
+    it("accepts missing nullable task keys and defaults subtasks", () => {
+      const parsed = validatePlanSuggestionV1({
+        schemaVersion: 1,
+        type: "plan_from_goal",
+        confidence: "medium",
+        tasks: [
+          {
+            tempId: "task-1",
+            title: "Task",
+            priority: "medium",
+          },
+        ],
+      });
+
+      expect(parsed.assumptions).toEqual([]);
+      expect(parsed.questions).toEqual([]);
+      expect(parsed.tasks[0].dueDate).toBeUndefined();
+      expect(parsed.tasks[0].subtasks).toEqual([]);
+    });
+
+    it("rejects assumptions with wrong type", () => {
+      expect(() =>
+        validatePlanSuggestionV1({
+          schemaVersion: 1,
+          type: "plan_from_goal",
+          confidence: "medium",
+          assumptions: "foo",
+          tasks: [{ tempId: "task-1", title: "Task", priority: "medium" }],
+        }),
+      ).toThrow();
+    });
+
+    it("rejects questions with wrong type", () => {
+      expect(() =>
+        validatePlanSuggestionV1({
+          schemaVersion: 1,
+          type: "plan_from_goal",
+          confidence: "medium",
+          questions: 123,
+          tasks: [{ tempId: "task-1", title: "Task", priority: "medium" }],
+        }),
+      ).toThrow();
+    });
+
+    it("rejects subtasks when null", () => {
+      expect(() =>
+        validatePlanSuggestionV1({
+          schemaVersion: 1,
+          type: "plan_from_goal",
+          confidence: "medium",
+          tasks: [
+            {
+              tempId: "task-1",
+              title: "Task",
+              priority: "medium",
+              subtasks: null,
+            },
+          ],
+        }),
+      ).toThrow();
+    });
+
+    it("rejects unknown keys on strict objects", () => {
+      expect(() =>
+        validatePlanSuggestionV1({
+          schemaVersion: 1,
+          type: "plan_from_goal",
+          confidence: "medium",
+          tasks: [
+            {
+              tempId: "task-1",
+              title: "Task",
+              priority: "medium",
+              subtasks: [{ tempId: "sub-1", title: "Subtask", extra: "x" }],
+              extraTaskField: "x",
+            },
+          ],
+          extraTopLevel: "x",
+        }),
+      ).toThrow();
+    });
   });
 });
