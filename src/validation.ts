@@ -1,4 +1,5 @@
 import {
+  CreateProjectDto,
   CreateTodoDto,
   UpdateTodoDto,
   ReorderTodoItemDto,
@@ -6,6 +7,7 @@ import {
   Priority,
   TodoSortBy,
   SortOrder,
+  UpdateProjectDto,
 } from "./types";
 
 export class ValidationError extends Error {
@@ -27,6 +29,42 @@ const VALID_SORT_FIELDS: TodoSortBy[] = [
 ];
 const VALID_SORT_ORDERS: SortOrder[] = ["asc", "desc"];
 const VALID_PRIORITIES: Priority[] = ["low", "medium", "high"];
+
+function validateProjectName(name: unknown): string {
+  if (typeof name !== "string") {
+    throw new ValidationError("Project name must be a string");
+  }
+  const normalized = name
+    .split("/")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join(" / ");
+  if (!normalized) {
+    throw new ValidationError("Project name cannot be empty");
+  }
+  if (normalized.length > 50) {
+    throw new ValidationError("Project name cannot exceed 50 characters");
+  }
+  return normalized;
+}
+
+export function validateCreateProject(data: any): CreateProjectDto {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+  return {
+    name: validateProjectName(data.name),
+  };
+}
+
+export function validateUpdateProject(data: any): UpdateProjectDto {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+  return {
+    name: validateProjectName(data.name),
+  };
+}
 
 function parsePositiveInt(value: unknown, field: string): number {
   if (typeof value !== "string" || !/^\d+$/.test(value)) {

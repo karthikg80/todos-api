@@ -311,6 +311,55 @@ function saveCustomProjects() {
   }
 }
 
+async function loadProjects() {
+  try {
+    const response = await apiCall(`${API_URL}/projects`);
+    if (!response || !response.ok) {
+      return;
+    }
+    const data = await response.json();
+    const projectNames = Array.isArray(data)
+      ? data
+          .map((item) => normalizeProjectPath(item?.name))
+          .filter((name) => typeof name === "string" && name.length > 0)
+      : [];
+    customProjects = expandProjectTree([...customProjects, ...projectNames]);
+    saveCustomProjects();
+    updateProjectSelectOptions();
+    updateCategoryFilter();
+  } catch (error) {
+    console.error("Failed to load projects:", error);
+  }
+}
+
+async function ensureProjectExists(projectName) {
+  const normalized = normalizeProjectPath(projectName);
+  if (!normalized) {
+    return false;
+  }
+  try {
+    const response = await apiCall(`${API_URL}/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: normalized }),
+    });
+    if (response && (response.ok || response.status === 409)) {
+      return true;
+    }
+    const data = response ? await parseApiBody(response) : {};
+    showMessage(
+      "todosMessage",
+      data.error || "Failed to create project",
+      "error",
+    );
+    return false;
+  } catch (error) {
+    console.error("Ensure project exists failed:", error);
+    showMessage("todosMessage", "Failed to create project", "error");
+    return false;
+  }
+}
+
 // Initialize app
 function init() {
   bindCriticalHandlers();
@@ -1749,7 +1798,7 @@ function updateProjectSelectOptions() {
   }
 }
 
-function createProject() {
+async function createProject() {
   const name = prompt("Project path (use / for hierarchy, e.g. Work / Client A):");
   if (name === null) {
     return;
@@ -1767,6 +1816,10 @@ function createProject() {
     );
     return;
   }
+  const created = await ensureProjectExists(normalizedPath);
+  if (!created) {
+    return;
+  }
   if (!customProjects.includes(normalizedPath)) {
     customProjects.push(normalizedPath);
     customProjects = expandProjectTree(customProjects);
@@ -1778,10 +1831,11 @@ function createProject() {
   if (projectSelect) {
     projectSelect.value = normalizedPath;
   }
+  await loadProjects();
   showMessage("todosMessage", `Project "${normalizedPath}" created`, "success");
 }
 
-function createSubproject() {
+async function createSubproject() {
   const projectSelect = document.getElementById("todoProjectSelect");
   const parentPath = normalizeProjectPath(projectSelect?.value || "");
   if (!parentPath) {
@@ -1813,6 +1867,10 @@ function createSubproject() {
     );
     return;
   }
+  const created = await ensureProjectExists(combinedPath);
+  if (!created) {
+    return;
+  }
   if (!customProjects.includes(combinedPath)) {
     customProjects.push(combinedPath);
     customProjects = expandProjectTree(customProjects);
@@ -1823,6 +1881,7 @@ function createSubproject() {
   if (projectSelect) {
     projectSelect.value = combinedPath;
   }
+  await loadProjects();
   showMessage("todosMessage", `Subproject "${combinedPath}" created`, "success");
 }
 
@@ -1853,6 +1912,7 @@ async function moveTodoToProject(todoId, projectValue) {
       customProjects.push(category);
     }
     refreshProjectCatalog();
+    await loadProjects();
     renderTodos();
   } catch (error) {
     console.error("Move todo project failed:", error);
@@ -1945,6 +2005,7 @@ async function saveEditedTodo() {
       customProjects.push(project);
     }
     refreshProjectCatalog();
+    await loadProjects();
     renderTodos();
     closeEditTodoModal();
     showMessage("todosMessage", "Task updated", "success");
@@ -3045,6 +3106,7 @@ function showAppView() {
   loadCustomProjects();
   renderTodos();
   updateCategoryFilter();
+  loadProjects();
   loadTodos();
   loadAiSuggestions();
   loadAiUsage();
