@@ -4,20 +4,264 @@ const API_URL =
     ? "http://localhost:3000"
     : window.location.origin;
 
+const hasValidAppState =
+  !!window.AppState &&
+  typeof window.AppState.loadStoredSession === "function" &&
+  typeof window.AppState.persistSession === "function" &&
+  window.AppState.AUTH_STATE;
+
+const AppStateModule = hasValidAppState
+  ? window.AppState
+  : {
+      AUTH_STATE: Object.freeze({
+        AUTHENTICATED: "authenticated",
+        REFRESHING: "refreshing",
+        UNAUTHENTICATED: "unauthenticated",
+      }),
+      EMAIL_ACTION_TIMEOUT_MS: 15000,
+      loadStoredSession(storage = window.localStorage) {
+        const token = storage.getItem("authToken");
+        const refreshToken = storage.getItem("refreshToken");
+        const userRaw = storage.getItem("user");
+
+        if (!token || !userRaw) {
+          return {
+            token: null,
+            refreshToken,
+            user: null,
+            invalidUserData: false,
+          };
+        }
+
+        try {
+          return {
+            token,
+            refreshToken,
+            user: JSON.parse(userRaw),
+            invalidUserData: false,
+          };
+        } catch (error) {
+          return {
+            token: null,
+            refreshToken: null,
+            user: null,
+            invalidUserData: true,
+            error,
+          };
+        }
+      },
+      persistSession({ authToken, refreshToken, currentUser }) {
+        if (authToken) {
+          localStorage.setItem("authToken", authToken);
+        } else {
+          localStorage.removeItem("authToken");
+        }
+
+        if (refreshToken) {
+          localStorage.setItem("refreshToken", refreshToken);
+        } else {
+          localStorage.removeItem("refreshToken");
+        }
+
+        if (currentUser) {
+          localStorage.setItem("user", JSON.stringify(currentUser));
+        } else {
+          localStorage.removeItem("user");
+        }
+      },
+    };
+window.AppState = AppStateModule;
+
+const hasValidApiClient =
+  !!window.ApiClient && typeof window.ApiClient.createApiClient === "function";
+
+const ApiClientModule = hasValidApiClient
+  ? window.ApiClient
+  : {
+      createApiClient({
+        apiUrl,
+        getAuthToken,
+        getRefreshToken,
+        getAuthState,
+        setAuthState,
+        onAuthFailure,
+        onAuthTokens,
+      }) {
+        let refreshInFlight = null;
+
+        async function parseApiBody(response) {
+          const text = await response.text();
+          if (!text) return {};
+          try {
+            return JSON.parse(text);
+          } catch {
+            return { error: text };
+          }
+        }
+
+        function isAbortError(error) {
+          return error instanceof Error && error.name === "AbortError";
+        }
+
+        async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+          try {
+            return await fetch(url, { ...options, signal: controller.signal });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        }
+
+        async function refreshAccessToken() {
+          const refreshToken = getRefreshToken();
+          if (!refreshToken) {
+            setAuthState("unauthenticated");
+            return false;
+          }
+
+          if (refreshInFlight) {
+            return refreshInFlight;
+          }
+
+          setAuthState("refreshing");
+
+          refreshInFlight = (async () => {
+            try {
+              const response = await fetch(`${apiUrl}/auth/refresh`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ refreshToken }),
+              });
+
+              if (!response.ok) {
+                setAuthState("unauthenticated");
+                return false;
+              }
+
+              const data = await response.json();
+              onAuthTokens(data.token, data.refreshToken);
+              setAuthState("authenticated");
+              return true;
+            } catch (error) {
+              console.error("Token refresh failed:", error);
+              setAuthState("unauthenticated");
+              return false;
+            }
+          })();
+
+          const refreshed = await refreshInFlight;
+          refreshInFlight = null;
+          return refreshed;
+        }
+
+        async function apiCall(url, options = {}) {
+          const requestOptions = {
+            ...options,
+            headers: {
+              ...(options.headers || {}),
+            },
+          };
+
+          const authToken = getAuthToken();
+          if (authToken && !requestOptions.skipAuth) {
+            requestOptions.headers.Authorization = `Bearer ${authToken}`;
+          }
+
+          let response = await fetch(url, requestOptions);
+
+          if (
+            response.status === 401 &&
+            getRefreshToken() &&
+            !requestOptions.skipRefresh
+          ) {
+            const refreshed = await refreshAccessToken();
+            if (refreshed) {
+              requestOptions.headers.Authorization = `Bearer ${getAuthToken()}`;
+              response = await fetch(url, requestOptions);
+            } else {
+              onAuthFailure();
+              return response;
+            }
+          }
+
+          if (
+            response.status === 401 &&
+            !getRefreshToken() &&
+            !requestOptions.skipAuth
+          ) {
+            if (getAuthState() !== "unauthenticated") {
+              setAuthState("unauthenticated");
+            }
+            onAuthFailure();
+          }
+
+          return response;
+        }
+
+        async function apiCallWithTimeout(
+          url,
+          options = {},
+          timeoutMs = 15000,
+        ) {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+          try {
+            return await apiCall(url, {
+              ...options,
+              signal: controller.signal,
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
+        }
+
+        return {
+          apiCall,
+          fetchWithTimeout,
+          apiCallWithTimeout,
+          parseApiBody,
+          isAbortError,
+        };
+      },
+    };
+window.ApiClient = ApiClientModule;
+
 let currentUser = null;
 let authToken = null;
 let refreshToken = null;
 let todos = [];
 let users = [];
 let adminBootstrapAvailable = false;
-const AUTH_STATE = Object.freeze({
-  AUTHENTICATED: "authenticated",
-  REFRESHING: "refreshing",
-  UNAUTHENTICATED: "unauthenticated",
-});
+const {
+  AUTH_STATE,
+  EMAIL_ACTION_TIMEOUT_MS,
+  loadStoredSession,
+  persistSession,
+} = AppStateModule;
 let authState = AUTH_STATE.UNAUTHENTICATED;
-let refreshInFlight = null;
-const EMAIL_ACTION_TIMEOUT_MS = 15000;
+
+function handleAuthFailure() {
+  logout();
+}
+
+function handleAuthTokens(nextToken, nextRefreshToken) {
+  authToken = nextToken;
+  refreshToken = nextRefreshToken;
+  persistSession({ authToken, refreshToken, currentUser });
+}
+
+const apiClient = ApiClientModule.createApiClient({
+  apiUrl: API_URL,
+  getAuthToken: () => authToken,
+  getRefreshToken: () => refreshToken,
+  getAuthState: () => authState,
+  setAuthState,
+  onAuthFailure: handleAuthFailure,
+  onAuthTokens: handleAuthTokens,
+});
 
 function setAuthState(nextState) {
   authState = nextState;
@@ -36,20 +280,17 @@ function init() {
     return;
   }
 
-  const token = localStorage.getItem("authToken");
-  const refresh = localStorage.getItem("refreshToken");
-  const userRaw = localStorage.getItem("user");
-  let user = null;
+  const {
+    token,
+    refreshToken: refresh,
+    user,
+    invalidUserData,
+    error,
+  } = loadStoredSession();
 
-  if (userRaw) {
-    try {
-      user = JSON.parse(userRaw);
-    } catch (error) {
-      console.error("Invalid stored user data. Clearing auth state.", error);
-      localStorage.removeItem("authToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-    }
+  if (invalidUserData) {
+    console.error("Invalid stored user data. Clearing auth state.", error);
+    persistSession({ authToken: null, refreshToken: null, currentUser: null });
   }
 
   if (token && user) {
@@ -81,7 +322,7 @@ function handleVerificationStatusFromUrl() {
   if (currentUser) {
     if (isSuccess) {
       currentUser = { ...currentUser, isVerified: true };
-      localStorage.setItem("user", JSON.stringify(currentUser));
+      persistSession({ authToken, refreshToken, currentUser });
       updateUserDisplay();
     }
     const profileTab = document.querySelectorAll(".nav-tab")[1];
@@ -95,108 +336,13 @@ function handleVerificationStatusFromUrl() {
   window.history.replaceState({}, document.title, window.location.pathname);
 }
 
-// API call with auto-refresh
-async function apiCall(url, options = {}) {
-  if (!options.headers) options.headers = {};
-  if (authToken && !options.skipAuth) {
-    options.headers["Authorization"] = `Bearer ${authToken}`;
-  }
-
-  let response = await fetch(url, options);
-
-  // Handle token expiration
-  if (response.status === 401 && refreshToken && !options.skipRefresh) {
-    const refreshed = await refreshAccessToken();
-    if (refreshed) {
-      options.headers["Authorization"] = `Bearer ${authToken}`;
-      response = await fetch(url, options);
-    } else {
-      logout();
-      return response;
-    }
-  }
-
-  // If no refresh token is available, clear stale auth state on unauthorized responses.
-  if (response.status === 401 && !refreshToken && !options.skipAuth) {
-    setAuthState(AUTH_STATE.UNAUTHENTICATED);
-    logout();
-  }
-
-  return response;
-}
-
-async function fetchWithTimeout(url, options = {}, timeoutMs = 15000) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await fetch(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-async function apiCallWithTimeout(url, options = {}, timeoutMs = 15000) {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  try {
-    return await apiCall(url, { ...options, signal: controller.signal });
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-function isAbortError(error) {
-  return error instanceof Error && error.name === "AbortError";
-}
-
-async function parseApiBody(response) {
-  const text = await response.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text);
-  } catch {
-    return { error: text };
-  }
-}
-
-// Refresh access token
-async function refreshAccessToken() {
-  if (refreshInFlight) {
-    return refreshInFlight;
-  }
-
-  setAuthState(AUTH_STATE.REFRESHING);
-
-  refreshInFlight = (async () => {
-    try {
-      const response = await fetch(`${API_URL}/auth/refresh`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        authToken = data.token;
-        refreshToken = data.refreshToken;
-        localStorage.setItem("authToken", authToken);
-        localStorage.setItem("refreshToken", refreshToken);
-        setAuthState(AUTH_STATE.AUTHENTICATED);
-        return true;
-      }
-    } catch (error) {
-      console.error("Token refresh failed:", error);
-    }
-    setAuthState(AUTH_STATE.UNAUTHENTICATED);
-    return false;
-  })();
-
-  const refreshed = await refreshInFlight;
-  refreshInFlight = null;
-  return refreshed;
-}
+const {
+  apiCall,
+  fetchWithTimeout,
+  apiCallWithTimeout,
+  isAbortError,
+  parseApiBody,
+} = apiClient;
 
 // Switch auth tabs
 function switchAuthTab(tab, triggerEl) {
@@ -267,9 +413,7 @@ async function handleLogin(event) {
       refreshToken = data.refreshToken;
       currentUser = data.user;
       setAuthState(AUTH_STATE.AUTHENTICATED);
-      localStorage.setItem("authToken", authToken);
-      if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(currentUser));
+      persistSession({ authToken, refreshToken, currentUser });
       showAppView();
       loadUserProfile();
     } else {
@@ -307,9 +451,7 @@ async function handleRegister(event) {
       refreshToken = data.refreshToken;
       currentUser = data.user;
       setAuthState(AUTH_STATE.AUTHENTICATED);
-      localStorage.setItem("authToken", authToken);
-      if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
-      localStorage.setItem("user", JSON.stringify(currentUser));
+      persistSession({ authToken, refreshToken, currentUser });
       showMessage("authMessage", "Account created successfully!", "success");
       setTimeout(() => {
         showAppView();
@@ -446,7 +588,7 @@ async function loadUserProfile() {
     if (response && response.ok) {
       const user = await response.json();
       currentUser = { ...currentUser, ...user };
-      localStorage.setItem("user", JSON.stringify(currentUser));
+      persistSession({ authToken, refreshToken, currentUser });
       updateUserDisplay();
       await loadAdminBootstrapStatus();
 
@@ -554,7 +696,7 @@ async function handleAdminBootstrap(event) {
     const data = response ? await response.json() : {};
     if (response && response.ok) {
       currentUser = { ...currentUser, ...data.user };
-      localStorage.setItem("user", JSON.stringify(currentUser));
+      persistSession({ authToken, refreshToken, currentUser });
       adminBootstrapAvailable = false;
       document.getElementById("adminNavTab").style.display = "block";
       updateUserDisplay();
@@ -665,7 +807,7 @@ async function handleUpdateProfile(event) {
     if (response && response.ok) {
       const updatedUser = await response.json();
       currentUser = { ...currentUser, ...updatedUser };
-      localStorage.setItem("user", JSON.stringify(currentUser));
+      persistSession({ authToken, refreshToken, currentUser });
       updateUserDisplay();
       showMessage("profileMessage", "Profile updated successfully!", "success");
     } else {
@@ -1726,7 +1868,8 @@ function handleTodoKeyPress(event) {
 
 // Logout
 async function logout() {
-  const tokenToRevoke = refreshToken || localStorage.getItem("refreshToken");
+  const { refreshToken: storedRefreshToken } = loadStoredSession();
+  const tokenToRevoke = refreshToken || storedRefreshToken;
 
   if (tokenToRevoke) {
     fetch(`${API_URL}/auth/logout`, {
@@ -1742,9 +1885,7 @@ async function logout() {
   refreshToken = null;
   currentUser = null;
   setAuthState(AUTH_STATE.UNAUTHENTICATED);
-  localStorage.removeItem("authToken");
-  localStorage.removeItem("refreshToken");
-  localStorage.removeItem("user");
+  persistSession({ authToken, refreshToken, currentUser });
   todos = [];
   showAuthView();
 }
