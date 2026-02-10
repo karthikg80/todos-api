@@ -321,4 +321,36 @@ describe("AI API Integration", () => {
       .set("Authorization", `Bearer ${authToken}`)
       .expect(400);
   });
+
+  it("uses rejection feedback to make later outputs more specific", async () => {
+    const first = await request(app)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Draft docs" })
+      .expect(200);
+
+    await request(app)
+      .put(`/ai/suggestions/${first.body.suggestionId}/status`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ status: "rejected", reason: "Too generic" })
+      .expect(200);
+
+    const secondCritique = await request(app)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Write changelog notes" })
+      .expect(200);
+    expect(
+      secondCritique.body.suggestions.some((item: string) =>
+        item.includes("owner, measurable result, and deadline"),
+      ),
+    ).toBe(true);
+
+    const plan = await request(app)
+      .post("/ai/plan-from-goal")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ goal: "Ship release prep", maxTasks: 3 })
+      .expect(200);
+    expect(plan.body.summary).toContain("specific steps");
+  });
 });
