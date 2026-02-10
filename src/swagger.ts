@@ -58,6 +58,11 @@ const options: swaggerJsdoc.Options = {
               enum: ["user", "admin"],
               description: "User role",
             },
+            plan: {
+              type: "string",
+              enum: ["free", "pro", "team"],
+              description: "Subscription plan",
+            },
             createdAt: {
               type: "string",
               format: "date-time",

@@ -43,6 +43,27 @@ const aiDailySuggestionLimitRaw = (
   process.env.AI_DAILY_SUGGESTION_LIMIT || "50"
 ).trim();
 const aiDailySuggestionLimit = Number.parseInt(aiDailySuggestionLimitRaw, 10);
+const aiDailySuggestionLimitFreeRaw = (
+  process.env.AI_DAILY_SUGGESTION_LIMIT_FREE || ""
+).trim();
+const aiDailySuggestionLimitProRaw = (
+  process.env.AI_DAILY_SUGGESTION_LIMIT_PRO || ""
+).trim();
+const aiDailySuggestionLimitTeamRaw = (
+  process.env.AI_DAILY_SUGGESTION_LIMIT_TEAM || ""
+).trim();
+const aiDailySuggestionLimitFree = Number.parseInt(
+  aiDailySuggestionLimitFreeRaw,
+  10,
+);
+const aiDailySuggestionLimitPro = Number.parseInt(
+  aiDailySuggestionLimitProRaw,
+  10,
+);
+const aiDailySuggestionLimitTeam = Number.parseInt(
+  aiDailySuggestionLimitTeamRaw,
+  10,
+);
 
 if (nodeEnv === "production") {
   if (!databaseUrl) {
@@ -123,4 +144,23 @@ export const config = {
     Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
       ? aiDailySuggestionLimit
       : 50,
+  aiDailySuggestionLimitByPlan: {
+    free:
+      Number.isInteger(aiDailySuggestionLimitFree) &&
+      aiDailySuggestionLimitFree > 0
+        ? aiDailySuggestionLimitFree
+        : Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
+          ? aiDailySuggestionLimit
+          : 50,
+    pro:
+      Number.isInteger(aiDailySuggestionLimitPro) &&
+      aiDailySuggestionLimitPro > 0
+        ? aiDailySuggestionLimitPro
+        : 250,
+    team:
+      Number.isInteger(aiDailySuggestionLimitTeam) &&
+      aiDailySuggestionLimitTeam > 0
+        ? aiDailySuggestionLimitTeam
+        : 1000,
+  },
 };

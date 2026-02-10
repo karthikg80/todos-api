@@ -65,6 +65,7 @@ Production notes:
 - If `EMAIL_FEATURES_ENABLED=true`, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `BASE_URL`.
 - AI model integration is optional: set `AI_PROVIDER_ENABLED=true` and configure `AI_PROVIDER_API_KEY` to call a live provider.
 - Configure `AI_DAILY_SUGGESTION_LIMIT` to cap daily AI generations per user (default: `50`).
+- Optional per-plan caps: `AI_DAILY_SUGGESTION_LIMIT_FREE`, `AI_DAILY_SUGGESTION_LIMIT_PRO`, `AI_DAILY_SUGGESTION_LIMIT_TEAM`.
 
 ### 3. Start Database
 

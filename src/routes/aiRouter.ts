@@ -15,11 +15,15 @@ import { ITodoService } from "../interfaces/ITodoService";
 import { CreateTodoDto, Priority } from "../types";
 import { config } from "../config";
 
+export type UserPlan = "free" | "pro" | "team";
+
 interface AiRouterDeps {
   aiPlannerService?: AiPlannerService;
   suggestionStore?: IAiSuggestionStore;
   todoService: ITodoService;
   aiDailySuggestionLimit?: number;
+  aiDailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>;
+  resolveAiUserPlan?: (userId: string) => Promise<UserPlan>;
   resolveAiUserId: (req: Request, res: Response) => string | null;
 }
 
@@ -28,10 +32,36 @@ export function createAiRouter({
   suggestionStore = new InMemoryAiSuggestionStore(),
   todoService,
   aiDailySuggestionLimit,
+  aiDailySuggestionLimitByPlan,
+  resolveAiUserPlan,
   resolveAiUserId,
 }: AiRouterDeps): Router {
   const router = Router();
-  const dailyLimit = aiDailySuggestionLimit ?? config.aiDailySuggestionLimit;
+  const defaultLimits: Record<UserPlan, number> = {
+    free: config.aiDailySuggestionLimitByPlan.free,
+    pro: config.aiDailySuggestionLimitByPlan.pro,
+    team: config.aiDailySuggestionLimitByPlan.team,
+  };
+  const globalOverride =
+    aiDailySuggestionLimit && aiDailySuggestionLimit > 0
+      ? aiDailySuggestionLimit
+      : undefined;
+  const limitsByPlan: Record<UserPlan, number> = {
+    free:
+      aiDailySuggestionLimitByPlan?.free &&
+      aiDailySuggestionLimitByPlan.free > 0
+        ? aiDailySuggestionLimitByPlan.free
+        : globalOverride || defaultLimits.free || config.aiDailySuggestionLimit,
+    pro:
+      aiDailySuggestionLimitByPlan?.pro && aiDailySuggestionLimitByPlan.pro > 0
+        ? aiDailySuggestionLimitByPlan.pro
+        : defaultLimits.pro || config.aiDailySuggestionLimit,
+    team:
+      aiDailySuggestionLimitByPlan?.team &&
+      aiDailySuggestionLimitByPlan.team > 0
+        ? aiDailySuggestionLimitByPlan.team
+        : defaultLimits.team || config.aiDailySuggestionLimit,
+  };
 
   const getCurrentUtcDayStart = (): Date => {
     const now = new Date();
@@ -45,11 +75,22 @@ export function createAiRouter({
     return new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
   };
 
+  const getUserPlan = async (userId: string): Promise<UserPlan> => {
+    if (!resolveAiUserPlan) {
+      return "free";
+    }
+    const plan = await resolveAiUserPlan(userId);
+    return plan;
+  };
+
   const getUsage = async (userId: string) => {
+    const plan = await getUserPlan(userId);
+    const dailyLimit = limitsByPlan[plan] || limitsByPlan.free;
     const dayStart = getCurrentUtcDayStart();
     const used = await suggestionStore.countByUserSince(userId, dayStart);
     const remaining = Math.max(dailyLimit - used, 0);
     return {
+      plan,
       used,
       remaining,
       limit: dailyLimit,
@@ -328,8 +369,31 @@ export function createAiRouter({
             .status(409)
             .json({ error: "Cannot apply a rejected suggestion" });
         }
+        if (
+          suggestion.status === "accepted" &&
+          Array.isArray(suggestion.appliedTodoIds) &&
+          suggestion.appliedTodoIds.length > 0
+        ) {
+          const todos = [];
+          for (const todoId of suggestion.appliedTodoIds) {
+            const todo = await todoService.findById(userId, todoId);
+            if (todo) {
+              todos.push(todo);
+            }
+          }
+
+          return res.json({
+            createdCount: todos.length,
+            todos,
+            suggestion,
+            idempotent: true,
+          });
+        }
         if (suggestion.status === "accepted") {
-          return res.status(409).json({ error: "Suggestion already applied" });
+          return res.status(409).json({
+            error:
+              "Suggestion already accepted but has no applied todo history",
+          });
         }
 
         const tasks = parsePlanTasks(suggestion.output);
@@ -345,21 +409,26 @@ export function createAiRouter({
           createdTodos.push(todo);
         }
 
-        const updatedSuggestion = await suggestionStore.updateStatus(
+        const createdIds = createdTodos.map((todo) => todo.id);
+        const updatedSuggestion = await suggestionStore.markApplied(
           userId,
           id,
-          "accepted",
+          createdIds,
           {
             reason: "applied_via_endpoint",
             source: "apply_endpoint",
             updatedAt: new Date().toISOString(),
           },
         );
+        if (!updatedSuggestion) {
+          return res.status(404).json({ error: "Suggestion not found" });
+        }
 
         res.json({
           createdCount: createdTodos.length,
           todos: createdTodos,
           suggestion: updatedSuggestion,
+          idempotent: false,
         });
       } catch (error) {
         next(error);

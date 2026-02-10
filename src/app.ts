@@ -19,6 +19,7 @@ import { createUsersRouter } from "./routes/usersRouter";
 import { createAiRouter } from "./routes/aiRouter";
 import { IAiSuggestionStore } from "./aiSuggestionStore";
 import { AiPlannerService } from "./aiService";
+import { UserPlan } from "./routes/aiRouter";
 
 export function createApp(
   todoService: ITodoService = new TodoService(),
@@ -26,6 +27,7 @@ export function createApp(
   aiSuggestionStore?: IAiSuggestionStore,
   aiPlannerService?: AiPlannerService,
   aiDailySuggestionLimit?: number,
+  aiDailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>,
 ) {
   const app = express();
 
@@ -61,6 +63,20 @@ export function createApp(
     }
 
     return req.user?.userId || "default-user";
+  };
+
+  const resolveAiUserPlan = async (
+    userId: string,
+  ): Promise<"free" | "pro" | "team"> => {
+    if (!authService) {
+      return "free";
+    }
+    const user = await authService.getUserById(userId);
+    const plan = user?.plan;
+    if (plan === "pro" || plan === "team") {
+      return plan;
+    }
+    return "free";
   };
 
   const requireAuthIfConfigured: RequestHandler = authService
@@ -186,6 +202,8 @@ export function createApp(
       suggestionStore: aiSuggestionStore,
       aiPlannerService,
       aiDailySuggestionLimit,
+      aiDailySuggestionLimitByPlan,
+      resolveAiUserPlan,
     }),
   );
 

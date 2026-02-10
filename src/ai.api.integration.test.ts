@@ -134,10 +134,16 @@ describe("AI API Integration", () => {
     });
     expect(dbTodos).toHaveLength(3);
 
-    await request(app)
+    const reapplied = await request(app)
       .post(`/ai/suggestions/${suggestionId}/apply`)
       .set("Authorization", `Bearer ${authToken}`)
-      .expect(409);
+      .expect(200);
+    expect(reapplied.body.idempotent).toBe(true);
+
+    const dbTodosAfterReapply = await prisma.todo.findMany({
+      where: { userId: me.body.id, category: "AI Plan" },
+    });
+    expect(dbTodosAfterReapply).toHaveLength(3);
   });
 
   it("returns usage summary and enforces per-day quota", async () => {
@@ -178,9 +184,73 @@ describe("AI API Integration", () => {
       .expect(200);
     expect(usage.body).toEqual(
       expect.objectContaining({
+        plan: "free",
         used: 1,
         remaining: 0,
         limit: 1,
+      }),
+    );
+  });
+
+  it("uses plan-specific limits for pro users", async () => {
+    const todoService = new PrismaTodoService(prisma);
+    const authService = new AuthService(prisma);
+    const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
+    const planLimitedApp = createApp(
+      todoService,
+      authService,
+      aiSuggestionStore,
+      undefined,
+      undefined,
+      {
+        free: 1,
+        pro: 2,
+        team: 3,
+      },
+    );
+
+    const register = await request(planLimitedApp).post("/auth/register").send({
+      email: "pro-limit@example.com",
+      password: "password123",
+      name: "Pro Limit",
+    });
+    const token = register.body.token as string;
+    const userId = register.body.user.id as string;
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { plan: "pro" },
+    });
+
+    await request(planLimitedApp)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "pro request 1" })
+      .expect(200);
+
+    await request(planLimitedApp)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "pro request 2" })
+      .expect(200);
+
+    await request(planLimitedApp)
+      .post("/ai/plan-from-goal")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ goal: "pro request 3", maxTasks: 3 })
+      .expect(429);
+
+    const usage = await request(planLimitedApp)
+      .get("/ai/usage")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+
+    expect(usage.body).toEqual(
+      expect.objectContaining({
+        plan: "pro",
+        used: 2,
+        remaining: 0,
+        limit: 2,
       }),
     );
   });

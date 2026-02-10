@@ -139,6 +139,7 @@ describe("API Contract", () => {
 
       expect(response.body).toEqual(
         expect.objectContaining({
+          plan: "free",
           used: expect.any(Number),
           remaining: expect.any(Number),
           limit: expect.any(Number),
@@ -238,9 +239,21 @@ describe("API Contract", () => {
       expect(applied.body.todos).toHaveLength(3);
       expect(applied.body.suggestion.status).toBe("accepted");
       expect(applied.body.todos[0].category).toBe("AI Plan");
+      expect(applied.body.idempotent).toBe(false);
 
       const todos = await request(app).get("/todos").expect(200);
       expect(todos.body).toHaveLength(3);
+
+      const appliedAgain = await request(app)
+        .post(`/ai/suggestions/${suggestionId}/apply`)
+        .expect(200);
+      expect(appliedAgain.body.idempotent).toBe(true);
+      expect(appliedAgain.body.createdCount).toBe(3);
+
+      const todosAfterSecondApply = await request(app)
+        .get("/todos")
+        .expect(200);
+      expect(todosAfterSecondApply.body).toHaveLength(3);
     });
 
     it("prevents applying rejected suggestions", async () => {
@@ -285,6 +298,7 @@ describe("API Contract", () => {
       expect(blocked.body.error).toBe("Daily AI suggestion limit reached");
       expect(blocked.body.usage).toEqual(
         expect.objectContaining({
+          plan: "free",
           used: 1,
           remaining: 0,
           limit: 1,
