@@ -1129,6 +1129,13 @@ async function updateSuggestionStatus(suggestionId, status, reason = null) {
   }
 }
 
+function getFeedbackReason(inputId, fallbackReason) {
+  const input = document.getElementById(inputId);
+  if (!input) return fallbackReason;
+  const raw = String(input.value || "").trim();
+  return raw || fallbackReason;
+}
+
 function renderCritiquePanel() {
   const panel = document.getElementById("aiCritiquePanel");
   if (!panel) return;
@@ -1161,6 +1168,21 @@ function renderCritiquePanel() {
           .map((item) => `<li>${escapeHtml(item)}</li>`)
           .join("")}
       </ul>
+      <input
+        id="critiqueFeedbackReasonInput"
+        type="text"
+        maxlength="300"
+        placeholder="Feedback reason (optional): e.g., too generic, very actionable"
+        style="
+          width: 100%;
+          margin-bottom: 8px;
+          padding: 8px;
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          background: var(--card-bg);
+          color: var(--text-primary);
+        "
+      />
       <div style="display: flex; gap: 8px;">
         <button class="add-btn" data-onclick="applyCritiqueSuggestion()">Apply Suggestion</button>
         <button class="add-btn" style="background: #64748b" data-onclick="dismissCritiqueSuggestion()">Dismiss</button>
@@ -1200,6 +1222,21 @@ function renderPlanPanel() {
           )
           .join("")}
       </ol>
+      <input
+        id="planFeedbackReasonInput"
+        type="text"
+        maxlength="300"
+        placeholder="Feedback reason (optional): why you accepted/rejected this plan"
+        style="
+          width: 100%;
+          margin-bottom: 8px;
+          padding: 8px;
+          border: 1px solid var(--border-color);
+          border-radius: 6px;
+          background: var(--card-bg);
+          color: var(--text-primary);
+        "
+      />
       <div style="display: flex; gap: 8px;">
         <button class="add-btn" data-onclick="addPlanTasksToTodos()">Add Plan Tasks</button>
         <button class="add-btn" style="background: #64748b" data-onclick="dismissPlanSuggestion()">Dismiss</button>
@@ -1290,7 +1327,7 @@ async function applyCritiqueSuggestion() {
   await updateSuggestionStatus(
     latestCritiqueSuggestionId,
     "accepted",
-    "Applied to draft",
+    getFeedbackReason("critiqueFeedbackReasonInput", "Applied to draft"),
   );
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
@@ -1302,7 +1339,10 @@ async function dismissCritiqueSuggestion() {
   await updateSuggestionStatus(
     latestCritiqueSuggestionId,
     "rejected",
-    "Not useful for current context",
+    getFeedbackReason(
+      "critiqueFeedbackReasonInput",
+      "Not useful for current context",
+    ),
   );
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
@@ -1380,6 +1420,13 @@ async function addPlanTasksToTodos() {
       `${API_URL}/ai/suggestions/${latestPlanSuggestionId}/apply`,
       {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reason: getFeedbackReason(
+            "planFeedbackReasonInput",
+            "Plan tasks were added",
+          ),
+        }),
       },
     );
 
@@ -1419,7 +1466,10 @@ async function dismissPlanSuggestion() {
   await updateSuggestionStatus(
     latestPlanSuggestionId,
     "rejected",
-    "Plan did not match intended approach",
+    getFeedbackReason(
+      "planFeedbackReasonInput",
+      "Plan did not match intended approach",
+    ),
   );
   latestPlanSuggestionId = null;
   latestPlanResult = null;

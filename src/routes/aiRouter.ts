@@ -5,6 +5,7 @@ import {
   InMemoryAiSuggestionStore,
 } from "../aiSuggestionStore";
 import {
+  validateApplySuggestionInput,
   validateCritiqueTaskInput,
   validateFeedbackSummaryQuery,
   validateInsightsQuery,
@@ -531,6 +532,7 @@ export function createAiRouter({
 
         const id = String(req.params.id);
         validateId(id);
+        const { reason } = validateApplySuggestionInput(req.body);
 
         const suggestion = await suggestionStore.getById(userId, id);
         if (!suggestion) {
@@ -592,7 +594,7 @@ export function createAiRouter({
           id,
           createdIds,
           {
-            reason: "applied_via_endpoint",
+            reason: reason || "applied_via_endpoint",
             source: "apply_endpoint",
             updatedAt: new Date().toISOString(),
           },
