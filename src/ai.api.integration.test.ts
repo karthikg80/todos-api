@@ -118,10 +118,17 @@ describe("AI API Integration", () => {
     const applyResponse = await request(app)
       .post(`/ai/suggestions/${suggestionId}/apply`)
       .set("Authorization", `Bearer ${authToken}`)
+      .send({ reason: "Plan tasks were concrete and helpful" })
       .expect(200);
 
     expect(applyResponse.body.createdCount).toBe(3);
     expect(applyResponse.body.suggestion.status).toBe("accepted");
+    expect(applyResponse.body.suggestion.feedback).toEqual(
+      expect.objectContaining({
+        reason: "Plan tasks were concrete and helpful",
+        source: "apply_endpoint",
+      }),
+    );
     expect(applyResponse.body.todos).toHaveLength(3);
 
     const me = await request(app)
@@ -319,6 +326,24 @@ describe("AI API Integration", () => {
     await request(app)
       .get("/ai/feedback-summary?reasonLimit=200")
       .set("Authorization", `Bearer ${authToken}`)
+      .expect(400);
+  });
+
+  it("validates apply suggestion reason payload", async () => {
+    const planResponse = await request(app)
+      .post("/ai/plan-from-goal")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        goal: "Ship AI planner",
+        maxTasks: 3,
+      })
+      .expect(200);
+
+    const suggestionId = planResponse.body.suggestionId as string;
+    await request(app)
+      .post(`/ai/suggestions/${suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ reason: 123 })
       .expect(400);
   });
 

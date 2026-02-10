@@ -149,6 +149,32 @@ export function validateSuggestionStatusInput(data: any): {
   return { status: normalized, reason };
 }
 
+export function validateApplySuggestionInput(data: any): {
+  reason?: string;
+} {
+  if (data === undefined || data === null) {
+    return {};
+  }
+  if (typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  let reason: string | undefined;
+  if ((data as Record<string, unknown>).reason !== undefined) {
+    const raw = (data as Record<string, unknown>).reason;
+    if (typeof raw !== "string") {
+      throw new ValidationError("reason must be a string");
+    }
+    const trimmed = raw.trim();
+    if (trimmed.length > 300) {
+      throw new ValidationError("reason cannot exceed 300 characters");
+    }
+    reason = trimmed || undefined;
+  }
+
+  return { reason };
+}
+
 export function validateFeedbackSummaryQuery(query: any): {
   days: number;
   reasonLimit: number;

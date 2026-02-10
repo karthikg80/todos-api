@@ -338,12 +338,19 @@ describe("API Contract", () => {
 
       const applied = await request(app)
         .post(`/ai/suggestions/${suggestionId}/apply`)
+        .send({ reason: "Plan matched my execution approach" })
         .expect(200);
 
       expect(applied.body.createdCount).toBe(3);
       expect(Array.isArray(applied.body.todos)).toBe(true);
       expect(applied.body.todos).toHaveLength(3);
       expect(applied.body.suggestion.status).toBe("accepted");
+      expect(applied.body.suggestion.feedback).toEqual(
+        expect.objectContaining({
+          reason: "Plan matched my execution approach",
+          source: "apply_endpoint",
+        }),
+      );
       expect(applied.body.todos[0].category).toBe("AI Plan");
       expect(applied.body.idempotent).toBe(false);
 
