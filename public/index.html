@@ -449,6 +449,30 @@
                 Generate Plan
               </button>
             </div>
+            <div class="ai-brain-dump">
+              <label for="brainDumpInput">Brain dump</label>
+              <textarea
+                id="brainDumpInput"
+                class="ai-brain-dump-input"
+                maxlength="8000"
+                placeholder="Paste rough thoughts, constraints, and goals. Example: Launch beta by June, finalize onboarding copy, coordinate QA, prep support docs."
+              ></textarea>
+              <div class="ai-brain-dump-actions">
+                <button
+                  id="brainDumpPlanButton"
+                  class="add-btn"
+                  data-onclick="draftPlanFromBrainDumpWithAi()"
+                >
+                  Draft tasks from brain dump
+                </button>
+                <button class="mini-btn" data-onclick="clearBrainDumpInput()">
+                  Clear
+                </button>
+              </div>
+              <div class="ai-brain-dump-helper">
+                We'll draft tasks - you can edit before applying.
+              </div>
+            </div>
             <div
               id="aiCritiquePanel"
               style="display: none; margin-top: 12px"
