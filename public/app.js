@@ -1685,79 +1685,113 @@ function renderTodos() {
   }
 
   const filteredTodos = filterTodosList(todos);
+  const categorizedTodos = [...filteredTodos].sort((a, b) => {
+    const categoryA = String(a.category || "Uncategorized");
+    const categoryB = String(b.category || "Uncategorized");
+    const categoryCompare = categoryA.localeCompare(categoryB);
+    if (categoryCompare !== 0) return categoryCompare;
+    return (a.order || 0) - (b.order || 0);
+  });
+  const categoryStats = new Map();
+  for (const todo of categorizedTodos) {
+    const key = String(todo.category || "Uncategorized");
+    const stats = categoryStats.get(key) || { total: 0, done: 0 };
+    stats.total += 1;
+    if (todo.completed) {
+      stats.done += 1;
+    }
+    categoryStats.set(key, stats);
+  }
+
+  let activeCategory = "";
+  const rows = categorizedTodos
+    .map((todo, index) => {
+      const categoryLabel = String(todo.category || "Uncategorized");
+      const categoryChanged = categoryLabel !== activeCategory;
+      if (categoryChanged) {
+        activeCategory = categoryLabel;
+      }
+      const stats = categoryStats.get(categoryLabel) || { total: 0, done: 0 };
+      const categoryHeader = categoryChanged
+        ? `
+          <li class="todo-group-header">
+            <span>📁 ${escapeHtml(categoryLabel)}</span>
+            <span>${stats.done}/${stats.total} done</span>
+          </li>
+        `
+        : "";
+
+      const isOverdue =
+        todo.dueDate && !todo.completed && new Date(todo.dueDate) < new Date();
+      const dueDateStr = todo.dueDate
+        ? new Date(todo.dueDate).toLocaleString()
+        : "";
+      const isSelected = selectedTodos.has(todo.id);
+
+      return `
+        ${categoryHeader}
+        <li class="todo-item ${todo.completed ? "completed" : ""}"
+            draggable="true"
+            data-todo-id="${todo.id}"
+            data-ondragstart="handleDragStart(event)"
+            data-ondragover="handleDragOver(event)"
+            data-ondrop="handleDrop(event)"
+            data-ondragend="handleDragEnd(event)">
+            <input
+                type="checkbox"
+                class="bulk-checkbox"
+                aria-label="Select todo ${escapeHtml(todo.title)}"
+                ${isSelected ? "checked" : ""}
+                data-onchange="toggleSelectTodo('${todo.id}')"
+                data-onclick="event.stopPropagation()"
+            >
+            <span class="drag-handle">⋮⋮</span>
+            <input
+                type="checkbox"
+                class="todo-checkbox"
+                aria-label="Mark todo ${escapeHtml(todo.title)} complete"
+                ${todo.completed ? "checked" : ""}
+                data-onchange="toggleTodo('${todo.id}')"
+            >
+            <div class="todo-content" style="flex: 1;">
+                <div class="todo-title">${escapeHtml(todo.title)}</div>
+                ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
+                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
+                    ${getPriorityIcon(todo.priority)} <span class="priority-badge ${todo.priority}">${todo.priority.toUpperCase()}</span>
+                    ${todo.category ? `<span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">🏷️ ${escapeHtml(todo.category)}</span>` : ""}
+                    ${todo.dueDate ? `<span style="background: ${isOverdue ? "#ff4757" : "#48dbfb"}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? "⚠️" : "📅"} ${dueDateStr}</span>` : ""}
+                </div>
+                ${todo.subtasks && todo.subtasks.length > 0 ? renderSubtasks(todo) : ""}
+                ${
+                  todo.notes && todo.notes.trim()
+                    ? `
+                    <div class="notes-section">
+                        <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
+                            <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
+                            <span>📝 Notes</span>
+                        </button>
+                        <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
+                            ${escapeHtml(String(todo.notes))}
+                        </div>
+                    </div>
+                `
+                    : ""
+                }
+                <div style="margin-top: 8px;">
+                    <button class="add-btn" style="background: #0f766e; padding: 8px 12px; font-size: 0.85em; width: auto;" data-onclick="aiBreakdownTodo('${todo.id}')">
+                        AI Break Down Into Subtasks
+                    </button>
+                </div>
+            </div>
+            <button class="delete-btn" data-onclick="deleteTodo('${todo.id}')">Delete</button>
+        </li>
+      `;
+    })
+    .join("");
 
   container.innerHTML = `
                 <ul class="todos-list">
-                    ${filteredTodos
-                      .map((todo, index) => {
-                        const isOverdue =
-                          todo.dueDate &&
-                          !todo.completed &&
-                          new Date(todo.dueDate) < new Date();
-                        const dueDateStr = todo.dueDate
-                          ? new Date(todo.dueDate).toLocaleString()
-                          : "";
-                        const isSelected = selectedTodos.has(todo.id);
-
-                        return `
-                        <li class="todo-item ${todo.completed ? "completed" : ""}"
-                            draggable="true"
-                            data-todo-id="${todo.id}"
-                            data-ondragstart="handleDragStart(event)"
-                            data-ondragover="handleDragOver(event)"
-                            data-ondrop="handleDrop(event)"
-                            data-ondragend="handleDragEnd(event)">
-                            <input
-                                type="checkbox"
-                                class="bulk-checkbox"
-                                aria-label="Select todo ${escapeHtml(todo.title)}"
-                                ${isSelected ? "checked" : ""}
-                                data-onchange="toggleSelectTodo('${todo.id}')"
-                                data-onclick="event.stopPropagation()"
-                            >
-                            <span class="drag-handle">⋮⋮</span>
-                            <input
-                                type="checkbox"
-                                class="todo-checkbox"
-                                aria-label="Mark todo ${escapeHtml(todo.title)} complete"
-                                ${todo.completed ? "checked" : ""}
-                                data-onchange="toggleTodo('${todo.id}')"
-                            >
-                            <div class="todo-content" style="flex: 1;">
-                                <div class="todo-title">${escapeHtml(todo.title)}</div>
-                                ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
-                                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
-                                    ${getPriorityIcon(todo.priority)} <span class="priority-badge ${todo.priority}">${todo.priority.toUpperCase()}</span>
-                                    ${todo.category ? `<span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">🏷️ ${escapeHtml(todo.category)}</span>` : ""}
-                                    ${todo.dueDate ? `<span style="background: ${isOverdue ? "#ff4757" : "#48dbfb"}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? "⚠️" : "📅"} ${dueDateStr}</span>` : ""}
-                                </div>
-                                ${todo.subtasks && todo.subtasks.length > 0 ? renderSubtasks(todo) : ""}
-                                ${
-                                  todo.notes && todo.notes.trim()
-                                    ? `
-                                    <div class="notes-section">
-                                        <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
-                                            <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
-                                            <span>📝 Notes</span>
-                                        </button>
-                                        <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
-                                            ${escapeHtml(String(todo.notes))}
-                                        </div>
-                                    </div>
-                                `
-                                    : ""
-                                }
-                                <div style="margin-top: 8px;">
-                                    <button class="add-btn" style="background: #0f766e; padding: 8px 12px; font-size: 0.85em; width: auto;" data-onclick="aiBreakdownTodo('${todo.id}')">
-                                        AI Break Down Into Subtasks
-                                    </button>
-                                </div>
-                            </div>
-                            <button class="delete-btn" data-onclick="deleteTodo('${todo.id}')">Delete</button>
-                        </li>
-                    `;
-                      })
-                      .join("")}
+                    ${rows}
                 </ul>
             `;
 
