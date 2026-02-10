@@ -32,6 +32,13 @@ const smtpUser = (process.env.SMTP_USER || "").trim();
 const smtpPass = (process.env.SMTP_PASS || "").trim();
 const smtpFrom = (process.env.SMTP_FROM || "").trim();
 const baseUrl = (process.env.BASE_URL || "").trim();
+const aiProviderEnabled =
+  (process.env.AI_PROVIDER_ENABLED || "false").toLowerCase() === "true";
+const aiProviderBaseUrl = (
+  process.env.AI_PROVIDER_BASE_URL || "https://api.openai.com/v1"
+).trim();
+const aiProviderApiKey = (process.env.AI_PROVIDER_API_KEY || "").trim();
+const aiProviderModel = (process.env.AI_PROVIDER_MODEL || "gpt-4o-mini").trim();
 
 if (nodeEnv === "production") {
   if (!databaseUrl) {
@@ -104,4 +111,8 @@ export const config = {
   smtpPass,
   smtpFrom,
   baseUrl: baseUrl || "http://localhost:3000",
+  aiProviderEnabled,
+  aiProviderBaseUrl,
+  aiProviderApiKey,
+  aiProviderModel,
 };

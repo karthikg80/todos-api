@@ -234,6 +234,11 @@ let authToken = null;
 let refreshToken = null;
 let todos = [];
 let users = [];
+let aiSuggestions = [];
+let latestCritiqueSuggestionId = null;
+let latestCritiqueResult = null;
+let latestPlanSuggestionId = null;
+let latestPlanResult = null;
 let adminBootstrapAvailable = false;
 const {
   AUTH_STATE,
@@ -859,6 +864,313 @@ async function loadTodos() {
     updateCategoryFilter();
     console.error("Load todos error:", error);
   }
+}
+
+async function loadAiSuggestions() {
+  try {
+    const response = await apiCall(`${API_URL}/ai/suggestions?limit=8`);
+    if (!response || !response.ok) {
+      aiSuggestions = [];
+      renderAiSuggestionHistory();
+      return;
+    }
+
+    aiSuggestions = await response.json();
+    renderAiSuggestionHistory();
+  } catch (error) {
+    console.error("Load AI suggestions error:", error);
+    aiSuggestions = [];
+    renderAiSuggestionHistory();
+  }
+}
+
+function renderAiSuggestionHistory() {
+  const container = document.getElementById("aiSuggestionHistory");
+  if (!container) return;
+
+  if (!aiSuggestions.length) {
+    container.innerHTML = "";
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">
+      Recent AI suggestions
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+      ${aiSuggestions
+        .map(
+          (suggestion) => `
+        <span style="
+          font-size: 0.8rem;
+          padding: 4px 8px;
+          border-radius: 999px;
+          border: 1px solid var(--border-color);
+          background: var(--input-bg);
+        ">
+          ${escapeHtml(suggestion.type)}: ${escapeHtml(suggestion.status)}
+        </span>
+      `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+async function updateSuggestionStatus(suggestionId, status) {
+  if (!suggestionId) return;
+  try {
+    await apiCall(`${API_URL}/ai/suggestions/${suggestionId}/status`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+    await loadAiSuggestions();
+  } catch (error) {
+    console.error("Update suggestion status error:", error);
+  }
+}
+
+function renderCritiquePanel() {
+  const panel = document.getElementById("aiCritiquePanel");
+  if (!panel) return;
+
+  if (!latestCritiqueResult) {
+    panel.style.display = "none";
+    panel.innerHTML = "";
+    return;
+  }
+
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <div style="
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--input-bg);
+    ">
+      <div style="font-weight: 600; margin-bottom: 6px;">
+        Task Critique Score: ${latestCritiqueResult.qualityScore}/100
+      </div>
+      <div><strong>Suggested title:</strong> ${escapeHtml(latestCritiqueResult.improvedTitle)}</div>
+      ${
+        latestCritiqueResult.improvedDescription
+          ? `<div style="margin-top: 4px;"><strong>Suggested description:</strong> ${escapeHtml(latestCritiqueResult.improvedDescription)}</div>`
+          : ""
+      }
+      <ul style="margin: 8px 0 10px 18px;">
+        ${latestCritiqueResult.suggestions
+          .map((item) => `<li>${escapeHtml(item)}</li>`)
+          .join("")}
+      </ul>
+      <div style="display: flex; gap: 8px;">
+        <button class="add-btn" data-onclick="applyCritiqueSuggestion()">Apply Suggestion</button>
+        <button class="add-btn" style="background: #64748b" data-onclick="dismissCritiqueSuggestion()">Dismiss</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderPlanPanel() {
+  const panel = document.getElementById("aiPlanPanel");
+  if (!panel) return;
+
+  if (!latestPlanResult) {
+    panel.style.display = "none";
+    panel.innerHTML = "";
+    return;
+  }
+
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <div style="
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px;
+      background: var(--input-bg);
+    ">
+      <div style="font-weight: 600; margin-bottom: 6px;">${escapeHtml(latestPlanResult.summary)}</div>
+      <ol style="margin: 8px 0 10px 18px;">
+        ${latestPlanResult.tasks
+          .map(
+            (task) => `
+          <li style="margin-bottom: 6px;">
+            <strong>${escapeHtml(task.title)}</strong><br />
+            <span style="font-size: 0.9rem;">${escapeHtml(task.description)}</span>
+          </li>
+        `,
+          )
+          .join("")}
+      </ol>
+      <div style="display: flex; gap: 8px;">
+        <button class="add-btn" data-onclick="addPlanTasksToTodos()">Add Plan Tasks</button>
+        <button class="add-btn" style="background: #64748b" data-onclick="dismissPlanSuggestion()">Dismiss</button>
+      </div>
+    </div>
+  `;
+}
+
+async function critiqueDraftWithAi() {
+  const input = document.getElementById("todoInput");
+  const categoryInput = document.getElementById("todoCategoryInput");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const notesInput = document.getElementById("todoNotesInput");
+
+  const title = input.value.trim();
+  if (!title) {
+    showMessage("todosMessage", "Add a title before running AI critique", "error");
+    return;
+  }
+
+  try {
+    const response = await apiCall(`${API_URL}/ai/task-critic`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        description:
+          notesInput.value.trim() ||
+          categoryInput.value.trim() ||
+          undefined,
+        dueDate: dueDateInput.value
+          ? new Date(dueDateInput.value).toISOString()
+          : undefined,
+        priority: currentPriority,
+      }),
+    });
+
+    const data = response ? await parseApiBody(response) : {};
+    if (response && response.ok) {
+      latestCritiqueSuggestionId = data.suggestionId;
+      latestCritiqueResult = data;
+      renderCritiquePanel();
+      showMessage(
+        "todosMessage",
+        `AI critique ready (${data.qualityScore}/100). Review and apply if useful.`,
+        "success",
+      );
+      await loadAiSuggestions();
+      return;
+    }
+
+    showMessage("todosMessage", data.error || "AI critique failed", "error");
+  } catch (error) {
+    console.error("Critique draft error:", error);
+    showMessage("todosMessage", "Failed to run AI critique", "error");
+  }
+}
+
+async function applyCritiqueSuggestion() {
+  if (!latestCritiqueResult) return;
+
+  const input = document.getElementById("todoInput");
+  const notesInput = document.getElementById("todoNotesInput");
+  const notesIcon = document.getElementById("notesExpandIcon");
+  input.value = latestCritiqueResult.improvedTitle || input.value;
+
+  if (
+    latestCritiqueResult.improvedDescription &&
+    !notesInput.value.trim()
+  ) {
+    notesInput.value = latestCritiqueResult.improvedDescription;
+    notesInput.style.display = "block";
+    notesIcon.classList.add("expanded");
+  }
+
+  await updateSuggestionStatus(latestCritiqueSuggestionId, "accepted");
+  latestCritiqueSuggestionId = null;
+  latestCritiqueResult = null;
+  renderCritiquePanel();
+  showMessage("todosMessage", "AI suggestion applied to draft", "success");
+}
+
+async function dismissCritiqueSuggestion() {
+  await updateSuggestionStatus(latestCritiqueSuggestionId, "rejected");
+  latestCritiqueSuggestionId = null;
+  latestCritiqueResult = null;
+  renderCritiquePanel();
+}
+
+async function generatePlanWithAi() {
+  const goalInput = document.getElementById("goalInput");
+  const targetDateInput = document.getElementById("goalTargetDateInput");
+
+  const goal = goalInput.value.trim();
+  if (!goal) {
+    showMessage("todosMessage", "Enter a goal to generate a plan", "error");
+    return;
+  }
+
+  try {
+    const response = await apiCall(`${API_URL}/ai/plan-from-goal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        goal,
+        targetDate: targetDateInput.value
+          ? new Date(targetDateInput.value).toISOString()
+          : undefined,
+        maxTasks: 5,
+      }),
+    });
+
+    const data = response ? await parseApiBody(response) : {};
+    if (response && response.ok) {
+      latestPlanSuggestionId = data.suggestionId;
+      latestPlanResult = data;
+      renderPlanPanel();
+      showMessage("todosMessage", "AI plan generated. Review and add tasks.", "success");
+      await loadAiSuggestions();
+      return;
+    }
+
+    showMessage("todosMessage", data.error || "AI plan generation failed", "error");
+  } catch (error) {
+    console.error("Generate plan error:", error);
+    showMessage("todosMessage", "Failed to generate AI plan", "error");
+  }
+}
+
+async function addPlanTasksToTodos() {
+  if (!latestPlanResult || !Array.isArray(latestPlanResult.tasks)) {
+    return;
+  }
+
+  let created = 0;
+  for (const task of latestPlanResult.tasks) {
+    try {
+      const response = await apiCall(`${API_URL}/todos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: task.title,
+          description: task.description,
+          priority: task.priority || "medium",
+          dueDate: task.dueDate || undefined,
+          category: "AI Plan",
+        }),
+      });
+      if (response && response.ok) {
+        created += 1;
+      }
+    } catch (error) {
+      console.error("Create planned task error:", error);
+    }
+  }
+
+  await updateSuggestionStatus(latestPlanSuggestionId, "accepted");
+  latestPlanSuggestionId = null;
+  latestPlanResult = null;
+  renderPlanPanel();
+  await loadTodos();
+  showMessage("todosMessage", `Added ${created} AI-planned tasks`, "success");
+}
+
+async function dismissPlanSuggestion() {
+  await updateSuggestionStatus(latestPlanSuggestionId, "rejected");
+  latestPlanSuggestionId = null;
+  latestPlanResult = null;
+  renderPlanPanel();
 }
 
 // Add todo
@@ -1811,6 +2123,7 @@ function switchView(view, triggerEl = null) {
 
   if (view === "todos") {
     loadTodos();
+    loadAiSuggestions();
   } else if (view === "profile") {
     updateUserDisplay();
   } else if (view === "admin") {
@@ -1887,6 +2200,11 @@ async function logout() {
   setAuthState(AUTH_STATE.UNAUTHENTICATED);
   persistSession({ authToken, refreshToken, currentUser });
   todos = [];
+  aiSuggestions = [];
+  latestCritiqueSuggestionId = null;
+  latestCritiqueResult = null;
+  latestPlanSuggestionId = null;
+  latestPlanResult = null;
   showAuthView();
 }
 
@@ -1903,6 +2221,7 @@ function showAppView() {
   renderTodos();
   updateCategoryFilter();
   loadTodos();
+  loadAiSuggestions();
 }
 
 // Show auth view

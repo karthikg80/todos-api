@@ -3,12 +3,14 @@ import { PrismaTodoService } from "./prismaTodoService";
 import { AuthService } from "./authService";
 import { prisma, disconnectPrisma } from "./prismaClient";
 import { config } from "./config";
+import { PrismaAiSuggestionStore } from "./aiSuggestionStore";
 
 const PORT = config.port;
 
 const todoService = new PrismaTodoService(prisma);
 const authService = new AuthService(prisma);
-const app = createApp(todoService, authService);
+const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
+const app = createApp(todoService, authService, aiSuggestionStore);
 
 const server = app.listen(PORT, () => {
   console.log(`Todos API server running on port ${PORT}`);

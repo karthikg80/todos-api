@@ -213,6 +213,8 @@
 
         <!-- Todos View -->
         <div id="todosView" class="view">
+          <div class="message" id="todosMessage"></div>
+
           <!-- Search Bar -->
           <div class="search-bar">
             <label for="searchInput" class="sr-only">Search todos</label>
@@ -375,6 +377,13 @@
               </div>
               <button
                 class="add-btn"
+                data-onclick="critiqueDraftWithAi()"
+                style="background: #334155"
+              >
+                Critique Draft (AI)
+              </button>
+              <button
+                class="add-btn"
                 data-onclick="addTodo()"
                 style="margin-left: auto"
               >
@@ -394,6 +403,55 @@
                 style="display: none; margin-top: 8px"
               ></textarea>
             </div>
+          </div>
+
+          <div
+            style="
+              margin-top: 16px;
+              padding: 12px;
+              border: 1px solid var(--border-color);
+              border-radius: 10px;
+              background: var(--card-bg);
+            "
+          >
+            <div style="font-weight: 600; margin-bottom: 10px">
+              AI Goal Planner
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+              <input
+                type="text"
+                id="goalInput"
+                placeholder="Describe an outcome (e.g., Launch onboarding revamp)"
+                style="
+                  flex: 2;
+                  min-width: 260px;
+                  padding: 10px;
+                  border: 2px solid var(--border-color);
+                  border-radius: 8px;
+                  background: var(--input-bg);
+                  color: var(--text-primary);
+                "
+              />
+              <input
+                type="datetime-local"
+                id="goalTargetDateInput"
+                style="
+                  flex: 1;
+                  min-width: 200px;
+                  padding: 10px;
+                  border: 2px solid var(--border-color);
+                  border-radius: 8px;
+                  background: var(--input-bg);
+                  color: var(--text-primary);
+                "
+              />
+              <button class="add-btn" data-onclick="generatePlanWithAi()">
+                Generate Plan
+              </button>
+            </div>
+            <div id="aiCritiquePanel" style="display: none; margin-top: 12px"></div>
+            <div id="aiPlanPanel" style="display: none; margin-top: 12px"></div>
+            <div id="aiSuggestionHistory" style="margin-top: 12px"></div>
           </div>
 
           <div id="todosContent">
