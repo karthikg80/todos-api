@@ -75,7 +75,13 @@
               </button>
             </div>
 
-            <div class="message" id="authMessage"></div>
+          <div
+            class="message"
+            id="authMessage"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></div>
 
             <!-- Login Form -->
             <form
@@ -213,7 +219,13 @@
 
         <!-- Todos View -->
         <div id="todosView" class="view">
-          <div class="message" id="todosMessage"></div>
+          <div
+            class="message"
+            id="todosMessage"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></div>
 
           <!-- Search Bar -->
           <div class="search-bar">
@@ -429,7 +441,11 @@
                 placeholder="Describe an outcome (e.g., Launch onboarding revamp)"
               />
               <input type="datetime-local" id="goalTargetDateInput" />
-              <button class="add-btn" data-onclick="generatePlanWithAi()">
+              <button
+                id="generatePlanButton"
+                class="add-btn"
+                data-onclick="generatePlanWithAi()"
+              >
                 Generate Plan
               </button>
             </div>
@@ -454,9 +470,16 @@
             </div>
           </div>
 
-          <div id="editTodoModal" class="modal-overlay" style="display: none">
+          <div
+            id="editTodoModal"
+            class="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="editTodoModalTitle"
+            style="display: none"
+          >
             <div class="modal-card">
-              <h3>Edit Task</h3>
+              <h3 id="editTodoModalTitle">Edit Task</h3>
               <div class="form-group">
                 <label for="editTodoTitle">Title</label>
                 <input type="text" id="editTodoTitle" maxlength="200" />
@@ -511,7 +534,13 @@
 
         <!-- Profile View -->
         <div id="profileView" class="view">
-          <div class="message" id="profileMessage"></div>
+          <div
+            class="message"
+            id="profileMessage"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></div>
 
           <!-- Email Verification Banner -->
           <div
@@ -624,7 +653,13 @@
 
         <!-- Admin View -->
         <div id="adminView" class="view">
-          <div class="message" id="adminMessage"></div>
+          <div
+            class="message"
+            id="adminMessage"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          ></div>
           <h2>User Management</h2>
           <div id="adminContent">
             <div class="loading">
