@@ -16,10 +16,15 @@ import { createTodosRouter } from "./routes/todosRouter";
 import { createAuthRouter } from "./routes/authRouter";
 import { createAdminRouter } from "./routes/adminRouter";
 import { createUsersRouter } from "./routes/usersRouter";
+import { createAiRouter } from "./routes/aiRouter";
+import { IAiSuggestionStore } from "./aiSuggestionStore";
+import { AiPlannerService } from "./aiService";
 
 export function createApp(
   todoService: ITodoService = new TodoService(),
   authService?: AuthService,
+  aiSuggestionStore?: IAiSuggestionStore,
+  aiPlannerService?: AiPlannerService,
 ) {
   const app = express();
 
@@ -32,6 +37,19 @@ export function createApp(
   };
 
   const resolveTodoUserId = (req: Request, res: Response): string | null => {
+    if (authService) {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ error: "Unauthorized" });
+        return null;
+      }
+      return userId;
+    }
+
+    return req.user?.userId || "default-user";
+  };
+
+  const resolveAiUserId = (req: Request, res: Response): string | null => {
     if (authService) {
       const userId = req.user?.userId;
       if (!userId) {
@@ -99,35 +117,41 @@ export function createApp(
   });
 
   const isTest = process.env.NODE_ENV === "test";
-  const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 5,
-    skip: () => isTest,
-    message: "Too many authentication attempts, please try again later",
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  const noLimit: RequestHandler = (_req, _res, next) => next();
+  const authLimiter = isTest
+    ? noLimit
+    : rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        message: "Too many authentication attempts, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
 
-  const emailActionLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 20,
-    skip: () => isTest,
-    message: "Too many email actions, please try again later",
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  const emailActionLimiter = isTest
+    ? noLimit
+    : rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 20,
+        message: "Too many email actions, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
 
-  const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
-    message: "Too many requests, please try again later",
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  const apiLimiter = isTest
+    ? noLimit
+    : rateLimit({
+        windowMs: 15 * 60 * 1000,
+        max: 100,
+        message: "Too many requests, please try again later",
+        standardHeaders: true,
+        legacyHeaders: false,
+      });
 
   app.use("/api", apiLimiter);
   app.use("/todos", apiLimiter);
   app.use("/users", apiLimiter);
+  app.use("/ai", apiLimiter);
 
   app.use(
     "/auth",
@@ -142,6 +166,7 @@ export function createApp(
   if (authService) {
     app.use("/todos", authMiddleware(authService));
     app.use("/users", authMiddleware(authService));
+    app.use("/ai", authMiddleware(authService));
     app.use(
       "/admin",
       authMiddleware(authService),
@@ -152,6 +177,14 @@ export function createApp(
   app.use("/admin", createAdminRouter({ authService, hasPrismaCode }));
   app.use("/users", createUsersRouter({ authService }));
   app.use("/todos", createTodosRouter({ todoService, resolveTodoUserId }));
+  app.use(
+    "/ai",
+    createAiRouter({
+      resolveAiUserId,
+      suggestionStore: aiSuggestionStore,
+      aiPlannerService,
+    }),
+  );
 
   app.use(errorHandler);
 

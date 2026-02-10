@@ -245,6 +245,10 @@ const options: swaggerJsdoc.Options = {
         name: "Todos",
         description: "Todo CRUD operations",
       },
+      {
+        name: "AI",
+        description: "AI-assisted planning and task quality endpoints",
+      },
     ],
   },
   apis: ["./src/app.ts", "./src/routes/*.ts"], // Path to API docs

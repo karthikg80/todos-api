@@ -123,5 +123,78 @@ describe("API Contract", () => {
         ]),
       );
     });
+
+    it("includes AI endpoints in the OpenAPI spec", async () => {
+      const response = await request(app).get("/api-docs.json").expect(200);
+
+      expect(response.body?.paths?.["/ai/task-critic"]?.post).toBeDefined();
+      expect(response.body?.paths?.["/ai/plan-from-goal"]?.post).toBeDefined();
+    });
+  });
+
+  describe("AI endpoints", () => {
+    it("returns critique suggestions for vague tasks", async () => {
+      const response = await request(app)
+        .post("/ai/task-critic")
+        .send({ title: "Docs" })
+        .expect(200);
+
+      expect(response.body.qualityScore).toBeLessThan(100);
+      expect(response.body.improvedTitle).toContain("Complete");
+      expect(Array.isArray(response.body.suggestions)).toBe(true);
+      expect(response.body.suggestions.length).toBeGreaterThan(0);
+      expect(response.body.suggestionId).toBeDefined();
+    });
+
+    it("validates task critic payload", async () => {
+      await request(app)
+        .post("/ai/task-critic")
+        .send({ title: "" })
+        .expect(400);
+    });
+
+    it("generates goal plan with configurable task count", async () => {
+      const response = await request(app)
+        .post("/ai/plan-from-goal")
+        .send({
+          goal: "Launch onboarding revamp",
+          maxTasks: 4,
+          targetDate: "2026-03-15T00:00:00.000Z",
+        })
+        .expect(200);
+
+      expect(response.body.goal).toBe("Launch onboarding revamp");
+      expect(response.body.tasks).toHaveLength(4);
+      expect(response.body.summary).toContain("4 steps");
+      expect(response.body.suggestionId).toBeDefined();
+    });
+
+    it("validates plan generator payload", async () => {
+      await request(app)
+        .post("/ai/plan-from-goal")
+        .send({ goal: "Growth push", maxTasks: 20 })
+        .expect(400);
+    });
+
+    it("lists and updates suggestion status", async () => {
+      const created = await request(app)
+        .post("/ai/task-critic")
+        .send({ title: "Improve docs" })
+        .expect(200);
+
+      const suggestionId = created.body.suggestionId as string;
+      expect(suggestionId).toBeDefined();
+
+      const list = await request(app).get("/ai/suggestions").expect(200);
+      expect(Array.isArray(list.body)).toBe(true);
+      expect(list.body[0].id).toBe(suggestionId);
+      expect(list.body[0].status).toBe("pending");
+
+      const updated = await request(app)
+        .put(`/ai/suggestions/${suggestionId}/status`)
+        .send({ status: "accepted" })
+        .expect(200);
+      expect(updated.body.status).toBe("accepted");
+    });
   });
 });

@@ -14,6 +14,7 @@ A production-ready REST API for managing todos with JWT auth, PostgreSQL persist
 - 🔄 Graceful shutdown handling
 - 🌍 Environment-based configuration (dev/test/prod)
 - 🔐 Refresh token rotation and auth route protection
+- 🤖 AI-assisted task critique and goal-to-plan suggestions
 
 ## Prerequisites
 
@@ -62,6 +63,7 @@ Production notes:
 - `ADMIN_BOOTSTRAP_SECRET` is optional, and enables first-admin provisioning from the Profile UI.
 - `DATABASE_URL` must be set in production.
 - If `EMAIL_FEATURES_ENABLED=true`, set `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`, and `BASE_URL`.
+- AI model integration is optional: set `AI_PROVIDER_ENABLED=true` and configure `AI_PROVIDER_API_KEY` to call a live provider.
 
 ### 3. Start Database
 

@@ -24,6 +24,17 @@ enum TodoPriority {
   high
 }
 
+enum AiSuggestionType {
+  task_critic
+  plan_from_goal
+}
+
+enum AiSuggestionStatus {
+  pending
+  accepted
+  rejected
+}
+
 model User {
   id                String         @id @default(uuid())
   email             String         @unique @db.VarChar(255)
@@ -39,6 +50,7 @@ model User {
 
   todos             Todo[]
   refreshTokens     RefreshToken[]
+  aiSuggestions     AiSuggestion[]
 
   @@map("users")
 }
@@ -93,4 +105,21 @@ model Subtask {
 
   @@map("subtasks")
   @@index([todoId, order])
+}
+
+model AiSuggestion {
+  id        String            @id @default(uuid())
+  userId    String            @map("user_id")
+  type      AiSuggestionType
+  input     Json
+  output    Json
+  status    AiSuggestionStatus @default(pending)
+  createdAt DateTime          @default(now()) @map("created_at")
+  updatedAt DateTime          @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ai_suggestions")
+  @@index([userId, createdAt])
+  @@index([userId, status])
 }
