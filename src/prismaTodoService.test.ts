@@ -114,6 +114,33 @@ describe("PrismaTodoService (Integration)", () => {
       expect(todos[1].id).toBe(todo2.id);
       expect(todos[2].id).toBe(todo3.id);
     });
+
+    it("should filter and paginate todos", async () => {
+      const first = await service.create(TEST_USER_ID, {
+        title: "Alpha",
+        priority: "low",
+      });
+      await service.create(TEST_USER_ID, { title: "Bravo", priority: "high" });
+      const third = await service.create(TEST_USER_ID, {
+        title: "Charlie",
+        priority: "low",
+      });
+
+      await service.update(TEST_USER_ID, first.id, { completed: true });
+      await service.update(TEST_USER_ID, third.id, { completed: true });
+
+      const todos = await service.findAll(TEST_USER_ID, {
+        completed: true,
+        priority: "low",
+        sortBy: "title",
+        sortOrder: "asc",
+        page: 2,
+        limit: 1,
+      });
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].title).toBe("Charlie");
+    });
   });
 
   describe("findById", () => {

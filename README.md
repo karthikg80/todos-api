@@ -149,6 +149,15 @@ Content-Type: application/json
 ```http
 GET /todos
 
+# Optional query parameters
+# completed=true|false
+# priority=low|medium|high
+# category=<exact-category-name>
+# sortBy=order|createdAt|updatedAt|dueDate|priority|title
+# sortOrder=asc|desc
+# page=<positive-integer>        # requires limit
+# limit=<1-100>
+
 # Response: 200 OK
 [
   {

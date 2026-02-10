@@ -267,6 +267,91 @@ describe("Authentication API", () => {
     });
   });
 
+  describe("Refresh token lifecycle", () => {
+    it("should reject refresh when refresh token is missing", async () => {
+      const response = await request(app)
+        .post("/auth/refresh")
+        .send({})
+        .expect(400);
+
+      expect(response.body.error).toBe("Refresh token required");
+    });
+
+    it("should rotate refresh token and invalidate the old one", async () => {
+      const register = await request(app).post("/auth/register").send({
+        email: "rotate@example.com",
+        password: "password123",
+      });
+
+      const firstRefreshToken = register.body.refreshToken as string;
+
+      const refreshResponse = await request(app)
+        .post("/auth/refresh")
+        .send({ refreshToken: firstRefreshToken })
+        .expect(200);
+
+      const secondRefreshToken = refreshResponse.body.refreshToken as string;
+      expect(secondRefreshToken).toBeDefined();
+      expect(secondRefreshToken).not.toBe(firstRefreshToken);
+
+      const reusedOldToken = await request(app)
+        .post("/auth/refresh")
+        .send({ refreshToken: firstRefreshToken })
+        .expect(401);
+
+      expect(reusedOldToken.body.error).toBe("Invalid refresh token");
+
+      await request(app)
+        .post("/auth/refresh")
+        .send({ refreshToken: secondRefreshToken })
+        .expect(200);
+    });
+
+    it("should revoke refresh token on logout", async () => {
+      const register = await request(app).post("/auth/register").send({
+        email: "logout-refresh@example.com",
+        password: "password123",
+      });
+
+      const refreshToken = register.body.refreshToken as string;
+      await request(app)
+        .post("/auth/logout")
+        .send({ refreshToken })
+        .expect(200);
+
+      const refreshAfterLogout = await request(app)
+        .post("/auth/refresh")
+        .send({ refreshToken })
+        .expect(401);
+
+      expect(refreshAfterLogout.body.error).toBe("Invalid refresh token");
+    });
+
+    it("should return 409 and remove token when refresh token is expired", async () => {
+      const register = await request(app).post("/auth/register").send({
+        email: "expired-refresh@example.com",
+        password: "password123",
+      });
+      const userId = register.body.user.id as string;
+      const refreshToken = register.body.refreshToken as string;
+
+      await prisma.refreshToken.updateMany({
+        where: { userId },
+        data: { expiresAt: new Date(Date.now() - 60 * 1000) },
+      });
+
+      const expiredResponse = await request(app)
+        .post("/auth/refresh")
+        .send({ refreshToken })
+        .expect(409);
+
+      expect(expiredResponse.body.error).toBe("Refresh token expired");
+
+      const tokenCount = await prisma.refreshToken.count({ where: { userId } });
+      expect(tokenCount).toBe(0);
+    });
+  });
+
   describe("Admin bootstrap provisioning", () => {
     it("should require auth for bootstrap status", async () => {
       await request(app).get("/auth/bootstrap-admin/status").expect(401);

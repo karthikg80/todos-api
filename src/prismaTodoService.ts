@@ -8,6 +8,9 @@ import {
   CreateSubtaskDto,
   UpdateSubtaskDto,
   ReorderTodoItemDto,
+  FindTodosQuery,
+  TodoSortBy,
+  SortOrder,
 } from "./types";
 
 /**
@@ -57,15 +60,40 @@ export class PrismaTodoService implements ITodoService {
     return this.mapPrismaToTodo(todo);
   }
 
-  async findAll(userId: string): Promise<Todo[]> {
+  async findAll(userId: string, query?: FindTodosQuery): Promise<Todo[]> {
+    const where: any = { userId };
+    if (query?.completed !== undefined) {
+      where.completed = query.completed;
+    }
+    if (query?.priority) {
+      where.priority = query.priority;
+    }
+    if (query?.category !== undefined) {
+      where.category = query.category;
+    }
+
+    const sortBy: TodoSortBy = query?.sortBy ?? "order";
+    const sortOrder: SortOrder = query?.sortOrder ?? "asc";
+    const orderBy =
+      sortBy === "order"
+        ? [{ order: sortOrder }]
+        : [{ [sortBy]: sortOrder }, { order: "asc" as const }];
+
+    const skip =
+      query?.limit !== undefined
+        ? ((query.page ?? 1) - 1) * query.limit
+        : undefined;
+
     const todos = await this.prisma.todo.findMany({
-      where: { userId },
-      orderBy: { order: "asc" },
+      where,
+      orderBy,
       include: {
         subtasks: {
           orderBy: { order: "asc" },
         },
       },
+      skip,
+      take: query?.limit,
     });
 
     return todos.map(this.mapPrismaToTodo);

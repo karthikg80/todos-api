@@ -1,4 +1,12 @@
-import { CreateTodoDto, UpdateTodoDto, ReorderTodoItemDto } from "./types";
+import {
+  CreateTodoDto,
+  UpdateTodoDto,
+  ReorderTodoItemDto,
+  FindTodosQuery,
+  Priority,
+  TodoSortBy,
+  SortOrder,
+} from "./types";
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -8,6 +16,107 @@ export class ValidationError extends Error {
 }
 
 const MAX_REORDER_ITEMS = 500;
+const MAX_PAGE_SIZE = 100;
+const VALID_SORT_FIELDS: TodoSortBy[] = [
+  "order",
+  "createdAt",
+  "updatedAt",
+  "dueDate",
+  "priority",
+  "title",
+];
+const VALID_SORT_ORDERS: SortOrder[] = ["asc", "desc"];
+const VALID_PRIORITIES: Priority[] = ["low", "medium", "high"];
+
+function parsePositiveInt(value: unknown, field: string): number {
+  if (typeof value !== "string" || !/^\d+$/.test(value)) {
+    throw new ValidationError(`${field} must be a positive integer`);
+  }
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    throw new ValidationError(`${field} must be a positive integer`);
+  }
+  return parsed;
+}
+
+export function validateFindTodosQuery(query: any): FindTodosQuery {
+  const normalized: FindTodosQuery = {};
+
+  if (query.completed !== undefined) {
+    if (query.completed === "true") {
+      normalized.completed = true;
+    } else if (query.completed === "false") {
+      normalized.completed = false;
+    } else {
+      throw new ValidationError('completed must be "true" or "false"');
+    }
+  }
+
+  if (query.priority !== undefined) {
+    if (typeof query.priority !== "string") {
+      throw new ValidationError("priority must be low, medium, or high");
+    }
+    const priority = query.priority.toLowerCase() as Priority;
+    if (!VALID_PRIORITIES.includes(priority)) {
+      throw new ValidationError("priority must be low, medium, or high");
+    }
+    normalized.priority = priority;
+  }
+
+  if (query.category !== undefined) {
+    if (typeof query.category !== "string") {
+      throw new ValidationError("category must be a string");
+    }
+    const category = query.category.trim();
+    if (!category) {
+      throw new ValidationError("category cannot be empty");
+    }
+    if (category.length > 50) {
+      throw new ValidationError("category cannot exceed 50 characters");
+    }
+    normalized.category = category;
+  }
+
+  if (query.sortBy !== undefined) {
+    if (typeof query.sortBy !== "string") {
+      throw new ValidationError(
+        `sortBy must be one of: ${VALID_SORT_FIELDS.join(", ")}`,
+      );
+    }
+    const sortBy = query.sortBy as TodoSortBy;
+    if (!VALID_SORT_FIELDS.includes(sortBy)) {
+      throw new ValidationError(
+        `sortBy must be one of: ${VALID_SORT_FIELDS.join(", ")}`,
+      );
+    }
+    normalized.sortBy = sortBy;
+  }
+
+  if (query.sortOrder !== undefined) {
+    if (typeof query.sortOrder !== "string") {
+      throw new ValidationError("sortOrder must be asc or desc");
+    }
+    const sortOrder = query.sortOrder.toLowerCase() as SortOrder;
+    if (!VALID_SORT_ORDERS.includes(sortOrder)) {
+      throw new ValidationError("sortOrder must be asc or desc");
+    }
+    normalized.sortOrder = sortOrder;
+  }
+
+  const pageProvided = query.page !== undefined;
+  const limitProvided = query.limit !== undefined;
+  if (pageProvided || limitProvided) {
+    const limit = limitProvided ? parsePositiveInt(query.limit, "limit") : 20;
+    if (limit > MAX_PAGE_SIZE) {
+      throw new ValidationError(`limit cannot exceed ${MAX_PAGE_SIZE}`);
+    }
+    const page = pageProvided ? parsePositiveInt(query.page, "page") : 1;
+    normalized.page = page;
+    normalized.limit = limit;
+  }
+
+  return normalized;
+}
 
 export function validateCreateTodo(data: any): CreateTodoDto {
   if (!data || typeof data !== "object") {

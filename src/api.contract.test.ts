@@ -100,5 +100,28 @@ describe("API Contract", () => {
       expect(schemas.Todo.properties.order).toBeDefined();
       expect(schemas.Todo.properties.subtasks).toBeDefined();
     });
+
+    it("documents todo list query params for filtering and pagination", async () => {
+      const response = await request(app).get("/api-docs.json").expect(200);
+
+      const todoListGet = response.body?.paths?.["/todos"]?.get;
+      expect(todoListGet).toBeDefined();
+
+      const parameterNames = (todoListGet.parameters || []).map(
+        (param: any) => param.name,
+      );
+
+      expect(parameterNames).toEqual(
+        expect.arrayContaining([
+          "completed",
+          "priority",
+          "category",
+          "sortBy",
+          "sortOrder",
+          "page",
+          "limit",
+        ]),
+      );
+    });
   });
 });
