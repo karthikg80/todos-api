@@ -243,6 +243,8 @@ let latestCritiqueResult = null;
 let latestPlanSuggestionId = null;
 let latestPlanResult = null;
 let adminBootstrapAvailable = false;
+let customProjects = [];
+let editingTodoId = null;
 const {
   AUTH_STATE,
   EMAIL_ACTION_TIMEOUT_MS,
@@ -274,6 +276,31 @@ const apiClient = ApiClientModule.createApiClient({
 
 function setAuthState(nextState) {
   authState = nextState;
+}
+
+function projectStorageKey() {
+  return `todo-projects:${currentUser?.id || "anonymous"}`;
+}
+
+function loadCustomProjects() {
+  try {
+    const raw = localStorage.getItem(projectStorageKey());
+    const parsed = raw ? JSON.parse(raw) : [];
+    customProjects = Array.isArray(parsed)
+      ? [...new Set(parsed.filter((item) => typeof item === "string"))]
+      : [];
+  } catch (error) {
+    console.error("Failed to load custom projects:", error);
+    customProjects = [];
+  }
+}
+
+function saveCustomProjects() {
+  try {
+    localStorage.setItem(projectStorageKey(), JSON.stringify(customProjects));
+  } catch (error) {
+    console.error("Failed to save custom projects:", error);
+  }
 }
 
 // Initialize app
@@ -853,19 +880,19 @@ async function loadTodos() {
       });
 
       renderTodos();
-      updateCategoryFilter();
+      refreshProjectCatalog();
     } else {
       todos = [];
       selectedTodos.clear();
       renderTodos();
-      updateCategoryFilter();
+      refreshProjectCatalog();
       showMessage("todosMessage", "Failed to load todos", "error");
     }
   } catch (error) {
     todos = [];
     selectedTodos.clear();
     renderTodos();
-    updateCategoryFilter();
+    refreshProjectCatalog();
     console.error("Load todos error:", error);
   }
 }
@@ -1248,7 +1275,7 @@ function renderPlanPanel() {
 
 async function critiqueDraftWithAi() {
   const input = document.getElementById("todoInput");
-  const categoryInput = document.getElementById("todoCategoryInput");
+  const projectSelect = document.getElementById("todoProjectSelect");
   const dueDateInput = document.getElementById("todoDueDateInput");
   const notesInput = document.getElementById("todoNotesInput");
 
@@ -1269,7 +1296,7 @@ async function critiqueDraftWithAi() {
       body: JSON.stringify({
         title,
         description:
-          notesInput.value.trim() || categoryInput.value.trim() || undefined,
+          notesInput.value.trim() || projectSelect.value.trim() || undefined,
         dueDate: dueDateInput.value
           ? new Date(dueDateInput.value).toISOString()
           : undefined,
@@ -1480,7 +1507,7 @@ async function dismissPlanSuggestion() {
 // Add todo
 async function addTodo() {
   const input = document.getElementById("todoInput");
-  const categoryInput = document.getElementById("todoCategoryInput");
+  const projectSelect = document.getElementById("todoProjectSelect");
   const dueDateInput = document.getElementById("todoDueDateInput");
   const notesInput = document.getElementById("todoNotesInput");
 
@@ -1492,8 +1519,8 @@ async function addTodo() {
     priority: currentPriority,
   };
 
-  if (categoryInput.value.trim()) {
-    payload.category = categoryInput.value.trim();
+  if (projectSelect.value.trim()) {
+    payload.category = projectSelect.value.trim();
   }
   if (dueDateInput.value) {
     payload.dueDate = new Date(dueDateInput.value).toISOString();
@@ -1517,7 +1544,7 @@ async function addTodo() {
 
       // Clear form
       input.value = "";
-      categoryInput.value = "";
+      projectSelect.value = "";
       dueDateInput.value = "";
       notesInput.value = "";
 
@@ -1527,6 +1554,8 @@ async function addTodo() {
       // Hide notes input
       notesInput.style.display = "none";
       document.getElementById("notesExpandIcon").classList.remove("expanded");
+
+      refreshProjectCatalog();
     }
   } catch (error) {
     console.error("Add todo error:", error);
@@ -1603,7 +1632,7 @@ async function deleteTodo(id) {
 
 // Update category filter dropdown
 function updateCategoryFilter() {
-  const categories = [...new Set(todos.map((t) => t.category).filter(Boolean))];
+  const categories = getAllProjects();
   const filterSelect = document.getElementById("categoryFilter");
   const currentValue = filterSelect.value;
 
@@ -1618,6 +1647,215 @@ function updateCategoryFilter() {
 
   if (categories.includes(currentValue)) {
     filterSelect.value = currentValue;
+  }
+}
+
+function getAllProjects() {
+  const fromTodos = todos
+    .map((todo) =>
+      typeof todo.category === "string" ? todo.category.trim() : "",
+    )
+    .filter((value) => value.length > 0);
+  return [...new Set([...customProjects, ...fromTodos])].sort((a, b) =>
+    a.localeCompare(b),
+  );
+}
+
+function refreshProjectCatalog() {
+  customProjects = [...new Set([...customProjects, ...getAllProjects()])];
+  saveCustomProjects();
+  updateProjectSelectOptions();
+  updateCategoryFilter();
+}
+
+function updateProjectSelectOptions() {
+  const projects = getAllProjects();
+  const todoProjectSelect = document.getElementById("todoProjectSelect");
+  const editProjectSelect = document.getElementById("editTodoProjectSelect");
+
+  const renderOptions = (selectedValue = "") =>
+    `<option value="">No project</option>${projects
+      .map(
+        (project) =>
+          `<option value="${escapeHtml(project)}" ${
+            project === selectedValue ? "selected" : ""
+          }>${escapeHtml(project)}</option>`,
+      )
+      .join("")}`;
+
+  if (todoProjectSelect) {
+    const selected = todoProjectSelect.value || "";
+    todoProjectSelect.innerHTML = renderOptions(selected);
+    todoProjectSelect.value = selected;
+  }
+  if (editProjectSelect) {
+    const selected = editProjectSelect.value || "";
+    editProjectSelect.innerHTML = renderOptions(selected);
+    editProjectSelect.value = selected;
+  }
+}
+
+function createProject() {
+  const name = prompt("Project name:");
+  if (name === null) {
+    return;
+  }
+  const trimmed = name.trim();
+  if (!trimmed) {
+    showMessage("todosMessage", "Project name cannot be empty", "error");
+    return;
+  }
+  if (trimmed.length > 50) {
+    showMessage(
+      "todosMessage",
+      "Project name cannot exceed 50 characters",
+      "error",
+    );
+    return;
+  }
+  if (!customProjects.includes(trimmed)) {
+    customProjects.push(trimmed);
+    customProjects = [...new Set(customProjects)].sort((a, b) =>
+      a.localeCompare(b),
+    );
+    saveCustomProjects();
+    updateProjectSelectOptions();
+    updateCategoryFilter();
+  }
+  const projectSelect = document.getElementById("todoProjectSelect");
+  if (projectSelect) {
+    projectSelect.value = trimmed;
+  }
+  showMessage("todosMessage", `Project "${trimmed}" created`, "success");
+}
+
+function renderProjectOptions(selectedProject = "") {
+  return `<option value="">No project</option>${getAllProjects()
+    .map(
+      (project) =>
+        `<option value="${escapeHtml(project)}" ${
+          project === selectedProject ? "selected" : ""
+        }>${escapeHtml(project)}</option>`,
+    )
+    .join("")}`;
+}
+
+async function moveTodoToProject(todoId, projectValue) {
+  const todo = todos.find((item) => item.id === todoId);
+  if (!todo) return;
+  const category = typeof projectValue === "string" ? projectValue.trim() : "";
+
+  try {
+    const response = await apiCall(`${API_URL}/todos/${todoId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: category || null }),
+    });
+    if (!response || !response.ok) {
+      throw new Error("Update failed");
+    }
+    const updated = await response.json();
+    todos = todos.map((item) => (item.id === todoId ? updated : item));
+    if (category && !customProjects.includes(category)) {
+      customProjects.push(category);
+    }
+    refreshProjectCatalog();
+    renderTodos();
+  } catch (error) {
+    console.error("Move todo project failed:", error);
+    showMessage("todosMessage", "Failed to move task to project", "error");
+  }
+}
+
+function toDateTimeLocalValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function openEditTodoModal(todoId) {
+  const todo = todos.find((item) => item.id === todoId);
+  if (!todo) return;
+  editingTodoId = todoId;
+
+  document.getElementById("editTodoTitle").value = todo.title || "";
+  document.getElementById("editTodoDescription").value = todo.description || "";
+  updateProjectSelectOptions();
+  document.getElementById("editTodoProjectSelect").value = todo.category || "";
+  document.getElementById("editTodoPriority").value = todo.priority || "medium";
+  document.getElementById("editTodoDueDate").value = toDateTimeLocalValue(
+    todo.dueDate,
+  );
+  document.getElementById("editTodoNotes").value = todo.notes || "";
+
+  document.getElementById("editTodoModal").style.display = "flex";
+}
+
+function closeEditTodoModal() {
+  editingTodoId = null;
+  document.getElementById("editTodoModal").style.display = "none";
+}
+
+async function saveEditedTodo() {
+  if (!editingTodoId) return;
+  const title = document.getElementById("editTodoTitle").value.trim();
+  if (!title) {
+    showMessage("todosMessage", "Task title is required", "error");
+    return;
+  }
+
+  const project = document.getElementById("editTodoProjectSelect").value.trim();
+  const priority = document.getElementById("editTodoPriority").value;
+  const dueDateRaw = document.getElementById("editTodoDueDate").value;
+  const description = document
+    .getElementById("editTodoDescription")
+    .value.trim();
+  const notes = document.getElementById("editTodoNotes").value.trim();
+
+  const payload = {
+    title,
+    priority,
+    category: project || null,
+    dueDate: dueDateRaw ? new Date(dueDateRaw).toISOString() : null,
+    description: description || "",
+    notes: notes || null,
+  };
+
+  try {
+    const response = await apiCall(`${API_URL}/todos/${editingTodoId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response || !response.ok) {
+      const data = response ? await parseApiBody(response) : {};
+      showMessage(
+        "todosMessage",
+        data.error || "Failed to update task",
+        "error",
+      );
+      return;
+    }
+    const updatedTodo = await response.json();
+    todos = todos.map((todo) =>
+      todo.id === editingTodoId ? updatedTodo : todo,
+    );
+    if (project && !customProjects.includes(project)) {
+      customProjects.push(project);
+    }
+    refreshProjectCatalog();
+    renderTodos();
+    closeEditTodoModal();
+    showMessage("todosMessage", "Task updated", "success");
+  } catch (error) {
+    console.error("Save edited todo failed:", error);
+    showMessage("todosMessage", "Failed to update task", "error");
   }
 }
 
@@ -1836,6 +2074,12 @@ function renderTodos() {
                     ${getPriorityIcon(todo.priority)} <span class="priority-badge ${todo.priority}">${todo.priority.toUpperCase()}</span>
                     ${todo.category ? `<span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">🏷️ ${escapeHtml(todo.category)}</span>` : ""}
                     ${todo.dueDate ? `<span style="background: ${isOverdue ? "#ff4757" : "#48dbfb"}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? "⚠️" : "📅"} ${dueDateStr}</span>` : ""}
+                </div>
+                <div class="todo-inline-actions">
+                    <button class="mini-btn" data-onclick="openEditTodoModal('${todo.id}')">Edit</button>
+                    <select data-onchange="moveTodoToProject('${todo.id}', this.value)">
+                        ${renderProjectOptions(String(todo.category || ""))}
+                    </select>
                 </div>
                 ${hasSubtasks ? renderSubtasks(todo) : ""}
                 ${
@@ -2393,6 +2637,11 @@ async function restoreTodo(todoData) {
 }
 
 document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" && editingTodoId) {
+    closeEditTodoModal();
+    return;
+  }
+
   // Ignore if typing in input fields
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
     // Allow Esc to clear search
@@ -2670,6 +2919,8 @@ async function logout() {
   aiUsage = null;
   aiInsights = null;
   aiFeedbackSummary = null;
+  customProjects = [];
+  editingTodoId = null;
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
   latestPlanSuggestionId = null;
@@ -2687,6 +2938,7 @@ function showAppView() {
   // Prevent previous account data from flashing while fetching current user's data.
   todos = [];
   selectedTodos.clear();
+  loadCustomProjects();
   renderTodos();
   updateCategoryFilter();
   loadTodos();

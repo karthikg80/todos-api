@@ -335,14 +335,17 @@
               data-onkeypress="handleTodoKeyPress(event)"
             />
             <div class="field-row">
-              <label for="todoCategoryInput" class="sr-only"
-                >Todo category</label
+              <label for="todoProjectSelect" class="sr-only">Project</label>
+              <select id="todoProjectSelect">
+                <option value="">No project</option>
+              </select>
+              <button
+                class="add-btn"
+                data-onclick="createProject()"
+                style="width: auto; padding: 10px 14px"
               >
-              <input
-                type="text"
-                id="todoCategoryInput"
-                placeholder="Category (e.g., Work, Personal)"
-              />
+                + Project
+              </button>
               <label for="todoDueDateInput" class="sr-only"
                 >Todo due date</label
               >
@@ -434,6 +437,60 @@
             <div class="loading">
               <div class="spinner"></div>
               Loading todos...
+            </div>
+          </div>
+
+          <div id="editTodoModal" class="modal-overlay" style="display: none">
+            <div class="modal-card">
+              <h3>Edit Task</h3>
+              <div class="form-group">
+                <label for="editTodoTitle">Title</label>
+                <input type="text" id="editTodoTitle" maxlength="200" />
+              </div>
+              <div class="form-group">
+                <label for="editTodoDescription">Description</label>
+                <textarea id="editTodoDescription" rows="3"></textarea>
+              </div>
+              <div class="field-row">
+                <div class="form-group" style="flex: 1; margin-bottom: 0">
+                  <label for="editTodoProjectSelect">Project</label>
+                  <select id="editTodoProjectSelect">
+                    <option value="">No project</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1; margin-bottom: 0">
+                  <label for="editTodoPriority">Priority</label>
+                  <select id="editTodoPriority">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                <div class="form-group" style="flex: 1; margin-bottom: 0">
+                  <label for="editTodoDueDate">Due date</label>
+                  <input type="datetime-local" id="editTodoDueDate" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="editTodoNotes">Notes</label>
+                <textarea id="editTodoNotes" rows="3"></textarea>
+              </div>
+              <div class="modal-actions">
+                <button
+                  class="add-btn"
+                  data-onclick="saveEditedTodo()"
+                  style="width: auto"
+                >
+                  Save
+                </button>
+                <button
+                  class="add-btn"
+                  data-onclick="closeEditTodoModal()"
+                  style="width: auto; background: #64748b"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
