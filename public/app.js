@@ -250,6 +250,7 @@ const {
   persistSession,
 } = AppStateModule;
 let authState = AUTH_STATE.UNAUTHENTICATED;
+let currentDateView = "all";
 
 function handleAuthFailure() {
   logout();
@@ -1620,6 +1621,78 @@ function updateCategoryFilter() {
   }
 }
 
+function setDateView(view) {
+  currentDateView = view;
+  const ids = {
+    all: "dateViewAll",
+    today: "dateViewToday",
+    upcoming: "dateViewUpcoming",
+    next_month: "dateViewNextMonth",
+    someday: "dateViewSomeday",
+  };
+  Object.values(ids).forEach((id) => {
+    document.getElementById(id)?.classList.remove("active");
+  });
+  const activeId = ids[view] || ids.all;
+  document.getElementById(activeId)?.classList.add("active");
+  renderTodos();
+}
+
+function isSameLocalDay(a, b) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+function matchesDateView(todo) {
+  if (currentDateView === "all") {
+    return true;
+  }
+
+  const dueDate = todo.dueDate ? new Date(todo.dueDate) : null;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayEnd = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+
+  if (currentDateView === "someday") {
+    return !dueDate;
+  }
+  if (!dueDate) {
+    return false;
+  }
+
+  if (currentDateView === "today") {
+    return isSameLocalDay(dueDate, now);
+  }
+
+  if (currentDateView === "upcoming") {
+    const upcomingEnd = new Date(todayEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+    return dueDate > todayEnd && dueDate <= upcomingEnd;
+  }
+
+  if (currentDateView === "next_month") {
+    const nextMonth = (now.getMonth() + 1) % 12;
+    const nextMonthYear =
+      now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
+    return (
+      dueDate.getFullYear() === nextMonthYear &&
+      dueDate.getMonth() === nextMonth
+    );
+  }
+
+  return dueDate >= todayStart;
+}
+
 // Filter todos by category and search
 function filterTodosList(todosList) {
   let filtered = todosList;
@@ -1645,6 +1718,8 @@ function filterTodosList(todosList) {
     );
   }
 
+  filtered = filtered.filter((todo) => matchesDateView(todo));
+
   return filtered;
 }
 
@@ -1657,7 +1732,7 @@ function filterTodos() {
 function clearFilters() {
   document.getElementById("categoryFilter").value = "";
   document.getElementById("searchInput").value = "";
-  renderTodos();
+  setDateView("all");
 }
 
 // Render todos

@@ -229,15 +229,7 @@
           </div>
 
           <!-- Category Filter -->
-          <div
-            style="
-              margin-bottom: 20px;
-              display: flex;
-              gap: 10px;
-              align-items: center;
-              flex-wrap: wrap;
-            "
-          >
+          <div class="filter-toolbar">
             <label
               for="categoryFilter"
               style="font-weight: 500; color: var(--text-primary)"
@@ -257,6 +249,43 @@
             >
               <option value="">All Categories</option>
             </select>
+            <div class="date-view-tabs">
+              <button
+                class="date-view-tab active"
+                id="dateViewAll"
+                data-onclick="setDateView('all')"
+              >
+                All
+              </button>
+              <button
+                class="date-view-tab"
+                id="dateViewToday"
+                data-onclick="setDateView('today')"
+              >
+                Today
+              </button>
+              <button
+                class="date-view-tab"
+                id="dateViewUpcoming"
+                data-onclick="setDateView('upcoming')"
+              >
+                Upcoming
+              </button>
+              <button
+                class="date-view-tab"
+                id="dateViewNextMonth"
+                data-onclick="setDateView('next_month')"
+              >
+                Next Month
+              </button>
+              <button
+                class="date-view-tab"
+                id="dateViewSomeday"
+                data-onclick="setDateView('someday')"
+              >
+                Someday
+              </button>
+            </div>
             <button
               data-onclick="clearFilters()"
               style="
