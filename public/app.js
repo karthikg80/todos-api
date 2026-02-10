@@ -244,6 +244,7 @@ let latestPlanSuggestionId = null;
 let latestPlanResult = null;
 let adminBootstrapAvailable = false;
 let customProjects = [];
+let projectRecords = [];
 let editingTodoId = null;
 const {
   AUTH_STATE,
@@ -318,6 +319,7 @@ async function loadProjects() {
       return;
     }
     const data = await response.json();
+    projectRecords = Array.isArray(data) ? data : [];
     const projectNames = Array.isArray(data)
       ? data
           .map((item) => normalizeProjectPath(item?.name))
@@ -330,6 +332,17 @@ async function loadProjects() {
   } catch (error) {
     console.error("Failed to load projects:", error);
   }
+}
+
+function getProjectRecordByName(projectName) {
+  const normalized = normalizeProjectPath(projectName);
+  if (!normalized) {
+    return null;
+  }
+  return (
+    projectRecords.find((record) => normalizeProjectPath(record?.name) === normalized) ||
+    null
+  );
 }
 
 async function ensureProjectExists(projectName) {
@@ -1885,6 +1898,113 @@ async function createSubproject() {
   showMessage("todosMessage", `Subproject "${combinedPath}" created`, "success");
 }
 
+async function renameProjectTree() {
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const selectedPath = normalizeProjectPath(projectSelect?.value || "");
+  if (!selectedPath) {
+    showMessage("todosMessage", "Select a project to rename", "error");
+    return;
+  }
+
+  const nextNameInput = prompt("Rename project path:", selectedPath);
+  if (nextNameInput === null) {
+    return;
+  }
+  const renamedPath = normalizeProjectPath(nextNameInput);
+  if (!renamedPath) {
+    showMessage("todosMessage", "Project name cannot be empty", "error");
+    return;
+  }
+  if (renamedPath.length > 50) {
+    showMessage("todosMessage", "Project name cannot exceed 50 characters", "error");
+    return;
+  }
+  if (renamedPath === selectedPath) {
+    return;
+  }
+
+  const selectedPrefix = `${selectedPath}${PROJECT_PATH_SEPARATOR}`;
+  const targets = projectRecords
+    .map((record) => ({
+      id: record.id,
+      oldName: normalizeProjectPath(record.name),
+    }))
+    .filter(
+      (record) =>
+        record.oldName === selectedPath ||
+        record.oldName.startsWith(selectedPrefix),
+    )
+    .map((record) => ({
+      ...record,
+      newName:
+        record.oldName === selectedPath
+          ? renamedPath
+          : `${renamedPath}${record.oldName.slice(selectedPath.length)}`,
+    }))
+    .sort((a, b) => compareProjectPaths(a.oldName, b.oldName));
+
+  if (targets.length === 0) {
+    showMessage(
+      "todosMessage",
+      "Project not found in backend. Refresh and try again.",
+      "error",
+    );
+    return;
+  }
+
+  const targetNames = new Set(targets.map((item) => item.newName));
+  const existingNames = new Set(
+    projectRecords.map((record) => normalizeProjectPath(record.name)),
+  );
+  for (const name of targetNames) {
+    if (
+      existingNames.has(name) &&
+      !targets.some((item) => item.oldName === name)
+    ) {
+      showMessage(
+        "todosMessage",
+        `Cannot rename: project "${name}" already exists`,
+        "error",
+      );
+      return;
+    }
+  }
+
+  for (const target of targets) {
+    try {
+      const response = await apiCall(`${API_URL}/projects/${target.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: target.newName }),
+      });
+      if (!response || !response.ok) {
+        const data = response ? await parseApiBody(response) : {};
+        showMessage(
+          "todosMessage",
+          data.error || `Failed to rename "${target.oldName}"`,
+          "error",
+        );
+        return;
+      }
+    } catch (error) {
+      console.error("Rename project failed:", error);
+      showMessage("todosMessage", "Failed to rename project", "error");
+      return;
+    }
+  }
+
+  if (projectSelect) {
+    projectSelect.value = renamedPath;
+  }
+  await loadProjects();
+  await loadTodos();
+  showMessage(
+    "todosMessage",
+    `Renamed project "${selectedPath}" to "${renamedPath}"`,
+    "success",
+  );
+}
+
 function renderProjectOptions(selectedProject = "") {
   return `<option value="">No project</option>${getAllProjects()
     .map((project) => renderProjectOptionEntry(project, selectedProject))
@@ -3085,6 +3205,7 @@ async function logout() {
   aiInsights = null;
   aiFeedbackSummary = null;
   customProjects = [];
+  projectRecords = [];
   editingTodoId = null;
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
