@@ -66,6 +66,7 @@ Production notes:
 - AI model integration is optional: set `AI_PROVIDER_ENABLED=true` and configure `AI_PROVIDER_API_KEY` to call a live provider.
 - Configure `AI_DAILY_SUGGESTION_LIMIT` to cap daily AI generations per user (default: `50`).
 - Optional per-plan caps: `AI_DAILY_SUGGESTION_LIMIT_FREE`, `AI_DAILY_SUGGESTION_LIMIT_PRO`, `AI_DAILY_SUGGESTION_LIMIT_TEAM`.
+- `/ai/*` routes are auth-protected and have a dedicated rate limiter and a 16KB request-body guard.
 
 ### 3. Start Database
 
@@ -125,6 +126,65 @@ The API will be available at http://localhost:3000
 - `npm run build` - Build TypeScript + generate Prisma client
 
 ## API Endpoints
+
+### AI Planning Endpoints
+
+```http
+POST /ai/plan-from-goal
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "goal": "Ship onboarding improvements"
+}
+
+# Response: 200 OK
+{
+  "suggestionId": "uuid",
+  "draft": {
+    "schemaVersion": 1,
+    "type": "plan_from_goal",
+    "confidence": "medium",
+    "assumptions": [],
+    "questions": [],
+    "tasks": [...]
+  }
+}
+```
+
+```http
+POST /ai/suggestions/:id/apply
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "reason": "Looks good"
+}
+
+# Response: 200 OK
+{
+  "createdCount": 5,
+  "todoIds": ["uuid", "..."],
+  "idempotent": false,
+  "suggestion": {...}
+}
+```
+
+```http
+POST /ai/suggestions/:id/feedback
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "rating": 4,
+  "acceptedTaskTempIds": ["task-1"],
+  "rejectedTaskTempIds": ["task-2"],
+  "edits": [{ "tempId": "task-1", "before": "old", "after": "new" }]
+}
+```
+
+`ai_suggestions` stores normalized `input`/`output` JSON plus metadata columns:
+`schema_version`, `provider`, `model`, `prompt_hash`, and `input_summary`.
 
 ### Create a Todo
 
@@ -407,6 +467,14 @@ CREATE TABLE todos (
 | `PORT`                   | Server port                               | `3000`                                                     |
 | `NODE_ENV`               | Environment (development/test/production) | `development`                                              |
 | `EMAIL_FEATURES_ENABLED` | Enable verification/reset email delivery  | `true`                                                     |
+| `AI_PROVIDER_ENABLED`    | Enable external LLM provider integration  | `false`                                                    |
+| `AI_PROVIDER_BASE_URL`   | Base URL for OpenAI-compatible provider   | `https://api.openai.com/v1`                               |
+| `AI_PROVIDER_API_KEY`    | API key for the LLM provider              | ``                                                          |
+| `AI_PROVIDER_MODEL`      | Model name for plan generation            | `gpt-4o-mini`                                              |
+| `AI_DAILY_SUGGESTION_LIMIT` | Default per-user daily AI request cap | `50`                                                       |
+| `AI_DAILY_SUGGESTION_LIMIT_FREE` | Free plan daily cap              | inherits default                                            |
+| `AI_DAILY_SUGGESTION_LIMIT_PRO` | Pro plan daily cap               | `250`                                                      |
+| `AI_DAILY_SUGGESTION_LIMIT_TEAM` | Team plan daily cap             | `1000`                                                     |
 
 ## Deployment
 

@@ -5,6 +5,7 @@ import {
   validateReorderTodos,
   ValidationError,
 } from "./validation";
+import { validatePlanSuggestionV1 } from "./ai/planSuggestionSchema";
 
 describe("Validation", () => {
   describe("validateCreateTodo", () => {
@@ -216,6 +217,58 @@ describe("Validation", () => {
       expect(() => validateReorderTodos(payload)).toThrow(
         "Cannot reorder more than 500 todos at once",
       );
+    });
+  });
+
+  describe("PlanSuggestionV1 schema", () => {
+    it("rejects invalid dueDate format", () => {
+      expect(() =>
+        validatePlanSuggestionV1({
+          schemaVersion: 1,
+          type: "plan_from_goal",
+          confidence: "medium",
+          assumptions: [],
+          questions: [],
+          tasks: [
+            {
+              tempId: "task-1",
+              title: "Task",
+              description: null,
+              notes: null,
+              category: null,
+              projectName: null,
+              dueDate: "10-01-2026",
+              priority: "medium",
+              subtasks: [],
+            },
+          ],
+        }),
+      ).toThrow();
+    });
+
+    it("rejects invalid priority", () => {
+      expect(() =>
+        validatePlanSuggestionV1({
+          schemaVersion: 1,
+          type: "plan_from_goal",
+          confidence: "medium",
+          assumptions: [],
+          questions: [],
+          tasks: [
+            {
+              tempId: "task-1",
+              title: "Task",
+              description: null,
+              notes: null,
+              category: null,
+              projectName: null,
+              dueDate: "2026-10-01",
+              priority: "urgent",
+              subtasks: [],
+            },
+          ],
+        }),
+      ).toThrow();
     });
   });
 });

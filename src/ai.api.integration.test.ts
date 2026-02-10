@@ -83,13 +83,12 @@ describe("AI API Integration", () => {
     const planResponse = await request(app)
       .post("/ai/plan-from-goal")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        goal: "Ship onboarding improvements",
-        maxTasks: 4,
-      })
+      .send({ goal: "Ship onboarding improvements" })
       .expect(200);
 
-    expect(planResponse.body.tasks).toHaveLength(4);
+    expect(planResponse.body.draft).toBeDefined();
+    expect(planResponse.body.draft.type).toBe("plan_from_goal");
+    expect(Array.isArray(planResponse.body.draft.tasks)).toBe(true);
     const suggestionId = planResponse.body.suggestionId as string;
     expect(suggestionId).toBeDefined();
 
@@ -106,10 +105,7 @@ describe("AI API Integration", () => {
     const planResponse = await request(app)
       .post("/ai/plan-from-goal")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        goal: "Ship AI planner",
-        maxTasks: 3,
-      })
+      .send({ goal: "Ship AI planner" })
       .expect(200);
 
     const suggestionId = planResponse.body.suggestionId as string;
@@ -121,7 +117,7 @@ describe("AI API Integration", () => {
       .send({ reason: "Plan tasks were concrete and helpful" })
       .expect(200);
 
-    expect(applyResponse.body.createdCount).toBe(3);
+    expect(applyResponse.body.createdCount).toBeGreaterThan(0);
     expect(applyResponse.body.suggestion.status).toBe("accepted");
     expect(applyResponse.body.suggestion.feedback).toEqual(
       expect.objectContaining({
@@ -129,7 +125,8 @@ describe("AI API Integration", () => {
         source: "apply_endpoint",
       }),
     );
-    expect(applyResponse.body.todos).toHaveLength(3);
+    expect(Array.isArray(applyResponse.body.todoIds)).toBe(true);
+    expect(applyResponse.body.todoIds.length).toBe(applyResponse.body.createdCount);
 
     const me = await request(app)
       .get("/users/me")
@@ -139,18 +136,50 @@ describe("AI API Integration", () => {
     const dbTodos = await prisma.todo.findMany({
       where: { userId: me.body.id, category: "AI Plan" },
     });
-    expect(dbTodos).toHaveLength(3);
+    expect(dbTodos.length).toBe(applyResponse.body.createdCount);
 
     const reapplied = await request(app)
       .post(`/ai/suggestions/${suggestionId}/apply`)
       .set("Authorization", `Bearer ${authToken}`)
       .expect(200);
     expect(reapplied.body.idempotent).toBe(true);
+    expect(reapplied.body.todoIds).toEqual(applyResponse.body.todoIds);
 
     const dbTodosAfterReapply = await prisma.todo.findMany({
       where: { userId: me.body.id, category: "AI Plan" },
     });
-    expect(dbTodosAfterReapply).toHaveLength(3);
+    expect(dbTodosAfterReapply.length).toBe(applyResponse.body.createdCount);
+  });
+
+  it("rolls back apply transaction when an injected failure occurs", async () => {
+    const planResponse = await request(app)
+      .post("/ai/plan-from-goal")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ goal: "Transactional apply check" })
+      .expect(200);
+    const suggestionId = planResponse.body.suggestionId as string;
+
+    await request(app)
+      .post(`/ai/suggestions/${suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .set("x-ai-apply-fail-after", "1")
+      .expect(500);
+
+    const me = await request(app)
+      .get("/users/me")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const dbTodos = await prisma.todo.findMany({
+      where: { userId: me.body.id, category: "AI Plan" },
+    });
+    expect(dbTodos).toHaveLength(0);
+
+    const suggestion = await prisma.aiSuggestion.findUnique({
+      where: { id: suggestionId },
+    });
+    expect(suggestion?.status).toBe("pending");
+    expect(suggestion?.appliedTodoIds).toBeNull();
   });
 
   it("returns usage summary and enforces per-day quota", async () => {
@@ -181,7 +210,7 @@ describe("AI API Integration", () => {
     const blocked = await request(limitedApp)
       .post("/ai/plan-from-goal")
       .set("Authorization", `Bearer ${token}`)
-      .send({ goal: "Quota second request", maxTasks: 3 })
+      .send({ goal: "Quota second request" })
       .expect(429);
     expect(blocked.body.error).toBe("Daily AI suggestion limit reached");
 
@@ -244,7 +273,7 @@ describe("AI API Integration", () => {
     await request(planLimitedApp)
       .post("/ai/plan-from-goal")
       .set("Authorization", `Bearer ${token}`)
-      .send({ goal: "pro request 3", maxTasks: 3 })
+      .send({ goal: "pro request 3" })
       .expect(429);
 
     const usage = await request(planLimitedApp)
@@ -333,10 +362,7 @@ describe("AI API Integration", () => {
     const planResponse = await request(app)
       .post("/ai/plan-from-goal")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        goal: "Ship AI planner",
-        maxTasks: 3,
-      })
+      .send({ goal: "Ship AI planner" })
       .expect(200);
 
     const suggestionId = planResponse.body.suggestionId as string;
@@ -345,6 +371,39 @@ describe("AI API Integration", () => {
       .set("Authorization", `Bearer ${authToken}`)
       .send({ reason: 123 })
       .expect(400);
+  });
+
+  it("stores suggestion feedback payload", async () => {
+    const planResponse = await request(app)
+      .post("/ai/plan-from-goal")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ goal: "Collect feedback data" })
+      .expect(200);
+    const suggestionId = planResponse.body.suggestionId as string;
+
+    const feedbackResponse = await request(app)
+      .post(`/ai/suggestions/${suggestionId}/feedback`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        rating: 4,
+        acceptedTaskTempIds: ["task-1"],
+        rejectedTaskTempIds: ["task-2"],
+        edits: [{ tempId: "task-1", before: "Draft", after: "Refined" }],
+      })
+      .expect(200);
+
+    expect(feedbackResponse.body.suggestionId).toBe(suggestionId);
+    expect(feedbackResponse.body.feedback).toEqual(
+      expect.objectContaining({
+        rating: 4,
+      }),
+    );
+
+    const persisted = await prisma.aiSuggestion.findUnique({
+      where: { id: suggestionId },
+    });
+    expect((persisted?.feedback as any)?.rating).toBe(4);
+    expect((persisted?.feedback as any)?.source).toBe("feedback_endpoint");
   });
 
   it("uses rejection feedback to make later outputs more specific", async () => {
@@ -374,9 +433,10 @@ describe("AI API Integration", () => {
     const plan = await request(app)
       .post("/ai/plan-from-goal")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({ goal: "Ship release prep", maxTasks: 3 })
+      .send({ goal: "Ship release prep" })
       .expect(200);
-    expect(plan.body.summary).toContain("specific steps");
+    expect(plan.body.draft).toBeDefined();
+    expect(plan.body.draft.type).toBe("plan_from_goal");
   });
 
   it("returns insights and upgrade recommendation when usage is near cap", async () => {

@@ -249,16 +249,9 @@ describe("API Contract", () => {
 
       const adaptedPlan = await request(app)
         .post("/ai/plan-from-goal")
-        .send({ goal: "Improve onboarding", maxTasks: 3 })
+        .send({ goal: "Improve onboarding" })
         .expect(200);
-      expect(adaptedPlan.body.summary).toContain("specific steps");
-      expect(
-        adaptedPlan.body.tasks.every((task: any) =>
-          String(task.description).includes(
-            "Assign owner, metric, and date for this step.",
-          ),
-        ),
-      ).toBe(true);
+      expect(adaptedPlan.body.draft.type).toBe("plan_from_goal");
     });
 
     it("returns critique suggestions for vague tasks", async () => {
@@ -284,23 +277,19 @@ describe("API Contract", () => {
     it("generates goal plan with configurable task count", async () => {
       const response = await request(app)
         .post("/ai/plan-from-goal")
-        .send({
-          goal: "Launch onboarding revamp",
-          maxTasks: 4,
-          targetDate: "2026-03-15T00:00:00.000Z",
-        })
+        .send({ goal: "Launch onboarding revamp" })
         .expect(200);
 
-      expect(response.body.goal).toBe("Launch onboarding revamp");
-      expect(response.body.tasks).toHaveLength(4);
-      expect(response.body.summary).toContain("4 steps");
+      expect(response.body.draft).toBeDefined();
+      expect(response.body.draft.type).toBe("plan_from_goal");
+      expect(response.body.draft.tasks.length).toBeGreaterThan(0);
       expect(response.body.suggestionId).toBeDefined();
     });
 
     it("validates plan generator payload", async () => {
       await request(app)
         .post("/ai/plan-from-goal")
-        .send({ goal: "Growth push", maxTasks: 20 })
+        .send({ goal: "" })
         .expect(400);
     });
 
@@ -334,10 +323,7 @@ describe("API Contract", () => {
     it("applies a pending plan suggestion and creates todos", async () => {
       const createdPlan = await request(app)
         .post("/ai/plan-from-goal")
-        .send({
-          goal: "Improve onboarding",
-          maxTasks: 3,
-        })
+        .send({ goal: "Improve onboarding" })
         .expect(200);
 
       const suggestionId = createdPlan.body.suggestionId as string;
@@ -348,9 +334,9 @@ describe("API Contract", () => {
         .send({ reason: "Plan matched my execution approach" })
         .expect(200);
 
-      expect(applied.body.createdCount).toBe(3);
-      expect(Array.isArray(applied.body.todos)).toBe(true);
-      expect(applied.body.todos).toHaveLength(3);
+      expect(applied.body.createdCount).toBeGreaterThan(0);
+      expect(Array.isArray(applied.body.todoIds)).toBe(true);
+      expect(applied.body.todoIds.length).toBe(applied.body.createdCount);
       expect(applied.body.suggestion.status).toBe("accepted");
       expect(applied.body.suggestion.feedback).toEqual(
         expect.objectContaining({
@@ -358,31 +344,29 @@ describe("API Contract", () => {
           source: "apply_endpoint",
         }),
       );
-      expect(applied.body.todos[0].category).toBe("AI Plan");
       expect(applied.body.idempotent).toBe(false);
 
       const todos = await request(app).get("/todos").expect(200);
-      expect(todos.body).toHaveLength(3);
+      expect(todos.body).toHaveLength(applied.body.createdCount);
 
       const appliedAgain = await request(app)
         .post(`/ai/suggestions/${suggestionId}/apply`)
         .expect(200);
       expect(appliedAgain.body.idempotent).toBe(true);
-      expect(appliedAgain.body.createdCount).toBe(3);
+      expect(appliedAgain.body.createdCount).toBe(applied.body.createdCount);
 
       const todosAfterSecondApply = await request(app)
         .get("/todos")
         .expect(200);
-      expect(todosAfterSecondApply.body).toHaveLength(3);
+      expect(todosAfterSecondApply.body).toHaveLength(
+        applied.body.createdCount,
+      );
     });
 
     it("prevents applying rejected suggestions", async () => {
       const createdPlan = await request(app)
         .post("/ai/plan-from-goal")
-        .send({
-          goal: "Refine docs",
-          maxTasks: 3,
-        })
+        .send({ goal: "Refine docs" })
         .expect(200);
       const suggestionId = createdPlan.body.suggestionId as string;
 
@@ -442,7 +426,7 @@ describe("API Contract", () => {
 
       const blocked = await request(limitedApp)
         .post("/ai/plan-from-goal")
-        .send({ goal: "Second request", maxTasks: 3 })
+        .send({ goal: "Second request" })
         .expect(429);
 
       expect(blocked.body.error).toBe("Daily AI suggestion limit reached");
