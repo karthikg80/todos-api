@@ -236,6 +236,7 @@ let todos = [];
 let users = [];
 let aiSuggestions = [];
 let aiUsage = null;
+let aiFeedbackSummary = null;
 let latestCritiqueSuggestionId = null;
 let latestCritiqueResult = null;
 let latestPlanSuggestionId = null;
@@ -903,6 +904,26 @@ async function loadAiUsage() {
   }
 }
 
+async function loadAiFeedbackSummary() {
+  try {
+    const response = await apiCall(
+      `${API_URL}/ai/feedback-summary?days=30&reasonLimit=3`,
+    );
+    if (!response || !response.ok) {
+      aiFeedbackSummary = null;
+      renderAiFeedbackInsights();
+      return;
+    }
+
+    aiFeedbackSummary = await response.json();
+    renderAiFeedbackInsights();
+  } catch (error) {
+    console.error("Load AI feedback summary error:", error);
+    aiFeedbackSummary = null;
+    renderAiFeedbackInsights();
+  }
+}
+
 function renderAiUsageSummary() {
   const container = document.getElementById("aiUsageSummary");
   if (!container) return;
@@ -928,6 +949,61 @@ function renderAiUsageSummary() {
       AI plan: <strong>${escapeHtml(String(aiUsage.plan || "free").toUpperCase())}</strong>.
       Usage today: <strong>${aiUsage.used}/${aiUsage.limit}</strong> used
       (${aiUsage.remaining} remaining). Resets: ${escapeHtml(resetTime)}
+    </div>
+  `;
+}
+
+function renderAiFeedbackInsights() {
+  const container = document.getElementById("aiFeedbackInsights");
+  if (!container) return;
+
+  if (!aiFeedbackSummary || aiFeedbackSummary.totalRated < 1) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const totalRated = Number(aiFeedbackSummary.totalRated) || 0;
+  const acceptedCount = Number(aiFeedbackSummary.acceptedCount) || 0;
+  const rejectedCount = Number(aiFeedbackSummary.rejectedCount) || 0;
+  const acceptedRate =
+    totalRated > 0 ? Math.round((acceptedCount / totalRated) * 100) : 0;
+  const topAcceptedReason =
+    aiFeedbackSummary.acceptedReasons &&
+    aiFeedbackSummary.acceptedReasons.length > 0
+      ? aiFeedbackSummary.acceptedReasons[0]
+      : null;
+  const topRejectedReason =
+    aiFeedbackSummary.rejectedReasons &&
+    aiFeedbackSummary.rejectedReasons.length > 0
+      ? aiFeedbackSummary.rejectedReasons[0]
+      : null;
+
+  container.innerHTML = `
+    <div style="
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+      padding: 10px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    ">
+      <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+        AI Feedback Insights (30d)
+      </div>
+      <div>
+        Acceptance rate: <strong>${acceptedRate}%</strong>
+        (${acceptedCount}/${totalRated}), rejected: <strong>${rejectedCount}</strong>
+      </div>
+      ${
+        topAcceptedReason
+          ? `<div style="margin-top: 4px;">Top accepted reason: <strong>${escapeHtml(String(topAcceptedReason.reason))}</strong> (${topAcceptedReason.count})</div>`
+          : ""
+      }
+      ${
+        topRejectedReason
+          ? `<div style="margin-top: 4px;">Top rejected reason: <strong>${escapeHtml(String(topRejectedReason.reason))}</strong> (${topRejectedReason.count})</div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -980,6 +1056,7 @@ async function updateSuggestionStatus(suggestionId, status, reason = null) {
     });
     await loadAiSuggestions();
     await loadAiUsage();
+    await loadAiFeedbackSummary();
   } catch (error) {
     console.error("Update suggestion status error:", error);
   }
@@ -1247,6 +1324,7 @@ async function addPlanTasksToTodos() {
       renderPlanPanel();
       await loadAiSuggestions();
       await loadAiUsage();
+      await loadAiFeedbackSummary();
       await loadTodos();
       showMessage(
         "todosMessage",
@@ -2230,6 +2308,7 @@ function switchView(view, triggerEl = null) {
     loadTodos();
     loadAiSuggestions();
     loadAiUsage();
+    loadAiFeedbackSummary();
   } else if (view === "profile") {
     updateUserDisplay();
   } else if (view === "admin") {
@@ -2308,6 +2387,7 @@ async function logout() {
   todos = [];
   aiSuggestions = [];
   aiUsage = null;
+  aiFeedbackSummary = null;
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
   latestPlanSuggestionId = null;
@@ -2330,6 +2410,7 @@ function showAppView() {
   loadTodos();
   loadAiSuggestions();
   loadAiUsage();
+  loadAiFeedbackSummary();
 }
 
 // Show auth view
