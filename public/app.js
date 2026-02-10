@@ -340,8 +340,9 @@ function getProjectRecordByName(projectName) {
     return null;
   }
   return (
-    projectRecords.find((record) => normalizeProjectPath(record?.name) === normalized) ||
-    null
+    projectRecords.find(
+      (record) => normalizeProjectPath(record?.name) === normalized,
+    ) || null
   );
 }
 
@@ -1709,7 +1710,9 @@ function updateCategoryFilter() {
 
   filterSelect.innerHTML =
     '<option value="">All Projects</option>' +
-    categories.map((cat) => renderProjectOptionEntry(cat, currentValue)).join("");
+    categories
+      .map((cat) => renderProjectOptionEntry(cat, currentValue))
+      .join("");
 
   if (categories.includes(currentValue)) {
     filterSelect.value = currentValue;
@@ -1775,9 +1778,7 @@ function renderProjectOptionEntry(projectPath, selectedValue = "") {
 
 function getAllProjects() {
   const fromTodos = todos
-    .map((todo) =>
-      normalizeProjectPath(todo.category),
-    )
+    .map((todo) => normalizeProjectPath(todo.category))
     .filter((value) => value.length > 0);
   return expandProjectTree([...customProjects, ...fromTodos]);
 }
@@ -1812,7 +1813,9 @@ function updateProjectSelectOptions() {
 }
 
 async function createProject() {
-  const name = prompt("Project path (use / for hierarchy, e.g. Work / Client A):");
+  const name = prompt(
+    "Project path (use / for hierarchy, e.g. Work / Client A):",
+  );
   if (name === null) {
     return;
   }
@@ -1895,7 +1898,11 @@ async function createSubproject() {
     projectSelect.value = combinedPath;
   }
   await loadProjects();
-  showMessage("todosMessage", `Subproject "${combinedPath}" created`, "success");
+  showMessage(
+    "todosMessage",
+    `Subproject "${combinedPath}" created`,
+    "success",
+  );
 }
 
 async function renameProjectTree() {
@@ -1916,7 +1923,11 @@ async function renameProjectTree() {
     return;
   }
   if (renamedPath.length > 50) {
-    showMessage("todosMessage", "Project name cannot exceed 50 characters", "error");
+    showMessage(
+      "todosMessage",
+      "Project name cannot exceed 50 characters",
+      "error",
+    );
     return;
   }
   if (renamedPath === selectedPath) {

@@ -547,7 +547,9 @@ describe("Authentication API", () => {
           .set("Authorization", `Bearer ${authToken}`)
           .expect(200);
         expect(Array.isArray(listed.body)).toBe(true);
-        expect(listed.body.map((p: any) => p.name)).toContain("Work / Client A");
+        expect(listed.body.map((p: any) => p.name)).toContain(
+          "Work / Client A",
+        );
 
         const updated = await request(app)
           .put(`/projects/${created.body.id}`)
