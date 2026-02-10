@@ -1018,7 +1018,11 @@ async function critiqueDraftWithAi() {
 
   const title = input.value.trim();
   if (!title) {
-    showMessage("todosMessage", "Add a title before running AI critique", "error");
+    showMessage(
+      "todosMessage",
+      "Add a title before running AI critique",
+      "error",
+    );
     return;
   }
 
@@ -1029,9 +1033,7 @@ async function critiqueDraftWithAi() {
       body: JSON.stringify({
         title,
         description:
-          notesInput.value.trim() ||
-          categoryInput.value.trim() ||
-          undefined,
+          notesInput.value.trim() || categoryInput.value.trim() || undefined,
         dueDate: dueDateInput.value
           ? new Date(dueDateInput.value).toISOString()
           : undefined,
@@ -1068,10 +1070,7 @@ async function applyCritiqueSuggestion() {
   const notesIcon = document.getElementById("notesExpandIcon");
   input.value = latestCritiqueResult.improvedTitle || input.value;
 
-  if (
-    latestCritiqueResult.improvedDescription &&
-    !notesInput.value.trim()
-  ) {
+  if (latestCritiqueResult.improvedDescription && !notesInput.value.trim()) {
     notesInput.value = latestCritiqueResult.improvedDescription;
     notesInput.style.display = "block";
     notesIcon.classList.add("expanded");
@@ -1119,12 +1118,20 @@ async function generatePlanWithAi() {
       latestPlanSuggestionId = data.suggestionId;
       latestPlanResult = data;
       renderPlanPanel();
-      showMessage("todosMessage", "AI plan generated. Review and add tasks.", "success");
+      showMessage(
+        "todosMessage",
+        "AI plan generated. Review and add tasks.",
+        "success",
+      );
       await loadAiSuggestions();
       return;
     }
 
-    showMessage("todosMessage", data.error || "AI plan generation failed", "error");
+    showMessage(
+      "todosMessage",
+      data.error || "AI plan generation failed",
+      "error",
+    );
   } catch (error) {
     console.error("Generate plan error:", error);
     showMessage("todosMessage", "Failed to generate AI plan", "error");
@@ -1132,38 +1139,45 @@ async function generatePlanWithAi() {
 }
 
 async function addPlanTasksToTodos() {
-  if (!latestPlanResult || !Array.isArray(latestPlanResult.tasks)) {
+  if (!latestPlanSuggestionId) {
     return;
   }
 
-  let created = 0;
-  for (const task of latestPlanResult.tasks) {
-    try {
-      const response = await apiCall(`${API_URL}/todos`, {
+  try {
+    const response = await apiCall(
+      `${API_URL}/ai/suggestions/${latestPlanSuggestionId}/apply`,
+      {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: task.title,
-          description: task.description,
-          priority: task.priority || "medium",
-          dueDate: task.dueDate || undefined,
-          category: "AI Plan",
-        }),
-      });
-      if (response && response.ok) {
-        created += 1;
-      }
-    } catch (error) {
-      console.error("Create planned task error:", error);
-    }
-  }
+      },
+    );
 
-  await updateSuggestionStatus(latestPlanSuggestionId, "accepted");
-  latestPlanSuggestionId = null;
-  latestPlanResult = null;
-  renderPlanPanel();
-  await loadTodos();
-  showMessage("todosMessage", `Added ${created} AI-planned tasks`, "success");
+    const data = response ? await parseApiBody(response) : {};
+    if (response && response.ok) {
+      const created = Number.isInteger(data.createdCount)
+        ? data.createdCount
+        : 0;
+      latestPlanSuggestionId = null;
+      latestPlanResult = null;
+      renderPlanPanel();
+      await loadAiSuggestions();
+      await loadTodos();
+      showMessage(
+        "todosMessage",
+        `Added ${created} AI-planned tasks`,
+        "success",
+      );
+      return;
+    }
+
+    showMessage(
+      "todosMessage",
+      data.error || "Failed to apply AI suggestion",
+      "error",
+    );
+  } catch (error) {
+    console.error("Apply planned tasks error:", error);
+    showMessage("todosMessage", "Failed to apply AI suggestion", "error");
+  }
 }
 
 async function dismissPlanSuggestion() {

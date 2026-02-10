@@ -23,6 +23,7 @@ export interface IAiSuggestionStore {
     output: Record<string, unknown>;
   }): Promise<AiSuggestionRecord>;
   listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]>;
+  getById(userId: string, id: string): Promise<AiSuggestionRecord | null>;
   updateStatus(
     userId: string,
     id: string,
@@ -54,8 +55,23 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
     return created;
   }
 
-  async listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]> {
-    return this.records.filter((record) => record.userId === userId).slice(0, limit);
+  async listByUser(
+    userId: string,
+    limit: number,
+  ): Promise<AiSuggestionRecord[]> {
+    return this.records
+      .filter((record) => record.userId === userId)
+      .slice(0, limit);
+  }
+
+  async getById(
+    userId: string,
+    id: string,
+  ): Promise<AiSuggestionRecord | null> {
+    const record = this.records.find(
+      (item) => item.id === id && item.userId === userId,
+    );
+    return record || null;
   }
 
   async updateStatus(
@@ -110,7 +126,10 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
     };
   }
 
-  async listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]> {
+  async listByUser(
+    userId: string,
+    limit: number,
+  ): Promise<AiSuggestionRecord[]> {
     const records = await this.prisma.aiSuggestion.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
@@ -127,6 +146,30 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     }));
+  }
+
+  async getById(
+    userId: string,
+    id: string,
+  ): Promise<AiSuggestionRecord | null> {
+    const record = await this.prisma.aiSuggestion.findUnique({
+      where: { id },
+    });
+
+    if (!record || record.userId !== userId) {
+      return null;
+    }
+
+    return {
+      id: record.id,
+      userId: record.userId,
+      type: record.type as AiSuggestionType,
+      input: record.input as Record<string, unknown>,
+      output: record.output as Record<string, unknown>,
+      status: record.status as AiSuggestionStatus,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
   }
 
   async updateStatus(
