@@ -297,16 +297,15 @@
           </div>
 
           <!-- Add Todo Form -->
-          <div class="add-todo" style="flex-direction: column; gap: 12px">
+          <div class="add-todo quick-entry">
             <label for="todoInput" class="sr-only">Todo title</label>
             <input
               type="text"
               id="todoInput"
               placeholder="What needs to be done?"
               data-onkeypress="handleTodoKeyPress(event)"
-              style="width: 100%"
             />
-            <div style="display: flex; gap: 10px; width: 100%; flex-wrap: wrap">
+            <div class="field-row">
               <label for="todoCategoryInput" class="sr-only"
                 >Todo category</label
               >
@@ -314,44 +313,14 @@
                 type="text"
                 id="todoCategoryInput"
                 placeholder="Category (e.g., Work, Personal)"
-                style="
-                  flex: 1;
-                  min-width: 200px;
-                  padding: 12px;
-                  border: 2px solid var(--border-color);
-                  border-radius: 8px;
-                  background: var(--input-bg);
-                  color: var(--text-primary);
-                "
               />
               <label for="todoDueDateInput" class="sr-only"
                 >Todo due date</label
               >
-              <input
-                type="datetime-local"
-                id="todoDueDateInput"
-                style="
-                  flex: 1;
-                  min-width: 200px;
-                  padding: 12px;
-                  border: 2px solid var(--border-color);
-                  border-radius: 8px;
-                  background: var(--input-bg);
-                  color: var(--text-primary);
-                "
-              />
+              <input type="datetime-local" id="todoDueDateInput" />
             </div>
-            <div
-              style="
-                display: flex;
-                gap: 10px;
-                align-items: center;
-                flex-wrap: wrap;
-              "
-            >
-              <label style="font-weight: 500; color: var(--text-primary)"
-                >Priority:</label
-              >
+            <div class="action-row">
+              <label class="action-label">Priority:</label>
               <div class="priority-selector">
                 <button
                   class="priority-btn low"
@@ -378,14 +347,14 @@
               <button
                 class="add-btn"
                 data-onclick="critiqueDraftWithAi()"
-                style="background: #334155"
+                style="background: #334155; width: auto"
               >
                 Critique Draft (AI)
               </button>
               <button
                 class="add-btn"
                 data-onclick="addTodo()"
-                style="margin-left: auto"
+                style="margin-left: auto; width: auto"
               >
                 Add Todo
               </button>
@@ -405,46 +374,15 @@
             </div>
           </div>
 
-          <div
-            style="
-              margin-top: 16px;
-              padding: 12px;
-              border: 1px solid var(--border-color);
-              border-radius: 10px;
-              background: var(--card-bg);
-            "
-          >
-            <div style="font-weight: 600; margin-bottom: 10px">
-              AI Goal Planner
-            </div>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <div class="ai-workspace">
+            <div class="ai-workspace-header">AI Goal Planner</div>
+            <div class="ai-workspace-inputs">
               <input
                 type="text"
                 id="goalInput"
                 placeholder="Describe an outcome (e.g., Launch onboarding revamp)"
-                style="
-                  flex: 2;
-                  min-width: 260px;
-                  padding: 10px;
-                  border: 2px solid var(--border-color);
-                  border-radius: 8px;
-                  background: var(--input-bg);
-                  color: var(--text-primary);
-                "
               />
-              <input
-                type="datetime-local"
-                id="goalTargetDateInput"
-                style="
-                  flex: 1;
-                  min-width: 200px;
-                  padding: 10px;
-                  border: 2px solid var(--border-color);
-                  border-radius: 8px;
-                  background: var(--input-bg);
-                  color: var(--text-primary);
-                "
-              />
+              <input type="datetime-local" id="goalTargetDateInput" />
               <button class="add-btn" data-onclick="generatePlanWithAi()">
                 Generate Plan
               </button>
@@ -454,10 +392,13 @@
               style="display: none; margin-top: 12px"
             ></div>
             <div id="aiPlanPanel" style="display: none; margin-top: 12px"></div>
-            <div id="aiUsageSummary" style="margin-top: 12px"></div>
-            <div id="aiPerformanceInsights" style="margin-top: 12px"></div>
-            <div id="aiFeedbackInsights" style="margin-top: 12px"></div>
-            <div id="aiSuggestionHistory" style="margin-top: 12px"></div>
+            <details class="ai-meta">
+              <summary>Insights and history</summary>
+              <div id="aiUsageSummary"></div>
+              <div id="aiPerformanceInsights"></div>
+              <div id="aiFeedbackInsights"></div>
+              <div id="aiSuggestionHistory"></div>
+            </details>
           </div>
 
           <div id="todosContent">
