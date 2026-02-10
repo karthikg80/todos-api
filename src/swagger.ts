@@ -149,6 +149,40 @@ const options: swaggerJsdoc.Options = {
             },
           },
         },
+        Project: {
+          type: "object",
+          properties: {
+            id: {
+              type: "string",
+              format: "uuid",
+              description: "Project ID",
+            },
+            name: {
+              type: "string",
+              maxLength: 50,
+              description: "Project path/name",
+            },
+            userId: {
+              type: "string",
+              format: "uuid",
+              description: "Owner user ID",
+            },
+            todoCount: {
+              type: "integer",
+              description: "Number of todos linked to this project",
+            },
+            createdAt: {
+              type: "string",
+              format: "date-time",
+              description: "Creation timestamp",
+            },
+            updatedAt: {
+              type: "string",
+              format: "date-time",
+              description: "Last update timestamp",
+            },
+          },
+        },
         Subtask: {
           type: "object",
           properties: {
@@ -249,6 +283,10 @@ const options: swaggerJsdoc.Options = {
       {
         name: "Todos",
         description: "Todo CRUD operations",
+      },
+      {
+        name: "Projects",
+        description: "Project management and organization",
       },
       {
         name: "AI",

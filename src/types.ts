@@ -18,6 +18,15 @@ export interface Subtask {
   updatedAt: Date;
 }
 
+export interface Project {
+  id: string;
+  name: string;
+  userId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  todoCount?: number;
+}
+
 export interface Todo {
   id: string;
   title: string;
@@ -32,6 +41,14 @@ export interface Todo {
   createdAt: Date;
   updatedAt: Date;
   subtasks?: Subtask[];
+}
+
+export interface CreateProjectDto {
+  name: string;
+}
+
+export interface UpdateProjectDto {
+  name: string;
 }
 
 export interface CreateTodoDto {

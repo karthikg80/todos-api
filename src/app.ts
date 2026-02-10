@@ -20,6 +20,8 @@ import { createAiRouter } from "./routes/aiRouter";
 import { IAiSuggestionStore } from "./aiSuggestionStore";
 import { AiPlannerService } from "./aiService";
 import { UserPlan } from "./routes/aiRouter";
+import { createProjectsRouter } from "./routes/projectsRouter";
+import { IProjectService } from "./interfaces/IProjectService";
 
 export function createApp(
   todoService: ITodoService = new TodoService(),
@@ -28,6 +30,7 @@ export function createApp(
   aiPlannerService?: AiPlannerService,
   aiDailySuggestionLimit?: number,
   aiDailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>,
+  projectService?: IProjectService,
 ) {
   const app = express();
 
@@ -53,6 +56,19 @@ export function createApp(
   };
 
   const resolveAiUserId = (req: Request, res: Response): string | null => {
+    if (authService) {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ error: "Unauthorized" });
+        return null;
+      }
+      return userId;
+    }
+
+    return req.user?.userId || "default-user";
+  };
+
+  const resolveProjectUserId = (req: Request, res: Response): string | null => {
     if (authService) {
       const userId = req.user?.userId;
       if (!userId) {
@@ -169,6 +185,7 @@ export function createApp(
   app.use("/todos", apiLimiter);
   app.use("/users", apiLimiter);
   app.use("/ai", apiLimiter);
+  app.use("/projects", apiLimiter);
 
   app.use(
     "/auth",
@@ -184,6 +201,7 @@ export function createApp(
     app.use("/todos", authMiddleware(authService));
     app.use("/users", authMiddleware(authService));
     app.use("/ai", authMiddleware(authService));
+    app.use("/projects", authMiddleware(authService));
     app.use(
       "/admin",
       authMiddleware(authService),
@@ -194,6 +212,10 @@ export function createApp(
   app.use("/admin", createAdminRouter({ authService, hasPrismaCode }));
   app.use("/users", createUsersRouter({ authService }));
   app.use("/todos", createTodosRouter({ todoService, resolveTodoUserId }));
+  app.use(
+    "/projects",
+    createProjectsRouter({ projectService, resolveProjectUserId }),
+  );
   app.use(
     "/ai",
     createAiRouter({
