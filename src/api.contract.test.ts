@@ -127,6 +127,10 @@ describe("API Contract", () => {
     it("includes AI endpoints in the OpenAPI spec", async () => {
       const response = await request(app).get("/api-docs.json").expect(200);
 
+      expect(response.body?.paths?.["/projects"]?.get).toBeDefined();
+      expect(response.body?.paths?.["/projects"]?.post).toBeDefined();
+      expect(response.body?.paths?.["/projects/{id}"]?.put).toBeDefined();
+      expect(response.body?.paths?.["/projects/{id}"]?.delete).toBeDefined();
       expect(response.body?.paths?.["/ai/task-critic"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/plan-from-goal"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/usage"]?.get).toBeDefined();

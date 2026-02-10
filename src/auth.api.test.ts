@@ -3,17 +3,28 @@ import { createApp } from "./app";
 import { PrismaTodoService } from "./prismaTodoService";
 import { AuthService } from "./authService";
 import { prisma } from "./prismaClient";
+import { PrismaProjectService } from "./projectService";
 
 describe("Authentication API", () => {
   let app: any;
   let authService: AuthService;
   let todoService: PrismaTodoService;
+  let projectService: PrismaProjectService;
 
   beforeAll(() => {
     process.env.JWT_SECRET = "test-secret-for-api-tests";
     todoService = new PrismaTodoService(prisma);
     authService = new AuthService(prisma);
-    app = createApp(todoService, authService);
+    projectService = new PrismaProjectService(prisma);
+    app = createApp(
+      todoService,
+      authService,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      projectService,
+    );
   });
 
   beforeEach(async () => {
@@ -517,6 +528,64 @@ describe("Authentication API", () => {
 
         expect(response.body.title).toBe("Authenticated Todo");
         expect(response.body.userId).toBe(userId);
+      });
+    });
+
+    describe("Projects", () => {
+      it("creates, lists, renames, and deletes a project", async () => {
+        const created = await request(app)
+          .post("/projects")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({ name: "Work / Client A" })
+          .expect(201);
+
+        expect(created.body.name).toBe("Work / Client A");
+        expect(created.body.id).toEqual(expect.any(String));
+
+        const listed = await request(app)
+          .get("/projects")
+          .set("Authorization", `Bearer ${authToken}`)
+          .expect(200);
+        expect(Array.isArray(listed.body)).toBe(true);
+        expect(listed.body.map((p: any) => p.name)).toContain("Work / Client A");
+
+        const updated = await request(app)
+          .put(`/projects/${created.body.id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({ name: "Work / Client B" })
+          .expect(200);
+        expect(updated.body.name).toBe("Work / Client B");
+
+        await request(app)
+          .delete(`/projects/${created.body.id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .expect(204);
+      });
+
+      it("enforces user isolation for project access", async () => {
+        const otherUser = await request(app).post("/auth/register").send({
+          email: "project-other@example.com",
+          password: "password123",
+          name: "Other User",
+        });
+        const otherToken = otherUser.body.token as string;
+
+        const created = await request(app)
+          .post("/projects")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({ name: "Private Project" })
+          .expect(201);
+
+        await request(app)
+          .put(`/projects/${created.body.id}`)
+          .set("Authorization", `Bearer ${otherToken}`)
+          .send({ name: "Hacked Project" })
+          .expect(404);
+
+        await request(app)
+          .delete(`/projects/${created.body.id}`)
+          .set("Authorization", `Bearer ${otherToken}`)
+          .expect(404);
       });
     });
 
