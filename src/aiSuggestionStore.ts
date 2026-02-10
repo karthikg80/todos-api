@@ -10,6 +10,7 @@ export interface AiSuggestionRecord {
   type: AiSuggestionType;
   input: Record<string, unknown>;
   output: Record<string, unknown>;
+  feedback?: Record<string, unknown>;
   status: AiSuggestionStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -24,10 +25,12 @@ export interface IAiSuggestionStore {
   }): Promise<AiSuggestionRecord>;
   listByUser(userId: string, limit: number): Promise<AiSuggestionRecord[]>;
   getById(userId: string, id: string): Promise<AiSuggestionRecord | null>;
+  countByUserSince(userId: string, since: Date): Promise<number>;
   updateStatus(
     userId: string,
     id: string,
     status: AiSuggestionStatus,
+    feedback?: Record<string, unknown>,
   ): Promise<AiSuggestionRecord | null>;
 }
 
@@ -47,6 +50,7 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
       type: record.type,
       input: record.input,
       output: record.output,
+      feedback: undefined,
       status: "pending",
       createdAt: now,
       updatedAt: now,
@@ -74,10 +78,17 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
     return record || null;
   }
 
+  async countByUserSince(userId: string, since: Date): Promise<number> {
+    return this.records.filter(
+      (record) => record.userId === userId && record.createdAt >= since,
+    ).length;
+  }
+
   async updateStatus(
     userId: string,
     id: string,
     status: AiSuggestionStatus,
+    feedback?: Record<string, unknown>,
   ): Promise<AiSuggestionRecord | null> {
     const index = this.records.findIndex(
       (record) => record.id === id && record.userId === userId,
@@ -88,6 +99,7 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
     const updated = {
       ...this.records[index],
       status,
+      feedback,
       updatedAt: new Date(),
     };
     this.records[index] = updated;
@@ -120,6 +132,7 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       type: created.type as AiSuggestionType,
       input: created.input as Record<string, unknown>,
       output: created.output as Record<string, unknown>,
+      feedback: (created.feedback as Record<string, unknown>) || undefined,
       status: created.status as AiSuggestionStatus,
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
@@ -142,6 +155,7 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       type: record.type as AiSuggestionType,
       input: record.input as Record<string, unknown>,
       output: record.output as Record<string, unknown>,
+      feedback: (record.feedback as Record<string, unknown>) || undefined,
       status: record.status as AiSuggestionStatus,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
@@ -166,20 +180,36 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       type: record.type as AiSuggestionType,
       input: record.input as Record<string, unknown>,
       output: record.output as Record<string, unknown>,
+      feedback: (record.feedback as Record<string, unknown>) || undefined,
       status: record.status as AiSuggestionStatus,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
     };
   }
 
+  async countByUserSince(userId: string, since: Date): Promise<number> {
+    return this.prisma.aiSuggestion.count({
+      where: {
+        userId,
+        createdAt: {
+          gte: since,
+        },
+      },
+    });
+  }
+
   async updateStatus(
     userId: string,
     id: string,
     status: AiSuggestionStatus,
+    feedback?: Record<string, unknown>,
   ): Promise<AiSuggestionRecord | null> {
     const result = await this.prisma.aiSuggestion.updateMany({
       where: { id, userId },
-      data: { status },
+      data: {
+        status,
+        feedback: feedback as Prisma.InputJsonValue | undefined,
+      },
     });
 
     if (result.count !== 1) {
@@ -198,6 +228,7 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       type: record.type as AiSuggestionType,
       input: record.input as Record<string, unknown>,
       output: record.output as Record<string, unknown>,
+      feedback: (record.feedback as Record<string, unknown>) || undefined,
       status: record.status as AiSuggestionStatus,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,

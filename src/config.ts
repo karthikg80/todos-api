@@ -39,6 +39,10 @@ const aiProviderBaseUrl = (
 ).trim();
 const aiProviderApiKey = (process.env.AI_PROVIDER_API_KEY || "").trim();
 const aiProviderModel = (process.env.AI_PROVIDER_MODEL || "gpt-4o-mini").trim();
+const aiDailySuggestionLimitRaw = (
+  process.env.AI_DAILY_SUGGESTION_LIMIT || "50"
+).trim();
+const aiDailySuggestionLimit = Number.parseInt(aiDailySuggestionLimitRaw, 10);
 
 if (nodeEnv === "production") {
   if (!databaseUrl) {
@@ -115,4 +119,8 @@ export const config = {
   aiProviderBaseUrl,
   aiProviderApiKey,
   aiProviderModel,
+  aiDailySuggestionLimit:
+    Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
+      ? aiDailySuggestionLimit
+      : 50,
 };

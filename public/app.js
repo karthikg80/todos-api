@@ -235,6 +235,7 @@ let refreshToken = null;
 let todos = [];
 let users = [];
 let aiSuggestions = [];
+let aiUsage = null;
 let latestCritiqueSuggestionId = null;
 let latestCritiqueResult = null;
 let latestPlanSuggestionId = null;
@@ -884,6 +885,52 @@ async function loadAiSuggestions() {
   }
 }
 
+async function loadAiUsage() {
+  try {
+    const response = await apiCall(`${API_URL}/ai/usage`);
+    if (!response || !response.ok) {
+      aiUsage = null;
+      renderAiUsageSummary();
+      return;
+    }
+
+    aiUsage = await response.json();
+    renderAiUsageSummary();
+  } catch (error) {
+    console.error("Load AI usage error:", error);
+    aiUsage = null;
+    renderAiUsageSummary();
+  }
+}
+
+function renderAiUsageSummary() {
+  const container = document.getElementById("aiUsageSummary");
+  if (!container) return;
+
+  if (!aiUsage) {
+    container.innerHTML = "";
+    return;
+  }
+
+  const resetTime = aiUsage.resetAt
+    ? new Date(aiUsage.resetAt).toLocaleString()
+    : "N/A";
+
+  container.innerHTML = `
+    <div style="
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      background: var(--input-bg);
+    ">
+      AI usage today: <strong>${aiUsage.used}/${aiUsage.limit}</strong> used
+      (${aiUsage.remaining} remaining). Resets: ${escapeHtml(resetTime)}
+    </div>
+  `;
+}
+
 function renderAiSuggestionHistory() {
   const container = document.getElementById("aiSuggestionHistory");
   if (!container) return;
@@ -909,6 +956,11 @@ function renderAiSuggestionHistory() {
           background: var(--input-bg);
         ">
           ${escapeHtml(suggestion.type)}: ${escapeHtml(suggestion.status)}
+          ${
+            suggestion.feedback && suggestion.feedback.reason
+              ? ` (${escapeHtml(String(suggestion.feedback.reason))})`
+              : ""
+          }
         </span>
       `,
         )
@@ -917,15 +969,16 @@ function renderAiSuggestionHistory() {
   `;
 }
 
-async function updateSuggestionStatus(suggestionId, status) {
+async function updateSuggestionStatus(suggestionId, status, reason = null) {
   if (!suggestionId) return;
   try {
     await apiCall(`${API_URL}/ai/suggestions/${suggestionId}/status`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, reason }),
     });
     await loadAiSuggestions();
+    await loadAiUsage();
   } catch (error) {
     console.error("Update suggestion status error:", error);
   }
@@ -1052,10 +1105,15 @@ async function critiqueDraftWithAi() {
         "success",
       );
       await loadAiSuggestions();
+      await loadAiUsage();
       return;
     }
 
     showMessage("todosMessage", data.error || "AI critique failed", "error");
+    if (response && response.status === 429 && data.usage) {
+      aiUsage = data.usage;
+      renderAiUsageSummary();
+    }
   } catch (error) {
     console.error("Critique draft error:", error);
     showMessage("todosMessage", "Failed to run AI critique", "error");
@@ -1076,7 +1134,11 @@ async function applyCritiqueSuggestion() {
     notesIcon.classList.add("expanded");
   }
 
-  await updateSuggestionStatus(latestCritiqueSuggestionId, "accepted");
+  await updateSuggestionStatus(
+    latestCritiqueSuggestionId,
+    "accepted",
+    "Applied to draft",
+  );
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
   renderCritiquePanel();
@@ -1084,7 +1146,11 @@ async function applyCritiqueSuggestion() {
 }
 
 async function dismissCritiqueSuggestion() {
-  await updateSuggestionStatus(latestCritiqueSuggestionId, "rejected");
+  await updateSuggestionStatus(
+    latestCritiqueSuggestionId,
+    "rejected",
+    "Not useful for current context",
+  );
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
   renderCritiquePanel();
@@ -1124,6 +1190,7 @@ async function generatePlanWithAi() {
         "success",
       );
       await loadAiSuggestions();
+      await loadAiUsage();
       return;
     }
 
@@ -1132,6 +1199,10 @@ async function generatePlanWithAi() {
       data.error || "AI plan generation failed",
       "error",
     );
+    if (response && response.status === 429 && data.usage) {
+      aiUsage = data.usage;
+      renderAiUsageSummary();
+    }
   } catch (error) {
     console.error("Generate plan error:", error);
     showMessage("todosMessage", "Failed to generate AI plan", "error");
@@ -1160,6 +1231,7 @@ async function addPlanTasksToTodos() {
       latestPlanResult = null;
       renderPlanPanel();
       await loadAiSuggestions();
+      await loadAiUsage();
       await loadTodos();
       showMessage(
         "todosMessage",
@@ -1181,7 +1253,11 @@ async function addPlanTasksToTodos() {
 }
 
 async function dismissPlanSuggestion() {
-  await updateSuggestionStatus(latestPlanSuggestionId, "rejected");
+  await updateSuggestionStatus(
+    latestPlanSuggestionId,
+    "rejected",
+    "Plan did not match intended approach",
+  );
   latestPlanSuggestionId = null;
   latestPlanResult = null;
   renderPlanPanel();
@@ -2138,6 +2214,7 @@ function switchView(view, triggerEl = null) {
   if (view === "todos") {
     loadTodos();
     loadAiSuggestions();
+    loadAiUsage();
   } else if (view === "profile") {
     updateUserDisplay();
   } else if (view === "admin") {
@@ -2215,6 +2292,7 @@ async function logout() {
   persistSession({ authToken, refreshToken, currentUser });
   todos = [];
   aiSuggestions = [];
+  aiUsage = null;
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
   latestPlanSuggestionId = null;
@@ -2236,6 +2314,7 @@ function showAppView() {
   updateCategoryFilter();
   loadTodos();
   loadAiSuggestions();
+  loadAiUsage();
 }
 
 // Show auth view

@@ -60,16 +60,23 @@ describe("AI API Integration", () => {
     const updateResponse = await request(app)
       .put(`/ai/suggestions/${suggestionId}/status`)
       .set("Authorization", `Bearer ${authToken}`)
-      .send({ status: "accepted" })
+      .send({ status: "accepted", reason: "Great output quality" })
       .expect(200);
 
     expect(updateResponse.body.status).toBe("accepted");
+    expect(updateResponse.body.feedback).toEqual(
+      expect.objectContaining({
+        reason: "Great output quality",
+        source: "manual_status_update",
+      }),
+    );
 
     const persisted = await prisma.aiSuggestion.findUnique({
       where: { id: suggestionId },
     });
     expect(persisted).toBeTruthy();
     expect(persisted?.status).toBe("accepted");
+    expect((persisted?.feedback as any)?.reason).toBe("Great output quality");
   });
 
   it("creates plan suggestion and supports rejection status", async () => {
@@ -131,5 +138,50 @@ describe("AI API Integration", () => {
       .post(`/ai/suggestions/${suggestionId}/apply`)
       .set("Authorization", `Bearer ${authToken}`)
       .expect(409);
+  });
+
+  it("returns usage summary and enforces per-day quota", async () => {
+    const todoService = new PrismaTodoService(prisma);
+    const authService = new AuthService(prisma);
+    const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
+    const limitedApp = createApp(
+      todoService,
+      authService,
+      aiSuggestionStore,
+      undefined,
+      1,
+    );
+
+    const register = await request(limitedApp).post("/auth/register").send({
+      email: "ai-limit@example.com",
+      password: "password123",
+      name: "AI Limit",
+    });
+    const token = register.body.token as string;
+
+    await request(limitedApp)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "Quota first request" })
+      .expect(200);
+
+    const blocked = await request(limitedApp)
+      .post("/ai/plan-from-goal")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ goal: "Quota second request", maxTasks: 3 })
+      .expect(429);
+    expect(blocked.body.error).toBe("Daily AI suggestion limit reached");
+
+    const usage = await request(limitedApp)
+      .get("/ai/usage")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+    expect(usage.body).toEqual(
+      expect.objectContaining({
+        used: 1,
+        remaining: 0,
+        limit: 1,
+      }),
+    );
   });
 });
