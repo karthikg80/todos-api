@@ -56,6 +56,33 @@ describe("TodoService", () => {
       expect(todos[1].title).toBe("Todo 2");
       expect(todos[2].title).toBe("Todo 3");
     });
+
+    it("should filter and paginate todos", async () => {
+      const todo1 = await service.create(TEST_USER_ID, {
+        title: "Alpha",
+        priority: "low",
+      });
+      await service.create(TEST_USER_ID, { title: "Bravo", priority: "high" });
+      const todo3 = await service.create(TEST_USER_ID, {
+        title: "Charlie",
+        priority: "low",
+      });
+
+      await service.update(TEST_USER_ID, todo1.id, { completed: true });
+      await service.update(TEST_USER_ID, todo3.id, { completed: true });
+
+      const filtered = await service.findAll(TEST_USER_ID, {
+        completed: true,
+        priority: "low",
+        sortBy: "title",
+        sortOrder: "asc",
+        page: 2,
+        limit: 1,
+      });
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].title).toBe("Charlie");
+    });
   });
 
   describe("findById", () => {

@@ -102,6 +102,60 @@ describe("Todos API", () => {
       expect(response.body[1].title).toBe("Todo 2");
       expect(response.body[2].title).toBe("Todo 3");
     });
+
+    it("should filter todos by completed and priority", async () => {
+      const doneLow = await request(app).post("/todos").send({
+        title: "Done Low",
+        priority: "low",
+      });
+      const openHigh = await request(app).post("/todos").send({
+        title: "Open High",
+        priority: "high",
+      });
+
+      await request(app)
+        .put(`/todos/${doneLow.body.id}`)
+        .send({ completed: true })
+        .expect(200);
+
+      await request(app)
+        .put(`/todos/${openHigh.body.id}`)
+        .send({ completed: false })
+        .expect(200);
+
+      const response = await request(app)
+        .get("/todos")
+        .query({ completed: "true", priority: "low" })
+        .expect(200);
+
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].title).toBe("Done Low");
+    });
+
+    it("should paginate sorted todos", async () => {
+      await request(app).post("/todos").send({ title: "Zulu" });
+      await request(app).post("/todos").send({ title: "Alpha" });
+      await request(app).post("/todos").send({ title: "Mike" });
+
+      const response = await request(app)
+        .get("/todos")
+        .query({ sortBy: "title", sortOrder: "asc", page: "2", limit: "1" })
+        .expect(200);
+
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].title).toBe("Mike");
+    });
+
+    it("should return 400 for invalid todo list query", async () => {
+      const response = await request(app)
+        .get("/todos")
+        .query({ completed: "yes" })
+        .expect(400);
+
+      expect(response.body.error).toContain(
+        'completed must be "true" or "false"',
+      );
+    });
   });
 
   describe("GET /todos/:id", () => {
