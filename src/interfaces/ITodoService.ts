@@ -6,6 +6,7 @@ import {
   CreateSubtaskDto,
   UpdateSubtaskDto,
   ReorderTodoItemDto,
+  FindTodosQuery,
 } from "../types";
 
 /**
@@ -26,7 +27,7 @@ export interface ITodoService {
    * @param userId - The user ID to filter todos by
    * @returns Promise resolving to array of user's todos
    */
-  findAll(userId: string): Promise<Todo[]>;
+  findAll(userId: string, query?: FindTodosQuery): Promise<Todo[]>;
 
   /**
    * Find a todo by its ID (belonging to the specified user)

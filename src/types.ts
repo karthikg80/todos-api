@@ -1,4 +1,12 @@
 export type Priority = "low" | "medium" | "high";
+export type TodoSortBy =
+  | "order"
+  | "createdAt"
+  | "updatedAt"
+  | "dueDate"
+  | "priority"
+  | "title";
+export type SortOrder = "asc" | "desc";
 
 export interface Subtask {
   id: string;
@@ -59,4 +67,14 @@ export interface UpdateSubtaskDto {
 export interface ReorderTodoItemDto {
   id: string;
   order: number;
+}
+
+export interface FindTodosQuery {
+  completed?: boolean;
+  priority?: Priority;
+  category?: string;
+  sortBy?: TodoSortBy;
+  sortOrder?: SortOrder;
+  page?: number;
+  limit?: number;
 }

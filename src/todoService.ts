@@ -6,6 +6,7 @@ import {
   CreateSubtaskDto,
   UpdateSubtaskDto,
   ReorderTodoItemDto,
+  FindTodosQuery,
 } from "./types";
 import { randomUUID } from "crypto";
 import { ITodoService } from "./interfaces/ITodoService";
@@ -43,10 +44,79 @@ export class TodoService implements ITodoService {
     return todo;
   }
 
-  async findAll(userId: string): Promise<Todo[]> {
-    return Array.from(this.todos.values())
-      .filter((todo) => todo.userId === userId)
-      .sort((a, b) => a.order - b.order);
+  async findAll(userId: string, query?: FindTodosQuery): Promise<Todo[]> {
+    let todos = Array.from(this.todos.values()).filter(
+      (todo) => todo.userId === userId,
+    );
+
+    if (query?.completed !== undefined) {
+      todos = todos.filter((todo) => todo.completed === query.completed);
+    }
+
+    if (query?.priority) {
+      todos = todos.filter((todo) => todo.priority === query.priority);
+    }
+
+    if (query?.category !== undefined) {
+      todos = todos.filter((todo) => (todo.category ?? "") === query.category);
+    }
+
+    const sortBy = query?.sortBy ?? "order";
+    const sortOrder = query?.sortOrder ?? "asc";
+    const sortMultiplier = sortOrder === "asc" ? 1 : -1;
+    const priorityRank: Record<string, number> = {
+      low: 0,
+      medium: 1,
+      high: 2,
+    };
+
+    todos.sort((a, b) => {
+      let result = 0;
+
+      switch (sortBy) {
+        case "createdAt":
+          result = a.createdAt.getTime() - b.createdAt.getTime();
+          break;
+        case "updatedAt":
+          result = a.updatedAt.getTime() - b.updatedAt.getTime();
+          break;
+        case "dueDate":
+          if (!a.dueDate && !b.dueDate) {
+            result = 0;
+          } else if (!a.dueDate) {
+            result = 1;
+          } else if (!b.dueDate) {
+            result = -1;
+          } else {
+            result = a.dueDate.getTime() - b.dueDate.getTime();
+          }
+          break;
+        case "priority":
+          result = priorityRank[a.priority] - priorityRank[b.priority];
+          break;
+        case "title":
+          result = a.title.localeCompare(b.title);
+          break;
+        case "order":
+        default:
+          result = a.order - b.order;
+          break;
+      }
+
+      if (result === 0) {
+        result = a.order - b.order;
+      }
+
+      return result * sortMultiplier;
+    });
+
+    if (query?.limit !== undefined) {
+      const page = query.page ?? 1;
+      const offset = (page - 1) * query.limit;
+      todos = todos.slice(offset, offset + query.limit);
+    }
+
+    return todos;
   }
 
   async findById(userId: string, id: string): Promise<Todo | null> {
