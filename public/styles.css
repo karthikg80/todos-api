@@ -585,6 +585,41 @@ body {
   pointer-events: none;
 }
 
+.filter-toolbar {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.date-view-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.date-view-tab {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.82em;
+  font-weight: 600;
+}
+
+.date-view-tab:hover {
+  color: var(--text-primary);
+}
+
+.date-view-tab.active {
+  background: #667eea;
+  border-color: #667eea;
+  color: #fff;
+}
+
 .bulk-actions-toolbar {
   background: #667eea;
   color: white;
