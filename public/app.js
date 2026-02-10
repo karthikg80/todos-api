@@ -925,7 +925,8 @@ function renderAiUsageSummary() {
       border-radius: 8px;
       background: var(--input-bg);
     ">
-      AI usage today: <strong>${aiUsage.used}/${aiUsage.limit}</strong> used
+      AI plan: <strong>${escapeHtml(String(aiUsage.plan || "free").toUpperCase())}</strong>.
+      Usage today: <strong>${aiUsage.used}/${aiUsage.limit}</strong> used
       (${aiUsage.remaining} remaining). Resets: ${escapeHtml(resetTime)}
     </div>
   `;
@@ -1113,6 +1114,13 @@ async function critiqueDraftWithAi() {
     if (response && response.status === 429 && data.usage) {
       aiUsage = data.usage;
       renderAiUsageSummary();
+      showMessage(
+        "todosMessage",
+        `Daily AI limit reached on ${String(
+          data.usage.plan || "free",
+        ).toUpperCase()} plan. Upgrade for higher limits.`,
+        "error",
+      );
     }
   } catch (error) {
     console.error("Critique draft error:", error);
@@ -1202,6 +1210,13 @@ async function generatePlanWithAi() {
     if (response && response.status === 429 && data.usage) {
       aiUsage = data.usage;
       renderAiUsageSummary();
+      showMessage(
+        "todosMessage",
+        `Daily AI limit reached on ${String(
+          data.usage.plan || "free",
+        ).toUpperCase()} plan. Upgrade for higher limits.`,
+        "error",
+      );
     }
   } catch (error) {
     console.error("Generate plan error:", error);

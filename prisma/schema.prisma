@@ -18,6 +18,12 @@ enum UserRole {
   admin
 }
 
+enum UserPlan {
+  free
+  pro
+  team
+}
+
 enum TodoPriority {
   low
   medium
@@ -45,6 +51,7 @@ model User {
   resetToken        String?        @unique @db.VarChar(255) @map("reset_token")
   resetTokenExpiry  DateTime?      @map("reset_token_expiry")
   role              UserRole       @default(user)
+  plan              UserPlan       @default(free)
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
 
@@ -114,6 +121,8 @@ model AiSuggestion {
   input     Json
   output    Json
   feedback  Json?
+  appliedAt DateTime?          @map("applied_at")
+  appliedTodoIds Json?         @map("applied_todo_ids")
   status    AiSuggestionStatus @default(pending)
   createdAt DateTime          @default(now()) @map("created_at")
   updatedAt DateTime          @updatedAt @map("updated_at")
