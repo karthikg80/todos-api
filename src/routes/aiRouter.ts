@@ -7,6 +7,7 @@ import {
 import {
   validateCritiqueTaskInput,
   validateFeedbackSummaryQuery,
+  validateInsightsQuery,
   validatePlanFromGoalInput,
   validateSuggestionListQuery,
   validateSuggestionStatusInput,
@@ -122,6 +123,31 @@ export function createAiRouter({
       return false;
     }
     return true;
+  };
+
+  const buildInsightsRecommendation = (params: {
+    plan: UserPlan;
+    usageRemaining: number;
+    usageLimit: number;
+    generatedCount: number;
+    topRejectedReason?: string;
+  }): string => {
+    const usageThreshold = Math.max(1, Math.ceil(params.usageLimit * 0.1));
+    if (params.plan === "free" && params.usageRemaining <= usageThreshold) {
+      return "You are near your daily AI cap. Upgrade to Pro for higher limits and uninterrupted planning.";
+    }
+    const reason = (params.topRejectedReason || "").toLowerCase();
+    if (
+      reason.includes("generic") ||
+      reason.includes("vague") ||
+      reason.includes("specific")
+    ) {
+      return "Recent rejections suggest outputs are too generic. Add constraints like owner, metric, and due date to get stronger suggestions.";
+    }
+    if (params.generatedCount < 3) {
+      return "Generate a few more AI suggestions this week to improve personalization and quality tracking.";
+    }
+    return "Keep rating suggestions after each run to continuously improve output quality.";
   };
 
   const parsePlanTasks = (output: Record<string, unknown>): CreateTodoDto[] => {
@@ -299,6 +325,76 @@ export function createAiRouter({
 
         const usage = await getUsage(userId);
         res.json(usage);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /**
+   * @openapi
+   * /ai/insights:
+   *   get:
+   *     tags:
+   *       - AI
+   *     summary: Get AI quality and usage insights with recommendation
+   *     security:
+   *       - bearerAuth: []
+   *     parameters:
+   *       - in: query
+   *         name: days
+   *         schema:
+   *           type: integer
+   *           minimum: 1
+   *           maximum: 90
+   *         description: Rolling lookback window in days (default 7)
+   *     responses:
+   *       200:
+   *         description: AI insights summary
+   */
+  router.get(
+    "/insights",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveAiUserId(req, res);
+        if (!userId) return;
+
+        const { days } = validateInsightsQuery(req.query);
+        const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+        const [usage, generatedCount, feedbackSummary] = await Promise.all([
+          getUsage(userId),
+          suggestionStore.countByUserSince(userId, since),
+          suggestionStore.summarizeFeedbackByUserSince(userId, since, 3),
+        ]);
+
+        const ratedCount =
+          feedbackSummary.acceptedCount + feedbackSummary.rejectedCount;
+        const acceptanceRate =
+          ratedCount > 0
+            ? Math.round((feedbackSummary.acceptedCount / ratedCount) * 100)
+            : null;
+        const topRejectedReason = feedbackSummary.rejectedReasons[0]?.reason;
+        const recommendation = buildInsightsRecommendation({
+          plan: usage.plan,
+          usageRemaining: usage.remaining,
+          usageLimit: usage.limit,
+          generatedCount,
+          topRejectedReason,
+        });
+
+        res.json({
+          periodDays: days,
+          since: since.toISOString(),
+          usageToday: usage,
+          generatedCount,
+          ratedCount,
+          acceptedCount: feedbackSummary.acceptedCount,
+          rejectedCount: feedbackSummary.rejectedCount,
+          acceptanceRate,
+          topAcceptedReasons: feedbackSummary.acceptedReasons,
+          topRejectedReasons: feedbackSummary.rejectedReasons,
+          recommendation,
+        });
       } catch (error) {
         next(error);
       }

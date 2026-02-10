@@ -130,6 +130,7 @@ describe("API Contract", () => {
       expect(response.body?.paths?.["/ai/task-critic"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/plan-from-goal"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/usage"]?.get).toBeDefined();
+      expect(response.body?.paths?.["/ai/insights"]?.get).toBeDefined();
       expect(response.body?.paths?.["/ai/feedback-summary"]?.get).toBeDefined();
     });
   });
@@ -139,6 +140,45 @@ describe("API Contract", () => {
       const response = await request(app).get("/ai/usage").expect(200);
 
       expect(response.body).toEqual(
+        expect.objectContaining({
+          plan: "free",
+          used: expect.any(Number),
+          remaining: expect.any(Number),
+          limit: expect.any(Number),
+          resetAt: expect.any(String),
+        }),
+      );
+    });
+
+    it("returns AI insights summary with recommendation", async () => {
+      const created = await request(app)
+        .post("/ai/task-critic")
+        .send({ title: "Draft docs" })
+        .expect(200);
+
+      await request(app)
+        .put(`/ai/suggestions/${created.body.suggestionId}/status`)
+        .send({ status: "rejected", reason: "Too generic" })
+        .expect(200);
+
+      const response = await request(app)
+        .get("/ai/insights?days=7")
+        .expect(200);
+      expect(response.body).toEqual(
+        expect.objectContaining({
+          periodDays: 7,
+          since: expect.any(String),
+          generatedCount: expect.any(Number),
+          ratedCount: expect.any(Number),
+          acceptedCount: expect.any(Number),
+          rejectedCount: expect.any(Number),
+          acceptanceRate: expect.any(Number),
+          topAcceptedReasons: expect.any(Array),
+          topRejectedReasons: expect.any(Array),
+          recommendation: expect.any(String),
+        }),
+      );
+      expect(response.body.usageToday).toEqual(
         expect.objectContaining({
           plan: "free",
           used: expect.any(Number),

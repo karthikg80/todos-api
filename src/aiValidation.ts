@@ -180,3 +180,20 @@ export function validateFeedbackSummaryQuery(query: any): {
 
   return { days, reasonLimit };
 }
+
+export function validateInsightsQuery(query: any): {
+  days: number;
+} {
+  let days = 7;
+  if (query.days !== undefined) {
+    if (typeof query.days !== "string" || !/^\d+$/.test(query.days)) {
+      throw new ValidationError("days must be a positive integer");
+    }
+    days = Number.parseInt(query.days, 10);
+    if (days < 1 || days > 90) {
+      throw new ValidationError("days must be between 1 and 90");
+    }
+  }
+
+  return { days };
+}

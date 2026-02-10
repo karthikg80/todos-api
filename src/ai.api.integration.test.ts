@@ -353,4 +353,60 @@ describe("AI API Integration", () => {
       .expect(200);
     expect(plan.body.summary).toContain("specific steps");
   });
+
+  it("returns insights and upgrade recommendation when usage is near cap", async () => {
+    const todoService = new PrismaTodoService(prisma);
+    const authService = new AuthService(prisma);
+    const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
+    const limitedApp = createApp(
+      todoService,
+      authService,
+      aiSuggestionStore,
+      undefined,
+      1,
+    );
+
+    const register = await request(limitedApp).post("/auth/register").send({
+      email: "insights-limit@example.com",
+      password: "password123",
+      name: "Insights Limit",
+    });
+    const token = register.body.token as string;
+
+    await request(limitedApp)
+      .post("/ai/task-critic")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ title: "Only request" })
+      .expect(200);
+
+    const insights = await request(limitedApp)
+      .get("/ai/insights?days=7")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+
+    expect(insights.body).toEqual(
+      expect.objectContaining({
+        periodDays: 7,
+        generatedCount: 1,
+        ratedCount: 0,
+        acceptanceRate: null,
+      }),
+    );
+    expect(insights.body.usageToday).toEqual(
+      expect.objectContaining({
+        plan: "free",
+        used: 1,
+        remaining: 0,
+        limit: 1,
+      }),
+    );
+    expect(insights.body.recommendation).toContain("Upgrade to Pro");
+  });
+
+  it("validates insights query params", async () => {
+    await request(app)
+      .get("/ai/insights?days=0")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(400);
+  });
 });
