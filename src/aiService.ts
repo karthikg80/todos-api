@@ -34,6 +34,11 @@ export interface PlanFromGoalOutput {
   tasks: PlanTaskSuggestion[];
 }
 
+export interface AiGenerationContext {
+  rejectionSignals?: string[];
+  acceptanceSignals?: string[];
+}
+
 interface AiProvider {
   generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T>;
 }
@@ -75,11 +80,21 @@ function daysUntil(date: Date): number {
 
 export function critiqueTaskDeterministic(
   input: CritiqueTaskInput,
+  context?: AiGenerationContext,
 ): CritiqueTaskOutput {
   const suggestions: string[] = [];
   let score = 100;
   let improvedTitle = input.title.trim();
   let improvedDescription = input.description?.trim();
+  const rejectionSignals = (context?.rejectionSignals || []).map((signal) =>
+    signal.toLowerCase(),
+  );
+  const needsSpecificity = rejectionSignals.some(
+    (signal) =>
+      signal.includes("generic") ||
+      signal.includes("vague") ||
+      signal.includes("specific"),
+  );
 
   if (improvedTitle.length < 12) {
     score -= 15;
@@ -124,6 +139,15 @@ export function critiqueTaskDeterministic(
     suggestions.push(
       "Assign explicit priority (high/medium/low) based on business impact",
     );
+  }
+
+  if (needsSpecificity) {
+    suggestions.unshift(
+      "Make outcomes concrete: include owner, measurable result, and deadline",
+    );
+    improvedDescription = improvedDescription
+      ? `${improvedDescription} Include owner, measurable result, and deadline.`
+      : "Definition of done: include owner, measurable result, and deadline.";
   }
 
   return {
@@ -188,7 +212,17 @@ function buildTaskTemplate(
 
 export function planFromGoalDeterministic(
   input: PlanFromGoalInput,
+  context?: AiGenerationContext,
 ): PlanFromGoalOutput {
+  const rejectionSignals = (context?.rejectionSignals || []).map((signal) =>
+    signal.toLowerCase(),
+  );
+  const needsSpecificity = rejectionSignals.some(
+    (signal) =>
+      signal.includes("generic") ||
+      signal.includes("vague") ||
+      signal.includes("specific"),
+  );
   const baseTasks = buildTaskTemplate(input.goal).slice(0, input.maxTasks);
   const dueDates = input.targetDate
     ? distributeDueDates(new Date(), input.targetDate, baseTasks.length)
@@ -196,12 +230,17 @@ export function planFromGoalDeterministic(
 
   const tasks = baseTasks.map((task, index) => ({
     ...task,
+    description: needsSpecificity
+      ? `${task.description} Assign owner, metric, and date for this step.`
+      : task.description,
     dueDate: dueDates[index],
   }));
 
   return {
     goal: input.goal,
-    summary: `Execution plan with ${tasks.length} steps generated for "${input.goal}".`,
+    summary: needsSpecificity
+      ? `Execution plan with ${tasks.length} specific steps generated for "${input.goal}".`
+      : `Execution plan with ${tasks.length} steps generated for "${input.goal}".`,
     tasks,
   };
 }
@@ -326,20 +365,32 @@ export class AiPlannerService {
     }
   }
 
-  async critiqueTask(input: CritiqueTaskInput): Promise<CritiqueTaskOutput> {
-    const fallback = critiqueTaskDeterministic(input);
+  async critiqueTask(
+    input: CritiqueTaskInput,
+    context?: AiGenerationContext,
+  ): Promise<CritiqueTaskOutput> {
+    const fallback = critiqueTaskDeterministic(input, context);
     if (!this.provider) {
       return fallback;
     }
 
     try {
+      const contextBlock =
+        context &&
+        (context.rejectionSignals?.length || context.acceptanceSignals?.length)
+          ? {
+              rejectionSignals: context.rejectionSignals || [],
+              acceptanceSignals: context.acceptanceSignals || [],
+            }
+          : undefined;
       const response = await this.provider.generateJson<unknown>(
-        "You are an execution coach. Return JSON with: qualityScore (0-100), improvedTitle, improvedDescription, suggestions (string[]). Keep suggestions actionable.",
+        "You are an execution coach. Return JSON with: qualityScore (0-100), improvedTitle, improvedDescription, suggestions (string[]). Keep suggestions actionable and concrete with owners, measurable outcomes, and deadlines where possible.",
         JSON.stringify({
           title: input.title,
           description: input.description || "",
           dueDate: input.dueDate?.toISOString(),
           priority: input.priority || "medium",
+          context: contextBlock,
         }),
       );
       return parseCritiqueOutput(response) || fallback;
@@ -352,19 +403,31 @@ export class AiPlannerService {
     }
   }
 
-  async planFromGoal(input: PlanFromGoalInput): Promise<PlanFromGoalOutput> {
-    const fallback = planFromGoalDeterministic(input);
+  async planFromGoal(
+    input: PlanFromGoalInput,
+    context?: AiGenerationContext,
+  ): Promise<PlanFromGoalOutput> {
+    const fallback = planFromGoalDeterministic(input, context);
     if (!this.provider) {
       return fallback;
     }
 
     try {
+      const contextBlock =
+        context &&
+        (context.rejectionSignals?.length || context.acceptanceSignals?.length)
+          ? {
+              rejectionSignals: context.rejectionSignals || [],
+              acceptanceSignals: context.acceptanceSignals || [],
+            }
+          : undefined;
       const response = await this.provider.generateJson<unknown>(
-        "You are an execution planner. Return JSON with: goal, summary, tasks[]. Each task must include title, description, priority(low|medium|high), optional dueDate ISO string.",
+        "You are an execution planner. Return JSON with: goal, summary, tasks[]. Each task must include title, description, priority(low|medium|high), optional dueDate ISO string. Prefer concrete, measurable tasks.",
         JSON.stringify({
           goal: input.goal,
           targetDate: input.targetDate?.toISOString(),
           maxTasks: input.maxTasks,
+          context: contextBlock,
         }),
       );
 

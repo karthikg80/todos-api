@@ -99,6 +99,19 @@ export function createAiRouter({
     };
   };
 
+  const getFeedbackContext = async (userId: string) => {
+    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const summary = await suggestionStore.summarizeFeedbackByUserSince(
+      userId,
+      since,
+      3,
+    );
+    return {
+      rejectionSignals: summary.rejectedReasons.map((item) => item.reason),
+      acceptanceSignals: summary.acceptedReasons.map((item) => item.reason),
+    };
+  };
+
   const enforceDailyQuota = async (userId: string, res: Response) => {
     const usage = await getUsage(userId);
     if (usage.remaining <= 0) {
@@ -180,7 +193,11 @@ export function createAiRouter({
         if (!(await enforceDailyQuota(userId, res))) return;
 
         const input = validateCritiqueTaskInput(req.body);
-        const result = await aiPlannerService.critiqueTask(input);
+        const feedbackContext = await getFeedbackContext(userId);
+        const result = await aiPlannerService.critiqueTask(
+          input,
+          feedbackContext,
+        );
 
         const suggestion = await suggestionStore.create({
           userId,
@@ -228,7 +245,11 @@ export function createAiRouter({
         if (!(await enforceDailyQuota(userId, res))) return;
 
         const input = validatePlanFromGoalInput(req.body);
-        const result = await aiPlannerService.planFromGoal(input);
+        const feedbackContext = await getFeedbackContext(userId);
+        const result = await aiPlannerService.planFromGoal(
+          input,
+          feedbackContext,
+        );
 
         const suggestion = await suggestionStore.create({
           userId,

@@ -179,6 +179,41 @@ describe("API Contract", () => {
       );
     });
 
+    it("adapts AI outputs when prior feedback says suggestions are generic", async () => {
+      const first = await request(app)
+        .post("/ai/task-critic")
+        .send({ title: "Draft docs" })
+        .expect(200);
+
+      await request(app)
+        .put(`/ai/suggestions/${first.body.suggestionId}/status`)
+        .send({ status: "rejected", reason: "Too generic" })
+        .expect(200);
+
+      const adaptedCritique = await request(app)
+        .post("/ai/task-critic")
+        .send({ title: "Write onboarding copy" })
+        .expect(200);
+      expect(
+        adaptedCritique.body.suggestions.some((suggestion: string) =>
+          suggestion.includes("owner, measurable result, and deadline"),
+        ),
+      ).toBe(true);
+
+      const adaptedPlan = await request(app)
+        .post("/ai/plan-from-goal")
+        .send({ goal: "Improve onboarding", maxTasks: 3 })
+        .expect(200);
+      expect(adaptedPlan.body.summary).toContain("specific steps");
+      expect(
+        adaptedPlan.body.tasks.every((task: any) =>
+          String(task.description).includes(
+            "Assign owner, metric, and date for this step.",
+          ),
+        ),
+      ).toBe(true);
+    });
+
     it("returns critique suggestions for vague tasks", async () => {
       const response = await request(app)
         .post("/ai/task-critic")
