@@ -227,40 +227,54 @@
             aria-atomic="true"
           ></div>
 
-          <!-- Search Bar -->
-          <div class="search-bar">
-            <label for="searchInput" class="sr-only">Search todos</label>
-            <input
-              type="text"
-              id="searchInput"
-              class="search-input"
-              placeholder="Search todos... (Ctrl/Cmd+F)"
-              data-oninput="filterTodos()"
-            />
-            <span class="search-icon">🔍</span>
+          <div class="todos-top-bar">
+            <div class="todos-top-bar-left">
+              <h2>Todos</h2>
+              <span id="todosCountSummary" class="todos-count-summary"></span>
+            </div>
+            <div class="todos-top-bar-search">
+              <div class="search-bar">
+                <label for="searchInput" class="sr-only">Search todos</label>
+                <input
+                  type="text"
+                  id="searchInput"
+                  class="search-input"
+                  placeholder="Search todos... (Ctrl/Cmd+F)"
+                  data-oninput="filterTodos()"
+                />
+                <span class="search-icon">🔍</span>
+              </div>
+            </div>
+            <div class="todos-top-bar-actions">
+              <button class="add-btn top-add-btn" data-onclick="addTodo()">
+                Add Task
+              </button>
+              <button
+                id="moreFiltersToggle"
+                class="mini-btn more-filters-toggle"
+                aria-expanded="false"
+                aria-controls="moreFiltersPanel"
+              >
+                More filters
+              </button>
+            </div>
           </div>
 
-          <!-- Project Filter -->
-          <div class="filter-toolbar">
-            <label
-              for="categoryFilter"
-              style="font-weight: 500; color: var(--text-primary)"
-              >Project:</label
+          <div class="todos-minimal-filters">
+            <label class="project-filter-label" for="categoryFilter"
+              >Project</label
             >
-            <select
-              id="categoryFilter"
-              data-onchange="filterTodos()"
-              style="
-                padding: 8px 12px;
-                border: 2px solid var(--border-color);
-                border-radius: 6px;
-                background: var(--input-bg);
-                color: var(--text-primary);
-                cursor: pointer;
-              "
-            >
+            <select id="categoryFilter" data-onchange="filterTodos()">
               <option value="">All Projects</option>
             </select>
+          </div>
+
+          <div
+            id="moreFiltersPanel"
+            class="more-filters-panel"
+            role="region"
+            aria-label="More filters"
+          >
             <div class="date-view-tabs">
               <button
                 class="date-view-tab active"
@@ -298,31 +312,23 @@
                 Someday
               </button>
             </div>
-            <button
-              data-onclick="clearFilters()"
-              style="
-                padding: 8px 16px;
-                background: var(--card-bg);
-                border: 1px solid var(--border-color);
-                border-radius: 6px;
-                cursor: pointer;
-                color: var(--text-primary);
-              "
-            >
-              Clear
-            </button>
-            <button
-              id="exportIcsButton"
-              class="mini-btn"
-              data-onclick="exportVisibleTodosToIcs()"
-              title="Exports currently filtered due-dated tasks"
-              disabled
-            >
-              Export .ics
-            </button>
-          </div>
-          <div class="ics-export-helper">
-            Exports currently filtered due-dated tasks.
+            <div class="more-filters-actions">
+              <button class="clear-filters-btn" data-onclick="clearFilters()">
+                Clear
+              </button>
+              <button
+                id="exportIcsButton"
+                class="mini-btn"
+                data-onclick="exportVisibleTodosToIcs()"
+                title="Exports currently filtered due-dated tasks"
+                disabled
+              >
+                Export .ics
+              </button>
+            </div>
+            <div class="ics-export-helper">
+              Exports currently filtered due-dated tasks.
+            </div>
           </div>
 
           <!-- Bulk Actions Toolbar -->
@@ -420,13 +426,6 @@
                 style="background: #334155; width: auto"
               >
                 Critique Draft (AI)
-              </button>
-              <button
-                class="add-btn"
-                data-onclick="addTodo()"
-                style="margin-left: auto; width: auto"
-              >
-                Add Todo
               </button>
             </div>
             <div>
