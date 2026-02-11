@@ -279,6 +279,9 @@ const {
 let authState = AUTH_STATE.UNAUTHENTICATED;
 let currentDateView = "all";
 let isMoreFiltersOpen = false;
+let selectedTodoId = null;
+let lastFocusedTodoTrigger = null;
+let isTodoDrawerOpen = false;
 const PROJECT_PATH_SEPARATOR = " / ";
 
 function handleAuthFailure() {
@@ -402,6 +405,7 @@ async function ensureProjectExists(projectName) {
 // Initialize app
 function init() {
   bindCriticalHandlers();
+  bindTodoDrawerHandlers();
 
   // Check for reset token in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -3171,6 +3175,141 @@ function toggleMoreFilters() {
   openMoreFilters();
 }
 
+function getTodoDrawerElements() {
+  const drawer = document.getElementById("todoDetailsDrawer");
+  const closeBtn = document.getElementById("todoDrawerClose");
+  const titleEl = document.getElementById("todoDrawerTitle");
+  const contentEl = drawer?.querySelector(".todo-drawer__content");
+  const backdrop = document.getElementById("todoDrawerBackdrop");
+  if (!(drawer instanceof HTMLElement)) return null;
+  if (!(closeBtn instanceof HTMLElement)) return null;
+  if (!(titleEl instanceof HTMLElement)) return null;
+  if (!(contentEl instanceof HTMLElement)) return null;
+  return { drawer, closeBtn, titleEl, contentEl, backdrop };
+}
+
+function getTodoById(todoId) {
+  return todos.find((todo) => todo.id === todoId) || null;
+}
+
+function renderTodoDrawerContent() {
+  const refs = getTodoDrawerElements();
+  if (!refs) return;
+
+  const { titleEl, contentEl } = refs;
+  if (!selectedTodoId) {
+    titleEl.textContent = "Task";
+    contentEl.innerHTML = "";
+    return;
+  }
+
+  const todo = getTodoById(selectedTodoId);
+  if (!todo) {
+    titleEl.textContent = "Task";
+    contentEl.innerHTML = `
+      <div class="todo-drawer__section">
+        <div class="todo-drawer__section-title">Unavailable</div>
+        <p>This task is no longer available in the current view.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const dueDateText = todo.dueDate
+    ? new Date(todo.dueDate).toLocaleString()
+    : "No due date";
+  const projectText = todo.category || "No project";
+  const priorityText = (todo.priority || "medium").toUpperCase();
+  const statusText = todo.completed ? "Completed" : "Open";
+  const descriptionText = todo.description
+    ? escapeHtml(String(todo.description))
+    : "No description";
+
+  titleEl.textContent = todo.title || "Task";
+  contentEl.innerHTML = `
+    <div class="todo-drawer__section">
+      <div class="todo-drawer__section-title">Essentials</div>
+      <p><strong>Status:</strong> ${escapeHtml(statusText)}</p>
+      <p><strong>Due:</strong> ${escapeHtml(dueDateText)}</p>
+      <p><strong>Project:</strong> ${escapeHtml(projectText)}</p>
+      <p><strong>Priority:</strong> ${escapeHtml(priorityText)}</p>
+    </div>
+    <div class="todo-drawer__section">
+      <div class="todo-drawer__section-title">Details</div>
+      <p>${descriptionText}</p>
+    </div>
+  `;
+}
+
+function openTodoDrawer(todoId, triggerEl) {
+  const refs = getTodoDrawerElements();
+  if (!refs) return;
+  if (!getTodoById(todoId)) return;
+
+  selectedTodoId = todoId;
+  lastFocusedTodoTrigger = triggerEl instanceof HTMLElement ? triggerEl : null;
+  isTodoDrawerOpen = true;
+
+  const { drawer, closeBtn, backdrop } = refs;
+  drawer.classList.add("todo-drawer--open");
+  drawer.setAttribute("aria-hidden", "false");
+  if (backdrop instanceof HTMLElement) {
+    backdrop.classList.add("todo-drawer-backdrop--open");
+    backdrop.setAttribute("aria-hidden", "false");
+  }
+
+  renderTodoDrawerContent();
+  renderTodos();
+  closeBtn.focus();
+}
+
+function closeTodoDrawer({ restoreFocus = true } = {}) {
+  const refs = getTodoDrawerElements();
+
+  isTodoDrawerOpen = false;
+  selectedTodoId = null;
+
+  if (refs) {
+    const { drawer, backdrop } = refs;
+    drawer.classList.remove("todo-drawer--open");
+    drawer.setAttribute("aria-hidden", "true");
+    if (backdrop instanceof HTMLElement) {
+      backdrop.classList.remove("todo-drawer-backdrop--open");
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+    renderTodoDrawerContent();
+  }
+  renderTodos();
+
+  if (restoreFocus && lastFocusedTodoTrigger?.isConnected) {
+    lastFocusedTodoTrigger.focus();
+  }
+  lastFocusedTodoTrigger = null;
+}
+
+function syncTodoDrawerStateWithRender() {
+  const refs = getTodoDrawerElements();
+  if (!refs) return;
+
+  if (!isTodoDrawerOpen || !selectedTodoId) {
+    refs.drawer.classList.remove("todo-drawer--open");
+    refs.drawer.setAttribute("aria-hidden", "true");
+    if (refs.backdrop instanceof HTMLElement) {
+      refs.backdrop.classList.remove("todo-drawer-backdrop--open");
+      refs.backdrop.setAttribute("aria-hidden", "true");
+    }
+    return;
+  }
+
+  refs.drawer.classList.add("todo-drawer--open");
+  refs.drawer.setAttribute("aria-hidden", "false");
+  if (refs.backdrop instanceof HTMLElement) {
+    refs.backdrop.classList.add("todo-drawer-backdrop--open");
+    refs.backdrop.setAttribute("aria-hidden", "false");
+  }
+  renderTodoDrawerContent();
+}
+
 // Render todos
 function renderTodos() {
   const container = document.getElementById("todosContent");
@@ -3185,12 +3324,15 @@ function renderTodos() {
   }
 
   if (todos.length === 0) {
+    isTodoDrawerOpen = false;
+    selectedTodoId = null;
     container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">✨</div>
                         <p>No todos yet. Add one above!</p>
                     </div>
                 `;
+    syncTodoDrawerStateWithRender();
     updateBulkActionsVisibility();
     updateIcsExportButtonState();
     return;
@@ -3243,9 +3385,10 @@ function renderTodos() {
 
       return `
         ${categoryHeader}
-        <li class="todo-item ${todo.completed ? "completed" : ""}"
+        <li class="todo-item ${todo.completed ? "completed" : ""} ${selectedTodoId === todo.id ? "todo-item--active" : ""}"
             draggable="true"
             data-todo-id="${todo.id}"
+            tabindex="0"
             data-ondragstart="handleDragStart(event)"
             data-ondragover="handleDragOver(event)"
             data-ondrop="handleDrop(event)"
@@ -3314,6 +3457,11 @@ function renderTodos() {
                 </ul>
             `;
 
+  if (selectedTodoId && !getTodoById(selectedTodoId)) {
+    isTodoDrawerOpen = false;
+    selectedTodoId = null;
+  }
+  syncTodoDrawerStateWithRender();
   updateBulkActionsVisibility();
   updateIcsExportButtonState();
 }
@@ -3855,6 +4003,12 @@ document.addEventListener("keydown", function (e) {
     }
   }
 
+  if (e.key === "Escape" && isTodoDrawerOpen) {
+    e.preventDefault();
+    closeTodoDrawer({ restoreFocus: true });
+    return;
+  }
+
   // Ignore if typing in input fields
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
     // Allow Esc to clear search
@@ -4055,11 +4209,65 @@ function switchView(view, triggerEl = null) {
     loadAiFeedbackSummary();
   } else if (view === "profile") {
     closeMoreFilters();
+    closeTodoDrawer({ restoreFocus: false });
     updateUserDisplay();
   } else if (view === "admin") {
     closeMoreFilters();
+    closeTodoDrawer({ restoreFocus: false });
     loadAdminUsers();
   }
+}
+
+function shouldIgnoreTodoDrawerOpen(target) {
+  if (!(target instanceof Element)) return true;
+  return !!target.closest(
+    "input, button, select, textarea, a, label, [data-onclick], [data-onchange], .drag-handle, .todo-inline-actions, .subtasks-section",
+  );
+}
+
+function bindTodoDrawerHandlers() {
+  if (window.__todoDrawerHandlersBound) {
+    return;
+  }
+  window.__todoDrawerHandlersBound = true;
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const closeBtn = target.closest("#todoDrawerClose");
+    if (closeBtn) {
+      closeTodoDrawer({ restoreFocus: true });
+      return;
+    }
+
+    const backdrop = target.closest("#todoDrawerBackdrop");
+    if (backdrop) {
+      closeTodoDrawer({ restoreFocus: true });
+      return;
+    }
+
+    const row = target.closest(".todo-item");
+    if (!(row instanceof HTMLElement)) return;
+    if (shouldIgnoreTodoDrawerOpen(target)) return;
+
+    const todoId = row.dataset.todoId;
+    if (!todoId) return;
+    openTodoDrawer(todoId, row);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter") return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!target.classList.contains("todo-item")) return;
+    if (target.closest("#todoDetailsDrawer")) return;
+
+    const todoId = target.dataset.todoId;
+    if (!todoId) return;
+    event.preventDefault();
+    openTodoDrawer(todoId, target);
+  });
 }
 
 function bindCriticalHandlers() {
@@ -4149,6 +4357,7 @@ async function logout() {
   document.getElementById("undoToast")?.classList.remove("active");
   clearFilters();
   clearPlanDraftState();
+  closeTodoDrawer({ restoreFocus: false });
   showAuthView();
 }
 
@@ -4160,6 +4369,7 @@ function showAppView() {
   document.getElementById("userBar").style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
   closeMoreFilters();
+  closeTodoDrawer({ restoreFocus: false });
   // Prevent previous account data from flashing while fetching current user's data.
   todos = [];
   selectedTodos.clear();
@@ -4185,6 +4395,7 @@ function showAuthView() {
   document.getElementById("adminNavTab").style.display = "none";
   adminBootstrapAvailable = false;
   closeMoreFilters();
+  closeTodoDrawer({ restoreFocus: false });
   showLogin();
 }
 
