@@ -2928,6 +2928,145 @@ function matchesDateView(todo) {
   return dueDate >= todayStart;
 }
 
+function getVisibleTodos() {
+  return filterTodosList(todos);
+}
+
+function getVisibleDueDatedTodos() {
+  return getVisibleTodos().filter((todo) => !!todo.dueDate);
+}
+
+function padIcsNumber(value) {
+  return String(value).padStart(2, "0");
+}
+
+function toIcsUtcTimestamp(date = new Date()) {
+  return (
+    `${date.getUTCFullYear()}` +
+    `${padIcsNumber(date.getUTCMonth() + 1)}` +
+    `${padIcsNumber(date.getUTCDate())}T` +
+    `${padIcsNumber(date.getUTCHours())}` +
+    `${padIcsNumber(date.getUTCMinutes())}` +
+    `${padIcsNumber(date.getUTCSeconds())}Z`
+  );
+}
+
+function toIcsDateValue(dueDateValue) {
+  const dueDate = dueDateValue ? new Date(dueDateValue) : null;
+  if (!dueDate || Number.isNaN(dueDate.getTime())) {
+    return null;
+  }
+  return (
+    `${dueDate.getFullYear()}` +
+    `${padIcsNumber(dueDate.getMonth() + 1)}` +
+    `${padIcsNumber(dueDate.getDate())}`
+  );
+}
+
+function escapeIcsText(value) {
+  return String(value || "")
+    .replace(/\\/g, "\\\\")
+    .replace(/\r\n|\n|\r/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
+function foldIcsLine(line, maxLength = 75) {
+  if (line.length <= maxLength) {
+    return line;
+  }
+  const chunks = [];
+  for (let index = 0; index < line.length; index += maxLength) {
+    chunks.push(line.slice(index, index + maxLength));
+  }
+  return chunks.join("\r\n ");
+}
+
+function buildIcsContentForTodos(todoList) {
+  const dtStamp = toIcsUtcTimestamp();
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//todos-api//Todos Export//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+  ];
+
+  for (const todo of todoList) {
+    const eventDate = toIcsDateValue(todo.dueDate);
+    if (!eventDate) continue;
+
+    const summary = escapeIcsText(todo.title || "Untitled task");
+    const detailParts = [];
+    if (todo.description && String(todo.description).trim()) {
+      detailParts.push(String(todo.description).trim());
+    }
+    if (todo.notes && String(todo.notes).trim()) {
+      detailParts.push(String(todo.notes).trim());
+    }
+    const description = escapeIcsText(detailParts.join("\n\n"));
+
+    lines.push("BEGIN:VEVENT");
+    lines.push(`UID:${escapeIcsText(`${todo.id}@todos-api`)}`);
+    lines.push(`DTSTAMP:${dtStamp}`);
+    lines.push(`DTSTART;VALUE=DATE:${eventDate}`);
+    lines.push(`SUMMARY:${summary}`);
+    if (description) {
+      lines.push(`DESCRIPTION:${description}`);
+    }
+    lines.push("END:VEVENT");
+  }
+
+  lines.push("END:VCALENDAR");
+  return `${lines.map((line) => foldIcsLine(line)).join("\r\n")}\r\n`;
+}
+
+function buildIcsFilename(date = new Date()) {
+  const year = date.getFullYear();
+  const month = padIcsNumber(date.getMonth() + 1);
+  const day = padIcsNumber(date.getDate());
+  return `todos-${year}-${month}-${day}.ics`;
+}
+
+function updateIcsExportButtonState() {
+  const exportButton = document.getElementById("exportIcsButton");
+  if (!exportButton) return;
+  const hasExportableTodos = getVisibleDueDatedTodos().length > 0;
+  exportButton.disabled = !hasExportableTodos;
+}
+
+function exportVisibleTodosToIcs() {
+  const exportableTodos = getVisibleDueDatedTodos();
+  if (!exportableTodos.length) {
+    showMessage(
+      "todosMessage",
+      "No due-dated tasks in the current filtered view to export",
+      "warning",
+    );
+    updateIcsExportButtonState();
+    return;
+  }
+
+  const content = buildIcsContentForTodos(exportableTodos);
+  const blob = new Blob([content], {
+    type: "text/calendar;charset=utf-8",
+  });
+  const downloadUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = downloadUrl;
+  anchor.download = buildIcsFilename();
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(downloadUrl);
+
+  showMessage(
+    "todosMessage",
+    `Exported ${exportableTodos.length} events.`,
+    "success",
+  );
+}
+
 // Filter todos by category and search
 function filterTodosList(todosList) {
   let filtered = todosList;
@@ -3000,10 +3139,11 @@ function renderTodos() {
                     </div>
                 `;
     updateBulkActionsVisibility();
+    updateIcsExportButtonState();
     return;
   }
 
-  const filteredTodos = filterTodosList(todos);
+  const filteredTodos = getVisibleTodos();
   const categorizedTodos = [...filteredTodos].sort((a, b) => {
     const categoryA = String(a.category || "Uncategorized");
     const categoryB = String(b.category || "Uncategorized");
@@ -3122,6 +3262,7 @@ function renderTodos() {
             `;
 
   updateBulkActionsVisibility();
+  updateIcsExportButtonState();
 }
 
 // ========== PHASE B: PRIORITY, NOTES, SUBTASKS ==========
