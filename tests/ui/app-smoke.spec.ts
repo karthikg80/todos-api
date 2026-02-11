@@ -267,4 +267,31 @@ test.describe("App smoke flows", () => {
     await expect(page.locator("#todosView")).toHaveClass(/active/);
     await expect(page.getByText("Smoke Todo A")).toHaveCount(0);
   });
+
+  test("logout resets date view filter for next session", async ({ page }) => {
+    await installMockApi(page);
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "Register" }).click();
+    await page.locator("#registerName").fill("Date View User One");
+    await page.locator("#registerEmail").fill("date-view-one@example.com");
+    await page.locator("#registerPassword").fill("Password123!");
+    await page.getByRole("button", { name: "Create Account" }).click();
+
+    await expect(page.locator("#todosView")).toHaveClass(/active/);
+    await page.locator("#dateViewSomeday").click();
+    await expect(page.locator("#dateViewSomeday")).toHaveClass(/active/);
+
+    await page.getByRole("button", { name: "Logout" }).click();
+    await expect(page.locator("#authView")).toHaveClass(/active/);
+
+    await page.getByRole("button", { name: "Register" }).click();
+    await page.locator("#registerName").fill("Date View User Two");
+    await page.locator("#registerEmail").fill("date-view-two@example.com");
+    await page.locator("#registerPassword").fill("Password123!");
+    await page.getByRole("button", { name: "Create Account" }).click();
+
+    await expect(page.locator("#dateViewAll")).toHaveClass(/active/);
+    await expect(page.locator("#dateViewSomeday")).not.toHaveClass(/active/);
+  });
 });

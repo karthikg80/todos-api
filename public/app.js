@@ -942,7 +942,7 @@ async function handleUpdateProfile(event) {
       updateUserDisplay();
       showMessage("profileMessage", "Profile updated successfully!", "success");
     } else {
-      const data = await response.json();
+      const data = response ? await parseApiBody(response) : {};
       showMessage(
         "profileMessage",
         data.error || "Failed to update profile",
@@ -3920,7 +3920,7 @@ async function changeUserRole(userId, role) {
       showMessage("adminMessage", `User role updated to ${role}`, "success");
       loadAdminUsers();
     } else {
-      const data = await response.json();
+      const data = response ? await parseApiBody(response) : {};
       showMessage(
         "adminMessage",
         data.error || "Failed to update role",
@@ -3953,7 +3953,7 @@ async function deleteUser(userId) {
       showMessage("adminMessage", "User deleted successfully", "success");
       loadAdminUsers();
     } else {
-      const data = await response.json();
+      const data = response ? await parseApiBody(response) : {};
       showMessage(
         "adminMessage",
         data.error || "Failed to delete user",
@@ -4034,13 +4034,6 @@ function bindCriticalHandlers() {
   }
 }
 
-// Handle todo keypress
-function handleTodoKeyPress(event) {
-  if (event.key === "Enter") {
-    addTodo();
-  }
-}
-
 // Logout
 async function logout() {
   const { refreshToken: storedRefreshToken } = loadStoredSession();
@@ -4073,6 +4066,15 @@ async function logout() {
   latestCritiqueResult = null;
   latestPlanSuggestionId = null;
   latestPlanResult = null;
+  currentDateView = "all";
+  selectedTodos.clear();
+  if (undoTimeout) {
+    clearTimeout(undoTimeout);
+    undoTimeout = null;
+  }
+  undoStack = [];
+  document.getElementById("undoToast")?.classList.remove("active");
+  clearFilters();
   clearPlanDraftState();
   showAuthView();
 }
