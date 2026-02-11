@@ -289,7 +289,12 @@ let drawerSaveMessage = "";
 let drawerDraft = null;
 let drawerSaveSequence = 0;
 let drawerDescriptionSaveTimer = null;
+let drawerSaveResetTimer = null;
+let drawerScrollLockY = 0;
+let isDrawerBodyLocked = false;
+let lastFocusedTodoId = null;
 const PROJECT_PATH_SEPARATOR = " / ";
+const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 
 function handleAuthFailure() {
   logout();
@@ -3257,6 +3262,11 @@ function getCurrentDrawerDraft(todo) {
 }
 
 function setDrawerSaveState(state, message = "") {
+  if (drawerSaveResetTimer) {
+    clearTimeout(drawerSaveResetTimer);
+    drawerSaveResetTimer = null;
+  }
+
   drawerSaveState = state;
   drawerSaveMessage = message;
   const statusEl = document.getElementById("drawerSaveStatus");
@@ -3270,6 +3280,88 @@ function setDrawerSaveState(state, message = "") {
   };
   statusEl.textContent = textByState[state] || textByState.idle;
   statusEl.setAttribute("data-state", state);
+
+  if (state === "saved") {
+    drawerSaveResetTimer = setTimeout(() => {
+      if (drawerSaveState === "saved") {
+        setDrawerSaveState("idle");
+      }
+    }, 1200);
+  }
+}
+
+function captureDrawerFocusState() {
+  const refs = getTodoDrawerElements();
+  if (!refs) return null;
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return null;
+  if (!refs.drawer.contains(active)) return null;
+  if (!active.id) return null;
+
+  const state = { id: active.id, selectionStart: null, selectionEnd: null };
+  if (
+    active instanceof HTMLInputElement ||
+    active instanceof HTMLTextAreaElement
+  ) {
+    state.selectionStart = active.selectionStart;
+    state.selectionEnd = active.selectionEnd;
+  }
+  return state;
+}
+
+function restoreDrawerFocusState(focusState) {
+  if (!focusState || !focusState.id) return;
+  const target = document.getElementById(focusState.id);
+  if (!(target instanceof HTMLElement)) return;
+
+  target.focus({ preventScroll: true });
+  if (
+    target instanceof HTMLInputElement ||
+    target instanceof HTMLTextAreaElement
+  ) {
+    if (
+      typeof focusState.selectionStart === "number" &&
+      typeof focusState.selectionEnd === "number"
+    ) {
+      target.setSelectionRange(
+        focusState.selectionStart,
+        focusState.selectionEnd,
+      );
+    }
+  }
+}
+
+function isMobileDrawerViewport() {
+  if (window.matchMedia) {
+    return window.matchMedia(MOBILE_DRAWER_MEDIA_QUERY).matches;
+  }
+  return window.innerWidth <= 768;
+}
+
+function lockBodyScrollForDrawer() {
+  if (isDrawerBodyLocked || !isMobileDrawerViewport()) return;
+  const body = document.body;
+  drawerScrollLockY = window.scrollY || window.pageYOffset || 0;
+  body.classList.add("is-drawer-open");
+  body.style.position = "fixed";
+  body.style.top = `-${drawerScrollLockY}px`;
+  body.style.left = "0";
+  body.style.right = "0";
+  body.style.width = "100%";
+  isDrawerBodyLocked = true;
+}
+
+function unlockBodyScrollForDrawer() {
+  if (!isDrawerBodyLocked) return;
+  const body = document.body;
+  body.classList.remove("is-drawer-open");
+  body.style.position = "";
+  body.style.top = "";
+  body.style.left = "";
+  body.style.right = "";
+  body.style.width = "";
+  window.scrollTo(0, drawerScrollLockY);
+  isDrawerBodyLocked = false;
 }
 
 async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
@@ -3284,6 +3376,7 @@ async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
   }
 
   const requestId = ++drawerSaveSequence;
+  const focusState = captureDrawerFocusState();
   setDrawerSaveState("saving");
 
   try {
@@ -3295,6 +3388,7 @@ async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
     setDrawerSaveState("saved");
     renderTodos();
     syncTodoDrawerStateWithRender();
+    restoreDrawerFocusState(focusState);
   } catch (error) {
     if (requestId !== drawerSaveSequence) {
       return;
@@ -3566,6 +3660,10 @@ function openTodoDrawer(todoId, triggerEl) {
   drawerSaveSequence = 0;
   setDrawerSaveState("idle");
   lastFocusedTodoTrigger = triggerEl instanceof HTMLElement ? triggerEl : null;
+  lastFocusedTodoId =
+    triggerEl instanceof HTMLElement
+      ? triggerEl.dataset.todoId || todoId
+      : todoId;
   isTodoDrawerOpen = true;
 
   const { drawer, backdrop } = refs;
@@ -3575,6 +3673,7 @@ function openTodoDrawer(todoId, triggerEl) {
     backdrop.classList.add("todo-drawer-backdrop--open");
     backdrop.setAttribute("aria-hidden", "false");
   }
+  lockBodyScrollForDrawer();
 
   renderTodos();
   const titleInput = document.getElementById("drawerTitleInput");
@@ -3593,6 +3692,10 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
   isDrawerDetailsOpen = false;
   drawerDraft = null;
   drawerSaveSequence = 0;
+  if (drawerSaveResetTimer) {
+    clearTimeout(drawerSaveResetTimer);
+    drawerSaveResetTimer = null;
+  }
   if (drawerDescriptionSaveTimer) {
     clearTimeout(drawerDescriptionSaveTimer);
     drawerDescriptionSaveTimer = null;
@@ -3610,11 +3713,20 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
     renderTodoDrawerContent();
   }
   renderTodos();
+  unlockBodyScrollForDrawer();
 
   if (restoreFocus && lastFocusedTodoTrigger?.isConnected) {
     lastFocusedTodoTrigger.focus();
+  } else if (restoreFocus && lastFocusedTodoId) {
+    const fallback = document.querySelector(
+      `.todo-item[data-todo-id="${escapeSelectorValue(lastFocusedTodoId)}"]`,
+    );
+    if (fallback instanceof HTMLElement) {
+      fallback.focus();
+    }
   }
   lastFocusedTodoTrigger = null;
+  lastFocusedTodoId = null;
 }
 
 function syncTodoDrawerStateWithRender() {
