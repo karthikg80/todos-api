@@ -4034,13 +4034,6 @@ function bindCriticalHandlers() {
   }
 }
 
-// Handle todo keypress
-function handleTodoKeyPress(event) {
-  if (event.key === "Enter") {
-    addTodo();
-  }
-}
-
 // Logout
 async function logout() {
   const { refreshToken: storedRefreshToken } = loadStoredSession();
@@ -4073,6 +4066,15 @@ async function logout() {
   latestCritiqueResult = null;
   latestPlanSuggestionId = null;
   latestPlanResult = null;
+  currentDateView = "all";
+  selectedTodos.clear();
+  if (undoTimeout) {
+    clearTimeout(undoTimeout);
+    undoTimeout = null;
+  }
+  undoStack = [];
+  document.getElementById("undoToast")?.classList.remove("active");
+  clearFilters();
   clearPlanDraftState();
   showAuthView();
 }
