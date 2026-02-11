@@ -28,16 +28,20 @@ export default async function globalSetup() {
 
   console.log("\n🔧 Setting up test database...\n");
 
-  const testDatabaseUrl = process.env.DATABASE_URL_TEST;
+  const testDatabaseUrl =
+    (process.env.TEST_DATABASE_URL || "").trim() ||
+    (process.env.DATABASE_URL_TEST || "").trim();
   if (!testDatabaseUrl) {
-    throw new Error("DATABASE_URL_TEST must be set for integration tests");
+    throw new Error(
+      "TEST_DATABASE_URL or DATABASE_URL_TEST must be set for integration tests",
+    );
   }
 
   // Defensive guard against destructive reset targeting non-test DBs.
   const lowerUrl = testDatabaseUrl.toLowerCase();
   if (!lowerUrl.includes("test")) {
     throw new Error(
-      "Refusing to reset database because DATABASE_URL_TEST does not look like a test database",
+      "Refusing to reset database because TEST_DATABASE_URL/DATABASE_URL_TEST does not look like a test database",
     );
   }
 

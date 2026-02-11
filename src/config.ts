@@ -13,8 +13,29 @@ const refreshJwtSecret =
   process.env.JWT_REFRESH_SECRET ||
   process.env.JWT_SECRET ||
   insecureDefaultJwtSecret;
+const testDatabaseUrlEnvRaw = process.env.TEST_DATABASE_URL;
+const testDatabaseUrlFromAlias =
+  typeof testDatabaseUrlEnvRaw === "string" ? testDatabaseUrlEnvRaw.trim() : "";
+const databaseUrlTestRaw = (process.env.DATABASE_URL_TEST || "").trim();
 const databaseUrl =
-  nodeEnv === "test" ? process.env.DATABASE_URL_TEST : process.env.DATABASE_URL;
+  nodeEnv === "test"
+    ? testDatabaseUrlFromAlias || databaseUrlTestRaw
+    : process.env.DATABASE_URL;
+const allowLegacyPlaintextRefreshTokenFallback =
+  (
+    process.env.ALLOW_LEGACY_PLAINTEXT_REFRESH_TOKEN || "false"
+  ).toLowerCase() === "true";
+const legacyRefreshTokenFallbackUntilRaw = (
+  process.env.LEGACY_REFRESH_TOKEN_FALLBACK_UNTIL || "2026-12-31T23:59:59.000Z"
+).trim();
+const legacyRefreshTokenFallbackUntilDate = new Date(
+  legacyRefreshTokenFallbackUntilRaw,
+);
+const legacyRefreshTokenFallbackUntil = Number.isNaN(
+  legacyRefreshTokenFallbackUntilDate.getTime(),
+)
+  ? null
+  : legacyRefreshTokenFallbackUntilDate;
 const corsOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
@@ -121,6 +142,22 @@ if (nodeEnv === "production") {
   }
 }
 
+if (nodeEnv === "test" || testDatabaseUrlEnvRaw !== undefined) {
+  if (testDatabaseUrlEnvRaw !== undefined && !testDatabaseUrlFromAlias) {
+    throw new Error("TEST_DATABASE_URL must be non-empty when provided");
+  }
+
+  const testDbUrlToValidate = testDatabaseUrlFromAlias || databaseUrlTestRaw;
+  if (testDbUrlToValidate) {
+    const isPostgresUrl = /^postgres(ql)?:\/\//i.test(testDbUrlToValidate);
+    if (!isPostgresUrl) {
+      throw new Error(
+        "TEST_DATABASE_URL/DATABASE_URL_TEST must be a valid PostgreSQL URL",
+      );
+    }
+  }
+}
+
 export const config = {
   port: parseInt(process.env.PORT || "3000", 10),
   nodeEnv,
@@ -140,6 +177,8 @@ export const config = {
   aiProviderBaseUrl,
   aiProviderApiKey,
   aiProviderModel,
+  allowLegacyPlaintextRefreshTokenFallback,
+  legacyRefreshTokenFallbackUntil,
   aiDailySuggestionLimit:
     Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
       ? aiDailySuggestionLimit
