@@ -282,10 +282,13 @@ let isMoreFiltersOpen = false;
 let selectedTodoId = null;
 let lastFocusedTodoTrigger = null;
 let isTodoDrawerOpen = false;
+let isDrawerDetailsOpen = false;
+let openTodoKebabId = null;
 let drawerSaveState = "idle";
 let drawerSaveMessage = "";
 let drawerDraft = null;
 let drawerSaveSequence = 0;
+let drawerDescriptionSaveTimer = null;
 const PROJECT_PATH_SEPARATOR = " / ";
 
 function handleAuthFailure() {
@@ -2384,9 +2387,9 @@ async function toggleTodo(id, forceValue = null) {
 // Delete todo
 async function deleteTodo(id) {
   const todo = todos.find((t) => t.id === id);
-  if (!todo) return;
+  if (!todo) return false;
 
-  if (!confirm("Delete this todo?")) return;
+  if (!confirm("Delete this todo?")) return false;
 
   // Store todo data for undo
   const todoData = { ...todo };
@@ -2405,7 +2408,7 @@ async function deleteTodo(id) {
       // Add undo action
       addUndoAction("delete", todoData, "Todo deleted");
       await loadTodos();
-      return;
+      return true;
     }
 
     const errorData = response ? await response.json().catch(() => ({})) : {};
@@ -2414,9 +2417,11 @@ async function deleteTodo(id) {
       errorData.error || "Failed to delete todo",
       "error",
     );
+    return false;
   } catch (error) {
     showMessage("todosMessage", "Network error while deleting todo", "error");
     console.error("Delete todo error:", error);
+    return false;
   }
 }
 
@@ -3237,6 +3242,9 @@ function initializeDrawerDraft(todo) {
     dueDate: toDateInputValue(todo.dueDate),
     project: String(todo.category || ""),
     priority: String(todo.priority || "medium"),
+    description: String(todo.description || ""),
+    notes: String(todo.notes || ""),
+    categoryDetail: String(todo.category || ""),
   };
 }
 
@@ -3342,6 +3350,91 @@ function onDrawerPriorityChange(event) {
   saveDrawerPatch({ priority });
 }
 
+function onDrawerDescriptionInput(event) {
+  const description = String(event?.target?.value || "");
+  updateDrawerDraftField("description", description);
+  if (drawerDescriptionSaveTimer) {
+    clearTimeout(drawerDescriptionSaveTimer);
+  }
+  drawerDescriptionSaveTimer = setTimeout(() => {
+    if (!drawerDraft) return;
+    const nextDescription = String(drawerDraft.description || "").trim();
+    saveDrawerPatch({ description: nextDescription || "" });
+  }, 500);
+}
+
+function onDrawerDescriptionBlur() {
+  if (!drawerDraft) return;
+  if (drawerDescriptionSaveTimer) {
+    clearTimeout(drawerDescriptionSaveTimer);
+    drawerDescriptionSaveTimer = null;
+  }
+  const description = String(drawerDraft.description || "").trim();
+  saveDrawerPatch({ description: description || "" });
+}
+
+function onDrawerDescriptionKeydown(event) {
+  if (!event) return;
+  if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey)) return;
+  event.preventDefault();
+  onDrawerDescriptionBlur();
+}
+
+function onDrawerNotesInput(event) {
+  const notes = String(event?.target?.value || "");
+  updateDrawerDraftField("notes", notes);
+}
+
+function onDrawerNotesBlur() {
+  if (!drawerDraft) return;
+  const notes = String(drawerDraft.notes || "").trim();
+  saveDrawerPatch({ notes: notes || null });
+}
+
+function onDrawerNotesKeydown(event) {
+  if (!event) return;
+  if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey)) return;
+  event.preventDefault();
+  onDrawerNotesBlur();
+}
+
+function onDrawerCategoryInput(event) {
+  const category = String(event?.target?.value || "");
+  updateDrawerDraftField("categoryDetail", category);
+}
+
+function onDrawerCategoryBlur() {
+  if (!drawerDraft) return;
+  const normalized = normalizeProjectPath(
+    String(drawerDraft.categoryDetail || ""),
+  );
+  updateDrawerDraftField("project", normalized || "");
+  updateDrawerDraftField("categoryDetail", normalized || "");
+  saveDrawerPatch({ category: normalized || null });
+}
+
+function renderDrawerSubtasks(todo) {
+  if (!Array.isArray(todo.subtasks) || todo.subtasks.length === 0) {
+    return '<p class="todo-drawer__subtasks-empty">No subtasks</p>';
+  }
+
+  return `
+    <ul class="todo-drawer__subtasks-list">
+      ${todo.subtasks
+        .map((subtask) => {
+          const title = escapeHtml(String(subtask?.title || ""));
+          return `
+            <li class="todo-drawer__subtasks-item ${subtask?.completed ? "completed" : ""}">
+              <span aria-hidden="true">${subtask?.completed ? "✓" : "○"}</span>
+              <span>${title}</span>
+            </li>
+          `;
+        })
+        .join("")}
+    </ul>
+  `;
+}
+
 function buildDrawerProjectOptions(selectedProject = "") {
   const projects = getAllProjects();
   return `<option value="">None</option>${projects
@@ -3374,9 +3467,9 @@ function renderTodoDrawerContent() {
   }
 
   const draft = getCurrentDrawerDraft(todo);
-  const descriptionText = todo.description
-    ? escapeHtml(String(todo.description))
-    : "No description";
+  const detailsExpanded = isDrawerDetailsOpen;
+  const detailsToggleLabel = detailsExpanded ? "Hide details" : "Show details";
+  const detailsPanelHidden = detailsExpanded ? "" : "hidden";
 
   titleEl.textContent = "Task";
   contentEl.innerHTML = `
@@ -3416,8 +3509,45 @@ function renderTodoDrawerContent() {
       </label>
     </div>
     <div class="todo-drawer__section">
-      <div class="todo-drawer__section-title">Details</div>
-      <p>${descriptionText}</p>
+      <button
+        id="drawerDetailsToggle"
+        type="button"
+        class="todo-drawer__accordion-toggle"
+        aria-expanded="${detailsExpanded ? "true" : "false"}"
+        aria-controls="drawerDetailsPanel"
+      >
+        <span>Details</span>
+        <span class="todo-drawer__accordion-chevron" aria-hidden="true">${detailsExpanded ? "▾" : "▸"}</span>
+      </button>
+      <div
+        id="drawerDetailsPanel"
+        class="todo-drawer__accordion-panel ${detailsExpanded ? "todo-drawer__accordion-panel--open" : ""}"
+        aria-hidden="${detailsExpanded ? "false" : "true"}"
+        ${detailsPanelHidden}
+      >
+        <label class="todo-drawer__field" for="drawerDescriptionTextarea">
+          <span>Description</span>
+          <textarea id="drawerDescriptionTextarea" maxlength="1000">${escapeHtml(draft.description)}</textarea>
+        </label>
+        <label class="todo-drawer__field" for="drawerNotesTextarea">
+          <span>Notes</span>
+          <textarea id="drawerNotesTextarea" maxlength="2000">${escapeHtml(draft.notes)}</textarea>
+        </label>
+        <label class="todo-drawer__field" for="drawerCategoryInput">
+          <span>Category</span>
+          <input id="drawerCategoryInput" type="text" maxlength="50" value="${escapeHtml(draft.categoryDetail)}" />
+        </label>
+        <div class="todo-drawer__subtasks">
+          <div class="todo-drawer__subtasks-title">Subtasks</div>
+          ${renderDrawerSubtasks(todo)}
+        </div>
+      </div>
+    </div>
+    <div class="todo-drawer__section todo-drawer__section--danger">
+      <div class="todo-drawer__section-title">Danger zone</div>
+      <button id="drawerDeleteTodoButton" class="delete-btn todo-drawer__delete-btn" type="button">
+        Delete task
+      </button>
     </div>
   `;
   setDrawerSaveState(drawerSaveState, drawerSaveMessage);
@@ -3431,6 +3561,8 @@ function openTodoDrawer(todoId, triggerEl) {
 
   selectedTodoId = todoId;
   initializeDrawerDraft(todo);
+  isDrawerDetailsOpen = false;
+  openTodoKebabId = null;
   drawerSaveSequence = 0;
   setDrawerSaveState("idle");
   lastFocusedTodoTrigger = triggerEl instanceof HTMLElement ? triggerEl : null;
@@ -3458,8 +3590,13 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
 
   isTodoDrawerOpen = false;
   selectedTodoId = null;
+  isDrawerDetailsOpen = false;
   drawerDraft = null;
   drawerSaveSequence = 0;
+  if (drawerDescriptionSaveTimer) {
+    clearTimeout(drawerDescriptionSaveTimer);
+    drawerDescriptionSaveTimer = null;
+  }
   setDrawerSaveState("idle");
 
   if (refs) {
@@ -3503,6 +3640,123 @@ function syncTodoDrawerStateWithRender() {
   renderTodoDrawerContent();
 }
 
+function toggleDrawerDetailsPanel() {
+  if (!isTodoDrawerOpen || !selectedTodoId) return;
+  isDrawerDetailsOpen = !isDrawerDetailsOpen;
+  renderTodoDrawerContent();
+}
+
+async function deleteTodoFromDrawer() {
+  if (!selectedTodoId) return;
+  const deletedTodoId = selectedTodoId;
+  const deleted = await deleteTodo(deletedTodoId);
+  if (!deleted) return;
+
+  closeTodoDrawer({ restoreFocus: false });
+  window.requestAnimationFrame(() => {
+    const nextRow = document.querySelector(".todo-item");
+    if (nextRow instanceof HTMLElement) {
+      nextRow.focus();
+      return;
+    }
+    const listContainer = document.getElementById("todosContent");
+    if (listContainer instanceof HTMLElement) {
+      if (!listContainer.hasAttribute("tabindex")) {
+        listContainer.setAttribute("tabindex", "-1");
+      }
+      listContainer.focus();
+    }
+  });
+}
+
+function escapeSelectorValue(value) {
+  const raw = String(value);
+  if (window.CSS && typeof window.CSS.escape === "function") {
+    return window.CSS.escape(raw);
+  }
+  return raw.replace(/["\\]/g, "\\$&");
+}
+
+function getKebabTriggerForTodo(todoId) {
+  const selector = `.todo-item[data-todo-id="${escapeSelectorValue(todoId)}"] .todo-kebab`;
+  const trigger = document.querySelector(selector);
+  return trigger instanceof HTMLElement ? trigger : null;
+}
+
+function closeTodoKebabMenu({ restoreFocus = false } = {}) {
+  const activeTodoId = openTodoKebabId;
+  openTodoKebabId = null;
+  renderTodos();
+
+  if (!restoreFocus || !activeTodoId) return;
+  window.requestAnimationFrame(() => {
+    const trigger = getKebabTriggerForTodo(activeTodoId);
+    trigger?.focus();
+  });
+}
+
+function toggleTodoKebab(todoId, event) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+
+  const shouldOpen = openTodoKebabId !== todoId;
+  openTodoKebabId = shouldOpen ? todoId : null;
+  renderTodos();
+
+  if (!shouldOpen) return;
+  window.requestAnimationFrame(() => {
+    const firstAction = document.querySelector(
+      `.todo-item[data-todo-id="${escapeSelectorValue(todoId)}"] .todo-kebab-menu .todo-kebab-item`,
+    );
+    if (firstAction instanceof HTMLElement) {
+      firstAction.focus();
+    }
+  });
+}
+
+function openTodoFromKebab(todoId, event) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  openTodoKebabId = null;
+  const row = document.querySelector(
+    `.todo-item[data-todo-id="${escapeSelectorValue(todoId)}"]`,
+  );
+  openTodoDrawer(todoId, row instanceof HTMLElement ? row : null);
+}
+
+function openEditTodoFromKebab(todoId, event) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  openTodoKebabId = null;
+  renderTodos();
+  openEditTodoModal(todoId);
+}
+
+function openDrawerDangerZone(todoId, event) {
+  event?.preventDefault?.();
+  event?.stopPropagation?.();
+  openTodoKebabId = null;
+  const row = document.querySelector(
+    `.todo-item[data-todo-id="${escapeSelectorValue(todoId)}"]`,
+  );
+  if (!isTodoDrawerOpen || selectedTodoId !== todoId) {
+    openTodoDrawer(todoId, row instanceof HTMLElement ? row : null);
+  }
+  isDrawerDetailsOpen = true;
+  renderTodoDrawerContent();
+  window.requestAnimationFrame(() => {
+    const deleteBtn = document.getElementById("drawerDeleteTodoButton");
+    if (deleteBtn instanceof HTMLElement) {
+      deleteBtn.focus();
+      return;
+    }
+    const detailsToggle = document.getElementById("drawerDetailsToggle");
+    if (detailsToggle instanceof HTMLElement) {
+      detailsToggle.focus();
+    }
+  });
+}
+
 // Render todos
 function renderTodos() {
   const container = document.getElementById("todosContent");
@@ -3519,6 +3773,7 @@ function renderTodos() {
   if (todos.length === 0) {
     isTodoDrawerOpen = false;
     selectedTodoId = null;
+    openTodoKebabId = null;
     container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">✨</div>
@@ -3532,6 +3787,12 @@ function renderTodos() {
   }
 
   const filteredTodos = getVisibleTodos();
+  if (
+    openTodoKebabId &&
+    !filteredTodos.some((todo) => String(todo.id) === String(openTodoKebabId))
+  ) {
+    openTodoKebabId = null;
+  }
   const categorizedTodos = [...filteredTodos].sort((a, b) => {
     const categoryA = String(a.category || "Uncategorized");
     const categoryB = String(b.category || "Uncategorized");
@@ -3610,12 +3871,6 @@ function renderTodos() {
                     ${todo.category ? `<span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">🏷️ ${escapeHtml(todo.category)}</span>` : ""}
                     ${todo.dueDate ? `<span style="background: ${isOverdue ? "#ff4757" : "#48dbfb"}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? "⚠️" : "📅"} ${dueDateStr}</span>` : ""}
                 </div>
-                <div class="todo-inline-actions">
-                    <button class="mini-btn" data-onclick="openEditTodoModal('${todo.id}')">Edit</button>
-                    <select data-onchange="moveTodoToProject('${todo.id}', this.value)">
-                        ${renderProjectOptions(String(todo.category || ""))}
-                    </select>
-                </div>
                 ${hasSubtasks ? renderSubtasks(todo) : ""}
                 ${
                   todo.notes && todo.notes.trim()
@@ -3632,13 +3887,48 @@ function renderTodos() {
                 `
                     : ""
                 }
-                <div style="margin-top: 8px;">
-                    <button class="add-btn" style="background: #0f766e; padding: 8px 12px; font-size: 0.85em; width: auto; ${hasSubtasks ? "opacity: 0.55; cursor: not-allowed;" : ""}" data-onclick="aiBreakdownTodo('${todo.id}')" ${hasSubtasks ? "disabled" : ""}>
-                        ${hasSubtasks ? "AI Subtasks Generated" : "AI Break Down Into Subtasks"}
-                    </button>
-                </div>
             </div>
-            <button class="delete-btn" data-onclick="deleteTodo('${todo.id}')">Delete</button>
+            <div class="todo-row-actions">
+              <button
+                type="button"
+                class="todo-kebab"
+                aria-label="More actions for ${escapeHtml(todo.title)}"
+                aria-expanded="${openTodoKebabId === todo.id ? "true" : "false"}"
+                data-onclick="toggleTodoKebab('${todo.id}', event)"
+              >
+                ⋯
+              </button>
+              <div
+                class="todo-kebab-menu ${openTodoKebabId === todo.id ? "todo-kebab-menu--open" : ""}"
+                role="menu"
+                aria-label="Actions for ${escapeHtml(todo.title)}"
+              >
+                <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openTodoFromKebab('${todo.id}', event)">
+                  Open details
+                </button>
+                <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openEditTodoFromKebab('${todo.id}', event)">
+                  Edit modal
+                </button>
+                <label class="todo-kebab-project-label">
+                  Move to project
+                  <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToProject('${todo.id}', this.value)">
+                    ${renderProjectOptions(String(todo.category || ""))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  class="todo-kebab-item"
+                  role="menuitem"
+                  ${hasSubtasks ? "disabled" : ""}
+                  data-onclick="aiBreakdownTodo('${todo.id}')"
+                >
+                  ${hasSubtasks ? "AI Subtasks Generated" : "AI Break Down Into Subtasks"}
+                </button>
+                <button type="button" class="todo-kebab-item todo-kebab-item--danger" role="menuitem" data-onclick="openDrawerDangerZone('${todo.id}', event)">
+                  Delete
+                </button>
+              </div>
+            </div>
         </li>
       `;
     })
@@ -4178,6 +4468,12 @@ async function restoreTodo(todoData) {
 }
 
 document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" && openTodoKebabId) {
+    e.preventDefault();
+    closeTodoKebabMenu({ restoreFocus: true });
+    return;
+  }
+
   if (e.key === "Escape" && editingTodoId) {
     closeEditTodoModal();
     return;
@@ -4414,7 +4710,7 @@ function switchView(view, triggerEl = null) {
 function shouldIgnoreTodoDrawerOpen(target) {
   if (!(target instanceof Element)) return true;
   return !!target.closest(
-    "input, button, select, textarea, a, label, [data-onclick], [data-onchange], .drag-handle, .todo-inline-actions, .subtasks-section",
+    "input, button, select, textarea, a, label, [data-onclick], [data-onchange], .drag-handle, .todo-inline-actions, .subtasks-section, .todo-kebab, .todo-kebab-menu",
   );
 }
 
@@ -4428,6 +4724,15 @@ function bindTodoDrawerHandlers() {
     const target = event.target;
     if (!(target instanceof Element)) return;
 
+    if (
+      openTodoKebabId &&
+      !target.closest(".todo-kebab") &&
+      !target.closest(".todo-kebab-menu")
+    ) {
+      closeTodoKebabMenu();
+      return;
+    }
+
     const closeBtn = target.closest("#todoDrawerClose");
     if (closeBtn) {
       closeTodoDrawer({ restoreFocus: true });
@@ -4437,6 +4742,18 @@ function bindTodoDrawerHandlers() {
     const backdrop = target.closest("#todoDrawerBackdrop");
     if (backdrop) {
       closeTodoDrawer({ restoreFocus: true });
+      return;
+    }
+
+    const detailsToggle = target.closest("#drawerDetailsToggle");
+    if (detailsToggle) {
+      toggleDrawerDetailsPanel();
+      return;
+    }
+
+    const drawerDeleteBtn = target.closest("#drawerDeleteTodoButton");
+    if (drawerDeleteBtn) {
+      deleteTodoFromDrawer();
       return;
     }
 
@@ -4454,6 +4771,18 @@ function bindTodoDrawerHandlers() {
     if (!(target instanceof HTMLElement)) return;
     if (target.id === "drawerTitleInput") {
       onDrawerTitleInput(event);
+      return;
+    }
+    if (target.id === "drawerDescriptionTextarea") {
+      onDrawerDescriptionInput(event);
+      return;
+    }
+    if (target.id === "drawerNotesTextarea") {
+      onDrawerNotesInput(event);
+      return;
+    }
+    if (target.id === "drawerCategoryInput") {
+      onDrawerCategoryInput(event);
     }
   });
 
@@ -4474,6 +4803,11 @@ function bindTodoDrawerHandlers() {
     }
     if (target.id === "drawerPrioritySelect") {
       onDrawerPriorityChange(event);
+      return;
+    }
+    if (target.id === "drawerDescriptionTextarea") {
+      onDrawerDescriptionBlur();
+      return;
     }
   });
 
@@ -4484,6 +4818,18 @@ function bindTodoDrawerHandlers() {
       if (!(target instanceof HTMLElement)) return;
       if (target.id === "drawerTitleInput") {
         onDrawerTitleBlur();
+        return;
+      }
+      if (target.id === "drawerDescriptionTextarea") {
+        onDrawerDescriptionBlur();
+        return;
+      }
+      if (target.id === "drawerNotesTextarea") {
+        onDrawerNotesBlur();
+        return;
+      }
+      if (target.id === "drawerCategoryInput") {
+        onDrawerCategoryBlur();
       }
     },
     true,
@@ -4491,6 +4837,17 @@ function bindTodoDrawerHandlers() {
 
   document.addEventListener("keydown", (event) => {
     const target = event.target;
+    if (
+      target instanceof HTMLElement &&
+      target.id === "drawerDescriptionTextarea"
+    ) {
+      onDrawerDescriptionKeydown(event);
+      return;
+    }
+    if (target instanceof HTMLElement && target.id === "drawerNotesTextarea") {
+      onDrawerNotesKeydown(event);
+      return;
+    }
     if (target instanceof HTMLElement && target.id === "drawerTitleInput") {
       onDrawerTitleKeydown(event);
       return;
@@ -4586,6 +4943,7 @@ async function logout() {
   latestPlanSuggestionId = null;
   latestPlanResult = null;
   currentDateView = "all";
+  openTodoKebabId = null;
   selectedTodos.clear();
   if (undoTimeout) {
     clearTimeout(undoTimeout);
@@ -4610,6 +4968,7 @@ function showAppView() {
   closeTodoDrawer({ restoreFocus: false });
   // Prevent previous account data from flashing while fetching current user's data.
   todos = [];
+  openTodoKebabId = null;
   selectedTodos.clear();
   loadCustomProjects();
   renderTodos();

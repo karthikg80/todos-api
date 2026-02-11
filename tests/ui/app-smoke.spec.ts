@@ -262,8 +262,12 @@ test.describe("App smoke flows", () => {
     await page.reload();
     await expect(page.getByText("Smoke Todo A")).toBeVisible();
 
+    const firstRow = page.locator(".todo-item").first();
+    await firstRow.hover();
+    await firstRow.locator(".todo-kebab").click();
+    await firstRow.locator(".todo-kebab-item--danger").click();
     page.once("dialog", (dialog) => dialog.accept());
-    await page.getByRole("button", { name: "Delete" }).first().click();
+    await page.locator("#drawerDeleteTodoButton").click();
     await expect(page.getByText("Smoke Todo A")).toHaveCount(0);
 
     await page.reload();
