@@ -1219,6 +1219,96 @@ body {
   background: var(--container-bg);
 }
 
+.todo-row-actions {
+  justify-self: end;
+  align-self: start;
+  position: relative;
+}
+
+.todo-kebab {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    opacity 0.2s ease;
+  opacity: 0;
+}
+
+.todo-kebab:hover {
+  background: var(--card-bg);
+}
+
+.todo-item:hover .todo-kebab,
+.todo-item:focus-within .todo-kebab,
+.todo-kebab[aria-expanded="true"] {
+  opacity: 1;
+}
+
+.todo-kebab-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  background: var(--container-bg);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 10;
+}
+
+.todo-kebab-menu--open {
+  display: flex;
+}
+
+.todo-kebab-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.todo-kebab-item:hover {
+  background: var(--card-bg);
+  border-color: var(--border-color);
+}
+
+.todo-kebab-item--danger {
+  color: #b42318;
+}
+
+.todo-kebab-project-label {
+  display: grid;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  padding: 4px 2px;
+}
+
+.todo-kebab-project-label select {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
 .todo-drawer-backdrop {
   position: fixed;
   inset: 0;
@@ -1472,13 +1562,14 @@ body {
     margin-top: 0;
   }
 
-  .delete-btn {
+  .todo-row-actions {
     grid-column: 4;
     grid-row: 1;
-    margin-top: 0;
-    width: auto;
-    padding: 6px 10px;
-    font-size: 0.82em;
+  }
+
+  .todo-kebab {
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .drag-handle {
@@ -2065,6 +2156,7 @@ body {
 
 .todo-drawer__field input[type="text"],
 .todo-drawer__field input[type="date"],
+.todo-drawer__field textarea,
 .todo-drawer__field select {
   width: 100%;
   padding: 8px 10px;
@@ -2077,6 +2169,7 @@ body {
 
 .todo-drawer__field input[type="text"]:focus,
 .todo-drawer__field input[type="date"]:focus,
+.todo-drawer__field textarea:focus,
 .todo-drawer__field select:focus {
   outline: none;
   border-color: #667eea;
@@ -2087,6 +2180,80 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+}
+
+.todo-drawer__accordion-toggle {
+  width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 600;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.todo-drawer__accordion-toggle:hover {
+  background: var(--input-bg);
+  border-color: var(--border-color);
+}
+
+.todo-drawer__accordion-chevron {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.todo-drawer__accordion-panel {
+  margin-top: 8px;
+  display: grid;
+  gap: 10px;
+}
+
+.todo-drawer__accordion-panel[hidden] {
+  display: none !important;
+}
+
+.todo-drawer__subtasks-title {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.todo-drawer__subtasks-list {
+  list-style: none;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+.todo-drawer__subtasks-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.todo-drawer__subtasks-item.completed {
+  color: var(--text-muted);
+}
+
+.todo-drawer__subtasks-empty {
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.todo-drawer__section--danger {
+  border-color: rgba(220, 38, 38, 0.35);
+}
+
+.todo-drawer__delete-btn {
+  width: 100%;
+  justify-self: stretch;
 }
 
 .btn-icon {
