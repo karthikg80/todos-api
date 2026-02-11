@@ -942,7 +942,7 @@ async function handleUpdateProfile(event) {
       updateUserDisplay();
       showMessage("profileMessage", "Profile updated successfully!", "success");
     } else {
-      const data = await response.json();
+      const data = response ? await parseApiBody(response) : {};
       showMessage(
         "profileMessage",
         data.error || "Failed to update profile",
@@ -3920,7 +3920,7 @@ async function changeUserRole(userId, role) {
       showMessage("adminMessage", `User role updated to ${role}`, "success");
       loadAdminUsers();
     } else {
-      const data = await response.json();
+      const data = response ? await parseApiBody(response) : {};
       showMessage(
         "adminMessage",
         data.error || "Failed to update role",
@@ -3953,7 +3953,7 @@ async function deleteUser(userId) {
       showMessage("adminMessage", "User deleted successfully", "success");
       loadAdminUsers();
     } else {
-      const data = await response.json();
+      const data = response ? await parseApiBody(response) : {};
       showMessage(
         "adminMessage",
         data.error || "Failed to delete user",
