@@ -772,6 +772,13 @@ body {
   flex-wrap: wrap;
 }
 
+.ics-export-helper {
+  margin-top: -12px;
+  margin-bottom: 16px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
 .date-view-tabs {
   display: flex;
   gap: 6px;
