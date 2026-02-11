@@ -370,31 +370,89 @@ export class PrismaTodoService implements ITodoService {
     dto: UpdateSubtaskDto,
   ): Promise<Subtask | null> {
     try {
-      const todo = await this.prisma.todo.findFirst({
-        where: { id: todoId, userId },
+      const updatedSubtask = await this.prisma.$transaction(async (tx) => {
+        const todoRows = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id"
+          FROM "todos"
+          WHERE "id" = ${todoId} AND "user_id" = ${userId}
+          FOR UPDATE
+        `;
+        if (todoRows.length === 0) {
+          return null;
+        }
+
+        if (dto.order === undefined) {
+          const updateData: Prisma.SubtaskUpdateManyMutationInput = {};
+          if (dto.title !== undefined) updateData.title = dto.title;
+          if (dto.completed !== undefined) updateData.completed = dto.completed;
+
+          const updated = await tx.subtask.updateMany({
+            where: { id: subtaskId, todoId },
+            data: updateData,
+          });
+          if (updated.count !== 1) {
+            return null;
+          }
+
+          return tx.subtask.findUnique({
+            where: { id: subtaskId },
+          });
+        }
+
+        const orderedSubtasks = await tx.subtask.findMany({
+          where: { todoId },
+          orderBy: [{ order: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+          select: { id: true },
+        });
+        if (orderedSubtasks.length === 0) {
+          return null;
+        }
+
+        const movingIndex = orderedSubtasks.findIndex(
+          (item) => item.id === subtaskId,
+        );
+        if (movingIndex === -1) {
+          return null;
+        }
+
+        const clampedOrder = Math.max(
+          0,
+          Math.min(dto.order, orderedSubtasks.length - 1),
+        );
+        const moving = orderedSubtasks[movingIndex];
+        const reordered = orderedSubtasks.filter(
+          (item) => item.id !== subtaskId,
+        );
+        reordered.splice(clampedOrder, 0, moving);
+
+        await tx.subtask.updateMany({
+          where: { todoId },
+          data: { order: { increment: 1000 } },
+        });
+
+        for (let index = 0; index < reordered.length; index += 1) {
+          const item = reordered[index];
+          const data: Prisma.SubtaskUpdateInput = { order: index };
+          if (item.id === subtaskId) {
+            if (dto.title !== undefined) {
+              data.title = dto.title;
+            }
+            if (dto.completed !== undefined) {
+              data.completed = dto.completed;
+            }
+          }
+          await tx.subtask.update({
+            where: { id: item.id },
+            data,
+          });
+        }
+
+        return tx.subtask.findUnique({
+          where: { id: subtaskId },
+        });
       });
-      if (!todo) {
-        return null;
-      }
 
-      const updateData: any = {};
-      if (dto.title !== undefined) updateData.title = dto.title;
-      if (dto.completed !== undefined) updateData.completed = dto.completed;
-      if (dto.order !== undefined) updateData.order = dto.order;
-
-      const updated = await this.prisma.subtask.updateMany({
-        where: { id: subtaskId, todoId },
-        data: updateData,
-      });
-
-      if (updated.count !== 1) {
-        return null;
-      }
-
-      const subtask = await this.prisma.subtask.findUnique({
-        where: { id: subtaskId },
-      });
-      return subtask ? this.mapPrismaToSubtask(subtask) : null;
+      return updatedSubtask ? this.mapPrismaToSubtask(updatedSubtask) : null;
     } catch (error: unknown) {
       if (this.hasPrismaCode(error, ["P2023", "P2025"])) {
         return null;

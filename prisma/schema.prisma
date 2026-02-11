@@ -109,6 +109,7 @@ model Todo {
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   subtasks Subtask[]
+  aiSuggestionAppliedTodos AiSuggestionAppliedTodo[]
 
   @@map("todos")
   @@index([userId, category])
@@ -131,6 +132,7 @@ model Subtask {
 
   @@map("subtasks")
   @@index([todoId, order])
+  @@unique([todoId, order])
 }
 
 model AiSuggestion {
@@ -147,8 +149,23 @@ model AiSuggestion {
   updatedAt DateTime          @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appliedTodos AiSuggestionAppliedTodo[]
 
   @@map("ai_suggestions")
   @@index([userId, createdAt])
   @@index([userId, status])
+}
+
+model AiSuggestionAppliedTodo {
+  id           String   @id @default(uuid())
+  suggestionId String   @map("suggestion_id")
+  todoId       String   @map("todo_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  suggestion AiSuggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+  todo       Todo         @relation(fields: [todoId], references: [id], onDelete: Cascade)
+
+  @@map("ai_suggestion_applied_todos")
+  @@unique([suggestionId, todoId])
+  @@index([todoId])
 }
