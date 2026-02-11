@@ -217,6 +217,47 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
 export class PrismaAiSuggestionStore implements IAiSuggestionStore {
   constructor(private prisma: PrismaClient) {}
 
+  private normalizeAppliedTodoIds(ids: string[]): string[] {
+    const unique = new Set<string>();
+    for (const id of ids) {
+      if (typeof id === "string" && id.length > 0) {
+        unique.add(id);
+      }
+    }
+    return [...unique];
+  }
+
+  private mapPrismaRecord(record: any): AiSuggestionRecord {
+    const fromRelation = Array.isArray(record.appliedTodos)
+      ? record.appliedTodos
+          .map((item: { todoId?: unknown }) =>
+            typeof item.todoId === "string" ? item.todoId : null,
+          )
+          .filter((todoId: string | null): todoId is string => !!todoId)
+      : [];
+    const fromJson =
+      (record.appliedTodoIds as string[] | null | undefined) || undefined;
+    const appliedTodoIds =
+      fromRelation.length > 0 ? fromRelation : (fromJson ?? undefined);
+
+    return {
+      id: record.id,
+      userId: record.userId,
+      type: record.type as AiSuggestionType,
+      input: record.input as Record<string, unknown>,
+      output: record.output as Record<string, unknown>,
+      feedback: (record.feedback as Record<string, unknown>) || undefined,
+      appliedAt: record.appliedAt || undefined,
+      appliedTodoIds:
+        Array.isArray(appliedTodoIds) && appliedTodoIds.length > 0
+          ? appliedTodoIds
+          : undefined,
+      status: record.status as AiSuggestionStatus,
+      createdAt: record.createdAt,
+      updatedAt: record.updatedAt,
+    };
+  }
+
   async create(record: {
     userId: string;
     type: AiSuggestionType;
@@ -233,20 +274,7 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       },
     });
 
-    return {
-      id: created.id,
-      userId: created.userId,
-      type: created.type as AiSuggestionType,
-      input: created.input as Record<string, unknown>,
-      output: created.output as Record<string, unknown>,
-      feedback: (created.feedback as Record<string, unknown>) || undefined,
-      appliedAt: created.appliedAt || undefined,
-      appliedTodoIds:
-        (created.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: created.status as AiSuggestionStatus,
-      createdAt: created.createdAt,
-      updatedAt: created.updatedAt,
-    };
+    return this.mapPrismaRecord(created);
   }
 
   async listByUser(
@@ -257,22 +285,14 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
       where: { userId },
       orderBy: { createdAt: "desc" },
       take: limit,
+      include: {
+        appliedTodos: {
+          select: { todoId: true },
+        },
+      },
     });
 
-    return records.map((record) => ({
-      id: record.id,
-      userId: record.userId,
-      type: record.type as AiSuggestionType,
-      input: record.input as Record<string, unknown>,
-      output: record.output as Record<string, unknown>,
-      feedback: (record.feedback as Record<string, unknown>) || undefined,
-      appliedAt: record.appliedAt || undefined,
-      appliedTodoIds:
-        (record.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: record.status as AiSuggestionStatus,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    }));
+    return records.map((record) => this.mapPrismaRecord(record));
   }
 
   async getById(
@@ -281,26 +301,18 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
   ): Promise<AiSuggestionRecord | null> {
     const record = await this.prisma.aiSuggestion.findUnique({
       where: { id },
+      include: {
+        appliedTodos: {
+          select: { todoId: true },
+        },
+      },
     });
 
     if (!record || record.userId !== userId) {
       return null;
     }
 
-    return {
-      id: record.id,
-      userId: record.userId,
-      type: record.type as AiSuggestionType,
-      input: record.input as Record<string, unknown>,
-      output: record.output as Record<string, unknown>,
-      feedback: (record.feedback as Record<string, unknown>) || undefined,
-      appliedAt: record.appliedAt || undefined,
-      appliedTodoIds:
-        (record.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: record.status as AiSuggestionStatus,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    };
+    return this.mapPrismaRecord(record);
   }
 
   async countByUserSince(userId: string, since: Date): Promise<number> {
@@ -385,99 +397,85 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
     appliedTodoIds: string[],
     feedback?: Record<string, unknown>,
   ): Promise<AiSuggestionRecord | null> {
+    const normalizedAppliedTodoIds =
+      this.normalizeAppliedTodoIds(appliedTodoIds);
     const existing = await this.prisma.aiSuggestion.findUnique({
       where: { id },
+      include: {
+        appliedTodos: {
+          select: { todoId: true },
+        },
+      },
     });
     if (!existing || existing.userId !== userId) {
       return null;
     }
     if (existing.status === "rejected") {
-      return {
-        id: existing.id,
-        userId: existing.userId,
-        type: existing.type as AiSuggestionType,
-        input: existing.input as Record<string, unknown>,
-        output: existing.output as Record<string, unknown>,
-        feedback: (existing.feedback as Record<string, unknown>) || undefined,
-        appliedAt: existing.appliedAt || undefined,
-        appliedTodoIds:
-          (existing.appliedTodoIds as string[] | null | undefined) || undefined,
-        status: existing.status as AiSuggestionStatus,
-        createdAt: existing.createdAt,
-        updatedAt: existing.updatedAt,
-      };
+      return this.mapPrismaRecord(existing);
     }
-    if (existing.status === "accepted" && existing.appliedTodoIds) {
-      return {
-        id: existing.id,
-        userId: existing.userId,
-        type: existing.type as AiSuggestionType,
-        input: existing.input as Record<string, unknown>,
-        output: existing.output as Record<string, unknown>,
-        feedback: (existing.feedback as Record<string, unknown>) || undefined,
-        appliedAt: existing.appliedAt || undefined,
-        appliedTodoIds:
-          (existing.appliedTodoIds as string[] | null | undefined) || undefined,
-        status: existing.status as AiSuggestionStatus,
-        createdAt: existing.createdAt,
-        updatedAt: existing.updatedAt,
-      };
+    if (
+      existing.status === "accepted" &&
+      this.mapPrismaRecord(existing).appliedTodoIds
+    ) {
+      return this.mapPrismaRecord(existing);
     }
 
     const now = new Date();
-    const updateResult = await this.prisma.aiSuggestion.updateMany({
-      where: { id, userId, status: "pending" },
-      data: {
-        status: "accepted",
-        feedback: feedback as Prisma.InputJsonValue | undefined,
-        appliedAt: now,
-        appliedTodoIds: appliedTodoIds as unknown as Prisma.InputJsonValue,
-      },
+    const record = await this.prisma.$transaction(async (tx) => {
+      const updateResult = await tx.aiSuggestion.updateMany({
+        where: { id, userId, status: "pending" },
+        data: {
+          status: "accepted",
+          feedback: feedback as Prisma.InputJsonValue | undefined,
+          appliedAt: now,
+          appliedTodoIds:
+            normalizedAppliedTodoIds as unknown as Prisma.InputJsonValue,
+        },
+      });
+
+      if (updateResult.count !== 1) {
+        return null;
+      }
+
+      if (normalizedAppliedTodoIds.length > 0) {
+        await tx.aiSuggestionAppliedTodo.createMany({
+          data: normalizedAppliedTodoIds.map((todoId) => ({
+            id: randomUUID(),
+            suggestionId: id,
+            todoId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return tx.aiSuggestion.findUnique({
+        where: { id },
+        include: {
+          appliedTodos: {
+            select: { todoId: true },
+          },
+        },
+      });
     });
 
-    if (updateResult.count !== 1) {
+    if (!record) {
       const latest = await this.prisma.aiSuggestion.findUnique({
         where: { id },
+        include: {
+          appliedTodos: {
+            select: { todoId: true },
+          },
+        },
       });
       if (!latest || latest.userId !== userId) {
         return null;
       }
-      return {
-        id: latest.id,
-        userId: latest.userId,
-        type: latest.type as AiSuggestionType,
-        input: latest.input as Record<string, unknown>,
-        output: latest.output as Record<string, unknown>,
-        feedback: (latest.feedback as Record<string, unknown>) || undefined,
-        appliedAt: latest.appliedAt || undefined,
-        appliedTodoIds:
-          (latest.appliedTodoIds as string[] | null | undefined) || undefined,
-        status: latest.status as AiSuggestionStatus,
-        createdAt: latest.createdAt,
-        updatedAt: latest.updatedAt,
-      };
+      return this.mapPrismaRecord(latest);
     }
-
-    const record = await this.prisma.aiSuggestion.findUnique({
-      where: { id },
-    });
-    if (!record || record.userId !== userId) {
+    if (record.userId !== userId) {
       return null;
     }
-    return {
-      id: record.id,
-      userId: record.userId,
-      type: record.type as AiSuggestionType,
-      input: record.input as Record<string, unknown>,
-      output: record.output as Record<string, unknown>,
-      feedback: (record.feedback as Record<string, unknown>) || undefined,
-      appliedAt: record.appliedAt || undefined,
-      appliedTodoIds:
-        (record.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: record.status as AiSuggestionStatus,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    };
+    return this.mapPrismaRecord(record);
   }
 
   async updateStatus(
@@ -500,23 +498,15 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
 
     const record = await this.prisma.aiSuggestion.findUnique({
       where: { id },
+      include: {
+        appliedTodos: {
+          select: { todoId: true },
+        },
+      },
     });
     if (!record || record.userId !== userId) {
       return null;
     }
-    return {
-      id: record.id,
-      userId: record.userId,
-      type: record.type as AiSuggestionType,
-      input: record.input as Record<string, unknown>,
-      output: record.output as Record<string, unknown>,
-      feedback: (record.feedback as Record<string, unknown>) || undefined,
-      appliedAt: record.appliedAt || undefined,
-      appliedTodoIds:
-        (record.appliedTodoIds as string[] | null | undefined) || undefined,
-      status: record.status as AiSuggestionStatus,
-      createdAt: record.createdAt,
-      updatedAt: record.updatedAt,
-    };
+    return this.mapPrismaRecord(record);
   }
 }
