@@ -2032,6 +2032,63 @@ body {
   font-size: 0.9rem;
 }
 
+.todo-drawer__save-status {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.todo-drawer__save-status[data-state="saving"] {
+  color: #0369a1;
+}
+
+.todo-drawer__save-status[data-state="saved"] {
+  color: #15803d;
+}
+
+.todo-drawer__save-status[data-state="error"] {
+  color: #b42318;
+}
+
+.todo-drawer__field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.todo-drawer__field span {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.todo-drawer__field input[type="text"],
+.todo-drawer__field input[type="date"],
+.todo-drawer__field select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.todo-drawer__field input[type="text"]:focus,
+.todo-drawer__field input[type="date"]:focus,
+.todo-drawer__field select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.todo-drawer__field--inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .btn-icon {
   width: 34px;
   height: 34px;

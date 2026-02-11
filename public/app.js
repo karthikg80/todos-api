@@ -282,6 +282,10 @@ let isMoreFiltersOpen = false;
 let selectedTodoId = null;
 let lastFocusedTodoTrigger = null;
 let isTodoDrawerOpen = false;
+let drawerSaveState = "idle";
+let drawerSaveMessage = "";
+let drawerDraft = null;
+let drawerSaveSequence = 0;
 const PROJECT_PATH_SEPARATOR = " / ";
 
 function handleAuthFailure() {
@@ -2777,6 +2781,55 @@ function toDateTimeLocalValue(value) {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
+function toDateInputValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toIsoFromDateInput(value) {
+  if (!value) return null;
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+function validateTodoTitle(title) {
+  if (!title || !title.trim()) {
+    return "Task title is required";
+  }
+  return null;
+}
+
+async function applyTodoPatch(todoId, patch) {
+  const response = await apiCall(`${API_URL}/todos/${todoId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+
+  if (!response || !response.ok) {
+    const data = response ? await parseApiBody(response) : {};
+    throw new Error(data.error || "Failed to update task");
+  }
+
+  const updatedTodo = await response.json();
+  todos = todos.map((todo) => (todo.id === todoId ? updatedTodo : todo));
+
+  const projectPath = normalizeProjectPath(updatedTodo?.category || "");
+  if (projectPath && !customProjects.includes(projectPath)) {
+    customProjects.push(projectPath);
+  }
+  refreshProjectCatalog();
+  await loadProjects();
+
+  return updatedTodo;
+}
+
 function openEditTodoModal(todoId) {
   const todo = todos.find((item) => item.id === todoId);
   if (!todo) return;
@@ -2804,8 +2857,9 @@ function closeEditTodoModal() {
 async function saveEditedTodo() {
   if (!editingTodoId) return;
   const title = document.getElementById("editTodoTitle").value.trim();
-  if (!title) {
-    showMessage("todosMessage", "Task title is required", "error");
+  const titleError = validateTodoTitle(title);
+  if (titleError) {
+    showMessage("todosMessage", titleError, "error");
     return;
   }
 
@@ -2829,35 +2883,18 @@ async function saveEditedTodo() {
   };
 
   try {
-    const response = await apiCall(`${API_URL}/todos/${editingTodoId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    if (!response || !response.ok) {
-      const data = response ? await parseApiBody(response) : {};
-      showMessage(
-        "todosMessage",
-        data.error || "Failed to update task",
-        "error",
-      );
-      return;
-    }
-    const updatedTodo = await response.json();
-    todos = todos.map((todo) =>
-      todo.id === editingTodoId ? updatedTodo : todo,
-    );
-    if (project && !customProjects.includes(project)) {
-      customProjects.push(project);
-    }
-    refreshProjectCatalog();
-    await loadProjects();
+    await applyTodoPatch(editingTodoId, payload);
     renderTodos();
+    syncTodoDrawerStateWithRender();
     closeEditTodoModal();
     showMessage("todosMessage", "Task updated", "success");
   } catch (error) {
     console.error("Save edited todo failed:", error);
-    showMessage("todosMessage", "Failed to update task", "error");
+    showMessage(
+      "todosMessage",
+      error.message || "Failed to update task",
+      "error",
+    );
   }
 }
 
@@ -3192,6 +3229,126 @@ function getTodoById(todoId) {
   return todos.find((todo) => todo.id === todoId) || null;
 }
 
+function initializeDrawerDraft(todo) {
+  drawerDraft = {
+    id: todo.id,
+    title: String(todo.title || ""),
+    completed: !!todo.completed,
+    dueDate: toDateInputValue(todo.dueDate),
+    project: String(todo.category || ""),
+    priority: String(todo.priority || "medium"),
+  };
+}
+
+function getCurrentDrawerDraft(todo) {
+  if (!todo) return null;
+  if (!drawerDraft || drawerDraft.id !== todo.id) {
+    initializeDrawerDraft(todo);
+  }
+  return drawerDraft;
+}
+
+function setDrawerSaveState(state, message = "") {
+  drawerSaveState = state;
+  drawerSaveMessage = message;
+  const statusEl = document.getElementById("drawerSaveStatus");
+  if (!(statusEl instanceof HTMLElement)) return;
+
+  const textByState = {
+    idle: "Ready",
+    saving: "Saving...",
+    saved: "Saved",
+    error: message || "Save failed",
+  };
+  statusEl.textContent = textByState[state] || textByState.idle;
+  statusEl.setAttribute("data-state", state);
+}
+
+async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
+  if (!selectedTodoId || !drawerDraft) return;
+
+  if (validateTitle) {
+    const titleError = validateTodoTitle(drawerDraft.title);
+    if (titleError) {
+      setDrawerSaveState("error", titleError);
+      return;
+    }
+  }
+
+  const requestId = ++drawerSaveSequence;
+  setDrawerSaveState("saving");
+
+  try {
+    const updatedTodo = await applyTodoPatch(selectedTodoId, patch);
+    if (requestId !== drawerSaveSequence) {
+      return;
+    }
+    initializeDrawerDraft(updatedTodo);
+    setDrawerSaveState("saved");
+    renderTodos();
+    syncTodoDrawerStateWithRender();
+  } catch (error) {
+    if (requestId !== drawerSaveSequence) {
+      return;
+    }
+    setDrawerSaveState("error", error.message || "Save failed");
+  }
+}
+
+function updateDrawerDraftField(field, value) {
+  if (!drawerDraft) return;
+  drawerDraft[field] = value;
+  setDrawerSaveState("idle");
+}
+
+function onDrawerTitleInput(event) {
+  const value = String(event?.target?.value || "");
+  updateDrawerDraftField("title", value);
+}
+
+function onDrawerTitleBlur() {
+  if (!drawerDraft) return;
+  saveDrawerPatch({ title: drawerDraft.title.trim() }, { validateTitle: true });
+}
+
+function onDrawerTitleKeydown(event) {
+  if (!event) return;
+  if (event.key !== "Enter" || !(event.ctrlKey || event.metaKey)) return;
+  event.preventDefault();
+  onDrawerTitleBlur();
+}
+
+function onDrawerCompletedChange(event) {
+  const checked = !!event?.target?.checked;
+  updateDrawerDraftField("completed", checked);
+  saveDrawerPatch({ completed: checked });
+}
+
+function onDrawerDueDateChange(event) {
+  const dueDate = String(event?.target?.value || "");
+  updateDrawerDraftField("dueDate", dueDate);
+  saveDrawerPatch({ dueDate: toIsoFromDateInput(dueDate) });
+}
+
+function onDrawerProjectChange(event) {
+  const project = normalizeProjectPath(String(event?.target?.value || ""));
+  updateDrawerDraftField("project", project || "");
+  saveDrawerPatch({ category: project || null });
+}
+
+function onDrawerPriorityChange(event) {
+  const priority = String(event?.target?.value || "medium");
+  updateDrawerDraftField("priority", priority);
+  saveDrawerPatch({ priority });
+}
+
+function buildDrawerProjectOptions(selectedProject = "") {
+  const projects = getAllProjects();
+  return `<option value="">None</option>${projects
+    .map((project) => renderProjectOptionEntry(project, selectedProject))
+    .join("")}`;
+}
+
 function renderTodoDrawerContent() {
   const refs = getTodoDrawerElements();
   if (!refs) return;
@@ -3205,6 +3362,7 @@ function renderTodoDrawerContent() {
 
   const todo = getTodoById(selectedTodoId);
   if (!todo) {
+    drawerDraft = null;
     titleEl.textContent = "Task";
     contentEl.innerHTML = `
       <div class="todo-drawer__section">
@@ -3215,42 +3373,70 @@ function renderTodoDrawerContent() {
     return;
   }
 
-  const dueDateText = todo.dueDate
-    ? new Date(todo.dueDate).toLocaleString()
-    : "No due date";
-  const projectText = todo.category || "No project";
-  const priorityText = (todo.priority || "medium").toUpperCase();
-  const statusText = todo.completed ? "Completed" : "Open";
+  const draft = getCurrentDrawerDraft(todo);
   const descriptionText = todo.description
     ? escapeHtml(String(todo.description))
     : "No description";
 
-  titleEl.textContent = todo.title || "Task";
+  titleEl.textContent = "Task";
   contentEl.innerHTML = `
     <div class="todo-drawer__section">
       <div class="todo-drawer__section-title">Essentials</div>
-      <p><strong>Status:</strong> ${escapeHtml(statusText)}</p>
-      <p><strong>Due:</strong> ${escapeHtml(dueDateText)}</p>
-      <p><strong>Project:</strong> ${escapeHtml(projectText)}</p>
-      <p><strong>Priority:</strong> ${escapeHtml(priorityText)}</p>
+      <div class="todo-drawer__save-status" id="drawerSaveStatus" data-state="${escapeHtml(drawerSaveState)}">Ready</div>
+      <label class="todo-drawer__field" for="drawerTitleInput">
+        <span>Title</span>
+        <input
+          id="drawerTitleInput"
+          type="text"
+          maxlength="200"
+          value="${escapeHtml(draft.title)}"
+        />
+      </label>
+      <label class="todo-drawer__field todo-drawer__field--inline" for="drawerCompletedToggle">
+        <span>Completed</span>
+        <input id="drawerCompletedToggle" type="checkbox" ${draft.completed ? "checked" : ""} />
+      </label>
+      <label class="todo-drawer__field" for="drawerDueDateInput">
+        <span>Due date</span>
+        <input id="drawerDueDateInput" type="date" value="${escapeHtml(draft.dueDate)}" />
+      </label>
+      <label class="todo-drawer__field" for="drawerProjectSelect">
+        <span>Project</span>
+        <select id="drawerProjectSelect">
+          ${buildDrawerProjectOptions(draft.project)}
+        </select>
+      </label>
+      <label class="todo-drawer__field" for="drawerPrioritySelect">
+        <span>Priority</span>
+        <select id="drawerPrioritySelect">
+          <option value="low" ${draft.priority === "low" ? "selected" : ""}>Low</option>
+          <option value="medium" ${draft.priority === "medium" ? "selected" : ""}>Medium</option>
+          <option value="high" ${draft.priority === "high" ? "selected" : ""}>High</option>
+        </select>
+      </label>
     </div>
     <div class="todo-drawer__section">
       <div class="todo-drawer__section-title">Details</div>
       <p>${descriptionText}</p>
     </div>
   `;
+  setDrawerSaveState(drawerSaveState, drawerSaveMessage);
 }
 
 function openTodoDrawer(todoId, triggerEl) {
   const refs = getTodoDrawerElements();
   if (!refs) return;
-  if (!getTodoById(todoId)) return;
+  const todo = getTodoById(todoId);
+  if (!todo) return;
 
   selectedTodoId = todoId;
+  initializeDrawerDraft(todo);
+  drawerSaveSequence = 0;
+  setDrawerSaveState("idle");
   lastFocusedTodoTrigger = triggerEl instanceof HTMLElement ? triggerEl : null;
   isTodoDrawerOpen = true;
 
-  const { drawer, closeBtn, backdrop } = refs;
+  const { drawer, backdrop } = refs;
   drawer.classList.add("todo-drawer--open");
   drawer.setAttribute("aria-hidden", "false");
   if (backdrop instanceof HTMLElement) {
@@ -3258,9 +3444,13 @@ function openTodoDrawer(todoId, triggerEl) {
     backdrop.setAttribute("aria-hidden", "false");
   }
 
-  renderTodoDrawerContent();
   renderTodos();
-  closeBtn.focus();
+  const titleInput = document.getElementById("drawerTitleInput");
+  if (titleInput instanceof HTMLElement) {
+    titleInput.focus();
+  } else {
+    refs.closeBtn.focus();
+  }
 }
 
 function closeTodoDrawer({ restoreFocus = true } = {}) {
@@ -3268,6 +3458,9 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
 
   isTodoDrawerOpen = false;
   selectedTodoId = null;
+  drawerDraft = null;
+  drawerSaveSequence = 0;
+  setDrawerSaveState("idle");
 
   if (refs) {
     const { drawer, backdrop } = refs;
@@ -4256,9 +4449,54 @@ function bindTodoDrawerHandlers() {
     openTodoDrawer(todoId, row);
   });
 
-  document.addEventListener("keydown", (event) => {
-    if (event.key !== "Enter") return;
+  document.addEventListener("input", (event) => {
     const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id === "drawerTitleInput") {
+      onDrawerTitleInput(event);
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id === "drawerCompletedToggle") {
+      onDrawerCompletedChange(event);
+      return;
+    }
+    if (target.id === "drawerDueDateInput") {
+      onDrawerDueDateChange(event);
+      return;
+    }
+    if (target.id === "drawerProjectSelect") {
+      onDrawerProjectChange(event);
+      return;
+    }
+    if (target.id === "drawerPrioritySelect") {
+      onDrawerPriorityChange(event);
+    }
+  });
+
+  document.addEventListener(
+    "blur",
+    (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.id === "drawerTitleInput") {
+        onDrawerTitleBlur();
+      }
+    },
+    true,
+  );
+
+  document.addEventListener("keydown", (event) => {
+    const target = event.target;
+    if (target instanceof HTMLElement && target.id === "drawerTitleInput") {
+      onDrawerTitleKeydown(event);
+      return;
+    }
+
+    if (event.key !== "Enter") return;
     if (!(target instanceof HTMLElement)) return;
     if (!target.classList.contains("todo-item")) return;
     if (target.closest("#todoDetailsDrawer")) return;
