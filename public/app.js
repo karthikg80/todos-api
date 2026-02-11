@@ -4,6 +4,25 @@ const API_URL =
     ? "http://localhost:3000"
     : window.location.origin;
 
+function readBooleanFeatureFlag(flagKey) {
+  try {
+    const rawValue = window.localStorage.getItem(flagKey);
+    return rawValue === "1" || rawValue === "true";
+  } catch {
+    return false;
+  }
+}
+
+function isEnhancedTaskCriticEnabled() {
+  const params = new URLSearchParams(window.location.search);
+  const queryValue = params.get("enhancedCritic");
+  if (queryValue === "1" || queryValue === "true") return true;
+  if (queryValue === "0" || queryValue === "false") return false;
+  return readBooleanFeatureFlag("feature.enhancedTaskCritic");
+}
+
+const FEATURE_ENHANCED_TASK_CRITIC = isEnhancedTaskCriticEnabled();
+
 const hasValidAppState =
   !!window.AppState &&
   typeof window.AppState.loadStoredSession === "function" &&
@@ -1421,6 +1440,15 @@ function renderCritiquePanel() {
     return;
   }
 
+  if (FEATURE_ENHANCED_TASK_CRITIC) {
+    renderEnhancedCritiquePanel(panel);
+    return;
+  }
+
+  renderLegacyCritiquePanel(panel);
+}
+
+function renderLegacyCritiquePanel(panel) {
   panel.style.display = "block";
   panel.innerHTML = `
     <div style="
@@ -1462,6 +1490,83 @@ function renderCritiquePanel() {
         <button class="add-btn" data-onclick="applyCritiqueSuggestion()">Apply Suggestion</button>
         <button class="add-btn" style="background: #64748b" data-onclick="dismissCritiqueSuggestion()">Dismiss</button>
       </div>
+    </div>
+  `;
+}
+
+function getCritiqueSuggestions() {
+  if (!Array.isArray(latestCritiqueResult?.suggestions)) return [];
+  return latestCritiqueResult.suggestions
+    .map((item) => String(item || "").trim())
+    .filter((item) => item.length > 0);
+}
+
+function renderEnhancedCritiquePanel(panel) {
+  const scoreValue = Number(latestCritiqueResult?.qualityScore);
+  const hasScore = Number.isFinite(scoreValue);
+  const improvedTitle = String(
+    latestCritiqueResult?.improvedTitle || "",
+  ).trim();
+  const improvedDescription = String(
+    latestCritiqueResult?.improvedDescription || "",
+  ).trim();
+  const suggestions = getCritiqueSuggestions();
+
+  panel.style.display = "block";
+  panel.innerHTML = `
+    <div class="critic-panel-enhanced">
+      <div class="critic-panel-header">
+        <div class="critic-panel-title">Task Critic</div>
+        <div class="critic-panel-score">
+          ${
+            hasScore
+              ? `Quality score: <strong>${Math.round(scoreValue)}/100</strong>`
+              : "No score available yet"
+          }
+        </div>
+      </div>
+
+      <section class="critic-section">
+        <div class="critic-section-title">Suggested improvements</div>
+        ${
+          improvedTitle
+            ? `<div class="critic-improvement-line"><strong>Title:</strong> ${escapeHtml(improvedTitle)}</div>`
+            : `<div class="critic-improvement-line">No title suggestion available.</div>`
+        }
+        ${
+          improvedDescription
+            ? `<div class="critic-improvement-line"><strong>Description:</strong> ${escapeHtml(improvedDescription)}</div>`
+            : `<div class="critic-improvement-line">No description suggestion available.</div>`
+        }
+        ${
+          suggestions.length
+            ? `<ul class="critic-suggestion-list">
+                ${suggestions.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}
+              </ul>`
+            : `<div class="critic-improvement-line">No additional suggestions yet.</div>`
+        }
+      </section>
+
+      <section class="critic-section">
+        <label for="critiqueFeedbackReasonInput" class="critic-section-title">Feedback reason (optional)</label>
+        <input
+          id="critiqueFeedbackReasonInput"
+          type="text"
+          maxlength="300"
+          placeholder="e.g., too generic, very actionable"
+          class="critic-feedback-input"
+        />
+      </section>
+
+      <div class="critic-actions">
+        <button class="add-btn" data-onclick="applyCritiqueSuggestion()">Apply Suggestion</button>
+        <button class="add-btn" style="background: #64748b" data-onclick="dismissCritiqueSuggestion()">Dismiss</button>
+      </div>
+
+      <details class="critic-future-insights">
+        <summary>Future insights</summary>
+        <p>Coming soon: deeper critique rationale, impact estimates, and trend signals.</p>
+      </details>
     </div>
   `;
 }
