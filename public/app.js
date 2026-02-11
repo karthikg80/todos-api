@@ -246,6 +246,7 @@ let planDraftState = null;
 let isPlanGenerateInFlight = false;
 let isPlanApplyInFlight = false;
 let isPlanDismissInFlight = false;
+let planGenerateSource = null;
 let adminBootstrapAvailable = false;
 let customProjects = [];
 let projectRecords = [];
@@ -1360,12 +1361,25 @@ function isPlanActionBusy() {
 }
 
 function updatePlanGenerateButtonState() {
-  const button = document.getElementById("generatePlanButton");
-  if (!button) return;
-  button.disabled = isPlanActionBusy();
-  button.textContent = isPlanGenerateInFlight
-    ? "Generating..."
-    : "Generate Plan";
+  const generateButton = document.getElementById("generatePlanButton");
+  const brainDumpButton = document.getElementById("brainDumpPlanButton");
+  const controlsDisabled = isPlanActionBusy();
+
+  if (generateButton) {
+    generateButton.disabled = controlsDisabled;
+    generateButton.textContent =
+      isPlanGenerateInFlight && planGenerateSource === "goal"
+        ? "Generating..."
+        : "Generate Plan";
+  }
+
+  if (brainDumpButton) {
+    brainDumpButton.disabled = controlsDisabled;
+    brainDumpButton.textContent =
+      isPlanGenerateInFlight && planGenerateSource === "brain_dump"
+        ? "Drafting..."
+        : "Draft tasks from brain dump";
+  }
 }
 
 function getSelectedPlanDraftTasks() {
@@ -1883,6 +1897,7 @@ async function generatePlanWithAi() {
   }
 
   isPlanGenerateInFlight = true;
+  planGenerateSource = "goal";
   updatePlanGenerateButtonState();
   try {
     const response = await apiCall(`${API_URL}/ai/plan-from-goal`, {
@@ -1899,22 +1914,10 @@ async function generatePlanWithAi() {
 
     const data = response ? await parseApiBody(response) : {};
     if (response && response.ok) {
-      latestPlanSuggestionId = data.suggestionId;
-      latestPlanResult = data;
-      initPlanDraftState(data);
-      const planPanel = document.getElementById("aiPlanPanel");
-      if (planPanel) {
-        planPanel.dataset.focusPending = "true";
-      }
-      renderPlanPanel();
-      showMessage(
-        "todosMessage",
+      await handlePlanFromGoalSuccess(
+        data,
         "AI plan generated. Review and add tasks.",
-        "success",
       );
-      await loadAiSuggestions();
-      await loadAiUsage();
-      await loadAiInsights();
       return;
     }
 
@@ -1939,6 +1942,105 @@ async function generatePlanWithAi() {
     showMessage("todosMessage", "Failed to generate AI plan", "error");
   } finally {
     isPlanGenerateInFlight = false;
+    planGenerateSource = null;
+    updatePlanGenerateButtonState();
+    renderPlanPanel();
+  }
+}
+
+function clearBrainDumpInput() {
+  const brainDumpInput = document.getElementById("brainDumpInput");
+  if (!brainDumpInput || isPlanActionBusy()) {
+    return;
+  }
+  brainDumpInput.value = "";
+  brainDumpInput.focus();
+}
+
+async function handlePlanFromGoalSuccess(data, successMessage) {
+  latestPlanSuggestionId = data.suggestionId;
+  latestPlanResult = data;
+  initPlanDraftState(data);
+  const planPanel = document.getElementById("aiPlanPanel");
+  if (planPanel) {
+    planPanel.dataset.focusPending = "true";
+  }
+  renderPlanPanel();
+  showMessage("todosMessage", successMessage, "success");
+  await loadAiSuggestions();
+  await loadAiUsage();
+  await loadAiInsights();
+}
+
+async function draftPlanFromBrainDumpWithAi() {
+  if (isPlanActionBusy()) {
+    return;
+  }
+
+  const brainDumpInput = document.getElementById("brainDumpInput");
+  if (!brainDumpInput) {
+    return;
+  }
+
+  const goal = brainDumpInput.value.trim();
+  if (!goal) {
+    showMessage("todosMessage", "Enter a brain dump to draft tasks", "error");
+    return;
+  }
+  if (goal.length > 8000) {
+    showMessage(
+      "todosMessage",
+      "Brain dump must be 8000 characters or less",
+      "error",
+    );
+    return;
+  }
+
+  isPlanGenerateInFlight = true;
+  planGenerateSource = "brain_dump";
+  updatePlanGenerateButtonState();
+  try {
+    const response = await apiCall(`${API_URL}/ai/plan-from-goal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ goal }),
+    });
+
+    const data = response ? await parseApiBody(response) : {};
+    if (response && response.ok) {
+      await handlePlanFromGoalSuccess(
+        data,
+        "AI draft ready from brain dump. Review and add tasks.",
+      );
+      return;
+    }
+
+    showMessage(
+      "todosMessage",
+      data.error || "AI draft generation failed",
+      "error",
+    );
+    if (response && response.status === 429 && data.usage) {
+      aiUsage = data.usage;
+      renderAiUsageSummary();
+      showMessage(
+        "todosMessage",
+        `Daily AI limit reached on ${String(
+          data.usage.plan || "free",
+        ).toUpperCase()} plan. Upgrade for higher limits.`,
+        "error",
+      );
+    }
+  } catch (error) {
+    console.error("Brain dump plan error:", error);
+    showMessage(
+      "todosMessage",
+      "Failed to draft tasks from brain dump",
+      "error",
+    );
+  } finally {
+    isPlanGenerateInFlight = false;
+    planGenerateSource = null;
     updatePlanGenerateButtonState();
     renderPlanPanel();
   }

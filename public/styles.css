@@ -428,6 +428,42 @@ body {
   min-width: 260px;
 }
 
+.ai-brain-dump {
+  margin-top: 10px;
+}
+
+.ai-brain-dump label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.ai-brain-dump-input {
+  width: 100%;
+  min-height: 96px;
+  padding: 10px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  resize: vertical;
+  font-family: inherit;
+}
+
+.ai-brain-dump-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.ai-brain-dump-helper {
+  margin-top: 8px;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
 .ai-meta {
   margin-top: 12px;
   padding-top: 8px;
