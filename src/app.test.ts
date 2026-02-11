@@ -462,4 +462,25 @@ describe("Todos API", () => {
       expect(response.body).toEqual({ message: "Email verified successfully" });
     });
   });
+
+  describe("Admin error handling", () => {
+    it("returns centralized error shape for admin router failures", async () => {
+      const mockAuthService = {
+        verifyToken: jest
+          .fn()
+          .mockReturnValue({ userId: "admin-1", email: "admin@example.com" }),
+        isAdmin: jest.fn().mockResolvedValue(true),
+        getAllUsers: jest.fn().mockRejectedValue({ code: "P2023" }),
+      } as any;
+
+      const authApp = createApp(new TodoService(), mockAuthService);
+
+      const response = await request(authApp)
+        .get("/admin/users")
+        .set("Authorization", "Bearer test-token")
+        .expect(400);
+
+      expect(response.body).toEqual({ error: "Invalid ID format" });
+    });
+  });
 });
