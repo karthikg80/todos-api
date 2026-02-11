@@ -129,6 +129,7 @@ describe("AI API Integration", () => {
         source: "apply_endpoint",
       }),
     );
+    expect(applyResponse.body.suggestion.appliedTodoIds).toHaveLength(3);
     expect(applyResponse.body.todos).toHaveLength(3);
 
     const me = await request(app)
@@ -140,6 +141,14 @@ describe("AI API Integration", () => {
       where: { userId: me.body.id, category: "AI Plan" },
     });
     expect(dbTodos).toHaveLength(3);
+    const appliedMappings = await prisma.aiSuggestionAppliedTodo.findMany({
+      where: { suggestionId },
+      orderBy: { createdAt: "asc" },
+    });
+    expect(appliedMappings).toHaveLength(3);
+    expect(appliedMappings.map((item) => item.todoId).sort()).toEqual(
+      dbTodos.map((todo) => todo.id).sort(),
+    );
 
     const reapplied = await request(app)
       .post(`/ai/suggestions/${suggestionId}/apply`)
@@ -151,6 +160,18 @@ describe("AI API Integration", () => {
       where: { userId: me.body.id, category: "AI Plan" },
     });
     expect(dbTodosAfterReapply).toHaveLength(3);
+    const appliedMappingsAfterReapply =
+      await prisma.aiSuggestionAppliedTodo.findMany({
+        where: { suggestionId },
+      });
+    expect(appliedMappingsAfterReapply).toHaveLength(3);
+
+    await prisma.todo.delete({ where: { id: dbTodosAfterReapply[0].id } });
+    const appliedMappingsAfterTodoDelete =
+      await prisma.aiSuggestionAppliedTodo.findMany({
+        where: { suggestionId },
+      });
+    expect(appliedMappingsAfterTodoDelete).toHaveLength(2);
   });
 
   it("returns usage summary and enforces per-day quota", async () => {

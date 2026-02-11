@@ -409,6 +409,47 @@ describe("PrismaTodoService (Integration)", () => {
     });
   });
 
+  describe("subtask ordering", () => {
+    it("reorders subtasks without duplicate order values", async () => {
+      const todo = await service.create(TEST_USER_ID, { title: "Parent Todo" });
+      const subtaskA = await service.createSubtask(TEST_USER_ID, todo.id, {
+        title: "Subtask A",
+      });
+      const subtaskB = await service.createSubtask(TEST_USER_ID, todo.id, {
+        title: "Subtask B",
+      });
+      const subtaskC = await service.createSubtask(TEST_USER_ID, todo.id, {
+        title: "Subtask C",
+      });
+
+      expect(subtaskA?.order).toBe(0);
+      expect(subtaskB?.order).toBe(1);
+      expect(subtaskC?.order).toBe(2);
+
+      const moved = await service.updateSubtask(
+        TEST_USER_ID,
+        todo.id,
+        subtaskC!.id,
+        { order: 0 },
+      );
+      expect(moved).not.toBeNull();
+      expect(moved?.order).toBe(0);
+
+      const subtasks = await service.findSubtasks(TEST_USER_ID, todo.id);
+      expect(subtasks).not.toBeNull();
+      expect(subtasks).toHaveLength(3);
+      expect(subtasks!.map((item) => item.id)).toEqual([
+        subtaskC!.id,
+        subtaskA!.id,
+        subtaskB!.id,
+      ]);
+      expect(subtasks!.map((item) => item.order)).toEqual([0, 1, 2]);
+
+      const uniqueOrders = new Set(subtasks!.map((item) => item.order));
+      expect(uniqueOrders.size).toBe(subtasks!.length);
+    });
+  });
+
   describe("database constraints", () => {
     it("should enforce title max length (200 chars)", async () => {
       const longTitle = "a".repeat(201);

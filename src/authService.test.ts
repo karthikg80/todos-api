@@ -305,5 +305,82 @@ describe("AuthService", () => {
         authService.refreshAccessToken(registered.refreshToken!),
       ).rejects.toThrow("Invalid refresh token");
     });
+
+    it("keeps legacy plaintext refresh token fallback disabled by default", async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: "legacy-refresh-default-off@example.com",
+          password: await bcrypt.hash("password123", 10),
+        },
+      });
+      const legacyPlaintextToken = jwt.sign(
+        { userId: user.id, jti: "legacy-default-off" },
+        TEST_JWT_SECRET,
+        { expiresIn: "7d" },
+      );
+      await prisma.refreshToken.create({
+        data: {
+          token: legacyPlaintextToken,
+          userId: user.id,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        },
+      });
+
+      await expect(
+        authService.refreshAccessToken(legacyPlaintextToken),
+      ).rejects.toThrow("Invalid refresh token");
+    });
+
+    it("allows legacy plaintext fallback only when explicitly enabled", async () => {
+      const previousFlag = process.env.ALLOW_LEGACY_PLAINTEXT_REFRESH_TOKEN;
+      const previousCutoff = process.env.LEGACY_REFRESH_TOKEN_FALLBACK_UNTIL;
+      process.env.ALLOW_LEGACY_PLAINTEXT_REFRESH_TOKEN = "true";
+      process.env.LEGACY_REFRESH_TOKEN_FALLBACK_UNTIL =
+        "2099-01-01T00:00:00.000Z";
+
+      try {
+        const fallbackService = new AuthService(prisma);
+        const user = await prisma.user.create({
+          data: {
+            email: "legacy-refresh-enabled@example.com",
+            password: await bcrypt.hash("password123", 10),
+          },
+        });
+        const legacyPlaintextToken = jwt.sign(
+          { userId: user.id, jti: "legacy-enabled" },
+          TEST_JWT_SECRET,
+          { expiresIn: "7d" },
+        );
+        await prisma.refreshToken.create({
+          data: {
+            token: legacyPlaintextToken,
+            userId: user.id,
+            expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        });
+
+        const refreshed =
+          await fallbackService.refreshAccessToken(legacyPlaintextToken);
+        expect(refreshed.refreshToken).toBeDefined();
+
+        const refreshedRows = await prisma.refreshToken.findMany({
+          where: { userId: user.id },
+        });
+        expect(refreshedRows).toHaveLength(1);
+        expect(refreshedRows[0].token).toMatch(/^[a-f0-9]{64}$/);
+        expect(refreshedRows[0].token).not.toBe(legacyPlaintextToken);
+      } finally {
+        if (previousFlag === undefined) {
+          delete process.env.ALLOW_LEGACY_PLAINTEXT_REFRESH_TOKEN;
+        } else {
+          process.env.ALLOW_LEGACY_PLAINTEXT_REFRESH_TOKEN = previousFlag;
+        }
+        if (previousCutoff === undefined) {
+          delete process.env.LEGACY_REFRESH_TOKEN_FALLBACK_UNTIL;
+        } else {
+          process.env.LEGACY_REFRESH_TOKEN_FALLBACK_UNTIL = previousCutoff;
+        }
+      }
+    });
   });
 });
