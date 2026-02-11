@@ -486,6 +486,90 @@ body {
   margin-top: 10px;
 }
 
+.critic-panel-enhanced {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px;
+  background: var(--input-bg);
+}
+
+.critic-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.critic-panel-title {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.critic-panel-score {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.critic-section {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--card-bg);
+  padding: 10px;
+  margin-top: 10px;
+}
+
+.critic-section-title {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.critic-improvement-line {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.critic-suggestion-list {
+  margin: 8px 0 0 18px;
+  color: var(--text-secondary);
+}
+
+.critic-feedback-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.critic-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.critic-future-insights {
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.critic-future-insights summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.critic-future-insights p {
+  margin-top: 8px;
+}
+
 .plan-draft-panel {
   border: 1px solid var(--border-color);
   border-radius: 10px;
