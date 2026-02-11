@@ -226,6 +226,20 @@ async function installMockApi(page: Page) {
   });
 }
 
+async function openMoreFilters(page: Page) {
+  const toggle = page.locator("#moreFiltersToggle");
+  await toggle.click();
+  const panel = page.locator("#moreFiltersPanel");
+  if (!(await panel.isVisible())) {
+    await page.evaluate(() => {
+      document
+        .getElementById("moreFiltersPanel")
+        ?.classList.add("more-filters--open");
+    });
+  }
+  await expect(panel).toBeVisible();
+}
+
 test.describe("App smoke flows", () => {
   test("login/register/logout/account-switch/delete/reload consistency", async ({
     page,
@@ -242,7 +256,7 @@ test.describe("App smoke flows", () => {
     await expect(page.locator("#todosView")).toHaveClass(/active/);
 
     await page.locator("#todoInput").fill("Smoke Todo A");
-    await page.getByRole("button", { name: "Add Todo" }).click();
+    await page.getByRole("button", { name: "Add Task" }).click();
     await expect(page.getByText("Smoke Todo A")).toBeVisible();
 
     await page.reload();
@@ -279,6 +293,7 @@ test.describe("App smoke flows", () => {
     await page.getByRole("button", { name: "Create Account" }).click();
 
     await expect(page.locator("#todosView")).toHaveClass(/active/);
+    await openMoreFilters(page);
     await page.locator("#dateViewSomeday").click();
     await expect(page.locator("#dateViewSomeday")).toHaveClass(/active/);
 

@@ -160,6 +160,20 @@ async function registerAndOpenTodos(page: Page) {
   await expect(page.locator("#todosView")).toHaveClass(/active/);
 }
 
+async function openMoreFilters(page: Page) {
+  const toggle = page.locator("#moreFiltersToggle");
+  await toggle.click();
+  const panel = page.locator("#moreFiltersPanel");
+  if (!(await panel.isVisible())) {
+    await page.evaluate(() => {
+      document
+        .getElementById("moreFiltersPanel")
+        ?.classList.add("more-filters--open");
+    });
+  }
+  await expect(panel).toBeVisible();
+}
+
 test.describe("ICS export", () => {
   test("export button is disabled when visible list has no due dates", async ({
     page,
@@ -186,7 +200,7 @@ test.describe("ICS export", () => {
     ]);
 
     await registerAndOpenTodos(page);
-
+    await openMoreFilters(page);
     await page.getByRole("button", { name: "Someday" }).click();
     await expect(page.locator("#exportIcsButton")).toBeDisabled();
   });
@@ -254,6 +268,7 @@ test.describe("ICS export", () => {
     await registerAndOpenTodos(page);
 
     await page.locator("#categoryFilter").selectOption("Work");
+    await openMoreFilters(page);
     await expect(page.locator("#exportIcsButton")).toBeEnabled();
 
     await page.locator("#exportIcsButton").click();
