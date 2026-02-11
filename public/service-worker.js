@@ -104,7 +104,7 @@ self.addEventListener("fetch", (event) => {
           ) {
             const responseToCache = response.clone();
             caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
+              cache.put(event.request, responseToCache).catch(() => {});
             });
           }
           return response;
@@ -132,7 +132,7 @@ self.addEventListener("fetch", (event) => {
 
           const responseToCache = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
+            cache.put(event.request, responseToCache).catch(() => {});
           });
 
           return response;
