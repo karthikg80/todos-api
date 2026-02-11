@@ -278,6 +278,7 @@ const {
 } = AppStateModule;
 let authState = AUTH_STATE.UNAUTHENTICATED;
 let currentDateView = "all";
+let isMoreFiltersOpen = false;
 const PROJECT_PATH_SEPARATOR = " / ";
 
 function handleAuthFailure() {
@@ -3118,6 +3119,58 @@ function clearFilters() {
   setDateView("all");
 }
 
+function getMoreFiltersElements() {
+  const toggle = document.getElementById("moreFiltersToggle");
+  const panel = document.getElementById("moreFiltersPanel");
+  if (!toggle || !panel) {
+    return null;
+  }
+  return { toggle, panel };
+}
+
+function getFirstFocusableInMoreFilters(panel) {
+  return panel.querySelector(
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+  );
+}
+
+function openMoreFilters() {
+  const refs = getMoreFiltersElements();
+  if (!refs) return;
+
+  const { toggle, panel } = refs;
+  isMoreFiltersOpen = true;
+  panel.classList.add("more-filters--open");
+  toggle.setAttribute("aria-expanded", "true");
+
+  const firstFocusable = getFirstFocusableInMoreFilters(panel);
+  if (firstFocusable instanceof HTMLElement) {
+    firstFocusable.focus();
+  }
+}
+
+function closeMoreFilters({ restoreFocus = false } = {}) {
+  const refs = getMoreFiltersElements();
+  if (!refs) return;
+
+  const { toggle, panel } = refs;
+  isMoreFiltersOpen = false;
+  panel.classList.remove("more-filters--open");
+  toggle.setAttribute("aria-expanded", "false");
+
+  if (restoreFocus) {
+    toggle.focus();
+  }
+}
+
+function toggleMoreFilters() {
+  if (isMoreFiltersOpen) {
+    closeMoreFilters();
+    return;
+  }
+  openMoreFilters();
+}
+
 // Render todos
 function renderTodos() {
   const container = document.getElementById("todosContent");
@@ -3789,6 +3842,19 @@ document.addEventListener("keydown", function (e) {
     return;
   }
 
+  if (e.key === "Escape" && isMoreFiltersOpen) {
+    const refs = getMoreFiltersElements();
+    const activeElement = document.activeElement;
+    const focusedInMoreFilters =
+      !!refs &&
+      (refs.panel.contains(activeElement) || refs.toggle === activeElement);
+    if (focusedInMoreFilters) {
+      e.preventDefault();
+      closeMoreFilters({ restoreFocus: true });
+      return;
+    }
+  }
+
   // Ignore if typing in input fields
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") {
     // Allow Esc to clear search
@@ -3981,14 +4047,17 @@ function switchView(view, triggerEl = null) {
   }
 
   if (view === "todos") {
+    closeMoreFilters();
     loadTodos();
     loadAiSuggestions();
     loadAiUsage();
     loadAiInsights();
     loadAiFeedbackSummary();
   } else if (view === "profile") {
+    closeMoreFilters();
     updateUserDisplay();
   } else if (view === "admin") {
+    closeMoreFilters();
     loadAdminUsers();
   }
 }
@@ -4021,6 +4090,10 @@ function bindCriticalHandlers() {
 
   bindClick("forgotBackToLoginButton", () => {
     showLogin();
+  });
+
+  bindClick("moreFiltersToggle", () => {
+    toggleMoreFilters();
   });
 
   const resendBtn = document.getElementById("resendVerificationButton");
@@ -4086,6 +4159,7 @@ function showAppView() {
   document.getElementById("navTabs").style.display = "flex";
   document.getElementById("userBar").style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
+  closeMoreFilters();
   // Prevent previous account data from flashing while fetching current user's data.
   todos = [];
   selectedTodos.clear();
@@ -4110,6 +4184,7 @@ function showAuthView() {
   document.getElementById("userBar").style.display = "none";
   document.getElementById("adminNavTab").style.display = "none";
   adminBootstrapAvailable = false;
+  closeMoreFilters();
   showLogin();
 }
 
