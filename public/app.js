@@ -3975,13 +3975,13 @@ function renderTodos() {
                 ${todo.completed ? "checked" : ""}
                 data-onchange="toggleTodo('${todo.id}')"
             >
-            <div class="todo-content" style="flex: 1;">
+            <div class="todo-content">
                 <div class="todo-title">${escapeHtml(todo.title)}</div>
                 ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
-                <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; align-items: center;">
-                    ${getPriorityIcon(todo.priority)} <span class="priority-badge ${todo.priority}">${todo.priority.toUpperCase()}</span>
-                    ${todo.category ? `<span style="background: #667eea; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">🏷️ ${escapeHtml(todo.category)}</span>` : ""}
-                    ${todo.dueDate ? `<span style="background: ${isOverdue ? "#ff4757" : "#48dbfb"}; color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.85em;">${isOverdue ? "⚠️" : "📅"} ${dueDateStr}</span>` : ""}
+                <div class="todo-meta">
+                    ${getPriorityIcon(todo.priority)} <span class="todo-chip todo-chip--priority priority-badge ${todo.priority}">${todo.priority.toUpperCase()}</span>
+                    ${todo.category ? `<span class="todo-chip todo-chip--project">🏷️ ${escapeHtml(todo.category)}</span>` : ""}
+                    ${todo.dueDate ? `<span class="todo-chip todo-chip--due ${isOverdue ? "todo-chip--due-overdue" : ""}">${isOverdue ? "⚠️" : "📅"} ${dueDateStr}</span>` : ""}
                 </div>
                 ${hasSubtasks ? renderSubtasks(todo) : ""}
                 ${
