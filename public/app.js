@@ -307,6 +307,7 @@ let projectCrudTargetProject = "";
 let lastProjectCrudOpener = null;
 const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
+const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 
 function handleAuthFailure() {
   logout();
@@ -334,6 +335,27 @@ function setAuthState(nextState) {
 
 function projectStorageKey() {
   return `todo-projects:${currentUser?.id || "anonymous"}`;
+}
+
+function readStoredRailCollapsedState() {
+  try {
+    return (
+      window.localStorage.getItem(PROJECTS_RAIL_COLLAPSED_STORAGE_KEY) === "1"
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
+function persistRailCollapsedState(isCollapsed) {
+  try {
+    window.localStorage.setItem(
+      PROJECTS_RAIL_COLLAPSED_STORAGE_KEY,
+      isCollapsed ? "1" : "0",
+    );
+  } catch (error) {
+    // Ignore storage failures.
+  }
 }
 
 function loadCustomProjects() {
@@ -3412,6 +3434,24 @@ function getSelectedProjectLabel(selectedProject) {
   return getProjectLeafName(selectedProject);
 }
 
+function formatVisibleTaskCount(taskCount) {
+  return `${taskCount} ${taskCount === 1 ? "task" : "tasks"}`;
+}
+
+function updateTodosListHeader({
+  selectedProject = "",
+  visibleCount = 0,
+} = {}) {
+  const titleEl = document.getElementById("todosListHeaderTitle");
+  const countEl = document.getElementById("todosListHeaderCount");
+  if (!(titleEl instanceof HTMLElement) || !(countEl instanceof HTMLElement)) {
+    return;
+  }
+
+  titleEl.textContent = getSelectedProjectLabel(selectedProject);
+  countEl.textContent = formatVisibleTaskCount(visibleCount);
+}
+
 function updateTopbarProjectsButton(selectedProject = "") {
   const refs = getProjectsRailElements();
   if (!refs) return;
@@ -3592,6 +3632,7 @@ function renderProjectsRail() {
 
 function setProjectsRailCollapsed(nextCollapsed) {
   isRailCollapsed = !!nextCollapsed;
+  persistRailCollapsedState(isRailCollapsed);
   const refs = getProjectsRailElements();
   if (!refs) return;
 
@@ -4457,6 +4498,8 @@ function renderTodos() {
   if (!container) return;
 
   renderProjectsRail();
+  const selectedProject =
+    document.getElementById("categoryFilter")?.value || "";
 
   if (todosLoadState !== "loading" && todos.length > 0) {
     todosLoadState = "ready";
@@ -4473,6 +4516,7 @@ function renderTodos() {
   }
 
   if (todosLoadState === "loading") {
+    updateTodosListHeader({ selectedProject, visibleCount: 0 });
     const skeletonRows = Array.from({ length: 6 })
       .map(
         () => `
@@ -4512,6 +4556,7 @@ function renderTodos() {
   }
 
   if (todosLoadState === "error" && todos.length === 0) {
+    updateTodosListHeader({ selectedProject, visibleCount: 0 });
     isTodoDrawerOpen = false;
     selectedTodoId = null;
     openTodoKebabId = null;
@@ -4530,6 +4575,7 @@ function renderTodos() {
   }
 
   if (todos.length === 0) {
+    updateTodosListHeader({ selectedProject, visibleCount: 0 });
     isTodoDrawerOpen = false;
     selectedTodoId = null;
     openTodoKebabId = null;
@@ -4548,6 +4594,10 @@ function renderTodos() {
   }
 
   const filteredTodos = getVisibleTodos();
+  updateTodosListHeader({
+    selectedProject,
+    visibleCount: filteredTodos.length,
+  });
   if (
     openTodoKebabId &&
     !filteredTodos.some((todo) => String(todo.id) === String(openTodoKebabId))
@@ -5884,7 +5934,7 @@ function showAppView() {
   openRailProjectMenuKey = null;
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
-  setProjectsRailCollapsed(false);
+  setProjectsRailCollapsed(readStoredRailCollapsedState());
   closeTodoDrawer({ restoreFocus: false });
   // Prevent previous account data from flashing while fetching current user's data.
   todos = [];
