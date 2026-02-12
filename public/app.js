@@ -309,6 +309,7 @@ let isCommandPaletteOpen = false;
 let commandPaletteQuery = "";
 let commandPaletteIndex = 0;
 let commandPaletteItems = [];
+let commandPaletteSelectableItems = [];
 let lastFocusedBeforePalette = null;
 const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
@@ -3581,15 +3582,113 @@ function buildCommandPaletteItems() {
   return [...baseItems, ...projectItems];
 }
 
-function getCommandPaletteVisibleItems() {
-  const query = commandPaletteQuery.trim().toLowerCase();
+function getCommandPaletteCommandMatches(query) {
   if (!query) {
     return commandPaletteItems;
   }
-
   return commandPaletteItems.filter((item) =>
     item.label.toLowerCase().includes(query),
   );
+}
+
+function getCommandPaletteTaskMatches(query) {
+  if (!query) {
+    return [];
+  }
+
+  const normalizedQuery = query.toLowerCase();
+  const ranked = todos
+    .map((todo) => {
+      const title = String(todo.title || "");
+      const description = String(todo.description || "");
+      const titleLower = title.toLowerCase();
+      const descriptionLower = description.toLowerCase();
+
+      let score = -1;
+      if (titleLower.startsWith(normalizedQuery)) {
+        score = 0;
+      } else if (titleLower.includes(normalizedQuery)) {
+        score = 1;
+      } else if (descriptionLower.includes(normalizedQuery)) {
+        score = 2;
+      }
+
+      if (score === -1) return null;
+
+      const dueAt = todo.dueDate ? new Date(todo.dueDate).getTime() : Infinity;
+      return {
+        id: `task-${todo.id}`,
+        type: "task",
+        todoId: String(todo.id),
+        label: title,
+        score,
+        dueAt: Number.isFinite(dueAt) ? dueAt : Infinity,
+        completed: !!todo.completed,
+        meta: [
+          todo.category ? `Project: ${todo.category}` : "",
+          todo.dueDate
+            ? `Due: ${new Date(todo.dueDate).toLocaleDateString()}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" • "),
+      };
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.score !== b.score) return a.score - b.score;
+      if (a.dueAt !== b.dueAt) return a.dueAt - b.dueAt;
+      const titleCompare = a.label.localeCompare(b.label);
+      if (titleCompare !== 0) return titleCompare;
+      return a.todoId.localeCompare(b.todoId);
+    });
+
+  return ranked.slice(0, 6);
+}
+
+function getCommandPaletteRenderModel() {
+  const query = commandPaletteQuery.trim().toLowerCase();
+  const commandMatches = getCommandPaletteCommandMatches(query);
+  const taskMatches = getCommandPaletteTaskMatches(query);
+  const rows = [];
+
+  if (commandMatches.length > 0) {
+    rows.push({
+      kind: "section",
+      id: "commands-section",
+      label: "Commands",
+    });
+    commandMatches.forEach((item) => {
+      rows.push({ kind: "item", item });
+    });
+  }
+
+  if (query) {
+    rows.push({
+      kind: "section",
+      id: "tasks-section",
+      label: "Tasks",
+    });
+    if (taskMatches.length === 0) {
+      rows.push({
+        kind: "empty",
+        id: "tasks-empty",
+        label: "No tasks found",
+      });
+    } else {
+      taskMatches.forEach((item) => {
+        rows.push({ kind: "item", item });
+      });
+    }
+  }
+
+  const selectableItems = rows
+    .filter((row) => row.kind === "item")
+    .map((row) => row.item);
+
+  const hasAnyResults =
+    commandMatches.length > 0 || (!!query && taskMatches.length > 0);
+  return { rows, selectableItems, hasAnyResults };
 }
 
 function renderCommandPalette() {
@@ -3603,30 +3702,60 @@ function renderCommandPalette() {
   refs.overlay.setAttribute("aria-hidden", String(!isCommandPaletteOpen));
   refs.input.value = commandPaletteQuery;
 
-  const visibleItems = getCommandPaletteVisibleItems();
-  const maxItems = visibleItems.slice(0, 8);
-  if (maxItems.length === 0) {
+  const renderModel = getCommandPaletteRenderModel();
+  commandPaletteSelectableItems = renderModel.selectableItems;
+  if (commandPaletteSelectableItems.length === 0) {
     commandPaletteIndex = 0;
-  } else if (commandPaletteIndex > maxItems.length - 1) {
-    commandPaletteIndex = maxItems.length - 1;
+  } else if (commandPaletteIndex > commandPaletteSelectableItems.length - 1) {
+    commandPaletteIndex = commandPaletteSelectableItems.length - 1;
   }
 
   refs.input.setAttribute("aria-expanded", String(isCommandPaletteOpen));
   refs.input.setAttribute(
     "aria-activedescendant",
-    maxItems.length > 0 ? `commandPaletteOption-${commandPaletteIndex}` : "",
+    commandPaletteSelectableItems.length > 0
+      ? `commandPaletteOption-${commandPaletteIndex}`
+      : "",
   );
 
-  refs.list.innerHTML = maxItems
-    .map((item, index) => {
-      const isActive = index === commandPaletteIndex;
+  let selectableIndex = -1;
+  refs.list.innerHTML = renderModel.rows
+    .map((row) => {
+      if (row.kind === "section") {
+        return `<div class="command-palette-section" role="presentation">${escapeHtml(row.label)}</div>`;
+      }
+      if (row.kind === "empty") {
+        return `<div class="command-palette-inline-empty" role="status">${escapeHtml(row.label)}</div>`;
+      }
+
+      selectableIndex += 1;
+      const isActive = selectableIndex === commandPaletteIndex;
+      const item = row.item;
+      if (item.type === "task") {
+        return `
+          <button
+            type="button"
+            id="commandPaletteOption-${selectableIndex}"
+            class="command-palette-option command-palette-option--task ${isActive ? "command-palette-option--active" : ""} ${item.completed ? "command-palette-option--completed" : ""}"
+            role="option"
+            aria-selected="${isActive ? "true" : "false"}"
+            data-command-index="${selectableIndex}"
+            data-command-id="${escapeHtml(item.id)}"
+          >
+            <span class="command-palette-option__title">${escapeHtml(item.label)}</span>
+            <span class="command-palette-option__meta">${escapeHtml(item.meta || (item.completed ? "Completed" : ""))}</span>
+          </button>
+        `;
+      }
+
       return `
         <button
           type="button"
-          id="commandPaletteOption-${index}"
+          id="commandPaletteOption-${selectableIndex}"
           class="command-palette-option ${isActive ? "command-palette-option--active" : ""}"
           role="option"
           aria-selected="${isActive ? "true" : "false"}"
+          data-command-index="${selectableIndex}"
           data-command-id="${escapeHtml(item.id)}"
         >
           ${escapeHtml(item.label)}
@@ -3635,16 +3764,10 @@ function renderCommandPalette() {
     })
     .join("");
 
-  refs.empty.hidden = maxItems.length !== 0;
+  refs.empty.hidden = renderModel.hasAnyResults;
 }
 
-function findCommandPaletteItemById(itemId) {
-  return getCommandPaletteVisibleItems()
-    .slice(0, 8)
-    .find((item) => item.id === itemId);
-}
-
-function executeCommandPaletteItem(item) {
+function executeCommandPaletteItem(item, triggerEl = null) {
   if (!item) return;
 
   if (item.type === "action" && item.payload === "add-task") {
@@ -3675,10 +3798,27 @@ function executeCommandPaletteItem(item) {
     }
     closeCommandPalette({ restoreFocus: false });
   }
+
+  if (item.type === "task") {
+    const todosTab = document.querySelector(
+      ".nav-tab[data-onclick*=\"switchView('todos'\"]",
+    );
+    if (!document.getElementById("todosView")?.classList.contains("active")) {
+      switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
+    }
+
+    closeCommandPalette({ restoreFocus: false });
+    window.requestAnimationFrame(() => {
+      openTodoDrawer(
+        item.todoId,
+        triggerEl instanceof HTMLElement ? triggerEl : null,
+      );
+    });
+  }
 }
 
 function moveCommandPaletteSelection(delta) {
-  const visibleCount = getCommandPaletteVisibleItems().slice(0, 8).length;
+  const visibleCount = commandPaletteSelectableItems.length;
   if (visibleCount === 0) {
     commandPaletteIndex = 0;
     renderCommandPalette();
@@ -3694,6 +3834,7 @@ function closeCommandPalette({ restoreFocus = true } = {}) {
   isCommandPaletteOpen = false;
   commandPaletteQuery = "";
   commandPaletteIndex = 0;
+  commandPaletteSelectableItems = [];
   renderCommandPalette();
 
   if (restoreFocus && lastFocusedBeforePalette instanceof HTMLElement) {
@@ -3713,6 +3854,7 @@ function openCommandPalette() {
       ? document.activeElement
       : null;
   commandPaletteItems = buildCommandPaletteItems();
+  commandPaletteSelectableItems = [];
   commandPaletteQuery = "";
   commandPaletteIndex = 0;
   isCommandPaletteOpen = true;
@@ -5595,9 +5737,7 @@ document.addEventListener("keydown", function (e) {
 
     if (e.key === "Enter") {
       e.preventDefault();
-      const currentItem = getCommandPaletteVisibleItems().slice(0, 8)[
-        commandPaletteIndex
-      ];
+      const currentItem = commandPaletteSelectableItems[commandPaletteIndex];
       executeCommandPaletteItem(currentItem);
       return;
     }
@@ -6189,10 +6329,12 @@ function bindCommandPaletteHandlers() {
     const option = target.closest("[data-command-id]");
     if (!(option instanceof HTMLElement)) return;
     event.preventDefault();
-    const item = findCommandPaletteItemById(
-      option.getAttribute("data-command-id") || "",
+    const itemIndex = Number.parseInt(
+      option.getAttribute("data-command-index") || "-1",
+      10,
     );
-    executeCommandPaletteItem(item);
+    if (itemIndex < 0) return;
+    executeCommandPaletteItem(commandPaletteSelectableItems[itemIndex], option);
   });
 
   document.addEventListener("input", (event) => {
