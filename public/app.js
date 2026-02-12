@@ -311,6 +311,7 @@ let commandPaletteIndex = 0;
 let commandPaletteItems = [];
 let commandPaletteSelectableItems = [];
 let lastFocusedBeforePalette = null;
+let isApplyingFiltersPipeline = false;
 const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
@@ -3104,7 +3105,7 @@ async function saveEditedTodo() {
   }
 }
 
-function setDateView(view) {
+function setDateView(view, { skipApply = false } = {}) {
   currentDateView = view;
   const ids = {
     all: "dateViewAll",
@@ -3118,7 +3119,9 @@ function setDateView(view) {
   });
   const activeId = ids[view] || ids.all;
   document.getElementById(activeId)?.classList.add("active");
-  renderTodos();
+  if (!skipApply) {
+    applyFiltersAndRender({ reason: "date-view" });
+  }
 }
 
 function isSameLocalDay(a, b) {
@@ -3354,16 +3357,35 @@ function filterTodosList(todosList) {
   return filtered;
 }
 
+function applyFiltersAndRender({ reason = "unknown" } = {}) {
+  if (isApplyingFiltersPipeline) return;
+  isApplyingFiltersPipeline = true;
+  try {
+    // Keep filterTodos in the pipeline to preserve legacy entry-point semantics.
+    filterTodos({ skipPipeline: true, reason });
+    renderTodos();
+    updateHeaderFromVisibleTodos(getVisibleTodos());
+    syncTodoDrawerStateWithRender();
+  } finally {
+    isApplyingFiltersPipeline = false;
+  }
+}
+
 // Called when filter changes
-function filterTodos() {
-  renderTodos();
+function filterTodos({ skipPipeline = false, reason = "manual" } = {}) {
+  if (skipPipeline) {
+    return getVisibleTodos();
+  }
+  applyFiltersAndRender({ reason });
+  return getVisibleTodos();
 }
 
 // Clear all filters
 function clearFilters() {
   document.getElementById("categoryFilter").value = "";
   document.getElementById("searchInput").value = "";
-  setDateView("all");
+  setDateView("all", { skipApply: true });
+  applyFiltersAndRender({ reason: "clear-filters" });
 }
 
 function getProjectsRailElements() {
@@ -3477,7 +3499,7 @@ function setSelectedProjectKey(value = "") {
     filterSelect.value = nextValue;
   }
 
-  filterTodos();
+  applyFiltersAndRender({ reason: "project-selection" });
   return nextValue;
 }
 
