@@ -1644,6 +1644,8 @@ button.projects-rail-item {
     background 0.2s,
     opacity 0.2s ease;
   opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 
 .todo-kebab:hover {
@@ -1654,6 +1656,8 @@ button.projects-rail-item {
 .todo-item:focus-within .todo-kebab,
 .todo-kebab[aria-expanded="true"] {
   opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .todo-kebab-menu {
@@ -2933,9 +2937,14 @@ body.is-drawer-open {
 
 .todo-description {
   font-size: 0.84rem;
-  line-height: 1.4;
+  line-height: 1.35;
   color: var(--text-secondary);
-  margin-top: -2px;
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .todo-meta {
@@ -3014,13 +3023,14 @@ body.is-drawer-open {
 }
 
 .todo-item.completed {
-  opacity: 0.84;
+  opacity: 0.92;
+  background: color-mix(in oklab, var(--card-bg) 88%, var(--surface) 12%);
 }
 
 .todo-item.completed .todo-title,
 .todo-item.completed .todo-description,
 .todo-item.completed .todo-chip {
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 body.dark-mode .todo-item:hover {
@@ -3069,6 +3079,10 @@ body.dark-mode .todo-chip--due-overdue {
   color: #ffd6dc;
 }
 
+.todo-item.completed .todo-chip {
+  opacity: 0.88;
+}
+
 @media (max-width: 768px) {
   .todo-item {
     grid-template-columns: auto auto auto minmax(0, 1fr) auto;
@@ -3107,5 +3121,11 @@ body.dark-mode .todo-chip--due-overdue {
 
   .todo-chip {
     font-size: 0.76rem;
+  }
+
+  .todo-kebab {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 }
