@@ -1772,9 +1772,76 @@ textarea:focus-visible,
   color: var(--text-muted);
 }
 
+.todo-list-state {
+  text-align: center;
+  padding: 28px 20px 20px;
+  color: var(--text-secondary);
+}
+
+.todo-list-state h3 {
+  margin-bottom: 8px;
+  font-size: var(--fs-lg);
+  color: var(--text-primary);
+}
+
+.todo-list-state p {
+  margin: 0;
+}
+
+.todo-list-state--error .mini-btn {
+  margin-top: 14px;
+}
+
+.todos-list--skeleton {
+  margin-top: 10px;
+}
+
+.todo-skeleton-row {
+  pointer-events: none;
+  cursor: default;
+}
+
+.todo-skeleton-row .todo-content {
+  gap: 10px;
+}
+
+.skeleton-block {
+  display: inline-flex;
+  border-radius: 999px;
+  background: var(--card-hover);
+}
+
+.skeleton-block--checkbox {
+  width: 18px;
+  height: 18px;
+}
+
+.skeleton-block--drag {
+  width: 14px;
+  height: 18px;
+}
+
+.skeleton-block--kebab {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-color);
+}
+
+.skeleton-chip {
+  width: 84px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--card-hover);
+}
+
 .empty-state-icon {
   font-size: 4em;
   margin-bottom: 20px;
+}
+
+.empty-state-hint {
+  margin-top: 10px;
+  font-size: var(--fs-sm);
 }
 
 .profile-section {
