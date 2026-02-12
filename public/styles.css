@@ -291,6 +291,30 @@ small {
   display: block;
 }
 
+#todosView.view.active {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.container:has(#todosView.active) {
+  height: calc(100dvh - 48px);
+  max-height: calc(100dvh - 48px);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.container:has(#todosView.active) .content {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
 .auth-container {
   text-align: center;
   max-width: 400px;
@@ -960,7 +984,9 @@ textarea:focus-visible,
   display: grid;
   grid-template-columns: minmax(208px, 240px) minmax(0, 1fr);
   gap: 14px;
-  align-items: start;
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
   min-width: 0;
 }
 
@@ -969,15 +995,19 @@ textarea:focus-visible,
 }
 
 .todos-main-zone {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
   min-width: 0;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 .todos-list-header {
   position: sticky;
-  top: var(--s-2);
+  top: 0;
   z-index: 20;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   padding: 10px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--r-sm);
@@ -1012,6 +1042,8 @@ textarea:focus-visible,
   gap: var(--s-3);
   position: sticky;
   top: var(--s-4);
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .projects-rail.projects-rail--collapsed {
@@ -1240,6 +1272,22 @@ button.projects-rail-item {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+#todosScrollRegion {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+#todosContent {
+  min-width: 0;
 }
 
 .projects-rail-backdrop,
@@ -1945,6 +1993,11 @@ button.projects-rail-item {
 
   .content {
     padding: 15px;
+  }
+
+  .container:has(#todosView.active) {
+    height: calc(100dvh - 20px);
+    max-height: calc(100dvh - 20px);
   }
 
   .todos-top-bar {
