@@ -971,6 +971,36 @@ textarea:focus-visible,
   min-width: 0;
 }
 
+.todos-list-header {
+  position: sticky;
+  top: var(--s-2);
+  z-index: 20;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  background: color-mix(in oklab, var(--card-bg) 88%, transparent);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.todos-list-header__title {
+  margin: 0;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+}
+
+.todos-list-header__count {
+  margin: 0;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
 .projects-rail {
   border: 1px solid var(--border-color);
   border-radius: var(--r-md);
@@ -1898,6 +1928,12 @@ button.projects-rail-item {
     grid-template-columns: 1fr;
     gap: 10px;
     padding: 12px;
+  }
+
+  .todos-list-header {
+    top: var(--s-1);
+    align-items: center;
+    flex-wrap: wrap;
   }
 
   .todos-top-bar-left {
