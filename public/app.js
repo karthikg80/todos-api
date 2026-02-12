@@ -295,6 +295,11 @@ let isDrawerBodyLocked = false;
 let lastFocusedTodoId = null;
 let todosLoadState = "idle";
 let todosLoadErrorMessage = "";
+let isRailCollapsed = false;
+let isRailSheetOpen = false;
+let railScrollLockY = 0;
+let isRailBodyLocked = false;
+let lastFocusedRailTrigger = null;
 const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 
@@ -420,6 +425,7 @@ async function ensureProjectExists(projectName) {
 function init() {
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
+  bindProjectsRailHandlers();
 
   // Check for reset token in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -2450,6 +2456,10 @@ async function deleteTodo(id) {
 function updateCategoryFilter() {
   const categories = getAllProjects();
   const filterSelect = document.getElementById("categoryFilter");
+  if (!(filterSelect instanceof HTMLSelectElement)) {
+    renderProjectsRail();
+    return;
+  }
   const currentValue = filterSelect.value;
 
   filterSelect.innerHTML =
@@ -2461,6 +2471,8 @@ function updateCategoryFilter() {
   if (categories.includes(currentValue)) {
     filterSelect.value = currentValue;
   }
+
+  renderProjectsRail();
 }
 
 function splitProjectPath(value) {
@@ -3186,6 +3198,263 @@ function clearFilters() {
   setDateView("all");
 }
 
+function getProjectsRailElements() {
+  const layout = document.querySelector(".todos-layout");
+  const desktopRail = document.getElementById("projectsRail");
+  const collapseToggle = document.getElementById("projectsRailToggle");
+  const railList = document.getElementById("projectsRailList");
+  const desktopPrimary = desktopRail?.querySelector(".projects-rail__primary");
+  const allTasksButton = desktopPrimary?.querySelector(".projects-rail-item");
+  const mobileOpenButton = document.getElementById("projectsRailMobileOpen");
+  const mobileCloseButton = document.getElementById("projectsRailMobileClose");
+  const sheet = document.getElementById("projectsRailSheet");
+  const sheetList =
+    document.getElementById("projectsRailSheetList") ||
+    sheet?.querySelector(".projects-rail__section .projects-rail__list");
+  const sheetAllTasksButton = sheet?.querySelector(
+    ".projects-rail__primary .projects-rail-item",
+  );
+  const backdrop = document.getElementById("projectsRailBackdrop");
+
+  if (!(desktopRail instanceof HTMLElement)) return null;
+  if (!(collapseToggle instanceof HTMLElement)) return null;
+  if (!(railList instanceof HTMLElement)) return null;
+  if (!(allTasksButton instanceof HTMLElement)) return null;
+  if (!(mobileOpenButton instanceof HTMLElement)) return null;
+  if (!(mobileCloseButton instanceof HTMLElement)) return null;
+  if (!(sheet instanceof HTMLElement)) return null;
+  if (!(sheetList instanceof HTMLElement)) return null;
+  if (!(sheetAllTasksButton instanceof HTMLElement)) return null;
+  if (!(backdrop instanceof HTMLElement)) return null;
+
+  return {
+    layout,
+    desktopRail,
+    collapseToggle,
+    railList,
+    allTasksButton,
+    mobileOpenButton,
+    mobileCloseButton,
+    sheet,
+    sheetList,
+    sheetAllTasksButton,
+    backdrop,
+  };
+}
+
+function isMobileRailViewport() {
+  if (typeof window.matchMedia !== "function") return false;
+  return window.matchMedia(MOBILE_DRAWER_MEDIA_QUERY).matches;
+}
+
+function getProjectTodoCount(projectName) {
+  if (!projectName) return todos.length;
+  return todos.filter((todo) => {
+    const todoProject = normalizeProjectPath(todo.category);
+    if (!todoProject) return false;
+    return (
+      todoProject === projectName ||
+      todoProject.startsWith(`${projectName}${PROJECT_PATH_SEPARATOR}`)
+    );
+  }).length;
+}
+
+function renderProjectsRailListHtml({ projects, selectedProject }) {
+  return projects
+    .map((projectName) => {
+      const isActive = projectName === selectedProject;
+      const count = getProjectTodoCount(projectName);
+      return `
+        <button
+          type="button"
+          class="projects-rail-item ${isActive ? "projects-rail-item--active" : ""}"
+          data-project-key="${escapeHtml(projectName)}"
+          ${isActive ? 'aria-current="page"' : ""}
+        >
+          <span>${escapeHtml(getProjectLeafName(projectName))}</span>
+          <span class="projects-rail-item__count">${count}</span>
+        </button>
+      `;
+    })
+    .join("");
+}
+
+function setProjectsRailActiveState(selectedProject) {
+  const refs = getProjectsRailElements();
+  if (!refs) return;
+
+  const activateButtons = (root) => {
+    root
+      .querySelectorAll(".projects-rail-item[data-project-key]")
+      .forEach((button) => {
+        const projectName = button.getAttribute("data-project-key") || "";
+        const isActive = projectName === selectedProject;
+        button.classList.toggle("projects-rail-item--active", isActive);
+        if (isActive) {
+          button.setAttribute("aria-current", "page");
+        } else {
+          button.removeAttribute("aria-current");
+        }
+      });
+  };
+
+  activateButtons(refs.desktopRail);
+  activateButtons(refs.sheet);
+}
+
+function renderProjectsRail() {
+  const refs = getProjectsRailElements();
+  if (!refs) return;
+
+  if (isRailSheetOpen && !isMobileRailViewport()) {
+    closeProjectsRailSheet({ restoreFocus: false });
+  }
+
+  const selectedProject =
+    document.getElementById("categoryFilter")?.value || "";
+  const allCount = todos.length;
+  const projects = getAllProjects();
+
+  refs.railList.innerHTML = renderProjectsRailListHtml({
+    projects,
+    selectedProject,
+  });
+  refs.sheetList.innerHTML = renderProjectsRailListHtml({
+    projects,
+    selectedProject,
+  });
+
+  const desktopAllCount = refs.allTasksButton.querySelector(
+    ".projects-rail-item__count",
+  );
+  if (desktopAllCount instanceof HTMLElement) {
+    desktopAllCount.textContent = String(allCount);
+  }
+  const sheetAllCount = refs.sheetAllTasksButton.querySelector(
+    ".projects-rail-item__count",
+  );
+  if (sheetAllCount instanceof HTMLElement) {
+    sheetAllCount.textContent = String(allCount);
+  }
+
+  setProjectsRailActiveState(selectedProject);
+  setProjectsRailCollapsed(isRailCollapsed);
+}
+
+function setProjectsRailCollapsed(nextCollapsed) {
+  isRailCollapsed = !!nextCollapsed;
+  const refs = getProjectsRailElements();
+  if (!refs) return;
+
+  refs.desktopRail.classList.toggle(
+    "projects-rail--collapsed",
+    isRailCollapsed,
+  );
+  refs.layout?.classList.toggle(
+    "todos-layout--rail-collapsed",
+    isRailCollapsed,
+  );
+  refs.collapseToggle.setAttribute("aria-expanded", String(!isRailCollapsed));
+  refs.collapseToggle.textContent = isRailCollapsed ? "Expand" : "Collapse";
+}
+
+function lockBodyScrollForProjectsRail() {
+  if (isRailBodyLocked || isDrawerBodyLocked) return;
+  const body = document.body;
+  railScrollLockY = window.scrollY || 0;
+  body.classList.add("is-projects-rail-open");
+  body.style.position = "fixed";
+  body.style.top = `-${railScrollLockY}px`;
+  body.style.left = "0";
+  body.style.right = "0";
+  body.style.width = "100%";
+  isRailBodyLocked = true;
+}
+
+function unlockBodyScrollForProjectsRail() {
+  if (!isRailBodyLocked || isDrawerBodyLocked) return;
+  const body = document.body;
+  body.classList.remove("is-projects-rail-open");
+  body.style.position = "";
+  body.style.top = "";
+  body.style.left = "";
+  body.style.right = "";
+  body.style.width = "";
+  window.scrollTo(0, railScrollLockY);
+  railScrollLockY = 0;
+  isRailBodyLocked = false;
+}
+
+function openProjectsRailSheet(triggerEl = null) {
+  const refs = getProjectsRailElements();
+  if (!refs || isRailSheetOpen || !isMobileRailViewport()) return;
+
+  isRailSheetOpen = true;
+  refs.sheet.classList.add("projects-rail-sheet--open");
+  refs.sheet.setAttribute("aria-hidden", "false");
+  refs.backdrop.classList.add("projects-rail-backdrop--open");
+  refs.backdrop.setAttribute("aria-hidden", "false");
+  refs.mobileOpenButton.setAttribute("aria-expanded", "true");
+  lastFocusedRailTrigger =
+    triggerEl instanceof HTMLElement ? triggerEl : refs.mobileOpenButton;
+
+  lockBodyScrollForProjectsRail();
+  window.requestAnimationFrame(() => {
+    const firstProject = refs.sheet.querySelector(
+      ".projects-rail-item[data-project-key]",
+    );
+    if (firstProject instanceof HTMLElement) {
+      firstProject.focus();
+    }
+  });
+}
+
+function closeProjectsRailSheet({ restoreFocus = false } = {}) {
+  const refs = getProjectsRailElements();
+  if (!refs || !isRailSheetOpen) return;
+
+  isRailSheetOpen = false;
+  refs.sheet.classList.remove("projects-rail-sheet--open");
+  refs.sheet.setAttribute("aria-hidden", "true");
+  refs.backdrop.classList.remove("projects-rail-backdrop--open");
+  refs.backdrop.setAttribute("aria-hidden", "true");
+  refs.mobileOpenButton.setAttribute("aria-expanded", "false");
+
+  unlockBodyScrollForProjectsRail();
+
+  if (restoreFocus) {
+    const focusTarget =
+      lastFocusedRailTrigger instanceof HTMLElement
+        ? lastFocusedRailTrigger
+        : refs.mobileOpenButton;
+    focusTarget.focus();
+  }
+}
+
+function selectProjectFromRail(projectName, triggerEl = null) {
+  const filterSelect = document.getElementById("categoryFilter");
+  if (!(filterSelect instanceof HTMLSelectElement)) return;
+
+  if (
+    projectName &&
+    !Array.from(filterSelect.options).some((opt) => opt.value === projectName)
+  ) {
+    updateCategoryFilter();
+  }
+
+  if (filterSelect.value !== projectName) {
+    filterSelect.value = projectName;
+  }
+
+  filterTodos();
+
+  if (isRailSheetOpen) {
+    closeProjectsRailSheet({
+      restoreFocus: !(triggerEl instanceof HTMLElement),
+    });
+  }
+}
+
 function getMoreFiltersElements() {
   const toggle = document.getElementById("moreFiltersToggle");
   const panel = document.getElementById("moreFiltersPanel");
@@ -3671,6 +3940,10 @@ function openTodoDrawer(todoId, triggerEl) {
   const todo = getTodoById(todoId);
   if (!todo) return;
 
+  if (isRailSheetOpen) {
+    closeProjectsRailSheet({ restoreFocus: false });
+  }
+
   selectedTodoId = todoId;
   initializeDrawerDraft(todo);
   isDrawerDetailsOpen = false;
@@ -3891,6 +4164,8 @@ function openDrawerDangerZone(todoId, event) {
 function renderTodos() {
   const container = document.getElementById("todosContent");
   if (!container) return;
+
+  renderProjectsRail();
 
   if (todosLoadState !== "loading" && todos.length > 0) {
     todosLoadState = "ready";
@@ -4674,6 +4949,12 @@ document.addEventListener("keydown", function (e) {
     return;
   }
 
+  if (e.key === "Escape" && isRailSheetOpen) {
+    e.preventDefault();
+    closeProjectsRailSheet({ restoreFocus: true });
+    return;
+  }
+
   if (e.key === "Escape" && isMoreFiltersOpen) {
     const refs = getMoreFiltersElements();
     const activeElement = document.activeElement;
@@ -4886,6 +5167,7 @@ function switchView(view, triggerEl = null) {
 
   if (view === "todos") {
     closeMoreFilters();
+    closeProjectsRailSheet({ restoreFocus: false });
     loadTodos();
     loadAiSuggestions();
     loadAiUsage();
@@ -4893,10 +5175,12 @@ function switchView(view, triggerEl = null) {
     loadAiFeedbackSummary();
   } else if (view === "profile") {
     closeMoreFilters();
+    closeProjectsRailSheet({ restoreFocus: false });
     closeTodoDrawer({ restoreFocus: false });
     updateUserDisplay();
   } else if (view === "admin") {
     closeMoreFilters();
+    closeProjectsRailSheet({ restoreFocus: false });
     closeTodoDrawer({ restoreFocus: false });
     loadAdminUsers();
   }
@@ -5060,6 +5344,42 @@ function bindTodoDrawerHandlers() {
   });
 }
 
+function bindProjectsRailHandlers() {
+  if (window.__projectsRailHandlersBound) {
+    return;
+  }
+  window.__projectsRailHandlersBound = true;
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const projectButton = target.closest(
+      ".projects-rail-item[data-project-key]",
+    );
+    if (projectButton instanceof HTMLElement) {
+      const projectName = projectButton.getAttribute("data-project-key") || "";
+      event.preventDefault();
+      event.stopPropagation();
+      selectProjectFromRail(projectName, projectButton);
+      return;
+    }
+
+    const backdrop = target.closest("#projectsRailBackdrop");
+    if (backdrop && isRailSheetOpen) {
+      event.preventDefault();
+      closeProjectsRailSheet({ restoreFocus: true });
+      return;
+    }
+
+    const mobileClose = target.closest("#projectsRailMobileClose");
+    if (mobileClose && isRailSheetOpen) {
+      event.preventDefault();
+      closeProjectsRailSheet({ restoreFocus: true });
+    }
+  });
+}
+
 function bindCriticalHandlers() {
   const bindClick = (id, handler) => {
     const element = document.getElementById(id);
@@ -5092,6 +5412,18 @@ function bindCriticalHandlers() {
 
   bindClick("moreFiltersToggle", () => {
     toggleMoreFilters();
+  });
+
+  bindClick("projectsRailToggle", () => {
+    setProjectsRailCollapsed(!isRailCollapsed);
+  });
+
+  bindClick("projectsRailMobileOpen", (element) => {
+    openProjectsRailSheet(element);
+  });
+
+  bindClick("projectsRailMobileClose", () => {
+    closeProjectsRailSheet({ restoreFocus: true });
   });
 
   const resendBtn = document.getElementById("resendVerificationButton");
@@ -5150,6 +5482,7 @@ async function logout() {
   document.getElementById("undoToast")?.classList.remove("active");
   clearFilters();
   clearPlanDraftState();
+  closeProjectsRailSheet({ restoreFocus: false });
   closeTodoDrawer({ restoreFocus: false });
   showAuthView();
 }
@@ -5162,6 +5495,8 @@ function showAppView() {
   document.getElementById("userBar").style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
   closeMoreFilters();
+  closeProjectsRailSheet({ restoreFocus: false });
+  setProjectsRailCollapsed(false);
   closeTodoDrawer({ restoreFocus: false });
   // Prevent previous account data from flashing while fetching current user's data.
   todos = [];
@@ -5191,6 +5526,7 @@ function showAuthView() {
   document.getElementById("adminNavTab").style.display = "none";
   adminBootstrapAvailable = false;
   closeMoreFilters();
+  closeProjectsRailSheet({ restoreFocus: false });
   closeTodoDrawer({ restoreFocus: false });
   showLogin();
 }
