@@ -298,7 +298,7 @@ small {
   min-width: 0;
 }
 
-.container:has(#todosView.active) {
+body.is-todos-view .container {
   height: calc(100dvh - 48px);
   max-height: calc(100dvh - 48px);
   display: flex;
@@ -307,7 +307,7 @@ small {
   min-width: 0;
 }
 
-.container:has(#todosView.active) .content {
+body.is-todos-view .content {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -1995,7 +1995,7 @@ button.projects-rail-item {
     padding: 15px;
   }
 
-  .container:has(#todosView.active) {
+  body.is-todos-view .container {
     height: calc(100dvh - 20px);
     max-height: calc(100dvh - 20px);
   }
