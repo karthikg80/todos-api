@@ -337,6 +337,10 @@ function projectStorageKey() {
   return `todo-projects:${currentUser?.id || "anonymous"}`;
 }
 
+function setTodosViewBodyState(isTodosView) {
+  document.body.classList.toggle("is-todos-view", isTodosView);
+}
+
 function readStoredRailCollapsedState() {
   try {
     return (
@@ -5539,6 +5543,7 @@ function switchView(view, triggerEl = null) {
   if (triggerEl) {
     triggerEl.classList.add("active");
   }
+  setTodosViewBodyState(view === "todos");
 
   if (view === "todos") {
     closeProjectCrudModal({ restoreFocus: false });
@@ -5947,6 +5952,7 @@ async function logout() {
 
 // Show app view
 function showAppView() {
+  setTodosViewBodyState(true);
   document.getElementById("authView").classList.remove("active");
   document.getElementById("todosView").classList.add("active");
   document.getElementById("navTabs").style.display = "flex";
@@ -5977,6 +5983,7 @@ function showAppView() {
 
 // Show auth view
 function showAuthView() {
+  setTodosViewBodyState(false);
   document.getElementById("authView").classList.add("active");
   document.getElementById("todosView").classList.remove("active");
   document.getElementById("profileView").classList.remove("active");

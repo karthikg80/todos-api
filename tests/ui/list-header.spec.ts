@@ -337,12 +337,28 @@ test.describe("Todos list header", () => {
     await expect(header).toBeVisible();
     await expect(header).toHaveCSS("position", "sticky");
 
-    await page.evaluate(() => {
-      window.scrollTo({ top: document.body.scrollHeight, behavior: "auto" });
-    });
+    const scrollRegion = page.locator("#todosScrollRegion");
+    if ((await scrollRegion.count()) > 0) {
+      await scrollRegion.evaluate((node) => {
+        node.scrollTop = node.scrollHeight;
+      });
+    } else {
+      await page.evaluate(() => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: "auto" });
+      });
+    }
 
     await expect(header).toBeVisible();
     const box = await header.boundingBox();
-    expect(box?.y ?? 999).toBeLessThan(140);
+    const regionBox =
+      (await scrollRegion.count()) > 0
+        ? await scrollRegion.boundingBox()
+        : null;
+    if (regionBox && box) {
+      expect(box.y).toBeGreaterThanOrEqual(regionBox.y - 2);
+      expect(box.y).toBeLessThan(regionBox.y + 80);
+    } else {
+      expect(box?.y ?? 999).toBeLessThan(140);
+    }
   });
 });

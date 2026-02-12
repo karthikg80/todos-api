@@ -374,271 +374,293 @@
                 </div>
               </div>
 
-              <div class="todos-minimal-filters todos-minimal-filters--legacy">
-                <label class="project-filter-label" for="categoryFilter"
-                  >Project</label
+              <div id="todosScrollRegion">
+                <div
+                  class="todos-minimal-filters todos-minimal-filters--legacy"
                 >
-                <select id="categoryFilter" data-onchange="filterTodos()">
-                  <option value="">All Projects</option>
-                </select>
-              </div>
-
-              <div
-                id="moreFiltersPanel"
-                class="more-filters-panel"
-                role="region"
-                aria-label="More filters"
-              >
-                <div class="date-view-tabs">
-                  <button
-                    class="date-view-tab active"
-                    id="dateViewAll"
-                    data-onclick="setDateView('all')"
+                  <label class="project-filter-label" for="categoryFilter"
+                    >Project</label
                   >
-                    All
-                  </button>
-                  <button
-                    class="date-view-tab"
-                    id="dateViewToday"
-                    data-onclick="setDateView('today')"
-                  >
-                    Today
-                  </button>
-                  <button
-                    class="date-view-tab"
-                    id="dateViewUpcoming"
-                    data-onclick="setDateView('upcoming')"
-                  >
-                    Upcoming
-                  </button>
-                  <button
-                    class="date-view-tab"
-                    id="dateViewNextMonth"
-                    data-onclick="setDateView('next_month')"
-                  >
-                    Next Month
-                  </button>
-                  <button
-                    class="date-view-tab"
-                    id="dateViewSomeday"
-                    data-onclick="setDateView('someday')"
-                  >
-                    Someday
-                  </button>
-                </div>
-                <div class="more-filters-actions">
-                  <button
-                    class="clear-filters-btn"
-                    data-onclick="clearFilters()"
-                  >
-                    Clear
-                  </button>
-                  <button
-                    id="exportIcsButton"
-                    class="mini-btn"
-                    data-onclick="exportVisibleTodosToIcs()"
-                    title="Exports currently filtered due-dated tasks"
-                    disabled
-                  >
-                    Export .ics
-                  </button>
-                </div>
-                <div class="ics-export-helper">
-                  Exports currently filtered due-dated tasks.
-                </div>
-              </div>
-
-              <!-- Bulk Actions Toolbar -->
-              <div
-                id="bulkActionsToolbar"
-                class="bulk-actions-toolbar"
-                style="display: none"
-              >
-                <input
-                  type="checkbox"
-                  id="selectAllCheckbox"
-                  class="bulk-checkbox"
-                  data-onchange="toggleSelectAll()"
-                />
-                <label
-                  for="selectAllCheckbox"
-                  style="cursor: pointer; user-select: none"
-                  >Select All</label
-                >
-                <button data-onclick="completeSelected()">
-                  ✓ Complete Selected
-                </button>
-                <button data-onclick="deleteSelected()">
-                  🗑 Delete Selected
-                </button>
-                <span class="bulk-count" id="bulkCount">0 selected</span>
-              </div>
-
-              <!-- Add Todo Form -->
-              <div class="add-todo quick-entry">
-                <label for="todoInput" class="sr-only">Todo title</label>
-                <input
-                  type="text"
-                  id="todoInput"
-                  placeholder="What needs to be done?"
-                  data-onkeypress="handleTodoKeyPress(event)"
-                />
-                <div class="field-row">
-                  <label for="todoProjectSelect" class="sr-only">Project</label>
-                  <select id="todoProjectSelect">
-                    <option value="">No project</option>
+                  <select id="categoryFilter" data-onchange="filterTodos()">
+                    <option value="">All Projects</option>
                   </select>
-                  <button
-                    class="add-btn"
-                    data-onclick="createProject()"
-                    style="width: auto; padding: 10px 14px"
-                  >
-                    + Project
-                  </button>
-                  <button
-                    class="add-btn"
-                    data-onclick="createSubproject()"
-                    style="width: auto; padding: 10px 14px; background: #0f766e"
-                  >
-                    + Subproject
-                  </button>
-                  <button
-                    class="add-btn"
-                    data-onclick="renameProjectTree()"
-                    style="width: auto; padding: 10px 14px; background: #334155"
-                  >
-                    Rename Project
-                  </button>
-                  <label for="todoDueDateInput" class="sr-only"
-                    >Todo due date</label
-                  >
-                  <input type="datetime-local" id="todoDueDateInput" />
                 </div>
-                <div class="action-row">
-                  <label class="action-label">Priority:</label>
-                  <div class="priority-selector">
+
+                <div
+                  id="moreFiltersPanel"
+                  class="more-filters-panel"
+                  role="region"
+                  aria-label="More filters"
+                >
+                  <div class="date-view-tabs">
                     <button
-                      class="priority-btn low"
-                      data-onclick="setPriority('low')"
-                      id="priorityLow"
+                      class="date-view-tab active"
+                      id="dateViewAll"
+                      data-onclick="setDateView('all')"
                     >
-                      Low
+                      All
                     </button>
                     <button
-                      class="priority-btn medium active"
-                      data-onclick="setPriority('medium')"
-                      id="priorityMedium"
+                      class="date-view-tab"
+                      id="dateViewToday"
+                      data-onclick="setDateView('today')"
                     >
-                      Medium
+                      Today
                     </button>
                     <button
-                      class="priority-btn high"
-                      data-onclick="setPriority('high')"
-                      id="priorityHigh"
+                      class="date-view-tab"
+                      id="dateViewUpcoming"
+                      data-onclick="setDateView('upcoming')"
                     >
-                      High
+                      Upcoming
+                    </button>
+                    <button
+                      class="date-view-tab"
+                      id="dateViewNextMonth"
+                      data-onclick="setDateView('next_month')"
+                    >
+                      Next Month
+                    </button>
+                    <button
+                      class="date-view-tab"
+                      id="dateViewSomeday"
+                      data-onclick="setDateView('someday')"
+                    >
+                      Someday
                     </button>
                   </div>
-                  <button
-                    class="add-btn"
-                    data-onclick="critiqueDraftWithAi()"
-                    style="background: #334155; width: auto"
-                  >
-                    Critique Draft (AI)
-                  </button>
-                </div>
-                <div>
-                  <button
-                    class="expand-section"
-                    data-onclick="toggleNotesInput()"
-                  >
-                    <span class="expand-icon" id="notesExpandIcon">▶</span>
-                    <span>Add notes (optional)</span>
-                  </button>
-                  <label for="todoNotesInput" class="sr-only">Todo notes</label>
-                  <textarea
-                    id="todoNotesInput"
-                    class="notes-textarea"
-                    placeholder="Add detailed notes here..."
-                    style="display: none; margin-top: 8px"
-                  ></textarea>
-                </div>
-              </div>
-
-              <div class="ai-workspace">
-                <div class="ai-workspace-header">AI Goal Planner</div>
-                <div class="ai-workspace-inputs">
-                  <input
-                    type="text"
-                    id="goalInput"
-                    placeholder="Describe an outcome (e.g., Launch onboarding revamp)"
-                  />
-                  <input type="datetime-local" id="goalTargetDateInput" />
-                  <button
-                    id="generatePlanButton"
-                    class="add-btn"
-                    data-onclick="generatePlanWithAi()"
-                  >
-                    Generate Plan
-                  </button>
-                </div>
-                <div class="ai-brain-dump">
-                  <label for="brainDumpInput">Brain dump</label>
-                  <textarea
-                    id="brainDumpInput"
-                    class="ai-brain-dump-input"
-                    maxlength="8000"
-                    placeholder="Paste rough thoughts, constraints, and goals. Example: Launch beta by June, finalize onboarding copy, coordinate QA, prep support docs."
-                  ></textarea>
-                  <div class="ai-brain-dump-actions">
+                  <div class="more-filters-actions">
                     <button
-                      id="brainDumpPlanButton"
-                      class="add-btn"
-                      data-onclick="draftPlanFromBrainDumpWithAi()"
-                    >
-                      Draft tasks from brain dump
-                    </button>
-                    <button
-                      class="mini-btn"
-                      data-onclick="clearBrainDumpInput()"
+                      class="clear-filters-btn"
+                      data-onclick="clearFilters()"
                     >
                       Clear
                     </button>
+                    <button
+                      id="exportIcsButton"
+                      class="mini-btn"
+                      data-onclick="exportVisibleTodosToIcs()"
+                      title="Exports currently filtered due-dated tasks"
+                      disabled
+                    >
+                      Export .ics
+                    </button>
                   </div>
-                  <div class="ai-brain-dump-helper">
-                    We'll draft tasks - you can edit before applying.
+                  <div class="ics-export-helper">
+                    Exports currently filtered due-dated tasks.
                   </div>
                 </div>
-                <div
-                  id="aiCritiquePanel"
-                  style="display: none; margin-top: 12px"
-                ></div>
-                <div
-                  id="aiPlanPanel"
-                  style="display: none; margin-top: 12px"
-                ></div>
-                <details class="ai-meta">
-                  <summary>Insights and history</summary>
-                  <div id="aiUsageSummary"></div>
-                  <div id="aiPerformanceInsights"></div>
-                  <div id="aiFeedbackInsights"></div>
-                  <div id="aiSuggestionHistory"></div>
-                </details>
-              </div>
 
-              <div id="todosListHeader" class="todos-list-header">
-                <div id="todosListHeaderTitle" class="todos-list-header__title">
-                  All tasks
+                <!-- Bulk Actions Toolbar -->
+                <div
+                  id="bulkActionsToolbar"
+                  class="bulk-actions-toolbar"
+                  style="display: none"
+                >
+                  <input
+                    type="checkbox"
+                    id="selectAllCheckbox"
+                    class="bulk-checkbox"
+                    data-onchange="toggleSelectAll()"
+                  />
+                  <label
+                    for="selectAllCheckbox"
+                    style="cursor: pointer; user-select: none"
+                    >Select All</label
+                  >
+                  <button data-onclick="completeSelected()">
+                    ✓ Complete Selected
+                  </button>
+                  <button data-onclick="deleteSelected()">
+                    🗑 Delete Selected
+                  </button>
+                  <span class="bulk-count" id="bulkCount">0 selected</span>
                 </div>
-                <div id="todosListHeaderCount" class="todos-list-header__count">
-                  0 tasks
-                </div>
-              </div>
 
-              <div id="todosContent">
-                <div class="loading">
-                  <div class="spinner"></div>
-                  Loading todos...
+                <!-- Add Todo Form -->
+                <div class="add-todo quick-entry">
+                  <label for="todoInput" class="sr-only">Todo title</label>
+                  <input
+                    type="text"
+                    id="todoInput"
+                    placeholder="What needs to be done?"
+                    data-onkeypress="handleTodoKeyPress(event)"
+                  />
+                  <div class="field-row">
+                    <label for="todoProjectSelect" class="sr-only"
+                      >Project</label
+                    >
+                    <select id="todoProjectSelect">
+                      <option value="">No project</option>
+                    </select>
+                    <button
+                      class="add-btn"
+                      data-onclick="createProject()"
+                      style="width: auto; padding: 10px 14px"
+                    >
+                      + Project
+                    </button>
+                    <button
+                      class="add-btn"
+                      data-onclick="createSubproject()"
+                      style="
+                        width: auto;
+                        padding: 10px 14px;
+                        background: #0f766e;
+                      "
+                    >
+                      + Subproject
+                    </button>
+                    <button
+                      class="add-btn"
+                      data-onclick="renameProjectTree()"
+                      style="
+                        width: auto;
+                        padding: 10px 14px;
+                        background: #334155;
+                      "
+                    >
+                      Rename Project
+                    </button>
+                    <label for="todoDueDateInput" class="sr-only"
+                      >Todo due date</label
+                    >
+                    <input type="datetime-local" id="todoDueDateInput" />
+                  </div>
+                  <div class="action-row">
+                    <label class="action-label">Priority:</label>
+                    <div class="priority-selector">
+                      <button
+                        class="priority-btn low"
+                        data-onclick="setPriority('low')"
+                        id="priorityLow"
+                      >
+                        Low
+                      </button>
+                      <button
+                        class="priority-btn medium active"
+                        data-onclick="setPriority('medium')"
+                        id="priorityMedium"
+                      >
+                        Medium
+                      </button>
+                      <button
+                        class="priority-btn high"
+                        data-onclick="setPriority('high')"
+                        id="priorityHigh"
+                      >
+                        High
+                      </button>
+                    </div>
+                    <button
+                      class="add-btn"
+                      data-onclick="critiqueDraftWithAi()"
+                      style="background: #334155; width: auto"
+                    >
+                      Critique Draft (AI)
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      class="expand-section"
+                      data-onclick="toggleNotesInput()"
+                    >
+                      <span class="expand-icon" id="notesExpandIcon">▶</span>
+                      <span>Add notes (optional)</span>
+                    </button>
+                    <label for="todoNotesInput" class="sr-only"
+                      >Todo notes</label
+                    >
+                    <textarea
+                      id="todoNotesInput"
+                      class="notes-textarea"
+                      placeholder="Add detailed notes here..."
+                      style="display: none; margin-top: 8px"
+                    ></textarea>
+                  </div>
+                </div>
+
+                <div class="ai-workspace">
+                  <div class="ai-workspace-header">AI Goal Planner</div>
+                  <div class="ai-workspace-inputs">
+                    <input
+                      type="text"
+                      id="goalInput"
+                      placeholder="Describe an outcome (e.g., Launch onboarding revamp)"
+                    />
+                    <input type="datetime-local" id="goalTargetDateInput" />
+                    <button
+                      id="generatePlanButton"
+                      class="add-btn"
+                      data-onclick="generatePlanWithAi()"
+                    >
+                      Generate Plan
+                    </button>
+                  </div>
+                  <div class="ai-brain-dump">
+                    <label for="brainDumpInput">Brain dump</label>
+                    <textarea
+                      id="brainDumpInput"
+                      class="ai-brain-dump-input"
+                      maxlength="8000"
+                      placeholder="Paste rough thoughts, constraints, and goals. Example: Launch beta by June, finalize onboarding copy, coordinate QA, prep support docs."
+                    ></textarea>
+                    <div class="ai-brain-dump-actions">
+                      <button
+                        id="brainDumpPlanButton"
+                        class="add-btn"
+                        data-onclick="draftPlanFromBrainDumpWithAi()"
+                      >
+                        Draft tasks from brain dump
+                      </button>
+                      <button
+                        class="mini-btn"
+                        data-onclick="clearBrainDumpInput()"
+                      >
+                        Clear
+                      </button>
+                    </div>
+                    <div class="ai-brain-dump-helper">
+                      We'll draft tasks - you can edit before applying.
+                    </div>
+                  </div>
+                  <div
+                    id="aiCritiquePanel"
+                    style="display: none; margin-top: 12px"
+                  ></div>
+                  <div
+                    id="aiPlanPanel"
+                    style="display: none; margin-top: 12px"
+                  ></div>
+                  <details class="ai-meta">
+                    <summary>Insights and history</summary>
+                    <div id="aiUsageSummary"></div>
+                    <div id="aiPerformanceInsights"></div>
+                    <div id="aiFeedbackInsights"></div>
+                    <div id="aiSuggestionHistory"></div>
+                  </details>
+                </div>
+
+                <div id="todosListHeader" class="todos-list-header">
+                  <div
+                    id="todosListHeaderTitle"
+                    class="todos-list-header__title"
+                  >
+                    All tasks
+                  </div>
+                  <div
+                    id="todosListHeaderCount"
+                    class="todos-list-header__count"
+                  >
+                    0 tasks
+                  </div>
+                </div>
+
+                <div id="todosContent">
+                  <div class="loading">
+                    <div class="spinner"></div>
+                    Loading todos...
+                  </div>
                 </div>
               </div>
             </div>
