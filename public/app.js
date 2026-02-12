@@ -293,6 +293,8 @@ let drawerSaveResetTimer = null;
 let drawerScrollLockY = 0;
 let isDrawerBodyLocked = false;
 let lastFocusedTodoId = null;
+let todosLoadState = "idle";
+let todosLoadErrorMessage = "";
 const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 
@@ -974,10 +976,16 @@ async function handleUpdateProfile(event) {
 
 // Load todos
 async function loadTodos() {
+  todosLoadState = "loading";
+  todosLoadErrorMessage = "";
+  renderTodos();
+
   try {
     const response = await apiCall(`${API_URL}/todos`);
     if (response && response.ok) {
       todos = await response.json();
+      todosLoadState = "ready";
+      todosLoadErrorMessage = "";
 
       // DEBUG: Log what API returned
       console.log("📥 Loaded todos from API:", todos.length);
@@ -996,6 +1004,8 @@ async function loadTodos() {
     } else {
       todos = [];
       selectedTodos.clear();
+      todosLoadState = "error";
+      todosLoadErrorMessage = "Couldn't load tasks";
       renderTodos();
       refreshProjectCatalog();
       showMessage("todosMessage", "Failed to load todos", "error");
@@ -1003,10 +1013,16 @@ async function loadTodos() {
   } catch (error) {
     todos = [];
     selectedTodos.clear();
+    todosLoadState = "error";
+    todosLoadErrorMessage = "Couldn't load tasks";
     renderTodos();
     refreshProjectCatalog();
     console.error("Load todos error:", error);
   }
+}
+
+function retryLoadTodos() {
+  loadTodos();
 }
 
 async function loadAiSuggestions() {
@@ -3872,6 +3888,12 @@ function openDrawerDangerZone(todoId, event) {
 // Render todos
 function renderTodos() {
   const container = document.getElementById("todosContent");
+  if (!container) return;
+
+  if (todosLoadState !== "loading" && todos.length > 0) {
+    todosLoadState = "ready";
+    todosLoadErrorMessage = "";
+  }
 
   // Debug: Log todos with notes
   const todosWithNotes = todos.filter((t) => t.notes);
@@ -3882,14 +3904,73 @@ function renderTodos() {
     );
   }
 
+  if (todosLoadState === "loading") {
+    const skeletonRows = Array.from({ length: 6 })
+      .map(
+        () => `
+          <li class="todo-item todo-skeleton-row" aria-hidden="true">
+            <span class="skeleton-block skeleton-block--checkbox"></span>
+            <span class="skeleton-block skeleton-block--drag"></span>
+            <span class="skeleton-block skeleton-block--checkbox"></span>
+            <div class="todo-content">
+              <span class="skeleton-line"></span>
+              <span class="skeleton-line skeleton-line--short"></span>
+              <div class="todo-meta">
+                <span class="skeleton-chip"></span>
+                <span class="skeleton-chip"></span>
+                <span class="skeleton-chip"></span>
+              </div>
+            </div>
+            <div class="todo-row-actions">
+              <span class="skeleton-block skeleton-block--kebab"></span>
+            </div>
+          </li>
+        `,
+      )
+      .join("");
+
+    container.innerHTML = `
+      <div id="todosLoadingState" class="todo-list-state todo-list-state--loading" role="status" aria-live="polite">
+        <p>Loading tasks...</p>
+      </div>
+      <ul class="todos-list todos-list--skeleton">
+        ${skeletonRows}
+      </ul>
+    `;
+    syncTodoDrawerStateWithRender();
+    updateBulkActionsVisibility();
+    updateIcsExportButtonState();
+    return;
+  }
+
+  if (todosLoadState === "error" && todos.length === 0) {
+    isTodoDrawerOpen = false;
+    selectedTodoId = null;
+    openTodoKebabId = null;
+    container.innerHTML = `
+      <div id="todosErrorState" class="todo-list-state todo-list-state--error" role="status" aria-live="polite">
+        <div class="empty-state-icon">⚠️</div>
+        <h3>Couldn't load tasks</h3>
+        <p>${escapeHtml(todosLoadErrorMessage || "Please check your connection and try again.")}</p>
+        <button id="todosRetryLoadButton" class="mini-btn" data-onclick="retryLoadTodos()">Retry</button>
+      </div>
+    `;
+    syncTodoDrawerStateWithRender();
+    updateBulkActionsVisibility();
+    updateIcsExportButtonState();
+    return;
+  }
+
   if (todos.length === 0) {
     isTodoDrawerOpen = false;
     selectedTodoId = null;
     openTodoKebabId = null;
     container.innerHTML = `
-                    <div class="empty-state">
+                    <div id="todosEmptyState" class="empty-state">
                         <div class="empty-state-icon">✨</div>
-                        <p>No todos yet. Add one above!</p>
+                        <h3>No tasks yet</h3>
+                        <p>Add your first task to get started with a calm, focused list.</p>
+                        <p class="empty-state-hint">Tip: press Ctrl/Cmd + N to create a task.</p>
                     </div>
                 `;
     syncTodoDrawerStateWithRender();
@@ -5055,6 +5136,8 @@ async function logout() {
   latestPlanSuggestionId = null;
   latestPlanResult = null;
   currentDateView = "all";
+  todosLoadState = "idle";
+  todosLoadErrorMessage = "";
   openTodoKebabId = null;
   selectedTodos.clear();
   if (undoTimeout) {
@@ -5080,6 +5163,8 @@ function showAppView() {
   closeTodoDrawer({ restoreFocus: false });
   // Prevent previous account data from flashing while fetching current user's data.
   todos = [];
+  todosLoadState = "loading";
+  todosLoadErrorMessage = "";
   openTodoKebabId = null;
   selectedTodos.clear();
   loadCustomProjects();
