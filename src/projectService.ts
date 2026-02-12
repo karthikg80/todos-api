@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { IProjectService } from "./interfaces/IProjectService";
 import { CreateProjectDto, Project, UpdateProjectDto } from "./types";
+import { hasPrismaCode } from "./errorHandling";
 
 export class DuplicateProjectNameError extends Error {
   constructor() {
@@ -11,14 +12,6 @@ export class DuplicateProjectNameError extends Error {
 
 export class PrismaProjectService implements IProjectService {
   constructor(private prisma: PrismaClient) {}
-
-  private hasPrismaCode(error: unknown, codes: string[]): boolean {
-    if (!error || typeof error !== "object" || !("code" in error)) {
-      return false;
-    }
-    const code = (error as { code?: unknown }).code;
-    return typeof code === "string" && codes.includes(code);
-  }
 
   async findAll(userId: string): Promise<Project[]> {
     const rows = await this.prisma.project.findMany({
@@ -57,7 +50,7 @@ export class PrismaProjectService implements IProjectService {
         todoCount: 0,
       };
     } catch (error: unknown) {
-      if (this.hasPrismaCode(error, ["P2002"])) {
+      if (hasPrismaCode(error, ["P2002"])) {
         throw new DuplicateProjectNameError();
       }
       throw error;
@@ -100,10 +93,10 @@ export class PrismaProjectService implements IProjectService {
         };
       });
     } catch (error: unknown) {
-      if (this.hasPrismaCode(error, ["P2002"])) {
+      if (hasPrismaCode(error, ["P2002"])) {
         throw new DuplicateProjectNameError();
       }
-      if (this.hasPrismaCode(error, ["P2023"])) {
+      if (hasPrismaCode(error, ["P2023"])) {
         return null;
       }
       throw error;
@@ -136,7 +129,7 @@ export class PrismaProjectService implements IProjectService {
         return true;
       });
     } catch (error: unknown) {
-      if (this.hasPrismaCode(error, ["P2023"])) {
+      if (hasPrismaCode(error, ["P2023"])) {
         return false;
       }
       throw error;

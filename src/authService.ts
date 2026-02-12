@@ -439,15 +439,32 @@ export class AuthService {
       email: storedToken.user.email,
     });
 
-    await this.prisma.refreshToken.delete({
-      where: { id: storedToken.id },
-    });
+    // Rotate refresh token atomically: delete old + create new in one transaction
+    // so a transient failure can't orphan the user with no valid token.
+    const newRefreshTokenJwt = jwt.sign(
+      { userId: storedToken.user.id, jti: randomUUID() },
+      this.REFRESH_JWT_SECRET,
+      { expiresIn: "7d" },
+    );
+    const newHashedToken = this.hashRefreshToken(newRefreshTokenJwt);
+    const newExpiresAt = new Date(Date.now() + this.REFRESH_TOKEN_EXPIRES_IN);
 
-    const newRefreshToken = await this.createRefreshToken(storedToken.user.id);
+    await this.prisma.$transaction([
+      this.prisma.refreshToken.delete({
+        where: { id: storedToken.id },
+      }),
+      this.prisma.refreshToken.create({
+        data: {
+          token: newHashedToken,
+          userId: storedToken.user.id,
+          expiresAt: newExpiresAt,
+        },
+      }),
+    ]);
 
     return {
       token: newAccessToken,
-      refreshToken: newRefreshToken,
+      refreshToken: newRefreshTokenJwt,
     };
   }
 

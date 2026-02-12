@@ -307,7 +307,7 @@ export function validateUpdateTodo(data: any): UpdateTodoDto {
 
   if (data.priority !== undefined) {
     if (data.priority === null) {
-      update.priority = "medium" as any; // Reset to default
+      update.priority = "medium";
     } else {
       if (typeof data.priority !== "string") {
         throw new ValidationError("Priority must be a string");
@@ -315,7 +315,7 @@ export function validateUpdateTodo(data: any): UpdateTodoDto {
       if (!["low", "medium", "high"].includes(data.priority.toLowerCase())) {
         throw new ValidationError("Priority must be low, medium, or high");
       }
-      update.priority = data.priority.toLowerCase() as any;
+      update.priority = data.priority.toLowerCase() as Priority;
     }
   }
 

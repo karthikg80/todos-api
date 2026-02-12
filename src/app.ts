@@ -34,14 +34,6 @@ export function createApp(
 ) {
   const app = express();
 
-  const hasPrismaCode = (error: unknown, codes: string[]): boolean => {
-    if (!error || typeof error !== "object" || !("code" in error)) {
-      return false;
-    }
-    const code = (error as { code?: unknown }).code;
-    return typeof code === "string" && codes.includes(code);
-  };
-
   const resolveTodoUserId = (req: Request, res: Response): string | null => {
     if (authService) {
       const userId = req.user?.userId;
@@ -209,7 +201,7 @@ export function createApp(
     );
   }
 
-  app.use("/admin", createAdminRouter({ authService, hasPrismaCode }));
+  app.use("/admin", createAdminRouter({ authService }));
   app.use("/users", createUsersRouter({ authService }));
   app.use("/todos", createTodosRouter({ todoService, resolveTodoUserId }));
   app.use(

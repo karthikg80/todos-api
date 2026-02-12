@@ -12,7 +12,7 @@ export class HttpError extends Error {
   }
 }
 
-function hasPrismaCode(error: unknown, codes: string[]): boolean {
+export function hasPrismaCode(error: unknown, codes: string[]): boolean {
   if (!error || typeof error !== "object" || !("code" in error)) {
     return false;
   }
