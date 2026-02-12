@@ -4492,6 +4492,30 @@ function openDrawerDangerZone(todoId, event) {
   });
 }
 
+function renderTodoChips(todo, { isOverdue, dueDateStr }) {
+  const chips = [];
+
+  if (todo.dueDate) {
+    chips.push(
+      `<span class="todo-chip todo-chip--due ${isOverdue ? "todo-chip--due-overdue" : ""}">${isOverdue ? "⚠️" : "📅"} ${escapeHtml(dueDateStr)}</span>`,
+    );
+  }
+
+  if (todo.category) {
+    chips.push(
+      `<span class="todo-chip todo-chip--project">🏷️ ${escapeHtml(todo.category)}</span>`,
+    );
+  }
+
+  if (todo.priority === "high" && chips.length < 2) {
+    chips.push(
+      `<span class="todo-chip todo-chip--priority priority-badge high">HIGH</span>`,
+    );
+  }
+
+  return chips.slice(0, 2).join("");
+}
+
 // Render todos
 function renderTodos() {
   const container = document.getElementById("todosContent");
@@ -4678,9 +4702,7 @@ function renderTodos() {
                 <div class="todo-title">${escapeHtml(todo.title)}</div>
                 ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
                 <div class="todo-meta">
-                    ${getPriorityIcon(todo.priority)} <span class="todo-chip todo-chip--priority priority-badge ${todo.priority}">${todo.priority.toUpperCase()}</span>
-                    ${todo.category ? `<span class="todo-chip todo-chip--project">🏷️ ${escapeHtml(todo.category)}</span>` : ""}
-                    ${todo.dueDate ? `<span class="todo-chip todo-chip--due ${isOverdue ? "todo-chip--due-overdue" : ""}">${isOverdue ? "⚠️" : "📅"} ${dueDateStr}</span>` : ""}
+                    ${renderTodoChips(todo, { isOverdue, dueDateStr })}
                 </div>
                 ${hasSubtasks ? renderSubtasks(todo) : ""}
                 ${
