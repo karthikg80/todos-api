@@ -3407,6 +3407,71 @@ function getProjectTodoCount(projectName) {
   }).length;
 }
 
+function getSelectedProjectLabel(selectedProject) {
+  if (!selectedProject) return "All tasks";
+  return getProjectLeafName(selectedProject);
+}
+
+function updateTopbarProjectsButton(selectedProject = "") {
+  const refs = getProjectsRailElements();
+  if (!refs) return;
+
+  const topbarLabel = document.getElementById("projectsRailTopbarLabel");
+  const shouldShow = isMobileRailViewport() || isRailCollapsed;
+
+  refs.mobileOpenButton.classList.toggle(
+    "projects-rail-mobile-open--show",
+    shouldShow,
+  );
+  refs.mobileOpenButton.setAttribute(
+    "aria-expanded",
+    String(isMobileRailViewport() ? isRailSheetOpen : !isRailCollapsed),
+  );
+  if (shouldShow) {
+    refs.mobileOpenButton.removeAttribute("aria-hidden");
+    refs.mobileOpenButton.removeAttribute("tabindex");
+  } else {
+    refs.mobileOpenButton.setAttribute("aria-hidden", "true");
+    refs.mobileOpenButton.setAttribute("tabindex", "-1");
+  }
+
+  if (topbarLabel instanceof HTMLElement) {
+    const label = getSelectedProjectLabel(selectedProject);
+    topbarLabel.innerHTML = `Projects: <span class="projects-active-label">${escapeHtml(label)}</span>`;
+  }
+}
+
+function focusActiveProjectItem({ preferSheet = false } = {}) {
+  const refs = getProjectsRailElements();
+  if (!refs) return;
+  const root = preferSheet ? refs.sheet : refs.desktopRail;
+  const activeItem =
+    root.querySelector('.projects-rail-item[aria-current="page"]') ||
+    root.querySelector(".projects-rail-item[data-project-key]");
+  if (activeItem instanceof HTMLElement) {
+    activeItem.focus();
+  }
+}
+
+function openProjectsFromTopbar(triggerEl = null) {
+  if (isMobileRailViewport()) {
+    openProjectsRailSheet(triggerEl);
+    return;
+  }
+
+  if (isRailCollapsed) {
+    setProjectsRailCollapsed(false);
+  }
+
+  const refs = getProjectsRailElements();
+  if (triggerEl instanceof HTMLElement && refs) {
+    lastFocusedRailTrigger = triggerEl;
+  }
+  window.requestAnimationFrame(() => {
+    focusActiveProjectItem({ preferSheet: false });
+  });
+}
+
 function renderProjectsRailListHtml({ projects, selectedProject }) {
   return projects
     .map((projectName) => {
@@ -3522,6 +3587,7 @@ function renderProjectsRail() {
 
   setProjectsRailActiveState(selectedProject);
   setProjectsRailCollapsed(isRailCollapsed);
+  updateTopbarProjectsButton(selectedProject);
 }
 
 function setProjectsRailCollapsed(nextCollapsed) {
@@ -3539,6 +3605,9 @@ function setProjectsRailCollapsed(nextCollapsed) {
   );
   refs.collapseToggle.setAttribute("aria-expanded", String(!isRailCollapsed));
   refs.collapseToggle.textContent = isRailCollapsed ? "Expand" : "Collapse";
+  const selectedProject =
+    document.getElementById("categoryFilter")?.value || "";
+  updateTopbarProjectsButton(selectedProject);
 }
 
 function closeRailProjectMenu({ restoreFocus = false } = {}) {
@@ -3620,12 +3689,7 @@ function openProjectsRailSheet(triggerEl = null) {
 
   lockBodyScrollForProjectsRail();
   window.requestAnimationFrame(() => {
-    const firstProject = refs.sheet.querySelector(
-      ".projects-rail-item[data-project-key]",
-    );
-    if (firstProject instanceof HTMLElement) {
-      firstProject.focus();
-    }
+    focusActiveProjectItem({ preferSheet: true });
   });
 }
 
@@ -3642,6 +3706,9 @@ function closeProjectsRailSheet({ restoreFocus = false } = {}) {
   refs.mobileOpenButton.setAttribute("aria-expanded", "false");
 
   unlockBodyScrollForProjectsRail();
+  const selectedProject =
+    document.getElementById("categoryFilter")?.value || "";
+  updateTopbarProjectsButton(selectedProject);
 
   if (restoreFocus) {
     const focusTarget =
@@ -5734,7 +5801,7 @@ function bindCriticalHandlers() {
   });
 
   bindClick("projectsRailMobileOpen", (element) => {
-    openProjectsRailSheet(element);
+    openProjectsFromTopbar(element);
   });
 
   bindClick("projectsRailMobileClose", () => {

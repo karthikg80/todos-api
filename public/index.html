@@ -331,10 +331,12 @@
                     id="projectsRailMobileOpen"
                     class="mini-btn projects-rail-mobile-open"
                     type="button"
-                    aria-controls="projectsRailSheet"
+                    aria-controls="projectsRail projectsRailSheet"
                     aria-expanded="false"
                   >
-                    Projects
+                    <span id="projectsRailTopbarLabel"
+                      >Projects: All tasks</span
+                    >
                   </button>
                   <h2>Todos</h2>
                   <span
@@ -372,7 +374,7 @@
                 </div>
               </div>
 
-              <div class="todos-minimal-filters">
+              <div class="todos-minimal-filters todos-minimal-filters--legacy">
                 <label class="project-filter-label" for="categoryFilter"
                   >Project</label
                 >

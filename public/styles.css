@@ -1183,6 +1183,17 @@ button.projects-rail-item {
   display: none;
 }
 
+.projects-rail-mobile-open.projects-rail-mobile-open--show {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.projects-rail-mobile-open .projects-active-label {
+  color: var(--text-secondary);
+  font-size: 0.82em;
+}
+
 .projects-rail-backdrop,
 .projects-rail-sheet {
   display: none;
@@ -1296,6 +1307,18 @@ button.projects-rail-item {
   background: var(--input-bg);
   color: var(--text-primary);
   cursor: pointer;
+}
+
+.todos-minimal-filters--legacy {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .more-filters-panel {
@@ -1806,9 +1829,6 @@ button.projects-rail-item {
   }
 
   .projects-rail-mobile-open {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
     white-space: nowrap;
   }
 
