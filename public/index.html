@@ -256,6 +256,13 @@
               <div class="projects-rail__section">
                 <div class="projects-rail__section-header">
                   <span>Projects</span>
+                  <button
+                    id="projectsRailCreateButton"
+                    type="button"
+                    class="mini-btn projects-rail-create-btn"
+                  >
+                    New project
+                  </button>
                 </div>
                 <div id="projectsRailList" class="projects-rail__list">
                   <div
@@ -266,15 +273,6 @@
                     <span class="projects-rail-item__count">0</span>
                   </div>
                 </div>
-              </div>
-              <div class="projects-rail__footer">
-                <button
-                  id="projectsRailCreateButton"
-                  type="button"
-                  class="mini-btn"
-                >
-                  Create project
-                </button>
               </div>
             </aside>
 
@@ -309,6 +307,13 @@
               <div class="projects-rail__section">
                 <div class="projects-rail__section-header">
                   <span>Projects</span>
+                  <button
+                    id="projectsRailSheetCreateButton"
+                    type="button"
+                    class="mini-btn projects-rail-create-btn"
+                  >
+                    New project
+                  </button>
                 </div>
                 <div class="projects-rail__list">
                   <div class="projects-rail-item">
@@ -686,6 +691,49 @@
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+
+          <div
+            id="projectCrudModal"
+            class="modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="projectCrudModalTitle"
+            style="display: none"
+          >
+            <div class="modal-card project-crud-modal-card">
+              <h3 id="projectCrudModalTitle">New project</h3>
+              <form id="projectCrudForm">
+                <div class="form-group">
+                  <label for="projectCrudNameInput">Project name</label>
+                  <input
+                    id="projectCrudNameInput"
+                    type="text"
+                    maxlength="50"
+                    autocomplete="off"
+                    placeholder="e.g. Work / Client A"
+                  />
+                </div>
+                <div class="modal-actions">
+                  <button
+                    id="projectCrudSubmitButton"
+                    class="add-btn"
+                    type="submit"
+                    style="width: auto"
+                  >
+                    Create
+                  </button>
+                  <button
+                    id="projectCrudCancelButton"
+                    class="add-btn"
+                    type="button"
+                    style="width: auto; background: #64748b"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
 

@@ -300,6 +300,11 @@ let isRailSheetOpen = false;
 let railScrollLockY = 0;
 let isRailBodyLocked = false;
 let lastFocusedRailTrigger = null;
+let openRailProjectMenuKey = null;
+let isProjectCrudModalOpen = false;
+let projectCrudMode = "create";
+let projectCrudTargetProject = "";
+let lastProjectCrudOpener = null;
 const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 
@@ -2568,43 +2573,279 @@ function updateProjectSelectOptions() {
   }
 }
 
-async function createProject() {
-  const name = prompt(
-    "Project path (use / for hierarchy, e.g. Work / Client A):",
-  );
-  if (name === null) {
+function validateProjectNameInput(
+  input,
+  { emptyMessage = "Project name is required" } = {},
+) {
+  const normalized = normalizeProjectPath(input);
+  if (!normalized) {
+    return { valid: false, message: emptyMessage, normalized: "" };
+  }
+  if (normalized.length > 50) {
+    return {
+      valid: false,
+      message: "Project name cannot exceed 50 characters",
+      normalized,
+    };
+  }
+  return { valid: true, message: "", normalized };
+}
+
+function getProjectCrudModalElements() {
+  const modal = document.getElementById("projectCrudModal");
+  const form = document.getElementById("projectCrudForm");
+  const title = document.getElementById("projectCrudModalTitle");
+  const input = document.getElementById("projectCrudNameInput");
+  const submit = document.getElementById("projectCrudSubmitButton");
+  const cancel = document.getElementById("projectCrudCancelButton");
+  if (!(modal instanceof HTMLElement)) return null;
+  if (!(form instanceof HTMLFormElement)) return null;
+  if (!(title instanceof HTMLElement)) return null;
+  if (!(input instanceof HTMLInputElement)) return null;
+  if (!(submit instanceof HTMLButtonElement)) return null;
+  if (!(cancel instanceof HTMLButtonElement)) return null;
+  return { modal, form, title, input, submit, cancel };
+}
+
+function openProjectCrudModal(mode, opener, initialProjectName = "") {
+  const refs = getProjectCrudModalElements();
+  if (!refs) return;
+
+  isProjectCrudModalOpen = true;
+  projectCrudMode = mode;
+  projectCrudTargetProject = initialProjectName || "";
+  lastProjectCrudOpener = opener instanceof HTMLElement ? opener : null;
+
+  refs.modal.style.display = "flex";
+  refs.title.textContent = mode === "rename" ? "Rename project" : "New project";
+  refs.submit.textContent = mode === "rename" ? "Save" : "Create";
+  refs.input.value = initialProjectName || "";
+
+  window.requestAnimationFrame(() => {
+    refs.input.focus();
+    refs.input.select();
+  });
+}
+
+function closeProjectCrudModal({ restoreFocus = true } = {}) {
+  const refs = getProjectCrudModalElements();
+  if (!refs) return;
+
+  isProjectCrudModalOpen = false;
+  projectCrudMode = "create";
+  projectCrudTargetProject = "";
+  refs.modal.style.display = "none";
+  refs.form.reset();
+
+  if (restoreFocus) {
+    if (lastProjectCrudOpener?.isConnected) {
+      lastProjectCrudOpener.focus({ preventScroll: true });
+    } else {
+      const fallback = document.getElementById("projectsRailCreateButton");
+      if (fallback instanceof HTMLElement) {
+        fallback.focus({ preventScroll: true });
+      }
+    }
+  }
+  lastProjectCrudOpener = null;
+}
+
+async function submitProjectCrudModal() {
+  const refs = getProjectCrudModalElements();
+  if (!refs) return;
+
+  const validation = validateProjectNameInput(refs.input.value, {
+    emptyMessage: "Project name cannot be empty",
+  });
+  if (!validation.valid) {
+    showMessage("todosMessage", validation.message, "error");
     return;
   }
-  const normalizedPath = normalizeProjectPath(name);
-  if (!normalizedPath) {
-    showMessage("todosMessage", "Project name cannot be empty", "error");
-    return;
+
+  const nextName = validation.normalized;
+  refs.submit.disabled = true;
+  refs.cancel.disabled = true;
+
+  try {
+    let didSucceed = false;
+    if (projectCrudMode === "rename") {
+      didSucceed = await renameProjectByName(
+        projectCrudTargetProject,
+        nextName,
+      );
+    } else {
+      didSucceed = await createProjectByName(nextName);
+    }
+    if (didSucceed) {
+      closeProjectCrudModal({ restoreFocus: false });
+    }
+  } finally {
+    refs.submit.disabled = false;
+    refs.cancel.disabled = false;
   }
-  if (normalizedPath.length > 50) {
-    showMessage(
-      "todosMessage",
-      "Project path cannot exceed 50 characters",
-      "error",
-    );
-    return;
+}
+
+async function createProjectByName(projectName) {
+  if (getAllProjects().includes(projectName)) {
+    showMessage("todosMessage", "Project name already exists", "error");
+    return false;
   }
-  const created = await ensureProjectExists(normalizedPath);
+
+  const created = await ensureProjectExists(projectName);
   if (!created) {
-    return;
+    return false;
   }
-  if (!customProjects.includes(normalizedPath)) {
-    customProjects.push(normalizedPath);
+
+  if (!customProjects.includes(projectName)) {
+    customProjects.push(projectName);
     customProjects = expandProjectTree(customProjects);
     saveCustomProjects();
-    updateProjectSelectOptions();
-    updateCategoryFilter();
   }
-  const projectSelect = document.getElementById("todoProjectSelect");
-  if (projectSelect) {
-    projectSelect.value = normalizedPath;
-  }
+
   await loadProjects();
-  showMessage("todosMessage", `Project "${normalizedPath}" created`, "success");
+  selectProjectFromRail(projectName);
+  showMessage("todosMessage", `Project "${projectName}" created`, "success");
+  return true;
+}
+
+async function renameProjectByName(fromProjectName, toProjectName) {
+  const selectedPath = normalizeProjectPath(fromProjectName);
+  const renamedPath = normalizeProjectPath(toProjectName);
+  if (!selectedPath || !renamedPath) {
+    showMessage("todosMessage", "Project name cannot be empty", "error");
+    return false;
+  }
+  if (renamedPath === selectedPath) {
+    return true;
+  }
+
+  const targetRecord = getProjectRecordByName(selectedPath);
+  if (!targetRecord) {
+    showMessage("todosMessage", "Project not found", "error");
+    return false;
+  }
+
+  try {
+    const response = await apiCall(`${API_URL}/projects/${targetRecord.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: renamedPath }),
+    });
+    if (!response || !response.ok) {
+      const data = response ? await parseApiBody(response) : {};
+      showMessage(
+        "todosMessage",
+        data.error || "Failed to rename project",
+        "error",
+      );
+      return false;
+    }
+  } catch (error) {
+    console.error("Rename project failed:", error);
+    showMessage("todosMessage", "Failed to rename project", "error");
+    return false;
+  }
+
+  const activeProject =
+    document.getElementById("categoryFilter") instanceof HTMLSelectElement
+      ? document.getElementById("categoryFilter").value
+      : "";
+
+  await loadProjects();
+  await loadTodos();
+
+  const selectedPrefix = `${selectedPath}${PROJECT_PATH_SEPARATOR}`;
+  customProjects = expandProjectTree(
+    customProjects
+      .map((path) => normalizeProjectPath(path))
+      .map((path) => {
+        if (path === selectedPath) return renamedPath;
+        if (path.startsWith(selectedPrefix)) {
+          return `${renamedPath}${path.slice(selectedPath.length)}`;
+        }
+        return path;
+      }),
+  );
+  saveCustomProjects();
+  updateProjectSelectOptions();
+  updateCategoryFilter();
+
+  if (activeProject === selectedPath) {
+    selectProjectFromRail(renamedPath);
+  }
+
+  showMessage(
+    "todosMessage",
+    `Renamed project "${selectedPath}" to "${renamedPath}"`,
+    "success",
+  );
+  return true;
+}
+
+async function deleteProjectByName(projectName) {
+  const normalized = normalizeProjectPath(projectName);
+  if (!normalized) return false;
+  const projectRecord = getProjectRecordByName(normalized);
+  if (!projectRecord) {
+    showMessage("todosMessage", "Project not found", "error");
+    return false;
+  }
+
+  const confirmed = confirm(
+    `Delete project "${normalized}"? Tasks will remain but project tag may be cleared.`,
+  );
+  if (!confirmed) return false;
+
+  try {
+    const response = await apiCall(`${API_URL}/projects/${projectRecord.id}`, {
+      method: "DELETE",
+    });
+    if (!response || !response.ok) {
+      const data = response ? await parseApiBody(response) : {};
+      showMessage(
+        "todosMessage",
+        data.error || "Failed to delete project",
+        "error",
+      );
+      return false;
+    }
+  } catch (error) {
+    console.error("Delete project failed:", error);
+    showMessage("todosMessage", "Failed to delete project", "error");
+    return false;
+  }
+
+  const categoryFilter = document.getElementById("categoryFilter");
+  const activeProject =
+    categoryFilter instanceof HTMLSelectElement ? categoryFilter.value : "";
+  const deletedPrefix = `${normalized}${PROJECT_PATH_SEPARATOR}`;
+  const shouldFallback =
+    activeProject === normalized || activeProject.startsWith(deletedPrefix);
+
+  await loadProjects();
+  await loadTodos();
+
+  customProjects = customProjects.filter((path) => {
+    const normalizedPath = normalizeProjectPath(path);
+    return (
+      normalizedPath !== normalized && !normalizedPath.startsWith(deletedPrefix)
+    );
+  });
+  customProjects = expandProjectTree(customProjects);
+  saveCustomProjects();
+  updateProjectSelectOptions();
+  updateCategoryFilter();
+
+  if (shouldFallback) {
+    selectProjectFromRail("");
+  }
+
+  showMessage("todosMessage", `Deleted project "${normalized}"`, "success");
+  return true;
+}
+
+function createProject() {
+  openProjectCrudModal("create", document.activeElement);
 }
 
 async function createSubproject() {
@@ -2661,115 +2902,14 @@ async function createSubproject() {
   );
 }
 
-async function renameProjectTree() {
+function renameProjectTree() {
   const projectSelect = document.getElementById("todoProjectSelect");
   const selectedPath = normalizeProjectPath(projectSelect?.value || "");
   if (!selectedPath) {
     showMessage("todosMessage", "Select a project to rename", "error");
     return;
   }
-
-  const nextNameInput = prompt("Rename project path:", selectedPath);
-  if (nextNameInput === null) {
-    return;
-  }
-  const renamedPath = normalizeProjectPath(nextNameInput);
-  if (!renamedPath) {
-    showMessage("todosMessage", "Project name cannot be empty", "error");
-    return;
-  }
-  if (renamedPath.length > 50) {
-    showMessage(
-      "todosMessage",
-      "Project name cannot exceed 50 characters",
-      "error",
-    );
-    return;
-  }
-  if (renamedPath === selectedPath) {
-    return;
-  }
-
-  const selectedPrefix = `${selectedPath}${PROJECT_PATH_SEPARATOR}`;
-  const targets = projectRecords
-    .map((record) => ({
-      id: record.id,
-      oldName: normalizeProjectPath(record.name),
-    }))
-    .filter(
-      (record) =>
-        record.oldName === selectedPath ||
-        record.oldName.startsWith(selectedPrefix),
-    )
-    .map((record) => ({
-      ...record,
-      newName:
-        record.oldName === selectedPath
-          ? renamedPath
-          : `${renamedPath}${record.oldName.slice(selectedPath.length)}`,
-    }))
-    .sort((a, b) => compareProjectPaths(a.oldName, b.oldName));
-
-  if (targets.length === 0) {
-    showMessage(
-      "todosMessage",
-      "Project not found in backend. Refresh and try again.",
-      "error",
-    );
-    return;
-  }
-
-  const targetNames = new Set(targets.map((item) => item.newName));
-  const existingNames = new Set(
-    projectRecords.map((record) => normalizeProjectPath(record.name)),
-  );
-  for (const name of targetNames) {
-    if (
-      existingNames.has(name) &&
-      !targets.some((item) => item.oldName === name)
-    ) {
-      showMessage(
-        "todosMessage",
-        `Cannot rename: project "${name}" already exists`,
-        "error",
-      );
-      return;
-    }
-  }
-
-  for (const target of targets) {
-    try {
-      const response = await apiCall(`${API_URL}/projects/${target.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: target.newName }),
-      });
-      if (!response || !response.ok) {
-        const data = response ? await parseApiBody(response) : {};
-        showMessage(
-          "todosMessage",
-          data.error || `Failed to rename "${target.oldName}"`,
-          "error",
-        );
-        return;
-      }
-    } catch (error) {
-      console.error("Rename project failed:", error);
-      showMessage("todosMessage", "Failed to rename project", "error");
-      return;
-    }
-  }
-
-  if (projectSelect) {
-    projectSelect.value = renamedPath;
-  }
-  await loadProjects();
-  await loadTodos();
-  showMessage(
-    "todosMessage",
-    `Renamed project "${selectedPath}" to "${renamedPath}"`,
-    "success",
-  );
+  openProjectCrudModal("rename", document.activeElement, selectedPath);
 }
 
 function renderProjectOptions(selectedProject = "") {
@@ -3207,6 +3347,10 @@ function getProjectsRailElements() {
   const allTasksButton = desktopPrimary?.querySelector(".projects-rail-item");
   const mobileOpenButton = document.getElementById("projectsRailMobileOpen");
   const mobileCloseButton = document.getElementById("projectsRailMobileClose");
+  const createButton = document.getElementById("projectsRailCreateButton");
+  const sheetCreateButton = document.getElementById(
+    "projectsRailSheetCreateButton",
+  );
   const sheet = document.getElementById("projectsRailSheet");
   const sheetList =
     document.getElementById("projectsRailSheetList") ||
@@ -3222,6 +3366,8 @@ function getProjectsRailElements() {
   if (!(allTasksButton instanceof HTMLElement)) return null;
   if (!(mobileOpenButton instanceof HTMLElement)) return null;
   if (!(mobileCloseButton instanceof HTMLElement)) return null;
+  if (!(createButton instanceof HTMLElement)) return null;
+  if (!(sheetCreateButton instanceof HTMLElement)) return null;
   if (!(sheet instanceof HTMLElement)) return null;
   if (!(sheetList instanceof HTMLElement)) return null;
   if (!(sheetAllTasksButton instanceof HTMLElement)) return null;
@@ -3235,6 +3381,8 @@ function getProjectsRailElements() {
     allTasksButton,
     mobileOpenButton,
     mobileCloseButton,
+    createButton,
+    sheetCreateButton,
     sheet,
     sheetList,
     sheetAllTasksButton,
@@ -3264,16 +3412,48 @@ function renderProjectsRailListHtml({ projects, selectedProject }) {
     .map((projectName) => {
       const isActive = projectName === selectedProject;
       const count = getProjectTodoCount(projectName);
+      const isMenuOpen = openRailProjectMenuKey === projectName;
       return `
-        <button
-          type="button"
-          class="projects-rail-item ${isActive ? "projects-rail-item--active" : ""}"
-          data-project-key="${escapeHtml(projectName)}"
-          ${isActive ? 'aria-current="page"' : ""}
-        >
-          <span>${escapeHtml(getProjectLeafName(projectName))}</span>
-          <span class="projects-rail-item__count">${count}</span>
-        </button>
+        <div class="projects-rail-row ${isMenuOpen ? "projects-rail-row--menu-open" : ""}">
+          <button
+            type="button"
+            class="projects-rail-item ${isActive ? "projects-rail-item--active" : ""}"
+            data-project-key="${escapeHtml(projectName)}"
+            ${isActive ? 'aria-current="page"' : ""}
+          >
+            <span>${escapeHtml(getProjectLeafName(projectName))}</span>
+            <span class="projects-rail-item__count">${count}</span>
+          </button>
+          <button
+            type="button"
+            class="projects-rail-kebab"
+            aria-label="Project actions for ${escapeHtml(getProjectLeafName(projectName))}"
+            aria-expanded="${isMenuOpen ? "true" : "false"}"
+            data-project-menu-toggle="${escapeHtml(projectName)}"
+          >
+            ⋯
+          </button>
+          <div class="projects-rail-menu ${isMenuOpen ? "projects-rail-menu--open" : ""}" role="menu">
+            <button
+              type="button"
+              class="projects-rail-menu-item"
+              role="menuitem"
+              data-project-menu-action="rename"
+              data-project-key="${escapeHtml(projectName)}"
+            >
+              Rename
+            </button>
+            <button
+              type="button"
+              class="projects-rail-menu-item projects-rail-menu-item--danger"
+              role="menuitem"
+              data-project-menu-action="delete"
+              data-project-key="${escapeHtml(projectName)}"
+            >
+              Delete
+            </button>
+          </div>
+        </div>
       `;
     })
     .join("");
@@ -3314,6 +3494,9 @@ function renderProjectsRail() {
     document.getElementById("categoryFilter")?.value || "";
   const allCount = todos.length;
   const projects = getAllProjects();
+  if (openRailProjectMenuKey && !projects.includes(openRailProjectMenuKey)) {
+    openRailProjectMenuKey = null;
+  }
 
   refs.railList.innerHTML = renderProjectsRailListHtml({
     projects,
@@ -3358,6 +3541,42 @@ function setProjectsRailCollapsed(nextCollapsed) {
   refs.collapseToggle.textContent = isRailCollapsed ? "Expand" : "Collapse";
 }
 
+function closeRailProjectMenu({ restoreFocus = false } = {}) {
+  const previousKey = openRailProjectMenuKey;
+  openRailProjectMenuKey = null;
+  renderProjectsRail();
+
+  if (restoreFocus && previousKey) {
+    const toggle = document.querySelector(
+      `.projects-rail-kebab[data-project-menu-toggle="${escapeSelectorValue(previousKey)}"]`,
+    );
+    if (toggle instanceof HTMLElement) {
+      toggle.focus({ preventScroll: true });
+    }
+  }
+}
+
+function toggleRailProjectMenu(projectName, triggerEl = null) {
+  if (!projectName) return;
+  const willOpen = openRailProjectMenuKey !== projectName;
+  openRailProjectMenuKey = willOpen ? projectName : null;
+  renderProjectsRail();
+  if (!willOpen) return;
+
+  window.requestAnimationFrame(() => {
+    const firstAction = document.querySelector(
+      `.projects-rail-menu-item[data-project-key="${escapeSelectorValue(projectName)}"]`,
+    );
+    if (firstAction instanceof HTMLElement) {
+      firstAction.focus();
+      return;
+    }
+    if (triggerEl instanceof HTMLElement) {
+      triggerEl.focus();
+    }
+  });
+}
+
 function lockBodyScrollForProjectsRail() {
   if (isRailBodyLocked || isDrawerBodyLocked) return;
   const body = document.body;
@@ -3389,6 +3608,7 @@ function openProjectsRailSheet(triggerEl = null) {
   const refs = getProjectsRailElements();
   if (!refs || isRailSheetOpen || !isMobileRailViewport()) return;
 
+  closeRailProjectMenu();
   isRailSheetOpen = true;
   refs.sheet.classList.add("projects-rail-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "false");
@@ -3413,6 +3633,7 @@ function closeProjectsRailSheet({ restoreFocus = false } = {}) {
   const refs = getProjectsRailElements();
   if (!refs || !isRailSheetOpen) return;
 
+  closeRailProjectMenu();
   isRailSheetOpen = false;
   refs.sheet.classList.remove("projects-rail-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "true");
@@ -3432,6 +3653,9 @@ function closeProjectsRailSheet({ restoreFocus = false } = {}) {
 }
 
 function selectProjectFromRail(projectName, triggerEl = null) {
+  if (openRailProjectMenuKey) {
+    openRailProjectMenuKey = null;
+  }
   const filterSelect = document.getElementById("categoryFilter");
   if (!(filterSelect instanceof HTMLSelectElement)) return;
 
@@ -4938,6 +5162,18 @@ async function restoreTodo(todoData) {
 }
 
 document.addEventListener("keydown", function (e) {
+  if (e.key === "Escape" && isProjectCrudModalOpen) {
+    e.preventDefault();
+    closeProjectCrudModal();
+    return;
+  }
+
+  if (e.key === "Escape" && openRailProjectMenuKey) {
+    e.preventDefault();
+    closeRailProjectMenu({ restoreFocus: true });
+    return;
+  }
+
   if (e.key === "Escape" && openTodoKebabId) {
     e.preventDefault();
     closeTodoKebabMenu({ restoreFocus: true });
@@ -5166,6 +5402,7 @@ function switchView(view, triggerEl = null) {
   }
 
   if (view === "todos") {
+    closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
     loadTodos();
@@ -5174,11 +5411,13 @@ function switchView(view, triggerEl = null) {
     loadAiInsights();
     loadAiFeedbackSummary();
   } else if (view === "profile") {
+    closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
     closeTodoDrawer({ restoreFocus: false });
     updateUserDisplay();
   } else if (view === "admin") {
+    closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
     closeTodoDrawer({ restoreFocus: false });
@@ -5354,6 +5593,40 @@ function bindProjectsRailHandlers() {
     const target = event.target;
     if (!(target instanceof Element)) return;
 
+    const menuToggle = target.closest("[data-project-menu-toggle]");
+    if (menuToggle instanceof HTMLElement) {
+      const projectName =
+        menuToggle.getAttribute("data-project-menu-toggle") || "";
+      event.preventDefault();
+      event.stopPropagation();
+      toggleRailProjectMenu(projectName, menuToggle);
+      return;
+    }
+
+    const menuAction = target.closest("[data-project-menu-action]");
+    if (menuAction instanceof HTMLElement) {
+      const action = menuAction.getAttribute("data-project-menu-action");
+      const projectName = menuAction.getAttribute("data-project-key") || "";
+      event.preventDefault();
+      event.stopPropagation();
+      if (action === "rename") {
+        closeRailProjectMenu();
+        openProjectCrudModal("rename", menuAction, projectName);
+      } else if (action === "delete") {
+        closeRailProjectMenu({ restoreFocus: false });
+        deleteProjectByName(projectName);
+      }
+      return;
+    }
+
+    if (
+      openRailProjectMenuKey &&
+      !target.closest(".projects-rail-kebab") &&
+      !target.closest(".projects-rail-menu")
+    ) {
+      closeRailProjectMenu();
+    }
+
     const projectButton = target.closest(
       ".projects-rail-item[data-project-key]",
     );
@@ -5362,6 +5635,22 @@ function bindProjectsRailHandlers() {
       event.preventDefault();
       event.stopPropagation();
       selectProjectFromRail(projectName, projectButton);
+      return;
+    }
+
+    const createButton = target.closest("#projectsRailCreateButton");
+    if (createButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      openProjectCrudModal("create", createButton);
+      return;
+    }
+
+    const sheetCreateButton = target.closest("#projectsRailSheetCreateButton");
+    if (sheetCreateButton) {
+      event.preventDefault();
+      event.stopPropagation();
+      openProjectCrudModal("create", sheetCreateButton);
       return;
     }
 
@@ -5376,7 +5665,33 @@ function bindProjectsRailHandlers() {
     if (mobileClose && isRailSheetOpen) {
       event.preventDefault();
       closeProjectsRailSheet({ restoreFocus: true });
+      return;
     }
+
+    const modalOverlay = target.closest("#projectCrudModal");
+    if (
+      modalOverlay &&
+      target instanceof HTMLElement &&
+      target.id === "projectCrudModal"
+    ) {
+      event.preventDefault();
+      closeProjectCrudModal();
+      return;
+    }
+
+    const modalCancel = target.closest("#projectCrudCancelButton");
+    if (modalCancel && isProjectCrudModalOpen) {
+      event.preventDefault();
+      closeProjectCrudModal();
+    }
+  });
+
+  document.addEventListener("submit", (event) => {
+    const form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    if (form.id !== "projectCrudForm") return;
+    event.preventDefault();
+    submitProjectCrudModal();
   });
 }
 
@@ -5464,6 +5779,9 @@ async function logout() {
   aiFeedbackSummary = null;
   customProjects = [];
   projectRecords = [];
+  openRailProjectMenuKey = null;
+  isProjectCrudModalOpen = false;
+  projectCrudTargetProject = "";
   editingTodoId = null;
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
@@ -5482,6 +5800,7 @@ async function logout() {
   document.getElementById("undoToast")?.classList.remove("active");
   clearFilters();
   clearPlanDraftState();
+  closeProjectCrudModal({ restoreFocus: false });
   closeProjectsRailSheet({ restoreFocus: false });
   closeTodoDrawer({ restoreFocus: false });
   showAuthView();
@@ -5494,6 +5813,8 @@ function showAppView() {
   document.getElementById("navTabs").style.display = "flex";
   document.getElementById("userBar").style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
+  closeProjectCrudModal({ restoreFocus: false });
+  openRailProjectMenuKey = null;
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
   setProjectsRailCollapsed(false);
@@ -5525,6 +5846,8 @@ function showAuthView() {
   document.getElementById("userBar").style.display = "none";
   document.getElementById("adminNavTab").style.display = "none";
   adminBootstrapAvailable = false;
+  closeProjectCrudModal({ restoreFocus: false });
+  openRailProjectMenuKey = null;
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
   closeTodoDrawer({ restoreFocus: false });
