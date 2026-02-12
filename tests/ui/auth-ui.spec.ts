@@ -1,5 +1,13 @@
 import { test, expect } from "@playwright/test";
 
+function authSnapshotName(baseName: string, projectName: string): string {
+  const isMobileProject = projectName.includes("mobile");
+  if (!isMobileProject) {
+    return `${baseName}.png`;
+  }
+  return `${baseName}-${process.platform}.png`;
+}
+
 test.describe("Auth UI", () => {
   test.beforeEach(async ({ page }) => {
     await page.addStyleTag({
@@ -15,27 +23,33 @@ test.describe("Auth UI", () => {
     });
   });
 
-  test("login tab baseline", async ({ page }) => {
+  test("login tab baseline", async ({ page }, testInfo) => {
     await page.goto("/");
     await expect(page.locator("#authView")).toHaveClass(/active/);
     await expect(page.locator("#loginForm")).toBeVisible();
     await expect(page.locator("#registerForm")).toBeHidden();
 
-    await expect(page).toHaveScreenshot("auth-login.png", {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot(
+      authSnapshotName("auth-login", testInfo.project.name),
+      {
+        fullPage: true,
+      },
+    );
   });
 
-  test("register tab baseline", async ({ page }) => {
+  test("register tab baseline", async ({ page }, testInfo) => {
     await page.goto("/");
 
     await page.getByRole("button", { name: "Register" }).click();
     await expect(page.locator("#registerForm")).toBeVisible();
     await expect(page.locator("#loginForm")).toBeHidden();
 
-    await expect(page).toHaveScreenshot("auth-register.png", {
-      fullPage: true,
-    });
+    await expect(page).toHaveScreenshot(
+      authSnapshotName("auth-register", testInfo.project.name),
+      {
+        fullPage: true,
+      },
+    );
   });
 
   test("forgot password link opens reset form", async ({ page }) => {
