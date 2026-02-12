@@ -12,6 +12,7 @@ import {
   TodoSortBy,
   SortOrder,
 } from "./types";
+import { hasPrismaCode } from "./errorHandling";
 
 /**
  * Prisma-based implementation of ITodoService using PostgreSQL database.
@@ -50,14 +51,6 @@ export class PrismaTodoService implements ITodoService {
       },
     });
     return project.id;
-  }
-
-  private hasPrismaCode(error: unknown, codes: string[]): boolean {
-    if (!error || typeof error !== "object" || !("code" in error)) {
-      return false;
-    }
-    const code = (error as { code?: unknown }).code;
-    return typeof code === "string" && codes.includes(code);
   }
 
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
@@ -154,7 +147,7 @@ export class PrismaTodoService implements ITodoService {
       return todo ? this.mapPrismaToTodo(todo) : null;
     } catch (error: unknown) {
       // Invalid UUID in id filter.
-      if (this.hasPrismaCode(error, ["P2023"])) {
+      if (hasPrismaCode(error, ["P2023"])) {
         return null;
       }
       throw error;
@@ -229,7 +222,7 @@ export class PrismaTodoService implements ITodoService {
       return todo ? this.mapPrismaToTodo(todo) : null;
     } catch (error: unknown) {
       // Invalid UUID format.
-      if (this.hasPrismaCode(error, ["P2023"])) {
+      if (hasPrismaCode(error, ["P2023"])) {
         return null;
       }
       throw error;
@@ -244,7 +237,7 @@ export class PrismaTodoService implements ITodoService {
       return result.count === 1;
     } catch (error: unknown) {
       // Invalid UUID format.
-      if (this.hasPrismaCode(error, ["P2023"])) {
+      if (hasPrismaCode(error, ["P2023"])) {
         return false;
       }
       throw error;
@@ -286,7 +279,7 @@ export class PrismaTodoService implements ITodoService {
       ) {
         return null;
       }
-      if (this.hasPrismaCode(error, ["P2023"])) {
+      if (hasPrismaCode(error, ["P2023"])) {
         return null;
       }
       throw error;
@@ -311,7 +304,7 @@ export class PrismaTodoService implements ITodoService {
       });
       return subtasks.map((subtask) => this.mapPrismaToSubtask(subtask));
     } catch (error: unknown) {
-      if (this.hasPrismaCode(error, ["P2023"])) {
+      if (hasPrismaCode(error, ["P2023"])) {
         return null;
       }
       throw error;
@@ -356,7 +349,7 @@ export class PrismaTodoService implements ITodoService {
 
       return subtask ? this.mapPrismaToSubtask(subtask) : null;
     } catch (error: unknown) {
-      if (this.hasPrismaCode(error, ["P2023"])) {
+      if (hasPrismaCode(error, ["P2023"])) {
         return null;
       }
       throw error;
@@ -454,7 +447,7 @@ export class PrismaTodoService implements ITodoService {
 
       return updatedSubtask ? this.mapPrismaToSubtask(updatedSubtask) : null;
     } catch (error: unknown) {
-      if (this.hasPrismaCode(error, ["P2023", "P2025"])) {
+      if (hasPrismaCode(error, ["P2023", "P2025"])) {
         return null;
       }
       throw error;
@@ -479,7 +472,7 @@ export class PrismaTodoService implements ITodoService {
       });
       return deleted.count === 1;
     } catch (error: unknown) {
-      if (this.hasPrismaCode(error, ["P2023", "P2025"])) {
+      if (hasPrismaCode(error, ["P2023", "P2025"])) {
         return false;
       }
       throw error;

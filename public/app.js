@@ -6526,7 +6526,7 @@ function showMessage(id, message, type) {
 
 function hideMessage(id) {
   const el = document.getElementById(id);
-  el.classList.remove("show");
+  if (el) el.classList.remove("show");
 }
 
 // Escape HTML
@@ -6544,7 +6544,7 @@ function toggleTheme() {
 
   // Update toggle button icon
   const toggleBtn = document.querySelector(".theme-toggle");
-  toggleBtn.textContent = isDark ? "☀️" : "🌙";
+  if (toggleBtn) toggleBtn.textContent = isDark ? "☀️" : "🌙";
 }
 
 // Initialize theme

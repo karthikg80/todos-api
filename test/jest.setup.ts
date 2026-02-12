@@ -20,9 +20,13 @@ beforeEach(async () => {
     return;
   }
 
-  // Clean up test database before each test
+  // Clean up test database before each test.
+  // Order matters: delete child rows before parents to respect FK constraints.
+  await prisma.aiSuggestionAppliedTodo.deleteMany();
+  await prisma.aiSuggestion.deleteMany();
   await prisma.refreshToken.deleteMany();
   await prisma.subtask.deleteMany();
   await prisma.todo.deleteMany();
+  await prisma.project.deleteMany();
   await prisma.user.deleteMany();
 });

@@ -1,16 +1,12 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { AuthService } from "../authService";
-import { HttpError } from "../errorHandling";
+import { HttpError, hasPrismaCode } from "../errorHandling";
 
 interface AdminRouterDeps {
   authService?: AuthService;
-  hasPrismaCode: (error: unknown, codes: string[]) => boolean;
 }
 
-export function createAdminRouter({
-  authService,
-  hasPrismaCode,
-}: AdminRouterDeps): Router {
+export function createAdminRouter({ authService }: AdminRouterDeps): Router {
   const router = Router();
 
   router.get(
