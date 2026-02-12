@@ -336,6 +336,99 @@ test.describe("Todo drawer details + kebab actions", () => {
       "aria-hidden",
       "true",
     );
+
+    await page.keyboard.press("Escape");
+    await expect(firstRow.locator(".todo-kebab-menu")).toBeHidden();
+    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    await firstRow.locator(".todo-kebab").click();
+    await expect(firstRow.locator(".todo-kebab-menu")).toBeVisible();
+    await page.locator(".todos-top-bar-left h2").click();
+    await expect(firstRow.locator(".todo-kebab-menu")).toBeHidden();
+  });
+
+  test("Escape closes kebab before closing drawer", async ({ page }) => {
+    await installDrawerDetailsMockApi(page, [
+      {
+        id: "todo-escape-1",
+        title: "Escape task",
+        description: "Base description",
+        notes: null,
+        category: "Work",
+        dueDate: null,
+        priority: "medium",
+      },
+    ]);
+    await registerAndOpenTodos(page);
+    await openFirstTodoDrawer(page);
+
+    await page.evaluate(() => {
+      const fn = (window as { toggleTodoKebab?: Function }).toggleTodoKebab;
+      fn?.("todo-escape-1", {
+        preventDefault() {},
+        stopPropagation() {},
+      });
+    });
+    const firstRow = page.locator(".todo-item").first();
+    await expect(firstRow.locator(".todo-kebab")).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    await expect(firstRow.locator(".todo-kebab-menu")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(firstRow.locator(".todo-kebab-menu")).toBeHidden();
+    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+  });
+
+  test("drawer close restores focus to originating row", async ({ page }) => {
+    await installDrawerDetailsMockApi(page, [
+      {
+        id: "todo-focus-1",
+        title: "First task",
+        description: null,
+        notes: null,
+        category: "Work",
+        dueDate: null,
+        priority: "medium",
+      },
+      {
+        id: "todo-focus-2",
+        title: "Second task",
+        description: null,
+        notes: null,
+        category: "Home",
+        dueDate: null,
+        priority: "low",
+      },
+    ]);
+    await registerAndOpenTodos(page);
+
+    const secondRow = page.locator('.todo-item[data-todo-id="todo-focus-2"]');
+    await secondRow.locator(".todo-title").click();
+    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+
+    await page.locator("#todoDrawerClose").click();
+    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+    await expect(secondRow).toBeFocused();
   });
 
   test("kebab delete routes through drawer danger zone and removes todo", async ({
