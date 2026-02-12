@@ -3530,7 +3530,7 @@ function renderProjectsRailListHtml({ projects, selectedProject }) {
             data-project-key="${escapeHtml(projectName)}"
             ${isActive ? 'aria-current="page"' : ""}
           >
-            <span>${escapeHtml(getProjectLeafName(projectName))}</span>
+            <span class="projects-rail-item__label" title="${escapeHtml(getProjectLeafName(projectName))}">${escapeHtml(getProjectLeafName(projectName))}</span>
             <span class="projects-rail-item__count">${count}</span>
           </button>
           <button

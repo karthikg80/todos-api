@@ -991,7 +991,7 @@ textarea:focus-visible,
 }
 
 .todos-layout--rail-collapsed {
-  grid-template-columns: 72px minmax(0, 1fr);
+  grid-template-columns: 84px minmax(0, 1fr);
 }
 
 .todos-main-zone {
@@ -1047,7 +1047,7 @@ textarea:focus-visible,
 }
 
 .projects-rail.projects-rail--collapsed {
-  width: 72px;
+  width: 84px;
   padding-left: var(--s-2);
   padding-right: var(--s-2);
 }
@@ -1057,16 +1057,31 @@ textarea:focus-visible,
 }
 
 .projects-rail.projects-rail--collapsed .projects-rail__header h3,
-.projects-rail.projects-rail--collapsed .projects-rail-item span:first-child,
 .projects-rail.projects-rail--collapsed .projects-rail__section-header,
 .projects-rail.projects-rail--collapsed .projects-rail__footer {
   display: none;
 }
 
 .projects-rail.projects-rail--collapsed .projects-rail-item {
-  justify-content: center;
+  justify-content: flex-start;
   padding-left: 6px;
   padding-right: 6px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.projects-rail.projects-rail--collapsed .projects-rail-item__count {
+  display: none;
+}
+
+.projects-rail.projects-rail--collapsed .projects-rail-item__label {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
 }
 
 .projects-rail__header {
@@ -1088,6 +1103,7 @@ textarea:focus-visible,
 .projects-rail__list {
   display: grid;
   gap: 6px;
+  min-width: 0;
 }
 
 .projects-rail__section {
@@ -1113,6 +1129,7 @@ textarea:focus-visible,
 
 .projects-rail-row {
   position: relative;
+  min-width: 0;
 }
 
 .projects-rail-item {
@@ -1129,10 +1146,20 @@ textarea:focus-visible,
   line-height: var(--lh-tight);
   text-align: left;
   min-width: 0;
+  max-width: 100%;
 }
 
 .projects-rail-item > span:first-child {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projects-rail-item__label {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1267,11 +1294,14 @@ button.projects-rail-item {
 }
 
 #projectsRailTopbarLabel {
-  display: inline-block;
+  display: block;
   max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: 1.2;
+  padding-block: 0;
+  font-size: var(--fs-sm);
 }
 
 #todosScrollRegion {
@@ -1305,7 +1335,7 @@ button.projects-rail-item {
 
 .todos-top-bar {
   display: grid;
-  grid-template-columns: minmax(120px, auto) minmax(260px, 1fr) auto;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   margin-bottom: 12px;
@@ -1334,15 +1364,19 @@ button.projects-rail-item {
 }
 
 .todos-top-bar-search {
+  width: 100%;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .search-bar {
   margin-bottom: 0;
   position: relative;
+  min-width: 0;
 }
 
 .search-input {
+  min-width: 0;
   width: 100%;
   padding: 12px 40px 12px 16px;
   border: 1px solid var(--border-color);
@@ -1372,10 +1406,14 @@ button.projects-rail-item {
   display: flex;
   align-items: center;
   gap: 8px;
+  justify-content: flex-end;
+  flex: 0 0 auto;
+  min-width: max-content;
 }
 
 .top-add-btn {
   width: auto;
+  flex: 0 0 auto;
   white-space: nowrap;
 }
 
