@@ -4500,20 +4500,21 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
   const chips = [];
 
   if (todo.dueDate) {
+    const dueLabel = `${isOverdue ? "⚠️" : "📅"} ${dueDateStr}`;
     chips.push(
-      `<span class="todo-chip todo-chip--due ${isOverdue ? "todo-chip--due-overdue" : ""}">${isOverdue ? "⚠️" : "📅"} ${escapeHtml(dueDateStr)}</span>`,
+      `<span class="todo-chip todo-chip--due ${isOverdue ? "todo-chip--due-overdue" : ""}" title="${escapeHtml(dueLabel)}">${escapeHtml(dueLabel)}</span>`,
     );
   }
 
   if (todo.category) {
     chips.push(
-      `<span class="todo-chip todo-chip--project">🏷️ ${escapeHtml(todo.category)}</span>`,
+      `<span class="todo-chip todo-chip--project" title="${escapeHtml(todo.category)}">🏷️ ${escapeHtml(todo.category)}</span>`,
     );
   }
 
   if (todo.priority === "high" && chips.length < 2) {
     chips.push(
-      `<span class="todo-chip todo-chip--priority priority-badge high">HIGH</span>`,
+      `<span class="todo-chip todo-chip--priority priority-badge high" title="High priority">HIGH</span>`,
     );
   }
 
@@ -4703,7 +4704,7 @@ function renderTodos() {
                 data-onchange="toggleTodo('${todo.id}')"
             >
             <div class="todo-content">
-                <div class="todo-title">${escapeHtml(todo.title)}</div>
+                <div class="todo-title" title="${escapeHtml(todo.title)}">${escapeHtml(todo.title)}</div>
                 ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
                 <div class="todo-meta">
                     ${renderTodoChips(todo, { isOverdue, dueDateStr })}
