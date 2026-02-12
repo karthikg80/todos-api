@@ -305,6 +305,11 @@ let isProjectCrudModalOpen = false;
 let projectCrudMode = "create";
 let projectCrudTargetProject = "";
 let lastProjectCrudOpener = null;
+let isCommandPaletteOpen = false;
+let commandPaletteQuery = "";
+let commandPaletteIndex = 0;
+let commandPaletteItems = [];
+let lastFocusedBeforePalette = null;
 const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
@@ -457,6 +462,7 @@ function init() {
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
   bindProjectsRailHandlers();
+  bindCommandPaletteHandlers();
 
   // Check for reset token in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -3533,6 +3539,199 @@ function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
   }
 }
 
+function getCommandPaletteElements() {
+  const overlay = document.getElementById("commandPaletteOverlay");
+  const panel = document.getElementById("commandPalettePanel");
+  const input = document.getElementById("commandPaletteInput");
+  const list = document.getElementById("commandPaletteList");
+  const empty = document.getElementById("commandPaletteEmpty");
+  const title = document.getElementById("commandPaletteTitle");
+  if (!(overlay instanceof HTMLElement)) return null;
+  if (!(panel instanceof HTMLElement)) return null;
+  if (!(input instanceof HTMLInputElement)) return null;
+  if (!(list instanceof HTMLElement)) return null;
+  if (!(empty instanceof HTMLElement)) return null;
+  if (!(title instanceof HTMLElement)) return null;
+  return { overlay, panel, input, list, empty, title };
+}
+
+function buildCommandPaletteItems() {
+  const baseItems = [
+    {
+      id: "add-task",
+      label: "Add task",
+      type: "action",
+      payload: "add-task",
+    },
+    {
+      id: "all-tasks",
+      label: "Go to All tasks",
+      type: "project",
+      payload: "",
+    },
+  ];
+
+  const projectItems = getAllProjects().map((projectName) => ({
+    id: `project-${projectName}`,
+    label: `Go to project: ${getProjectLeafName(projectName)}`,
+    type: "project",
+    payload: projectName,
+  }));
+
+  return [...baseItems, ...projectItems];
+}
+
+function getCommandPaletteVisibleItems() {
+  const query = commandPaletteQuery.trim().toLowerCase();
+  if (!query) {
+    return commandPaletteItems;
+  }
+
+  return commandPaletteItems.filter((item) =>
+    item.label.toLowerCase().includes(query),
+  );
+}
+
+function renderCommandPalette() {
+  const refs = getCommandPaletteElements();
+  if (!refs) return;
+
+  refs.overlay.classList.toggle(
+    "command-palette-overlay--open",
+    isCommandPaletteOpen,
+  );
+  refs.overlay.setAttribute("aria-hidden", String(!isCommandPaletteOpen));
+  refs.input.value = commandPaletteQuery;
+
+  const visibleItems = getCommandPaletteVisibleItems();
+  const maxItems = visibleItems.slice(0, 8);
+  if (maxItems.length === 0) {
+    commandPaletteIndex = 0;
+  } else if (commandPaletteIndex > maxItems.length - 1) {
+    commandPaletteIndex = maxItems.length - 1;
+  }
+
+  refs.input.setAttribute("aria-expanded", String(isCommandPaletteOpen));
+  refs.input.setAttribute(
+    "aria-activedescendant",
+    maxItems.length > 0 ? `commandPaletteOption-${commandPaletteIndex}` : "",
+  );
+
+  refs.list.innerHTML = maxItems
+    .map((item, index) => {
+      const isActive = index === commandPaletteIndex;
+      return `
+        <button
+          type="button"
+          id="commandPaletteOption-${index}"
+          class="command-palette-option ${isActive ? "command-palette-option--active" : ""}"
+          role="option"
+          aria-selected="${isActive ? "true" : "false"}"
+          data-command-id="${escapeHtml(item.id)}"
+        >
+          ${escapeHtml(item.label)}
+        </button>
+      `;
+    })
+    .join("");
+
+  refs.empty.hidden = maxItems.length !== 0;
+}
+
+function findCommandPaletteItemById(itemId) {
+  return getCommandPaletteVisibleItems()
+    .slice(0, 8)
+    .find((item) => item.id === itemId);
+}
+
+function executeCommandPaletteItem(item) {
+  if (!item) return;
+
+  if (item.type === "action" && item.payload === "add-task") {
+    const todosTab = document.querySelector(
+      ".nav-tab[data-onclick*=\"switchView('todos'\"]",
+    );
+    if (!document.getElementById("todosView")?.classList.contains("active")) {
+      switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
+    }
+    closeCommandPalette({ restoreFocus: false });
+    window.requestAnimationFrame(() => {
+      document.getElementById("todoInput")?.focus();
+    });
+    return;
+  }
+
+  if (item.type === "project") {
+    const todosTab = document.querySelector(
+      ".nav-tab[data-onclick*=\"switchView('todos'\"]",
+    );
+    if (!document.getElementById("todosView")?.classList.contains("active")) {
+      switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
+    }
+    const categoryFilter = document.getElementById("categoryFilter");
+    if (categoryFilter instanceof HTMLSelectElement) {
+      categoryFilter.value = String(item.payload || "");
+      filterTodos();
+    }
+    closeCommandPalette({ restoreFocus: false });
+  }
+}
+
+function moveCommandPaletteSelection(delta) {
+  const visibleCount = getCommandPaletteVisibleItems().slice(0, 8).length;
+  if (visibleCount === 0) {
+    commandPaletteIndex = 0;
+    renderCommandPalette();
+    return;
+  }
+  commandPaletteIndex =
+    (commandPaletteIndex + delta + visibleCount) % visibleCount;
+  renderCommandPalette();
+}
+
+function closeCommandPalette({ restoreFocus = true } = {}) {
+  if (!isCommandPaletteOpen) return;
+  isCommandPaletteOpen = false;
+  commandPaletteQuery = "";
+  commandPaletteIndex = 0;
+  renderCommandPalette();
+
+  if (restoreFocus && lastFocusedBeforePalette instanceof HTMLElement) {
+    lastFocusedBeforePalette.focus({ preventScroll: true });
+  }
+}
+
+function openCommandPalette() {
+  if (!currentUser) return;
+
+  const refs = getCommandPaletteElements();
+  if (!refs) return;
+  if (isCommandPaletteOpen) return;
+
+  lastFocusedBeforePalette =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+  commandPaletteItems = buildCommandPaletteItems();
+  commandPaletteQuery = "";
+  commandPaletteIndex = 0;
+  isCommandPaletteOpen = true;
+  renderCommandPalette();
+
+  window.requestAnimationFrame(() => {
+    refs.input.focus();
+    refs.input.select();
+  });
+}
+
+function toggleCommandPalette() {
+  if (isCommandPaletteOpen) {
+    closeCommandPalette({ restoreFocus: true });
+    return;
+  }
+  openCommandPalette();
+}
+
 function focusActiveProjectItem({ preferSheet = false } = {}) {
   const refs = getProjectsRailElements();
   if (!refs) return;
@@ -5364,6 +5563,71 @@ async function restoreTodo(todoData) {
 }
 
 document.addEventListener("keydown", function (e) {
+  const isCommandK =
+    (e.ctrlKey || e.metaKey) &&
+    !e.shiftKey &&
+    !e.altKey &&
+    e.key.toLowerCase() === "k";
+  if (isCommandK && !e.isComposing) {
+    e.preventDefault();
+    toggleCommandPalette();
+    return;
+  }
+
+  if (isCommandPaletteOpen) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      closeCommandPalette({ restoreFocus: true });
+      return;
+    }
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      moveCommandPaletteSelection(1);
+      return;
+    }
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      moveCommandPaletteSelection(-1);
+      return;
+    }
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const currentItem = getCommandPaletteVisibleItems().slice(0, 8)[
+        commandPaletteIndex
+      ];
+      executeCommandPaletteItem(currentItem);
+      return;
+    }
+
+    if (e.key === "Tab") {
+      const refs = getCommandPaletteElements();
+      if (!refs) return;
+      const focusable = refs.panel.querySelectorAll(
+        'input, button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (focusable.length === 0) return;
+      const focusableItems = Array.from(focusable).filter(
+        (el) => el instanceof HTMLElement && !el.hidden,
+      );
+      if (focusableItems.length === 0) return;
+
+      const first = focusableItems[0];
+      const last = focusableItems[focusableItems.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+        return;
+      }
+      if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+
   if (e.key === "Escape" && isProjectCrudModalOpen) {
     e.preventDefault();
     closeProjectCrudModal();
@@ -5605,6 +5869,7 @@ function switchView(view, triggerEl = null) {
   setTodosViewBodyState(view === "todos");
 
   if (view === "todos") {
+    closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
@@ -5614,12 +5879,14 @@ function switchView(view, triggerEl = null) {
     loadAiInsights();
     loadAiFeedbackSummary();
   } else if (view === "profile") {
+    closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
     closeTodoDrawer({ restoreFocus: false });
     updateUserDisplay();
   } else if (view === "admin") {
+    closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
@@ -5898,6 +6165,47 @@ function bindProjectsRailHandlers() {
   });
 }
 
+function bindCommandPaletteHandlers() {
+  if (window.__commandPaletteHandlersBound) {
+    return;
+  }
+  window.__commandPaletteHandlersBound = true;
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    const overlay = target.closest("#commandPaletteOverlay");
+    if (
+      overlay instanceof HTMLElement &&
+      target.id === "commandPaletteOverlay"
+    ) {
+      closeCommandPalette({ restoreFocus: true });
+      return;
+    }
+
+    if (!isCommandPaletteOpen) return;
+
+    const option = target.closest("[data-command-id]");
+    if (!(option instanceof HTMLElement)) return;
+    event.preventDefault();
+    const item = findCommandPaletteItemById(
+      option.getAttribute("data-command-id") || "",
+    );
+    executeCommandPaletteItem(item);
+  });
+
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id !== "commandPaletteInput") return;
+    commandPaletteQuery =
+      target instanceof HTMLInputElement ? target.value : String(target.value);
+    commandPaletteIndex = 0;
+    renderCommandPalette();
+  });
+}
+
 function bindCriticalHandlers() {
   const bindClick = (id, handler) => {
     const element = document.getElementById(id);
@@ -6003,6 +6311,7 @@ async function logout() {
   document.getElementById("undoToast")?.classList.remove("active");
   clearFilters();
   clearPlanDraftState();
+  closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
   closeProjectsRailSheet({ restoreFocus: false });
   closeTodoDrawer({ restoreFocus: false });
@@ -6017,6 +6326,7 @@ function showAppView() {
   document.getElementById("navTabs").style.display = "flex";
   document.getElementById("userBar").style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
+  closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
   openRailProjectMenuKey = null;
   closeMoreFilters();
@@ -6051,6 +6361,7 @@ function showAuthView() {
   document.getElementById("userBar").style.display = "none";
   document.getElementById("adminNavTab").style.display = "none";
   adminBootstrapAvailable = false;
+  closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
   openRailProjectMenuKey = null;
   closeMoreFilters();
