@@ -973,6 +973,40 @@
       <button data-onclick="performUndo()">Undo</button>
     </div>
 
+    <!-- Command Palette -->
+    <div
+      id="commandPaletteOverlay"
+      class="command-palette-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="commandPaletteTitle"
+      aria-hidden="true"
+    >
+      <div id="commandPalettePanel" class="command-palette-panel">
+        <h2 id="commandPaletteTitle" class="sr-only">Command palette</h2>
+        <label for="commandPaletteInput" class="sr-only">Type a command</label>
+        <input
+          id="commandPaletteInput"
+          class="command-palette-input"
+          type="text"
+          placeholder="Type a command…"
+          autocomplete="off"
+          spellcheck="false"
+          role="combobox"
+          aria-controls="commandPaletteList"
+          aria-expanded="false"
+        />
+        <div
+          id="commandPaletteList"
+          class="command-palette-list"
+          role="listbox"
+        ></div>
+        <div id="commandPaletteEmpty" class="command-palette-empty" hidden>
+          No results
+        </div>
+      </div>
+    </div>
+
     <!-- Keyboard Shortcuts Overlay -->
     <div
       id="shortcutsOverlay"
