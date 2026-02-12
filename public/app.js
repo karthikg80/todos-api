@@ -3442,21 +3442,68 @@ function formatVisibleTaskCount(taskCount) {
   return `${taskCount} ${taskCount === 1 ? "task" : "tasks"}`;
 }
 
-function updateTodosListHeader({
-  selectedProject = "",
+function getSelectedProjectFilterValue() {
+  const filter = document.getElementById("categoryFilter");
+  if (!(filter instanceof HTMLSelectElement)) {
+    return "";
+  }
+  return normalizeProjectPath(filter.value);
+}
+
+function getSelectedProjectName() {
+  return getSelectedProjectLabel(getSelectedProjectFilterValue());
+}
+
+function getVisibleTodosCount(visibleTodos = []) {
+  return Array.isArray(visibleTodos) ? visibleTodos.length : 0;
+}
+
+function getCurrentDateViewLabel() {
+  const labels = {
+    all: "",
+    today: "Today",
+    upcoming: "Upcoming",
+    next_month: "Next month",
+    someday: "Someday",
+  };
+  return labels[currentDateView] || "";
+}
+
+function updateHeaderAndContextUI({
+  projectName = "All tasks",
   visibleCount = 0,
+  dateLabel = "",
 } = {}) {
+  const breadcrumbEl = document.getElementById("todosListHeaderBreadcrumb");
   const titleEl = document.getElementById("todosListHeaderTitle");
   const countEl = document.getElementById("todosListHeaderCount");
-  if (!(titleEl instanceof HTMLElement) || !(countEl instanceof HTMLElement)) {
+  const dateBadgeEl = document.getElementById("todosListHeaderDateBadge");
+  if (
+    !(titleEl instanceof HTMLElement) ||
+    !(countEl instanceof HTMLElement) ||
+    !(breadcrumbEl instanceof HTMLElement) ||
+    !(dateBadgeEl instanceof HTMLElement)
+  ) {
     return;
   }
 
-  titleEl.textContent = getSelectedProjectLabel(selectedProject);
+  breadcrumbEl.textContent = "Projects /";
+  titleEl.textContent = projectName;
+  titleEl.setAttribute("title", projectName);
   countEl.textContent = formatVisibleTaskCount(visibleCount);
+
+  if (dateLabel) {
+    dateBadgeEl.hidden = false;
+    dateBadgeEl.textContent = dateLabel;
+  } else {
+    dateBadgeEl.hidden = true;
+    dateBadgeEl.textContent = "";
+  }
+
+  updateTopbarProjectsButton(projectName);
 }
 
-function updateTopbarProjectsButton(selectedProject = "") {
+function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
   const refs = getProjectsRailElements();
   if (!refs) return;
 
@@ -3480,8 +3527,9 @@ function updateTopbarProjectsButton(selectedProject = "") {
   }
 
   if (topbarLabel instanceof HTMLElement) {
-    const label = getSelectedProjectLabel(selectedProject);
+    const label = selectedProjectName || "All tasks";
     topbarLabel.innerHTML = `Projects: <span class="projects-active-label">${escapeHtml(label)}</span>`;
+    topbarLabel.setAttribute("title", `Projects: ${label}`);
   }
 }
 
@@ -3599,8 +3647,7 @@ function renderProjectsRail() {
     closeProjectsRailSheet({ restoreFocus: false });
   }
 
-  const selectedProject =
-    document.getElementById("categoryFilter")?.value || "";
+  const selectedProject = getSelectedProjectFilterValue();
   const allCount = todos.length;
   const projects = getAllProjects();
   if (openRailProjectMenuKey && !projects.includes(openRailProjectMenuKey)) {
@@ -3631,7 +3678,7 @@ function renderProjectsRail() {
 
   setProjectsRailActiveState(selectedProject);
   setProjectsRailCollapsed(isRailCollapsed);
-  updateTopbarProjectsButton(selectedProject);
+  updateTopbarProjectsButton(getSelectedProjectLabel(selectedProject));
 }
 
 function setProjectsRailCollapsed(nextCollapsed) {
@@ -3650,9 +3697,7 @@ function setProjectsRailCollapsed(nextCollapsed) {
   );
   refs.collapseToggle.setAttribute("aria-expanded", String(!isRailCollapsed));
   refs.collapseToggle.textContent = isRailCollapsed ? "Expand" : "Collapse";
-  const selectedProject =
-    document.getElementById("categoryFilter")?.value || "";
-  updateTopbarProjectsButton(selectedProject);
+  updateTopbarProjectsButton(getSelectedProjectName());
 }
 
 function closeRailProjectMenu({ restoreFocus = false } = {}) {
@@ -4527,8 +4572,8 @@ function renderTodos() {
   if (!container) return;
 
   renderProjectsRail();
-  const selectedProject =
-    document.getElementById("categoryFilter")?.value || "";
+  const selectedProjectName = getSelectedProjectName();
+  const currentDateViewLabel = getCurrentDateViewLabel();
 
   if (todosLoadState !== "loading" && todos.length > 0) {
     todosLoadState = "ready";
@@ -4545,7 +4590,11 @@ function renderTodos() {
   }
 
   if (todosLoadState === "loading") {
-    updateTodosListHeader({ selectedProject, visibleCount: 0 });
+    updateHeaderAndContextUI({
+      projectName: selectedProjectName,
+      visibleCount: 0,
+      dateLabel: currentDateViewLabel,
+    });
     const skeletonRows = Array.from({ length: 6 })
       .map(
         () => `
@@ -4585,7 +4634,11 @@ function renderTodos() {
   }
 
   if (todosLoadState === "error" && todos.length === 0) {
-    updateTodosListHeader({ selectedProject, visibleCount: 0 });
+    updateHeaderAndContextUI({
+      projectName: selectedProjectName,
+      visibleCount: 0,
+      dateLabel: currentDateViewLabel,
+    });
     isTodoDrawerOpen = false;
     selectedTodoId = null;
     openTodoKebabId = null;
@@ -4604,7 +4657,11 @@ function renderTodos() {
   }
 
   if (todos.length === 0) {
-    updateTodosListHeader({ selectedProject, visibleCount: 0 });
+    updateHeaderAndContextUI({
+      projectName: selectedProjectName,
+      visibleCount: 0,
+      dateLabel: currentDateViewLabel,
+    });
     isTodoDrawerOpen = false;
     selectedTodoId = null;
     openTodoKebabId = null;
@@ -4623,9 +4680,10 @@ function renderTodos() {
   }
 
   const filteredTodos = getVisibleTodos();
-  updateTodosListHeader({
-    selectedProject,
-    visibleCount: filteredTodos.length,
+  updateHeaderAndContextUI({
+    projectName: selectedProjectName,
+    visibleCount: getVisibleTodosCount(filteredTodos),
+    dateLabel: currentDateViewLabel,
   });
   if (
     openTodoKebabId &&
