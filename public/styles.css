@@ -961,6 +961,7 @@ textarea:focus-visible,
   grid-template-columns: minmax(208px, 240px) minmax(0, 1fr);
   gap: 14px;
   align-items: start;
+  min-width: 0;
 }
 
 .todos-layout--rail-collapsed {
@@ -969,6 +970,7 @@ textarea:focus-visible,
 
 .todos-main-zone {
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .todos-list-header {
@@ -1094,6 +1096,14 @@ textarea:focus-visible,
   font: inherit;
   line-height: var(--lh-tight);
   text-align: left;
+  min-width: 0;
+}
+
+.projects-rail-item > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 button.projects-rail-item {
@@ -1222,6 +1232,14 @@ button.projects-rail-item {
 .projects-rail-mobile-open .projects-active-label {
   color: var(--text-secondary);
   font-size: 0.82em;
+}
+
+#projectsRailTopbarLabel {
+  display: inline-block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .projects-rail-backdrop,
@@ -1628,6 +1646,7 @@ button.projects-rail-item {
   justify-self: end;
   align-self: start;
   position: relative;
+  min-width: 0;
 }
 
 .todo-kebab {
@@ -2908,6 +2927,7 @@ body.is-drawer-open {
     background 140ms ease,
     border-color 140ms ease,
     box-shadow 140ms ease;
+  min-width: 0;
 }
 
 .todo-item:hover {
@@ -2933,6 +2953,10 @@ body.is-drawer-open {
   font-size: 0.98rem;
   font-weight: var(--fw-semibold);
   line-height: var(--lh-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .todo-description {
@@ -2953,6 +2977,7 @@ body.is-drawer-open {
   align-items: center;
   gap: var(--s-2);
   min-height: 24px;
+  min-width: 0;
 }
 
 .todo-meta > :not(.todo-chip) {
@@ -2974,6 +2999,9 @@ body.is-drawer-open {
   line-height: 1.25;
   white-space: nowrap;
   max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .todo-chip--project {
