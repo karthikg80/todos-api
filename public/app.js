@@ -3416,7 +3416,9 @@ async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
 function updateDrawerDraftField(field, value) {
   if (!drawerDraft) return;
   drawerDraft[field] = value;
-  setDrawerSaveState("idle");
+  if (drawerSaveState !== "saving") {
+    setDrawerSaveState("idle");
+  }
 }
 
 function onDrawerTitleInput(event) {
@@ -3732,13 +3734,13 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
   unlockBodyScrollForDrawer();
 
   if (restoreFocus && lastFocusedTodoTrigger?.isConnected) {
-    lastFocusedTodoTrigger.focus();
+    lastFocusedTodoTrigger.focus({ preventScroll: true });
   } else if (restoreFocus && lastFocusedTodoId) {
     const fallback = document.querySelector(
       `.todo-item[data-todo-id="${escapeSelectorValue(lastFocusedTodoId)}"]`,
     );
     if (fallback instanceof HTMLElement) {
-      fallback.focus();
+      fallback.focus({ preventScroll: true });
     }
   }
   lastFocusedTodoTrigger = null;

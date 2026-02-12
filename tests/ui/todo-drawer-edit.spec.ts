@@ -299,6 +299,50 @@ test.describe("Todo drawer essentials editing", () => {
     await expect(page.locator("#drawerSaveStatus")).toContainText("Saved");
   });
 
+  test("keeps focus and active-row highlight stable after save rerender", async ({
+    page,
+  }) => {
+    const state = await installDrawerEditMockApi(page, [
+      {
+        id: "todo-focus-1",
+        title: "Focus task",
+        description: "Description",
+        notes: null,
+        category: "Home",
+        dueDate: null,
+        priority: "medium",
+      },
+      {
+        id: "todo-focus-2",
+        title: "Other task",
+        description: null,
+        notes: null,
+        category: "Work",
+        dueDate: null,
+        priority: "low",
+      },
+    ]);
+
+    await registerAndOpenTodos(page);
+    await openFirstTodoDrawer(page);
+
+    await page.locator("#drawerTitleInput").fill("Focus task updated");
+    await page.locator("#drawerTitleInput").press("Control+Enter");
+
+    await expect
+      .poll(() =>
+        state.updatePatches.some(
+          (entry) => entry.patch.title === "Focus task updated",
+        ),
+      )
+      .toBeTruthy();
+
+    await expect(page.locator("#drawerTitleInput")).toBeFocused();
+    await expect(
+      page.locator('.todo-item[data-todo-id="todo-focus-1"]'),
+    ).toHaveClass(/todo-item--active/);
+  });
+
   test("shows save error and preserves unsaved title on API failure", async ({
     page,
   }) => {
