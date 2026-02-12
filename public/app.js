@@ -2779,10 +2779,7 @@ async function renameProjectByName(fromProjectName, toProjectName) {
     return false;
   }
 
-  const activeProject =
-    document.getElementById("categoryFilter") instanceof HTMLSelectElement
-      ? document.getElementById("categoryFilter").value
-      : "";
+  const activeProject = getSelectedProjectKey();
 
   await loadProjects();
   await loadTodos();
@@ -2848,9 +2845,7 @@ async function deleteProjectByName(projectName) {
     return false;
   }
 
-  const categoryFilter = document.getElementById("categoryFilter");
-  const activeProject =
-    categoryFilter instanceof HTMLSelectElement ? categoryFilter.value : "";
+  const activeProject = getSelectedProjectKey();
   const deletedPrefix = `${normalized}${PROJECT_PATH_SEPARATOR}`;
   const shouldFallback =
     activeProject === normalized || activeProject.startsWith(deletedPrefix);
@@ -3325,7 +3320,7 @@ function filterTodosList(todosList) {
   let filtered = todosList;
 
   // Category filter
-  const categoryFilter = document.getElementById("categoryFilter").value;
+  const categoryFilter = getSelectedProjectKey();
   if (categoryFilter) {
     filtered = filtered.filter((todo) => {
       const todoProject = normalizeProjectPath(todo.category);
@@ -3457,8 +3452,37 @@ function getSelectedProjectFilterValue() {
   return normalizeProjectPath(filter.value);
 }
 
+function getSelectedProjectKey() {
+  return getSelectedProjectFilterValue();
+}
+
+function setSelectedProjectKey(value = "") {
+  const filterSelect = document.getElementById("categoryFilter");
+  if (!(filterSelect instanceof HTMLSelectElement)) {
+    return "";
+  }
+
+  const normalizedValue =
+    typeof value === "string" ? normalizeProjectPath(value) : "";
+  const nextValue = normalizedValue || "";
+
+  if (
+    nextValue &&
+    !Array.from(filterSelect.options).some((opt) => opt.value === nextValue)
+  ) {
+    updateCategoryFilter();
+  }
+
+  if (filterSelect.value !== nextValue) {
+    filterSelect.value = nextValue;
+  }
+
+  filterTodos();
+  return nextValue;
+}
+
 function getSelectedProjectName() {
-  return getSelectedProjectLabel(getSelectedProjectFilterValue());
+  return getSelectedProjectLabel(getSelectedProjectKey());
 }
 
 function getVisibleTodosCount(visibleTodos = []) {
@@ -3508,6 +3532,25 @@ function updateHeaderAndContextUI({
   }
 
   updateTopbarProjectsButton(projectName);
+}
+
+function updateHeaderFromVisibleTodos(visibleTodos = []) {
+  updateHeaderAndContextUI({
+    projectName: getSelectedProjectName(),
+    visibleCount: getVisibleTodosCount(visibleTodos),
+    dateLabel: getCurrentDateViewLabel(),
+  });
+}
+
+function assertNoHorizontalOverflow(container) {
+  if (!window.__ASSERT_UI_OVERFLOW__) return;
+  if (!(container instanceof HTMLElement)) return;
+  if (container.scrollWidth > container.clientWidth + 1) {
+    console.warn("Horizontal overflow detected in todos scroll region", {
+      scrollWidth: container.scrollWidth,
+      clientWidth: container.clientWidth,
+    });
+  }
 }
 
 function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
@@ -3791,11 +3834,7 @@ function executeCommandPaletteItem(item, triggerEl = null) {
     if (!document.getElementById("todosView")?.classList.contains("active")) {
       switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
     }
-    const categoryFilter = document.getElementById("categoryFilter");
-    if (categoryFilter instanceof HTMLSelectElement) {
-      categoryFilter.value = String(item.payload || "");
-      filterTodos();
-    }
+    setSelectedProjectKey(String(item.payload || ""));
     closeCommandPalette({ restoreFocus: false });
   }
 
@@ -3988,7 +4027,7 @@ function renderProjectsRail() {
     closeProjectsRailSheet({ restoreFocus: false });
   }
 
-  const selectedProject = getSelectedProjectFilterValue();
+  const selectedProject = getSelectedProjectKey();
   const allCount = todos.length;
   const projects = getAllProjects();
   if (openRailProjectMenuKey && !projects.includes(openRailProjectMenuKey)) {
@@ -4137,8 +4176,7 @@ function closeProjectsRailSheet({ restoreFocus = false } = {}) {
   refs.mobileOpenButton.setAttribute("aria-expanded", "false");
 
   unlockBodyScrollForProjectsRail();
-  const selectedProject =
-    document.getElementById("categoryFilter")?.value || "";
+  const selectedProject = getSelectedProjectKey();
   updateTopbarProjectsButton(selectedProject);
 
   if (restoreFocus) {
@@ -4154,21 +4192,7 @@ function selectProjectFromRail(projectName, triggerEl = null) {
   if (openRailProjectMenuKey) {
     openRailProjectMenuKey = null;
   }
-  const filterSelect = document.getElementById("categoryFilter");
-  if (!(filterSelect instanceof HTMLSelectElement)) return;
-
-  if (
-    projectName &&
-    !Array.from(filterSelect.options).some((opt) => opt.value === projectName)
-  ) {
-    updateCategoryFilter();
-  }
-
-  if (filterSelect.value !== projectName) {
-    filterSelect.value = projectName;
-  }
-
-  filterTodos();
+  setSelectedProjectKey(projectName);
 
   if (isRailSheetOpen) {
     closeProjectsRailSheet({
@@ -4913,8 +4937,7 @@ function renderTodos() {
   if (!container) return;
 
   renderProjectsRail();
-  const selectedProjectName = getSelectedProjectName();
-  const currentDateViewLabel = getCurrentDateViewLabel();
+  const scrollRegion = document.getElementById("todosScrollRegion");
 
   if (todosLoadState !== "loading" && todos.length > 0) {
     todosLoadState = "ready";
@@ -4931,11 +4954,7 @@ function renderTodos() {
   }
 
   if (todosLoadState === "loading") {
-    updateHeaderAndContextUI({
-      projectName: selectedProjectName,
-      visibleCount: 0,
-      dateLabel: currentDateViewLabel,
-    });
+    updateHeaderFromVisibleTodos([]);
     const skeletonRows = Array.from({ length: 6 })
       .map(
         () => `
@@ -4971,15 +4990,12 @@ function renderTodos() {
     syncTodoDrawerStateWithRender();
     updateBulkActionsVisibility();
     updateIcsExportButtonState();
+    assertNoHorizontalOverflow(scrollRegion);
     return;
   }
 
   if (todosLoadState === "error" && todos.length === 0) {
-    updateHeaderAndContextUI({
-      projectName: selectedProjectName,
-      visibleCount: 0,
-      dateLabel: currentDateViewLabel,
-    });
+    updateHeaderFromVisibleTodos([]);
     isTodoDrawerOpen = false;
     selectedTodoId = null;
     openTodoKebabId = null;
@@ -4994,15 +5010,12 @@ function renderTodos() {
     syncTodoDrawerStateWithRender();
     updateBulkActionsVisibility();
     updateIcsExportButtonState();
+    assertNoHorizontalOverflow(scrollRegion);
     return;
   }
 
   if (todos.length === 0) {
-    updateHeaderAndContextUI({
-      projectName: selectedProjectName,
-      visibleCount: 0,
-      dateLabel: currentDateViewLabel,
-    });
+    updateHeaderFromVisibleTodos([]);
     isTodoDrawerOpen = false;
     selectedTodoId = null;
     openTodoKebabId = null;
@@ -5017,15 +5030,12 @@ function renderTodos() {
     syncTodoDrawerStateWithRender();
     updateBulkActionsVisibility();
     updateIcsExportButtonState();
+    assertNoHorizontalOverflow(scrollRegion);
     return;
   }
 
   const filteredTodos = getVisibleTodos();
-  updateHeaderAndContextUI({
-    projectName: selectedProjectName,
-    visibleCount: getVisibleTodosCount(filteredTodos),
-    dateLabel: currentDateViewLabel,
-  });
+  updateHeaderFromVisibleTodos(filteredTodos);
   if (
     openTodoKebabId &&
     !filteredTodos.some((todo) => String(todo.id) === String(openTodoKebabId))
@@ -5184,6 +5194,7 @@ function renderTodos() {
   syncTodoDrawerStateWithRender();
   updateBulkActionsVisibility();
   updateIcsExportButtonState();
+  assertNoHorizontalOverflow(scrollRegion);
 }
 
 // ========== PHASE B: PRIORITY, NOTES, SUBTASKS ==========
