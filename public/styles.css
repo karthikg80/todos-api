@@ -1041,6 +1041,16 @@ textarea:focus-visible,
   font-weight: var(--fw-medium);
 }
 
+.projects-rail-create-btn {
+  width: auto;
+  padding: 6px 10px;
+  font-size: 0.78rem;
+}
+
+.projects-rail-row {
+  position: relative;
+}
+
 .projects-rail-item {
   border: 1px solid transparent;
   border-radius: var(--r-sm);
@@ -1059,6 +1069,81 @@ textarea:focus-visible,
 button.projects-rail-item {
   width: 100%;
   cursor: pointer;
+}
+
+.projects-rail-kebab {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+}
+
+.projects-rail-row:hover .projects-rail-kebab,
+.projects-rail-row:focus-within .projects-rail-kebab,
+.projects-rail-row--menu-open .projects-rail-kebab {
+  opacity: 1;
+}
+
+.projects-rail-kebab:hover {
+  background: var(--surface);
+  border-color: var(--border-color);
+}
+
+.projects-rail-kebab:focus-visible {
+  opacity: 1;
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.projects-rail-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 140px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-1);
+  padding: 4px;
+  display: none;
+  z-index: 80;
+}
+
+.projects-rail-menu--open {
+  display: grid;
+  gap: 2px;
+}
+
+.projects-rail-menu-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  padding: 7px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.projects-rail-menu-item:hover {
+  background: var(--surface);
+  border-color: var(--border-color);
+}
+
+.projects-rail-menu-item--danger {
+  color: #b42318;
 }
 
 .projects-rail-item:hover {
@@ -1088,6 +1173,10 @@ button.projects-rail-item {
 
 .projects-rail__footer .mini-btn {
   width: 100%;
+}
+
+.project-crud-modal-card {
+  max-width: 420px;
 }
 
 .projects-rail-mobile-open {
@@ -1721,6 +1810,10 @@ button.projects-rail-item {
     align-items: center;
     justify-content: center;
     white-space: nowrap;
+  }
+
+  .projects-rail-kebab {
+    opacity: 1;
   }
 
   .projects-rail-backdrop {
