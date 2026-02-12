@@ -1712,6 +1712,14 @@ button.projects-rail-item {
   overflow-y: auto;
 }
 
+.command-palette-section {
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+}
+
 .command-palette-option {
   width: 100%;
   text-align: left;
@@ -1733,6 +1741,34 @@ button.projects-rail-item {
 .command-palette-option:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+.command-palette-option--task {
+  display: grid;
+  gap: 2px;
+}
+
+.command-palette-option__title {
+  color: var(--text-primary);
+  font-size: var(--fs-sm);
+  line-height: var(--lh-tight);
+}
+
+.command-palette-option__meta {
+  color: var(--text-secondary);
+  font-size: var(--fs-xs);
+  line-height: var(--lh-base);
+}
+
+.command-palette-option--completed .command-palette-option__title,
+.command-palette-option--completed .command-palette-option__meta {
+  color: var(--text-muted);
+}
+
+.command-palette-inline-empty {
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  padding: 8px 10px;
 }
 
 .command-palette-empty {
