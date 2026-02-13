@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { registerAndOpenTodosView } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -148,16 +149,6 @@ async function installTopbarInvariantMockApi(
   });
 }
 
-async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Register" }).click();
-  await page.locator("#registerName").fill("Topbar Invariants");
-  await page.locator("#registerEmail").fill("topbar-invariants@example.com");
-  await page.locator("#registerPassword").fill("Password123!");
-  await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
 test.describe("Topbar CTA invariants", () => {
   test("rail expanded keeps CTAs visible and controls consistent", async ({
     page,
@@ -181,7 +172,10 @@ test.describe("Topbar CTA invariants", () => {
     ]);
 
     await page.setViewportSize({ width: 1280, height: 880 });
-    await registerAndOpenTodos(page);
+    await registerAndOpenTodosView(page, {
+      name: "Topbar Invariants",
+      email: "topbar-invariants@example.com",
+    });
 
     const rail = page.locator("#projectsRail");
     if (
