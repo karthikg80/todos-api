@@ -1163,6 +1163,7 @@ textarea:focus-visible,
 .projects-rail-row {
   position: relative;
   min-width: 0;
+  padding-right: 34px;
 }
 
 .projects-rail-item {
@@ -1206,7 +1207,7 @@ button.projects-rail-item {
 .projects-rail-kebab {
   position: absolute;
   top: 50%;
-  right: 6px;
+  right: 4px;
   transform: translateY(-50%);
   width: 24px;
   height: 24px;
@@ -1219,6 +1220,8 @@ button.projects-rail-item {
   align-items: center;
   justify-content: center;
   opacity: 0;
+  pointer-events: auto;
+  z-index: 1;
 }
 
 .projects-rail-row:hover .projects-rail-kebab,
@@ -3444,4 +3447,183 @@ body.dark-mode .todo-chip--due-overdue {
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+/* M7 PR77: inputs + buttons calm-system normalization (CSS only) */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff;
+  border: 1px solid transparent;
+}
+
+.btn-secondary {
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid transparent;
+}
+
+.add-btn,
+.btn {
+  min-height: 40px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-sm);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff;
+  border: 1px solid transparent;
+  font-weight: var(--fw-semibold);
+}
+
+.mini-btn {
+  min-height: 40px;
+  padding: 0 var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  font-weight: var(--fw-medium);
+}
+
+.mini-btn:hover {
+  background: color-mix(in oklab, var(--surface-2) 70%, var(--surface));
+  border-color: color-mix(in oklab, var(--border-color) 72%, var(--text-muted));
+  opacity: 1;
+}
+
+.top-add-btn,
+.more-filters-toggle,
+#projectsRailMobileOpen {
+  min-height: 40px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+#projectsRailToggle,
+.projects-rail-kebab,
+.todo-kebab {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.search-input,
+.quick-entry > input,
+.field-row input,
+.field-row select,
+.ai-workspace-inputs input,
+.add-subtask-input,
+.todo-inline-actions select,
+.todo-kebab-project-label select,
+.todo-drawer__field input[type="text"],
+.todo-drawer__field input[type="date"],
+.todo-drawer__field select {
+  min-height: 40px;
+  padding-left: var(--s-3);
+  padding-right: var(--s-3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.todo-drawer__field textarea,
+.notes-textarea,
+.ai-brain-dump-input {
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.search-input:hover,
+.quick-entry > input:hover,
+.field-row input:hover,
+.field-row select:hover,
+.ai-workspace-inputs input:hover,
+.todo-drawer__field input[type="text"]:hover,
+.todo-drawer__field input[type="date"]:hover,
+.todo-drawer__field select:hover,
+.todo-drawer__field textarea:hover,
+.notes-textarea:hover,
+.ai-brain-dump-input:hover,
+.mini-btn:hover {
+  border-color: color-mix(in oklab, var(--border-color) 72%, var(--text-muted));
+}
+
+.search-input:focus,
+.quick-entry > input:focus,
+.field-row input:focus,
+.field-row select:focus,
+.ai-workspace-inputs input:focus,
+.todo-drawer__field input[type="text"]:focus,
+.todo-drawer__field input[type="date"]:focus,
+.todo-drawer__field select:focus,
+.todo-drawer__field textarea:focus,
+.notes-textarea:focus,
+.ai-brain-dump-input:focus,
+.mini-btn:focus,
+.add-btn:focus,
+.btn:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.todos-top-bar {
+  min-width: 0;
+}
+
+.todos-top-bar-left,
+.todos-top-bar-search,
+.todos-top-bar-actions {
+  min-width: 0;
+}
+
+.todos-top-bar-actions {
+  flex-wrap: nowrap;
+}
+
+#projectsRailTopbarLabel {
+  line-height: var(--lh-tight);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todo-chip {
+  min-height: 24px;
+  line-height: 1.2;
+  background: var(--surface-2);
+  border-color: color-mix(in oklab, var(--border-color) 88%, var(--surface));
+}
+
+.todo-chip--project {
+  background: color-mix(in oklab, var(--surface-2) 84%, var(--accent));
+  border-color: color-mix(in oklab, var(--border-color) 74%, var(--accent));
+}
+
+.todo-chip--priority.low,
+.todo-chip--priority.medium,
+.todo-chip--priority.high {
+  filter: saturate(0.82);
 }
