@@ -3383,7 +3383,10 @@ function filterTodos({ skipPipeline = false, reason = "manual" } = {}) {
 
 // Clear all filters
 function clearFilters() {
-  document.getElementById("categoryFilter").value = "";
+  setSelectedProjectKey("", {
+    reason: "clear-filters-reset-project",
+    skipApply: true,
+  });
   document.getElementById("searchInput").value = "";
   setDateView("all", { skipApply: true });
   applyFiltersAndRender({ reason: "clear-filters" });
@@ -3479,7 +3482,10 @@ function getSelectedProjectKey() {
   return getSelectedProjectFilterValue();
 }
 
-function setSelectedProjectKey(value = "") {
+function setSelectedProjectKey(
+  value = "",
+  { reason = "project-selection", skipApply = false } = {},
+) {
   const filterSelect = document.getElementById("categoryFilter");
   if (!(filterSelect instanceof HTMLSelectElement)) {
     return "";
@@ -3501,7 +3507,9 @@ function setSelectedProjectKey(value = "") {
   }
 
   railRovingFocusKey = nextValue || "";
-  applyFiltersAndRender({ reason: "project-selection" });
+  if (!skipApply) {
+    applyFiltersAndRender({ reason });
+  }
   return nextValue;
 }
 
@@ -6470,6 +6478,12 @@ function bindProjectsRailHandlers() {
     if (event.key === "Escape" && inSheetRail && isRailSheetOpen) {
       event.preventDefault();
       closeProjectsRailSheet({ restoreFocus: true });
+      return;
+    }
+
+    if (event.key === "Escape" && inDesktopRail) {
+      event.preventDefault();
+      refs.collapseToggle.focus({ preventScroll: true });
     }
   });
 }
