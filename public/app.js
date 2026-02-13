@@ -297,6 +297,7 @@ let todosLoadState = "idle";
 let todosLoadErrorMessage = "";
 let isRailCollapsed = false;
 let isRailSheetOpen = false;
+let railRovingFocusKey = "";
 let railScrollLockY = 0;
 let isRailBodyLocked = false;
 let lastFocusedRailTrigger = null;
@@ -3499,6 +3500,7 @@ function setSelectedProjectKey(value = "") {
     filterSelect.value = nextValue;
   }
 
+  railRovingFocusKey = nextValue || "";
   applyFiltersAndRender({ reason: "project-selection" });
   return nextValue;
 }
@@ -3939,10 +3941,15 @@ function focusActiveProjectItem({ preferSheet = false } = {}) {
   const refs = getProjectsRailElements();
   if (!refs) return;
   const root = preferSheet ? refs.sheet : refs.desktopRail;
+  const selectedProject = getSelectedProjectKey();
+  const optionSelector = `.projects-rail-item[data-project-key="${escapeSelectorValue(selectedProject)}"]`;
   const activeItem =
+    root.querySelector(optionSelector) ||
+    root.querySelector('.projects-rail-item[data-project-key=""]') ||
     root.querySelector('.projects-rail-item[aria-current="page"]') ||
     root.querySelector(".projects-rail-item[data-project-key]");
   if (activeItem instanceof HTMLElement) {
+    railRovingFocusKey = activeItem.getAttribute("data-project-key") || "";
     activeItem.focus();
   }
 }
@@ -4018,27 +4025,88 @@ function renderProjectsRailListHtml({ projects, selectedProject }) {
     .join("");
 }
 
+function getRailOptionElements(root) {
+  return Array.from(
+    root.querySelectorAll(".projects-rail-item[data-project-key]"),
+  ).filter((button) => button instanceof HTMLElement);
+}
+
+function getCurrentRailFocusKey(root) {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLElement)) return null;
+  if (!root.contains(active)) return null;
+
+  const focusedOption = active.closest(".projects-rail-item[data-project-key]");
+  if (!(focusedOption instanceof HTMLElement)) return null;
+  return focusedOption.getAttribute("data-project-key") || "";
+}
+
+function moveRailOptionFocus(root, delta) {
+  const options = getRailOptionElements(root);
+  if (options.length === 0) return;
+
+  const focusedKey = getCurrentRailFocusKey(root);
+  const currentKey =
+    focusedKey !== null
+      ? focusedKey
+      : railRovingFocusKey || getSelectedProjectKey();
+  const currentIndex = options.findIndex(
+    (button) => (button.getAttribute("data-project-key") || "") === currentKey,
+  );
+  const baseIndex = currentIndex >= 0 ? currentIndex : 0;
+  const nextIndex = (baseIndex + delta + options.length) % options.length;
+  const nextOption = options[nextIndex];
+  if (!(nextOption instanceof HTMLElement)) return;
+
+  railRovingFocusKey = nextOption.getAttribute("data-project-key") || "";
+  options.forEach((button, index) => {
+    button.setAttribute("tabindex", index === nextIndex ? "0" : "-1");
+  });
+  nextOption.focus({ preventScroll: true });
+}
+
+function syncRailA11yState(root, selectedProject, focusKey = "") {
+  root.setAttribute("role", "listbox");
+  root.setAttribute("aria-label", "Projects");
+
+  const options = getRailOptionElements(root);
+  const fallbackFocusKey =
+    focusKey ||
+    selectedProject ||
+    options[0]?.getAttribute("data-project-key") ||
+    "";
+
+  options.forEach((button) => {
+    const projectName = button.getAttribute("data-project-key") || "";
+    const isActive = projectName === selectedProject;
+    const isFocusTarget = projectName === fallbackFocusKey;
+
+    button.classList.toggle("projects-rail-item--active", isActive);
+    button.setAttribute("role", "option");
+    button.setAttribute("aria-selected", String(isActive));
+    button.setAttribute("tabindex", isFocusTarget ? "0" : "-1");
+
+    if (isActive) {
+      button.setAttribute("aria-current", "page");
+    } else {
+      button.removeAttribute("aria-current");
+    }
+  });
+}
+
 function setProjectsRailActiveState(selectedProject) {
   const refs = getProjectsRailElements();
   if (!refs) return;
 
-  const activateButtons = (root) => {
-    root
-      .querySelectorAll(".projects-rail-item[data-project-key]")
-      .forEach((button) => {
-        const projectName = button.getAttribute("data-project-key") || "";
-        const isActive = projectName === selectedProject;
-        button.classList.toggle("projects-rail-item--active", isActive);
-        if (isActive) {
-          button.setAttribute("aria-current", "page");
-        } else {
-          button.removeAttribute("aria-current");
-        }
-      });
-  };
+  const desktopFocusKey =
+    getCurrentRailFocusKey(refs.desktopRail) ||
+    railRovingFocusKey ||
+    selectedProject;
+  const sheetFocusKey =
+    getCurrentRailFocusKey(refs.sheet) || railRovingFocusKey || selectedProject;
 
-  activateButtons(refs.desktopRail);
-  activateButtons(refs.sheet);
+  syncRailA11yState(refs.desktopRail, selectedProject, desktopFocusKey);
+  syncRailA11yState(refs.sheet, selectedProject, sheetFocusKey);
 }
 
 function renderProjectsRail() {
@@ -4078,6 +4146,16 @@ function renderProjectsRail() {
     sheetAllCount.textContent = String(allCount);
   }
 
+  refs.allTasksButton.setAttribute("data-project-key", "");
+  refs.allTasksButton.setAttribute("type", "button");
+  refs.sheetAllTasksButton.setAttribute("data-project-key", "");
+  refs.sheetAllTasksButton.setAttribute("type", "button");
+  refs.sheetAllTasksButton.classList.add("projects-rail-item");
+  refs.sheetAllTasksButton.setAttribute("title", "All tasks");
+
+  if (!railRovingFocusKey) {
+    railRovingFocusKey = selectedProject || "";
+  }
   setProjectsRailActiveState(selectedProject);
   setProjectsRailCollapsed(isRailCollapsed);
   updateTopbarProjectsButton(getSelectedProjectLabel(selectedProject));
@@ -4199,14 +4277,14 @@ function closeProjectsRailSheet({ restoreFocus = false } = {}) {
 
   unlockBodyScrollForProjectsRail();
   const selectedProject = getSelectedProjectKey();
-  updateTopbarProjectsButton(selectedProject);
+  updateTopbarProjectsButton(getSelectedProjectLabel(selectedProject));
 
   if (restoreFocus) {
     const focusTarget =
       lastFocusedRailTrigger instanceof HTMLElement
         ? lastFocusedRailTrigger
         : refs.mobileOpenButton;
-    focusTarget.focus();
+    focusTarget.focus({ preventScroll: true });
   }
 }
 
@@ -4214,6 +4292,7 @@ function selectProjectFromRail(projectName, triggerEl = null) {
   if (openRailProjectMenuKey) {
     openRailProjectMenuKey = null;
   }
+  railRovingFocusKey = normalizeProjectPath(projectName);
   setSelectedProjectKey(projectName);
 
   if (isRailSheetOpen) {
@@ -4745,6 +4824,8 @@ function openTodoDrawer(todoId, triggerEl) {
 
 function closeTodoDrawer({ restoreFocus = true } = {}) {
   const refs = getTodoDrawerElements();
+  const focusTrigger = lastFocusedTodoTrigger;
+  const focusTodoId = lastFocusedTodoId;
 
   isTodoDrawerOpen = false;
   selectedTodoId = null;
@@ -4774,18 +4855,30 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
   renderTodos();
   unlockBodyScrollForDrawer();
 
-  if (restoreFocus && lastFocusedTodoTrigger?.isConnected) {
-    lastFocusedTodoTrigger.focus({ preventScroll: true });
-  } else if (restoreFocus && lastFocusedTodoId) {
-    const fallback = document.querySelector(
-      `.todo-item[data-todo-id="${escapeSelectorValue(lastFocusedTodoId)}"]`,
-    );
-    if (fallback instanceof HTMLElement) {
-      fallback.focus({ preventScroll: true });
-    }
-  }
   lastFocusedTodoTrigger = null;
   lastFocusedTodoId = null;
+
+  if (!restoreFocus) return;
+
+  const focusFallbackRow = () => {
+    if (!focusTodoId) return false;
+    const fallback = document.querySelector(
+      `.todo-item[data-todo-id="${escapeSelectorValue(focusTodoId)}"]`,
+    );
+    if (!(fallback instanceof HTMLElement)) return false;
+    fallback.focus({ preventScroll: true });
+    return true;
+  };
+
+  window.requestAnimationFrame(() => {
+    if (focusTrigger instanceof HTMLElement && focusTrigger.isConnected) {
+      focusTrigger.focus({ preventScroll: true });
+      if (document.activeElement === focusTrigger) {
+        return;
+      }
+    }
+    focusFallbackRow();
+  });
 }
 
 function syncTodoDrawerStateWithRender() {
@@ -6335,6 +6428,49 @@ function bindProjectsRailHandlers() {
     if (form.id !== "projectCrudForm") return;
     event.preventDefault();
     submitProjectCrudModal();
+  });
+
+  document.addEventListener("keydown", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+
+    const refs = getProjectsRailElements();
+    if (!refs) return;
+
+    const inDesktopRail = refs.desktopRail.contains(target);
+    const inSheetRail = refs.sheet.contains(target);
+    if (!inDesktopRail && !inSheetRail) return;
+    if (target.closest(".projects-rail-menu")) return;
+
+    const root = inSheetRail ? refs.sheet : refs.desktopRail;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      moveRailOptionFocus(root, 1);
+      return;
+    }
+
+    if (event.key === "ArrowUp") {
+      event.preventDefault();
+      moveRailOptionFocus(root, -1);
+      return;
+    }
+
+    if (event.key === "Enter") {
+      const focusedOption = target.closest(
+        ".projects-rail-item[data-project-key]",
+      );
+      if (!(focusedOption instanceof HTMLElement)) return;
+      event.preventDefault();
+      const projectName = focusedOption.getAttribute("data-project-key") || "";
+      selectProjectFromRail(projectName, focusedOption);
+      return;
+    }
+
+    if (event.key === "Escape" && inSheetRail && isRailSheetOpen) {
+      event.preventDefault();
+      closeProjectsRailSheet({ restoreFocus: true });
+    }
   });
 }
 

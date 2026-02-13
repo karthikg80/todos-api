@@ -243,6 +243,11 @@ test.describe("Projects rail wiring", () => {
       "aria-expanded",
       "true",
     );
+    await expect(
+      page.locator(
+        '#projectsRailSheet .projects-rail-item[data-project-key=""]',
+      ),
+    ).toBeFocused();
 
     await page.keyboard.press("Escape");
     await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
@@ -321,6 +326,36 @@ test.describe("Projects rail wiring", () => {
     await page.locator(".todo-item .todo-checkbox").first().click();
 
     await expect(homeRailItem).toHaveAttribute("aria-current", "page");
+    await expect(homeRailItem).toHaveAttribute("aria-selected", "true");
     await expect(page.locator("#categoryFilter")).toHaveValue("Home");
+  });
+
+  test("desktop keyboard navigation selects project and keeps header/topbar/count in sync", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "Desktop keyboard rail behavior");
+
+    const allTasks = page.locator(
+      '#projectsRail .projects-rail-item[data-project-key=""]',
+    );
+    await allTasks.focus();
+    await expect(allTasks).toBeFocused();
+
+    await page.keyboard.press("ArrowDown");
+    const homeRailItem = page.locator(
+      '#projectsRail .projects-rail-item[data-project-key="Home"]',
+    );
+    await expect(homeRailItem).toBeFocused();
+
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#categoryFilter")).toHaveValue("Home");
+    await expect(homeRailItem).toHaveAttribute("aria-selected", "true");
+    await expect(homeRailItem).toHaveAttribute("aria-current", "page");
+    await expect(page.locator("#projectsRailTopbarLabel")).toContainText(
+      "Home",
+    );
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
+    await expect(page.locator("#todosListHeaderCount")).toHaveText("1 task");
   });
 });
