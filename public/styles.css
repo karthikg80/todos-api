@@ -462,8 +462,8 @@ textarea:focus-visible,
 
 .add-todo {
   display: flex;
-  gap: 10px;
-  margin-bottom: 30px;
+  gap: var(--s-3);
+  margin-bottom: 0;
 }
 
 .add-todo input {
@@ -476,7 +476,7 @@ textarea:focus-visible,
 
 .quick-entry {
   flex-direction: column;
-  gap: 12px;
+  gap: var(--s-3);
 }
 
 .quick-entry > input {
@@ -491,7 +491,7 @@ textarea:focus-visible,
 
 .field-row {
   display: flex;
-  gap: 10px;
+  gap: var(--s-3);
   width: 100%;
   flex-wrap: wrap;
 }
@@ -518,7 +518,7 @@ textarea:focus-visible,
 
 .action-row {
   display: flex;
-  gap: 10px;
+  gap: var(--s-3);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -529,8 +529,8 @@ textarea:focus-visible,
 }
 
 .ai-workspace {
-  margin-top: 16px;
-  padding: 14px;
+  margin-top: var(--s-3);
+  padding: var(--s-3);
   border: 1px solid var(--border-color);
   border-radius: var(--r-md);
   background: var(--card-bg);
@@ -538,20 +538,20 @@ textarea:focus-visible,
 
 .ai-workspace-header {
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: var(--s-2);
   color: var(--text-primary);
 }
 
 .ai-workspace-inputs {
   display: flex;
-  gap: 10px;
+  gap: var(--s-3);
   flex-wrap: wrap;
 }
 
 .ai-workspace-inputs input {
   flex: 1;
   min-width: 220px;
-  padding: 10px;
+  padding: var(--s-3);
   border: 1px solid var(--border-color);
   border-radius: var(--r-sm);
   background: var(--input-bg);
@@ -564,7 +564,7 @@ textarea:focus-visible,
 }
 
 .ai-brain-dump {
-  margin-top: 10px;
+  margin-top: var(--s-3);
 }
 
 .ai-brain-dump label {
@@ -983,7 +983,7 @@ textarea:focus-visible,
 .todos-layout {
   display: grid;
   grid-template-columns: minmax(208px, 240px) minmax(0, 1fr);
-  gap: 14px;
+  gap: var(--s-3);
   align-items: stretch;
   flex: 1 1 auto;
   min-height: 0;
@@ -1008,11 +1008,10 @@ textarea:focus-visible,
   top: 0;
   z-index: 20;
   margin-bottom: 0;
-  padding: 10px 12px;
+  padding: var(--s-3);
   border: 1px solid var(--border-color);
   border-radius: var(--r-sm);
-  background: color-mix(in oklab, var(--card-bg) 88%, transparent);
-  backdrop-filter: blur(4px);
+  background: var(--card-bg);
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -1043,6 +1042,7 @@ textarea:focus-visible,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  line-height: var(--lh-tight);
 }
 
 .todos-list-header__count {
@@ -1346,7 +1346,8 @@ button.projects-rail-item {
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--s-3);
+  padding-bottom: var(--s-3);
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
@@ -1371,10 +1372,10 @@ button.projects-rail-item {
 .todos-top-bar {
   display: grid;
   grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
-  gap: 12px;
+  gap: var(--s-3);
   align-items: center;
-  margin-bottom: 12px;
-  padding: 12px 14px;
+  margin-bottom: var(--s-3);
+  padding: var(--s-3) var(--s-4);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--card-bg);
@@ -1465,9 +1466,9 @@ button.projects-rail-item {
 }
 
 .todos-minimal-filters {
-  margin-bottom: 12px;
+  margin-bottom: 0;
   display: flex;
-  gap: 10px;
+  gap: var(--s-2);
   align-items: center;
   flex-wrap: wrap;
 }
@@ -1500,8 +1501,8 @@ button.projects-rail-item {
 
 .more-filters-panel {
   display: none;
-  margin-bottom: 16px;
-  padding: 12px;
+  margin-bottom: 0;
+  padding: var(--s-3);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--card-bg);
@@ -1512,7 +1513,7 @@ button.projects-rail-item {
 }
 
 .more-filters-actions {
-  margin-top: 10px;
+  margin-top: var(--s-2);
   display: flex;
   gap: 8px;
   align-items: center;
@@ -1529,7 +1530,7 @@ button.projects-rail-item {
 }
 
 .ics-export-helper {
-  margin-top: 8px;
+  margin-top: var(--s-2);
   font-size: 0.82rem;
   color: var(--text-secondary);
 }
@@ -1564,12 +1565,12 @@ button.projects-rail-item {
 .bulk-actions-toolbar {
   background: var(--accent);
   color: white;
-  padding: 12px 20px;
+  padding: var(--s-3) var(--s-4);
   border-radius: var(--r-sm);
-  margin-bottom: 15px;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--s-2);
   flex-wrap: wrap;
 }
 
@@ -2391,14 +2392,24 @@ button.projects-rail-item {
 
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: calc(var(--s-6) + var(--s-5)) var(--s-5);
   color: var(--text-muted);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-md);
+  background: var(--card-bg);
+  max-width: 760px;
+  margin: 0 auto;
 }
 
 .todo-list-state {
   text-align: center;
-  padding: 28px 20px 20px;
+  padding: var(--s-6) var(--s-5);
   color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-md);
+  background: var(--card-bg);
+  max-width: 760px;
+  margin: 0 auto;
 }
 
 .todo-list-state h3 {
@@ -2412,11 +2423,11 @@ button.projects-rail-item {
 }
 
 .todo-list-state--error .mini-btn {
-  margin-top: 14px;
+  margin-top: var(--s-3);
 }
 
 .todos-list--skeleton {
-  margin-top: 10px;
+  margin-top: 0;
 }
 
 .todo-skeleton-row {
@@ -2425,7 +2436,7 @@ button.projects-rail-item {
 }
 
 .todo-skeleton-row .todo-content {
-  gap: 10px;
+  gap: var(--s-2);
 }
 
 .skeleton-block {
@@ -2459,11 +2470,11 @@ button.projects-rail-item {
 
 .empty-state-icon {
   font-size: 4em;
-  margin-bottom: 20px;
+  margin-bottom: var(--s-4);
 }
 
 .empty-state-hint {
-  margin-top: 10px;
+  margin-top: var(--s-2);
   font-size: var(--fs-sm);
 }
 
@@ -3304,6 +3315,11 @@ body.is-drawer-open {
 }
 
 .todo-item.todo-item--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.16);
+}
+
+.todo-item.todo-item--active:hover {
   border-color: var(--accent);
   box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.16);
 }
