@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { bootstrapAndOpenTodosView } from "./helpers/todos-view";
+import { openTodosViewWithStorageState } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -33,7 +33,18 @@ async function installMockApi(page: Page, todosSeed: TodoSeed[]) {
   const authUserId = (route: Route) => {
     const authHeader = route.request().headers()["authorization"] || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    return accessTokens.get(token) || null;
+    const knownUserId = accessTokens.get(token);
+    if (knownUserId) return knownUserId;
+    if (!token) return null;
+
+    const id = `cached-user-${userSeq++}`;
+    users.set(`cached-${id}@example.com`, {
+      id,
+      email: `cached-${id}@example.com`,
+      password: "",
+    });
+    accessTokens.set(token, id);
+    return id;
   };
 
   await page.route("**/*", async (route) => {
@@ -175,7 +186,7 @@ test.describe("More filters disclosure", () => {
       },
     ]);
 
-    await bootstrapAndOpenTodosView(page, {
+    await openTodosViewWithStorageState(page, {
       name: "Filters User",
       email: "filters@example.com",
     });

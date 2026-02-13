@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { bootstrapAndOpenTodosView } from "./helpers/todos-view";
+import { openTodosViewWithStorageState } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -36,7 +36,30 @@ async function installCommandPaletteTaskSearchMockApi(
   const authUserId = (route: Route) => {
     const authHeader = route.request().headers().authorization || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-    return accessTokens.get(token) || null;
+    const knownUserId = accessTokens.get(token);
+    if (knownUserId) return knownUserId;
+    if (!token) return null;
+
+    const id = `cached-user-${userSeq++}`;
+    users.set(`cached-${id}@example.com`, {
+      id,
+      email: `cached-${id}@example.com`,
+      password: "",
+    });
+    accessTokens.set(token, id);
+    todosByUser.set(
+      id,
+      todosSeed.map((todo, index) => ({
+        ...todo,
+        completed: false,
+        order: index,
+        userId: id,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        subtasks: [],
+      })),
+    );
+    return id;
   };
 
   const json = (route: Route, status: number, body: unknown) =>
@@ -181,7 +204,7 @@ test.describe("Command palette task search", () => {
       },
     ]);
 
-    await bootstrapAndOpenTodosView(page, {
+    await openTodosViewWithStorageState(page, {
       name: "Task Search User",
       email: "command-task-search@example.com",
     });
