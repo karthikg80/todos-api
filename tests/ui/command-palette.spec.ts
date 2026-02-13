@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { bootstrapAndOpenTodosView } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -147,16 +148,6 @@ async function installCommandPaletteMockApi(page: Page, todosSeed: TodoSeed[]) {
   });
 }
 
-async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Register" }).click();
-  await page.locator("#registerName").fill("Command Palette User");
-  await page.locator("#registerEmail").fill("command-palette@example.com");
-  await page.locator("#registerPassword").fill("Password123!");
-  await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
 async function openCommandPalette(page: Page) {
   await page.keyboard.press("ControlOrMeta+K");
   await expect(page.locator("#commandPaletteOverlay")).toHaveClass(
@@ -196,7 +187,10 @@ test.describe("Command palette", () => {
       },
     ]);
 
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Command Palette User",
+      email: "command-palette@example.com",
+    });
   });
 
   test("Ctrl/Cmd+K opens palette and Escape closes with focus restore", async ({
