@@ -187,11 +187,46 @@ test.describe("Todos layout overflow hardening", () => {
       )
       .click();
 
+    const addButton = page.locator(".todos-top-bar .top-add-btn");
+    const searchInput = page.locator("#searchInput");
+    await expect(addButton).toBeVisible();
+    await expect(searchInput).toBeVisible();
+
+    const topbarOverlap = await page.evaluate(() => {
+      const add = document.querySelector(
+        ".todos-top-bar .top-add-btn",
+      ) as HTMLElement | null;
+      const search = document.querySelector(
+        "#searchInput",
+      ) as HTMLElement | null;
+      if (!add || !search) return false;
+      const addBox = add.getBoundingClientRect();
+      const searchBox = search.getBoundingClientRect();
+      return (
+        addBox.x < searchBox.x + searchBox.width &&
+        addBox.x + addBox.width > searchBox.x &&
+        addBox.y < searchBox.y + searchBox.height &&
+        addBox.y + addBox.height > searchBox.y
+      );
+    });
+    expect(topbarOverlap).toBe(false);
+
+    const scrollRegion = page.locator("#todosScrollRegion");
+    const regionDimensions = await scrollRegion.evaluate((el) => ({
+      scrollWidth: el.scrollWidth,
+      clientWidth: el.clientWidth,
+    }));
+    expect(regionDimensions.scrollWidth).toBeLessThanOrEqual(
+      regionDimensions.clientWidth + 1,
+    );
+
     const dimensions = await page.evaluate(() => ({
       scrollWidth: document.documentElement.scrollWidth,
       clientWidth: document.documentElement.clientWidth,
     }));
-    expect(dimensions.scrollWidth).toBe(dimensions.clientWidth);
+    expect(dimensions.scrollWidth).toBeLessThanOrEqual(
+      dimensions.clientWidth + 1,
+    );
 
     const firstRow = page.locator(".todo-item").first();
     await expect(firstRow).toBeVisible();

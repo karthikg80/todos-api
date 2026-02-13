@@ -227,6 +227,10 @@ test.describe("Topbar CTA invariants", () => {
 
     const topbarLabel = page.locator("#projectsRailTopbarLabel");
     await expect(topbarLabel).toBeVisible();
+    await expect(topbarLabel).toHaveAttribute(
+      "title",
+      `Projects: ${longProject}`,
+    );
     const labelMetrics = await topbarLabel.evaluate((el) => {
       const style = window.getComputedStyle(el);
       const lineHeight = Number.parseFloat(style.lineHeight);
@@ -245,6 +249,12 @@ test.describe("Topbar CTA invariants", () => {
       labelMetrics.lineHeight * 1.5,
     );
     await expect(addButton).toBeVisible();
+
+    const collapsedRailLabel = page.locator(
+      `#projectsRail .projects-rail-item[data-project-key="${longProject}"] .projects-rail-item__label`,
+    );
+    await expect(collapsedRailLabel).toHaveAttribute("title", longProject);
+    await expect(collapsedRailLabel).toHaveCSS("white-space", "nowrap");
 
     const searchH = await searchInput.evaluate((el) =>
       Math.round(el.getBoundingClientRect().height),
