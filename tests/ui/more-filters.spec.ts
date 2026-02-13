@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { bootstrapAndOpenTodosView } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -151,16 +152,6 @@ async function installMockApi(page: Page, todosSeed: TodoSeed[]) {
   });
 }
 
-async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Register" }).click();
-  await page.locator("#registerName").fill("Filters User");
-  await page.locator("#registerEmail").fill("filters@example.com");
-  await page.locator("#registerPassword").fill("Password123!");
-  await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
 test.describe("More filters disclosure", () => {
   test.beforeEach(async ({ page }) => {
     await installMockApi(page, [
@@ -184,7 +175,10 @@ test.describe("More filters disclosure", () => {
       },
     ]);
 
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Filters User",
+      email: "filters@example.com",
+    });
   });
 
   test("is collapsed by default with aria-expanded false", async ({ page }) => {

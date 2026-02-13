@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { bootstrapAndOpenTodosView } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -166,16 +167,6 @@ async function installRowCalmnessMockApi(page: Page, todosSeed: TodoSeed[]) {
   });
 }
 
-async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Register" }).click();
-  await page.locator("#registerName").fill("Row Calmness User");
-  await page.locator("#registerEmail").fill("row-calmness@example.com");
-  await page.locator("#registerPassword").fill("Password123!");
-  await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
 test.describe("Todo row calmness", () => {
   test.beforeEach(async ({ page }) => {
     await installRowCalmnessMockApi(page, [
@@ -210,7 +201,10 @@ test.describe("Todo row calmness", () => {
       },
     ]);
 
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Row Calmness User",
+      email: "row-calmness@example.com",
+    });
   });
 
   test("desktop hides kebab by default and reveals on hover/focus-within", async ({

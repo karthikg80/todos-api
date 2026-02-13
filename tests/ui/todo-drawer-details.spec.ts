@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { bootstrapAndOpenTodosView } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -208,16 +209,6 @@ async function installDrawerDetailsMockApi(page: Page, todosSeed: TodoSeed[]) {
   return { updatePatches, deleteCalls };
 }
 
-async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Register" }).click();
-  await page.locator("#registerName").fill("Drawer Details User");
-  await page.locator("#registerEmail").fill("drawer-details@example.com");
-  await page.locator("#registerPassword").fill("Password123!");
-  await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
 async function openFirstTodoDrawer(page: Page) {
   await page.locator(".todo-item .todo-title").first().click();
   await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
@@ -240,7 +231,10 @@ test.describe("Todo drawer details + kebab actions", () => {
         priority: "medium",
       },
     ]);
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Drawer Details User",
+      email: "drawer-details@example.com",
+    });
     await openFirstTodoDrawer(page);
 
     await expect(page.locator("#drawerDetailsToggle")).toHaveAttribute(
@@ -279,7 +273,10 @@ test.describe("Todo drawer details + kebab actions", () => {
         priority: "medium",
       },
     ]);
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Drawer Details User",
+      email: "drawer-details@example.com",
+    });
     await openFirstTodoDrawer(page);
     await page.locator("#drawerDetailsToggle").click();
 
@@ -320,7 +317,10 @@ test.describe("Todo drawer details + kebab actions", () => {
         priority: "medium",
       },
     ]);
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Drawer Details User",
+      email: "drawer-details@example.com",
+    });
 
     await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
       "aria-hidden",
@@ -362,7 +362,10 @@ test.describe("Todo drawer details + kebab actions", () => {
         priority: "medium",
       },
     ]);
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Drawer Details User",
+      email: "drawer-details@example.com",
+    });
     await openFirstTodoDrawer(page);
 
     await page.evaluate(() => {
@@ -414,7 +417,10 @@ test.describe("Todo drawer details + kebab actions", () => {
         priority: "low",
       },
     ]);
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Drawer Details User",
+      email: "drawer-details@example.com",
+    });
 
     const secondRow = page.locator('.todo-item[data-todo-id="todo-focus-2"]');
     await secondRow.locator(".todo-title").click();
@@ -455,7 +461,10 @@ test.describe("Todo drawer details + kebab actions", () => {
       },
     ]);
 
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Drawer Details User",
+      email: "drawer-details@example.com",
+    });
 
     const row = page.locator(".todo-item").filter({
       has: page.locator(".todo-title", { hasText: "Delete me" }),

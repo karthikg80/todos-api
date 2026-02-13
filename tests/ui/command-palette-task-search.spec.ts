@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { bootstrapAndOpenTodosView } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -150,16 +151,6 @@ async function installCommandPaletteTaskSearchMockApi(
   });
 }
 
-async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Register" }).click();
-  await page.locator("#registerName").fill("Task Search User");
-  await page.locator("#registerEmail").fill("command-task-search@example.com");
-  await page.locator("#registerPassword").fill("Password123!");
-  await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
 async function openCommandPalette(page: Page) {
   await page.keyboard.press("ControlOrMeta+K");
   await expect(page.locator("#commandPaletteOverlay")).toHaveClass(
@@ -190,7 +181,10 @@ test.describe("Command palette task search", () => {
       },
     ]);
 
-    await registerAndOpenTodos(page);
+    await bootstrapAndOpenTodosView(page, {
+      name: "Task Search User",
+      email: "command-task-search@example.com",
+    });
   });
 
   test("query filters tasks by title", async ({ page }) => {
