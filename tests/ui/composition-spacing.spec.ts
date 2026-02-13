@@ -209,25 +209,41 @@ test.describe("Todos composition and spacing", () => {
     const scrollRegion = page.locator("#todosScrollRegion");
     await expect(scrollRegion).toBeVisible();
     await scrollRegion.evaluate((node) => {
-      node.scrollTop = 560;
+      // Scroll to ~40 % of the scrollable range so the assertion is
+      // independent of elements above the todo list (e.g. collapsed
+      // AI workspace header) that shift vertical geometry across
+      // platforms.
+      node.scrollTop = Math.round(
+        (node.scrollHeight - node.clientHeight) * 0.4,
+      );
     });
 
     const geometry = await page.evaluate(() => {
+      const scrollRegion = document.getElementById("todosScrollRegion");
       const header = document.getElementById("todosListHeader");
       const rows = Array.from(document.querySelectorAll(".todo-item"));
-      if (!(header instanceof HTMLElement) || rows.length === 0) {
+      if (
+        !(scrollRegion instanceof HTMLElement) ||
+        !(header instanceof HTMLElement) ||
+        rows.length === 0
+      ) {
         return null;
       }
+      const regionRect = scrollRegion.getBoundingClientRect();
       const headerRect = header.getBoundingClientRect();
-      const firstVisibleRow = rows.find((row) => {
+      // First row whose top is fully at or below the header bottom (not
+      // partially hidden under the sticky header).
+      const firstFullyVisibleRow = rows.find((row) => {
         const rect = row.getBoundingClientRect();
-        return rect.bottom > headerRect.bottom + 1;
+        return rect.top >= headerRect.bottom - 1;
       });
-      if (!(firstVisibleRow instanceof HTMLElement)) {
+      if (!(firstFullyVisibleRow instanceof HTMLElement)) {
         return null;
       }
-      const rowRect = firstVisibleRow.getBoundingClientRect();
+      const rowRect = firstFullyVisibleRow.getBoundingClientRect();
       return {
+        headerTop: headerRect.top,
+        regionTop: regionRect.top,
         headerBottom: headerRect.bottom,
         rowTop: rowRect.top,
       };
@@ -235,6 +251,9 @@ test.describe("Todos composition and spacing", () => {
 
     expect(geometry).not.toBeNull();
     if (geometry) {
+      // The sticky header must stick to the top of the scroll region.
+      expect(geometry.headerTop).toBeCloseTo(geometry.regionTop, 0);
+      // The first fully visible row must start at or just after the header.
       expect(geometry.rowTop).toBeGreaterThanOrEqual(geometry.headerBottom - 1);
     }
   });
