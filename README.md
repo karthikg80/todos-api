@@ -278,14 +278,36 @@ npm run test:coverage
 ### UI Testing (Playwright)
 
 ```bash
-# Run UI tests
+# Run full UI suite (includes visual snapshot tests)
 npm run test:ui
+
+# Run fast deterministic UI suite (excludes @visual snapshot tests)
+npm run test:ui:fast
 
 # Update baseline screenshots
 npm run test:ui:update
 
 # Run in headed mode locally
 npm run test:ui:headed
+```
+
+#### Fast vs Full UI suites
+
+- `npm run test:ui:fast`
+  - Runs the PR-gating tier.
+  - Excludes tests tagged `@visual`.
+  - Intended for fast, deterministic DOM/state validation.
+- `npm run test:ui`
+  - Runs the full suite, including `@visual` snapshot assertions.
+  - Intended for local visual verification and dedicated visual CI runs.
+
+#### Linux-consistent visual runs
+
+For screenshot consistency with CI, run visual tests in a Linux environment (container/CI) before updating snapshots:
+
+```bash
+# Full suite in CI-like mode
+CI=1 npm run test:ui
 ```
 
 ### UI Quality Checks
