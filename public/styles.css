@@ -537,9 +537,62 @@ textarea:focus-visible,
 }
 
 .ai-workspace-header {
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
   margin-bottom: var(--s-2);
+}
+
+.ai-workspace-toggle {
+  flex: 1 1 auto;
+  min-width: 180px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
   color: var(--text-primary);
+  padding: var(--s-2) var(--s-3);
+  font: inherit;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+}
+
+.ai-workspace-toggle__title {
+  min-width: 0;
+}
+
+.ai-workspace-status-chip {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: var(--fs-small);
+  padding: 0 var(--s-2);
+  height: 28px;
+}
+
+.ai-workspace-header-actions {
+  display: inline-flex;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.ai-workspace-body {
+  display: block;
+}
+
+.ai-workspace.ai-workspace--collapsed .ai-workspace-body {
+  display: none;
+}
+
+.ai-workspace.ai-workspace--collapsed .ai-workspace-header {
+  margin-bottom: 0;
 }
 
 .ai-workspace-inputs {
@@ -600,8 +653,8 @@ textarea:focus-visible,
 }
 
 .ai-meta {
-  margin-top: 12px;
-  padding-top: 8px;
+  margin-top: var(--s-3);
+  padding-top: var(--s-2);
   border-top: 1px dashed var(--border-color);
 }
 

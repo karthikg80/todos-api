@@ -316,6 +316,8 @@ let isApplyingFiltersPipeline = false;
 const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
+const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
+let isAiWorkspaceCollapsed = true;
 
 function handleAuthFailure() {
   logout();
@@ -368,6 +370,113 @@ function persistRailCollapsedState(isCollapsed) {
   } catch (error) {
     // Ignore storage failures.
   }
+}
+
+function readStoredAiWorkspaceCollapsedState() {
+  try {
+    const stored = window.localStorage.getItem(
+      AI_WORKSPACE_COLLAPSED_STORAGE_KEY,
+    );
+    if (stored === null) return true;
+    return stored === "1";
+  } catch (error) {
+    return true;
+  }
+}
+
+function persistAiWorkspaceCollapsedState(isCollapsed) {
+  try {
+    window.localStorage.setItem(
+      AI_WORKSPACE_COLLAPSED_STORAGE_KEY,
+      isCollapsed ? "1" : "0",
+    );
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function getAiWorkspaceElements() {
+  const workspace = document.getElementById("aiWorkspace");
+  const toggle = document.getElementById("aiWorkspaceToggle");
+  const body = document.getElementById("aiWorkspaceBody");
+  const chevron = document.getElementById("aiWorkspaceToggleChevron");
+  const status = document.getElementById("aiWorkspaceStatus");
+  if (
+    !(workspace instanceof HTMLElement) ||
+    !(toggle instanceof HTMLElement) ||
+    !(body instanceof HTMLElement)
+  ) {
+    return null;
+  }
+  return { workspace, toggle, body, chevron, status };
+}
+
+function getAiWorkspaceStatusLabel() {
+  if (isPlanGenerateInFlight) {
+    return "Working";
+  }
+  if (latestPlanResult || latestCritiqueResult) {
+    return "Draft open";
+  }
+  return "Ready";
+}
+
+function updateAiWorkspaceStatusChip() {
+  const refs = getAiWorkspaceElements();
+  if (!refs || !(refs.status instanceof HTMLElement)) {
+    return;
+  }
+  refs.status.textContent = getAiWorkspaceStatusLabel();
+}
+
+function setAiWorkspaceCollapsed(
+  collapsed,
+  { persist = true, restoreFocus = false } = {},
+) {
+  isAiWorkspaceCollapsed = !!collapsed;
+  const refs = getAiWorkspaceElements();
+  if (refs) {
+    refs.workspace.classList.toggle(
+      "ai-workspace--collapsed",
+      isAiWorkspaceCollapsed,
+    );
+    refs.toggle.setAttribute(
+      "aria-expanded",
+      isAiWorkspaceCollapsed ? "false" : "true",
+    );
+    refs.body.hidden = isAiWorkspaceCollapsed;
+    if (refs.chevron instanceof HTMLElement) {
+      refs.chevron.textContent = isAiWorkspaceCollapsed ? "▸" : "▾";
+    }
+  }
+  if (persist) {
+    persistAiWorkspaceCollapsedState(isAiWorkspaceCollapsed);
+  }
+  updateAiWorkspaceStatusChip();
+  if (restoreFocus && refs) {
+    refs.toggle.focus({ preventScroll: true });
+  }
+}
+
+function toggleAiWorkspace() {
+  setAiWorkspaceCollapsed(!isAiWorkspaceCollapsed);
+}
+
+function focusAiWorkspaceTarget(targetId) {
+  const target = document.getElementById(targetId);
+  if (target instanceof HTMLElement) {
+    target.focus({ preventScroll: true });
+  }
+}
+
+function openAiWorkspaceForBrainDump() {
+  setAiWorkspaceCollapsed(false);
+  focusAiWorkspaceTarget("brainDumpInput");
+}
+
+function openAiWorkspaceForGoalPlan() {
+  setAiWorkspaceCollapsed(false);
+  focusAiWorkspaceTarget("goalInput");
 }
 
 function loadCustomProjects() {
@@ -1077,15 +1186,18 @@ async function loadAiSuggestions() {
     if (!response || !response.ok) {
       aiSuggestions = [];
       renderAiSuggestionHistory();
+      updateAiWorkspaceStatusChip();
       return;
     }
 
     aiSuggestions = await response.json();
     renderAiSuggestionHistory();
+    updateAiWorkspaceStatusChip();
   } catch (error) {
     console.error("Load AI suggestions error:", error);
     aiSuggestions = [];
     renderAiSuggestionHistory();
+    updateAiWorkspaceStatusChip();
   }
 }
 
@@ -1478,6 +1590,7 @@ function updatePlanGenerateButtonState() {
         ? "Drafting..."
         : "Draft tasks from brain dump";
   }
+  updateAiWorkspaceStatusChip();
 }
 
 function getSelectedPlanDraftTasks() {
@@ -1516,15 +1629,18 @@ function renderCritiquePanel() {
   if (!latestCritiqueResult) {
     panel.style.display = "none";
     panel.innerHTML = "";
+    updateAiWorkspaceStatusChip();
     return;
   }
 
   if (FEATURE_ENHANCED_TASK_CRITIC) {
     renderEnhancedCritiquePanel(panel);
+    updateAiWorkspaceStatusChip();
     return;
   }
 
   renderLegacyCritiquePanel(panel);
+  updateAiWorkspaceStatusChip();
 }
 
 function renderLegacyCritiquePanel(panel) {
@@ -1657,6 +1773,7 @@ function renderPlanPanel() {
   if (!latestPlanResult || !planDraftState) {
     panel.style.display = "none";
     panel.innerHTML = "";
+    updateAiWorkspaceStatusChip();
     return;
   }
 
@@ -1664,6 +1781,7 @@ function renderPlanPanel() {
     if (!planDraftState.statusSyncFailed) {
       panel.style.display = "none";
       panel.innerHTML = "";
+      updateAiWorkspaceStatusChip();
       return;
     }
     const controlsDisabled = isPlanActionBusy() ? "disabled" : "";
@@ -1684,6 +1802,7 @@ function renderPlanPanel() {
         </div>
       </div>
     `;
+    updateAiWorkspaceStatusChip();
     return;
   }
 
@@ -4669,6 +4788,7 @@ function renderDrawerSubtasks(todo) {
         .join("")}
     </ul>
   `;
+  updateAiWorkspaceStatusChip();
 }
 
 function buildDrawerProjectOptions(selectedProject = "") {
@@ -5902,6 +6022,20 @@ document.addEventListener("keydown", function (e) {
     }
   }
 
+  if (e.key === "Escape" && !isAiWorkspaceCollapsed) {
+    const refs = getAiWorkspaceElements();
+    const activeElement = document.activeElement;
+    const focusInAiBody =
+      !!refs &&
+      activeElement instanceof HTMLElement &&
+      refs.body.contains(activeElement);
+    if (focusInAiBody) {
+      e.preventDefault();
+      setAiWorkspaceCollapsed(true, { restoreFocus: true });
+      return;
+    }
+  }
+
   if (e.key === "Escape" && isProjectCrudModalOpen) {
     e.preventDefault();
     closeProjectCrudModal();
@@ -6147,6 +6281,9 @@ function switchView(view, triggerEl = null) {
     closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
+    setAiWorkspaceCollapsed(readStoredAiWorkspaceCollapsedState(), {
+      persist: false,
+    });
     loadTodos();
     loadAiSuggestions();
     loadAiUsage();
@@ -6577,6 +6714,10 @@ function bindCriticalHandlers() {
     closeProjectsRailSheet({ restoreFocus: true });
   });
 
+  bindClick("aiWorkspaceToggle", () => {
+    toggleAiWorkspace();
+  });
+
   const resendBtn = document.getElementById("resendVerificationButton");
   if (resendBtn && !resendBtn.dataset.bound) {
     resendBtn.addEventListener("click", (event) => {
@@ -6657,6 +6798,9 @@ function showAppView() {
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
   setProjectsRailCollapsed(readStoredRailCollapsedState());
+  setAiWorkspaceCollapsed(readStoredAiWorkspaceCollapsedState(), {
+    persist: false,
+  });
   closeTodoDrawer({ restoreFocus: false });
   // Prevent previous account data from flashing while fetching current user's data.
   todos = [];
