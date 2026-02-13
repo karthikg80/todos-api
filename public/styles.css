@@ -3627,3 +3627,106 @@ textarea:disabled {
 .todo-chip--priority.high {
   filter: saturate(0.82);
 }
+
+/* Post-M7 combined hardening: topbar/rail/header/row overflow + truncation invariants */
+.todos-layout,
+.todos-main-zone,
+.todos-top-bar,
+.todos-top-bar-left,
+.todos-top-bar-search,
+.todos-top-bar-actions,
+#todosScrollRegion,
+#todosContent,
+.todos-list-header,
+.todos-list-header__context,
+.todo-item,
+.todo-content,
+.todo-meta,
+.todo-row-actions,
+.projects-rail-row,
+.projects-rail-item,
+.projects-rail-item__label {
+  min-width: 0;
+}
+
+.todos-top-bar {
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+}
+
+.projects-rail-mobile-open {
+  max-width: min(42vw, 320px);
+}
+
+#projectsRailTopbarLabel {
+  max-width: 100%;
+}
+
+.todos-top-bar-actions {
+  flex-wrap: nowrap;
+}
+
+.todos-top-bar-actions .top-add-btn,
+.todos-top-bar-actions .more-filters-toggle {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+
+.todos-list-header {
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+
+.todos-list-header__context {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.todos-list-header__title {
+  max-width: 100%;
+}
+
+#todosScrollRegion > * {
+  min-width: 0;
+}
+
+.projects-rail.projects-rail--collapsed .projects-rail-item {
+  overflow: hidden;
+}
+
+.projects-rail.projects-rail--collapsed .projects-rail-item__label {
+  max-width: 100%;
+}
+
+.todo-item {
+  grid-template-columns: auto auto auto minmax(0, 1fr) 34px;
+}
+
+.todo-row-actions {
+  width: 34px;
+  min-width: 34px;
+  max-width: 34px;
+  overflow: visible;
+}
+
+.todo-title,
+.todo-description {
+  min-width: 0;
+}
+
+.todo-meta {
+  overflow: hidden;
+}
+
+.todo-chip {
+  max-width: min(100%, 180px);
+}
+
+@media (max-width: 768px) {
+  .todos-list-header {
+    flex-wrap: wrap;
+  }
+
+  .projects-rail-mobile-open {
+    max-width: 100%;
+  }
+}
