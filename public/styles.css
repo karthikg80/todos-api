@@ -1329,6 +1329,7 @@ button.projects-rail-item {
 #projectsRailTopbarLabel {
   display: block;
   max-width: 220px;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1341,7 +1342,8 @@ button.projects-rail-item {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1376,6 +1378,11 @@ button.projects-rail-item {
   border: 1px solid var(--border-color);
   border-radius: 10px;
   background: var(--card-bg);
+  min-width: 0;
+}
+
+.todos-top-bar > * {
+  min-width: 0;
 }
 
 .todos-top-bar-left {
@@ -1400,6 +1407,7 @@ button.projects-rail-item {
   width: 100%;
   flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
 }
 
 .search-bar {
@@ -1442,11 +1450,13 @@ button.projects-rail-item {
   justify-content: flex-end;
   flex: 0 0 auto;
   min-width: max-content;
+  overflow: visible;
 }
 
 .top-add-btn {
   width: auto;
   flex: 0 0 auto;
+  flex-shrink: 0;
   white-space: nowrap;
 }
 
@@ -1878,10 +1888,15 @@ button.projects-rail-item {
 }
 
 .todo-row-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
   justify-self: end;
   align-self: start;
   position: relative;
-  min-width: 0;
+  width: 34px;
+  min-width: 34px;
+  max-width: 34px;
 }
 
 .todo-kebab {
@@ -1896,7 +1911,7 @@ button.projects-rail-item {
   cursor: pointer;
   transition:
     background 0.2s,
-    opacity 0.2s ease;
+    opacity 140ms ease;
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -1908,6 +1923,7 @@ button.projects-rail-item {
 
 .todo-item:hover .todo-kebab,
 .todo-item:focus-within .todo-kebab,
+.todo-item--active .todo-kebab,
 .todo-kebab[aria-expanded="true"] {
   opacity: 1;
   visibility: visible;
@@ -3218,6 +3234,7 @@ body.is-drawer-open {
   gap: var(--s-2);
   min-height: 24px;
   min-width: 0;
+  max-width: 100%;
 }
 
 .todo-meta > :not(.todo-chip) {
@@ -3238,10 +3255,11 @@ body.is-drawer-open {
   font-weight: var(--fw-medium);
   line-height: 1.25;
   white-space: nowrap;
-  max-width: 100%;
+  max-width: min(100%, 220px);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  flex: 0 1 auto;
 }
 
 .todo-chip--project {
@@ -3379,6 +3397,9 @@ body.dark-mode .todo-chip--due-overdue {
     grid-column: 5;
     grid-row: 1;
     justify-self: end;
+    width: 34px;
+    min-width: 34px;
+    max-width: 34px;
   }
 
   .todo-content {
