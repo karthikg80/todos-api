@@ -1291,6 +1291,17 @@ button.projects-rail-item {
   border-color: rgb(79 110 247 / 28%);
 }
 
+.projects-rail-item[role="option"][aria-selected="true"] {
+  background: rgb(79 110 247 / 8%);
+  border-color: rgb(79 110 247 / 28%);
+}
+
+.projects-rail-item[role="option"]:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: rgb(79 110 247 / 40%);
+}
+
 .projects-rail-item__count {
   color: var(--text-secondary);
   font-size: var(--fs-xs);

@@ -427,6 +427,7 @@ test.describe("Todo drawer details + kebab actions", () => {
       "aria-hidden",
       "true",
     );
+    await expect(firstRow).toBeFocused();
   });
 
   test("drawer close restores focus to originating row", async ({ page }) => {
