@@ -23,7 +23,7 @@ test.describe("Auth UI", () => {
     });
   });
 
-  test("login tab baseline", async ({ page }, testInfo) => {
+  test("login tab baseline @visual", async ({ page }, testInfo) => {
     await page.goto("/");
     await expect(page.locator("#authView")).toHaveClass(/active/);
     await expect(page.locator("#loginForm")).toBeVisible();
@@ -37,7 +37,7 @@ test.describe("Auth UI", () => {
     );
   });
 
-  test("register tab baseline", async ({ page }, testInfo) => {
+  test("register tab baseline @visual", async ({ page }, testInfo) => {
     await page.goto("/");
 
     await page.getByRole("button", { name: "Register" }).click();
