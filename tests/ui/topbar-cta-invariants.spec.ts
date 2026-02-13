@@ -256,6 +256,11 @@ test.describe("Topbar CTA invariants", () => {
     const quickEntryH = await page
       .locator("#todoInput")
       .evaluate((el) => Math.round(el.getBoundingClientRect().height));
+    const aiToggle = page.locator("#aiWorkspaceToggle");
+    if ((await aiToggle.getAttribute("aria-expanded")) !== "true") {
+      await aiToggle.click();
+      await expect(aiToggle).toHaveAttribute("aria-expanded", "true");
+    }
     const aiGoalH = await page
       .locator("#goalInput")
       .evaluate((el) => Math.round(el.getBoundingClientRect().height));
