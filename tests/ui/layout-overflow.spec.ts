@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { registerAndOpenTodosView } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -145,16 +146,6 @@ async function installOverflowMockApi(page: Page, todosSeed: TodoSeed[]) {
   });
 }
 
-async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.getByRole("button", { name: "Register" }).click();
-  await page.locator("#registerName").fill("Overflow User");
-  await page.locator("#registerEmail").fill("layout-overflow@example.com");
-  await page.locator("#registerPassword").fill("Password123!");
-  await page.getByRole("button", { name: "Create Account" }).click();
-  await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
 test.describe("Todos layout overflow hardening", () => {
   test("no horizontal overflow after selecting long-name project and row remains usable", async ({
     page,
@@ -179,7 +170,10 @@ test.describe("Todos layout overflow hardening", () => {
       },
     ]);
 
-    await registerAndOpenTodos(page);
+    await registerAndOpenTodosView(page, {
+      name: "Overflow User",
+      email: "layout-overflow@example.com",
+    });
 
     await page
       .locator(
