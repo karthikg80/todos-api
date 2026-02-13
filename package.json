@@ -15,6 +15,7 @@
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage --runInBand",
     "test:ui": "playwright test",
+    "test:ui:fast": "playwright test --grep-invert @visual",
     "test:ui:update": "playwright test --update-snapshots",
     "test:ui:headed": "playwright test --headed",
     "lint:css": "stylelint \"public/**/*.html\" --custom-syntax postcss-html",
