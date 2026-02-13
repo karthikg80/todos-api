@@ -85,6 +85,7 @@ git push -u origin "$BRANCH_NAME"
 ```
 
 Provide a handoff summary with:
+
 - Branch name and head SHA.
 - Files changed (list each file).
 - What was implemented (bullet points).
