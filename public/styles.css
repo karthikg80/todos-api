@@ -3628,6 +3628,80 @@ textarea:disabled {
   filter: saturate(0.82);
 }
 
+/* Post-M7 combined polish: low-risk containment + calm density hardening */
+#todosView .todos-top-bar,
+#todosView .todos-top-bar-left,
+#todosView .todos-top-bar-search,
+#todosView .todos-top-bar-actions,
+#todosView .todos-list-header,
+#todosView .todos-list-header__context,
+#todosView .todo-item,
+#todosView .todo-content,
+#todosView .todo-meta,
+#todosView .todo-row-actions,
+#todosView .projects-rail-row,
+#todosView .projects-rail-item,
+#todosView .projects-rail-item__label,
+#todosView #todosContent {
+  min-width: 0;
+}
+
+#todosView #todosScrollRegion {
+  overflow-x: hidden;
+}
+
+#todosView #todosScrollRegion > * {
+  min-width: 0;
+}
+
+#todosView .todos-top-bar-actions {
+  flex-wrap: nowrap;
+}
+
+#todosView .todos-top-bar-actions .top-add-btn,
+#todosView .todos-top-bar-actions .more-filters-toggle {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+#todosView .projects-rail-item__label,
+#todosView #projectsRailTopbarLabel,
+#todosView .todos-list-header__title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#todosView .projects-rail.projects-rail--collapsed .projects-rail-item {
+  overflow: hidden;
+}
+
+#todosView .todo-item {
+  grid-template-columns: auto auto auto minmax(0, 1fr) 34px;
+}
+
+#todosView .todo-row-actions {
+  width: 34px;
+  min-width: 34px;
+  max-width: 34px;
+}
+
+#todosView .todo-title,
+#todosView .todo-description {
+  min-width: 0;
+}
+
+#todosView .todo-chip {
+  max-width: min(100%, 180px);
+  min-height: 24px;
+  line-height: 1.2;
+  padding: 3px 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 /* Post-M7 combined hardening: topbar/rail/header/row overflow + truncation invariants */
 .todos-layout,
 .todos-main-zone,
