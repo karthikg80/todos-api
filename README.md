@@ -117,8 +117,20 @@ The API will be available at http://localhost:3000
 ### Testing
 
 - `npm test` - Run all tests
+- `npm run test:integration` - Run integration tests with deterministic local test DB setup
 - `npm run test:watch` - Run tests in watch mode
 - `npm run test:coverage` - Run tests with coverage report
+
+Integration test DB behavior:
+
+- If `TEST_DATABASE_URL` or `DATABASE_URL_TEST` is set, integration tests use that URL.
+- If neither is set, integration tests default to:
+  - `postgresql://postgres:postgres@localhost:5432/todos_test?schema=public`
+- The test bootstrap runs `prisma migrate reset --force --skip-seed --skip-generate` for a deterministic schema.
+- Safety guardrails:
+  - Refuses URLs that do not look like a test database.
+  - Refuses non-local DB hosts by default (`localhost`, `127.0.0.1`, `::1` only).
+  - Set `ALLOW_REMOTE_TEST_DB=true` only when you intentionally need a remote test DB.
 
 ### Build
 
