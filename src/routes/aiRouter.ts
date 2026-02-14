@@ -8,16 +8,27 @@ import {
   validateApplySuggestionInput,
   validateBreakdownTodoInput,
   validateCritiqueTaskInput,
+  validateDecisionAssistDismissInput,
+  validateDecisionAssistLatestQuery,
+  validateDecisionAssistStubInput,
   validateFeedbackSummaryQuery,
   validateInsightsQuery,
   validatePlanFromGoalInput,
   validateSuggestionListQuery,
   validateSuggestionStatusInput,
 } from "../aiValidation";
+import {
+  DecisionAssistOutput,
+  DecisionAssistSuggestion,
+  DecisionAssistSuggestionType,
+  DecisionAssistSurface,
+  validateDecisionAssistOutput,
+} from "../aiContracts";
 import { validateId } from "../validation";
 import { ITodoService } from "../interfaces/ITodoService";
 import { CreateTodoDto, Priority } from "../types";
 import { config } from "../config";
+import { IProjectService } from "../interfaces/IProjectService";
 
 export type UserPlan = "free" | "pro" | "team";
 
@@ -29,6 +40,8 @@ interface AiRouterDeps {
   aiDailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>;
   resolveAiUserPlan?: (userId: string) => Promise<UserPlan>;
   resolveAiUserId: (req: Request, res: Response) => string | null;
+  projectService?: IProjectService;
+  decisionAssistEnabled?: boolean;
 }
 
 export function createAiRouter({
@@ -39,6 +52,8 @@ export function createAiRouter({
   aiDailySuggestionLimitByPlan,
   resolveAiUserPlan,
   resolveAiUserId,
+  projectService,
+  decisionAssistEnabled = config.aiDecisionAssistEnabled,
 }: AiRouterDeps): Router {
   const router = Router();
   const defaultLimits: Record<UserPlan, number> = {
@@ -196,6 +211,163 @@ export function createAiRouter({
       })
       .filter((task): task is CreateTodoDto => !!task);
   };
+
+  const TASK_DRAWER_SURFACE: DecisionAssistSurface = "task_drawer";
+  const TASK_DRAWER_TYPE: "task_critic" = "task_critic";
+  const TASK_DRAWER_ALLOWED_TYPES = new Set<DecisionAssistSuggestionType>([
+    "rewrite_title",
+    "split_subtasks",
+    "propose_next_action",
+    "set_due_date",
+    "set_priority",
+    "set_project",
+    "set_category",
+    "ask_clarification",
+    "defer_task",
+  ]);
+
+  type NormalizedTaskDrawerSuggestion = DecisionAssistSuggestion & {
+    suggestionId: string;
+    requiresConfirmation: boolean;
+    payload: Record<string, unknown>;
+  };
+
+  type NormalizedTaskDrawerEnvelope = DecisionAssistOutput & {
+    suggestions: NormalizedTaskDrawerSuggestion[];
+  };
+
+  const parseBool = (value: unknown): boolean => value === true;
+
+  const normalizeTaskDrawerEnvelope = (
+    rawOutput: Record<string, unknown>,
+    todoId: string,
+  ): NormalizedTaskDrawerEnvelope => {
+    const validated = validateDecisionAssistOutput(rawOutput);
+    if (validated.surface !== TASK_DRAWER_SURFACE) {
+      throw new Error("Suggestion envelope surface mismatch");
+    }
+
+    const normalizedSuggestions = validated.suggestions
+      .map((item, index) => {
+        const rawItem =
+          Array.isArray(rawOutput.suggestions) &&
+          rawOutput.suggestions[index] &&
+          typeof rawOutput.suggestions[index] === "object"
+            ? (rawOutput.suggestions[index] as Record<string, unknown>)
+            : {};
+        const suggestionIdRaw =
+          typeof rawItem.suggestionId === "string"
+            ? rawItem.suggestionId.trim()
+            : "";
+        const suggestionId = suggestionIdRaw || `task-drawer-${index + 1}`;
+        const payload = {
+          ...(item.payload || {}),
+          todoId:
+            typeof (item.payload || {}).todoId === "string"
+              ? (item.payload as Record<string, unknown>).todoId
+              : todoId,
+        };
+        return {
+          ...item,
+          payload,
+          suggestionId,
+          requiresConfirmation: parseBool(rawItem.requiresConfirmation),
+        };
+      })
+      .filter((item) => TASK_DRAWER_ALLOWED_TYPES.has(item.type));
+
+    return {
+      ...validated,
+      suggestions: normalizedSuggestions,
+    };
+  };
+
+  const findLatestPendingDecisionAssistSuggestion = async (
+    userId: string,
+    todoId: string,
+    surface: DecisionAssistSurface,
+  ) => {
+    const records = await suggestionStore.listByUser(userId, 100);
+    return (
+      records.find((record) => {
+        if (record.status !== "pending") return false;
+        if (record.type !== TASK_DRAWER_TYPE) return false;
+        const inputSurface =
+          typeof record.input?.surface === "string" ? record.input.surface : "";
+        const inputTodoId =
+          typeof record.input?.todoId === "string" ? record.input.todoId : "";
+        return inputSurface === surface && inputTodoId === todoId;
+      }) || null
+    );
+  };
+
+  const ensureTaskDrawerFeatureEnabled = (res: Response): boolean => {
+    if (decisionAssistEnabled) {
+      return true;
+    }
+    res.status(403).json({ error: "Task drawer decision assist disabled" });
+    return false;
+  };
+
+  /**
+   * @openapi
+   * /ai/decision-assist/stub:
+   *   post:
+   *     tags:
+   *       - AI
+   *     summary: Generate contract-validated stub suggestions for Decision Assist surfaces
+   *     security:
+   *       - bearerAuth: []
+   *     responses:
+   *       200:
+   *         description: Structured Decision Assist suggestions
+   *       400:
+   *         description: Validation error
+   */
+  router.post(
+    "/decision-assist/stub",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveAiUserId(req, res);
+        if (!userId) return;
+        if (!(await enforceDailyQuota(userId, res))) return;
+
+        const input = validateDecisionAssistStubInput(req.body);
+        if (input.surface === TASK_DRAWER_SURFACE) {
+          if (!ensureTaskDrawerFeatureEnabled(res)) return;
+          if (!input.todoId) {
+            return res
+              .status(400)
+              .json({ error: "todoId is required for task_drawer surface" });
+          }
+          const todo = await todoService.findById(userId, input.todoId);
+          if (!todo) {
+            return res.status(404).json({ error: "Todo not found" });
+          }
+        }
+        const output = validateDecisionAssistOutput(
+          await aiPlannerService.generateDecisionAssistStub(input),
+        );
+
+        const suggestion = await suggestionStore.create({
+          userId,
+          type:
+            input.surface === "today_plan" ? "plan_from_goal" : "task_critic",
+          input: {
+            ...input,
+          },
+          output: output as unknown as Record<string, unknown>,
+        });
+
+        res.json({
+          ...output,
+          suggestionId: suggestion.id,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
 
   /**
    * @openapi
@@ -478,6 +650,58 @@ export function createAiRouter({
     },
   );
 
+  router.get(
+    "/suggestions/latest",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveAiUserId(req, res);
+        if (!userId) return;
+        if (!ensureTaskDrawerFeatureEnabled(res)) return;
+
+        const { todoId, surface } = validateDecisionAssistLatestQuery(
+          req.query,
+        );
+        if (surface !== TASK_DRAWER_SURFACE) {
+          return res.status(400).json({ error: "surface must be task_drawer" });
+        }
+
+        const latest = await findLatestPendingDecisionAssistSuggestion(
+          userId,
+          todoId,
+          surface,
+        );
+        if (!latest) {
+          return res.status(204).end();
+        }
+
+        try {
+          const outputEnvelope = normalizeTaskDrawerEnvelope(
+            latest.output,
+            todoId,
+          );
+          return res.json({
+            aiSuggestionId: latest.id,
+            status: latest.status,
+            outputEnvelope,
+          });
+        } catch {
+          return res.json({
+            aiSuggestionId: latest.id,
+            status: latest.status,
+            outputEnvelope: {
+              requestId: `safe-empty-${latest.id}`,
+              surface: TASK_DRAWER_SURFACE,
+              must_abstain: true,
+              suggestions: [],
+            },
+          });
+        }
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   /**
    * @openapi
    * /ai/todos/{id}/breakdown:
@@ -619,70 +843,331 @@ export function createAiRouter({
 
         const id = String(req.params.id);
         validateId(id);
-        const { reason } = validateApplySuggestionInput(req.body);
+        const { reason, suggestionId, confirmed } =
+          validateApplySuggestionInput(req.body);
 
         const suggestion = await suggestionStore.getById(userId, id);
         if (!suggestion) {
           return res.status(404).json({ error: "Suggestion not found" });
-        }
-        if (suggestion.type !== "plan_from_goal") {
-          return res
-            .status(400)
-            .json({ error: "Only plan_from_goal suggestions can be applied" });
         }
         if (suggestion.status === "rejected") {
           return res
             .status(409)
             .json({ error: "Cannot apply a rejected suggestion" });
         }
-        if (
-          suggestion.status === "accepted" &&
-          Array.isArray(suggestion.appliedTodoIds) &&
-          suggestion.appliedTodoIds.length > 0
-        ) {
-          const todos = [];
-          for (const todoId of suggestion.appliedTodoIds) {
-            const todo = await todoService.findById(userId, todoId);
-            if (todo) {
-              todos.push(todo);
+        if (suggestion.type === "plan_from_goal") {
+          if (
+            suggestion.status === "accepted" &&
+            Array.isArray(suggestion.appliedTodoIds) &&
+            suggestion.appliedTodoIds.length > 0
+          ) {
+            const todos = [];
+            for (const todoId of suggestion.appliedTodoIds) {
+              const todo = await todoService.findById(userId, todoId);
+              if (todo) {
+                todos.push(todo);
+              }
             }
+
+            return res.json({
+              createdCount: todos.length,
+              todos,
+              suggestion,
+              idempotent: true,
+            });
+          }
+          if (suggestion.status === "accepted") {
+            return res.status(409).json({
+              error:
+                "Suggestion already accepted but has no applied todo history",
+            });
+          }
+
+          const tasks = parsePlanTasks(suggestion.output);
+          if (tasks.length === 0) {
+            return res
+              .status(400)
+              .json({ error: "Suggestion does not contain valid plan tasks" });
+          }
+
+          const createdTodos = [];
+          for (const task of tasks) {
+            const todo = await todoService.create(userId, task);
+            createdTodos.push(todo);
+          }
+
+          const createdIds = createdTodos.map((todo) => todo.id);
+          const updatedSuggestion = await suggestionStore.markApplied(
+            userId,
+            id,
+            createdIds,
+            {
+              reason: reason || "applied_via_endpoint",
+              source: "apply_endpoint",
+              updatedAt: new Date().toISOString(),
+            },
+          );
+          if (!updatedSuggestion) {
+            return res.status(404).json({ error: "Suggestion not found" });
           }
 
           return res.json({
-            createdCount: todos.length,
-            todos,
-            suggestion,
-            idempotent: true,
-          });
-        }
-        if (suggestion.status === "accepted") {
-          return res.status(409).json({
-            error:
-              "Suggestion already accepted but has no applied todo history",
+            createdCount: createdTodos.length,
+            todos: createdTodos,
+            suggestion: updatedSuggestion,
+            idempotent: false,
           });
         }
 
-        const tasks = parsePlanTasks(suggestion.output);
-        if (tasks.length === 0) {
+        if (!ensureTaskDrawerFeatureEnabled(res)) return;
+        if (suggestion.type !== TASK_DRAWER_TYPE) {
+          return res.status(400).json({
+            error: "Only task_critic or plan_from_goal can be applied",
+          });
+        }
+        if (!suggestionId) {
           return res
             .status(400)
-            .json({ error: "Suggestion does not contain valid plan tasks" });
+            .json({ error: "suggestionId is required for task drawer apply" });
         }
 
-        const createdTodos = [];
-        for (const task of tasks) {
-          const todo = await todoService.create(userId, task);
-          createdTodos.push(todo);
+        const inputTodoId =
+          typeof suggestion.input?.todoId === "string"
+            ? suggestion.input.todoId
+            : "";
+        if (!inputTodoId) {
+          return res
+            .status(400)
+            .json({ error: "Task drawer suggestion missing todo context" });
+        }
+        const todo = await todoService.findById(userId, inputTodoId);
+        if (!todo) {
+          return res.status(404).json({ error: "Todo not found" });
+        }
+        if (suggestion.status !== "pending") {
+          return res
+            .status(409)
+            .json({ error: "Suggestion is no longer pending" });
         }
 
-        const createdIds = createdTodos.map((todo) => todo.id);
+        let envelope: NormalizedTaskDrawerEnvelope;
+        try {
+          envelope = normalizeTaskDrawerEnvelope(
+            suggestion.output,
+            inputTodoId,
+          );
+        } catch {
+          return res
+            .status(400)
+            .json({ error: "Stored suggestion output is invalid" });
+        }
+
+        const envelopeSuggestions =
+          envelope.suggestions as NormalizedTaskDrawerSuggestion[];
+        const selected = envelopeSuggestions.find(
+          (item) => item.suggestionId === suggestionId,
+        );
+        if (!selected) {
+          return res.status(404).json({ error: "Suggestion item not found" });
+        }
+
+        if (selected.requiresConfirmation && confirmed !== true) {
+          return res
+            .status(400)
+            .json({ error: "Confirmation is required for this suggestion" });
+        }
+
+        const payload = selected.payload || {};
+        const now = Date.now();
+        const todoIdsApplied = [inputTodoId];
+        let updatedTodo = todo;
+
+        switch (selected.type) {
+          case "rewrite_title": {
+            const nextTitle =
+              typeof payload.title === "string" ? payload.title.trim() : "";
+            if (!nextTitle || nextTitle.length > 200) {
+              return res.status(400).json({ error: "Invalid rewrite title" });
+            }
+            const updated = await todoService.update(userId, inputTodoId, {
+              title: nextTitle,
+            });
+            if (!updated) {
+              return res.status(404).json({ error: "Todo not found" });
+            }
+            updatedTodo = updated;
+            break;
+          }
+          case "set_due_date": {
+            const dueDateISO =
+              typeof payload.dueDateISO === "string" ? payload.dueDateISO : "";
+            const parsed = new Date(dueDateISO);
+            if (Number.isNaN(parsed.getTime())) {
+              return res.status(400).json({ error: "Invalid due date" });
+            }
+            if (parsed.getTime() < now && confirmed !== true) {
+              return res.status(400).json({
+                error: "Past due dates require explicit confirmation",
+              });
+            }
+            const updated = await todoService.update(userId, inputTodoId, {
+              dueDate: parsed,
+            });
+            if (!updated) {
+              return res.status(404).json({ error: "Todo not found" });
+            }
+            updatedTodo = updated;
+            break;
+          }
+          case "set_priority": {
+            const priority = String(payload.priority || "").toLowerCase();
+            if (!["low", "medium", "high"].includes(priority)) {
+              return res.status(400).json({ error: "Invalid priority value" });
+            }
+            const requiresPriorityConfirm =
+              priority === "high" && confirmed !== true;
+            if (requiresPriorityConfirm) {
+              return res.status(400).json({
+                error: "High priority changes require explicit confirmation",
+              });
+            }
+            const updated = await todoService.update(userId, inputTodoId, {
+              priority: priority as Priority,
+            });
+            if (!updated) {
+              return res.status(404).json({ error: "Todo not found" });
+            }
+            updatedTodo = updated;
+            break;
+          }
+          case "set_category":
+          case "set_project": {
+            let nextCategory =
+              typeof payload.category === "string"
+                ? payload.category.trim()
+                : "";
+            const projectName =
+              typeof payload.projectName === "string"
+                ? payload.projectName.trim()
+                : "";
+            const projectId =
+              typeof payload.projectId === "string"
+                ? payload.projectId.trim()
+                : "";
+
+            if (!nextCategory && projectName) {
+              nextCategory = projectName;
+            }
+
+            if (projectId && projectService) {
+              const projects = await projectService.findAll(userId);
+              const byId = projects.find((item) => item.id === projectId);
+              if (byId) {
+                nextCategory = byId.name;
+              }
+            } else if (projectName && projectService) {
+              const projects = await projectService.findAll(userId);
+              const byName = projects.find(
+                (item) => item.name.toLowerCase() === projectName.toLowerCase(),
+              );
+              if (byName) {
+                nextCategory = byName.name;
+              }
+            }
+
+            if (!nextCategory || nextCategory.length > 50) {
+              return res
+                .status(400)
+                .json({ error: "Invalid category/project value" });
+            }
+
+            const updated = await todoService.update(userId, inputTodoId, {
+              category: nextCategory,
+            });
+            if (!updated) {
+              return res.status(404).json({ error: "Todo not found" });
+            }
+            updatedTodo = updated;
+            break;
+          }
+          case "split_subtasks": {
+            const subtasksRaw = Array.isArray(payload.subtasks)
+              ? payload.subtasks
+              : [];
+            if (subtasksRaw.length < 1 || subtasksRaw.length > 5) {
+              return res
+                .status(400)
+                .json({ error: "split_subtasks requires 1-5 subtasks" });
+            }
+            // Safe mode: append generated subtasks to avoid destructive deletion.
+            for (const item of subtasksRaw.slice(0, 5)) {
+              const title =
+                item &&
+                typeof item === "object" &&
+                typeof item.title === "string"
+                  ? item.title.trim()
+                  : "";
+              if (!title || title.length > 200) {
+                return res.status(400).json({ error: "Invalid subtask title" });
+              }
+              const created = await todoService.createSubtask(
+                userId,
+                inputTodoId,
+                {
+                  title,
+                },
+              );
+              if (!created) {
+                return res.status(404).json({ error: "Todo not found" });
+              }
+            }
+            updatedTodo =
+              (await todoService.findById(userId, inputTodoId)) || todo;
+            break;
+          }
+          case "propose_next_action": {
+            const textCandidate =
+              typeof payload.text === "string"
+                ? payload.text
+                : typeof payload.title === "string"
+                  ? payload.title
+                  : "";
+            const nextAction = textCandidate.trim();
+            if (!nextAction || nextAction.length > 200) {
+              return res
+                .status(400)
+                .json({ error: "Invalid next action text" });
+            }
+            const prefix = "Next action: ";
+            const nextNotes = updatedTodo.notes
+              ? `${updatedTodo.notes}\n${prefix}${nextAction}`
+              : `${prefix}${nextAction}`;
+            const updated = await todoService.update(userId, inputTodoId, {
+              notes: nextNotes,
+            });
+            if (!updated) {
+              return res.status(404).json({ error: "Todo not found" });
+            }
+            updatedTodo = updated;
+            break;
+          }
+          case "ask_clarification":
+          case "defer_task":
+          default: {
+            return res.status(400).json({
+              error: `Suggestion type "${selected.type}" is not supported for apply`,
+            });
+          }
+        }
+
         const updatedSuggestion = await suggestionStore.markApplied(
           userId,
           id,
-          createdIds,
+          todoIdsApplied,
           {
-            reason: reason || "applied_via_endpoint",
-            source: "apply_endpoint",
+            reason: reason || `applied:${selected.suggestionId}`,
+            source: "task_drawer_apply",
+            suggestionId: selected.suggestionId,
             updatedAt: new Date().toISOString(),
           },
         );
@@ -690,12 +1175,55 @@ export function createAiRouter({
           return res.status(404).json({ error: "Suggestion not found" });
         }
 
-        res.json({
-          createdCount: createdTodos.length,
-          todos: createdTodos,
+        return res.json({
+          todo: updatedTodo,
+          appliedSuggestionId: selected.suggestionId,
           suggestion: updatedSuggestion,
           idempotent: false,
         });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/suggestions/:id/dismiss",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveAiUserId(req, res);
+        if (!userId) return;
+        if (!ensureTaskDrawerFeatureEnabled(res)) return;
+
+        const id = String(req.params.id);
+        validateId(id);
+        validateDecisionAssistDismissInput(req.body);
+
+        const suggestion = await suggestionStore.getById(userId, id);
+        if (!suggestion) {
+          return res.status(404).json({ error: "Suggestion not found" });
+        }
+        if (suggestion.type !== TASK_DRAWER_TYPE) {
+          return res
+            .status(400)
+            .json({ error: "Only task_drawer suggestions can be dismissed" });
+        }
+
+        // Schema-constrained behavior: dismissing any card rejects the whole suggestion set.
+        const updated = await suggestionStore.updateStatus(
+          userId,
+          id,
+          "rejected",
+          {
+            source: "task_drawer_dismiss",
+            updatedAt: new Date().toISOString(),
+          },
+        );
+        if (!updated) {
+          return res.status(404).json({ error: "Suggestion not found" });
+        }
+
+        return res.status(204).end();
       } catch (error) {
         next(error);
       }

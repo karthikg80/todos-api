@@ -31,6 +31,7 @@ export function createApp(
   aiDailySuggestionLimit?: number,
   aiDailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>,
   projectService?: IProjectService,
+  aiDecisionAssistEnabled?: boolean,
 ) {
   const app = express();
 
@@ -218,6 +219,8 @@ export function createApp(
       aiDailySuggestionLimit,
       aiDailySuggestionLimitByPlan,
       resolveAiUserPlan,
+      projectService,
+      decisionAssistEnabled: aiDecisionAssistEnabled,
     }),
   );
 
