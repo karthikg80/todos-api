@@ -23,6 +23,16 @@ function isEnhancedTaskCriticEnabled() {
 
 const FEATURE_ENHANCED_TASK_CRITIC = isEnhancedTaskCriticEnabled();
 
+function isTaskDrawerDecisionAssistEnabled() {
+  const params = new URLSearchParams(window.location.search);
+  const queryValue = params.get("taskDrawerAssist");
+  if (queryValue === "1" || queryValue === "true") return true;
+  if (queryValue === "0" || queryValue === "false") return false;
+  return readBooleanFeatureFlag("feature.taskDrawerDecisionAssist");
+}
+
+const FEATURE_TASK_DRAWER_DECISION_ASSIST = isTaskDrawerDecisionAssistEnabled();
+
 const hasValidAppState =
   !!window.AppState &&
   typeof window.AppState.loadStoredSession === "function" &&
@@ -294,6 +304,7 @@ let drawerDescriptionSaveTimer = null;
 let drawerSaveResetTimer = null;
 let drawerScrollLockY = 0;
 let isDrawerBodyLocked = false;
+let taskDrawerAssistState = createInitialTaskDrawerAssistState();
 let lastFocusedTodoId = null;
 let todosLoadState = "idle";
 let todosLoadErrorMessage = "";
@@ -320,6 +331,68 @@ const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
 let isAiWorkspaceCollapsed = true;
+const ON_CREATE_SURFACE = "on_create";
+let onCreateAssistState = createInitialOnCreateAssistState();
+let suppressOnCreateAssistInput = false;
+const TODAY_PLAN_SURFACE = "today_plan";
+let todayPlanState = createInitialTodayPlanState();
+let todayPlanGenerationSeq = 0;
+const AI_DEBUG_ENABLED =
+  new URLSearchParams(window.location.search).get("ai_debug") === "1";
+const AI_SURFACE_TYPES = Object.freeze({
+  [ON_CREATE_SURFACE]: new Set([
+    "set_due_date",
+    "set_priority",
+    "set_project",
+    "set_category",
+    "rewrite_title",
+    "ask_clarification",
+  ]),
+  [TODAY_PLAN_SURFACE]: new Set([
+    "set_due_date",
+    "set_priority",
+    "split_subtasks",
+    "propose_next_action",
+  ]),
+  task_drawer: new Set([
+    "rewrite_title",
+    "split_subtasks",
+    "propose_next_action",
+    "set_due_date",
+    "set_priority",
+    "set_project",
+    "set_category",
+    "ask_clarification",
+    "propose_create_project",
+  ]),
+});
+const AI_SURFACE_IMPACT = Object.freeze({
+  [ON_CREATE_SURFACE]: Object.freeze({
+    set_due_date: 0,
+    set_priority: 1,
+    set_project: 2,
+    set_category: 2,
+    rewrite_title: 3,
+    ask_clarification: 4,
+  }),
+  [TODAY_PLAN_SURFACE]: Object.freeze({
+    set_due_date: 0,
+    set_priority: 1,
+    split_subtasks: 2,
+    propose_next_action: 3,
+  }),
+  task_drawer: Object.freeze({
+    propose_next_action: 0,
+    set_due_date: 1,
+    set_priority: 2,
+    rewrite_title: 3,
+    split_subtasks: 4,
+    set_project: 5,
+    set_category: 5,
+    propose_create_project: 6,
+    ask_clarification: 7,
+  }),
+});
 
 function handleAuthFailure() {
   logout();
@@ -577,6 +650,8 @@ function init() {
   bindTodoDrawerHandlers();
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
+  bindOnCreateAssistHandlers();
+  bindTodayPlanHandlers();
 
   // Check for reset token in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -610,6 +685,7 @@ function init() {
   } else {
     setAuthState(AUTH_STATE.UNAUTHENTICATED);
   }
+  renderOnCreateAssistRow();
   handleVerificationStatusFromUrl();
 }
 
@@ -2591,6 +2667,8 @@ async function addTodo() {
       // Hide notes input
       notesInput.style.display = "none";
       document.getElementById("notesExpandIcon").classList.remove("expanded");
+      resetOnCreateAssistState();
+      renderOnCreateAssistRow();
 
       refreshProjectCatalog();
     }
@@ -4539,6 +4617,288 @@ function toggleMoreFilters() {
   openMoreFilters();
 }
 
+function createInitialTaskDrawerAssistState() {
+  return {
+    todoId: "",
+    loading: false,
+    unavailable: !FEATURE_TASK_DRAWER_DECISION_ASSIST,
+    error: "",
+    aiSuggestionId: "",
+    mustAbstain: false,
+    suggestions: [],
+    applyingSuggestionId: "",
+    confirmSuggestionId: "",
+    undoBySuggestionId: {},
+    lastUndoSuggestionId: "",
+  };
+}
+
+function taskDrawerDismissKey(todoId) {
+  return `taskDrawerAssist:dismissed:${todoId}`;
+}
+
+function markTaskDrawerDismissed(todoId) {
+  try {
+    window.localStorage.setItem(taskDrawerDismissKey(todoId), "1");
+  } catch {}
+}
+
+function clearTaskDrawerDismissed(todoId) {
+  try {
+    window.localStorage.removeItem(taskDrawerDismissKey(todoId));
+  } catch {}
+}
+
+function isTaskDrawerDismissed(todoId) {
+  try {
+    return window.localStorage.getItem(taskDrawerDismissKey(todoId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function resetTaskDrawerAssistState(todoId = "") {
+  taskDrawerAssistState = {
+    ...createInitialTaskDrawerAssistState(),
+    todoId,
+  };
+}
+
+function getTaskDrawerSuggestionLabel(type) {
+  return labelForType(type);
+}
+
+function normalizeTaskDrawerAssistEnvelope(
+  aiSuggestionId,
+  outputEnvelope,
+  fallbackTodoId,
+) {
+  const suggestionsRaw = Array.isArray(outputEnvelope?.suggestions)
+    ? outputEnvelope.suggestions
+    : [];
+  const normalized = suggestionsRaw
+    .map((item, index) => {
+      if (!item || typeof item !== "object") return null;
+      const suggestion = item;
+      const type = String(suggestion.type || "");
+      if (!shouldRenderTypeForSurface("task_drawer", type)) {
+        return null;
+      }
+      const payload =
+        suggestion.payload && typeof suggestion.payload === "object"
+          ? { ...suggestion.payload }
+          : {};
+      if (typeof payload.todoId !== "string" || !payload.todoId.trim()) {
+        payload.todoId = fallbackTodoId;
+      }
+      return {
+        type,
+        suggestionId:
+          String(suggestion.suggestionId || "").trim() ||
+          `${aiSuggestionId || "drawer"}-${index + 1}`,
+        confidence: Math.max(
+          0,
+          Math.min(1, Number(suggestion.confidence) || 0),
+        ),
+        rationale: truncateRationale(suggestion.rationale, 120),
+        payload,
+        requiresConfirmation: needsConfirmation(suggestion),
+        dismissed: false,
+      };
+    })
+    .filter(Boolean);
+  return capSuggestions(sortSuggestions("task_drawer", normalized), 6);
+}
+
+function renderTaskDrawerSuggestionSummary(suggestion) {
+  if (suggestion.type === "rewrite_title") {
+    return String(suggestion.payload.title || "Rewrite task title");
+  }
+  if (suggestion.type === "set_due_date") {
+    const due = new Date(String(suggestion.payload.dueDateISO || ""));
+    return Number.isNaN(due.getTime())
+      ? "Set due date"
+      : `Set due ${due.toLocaleDateString()}`;
+  }
+  if (suggestion.type === "set_priority") {
+    return `Set priority ${String(suggestion.payload.priority || "").toUpperCase()}`;
+  }
+  if (suggestion.type === "set_project") {
+    return `Set project ${String(suggestion.payload.projectName || suggestion.payload.category || "")}`.trim();
+  }
+  if (suggestion.type === "set_category") {
+    return `Set category ${String(suggestion.payload.category || "")}`.trim();
+  }
+  if (suggestion.type === "split_subtasks") {
+    const count = Array.isArray(suggestion.payload.subtasks)
+      ? suggestion.payload.subtasks.length
+      : 0;
+    return `Add ${count} subtasks`;
+  }
+  if (suggestion.type === "propose_next_action") {
+    return String(suggestion.payload.text || suggestion.payload.title || "");
+  }
+  if (suggestion.type === "ask_clarification") {
+    return String(suggestion.payload.question || "Need one clarification");
+  }
+  return "Suggestion";
+}
+
+function renderTaskDrawerAssistSection(todoId) {
+  if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
+    return `
+      <div class="todo-drawer__section">
+        <div class="todo-drawer__section-title">AI Suggestions</div>
+        <div class="ai-empty" role="status">AI Suggestions unavailable.</div>
+      </div>
+    `;
+  }
+  const state = taskDrawerAssistState;
+  const base = `
+    <div class="todo-drawer__section">
+      <div class="todo-drawer__section-title">AI Suggestions</div>
+      ${renderAiDebugMeta({
+        requestId: state.requestId,
+        generatedAt: state.generatedAt,
+        contractVersion: state.contractVersion,
+      })}
+      ${state.loading ? '<div class="ai-empty" role="status">Loading suggestions...</div>' : ""}
+      ${
+        state.unavailable
+          ? '<div class="ai-empty" role="status">AI Suggestions unavailable.</div>'
+          : ""
+      }
+      ${state.error ? `<div class="ai-empty" role="status">${escapeHtml(state.error)}</div>` : ""}
+      ${
+        !state.loading &&
+        !state.unavailable &&
+        !state.error &&
+        (state.mustAbstain || state.suggestions.length === 0)
+          ? '<div class="ai-empty" role="status">No suggestions right now.</div>'
+          : ""
+      }
+      ${
+        state.suggestions.length > 0
+          ? `<div class="todo-drawer-ai-list">
+              ${state.suggestions
+                .map((suggestion) => {
+                  const confidenceLabel = confidenceLabelForSuggestion(
+                    suggestion.confidence,
+                  );
+                  const applying =
+                    state.applyingSuggestionId === suggestion.suggestionId;
+                  const confirmOpen =
+                    state.confirmSuggestionId === suggestion.suggestionId;
+                  return `
+                    <div class="todo-drawer-ai-card ai-card" data-testid="task-drawer-ai-card-${escapeHtml(suggestion.suggestionId)}">
+                      <div class="todo-drawer-ai-card__top">
+                        <span class="todo-drawer-ai-card__label">${escapeHtml(getTaskDrawerSuggestionLabel(suggestion.type))}</span>
+                        <span class="ai-badge ai-badge--${escapeHtml(confidenceBand(suggestion.confidence))}" aria-label="Confidence ${escapeHtml(confidenceLabel)}">${escapeHtml(confidenceLabel)}</span>
+                      </div>
+                      <div class="todo-drawer-ai-card__summary">${escapeHtml(renderTaskDrawerSuggestionSummary(suggestion))}</div>
+                      <div class="todo-drawer-ai-card__rationale ai-tooltip">${escapeHtml(suggestion.rationale)}</div>
+                      ${renderAiDebugSuggestionId(suggestion.suggestionId)}
+                      ${
+                        state.lastUndoSuggestionId === suggestion.suggestionId
+                          ? `<div class="ai-tooltip">Undone locally</div>`
+                          : ""
+                      }
+                      <div class="todo-drawer-ai-card__actions ai-actions">
+                        ${
+                          confirmOpen
+                            ? `
+                              <div class="ai-confirm">
+                                <button
+                                  type="button"
+                                  class="ai-action-btn"
+                                  data-testid="task-drawer-ai-confirm-${escapeHtml(suggestion.suggestionId)}"
+                                  data-drawer-ai-action="confirm-apply"
+                                  data-drawer-ai-suggestion-id="${escapeHtml(suggestion.suggestionId)}"
+                                  aria-label="Confirm apply ${escapeHtml(getTaskDrawerSuggestionLabel(suggestion.type))}"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  class="ai-action-btn"
+                                  data-testid="task-drawer-ai-cancel-${escapeHtml(suggestion.suggestionId)}"
+                                  data-drawer-ai-action="cancel-confirm"
+                                  data-drawer-ai-suggestion-id="${escapeHtml(suggestion.suggestionId)}"
+                                  aria-label="Cancel confirmation"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            `
+                            : `
+                              <button
+                                type="button"
+                                class="ai-action-btn"
+                                data-testid="task-drawer-ai-apply-${escapeHtml(suggestion.suggestionId)}"
+                                data-drawer-ai-action="apply"
+                                data-drawer-ai-suggestion-id="${escapeHtml(suggestion.suggestionId)}"
+                                aria-label="Apply ${escapeHtml(getTaskDrawerSuggestionLabel(suggestion.type))}"
+                                ${applying ? "disabled" : ""}
+                              >
+                                ${applying ? "Applying..." : "Apply"}
+                              </button>
+                            `
+                        }
+                        <button
+                          type="button"
+                          class="ai-action-btn"
+                          data-testid="task-drawer-ai-dismiss-${escapeHtml(suggestion.suggestionId)}"
+                          data-drawer-ai-action="dismiss"
+                          data-drawer-ai-suggestion-id="${escapeHtml(suggestion.suggestionId)}"
+                          aria-label="Dismiss ${escapeHtml(getTaskDrawerSuggestionLabel(suggestion.type))}"
+                        >
+                          Dismiss
+                        </button>
+                        ${
+                          state.undoBySuggestionId[suggestion.suggestionId]
+                            ? `
+                              <button
+                                type="button"
+                                class="ai-undo"
+                                data-testid="task-drawer-ai-undo-${escapeHtml(suggestion.suggestionId)}"
+                                data-drawer-ai-action="undo"
+                                data-drawer-ai-suggestion-id="${escapeHtml(suggestion.suggestionId)}"
+                                aria-label="Undo ${escapeHtml(getTaskDrawerSuggestionLabel(suggestion.type))}"
+                              >
+                                Undo
+                              </button>
+                            `
+                            : ""
+                        }
+                      </div>
+                    </div>
+                  `;
+                })
+                .join("")}
+            </div>`
+          : ""
+      }
+    </div>
+  `;
+
+  window.requestAnimationFrame(() => {
+    const confirmButton = document.querySelector(
+      `[data-drawer-ai-action="confirm-apply"][data-drawer-ai-suggestion-id="${escapeSelectorValue(
+        state.confirmSuggestionId || "",
+      )}"]`,
+    );
+    if (confirmButton instanceof HTMLElement) {
+      confirmButton.focus({ preventScroll: true });
+    }
+  });
+
+  return base;
+}
+
+function confidenceLabelForSuggestion(confidence) {
+  return confidenceLabel(confidence);
+}
+
 function getTodoDrawerElements() {
   const drawer = document.getElementById("todoDetailsDrawer");
   const closeBtn = document.getElementById("todoDrawerClose");
@@ -4922,6 +5282,7 @@ function renderTodoDrawerContent() {
         </select>
       </label>
     </div>
+    ${renderTaskDrawerAssistSection(todo.id)}
     <div class="todo-drawer__section">
       <button
         id="drawerDetailsToggle"
@@ -4967,6 +5328,216 @@ function renderTodoDrawerContent() {
   setDrawerSaveState(drawerSaveState, drawerSaveMessage);
 }
 
+async function fetchTaskDrawerLatestSuggestion(todoId) {
+  const response = await apiCall(
+    `${API_URL}/ai/suggestions/latest?todoId=${encodeURIComponent(todoId)}&surface=task_drawer`,
+  );
+  return response;
+}
+
+async function generateTaskDrawerSuggestion(todo) {
+  return apiCall(`${API_URL}/ai/decision-assist/stub`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      surface: "task_drawer",
+      todoId: todo.id,
+      title: todo.title,
+      description: todo.description || "",
+      notes: todo.notes || "",
+    }),
+  });
+}
+
+async function loadTaskDrawerDecisionAssist(todoId, allowGenerate = true) {
+  if (!isTodoDrawerOpen || selectedTodoId !== todoId) return;
+  const todo = getTodoById(todoId);
+  if (!todo) return;
+  if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
+    taskDrawerAssistState.unavailable = true;
+    return;
+  }
+
+  if (taskDrawerAssistState.todoId !== todoId) {
+    resetTaskDrawerAssistState(todoId);
+  }
+  taskDrawerAssistState.loading = true;
+  taskDrawerAssistState.error = "";
+  taskDrawerAssistState.unavailable = false;
+  renderTodoDrawerContent();
+
+  try {
+    let latestResponse = await fetchTaskDrawerLatestSuggestion(todoId);
+    if (latestResponse.status === 403 || latestResponse.status === 404) {
+      taskDrawerAssistState.loading = false;
+      taskDrawerAssistState.unavailable = true;
+      renderTodoDrawerContent();
+      return;
+    }
+
+    if (latestResponse.status === 204) {
+      if (isTaskDrawerDismissed(todoId)) {
+        taskDrawerAssistState.loading = false;
+        taskDrawerAssistState.mustAbstain = true;
+        renderTodoDrawerContent();
+        return;
+      }
+      if (!allowGenerate) {
+        taskDrawerAssistState.loading = false;
+        taskDrawerAssistState.mustAbstain = true;
+        renderTodoDrawerContent();
+        return;
+      }
+      const generated = await generateTaskDrawerSuggestion(todo);
+      if (generated.status === 403 || generated.status === 404) {
+        taskDrawerAssistState.loading = false;
+        taskDrawerAssistState.unavailable = true;
+        renderTodoDrawerContent();
+        return;
+      }
+      latestResponse = await fetchTaskDrawerLatestSuggestion(todoId);
+    }
+
+    if (!latestResponse.ok) {
+      taskDrawerAssistState.loading = false;
+      taskDrawerAssistState.error = "Could not load suggestions.";
+      renderTodoDrawerContent();
+      return;
+    }
+
+    const payload = await latestResponse.json();
+    if (!isTodoDrawerOpen || selectedTodoId !== todoId) return;
+    const envelope = payload?.outputEnvelope || {};
+    taskDrawerAssistState.loading = false;
+    taskDrawerAssistState.aiSuggestionId = String(
+      payload?.aiSuggestionId || "",
+    );
+    taskDrawerAssistState.mustAbstain = !!envelope.must_abstain;
+    taskDrawerAssistState.contractVersion = envelope.contractVersion;
+    taskDrawerAssistState.requestId = envelope.requestId;
+    taskDrawerAssistState.generatedAt = envelope.generatedAt;
+    taskDrawerAssistState.suggestions = normalizeTaskDrawerAssistEnvelope(
+      taskDrawerAssistState.aiSuggestionId,
+      envelope,
+      todoId,
+    );
+    taskDrawerAssistState.confirmSuggestionId = "";
+    taskDrawerAssistState.applyingSuggestionId = "";
+    renderTodoDrawerContent();
+  } catch (error) {
+    console.error("Task drawer AI load failed:", error);
+    taskDrawerAssistState.loading = false;
+    taskDrawerAssistState.error = "Could not load suggestions.";
+    renderTodoDrawerContent();
+  }
+}
+
+async function applyTaskDrawerSuggestion(suggestionId, confirmed = false) {
+  if (!selectedTodoId) return;
+  const suggestion = taskDrawerAssistState.suggestions.find(
+    (item) => item.suggestionId === suggestionId,
+  );
+  if (!suggestion || !taskDrawerAssistState.aiSuggestionId) return;
+
+  if (needsConfirmation(suggestion) && !confirmed) {
+    taskDrawerAssistState.confirmSuggestionId = suggestionId;
+    renderTodoDrawerContent();
+    return;
+  }
+
+  const snapshotTodo = getTodoById(selectedTodoId);
+  if (snapshotTodo) {
+    taskDrawerAssistState.undoBySuggestionId[suggestionId] = JSON.parse(
+      JSON.stringify(snapshotTodo),
+    );
+  }
+
+  taskDrawerAssistState.applyingSuggestionId = suggestionId;
+  taskDrawerAssistState.confirmSuggestionId = "";
+  renderTodoDrawerContent();
+
+  try {
+    const response = await apiCall(
+      `${API_URL}/ai/suggestions/${encodeURIComponent(taskDrawerAssistState.aiSuggestionId)}/apply`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          suggestionId,
+          confirmed: confirmed === true,
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      taskDrawerAssistState.error =
+        typeof data?.error === "string"
+          ? data.error
+          : "Could not apply suggestion.";
+      taskDrawerAssistState.applyingSuggestionId = "";
+      renderTodoDrawerContent();
+      return;
+    }
+
+    const result = await response.json();
+    if (result?.todo?.id) {
+      const index = todos.findIndex((item) => item.id === result.todo.id);
+      if (index >= 0) {
+        todos[index] = result.todo;
+      }
+    } else {
+      await loadTodos();
+    }
+    clearTaskDrawerDismissed(selectedTodoId);
+    taskDrawerAssistState.lastUndoSuggestionId = "";
+    await loadTaskDrawerDecisionAssist(selectedTodoId, false);
+    renderTodos();
+  } catch (error) {
+    console.error("Task drawer AI apply failed:", error);
+    taskDrawerAssistState.error = "Could not apply suggestion.";
+    taskDrawerAssistState.applyingSuggestionId = "";
+    renderTodoDrawerContent();
+  }
+}
+
+async function dismissTaskDrawerSuggestions(suggestionId) {
+  if (!taskDrawerAssistState.aiSuggestionId) return;
+  try {
+    await apiCall(
+      `${API_URL}/ai/suggestions/${encodeURIComponent(taskDrawerAssistState.aiSuggestionId)}/dismiss`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ suggestionId, dismissAll: true }),
+      },
+    );
+  } catch (error) {
+    console.error("Task drawer AI dismiss failed:", error);
+  }
+  taskDrawerAssistState.suggestions = [];
+  taskDrawerAssistState.mustAbstain = true;
+  taskDrawerAssistState.confirmSuggestionId = "";
+  taskDrawerAssistState.applyingSuggestionId = "";
+  if (selectedTodoId) {
+    markTaskDrawerDismissed(selectedTodoId);
+  }
+  renderTodoDrawerContent();
+}
+
+function undoTaskDrawerSuggestion(suggestionId) {
+  const snapshot = taskDrawerAssistState.undoBySuggestionId[suggestionId];
+  if (!snapshot || !selectedTodoId) return;
+  const index = todos.findIndex((item) => item.id === selectedTodoId);
+  if (index < 0) return;
+  todos[index] = snapshot;
+  initializeDrawerDraft(todos[index]);
+  delete taskDrawerAssistState.undoBySuggestionId[suggestionId];
+  taskDrawerAssistState.lastUndoSuggestionId = suggestionId;
+  renderTodos();
+  syncTodoDrawerStateWithRender();
+}
+
 function openTodoDrawer(todoId, triggerEl) {
   const refs = getTodoDrawerElements();
   if (!refs) return;
@@ -4979,6 +5550,7 @@ function openTodoDrawer(todoId, triggerEl) {
 
   selectedTodoId = todoId;
   initializeDrawerDraft(todo);
+  resetTaskDrawerAssistState(todoId);
   isDrawerDetailsOpen = false;
   openTodoKebabId = null;
   drawerSaveSequence = 0;
@@ -5006,6 +5578,7 @@ function openTodoDrawer(todoId, triggerEl) {
   } else {
     refs.closeBtn.focus();
   }
+  loadTaskDrawerDecisionAssist(todoId);
 }
 
 function closeTodoDrawer({ restoreFocus = true } = {}) {
@@ -5017,6 +5590,7 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
   selectedTodoId = null;
   isDrawerDetailsOpen = false;
   drawerDraft = null;
+  resetTaskDrawerAssistState();
   drawerSaveSequence = 0;
   if (drawerSaveResetTimer) {
     clearTimeout(drawerSaveResetTimer);
@@ -5238,6 +5812,7 @@ function renderTodos() {
   if (!container) return;
 
   renderProjectsRail();
+  renderTodayPlanPanel();
   const scrollRegion = document.getElementById("todosScrollRegion");
 
   if (todosLoadState !== "loading" && todos.length > 0) {
@@ -5496,6 +6071,1688 @@ function renderTodos() {
   updateBulkActionsVisibility();
   updateIcsExportButtonState();
   assertNoHorizontalOverflow(scrollRegion);
+}
+
+// ========== AI UI HELPERS ==========
+function isKnownSuggestionType(type) {
+  const suggestionType = String(type || "");
+  return Object.values(AI_SURFACE_TYPES).some((set) => set.has(suggestionType));
+}
+
+function impactRankForSurface(surface, type) {
+  const surfaceMap = AI_SURFACE_IMPACT[String(surface || "")] || null;
+  if (!surfaceMap) return Number.MAX_SAFE_INTEGER;
+  const rank = surfaceMap[String(type || "")];
+  return Number.isInteger(rank) ? rank : Number.MAX_SAFE_INTEGER;
+}
+
+function sortSuggestions(surface, suggestions = []) {
+  return [...(Array.isArray(suggestions) ? suggestions : [])].sort((a, b) => {
+    const impactDelta =
+      impactRankForSurface(surface, a?.type) -
+      impactRankForSurface(surface, b?.type);
+    if (impactDelta !== 0) return impactDelta;
+    const confidenceA = Number(a?.confidence) || 0;
+    const confidenceB = Number(b?.confidence) || 0;
+    if (confidenceA !== confidenceB) return confidenceB - confidenceA;
+    return String(a?.suggestionId || "").localeCompare(
+      String(b?.suggestionId || ""),
+    );
+  });
+}
+
+function capSuggestions(suggestions = [], max = 6) {
+  return [...(Array.isArray(suggestions) ? suggestions : [])].slice(
+    0,
+    Math.max(0, max),
+  );
+}
+
+function confidenceBand(confidence) {
+  const value = Number(confidence) || 0;
+  if (value >= 0.75) return "high";
+  if (value >= 0.45) return "med";
+  return "low";
+}
+
+function confidenceLabel(confidence) {
+  const band = confidenceBand(confidence);
+  return band === "high" ? "High" : band === "med" ? "Med" : "Low";
+}
+
+function labelForType(type) {
+  const labels = {
+    set_due_date: "Set due date",
+    set_priority: "Set priority",
+    set_project: "Set project",
+    set_category: "Set category",
+    rewrite_title: "Rewrite title",
+    ask_clarification: "Clarify once",
+    split_subtasks: "Split subtasks",
+    propose_next_action: "Propose next action",
+    propose_create_project: "Propose create project",
+  };
+  return labels[String(type || "")] || "Suggestion";
+}
+
+function truncateRationale(text, maxLen = 120) {
+  return String(text || "")
+    .replace(/[`*_#[\]()>-]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, Math.max(0, maxLen));
+}
+
+function needsConfirmation(suggestion) {
+  return !!suggestion?.requiresConfirmation;
+}
+
+function shouldRenderTypeForSurface(surface, type) {
+  const set = AI_SURFACE_TYPES[String(surface || "")];
+  if (!set) return false;
+  return set.has(String(type || ""));
+}
+
+function renderAiDebugMeta(meta = {}) {
+  if (!AI_DEBUG_ENABLED) return "";
+  const rows = [
+    meta.contractVersion ? `v${escapeHtml(String(meta.contractVersion))}` : "",
+    meta.requestId ? `req:${escapeHtml(String(meta.requestId))}` : "",
+    meta.generatedAt ? escapeHtml(String(meta.generatedAt)) : "",
+  ].filter(Boolean);
+  if (!rows.length) return "";
+  return `<div class="ai-debug-meta" data-testid="ai-debug-meta">${rows.join(" · ")}</div>`;
+}
+
+function renderAiDebugSuggestionId(suggestionId) {
+  if (!AI_DEBUG_ENABLED) return "";
+  const id = escapeHtml(String(suggestionId || ""));
+  return `<div class="ai-debug-suggestion-id" data-testid="ai-debug-suggestion-id-${id}">${id}</div>`;
+}
+
+function createInitialOnCreateAssistState() {
+  return {
+    titleBasis: "",
+    envelope: null,
+    suggestions: [],
+    showAll: false,
+  };
+}
+
+function resetOnCreateAssistState() {
+  onCreateAssistState = createInitialOnCreateAssistState();
+}
+
+function getOnCreateImpactRank(type) {
+  return impactRankForSurface(ON_CREATE_SURFACE, type);
+}
+
+function getOnCreateConfidenceBadge(confidence) {
+  return confidenceLabel(confidence);
+}
+
+function clampOnCreateRationale(value) {
+  return truncateRationale(value, 120);
+}
+
+function formatOnCreateSuggestionLabel(type) {
+  return labelForType(type);
+}
+
+function formatOnCreateChoiceValue(choice) {
+  if (typeof choice === "string") {
+    return { value: choice, label: choice };
+  }
+  const value = String(
+    choice?.value ||
+      choice?.projectName ||
+      choice?.category ||
+      choice?.label ||
+      "",
+  ).trim();
+  const label = String(choice?.label || value).trim();
+  if (!value) return null;
+  return {
+    value,
+    label,
+    projectName: choice?.projectName,
+    category: choice?.category,
+  };
+}
+
+function normalizeOnCreateSuggestion(rawSuggestion) {
+  if (!rawSuggestion || typeof rawSuggestion !== "object") return null;
+  const type = String(rawSuggestion.type || "");
+  if (!isKnownSuggestionType(type)) return null;
+  if (!shouldRenderTypeForSurface(ON_CREATE_SURFACE, type)) return null;
+  const suggestionId = String(rawSuggestion.suggestionId || "").trim();
+  if (!suggestionId) return null;
+  const payload =
+    rawSuggestion.payload && typeof rawSuggestion.payload === "object"
+      ? rawSuggestion.payload
+      : {};
+  const normalized = {
+    type,
+    suggestionId,
+    confidence: Math.max(0, Math.min(1, Number(rawSuggestion.confidence) || 0)),
+    rationale: clampOnCreateRationale(rawSuggestion.rationale),
+    payload,
+    requiresConfirmation: !!rawSuggestion.requiresConfirmation,
+    dismissed: false,
+    applied: false,
+    confirmationOpen: false,
+    undoSnapshot: null,
+    clarificationExpanded: false,
+    clarificationAnswered: false,
+    clarificationAnswer: "",
+    helperText: "",
+  };
+  if (type === "ask_clarification") {
+    const choicesRaw = Array.isArray(payload.choices) ? payload.choices : [];
+    normalized.payload = {
+      ...payload,
+      question: String(payload.question || "Pick one option").slice(0, 120),
+      choices: choicesRaw
+        .map((choice) => formatOnCreateChoiceValue(choice))
+        .filter(Boolean)
+        .slice(0, 4),
+    };
+  }
+  return normalized;
+}
+
+function buildOnCreateSuggestion(
+  type,
+  suggestionId,
+  confidence,
+  rationale,
+  payload,
+  options = {},
+) {
+  return {
+    type,
+    suggestionId,
+    confidence,
+    rationale,
+    payload,
+    ...(options.requiresConfirmation ? { requiresConfirmation: true } : {}),
+  };
+}
+
+function nextWeekdayAtNoonIso(day) {
+  const target = new Date();
+  const currentDay = target.getDay();
+  let delta = (day - currentDay + 7) % 7;
+  if (delta === 0) delta = 7;
+  target.setDate(target.getDate() + delta);
+  target.setHours(12, 0, 0, 0);
+  return target.toISOString();
+}
+
+function yesterdayAtNoonIso() {
+  const target = new Date();
+  target.setDate(target.getDate() - 1);
+  target.setHours(12, 0, 0, 0);
+  return target.toISOString();
+}
+
+function buildMockOnCreateAssistEnvelope(rawTitle) {
+  const title = String(rawTitle || "").trim();
+  const titleLower = title.toLowerCase();
+  const suggestions = [];
+
+  if (titleLower.includes("tomorrow")) {
+    const due = new Date();
+    due.setDate(due.getDate() + 1);
+    due.setHours(12, 0, 0, 0);
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "set_due_date",
+        "oc-set-due-tomorrow",
+        0.88,
+        "Detected a relative deadline in the title.",
+        { dueDateISO: due.toISOString() },
+      ),
+    );
+  } else if (titleLower.includes("by friday")) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "set_due_date",
+        "oc-set-due-friday",
+        0.82,
+        '"By Friday" implies a firm due date.',
+        { dueDateISO: nextWeekdayAtNoonIso(5) },
+      ),
+    );
+  }
+
+  if (titleLower.includes("yesterday")) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "set_due_date",
+        "oc-set-due-past",
+        0.51,
+        "Parsed a past date mention. Confirm before applying.",
+        { dueDateISO: yesterdayAtNoonIso() },
+        { requiresConfirmation: true },
+      ),
+    );
+  }
+
+  if (/\burgent\b/.test(titleLower)) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "set_priority",
+        "oc-set-priority-urgent",
+        0.9,
+        "“Urgent” strongly signals high priority.",
+        { priority: "high" },
+      ),
+    );
+  } else if (/\basap\b/.test(titleLower)) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "set_priority",
+        "oc-set-priority-asap",
+        0.67,
+        "ASAP often maps to high priority. Confirm escalation.",
+        { priority: "high" },
+        { requiresConfirmation: true },
+      ),
+    );
+  }
+
+  const mentionsWebsite = titleLower.includes("website");
+  const mentionsMarketing = titleLower.includes("marketing");
+  if (mentionsWebsite && mentionsMarketing) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "ask_clarification",
+        "oc-clarify-project",
+        0.6,
+        "Project target is ambiguous between website and marketing.",
+        {
+          questionId: "oc-project-choice",
+          question: "Which project should this task belong to?",
+          choices: [
+            { value: "Website", label: "Website", projectName: "Website" },
+            { value: "Marketing", label: "Marketing", category: "Marketing" },
+          ],
+        },
+      ),
+    );
+  } else if (mentionsWebsite) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "set_project",
+        "oc-set-project-website",
+        0.84,
+        "Detected a known project keyword.",
+        { projectName: "Website", category: "Website" },
+      ),
+    );
+  } else if (mentionsMarketing) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "set_category",
+        "oc-set-category-marketing",
+        0.8,
+        "Detected a category keyword.",
+        { category: "Marketing" },
+      ),
+    );
+  }
+
+  if (titleLower.includes("personal")) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "set_category",
+        "oc-set-category-personal",
+        0.73,
+        "“Personal” maps cleanly to a category.",
+        { category: "Personal" },
+      ),
+    );
+  }
+
+  if (/\b(email|follow up|stuff)\b/.test(titleLower)) {
+    suggestions.push(
+      buildOnCreateSuggestion(
+        "rewrite_title",
+        "oc-rewrite-vague",
+        0.77,
+        "Title is vague; propose a concrete next-action title.",
+        { title: "Email stakeholder with specific next step and deadline" },
+      ),
+    );
+  }
+
+  if (titleLower.includes("unknown")) {
+    suggestions.push({
+      type: "not_supported",
+      suggestionId: "oc-unknown-type",
+      confidence: 0.5,
+      rationale: "Should be ignored by UI.",
+      payload: {},
+    });
+  }
+
+  return {
+    contractVersion: 1,
+    generatedAt: new Date().toISOString(),
+    surface: ON_CREATE_SURFACE,
+    requestId: `on-create-${encodeURIComponent(titleLower.slice(0, 24) || "empty")}`,
+    must_abstain: false,
+    suggestions,
+  };
+}
+
+function getOnCreateAssistElements() {
+  const row = document.getElementById("aiOnCreateAssistRow");
+  const titleInput = document.getElementById("todoInput");
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  if (!(row instanceof HTMLElement)) return null;
+  if (!(titleInput instanceof HTMLInputElement)) return null;
+  return { row, titleInput, projectSelect, dueDateInput };
+}
+
+function ensureOnCreateProjectOption(projectName) {
+  const refs = getOnCreateAssistElements();
+  if (!refs || !(refs.projectSelect instanceof HTMLSelectElement)) return;
+  const normalized = normalizeProjectPath(projectName);
+  if (!normalized) return;
+  const hasOption = Array.from(refs.projectSelect.options).some(
+    (option) => normalizeProjectPath(option.value) === normalized,
+  );
+  if (hasOption) return;
+  const option = document.createElement("option");
+  option.value = normalized;
+  option.textContent = normalized;
+  refs.projectSelect.append(option);
+}
+
+function normalizeOnCreateAssistEnvelope(rawEnvelope) {
+  const suggestionsRaw = Array.isArray(rawEnvelope?.suggestions)
+    ? rawEnvelope.suggestions
+    : [];
+  const normalizedSuggestions = suggestionsRaw
+    .map((suggestion) => normalizeOnCreateSuggestion(suggestion))
+    .filter(Boolean)
+    .map((suggestion) => ({
+      ...suggestion,
+      rationale: truncateRationale(suggestion.rationale, 120),
+    }));
+  const sortedSuggestions = sortSuggestions(
+    ON_CREATE_SURFACE,
+    normalizedSuggestions,
+  );
+  const cappedSuggestions = capSuggestions(sortedSuggestions, 6);
+
+  let seenClarification = false;
+  for (const suggestion of cappedSuggestions) {
+    if (suggestion.type !== "ask_clarification") continue;
+    if (!seenClarification) {
+      seenClarification = true;
+      continue;
+    }
+    suggestion.dismissed = true;
+  }
+
+  return {
+    contractVersion: rawEnvelope?.contractVersion || 1,
+    generatedAt: String(rawEnvelope?.generatedAt || new Date().toISOString()),
+    requestId: String(rawEnvelope?.requestId || "on-create"),
+    surface: ON_CREATE_SURFACE,
+    suggestions: cappedSuggestions,
+  };
+}
+
+function refreshOnCreateAssistFromTitle(force = false) {
+  const refs = getOnCreateAssistElements();
+  if (!refs) return;
+  const title = refs.titleInput.value.trim();
+  if (!title) {
+    resetOnCreateAssistState();
+    renderOnCreateAssistRow();
+    return;
+  }
+  if (!force && onCreateAssistState.titleBasis === title) {
+    renderOnCreateAssistRow();
+    return;
+  }
+  const envelope = normalizeOnCreateAssistEnvelope(
+    buildMockOnCreateAssistEnvelope(title),
+  );
+  onCreateAssistState = {
+    titleBasis: title,
+    envelope,
+    suggestions: envelope.suggestions,
+    showAll: false,
+  };
+  renderOnCreateAssistRow();
+}
+
+function getOnCreateSuggestionById(suggestionId) {
+  return onCreateAssistState.suggestions.find(
+    (suggestion) => suggestion.suggestionId === suggestionId,
+  );
+}
+
+function getActiveOnCreateSuggestions() {
+  return onCreateAssistState.suggestions.filter(
+    (suggestion) => !suggestion.dismissed,
+  );
+}
+
+function formatOnCreateDueDateLabel(dueDateIso) {
+  const date = new Date(dueDateIso);
+  if (Number.isNaN(date.getTime())) return "Set due date";
+  return `Due ${date.toLocaleDateString()}`;
+}
+
+function buildOnCreateChipSummary(suggestion) {
+  if (suggestion.type === "set_due_date") {
+    return formatOnCreateDueDateLabel(suggestion.payload.dueDateISO);
+  }
+  if (suggestion.type === "set_priority") {
+    return `Priority ${String(suggestion.payload.priority || "").toUpperCase() || "MEDIUM"}`;
+  }
+  if (suggestion.type === "set_project") {
+    return `Project ${String(suggestion.payload.projectName || suggestion.payload.category || "suggested")}`;
+  }
+  if (suggestion.type === "set_category") {
+    return `Category ${String(suggestion.payload.category || "suggested")}`;
+  }
+  if (suggestion.type === "rewrite_title") {
+    return "Refine title";
+  }
+  if (suggestion.type === "ask_clarification") {
+    return "Need one choice";
+  }
+  return "Suggestion";
+}
+
+function renderOnCreateChipChoices(suggestion) {
+  if (
+    suggestion.type !== "ask_clarification" ||
+    !suggestion.clarificationExpanded ||
+    suggestion.clarificationAnswered
+  ) {
+    return "";
+  }
+  const choices = Array.isArray(suggestion.payload.choices)
+    ? suggestion.payload.choices
+    : [];
+  if (choices.length === 0) return "";
+  return `
+    <div
+      class="ai-create-chip__choices"
+      role="radiogroup"
+      aria-label="Clarification choices"
+      aria-describedby="ai-create-rationale-${escapeHtml(suggestion.suggestionId)}"
+    >
+      ${choices
+        .map(
+          (choice) => `
+            <button
+              type="button"
+              class="ai-create-chip__choice ai-action-btn"
+              role="radio"
+              aria-checked="false"
+              data-ai-create-action="choose"
+              data-ai-create-suggestion-id="${escapeHtml(suggestion.suggestionId)}"
+              data-ai-create-choice-value="${escapeHtml(String(choice.value || ""))}"
+              aria-label="Choose ${escapeHtml(String(choice.label || choice.value || ""))}"
+            >
+              ${escapeHtml(String(choice.label || choice.value || ""))}
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+  `;
+}
+
+function renderOnCreateChipActions(suggestion) {
+  const suggestionId = escapeHtml(suggestion.suggestionId);
+  const label = escapeHtml(formatOnCreateSuggestionLabel(suggestion.type));
+  const rationaleId = `ai-create-rationale-${suggestionId}`;
+  if (suggestion.applied) {
+    return `
+      <span class="ai-create-chip__applied">Applied</span>
+      <button
+        type="button"
+        class="ai-create-chip__undo ai-undo"
+        data-testid="ai-chip-undo-${suggestionId}"
+        aria-label="Undo ${label}"
+        aria-describedby="${rationaleId}"
+        data-ai-create-action="undo"
+        data-ai-create-suggestion-id="${suggestionId}"
+      >
+        Undo
+      </button>
+    `;
+  }
+  if (suggestion.requiresConfirmation && suggestion.confirmationOpen) {
+    return `
+      <div class="ai-confirm" role="group" aria-label="Confirm apply ${label}">
+        <button
+          type="button"
+          class="ai-create-chip__confirm ai-action-btn"
+          data-testid="ai-chip-confirm-${suggestionId}"
+          aria-label="Confirm apply ${label}"
+          aria-describedby="${rationaleId}"
+          data-ai-create-action="confirm-apply"
+          data-ai-create-suggestion-id="${suggestionId}"
+        >
+          Confirm
+        </button>
+        <button
+          type="button"
+          class="ai-create-chip__action ai-action-btn"
+          aria-label="Cancel confirmation for ${label}"
+          aria-describedby="${rationaleId}"
+          data-ai-create-action="cancel-confirm"
+          data-ai-create-suggestion-id="${suggestionId}"
+        >
+          Cancel
+        </button>
+      </div>
+    `;
+  }
+  if (
+    suggestion.type === "ask_clarification" &&
+    !suggestion.clarificationAnswered
+  ) {
+    return `
+      <button
+        type="button"
+        class="ai-create-chip__action ai-action-btn"
+        data-testid="ai-chip-apply-${suggestionId}"
+        aria-label="Open choices for ${label}"
+        aria-describedby="${rationaleId}"
+        data-ai-create-action="toggle-choices"
+        data-ai-create-suggestion-id="${suggestionId}"
+      >
+        Choose
+      </button>
+      <button
+        type="button"
+        class="ai-create-chip__dismiss ai-action-btn"
+        data-testid="ai-chip-dismiss-${suggestionId}"
+        aria-label="Dismiss ${label}"
+        aria-describedby="${rationaleId}"
+        data-ai-create-action="dismiss"
+        data-ai-create-suggestion-id="${suggestionId}"
+      >
+        ×
+      </button>
+    `;
+  }
+  return `
+    <button
+      type="button"
+      class="ai-create-chip__action ai-action-btn"
+      data-testid="ai-chip-apply-${suggestionId}"
+      aria-label="Apply ${label}"
+      aria-describedby="${rationaleId}"
+      data-ai-create-action="apply"
+      data-ai-create-suggestion-id="${suggestionId}"
+    >
+      Apply
+    </button>
+    <button
+      type="button"
+      class="ai-create-chip__dismiss ai-action-btn"
+      data-testid="ai-chip-dismiss-${suggestionId}"
+      aria-label="Dismiss ${label}"
+      aria-describedby="${rationaleId}"
+      data-ai-create-action="dismiss"
+      data-ai-create-suggestion-id="${suggestionId}"
+    >
+      ×
+    </button>
+  `;
+}
+
+function renderOnCreateAssistRow() {
+  const refs = getOnCreateAssistElements();
+  if (!refs) return;
+  const title = refs.titleInput.value.trim();
+  if (!title) {
+    refs.row.hidden = true;
+    refs.row.innerHTML = "";
+    return;
+  }
+
+  refs.row.hidden = false;
+  const activeSuggestions = getActiveOnCreateSuggestions();
+  if (activeSuggestions.length === 0) {
+    refs.row.innerHTML = `
+      <div class="ai-create-assist__header">
+        <span class="ai-create-assist__title">AI Assist</span>
+      </div>
+      ${renderAiDebugMeta(onCreateAssistState.envelope || {})}
+      <div class="ai-create-assist__empty ai-empty" role="status">No suggestions right now.</div>
+    `;
+    return;
+  }
+
+  const defaultLimit = 4;
+  const visibleLimit = onCreateAssistState.showAll ? 6 : defaultLimit;
+  const visibleSuggestions = activeSuggestions.slice(0, visibleLimit);
+  const hiddenCount = Math.max(
+    0,
+    activeSuggestions.length - visibleSuggestions.length,
+  );
+
+  refs.row.innerHTML = `
+    <div class="ai-create-assist__header">
+      <span class="ai-create-assist__title">AI Assist</span>
+      ${
+        hiddenCount > 0
+          ? `
+          <button
+            type="button"
+            class="ai-create-assist__expand"
+            data-testid="ai-chip-expand-more"
+            data-ai-create-action="toggle-more"
+            aria-label="${onCreateAssistState.showAll ? "Show fewer suggestions" : `Show ${hiddenCount} more suggestions`}"
+          >
+            ${onCreateAssistState.showAll ? "Show less" : `+${hiddenCount} more`}
+          </button>
+        `
+          : ""
+      }
+    </div>
+    ${renderAiDebugMeta(onCreateAssistState.envelope || {})}
+    <div class="ai-create-assist__chips">
+      ${visibleSuggestions
+        .map((suggestion) => {
+          const confidenceLabel = getOnCreateConfidenceBadge(
+            suggestion.confidence,
+          );
+          return `
+            <div
+              class="ai-create-chip ai-card ${suggestion.applied ? "ai-create-chip--applied" : ""}"
+              data-testid="ai-chip-${escapeHtml(suggestion.suggestionId)}"
+            >
+              <div class="ai-create-chip__top">
+                <span class="ai-create-chip__label">${escapeHtml(formatOnCreateSuggestionLabel(suggestion.type))}</span>
+                <span
+                  class="ai-create-chip__confidence ai-badge ai-badge--${escapeHtml(confidenceBand(suggestion.confidence))}"
+                  aria-label="Confidence ${escapeHtml(confidenceLabel)}"
+                >
+                  ${escapeHtml(confidenceLabel)}
+                </span>
+              </div>
+              <div
+                class="ai-create-chip__summary"
+                id="ai-create-rationale-${escapeHtml(suggestion.suggestionId)}"
+                title="${escapeHtml(suggestion.rationale || buildOnCreateChipSummary(suggestion))}"
+              >
+                ${escapeHtml(buildOnCreateChipSummary(suggestion))}
+              </div>
+              <div class="ai-create-chip__rationale ai-tooltip">${escapeHtml(suggestion.rationale || buildOnCreateChipSummary(suggestion))}</div>
+              ${renderAiDebugSuggestionId(suggestion.suggestionId)}
+              ${
+                suggestion.clarificationAnswered
+                  ? `<div class="ai-create-chip__helper">Answer: ${escapeHtml(suggestion.clarificationAnswer)}</div>`
+                  : ""
+              }
+              ${suggestion.helperText ? `<div class="ai-create-chip__helper">${escapeHtml(suggestion.helperText)}</div>` : ""}
+              ${renderOnCreateChipChoices(suggestion)}
+              <div class="ai-create-chip__actions ai-actions">
+                ${renderOnCreateChipActions(suggestion)}
+              </div>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+
+  const confirmationSuggestion = visibleSuggestions.find(
+    (suggestion) =>
+      needsConfirmation(suggestion) && suggestion.confirmationOpen,
+  );
+  if (confirmationSuggestion) {
+    window.requestAnimationFrame(() => {
+      const confirmButton = refs.row.querySelector(
+        `[data-testid="ai-chip-confirm-${escapeSelectorValue(confirmationSuggestion.suggestionId)}"]`,
+      );
+      if (confirmButton instanceof HTMLElement) {
+        confirmButton.focus({ preventScroll: true });
+      }
+    });
+  }
+}
+
+function snapshotOnCreateDraftState() {
+  const refs = getOnCreateAssistElements();
+  if (!refs) return null;
+  return {
+    title: refs.titleInput.value,
+    dueDate:
+      refs.dueDateInput instanceof HTMLInputElement
+        ? refs.dueDateInput.value
+        : "",
+    project:
+      refs.projectSelect instanceof HTMLSelectElement
+        ? refs.projectSelect.value
+        : "",
+    priority: currentPriority,
+  };
+}
+
+function restoreOnCreateDraftState(snapshot) {
+  if (!snapshot) return;
+  const refs = getOnCreateAssistElements();
+  if (!refs) return;
+  suppressOnCreateAssistInput = true;
+  refs.titleInput.value = snapshot.title || "";
+  if (refs.dueDateInput instanceof HTMLInputElement) {
+    refs.dueDateInput.value = snapshot.dueDate || "";
+  }
+  if (refs.projectSelect instanceof HTMLSelectElement) {
+    if (snapshot.project) {
+      ensureOnCreateProjectOption(snapshot.project);
+    }
+    refs.projectSelect.value = snapshot.project || "";
+  }
+  if (
+    snapshot.priority === "low" ||
+    snapshot.priority === "medium" ||
+    snapshot.priority === "high"
+  ) {
+    setPriority(snapshot.priority);
+  }
+  suppressOnCreateAssistInput = false;
+}
+
+function applyOnCreateSuggestion(suggestion, clarificationChoice = "") {
+  const refs = getOnCreateAssistElements();
+  if (!refs) return;
+  suggestion.undoSnapshot = snapshotOnCreateDraftState();
+  suggestion.applied = true;
+  suggestion.confirmationOpen = false;
+  suggestion.helperText = "";
+
+  if (suggestion.type === "rewrite_title") {
+    const nextTitle = String(suggestion.payload.title || "").trim();
+    if (nextTitle) {
+      suppressOnCreateAssistInput = true;
+      refs.titleInput.value = nextTitle;
+      suppressOnCreateAssistInput = false;
+    }
+  } else if (suggestion.type === "set_due_date") {
+    const dueDateIso = String(suggestion.payload.dueDateISO || "");
+    if (refs.dueDateInput instanceof HTMLInputElement) {
+      refs.dueDateInput.value = toDateTimeLocalValue(dueDateIso);
+    }
+  } else if (suggestion.type === "set_priority") {
+    const nextPriority = String(
+      suggestion.payload.priority || "",
+    ).toLowerCase();
+    if (
+      nextPriority === "low" ||
+      nextPriority === "medium" ||
+      nextPriority === "high"
+    ) {
+      setPriority(nextPriority);
+    }
+  } else if (suggestion.type === "set_project") {
+    const rawProject = String(
+      suggestion.payload.projectName || suggestion.payload.category || "",
+    );
+    const normalized = normalizeProjectPath(rawProject);
+    if (normalized && refs.projectSelect instanceof HTMLSelectElement) {
+      ensureOnCreateProjectOption(normalized);
+      refs.projectSelect.value = normalized;
+    }
+  } else if (suggestion.type === "set_category") {
+    const rawCategory = String(suggestion.payload.category || "");
+    const normalized = normalizeProjectPath(rawCategory);
+    if (normalized && refs.projectSelect instanceof HTMLSelectElement) {
+      ensureOnCreateProjectOption(normalized);
+      refs.projectSelect.value = normalized;
+    }
+  } else if (suggestion.type === "ask_clarification") {
+    suggestion.clarificationAnswered = true;
+    suggestion.clarificationExpanded = false;
+    suggestion.clarificationAnswer = clarificationChoice || "Selected";
+    const selectedChoice =
+      (Array.isArray(suggestion.payload.choices)
+        ? suggestion.payload.choices.find(
+            (choice) => String(choice.value || "") === clarificationChoice,
+          )
+        : null) || null;
+    const projectValue = normalizeProjectPath(
+      String(
+        selectedChoice?.projectName ||
+          selectedChoice?.category ||
+          selectedChoice?.value ||
+          "",
+      ),
+    );
+    if (projectValue && refs.projectSelect instanceof HTMLSelectElement) {
+      ensureOnCreateProjectOption(projectValue);
+      refs.projectSelect.value = projectValue;
+    }
+    suggestion.helperText = "Thanks — will refine next time.";
+  }
+}
+
+function onCreateAssistApplySuggestion(suggestionId) {
+  const suggestion = getOnCreateSuggestionById(suggestionId);
+  if (!suggestion || suggestion.dismissed || suggestion.applied) return;
+  if (suggestion.type === "ask_clarification") {
+    suggestion.clarificationExpanded = !suggestion.clarificationExpanded;
+    renderOnCreateAssistRow();
+    return;
+  }
+  if (suggestion.requiresConfirmation) {
+    suggestion.confirmationOpen = true;
+    renderOnCreateAssistRow();
+    return;
+  }
+  applyOnCreateSuggestion(suggestion);
+  renderOnCreateAssistRow();
+}
+
+function onCreateAssistConfirmApplySuggestion(suggestionId) {
+  const suggestion = getOnCreateSuggestionById(suggestionId);
+  if (!suggestion || suggestion.dismissed || suggestion.applied) return;
+  applyOnCreateSuggestion(suggestion);
+  renderOnCreateAssistRow();
+}
+
+function onCreateAssistDismissSuggestion(suggestionId) {
+  const suggestion = getOnCreateSuggestionById(suggestionId);
+  if (!suggestion) return;
+  suggestion.dismissed = true;
+  renderOnCreateAssistRow();
+}
+
+function onCreateAssistUndoSuggestion(suggestionId) {
+  const suggestion = getOnCreateSuggestionById(suggestionId);
+  if (!suggestion || !suggestion.applied) return;
+  restoreOnCreateDraftState(suggestion.undoSnapshot);
+  suggestion.applied = false;
+  suggestion.confirmationOpen = false;
+  suggestion.clarificationAnswered = false;
+  suggestion.clarificationAnswer = "";
+  suggestion.helperText = "";
+  suggestion.clarificationExpanded = false;
+  suggestion.undoSnapshot = null;
+  renderOnCreateAssistRow();
+}
+
+function onCreateAssistChooseClarification(suggestionId, choiceValue) {
+  const suggestion = getOnCreateSuggestionById(suggestionId);
+  if (
+    !suggestion ||
+    suggestion.type !== "ask_clarification" ||
+    suggestion.applied
+  ) {
+    return;
+  }
+  applyOnCreateSuggestion(suggestion, String(choiceValue || "").trim());
+  renderOnCreateAssistRow();
+}
+
+function bindOnCreateAssistHandlers() {
+  if (window.__onCreateAssistHandlersBound) {
+    return;
+  }
+  window.__onCreateAssistHandlersBound = true;
+
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id !== "todoInput") return;
+    if (suppressOnCreateAssistInput) {
+      renderOnCreateAssistRow();
+      return;
+    }
+    refreshOnCreateAssistFromTitle();
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const actionEl = target.closest("[data-ai-create-action]");
+    if (!(actionEl instanceof HTMLElement)) return;
+    const action = actionEl.getAttribute("data-ai-create-action");
+    const suggestionId =
+      actionEl.getAttribute("data-ai-create-suggestion-id") || "";
+    if (action === "toggle-more") {
+      onCreateAssistState.showAll = !onCreateAssistState.showAll;
+      renderOnCreateAssistRow();
+      return;
+    }
+    if (action === "apply" || action === "toggle-choices") {
+      onCreateAssistApplySuggestion(suggestionId);
+      return;
+    }
+    if (action === "confirm-apply") {
+      onCreateAssistConfirmApplySuggestion(suggestionId);
+      return;
+    }
+    if (action === "cancel-confirm") {
+      const suggestion = getOnCreateSuggestionById(suggestionId);
+      if (!suggestion) return;
+      suggestion.confirmationOpen = false;
+      renderOnCreateAssistRow();
+      return;
+    }
+    if (action === "dismiss") {
+      onCreateAssistDismissSuggestion(suggestionId);
+      return;
+    }
+    if (action === "undo") {
+      onCreateAssistUndoSuggestion(suggestionId);
+      return;
+    }
+    if (action === "choose") {
+      const choiceValue =
+        actionEl.getAttribute("data-ai-create-choice-value") || "";
+      onCreateAssistChooseClarification(suggestionId, choiceValue);
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    if (
+      !onCreateAssistState.suggestions.some((item) => item.confirmationOpen)
+    ) {
+      return;
+    }
+    const target = event.target;
+    if (target instanceof Element && !target.closest("#aiOnCreateAssistRow")) {
+      return;
+    }
+    onCreateAssistState.suggestions.forEach((item) => {
+      item.confirmationOpen = false;
+    });
+    renderOnCreateAssistRow();
+  });
+}
+
+function createInitialTodayPlanState() {
+  return {
+    goalText: "",
+    generating: false,
+    envelope: null,
+    selectedTodoIds: new Set(),
+    dismissedSuggestionIds: new Set(),
+    notesDraftByTodoId: {},
+    lastApplyBatch: null,
+    loadingMessage: "",
+  };
+}
+
+function resetTodayPlanState() {
+  todayPlanState = createInitialTodayPlanState();
+}
+
+function getTodayPlanPanelElement() {
+  const panel = document.getElementById("todayPlanPanel");
+  if (!(panel instanceof HTMLElement)) return null;
+  return panel;
+}
+
+function getTodayPlanImpactRank(type) {
+  return impactRankForSurface(TODAY_PLAN_SURFACE, type);
+}
+
+function getTodayPlanConfidenceBadge(confidence) {
+  return confidenceLabel(confidence);
+}
+
+function isTodayPlanViewActive() {
+  return currentDateView === "today";
+}
+
+function toEpoch(value) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) return Infinity;
+  return date.getTime();
+}
+
+function normalizePriorityValue(priority) {
+  const value = String(priority || "").toLowerCase();
+  if (value === "low" || value === "medium" || value === "high") {
+    return value;
+  }
+  return "medium";
+}
+
+function priorityWeight(priority) {
+  const value = normalizePriorityValue(priority);
+  if (value === "high") return 3;
+  if (value === "medium") return 2;
+  return 1;
+}
+
+function estimateTodoMinutes(todo, mode = "balanced") {
+  const title = String(todo?.title || "").trim();
+  const words = title ? title.split(/\s+/).length : 1;
+  const base = Math.max(15, Math.min(120, words * 9));
+  if (mode === "quick") {
+    return Math.max(10, Math.min(30, Math.round(base * 0.6)));
+  }
+  if (mode === "deep") {
+    return Math.max(45, Math.min(150, Math.round(base * 1.35)));
+  }
+  return base;
+}
+
+function rankTodayTodos(goalLower, todayTodos) {
+  const mode = goalLower.includes("quick")
+    ? "quick"
+    : goalLower.includes("deep") || goalLower.includes("focus")
+      ? "deep"
+      : "balanced";
+  const now = Date.now();
+  const ranked = [...todayTodos].sort((a, b) => {
+    const dueA = toEpoch(a.dueDate);
+    const dueB = toEpoch(b.dueDate);
+    const dueScoreA = dueA === Infinity ? Infinity : Math.max(0, dueA - now);
+    const dueScoreB = dueB === Infinity ? Infinity : Math.max(0, dueB - now);
+    const recencyA = toEpoch(a.updatedAt || a.createdAt);
+    const recencyB = toEpoch(b.updatedAt || b.createdAt);
+    const prioA = priorityWeight(a.priority);
+    const prioB = priorityWeight(b.priority);
+    if (mode === "quick") {
+      const quickA = estimateTodoMinutes(a, "quick");
+      const quickB = estimateTodoMinutes(b, "quick");
+      if (quickA !== quickB) return quickA - quickB;
+      if (dueScoreA !== dueScoreB) return dueScoreA - dueScoreB;
+      if (prioA !== prioB) return prioB - prioA;
+      return recencyB - recencyA;
+    }
+    if (mode === "deep") {
+      const deepA = estimateTodoMinutes(a, "deep");
+      const deepB = estimateTodoMinutes(b, "deep");
+      if (deepA !== deepB) return deepB - deepA;
+      if (prioA !== prioB) return prioB - prioA;
+      if (dueScoreA !== dueScoreB) return dueScoreA - dueScoreB;
+      return recencyB - recencyA;
+    }
+    if (dueScoreA !== dueScoreB) return dueScoreA - dueScoreB;
+    if (prioA !== prioB) return prioB - prioA;
+    return recencyB - recencyA;
+  });
+  return { mode, ranked };
+}
+
+function buildTodayPlanSuggestion(
+  type,
+  suggestionId,
+  confidence,
+  rationale,
+  payload,
+) {
+  return {
+    type,
+    suggestionId,
+    confidence,
+    rationale: truncateRationale(rationale, 120),
+    payload,
+  };
+}
+
+function mockPlanFromGoal(goalText, todayTodos) {
+  const goal = String(goalText || "").trim();
+  const goalLower = goal.toLowerCase();
+  const generatedAt = new Date().toISOString();
+
+  if (
+    goalLower.includes("abstain") ||
+    !Array.isArray(todayTodos) ||
+    !todayTodos.length
+  ) {
+    return {
+      contractVersion: 1,
+      generatedAt,
+      requestId: `today-plan-${encodeURIComponent(goalLower || "empty")}`,
+      surface: TODAY_PLAN_SURFACE,
+      must_abstain: true,
+      planPreview: { topN: 0, items: [] },
+      suggestions: [],
+    };
+  }
+
+  const { mode, ranked } = rankTodayTodos(goalLower, todayTodos);
+  const topN =
+    ranked.length >= 5 && (mode === "quick" || mode === "deep") ? 5 : 3;
+  const selected = ranked.slice(0, Math.min(topN, ranked.length));
+  const previewItems = selected.map((todo, index) => {
+    const estimateMode =
+      mode === "quick"
+        ? "quick"
+        : mode === "deep" && index === 0
+          ? "deep"
+          : "balanced";
+    const minutes = estimateTodoMinutes(todo, estimateMode);
+    const rationale =
+      mode === "quick"
+        ? "Quick-win candidate with low setup cost."
+        : mode === "deep" && index === 0
+          ? "Primary focus block for deep work."
+          : "Urgency and priority alignment for today.";
+    return {
+      todoId: String(todo.id),
+      rank: index + 1,
+      timeEstimateMin: minutes,
+      rationale,
+    };
+  });
+
+  const suggestions = [];
+  for (const item of previewItems) {
+    const todo = selected.find((entry) => String(entry.id) === item.todoId);
+    if (!todo) continue;
+    if (item.rank <= 2) {
+      const due = new Date();
+      due.setDate(due.getDate() + item.rank);
+      due.setHours(9 + item.rank, 0, 0, 0);
+      suggestions.push(
+        buildTodayPlanSuggestion(
+          "set_due_date",
+          `today-set-due-${item.todoId}`,
+          0.8 - item.rank * 0.04,
+          "Assign a concrete deadline for today's execution.",
+          { todoId: item.todoId, dueDateISO: due.toISOString() },
+        ),
+      );
+    }
+    if (normalizePriorityValue(todo.priority) !== "high" && item.rank === 1) {
+      suggestions.push(
+        buildTodayPlanSuggestion(
+          "set_priority",
+          `today-set-priority-${item.todoId}`,
+          0.77,
+          "Top ranked item should be elevated for focus.",
+          { todoId: item.todoId, priority: "high" },
+        ),
+      );
+    }
+    if (item.rank <= 2) {
+      suggestions.push(
+        buildTodayPlanSuggestion(
+          "propose_next_action",
+          `today-next-action-${item.todoId}`,
+          0.7,
+          "Define the first concrete step before context switching.",
+          {
+            todoId: item.todoId,
+            text: `Start: ${String(todo.title || "").slice(0, 80)} and draft first deliverable.`,
+          },
+        ),
+      );
+    }
+  }
+
+  if (previewItems[0]) {
+    const todoId = previewItems[0].todoId;
+    suggestions.push(
+      buildTodayPlanSuggestion(
+        "split_subtasks",
+        `today-split-${todoId}`,
+        0.68,
+        "Split one larger item into scoped execution steps.",
+        {
+          todoId,
+          subtasks: [
+            { title: "Outline deliverable", order: 1 },
+            { title: "Execute focused work block", order: 2 },
+            { title: "Review and close loop", order: 3 },
+          ],
+        },
+      ),
+    );
+  }
+
+  suggestions.push({
+    type: "unknown_type",
+    suggestionId: "today-unknown",
+    confidence: 0.5,
+    rationale: "Should be ignored",
+    payload: { todoId: previewItems[0]?.todoId || "" },
+  });
+
+  return {
+    contractVersion: 1,
+    generatedAt,
+    requestId: `today-plan-${encodeURIComponent(goalLower || "none")}-${todayTodos.length}`,
+    surface: TODAY_PLAN_SURFACE,
+    must_abstain: false,
+    planPreview: {
+      topN: previewItems.length,
+      items: previewItems,
+    },
+    suggestions,
+  };
+}
+
+function normalizeTodayPlanEnvelope(rawEnvelope) {
+  const suggestionsRaw = Array.isArray(rawEnvelope?.suggestions)
+    ? rawEnvelope.suggestions
+    : [];
+  const normalizedSuggestions = suggestionsRaw
+    .filter((suggestion) =>
+      shouldRenderTypeForSurface(TODAY_PLAN_SURFACE, suggestion?.type),
+    )
+    .map((suggestion) => ({
+      type: String(suggestion.type),
+      suggestionId: String(suggestion.suggestionId || ""),
+      confidence: Math.max(0, Math.min(1, Number(suggestion.confidence) || 0)),
+      rationale: truncateRationale(suggestion.rationale, 120),
+      payload:
+        suggestion.payload && typeof suggestion.payload === "object"
+          ? suggestion.payload
+          : {},
+    }))
+    .filter((suggestion) => suggestion.suggestionId);
+
+  const previewItemsRaw = Array.isArray(rawEnvelope?.planPreview?.items)
+    ? rawEnvelope.planPreview.items
+    : [];
+  const previewItems = previewItemsRaw
+    .map((item) => ({
+      todoId: String(item?.todoId || ""),
+      rank: Number(item?.rank) || 0,
+      timeEstimateMin: Number(item?.timeEstimateMin) || 0,
+      rationale: truncateRationale(item?.rationale, 120),
+    }))
+    .filter((item) => item.todoId && item.rank > 0);
+
+  return {
+    contractVersion: Number(rawEnvelope?.contractVersion) || 1,
+    generatedAt: String(rawEnvelope?.generatedAt || new Date().toISOString()),
+    requestId: String(rawEnvelope?.requestId || "today-plan"),
+    surface: TODAY_PLAN_SURFACE,
+    must_abstain: !!rawEnvelope?.must_abstain,
+    planPreview: {
+      topN: Number(rawEnvelope?.planPreview?.topN) || previewItems.length,
+      items: previewItems,
+    },
+    suggestions: normalizedSuggestions,
+  };
+}
+
+function getTodayPlanSelectedSuggestionCards() {
+  if (!todayPlanState.envelope) return [];
+  const selectedIds = todayPlanState.selectedTodoIds;
+  const filtered = todayPlanState.envelope.suggestions
+    .filter((suggestion) => {
+      const todoId = String(suggestion.payload?.todoId || "");
+      return todoId && selectedIds.has(todoId);
+    })
+    .filter(
+      (suggestion) =>
+        !todayPlanState.dismissedSuggestionIds.has(suggestion.suggestionId),
+    )
+    .filter((suggestion) =>
+      shouldRenderTypeForSurface(TODAY_PLAN_SURFACE, suggestion.type),
+    );
+  return capSuggestions(sortSuggestions(TODAY_PLAN_SURFACE, filtered), 6);
+}
+
+function deepClone(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function renderTodayPlanPanel() {
+  const panel = getTodayPlanPanelElement();
+  if (!panel) return;
+  if (!isTodayPlanViewActive()) {
+    panel.hidden = true;
+    panel.innerHTML = "";
+    return;
+  }
+
+  panel.hidden = false;
+  const goalText = todayPlanState.goalText || "";
+  const envelope = todayPlanState.envelope;
+  const previewItems = Array.isArray(envelope?.planPreview?.items)
+    ? envelope.planPreview.items
+    : [];
+  const suggestionCards = getTodayPlanSelectedSuggestionCards();
+  const emptyMessage = envelope?.must_abstain
+    ? "No safe plan right now."
+    : envelope && !todayPlanState.generating && suggestionCards.length === 0
+      ? "No suggestions right now."
+      : "";
+
+  panel.setAttribute("data-testid", "today-plan-panel");
+  panel.innerHTML = `
+    <div class="today-plan-panel__header">
+      <div class="today-plan-panel__title">Plan my day</div>
+      ${
+        todayPlanState.lastApplyBatch
+          ? `
+          <button
+            type="button"
+            class="today-plan-panel__undo ai-undo"
+            data-testid="today-plan-undo"
+            aria-label="Undo last plan apply"
+            data-today-plan-action="undo"
+          >
+            Undo
+          </button>
+        `
+          : ""
+      }
+    </div>
+    <div class="today-plan-panel__controls">
+      <label class="sr-only" for="todayPlanGoalInput">Goal (optional)</label>
+      <input
+        id="todayPlanGoalInput"
+        data-testid="today-plan-goal-input"
+        type="text"
+        placeholder="Goal (optional)"
+        value="${escapeHtml(goalText)}"
+        aria-label="Goal (optional)"
+      />
+      <button
+        id="todayPlanGenerateButton"
+        data-testid="today-plan-generate"
+        type="button"
+        class="mini-btn"
+        aria-label="Generate plan"
+        data-today-plan-action="generate"
+        ${todayPlanState.generating ? "disabled" : ""}
+      >
+        ${todayPlanState.generating ? "Generating..." : "Generate plan"}
+      </button>
+    </div>
+    ${renderAiDebugMeta(envelope || {})}
+    ${
+      todayPlanState.generating
+        ? '<div class="today-plan-panel__loading ai-empty" role="status">Generating plan preview...</div>'
+        : ""
+    }
+    ${
+      previewItems.length > 0
+        ? `
+        <div class="today-plan-preview" data-testid="today-plan-preview">
+          ${previewItems
+            .map((item) => {
+              const todo = todos.find(
+                (entry) => String(entry.id) === String(item.todoId),
+              );
+              const checked = todayPlanState.selectedTodoIds.has(item.todoId);
+              return `
+                <div class="today-plan-preview__item" data-testid="today-plan-item-${escapeHtml(item.todoId)}">
+                  <input
+                    type="checkbox"
+                    data-testid="today-plan-item-checkbox-${escapeHtml(item.todoId)}"
+                    data-today-plan-action="toggle-item"
+                    data-today-plan-todo-id="${escapeHtml(item.todoId)}"
+                    aria-label="Select plan item ${escapeHtml(String(todo?.title || item.todoId))}"
+                    ${checked ? "checked" : ""}
+                  />
+                  <div class="today-plan-preview__rank">${item.rank}</div>
+                  <div class="today-plan-preview__body">
+                    <div class="today-plan-preview__title">${escapeHtml(String(todo?.title || "Task"))}</div>
+                    <div class="today-plan-preview__meta">${item.timeEstimateMin} min • ${escapeHtml(item.rationale)}</div>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+      `
+        : ""
+    }
+    ${emptyMessage ? `<div class="today-plan-panel__empty ai-empty" role="status">${escapeHtml(emptyMessage)}</div>` : ""}
+    ${
+      suggestionCards.length > 0
+        ? `
+        <div class="today-plan-suggestions">
+          ${suggestionCards
+            .map((suggestion) => {
+              const todoId = String(suggestion.payload?.todoId || "");
+              const todo = todos.find((entry) => String(entry.id) === todoId);
+              const summary =
+                suggestion.type === "set_due_date"
+                  ? `Set due ${new Date(String(suggestion.payload?.dueDateISO || "")).toLocaleDateString()}`
+                  : suggestion.type === "set_priority"
+                    ? `Set priority ${String(suggestion.payload?.priority || "").toUpperCase()}`
+                    : suggestion.type === "split_subtasks"
+                      ? `Split into ${Array.isArray(suggestion.payload?.subtasks) ? suggestion.payload.subtasks.length : 0} subtasks`
+                      : `Next action: ${String(suggestion.payload?.text || "").slice(0, 60)}`;
+              return `
+                <div
+                  class="today-plan-suggestion ai-card"
+                  data-testid="today-plan-suggestion-${escapeHtml(suggestion.suggestionId)}"
+                  data-today-plan-todo-id="${escapeHtml(todoId)}"
+                >
+                  <div class="today-plan-suggestion__title">${escapeHtml(labelForType(suggestion.type))}</div>
+                  <div class="today-plan-suggestion__summary">${escapeHtml(summary)}</div>
+                  <div
+                    class="today-plan-suggestion__rationale ai-tooltip"
+                    id="today-plan-rationale-${escapeHtml(suggestion.suggestionId)}"
+                  >
+                    ${escapeHtml(suggestion.rationale)}
+                  </div>
+                  ${renderAiDebugSuggestionId(suggestion.suggestionId)}
+                  <div class="today-plan-suggestion__footer ai-actions">
+                    <span class="today-plan-suggestion__confidence ai-badge ai-badge--${escapeHtml(confidenceBand(suggestion.confidence))}" aria-label="Confidence ${escapeHtml(getTodayPlanConfidenceBadge(suggestion.confidence))}">
+                      ${escapeHtml(getTodayPlanConfidenceBadge(suggestion.confidence))}
+                    </span>
+                    <button
+                      type="button"
+                      class="today-plan-suggestion__dismiss ai-action-btn"
+                      data-testid="today-plan-suggestion-dismiss-${escapeHtml(suggestion.suggestionId)}"
+                      aria-label="Dismiss suggestion ${escapeHtml(suggestion.suggestionId)}"
+                      aria-describedby="today-plan-rationale-${escapeHtml(suggestion.suggestionId)}"
+                      data-today-plan-action="dismiss-suggestion"
+                      data-today-plan-suggestion-id="${escapeHtml(suggestion.suggestionId)}"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              `;
+            })
+            .join("")}
+        </div>
+        <div class="today-plan-panel__actions">
+          <button
+            type="button"
+            class="add-btn"
+            data-testid="today-plan-apply-selected"
+            aria-label="Apply selected plan suggestions"
+            data-today-plan-action="apply-selected"
+          >
+            Apply selected
+          </button>
+        </div>
+      `
+        : ""
+    }
+  `;
+}
+
+function handleTodayPlanGenerate() {
+  const goalInput = document.getElementById("todayPlanGoalInput");
+  const goalText =
+    goalInput instanceof HTMLInputElement ? goalInput.value.trim() : "";
+  todayPlanState.goalText = goalText;
+  todayPlanState.generating = true;
+  todayPlanState.loadingMessage = "Generating plan preview...";
+  renderTodayPlanPanel();
+
+  const generationId = ++todayPlanGenerationSeq;
+  window.setTimeout(() => {
+    if (generationId !== todayPlanGenerationSeq) return;
+    const todayTodos = getVisibleTodos();
+    const envelope = normalizeTodayPlanEnvelope(
+      mockPlanFromGoal(goalText, todayTodos),
+    );
+    todayPlanState.generating = false;
+    todayPlanState.loadingMessage = "";
+    todayPlanState.envelope = envelope;
+    todayPlanState.dismissedSuggestionIds = new Set();
+    todayPlanState.selectedTodoIds = new Set(
+      envelope.planPreview.items.map((item) => String(item.todoId)),
+    );
+    todayPlanState.lastApplyBatch = null;
+    renderTodayPlanPanel();
+  }, 120);
+}
+
+function handleTodayPlanToggleItem(todoId, checked) {
+  if (checked) {
+    todayPlanState.selectedTodoIds.add(todoId);
+  } else {
+    todayPlanState.selectedTodoIds.delete(todoId);
+  }
+  renderTodayPlanPanel();
+}
+
+function handleTodayPlanDismissSuggestion(suggestionId) {
+  todayPlanState.dismissedSuggestionIds.add(suggestionId);
+  renderTodayPlanPanel();
+}
+
+function handleTodayPlanApplySelected() {
+  if (!todayPlanState.envelope) return;
+  const suggestionsToApply = getTodayPlanSelectedSuggestionCards();
+  if (!suggestionsToApply.length) return;
+
+  const affectedTodoIds = new Set(
+    suggestionsToApply
+      .map((suggestion) => String(suggestion.payload?.todoId || ""))
+      .filter(Boolean),
+  );
+  const todoSnapshots = {};
+  for (const todoId of affectedTodoIds) {
+    const todo = todos.find((entry) => String(entry.id) === todoId);
+    if (!todo) continue;
+    todoSnapshots[todoId] = deepClone(todo);
+  }
+  const notesDraftSnapshot = deepClone(todayPlanState.notesDraftByTodoId);
+
+  for (const suggestion of suggestionsToApply) {
+    const todoId = String(suggestion.payload?.todoId || "");
+    const todo = todos.find((entry) => String(entry.id) === todoId);
+    if (!todo) continue;
+
+    if (suggestion.type === "set_priority") {
+      todo.priority = normalizePriorityValue(suggestion.payload?.priority);
+      continue;
+    }
+    if (suggestion.type === "set_due_date") {
+      const dueDate = String(suggestion.payload?.dueDateISO || "");
+      const parsed = new Date(dueDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        todo.dueDate = parsed.toISOString();
+      }
+      continue;
+    }
+    if (suggestion.type === "split_subtasks") {
+      const subtasksRaw = Array.isArray(suggestion.payload?.subtasks)
+        ? suggestion.payload.subtasks
+        : [];
+      todo.subtasks = subtasksRaw.slice(0, 5).map((subtask, index) => ({
+        id: `local-today-plan-${suggestion.suggestionId}-${index + 1}`,
+        title: String(subtask?.title || "").slice(0, 200),
+        completed: false,
+        order: Number(subtask?.order) || index + 1,
+      }));
+      continue;
+    }
+    if (suggestion.type === "propose_next_action") {
+      todayPlanState.notesDraftByTodoId[todoId] = String(
+        suggestion.payload?.text || "",
+      ).slice(0, 500);
+    }
+  }
+
+  todayPlanState.lastApplyBatch = {
+    todoSnapshots,
+    notesDraftSnapshot,
+  };
+  renderTodos();
+}
+
+function handleTodayPlanUndoBatch() {
+  const batch = todayPlanState.lastApplyBatch;
+  if (!batch) return;
+  Object.entries(batch.todoSnapshots || {}).forEach(([todoId, snapshot]) => {
+    const index = todos.findIndex((entry) => String(entry.id) === todoId);
+    if (index === -1) return;
+    todos[index] = snapshot;
+  });
+  todayPlanState.notesDraftByTodoId = deepClone(batch.notesDraftSnapshot || {});
+  todayPlanState.lastApplyBatch = null;
+  renderTodos();
+}
+
+function bindTodayPlanHandlers() {
+  if (window.__todayPlanHandlersBound) {
+    return;
+  }
+  window.__todayPlanHandlersBound = true;
+
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id !== "todayPlanGoalInput") return;
+    if (!(target instanceof HTMLInputElement)) return;
+    todayPlanState.goalText = target.value;
+  });
+
+  document.addEventListener("change", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const action = target.getAttribute("data-today-plan-action");
+    if (action !== "toggle-item") return;
+    const todoId = String(target.getAttribute("data-today-plan-todo-id") || "");
+    if (!todoId || !(target instanceof HTMLInputElement)) return;
+    handleTodayPlanToggleItem(todoId, target.checked);
+  });
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const actionEl = target.closest("[data-today-plan-action]");
+    if (!(actionEl instanceof HTMLElement)) return;
+    const action = actionEl.getAttribute("data-today-plan-action");
+    if (action === "toggle-item" && actionEl instanceof HTMLInputElement) {
+      const todoId = String(
+        actionEl.getAttribute("data-today-plan-todo-id") || "",
+      );
+      if (!todoId) return;
+      handleTodayPlanToggleItem(todoId, actionEl.checked);
+      return;
+    }
+    if (action === "generate") {
+      handleTodayPlanGenerate();
+      return;
+    }
+    if (action === "dismiss-suggestion") {
+      const suggestionId = String(
+        actionEl.getAttribute("data-today-plan-suggestion-id") || "",
+      );
+      if (!suggestionId) return;
+      handleTodayPlanDismissSuggestion(suggestionId);
+      return;
+    }
+    if (action === "apply-selected") {
+      handleTodayPlanApplySelected();
+      return;
+    }
+    if (action === "undo") {
+      handleTodayPlanUndoBatch();
+    }
+  });
 }
 
 // ========== PHASE B: PRIORITY, NOTES, SUBTASKS ==========
@@ -6414,6 +8671,26 @@ function bindTodoDrawerHandlers() {
       return;
     }
 
+    const drawerAiAction = target.closest("[data-drawer-ai-action]");
+    if (drawerAiAction instanceof HTMLElement) {
+      const action = drawerAiAction.getAttribute("data-drawer-ai-action");
+      const suggestionId =
+        drawerAiAction.getAttribute("data-drawer-ai-suggestion-id") || "";
+      if (action === "apply") {
+        applyTaskDrawerSuggestion(suggestionId, false);
+      } else if (action === "confirm-apply") {
+        applyTaskDrawerSuggestion(suggestionId, true);
+      } else if (action === "cancel-confirm") {
+        taskDrawerAssistState.confirmSuggestionId = "";
+        renderTodoDrawerContent();
+      } else if (action === "dismiss") {
+        dismissTaskDrawerSuggestions(suggestionId);
+      } else if (action === "undo") {
+        undoTaskDrawerSuggestion(suggestionId);
+      }
+      return;
+    }
+
     const row = target.closest(".todo-item");
     if (!(row instanceof HTMLElement)) return;
     if (shouldIgnoreTodoDrawerOpen(target)) return;
@@ -6508,6 +8785,16 @@ function bindTodoDrawerHandlers() {
     if (target instanceof HTMLElement && target.id === "drawerTitleInput") {
       onDrawerTitleKeydown(event);
       return;
+    }
+
+    if (event.key === "Escape" && taskDrawerAssistState.confirmSuggestionId) {
+      const active = event.target;
+      if (active instanceof Element && active.closest("#todoDetailsDrawer")) {
+        taskDrawerAssistState.confirmSuggestionId = "";
+        renderTodoDrawerContent();
+        event.preventDefault();
+        return;
+      }
     }
 
     if (event.key !== "Enter") return;
@@ -6835,6 +9122,10 @@ async function logout() {
   document.getElementById("undoToast")?.classList.remove("active");
   clearFilters();
   clearPlanDraftState();
+  resetOnCreateAssistState();
+  resetTodayPlanState();
+  renderOnCreateAssistRow();
+  renderTodayPlanPanel();
   closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
   closeProjectsRailSheet({ restoreFocus: false });
@@ -6877,6 +9168,10 @@ function showAppView() {
   loadAiUsage();
   loadAiInsights();
   loadAiFeedbackSummary();
+  resetOnCreateAssistState();
+  resetTodayPlanState();
+  renderOnCreateAssistRow();
+  renderTodayPlanPanel();
 }
 
 // Show auth view
@@ -6898,6 +9193,10 @@ function showAuthView() {
   closeTodoDrawer({ restoreFocus: false });
   critiqueRequestsInFlight = 0;
   updateCritiqueDraftButtonState();
+  resetOnCreateAssistState();
+  resetTodayPlanState();
+  renderOnCreateAssistRow();
+  renderTodayPlanPanel();
   showLogin();
 }
 

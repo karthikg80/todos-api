@@ -131,6 +131,9 @@ describe("API Contract", () => {
       expect(response.body?.paths?.["/projects"]?.post).toBeDefined();
       expect(response.body?.paths?.["/projects/{id}"]?.put).toBeDefined();
       expect(response.body?.paths?.["/projects/{id}"]?.delete).toBeDefined();
+      expect(
+        response.body?.paths?.["/ai/decision-assist/stub"]?.post,
+      ).toBeDefined();
       expect(response.body?.paths?.["/ai/task-critic"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/plan-from-goal"]?.post).toBeDefined();
       expect(response.body?.paths?.["/ai/usage"]?.get).toBeDefined();
@@ -272,6 +275,31 @@ describe("API Contract", () => {
       expect(Array.isArray(response.body.suggestions)).toBe(true);
       expect(response.body.suggestions.length).toBeGreaterThan(0);
       expect(response.body.suggestionId).toBeDefined();
+    });
+
+    it("generates contract-validated decision assist stub and persists it", async () => {
+      const response = await request(app)
+        .post("/ai/decision-assist/stub")
+        .send({
+          surface: "on_create",
+          title: "follow up tomorrow with design",
+        })
+        .expect(200);
+
+      expect(response.body.surface).toBe("on_create");
+      expect(response.body.requestId).toEqual(expect.any(String));
+      expect(Array.isArray(response.body.suggestions)).toBe(true);
+      expect(response.body.suggestions.length).toBeGreaterThan(0);
+      expect(response.body.suggestionId).toBeDefined();
+
+      const list = await request(app).get("/ai/suggestions").expect(200);
+      expect(list.body[0]).toEqual(
+        expect.objectContaining({
+          id: response.body.suggestionId,
+          type: "task_critic",
+          status: "pending",
+        }),
+      );
     });
 
     it("validates task critic payload", async () => {

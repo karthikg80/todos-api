@@ -1,5 +1,11 @@
 import { Priority } from "./types";
 import { config } from "./config";
+import {
+  DecisionAssistOutput,
+  DecisionAssistSurface,
+  validateDecisionAssistOutput,
+} from "./aiContracts";
+import { randomUUID } from "crypto";
 
 export interface CritiqueTaskInput {
   title: string;
@@ -54,6 +60,16 @@ export interface BreakdownTodoOutput {
 export interface AiGenerationContext {
   rejectionSignals?: string[];
   acceptanceSignals?: string[];
+}
+
+export interface DecisionAssistStubInput {
+  surface: DecisionAssistSurface;
+  todoId?: string;
+  title?: string;
+  description?: string;
+  notes?: string;
+  goal?: string;
+  topN?: 3 | 5;
 }
 
 interface AiProvider {
@@ -451,6 +467,132 @@ function parseBreakdownOutput(value: unknown): BreakdownTodoOutput | null {
   };
 }
 
+function deriveDueDateSuggestion(title?: string): string | undefined {
+  if (!title) {
+    return undefined;
+  }
+  const normalized = title.toLowerCase();
+  if (normalized.includes("today")) {
+    return new Date().toISOString();
+  }
+  if (normalized.includes("tomorrow")) {
+    return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+  }
+  return undefined;
+}
+
+export function generateDecisionAssistStubOutput(
+  input: DecisionAssistStubInput,
+): DecisionAssistOutput {
+  const surface = input.surface;
+  const requestId = randomUUID();
+  const suggestions: DecisionAssistOutput["suggestions"] = [];
+
+  if (surface === "on_create" || surface === "task_drawer") {
+    const title = input.title?.trim() || "Untitled task";
+    const dueDateISO = deriveDueDateSuggestion(title);
+    const todoId = typeof input.todoId === "string" ? input.todoId.trim() : "";
+    const targetTodoPayload = todoId ? { todoId } : {};
+
+    suggestions.push({
+      type: "rewrite_title",
+      confidence: 0.74,
+      rationale: "Shorten ambiguity and make the task immediately actionable.",
+      payload: {
+        ...targetTodoPayload,
+        title: startsWithActionVerb(title) ? title : `Draft ${title}`,
+      },
+    });
+
+    if (/urgent|asap/i.test(title)) {
+      suggestions.push({
+        type: "set_priority",
+        confidence: 0.72,
+        rationale: "Urgency language suggests a higher execution priority.",
+        payload: {
+          ...targetTodoPayload,
+          priority: "high",
+        },
+      });
+    }
+
+    suggestions.push({
+      type: "propose_next_action",
+      confidence: 0.77,
+      rationale: "Next-action phrasing lowers start friction.",
+      payload: {
+        ...targetTodoPayload,
+        title: `Define first concrete step for: ${title}`,
+      },
+    });
+
+    if (dueDateISO) {
+      suggestions.push({
+        type: "set_due_date",
+        confidence: 0.71,
+        rationale: "Detected explicit timing language in task text.",
+        payload: { ...targetTodoPayload, dueDateISO },
+      });
+    } else {
+      suggestions.push({
+        type: "ask_clarification",
+        confidence: 0.56,
+        rationale: "Due date signal is unclear and should be user-confirmed.",
+        payload: {
+          ...targetTodoPayload,
+          question: "Should this task have a due date?",
+          choices: ["Today", "This week", "No due date"],
+        },
+      });
+    }
+  }
+
+  if (surface === "today_plan") {
+    const topN = input.topN || 3;
+    const goal = input.goal?.trim() || "Finish today with high impact progress";
+    const items = Array.from({ length: topN }).map((_, index) => ({
+      rank: index + 1,
+      timeEstimateMin: index === 0 ? 45 : 30,
+      rationale:
+        index === 0
+          ? `Highest impact step toward: ${goal}`
+          : "Balances urgency and momentum for today.",
+    }));
+
+    suggestions.push({
+      type: "set_priority",
+      confidence: 0.79,
+      rationale: "The top-ranked task should be treated as today's main bet.",
+      payload: { priority: "high" },
+    });
+
+    suggestions.push({
+      type: "defer_task",
+      confidence: 0.65,
+      rationale: "Defer lower-impact overflow tasks to protect focus.",
+      payload: { strategy: "next_week" },
+    });
+
+    return validateDecisionAssistOutput({
+      requestId,
+      surface,
+      must_abstain: false,
+      suggestions,
+      planPreview: {
+        topN,
+        items,
+      },
+    });
+  }
+
+  return validateDecisionAssistOutput({
+    requestId,
+    surface,
+    must_abstain: false,
+    suggestions,
+  });
+}
+
 export class AiPlannerService {
   private readonly provider?: AiProvider;
 
@@ -588,5 +730,11 @@ export class AiPlannerService {
       );
       return fallback;
     }
+  }
+
+  async generateDecisionAssistStub(
+    input: DecisionAssistStubInput,
+  ): Promise<DecisionAssistOutput> {
+    return generateDecisionAssistStubOutput(input);
   }
 }

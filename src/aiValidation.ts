@@ -1,6 +1,11 @@
 import { ValidationError } from "./validation";
 import { Priority } from "./types";
-import { CritiqueTaskInput, PlanFromGoalInput } from "./aiService";
+import {
+  CritiqueTaskInput,
+  DecisionAssistStubInput,
+  PlanFromGoalInput,
+} from "./aiService";
+import { DecisionAssistSurface } from "./aiContracts";
 import { AiSuggestionStatus } from "./aiSuggestionStore";
 
 const PRIORITIES: Priority[] = ["low", "medium", "high"];
@@ -9,6 +14,11 @@ const MAX_PLAN_TASKS = 8;
 const ALLOWED_SUGGESTION_STATUSES: AiSuggestionStatus[] = [
   "accepted",
   "rejected",
+];
+const ALLOWED_DECISION_ASSIST_SURFACES: DecisionAssistSurface[] = [
+  "on_create",
+  "task_drawer",
+  "today_plan",
 ];
 
 function parseDate(value: unknown, field: string): Date {
@@ -151,6 +161,8 @@ export function validateSuggestionStatusInput(data: any): {
 
 export function validateApplySuggestionInput(data: any): {
   reason?: string;
+  suggestionId?: string;
+  confirmed?: boolean;
 } {
   if (data === undefined || data === null) {
     return {};
@@ -172,7 +184,104 @@ export function validateApplySuggestionInput(data: any): {
     reason = trimmed || undefined;
   }
 
-  return { reason };
+  let suggestionId: string | undefined;
+  if ((data as Record<string, unknown>).suggestionId !== undefined) {
+    const raw = (data as Record<string, unknown>).suggestionId;
+    if (typeof raw !== "string") {
+      throw new ValidationError("suggestionId must be a string");
+    }
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      throw new ValidationError("suggestionId cannot be empty");
+    }
+    if (trimmed.length > 120) {
+      throw new ValidationError("suggestionId cannot exceed 120 characters");
+    }
+    suggestionId = trimmed;
+  }
+
+  let confirmed: boolean | undefined;
+  if ((data as Record<string, unknown>).confirmed !== undefined) {
+    const raw = (data as Record<string, unknown>).confirmed;
+    if (typeof raw !== "boolean") {
+      throw new ValidationError("confirmed must be a boolean");
+    }
+    confirmed = raw;
+  }
+
+  return { reason, suggestionId, confirmed };
+}
+
+export function validateDecisionAssistLatestQuery(query: any): {
+  todoId: string;
+  surface: DecisionAssistSurface;
+} {
+  if (typeof query.todoId !== "string" || query.todoId.trim().length === 0) {
+    throw new ValidationError("todoId is required");
+  }
+  if (query.todoId.trim().length > 120) {
+    throw new ValidationError("todoId cannot exceed 120 characters");
+  }
+
+  if (typeof query.surface !== "string") {
+    throw new ValidationError(
+      `surface must be one of: ${ALLOWED_DECISION_ASSIST_SURFACES.join(", ")}`,
+    );
+  }
+  const surface = query.surface as DecisionAssistSurface;
+  if (!ALLOWED_DECISION_ASSIST_SURFACES.includes(surface)) {
+    throw new ValidationError(
+      `surface must be one of: ${ALLOWED_DECISION_ASSIST_SURFACES.join(", ")}`,
+    );
+  }
+
+  return {
+    todoId: query.todoId.trim(),
+    surface,
+  };
+}
+
+export function validateDecisionAssistDismissInput(data: any): {
+  suggestionId?: string;
+  dismissAll: boolean;
+} {
+  if (data === undefined || data === null) {
+    return { dismissAll: true };
+  }
+  if (typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  let suggestionId: string | undefined;
+  if ((data as Record<string, unknown>).suggestionId !== undefined) {
+    const raw = (data as Record<string, unknown>).suggestionId;
+    if (typeof raw !== "string") {
+      throw new ValidationError("suggestionId must be a string");
+    }
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      throw new ValidationError("suggestionId cannot be empty");
+    }
+    if (trimmed.length > 120) {
+      throw new ValidationError("suggestionId cannot exceed 120 characters");
+    }
+    suggestionId = trimmed;
+  }
+
+  let dismissAll = false;
+  if ((data as Record<string, unknown>).dismissAll !== undefined) {
+    const raw = (data as Record<string, unknown>).dismissAll;
+    if (typeof raw !== "boolean") {
+      throw new ValidationError("dismissAll must be a boolean");
+    }
+    dismissAll = raw;
+  }
+
+  if (!dismissAll && !suggestionId) {
+    dismissAll = true;
+  }
+
+  return { suggestionId, dismissAll };
 }
 
 export function validateFeedbackSummaryQuery(query: any): {
@@ -257,4 +366,58 @@ export function validateBreakdownTodoInput(data: any): {
   }
 
   return { maxSubtasks, force };
+}
+
+export function validateDecisionAssistStubInput(
+  data: any,
+): DecisionAssistStubInput {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  if (typeof data.surface !== "string") {
+    throw new ValidationError(
+      `surface must be one of: ${ALLOWED_DECISION_ASSIST_SURFACES.join(", ")}`,
+    );
+  }
+
+  const surface = data.surface as DecisionAssistSurface;
+  if (!ALLOWED_DECISION_ASSIST_SURFACES.includes(surface)) {
+    throw new ValidationError(
+      `surface must be one of: ${ALLOWED_DECISION_ASSIST_SURFACES.join(", ")}`,
+    );
+  }
+
+  const parseOptionalString = (value: unknown, field: string) => {
+    if (value === undefined) {
+      return undefined;
+    }
+    if (typeof value !== "string") {
+      throw new ValidationError(`${field} must be a string`);
+    }
+    const trimmed = value.trim();
+    if (trimmed.length > 200) {
+      throw new ValidationError(`${field} cannot exceed 200 characters`);
+    }
+    return trimmed || undefined;
+  };
+
+  const topNRaw = data.topN;
+  let topN: 3 | 5 | undefined;
+  if (topNRaw !== undefined) {
+    if (!Number.isInteger(topNRaw) || (topNRaw !== 3 && topNRaw !== 5)) {
+      throw new ValidationError("topN must be 3 or 5");
+    }
+    topN = topNRaw as 3 | 5;
+  }
+
+  return {
+    surface,
+    todoId: parseOptionalString(data.todoId, "todoId"),
+    title: parseOptionalString(data.title, "title"),
+    description: parseOptionalString(data.description, "description"),
+    notes: parseOptionalString(data.notes, "notes"),
+    goal: parseOptionalString(data.goal, "goal"),
+    topN,
+  };
 }

@@ -85,6 +85,9 @@ const aiDailySuggestionLimitTeam = Number.parseInt(
   aiDailySuggestionLimitTeamRaw,
   10,
 );
+const aiDecisionAssistEnabled = ["1", "true"].includes(
+  (process.env.AI_DECISION_ASSIST || "false").toLowerCase(),
+);
 
 if (nodeEnv === "production") {
   if (!databaseUrl) {
@@ -202,4 +205,5 @@ export const config = {
         ? aiDailySuggestionLimitTeam
         : 1000,
   },
+  aiDecisionAssistEnabled,
 };

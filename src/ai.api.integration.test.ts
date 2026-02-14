@@ -14,7 +14,16 @@ describe("AI API Integration", () => {
     const todoService = new PrismaTodoService(prisma);
     const authService = new AuthService(prisma);
     const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
-    app = createApp(todoService, authService, aiSuggestionStore);
+    app = createApp(
+      todoService,
+      authService,
+      aiSuggestionStore,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
   });
 
   beforeEach(async () => {
@@ -77,6 +86,243 @@ describe("AI API Integration", () => {
     expect(persisted).toBeTruthy();
     expect(persisted?.status).toBe("accepted");
     expect((persisted?.feedback as any)?.reason).toBe("Great output quality");
+  });
+
+  it("generates task drawer decision assist stub and returns latest pending envelope", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "urgent tomorrow launch checklist" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    expect(generated.body.suggestionId).toBeDefined();
+
+    const latest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(latest.body.aiSuggestionId).toBe(generated.body.suggestionId);
+    expect(latest.body.status).toBe("pending");
+    expect(latest.body.outputEnvelope.surface).toBe("task_drawer");
+    expect(Array.isArray(latest.body.outputEnvelope.suggestions)).toBe(true);
+    expect(latest.body.outputEnvelope.suggestions.length).toBeGreaterThan(0);
+  });
+
+  it("applies rewrite_title for task drawer suggestion", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "launch checklist" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    const latest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const rewrite = latest.body.outputEnvelope.suggestions.find(
+      (item: any) => item.type === "rewrite_title",
+    );
+    expect(rewrite).toBeTruthy();
+
+    const applied = await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ suggestionId: rewrite.suggestionId })
+      .expect(200);
+
+    expect(applied.body.todo.title).toContain("Draft");
+    const persisted = await prisma.todo.findUnique({
+      where: { id: createdTodo.body.id },
+    });
+    expect(persisted?.title).toContain("Draft");
+  });
+
+  it("applies set_priority for task drawer suggestion", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "urgent incident follow-up", priority: "low" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    const latest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const prioritySuggestion = latest.body.outputEnvelope.suggestions.find(
+      (item: any) => item.type === "set_priority",
+    );
+    expect(prioritySuggestion).toBeTruthy();
+    await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        suggestionId: prioritySuggestion.suggestionId,
+        confirmed: true,
+      })
+      .expect(200);
+
+    const persisted = await prisma.todo.findUnique({
+      where: { id: createdTodo.body.id },
+    });
+    expect(persisted?.priority).toBe("high");
+  });
+
+  it("applies set_due_date for task drawer suggestion", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "tomorrow incident follow-up", priority: "low" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    const latest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const dueSuggestion = latest.body.outputEnvelope.suggestions.find(
+      (item: any) => item.type === "set_due_date",
+    );
+    expect(dueSuggestion).toBeTruthy();
+    await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ suggestionId: dueSuggestion.suggestionId })
+      .expect(200);
+
+    const persisted = await prisma.todo.findUnique({
+      where: { id: createdTodo.body.id },
+    });
+    expect(persisted?.dueDate).toBeTruthy();
+  });
+
+  it("rejects apply when past due date confirmation is missing", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "manual date check" })
+      .expect(201);
+
+    const me = await request(app)
+      .get("/users/me")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const now = Date.now();
+    const suggestionRecord = await prisma.aiSuggestion.create({
+      data: {
+        userId: me.body.id,
+        type: "task_critic",
+        status: "pending",
+        input: {
+          surface: "task_drawer",
+          todoId: createdTodo.body.id,
+        },
+        output: {
+          requestId: "manual-past-due",
+          surface: "task_drawer",
+          must_abstain: false,
+          suggestions: [
+            {
+              type: "set_due_date",
+              suggestionId: "manual-past-due-1",
+              confidence: 0.7,
+              rationale: "Test confirmation guard",
+              requiresConfirmation: true,
+              payload: {
+                todoId: createdTodo.body.id,
+                dueDateISO: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    await request(app)
+      .post(`/ai/suggestions/${suggestionRecord.id}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ suggestionId: "manual-past-due-1" })
+      .expect(400);
+  });
+
+  it("dismisses task drawer suggestion set by marking suggestion rejected", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "dismiss suggestion set" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/dismiss`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ dismissAll: true })
+      .expect(204);
+
+    const persisted = await prisma.aiSuggestion.findUnique({
+      where: { id: generated.body.suggestionId },
+    });
+    expect(persisted?.status).toBe("rejected");
   });
 
   it("creates plan suggestion and supports rejection status", async () => {

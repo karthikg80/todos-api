@@ -486,6 +486,12 @@
                     placeholder="What needs to be done?"
                     data-onkeypress="handleTodoKeyPress(event)"
                   />
+                  <div
+                    id="aiOnCreateAssistRow"
+                    class="ai-on-create-assist"
+                    data-testid="ai-on-create-row"
+                    hidden
+                  ></div>
                   <div class="field-row">
                     <label for="todoProjectSelect" class="sr-only"
                       >Project</label
@@ -716,6 +722,12 @@
                     0 tasks
                   </div>
                 </div>
+                <section
+                  id="todayPlanPanel"
+                  class="today-plan-panel"
+                  data-testid="today-plan-panel"
+                  hidden
+                ></section>
 
                 <div id="todosContent">
                   <div class="loading">
