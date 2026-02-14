@@ -8,7 +8,14 @@ type CriticMockState = {
   }>;
 };
 
-async function installCriticMockApi(page: Page): Promise<CriticMockState> {
+type CriticMockOptions = {
+  delayByTitle?: Record<string, number>;
+};
+
+async function installCriticMockApi(
+  page: Page,
+  options: CriticMockOptions = {},
+): Promise<CriticMockState> {
   const state: CriticMockState = {
     critiqueCalls: [],
     suggestionStatusPayloads: [],
@@ -107,12 +114,21 @@ async function installCriticMockApi(page: Page): Promise<CriticMockState> {
     if (pathname === "/ai/task-critic" && method === "POST") {
       const body = (await parseBody(route)) as Record<string, unknown>;
       state.critiqueCalls.push(body);
+      const requestedTitle = String(body.title || "").trim();
+      const delayMs = options.delayByTitle?.[requestedTitle];
+      if (typeof delayMs === "number" && delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
       const suffix = suggestionSeq;
       return json(200, {
         suggestionId: nextSuggestionId(),
         qualityScore: 82,
-        improvedTitle: `Sharper title ${suffix}`,
-        improvedDescription: `Sharper description ${suffix}`,
+        improvedTitle: requestedTitle
+          ? `Sharper ${requestedTitle}`
+          : `Sharper title ${suffix}`,
+        improvedDescription: requestedTitle
+          ? `Sharper description for ${requestedTitle}`
+          : `Sharper description ${suffix}`,
         suggestions: ["Use a clearer verb", "Add expected outcome"],
       });
     }
@@ -220,9 +236,19 @@ test.describe("Task Critic feature flag", () => {
       "",
     );
 
-    await page.getByRole("button", { name: "Apply Suggestion" }).click();
+    await page.getByRole("button", { name: "Too generic" }).click();
+    await expect(page.locator("#critiqueFeedbackReasonInput")).toHaveValue(
+      "Too generic",
+    );
+
+    await page.getByRole("button", { name: "Apply both" }).click();
     await expect(page.locator("#aiCritiquePanel")).toBeHidden();
-    await expect(page.locator("#todoInput")).toHaveValue("Sharper title 1");
+    await expect(page.locator("#todoInput")).toHaveValue(
+      "Sharper Needs critique",
+    );
+    await expect(page.locator("#todoNotesInput")).toHaveValue(
+      "Sharper description for Needs critique",
+    );
 
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();
     await expect(page.locator(".critic-panel-enhanced")).toBeVisible();
@@ -238,5 +264,41 @@ test.describe("Task Critic feature flag", () => {
       suggestionId: "critic-suggestion-2",
       body: { status: "rejected" },
     });
+  });
+
+  test("ignores stale critique responses and keeps the newest result", async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("feature.enhancedTaskCritic", "1");
+    });
+    const state = await installCriticMockApi(page, {
+      delayByTitle: { First: 250 },
+    });
+    await registerAndOpenTodos(page);
+
+    await page.evaluate(() => {
+      const todoInput = document.getElementById("todoInput");
+      const appWindow = window as typeof window & {
+        critiqueDraftWithAi: () => Promise<void> | void;
+      };
+      if (todoInput instanceof HTMLInputElement) {
+        todoInput.value = "First";
+      }
+      appWindow.critiqueDraftWithAi();
+      if (todoInput instanceof HTMLInputElement) {
+        todoInput.value = "Second";
+      }
+      appWindow.critiqueDraftWithAi();
+    });
+
+    await expect(page.locator(".critic-panel-enhanced")).toBeVisible();
+    await expect(page.locator("#aiCritiquePanel")).toContainText(
+      "Sharper Second",
+    );
+    await expect(page.locator("#todosMessage")).toContainText(
+      "AI critique ready",
+    );
+    expect(state.critiqueCalls).toHaveLength(2);
   });
 });

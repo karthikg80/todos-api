@@ -259,6 +259,8 @@ let aiInsights = null;
 let aiFeedbackSummary = null;
 let latestCritiqueSuggestionId = null;
 let latestCritiqueResult = null;
+let latestCritiqueRequestId = 0;
+let critiqueRequestsInFlight = 0;
 let latestPlanSuggestionId = null;
 let latestPlanResult = null;
 let planDraftState = null;
@@ -1751,10 +1753,17 @@ function renderEnhancedCritiquePanel(panel) {
           placeholder="e.g., too generic, very actionable"
           class="critic-feedback-input"
         />
+        <div class="critic-feedback-chips" role="group" aria-label="Quick feedback reasons">
+          <button type="button" class="critic-feedback-chip" data-onclick="setCritiqueFeedbackReason('Too generic')">Too generic</button>
+          <button type="button" class="critic-feedback-chip" data-onclick="setCritiqueFeedbackReason('Missing context')">Missing context</button>
+          <button type="button" class="critic-feedback-chip" data-onclick="setCritiqueFeedbackReason('Very actionable')">Very actionable</button>
+        </div>
       </section>
 
       <div class="critic-actions">
-        <button class="add-btn" data-onclick="applyCritiqueSuggestion()">Apply Suggestion</button>
+        <button class="add-btn" data-onclick="applyCritiqueSuggestionMode('title')">Apply title only</button>
+        <button class="add-btn" data-onclick="applyCritiqueSuggestionMode('description')">Apply description only</button>
+        <button class="add-btn" data-onclick="applyCritiqueSuggestionMode('both')">Apply both</button>
         <button class="add-btn" style="background: #64748b" data-onclick="dismissCritiqueSuggestion()">Dismiss</button>
       </div>
 
@@ -1764,6 +1773,25 @@ function renderEnhancedCritiquePanel(panel) {
       </details>
     </div>
   `;
+}
+
+function updateCritiqueDraftButtonState() {
+  const critiqueButton = document.getElementById("critiqueDraftButton");
+  if (!(critiqueButton instanceof HTMLButtonElement)) {
+    return;
+  }
+  const isBusy = critiqueRequestsInFlight > 0;
+  critiqueButton.disabled = isBusy;
+  critiqueButton.textContent = isBusy ? "Critiquing..." : "Critique Draft (AI)";
+}
+
+function setCritiqueFeedbackReason(reason) {
+  const input = document.getElementById("critiqueFeedbackReasonInput");
+  if (!(input instanceof HTMLInputElement)) {
+    return;
+  }
+  input.value = String(reason || "").trim();
+  input.focus({ preventScroll: true });
 }
 
 function renderPlanPanel() {
@@ -2098,6 +2126,10 @@ async function critiqueDraftWithAi() {
     return;
   }
 
+  const requestId = ++latestCritiqueRequestId;
+  critiqueRequestsInFlight += 1;
+  updateCritiqueDraftButtonState();
+
   try {
     const response = await apiCall(`${API_URL}/ai/task-critic`, {
       method: "POST",
@@ -2114,6 +2146,9 @@ async function critiqueDraftWithAi() {
     });
 
     const data = response ? await parseApiBody(response) : {};
+    if (requestId !== latestCritiqueRequestId) {
+      return;
+    }
     if (response && response.ok) {
       latestCritiqueSuggestionId = data.suggestionId;
       latestCritiqueResult = data;
@@ -2142,20 +2177,43 @@ async function critiqueDraftWithAi() {
       );
     }
   } catch (error) {
+    if (requestId !== latestCritiqueRequestId) {
+      return;
+    }
     console.error("Critique draft error:", error);
     showMessage("todosMessage", "Failed to run AI critique", "error");
+  } finally {
+    critiqueRequestsInFlight = Math.max(0, critiqueRequestsInFlight - 1);
+    updateCritiqueDraftButtonState();
   }
 }
 
 async function applyCritiqueSuggestion() {
+  await applyCritiqueSuggestionMode("both", { overwriteDescription: false });
+}
+
+async function applyCritiqueSuggestionMode(
+  mode = "both",
+  { overwriteDescription = true } = {},
+) {
   if (!latestCritiqueResult) return;
 
   const input = document.getElementById("todoInput");
   const notesInput = document.getElementById("todoNotesInput");
   const notesIcon = document.getElementById("notesExpandIcon");
-  input.value = latestCritiqueResult.improvedTitle || input.value;
 
-  if (latestCritiqueResult.improvedDescription && !notesInput.value.trim()) {
+  const applyTitle = mode === "title" || mode === "both";
+  const applyDescription = mode === "description" || mode === "both";
+
+  if (applyTitle && latestCritiqueResult.improvedTitle) {
+    input.value = latestCritiqueResult.improvedTitle;
+  }
+
+  if (
+    applyDescription &&
+    latestCritiqueResult.improvedDescription &&
+    (overwriteDescription || !notesInput.value.trim())
+  ) {
     notesInput.value = latestCritiqueResult.improvedDescription;
     notesInput.style.display = "block";
     notesIcon.classList.add("expanded");
@@ -6807,6 +6865,8 @@ function showAppView() {
   todosLoadState = "loading";
   todosLoadErrorMessage = "";
   openTodoKebabId = null;
+  critiqueRequestsInFlight = 0;
+  updateCritiqueDraftButtonState();
   selectedTodos.clear();
   loadCustomProjects();
   renderTodos();
@@ -6836,6 +6896,8 @@ function showAuthView() {
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
   closeTodoDrawer({ restoreFocus: false });
+  critiqueRequestsInFlight = 0;
+  updateCritiqueDraftButtonState();
   showLogin();
 }
 
