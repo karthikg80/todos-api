@@ -735,6 +735,28 @@ textarea:focus-visible,
   color: var(--text-primary);
 }
 
+.critic-feedback-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.critic-feedback-chip {
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  padding: 4px 10px;
+  font-size: var(--fs-small);
+  cursor: pointer;
+}
+
+.critic-feedback-chip:hover {
+  border-color: var(--text-secondary);
+  color: var(--text-primary);
+}
+
 .critic-actions {
   display: flex;
   gap: 8px;
