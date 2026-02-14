@@ -156,11 +156,11 @@ describe("AI API Integration", () => {
       .send({ suggestionId: rewrite.suggestionId })
       .expect(200);
 
-    expect(applied.body.todo.title).toContain("Draft");
+    expect(applied.body.todo.title).toBe(rewrite.payload.title);
     const persisted = await prisma.todo.findUnique({
       where: { id: createdTodo.body.id },
     });
-    expect(persisted?.title).toContain("Draft");
+    expect(persisted?.title).toBe(rewrite.payload.title);
   });
 
   it("applies set_priority for task drawer suggestion", async () => {
