@@ -8,7 +8,7 @@ Quick-reference to find things. Keep this flat and current.
 |-------------------------|--------------------------------------------|
 | Codex agent instructions | `AGENTS.md` (root)                        |
 | Claude project config   | `CLAUDE.md` (root)                         |
-| Operational guardrails  | `docs/agent_rules.md`                      |
+| Operational guardrails  | `docs/SAFETY_GUARDRAILS.md`                |
 | Architecture invariants | `docs/architecture/AGENT_RULES.md`         |
 | Dual-agent protocol     | `docs/agent-ops/DUAL_AGENT_PROTOCOL.md`    |
 

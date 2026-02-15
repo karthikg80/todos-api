@@ -11,6 +11,8 @@ Queue items live in `docs/agent-queue/tasks/` as markdown files.
 | `tasks/red/`    | Cross-module or high-risk changes    |
 | `tasks/done/`   | Completed tasks (moved after DONE)   |
 
+**Source-of-truth rule:** If the task file's `type:` header and its folder location disagree, the folder classification takes precedence.
+
 ## Templates
 
 - `TEMPLATE.md` — Original simple template (still valid for quick tasks).
