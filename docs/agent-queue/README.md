@@ -9,6 +9,7 @@ Queue items live in `docs/agent-queue/tasks/` as markdown files.
 | `tasks/green/`  | Small, local changes (fast path)     |
 | `tasks/yellow/` | Bounded, single-module changes       |
 | `tasks/red/`    | Cross-module or high-risk changes    |
+| `tasks/blocked/` | Escalated/blocked tasks               |
 | `tasks/done/`   | Completed tasks (moved after DONE)   |
 
 **Source-of-truth rule:** If the task file's `type:` header and its folder location disagree, the folder classification takes precedence.

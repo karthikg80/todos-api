@@ -168,14 +168,25 @@ complete_task() {
   echo "Completed: moved $file -> $done_dir/$basename"
 }
 
-# Scope escalation: set BLOCKED and record reason.
+# Scope escalation: set BLOCKED, record reason, move to blocked/.
 escalate_task() {
   local file="$1"
   local reason="$2"
+  local blocked_dir="$QUEUE_DIR/blocked"
+  mkdir -p "$blocked_dir"
   set_field "$file" "status" "BLOCKED"
-  # Append escalation reason as a comment at end of file
   printf "\n<!-- SCOPE_ESCALATION: %s -->\n" "$reason" >> "$file"
-  echo "Escalated: $file -> BLOCKED (reason: $reason)"
+  local dest
+  dest="$blocked_dir/$(basename "$file")"
+  # Avoid overwrite: append epoch timestamp if destination exists
+  if [[ -e "$dest" ]]; then
+    local stem ext
+    stem="${dest%.md}"
+    ext=".md"
+    dest="${stem}-$(date +%s)${ext}"
+  fi
+  mv "$file" "$dest"
+  echo "Escalated: moved $file -> $dest (reason: $reason)"
 }
 
 main() {
