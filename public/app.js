@@ -330,10 +330,12 @@ const PROJECT_PATH_SEPARATOR = " / ";
 const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
 const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
+const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
 let isAiWorkspaceCollapsed = true;
 const ON_CREATE_SURFACE = "on_create";
 let onCreateAssistState = createInitialOnCreateAssistState();
 let suppressOnCreateAssistInput = false;
+onCreateAssistState.dismissedTodoIds = loadOnCreateDismissedTodoIds();
 const TODAY_PLAN_SURFACE = "today_plan";
 let todayPlanState = createInitialTodayPlanState();
 let todayPlanGenerationSeq = 0;
@@ -2654,6 +2656,7 @@ async function addTodo() {
       todos.unshift(newTodo);
       renderTodos();
       updateCategoryFilter();
+      clearOnCreateDismissed(newTodo.id);
 
       // Clear form
       input.value = "";
@@ -2667,8 +2670,15 @@ async function addTodo() {
       // Hide notes input
       notesInput.style.display = "none";
       document.getElementById("notesExpandIcon").classList.remove("expanded");
-      resetOnCreateAssistState();
+      onCreateAssistState = {
+        ...createInitialOnCreateAssistState(),
+        dismissedTodoIds: onCreateAssistState.dismissedTodoIds,
+      };
+      onCreateAssistState.mode = "live";
+      onCreateAssistState.liveTodoId = newTodo.id;
+      onCreateAssistState.loading = true;
       renderOnCreateAssistRow();
+      await loadOnCreateDecisionAssist(newTodo);
 
       refreshProjectCatalog();
     }
@@ -6176,11 +6186,64 @@ function createInitialOnCreateAssistState() {
     envelope: null,
     suggestions: [],
     showAll: false,
+    aiSuggestionId: "",
+    liveTodoId: "",
+    loading: false,
+    error: "",
+    unavailable: false,
+    mode: "mock",
+    dismissedTodoIds: new Set(),
   };
 }
 
 function resetOnCreateAssistState() {
+  const dismissedTodoIds = onCreateAssistState?.dismissedTodoIds || new Set();
   onCreateAssistState = createInitialOnCreateAssistState();
+  onCreateAssistState.dismissedTodoIds = dismissedTodoIds;
+}
+
+function loadOnCreateDismissedTodoIds() {
+  try {
+    const raw = window.localStorage.getItem(AI_ON_CREATE_DISMISSED_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return new Set();
+    return new Set(
+      parsed.map((value) => String(value || "").trim()).filter(Boolean),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function persistOnCreateDismissedTodoIds() {
+  try {
+    const values = Array.from(
+      onCreateAssistState.dismissedTodoIds || new Set(),
+    );
+    window.localStorage.setItem(
+      AI_ON_CREATE_DISMISSED_STORAGE_KEY,
+      JSON.stringify(values),
+    );
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function markOnCreateDismissed(todoId) {
+  if (!todoId) return;
+  onCreateAssistState.dismissedTodoIds.add(String(todoId));
+  persistOnCreateDismissedTodoIds();
+}
+
+function clearOnCreateDismissed(todoId) {
+  if (!todoId) return;
+  onCreateAssistState.dismissedTodoIds.delete(String(todoId));
+  persistOnCreateDismissedTodoIds();
+}
+
+function isOnCreateDismissed(todoId) {
+  if (!todoId) return false;
+  return onCreateAssistState.dismissedTodoIds.has(String(todoId));
 }
 
 function getOnCreateImpactRank(type) {
@@ -6504,8 +6567,113 @@ function normalizeOnCreateAssistEnvelope(rawEnvelope) {
     generatedAt: String(rawEnvelope?.generatedAt || new Date().toISOString()),
     requestId: String(rawEnvelope?.requestId || "on-create"),
     surface: ON_CREATE_SURFACE,
+    must_abstain: !!rawEnvelope?.must_abstain,
     suggestions: cappedSuggestions,
   };
+}
+
+async function fetchOnCreateLatestSuggestion(todoId) {
+  return apiCall(
+    `${API_URL}/ai/suggestions/latest?todoId=${encodeURIComponent(todoId)}&surface=${ON_CREATE_SURFACE}`,
+  );
+}
+
+async function generateOnCreateSuggestion(todo) {
+  return apiCall(`${API_URL}/ai/decision-assist/stub`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      surface: ON_CREATE_SURFACE,
+      todoId: todo.id,
+      title: todo.title,
+      description: todo.description || "",
+      notes: todo.notes || "",
+    }),
+  });
+}
+
+async function loadOnCreateDecisionAssist(todo, allowGenerate = true) {
+  if (!todo?.id) return;
+  const todoId = String(todo.id);
+  onCreateAssistState.loading = true;
+  onCreateAssistState.error = "";
+  onCreateAssistState.unavailable = false;
+  onCreateAssistState.mode = "live";
+  onCreateAssistState.liveTodoId = todoId;
+  onCreateAssistState.aiSuggestionId = "";
+  onCreateAssistState.envelope = null;
+  onCreateAssistState.suggestions = [];
+  onCreateAssistState.showAll = false;
+  renderOnCreateAssistRow();
+
+  try {
+    let latestResponse = await fetchOnCreateLatestSuggestion(todoId);
+    if (latestResponse.status === 403 || latestResponse.status === 404) {
+      onCreateAssistState.loading = false;
+      onCreateAssistState.unavailable = true;
+      renderOnCreateAssistRow();
+      return;
+    }
+
+    if (latestResponse.status === 204) {
+      if (isOnCreateDismissed(todoId) || !allowGenerate) {
+        onCreateAssistState.loading = false;
+        onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
+          surface: ON_CREATE_SURFACE,
+          must_abstain: true,
+          suggestions: [],
+        });
+        onCreateAssistState.suggestions = [];
+        renderOnCreateAssistRow();
+        return;
+      }
+
+      const generated = await generateOnCreateSuggestion(todo);
+      if (generated.status === 403 || generated.status === 404) {
+        onCreateAssistState.loading = false;
+        onCreateAssistState.unavailable = true;
+        renderOnCreateAssistRow();
+        return;
+      }
+      latestResponse = await fetchOnCreateLatestSuggestion(todoId);
+    }
+
+    if (latestResponse.status === 204) {
+      onCreateAssistState.loading = false;
+      onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
+        surface: ON_CREATE_SURFACE,
+        must_abstain: true,
+        suggestions: [],
+      });
+      onCreateAssistState.suggestions = [];
+      renderOnCreateAssistRow();
+      return;
+    }
+
+    if (!latestResponse.ok) {
+      onCreateAssistState.loading = false;
+      onCreateAssistState.error = "Could not load suggestions.";
+      renderOnCreateAssistRow();
+      return;
+    }
+
+    const payload = await latestResponse.json();
+    const envelope = normalizeOnCreateAssistEnvelope(
+      payload?.outputEnvelope || {},
+    );
+    onCreateAssistState.loading = false;
+    onCreateAssistState.aiSuggestionId = String(payload?.aiSuggestionId || "");
+    onCreateAssistState.envelope = envelope;
+    onCreateAssistState.suggestions = envelope.suggestions;
+    onCreateAssistState.mode = "live";
+    onCreateAssistState.liveTodoId = todoId;
+    renderOnCreateAssistRow();
+  } catch (error) {
+    console.error("On-create AI load failed:", error);
+    onCreateAssistState.loading = false;
+    onCreateAssistState.error = "Could not load suggestions.";
+    renderOnCreateAssistRow();
+  }
 }
 
 function refreshOnCreateAssistFromTitle(force = false) {
@@ -6525,9 +6693,12 @@ function refreshOnCreateAssistFromTitle(force = false) {
     buildMockOnCreateAssistEnvelope(title),
   );
   onCreateAssistState = {
+    ...createInitialOnCreateAssistState(),
+    dismissedTodoIds: onCreateAssistState.dismissedTodoIds,
     titleBasis: title,
     envelope,
     suggestions: envelope.suggestions,
+    mode: "mock",
     showAll: false,
   };
   renderOnCreateAssistRow();
@@ -6720,13 +6891,41 @@ function renderOnCreateAssistRow() {
   const refs = getOnCreateAssistElements();
   if (!refs) return;
   const title = refs.titleInput.value.trim();
-  if (!title) {
+  const hasLiveContext = !!onCreateAssistState.liveTodoId;
+  if (!title && !hasLiveContext && !onCreateAssistState.loading) {
     refs.row.hidden = true;
     refs.row.innerHTML = "";
     return;
   }
 
   refs.row.hidden = false;
+  if (onCreateAssistState.loading) {
+    refs.row.innerHTML = `
+      <div class="ai-create-assist__header">
+        <span class="ai-create-assist__title">AI Assist</span>
+      </div>
+      <div class="ai-create-assist__empty ai-empty" role="status">Loading suggestions...</div>
+    `;
+    return;
+  }
+  if (onCreateAssistState.unavailable) {
+    refs.row.innerHTML = `
+      <div class="ai-create-assist__header">
+        <span class="ai-create-assist__title">AI Assist</span>
+      </div>
+      <div class="ai-create-assist__empty ai-empty" role="status">AI Suggestions unavailable.</div>
+    `;
+    return;
+  }
+  if (onCreateAssistState.error) {
+    refs.row.innerHTML = `
+      <div class="ai-create-assist__header">
+        <span class="ai-create-assist__title">AI Assist</span>
+      </div>
+      <div class="ai-create-assist__empty ai-empty" role="status">No suggestions right now.</div>
+    `;
+    return;
+  }
   const activeSuggestions = getActiveOnCreateSuggestions();
   if (activeSuggestions.length === 0) {
     refs.row.innerHTML = `
@@ -6944,7 +7143,51 @@ function applyOnCreateSuggestion(suggestion, clarificationChoice = "") {
   }
 }
 
-function onCreateAssistApplySuggestion(suggestionId) {
+async function applyLiveOnCreateSuggestion(suggestion, confirmed = false) {
+  if (!onCreateAssistState.aiSuggestionId) return;
+  const response = await apiCall(
+    `${API_URL}/ai/suggestions/${encodeURIComponent(onCreateAssistState.aiSuggestionId)}/apply`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        suggestionId: suggestion.suggestionId,
+        confirmed: confirmed === true,
+      }),
+    },
+  );
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    onCreateAssistState.error =
+      typeof data?.error === "string"
+        ? data.error
+        : "Could not apply suggestion.";
+    renderOnCreateAssistRow();
+    return;
+  }
+
+  const data = await response.json().catch(() => ({}));
+  if (data?.todo?.id) {
+    const index = todos.findIndex((item) => item.id === data.todo.id);
+    if (index >= 0) {
+      todos[index] = data.todo;
+    }
+    renderTodos();
+  }
+  clearOnCreateDismissed(onCreateAssistState.liveTodoId);
+  const refreshedTodo =
+    (onCreateAssistState.liveTodoId &&
+      todos.find((item) => item.id === onCreateAssistState.liveTodoId)) ||
+    null;
+  if (refreshedTodo) {
+    await loadOnCreateDecisionAssist(refreshedTodo, false);
+  } else {
+    resetOnCreateAssistState();
+    renderOnCreateAssistRow();
+  }
+}
+
+async function onCreateAssistApplySuggestion(suggestionId) {
   const suggestion = getOnCreateSuggestionById(suggestionId);
   if (!suggestion || suggestion.dismissed || suggestion.applied) return;
   if (suggestion.type === "ask_clarification") {
@@ -6957,20 +7200,56 @@ function onCreateAssistApplySuggestion(suggestionId) {
     renderOnCreateAssistRow();
     return;
   }
+  if (onCreateAssistState.mode === "live") {
+    await applyLiveOnCreateSuggestion(suggestion, false);
+    return;
+  }
   applyOnCreateSuggestion(suggestion);
   renderOnCreateAssistRow();
 }
 
-function onCreateAssistConfirmApplySuggestion(suggestionId) {
+async function onCreateAssistConfirmApplySuggestion(suggestionId) {
   const suggestion = getOnCreateSuggestionById(suggestionId);
   if (!suggestion || suggestion.dismissed || suggestion.applied) return;
+  if (onCreateAssistState.mode === "live") {
+    await applyLiveOnCreateSuggestion(suggestion, true);
+    return;
+  }
   applyOnCreateSuggestion(suggestion);
   renderOnCreateAssistRow();
 }
 
-function onCreateAssistDismissSuggestion(suggestionId) {
+async function onCreateAssistDismissSuggestion(suggestionId) {
   const suggestion = getOnCreateSuggestionById(suggestionId);
   if (!suggestion) return;
+  if (
+    onCreateAssistState.mode === "live" &&
+    onCreateAssistState.aiSuggestionId
+  ) {
+    try {
+      await apiCall(
+        `${API_URL}/ai/suggestions/${encodeURIComponent(onCreateAssistState.aiSuggestionId)}/dismiss`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ suggestionId, dismissAll: true }),
+        },
+      );
+    } catch (error) {
+      console.error("On-create AI dismiss failed:", error);
+    }
+    markOnCreateDismissed(onCreateAssistState.liveTodoId);
+    onCreateAssistState.suggestions = [];
+    onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
+      surface: ON_CREATE_SURFACE,
+      must_abstain: true,
+      suggestions: [],
+    });
+    onCreateAssistState.aiSuggestionId = "";
+    onCreateAssistState.error = "";
+    renderOnCreateAssistRow();
+    return;
+  }
   suggestion.dismissed = true;
   renderOnCreateAssistRow();
 }
@@ -7019,7 +7298,7 @@ function bindOnCreateAssistHandlers() {
     refreshOnCreateAssistFromTitle();
   });
 
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const actionEl = target.closest("[data-ai-create-action]");
@@ -7033,11 +7312,11 @@ function bindOnCreateAssistHandlers() {
       return;
     }
     if (action === "apply" || action === "toggle-choices") {
-      onCreateAssistApplySuggestion(suggestionId);
+      await onCreateAssistApplySuggestion(suggestionId);
       return;
     }
     if (action === "confirm-apply") {
-      onCreateAssistConfirmApplySuggestion(suggestionId);
+      await onCreateAssistConfirmApplySuggestion(suggestionId);
       return;
     }
     if (action === "cancel-confirm") {
@@ -7048,7 +7327,7 @@ function bindOnCreateAssistHandlers() {
       return;
     }
     if (action === "dismiss") {
-      onCreateAssistDismissSuggestion(suggestionId);
+      await onCreateAssistDismissSuggestion(suggestionId);
       return;
     }
     if (action === "undo") {
@@ -7059,6 +7338,7 @@ function bindOnCreateAssistHandlers() {
       const choiceValue =
         actionEl.getAttribute("data-ai-create-choice-value") || "";
       onCreateAssistChooseClarification(suggestionId, choiceValue);
+      return;
     }
   });
 
