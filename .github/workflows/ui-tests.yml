@@ -14,32 +14,72 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect changed paths
+        id: changes
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            docs_only:
+              - '**/*.md'
+              - 'docs/**'
+              - 'LICENSE'
+              - '.gitignore'
+              - '.editorconfig'
+            needs_ui:
+              - 'public/**'
+              - 'src/**'
+              - 'tests/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.github/workflows/**'
+
+      - name: Decide whether to run UI quality checks
+        id: run
+        run: |
+          run_ui=true
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ steps.changes.outputs.docs_only }}" = "true" ] && [ "${{ steps.changes.outputs.needs_ui }}" != "true" ]; then
+            run_ui=false
+          fi
+          echo "run_ui=${run_ui}" >> "$GITHUB_OUTPUT"
+
+      - name: Docs-only change detected; skipping UI-quality heavy steps
+        if: steps.run.outputs.run_ui != 'true'
+        run: echo "Docs/minor-only PR detected. Skipping UI-quality heavy steps."
+
       - name: Setup Node
+        if: steps.run.outputs.run_ui == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
+        if: steps.run.outputs.run_ui == 'true'
         run: npm ci
 
       - name: Lint CSS
+        if: steps.run.outputs.run_ui == 'true'
         run: npm run lint:css
 
       - name: Validate HTML
+        if: steps.run.outputs.run_ui == 'true'
         run: npm run lint:html
 
       - name: Crawl links
+        if: steps.run.outputs.run_ui == 'true'
         run: npm run test:links
 
       - name: Install Playwright browser
+        if: steps.run.outputs.run_ui == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Run UI tests (fast tier)
+        if: steps.run.outputs.run_ui == 'true'
         run: npm run test:ui:fast
 
       - name: Upload Playwright report
-        if: always()
+        if: always() && steps.run.outputs.run_ui == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
