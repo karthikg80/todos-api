@@ -1,6 +1,7 @@
 # Task Template (Dual-Agent Queue)
 
-Copy this file into `docs/agent-queue/tasks/` as `NNN-short-name.md`.
+Copy this file into `docs/agent-queue/tasks/green/` as `NNN-short-name.md`.
+For classified tasks (Yellow/Red), use `TEMPLATE_V2.md` instead.
 
 ```md
 # TASK_ID: NNN

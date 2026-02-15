@@ -22,6 +22,7 @@ Quick-reference to find things. Keep this flat and current.
 | Green tasks             | `docs/agent-queue/tasks/green/`             |
 | Yellow tasks            | `docs/agent-queue/tasks/yellow/`            |
 | Red tasks               | `docs/agent-queue/tasks/red/`               |
+| Blocked tasks           | `docs/agent-queue/tasks/blocked/`            |
 | Done tasks              | `docs/agent-queue/tasks/done/`              |
 | Workflow guide          | `docs/WORKFLOW.md`                          |
 
