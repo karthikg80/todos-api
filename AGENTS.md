@@ -14,6 +14,16 @@ npm ci
 
 Work entirely inside the worktree directory for the duration of the task.
 
+## Worktree hygiene (MANDATORY)
+
+**One PR = one branch = one worktree. Never reuse a worktree for a new task.**
+
+Before starting any task **and before any rebase/merge**, run:
+
+```bash
+git status --porcelain
+```
+
 ## Project Structure
 
 - **Frontend:** Static HTML/CSS/JS in `public/` (no build step, no framework).
