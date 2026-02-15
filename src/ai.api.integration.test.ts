@@ -121,6 +121,39 @@ describe("AI API Integration", () => {
     expect(latest.body.outputEnvelope.suggestions.length).toBeGreaterThan(0);
   });
 
+  it("generates on_create decision assist stub and returns latest pending envelope", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "urgent tomorrow onboarding follow up" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "on_create",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    expect(generated.body.suggestionId).toBeDefined();
+
+    const latest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=on_create`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(latest.body.aiSuggestionId).toBe(generated.body.suggestionId);
+    expect(latest.body.status).toBe("pending");
+    expect(latest.body.outputEnvelope.surface).toBe("on_create");
+    expect(Array.isArray(latest.body.outputEnvelope.suggestions)).toBe(true);
+    expect(latest.body.outputEnvelope.suggestions.length).toBeGreaterThan(0);
+  });
+
   it("applies rewrite_title for task drawer suggestion", async () => {
     const createdTodo = await request(app)
       .post("/todos")
@@ -246,6 +279,118 @@ describe("AI API Integration", () => {
     expect(persisted?.dueDate).toBeTruthy();
   });
 
+  it("applies rewrite_title, set_priority, and set_due_date for on_create suggestions", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "urgent tomorrow launch checklist", priority: "low" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "on_create",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    const latest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=on_create`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const rewrite = latest.body.outputEnvelope.suggestions.find(
+      (item: any) => item.type === "rewrite_title",
+    );
+    expect(rewrite).toBeTruthy();
+    await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ suggestionId: rewrite.suggestionId })
+      .expect(200);
+
+    const prioritySuggestion = latest.body.outputEnvelope.suggestions.find(
+      (item: any) => item.type === "set_priority",
+    );
+    expect(prioritySuggestion).toBeTruthy();
+    await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ suggestionId: prioritySuggestion.suggestionId, confirmed: true })
+      .expect(409);
+
+    const regenerated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "on_create",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    const refreshed = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=on_create`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+    const refreshedPriority = refreshed.body.outputEnvelope.suggestions.find(
+      (item: any) => item.type === "set_priority",
+    );
+    const refreshedDue = refreshed.body.outputEnvelope.suggestions.find(
+      (item: any) => item.type === "set_due_date",
+    );
+    expect(refreshedPriority).toBeTruthy();
+    expect(refreshedDue).toBeTruthy();
+
+    await request(app)
+      .post(`/ai/suggestions/${regenerated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        suggestionId: refreshedPriority.suggestionId,
+        confirmed: true,
+      })
+      .expect(200);
+
+    const regeneratedDue = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "on_create",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    const refreshedDueSet = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=on_create`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+    const dueOnly = refreshedDueSet.body.outputEnvelope.suggestions.find(
+      (item: any) => item.type === "set_due_date",
+    );
+    expect(dueOnly).toBeTruthy();
+    await request(app)
+      .post(`/ai/suggestions/${regeneratedDue.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ suggestionId: dueOnly.suggestionId })
+      .expect(200);
+
+    const persisted = await prisma.todo.findUnique({
+      where: { id: createdTodo.body.id },
+    });
+    expect(persisted?.title).toBe(rewrite.payload.title);
+    expect(persisted?.priority).toBe("high");
+    expect(persisted?.dueDate).toBeTruthy();
+  });
+
   it("rejects apply when past due date confirmation is missing", async () => {
     const createdTodo = await request(app)
       .post("/todos")
@@ -296,6 +441,55 @@ describe("AI API Integration", () => {
       .expect(400);
   });
 
+  it("rejects on_create apply when requiresConfirmation is true and confirmed is missing", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "manual priority confirm check" })
+      .expect(201);
+
+    const me = await request(app)
+      .get("/users/me")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const suggestionRecord = await prisma.aiSuggestion.create({
+      data: {
+        userId: me.body.id,
+        type: "task_critic",
+        status: "pending",
+        input: {
+          surface: "on_create",
+          todoId: createdTodo.body.id,
+        },
+        output: {
+          requestId: "manual-priority-confirm",
+          surface: "on_create",
+          must_abstain: false,
+          suggestions: [
+            {
+              type: "set_priority",
+              suggestionId: "manual-priority-confirm-1",
+              confidence: 0.7,
+              rationale: "Test confirmation guard",
+              requiresConfirmation: true,
+              payload: {
+                todoId: createdTodo.body.id,
+                priority: "high",
+              },
+            },
+          ],
+        },
+      },
+    });
+
+    await request(app)
+      .post(`/ai/suggestions/${suggestionRecord.id}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ suggestionId: "manual-priority-confirm-1" })
+      .expect(400);
+  });
+
   it("dismisses task drawer suggestion set by marking suggestion rejected", async () => {
     const createdTodo = await request(app)
       .post("/todos")
@@ -308,6 +502,35 @@ describe("AI API Integration", () => {
       .set("Authorization", `Bearer ${authToken}`)
       .send({
         surface: "task_drawer",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/dismiss`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ dismissAll: true })
+      .expect(204);
+
+    const persisted = await prisma.aiSuggestion.findUnique({
+      where: { id: generated.body.suggestionId },
+    });
+    expect(persisted?.status).toBe("rejected");
+  });
+
+  it("dismisses on_create suggestion set by marking suggestion rejected", async () => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "dismiss on_create suggestion set" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "on_create",
         todoId: createdTodo.body.id,
         title: createdTodo.body.title,
       })

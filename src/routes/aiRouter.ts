@@ -213,39 +213,60 @@ export function createAiRouter({
   };
 
   const TASK_DRAWER_SURFACE: DecisionAssistSurface = "task_drawer";
-  const TASK_DRAWER_TYPE: "task_critic" = "task_critic";
-  const TASK_DRAWER_ALLOWED_TYPES = new Set<DecisionAssistSuggestionType>([
-    "rewrite_title",
-    "split_subtasks",
-    "propose_next_action",
-    "set_due_date",
-    "set_priority",
-    "set_project",
-    "set_category",
-    "ask_clarification",
-    "defer_task",
+  const ON_CREATE_SURFACE: DecisionAssistSurface = "on_create";
+  const TODO_BOUND_TYPE: "task_critic" = "task_critic";
+  const TODO_BOUND_SURFACES = new Set<DecisionAssistSurface>([
+    TASK_DRAWER_SURFACE,
+    ON_CREATE_SURFACE,
   ]);
+  const TODO_BOUND_ALLOWED_TYPES: Record<
+    DecisionAssistSurface,
+    Set<DecisionAssistSuggestionType>
+  > = {
+    task_drawer: new Set<DecisionAssistSuggestionType>([
+      "rewrite_title",
+      "split_subtasks",
+      "propose_next_action",
+      "set_due_date",
+      "set_priority",
+      "set_project",
+      "set_category",
+      "ask_clarification",
+      "defer_task",
+    ]),
+    on_create: new Set<DecisionAssistSuggestionType>([
+      "rewrite_title",
+      "set_due_date",
+      "set_priority",
+      "set_project",
+      "set_category",
+      "ask_clarification",
+    ]),
+    today_plan: new Set<DecisionAssistSuggestionType>(),
+  };
 
-  type NormalizedTaskDrawerSuggestion = DecisionAssistSuggestion & {
+  type NormalizedTodoBoundSuggestion = DecisionAssistSuggestion & {
     suggestionId: string;
     requiresConfirmation: boolean;
     payload: Record<string, unknown>;
   };
 
-  type NormalizedTaskDrawerEnvelope = DecisionAssistOutput & {
-    suggestions: NormalizedTaskDrawerSuggestion[];
+  type NormalizedTodoBoundEnvelope = DecisionAssistOutput & {
+    suggestions: NormalizedTodoBoundSuggestion[];
   };
 
   const parseBool = (value: unknown): boolean => value === true;
 
-  const normalizeTaskDrawerEnvelope = (
+  const normalizeTodoBoundEnvelope = (
     rawOutput: Record<string, unknown>,
     todoId: string,
-  ): NormalizedTaskDrawerEnvelope => {
+    surface: DecisionAssistSurface,
+  ): NormalizedTodoBoundEnvelope => {
     const validated = validateDecisionAssistOutput(rawOutput);
-    if (validated.surface !== TASK_DRAWER_SURFACE) {
+    if (validated.surface !== surface) {
       throw new Error("Suggestion envelope surface mismatch");
     }
+    const allowedTypes = TODO_BOUND_ALLOWED_TYPES[surface];
 
     const normalizedSuggestions = validated.suggestions
       .map((item, index) => {
@@ -274,7 +295,7 @@ export function createAiRouter({
           requiresConfirmation: parseBool(rawItem.requiresConfirmation),
         };
       })
-      .filter((item) => TASK_DRAWER_ALLOWED_TYPES.has(item.type));
+      .filter((item) => allowedTypes.has(item.type));
 
     return {
       ...validated,
@@ -291,7 +312,7 @@ export function createAiRouter({
     return (
       records.find((record) => {
         if (record.status !== "pending") return false;
-        if (record.type !== TASK_DRAWER_TYPE) return false;
+        if (record.type !== TODO_BOUND_TYPE) return false;
         const inputSurface =
           typeof record.input?.surface === "string" ? record.input.surface : "";
         const inputTodoId =
@@ -301,11 +322,11 @@ export function createAiRouter({
     );
   };
 
-  const ensureTaskDrawerFeatureEnabled = (res: Response): boolean => {
+  const ensureDecisionAssistFeatureEnabled = (res: Response): boolean => {
     if (decisionAssistEnabled) {
       return true;
     }
-    res.status(403).json({ error: "Task drawer decision assist disabled" });
+    res.status(403).json({ error: "Decision assist disabled" });
     return false;
   };
 
@@ -334,12 +355,21 @@ export function createAiRouter({
 
         const input = validateDecisionAssistStubInput(req.body);
         if (input.surface === TASK_DRAWER_SURFACE) {
-          if (!ensureTaskDrawerFeatureEnabled(res)) return;
+          if (!ensureDecisionAssistFeatureEnabled(res)) return;
           if (!input.todoId) {
             return res
               .status(400)
               .json({ error: "todoId is required for task_drawer surface" });
           }
+        }
+        if (input.surface === ON_CREATE_SURFACE && input.todoId) {
+          if (!ensureDecisionAssistFeatureEnabled(res)) return;
+        }
+        if (
+          (input.surface === TASK_DRAWER_SURFACE ||
+            (input.surface === ON_CREATE_SURFACE && input.todoId)) &&
+          input.todoId
+        ) {
           const todo = await todoService.findById(userId, input.todoId);
           if (!todo) {
             return res.status(404).json({ error: "Todo not found" });
@@ -656,13 +686,15 @@ export function createAiRouter({
       try {
         const userId = resolveAiUserId(req, res);
         if (!userId) return;
-        if (!ensureTaskDrawerFeatureEnabled(res)) return;
+        if (!ensureDecisionAssistFeatureEnabled(res)) return;
 
         const { todoId, surface } = validateDecisionAssistLatestQuery(
           req.query,
         );
-        if (surface !== TASK_DRAWER_SURFACE) {
-          return res.status(400).json({ error: "surface must be task_drawer" });
+        if (!TODO_BOUND_SURFACES.has(surface)) {
+          return res.status(400).json({
+            error: "surface must be on_create or task_drawer",
+          });
         }
 
         const latest = await findLatestPendingDecisionAssistSuggestion(
@@ -675,9 +707,10 @@ export function createAiRouter({
         }
 
         try {
-          const outputEnvelope = normalizeTaskDrawerEnvelope(
+          const outputEnvelope = normalizeTodoBoundEnvelope(
             latest.output,
             todoId,
+            surface,
           );
           return res.json({
             aiSuggestionId: latest.id,
@@ -690,7 +723,7 @@ export function createAiRouter({
             status: latest.status,
             outputEnvelope: {
               requestId: `safe-empty-${latest.id}`,
-              surface: TASK_DRAWER_SURFACE,
+              surface,
               must_abstain: true,
               suggestions: [],
             },
@@ -919,16 +952,26 @@ export function createAiRouter({
           });
         }
 
-        if (!ensureTaskDrawerFeatureEnabled(res)) return;
-        if (suggestion.type !== TASK_DRAWER_TYPE) {
+        if (!ensureDecisionAssistFeatureEnabled(res)) return;
+        if (suggestion.type !== TODO_BOUND_TYPE) {
           return res.status(400).json({
             error: "Only task_critic or plan_from_goal can be applied",
+          });
+        }
+        const inputSurfaceRaw =
+          typeof suggestion.input?.surface === "string"
+            ? suggestion.input.surface
+            : "";
+        const inputSurface = inputSurfaceRaw as DecisionAssistSurface;
+        if (!TODO_BOUND_SURFACES.has(inputSurface)) {
+          return res.status(400).json({
+            error: "Only on_create or task_drawer suggestions can be applied",
           });
         }
         if (!suggestionId) {
           return res
             .status(400)
-            .json({ error: "suggestionId is required for task drawer apply" });
+            .json({ error: "suggestionId is required for suggestion apply" });
         }
 
         const inputTodoId =
@@ -938,7 +981,7 @@ export function createAiRouter({
         if (!inputTodoId) {
           return res
             .status(400)
-            .json({ error: "Task drawer suggestion missing todo context" });
+            .json({ error: "Todo-bound suggestion missing todo context" });
         }
         const todo = await todoService.findById(userId, inputTodoId);
         if (!todo) {
@@ -950,11 +993,12 @@ export function createAiRouter({
             .json({ error: "Suggestion is no longer pending" });
         }
 
-        let envelope: NormalizedTaskDrawerEnvelope;
+        let envelope: NormalizedTodoBoundEnvelope;
         try {
-          envelope = normalizeTaskDrawerEnvelope(
+          envelope = normalizeTodoBoundEnvelope(
             suggestion.output,
             inputTodoId,
+            inputSurface,
           );
         } catch {
           return res
@@ -963,7 +1007,7 @@ export function createAiRouter({
         }
 
         const envelopeSuggestions =
-          envelope.suggestions as NormalizedTaskDrawerSuggestion[];
+          envelope.suggestions as NormalizedTodoBoundSuggestion[];
         const selected = envelopeSuggestions.find(
           (item) => item.suggestionId === suggestionId,
         );
@@ -1166,7 +1210,7 @@ export function createAiRouter({
           todoIdsApplied,
           {
             reason: reason || `applied:${selected.suggestionId}`,
-            source: "task_drawer_apply",
+            source: `${inputSurface}_apply`,
             suggestionId: selected.suggestionId,
             updatedAt: new Date().toISOString(),
           },
@@ -1193,7 +1237,7 @@ export function createAiRouter({
       try {
         const userId = resolveAiUserId(req, res);
         if (!userId) return;
-        if (!ensureTaskDrawerFeatureEnabled(res)) return;
+        if (!ensureDecisionAssistFeatureEnabled(res)) return;
 
         const id = String(req.params.id);
         validateId(id);
@@ -1203,10 +1247,20 @@ export function createAiRouter({
         if (!suggestion) {
           return res.status(404).json({ error: "Suggestion not found" });
         }
-        if (suggestion.type !== TASK_DRAWER_TYPE) {
-          return res
-            .status(400)
-            .json({ error: "Only task_drawer suggestions can be dismissed" });
+        if (suggestion.type !== TODO_BOUND_TYPE) {
+          return res.status(400).json({
+            error: "Only on_create/task_drawer suggestions can be dismissed",
+          });
+        }
+        const inputSurfaceRaw =
+          typeof suggestion.input?.surface === "string"
+            ? suggestion.input.surface
+            : "";
+        const inputSurface = inputSurfaceRaw as DecisionAssistSurface;
+        if (!TODO_BOUND_SURFACES.has(inputSurface)) {
+          return res.status(400).json({
+            error: "Only on_create/task_drawer suggestions can be dismissed",
+          });
         }
 
         // Schema-constrained behavior: dismissing any card rejects the whole suggestion set.
@@ -1215,7 +1269,7 @@ export function createAiRouter({
           id,
           "rejected",
           {
-            source: "task_drawer_dismiss",
+            source: `${inputSurface}_dismiss`,
             updatedAt: new Date().toISOString(),
           },
         );
