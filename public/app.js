@@ -7364,6 +7364,12 @@ function createInitialTodayPlanState() {
   return {
     goalText: "",
     generating: false,
+    loading: false,
+    unavailable: false,
+    error: "",
+    hasLoaded: false,
+    mode: "live",
+    aiSuggestionId: "",
     envelope: null,
     selectedTodoIds: new Set(),
     dismissedSuggestionIds: new Set(),
@@ -7664,6 +7670,132 @@ function normalizeTodayPlanEnvelope(rawEnvelope) {
   };
 }
 
+async function fetchTodayPlanLatestSuggestion() {
+  return apiCall(
+    `${API_URL}/ai/suggestions/latest?surface=${TODAY_PLAN_SURFACE}`,
+  );
+}
+
+function buildTodayPlanCandidates() {
+  return getVisibleTodos().map((todo) => ({
+    id: String(todo.id),
+    title: String(todo.title || ""),
+    dueDate: todo.dueDate || undefined,
+    priority: todo.priority || undefined,
+    createdAt: todo.createdAt || undefined,
+    updatedAt: todo.updatedAt || undefined,
+  }));
+}
+
+async function generateTodayPlanSuggestion(goalText) {
+  const candidates = buildTodayPlanCandidates();
+  const preferredTopN = candidates.length >= 5 ? 5 : 3;
+  return apiCall(`${API_URL}/ai/decision-assist/stub`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      surface: TODAY_PLAN_SURFACE,
+      goal: goalText || undefined,
+      topN: preferredTopN,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
+      anchorDateISO: new Date().toISOString(),
+      todoCandidates: candidates,
+    }),
+  });
+}
+
+async function loadTodayPlanDecisionAssist(allowGenerate = false) {
+  if (!isTodayPlanViewActive()) return;
+  if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
+    todayPlanState.loading = false;
+    todayPlanState.generating = false;
+    todayPlanState.unavailable = true;
+    todayPlanState.hasLoaded = true;
+    renderTodayPlanPanel();
+    return;
+  }
+
+  todayPlanState.loading = true;
+  todayPlanState.error = "";
+  todayPlanState.unavailable = false;
+  renderTodayPlanPanel();
+
+  try {
+    let latestResponse = await fetchTodayPlanLatestSuggestion();
+    if (latestResponse.status === 403 || latestResponse.status === 404) {
+      todayPlanState.loading = false;
+      todayPlanState.generating = false;
+      todayPlanState.unavailable = true;
+      todayPlanState.hasLoaded = true;
+      renderTodayPlanPanel();
+      return;
+    }
+
+    if (latestResponse.status === 204 && allowGenerate) {
+      const generated = await generateTodayPlanSuggestion(
+        todayPlanState.goalText,
+      );
+      if (generated.status === 403 || generated.status === 404) {
+        todayPlanState.loading = false;
+        todayPlanState.generating = false;
+        todayPlanState.unavailable = true;
+        todayPlanState.hasLoaded = true;
+        renderTodayPlanPanel();
+        return;
+      }
+      latestResponse = await fetchTodayPlanLatestSuggestion();
+    }
+
+    if (latestResponse.status === 204) {
+      todayPlanState.loading = false;
+      todayPlanState.generating = false;
+      todayPlanState.hasLoaded = true;
+      todayPlanState.aiSuggestionId = "";
+      todayPlanState.envelope = normalizeTodayPlanEnvelope({
+        surface: TODAY_PLAN_SURFACE,
+        must_abstain: false,
+        planPreview: { topN: 3, items: [] },
+        suggestions: [],
+      });
+      todayPlanState.selectedTodoIds = new Set();
+      todayPlanState.dismissedSuggestionIds = new Set();
+      renderTodayPlanPanel();
+      return;
+    }
+
+    if (!latestResponse.ok) {
+      todayPlanState.loading = false;
+      todayPlanState.generating = false;
+      todayPlanState.error = "Could not load suggestions.";
+      todayPlanState.hasLoaded = true;
+      renderTodayPlanPanel();
+      return;
+    }
+
+    const payload = await latestResponse.json();
+    const envelope = normalizeTodayPlanEnvelope(payload?.outputEnvelope || {});
+    todayPlanState.loading = false;
+    todayPlanState.generating = false;
+    todayPlanState.hasLoaded = true;
+    todayPlanState.aiSuggestionId = String(payload?.aiSuggestionId || "");
+    todayPlanState.envelope = envelope;
+    todayPlanState.dismissedSuggestionIds = new Set();
+    todayPlanState.selectedTodoIds = new Set(
+      envelope.planPreview.items
+        .map((item) => String(item.todoId))
+        .filter(Boolean),
+    );
+    renderTodayPlanPanel();
+  } catch (error) {
+    console.error("Today plan AI load failed:", error);
+    todayPlanState.loading = false;
+    todayPlanState.generating = false;
+    todayPlanState.error = "Could not load suggestions.";
+    todayPlanState.hasLoaded = true;
+    renderTodayPlanPanel();
+  }
+}
+
 function getTodayPlanSelectedSuggestionCards() {
   if (!todayPlanState.envelope) return [];
   const selectedIds = todayPlanState.selectedTodoIds;
@@ -7693,6 +7825,12 @@ function renderTodayPlanPanel() {
     panel.hidden = true;
     panel.innerHTML = "";
     return;
+  }
+
+  if (!todayPlanState.hasLoaded && !todayPlanState.loading) {
+    todayPlanState.loading = true;
+    todayPlanState.generating = false;
+    loadTodayPlanDecisionAssist(false);
   }
 
   panel.hidden = false;
@@ -7745,15 +7883,25 @@ function renderTodayPlanPanel() {
         class="mini-btn"
         aria-label="Generate plan"
         data-today-plan-action="generate"
-        ${todayPlanState.generating ? "disabled" : ""}
+        ${todayPlanState.loading || todayPlanState.generating ? "disabled" : ""}
       >
-        ${todayPlanState.generating ? "Generating..." : "Generate plan"}
+        ${todayPlanState.loading || todayPlanState.generating ? "Generating..." : "Generate plan"}
       </button>
     </div>
     ${renderAiDebugMeta(envelope || {})}
     ${
-      todayPlanState.generating
+      todayPlanState.loading || todayPlanState.generating
         ? '<div class="today-plan-panel__loading ai-empty" role="status">Generating plan preview...</div>'
+        : ""
+    }
+    ${
+      todayPlanState.unavailable
+        ? '<div class="today-plan-panel__empty ai-empty" role="status">AI Suggestions unavailable.</div>'
+        : ""
+    }
+    ${
+      todayPlanState.error
+        ? `<div class="today-plan-panel__empty ai-empty" role="status">${escapeHtml(todayPlanState.error)}</div>`
         : ""
     }
     ${
@@ -7859,32 +8007,24 @@ function renderTodayPlanPanel() {
   `;
 }
 
-function handleTodayPlanGenerate() {
+async function handleTodayPlanGenerate() {
   const goalInput = document.getElementById("todayPlanGoalInput");
   const goalText =
     goalInput instanceof HTMLInputElement ? goalInput.value.trim() : "";
   todayPlanState.goalText = goalText;
   todayPlanState.generating = true;
+  todayPlanState.loading = true;
+  todayPlanState.error = "";
+  todayPlanState.unavailable = false;
   todayPlanState.loadingMessage = "Generating plan preview...";
   renderTodayPlanPanel();
 
   const generationId = ++todayPlanGenerationSeq;
-  window.setTimeout(() => {
-    if (generationId !== todayPlanGenerationSeq) return;
-    const todayTodos = getVisibleTodos();
-    const envelope = normalizeTodayPlanEnvelope(
-      mockPlanFromGoal(goalText, todayTodos),
-    );
-    todayPlanState.generating = false;
-    todayPlanState.loadingMessage = "";
-    todayPlanState.envelope = envelope;
-    todayPlanState.dismissedSuggestionIds = new Set();
-    todayPlanState.selectedTodoIds = new Set(
-      envelope.planPreview.items.map((item) => String(item.todoId)),
-    );
-    todayPlanState.lastApplyBatch = null;
-    renderTodayPlanPanel();
-  }, 120);
+  await loadTodayPlanDecisionAssist(true);
+  if (generationId !== todayPlanGenerationSeq) return;
+  todayPlanState.loadingMessage = "";
+  todayPlanState.lastApplyBatch = null;
+  renderTodayPlanPanel();
 }
 
 function handleTodayPlanToggleItem(todoId, checked) {
@@ -7896,12 +8036,37 @@ function handleTodayPlanToggleItem(todoId, checked) {
   renderTodayPlanPanel();
 }
 
-function handleTodayPlanDismissSuggestion(suggestionId) {
+async function handleTodayPlanDismissSuggestion(suggestionId) {
+  if (todayPlanState.mode === "live" && todayPlanState.aiSuggestionId) {
+    try {
+      await apiCall(
+        `${API_URL}/ai/suggestions/${encodeURIComponent(todayPlanState.aiSuggestionId)}/dismiss`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ suggestionId, dismissAll: true }),
+        },
+      );
+    } catch (error) {
+      console.error("Today plan dismiss failed:", error);
+    }
+    todayPlanState.aiSuggestionId = "";
+    todayPlanState.envelope = normalizeTodayPlanEnvelope({
+      surface: TODAY_PLAN_SURFACE,
+      must_abstain: false,
+      planPreview: { topN: 3, items: [] },
+      suggestions: [],
+    });
+    todayPlanState.selectedTodoIds = new Set();
+    todayPlanState.dismissedSuggestionIds = new Set();
+    renderTodayPlanPanel();
+    return;
+  }
   todayPlanState.dismissedSuggestionIds.add(suggestionId);
   renderTodayPlanPanel();
 }
 
-function handleTodayPlanApplySelected() {
+async function handleTodayPlanApplySelected() {
   if (!todayPlanState.envelope) return;
   const suggestionsToApply = getTodayPlanSelectedSuggestionCards();
   if (!suggestionsToApply.length) return;
@@ -7918,40 +8083,81 @@ function handleTodayPlanApplySelected() {
     todoSnapshots[todoId] = deepClone(todo);
   }
   const notesDraftSnapshot = deepClone(todayPlanState.notesDraftByTodoId);
-
-  for (const suggestion of suggestionsToApply) {
-    const todoId = String(suggestion.payload?.todoId || "");
-    const todo = todos.find((entry) => String(entry.id) === todoId);
-    if (!todo) continue;
-
-    if (suggestion.type === "set_priority") {
-      todo.priority = normalizePriorityValue(suggestion.payload?.priority);
-      continue;
-    }
-    if (suggestion.type === "set_due_date") {
-      const dueDate = String(suggestion.payload?.dueDateISO || "");
-      const parsed = new Date(dueDate);
-      if (!Number.isNaN(parsed.getTime())) {
-        todo.dueDate = parsed.toISOString();
+  if (todayPlanState.mode === "live" && todayPlanState.aiSuggestionId) {
+    try {
+      const response = await apiCall(
+        `${API_URL}/ai/suggestions/${encodeURIComponent(todayPlanState.aiSuggestionId)}/apply`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            selectedTodoIds: Array.from(todayPlanState.selectedTodoIds),
+            confirmed: true,
+          }),
+        },
+      );
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        todayPlanState.error =
+          typeof data?.error === "string"
+            ? data.error
+            : "Could not apply selected suggestions.";
+        renderTodayPlanPanel();
+        return;
       }
-      continue;
+      const data = await response.json().catch(() => ({}));
+      const updatedTodos = Array.isArray(data?.todos) ? data.todos : [];
+      for (const updatedTodo of updatedTodos) {
+        if (!updatedTodo?.id) continue;
+        const index = todos.findIndex(
+          (item) => String(item.id) === String(updatedTodo.id),
+        );
+        if (index >= 0) {
+          todos[index] = updatedTodo;
+        }
+      }
+      await loadTodayPlanDecisionAssist(false);
+    } catch (error) {
+      console.error("Today plan apply failed:", error);
+      todayPlanState.error = "Could not apply selected suggestions.";
+      renderTodayPlanPanel();
+      return;
     }
-    if (suggestion.type === "split_subtasks") {
-      const subtasksRaw = Array.isArray(suggestion.payload?.subtasks)
-        ? suggestion.payload.subtasks
-        : [];
-      todo.subtasks = subtasksRaw.slice(0, 5).map((subtask, index) => ({
-        id: `local-today-plan-${suggestion.suggestionId}-${index + 1}`,
-        title: String(subtask?.title || "").slice(0, 200),
-        completed: false,
-        order: Number(subtask?.order) || index + 1,
-      }));
-      continue;
-    }
-    if (suggestion.type === "propose_next_action") {
-      todayPlanState.notesDraftByTodoId[todoId] = String(
-        suggestion.payload?.text || "",
-      ).slice(0, 500);
+  } else {
+    for (const suggestion of suggestionsToApply) {
+      const todoId = String(suggestion.payload?.todoId || "");
+      const todo = todos.find((entry) => String(entry.id) === todoId);
+      if (!todo) continue;
+
+      if (suggestion.type === "set_priority") {
+        todo.priority = normalizePriorityValue(suggestion.payload?.priority);
+        continue;
+      }
+      if (suggestion.type === "set_due_date") {
+        const dueDate = String(suggestion.payload?.dueDateISO || "");
+        const parsed = new Date(dueDate);
+        if (!Number.isNaN(parsed.getTime())) {
+          todo.dueDate = parsed.toISOString();
+        }
+        continue;
+      }
+      if (suggestion.type === "split_subtasks") {
+        const subtasksRaw = Array.isArray(suggestion.payload?.subtasks)
+          ? suggestion.payload.subtasks
+          : [];
+        todo.subtasks = subtasksRaw.slice(0, 5).map((subtask, index) => ({
+          id: `local-today-plan-${suggestion.suggestionId}-${index + 1}`,
+          title: String(subtask?.title || "").slice(0, 200),
+          completed: false,
+          order: Number(subtask?.order) || index + 1,
+        }));
+        continue;
+      }
+      if (suggestion.type === "propose_next_action") {
+        todayPlanState.notesDraftByTodoId[todoId] = String(
+          suggestion.payload?.text || "",
+        ).slice(0, 500);
+      }
     }
   }
 
@@ -7999,7 +8205,7 @@ function bindTodayPlanHandlers() {
     handleTodayPlanToggleItem(todoId, target.checked);
   });
 
-  document.addEventListener("click", (event) => {
+  document.addEventListener("click", async (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const actionEl = target.closest("[data-today-plan-action]");
@@ -8014,7 +8220,7 @@ function bindTodayPlanHandlers() {
       return;
     }
     if (action === "generate") {
-      handleTodayPlanGenerate();
+      await handleTodayPlanGenerate();
       return;
     }
     if (action === "dismiss-suggestion") {
@@ -8022,11 +8228,11 @@ function bindTodayPlanHandlers() {
         actionEl.getAttribute("data-today-plan-suggestion-id") || "",
       );
       if (!suggestionId) return;
-      handleTodayPlanDismissSuggestion(suggestionId);
+      await handleTodayPlanDismissSuggestion(suggestionId);
       return;
     }
     if (action === "apply-selected") {
-      handleTodayPlanApplySelected();
+      await handleTodayPlanApplySelected();
       return;
     }
     if (action === "undo") {

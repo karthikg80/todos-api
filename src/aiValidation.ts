@@ -163,6 +163,7 @@ export function validateApplySuggestionInput(data: any): {
   reason?: string;
   suggestionId?: string;
   confirmed?: boolean;
+  selectedTodoIds?: string[];
 } {
   if (data === undefined || data === null) {
     return {};
@@ -209,20 +210,37 @@ export function validateApplySuggestionInput(data: any): {
     confirmed = raw;
   }
 
-  return { reason, suggestionId, confirmed };
+  let selectedTodoIds: string[] | undefined;
+  if ((data as Record<string, unknown>).selectedTodoIds !== undefined) {
+    const raw = (data as Record<string, unknown>).selectedTodoIds;
+    if (!Array.isArray(raw)) {
+      throw new ValidationError("selectedTodoIds must be an array of strings");
+    }
+    const parsed = raw.map((item, index) => {
+      if (typeof item !== "string") {
+        throw new ValidationError(`selectedTodoIds[${index}] must be a string`);
+      }
+      const trimmed = item.trim();
+      if (!trimmed) {
+        throw new ValidationError(`selectedTodoIds[${index}] cannot be empty`);
+      }
+      if (trimmed.length > 120) {
+        throw new ValidationError(
+          `selectedTodoIds[${index}] cannot exceed 120 characters`,
+        );
+      }
+      return trimmed;
+    });
+    selectedTodoIds = Array.from(new Set(parsed));
+  }
+
+  return { reason, suggestionId, confirmed, selectedTodoIds };
 }
 
 export function validateDecisionAssistLatestQuery(query: any): {
-  todoId: string;
+  todoId?: string;
   surface: DecisionAssistSurface;
 } {
-  if (typeof query.todoId !== "string" || query.todoId.trim().length === 0) {
-    throw new ValidationError("todoId is required");
-  }
-  if (query.todoId.trim().length > 120) {
-    throw new ValidationError("todoId cannot exceed 120 characters");
-  }
-
   if (typeof query.surface !== "string") {
     throw new ValidationError(
       `surface must be one of: ${ALLOWED_DECISION_ASSIST_SURFACES.join(", ")}`,
@@ -235,8 +253,23 @@ export function validateDecisionAssistLatestQuery(query: any): {
     );
   }
 
+  let todoId: string | undefined;
+  if (query.todoId !== undefined && query.todoId !== null) {
+    if (typeof query.todoId !== "string" || query.todoId.trim().length === 0) {
+      throw new ValidationError("todoId must be a non-empty string");
+    }
+    if (query.todoId.trim().length > 120) {
+      throw new ValidationError("todoId cannot exceed 120 characters");
+    }
+    todoId = query.todoId.trim();
+  }
+
+  if (surface !== "today_plan" && !todoId) {
+    throw new ValidationError("todoId is required");
+  }
+
   return {
-    todoId: query.todoId.trim(),
+    todoId,
     surface,
   };
 }
@@ -411,6 +444,83 @@ export function validateDecisionAssistStubInput(
     topN = topNRaw as 3 | 5;
   }
 
+  let timeZone: string | undefined;
+  if (data.timeZone !== undefined) {
+    if (typeof data.timeZone !== "string") {
+      throw new ValidationError("timeZone must be a string");
+    }
+    const trimmed = data.timeZone.trim();
+    if (trimmed.length > 100) {
+      throw new ValidationError("timeZone cannot exceed 100 characters");
+    }
+    timeZone = trimmed || undefined;
+  }
+
+  let anchorDateISO: string | undefined;
+  if (data.anchorDateISO !== undefined) {
+    if (typeof data.anchorDateISO !== "string") {
+      throw new ValidationError("anchorDateISO must be a string");
+    }
+    const parsed = new Date(data.anchorDateISO);
+    if (Number.isNaN(parsed.getTime())) {
+      throw new ValidationError("anchorDateISO must be a valid date");
+    }
+    anchorDateISO = parsed.toISOString();
+  }
+
+  let todoCandidates: DecisionAssistStubInput["todoCandidates"];
+  if (data.todoCandidates !== undefined) {
+    if (!Array.isArray(data.todoCandidates)) {
+      throw new ValidationError("todoCandidates must be an array");
+    }
+    todoCandidates = data.todoCandidates.map((item: unknown, index: number) => {
+      if (!item || typeof item !== "object") {
+        throw new ValidationError(`todoCandidates[${index}] must be an object`);
+      }
+      const record = item as Record<string, unknown>;
+      if (typeof record.id !== "string" || !record.id.trim()) {
+        throw new ValidationError(`todoCandidates[${index}].id is required`);
+      }
+      if (typeof record.title !== "string" || !record.title.trim()) {
+        throw new ValidationError(`todoCandidates[${index}].title is required`);
+      }
+      if (
+        record.dueDate !== undefined &&
+        (typeof record.dueDate !== "string" ||
+          Number.isNaN(new Date(record.dueDate).getTime()))
+      ) {
+        throw new ValidationError(
+          `todoCandidates[${index}].dueDate must be a valid ISO date`,
+        );
+      }
+      if (
+        record.priority !== undefined &&
+        (typeof record.priority !== "string" ||
+          !PRIORITIES.includes(record.priority.toLowerCase() as Priority))
+      ) {
+        throw new ValidationError(
+          `todoCandidates[${index}].priority must be low, medium, or high`,
+        );
+      }
+      return {
+        id: record.id.trim(),
+        title: record.title.trim(),
+        dueDate:
+          typeof record.dueDate === "string"
+            ? new Date(record.dueDate).toISOString()
+            : undefined,
+        priority:
+          typeof record.priority === "string"
+            ? (record.priority.toLowerCase() as Priority)
+            : undefined,
+        createdAt:
+          typeof record.createdAt === "string" ? record.createdAt : undefined,
+        updatedAt:
+          typeof record.updatedAt === "string" ? record.updatedAt : undefined,
+      };
+    });
+  }
+
   return {
     surface,
     todoId: parseOptionalString(data.todoId, "todoId"),
@@ -419,5 +529,8 @@ export function validateDecisionAssistStubInput(
     notes: parseOptionalString(data.notes, "notes"),
     goal: parseOptionalString(data.goal, "goal"),
     topN,
+    timeZone,
+    anchorDateISO,
+    todoCandidates,
   };
 }
