@@ -29,6 +29,7 @@ import { ITodoService } from "../interfaces/ITodoService";
 import { CreateTodoDto, Priority } from "../types";
 import { config } from "../config";
 import { IProjectService } from "../interfaces/IProjectService";
+import * as decisionAssistTelemetry from "../decisionAssistTelemetry";
 
 export type UserPlan = "free" | "pro" | "team";
 
@@ -418,6 +419,16 @@ export function createAiRouter({
     return false;
   };
 
+  const emitDecisionAssistTelemetrySafe = (
+    event: decisionAssistTelemetry.DecisionAssistTelemetryEvent,
+  ) => {
+    try {
+      decisionAssistTelemetry.emitDecisionAssistTelemetry(event);
+    } catch (error) {
+      console.warn("Decision assist telemetry emit failed:", error);
+    }
+  };
+
   /**
    * @openapi
    * /ai/decision-assist/stub:
@@ -478,6 +489,16 @@ export function createAiRouter({
             ...input,
           },
           output: output as unknown as Record<string, unknown>,
+        });
+
+        emitDecisionAssistTelemetrySafe({
+          eventName: "ai_suggestion_generated",
+          surface: input.surface,
+          aiSuggestionDbId: suggestion.id,
+          suggestionId:
+            typeof output.requestId === "string" ? output.requestId : undefined,
+          todoId: input.todoId,
+          suggestionCount: output.suggestions.length,
         });
 
         res.json({
@@ -809,6 +830,17 @@ export function createAiRouter({
                 surface,
               )
             : normalizeTodayPlanEnvelope(latest.output);
+          emitDecisionAssistTelemetrySafe({
+            eventName: "ai_suggestion_viewed",
+            surface,
+            aiSuggestionDbId: latest.id,
+            suggestionId:
+              typeof outputEnvelope.requestId === "string"
+                ? outputEnvelope.requestId
+                : undefined,
+            todoId: isTodoBound ? String(todoId || "") : undefined,
+            suggestionCount: outputEnvelope.suggestions.length,
+          });
           return res.json({
             aiSuggestionId: latest.id,
             status: latest.status,
@@ -1179,6 +1211,18 @@ export function createAiRouter({
               return res.status(404).json({ error: "Suggestion not found" });
             }
 
+            emitDecisionAssistTelemetrySafe({
+              eventName: "ai_suggestion_applied",
+              surface: TODAY_PLAN_SURFACE,
+              aiSuggestionDbId: id,
+              suggestionId:
+                typeof envelope.requestId === "string"
+                  ? envelope.requestId
+                  : undefined,
+              suggestionCount: applicableSuggestions.length,
+              selectedTodoIdsCount: selectedSet.size,
+            });
+
             return res.json({
               updatedCount: updatedTodos.length,
               todos: updatedTodos,
@@ -1517,6 +1561,16 @@ export function createAiRouter({
           return res.status(404).json({ error: "Suggestion not found" });
         }
 
+        emitDecisionAssistTelemetrySafe({
+          eventName: "ai_suggestion_applied",
+          surface: inputSurface,
+          aiSuggestionDbId: id,
+          suggestionId: selected.suggestionId,
+          todoId: inputTodoId,
+          suggestionCount: envelopeSuggestions.length,
+          selectedTodoIdsCount: 1,
+        });
+
         return res.json({
           todo: updatedTodo,
           appliedSuggestionId: selected.suggestionId,
@@ -1585,6 +1639,19 @@ export function createAiRouter({
         if (!updated) {
           return res.status(404).json({ error: "Suggestion not found" });
         }
+
+        emitDecisionAssistTelemetrySafe({
+          eventName: "ai_suggestion_dismissed",
+          surface: inputSurface,
+          aiSuggestionDbId: id,
+          suggestionCount: Array.isArray(updated.output?.suggestions)
+            ? updated.output.suggestions.length
+            : undefined,
+          todoId:
+            typeof updated.input?.todoId === "string"
+              ? updated.input.todoId
+              : undefined,
+        });
 
         return res.status(204).end();
       } catch (error) {

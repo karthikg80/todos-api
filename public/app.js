@@ -396,6 +396,35 @@ const AI_SURFACE_IMPACT = Object.freeze({
   }),
 });
 
+function emitAiSuggestionUndoTelemetry({
+  surface,
+  aiSuggestionDbId,
+  suggestionId,
+  todoId,
+  selectedTodoIdsCount,
+}) {
+  try {
+    console.info(
+      JSON.stringify({
+        type: "ai_decision_assist_telemetry",
+        eventName: "ai_suggestion_undo",
+        surface,
+        aiSuggestionDbId: aiSuggestionDbId || undefined,
+        suggestionId: suggestionId || undefined,
+        todoId: todoId || undefined,
+        selectedTodoIdsCount:
+          typeof selectedTodoIdsCount === "number" &&
+          Number.isFinite(selectedTodoIdsCount)
+            ? Math.max(0, Math.floor(selectedTodoIdsCount))
+            : undefined,
+        ts: new Date().toISOString(),
+      }),
+    );
+  } catch (error) {
+    console.warn("AI undo telemetry emit failed:", error);
+  }
+}
+
 function handleAuthFailure() {
   logout();
 }
@@ -5544,6 +5573,13 @@ function undoTaskDrawerSuggestion(suggestionId) {
   initializeDrawerDraft(todos[index]);
   delete taskDrawerAssistState.undoBySuggestionId[suggestionId];
   taskDrawerAssistState.lastUndoSuggestionId = suggestionId;
+  emitAiSuggestionUndoTelemetry({
+    surface: "task_drawer",
+    aiSuggestionDbId: taskDrawerAssistState.aiSuggestionId,
+    suggestionId,
+    todoId: selectedTodoId,
+    selectedTodoIdsCount: 1,
+  });
   renderTodos();
   syncTodoDrawerStateWithRender();
 }
@@ -7265,6 +7301,13 @@ function onCreateAssistUndoSuggestion(suggestionId) {
   suggestion.helperText = "";
   suggestion.clarificationExpanded = false;
   suggestion.undoSnapshot = null;
+  emitAiSuggestionUndoTelemetry({
+    surface: ON_CREATE_SURFACE,
+    aiSuggestionDbId: onCreateAssistState.aiSuggestionId,
+    suggestionId,
+    todoId: onCreateAssistState.liveTodoId || "",
+    selectedTodoIdsCount: 1,
+  });
   renderOnCreateAssistRow();
 }
 
@@ -8178,6 +8221,12 @@ function handleTodayPlanUndoBatch() {
   });
   todayPlanState.notesDraftByTodoId = deepClone(batch.notesDraftSnapshot || {});
   todayPlanState.lastApplyBatch = null;
+  emitAiSuggestionUndoTelemetry({
+    surface: TODAY_PLAN_SURFACE,
+    aiSuggestionDbId: todayPlanState.aiSuggestionId,
+    suggestionId: todayPlanState.envelope?.requestId || "",
+    selectedTodoIdsCount: Object.keys(batch.todoSnapshots || {}).length,
+  });
   renderTodos();
 }
 
