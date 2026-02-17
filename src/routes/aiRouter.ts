@@ -214,13 +214,20 @@ export function createAiRouter({
 
   const TASK_DRAWER_SURFACE: DecisionAssistSurface = "task_drawer";
   const ON_CREATE_SURFACE: DecisionAssistSurface = "on_create";
+  const TODAY_PLAN_SURFACE: DecisionAssistSurface = "today_plan";
   const TODO_BOUND_TYPE: "task_critic" = "task_critic";
   const TODO_BOUND_SURFACES = new Set<DecisionAssistSurface>([
     TASK_DRAWER_SURFACE,
     ON_CREATE_SURFACE,
   ]);
+  const TODAY_PLAN_ALLOWED_TYPES = new Set<DecisionAssistSuggestionType>([
+    "set_due_date",
+    "set_priority",
+    "split_subtasks",
+    "propose_next_action",
+  ]);
   const TODO_BOUND_ALLOWED_TYPES: Record<
-    DecisionAssistSurface,
+    "task_drawer" | "on_create",
     Set<DecisionAssistSuggestionType>
   > = {
     task_drawer: new Set<DecisionAssistSuggestionType>([
@@ -242,7 +249,6 @@ export function createAiRouter({
       "set_category",
       "ask_clarification",
     ]),
-    today_plan: new Set<DecisionAssistSuggestionType>(),
   };
 
   type NormalizedTodoBoundSuggestion = DecisionAssistSuggestion & {
@@ -253,6 +259,16 @@ export function createAiRouter({
 
   type NormalizedTodoBoundEnvelope = DecisionAssistOutput & {
     suggestions: NormalizedTodoBoundSuggestion[];
+  };
+
+  type NormalizedTodayPlanSuggestion = DecisionAssistSuggestion & {
+    suggestionId: string;
+    requiresConfirmation: boolean;
+    payload: Record<string, unknown>;
+  };
+
+  type NormalizedTodayPlanEnvelope = DecisionAssistOutput & {
+    suggestions: NormalizedTodayPlanSuggestion[];
   };
 
   const parseBool = (value: unknown): boolean => value === true;
@@ -266,10 +282,11 @@ export function createAiRouter({
     if (validated.surface !== surface) {
       throw new Error("Suggestion envelope surface mismatch");
     }
-    const allowedTypes = TODO_BOUND_ALLOWED_TYPES[surface];
+    const allowedTypes =
+      TODO_BOUND_ALLOWED_TYPES[surface as "task_drawer" | "on_create"];
 
     const normalizedSuggestions = validated.suggestions
-      .map((item, index) => {
+      .map((item, index): NormalizedTodoBoundSuggestion => {
         const rawItem =
           Array.isArray(rawOutput.suggestions) &&
           rawOutput.suggestions[index] &&
@@ -303,6 +320,62 @@ export function createAiRouter({
     };
   };
 
+  const normalizeTodayPlanEnvelope = (
+    rawOutput: Record<string, unknown>,
+  ): NormalizedTodayPlanEnvelope => {
+    const validated = validateDecisionAssistOutput(rawOutput);
+    if (validated.surface !== TODAY_PLAN_SURFACE) {
+      throw new Error("Suggestion envelope surface mismatch");
+    }
+    const previewTodoIds = new Set(
+      (validated.planPreview?.items || [])
+        .map((item) => (typeof item.todoId === "string" ? item.todoId : ""))
+        .filter(Boolean),
+    );
+    const normalizedSuggestions = validated.suggestions.reduce<
+      NormalizedTodayPlanSuggestion[]
+    >((acc, item, index) => {
+      const rawItem =
+        Array.isArray(rawOutput.suggestions) &&
+        rawOutput.suggestions[index] &&
+        typeof rawOutput.suggestions[index] === "object"
+          ? (rawOutput.suggestions[index] as Record<string, unknown>)
+          : {};
+      const suggestionIdRaw =
+        typeof rawItem.suggestionId === "string"
+          ? rawItem.suggestionId.trim()
+          : "";
+      const suggestionId = suggestionIdRaw || `today-plan-${index + 1}`;
+      const payload =
+        item.payload && typeof item.payload === "object"
+          ? ({ ...item.payload } as Record<string, unknown>)
+          : {};
+      const payloadTodoId =
+        typeof payload.todoId === "string" ? payload.todoId.trim() : "";
+      if (!payloadTodoId || !previewTodoIds.has(payloadTodoId)) {
+        return acc;
+      }
+      const normalized: NormalizedTodayPlanSuggestion = {
+        ...item,
+        suggestionId,
+        requiresConfirmation: parseBool(rawItem.requiresConfirmation),
+        payload: {
+          ...payload,
+          todoId: payloadTodoId,
+        },
+      };
+      if (TODAY_PLAN_ALLOWED_TYPES.has(normalized.type)) {
+        acc.push(normalized);
+      }
+      return acc;
+    }, []);
+
+    return {
+      ...validated,
+      suggestions: normalizedSuggestions,
+    };
+  };
+
   const findLatestPendingDecisionAssistSuggestion = async (
     userId: string,
     todoId: string,
@@ -318,6 +391,21 @@ export function createAiRouter({
         const inputTodoId =
           typeof record.input?.todoId === "string" ? record.input.todoId : "";
         return inputSurface === surface && inputTodoId === todoId;
+      }) || null
+    );
+  };
+
+  const findLatestPendingTodayPlanSuggestion = async (userId: string) => {
+    const records = await suggestionStore.listByUser(userId, 100);
+    return (
+      records.find((record) => {
+        if (record.status !== "pending") return false;
+        if (record.type !== "plan_from_goal") return false;
+        const inputSurface =
+          typeof record.input?.surface === "string" ? record.input.surface : "";
+        const inputTodoId =
+          typeof record.input?.todoId === "string" ? record.input.todoId : "";
+        return inputSurface === TODAY_PLAN_SURFACE && !inputTodoId;
       }) || null
     );
   };
@@ -363,6 +451,9 @@ export function createAiRouter({
           }
         }
         if (input.surface === ON_CREATE_SURFACE && input.todoId) {
+          if (!ensureDecisionAssistFeatureEnabled(res)) return;
+        }
+        if (input.surface === TODAY_PLAN_SURFACE) {
           if (!ensureDecisionAssistFeatureEnabled(res)) return;
         }
         if (
@@ -691,27 +782,33 @@ export function createAiRouter({
         const { todoId, surface } = validateDecisionAssistLatestQuery(
           req.query,
         );
-        if (!TODO_BOUND_SURFACES.has(surface)) {
+        const isTodoBound = TODO_BOUND_SURFACES.has(surface);
+        const isTodayPlan = surface === TODAY_PLAN_SURFACE;
+        if (!isTodoBound && !isTodayPlan) {
           return res.status(400).json({
-            error: "surface must be on_create or task_drawer",
+            error: "surface must be on_create, task_drawer, or today_plan",
           });
         }
 
-        const latest = await findLatestPendingDecisionAssistSuggestion(
-          userId,
-          todoId,
-          surface,
-        );
+        const latest = isTodoBound
+          ? await findLatestPendingDecisionAssistSuggestion(
+              userId,
+              String(todoId || ""),
+              surface,
+            )
+          : await findLatestPendingTodayPlanSuggestion(userId);
         if (!latest) {
           return res.status(204).end();
         }
 
         try {
-          const outputEnvelope = normalizeTodoBoundEnvelope(
-            latest.output,
-            todoId,
-            surface,
-          );
+          const outputEnvelope = isTodoBound
+            ? normalizeTodoBoundEnvelope(
+                latest.output,
+                String(todoId || ""),
+                surface,
+              )
+            : normalizeTodayPlanEnvelope(latest.output);
           return res.json({
             aiSuggestionId: latest.id,
             status: latest.status,
@@ -725,6 +822,10 @@ export function createAiRouter({
               requestId: `safe-empty-${latest.id}`,
               surface,
               must_abstain: true,
+              planPreview:
+                surface === TODAY_PLAN_SURFACE
+                  ? { topN: 3, items: [] }
+                  : undefined,
               suggestions: [],
             },
           });
@@ -876,7 +977,7 @@ export function createAiRouter({
 
         const id = String(req.params.id);
         validateId(id);
-        const { reason, suggestionId, confirmed } =
+        const { reason, suggestionId, confirmed, selectedTodoIds } =
           validateApplySuggestionInput(req.body);
 
         const suggestion = await suggestionStore.getById(userId, id);
@@ -889,6 +990,203 @@ export function createAiRouter({
             .json({ error: "Cannot apply a rejected suggestion" });
         }
         if (suggestion.type === "plan_from_goal") {
+          const inputSurfaceRaw =
+            typeof suggestion.input?.surface === "string"
+              ? suggestion.input.surface
+              : "";
+          const inputSurface = inputSurfaceRaw as DecisionAssistSurface;
+          if (inputSurface === TODAY_PLAN_SURFACE) {
+            if (!ensureDecisionAssistFeatureEnabled(res)) return;
+            if (suggestion.status !== "pending") {
+              return res
+                .status(409)
+                .json({ error: "Suggestion is no longer pending" });
+            }
+
+            let envelope: NormalizedTodayPlanEnvelope;
+            try {
+              envelope = normalizeTodayPlanEnvelope(suggestion.output);
+            } catch {
+              return res
+                .status(400)
+                .json({ error: "Stored suggestion output is invalid" });
+            }
+
+            const plannedTodoIds = new Set(
+              (envelope.planPreview?.items || [])
+                .map((item) =>
+                  typeof item.todoId === "string" ? item.todoId : "",
+                )
+                .filter(Boolean),
+            );
+            const selectedSet =
+              selectedTodoIds && selectedTodoIds.length > 0
+                ? new Set(
+                    selectedTodoIds.filter((todoId) =>
+                      plannedTodoIds.has(todoId),
+                    ),
+                  )
+                : plannedTodoIds;
+
+            const applicableSuggestions = (
+              envelope.suggestions as NormalizedTodayPlanSuggestion[]
+            ).filter((item) => {
+              const payloadTodoId =
+                typeof item.payload?.todoId === "string"
+                  ? item.payload.todoId
+                  : "";
+              return !!payloadTodoId && selectedSet.has(payloadTodoId);
+            });
+
+            if (!applicableSuggestions.length) {
+              return res.status(400).json({
+                error:
+                  "No applicable today plan suggestions for selectedTodoIds",
+              });
+            }
+
+            const updatedTodosMap = new Map<
+              string,
+              Awaited<ReturnType<ITodoService["findById"]>>
+            >();
+
+            for (const selected of applicableSuggestions) {
+              const payload = selected.payload || {};
+              const todoId =
+                typeof payload.todoId === "string" ? payload.todoId : "";
+              if (!todoId) continue;
+
+              const currentTodo =
+                updatedTodosMap.get(todoId) ||
+                (await todoService.findById(userId, todoId));
+              if (!currentTodo) continue;
+
+              if (selected.requiresConfirmation && confirmed !== true) {
+                return res.status(400).json({
+                  error: "Confirmation is required for this suggestion",
+                });
+              }
+
+              if (selected.type === "set_priority") {
+                const priority = String(payload.priority || "").toLowerCase();
+                if (!["low", "medium", "high"].includes(priority)) {
+                  return res
+                    .status(400)
+                    .json({ error: "Invalid priority value" });
+                }
+                if (priority === "high" && confirmed !== true) {
+                  return res.status(400).json({
+                    error:
+                      "High priority changes require explicit confirmation",
+                  });
+                }
+                const updated = await todoService.update(userId, todoId, {
+                  priority: priority as Priority,
+                });
+                if (updated) updatedTodosMap.set(todoId, updated);
+                continue;
+              }
+
+              if (selected.type === "set_due_date") {
+                const dueDateISO =
+                  typeof payload.dueDateISO === "string"
+                    ? payload.dueDateISO
+                    : "";
+                const parsed = new Date(dueDateISO);
+                if (Number.isNaN(parsed.getTime())) {
+                  return res.status(400).json({ error: "Invalid due date" });
+                }
+                if (parsed.getTime() < Date.now() && confirmed !== true) {
+                  return res.status(400).json({
+                    error: "Past due dates require explicit confirmation",
+                  });
+                }
+                const updated = await todoService.update(userId, todoId, {
+                  dueDate: parsed,
+                });
+                if (updated) updatedTodosMap.set(todoId, updated);
+                continue;
+              }
+
+              if (selected.type === "split_subtasks") {
+                const subtasksRaw = Array.isArray(payload.subtasks)
+                  ? payload.subtasks
+                  : [];
+                if (subtasksRaw.length < 1 || subtasksRaw.length > 5) {
+                  return res
+                    .status(400)
+                    .json({ error: "split_subtasks requires 1-5 subtasks" });
+                }
+                for (const item of subtasksRaw.slice(0, 5)) {
+                  const title =
+                    item &&
+                    typeof item === "object" &&
+                    typeof item.title === "string"
+                      ? item.title.trim()
+                      : "";
+                  if (!title || title.length > 200) {
+                    return res
+                      .status(400)
+                      .json({ error: "Invalid subtask title" });
+                  }
+                  await todoService.createSubtask(userId, todoId, { title });
+                }
+                const refreshed = await todoService.findById(userId, todoId);
+                if (refreshed) updatedTodosMap.set(todoId, refreshed);
+                continue;
+              }
+
+              if (selected.type === "propose_next_action") {
+                const textCandidate =
+                  typeof payload.text === "string"
+                    ? payload.text
+                    : typeof payload.title === "string"
+                      ? payload.title
+                      : "";
+                const nextAction = textCandidate.trim();
+                if (!nextAction || nextAction.length > 200) {
+                  return res
+                    .status(400)
+                    .json({ error: "Invalid next action text" });
+                }
+                const nextNotes = currentTodo.notes
+                  ? `${currentTodo.notes}\nNext action: ${nextAction}`
+                  : `Next action: ${nextAction}`;
+                const updated = await todoService.update(userId, todoId, {
+                  notes: nextNotes,
+                });
+                if (updated) updatedTodosMap.set(todoId, updated);
+              }
+            }
+
+            const updatedTodos = Array.from(updatedTodosMap.values()).filter(
+              (item): item is NonNullable<typeof item> => !!item,
+            );
+            const appliedTodoIds = updatedTodos.map((todo) => todo.id);
+            const updatedSuggestion = await suggestionStore.markApplied(
+              userId,
+              id,
+              appliedTodoIds,
+              {
+                reason: reason || "today_plan_apply",
+                source: "today_plan_apply",
+                suggestionId: suggestionId || null,
+                selectedTodoIds: Array.from(selectedSet),
+                updatedAt: new Date().toISOString(),
+              },
+            );
+            if (!updatedSuggestion) {
+              return res.status(404).json({ error: "Suggestion not found" });
+            }
+
+            return res.json({
+              updatedCount: updatedTodos.length,
+              todos: updatedTodos,
+              suggestion: updatedSuggestion,
+              idempotent: false,
+            });
+          }
+
           if (
             suggestion.status === "accepted" &&
             Array.isArray(suggestion.appliedTodoIds) &&
@@ -1247,9 +1545,16 @@ export function createAiRouter({
         if (!suggestion) {
           return res.status(404).json({ error: "Suggestion not found" });
         }
-        if (suggestion.type !== TODO_BOUND_TYPE) {
+        const isTodoBoundSuggestion = suggestion.type === TODO_BOUND_TYPE;
+        const isTodayPlanSuggestion =
+          suggestion.type === "plan_from_goal" &&
+          suggestion.input &&
+          typeof suggestion.input.surface === "string" &&
+          suggestion.input.surface === TODAY_PLAN_SURFACE;
+        if (!isTodoBoundSuggestion && !isTodayPlanSuggestion) {
           return res.status(400).json({
-            error: "Only on_create/task_drawer suggestions can be dismissed",
+            error:
+              "Only on_create/task_drawer/today_plan suggestions can be dismissed",
           });
         }
         const inputSurfaceRaw =
@@ -1257,9 +1562,13 @@ export function createAiRouter({
             ? suggestion.input.surface
             : "";
         const inputSurface = inputSurfaceRaw as DecisionAssistSurface;
-        if (!TODO_BOUND_SURFACES.has(inputSurface)) {
+        if (
+          !TODO_BOUND_SURFACES.has(inputSurface) &&
+          inputSurface !== TODAY_PLAN_SURFACE
+        ) {
           return res.status(400).json({
-            error: "Only on_create/task_drawer suggestions can be dismissed",
+            error:
+              "Only on_create/task_drawer/today_plan suggestions can be dismissed",
           });
         }
 

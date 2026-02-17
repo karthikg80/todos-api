@@ -70,6 +70,16 @@ export interface DecisionAssistStubInput {
   notes?: string;
   goal?: string;
   topN?: 3 | 5;
+  timeZone?: string;
+  anchorDateISO?: string;
+  todoCandidates?: Array<{
+    id: string;
+    title: string;
+    dueDate?: string;
+    priority?: Priority;
+    createdAt?: string;
+    updatedAt?: string;
+  }>;
 }
 
 interface AiProvider {
@@ -481,6 +491,36 @@ function deriveDueDateSuggestion(title?: string): string | undefined {
   return undefined;
 }
 
+function toEpoch(value?: string): number {
+  if (!value) return Infinity;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? Infinity : date.getTime();
+}
+
+function priorityWeight(priority?: string): number {
+  const value = String(priority || "").toLowerCase();
+  if (value === "high") return 3;
+  if (value === "medium") return 2;
+  return 1;
+}
+
+function estimateTodoMinutes(
+  title: string,
+  mode: "quick" | "deep" | "balanced",
+): number {
+  const words =
+    String(title || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean).length || 1;
+  const base = Math.max(15, Math.min(120, words * 9));
+  if (mode === "quick")
+    return Math.max(10, Math.min(30, Math.round(base * 0.6)));
+  if (mode === "deep")
+    return Math.max(45, Math.min(150, Math.round(base * 1.35)));
+  return base;
+}
+
 export function generateDecisionAssistStubOutput(
   input: DecisionAssistStubInput,
 ): DecisionAssistOutput {
@@ -548,30 +588,144 @@ export function generateDecisionAssistStubOutput(
   }
 
   if (surface === "today_plan") {
-    const topN = input.topN || 3;
-    const goal = input.goal?.trim() || "Finish today with high impact progress";
-    const items = Array.from({ length: topN }).map((_, index) => ({
+    const goal = input.goal?.trim() || "";
+    const goalLower = goal.toLowerCase();
+    const todoCandidates = Array.isArray(input.todoCandidates)
+      ? input.todoCandidates
+          .map((item) => ({
+            id: String(item?.id || "").trim(),
+            title: String(item?.title || "").trim(),
+            dueDate: item?.dueDate,
+            priority: item?.priority,
+            createdAt: item?.createdAt,
+            updatedAt: item?.updatedAt,
+          }))
+          .filter((item) => item.id && item.title)
+      : [];
+
+    if (
+      goalLower.includes("abstain") ||
+      !Array.isArray(todoCandidates) ||
+      todoCandidates.length === 0
+    ) {
+      return validateDecisionAssistOutput({
+        requestId,
+        surface,
+        must_abstain: true,
+        suggestions: [],
+        planPreview: {
+          topN: input.topN || 3,
+          items: [],
+        },
+      });
+    }
+
+    const mode: "quick" | "deep" | "balanced" = goalLower.includes("quick")
+      ? "quick"
+      : goalLower.includes("deep") || goalLower.includes("focus")
+        ? "deep"
+        : "balanced";
+    const now = Date.now();
+    const ranked = [...todoCandidates].sort((a, b) => {
+      const dueA = toEpoch(a.dueDate);
+      const dueB = toEpoch(b.dueDate);
+      const dueScoreA = dueA === Infinity ? Infinity : Math.max(0, dueA - now);
+      const dueScoreB = dueB === Infinity ? Infinity : Math.max(0, dueB - now);
+      const recencyA = toEpoch(a.updatedAt || a.createdAt);
+      const recencyB = toEpoch(b.updatedAt || b.createdAt);
+      const prioA = priorityWeight(a.priority);
+      const prioB = priorityWeight(b.priority);
+      if (mode === "quick") {
+        const quickA = estimateTodoMinutes(a.title, "quick");
+        const quickB = estimateTodoMinutes(b.title, "quick");
+        if (quickA !== quickB) return quickA - quickB;
+        if (dueScoreA !== dueScoreB) return dueScoreA - dueScoreB;
+        if (prioA !== prioB) return prioB - prioA;
+        return recencyB - recencyA;
+      }
+      if (mode === "deep") {
+        const deepA = estimateTodoMinutes(a.title, "deep");
+        const deepB = estimateTodoMinutes(b.title, "deep");
+        if (deepA !== deepB) return deepB - deepA;
+        if (prioA !== prioB) return prioB - prioA;
+        if (dueScoreA !== dueScoreB) return dueScoreA - dueScoreB;
+        return recencyB - recencyA;
+      }
+      if (dueScoreA !== dueScoreB) return dueScoreA - dueScoreB;
+      if (prioA !== prioB) return prioB - prioA;
+      return recencyB - recencyA;
+    });
+
+    const topN =
+      input.topN || (ranked.length >= 5 && mode !== "balanced" ? 5 : 3);
+    const selected = ranked.slice(0, Math.min(topN, ranked.length));
+    const planItems = selected.map((todo, index) => ({
+      todoId: String(todo.id),
       rank: index + 1,
-      timeEstimateMin: index === 0 ? 45 : 30,
+      timeEstimateMin:
+        mode === "quick"
+          ? estimateTodoMinutes(todo.title, "quick")
+          : mode === "deep" && index === 0
+            ? estimateTodoMinutes(todo.title, "deep")
+            : estimateTodoMinutes(todo.title, "balanced"),
       rationale:
-        index === 0
-          ? `Highest impact step toward: ${goal}`
-          : "Balances urgency and momentum for today.",
+        mode === "quick"
+          ? "Quick-win candidate with low setup cost."
+          : mode === "deep" && index === 0
+            ? "Primary focus block for deep work."
+            : "Urgency and priority alignment for today.",
     }));
 
-    suggestions.push({
-      type: "set_priority",
-      confidence: 0.79,
-      rationale: "The top-ranked task should be treated as today's main bet.",
-      payload: { priority: "high" },
-    });
+    for (const item of planItems) {
+      const todo = selected.find((entry) => String(entry.id) === item.todoId);
+      if (!todo) continue;
+      if (item.rank <= 2) {
+        const due = new Date();
+        due.setDate(due.getDate() + item.rank);
+        due.setHours(9 + item.rank, 0, 0, 0);
+        suggestions.push({
+          type: "set_due_date",
+          confidence: 0.8 - item.rank * 0.04,
+          rationale: "Assign a concrete deadline for today's execution.",
+          payload: { todoId: item.todoId, dueDateISO: due.toISOString() },
+        });
+      }
+      if (priorityWeight(todo.priority) < 3 && item.rank === 1) {
+        suggestions.push({
+          type: "set_priority",
+          confidence: 0.77,
+          rationale: "Top ranked item should be elevated for focus.",
+          payload: { todoId: item.todoId, priority: "high" },
+        });
+      }
+      if (item.rank <= 2) {
+        suggestions.push({
+          type: "propose_next_action",
+          confidence: 0.7,
+          rationale: "Define the first concrete step before context switching.",
+          payload: {
+            todoId: item.todoId,
+            text: `Start: ${String(todo.title || "").slice(0, 80)} and draft first deliverable.`,
+          },
+        });
+      }
+    }
 
-    suggestions.push({
-      type: "defer_task",
-      confidence: 0.65,
-      rationale: "Defer lower-impact overflow tasks to protect focus.",
-      payload: { strategy: "next_week" },
-    });
+    if (planItems[0]) {
+      suggestions.push({
+        type: "split_subtasks",
+        confidence: 0.68,
+        rationale: "Split one larger item into scoped execution steps.",
+        payload: {
+          todoId: planItems[0].todoId,
+          subtasks: [
+            { title: "Outline deliverable", order: 1 },
+            { title: "Execute focused work block", order: 2 },
+            { title: "Review and close loop", order: 3 },
+          ],
+        },
+      });
+    }
 
     return validateDecisionAssistOutput({
       requestId,
@@ -580,7 +734,7 @@ export function generateDecisionAssistStubOutput(
       suggestions,
       planPreview: {
         topN,
-        items,
+        items: planItems,
       },
     });
   }

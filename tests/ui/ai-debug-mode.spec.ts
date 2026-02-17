@@ -31,14 +31,27 @@ function todayAtIso(hours: number) {
 }
 
 async function installAiUiMockApi(page: Page) {
+  await page.addInitScript(() => {
+    window.localStorage.setItem("feature.taskDrawerDecisionAssist", "true");
+  });
+
   const users = new Map<
     string,
     { id: string; email: string; password: string }
   >();
   const accessTokens = new Map<string, string>();
   const todosByUser = new Map<string, TodoRecord[]>();
+  const todayPlansByUser = new Map<
+    string,
+    {
+      aiSuggestionId: string;
+      status: "pending" | "accepted" | "rejected";
+      outputEnvelope: Record<string, unknown>;
+    }[]
+  >();
   let userSeq = 1;
   let tokenSeq = 1;
+  let aiSeq = 1;
 
   const parseBody = async (route: Route) => {
     const raw = route.request().postData();
@@ -113,6 +126,7 @@ async function installAiUiMockApi(page: Page) {
           subtasks: [],
         },
       ]);
+      todayPlansByUser.set(id, []);
       return json(route, 201, {
         user: { id, email, name: body.name || null },
         token,
@@ -140,6 +154,74 @@ async function installAiUiMockApi(page: Page) {
     if (pathname === "/todos" && method === "GET") {
       const userId = authUserId(route);
       return json(route, 200, todosByUser.get(userId) || []);
+    }
+
+    if (pathname === "/ai/suggestions/latest" && method === "GET") {
+      const userId = authUserId(route);
+      const surface = url.searchParams.get("surface") || "";
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      if (surface !== "today_plan") {
+        return route.fulfill({ status: 204, body: "" });
+      }
+      const plans = todayPlansByUser.get(userId) || [];
+      const latest = plans.find((item) => item.status === "pending");
+      if (!latest) {
+        return route.fulfill({ status: 204, body: "" });
+      }
+      return json(route, 200, {
+        aiSuggestionId: latest.aiSuggestionId,
+        status: latest.status,
+        outputEnvelope: latest.outputEnvelope,
+      });
+    }
+
+    if (pathname === "/ai/decision-assist/stub" && method === "POST") {
+      const userId = authUserId(route);
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      const body = await parseBody(route);
+      if (String(body.surface || "") !== "today_plan") {
+        return json(route, 400, { error: "surface must be today_plan" });
+      }
+      const todos = todosByUser.get(userId) || [];
+      const top = todos.slice(0, 3);
+      const aiSuggestionId = `today-${aiSeq++}`;
+      const outputEnvelope = {
+        surface: "today_plan",
+        requestId: `today-plan-${aiSuggestionId}`,
+        contractVersion: 1,
+        generatedAt: nowIso(),
+        must_abstain: false,
+        planPreview: {
+          topN: top.length || 3,
+          items: top.map((todo, index) => ({
+            todoId: todo.id,
+            rank: index + 1,
+            timeEstimateMin: index === 0 ? 45 : 30,
+            rationale: "Debug test plan preview.",
+          })),
+        },
+        suggestions: top.map((todo, index) => ({
+          type: index === 0 ? "set_priority" : "set_due_date",
+          suggestionId: `today-s-${aiSuggestionId}-${index + 1}`,
+          confidence: 0.72,
+          rationale: "Debug suggestion",
+          payload:
+            index === 0
+              ? { todoId: todo.id, priority: "high" }
+              : { todoId: todo.id, dueDateISO: todayAtIso(16 + index) },
+        })),
+      };
+      todayPlansByUser.set(userId, [
+        {
+          aiSuggestionId,
+          status: "pending",
+          outputEnvelope,
+        },
+      ]);
+      return json(route, 200, {
+        ...outputEnvelope,
+        suggestionId: aiSuggestionId,
+      });
     }
 
     if (pathname === "/ai/suggestions" && method === "GET") {
