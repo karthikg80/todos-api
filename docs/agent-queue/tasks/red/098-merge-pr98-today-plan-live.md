@@ -1,4 +1,4 @@
-status: READY
+status: DONE
 type: red
 title: Today Planner live (server-backed today_plan decision assist)
 owner: codex
