@@ -33,6 +33,14 @@ function isTaskDrawerDecisionAssistEnabled() {
 
 const FEATURE_TASK_DRAWER_DECISION_ASSIST = isTaskDrawerDecisionAssistEnabled();
 
+// Categories that are assigned automatically by server-side AI flows and must
+// not surface as user-navigable project entries in the rail, the
+// #categoryFilter dropdown, or the create-form project picker.
+// Todos that carry these categories are intentionally preserved in the data
+// layer and remain visible under "All Tasks"; they are only excluded from
+// navigation surfaces.
+const AI_INTERNAL_CATEGORIES = new Set(["AI Plan"]);
+
 const hasValidAppState =
   !!window.AppState &&
   typeof window.AppState.loadStoredSession === "function" &&
@@ -2869,7 +2877,7 @@ function renderProjectOptionEntry(projectPath, selectedValue = "") {
 function getAllProjects() {
   const fromTodos = todos
     .map((todo) => normalizeProjectPath(todo.category))
-    .filter((value) => value.length > 0);
+    .filter((value) => value.length > 0 && !AI_INTERNAL_CATEGORIES.has(value));
   return expandProjectTree([...customProjects, ...fromTodos]);
 }
 
