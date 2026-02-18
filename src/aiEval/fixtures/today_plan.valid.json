@@ -1,0 +1,52 @@
+{
+  "requestId": "eval-today-plan-valid",
+  "surface": "today_plan",
+  "must_abstain": false,
+  "suggestions": [
+    {
+      "type": "set_priority",
+      "confidence": 0.63,
+      "rationale": "Elevate the first ranked task.",
+      "payload": {
+        "todoId": "todo-1",
+        "priority": "high"
+      }
+    },
+    {
+      "type": "split_subtasks",
+      "confidence": 0.58,
+      "rationale": "Break down execution into short steps.",
+      "payload": {
+        "todoId": "todo-2",
+        "subtasks": [
+          { "title": "Draft outline", "order": 1 },
+          { "title": "Write first pass", "order": 2 },
+          { "title": "Review and send", "order": 3 }
+        ]
+      }
+    }
+  ],
+  "planPreview": {
+    "topN": 3,
+    "items": [
+      {
+        "todoId": "todo-1",
+        "rank": 1,
+        "timeEstimateMin": 45,
+        "rationale": "Highest impact item."
+      },
+      {
+        "todoId": "todo-2",
+        "rank": 2,
+        "timeEstimateMin": 30,
+        "rationale": "Unblocks tomorrow's work."
+      },
+      {
+        "todoId": "todo-3",
+        "rank": 3,
+        "timeEstimateMin": 20,
+        "rationale": "Quick completion for momentum."
+      }
+    ]
+  }
+}

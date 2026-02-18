@@ -1,0 +1,24 @@
+{
+  "requestId": "eval-on-create-valid",
+  "surface": "on_create",
+  "must_abstain": false,
+  "suggestions": [
+    {
+      "type": "set_priority",
+      "confidence": 0.71,
+      "rationale": "Language indicates urgency.",
+      "payload": {
+        "priority": "high"
+      }
+    },
+    {
+      "type": "ask_clarification",
+      "confidence": 0.52,
+      "rationale": "Need timing signal before planning.",
+      "payload": {
+        "question": "When should this be done?",
+        "choices": ["Today", "This week", "Later"]
+      }
+    }
+  ]
+}

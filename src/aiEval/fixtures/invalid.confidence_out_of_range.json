@@ -1,0 +1,15 @@
+{
+  "requestId": "eval-invalid-confidence",
+  "surface": "on_create",
+  "must_abstain": false,
+  "suggestions": [
+    {
+      "type": "set_priority",
+      "confidence": 1.2,
+      "rationale": "Confidence cannot exceed one.",
+      "payload": {
+        "priority": "medium"
+      }
+    }
+  ]
+}

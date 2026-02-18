@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { validateDecisionAssistOutput } from "./aiContracts";
 import { ValidationError } from "./validation";
 
@@ -118,5 +120,46 @@ describe("validateDecisionAssistOutput", () => {
     });
 
     expect(result.planPreview?.items).toHaveLength(3);
+  });
+});
+
+describe("decision assist golden eval fixtures", () => {
+  const fixtureDir = path.join(__dirname, "aiEval", "fixtures");
+  const readFixture = (name: string) =>
+    JSON.parse(fs.readFileSync(path.join(fixtureDir, name), "utf8"));
+
+  it("accepts valid fixtures for task_drawer, on_create, and today_plan", () => {
+    const surfaces = [
+      "task_drawer.valid.json",
+      "on_create.valid.json",
+      "today_plan.valid.json",
+    ]
+      .map((fixtureName) =>
+        validateDecisionAssistOutput(readFixture(fixtureName)),
+      )
+      .map((result) => result.surface);
+
+    expect(surfaces).toEqual(["task_drawer", "on_create", "today_plan"]);
+  });
+
+  it("rejects malformed fixture cases", () => {
+    expect(() =>
+      validateDecisionAssistOutput(readFixture("invalid.unknown_type.json")),
+    ).toThrow(ValidationError);
+    expect(() =>
+      validateDecisionAssistOutput(
+        readFixture("invalid.duplicate_ask_clarification.json"),
+      ),
+    ).toThrow("At most one ask_clarification suggestion is allowed");
+    expect(() =>
+      validateDecisionAssistOutput(
+        readFixture("invalid.confidence_out_of_range.json"),
+      ),
+    ).toThrow("suggestion.confidence must be between 0 and 1");
+    expect(() =>
+      validateDecisionAssistOutput(
+        readFixture("invalid.too_many_subtasks.json"),
+      ),
+    ).toThrow("payload.subtasks must contain between 1 and 5 items");
   });
 });
