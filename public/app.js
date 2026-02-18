@@ -7735,7 +7735,10 @@ async function generateTodayPlanSuggestion(goalText) {
   const preferredTopN = candidates.length >= 5 ? 5 : 3;
   return apiCall(`${API_URL}/ai/decision-assist/stub`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "x-ai-explicit-request": "1",
+    },
     body: JSON.stringify({
       surface: TODAY_PLAN_SURFACE,
       goal: goalText || undefined,
