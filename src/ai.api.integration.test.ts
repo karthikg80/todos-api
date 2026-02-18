@@ -4,6 +4,7 @@ import { PrismaTodoService } from "./prismaTodoService";
 import { AuthService } from "./authService";
 import { PrismaAiSuggestionStore } from "./aiSuggestionStore";
 import { prisma } from "./prismaClient";
+import * as decisionAssistTelemetry from "./decisionAssistTelemetry";
 
 describe("AI API Integration", () => {
   let app: any;
@@ -39,6 +40,10 @@ describe("AI API Integration", () => {
     });
 
     authToken = registerResponse.body.token;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("persists task critic suggestion and updates status", async () => {
@@ -735,6 +740,198 @@ describe("AI API Integration", () => {
       where: { id: generated.body.suggestionId },
     });
     expect(persisted?.status).toBe("rejected");
+  });
+
+  it("emits decision assist telemetry lifecycle events for all surfaces", async () => {
+    const emitSpy = jest
+      .spyOn(decisionAssistTelemetry, "emitDecisionAssistTelemetry")
+      .mockImplementation(() => undefined);
+
+    const taskDrawerTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "telemetry task drawer todo" })
+      .expect(201);
+    const onCreateTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "telemetry on create todo" })
+      .expect(201);
+    const todayPlanTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "telemetry today plan todo" })
+      .expect(201);
+
+    const taskDrawerGenerated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId: taskDrawerTodo.body.id,
+        title: taskDrawerTodo.body.title,
+      })
+      .expect(200);
+
+    const taskDrawerLatest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(taskDrawerTodo.body.id)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const applicableTaskDrawerSuggestion =
+      taskDrawerLatest.body.outputEnvelope.suggestions.find((item: any) =>
+        [
+          "rewrite_title",
+          "set_due_date",
+          "set_priority",
+          "set_project",
+          "set_category",
+          "split_subtasks",
+          "propose_next_action",
+        ].includes(String(item?.type || "")),
+      ) || taskDrawerLatest.body.outputEnvelope.suggestions[0];
+    expect(applicableTaskDrawerSuggestion?.suggestionId).toBeDefined();
+
+    await request(app)
+      .post(`/ai/suggestions/${taskDrawerGenerated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        suggestionId: applicableTaskDrawerSuggestion.suggestionId,
+        confirmed: true,
+      })
+      .expect(200);
+
+    const onCreateGenerated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "on_create",
+        todoId: onCreateTodo.body.id,
+        title: onCreateTodo.body.title,
+      })
+      .expect(200);
+
+    await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(onCreateTodo.body.id)}&surface=on_create`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    await request(app)
+      .post(`/ai/suggestions/${onCreateGenerated.body.suggestionId}/dismiss`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ dismissAll: true })
+      .expect(204);
+
+    await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "today_plan",
+        goal: "telemetry quick wins",
+        todoCandidates: [
+          { id: todayPlanTodo.body.id, title: todayPlanTodo.body.title },
+        ],
+      })
+      .expect(200);
+
+    await request(app)
+      .get("/ai/suggestions/latest?surface=today_plan")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const lifecycleEvents = new Set(
+      emitSpy.mock.calls.map((call) => String(call[0]?.eventName || "")),
+    );
+    expect(Array.from(lifecycleEvents)).toEqual(
+      expect.arrayContaining([
+        "ai_suggestion_generated",
+        "ai_suggestion_viewed",
+        "ai_suggestion_applied",
+        "ai_suggestion_dismissed",
+      ]),
+    );
+
+    const generatedSurfaces = new Set(
+      emitSpy.mock.calls
+        .filter((call) => call[0]?.eventName === "ai_suggestion_generated")
+        .map((call) => call[0]?.surface),
+    );
+    expect(Array.from(generatedSurfaces)).toEqual(
+      expect.arrayContaining(["task_drawer", "on_create", "today_plan"]),
+    );
+  });
+
+  it("keeps decision assist responses successful when telemetry emit throws", async () => {
+    jest
+      .spyOn(decisionAssistTelemetry, "emitDecisionAssistTelemetry")
+      .mockImplementation(() => {
+        throw new Error("telemetry down");
+      });
+
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "telemetry failure tolerance" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    const latest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(createdTodo.body.id)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+    const applicableSuggestion =
+      latest.body.outputEnvelope.suggestions.find((item: any) =>
+        [
+          "rewrite_title",
+          "set_due_date",
+          "set_priority",
+          "set_project",
+          "set_category",
+          "split_subtasks",
+          "propose_next_action",
+        ].includes(String(item?.type || "")),
+      ) || latest.body.outputEnvelope.suggestions[0];
+    expect(applicableSuggestion?.suggestionId).toBeDefined();
+
+    await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        suggestionId: applicableSuggestion.suggestionId,
+        confirmed: true,
+      })
+      .expect(200);
+
+    const secondGenerated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId: createdTodo.body.id,
+        title: createdTodo.body.title,
+      })
+      .expect(200);
+
+    await request(app)
+      .post(`/ai/suggestions/${secondGenerated.body.suggestionId}/dismiss`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ dismissAll: true })
+      .expect(204);
   });
 
   it("creates plan suggestion and supports rejection status", async () => {
