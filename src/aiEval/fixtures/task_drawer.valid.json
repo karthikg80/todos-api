@@ -1,0 +1,23 @@
+{
+  "requestId": "eval-task-drawer-valid",
+  "surface": "task_drawer",
+  "must_abstain": false,
+  "suggestions": [
+    {
+      "type": "rewrite_title",
+      "confidence": 0.82,
+      "rationale": "Shorten title for clarity.",
+      "payload": {
+        "title": "Prepare launch checklist"
+      }
+    },
+    {
+      "type": "set_due_date",
+      "confidence": 0.68,
+      "rationale": "Explicit deadline improves execution.",
+      "payload": {
+        "dueDateISO": "2026-02-20T10:00:00.000Z"
+      }
+    }
+  ]
+}

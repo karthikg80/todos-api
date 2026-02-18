@@ -1,0 +1,13 @@
+{
+  "requestId": "eval-invalid-unknown-type",
+  "surface": "task_drawer",
+  "must_abstain": false,
+  "suggestions": [
+    {
+      "type": "bulk_delete",
+      "confidence": 0.4,
+      "rationale": "Unsafe operation.",
+      "payload": {}
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "requestId": "eval-invalid-double-clarification",
+  "surface": "on_create",
+  "must_abstain": false,
+  "suggestions": [
+    {
+      "type": "ask_clarification",
+      "confidence": 0.5,
+      "rationale": "Need due date details.",
+      "payload": {
+        "question": "When is this due?",
+        "choices": ["Today", "This week"]
+      }
+    },
+    {
+      "type": "ask_clarification",
+      "confidence": 0.45,
+      "rationale": "Need urgency details.",
+      "payload": {
+        "question": "How urgent is this?",
+        "choices": ["High", "Medium", "Low"]
+      }
+    }
+  ]
+}

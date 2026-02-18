@@ -1,0 +1,34 @@
+{
+  "requestId": "eval-invalid-too-many-subtasks",
+  "surface": "today_plan",
+  "must_abstain": false,
+  "suggestions": [
+    {
+      "type": "split_subtasks",
+      "confidence": 0.56,
+      "rationale": "Too many items should fail validation.",
+      "payload": {
+        "todoId": "todo-1",
+        "subtasks": [
+          { "title": "Step 1", "order": 1 },
+          { "title": "Step 2", "order": 2 },
+          { "title": "Step 3", "order": 3 },
+          { "title": "Step 4", "order": 4 },
+          { "title": "Step 5", "order": 5 },
+          { "title": "Step 6", "order": 6 }
+        ]
+      }
+    }
+  ],
+  "planPreview": {
+    "topN": 3,
+    "items": [
+      {
+        "todoId": "todo-1",
+        "rank": 1,
+        "timeEstimateMin": 30,
+        "rationale": "Top item."
+      }
+    ]
+  }
+}
