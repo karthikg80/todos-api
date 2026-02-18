@@ -760,6 +760,45 @@ textarea:focus-visible,
   color: var(--text-muted);
 }
 
+/* Lint-first chip — shown in place of the full AI assist row until user
+   clicks Fix or Review to reveal server-backed suggestions. */
+.ai-lint-chip {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-sm);
+  background: var(--color-warning-bg, #fffbe6);
+  border: 1px solid var(--color-warning-border, #ffe58f);
+  font-size: var(--fs-sm);
+  color: var(--text-secondary, var(--text-muted));
+}
+
+.ai-lint-chip__icon {
+  flex-shrink: 0;
+}
+
+.ai-lint-chip__message {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-lint-chip__action {
+  flex-shrink: 0;
+  padding: 2px var(--s-2);
+  border-radius: var(--r-sm);
+  border: 1px solid currentColor;
+  background: transparent;
+  cursor: pointer;
+  font-size: var(--fs-xs, 0.72rem);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ai-lint-chip__action--secondary {
+  opacity: 0.65;
+}
+
 .today-plan-panel {
   margin-top: var(--s-3);
   margin-bottom: var(--s-3);

@@ -41,6 +41,102 @@ const FEATURE_TASK_DRAWER_DECISION_ASSIST = isTaskDrawerDecisionAssistEnabled();
 // navigation surfaces.
 const AI_INTERNAL_CATEGORIES = new Set(["AI Plan"]);
 
+// ---------------------------------------------------------------------------
+// Lint-first AI UX — deterministic heuristics (pure, no DOM/network access)
+// ---------------------------------------------------------------------------
+
+const LINT_VAGUE_WORDS =
+  /\b(stuff|things|misc|various|other|update|fix|do|handle|work on|check|look at|deal with|email)\b/i;
+// Additional vague patterns that only apply in the pre-create (on-create) context
+// where a title typed into the input field may be intentionally brief / informal.
+const LINT_VAGUE_WORDS_ON_CREATE = /\b(follow up|follow-up)\b/i;
+const LINT_URGENCY_WORDS =
+  /\b(today|tomorrow|this week|by |before |urgent|asap|soon|deadline)\b/i;
+
+/**
+ * Inspect a set of todo fields and return the single highest-priority lint
+ * issue found, or null when everything looks fine.
+ *
+ * Priority order (first match wins):
+ *   title_too_short > vague_title > missing_due_date >
+ *   too_many_highs  > big_task_no_subtasks
+ *
+ * @param {object} fields
+ * @param {string}   fields.title
+ * @param {string}   [fields.dueDate]
+ * @param {string}   [fields.priority]
+ * @param {Array}    [fields.subtasks]
+ * @param {Array}    [fields.allTodos]   - full in-memory todos array for quota check
+ * @returns {{ code: string, message: string } | null}
+ */
+function lintTodoFields({
+  title = "",
+  dueDate = "",
+  priority = "",
+  subtasks = [],
+  allTodos = [],
+  surface = "",
+} = {}) {
+  const trimmed = title.trim();
+  if (trimmed.length < 5) {
+    return {
+      code: "title_too_short",
+      message: "Title is too brief — add more detail.",
+    };
+  }
+  if (
+    LINT_VAGUE_WORDS.test(trimmed) ||
+    (surface === "on_create" && LINT_VAGUE_WORDS_ON_CREATE.test(trimmed))
+  ) {
+    return {
+      code: "vague_title",
+      message: "Title sounds vague — be more specific.",
+    };
+  }
+  if (LINT_URGENCY_WORDS.test(trimmed) && !dueDate) {
+    return {
+      code: "missing_due_date",
+      message: "Title implies urgency — consider setting a due date.",
+    };
+  }
+  const activeHighs = allTodos.filter(
+    (t) => t && t.priority === "high" && !t.completed,
+  ).length;
+  if (priority === "high" && activeHighs >= 5) {
+    return {
+      code: "too_many_highs",
+      message: `You already have ${activeHighs} high-priority tasks open.`,
+    };
+  }
+  if (trimmed.length > 60 && subtasks.length === 0) {
+    return {
+      code: "big_task_no_subtasks",
+      message: "Long task — consider breaking it into subtasks.",
+    };
+  }
+  return null;
+}
+
+/**
+ * Render a single lint chip for the given issue.  Returns an HTML string.
+ * Buttons carry data-ai-lint-action so the delegated click handler can pick
+ * them up without any direct listener on the chip element.
+ *
+ * @param {{ code: string, message: string } | null} issue
+ * @returns {string}
+ */
+function renderLintChip(issue) {
+  if (!issue) return "";
+  return `<div class="ai-lint-chip" data-lint-code="${escapeHtml(issue.code)}" role="status">
+    <span class="ai-lint-chip__icon" aria-hidden="true">⚠</span>
+    <span class="ai-lint-chip__message">${escapeHtml(issue.message)}</span>
+    <button type="button" class="ai-lint-chip__action" data-ai-lint-action="fix">Fix</button>
+    <button type="button" class="ai-lint-chip__action ai-lint-chip__action--secondary" data-ai-lint-action="review">Review</button>
+  </div>`;
+}
+
+// ---------------------------------------------------------------------------
+
 const hasValidAppState =
   !!window.AppState &&
   typeof window.AppState.loadStoredSession === "function" &&
@@ -2713,6 +2809,7 @@ async function addTodo() {
       };
       onCreateAssistState.mode = "live";
       onCreateAssistState.liveTodoId = newTodo.id;
+      onCreateAssistState.showFullAssist = true;
       onCreateAssistState.loading = true;
       renderOnCreateAssistRow();
       await loadOnCreateDecisionAssist(newTodo);
@@ -4677,6 +4774,8 @@ function createInitialTaskDrawerAssistState() {
     confirmSuggestionId: "",
     undoBySuggestionId: {},
     lastUndoSuggestionId: "",
+    // lint-first: show chip only; full panel revealed by Fix/Review
+    showFullAssist: false,
   };
 }
 
@@ -4792,6 +4891,34 @@ function renderTaskDrawerSuggestionSummary(suggestion) {
 }
 
 function renderTaskDrawerAssistSection(todoId) {
+  // Lint-first gate: show lint chip when a heuristic fires; fall through to
+  // the full panel if the title is clean or once the user has clicked Fix/Review.
+  // In debug mode, always show the full panel so developers see all metadata.
+  const state = taskDrawerAssistState;
+  if (!state.showFullAssist && !AI_DEBUG_ENABLED) {
+    const todo = getTodoById(todoId);
+    const issue = todo
+      ? lintTodoFields({
+          title: todo.title,
+          dueDate: todo.dueDate || "",
+          priority: todo.priority || "",
+          subtasks: Array.isArray(todo.subtasks) ? todo.subtasks : [],
+          allTodos: todos,
+        })
+      : null;
+    if (issue) {
+      // A lint issue is present — show only the chip (suppress full panel).
+      return `
+        <div class="todo-drawer__section">
+          <div class="todo-drawer__section-title">AI Suggestions</div>
+          ${renderLintChip(issue)}
+        </div>
+      `;
+    }
+    // No lint issue: fall through to the full panel render below so that
+    // server-backed suggestions are visible without requiring a Fix click.
+  }
+
   if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
     return `
       <div class="todo-drawer__section">
@@ -4800,7 +4927,6 @@ function renderTaskDrawerAssistSection(todoId) {
       </div>
     `;
   }
-  const state = taskDrawerAssistState;
   const base = `
     <div class="todo-drawer__section">
       <div class="todo-drawer__section-title">AI Suggestions</div>
@@ -6237,6 +6363,9 @@ function createInitialOnCreateAssistState() {
     unavailable: false,
     mode: "mock",
     dismissedTodoIds: new Set(),
+    // lint-first: show chip only; reveal full row when user clicks Fix/Review
+    showFullAssist: false,
+    lintIssue: null,
   };
 }
 
@@ -6942,6 +7071,27 @@ function renderOnCreateAssistRow() {
     return;
   }
 
+  // Lint-first gate: show one chip only; full panel revealed by Fix/Review.
+  // In debug mode, always show the full panel so developers see all metadata.
+  if (!onCreateAssistState.showFullAssist && !AI_DEBUG_ENABLED) {
+    const issue = lintTodoFields({
+      title,
+      dueDate: refs.dueDateInput ? refs.dueDateInput.value : "",
+      priority: currentPriority,
+      allTodos: todos,
+      surface: "on_create",
+    });
+    onCreateAssistState.lintIssue = issue;
+    if (!issue) {
+      refs.row.hidden = true;
+      refs.row.innerHTML = "";
+    } else {
+      refs.row.hidden = false;
+      refs.row.innerHTML = renderLintChip(issue);
+    }
+    return;
+  }
+
   refs.row.hidden = false;
   if (onCreateAssistState.loading) {
     refs.row.innerHTML = `
@@ -7347,6 +7497,29 @@ function bindOnCreateAssistHandlers() {
       return;
     }
     refreshOnCreateAssistFromTitle();
+  });
+
+  // Lint chip Fix/Review delegation (on-create surface only).
+  // Excludes clicks inside #todoDetailsDrawer which has its own handler.
+  document.addEventListener("click", async (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest("#todoDetailsDrawer")) return;
+    const lintEl = target.closest("[data-ai-lint-action]");
+    if (!(lintEl instanceof HTMLElement)) return;
+    const lintAction = lintEl.getAttribute("data-ai-lint-action");
+    onCreateAssistState.showFullAssist = true;
+    if (onCreateAssistState.liveTodoId) {
+      // Post-create mode: load server-backed suggestions for the saved todo.
+      const todo = getTodoById(onCreateAssistState.liveTodoId);
+      await loadOnCreateDecisionAssist(todo, lintAction === "fix");
+    } else {
+      // Pre-create mode: regenerate client-side mock suggestions and reveal them.
+      // refreshOnCreateAssistFromTitle resets state; set showFullAssist after.
+      refreshOnCreateAssistFromTitle(true);
+      onCreateAssistState.showFullAssist = true;
+      renderOnCreateAssistRow();
+    }
   });
 
   document.addEventListener("click", async (event) => {
@@ -7881,6 +8054,10 @@ function renderTodayPlanPanel() {
     return;
   }
 
+  // Lint-first: fetch any pending/existing suggestion on first open so that
+  // a plan created earlier is restored after reload (allowGenerate=false means
+  // no new AI generation fires — it only reads the latest stored suggestion).
+  // New generation always requires an explicit "Generate plan" button click.
   if (!todayPlanState.hasLoaded && !todayPlanState.loading) {
     todayPlanState.loading = true;
     todayPlanState.generating = false;
@@ -9215,6 +9392,22 @@ function bindTodoDrawerHandlers() {
     if (drawerDeleteBtn) {
       deleteTodoFromDrawer();
       return;
+    }
+
+    // Lint chip Fix/Review delegation (task-drawer surface).
+    // Scope by checking ancestry inside #todoDetailsDrawer so this doesn't
+    // fire for on-create lint chips that use the same data-ai-lint-action attr.
+    if (target.closest("#todoDetailsDrawer")) {
+      const drawerLintEl = target.closest("[data-ai-lint-action]");
+      if (drawerLintEl instanceof HTMLElement) {
+        const lintAction = drawerLintEl.getAttribute("data-ai-lint-action");
+        taskDrawerAssistState.showFullAssist = true;
+        renderTodoDrawerContent();
+        if (selectedTodoId) {
+          loadTaskDrawerDecisionAssist(selectedTodoId, lintAction === "fix");
+        }
+        return;
+      }
     }
 
     const drawerAiAction = target.closest("[data-drawer-ai-action]");
