@@ -43,8 +43,18 @@ describe("AI API Integration", () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
+
+  const createTaskDrawerTodo = async (title = "throttle test todo") => {
+    const createdTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title })
+      .expect(201);
+    return createdTodo.body.id as string;
+  };
 
   it("persists task critic suggestion and updates status", async () => {
     const critiqueResponse = await request(app)
@@ -199,6 +209,207 @@ describe("AI API Integration", () => {
       true,
     );
     expect(Array.isArray(latest.body.outputEnvelope.suggestions)).toBe(true);
+  });
+
+  it("throttles decision-assist generation after repeated rejects", async () => {
+    const todoId = await createTaskDrawerTodo("reject burst throttle");
+    for (let i = 0; i < 3; i += 1) {
+      const generated = await request(app)
+        .post("/ai/decision-assist/stub")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          surface: "task_drawer",
+          todoId,
+          title: `reject burst ${i}`,
+        })
+        .expect(200);
+
+      await request(app)
+        .put(`/ai/suggestions/${generated.body.suggestionId}/status`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ status: "rejected", reason: "not useful" })
+        .expect(200);
+    }
+
+    const throttledLatest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(todoId)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(throttledLatest.body.outputEnvelope.must_abstain).toBe(true);
+    expect(throttledLatest.body.outputEnvelope.suggestions).toEqual([]);
+
+    const throttledStub = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId,
+        title: "still throttled",
+      })
+      .expect(200);
+
+    expect(throttledStub.body.must_abstain).toBe(true);
+    expect(throttledStub.body.suggestions).toEqual([]);
+  });
+
+  it("throttles after repeated quick-revert signals", async () => {
+    const todoId = await createTaskDrawerTodo("quick revert throttle");
+    for (let i = 0; i < 2; i += 1) {
+      const generated = await request(app)
+        .post("/ai/decision-assist/stub")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          surface: "task_drawer",
+          todoId,
+          title: `quick-revert ${i}`,
+        })
+        .expect(200);
+
+      await request(app)
+        .put(`/ai/suggestions/${generated.body.suggestionId}/status`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ status: "accepted", reason: "applied" })
+        .expect(200);
+      const quickAppliedAt = new Date(Date.now() - 5 * 60 * 1000);
+      await prisma.aiSuggestion.update({
+        where: { id: generated.body.suggestionId },
+        data: {
+          appliedAt: quickAppliedAt,
+        },
+      });
+
+      await request(app)
+        .put(`/ai/suggestions/${generated.body.suggestionId}/status`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ status: "rejected", reason: "undo after apply" })
+        .expect(200);
+    }
+
+    const throttledLatest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(todoId)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(throttledLatest.body.outputEnvelope.must_abstain).toBe(true);
+    expect(throttledLatest.body.outputEnvelope.suggestions).toEqual([]);
+  });
+
+  it("allows automatic recovery after throttle decay and positive accepts", async () => {
+    const todoId = await createTaskDrawerTodo("recovery throttle");
+    const rejectedIds: string[] = [];
+    for (let i = 0; i < 3; i += 1) {
+      const generated = await request(app)
+        .post("/ai/decision-assist/stub")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          surface: "task_drawer",
+          todoId,
+          title: `recovery reject ${i}`,
+        })
+        .expect(200);
+
+      await request(app)
+        .put(`/ai/suggestions/${generated.body.suggestionId}/status`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ status: "rejected", reason: "too noisy" })
+        .expect(200);
+      rejectedIds.push(generated.body.suggestionId);
+    }
+
+    const throttledLatest = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(todoId)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+    expect(throttledLatest.body.outputEnvelope.must_abstain).toBe(true);
+
+    for (let i = 0; i < 2; i += 1) {
+      const explicit = await request(app)
+        .post("/ai/decision-assist/stub")
+        .set("Authorization", `Bearer ${authToken}`)
+        .set("x-ai-explicit-request", "1")
+        .send({
+          surface: "task_drawer",
+          todoId,
+          title: `explicit recovery ${i}`,
+        })
+        .expect(200);
+
+      await request(app)
+        .put(`/ai/suggestions/${explicit.body.suggestionId}/status`)
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({ status: "accepted", reason: "helpful" })
+        .expect(200);
+    }
+
+    const recoveredEarly = await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(todoId)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(204);
+
+    expect(recoveredEarly.text).toBe("");
+
+    const staleTs = new Date(Date.now() - 40 * 60 * 1000);
+    for (const suggestionId of rejectedIds) {
+      await prisma.aiSuggestion.update({
+        where: { id: suggestionId },
+        data: {
+          updatedAt: staleTs,
+          feedback: {
+            reason: "too noisy",
+            source: "manual_status_update",
+            updatedAt: staleTs.toISOString(),
+          },
+        },
+      });
+    }
+    await request(app)
+      .get(
+        `/ai/suggestions/latest?todoId=${encodeURIComponent(todoId)}&surface=task_drawer`,
+      )
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(204);
+  });
+
+  it("keeps legacy behavior when throttle thresholds are not reached", async () => {
+    const todoId = await createTaskDrawerTodo("legacy no throttle");
+    const first = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId,
+        title: "legacy baseline",
+      })
+      .expect(200);
+
+    await request(app)
+      .put(`/ai/suggestions/${first.body.suggestionId}/status`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ status: "rejected", reason: "one reject only" })
+      .expect(200);
+
+    const second = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "task_drawer",
+        todoId,
+        title: "legacy still active",
+      })
+      .expect(200);
+
+    expect(second.body.must_abstain).toBe(false);
+    expect(Array.isArray(second.body.suggestions)).toBe(true);
+    expect(second.body.suggestions.length).toBeGreaterThan(0);
   });
 
   it("applies rewrite_title for task drawer suggestion", async () => {

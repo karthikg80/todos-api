@@ -30,6 +30,7 @@ import { CreateTodoDto, Priority } from "../types";
 import { config } from "../config";
 import { IProjectService } from "../interfaces/IProjectService";
 import * as decisionAssistTelemetry from "../decisionAssistTelemetry";
+import { evaluateDecisionAssistThrottle } from "../decisionAssistThrottle";
 
 export type UserPlan = "free" | "pro" | "team";
 
@@ -273,6 +274,8 @@ export function createAiRouter({
   };
 
   const parseBool = (value: unknown): boolean => value === true;
+  const parseOptionalTopN = (value: unknown): 3 | 5 | undefined =>
+    value === 3 || value === 5 ? value : undefined;
 
   const normalizeTodoBoundEnvelope = (
     rawOutput: Record<string, unknown>,
@@ -411,6 +414,44 @@ export function createAiRouter({
     );
   };
 
+  const isExplicitDecisionAssistRequest = (req: Request): boolean => {
+    const rawHeader = req.header("x-ai-explicit-request");
+    if (typeof rawHeader !== "string") {
+      return false;
+    }
+    const normalized = rawHeader.trim().toLowerCase();
+    return normalized === "1" || normalized === "true" || normalized === "yes";
+  };
+
+  const shouldThrottleDecisionAssist = async (
+    userId: string,
+    surface: DecisionAssistSurface,
+  ) => {
+    const records = await suggestionStore.listByUser(userId, 120);
+    return evaluateDecisionAssistThrottle({
+      records,
+      surface,
+      now: new Date(),
+    });
+  };
+
+  const buildThrottleAbstainEnvelope = (
+    surface: DecisionAssistSurface,
+    preferredTopN?: 3 | 5,
+  ): DecisionAssistOutput => ({
+    requestId: `throttle-${surface}-${Date.now()}`,
+    surface,
+    must_abstain: true,
+    planPreview:
+      surface === TODAY_PLAN_SURFACE
+        ? {
+            topN: preferredTopN || 3,
+            items: [],
+          }
+        : undefined,
+    suggestions: [],
+  });
+
   const ensureDecisionAssistFeatureEnabled = (res: Response): boolean => {
     if (decisionAssistEnabled) {
       return true;
@@ -453,6 +494,7 @@ export function createAiRouter({
         if (!(await enforceDailyQuota(userId, res))) return;
 
         const input = validateDecisionAssistStubInput(req.body);
+        const shouldBypassThrottle = isExplicitDecisionAssistRequest(req);
         if (input.surface === TASK_DRAWER_SURFACE) {
           if (!ensureDecisionAssistFeatureEnabled(res)) return;
           if (!input.todoId) {
@@ -475,6 +517,21 @@ export function createAiRouter({
           const todo = await todoService.findById(userId, input.todoId);
           if (!todo) {
             return res.status(404).json({ error: "Todo not found" });
+          }
+        }
+        if (!shouldBypassThrottle) {
+          const throttle = await shouldThrottleDecisionAssist(
+            userId,
+            input.surface,
+          );
+          if (throttle.throttled) {
+            const output = validateDecisionAssistOutput(
+              buildThrottleAbstainEnvelope(input.surface, input.topN),
+            );
+            return res.json({
+              ...output,
+              suggestionId: `throttle-${input.surface}-${Date.now()}`,
+            });
           }
         }
         const output = validateDecisionAssistOutput(
@@ -819,6 +876,21 @@ export function createAiRouter({
             )
           : await findLatestPendingTodayPlanSuggestion(userId);
         if (!latest) {
+          const throttle = await shouldThrottleDecisionAssist(userId, surface);
+          if (throttle.throttled) {
+            return res.json({
+              aiSuggestionId: "",
+              status: "pending",
+              outputEnvelope: buildThrottleAbstainEnvelope(
+                surface,
+                parseOptionalTopN(
+                  typeof req.query.topN === "string"
+                    ? Number.parseInt(req.query.topN, 10)
+                    : undefined,
+                ),
+              ),
+            });
+          }
           return res.status(204).end();
         }
 
