@@ -4,6 +4,63 @@ const API_URL =
     ? "http://localhost:3000"
     : window.location.origin;
 
+// ---------------------------------------------------------------------------
+// Module consumption — extracted pure-function modules loaded before app.js
+// via <script defer> in index.html (see state.js, apiClient.js pattern).
+// ---------------------------------------------------------------------------
+const {
+  escapeHtml,
+  showMessage,
+  hideMessage,
+  PROJECT_PATH_SEPARATOR,
+  MOBILE_DRAWER_MEDIA_QUERY,
+} = window.Utils || {};
+const {
+  LINT_VAGUE_WORDS,
+  LINT_VAGUE_WORDS_ON_CREATE,
+  LINT_URGENCY_WORDS,
+  lintTodoFields,
+  renderLintChip,
+} = window.LintHeuristics || {};
+const {
+  splitProjectPath,
+  normalizeProjectPath,
+  compareProjectPaths,
+  expandProjectTree,
+  getProjectDepth,
+  getProjectLeafName,
+  renderProjectOptionEntry,
+} = window.ProjectPathUtils || {};
+const {
+  padIcsNumber,
+  toIcsUtcTimestamp,
+  toIcsDateValue,
+  escapeIcsText,
+  foldIcsLine,
+  buildIcsContentForTodos,
+  buildIcsFilename,
+} = window.IcsExport || {};
+const { initTheme, toggleTheme } = window.ThemeModule || {};
+const {
+  AI_DEBUG_ENABLED,
+  ON_CREATE_SURFACE,
+  TODAY_PLAN_SURFACE,
+  AI_SURFACE_TYPES,
+  AI_SURFACE_IMPACT,
+  isKnownSuggestionType,
+  impactRankForSurface,
+  sortSuggestions,
+  capSuggestions,
+  confidenceBand,
+  confidenceLabel,
+  labelForType,
+  truncateRationale,
+  needsConfirmation,
+  shouldRenderTypeForSurface,
+  renderAiDebugMeta,
+  renderAiDebugSuggestionId,
+} = window.AiSuggestionUtils || {};
+
 function readBooleanFeatureFlag(flagKey) {
   try {
     const rawValue = window.localStorage.getItem(flagKey);
@@ -42,99 +99,7 @@ const FEATURE_TASK_DRAWER_DECISION_ASSIST = isTaskDrawerDecisionAssistEnabled();
 const AI_INTERNAL_CATEGORIES = new Set(["AI Plan"]);
 
 // ---------------------------------------------------------------------------
-// Lint-first AI UX — deterministic heuristics (pure, no DOM/network access)
-// ---------------------------------------------------------------------------
-
-const LINT_VAGUE_WORDS =
-  /\b(stuff|things|misc|various|other|update|fix|do|handle|work on|check|look at|deal with|email)\b/i;
-// Additional vague patterns that only apply in the pre-create (on-create) context
-// where a title typed into the input field may be intentionally brief / informal.
-const LINT_VAGUE_WORDS_ON_CREATE = /\b(follow up|follow-up)\b/i;
-const LINT_URGENCY_WORDS =
-  /\b(today|tomorrow|this week|by |before |urgent|asap|soon|deadline)\b/i;
-
-/**
- * Inspect a set of todo fields and return the single highest-priority lint
- * issue found, or null when everything looks fine.
- *
- * Priority order (first match wins):
- *   title_too_short > vague_title > missing_due_date >
- *   too_many_highs  > big_task_no_subtasks
- *
- * @param {object} fields
- * @param {string}   fields.title
- * @param {string}   [fields.dueDate]
- * @param {string}   [fields.priority]
- * @param {Array}    [fields.subtasks]
- * @param {Array}    [fields.allTodos]   - full in-memory todos array for quota check
- * @returns {{ code: string, message: string } | null}
- */
-function lintTodoFields({
-  title = "",
-  dueDate = "",
-  priority = "",
-  subtasks = [],
-  allTodos = [],
-  surface = "",
-} = {}) {
-  const trimmed = title.trim();
-  if (trimmed.length < 5) {
-    return {
-      code: "title_too_short",
-      message: "Title is too brief — add more detail.",
-    };
-  }
-  if (
-    LINT_VAGUE_WORDS.test(trimmed) ||
-    (surface === "on_create" && LINT_VAGUE_WORDS_ON_CREATE.test(trimmed))
-  ) {
-    return {
-      code: "vague_title",
-      message: "Title sounds vague — be more specific.",
-    };
-  }
-  if (LINT_URGENCY_WORDS.test(trimmed) && !dueDate) {
-    return {
-      code: "missing_due_date",
-      message: "Title implies urgency — consider setting a due date.",
-    };
-  }
-  const activeHighs = allTodos.filter(
-    (t) => t && t.priority === "high" && !t.completed,
-  ).length;
-  if (priority === "high" && activeHighs >= 5) {
-    return {
-      code: "too_many_highs",
-      message: `You already have ${activeHighs} high-priority tasks open.`,
-    };
-  }
-  if (trimmed.length > 60 && subtasks.length === 0) {
-    return {
-      code: "big_task_no_subtasks",
-      message: "Long task — consider breaking it into subtasks.",
-    };
-  }
-  return null;
-}
-
-/**
- * Render a single lint chip for the given issue.  Returns an HTML string.
- * Buttons carry data-ai-lint-action so the delegated click handler can pick
- * them up without any direct listener on the chip element.
- *
- * @param {{ code: string, message: string } | null} issue
- * @returns {string}
- */
-function renderLintChip(issue) {
-  if (!issue) return "";
-  return `<div class="ai-lint-chip" data-lint-code="${escapeHtml(issue.code)}" role="status">
-    <span class="ai-lint-chip__icon" aria-hidden="true">⚠</span>
-    <span class="ai-lint-chip__message">${escapeHtml(issue.message)}</span>
-    <button type="button" class="ai-lint-chip__action" data-ai-lint-action="fix">Fix</button>
-    <button type="button" class="ai-lint-chip__action ai-lint-chip__action--secondary" data-ai-lint-action="review">Review</button>
-  </div>`;
-}
-
+// Lint heuristics provided by lintHeuristics.js (lintTodoFields, renderLintChip)
 // ---------------------------------------------------------------------------
 
 const hasValidAppState =
@@ -430,75 +395,18 @@ let commandPaletteItems = [];
 let commandPaletteSelectableItems = [];
 let lastFocusedBeforePalette = null;
 let isApplyingFiltersPipeline = false;
-const PROJECT_PATH_SEPARATOR = " / ";
-const MOBILE_DRAWER_MEDIA_QUERY = "(max-width: 768px)";
+// PROJECT_PATH_SEPARATOR, MOBILE_DRAWER_MEDIA_QUERY — from utils.js
+// ON_CREATE_SURFACE, TODAY_PLAN_SURFACE — from aiSuggestionUtils.js
+// AI_DEBUG_ENABLED, AI_SURFACE_TYPES, AI_SURFACE_IMPACT — from aiSuggestionUtils.js
 const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
 const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
 let isAiWorkspaceCollapsed = true;
-const ON_CREATE_SURFACE = "on_create";
 let onCreateAssistState = createInitialOnCreateAssistState();
 let suppressOnCreateAssistInput = false;
 onCreateAssistState.dismissedTodoIds = loadOnCreateDismissedTodoIds();
-const TODAY_PLAN_SURFACE = "today_plan";
 let todayPlanState = createInitialTodayPlanState();
 let todayPlanGenerationSeq = 0;
-const AI_DEBUG_ENABLED =
-  new URLSearchParams(window.location.search).get("ai_debug") === "1";
-const AI_SURFACE_TYPES = Object.freeze({
-  [ON_CREATE_SURFACE]: new Set([
-    "set_due_date",
-    "set_priority",
-    "set_project",
-    "set_category",
-    "rewrite_title",
-    "ask_clarification",
-  ]),
-  [TODAY_PLAN_SURFACE]: new Set([
-    "set_due_date",
-    "set_priority",
-    "split_subtasks",
-    "propose_next_action",
-  ]),
-  task_drawer: new Set([
-    "rewrite_title",
-    "split_subtasks",
-    "propose_next_action",
-    "set_due_date",
-    "set_priority",
-    "set_project",
-    "set_category",
-    "ask_clarification",
-    "propose_create_project",
-  ]),
-});
-const AI_SURFACE_IMPACT = Object.freeze({
-  [ON_CREATE_SURFACE]: Object.freeze({
-    set_due_date: 0,
-    set_priority: 1,
-    set_project: 2,
-    set_category: 2,
-    rewrite_title: 3,
-    ask_clarification: 4,
-  }),
-  [TODAY_PLAN_SURFACE]: Object.freeze({
-    set_due_date: 0,
-    set_priority: 1,
-    split_subtasks: 2,
-    propose_next_action: 3,
-  }),
-  task_drawer: Object.freeze({
-    propose_next_action: 0,
-    set_due_date: 1,
-    set_priority: 2,
-    rewrite_title: 3,
-    split_subtasks: 4,
-    set_project: 5,
-    set_category: 5,
-    propose_create_project: 6,
-    ask_clarification: 7,
-  }),
-});
 
 function emitAiSuggestionUndoTelemetry({
   surface,
@@ -2914,62 +2822,7 @@ function updateCategoryFilter() {
   renderProjectsRail();
 }
 
-function splitProjectPath(value) {
-  if (typeof value !== "string") return [];
-  return value
-    .split("/")
-    .map((part) => part.trim())
-    .filter(Boolean);
-}
-
-function normalizeProjectPath(value) {
-  const parts = splitProjectPath(value);
-  return parts.join(PROJECT_PATH_SEPARATOR);
-}
-
-function compareProjectPaths(a, b) {
-  const aParts = splitProjectPath(a);
-  const bParts = splitProjectPath(b);
-  const maxDepth = Math.max(aParts.length, bParts.length);
-  for (let i = 0; i < maxDepth; i += 1) {
-    const aPart = aParts[i] || "";
-    const bPart = bParts[i] || "";
-    if (aPart === bPart) {
-      continue;
-    }
-    return aPart.localeCompare(bPart);
-  }
-  return aParts.length - bParts.length;
-}
-
-function expandProjectTree(paths) {
-  const expanded = new Set();
-  paths.forEach((path) => {
-    const parts = splitProjectPath(path);
-    for (let i = 1; i <= parts.length; i += 1) {
-      expanded.add(parts.slice(0, i).join(PROJECT_PATH_SEPARATOR));
-    }
-  });
-  return [...expanded].sort(compareProjectPaths);
-}
-
-function getProjectDepth(projectPath) {
-  return Math.max(0, splitProjectPath(projectPath).length - 1);
-}
-
-function getProjectLeafName(projectPath) {
-  const parts = splitProjectPath(projectPath);
-  return parts[parts.length - 1] || projectPath;
-}
-
-function renderProjectOptionEntry(projectPath, selectedValue = "") {
-  const depth = getProjectDepth(projectPath);
-  const prefix = depth > 0 ? `${"|- ".repeat(depth)}` : "";
-  const label = `${prefix}${getProjectLeafName(projectPath)}`;
-  return `<option value="${escapeHtml(projectPath)}" ${
-    projectPath === selectedValue ? "selected" : ""
-  }>${escapeHtml(label)}</option>`;
-}
+// splitProjectPath … renderProjectOptionEntry — from projectPathUtils.js
 
 function getAllProjects() {
   const fromTodos = todos
@@ -3587,97 +3440,7 @@ function getVisibleDueDatedTodos() {
   return getVisibleTodos().filter((todo) => !!todo.dueDate);
 }
 
-function padIcsNumber(value) {
-  return String(value).padStart(2, "0");
-}
-
-function toIcsUtcTimestamp(date = new Date()) {
-  return (
-    `${date.getUTCFullYear()}` +
-    `${padIcsNumber(date.getUTCMonth() + 1)}` +
-    `${padIcsNumber(date.getUTCDate())}T` +
-    `${padIcsNumber(date.getUTCHours())}` +
-    `${padIcsNumber(date.getUTCMinutes())}` +
-    `${padIcsNumber(date.getUTCSeconds())}Z`
-  );
-}
-
-function toIcsDateValue(dueDateValue) {
-  const dueDate = dueDateValue ? new Date(dueDateValue) : null;
-  if (!dueDate || Number.isNaN(dueDate.getTime())) {
-    return null;
-  }
-  return (
-    `${dueDate.getFullYear()}` +
-    `${padIcsNumber(dueDate.getMonth() + 1)}` +
-    `${padIcsNumber(dueDate.getDate())}`
-  );
-}
-
-function escapeIcsText(value) {
-  return String(value || "")
-    .replace(/\\/g, "\\\\")
-    .replace(/\r\n|\n|\r/g, "\\n")
-    .replace(/,/g, "\\,")
-    .replace(/;/g, "\\;");
-}
-
-function foldIcsLine(line, maxLength = 75) {
-  if (line.length <= maxLength) {
-    return line;
-  }
-  const chunks = [];
-  for (let index = 0; index < line.length; index += maxLength) {
-    chunks.push(line.slice(index, index + maxLength));
-  }
-  return chunks.join("\r\n ");
-}
-
-function buildIcsContentForTodos(todoList) {
-  const dtStamp = toIcsUtcTimestamp();
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//todos-api//Todos Export//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
-  ];
-
-  for (const todo of todoList) {
-    const eventDate = toIcsDateValue(todo.dueDate);
-    if (!eventDate) continue;
-
-    const summary = escapeIcsText(todo.title || "Untitled task");
-    const detailParts = [];
-    if (todo.description && String(todo.description).trim()) {
-      detailParts.push(String(todo.description).trim());
-    }
-    if (todo.notes && String(todo.notes).trim()) {
-      detailParts.push(String(todo.notes).trim());
-    }
-    const description = escapeIcsText(detailParts.join("\n\n"));
-
-    lines.push("BEGIN:VEVENT");
-    lines.push(`UID:${escapeIcsText(`${todo.id}@todos-api`)}`);
-    lines.push(`DTSTAMP:${dtStamp}`);
-    lines.push(`DTSTART;VALUE=DATE:${eventDate}`);
-    lines.push(`SUMMARY:${summary}`);
-    if (description) {
-      lines.push(`DESCRIPTION:${description}`);
-    }
-    lines.push("END:VEVENT");
-  }
-
-  lines.push("END:VCALENDAR");
-  return `${lines.map((line) => foldIcsLine(line)).join("\r\n")}\r\n`;
-}
-
-function buildIcsFilename(date = new Date()) {
-  const year = date.getFullYear();
-  const month = padIcsNumber(date.getMonth() + 1);
-  const day = padIcsNumber(date.getDate());
-  return `todos-${year}-${month}-${day}.ics`;
-}
+// padIcsNumber … buildIcsFilename — from icsExport.js
 
 function updateIcsExportButtonState() {
   const exportButton = document.getElementById("exportIcsButton");
@@ -6254,101 +6017,7 @@ function renderTodos() {
 }
 
 // ========== AI UI HELPERS ==========
-function isKnownSuggestionType(type) {
-  const suggestionType = String(type || "");
-  return Object.values(AI_SURFACE_TYPES).some((set) => set.has(suggestionType));
-}
-
-function impactRankForSurface(surface, type) {
-  const surfaceMap = AI_SURFACE_IMPACT[String(surface || "")] || null;
-  if (!surfaceMap) return Number.MAX_SAFE_INTEGER;
-  const rank = surfaceMap[String(type || "")];
-  return Number.isInteger(rank) ? rank : Number.MAX_SAFE_INTEGER;
-}
-
-function sortSuggestions(surface, suggestions = []) {
-  return [...(Array.isArray(suggestions) ? suggestions : [])].sort((a, b) => {
-    const impactDelta =
-      impactRankForSurface(surface, a?.type) -
-      impactRankForSurface(surface, b?.type);
-    if (impactDelta !== 0) return impactDelta;
-    const confidenceA = Number(a?.confidence) || 0;
-    const confidenceB = Number(b?.confidence) || 0;
-    if (confidenceA !== confidenceB) return confidenceB - confidenceA;
-    return String(a?.suggestionId || "").localeCompare(
-      String(b?.suggestionId || ""),
-    );
-  });
-}
-
-function capSuggestions(suggestions = [], max = 6) {
-  return [...(Array.isArray(suggestions) ? suggestions : [])].slice(
-    0,
-    Math.max(0, max),
-  );
-}
-
-function confidenceBand(confidence) {
-  const value = Number(confidence) || 0;
-  if (value >= 0.75) return "high";
-  if (value >= 0.45) return "med";
-  return "low";
-}
-
-function confidenceLabel(confidence) {
-  const band = confidenceBand(confidence);
-  return band === "high" ? "High" : band === "med" ? "Med" : "Low";
-}
-
-function labelForType(type) {
-  const labels = {
-    set_due_date: "Set due date",
-    set_priority: "Set priority",
-    set_project: "Set project",
-    set_category: "Set category",
-    rewrite_title: "Rewrite title",
-    ask_clarification: "Clarify once",
-    split_subtasks: "Split subtasks",
-    propose_next_action: "Propose next action",
-    propose_create_project: "Propose create project",
-  };
-  return labels[String(type || "")] || "Suggestion";
-}
-
-function truncateRationale(text, maxLen = 120) {
-  return String(text || "")
-    .replace(/[`*_#[\]()>-]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, Math.max(0, maxLen));
-}
-
-function needsConfirmation(suggestion) {
-  return !!suggestion?.requiresConfirmation;
-}
-
-function shouldRenderTypeForSurface(surface, type) {
-  const set = AI_SURFACE_TYPES[String(surface || "")];
-  if (!set) return false;
-  return set.has(String(type || ""));
-}
-
-function renderAiDebugMeta(meta = {}) {
-  if (!AI_DEBUG_ENABLED) return "";
-  const rows = [
-    meta.contractVersion ? `v${escapeHtml(String(meta.contractVersion))}` : "",
-    meta.requestId ? `req:${escapeHtml(String(meta.requestId))}` : "",
-    meta.generatedAt ? escapeHtml(String(meta.generatedAt)) : "",
-  ].filter(Boolean);
-  if (!rows.length) return "";
-  return `<div class="ai-debug-meta" data-testid="ai-debug-meta">${rows.join(" · ")}</div>`;
-}
-
-function renderAiDebugSuggestionId(suggestionId) {
-  if (!AI_DEBUG_ENABLED) return "";
-  const id = escapeHtml(String(suggestionId || ""));
-  return `<div class="ai-debug-suggestion-id" data-testid="ai-debug-suggestion-id-${id}">${id}</div>`;
-}
+// isKnownSuggestionType … renderAiDebugSuggestionId — from aiSuggestionUtils.js
 
 function createInitialOnCreateAssistState() {
   return {
@@ -9939,55 +9608,8 @@ function showAuthView() {
   showLogin();
 }
 
-// Show/hide messages
-function showMessage(id, message, type) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (!el.getAttribute("aria-live")) {
-    el.setAttribute("aria-live", "polite");
-    el.setAttribute("aria-atomic", "true");
-  }
-  el.textContent = message;
-  el.className = `message ${type} show`;
-}
-
-function hideMessage(id) {
-  const el = document.getElementById(id);
-  if (el) el.classList.remove("show");
-}
-
-// Escape HTML
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Dark mode toggle
-function toggleTheme() {
-  const body = document.body;
-  const isDark = body.classList.toggle("dark-mode");
-  localStorage.setItem("theme", isDark ? "dark" : "light");
-
-  // Update toggle button icon
-  const toggleBtn = document.querySelector(".theme-toggle");
-  if (toggleBtn) toggleBtn.textContent = isDark ? "☀️" : "🌙";
-}
-
-// Initialize theme
-function initTheme() {
-  const savedTheme = localStorage.getItem("theme");
-  const prefersDark =
-    window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const shouldBeDark = savedTheme === "dark" || (!savedTheme && prefersDark);
-
-  if (shouldBeDark) {
-    document.body.classList.add("dark-mode");
-    const toggleBtn = document.querySelector(".theme-toggle");
-    if (toggleBtn) toggleBtn.textContent = "☀️";
-  }
-}
+// showMessage, hideMessage, escapeHtml — from utils.js
+// toggleTheme, initTheme — from theme.js
 
 // ========== PHASE E: SERVICE WORKER REGISTRATION ==========
 if ("serviceWorker" in navigator) {
@@ -10087,6 +9709,12 @@ function bindDeclarativeHandlers() {
     });
   }
 }
+
+// ---------------------------------------------------------------------------
+// Window bridge — functions consumed from modules that must remain on window
+// because they are referenced via data-onclick / data-onsubmit in HTML.
+// ---------------------------------------------------------------------------
+window.toggleTheme = toggleTheme;
 
 // Initialize theme immediately
 initTheme();
