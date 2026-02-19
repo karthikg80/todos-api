@@ -172,6 +172,17 @@ async function registerAndOpenTodos(page: Page) {
   await expect(page.locator("#todosView")).toHaveClass(/active/);
 }
 
+// Lint-first: after filling a title the lint chip may show. Click Fix to
+// reveal the full AI assist row before asserting on individual chips.
+async function revealOnCreateFullAssist(page: Page) {
+  const lintFix = page.locator(
+    "#aiOnCreateAssistRow .ai-lint-chip__action[data-ai-lint-action='fix']",
+  );
+  if (await lintFix.isVisible()) {
+    await lintFix.click();
+  }
+}
+
 test.describe("AI on-create assist chips", () => {
   test.beforeEach(async ({ page }) => {
     await installOnCreateMockApi(page);
@@ -184,6 +195,7 @@ test.describe("AI on-create assist chips", () => {
     await page
       .locator("#todoInput")
       .fill("urgent tomorrow website marketing email stuff personal unknown");
+    await revealOnCreateFullAssist(page);
 
     const assistRow = page.locator('[data-testid="ai-on-create-row"]');
     await expect(assistRow).toBeVisible();
@@ -205,6 +217,7 @@ test.describe("AI on-create assist chips", () => {
     page,
   }) => {
     await page.locator("#todoInput").fill("email follow up");
+    await revealOnCreateFullAssist(page);
 
     await page
       .locator('[data-testid="ai-chip-apply-oc-rewrite-vague"]')
@@ -221,6 +234,7 @@ test.describe("AI on-create assist chips", () => {
     page,
   }) => {
     await page.locator("#todoInput").fill("urgent task to finish");
+    await revealOnCreateFullAssist(page);
 
     await page
       .locator('[data-testid="ai-chip-apply-oc-set-priority-urgent"]')
@@ -230,6 +244,7 @@ test.describe("AI on-create assist chips", () => {
 
   test("apply set_due_date updates due input", async ({ page }) => {
     await page.locator("#todoInput").fill("finish report tomorrow");
+    await revealOnCreateFullAssist(page);
 
     await page
       .locator('[data-testid="ai-chip-apply-oc-set-due-tomorrow"]')
@@ -239,6 +254,7 @@ test.describe("AI on-create assist chips", () => {
 
   test("dismiss hides chip", async ({ page }) => {
     await page.locator("#todoInput").fill("website update");
+    await revealOnCreateFullAssist(page);
 
     await expect(
       page.locator('[data-testid="ai-chip-oc-set-project-website"]'),
@@ -253,6 +269,7 @@ test.describe("AI on-create assist chips", () => {
 
   test("requiresConfirmation enforces confirm step", async ({ page }) => {
     await page.locator("#todoInput").fill("asap yesterday fix bug");
+    await revealOnCreateFullAssist(page);
 
     await page.locator('[data-testid="ai-chip-apply-oc-set-due-past"]').click();
     await expect(
@@ -269,6 +286,7 @@ test.describe("AI on-create assist chips", () => {
     page,
   }) => {
     await page.locator("#todoInput").fill("website marketing follow up");
+    await revealOnCreateFullAssist(page);
 
     await page
       .locator('[data-testid="ai-chip-apply-oc-clarify-project"]')
