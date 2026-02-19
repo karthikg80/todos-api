@@ -78,4 +78,34 @@ describe("PrismaTodoService error handling", () => {
       "database unavailable",
     );
   });
+
+  it("reorder should return null for invalid UUID errors", async () => {
+    const service = createService({
+      findMany: jest.fn().mockRejectedValue({ code: "P2023" }),
+    });
+
+    await expect(
+      service.reorder("user-1", [{ id: "bad-id", order: 0 }]),
+    ).resolves.toBeNull();
+  });
+
+  it("reorder should return null when todo not found", async () => {
+    const service = createService({
+      findMany: jest.fn().mockResolvedValue([]),
+    });
+
+    await expect(
+      service.reorder("user-1", [{ id: "missing-id", order: 0 }]),
+    ).resolves.toBeNull();
+  });
+
+  it("reorder should rethrow unknown errors", async () => {
+    const service = createService({
+      findMany: jest.fn().mockRejectedValue(new Error("database unavailable")),
+    });
+
+    await expect(
+      service.reorder("user-1", [{ id: "todo-1", order: 0 }]),
+    ).rejects.toThrow("database unavailable");
+  });
 });

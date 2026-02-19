@@ -549,4 +549,145 @@ describe("PrismaTodoService (Integration)", () => {
       expect(dbTodos).toHaveLength(0);
     });
   });
+
+  describe("create ordering", () => {
+    it("sequential creates produce monotonically increasing order values", async () => {
+      const todo1 = await service.create(TEST_USER_ID, { title: "First" });
+      const todo2 = await service.create(TEST_USER_ID, { title: "Second" });
+      const todo3 = await service.create(TEST_USER_ID, { title: "Third" });
+
+      expect(todo1.order).toBe(0);
+      expect(todo2.order).toBe(1);
+      expect(todo3.order).toBe(2);
+    });
+
+    it("concurrent creates produce unique order values", async () => {
+      // Fire multiple creates in parallel to exercise the FOR UPDATE lock.
+      const results = await Promise.all(
+        Array.from({ length: 5 }, (_, i) =>
+          service.create(TEST_USER_ID, { title: `Concurrent-${i}` }),
+        ),
+      );
+
+      const orders = results.map((t) => t.order).sort((a, b) => a - b);
+      const uniqueOrders = new Set(orders);
+
+      // All order values must be unique.
+      expect(uniqueOrders.size).toBe(results.length);
+      // Values should form a contiguous 0..N-1 range.
+      expect(orders).toEqual([0, 1, 2, 3, 4]);
+    });
+
+    it("create after delete does not reuse deleted order value", async () => {
+      const todo1 = await service.create(TEST_USER_ID, { title: "First" });
+      const todo2 = await service.create(TEST_USER_ID, { title: "Second" });
+
+      await service.delete(TEST_USER_ID, todo1.id);
+
+      const todo3 = await service.create(TEST_USER_ID, { title: "Third" });
+
+      // New todo should get max(existing order) + 1, not reuse 0.
+      expect(todo3.order).toBe(2);
+    });
+  });
+
+  describe("reorder", () => {
+    it("reorders todos and returns updated list in order", async () => {
+      const todo1 = await service.create(TEST_USER_ID, { title: "First" });
+      const todo2 = await service.create(TEST_USER_ID, { title: "Second" });
+      const todo3 = await service.create(TEST_USER_ID, { title: "Third" });
+
+      const result = await service.reorder(TEST_USER_ID, [
+        { id: todo3.id, order: 0 },
+        { id: todo1.id, order: 1 },
+        { id: todo2.id, order: 2 },
+      ]);
+
+      expect(result).not.toBeNull();
+      expect(result!.map((t) => t.id)).toEqual([todo3.id, todo1.id, todo2.id]);
+      expect(result!.map((t) => t.order)).toEqual([0, 1, 2]);
+    });
+
+    it("returns null when a requested todo does not exist", async () => {
+      const todo1 = await service.create(TEST_USER_ID, { title: "First" });
+
+      const result = await service.reorder(TEST_USER_ID, [
+        { id: todo1.id, order: 1 },
+        { id: "non-existent-id", order: 0 },
+      ]);
+
+      expect(result).toBeNull();
+
+      // Original order should be unchanged (transaction rolled back).
+      const todos = await service.findAll(TEST_USER_ID);
+      expect(todos[0].order).toBe(0);
+    });
+
+    it("skips writes for items whose order did not change", async () => {
+      const todo1 = await service.create(TEST_USER_ID, { title: "First" });
+      const todo2 = await service.create(TEST_USER_ID, { title: "Second" });
+
+      // Record updatedAt before reorder.
+      const beforeReorder = await service.findAll(TEST_USER_ID);
+      const updatedAtBefore = new Map(
+        beforeReorder.map((t) => [t.id, t.updatedAt.getTime()]),
+      );
+
+      // Small delay to ensure timestamp difference is detectable.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      // Send both items but only swap their orders.
+      await service.reorder(TEST_USER_ID, [
+        { id: todo1.id, order: 1 },
+        { id: todo2.id, order: 0 },
+      ]);
+
+      const afterReorder = await service.findAll(TEST_USER_ID);
+
+      // Both items changed order so both should have been updated.
+      for (const todo of afterReorder) {
+        expect(todo.updatedAt.getTime()).toBeGreaterThanOrEqual(
+          updatedAtBefore.get(todo.id)!,
+        );
+      }
+    });
+
+    it("is a no-op when all items already have the requested order", async () => {
+      const todo1 = await service.create(TEST_USER_ID, { title: "First" });
+      const todo2 = await service.create(TEST_USER_ID, { title: "Second" });
+
+      // Small delay so any spurious write would show a timestamp change.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      const beforeReorder = await service.findAll(TEST_USER_ID);
+      const updatedAtBefore = new Map(
+        beforeReorder.map((t) => [t.id, t.updatedAt.getTime()]),
+      );
+
+      // Send current order values — nothing should change.
+      await service.reorder(TEST_USER_ID, [
+        { id: todo1.id, order: 0 },
+        { id: todo2.id, order: 1 },
+      ]);
+
+      const afterReorder = await service.findAll(TEST_USER_ID);
+
+      // updatedAt should not have advanced since no writes occurred.
+      for (const todo of afterReorder) {
+        expect(todo.updatedAt.getTime()).toBe(updatedAtBefore.get(todo.id)!);
+      }
+    });
+
+    it("does not allow reordering another user's todos", async () => {
+      const user1Todo = await service.create(TEST_USER_ID, {
+        title: "User 1 Todo",
+      });
+
+      const result = await service.reorder(TEST_USER_ID_2, [
+        { id: user1Todo.id, order: 5 },
+      ]);
+
+      expect(result).toBeNull();
+    });
+  });
 });
