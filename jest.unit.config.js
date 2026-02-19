@@ -10,5 +10,7 @@ module.exports = {
     "**/src/aiContracts.test.ts",
     "**/src/prismaTodoService.error.test.ts",
     "**/src/api.contract.test.ts",
+    "**/src/aiQuotaService.test.ts",
+    "**/src/aiApplyService.test.ts",
   ],
 };

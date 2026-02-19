@@ -18,21 +18,46 @@ import {
   validateSuggestionStatusInput,
 } from "../aiValidation";
 import {
-  DecisionAssistOutput,
-  DecisionAssistSuggestion,
-  DecisionAssistSuggestionType,
   DecisionAssistSurface,
   validateDecisionAssistOutput,
 } from "../aiContracts";
 import { validateId } from "../validation";
 import { ITodoService } from "../interfaces/ITodoService";
-import { CreateTodoDto, Priority } from "../types";
 import { config } from "../config";
 import { IProjectService } from "../interfaces/IProjectService";
 import * as decisionAssistTelemetry from "../decisionAssistTelemetry";
 import { evaluateDecisionAssistThrottle } from "../decisionAssistThrottle";
+import {
+  AiQuotaService,
+  buildLimitsByPlan,
+  buildInsightsRecommendation,
+  UserPlan,
+} from "../aiQuotaService";
+import {
+  TASK_DRAWER_SURFACE,
+  ON_CREATE_SURFACE,
+  TODAY_PLAN_SURFACE,
+  TODO_BOUND_TYPE,
+  TODO_BOUND_SURFACES,
+  normalizeTodoBoundEnvelope,
+  normalizeTodayPlanEnvelope,
+  parsePlanTasks,
+  buildThrottleAbstainEnvelope,
+  parseOptionalTopN,
+  findLatestPendingDecisionAssistSuggestion,
+  findLatestPendingTodayPlanSuggestion,
+  NormalizedTodoBoundEnvelope,
+  NormalizedTodoBoundSuggestion,
+  NormalizedTodayPlanEnvelope,
+  NormalizedTodayPlanSuggestion,
+} from "../aiNormalizationService";
+import {
+  applyTodoBoundSuggestion,
+  applyTodayPlanSuggestions,
+} from "../aiApplyService";
+import { validateDismissable } from "../aiDismissService";
 
-export type UserPlan = "free" | "pro" | "team";
+export { UserPlan } from "../aiQuotaService";
 
 interface AiRouterDeps {
   aiPlannerService?: AiPlannerService;
@@ -58,360 +83,30 @@ export function createAiRouter({
   decisionAssistEnabled = config.aiDecisionAssistEnabled,
 }: AiRouterDeps): Router {
   const router = Router();
-  const defaultLimits: Record<UserPlan, number> = {
-    free: config.aiDailySuggestionLimitByPlan.free,
-    pro: config.aiDailySuggestionLimitByPlan.pro,
-    team: config.aiDailySuggestionLimitByPlan.team,
-  };
-  const globalOverride =
-    aiDailySuggestionLimit && aiDailySuggestionLimit > 0
-      ? aiDailySuggestionLimit
-      : undefined;
-  const limitsByPlan: Record<UserPlan, number> = {
-    free:
-      aiDailySuggestionLimitByPlan?.free &&
-      aiDailySuggestionLimitByPlan.free > 0
-        ? aiDailySuggestionLimitByPlan.free
-        : globalOverride || defaultLimits.free || config.aiDailySuggestionLimit,
-    pro:
-      aiDailySuggestionLimitByPlan?.pro && aiDailySuggestionLimitByPlan.pro > 0
-        ? aiDailySuggestionLimitByPlan.pro
-        : defaultLimits.pro || config.aiDailySuggestionLimit,
-    team:
-      aiDailySuggestionLimitByPlan?.team &&
-      aiDailySuggestionLimitByPlan.team > 0
-        ? aiDailySuggestionLimitByPlan.team
-        : defaultLimits.team || config.aiDailySuggestionLimit,
-  };
 
-  const getCurrentUtcDayStart = (): Date => {
-    const now = new Date();
-    return new Date(
-      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
-    );
-  };
+  const limitsByPlan = buildLimitsByPlan({
+    aiDailySuggestionLimit,
+    aiDailySuggestionLimitByPlan,
+  });
 
-  const getNextUtcDayStart = (): Date => {
-    const dayStart = getCurrentUtcDayStart();
-    return new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-  };
+  const quotaService = new AiQuotaService({
+    suggestionStore,
+    limitsByPlan,
+    resolveUserPlan: resolveAiUserPlan,
+  });
 
-  const getUserPlan = async (userId: string): Promise<UserPlan> => {
-    if (!resolveAiUserPlan) {
-      return "free";
-    }
-    const plan = await resolveAiUserPlan(userId);
-    return plan;
-  };
-
-  const getUsage = async (userId: string) => {
-    const plan = await getUserPlan(userId);
-    const dailyLimit = limitsByPlan[plan] || limitsByPlan.free;
-    const dayStart = getCurrentUtcDayStart();
-    const used = await suggestionStore.countByUserSince(userId, dayStart);
-    const remaining = Math.max(dailyLimit - used, 0);
-    return {
-      plan,
-      used,
-      remaining,
-      limit: dailyLimit,
-      resetAt: getNextUtcDayStart().toISOString(),
-    };
-  };
-
-  const getFeedbackContext = async (userId: string) => {
-    const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const summary = await suggestionStore.summarizeFeedbackByUserSince(
-      userId,
-      since,
-      3,
-    );
-    return {
-      rejectionSignals: summary.rejectedReasons.map((item) => item.reason),
-      acceptanceSignals: summary.acceptedReasons.map((item) => item.reason),
-    };
-  };
+  // ── Shared HTTP helpers ──
 
   const enforceDailyQuota = async (userId: string, res: Response) => {
-    const usage = await getUsage(userId);
-    if (usage.remaining <= 0) {
+    const exceeded = await quotaService.checkQuota(userId);
+    if (exceeded) {
       res.status(429).json({
         error: "Daily AI suggestion limit reached",
-        usage,
+        usage: exceeded,
       });
       return false;
     }
     return true;
-  };
-
-  const buildInsightsRecommendation = (params: {
-    plan: UserPlan;
-    usageRemaining: number;
-    usageLimit: number;
-    generatedCount: number;
-    topRejectedReason?: string;
-  }): string => {
-    const usageThreshold = Math.max(1, Math.ceil(params.usageLimit * 0.1));
-    if (params.plan === "free" && params.usageRemaining <= usageThreshold) {
-      return "You are near your daily AI cap. Upgrade to Pro for higher limits and uninterrupted planning.";
-    }
-    const reason = (params.topRejectedReason || "").toLowerCase();
-    if (
-      reason.includes("generic") ||
-      reason.includes("vague") ||
-      reason.includes("specific")
-    ) {
-      return "Recent rejections suggest outputs are too generic. Add constraints like owner, metric, and due date to get stronger suggestions.";
-    }
-    if (params.generatedCount < 3) {
-      return "Generate a few more AI suggestions this week to improve personalization and quality tracking.";
-    }
-    return "Keep rating suggestions after each run to continuously improve output quality.";
-  };
-
-  const parsePlanTasks = (output: Record<string, unknown>): CreateTodoDto[] => {
-    const rawTasks = output.tasks;
-    if (!Array.isArray(rawTasks)) {
-      return [];
-    }
-
-    const priorities: Priority[] = ["low", "medium", "high"];
-    return rawTasks
-      .map((task): CreateTodoDto | null => {
-        if (!task || typeof task !== "object") {
-          return null;
-        }
-        const item = task as Record<string, unknown>;
-        const title = typeof item.title === "string" ? item.title.trim() : "";
-        if (!title) {
-          return null;
-        }
-
-        const description =
-          typeof item.description === "string"
-            ? item.description.trim()
-            : undefined;
-        const priority = priorities.includes(item.priority as Priority)
-          ? (item.priority as Priority)
-          : "medium";
-
-        let dueDate: Date | undefined;
-        if (
-          typeof item.dueDate === "string" &&
-          !Number.isNaN(Date.parse(item.dueDate))
-        ) {
-          dueDate = new Date(item.dueDate);
-        }
-
-        return {
-          title,
-          description,
-          priority,
-          dueDate,
-          category: "AI Plan",
-        };
-      })
-      .filter((task): task is CreateTodoDto => !!task);
-  };
-
-  const TASK_DRAWER_SURFACE: DecisionAssistSurface = "task_drawer";
-  const ON_CREATE_SURFACE: DecisionAssistSurface = "on_create";
-  const TODAY_PLAN_SURFACE: DecisionAssistSurface = "today_plan";
-  const TODO_BOUND_TYPE: "task_critic" = "task_critic";
-  const TODO_BOUND_SURFACES = new Set<DecisionAssistSurface>([
-    TASK_DRAWER_SURFACE,
-    ON_CREATE_SURFACE,
-  ]);
-  const TODAY_PLAN_ALLOWED_TYPES = new Set<DecisionAssistSuggestionType>([
-    "set_due_date",
-    "set_priority",
-    "split_subtasks",
-    "propose_next_action",
-  ]);
-  const TODO_BOUND_ALLOWED_TYPES: Record<
-    "task_drawer" | "on_create",
-    Set<DecisionAssistSuggestionType>
-  > = {
-    task_drawer: new Set<DecisionAssistSuggestionType>([
-      "rewrite_title",
-      "split_subtasks",
-      "propose_next_action",
-      "set_due_date",
-      "set_priority",
-      "set_project",
-      "set_category",
-      "ask_clarification",
-      "defer_task",
-    ]),
-    on_create: new Set<DecisionAssistSuggestionType>([
-      "rewrite_title",
-      "set_due_date",
-      "set_priority",
-      "set_project",
-      "set_category",
-      "ask_clarification",
-    ]),
-  };
-
-  type NormalizedTodoBoundSuggestion = DecisionAssistSuggestion & {
-    suggestionId: string;
-    requiresConfirmation: boolean;
-    payload: Record<string, unknown>;
-  };
-
-  type NormalizedTodoBoundEnvelope = DecisionAssistOutput & {
-    suggestions: NormalizedTodoBoundSuggestion[];
-  };
-
-  type NormalizedTodayPlanSuggestion = DecisionAssistSuggestion & {
-    suggestionId: string;
-    requiresConfirmation: boolean;
-    payload: Record<string, unknown>;
-  };
-
-  type NormalizedTodayPlanEnvelope = DecisionAssistOutput & {
-    suggestions: NormalizedTodayPlanSuggestion[];
-  };
-
-  const parseBool = (value: unknown): boolean => value === true;
-  const parseOptionalTopN = (value: unknown): 3 | 5 | undefined =>
-    value === 3 || value === 5 ? value : undefined;
-
-  const normalizeTodoBoundEnvelope = (
-    rawOutput: Record<string, unknown>,
-    todoId: string,
-    surface: DecisionAssistSurface,
-  ): NormalizedTodoBoundEnvelope => {
-    const validated = validateDecisionAssistOutput(rawOutput);
-    if (validated.surface !== surface) {
-      throw new Error("Suggestion envelope surface mismatch");
-    }
-    const allowedTypes =
-      TODO_BOUND_ALLOWED_TYPES[surface as "task_drawer" | "on_create"];
-
-    const normalizedSuggestions = validated.suggestions
-      .map((item, index): NormalizedTodoBoundSuggestion => {
-        const rawItem =
-          Array.isArray(rawOutput.suggestions) &&
-          rawOutput.suggestions[index] &&
-          typeof rawOutput.suggestions[index] === "object"
-            ? (rawOutput.suggestions[index] as Record<string, unknown>)
-            : {};
-        const suggestionIdRaw =
-          typeof rawItem.suggestionId === "string"
-            ? rawItem.suggestionId.trim()
-            : "";
-        const suggestionId = suggestionIdRaw || `task-drawer-${index + 1}`;
-        const payload = {
-          ...(item.payload || {}),
-          todoId:
-            typeof (item.payload || {}).todoId === "string"
-              ? (item.payload as Record<string, unknown>).todoId
-              : todoId,
-        };
-        return {
-          ...item,
-          payload,
-          suggestionId,
-          requiresConfirmation: parseBool(rawItem.requiresConfirmation),
-        };
-      })
-      .filter((item) => allowedTypes.has(item.type));
-
-    return {
-      ...validated,
-      suggestions: normalizedSuggestions,
-    };
-  };
-
-  const normalizeTodayPlanEnvelope = (
-    rawOutput: Record<string, unknown>,
-  ): NormalizedTodayPlanEnvelope => {
-    const validated = validateDecisionAssistOutput(rawOutput);
-    if (validated.surface !== TODAY_PLAN_SURFACE) {
-      throw new Error("Suggestion envelope surface mismatch");
-    }
-    const previewTodoIds = new Set(
-      (validated.planPreview?.items || [])
-        .map((item) => (typeof item.todoId === "string" ? item.todoId : ""))
-        .filter(Boolean),
-    );
-    const normalizedSuggestions = validated.suggestions.reduce<
-      NormalizedTodayPlanSuggestion[]
-    >((acc, item, index) => {
-      const rawItem =
-        Array.isArray(rawOutput.suggestions) &&
-        rawOutput.suggestions[index] &&
-        typeof rawOutput.suggestions[index] === "object"
-          ? (rawOutput.suggestions[index] as Record<string, unknown>)
-          : {};
-      const suggestionIdRaw =
-        typeof rawItem.suggestionId === "string"
-          ? rawItem.suggestionId.trim()
-          : "";
-      const suggestionId = suggestionIdRaw || `today-plan-${index + 1}`;
-      const payload =
-        item.payload && typeof item.payload === "object"
-          ? ({ ...item.payload } as Record<string, unknown>)
-          : {};
-      const payloadTodoId =
-        typeof payload.todoId === "string" ? payload.todoId.trim() : "";
-      if (!payloadTodoId || !previewTodoIds.has(payloadTodoId)) {
-        return acc;
-      }
-      const normalized: NormalizedTodayPlanSuggestion = {
-        ...item,
-        suggestionId,
-        requiresConfirmation: parseBool(rawItem.requiresConfirmation),
-        payload: {
-          ...payload,
-          todoId: payloadTodoId,
-        },
-      };
-      if (TODAY_PLAN_ALLOWED_TYPES.has(normalized.type)) {
-        acc.push(normalized);
-      }
-      return acc;
-    }, []);
-
-    return {
-      ...validated,
-      suggestions: normalizedSuggestions,
-    };
-  };
-
-  const findLatestPendingDecisionAssistSuggestion = async (
-    userId: string,
-    todoId: string,
-    surface: DecisionAssistSurface,
-  ) => {
-    const records = await suggestionStore.listByUser(userId, 100);
-    return (
-      records.find((record) => {
-        if (record.status !== "pending") return false;
-        if (record.type !== TODO_BOUND_TYPE) return false;
-        const inputSurface =
-          typeof record.input?.surface === "string" ? record.input.surface : "";
-        const inputTodoId =
-          typeof record.input?.todoId === "string" ? record.input.todoId : "";
-        return inputSurface === surface && inputTodoId === todoId;
-      }) || null
-    );
-  };
-
-  const findLatestPendingTodayPlanSuggestion = async (userId: string) => {
-    const records = await suggestionStore.listByUser(userId, 100);
-    return (
-      records.find((record) => {
-        if (record.status !== "pending") return false;
-        if (record.type !== "plan_from_goal") return false;
-        const inputSurface =
-          typeof record.input?.surface === "string" ? record.input.surface : "";
-        const inputTodoId =
-          typeof record.input?.todoId === "string" ? record.input.todoId : "";
-        return inputSurface === TODAY_PLAN_SURFACE && !inputTodoId;
-      }) || null
-    );
   };
 
   const isExplicitDecisionAssistRequest = (req: Request): boolean => {
@@ -435,23 +130,6 @@ export function createAiRouter({
     });
   };
 
-  const buildThrottleAbstainEnvelope = (
-    surface: DecisionAssistSurface,
-    preferredTopN?: 3 | 5,
-  ): DecisionAssistOutput => ({
-    requestId: `throttle-${surface}-${Date.now()}`,
-    surface,
-    must_abstain: true,
-    planPreview:
-      surface === TODAY_PLAN_SURFACE
-        ? {
-            topN: preferredTopN || 3,
-            items: [],
-          }
-        : undefined,
-    suggestions: [],
-  });
-
   const ensureDecisionAssistFeatureEnabled = (res: Response): boolean => {
     if (decisionAssistEnabled) {
       return true;
@@ -469,6 +147,8 @@ export function createAiRouter({
       console.warn("Decision assist telemetry emit failed:", error);
     }
   };
+
+  // ── Routes ──
 
   /**
    * @openapi
@@ -592,7 +272,7 @@ export function createAiRouter({
         if (!(await enforceDailyQuota(userId, res))) return;
 
         const input = validateCritiqueTaskInput(req.body);
-        const feedbackContext = await getFeedbackContext(userId);
+        const feedbackContext = await quotaService.getFeedbackContext(userId);
         const result = await aiPlannerService.critiqueTask(
           input,
           feedbackContext,
@@ -644,7 +324,7 @@ export function createAiRouter({
         if (!(await enforceDailyQuota(userId, res))) return;
 
         const input = validatePlanFromGoalInput(req.body);
-        const feedbackContext = await getFeedbackContext(userId);
+        const feedbackContext = await quotaService.getFeedbackContext(userId);
         const result = await aiPlannerService.planFromGoal(
           input,
           feedbackContext,
@@ -696,7 +376,7 @@ export function createAiRouter({
         const userId = resolveAiUserId(req, res);
         if (!userId) return;
 
-        const usage = await getUsage(userId);
+        const usage = await quotaService.getUsage(userId);
         res.json(usage);
       } catch (error) {
         next(error);
@@ -735,7 +415,7 @@ export function createAiRouter({
         const { days } = validateInsightsQuery(req.query);
         const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
         const [usage, generatedCount, feedbackSummary] = await Promise.all([
-          getUsage(userId),
+          quotaService.getUsage(userId),
           suggestionStore.countByUserSince(userId, since),
           suggestionStore.summarizeFeedbackByUserSince(userId, since, 3),
         ]);
@@ -783,24 +463,6 @@ export function createAiRouter({
    *     summary: Aggregate accepted/rejected AI feedback reasons
    *     security:
    *       - bearerAuth: []
-   *     parameters:
-   *       - in: query
-   *         name: days
-   *         schema:
-   *           type: integer
-   *           minimum: 1
-   *           maximum: 90
-   *         description: Rolling lookback window in days
-   *       - in: query
-   *         name: reasonLimit
-   *         schema:
-   *           type: integer
-   *           minimum: 1
-   *           maximum: 20
-   *         description: Max reasons returned per status bucket
-   *     responses:
-   *       200:
-   *         description: Feedback summary
    */
   router.get(
     "/feedback-summary",
@@ -870,11 +532,12 @@ export function createAiRouter({
 
         const latest = isTodoBound
           ? await findLatestPendingDecisionAssistSuggestion(
+              suggestionStore,
               userId,
               String(todoId || ""),
               surface,
             )
-          : await findLatestPendingTodayPlanSuggestion(userId);
+          : await findLatestPendingTodayPlanSuggestion(suggestionStore, userId);
         if (!latest) {
           const throttle = await shouldThrottleDecisionAssist(userId, surface);
           if (throttle.throttled) {
@@ -983,7 +646,7 @@ export function createAiRouter({
           });
         }
 
-        const feedbackContext = await getFeedbackContext(userId);
+        const feedbackContext = await quotaService.getFeedbackContext(userId);
         const breakdown = await aiPlannerService.breakdownTodoIntoSubtasks(
           {
             title: todo.title,
@@ -1093,6 +756,8 @@ export function createAiRouter({
             .status(409)
             .json({ error: "Cannot apply a rejected suggestion" });
         }
+
+        // ── Today-plan apply path ──
         if (suggestion.type === "plan_from_goal") {
           const inputSurfaceRaw =
             typeof suggestion.input?.surface === "string"
@@ -1149,128 +814,23 @@ export function createAiRouter({
               });
             }
 
-            const updatedTodosMap = new Map<
-              string,
-              Awaited<ReturnType<ITodoService["findById"]>>
-            >();
+            const applyResult = await applyTodayPlanSuggestions({
+              applicableSuggestions,
+              todoService,
+              userId,
+              confirmed,
+            });
 
-            for (const selected of applicableSuggestions) {
-              const payload = selected.payload || {};
-              const todoId =
-                typeof payload.todoId === "string" ? payload.todoId : "";
-              if (!todoId) continue;
-
-              const currentTodo =
-                updatedTodosMap.get(todoId) ||
-                (await todoService.findById(userId, todoId));
-              if (!currentTodo) continue;
-
-              if (selected.requiresConfirmation && confirmed !== true) {
-                return res.status(400).json({
-                  error: "Confirmation is required for this suggestion",
-                });
-              }
-
-              if (selected.type === "set_priority") {
-                const priority = String(payload.priority || "").toLowerCase();
-                if (!["low", "medium", "high"].includes(priority)) {
-                  return res
-                    .status(400)
-                    .json({ error: "Invalid priority value" });
-                }
-                if (priority === "high" && confirmed !== true) {
-                  return res.status(400).json({
-                    error:
-                      "High priority changes require explicit confirmation",
-                  });
-                }
-                const updated = await todoService.update(userId, todoId, {
-                  priority: priority as Priority,
-                });
-                if (updated) updatedTodosMap.set(todoId, updated);
-                continue;
-              }
-
-              if (selected.type === "set_due_date") {
-                const dueDateISO =
-                  typeof payload.dueDateISO === "string"
-                    ? payload.dueDateISO
-                    : "";
-                const parsed = new Date(dueDateISO);
-                if (Number.isNaN(parsed.getTime())) {
-                  return res.status(400).json({ error: "Invalid due date" });
-                }
-                if (parsed.getTime() < Date.now() && confirmed !== true) {
-                  return res.status(400).json({
-                    error: "Past due dates require explicit confirmation",
-                  });
-                }
-                const updated = await todoService.update(userId, todoId, {
-                  dueDate: parsed,
-                });
-                if (updated) updatedTodosMap.set(todoId, updated);
-                continue;
-              }
-
-              if (selected.type === "split_subtasks") {
-                const subtasksRaw = Array.isArray(payload.subtasks)
-                  ? payload.subtasks
-                  : [];
-                if (subtasksRaw.length < 1 || subtasksRaw.length > 5) {
-                  return res
-                    .status(400)
-                    .json({ error: "split_subtasks requires 1-5 subtasks" });
-                }
-                for (const item of subtasksRaw.slice(0, 5)) {
-                  const title =
-                    item &&
-                    typeof item === "object" &&
-                    typeof item.title === "string"
-                      ? item.title.trim()
-                      : "";
-                  if (!title || title.length > 200) {
-                    return res
-                      .status(400)
-                      .json({ error: "Invalid subtask title" });
-                  }
-                  await todoService.createSubtask(userId, todoId, { title });
-                }
-                const refreshed = await todoService.findById(userId, todoId);
-                if (refreshed) updatedTodosMap.set(todoId, refreshed);
-                continue;
-              }
-
-              if (selected.type === "propose_next_action") {
-                const textCandidate =
-                  typeof payload.text === "string"
-                    ? payload.text
-                    : typeof payload.title === "string"
-                      ? payload.title
-                      : "";
-                const nextAction = textCandidate.trim();
-                if (!nextAction || nextAction.length > 200) {
-                  return res
-                    .status(400)
-                    .json({ error: "Invalid next action text" });
-                }
-                const nextNotes = currentTodo.notes
-                  ? `${currentTodo.notes}\nNext action: ${nextAction}`
-                  : `Next action: ${nextAction}`;
-                const updated = await todoService.update(userId, todoId, {
-                  notes: nextNotes,
-                });
-                if (updated) updatedTodosMap.set(todoId, updated);
-              }
+            if (!applyResult.ok) {
+              return res
+                .status(applyResult.status)
+                .json({ error: applyResult.error });
             }
 
-            const updatedTodos = Array.from(updatedTodosMap.values()).filter(
-              (item): item is NonNullable<typeof item> => !!item,
-            );
-            const appliedTodoIds = updatedTodos.map((todo) => todo.id);
             const updatedSuggestion = await suggestionStore.markApplied(
               userId,
               id,
-              appliedTodoIds,
+              applyResult.appliedTodoIds,
               {
                 reason: reason || "today_plan_apply",
                 source: "today_plan_apply",
@@ -1296,13 +856,14 @@ export function createAiRouter({
             });
 
             return res.json({
-              updatedCount: updatedTodos.length,
-              todos: updatedTodos,
+              updatedCount: applyResult.updatedTodos.length,
+              todos: applyResult.updatedTodos,
               suggestion: updatedSuggestion,
               idempotent: false,
             });
           }
 
+          // ── Legacy plan_from_goal apply (non-today_plan) ──
           if (
             suggestion.status === "accepted" &&
             Array.isArray(suggestion.appliedTodoIds) &&
@@ -1366,6 +927,7 @@ export function createAiRouter({
           });
         }
 
+        // ── Todo-bound apply path ──
         if (!ensureDecisionAssistFeatureEnabled(res)) return;
         if (suggestion.type !== TODO_BOUND_TYPE) {
           return res.status(400).json({
@@ -1435,189 +997,23 @@ export function createAiRouter({
             .json({ error: "Confirmation is required for this suggestion" });
         }
 
-        const payload = selected.payload || {};
-        const now = Date.now();
-        const todoIdsApplied = [inputTodoId];
-        let updatedTodo = todo;
+        const applyResult = await applyTodoBoundSuggestion({
+          selected,
+          todoService,
+          projectService,
+          userId,
+          inputTodoId,
+          todo,
+          confirmed,
+        });
 
-        switch (selected.type) {
-          case "rewrite_title": {
-            const nextTitle =
-              typeof payload.title === "string" ? payload.title.trim() : "";
-            if (!nextTitle || nextTitle.length > 200) {
-              return res.status(400).json({ error: "Invalid rewrite title" });
-            }
-            const updated = await todoService.update(userId, inputTodoId, {
-              title: nextTitle,
-            });
-            if (!updated) {
-              return res.status(404).json({ error: "Todo not found" });
-            }
-            updatedTodo = updated;
-            break;
-          }
-          case "set_due_date": {
-            const dueDateISO =
-              typeof payload.dueDateISO === "string" ? payload.dueDateISO : "";
-            const parsed = new Date(dueDateISO);
-            if (Number.isNaN(parsed.getTime())) {
-              return res.status(400).json({ error: "Invalid due date" });
-            }
-            if (parsed.getTime() < now && confirmed !== true) {
-              return res.status(400).json({
-                error: "Past due dates require explicit confirmation",
-              });
-            }
-            const updated = await todoService.update(userId, inputTodoId, {
-              dueDate: parsed,
-            });
-            if (!updated) {
-              return res.status(404).json({ error: "Todo not found" });
-            }
-            updatedTodo = updated;
-            break;
-          }
-          case "set_priority": {
-            const priority = String(payload.priority || "").toLowerCase();
-            if (!["low", "medium", "high"].includes(priority)) {
-              return res.status(400).json({ error: "Invalid priority value" });
-            }
-            const requiresPriorityConfirm =
-              priority === "high" && confirmed !== true;
-            if (requiresPriorityConfirm) {
-              return res.status(400).json({
-                error: "High priority changes require explicit confirmation",
-              });
-            }
-            const updated = await todoService.update(userId, inputTodoId, {
-              priority: priority as Priority,
-            });
-            if (!updated) {
-              return res.status(404).json({ error: "Todo not found" });
-            }
-            updatedTodo = updated;
-            break;
-          }
-          case "set_category":
-          case "set_project": {
-            let nextCategory =
-              typeof payload.category === "string"
-                ? payload.category.trim()
-                : "";
-            const projectName =
-              typeof payload.projectName === "string"
-                ? payload.projectName.trim()
-                : "";
-            const projectId =
-              typeof payload.projectId === "string"
-                ? payload.projectId.trim()
-                : "";
-
-            if (!nextCategory && projectName) {
-              nextCategory = projectName;
-            }
-
-            if (projectId && projectService) {
-              const projects = await projectService.findAll(userId);
-              const byId = projects.find((item) => item.id === projectId);
-              if (byId) {
-                nextCategory = byId.name;
-              }
-            } else if (projectName && projectService) {
-              const projects = await projectService.findAll(userId);
-              const byName = projects.find(
-                (item) => item.name.toLowerCase() === projectName.toLowerCase(),
-              );
-              if (byName) {
-                nextCategory = byName.name;
-              }
-            }
-
-            if (!nextCategory || nextCategory.length > 50) {
-              return res
-                .status(400)
-                .json({ error: "Invalid category/project value" });
-            }
-
-            const updated = await todoService.update(userId, inputTodoId, {
-              category: nextCategory,
-            });
-            if (!updated) {
-              return res.status(404).json({ error: "Todo not found" });
-            }
-            updatedTodo = updated;
-            break;
-          }
-          case "split_subtasks": {
-            const subtasksRaw = Array.isArray(payload.subtasks)
-              ? payload.subtasks
-              : [];
-            if (subtasksRaw.length < 1 || subtasksRaw.length > 5) {
-              return res
-                .status(400)
-                .json({ error: "split_subtasks requires 1-5 subtasks" });
-            }
-            // Safe mode: append generated subtasks to avoid destructive deletion.
-            for (const item of subtasksRaw.slice(0, 5)) {
-              const title =
-                item &&
-                typeof item === "object" &&
-                typeof item.title === "string"
-                  ? item.title.trim()
-                  : "";
-              if (!title || title.length > 200) {
-                return res.status(400).json({ error: "Invalid subtask title" });
-              }
-              const created = await todoService.createSubtask(
-                userId,
-                inputTodoId,
-                {
-                  title,
-                },
-              );
-              if (!created) {
-                return res.status(404).json({ error: "Todo not found" });
-              }
-            }
-            updatedTodo =
-              (await todoService.findById(userId, inputTodoId)) || todo;
-            break;
-          }
-          case "propose_next_action": {
-            const textCandidate =
-              typeof payload.text === "string"
-                ? payload.text
-                : typeof payload.title === "string"
-                  ? payload.title
-                  : "";
-            const nextAction = textCandidate.trim();
-            if (!nextAction || nextAction.length > 200) {
-              return res
-                .status(400)
-                .json({ error: "Invalid next action text" });
-            }
-            const prefix = "Next action: ";
-            const nextNotes = updatedTodo.notes
-              ? `${updatedTodo.notes}\n${prefix}${nextAction}`
-              : `${prefix}${nextAction}`;
-            const updated = await todoService.update(userId, inputTodoId, {
-              notes: nextNotes,
-            });
-            if (!updated) {
-              return res.status(404).json({ error: "Todo not found" });
-            }
-            updatedTodo = updated;
-            break;
-          }
-          case "ask_clarification":
-          case "defer_task":
-          default: {
-            return res.status(400).json({
-              error: `Suggestion type "${selected.type}" is not supported for apply`,
-            });
-          }
+        if (!applyResult.ok) {
+          return res
+            .status(applyResult.status)
+            .json({ error: applyResult.error });
         }
 
+        const todoIdsApplied = [inputTodoId];
         const updatedSuggestion = await suggestionStore.markApplied(
           userId,
           id,
@@ -1644,7 +1040,7 @@ export function createAiRouter({
         });
 
         return res.json({
-          todo: updatedTodo,
+          todo: applyResult.updatedTodo,
           appliedSuggestionId: selected.suggestionId,
           suggestion: updatedSuggestion,
           idempotent: false,
@@ -1671,32 +1067,14 @@ export function createAiRouter({
         if (!suggestion) {
           return res.status(404).json({ error: "Suggestion not found" });
         }
-        const isTodoBoundSuggestion = suggestion.type === TODO_BOUND_TYPE;
-        const isTodayPlanSuggestion =
-          suggestion.type === "plan_from_goal" &&
-          suggestion.input &&
-          typeof suggestion.input.surface === "string" &&
-          suggestion.input.surface === TODAY_PLAN_SURFACE;
-        if (!isTodoBoundSuggestion && !isTodayPlanSuggestion) {
-          return res.status(400).json({
-            error:
-              "Only on_create/task_drawer/today_plan suggestions can be dismissed",
-          });
+
+        const dismissValidation = validateDismissable(suggestion);
+        if (!dismissValidation.ok) {
+          return res
+            .status(dismissValidation.status)
+            .json({ error: dismissValidation.error });
         }
-        const inputSurfaceRaw =
-          typeof suggestion.input?.surface === "string"
-            ? suggestion.input.surface
-            : "";
-        const inputSurface = inputSurfaceRaw as DecisionAssistSurface;
-        if (
-          !TODO_BOUND_SURFACES.has(inputSurface) &&
-          inputSurface !== TODAY_PLAN_SURFACE
-        ) {
-          return res.status(400).json({
-            error:
-              "Only on_create/task_drawer/today_plan suggestions can be dismissed",
-          });
-        }
+        const inputSurface = dismissValidation.surface;
 
         // Schema-constrained behavior: dismissing any card rejects the whole suggestion set.
         const updated = await suggestionStore.updateStatus(
