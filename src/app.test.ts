@@ -146,6 +146,44 @@ describe("Todos API", () => {
       expect(response.body[0].title).toBe("Mike");
     });
 
+    it("should return todos in creation order with sortBy=order and sortOrder=asc", async () => {
+      await request(app).post("/todos").send({ title: "First" });
+      await request(app).post("/todos").send({ title: "Second" });
+      await request(app).post("/todos").send({ title: "Third" });
+
+      const response = await request(app)
+        .get("/todos")
+        .query({ sortBy: "order", sortOrder: "asc" })
+        .expect(200);
+
+      expect(response.body).toHaveLength(3);
+      expect(response.body[0].title).toBe("First");
+      expect(response.body[1].title).toBe("Second");
+      expect(response.body[2].title).toBe("Third");
+    });
+
+    it("should filter by exact category match only", async () => {
+      await request(app)
+        .post("/todos")
+        .send({ title: "Parent task", category: "Work" });
+      await request(app)
+        .post("/todos")
+        .send({ title: "Child task", category: "Work / Backend" });
+      await request(app)
+        .post("/todos")
+        .send({ title: "Other task", category: "Home" });
+
+      const response = await request(app)
+        .get("/todos")
+        .query({ category: "Work" })
+        .expect(200);
+
+      // Backend does exact match — "Work / Backend" is NOT included.
+      // Hierarchical matching is handled client-side today.
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].title).toBe("Parent task");
+    });
+
     it("should return 400 for invalid todo list query", async () => {
       const response = await request(app)
         .get("/todos")

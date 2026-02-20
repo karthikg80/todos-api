@@ -1031,6 +1031,17 @@ async function handleUpdateProfile(event) {
   }
 }
 
+// Build query params for the GET /todos request.  Today this sends sort
+// params only; future work will add completed, priority, category (once the
+// backend supports hierarchical matching), search, and date-range filters
+// here — each as a single-line addition.
+function buildTodosQueryParams() {
+  const params = {};
+  params.sortBy = "order";
+  params.sortOrder = "asc";
+  return params;
+}
+
 // Load todos
 async function loadTodos() {
   todosLoadState = "loading";
@@ -1038,7 +1049,9 @@ async function loadTodos() {
   renderTodos();
 
   try {
-    const response = await apiCall(`${API_URL}/todos`);
+    const queryParams = buildTodosQueryParams();
+    const todosUrl = ApiClientModule.buildUrl(`${API_URL}/todos`, queryParams);
+    const response = await apiCall(todosUrl);
     if (response && response.ok) {
       todos = await response.json();
       todosLoadState = "ready";

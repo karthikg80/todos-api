@@ -488,4 +488,42 @@ test.describe("Filter pipeline regression", () => {
       /todo-drawer--open/,
     );
   });
+
+  test("loadTodos sends sortBy and sortOrder query params to the API", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "Desktop only — avoids duplicate mobile coverage");
+
+    let capturedTodosUrl: URL | null = null;
+
+    // Install the mock first — it handles all API routes.
+    await installFilterPipelineMockApi(page, [
+      {
+        id: "q-1",
+        title: "Query param task",
+        description: null,
+        notes: null,
+        category: null,
+        dueDate: null,
+        priority: "medium",
+      },
+    ]);
+
+    // Stack a second interceptor on top (registered later = higher priority).
+    // It captures the GET /todos URL and falls back to the mock for the response.
+    await page.route("**/todos*", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname === "/todos" && route.request().method() === "GET") {
+        capturedTodosUrl = url;
+      }
+      return route.fallback();
+    });
+
+    await registerAndOpenTodos(page, "query-params@example.com");
+
+    expect(capturedTodosUrl).not.toBeNull();
+    expect(capturedTodosUrl!.searchParams.get("sortBy")).toBe("order");
+    expect(capturedTodosUrl!.searchParams.get("sortOrder")).toBe("asc");
+  });
 });
