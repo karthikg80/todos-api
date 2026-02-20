@@ -181,8 +181,10 @@ let isApplyingFiltersPipeline = false;
 // AI_DEBUG_ENABLED, AI_SURFACE_TYPES, AI_SURFACE_IMPACT — from aiSuggestionUtils.js
 const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
+const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
 const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
 let isAiWorkspaceCollapsed = true;
+let isAiWorkspaceVisible = AI_DEBUG_ENABLED;
 let onCreateAssistState = createInitialOnCreateAssistState();
 let suppressOnCreateAssistInput = false;
 onCreateAssistState.dismissedTodoIds = loadOnCreateDismissedTodoIds();
@@ -283,11 +285,35 @@ function readStoredAiWorkspaceCollapsedState() {
   }
 }
 
+function readStoredAiWorkspaceVisibleState() {
+  if (AI_DEBUG_ENABLED) return true;
+  try {
+    const stored = window.localStorage.getItem(
+      AI_WORKSPACE_VISIBLE_STORAGE_KEY,
+    );
+    if (stored === null) return false;
+    return stored === "1";
+  } catch (error) {
+    return false;
+  }
+}
+
 function persistAiWorkspaceCollapsedState(isCollapsed) {
   try {
     window.localStorage.setItem(
       AI_WORKSPACE_COLLAPSED_STORAGE_KEY,
       isCollapsed ? "1" : "0",
+    );
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function persistAiWorkspaceVisibleState(isVisible) {
+  try {
+    window.localStorage.setItem(
+      AI_WORKSPACE_VISIBLE_STORAGE_KEY,
+      isVisible ? "1" : "0",
     );
   } catch (error) {
     // Ignore storage failures.
@@ -326,6 +352,25 @@ function updateAiWorkspaceStatusChip() {
     return;
   }
   refs.status.textContent = getAiWorkspaceStatusLabel();
+}
+
+function syncAiWorkspaceVisibility(visible) {
+  const refs = getAiWorkspaceElements();
+  if (refs) {
+    refs.workspace.hidden = !visible;
+  }
+  const critiqueButton = document.getElementById("critiqueDraftButton");
+  if (critiqueButton instanceof HTMLElement) {
+    critiqueButton.hidden = !visible;
+  }
+}
+
+function setAiWorkspaceVisible(visible, { persist = true } = {}) {
+  isAiWorkspaceVisible = AI_DEBUG_ENABLED ? true : !!visible;
+  syncAiWorkspaceVisibility(isAiWorkspaceVisible);
+  if (persist && !AI_DEBUG_ENABLED) {
+    persistAiWorkspaceVisibleState(isAiWorkspaceVisible);
+  }
 }
 
 function setAiWorkspaceCollapsed(
@@ -369,11 +414,13 @@ function focusAiWorkspaceTarget(targetId) {
 }
 
 function openAiWorkspaceForBrainDump() {
+  setAiWorkspaceVisible(true);
   setAiWorkspaceCollapsed(false);
   focusAiWorkspaceTarget("brainDumpInput");
 }
 
 function openAiWorkspaceForGoalPlan() {
+  setAiWorkspaceVisible(true);
   setAiWorkspaceCollapsed(false);
   focusAiWorkspaceTarget("goalInput");
 }
@@ -4436,8 +4483,8 @@ function renderTaskDrawerSuggestionSummary(suggestion) {
 }
 
 function renderTaskDrawerAssistSection(todoId) {
-  // Lint-first gate: show lint chip when a heuristic fires; fall through to
-  // the full panel if the title is clean or once the user has clicked Fix/Review.
+  // Lint-first gate: show lint chip only when a heuristic fires.
+  // Full panel should render only after explicit user action.
   // In debug mode, always show the full panel so developers see all metadata.
   const state = taskDrawerAssistState;
   if (!state.showFullAssist && !AI_DEBUG_ENABLED) {
@@ -4460,8 +4507,7 @@ function renderTaskDrawerAssistSection(todoId) {
         </div>
       `;
     }
-    // No lint issue: fall through to the full panel render below so that
-    // server-backed suggestions are visible without requiring a Fix click.
+    return "";
   }
 
   if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
@@ -5303,7 +5349,9 @@ function openTodoDrawer(todoId, triggerEl) {
   } else {
     refs.closeBtn.focus();
   }
-  loadTaskDrawerDecisionAssist(todoId);
+  if (AI_DEBUG_ENABLED) {
+    loadTaskDrawerDecisionAssist(todoId);
+  }
 }
 
 function closeTodoDrawer({ restoreFocus = true } = {}) {
@@ -7496,16 +7544,6 @@ function renderTodayPlanPanel() {
     return;
   }
 
-  // Lint-first: fetch any pending/existing suggestion on first open so that
-  // a plan created earlier is restored after reload (allowGenerate=false means
-  // no new AI generation fires — it only reads the latest stored suggestion).
-  // New generation always requires an explicit "Generate plan" button click.
-  if (!todayPlanState.hasLoaded && !todayPlanState.loading) {
-    todayPlanState.loading = true;
-    todayPlanState.generating = false;
-    loadTodayPlanDecisionAssist(false);
-  }
-
   panel.hidden = false;
   const goalText = todayPlanState.goalText || "";
   const envelope = todayPlanState.envelope;
@@ -9328,6 +9366,9 @@ function showAppView() {
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
   setProjectsRailCollapsed(readStoredRailCollapsedState());
+  setAiWorkspaceVisible(readStoredAiWorkspaceVisibleState(), {
+    persist: false,
+  });
   setAiWorkspaceCollapsed(readStoredAiWorkspaceCollapsedState(), {
     persist: false,
   });

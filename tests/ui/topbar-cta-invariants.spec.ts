@@ -172,6 +172,9 @@ test.describe("Topbar CTA invariants", () => {
     ]);
 
     await page.setViewportSize({ width: 1280, height: 880 });
+    await page.addInitScript(() => {
+      window.localStorage.setItem("todos:ai-visible", "1");
+    });
     await registerAndOpenTodosView(page, {
       name: "Topbar Invariants",
       email: "topbar-invariants@example.com",

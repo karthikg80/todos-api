@@ -155,7 +155,7 @@ async function installAiWorkspaceMockApi(page: Page) {
   });
 }
 
-async function openTodos(page: Page) {
+async function openTodos(page: Page, { showWorkspace = false } = {}) {
   await page.addInitScript(() => {
     window.localStorage.removeItem("todos:ai-collapsed");
   });
@@ -163,13 +163,25 @@ async function openTodos(page: Page) {
     name: "AI Workspace User",
     email: "ai-workspace-user@example.com",
   });
+  if (showWorkspace) {
+    await page.goto("/?ai_debug=1");
+  }
   await expect(page.locator("#todosView")).toHaveClass(/active/);
 }
+
+test.describe("AI workspace visibility defaults", () => {
+  test("is hidden by default on Todos load", async ({ page }) => {
+    await installAiWorkspaceMockApi(page);
+    await openTodos(page);
+    await expect(page.locator("#aiWorkspace")).toBeHidden();
+    await expect(page.locator("#critiqueDraftButton")).toBeHidden();
+  });
+});
 
 test.describe("AI workspace calm mode", () => {
   test.beforeEach(async ({ page }) => {
     await installAiWorkspaceMockApi(page);
-    await openTodos(page);
+    await openTodos(page, { showWorkspace: true });
   });
 
   test("defaults to collapsed on Todos load", async ({ page }) => {
