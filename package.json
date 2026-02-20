@@ -84,5 +84,10 @@
     "supertest": "^7.2.2",
     "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2"
+  },
+  "overrides": {
+    "swagger-jsdoc": {
+      "glob": "^11.0.0"
+    }
   }
 }
