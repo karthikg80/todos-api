@@ -214,6 +214,10 @@ export class InMemoryAiSuggestionStore implements IAiSuggestionStore {
   }
 }
 
+type PrismaAiSuggestionRecord = Prisma.AiSuggestionGetPayload<{}> & {
+  appliedTodos?: Array<{ todoId: string }>;
+};
+
 export class PrismaAiSuggestionStore implements IAiSuggestionStore {
   constructor(private prisma: PrismaClient) {}
 
@@ -227,7 +231,9 @@ export class PrismaAiSuggestionStore implements IAiSuggestionStore {
     return [...unique];
   }
 
-  private mapPrismaRecord(record: any): AiSuggestionRecord {
+  private mapPrismaRecord(
+    record: PrismaAiSuggestionRecord,
+  ): AiSuggestionRecord {
     const fromRelation = Array.isArray(record.appliedTodos)
       ? record.appliedTodos
           .map((item: { todoId?: unknown }) =>
