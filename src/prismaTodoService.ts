@@ -61,6 +61,12 @@ export class PrismaTodoService implements ITodoService {
 
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     const todo = await this.prisma.$transaction(async (tx) => {
+      // Lock the user row so concurrent creates are serialized and cannot
+      // compute the same next order value (same pattern as createSubtask).
+      await tx.$queryRaw`
+        SELECT "id" FROM "users" WHERE "id" = ${userId} FOR UPDATE
+      `;
+
       // Calculate next order: max order + 1 for this user
       const maxOrderTodo = await tx.todo.findFirst({
         where: { userId },
@@ -256,13 +262,30 @@ export class PrismaTodoService implements ITodoService {
   ): Promise<Todo[] | null> {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        // Fetch current orders in a single query to identify which items
+        // actually changed — avoids N writes when only a few moved.
+        const currentTodos = await tx.todo.findMany({
+          where: { userId },
+          select: { id: true, order: true },
+        });
+        const currentOrderMap = new Map(
+          currentTodos.map((t) => [t.id, t.order]),
+        );
+
+        // Validate all requested IDs exist before writing anything.
         for (const item of items) {
-          const updateResult = await tx.todo.updateMany({
-            where: { id: item.id, userId },
-            data: { order: item.order },
-          });
-          if (updateResult.count !== 1) {
+          if (!currentOrderMap.has(item.id)) {
             throw new Error(PrismaTodoService.NOT_FOUND_ERROR);
+          }
+        }
+
+        // Only update items whose order actually changed (delta-only).
+        for (const item of items) {
+          if (currentOrderMap.get(item.id) !== item.order) {
+            await tx.todo.updateMany({
+              where: { id: item.id, userId },
+              data: { order: item.order },
+            });
           }
         }
 
