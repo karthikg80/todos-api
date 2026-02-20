@@ -14,6 +14,12 @@ import {
 } from "./types";
 import { hasPrismaCode } from "./errorHandling";
 
+type PrismaTodoWithRelations = Prisma.TodoGetPayload<{
+  include: { project: true; subtasks: true };
+}>;
+
+type PrismaSubtaskRecord = Prisma.SubtaskGetPayload<{}>;
+
 /**
  * Prisma-based implementation of ITodoService using PostgreSQL database.
  * Provides persistent storage for todos with full CRUD operations.
@@ -99,7 +105,7 @@ export class PrismaTodoService implements ITodoService {
   }
 
   async findAll(userId: string, query?: FindTodosQuery): Promise<Todo[]> {
-    const where: any = { userId };
+    const where: Prisma.TodoWhereInput = { userId };
     if (query?.completed !== undefined) {
       where.completed = query.completed;
     }
@@ -166,7 +172,7 @@ export class PrismaTodoService implements ITodoService {
     dto: UpdateTodoDto,
   ): Promise<Todo | null> {
     try {
-      const updateData: any = {};
+      const updateData: Prisma.TodoUncheckedUpdateInput = {};
 
       if (dto.title !== undefined) updateData.title = dto.title;
       if (dto.description !== undefined)
@@ -514,7 +520,7 @@ export class PrismaTodoService implements ITodoService {
    * Map Prisma Todo model to application Todo type.
    * Ensures consistent interface regardless of database representation.
    */
-  private mapPrismaToTodo(prismaTodo: any): Todo {
+  private mapPrismaToTodo(prismaTodo: PrismaTodoWithRelations): Todo {
     return {
       id: prismaTodo.id,
       title: prismaTodo.title,
@@ -532,7 +538,7 @@ export class PrismaTodoService implements ITodoService {
     };
   }
 
-  private mapPrismaToSubtask(prismaSubtask: any): Subtask {
+  private mapPrismaToSubtask(prismaSubtask: PrismaSubtaskRecord): Subtask {
     return {
       id: prismaSubtask.id,
       title: prismaSubtask.title,

@@ -63,3 +63,35 @@ Explicit rule:
 - Prefer no-op over risky mutation when mapping confidence is low.
 - Ask one clarification when multiple project matches are plausible.
 - Never auto-create projects from AI without explicit confirmation.
+
+## API Contract (Formalized)
+
+### Canonical field
+
+- **`category`** is the public API field for both request and response payloads.
+- **`projectId`** is internal; it never appears in API responses or client requests.
+
+### Write path (create/update)
+
+1. Client sends `category` (string or `null`).
+2. `PrismaTodoService` normalizes: `normalizeCategory(category)` → trimmed string or `null`.
+3. If non-null, `ensureProjectId(tx, userId, category)` upserts a `Project` row and sets `todo.projectId`.
+4. If null, both `category` and `projectId` are set to `null`.
+
+### Read path
+
+`mapPrismaToTodo()` resolves the display value with this precedence:
+
+```
+project?.name  →  raw category  →  undefined
+```
+
+This means the Project name is authoritative when a `projectId` relation exists.
+
+### Invariants
+
+- Every todo with a non-null `category` has a corresponding `projectId` (enforced at write time).
+- Every todo with a null `category` has a null `projectId`.
+- `Project` rows are created on-demand via upsert; they are never orphaned by todo writes.
+- The `[userId, name]` unique constraint on `Project` prevents duplicate project names per user.
+- `category` and `Project.name` share the same 50-character max length.

@@ -1,13 +1,15 @@
 import {
   CreateProjectDto,
+  CreateSubtaskDto,
   CreateTodoDto,
+  UpdateProjectDto,
+  UpdateSubtaskDto,
   UpdateTodoDto,
   ReorderTodoItemDto,
   FindTodosQuery,
   Priority,
   TodoSortBy,
   SortOrder,
-  UpdateProjectDto,
 } from "./types";
 
 export class ValidationError extends Error {
@@ -48,21 +50,23 @@ function validateProjectName(name: unknown): string {
   return normalized;
 }
 
-export function validateCreateProject(data: any): CreateProjectDto {
+export function validateCreateProject(data: unknown): CreateProjectDto {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Request body must be an object");
   }
+  const body = data as Record<string, unknown>;
   return {
-    name: validateProjectName(data.name),
+    name: validateProjectName(body.name),
   };
 }
 
-export function validateUpdateProject(data: any): UpdateProjectDto {
+export function validateUpdateProject(data: unknown): UpdateProjectDto {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Request body must be an object");
   }
+  const body = data as Record<string, unknown>;
   return {
-    name: validateProjectName(data.name),
+    name: validateProjectName(body.name),
   };
 }
 
@@ -77,35 +81,39 @@ function parsePositiveInt(value: unknown, field: string): number {
   return parsed;
 }
 
-export function validateFindTodosQuery(query: any): FindTodosQuery {
+export function validateFindTodosQuery(query: unknown): FindTodosQuery {
+  if (!query || typeof query !== "object") {
+    throw new ValidationError("Query must be an object");
+  }
+  const q = query as Record<string, unknown>;
   const normalized: FindTodosQuery = {};
 
-  if (query.completed !== undefined) {
-    if (query.completed === "true") {
+  if (q.completed !== undefined) {
+    if (q.completed === "true") {
       normalized.completed = true;
-    } else if (query.completed === "false") {
+    } else if (q.completed === "false") {
       normalized.completed = false;
     } else {
       throw new ValidationError('completed must be "true" or "false"');
     }
   }
 
-  if (query.priority !== undefined) {
-    if (typeof query.priority !== "string") {
+  if (q.priority !== undefined) {
+    if (typeof q.priority !== "string") {
       throw new ValidationError("priority must be low, medium, or high");
     }
-    const priority = query.priority.toLowerCase() as Priority;
+    const priority = q.priority.toLowerCase() as Priority;
     if (!VALID_PRIORITIES.includes(priority)) {
       throw new ValidationError("priority must be low, medium, or high");
     }
     normalized.priority = priority;
   }
 
-  if (query.category !== undefined) {
-    if (typeof query.category !== "string") {
+  if (q.category !== undefined) {
+    if (typeof q.category !== "string") {
       throw new ValidationError("category must be a string");
     }
-    const category = query.category.trim();
+    const category = q.category.trim();
     if (!category) {
       throw new ValidationError("category cannot be empty");
     }
@@ -115,13 +123,13 @@ export function validateFindTodosQuery(query: any): FindTodosQuery {
     normalized.category = category;
   }
 
-  if (query.sortBy !== undefined) {
-    if (typeof query.sortBy !== "string") {
+  if (q.sortBy !== undefined) {
+    if (typeof q.sortBy !== "string") {
       throw new ValidationError(
         `sortBy must be one of: ${VALID_SORT_FIELDS.join(", ")}`,
       );
     }
-    const sortBy = query.sortBy as TodoSortBy;
+    const sortBy = q.sortBy as TodoSortBy;
     if (!VALID_SORT_FIELDS.includes(sortBy)) {
       throw new ValidationError(
         `sortBy must be one of: ${VALID_SORT_FIELDS.join(", ")}`,
@@ -130,25 +138,25 @@ export function validateFindTodosQuery(query: any): FindTodosQuery {
     normalized.sortBy = sortBy;
   }
 
-  if (query.sortOrder !== undefined) {
-    if (typeof query.sortOrder !== "string") {
+  if (q.sortOrder !== undefined) {
+    if (typeof q.sortOrder !== "string") {
       throw new ValidationError("sortOrder must be asc or desc");
     }
-    const sortOrder = query.sortOrder.toLowerCase() as SortOrder;
+    const sortOrder = q.sortOrder.toLowerCase() as SortOrder;
     if (!VALID_SORT_ORDERS.includes(sortOrder)) {
       throw new ValidationError("sortOrder must be asc or desc");
     }
     normalized.sortOrder = sortOrder;
   }
 
-  const pageProvided = query.page !== undefined;
-  const limitProvided = query.limit !== undefined;
+  const pageProvided = q.page !== undefined;
+  const limitProvided = q.limit !== undefined;
   if (pageProvided || limitProvided) {
-    const limit = limitProvided ? parsePositiveInt(query.limit, "limit") : 20;
+    const limit = limitProvided ? parsePositiveInt(q.limit, "limit") : 20;
     if (limit > MAX_PAGE_SIZE) {
       throw new ValidationError(`limit cannot exceed ${MAX_PAGE_SIZE}`);
     }
-    const page = pageProvided ? parsePositiveInt(query.page, "page") : 1;
+    const page = pageProvided ? parsePositiveInt(q.page, "page") : 1;
     normalized.page = page;
     normalized.limit = limit;
   }
@@ -156,138 +164,142 @@ export function validateFindTodosQuery(query: any): FindTodosQuery {
   return normalized;
 }
 
-export function validateCreateTodo(data: any): CreateTodoDto {
+export function validateCreateTodo(data: unknown): CreateTodoDto {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Request body must be an object");
   }
+  const body = data as Record<string, unknown>;
 
-  if (!data.title || typeof data.title !== "string") {
+  if (!body.title || typeof body.title !== "string") {
     throw new ValidationError("Title is required and must be a string");
   }
 
-  if (data.title.trim().length === 0) {
+  if (body.title.trim().length === 0) {
     throw new ValidationError("Title cannot be empty");
   }
 
-  if (data.title.length > 200) {
+  if (body.title.length > 200) {
     throw new ValidationError("Title cannot exceed 200 characters");
   }
 
-  if (data.description !== undefined) {
-    if (typeof data.description !== "string") {
+  if (body.description !== undefined) {
+    if (typeof body.description !== "string") {
       throw new ValidationError("Description must be a string");
     }
-    if (data.description.length > 1000) {
+    if (body.description.length > 1000) {
       throw new ValidationError("Description cannot exceed 1000 characters");
     }
   }
 
-  if (data.category !== undefined) {
-    if (typeof data.category !== "string") {
+  if (body.category !== undefined) {
+    if (typeof body.category !== "string") {
       throw new ValidationError("Category must be a string");
     }
-    if (data.category.length > 50) {
+    if (body.category.length > 50) {
       throw new ValidationError("Category cannot exceed 50 characters");
     }
   }
 
-  if (data.dueDate !== undefined) {
-    if (typeof data.dueDate !== "string") {
+  if (body.dueDate !== undefined) {
+    if (typeof body.dueDate !== "string") {
       throw new ValidationError("Due date must be a string");
     }
-    const date = new Date(data.dueDate);
+    const date = new Date(body.dueDate);
     if (isNaN(date.getTime())) {
       throw new ValidationError("Invalid due date format");
     }
   }
 
-  if (data.priority !== undefined) {
-    if (typeof data.priority !== "string") {
+  if (body.priority !== undefined) {
+    if (typeof body.priority !== "string") {
       throw new ValidationError("Priority must be a string");
     }
-    if (!["low", "medium", "high"].includes(data.priority.toLowerCase())) {
+    if (!["low", "medium", "high"].includes(body.priority.toLowerCase())) {
       throw new ValidationError("Priority must be low, medium, or high");
     }
   }
 
-  if (data.notes !== undefined) {
-    if (typeof data.notes !== "string") {
+  if (body.notes !== undefined) {
+    if (typeof body.notes !== "string") {
       throw new ValidationError("Notes must be a string");
     }
-    if (data.notes.length > 10000) {
+    if (body.notes.length > 10000) {
       throw new ValidationError("Notes cannot exceed 10000 characters");
     }
   }
 
   return {
-    title: data.title.trim(),
-    description: data.description?.trim(),
-    category: data.category?.trim(),
-    dueDate: data.dueDate ? new Date(data.dueDate) : undefined,
-    priority: data.priority?.toLowerCase(),
-    notes: data.notes?.trim(),
+    title: body.title.trim(),
+    description: (body.description as string | undefined)?.trim(),
+    category: (body.category as string | undefined)?.trim(),
+    dueDate: body.dueDate ? new Date(body.dueDate as string) : undefined,
+    priority: (body.priority as string | undefined)?.toLowerCase() as
+      | Priority
+      | undefined,
+    notes: (body.notes as string | undefined)?.trim(),
   };
 }
 
-export function validateUpdateTodo(data: any): UpdateTodoDto {
+export function validateUpdateTodo(data: unknown): UpdateTodoDto {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Request body must be an object");
   }
+  const body = data as Record<string, unknown>;
 
   const update: UpdateTodoDto = {};
 
-  if (data.title !== undefined) {
-    if (typeof data.title !== "string") {
+  if (body.title !== undefined) {
+    if (typeof body.title !== "string") {
       throw new ValidationError("Title must be a string");
     }
-    if (data.title.trim().length === 0) {
+    if (body.title.trim().length === 0) {
       throw new ValidationError("Title cannot be empty");
     }
-    if (data.title.length > 200) {
+    if (body.title.length > 200) {
       throw new ValidationError("Title cannot exceed 200 characters");
     }
-    update.title = data.title.trim();
+    update.title = body.title.trim();
   }
 
-  if (data.description !== undefined) {
-    if (typeof data.description !== "string") {
+  if (body.description !== undefined) {
+    if (typeof body.description !== "string") {
       throw new ValidationError("Description must be a string");
     }
-    if (data.description.length > 1000) {
+    if (body.description.length > 1000) {
       throw new ValidationError("Description cannot exceed 1000 characters");
     }
-    update.description = data.description.trim();
+    update.description = body.description.trim();
   }
 
-  if (data.completed !== undefined) {
-    if (typeof data.completed !== "boolean") {
+  if (body.completed !== undefined) {
+    if (typeof body.completed !== "boolean") {
       throw new ValidationError("Completed must be a boolean");
     }
-    update.completed = data.completed;
+    update.completed = body.completed;
   }
 
-  if (data.category !== undefined) {
-    if (data.category === null) {
+  if (body.category !== undefined) {
+    if (body.category === null) {
       update.category = null;
     } else {
-      if (typeof data.category !== "string") {
+      if (typeof body.category !== "string") {
         throw new ValidationError("Category must be a string");
       }
-      if (data.category.length > 50) {
+      if (body.category.length > 50) {
         throw new ValidationError("Category cannot exceed 50 characters");
       }
-      update.category = data.category.trim();
+      update.category = body.category.trim();
     }
   }
 
-  if (data.dueDate !== undefined) {
-    if (data.dueDate === null) {
+  if (body.dueDate !== undefined) {
+    if (body.dueDate === null) {
       update.dueDate = null;
     } else {
-      if (typeof data.dueDate !== "string") {
+      if (typeof body.dueDate !== "string") {
         throw new ValidationError("Due date must be a string");
       }
-      const date = new Date(data.dueDate);
+      const date = new Date(body.dueDate);
       if (isNaN(date.getTime())) {
         throw new ValidationError("Invalid due date format");
       }
@@ -295,41 +307,41 @@ export function validateUpdateTodo(data: any): UpdateTodoDto {
     }
   }
 
-  if (data.order !== undefined) {
-    if (typeof data.order !== "number") {
+  if (body.order !== undefined) {
+    if (typeof body.order !== "number") {
       throw new ValidationError("Order must be a number");
     }
-    if (data.order < 0 || !Number.isInteger(data.order)) {
+    if (body.order < 0 || !Number.isInteger(body.order)) {
       throw new ValidationError("Order must be a non-negative integer");
     }
-    update.order = data.order;
+    update.order = body.order;
   }
 
-  if (data.priority !== undefined) {
-    if (data.priority === null) {
+  if (body.priority !== undefined) {
+    if (body.priority === null) {
       update.priority = "medium";
     } else {
-      if (typeof data.priority !== "string") {
+      if (typeof body.priority !== "string") {
         throw new ValidationError("Priority must be a string");
       }
-      if (!["low", "medium", "high"].includes(data.priority.toLowerCase())) {
+      if (!["low", "medium", "high"].includes(body.priority.toLowerCase())) {
         throw new ValidationError("Priority must be low, medium, or high");
       }
-      update.priority = data.priority.toLowerCase() as Priority;
+      update.priority = body.priority.toLowerCase() as Priority;
     }
   }
 
-  if (data.notes !== undefined) {
-    if (data.notes === null) {
+  if (body.notes !== undefined) {
+    if (body.notes === null) {
       update.notes = null;
     } else {
-      if (typeof data.notes !== "string") {
+      if (typeof body.notes !== "string") {
         throw new ValidationError("Notes must be a string");
       }
-      if (data.notes.length > 10000) {
+      if (body.notes.length > 10000) {
         throw new ValidationError("Notes cannot exceed 10000 characters");
       }
-      update.notes = data.notes.trim();
+      update.notes = body.notes.trim();
     }
   }
 
@@ -352,7 +364,7 @@ export function validateId(id: string): void {
   }
 }
 
-export function validateReorderTodos(data: any): ReorderTodoItemDto[] {
+export function validateReorderTodos(data: unknown): ReorderTodoItemDto[] {
   if (!Array.isArray(data)) {
     throw new ValidationError("Request body must be an array");
   }
@@ -367,13 +379,14 @@ export function validateReorderTodos(data: any): ReorderTodoItemDto[] {
   }
 
   const seenIds = new Set<string>();
-  const items = data.map((item, index) => {
+  const items = data.map((item: unknown, index: number) => {
     if (!item || typeof item !== "object") {
       throw new ValidationError(`Item at index ${index} must be an object`);
     }
+    const entry = item as Record<string, unknown>;
 
-    const id = item.id;
-    const order = item.order;
+    const id = entry.id;
+    const order = entry.order;
     if (typeof id !== "string") {
       throw new ValidationError(`Item at index ${index} has invalid id`);
     }
@@ -394,63 +407,65 @@ export function validateReorderTodos(data: any): ReorderTodoItemDto[] {
   return items;
 }
 
-export function validateCreateSubtask(data: any) {
+export function validateCreateSubtask(data: unknown): CreateSubtaskDto {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Request body must be an object");
   }
+  const body = data as Record<string, unknown>;
 
-  if (!data.title || typeof data.title !== "string") {
+  if (!body.title || typeof body.title !== "string") {
     throw new ValidationError("Title is required and must be a string");
   }
 
-  if (data.title.trim().length === 0) {
+  if (body.title.trim().length === 0) {
     throw new ValidationError("Title cannot be empty");
   }
 
-  if (data.title.length > 200) {
+  if (body.title.length > 200) {
     throw new ValidationError("Title cannot exceed 200 characters");
   }
 
   return {
-    title: data.title.trim(),
+    title: body.title.trim(),
   };
 }
 
-export function validateUpdateSubtask(data: any) {
+export function validateUpdateSubtask(data: unknown): UpdateSubtaskDto {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Request body must be an object");
   }
+  const body = data as Record<string, unknown>;
 
-  const update: any = {};
+  const update: UpdateSubtaskDto = {};
 
-  if (data.title !== undefined) {
-    if (typeof data.title !== "string") {
+  if (body.title !== undefined) {
+    if (typeof body.title !== "string") {
       throw new ValidationError("Title must be a string");
     }
-    if (data.title.trim().length === 0) {
+    if (body.title.trim().length === 0) {
       throw new ValidationError("Title cannot be empty");
     }
-    if (data.title.length > 200) {
+    if (body.title.length > 200) {
       throw new ValidationError("Title cannot exceed 200 characters");
     }
-    update.title = data.title.trim();
+    update.title = body.title.trim();
   }
 
-  if (data.completed !== undefined) {
-    if (typeof data.completed !== "boolean") {
+  if (body.completed !== undefined) {
+    if (typeof body.completed !== "boolean") {
       throw new ValidationError("Completed must be a boolean");
     }
-    update.completed = data.completed;
+    update.completed = body.completed;
   }
 
-  if (data.order !== undefined) {
-    if (typeof data.order !== "number") {
+  if (body.order !== undefined) {
+    if (typeof body.order !== "number") {
       throw new ValidationError("Order must be a number");
     }
-    if (data.order < 0 || !Number.isInteger(data.order)) {
+    if (body.order < 0 || !Number.isInteger(body.order)) {
       throw new ValidationError("Order must be a non-negative integer");
     }
-    update.order = data.order;
+    update.order = body.order;
   }
 
   if (Object.keys(update).length === 0) {

@@ -3,6 +3,11 @@ import {
   validateUpdateTodo,
   validateId,
   validateReorderTodos,
+  validateCreateSubtask,
+  validateUpdateSubtask,
+  validateCreateProject,
+  validateUpdateProject,
+  validateFindTodosQuery,
   ValidationError,
 } from "./validation";
 
@@ -216,6 +221,273 @@ describe("Validation", () => {
       expect(() => validateReorderTodos(payload)).toThrow(
         "Cannot reorder more than 500 todos at once",
       );
+    });
+
+    it("should throw for non-array input", () => {
+      expect(() => validateReorderTodos("not-array")).toThrow(
+        "Request body must be an array",
+      );
+      expect(() => validateReorderTodos({})).toThrow(
+        "Request body must be an array",
+      );
+    });
+
+    it("should throw for empty array", () => {
+      expect(() => validateReorderTodos([])).toThrow(
+        "At least one todo order item is required",
+      );
+    });
+
+    it("should throw for duplicate ids", () => {
+      const id = "00000000-0000-1000-8000-000000000001";
+      expect(() =>
+        validateReorderTodos([
+          { id, order: 0 },
+          { id, order: 1 },
+        ]),
+      ).toThrow("Duplicate todo IDs are not allowed");
+    });
+
+    it("should throw for item with non-object entry", () => {
+      expect(() => validateReorderTodos([null])).toThrow(
+        "Item at index 0 must be an object",
+      );
+    });
+
+    it("should throw for item with invalid order", () => {
+      expect(() =>
+        validateReorderTodos([
+          { id: "00000000-0000-1000-8000-000000000001", order: -1 },
+        ]),
+      ).toThrow("Item at index 0 has invalid order");
+    });
+  });
+
+  describe("validateCreateSubtask", () => {
+    it("should validate a valid subtask creation", () => {
+      const result = validateCreateSubtask({ title: "Buy milk" });
+      expect(result.title).toBe("Buy milk");
+    });
+
+    it("should trim whitespace from title", () => {
+      const result = validateCreateSubtask({ title: "  Buy milk  " });
+      expect(result.title).toBe("Buy milk");
+    });
+
+    it("should throw for missing title", () => {
+      expect(() => validateCreateSubtask({})).toThrow(
+        "Title is required and must be a string",
+      );
+    });
+
+    it("should throw for non-string title", () => {
+      expect(() => validateCreateSubtask({ title: 42 })).toThrow(
+        "Title is required and must be a string",
+      );
+    });
+
+    it("should throw for empty title", () => {
+      expect(() => validateCreateSubtask({ title: "   " })).toThrow(
+        "Title cannot be empty",
+      );
+    });
+
+    it("should throw for title exceeding max length", () => {
+      expect(() => validateCreateSubtask({ title: "a".repeat(201) })).toThrow(
+        "Title cannot exceed 200 characters",
+      );
+    });
+
+    it("should throw for non-object input", () => {
+      expect(() => validateCreateSubtask(null)).toThrow(ValidationError);
+      expect(() => validateCreateSubtask("string")).toThrow(ValidationError);
+    });
+  });
+
+  describe("validateUpdateSubtask", () => {
+    it("should validate update with title", () => {
+      const result = validateUpdateSubtask({ title: "Updated" });
+      expect(result.title).toBe("Updated");
+    });
+
+    it("should validate update with completed", () => {
+      const result = validateUpdateSubtask({ completed: true });
+      expect(result.completed).toBe(true);
+    });
+
+    it("should validate update with order", () => {
+      const result = validateUpdateSubtask({ order: 3 });
+      expect(result.order).toBe(3);
+    });
+
+    it("should throw for empty update", () => {
+      expect(() => validateUpdateSubtask({})).toThrow(
+        "At least one field must be provided for update",
+      );
+    });
+
+    it("should throw for non-boolean completed", () => {
+      expect(() => validateUpdateSubtask({ completed: "yes" })).toThrow(
+        "Completed must be a boolean",
+      );
+    });
+
+    it("should throw for negative order", () => {
+      expect(() => validateUpdateSubtask({ order: -1 })).toThrow(
+        "Order must be a non-negative integer",
+      );
+    });
+
+    it("should throw for non-integer order", () => {
+      expect(() => validateUpdateSubtask({ order: 1.5 })).toThrow(
+        "Order must be a non-negative integer",
+      );
+    });
+
+    it("should throw for non-object input", () => {
+      expect(() => validateUpdateSubtask(null)).toThrow(ValidationError);
+      expect(() => validateUpdateSubtask(42)).toThrow(ValidationError);
+    });
+  });
+
+  describe("validateCreateProject", () => {
+    it("should validate a valid project name", () => {
+      const result = validateCreateProject({ name: "Work" });
+      expect(result.name).toBe("Work");
+    });
+
+    it("should normalize slashes with spaces", () => {
+      const result = validateCreateProject({ name: "Work/Tasks" });
+      expect(result.name).toBe("Work / Tasks");
+    });
+
+    it("should throw for missing name", () => {
+      expect(() => validateCreateProject({})).toThrow(
+        "Project name must be a string",
+      );
+    });
+
+    it("should throw for empty name", () => {
+      expect(() => validateCreateProject({ name: "   " })).toThrow(
+        "Project name cannot be empty",
+      );
+    });
+
+    it("should throw for name exceeding max length", () => {
+      expect(() => validateCreateProject({ name: "a".repeat(51) })).toThrow(
+        "Project name cannot exceed 50 characters",
+      );
+    });
+
+    it("should throw for non-object input", () => {
+      expect(() => validateCreateProject(null)).toThrow(ValidationError);
+      expect(() => validateCreateProject("string")).toThrow(ValidationError);
+    });
+  });
+
+  describe("validateUpdateProject", () => {
+    it("should validate a valid project name", () => {
+      const result = validateUpdateProject({ name: "Personal" });
+      expect(result.name).toBe("Personal");
+    });
+
+    it("should throw for missing name", () => {
+      expect(() => validateUpdateProject({})).toThrow(
+        "Project name must be a string",
+      );
+    });
+
+    it("should throw for non-object input", () => {
+      expect(() => validateUpdateProject(null)).toThrow(ValidationError);
+    });
+  });
+
+  describe("validateFindTodosQuery", () => {
+    it("should return empty query for no params", () => {
+      const result = validateFindTodosQuery({});
+      expect(result).toEqual({});
+    });
+
+    it("should parse completed=true", () => {
+      const result = validateFindTodosQuery({ completed: "true" });
+      expect(result.completed).toBe(true);
+    });
+
+    it("should parse completed=false", () => {
+      const result = validateFindTodosQuery({ completed: "false" });
+      expect(result.completed).toBe(false);
+    });
+
+    it("should throw for invalid completed value", () => {
+      expect(() => validateFindTodosQuery({ completed: "yes" })).toThrow(
+        'completed must be "true" or "false"',
+      );
+    });
+
+    it("should parse valid priority", () => {
+      const result = validateFindTodosQuery({ priority: "HIGH" });
+      expect(result.priority).toBe("high");
+    });
+
+    it("should throw for invalid priority", () => {
+      expect(() => validateFindTodosQuery({ priority: "urgent" })).toThrow(
+        "priority must be low, medium, or high",
+      );
+    });
+
+    it("should parse valid category", () => {
+      const result = validateFindTodosQuery({ category: "Work" });
+      expect(result.category).toBe("Work");
+    });
+
+    it("should throw for empty category", () => {
+      expect(() => validateFindTodosQuery({ category: "   " })).toThrow(
+        "category cannot be empty",
+      );
+    });
+
+    it("should parse valid sortBy", () => {
+      const result = validateFindTodosQuery({ sortBy: "order" });
+      expect(result.sortBy).toBe("order");
+    });
+
+    it("should throw for invalid sortBy", () => {
+      expect(() => validateFindTodosQuery({ sortBy: "invalid" })).toThrow(
+        "sortBy must be one of:",
+      );
+    });
+
+    it("should parse sortOrder", () => {
+      const result = validateFindTodosQuery({ sortOrder: "DESC" });
+      expect(result.sortOrder).toBe("desc");
+    });
+
+    it("should throw for invalid sortOrder", () => {
+      expect(() => validateFindTodosQuery({ sortOrder: "random" })).toThrow(
+        "sortOrder must be asc or desc",
+      );
+    });
+
+    it("should parse page and limit", () => {
+      const result = validateFindTodosQuery({ page: "2", limit: "10" });
+      expect(result.page).toBe(2);
+      expect(result.limit).toBe(10);
+    });
+
+    it("should throw for limit exceeding max", () => {
+      expect(() => validateFindTodosQuery({ limit: "101" })).toThrow(
+        "limit cannot exceed 100",
+      );
+    });
+
+    it("should throw for non-numeric page", () => {
+      expect(() => validateFindTodosQuery({ page: "abc" })).toThrow(
+        "page must be a positive integer",
+      );
+    });
+
+    it("should throw for non-object input", () => {
+      expect(() => validateFindTodosQuery(null)).toThrow(ValidationError);
     });
   });
 });
