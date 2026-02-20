@@ -1,7 +1,7 @@
 # TASK 110: docs-refresh-current-architecture-and-testing-truth
 
 type: Green
-status: READY
+status: REVIEW
 mode: refactor
 builder: codex
 reviewer: claude
@@ -27,9 +27,9 @@ Update top-level documentation to reflect the current architecture, feature set,
 - docs/**
 
 ## Acceptance Criteria *
-- [ ] Documentation no longer claims outdated test counts or obsolete architecture.
-- [ ] Feature and script descriptions match current codebase.
-- [ ] `npm run format:check` passes.
+- [x] Documentation no longer claims outdated test counts or obsolete architecture.
+- [x] Feature and script descriptions match current codebase.
+- [x] `npm run format:check` passes.
 
 ## Constraints
 - Keep docs concise and factual.
@@ -50,4 +50,4 @@ If any of these occur, set status to BLOCKED and request re-approval:
 - PASS/FAIL matrix
 
 ## Outcome *
-(filled after completion: what actually happened vs. intent)
+Refreshed `README.md` and `PROJECT_SUMMARY.md` to remove stale in-memory-era statements and fixed test-count claims. Updated testing guidance to reflect current unit/integration/UI layers and script names from `package.json`. Updated architecture/project-structure sections to match current route/service/Prisma/frontend layout. No code or runtime behavior changes.

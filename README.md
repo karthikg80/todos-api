@@ -267,24 +267,28 @@ DELETE /todos/:id
 
 ## Testing
 
-The project includes 91 comprehensive tests:
+The project has three testing layers:
 
-- **17 tests** - TodoService (in-memory unit tests)
-- **23 tests** - Validation logic
-- **22 tests** - API endpoints
-- **29 tests** - PrismaTodoService (database integration)
+- Unit tests for core validation/business logic (`npm run test:unit`)
+- Integration API tests against PostgreSQL (`npm run test:integration`)
+- Playwright UI coverage for end-to-end browser behavior (`npm run test:ui:fast` / `npm run test:ui`)
+
+Test totals change over time. Use command output as the source of truth rather than fixed counts in docs.
 
 ### Run Tests
 
 ```bash
-# All tests
-npm test
+# Unit tests (default test command)
+npm run test:unit
 
 # Watch mode
 npm run test:watch
 
-# With coverage
+# Unit coverage
 npm run test:coverage
+
+# API integration tests (requires test DB)
+npm run test:integration
 ```
 
 ### UI Testing (Playwright)
@@ -347,90 +351,33 @@ Tests automatically use a separate test database (`todos_test`) to avoid affecti
 
 ```
 todos-api/
-├── prisma/
-│   ├── migrations/          # Database migration files
-│   └── schema.prisma        # Prisma schema definition
+├── public/                  # Static frontend (HTML/CSS/vanilla JS)
+├── prisma/                  # Prisma schema + migrations
 ├── src/
-│   ├── interfaces/
-│   │   └── ITodoService.ts  # Service interface
-│   ├── types.ts             # TypeScript types
-│   ├── validation.ts        # Input validation
-│   ├── validation.test.ts   # Validation tests
-│   ├── config.ts            # Configuration management
-│   ├── prismaClient.ts      # Prisma singleton
-│   ├── todoService.ts       # In-memory service (for unit tests)
-│   ├── todoService.test.ts  # Unit tests
-│   ├── prismaTodoService.ts # Database service (production)
-│   ├── prismaTodoService.test.ts # Integration tests
-│   ├── app.ts               # Express app
-│   ├── app.test.ts          # API tests
-│   └── server.ts            # Entry point
-├── test/
-│   ├── setup.ts             # Jest global setup
-│   ├── teardown.ts          # Jest global teardown
-│   └── jest.setup.ts        # Per-test setup
-├── scripts/
-│   └── init-test-db.sql     # Test database initialization
-├── docker-compose.yml       # PostgreSQL container config
-├── .env                     # Environment variables (gitignored)
-├── .env.example             # Environment template
-└── jest.config.js           # Jest configuration
+│   ├── routes/              # Express routers (auth/todos/projects/ai/users/admin)
+│   ├── interfaces/          # Service contracts
+│   ├── *Service.ts          # Domain/services (todos, projects, auth, AI)
+│   ├── app.ts               # App composition
+│   └── server.ts            # Entrypoint
+├── test/                    # Jest setup/teardown helpers
+├── tests/ui/                # Playwright UI specs
+├── scripts/                 # Utility scripts (lint/test helpers)
+└── docs/                    # Architecture + agent protocol docs
 ```
 
 ## Architecture
 
-### Clean Architecture
+The app is route-modular and service-oriented:
 
-The application uses dependency injection and interface-based design:
-
-```
-┌─────────────────┐
-│   Express API   │
-│    (app.ts)     │
-└────────┬────────┘
-         │ depends on
-         ▼
-┌─────────────────┐
-│  ITodoService   │ ◄── Interface
-└────────┬────────┘
-         │ implemented by
-    ┌────┴────┐
-    ▼         ▼
-┌──────┐  ┌────────────┐
-│ Todo │  │   Prisma   │
-│Service│  │TodoService │
-└──────┘  └─────┬──────┘
-(memory)        │ uses
-                ▼
-           ┌─────────┐
-           │PostgreSQL│
-           └─────────┘
-```
-
-### Service Implementations
-
-1. **TodoService** (in-memory):
-   - Fast unit tests
-   - No database required
-   - Used in CI/CD pipelines
-
-2. **PrismaTodoService** (database):
-   - Production persistence
-   - Integration tests
-   - Real PostgreSQL database
+- `src/app.ts` wires middleware and route modules.
+- `src/routes/*.ts` own HTTP contracts and validation boundaries.
+- Service modules handle domain behavior (todos, projects, auth, AI flows).
+- Prisma-backed services provide persistent behavior for runtime/integration tests.
+- A deterministic in-memory todo service is retained for focused unit scenarios.
 
 ## Database Schema
 
-```sql
-CREATE TABLE todos (
-  id          TEXT PRIMARY KEY,           -- UUID
-  title       VARCHAR(200) NOT NULL,
-  description VARCHAR(1000),
-  completed   BOOLEAN NOT NULL DEFAULT false,
-  created_at  TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at  TIMESTAMP(3) NOT NULL
-);
-```
+The canonical schema is in `prisma/schema.prisma` and includes auth/user tables, projects, todos, subtasks, and AI suggestion tracking tables.
 
 ## Environment Variables
 
