@@ -140,6 +140,18 @@ function createApiClient({
   };
 }
 
+/** Build a URL by appending query params, skipping undefined/null/empty values. */
+function buildUrl(base, params = {}) {
+  const url = new URL(base);
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  }
+  return url.toString();
+}
+
 window.ApiClient = {
   createApiClient,
+  buildUrl,
 };
