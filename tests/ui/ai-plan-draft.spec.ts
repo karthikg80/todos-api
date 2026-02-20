@@ -228,7 +228,7 @@ async function installAiPlanMockApi(
 }
 
 async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
+  await page.goto("/?ai_debug=1");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Plan User");
   await page.locator("#registerEmail").fill("plan@example.com");

@@ -395,15 +395,17 @@ test.describe("AI task drawer decision assist live flow", () => {
   test("renders server-backed drawer suggestions, applies rewrite title, and persists after reload", async ({
     page,
   }) => {
-    await page.locator("#todoInput").fill("launch checklist");
+    await page.locator("#todoInput").fill("do thing");
     await page.getByRole("button", { name: "Add Task" }).click();
 
     const row = page.locator(".todo-item").first();
     await row.click();
 
-    await expect(page.locator("#todoDetailsDrawer")).toContainText(
-      "AI Suggestions",
-    );
+    await page
+      .locator(
+        "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",
+      )
+      .click();
     await expect(
       page.locator('[data-testid^="task-drawer-ai-card-"]'),
     ).toHaveCount(1);
@@ -414,23 +416,28 @@ test.describe("AI task drawer decision assist live flow", () => {
       .click();
 
     await expect(page.locator(".todo-item .todo-title").first()).toContainText(
-      "Draft launch checklist",
+      "Draft do thing",
     );
 
     await page.reload();
     await expect(page.locator(".todo-item .todo-title").first()).toContainText(
-      "Draft launch checklist",
+      "Draft do thing",
     );
   });
 
   test("dismiss hides suggestions and keeps drawer empty after reload", async ({
     page,
   }) => {
-    await page.locator("#todoInput").fill("follow up stakeholders");
+    await page.locator("#todoInput").fill("do follow up");
     await page.getByRole("button", { name: "Add Task" }).click();
 
     const row = page.locator(".todo-item").first();
     await row.click();
+    await page
+      .locator(
+        "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",
+      )
+      .click();
     await expect(
       page.locator('[data-testid^="task-drawer-ai-card-"]'),
     ).toHaveCount(1);
@@ -445,6 +452,11 @@ test.describe("AI task drawer decision assist live flow", () => {
 
     await page.reload();
     await page.locator(".todo-item").first().click();
+    await page
+      .locator(
+        "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",
+      )
+      .click();
     await expect(page.locator("#todoDetailsDrawer")).toContainText(
       "No suggestions right now.",
     );

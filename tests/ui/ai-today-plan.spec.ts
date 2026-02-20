@@ -76,6 +76,10 @@ async function installTodayPlanLiveMockApi(page: Page) {
   let tokenSeq = 1;
   let aiSeq = 1;
   let suggestionSeq = 1;
+  const state = {
+    latestFetchCalls: 0,
+    generateCalls: 0,
+  };
 
   const parseBody = async (route: Route) => {
     const raw = route.request().postData();
@@ -197,6 +201,7 @@ async function installTodayPlanLiveMockApi(page: Page) {
     }
 
     if (pathname === "/ai/suggestions/latest" && method === "GET") {
+      state.latestFetchCalls += 1;
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
       const surface = searchParams.get("surface") || "";
@@ -216,6 +221,7 @@ async function installTodayPlanLiveMockApi(page: Page) {
     }
 
     if (pathname === "/ai/decision-assist/stub" && method === "POST") {
+      state.generateCalls += 1;
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
       const body = (await parseBody(route)) as Record<string, unknown>;
@@ -435,6 +441,8 @@ async function installTodayPlanLiveMockApi(page: Page) {
 
     return route.continue();
   });
+
+  return state;
 }
 
 async function registerAndOpenTodos(page: Page) {
@@ -454,10 +462,17 @@ async function openTodayView(page: Page) {
 }
 
 test.describe("AI today planner panel", () => {
+  let state: { latestFetchCalls: number; generateCalls: number };
+
   test.beforeEach(async ({ page }) => {
-    await installTodayPlanLiveMockApi(page);
+    state = await installTodayPlanLiveMockApi(page);
     await registerAndOpenTodos(page);
     await openTodayView(page);
+  });
+
+  test("does not auto-fetch on initial Today panel open", async () => {
+    expect(state.latestFetchCalls).toBe(0);
+    expect(state.generateCalls).toBe(0);
   });
 
   test("generate persists across reload and unknown suggestion types are ignored", async ({
@@ -482,6 +497,11 @@ test.describe("AI today planner panel", () => {
 
     await page.reload();
     await openTodayView(page);
+    await expect(
+      page.locator('[data-testid="today-plan-preview"]'),
+    ).toHaveCount(0);
+
+    await page.locator('[data-testid="today-plan-generate"]').click();
     await expect(
       page.locator('[data-testid="today-plan-preview"]'),
     ).toBeVisible();

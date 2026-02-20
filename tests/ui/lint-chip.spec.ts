@@ -310,6 +310,9 @@ test.describe("Lint-first task drawer chip", () => {
     await page.locator(".todo-item").first().click();
     await expect(page.locator("#todoDetailsDrawer")).toBeVisible();
     await expect(page.locator("#todoDetailsDrawer .ai-lint-chip")).toBeHidden();
+    await expect(
+      page.locator("#todoDetailsDrawer .todo-drawer-ai-list"),
+    ).toHaveCount(0);
   });
 
   test("Fix in drawer reveals full AI suggestions section", async ({
