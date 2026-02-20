@@ -1,7 +1,7 @@
 # TASK 111: hide-ai-entrypoints-by-default
 
 type: Yellow
-status: REVIEW
+status: DONE
 mode: implement
 builder: codex
 reviewer: claude
