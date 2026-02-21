@@ -4577,3 +4577,60 @@ textarea:disabled {
     max-width: 100%;
   }
 }
+
+/* M8: Notion-like calm density (single strong CTA in Todos) */
+body.is-todos-view .add-btn,
+body.is-todos-view .btn,
+body.is-todos-view .mini-btn {
+  background: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
+  color: var(--text-secondary);
+  border: 1px solid color-mix(in oklab, var(--border-color) 80%, var(--surface));
+  font-weight: var(--fw-medium);
+  box-shadow: none;
+}
+
+body.is-todos-view .add-btn:hover,
+body.is-todos-view .btn:hover,
+body.is-todos-view .mini-btn:hover {
+  background: color-mix(in oklab, var(--surface) 78%, var(--surface-2));
+  color: var(--text-primary);
+  border-color: color-mix(in oklab, var(--border-color) 66%, var(--text-muted));
+}
+
+body.is-todos-view .top-add-btn {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff;
+  border-color: transparent;
+  font-weight: var(--fw-semibold);
+}
+
+body.is-todos-view .top-add-btn:hover {
+  filter: saturate(1.05) brightness(1.02);
+}
+
+body.is-todos-view .todos-top-bar,
+body.is-todos-view .more-filters-panel,
+body.is-todos-view .todos-list-header,
+body.is-todos-view .quick-entry-properties-panel {
+  border-color: color-mix(in oklab, var(--border-color) 72%, var(--surface));
+  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
+}
+
+body.is-todos-view .todos-top-bar {
+  padding: 14px;
+}
+
+body.is-todos-view .todos-list-header {
+  padding: 14px;
+}
+
+body.is-todos-view .projects-rail {
+  background: transparent;
+  border-color: color-mix(in oklab, var(--border-color) 72%, transparent);
+  box-shadow: none;
+}
+
+body.is-todos-view .projects-rail-item,
+body.is-todos-view .todo-item {
+  border-color: color-mix(in oklab, var(--border-color) 74%, var(--surface));
+}
