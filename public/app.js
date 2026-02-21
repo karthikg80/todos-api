@@ -98,6 +98,20 @@ const FEATURE_TASK_DRAWER_DECISION_ASSIST = isTaskDrawerDecisionAssistEnabled();
 // navigation surfaces.
 const AI_INTERNAL_CATEGORIES = new Set(["AI Plan"]);
 
+function isInternalCategoryPath(value) {
+  const normalized = normalizeProjectPath(value);
+  if (!normalized) return false;
+  for (const internal of AI_INTERNAL_CATEGORIES) {
+    if (
+      normalized === internal ||
+      normalized.startsWith(`${internal}${PROJECT_PATH_SEPARATOR}`)
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
 // ---------------------------------------------------------------------------
 // Lint heuristics provided by lintHeuristics.js (lintTodoFields, renderLintChip)
 // ---------------------------------------------------------------------------
@@ -183,10 +197,7 @@ const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
 const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
 const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
-const SIDEBAR_NAV_ITEMS = [
-  { view: "todos", label: "Todos" },
-  { view: "settings", label: "Settings" },
-];
+const SIDEBAR_NAV_ITEMS = [{ view: "settings", label: "Settings" }];
 let isAiWorkspaceCollapsed = true;
 let isAiWorkspaceVisible = AI_DEBUG_ENABLED;
 let onCreateAssistState = createInitialOnCreateAssistState();
@@ -2741,7 +2752,9 @@ function updateCategoryFilter() {
     renderProjectsRail();
     return;
   }
-  const currentValue = filterSelect.value;
+  const currentValue = isInternalCategoryPath(filterSelect.value)
+    ? ""
+    : filterSelect.value;
 
   filterSelect.innerHTML =
     '<option value="">All Projects</option>' +
@@ -3622,7 +3635,8 @@ function getSelectedProjectFilterValue() {
   if (!(filter instanceof HTMLSelectElement)) {
     return "";
   }
-  return normalizeProjectPath(filter.value);
+  const normalized = normalizeProjectPath(filter.value);
+  return isInternalCategoryPath(normalized) ? "" : normalized;
 }
 
 function getSelectedProjectKey() {
@@ -3640,7 +3654,10 @@ function setSelectedProjectKey(
 
   const normalizedValue =
     typeof value === "string" ? normalizeProjectPath(value) : "";
-  const nextValue = normalizedValue || "";
+  const nextValue =
+    normalizedValue && !isInternalCategoryPath(normalizedValue)
+      ? normalizedValue
+      : "";
 
   if (
     nextValue &&
