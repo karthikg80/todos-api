@@ -93,8 +93,8 @@ If any of these occur, set status to BLOCKED and request re-approval:
 - Modifies data model (Prisma schema)
 
 ## Deliverable
-- PR URL: (pending push)
-- Commit SHA(s): (pending commit)
+- PR URL: https://github.com/karthikg80/todos-api/pull/130
+- Commit SHA(s): bb22ee176a6b7aab3d05bf0de76f938fd71cefda
 - Files changed:
   - `public/app.js`
   - `public/index.html`
