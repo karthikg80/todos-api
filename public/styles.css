@@ -207,6 +207,11 @@ body.is-todos-view #appSidebar {
   width: 100%;
 }
 
+body.is-todos-view {
+  padding: 0;
+  overflow: hidden;
+}
+
 h1,
 h2,
 h3 {
@@ -446,6 +451,7 @@ body.is-todos-view .container {
   max-width: none;
   margin: 0;
   flex: 1 1 auto;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -456,8 +462,13 @@ body.is-todos-view .content {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+body.is-todos-view #todosView.view.active {
+  flex: 1 1 auto;
 }
 
 .auth-container {
@@ -1720,7 +1731,10 @@ textarea:focus-visible,
   position: sticky;
   top: var(--s-4);
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .projects-rail.projects-rail--collapsed {
@@ -2855,6 +2869,11 @@ button.projects-rail-item {
     padding: 10px;
   }
 
+  body.is-todos-view {
+    padding: 10px;
+    overflow: auto;
+  }
+
   .container {
     border-radius: var(--r-md);
     max-width: 100%;
@@ -2883,8 +2902,9 @@ button.projects-rail-item {
   }
 
   body.is-todos-view .container {
-    height: 100%;
-    max-height: 100%;
+    height: calc(100dvh - 20px);
+    max-height: calc(100dvh - 20px);
+    border-radius: var(--r-md);
   }
 
   .todos-top-bar {
