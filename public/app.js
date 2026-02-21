@@ -248,8 +248,34 @@ function projectStorageKey() {
   return `todo-projects:${currentUser?.id || "anonymous"}`;
 }
 
+function syncProjectsRailHost() {
+  const projectsRail = document.getElementById("projectsRail");
+  const projectsRailHost = document.getElementById("projectsRailHost");
+  const todosLayout = document.querySelector(".todos-layout");
+  if (!(todosLayout instanceof HTMLElement)) return;
+
+  if (!(projectsRail instanceof HTMLElement)) {
+    todosLayout.classList.remove("todos-layout--sidebar-mounted");
+    return;
+  }
+
+  if (
+    projectsRailHost instanceof HTMLElement &&
+    projectsRail.parentElement !== projectsRailHost
+  ) {
+    projectsRailHost.appendChild(projectsRail);
+  }
+
+  todosLayout.classList.toggle(
+    "todos-layout--sidebar-mounted",
+    projectsRailHost instanceof HTMLElement &&
+      projectsRail.parentElement === projectsRailHost,
+  );
+}
+
 function setTodosViewBodyState(isTodosView) {
   document.body.classList.toggle("is-todos-view", isTodosView);
+  syncProjectsRailHost();
 }
 
 function readStoredRailCollapsedState() {
