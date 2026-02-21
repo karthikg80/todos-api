@@ -1,7 +1,7 @@
 # TASK 101: ai-throttle-recovery-hardening
 
 type: Red
-status: READY
+status: DONE
 mode: implement
 builder: codex
 reviewer: claude

@@ -1,7 +1,7 @@
 # TASK 103: lint-first-ai-ux
 
 type: Yellow
-status: READY
+status: DONE
 mode: implement
 builder: codex
 reviewer: claude

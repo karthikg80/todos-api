@@ -1,7 +1,7 @@
 # TASK 106: ai-router-usecase-decomposition
 
 type: Red
-status: READY
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude

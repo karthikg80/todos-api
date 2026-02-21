@@ -1,7 +1,7 @@
 # TASK 107: todo-ordering-concurrency-and-reorder-efficiency
 
 type: Yellow
-status: READY
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude

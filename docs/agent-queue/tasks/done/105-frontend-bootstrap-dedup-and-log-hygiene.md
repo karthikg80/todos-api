@@ -1,7 +1,7 @@
 # TASK 105: frontend-bootstrap-dedup-and-log-hygiene
 
 type: Green
-status: READY
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude

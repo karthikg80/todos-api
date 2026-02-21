@@ -1,7 +1,7 @@
 # TASK 095: merge-pr95-agents-worktree-hygiene
 
 type: Green
-status: READY
+status: DONE
 mode: implement
 builder: codex
 reviewer: claude

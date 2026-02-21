@@ -1,7 +1,7 @@
 # TASK 099: ai-telemetry-decision-assist
 
 type: Red
-status: READY
+status: DONE
 mode: implement
 builder: codex
 reviewer: claude

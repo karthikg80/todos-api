@@ -1,7 +1,7 @@
 # TASK 094: merge-pr94-ci-skip-ui-docs
 
 type: Green
-status: READY
+status: DONE
 mode: implement
 builder: codex
 reviewer: claude

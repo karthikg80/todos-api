@@ -1,7 +1,7 @@
 # TASK 108: api-driven-filtering-pagination-and-query-contract
 
 type: Yellow
-status: READY
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude
