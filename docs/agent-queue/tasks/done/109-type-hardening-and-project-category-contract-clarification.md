@@ -1,7 +1,7 @@
 # TASK 109: type-hardening-and-project-category-contract-clarification
 
 type: Yellow
-status: READY
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude

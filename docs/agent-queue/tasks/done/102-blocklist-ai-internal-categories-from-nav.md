@@ -1,7 +1,7 @@
 # TASK 102: blocklist-ai-internal-categories-from-nav
 
 type: Green
-status: READY
+status: DONE
 mode: implement
 builder: codex
 reviewer: claude
