@@ -183,6 +183,10 @@ const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
 const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
 const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
+const SIDEBAR_NAV_ITEMS = [
+  { view: "todos", label: "Todos" },
+  { view: "settings", label: "Settings" },
+];
 let isAiWorkspaceCollapsed = true;
 let isAiWorkspaceVisible = AI_DEBUG_ENABLED;
 let onCreateAssistState = createInitialOnCreateAssistState();
@@ -272,6 +276,41 @@ function syncProjectsRailHost() {
     projectsRailHost instanceof HTMLElement &&
       projectsRail.parentElement === projectsRailHost,
   );
+}
+
+function renderSidebarNavigation() {
+  const navTargets = document.querySelectorAll("[data-sidebar-nav-target]");
+  if (!navTargets.length) return;
+
+  const navMarkup = SIDEBAR_NAV_ITEMS.map(
+    ({ view, label }) => `
+      <button
+        type="button"
+        class="projects-rail-item sidebar-nav-item"
+        data-sidebar-view="${escapeHtml(view)}"
+        data-onclick="switchView('${escapeHtml(view)}')"
+      >
+        <span>${escapeHtml(label)}</span>
+      </button>
+    `,
+  ).join("");
+
+  navTargets.forEach((target) => {
+    if (!(target instanceof HTMLElement)) return;
+    if (target.innerHTML === navMarkup) return;
+    target.innerHTML = navMarkup;
+  });
+}
+
+function setSettingsPaneVisible(isVisible) {
+  const settingsPane = document.getElementById("settingsPane");
+  const todosView = document.getElementById("todosView");
+  if (!(settingsPane instanceof HTMLElement)) return;
+
+  settingsPane.hidden = !isVisible;
+  if (todosView instanceof HTMLElement) {
+    todosView.classList.toggle("todos-view--settings-active", isVisible);
+  }
 }
 
 function setTodosViewBodyState(isTodosView) {
@@ -578,6 +617,7 @@ async function ensureProjectExists(projectName) {
 
 // Initialize app
 function init() {
+  renderSidebarNavigation();
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
   bindProjectsRailHandlers();
@@ -8899,17 +8939,21 @@ async function deleteUser(userId) {
 }
 
 function syncSidebarNavState(activeView) {
+  const normalizedView = activeView === "profile" ? "settings" : activeView;
   document
     .querySelectorAll(".sidebar-nav-item[data-sidebar-view]")
     .forEach((el) => {
       if (!(el instanceof HTMLElement)) return;
-      const isActive = el.getAttribute("data-sidebar-view") === activeView;
+      const isActive = el.getAttribute("data-sidebar-view") === normalizedView;
       el.classList.toggle("projects-rail-item--active", isActive);
     });
 }
 
 // Switch view
 function switchView(view, triggerEl = null) {
+  const isSettingsView = view === "settings";
+  const primaryView = isSettingsView ? "todos" : view;
+
   document
     .querySelectorAll(".view")
     .forEach((v) => v.classList.remove("active"));
@@ -8917,25 +8961,38 @@ function switchView(view, triggerEl = null) {
     .querySelectorAll(".nav-tab")
     .forEach((t) => t.classList.remove("active"));
 
-  document.getElementById(view + "View").classList.add("active");
+  const targetView = document.getElementById(primaryView + "View");
+  if (!(targetView instanceof HTMLElement)) {
+    return;
+  }
+  targetView.classList.add("active");
   if (triggerEl) {
     triggerEl.classList.add("active");
   }
   if (
-    !(triggerEl instanceof HTMLElement) ||
-    !triggerEl.classList.contains("nav-tab")
+    !isSettingsView &&
+    (!(triggerEl instanceof HTMLElement) ||
+      !triggerEl.classList.contains("nav-tab"))
   ) {
     const matchingTab = document.querySelector(
-      `.nav-tab[data-onclick*="switchView('${view}'"]`,
+      `.nav-tab[data-onclick*="switchView('${primaryView}'"]`,
     );
     if (matchingTab instanceof HTMLElement) {
       matchingTab.classList.add("active");
     }
   }
-  setTodosViewBodyState(view === "todos");
+  setTodosViewBodyState(primaryView === "todos");
+  setSettingsPaneVisible(isSettingsView);
   syncSidebarNavState(view);
 
-  if (view === "todos") {
+  if (isSettingsView) {
+    closeCommandPalette({ restoreFocus: false });
+    closeProjectCrudModal({ restoreFocus: false });
+    closeMoreFilters();
+    closeProjectsRailSheet({ restoreFocus: false });
+    closeTodoDrawer({ restoreFocus: false });
+    updateUserDisplay();
+  } else if (view === "todos") {
     closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
@@ -9530,6 +9587,7 @@ async function logout() {
 // Show app view
 function showAppView() {
   setTodosViewBodyState(true);
+  setSettingsPaneVisible(false);
   document.getElementById("authView").classList.remove("active");
   document.getElementById("todosView").classList.add("active");
   document.getElementById("navTabs").style.display = "flex";
@@ -9577,6 +9635,7 @@ function showAppView() {
 // Show auth view
 function showAuthView() {
   setTodosViewBodyState(false);
+  setSettingsPaneVisible(false);
   document.getElementById("authView").classList.add("active");
   document.getElementById("todosView").classList.remove("active");
   document.getElementById("profileView").classList.remove("active");

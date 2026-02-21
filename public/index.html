@@ -14,16 +14,7 @@
           <div class="app-sidebar__brand">Workspace</div>
           <div id="projectsRailHost" aria-live="polite"></div>
         </div>
-        <div class="app-sidebar__bottom">
-          <button
-            id="appSidebarSettingsButton"
-            type="button"
-            class="mini-btn app-sidebar__settings"
-            data-onclick="switchView('profile')"
-          >
-            Settings
-          </button>
-        </div>
+        <div class="app-sidebar__bottom"></div>
       </aside>
       <main id="appMain">
         <div id="appMainScroll">
@@ -424,6 +415,16 @@
                   </aside>
 
                   <div class="todos-main-zone">
+                    <section id="settingsPane" class="settings-pane" hidden>
+                      <h2>Settings</h2>
+                      <div class="settings-pane__section">
+                        <h3>Profile</h3>
+                        <p>
+                          Manage your profile from this panel while keeping the
+                          workspace sidebar visible.
+                        </p>
+                      </div>
+                    </section>
                     <div class="todos-top-bar">
                       <div class="todos-top-bar-left">
                         <button

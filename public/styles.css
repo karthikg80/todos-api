@@ -1677,6 +1677,32 @@ textarea:focus-visible,
   overflow: hidden;
 }
 
+.settings-pane {
+  display: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--s-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  background: var(--card-bg);
+}
+
+.settings-pane__section {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--border-color);
+}
+
+#todosView.todos-view--settings-active .settings-pane {
+  display: block;
+}
+
+#todosView.todos-view--settings-active .todos-top-bar,
+#todosView.todos-view--settings-active #todosScrollRegion {
+  display: none;
+}
+
 .todos-list-header {
   position: sticky;
   top: 0;
