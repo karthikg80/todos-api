@@ -23,6 +23,17 @@ A rule enters Canon when:
 ### Process
 - Never weaken a test to make CI pass. Fix the code.
 - Do not commit untracked `docs/` content unless the task explicitly allows it.
+- When a UI/task PR changes navigation IA or persistent UX behavior, update `docs/memory/canon/CANON.md` + `docs/memory/brief/BRIEF.md` in the same PR (or immediate docs-only follow-up PR).
+
+### UI Navigation & IA
+- Sidebar is the single primary navigation surface in Todos mode; top tabs remain compatibility affordances only while tests still depend on them.
+- Sidebar bottom contains the stable account entry point: `Settings`.
+- `Profile` is presented as Settings content, not as a standalone sidebar nav item.
+- Entering Settings must not collapse or remove the sidebar shell.
+
+### Internal Categories
+- `AI Plan` is an internal category and must never appear in user navigation surfaces (projects rail, category dropdown, create/edit project pickers).
+- If persisted selection resolves to an internal category, client selection must fall back to `All tasks` (`setSelectedProjectKey("")` path).
 
 ---
 
