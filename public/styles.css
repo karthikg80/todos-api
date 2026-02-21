@@ -205,6 +205,8 @@ body.is-todos-view #appSidebar {
 
 .app-sidebar__settings {
   width: 100%;
+  display: grid;
+  gap: 6px;
 }
 
 body.is-todos-view {
@@ -403,7 +405,7 @@ body.is-todos-view .logout-btn {
 }
 
 body.is-todos-view .nav-tabs {
-  display: flex;
+  display: none !important;
   justify-content: flex-start;
   gap: 8px;
   padding: 6px 12px;
@@ -2914,6 +2916,10 @@ button.projects-rail-item {
   #appSidebar,
   body.is-todos-view #appSidebar {
     display: none;
+  }
+
+  body.is-todos-view .nav-tabs {
+    display: flex !important;
   }
 
   #appMainScroll {

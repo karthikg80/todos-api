@@ -264,8 +264,13 @@ test.describe("Command palette", () => {
   });
 
   test("Enter on Add task focuses quick entry input", async ({ page }) => {
-    await page.getByRole("button", { name: "Profile" }).click();
-    await expect(page.locator("#profileView")).toHaveClass(/active/);
+    const settingsButton = page.getByRole("button", { name: "Settings" });
+    if (await settingsButton.first().isVisible()) {
+      await settingsButton.first().click();
+    } else {
+      await page.getByRole("button", { name: "Profile" }).click();
+    }
+    await expect(page.locator("#settingsPane")).toBeVisible();
 
     await openCommandPalette(page);
     const input = page.locator("#commandPaletteInput");

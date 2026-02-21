@@ -30,6 +30,8 @@ A rule enters Canon when:
 - Sidebar bottom contains the stable account entry point: `Settings`.
 - `Profile` is presented as Settings content, not as a standalone sidebar nav item.
 - Entering Settings must not collapse or remove the sidebar shell.
+- Any `Profile` CTA must route through `switchView('settings')`; do not route to a standalone `profileView` as the primary account surface.
+- In mobile layouts where the sidebar is hidden, keep a visible top-tab route to Settings to avoid trapping account/verification flows.
 
 ### Internal Categories
 - `AI Plan` is an internal category and must never appear in user navigation surfaces (projects rail, category dropdown, create/edit project pickers).

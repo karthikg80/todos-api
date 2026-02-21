@@ -309,8 +309,13 @@ test.describe("Header + rail sync", () => {
   }) => {
     await selectProjectFromRail(page, "Work", isMobile);
 
-    await page.getByRole("button", { name: "Profile" }).click();
-    await expect(page.locator("#profileView")).toHaveClass(/active/);
+    const settingsButton = page.getByRole("button", { name: "Settings" });
+    if (await settingsButton.first().isVisible()) {
+      await settingsButton.first().click();
+    } else {
+      await page.getByRole("button", { name: "Profile" }).click();
+    }
+    await expect(page.locator("#settingsPane")).toBeVisible();
 
     await page.getByRole("button", { name: "Todos" }).click();
     await expect(page.locator("#todosView")).toHaveClass(/active/);
