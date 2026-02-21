@@ -372,6 +372,55 @@ small {
   border-bottom-color: var(--accent);
 }
 
+body.is-todos-view .header {
+  padding: 12px 16px;
+}
+
+body.is-todos-view .header h1 {
+  font-size: var(--fs-lg);
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+
+body.is-todos-view .theme-toggle {
+  padding: 6px 10px;
+  font-size: 1rem;
+}
+
+body.is-todos-view .user-bar {
+  margin-top: 8px;
+  font-size: var(--fs-xs);
+}
+
+body.is-todos-view .logout-btn {
+  padding: 6px 10px;
+  font-size: var(--fs-xs);
+}
+
+body.is-todos-view .nav-tabs {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 6px 12px;
+  background: color-mix(in oklab, var(--card-bg) 92%, var(--surface));
+  border-bottom: 1px dashed var(--border-color);
+}
+
+body.is-todos-view .nav-tab {
+  flex: 0 0 auto;
+  border: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: var(--fs-xs);
+  line-height: 1.2;
+}
+
+body.is-todos-view .nav-tab.active {
+  border-color: color-mix(in oklab, var(--accent) 44%, var(--border-color));
+  background: color-mix(in oklab, var(--accent) 9%, var(--surface));
+}
+
 .content {
   padding: var(--s-6);
 }
@@ -1739,6 +1788,10 @@ textarea:focus-visible,
   padding-top: var(--s-3);
 }
 
+.projects-rail__section--nav {
+  border-top: 1px solid var(--border-color);
+}
+
 .projects-rail__section-header {
   display: flex;
   align-items: center;
@@ -1796,6 +1849,12 @@ textarea:focus-visible,
 
 button.projects-rail-item {
   width: 100%;
+  cursor: pointer;
+}
+
+.sidebar-nav-item {
+  justify-content: flex-start;
+  font-weight: var(--fw-medium);
   cursor: pointer;
 }
 

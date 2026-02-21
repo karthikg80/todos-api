@@ -8805,6 +8805,16 @@ async function deleteUser(userId) {
   }
 }
 
+function syncSidebarNavState(activeView) {
+  document
+    .querySelectorAll(".sidebar-nav-item[data-sidebar-view]")
+    .forEach((el) => {
+      if (!(el instanceof HTMLElement)) return;
+      const isActive = el.getAttribute("data-sidebar-view") === activeView;
+      el.classList.toggle("projects-rail-item--active", isActive);
+    });
+}
+
 // Switch view
 function switchView(view, triggerEl = null) {
   document
@@ -8818,7 +8828,19 @@ function switchView(view, triggerEl = null) {
   if (triggerEl) {
     triggerEl.classList.add("active");
   }
+  if (
+    !(triggerEl instanceof HTMLElement) ||
+    !triggerEl.classList.contains("nav-tab")
+  ) {
+    const matchingTab = document.querySelector(
+      `.nav-tab[data-onclick*="switchView('${view}'"]`,
+    );
+    if (matchingTab instanceof HTMLElement) {
+      matchingTab.classList.add("active");
+    }
+  }
   setTodosViewBodyState(view === "todos");
+  syncSidebarNavState(view);
 
   if (view === "todos") {
     closeCommandPalette({ restoreFocus: false });
@@ -9386,6 +9408,7 @@ function showAppView() {
   document.getElementById("navTabs").style.display = "flex";
   document.getElementById("userBar").style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
+  syncSidebarNavState("todos");
   closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
   openRailProjectMenuKey = null;
@@ -9432,6 +9455,7 @@ function showAuthView() {
   document.getElementById("navTabs").style.display = "none";
   document.getElementById("userBar").style.display = "none";
   document.getElementById("adminNavTab").style.display = "none";
+  syncSidebarNavState("");
   adminBootstrapAvailable = false;
   closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
