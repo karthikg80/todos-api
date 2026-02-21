@@ -1,7 +1,7 @@
 # TASK 100: ai-eval-harness-mvp
 
 type: Yellow
-status: REVIEW
+status: DONE
 mode: implement
 builder: codex
 reviewer: claude
