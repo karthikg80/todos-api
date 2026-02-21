@@ -8,1056 +8,1137 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <div class="container">
-      <div class="header">
-        <div
-          style="
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-          "
-        >
-          <h1>📝 Todo App</h1>
+    <div id="appShell">
+      <aside id="appSidebar" aria-label="Workspace sidebar">
+        <div class="app-sidebar__top">
+          <div class="app-sidebar__brand">Workspace</div>
+          <div id="projectsRailHost" aria-live="polite"></div>
+        </div>
+        <div class="app-sidebar__bottom">
           <button
-            class="theme-toggle"
-            data-onclick="toggleTheme()"
-            title="Toggle dark mode"
+            id="appSidebarSettingsButton"
+            type="button"
+            class="mini-btn app-sidebar__settings"
+            data-onclick="switchView('profile')"
           >
-            🌙
+            Settings
           </button>
         </div>
-        <div class="user-bar" id="userBar" style="display: none">
-          <div class="user-info">
-            <span id="userEmail"></span>
-            <span id="verifiedBadge"></span>
-            <span id="adminBadge"></span>
-          </div>
-          <button class="logout-btn" data-onclick="logout()">Logout</button>
-        </div>
-      </div>
-
-      <!-- Navigation Tabs (only visible when logged in) -->
-      <div class="nav-tabs" id="navTabs" style="display: none">
-        <button class="nav-tab active" data-onclick="switchView('todos', this)">
-          Todos
-        </button>
-        <button class="nav-tab" data-onclick="switchView('profile', this)">
-          Profile
-        </button>
-        <button
-          class="nav-tab"
-          id="adminNavTab"
-          style="display: none"
-          data-onclick="switchView('admin', this)"
-        >
-          Admin
-        </button>
-      </div>
-
-      <div class="content">
-        <!-- Authentication View -->
-        <div id="authView" class="view active">
-          <div class="auth-container">
-            <div class="auth-tabs">
-              <button
-                id="loginTabButton"
-                class="auth-tab active"
-                data-onclick="switchAuthTab('login', this)"
-              >
-                Login
-              </button>
-              <button
-                id="registerTabButton"
-                class="auth-tab"
-                data-onclick="switchAuthTab('register', this)"
-              >
-                Register
-              </button>
-            </div>
-
-            <div
-              class="message"
-              id="authMessage"
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            ></div>
-
-            <!-- Login Form -->
-            <form
-              id="loginForm"
-              class="auth-form active"
-              data-onsubmit="handleLogin(event)"
-              style="display: block"
-            >
-              <div class="form-group">
-                <label for="loginEmail">Email</label>
-                <input
-                  type="email"
-                  id="loginEmail"
-                  required
-                  placeholder="your@email.com"
-                />
-              </div>
-              <div class="form-group">
-                <label for="loginPassword">Password</label>
-                <input
-                  type="password"
-                  id="loginPassword"
-                  required
-                  placeholder="••••••••"
-                />
-              </div>
-              <button type="submit" class="btn">Login</button>
-              <button
-                type="button"
-                id="forgotPasswordLink"
-                class="link-btn"
-                data-onclick="showForgotPassword()"
-              >
-                Forgot Password?
-              </button>
-            </form>
-
-            <!-- Register Form -->
-            <form
-              id="registerForm"
-              class="auth-form"
-              data-onsubmit="handleRegister(event)"
-              style="display: none"
-            >
-              <div class="form-group">
-                <label for="registerName">Name</label>
-                <input
-                  type="text"
-                  id="registerName"
-                  placeholder="Your Name (optional)"
-                />
-              </div>
-              <div class="form-group">
-                <label for="registerEmail">Email</label>
-                <input
-                  type="email"
-                  id="registerEmail"
-                  required
-                  placeholder="your@email.com"
-                />
-              </div>
-              <div class="form-group">
-                <label for="registerPassword">Password</label>
-                <input
-                  type="password"
-                  id="registerPassword"
-                  required
-                  placeholder="••••••••"
-                  minlength="8"
-                />
-              </div>
-              <button type="submit" class="btn">Create Account</button>
-            </form>
-
-            <!-- Forgot Password Form -->
-            <form
-              id="forgotPasswordForm"
-              class="auth-form"
-              data-onsubmit="handleForgotPassword(event)"
-              style="display: none"
-            >
-              <h2 style="margin-bottom: 20px">Reset Password</h2>
-              <div class="form-group">
-                <label for="forgotEmail">Email</label>
-                <input
-                  type="email"
-                  id="forgotEmail"
-                  required
-                  placeholder="your@email.com"
-                />
-              </div>
-              <button type="submit" class="btn">Send Reset Link</button>
-              <button
-                type="button"
-                id="forgotBackToLoginButton"
-                class="link-btn"
-                data-onclick="showLogin()"
-              >
-                Back to Login
-              </button>
-            </form>
-
-            <!-- Reset Password Form -->
-            <form
-              id="resetPasswordForm"
-              class="auth-form"
-              data-onsubmit="handleResetPassword(event)"
-              style="display: none"
-            >
-              <h2 style="margin-bottom: 20px">Set New Password</h2>
-              <div class="form-group">
-                <label for="newPassword">New Password</label>
-                <input
-                  type="password"
-                  id="newPassword"
-                  required
-                  placeholder="••••••••"
-                  minlength="8"
-                />
-              </div>
-              <div class="form-group">
-                <label for="confirmPassword">Confirm Password</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  required
-                  placeholder="••••••••"
-                  minlength="8"
-                />
-              </div>
-              <button type="submit" class="btn">Reset Password</button>
-            </form>
-          </div>
-        </div>
-
-        <!-- Todos View -->
-        <div id="todosView" class="view">
-          <div
-            class="message"
-            id="todosMessage"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          ></div>
-
-          <div class="todos-layout">
-            <aside
-              id="projectsRail"
-              class="projects-rail"
-              aria-label="Projects"
-            >
-              <div class="projects-rail__header">
-                <h3>Projects</h3>
-                <button id="projectsRailToggle" type="button" class="mini-btn">
-                  Collapse
-                </button>
-              </div>
-              <nav
-                class="projects-rail__primary"
-                aria-label="Primary task views"
-              >
-                <button
-                  type="button"
-                  class="projects-rail-item projects-rail-item--active"
-                  data-project-key=""
-                  aria-current="page"
-                >
-                  <span>All tasks</span>
-                  <span class="projects-rail-item__count">0</span>
-                </button>
-              </nav>
-              <div class="projects-rail__section projects-rail__section--nav">
-                <div class="projects-rail__section-header">
-                  <span>Navigation</span>
-                </div>
-                <nav class="projects-rail__list" aria-label="View navigation">
-                  <div
-                    class="projects-rail-item sidebar-nav-item projects-rail-item--active"
-                    data-sidebar-view="todos"
-                    data-onclick="switchView('todos')"
-                  >
-                    <span>Todos</span>
-                  </div>
-                  <div
-                    class="projects-rail-item sidebar-nav-item"
-                    data-sidebar-view="profile"
-                    data-onclick="switchView('profile')"
-                  >
-                    <span>Profile</span>
-                  </div>
-                </nav>
-              </div>
-              <div class="projects-rail__section">
-                <div class="projects-rail__section-header">
-                  <span>Projects</span>
-                  <button
-                    id="projectsRailCreateButton"
-                    type="button"
-                    class="mini-btn projects-rail-create-btn"
-                  >
-                    New project
-                  </button>
-                </div>
-                <div id="projectsRailList" class="projects-rail__list">
-                  <div
-                    class="projects-rail-item"
-                    data-project-key="sample-project"
-                  >
-                    <span>Sample Project</span>
-                    <span class="projects-rail-item__count">0</span>
-                  </div>
-                </div>
-              </div>
-            </aside>
-
-            <div
-              id="projectsRailBackdrop"
-              class="projects-rail-backdrop"
-              aria-hidden="true"
-            ></div>
-            <aside
-              id="projectsRailSheet"
-              class="projects-rail-sheet"
-              aria-hidden="true"
-              aria-label="Projects"
-            >
-              <div class="projects-rail__header">
-                <h3>Projects</h3>
-                <button
-                  id="projectsRailMobileClose"
-                  type="button"
-                  class="btn-icon"
-                  aria-label="Close projects"
-                >
-                  ×
-                </button>
-              </div>
-              <div class="projects-rail__primary">
-                <div class="projects-rail-item projects-rail-item--active">
-                  <span>All tasks</span>
-                  <span class="projects-rail-item__count">0</span>
-                </div>
-              </div>
-              <div class="projects-rail__section projects-rail__section--nav">
-                <div class="projects-rail__section-header">
-                  <span>Navigation</span>
-                </div>
-                <nav class="projects-rail__list" aria-label="View navigation">
-                  <div
-                    class="projects-rail-item sidebar-nav-item projects-rail-item--active"
-                    data-sidebar-view="todos"
-                    data-onclick="switchView('todos')"
-                  >
-                    <span>Todos</span>
-                  </div>
-                  <div
-                    class="projects-rail-item sidebar-nav-item"
-                    data-sidebar-view="profile"
-                    data-onclick="switchView('profile')"
-                  >
-                    <span>Profile</span>
-                  </div>
-                </nav>
-              </div>
-              <div class="projects-rail__section">
-                <div class="projects-rail__section-header">
-                  <span>Projects</span>
-                  <button
-                    id="projectsRailSheetCreateButton"
-                    type="button"
-                    class="mini-btn projects-rail-create-btn"
-                  >
-                    New project
-                  </button>
-                </div>
-                <div class="projects-rail__list">
-                  <div class="projects-rail-item">
-                    <span>Sample Project</span>
-                    <span class="projects-rail-item__count">0</span>
-                  </div>
-                </div>
-              </div>
-            </aside>
-
-            <div class="todos-main-zone">
-              <div class="todos-top-bar">
-                <div class="todos-top-bar-left">
-                  <button
-                    id="projectsRailMobileOpen"
-                    class="mini-btn projects-rail-mobile-open"
-                    type="button"
-                    aria-controls="projectsRail projectsRailSheet"
-                    aria-expanded="false"
-                  >
-                    <span id="projectsRailTopbarLabel"
-                      >Projects: All tasks</span
-                    >
-                  </button>
-                  <h2>Todos</h2>
-                  <span
-                    id="todosCountSummary"
-                    class="todos-count-summary"
-                  ></span>
-                </div>
-                <div class="todos-top-bar-search">
-                  <div class="search-bar">
-                    <label for="searchInput" class="sr-only"
-                      >Search todos</label
-                    >
-                    <input
-                      type="text"
-                      id="searchInput"
-                      class="search-input"
-                      placeholder="Search todos... (Ctrl/Cmd+F)"
-                      data-oninput="filterTodos()"
-                    />
-                    <span class="search-icon">🔍</span>
-                  </div>
-                </div>
-                <div class="todos-top-bar-actions">
-                  <button class="add-btn top-add-btn" data-onclick="addTodo()">
-                    Add Task
-                  </button>
-                  <button
-                    id="moreFiltersToggle"
-                    class="mini-btn more-filters-toggle"
-                    aria-expanded="false"
-                    aria-controls="moreFiltersPanel"
-                  >
-                    More filters
-                  </button>
-                </div>
-              </div>
-
-              <div id="todosScrollRegion">
-                <div
-                  class="todos-minimal-filters todos-minimal-filters--legacy"
-                >
-                  <label class="project-filter-label" for="categoryFilter"
-                    >Project</label
-                  >
-                  <select id="categoryFilter" data-onchange="filterTodos()">
-                    <option value="">All Projects</option>
-                  </select>
-                </div>
-
-                <div
-                  id="moreFiltersPanel"
-                  class="more-filters-panel"
-                  role="region"
-                  aria-label="More filters"
-                >
-                  <div class="date-view-tabs">
-                    <button
-                      class="date-view-tab active"
-                      id="dateViewAll"
-                      data-onclick="setDateView('all')"
-                    >
-                      All
-                    </button>
-                    <button
-                      class="date-view-tab"
-                      id="dateViewToday"
-                      data-onclick="setDateView('today')"
-                    >
-                      Today
-                    </button>
-                    <button
-                      class="date-view-tab"
-                      id="dateViewUpcoming"
-                      data-onclick="setDateView('upcoming')"
-                    >
-                      Upcoming
-                    </button>
-                    <button
-                      class="date-view-tab"
-                      id="dateViewNextMonth"
-                      data-onclick="setDateView('next_month')"
-                    >
-                      Next Month
-                    </button>
-                    <button
-                      class="date-view-tab"
-                      id="dateViewSomeday"
-                      data-onclick="setDateView('someday')"
-                    >
-                      Someday
-                    </button>
-                  </div>
-                  <div class="more-filters-actions">
-                    <button
-                      class="clear-filters-btn"
-                      data-onclick="clearFilters()"
-                    >
-                      Clear
-                    </button>
-                    <button
-                      id="exportIcsButton"
-                      class="mini-btn"
-                      data-onclick="exportVisibleTodosToIcs()"
-                      title="Exports currently filtered due-dated tasks"
-                      disabled
-                    >
-                      Export .ics
-                    </button>
-                  </div>
-                  <div class="ics-export-helper">
-                    Exports currently filtered due-dated tasks.
-                  </div>
-                </div>
-
-                <!-- Bulk Actions Toolbar -->
-                <div
-                  id="bulkActionsToolbar"
-                  class="bulk-actions-toolbar"
-                  style="display: none"
-                >
-                  <input
-                    type="checkbox"
-                    id="selectAllCheckbox"
-                    class="bulk-checkbox"
-                    data-onchange="toggleSelectAll()"
-                  />
-                  <label
-                    for="selectAllCheckbox"
-                    style="cursor: pointer; user-select: none"
-                    >Select All</label
-                  >
-                  <button data-onclick="completeSelected()">
-                    ✓ Complete Selected
-                  </button>
-                  <button data-onclick="deleteSelected()">
-                    🗑 Delete Selected
-                  </button>
-                  <span class="bulk-count" id="bulkCount">0 selected</span>
-                </div>
-
-                <!-- Add Todo Form -->
-                <div class="add-todo quick-entry">
-                  <label for="todoInput" class="sr-only">Todo title</label>
-                  <input
-                    type="text"
-                    id="todoInput"
-                    placeholder="What needs to be done?"
-                    data-onkeypress="handleTodoKeyPress(event)"
-                  />
-                  <div
-                    id="aiOnCreateAssistRow"
-                    class="ai-on-create-assist"
-                    data-testid="ai-on-create-row"
-                    hidden
-                  ></div>
-                  <div class="field-row">
-                    <label for="todoProjectSelect" class="sr-only"
-                      >Project</label
-                    >
-                    <select id="todoProjectSelect">
-                      <option value="">No project</option>
-                    </select>
-                    <button
-                      class="add-btn"
-                      data-onclick="createProject()"
-                      style="width: auto; padding: 10px 14px"
-                    >
-                      + Project
-                    </button>
-                    <button
-                      class="add-btn"
-                      data-onclick="createSubproject()"
-                      style="
-                        width: auto;
-                        padding: 10px 14px;
-                        background: #0f766e;
-                      "
-                    >
-                      + Subproject
-                    </button>
-                    <button
-                      class="add-btn"
-                      data-onclick="renameProjectTree()"
-                      style="
-                        width: auto;
-                        padding: 10px 14px;
-                        background: #334155;
-                      "
-                    >
-                      Rename Project
-                    </button>
-                    <label for="todoDueDateInput" class="sr-only"
-                      >Todo due date</label
-                    >
-                    <input type="datetime-local" id="todoDueDateInput" />
-                  </div>
-                  <div class="action-row">
-                    <label class="action-label">Priority:</label>
-                    <div class="priority-selector">
-                      <button
-                        class="priority-btn low"
-                        data-onclick="setPriority('low')"
-                        id="priorityLow"
-                      >
-                        Low
-                      </button>
-                      <button
-                        class="priority-btn medium active"
-                        data-onclick="setPriority('medium')"
-                        id="priorityMedium"
-                      >
-                        Medium
-                      </button>
-                      <button
-                        class="priority-btn high"
-                        data-onclick="setPriority('high')"
-                        id="priorityHigh"
-                      >
-                        High
-                      </button>
-                    </div>
-                    <button
-                      id="critiqueDraftButton"
-                      class="add-btn"
-                      data-onclick="critiqueDraftWithAi()"
-                      hidden
-                      style="background: #334155; width: auto"
-                    >
-                      Critique Draft (AI)
-                    </button>
-                  </div>
-                  <div>
-                    <button
-                      class="expand-section"
-                      data-onclick="toggleNotesInput()"
-                    >
-                      <span class="expand-icon" id="notesExpandIcon">▶</span>
-                      <span>Add notes (optional)</span>
-                    </button>
-                    <label for="todoNotesInput" class="sr-only"
-                      >Todo notes</label
-                    >
-                    <textarea
-                      id="todoNotesInput"
-                      class="notes-textarea"
-                      placeholder="Add detailed notes here..."
-                      style="display: none; margin-top: 8px"
-                    ></textarea>
-                  </div>
-                </div>
-
-                <section
-                  id="aiWorkspace"
-                  class="ai-workspace ai-workspace--collapsed"
-                  hidden
-                >
-                  <div id="aiWorkspaceHeader" class="ai-workspace-header">
-                    <button
-                      id="aiWorkspaceToggle"
-                      class="ai-workspace-toggle"
-                      type="button"
-                      aria-expanded="false"
-                      aria-controls="aiWorkspaceBody"
-                    >
-                      <span class="ai-workspace-toggle__title"
-                        >AI Assistant</span
-                      >
-                      <span id="aiWorkspaceToggleChevron" aria-hidden="true"
-                        >▸</span
-                      >
-                    </button>
-                    <span
-                      id="aiWorkspaceStatus"
-                      class="ai-workspace-status-chip"
-                      >Ready</span
-                    >
-                    <div class="ai-workspace-header-actions">
-                      <button
-                        id="aiWorkspaceDraftButton"
-                        class="mini-btn"
-                        type="button"
-                        data-onclick="openAiWorkspaceForBrainDump()"
-                      >
-                        Draft tasks
-                      </button>
-                      <button
-                        id="aiWorkspacePlanButton"
-                        class="mini-btn"
-                        type="button"
-                        data-onclick="openAiWorkspaceForGoalPlan()"
-                      >
-                        Plan from goal
-                      </button>
-                    </div>
-                  </div>
-                  <div
-                    id="aiWorkspaceBody"
-                    class="ai-workspace-body"
-                    role="region"
-                    aria-label="AI workspace"
-                  >
-                    <div class="ai-workspace-inputs">
-                      <input
-                        type="text"
-                        id="goalInput"
-                        placeholder="Describe an outcome (e.g., Launch onboarding revamp)"
-                      />
-                      <input type="datetime-local" id="goalTargetDateInput" />
-                      <button
-                        id="generatePlanButton"
-                        class="add-btn"
-                        data-onclick="generatePlanWithAi()"
-                      >
-                        Generate Plan
-                      </button>
-                    </div>
-                    <div class="ai-brain-dump">
-                      <label for="brainDumpInput">Brain dump</label>
-                      <textarea
-                        id="brainDumpInput"
-                        class="ai-brain-dump-input"
-                        maxlength="8000"
-                        placeholder="Paste rough thoughts, constraints, and goals. Example: Launch beta by June, finalize onboarding copy, coordinate QA, prep support docs."
-                      ></textarea>
-                      <div class="ai-brain-dump-actions">
-                        <button
-                          id="brainDumpPlanButton"
-                          class="add-btn"
-                          data-onclick="draftPlanFromBrainDumpWithAi()"
-                        >
-                          Draft tasks from brain dump
-                        </button>
-                        <button
-                          class="mini-btn"
-                          data-onclick="clearBrainDumpInput()"
-                        >
-                          Clear
-                        </button>
-                      </div>
-                      <div class="ai-brain-dump-helper">
-                        We'll draft tasks - you can edit before applying.
-                      </div>
-                    </div>
-                    <div
-                      id="aiCritiquePanel"
-                      style="display: none; margin-top: 12px"
-                    ></div>
-                    <div
-                      id="aiPlanPanel"
-                      style="display: none; margin-top: 12px"
-                    ></div>
-                    <details class="ai-meta" id="aiMetaDetails">
-                      <summary>Insights and history</summary>
-                      <div id="aiUsageSummary"></div>
-                      <div id="aiPerformanceInsights"></div>
-                      <div id="aiFeedbackInsights"></div>
-                      <div id="aiSuggestionHistory"></div>
-                    </details>
-                  </div>
-                </section>
-
-                <div id="todosListHeader" class="todos-list-header">
-                  <div class="todos-list-header__context">
-                    <span
-                      id="todosListHeaderBreadcrumb"
-                      class="todos-list-header__breadcrumb"
-                      >Projects /</span
-                    >
-                    <div
-                      id="todosListHeaderTitle"
-                      class="todos-list-header__title"
-                    >
-                      All tasks
-                    </div>
-                    <span
-                      id="todosListHeaderDateBadge"
-                      class="todos-list-header__date-badge"
-                      hidden
-                    ></span>
-                  </div>
-                  <div
-                    id="todosListHeaderCount"
-                    class="todos-list-header__count"
-                  >
-                    0 tasks
-                  </div>
-                </div>
-                <section
-                  id="todayPlanPanel"
-                  class="today-plan-panel"
-                  data-testid="today-plan-panel"
-                  hidden
-                ></section>
-
-                <div id="todosContent">
-                  <div class="loading">
-                    <div class="spinner"></div>
-                    Loading todos...
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            id="editTodoModal"
-            class="modal-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="editTodoModalTitle"
-            style="display: none"
-          >
-            <div class="modal-card">
-              <h3 id="editTodoModalTitle">Edit Task</h3>
-              <div class="form-group">
-                <label for="editTodoTitle">Title</label>
-                <input type="text" id="editTodoTitle" maxlength="200" />
-              </div>
-              <div class="form-group">
-                <label for="editTodoDescription">Description</label>
-                <textarea id="editTodoDescription" rows="3"></textarea>
-              </div>
-              <div class="field-row">
-                <div class="form-group" style="flex: 1; margin-bottom: 0">
-                  <label for="editTodoProjectSelect">Project</label>
-                  <select id="editTodoProjectSelect">
-                    <option value="">No project</option>
-                  </select>
-                </div>
-                <div class="form-group" style="flex: 1; margin-bottom: 0">
-                  <label for="editTodoPriority">Priority</label>
-                  <select id="editTodoPriority">
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </div>
-                <div class="form-group" style="flex: 1; margin-bottom: 0">
-                  <label for="editTodoDueDate">Due date</label>
-                  <input type="datetime-local" id="editTodoDueDate" />
-                </div>
-              </div>
-              <div class="form-group">
-                <label for="editTodoNotes">Notes</label>
-                <textarea id="editTodoNotes" rows="3"></textarea>
-              </div>
-              <div class="modal-actions">
-                <button
-                  class="add-btn"
-                  data-onclick="saveEditedTodo()"
-                  style="width: auto"
-                >
-                  Save
-                </button>
-                <button
-                  class="add-btn"
-                  data-onclick="closeEditTodoModal()"
-                  style="width: auto; background: #64748b"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div
-            id="projectCrudModal"
-            class="modal-overlay"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="projectCrudModalTitle"
-            style="display: none"
-          >
-            <div class="modal-card project-crud-modal-card">
-              <h3 id="projectCrudModalTitle">New project</h3>
-              <form id="projectCrudForm">
-                <div class="form-group">
-                  <label for="projectCrudNameInput">Project name</label>
-                  <input
-                    id="projectCrudNameInput"
-                    type="text"
-                    maxlength="50"
-                    autocomplete="off"
-                    placeholder="e.g. Work / Client A"
-                  />
-                </div>
-                <div class="modal-actions">
-                  <button
-                    id="projectCrudSubmitButton"
-                    class="add-btn"
-                    type="submit"
-                    style="width: auto"
-                  >
-                    Create
-                  </button>
-                  <button
-                    id="projectCrudCancelButton"
-                    class="add-btn"
-                    type="button"
-                    style="width: auto; background: #64748b"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-
-          <div
-            id="todoDrawerBackdrop"
-            class="todo-drawer-backdrop"
-            aria-hidden="true"
-          ></div>
-          <aside id="todoDetailsDrawer" class="todo-drawer" aria-hidden="true">
-            <div class="todo-drawer__header">
-              <h2 id="todoDrawerTitle">Task</h2>
-              <button
-                id="todoDrawerClose"
-                type="button"
-                class="btn-icon"
-                aria-label="Close"
-              >
-                ×
-              </button>
-            </div>
-            <div class="todo-drawer__content">
-              <div class="todo-drawer__section">
-                <div class="todo-drawer__section-title">Essentials</div>
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line skeleton-line--short"></div>
-                <div class="skeleton-line"></div>
-              </div>
-              <div class="todo-drawer__section">
-                <div class="todo-drawer__section-title">Details</div>
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line"></div>
-                <div class="skeleton-line skeleton-line--short"></div>
-              </div>
-            </div>
-          </aside>
-        </div>
-
-        <!-- Profile View -->
-        <div id="profileView" class="view">
-          <div
-            class="message"
-            id="profileMessage"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          ></div>
-
-          <!-- Email Verification Banner -->
-          <div
-            id="verificationBanner"
-            style="
-              display: none;
-              background: #fff3cd;
-              border: 1px solid #ffc107;
-              padding: 16px;
-              border-radius: 8px;
-              margin-bottom: 20px;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-              "
-            >
-              <div>
-                <strong style="color: #856404">⚠️ Email Not Verified</strong>
-                <p style="color: #856404; margin-top: 4px; font-size: 0.9em">
-                  Please verify your email address to access all features.
-                </p>
-              </div>
-              <button
-                id="resendVerificationButton"
-                data-onclick="resendVerification()"
+      </aside>
+      <main id="appMain">
+        <div id="appMainScroll">
+          <div class="container">
+            <div class="header">
+              <div
                 style="
-                  padding: 8px 16px;
-                  background: #ffc107;
-                  color: #000;
-                  border: none;
-                  border-radius: 6px;
-                  cursor: pointer;
-                  font-weight: 500;
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
                 "
               >
-                Resend Email
+                <h1>📝 Todo App</h1>
+                <button
+                  class="theme-toggle"
+                  data-onclick="toggleTheme()"
+                  title="Toggle dark mode"
+                >
+                  🌙
+                </button>
+              </div>
+              <div class="user-bar" id="userBar" style="display: none">
+                <div class="user-info">
+                  <span id="userEmail"></span>
+                  <span id="verifiedBadge"></span>
+                  <span id="adminBadge"></span>
+                </div>
+                <button class="logout-btn" data-onclick="logout()">
+                  Logout
+                </button>
+              </div>
+            </div>
+
+            <!-- Navigation Tabs (only visible when logged in) -->
+            <div class="nav-tabs" id="navTabs" style="display: none">
+              <button
+                class="nav-tab active"
+                data-onclick="switchView('todos', this)"
+              >
+                Todos
+              </button>
+              <button
+                class="nav-tab"
+                data-onclick="switchView('profile', this)"
+              >
+                Profile
+              </button>
+              <button
+                class="nav-tab"
+                id="adminNavTab"
+                style="display: none"
+                data-onclick="switchView('admin', this)"
+              >
+                Admin
               </button>
             </div>
-          </div>
 
-          <div class="profile-section">
-            <h3>Account Information</h3>
-            <div class="info-row">
-              <span class="info-label">Email:</span>
-              <span class="info-value" id="profileEmail"></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Name:</span>
-              <span class="info-value" id="profileName"></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Status:</span>
-              <span class="info-value" id="profileStatus"></span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Member Since:</span>
-              <span class="info-value" id="profileCreated"></span>
-            </div>
-          </div>
+            <div class="content">
+              <!-- Authentication View -->
+              <div id="authView" class="view active">
+                <div class="auth-container">
+                  <div class="auth-tabs">
+                    <button
+                      id="loginTabButton"
+                      class="auth-tab active"
+                      data-onclick="switchAuthTab('login', this)"
+                    >
+                      Login
+                    </button>
+                    <button
+                      id="registerTabButton"
+                      class="auth-tab"
+                      data-onclick="switchAuthTab('register', this)"
+                    >
+                      Register
+                    </button>
+                  </div>
 
-          <div class="profile-section">
-            <h3>Update Profile</h3>
-            <form data-onsubmit="handleUpdateProfile(event)">
-              <div class="form-group">
-                <label for="updateName">Name</label>
-                <input type="text" id="updateName" placeholder="Your Name" />
-              </div>
-              <div class="form-group">
-                <label for="updateEmail">Email</label>
-                <input
-                  type="email"
-                  id="updateEmail"
-                  required
-                  placeholder="your@email.com"
-                />
-              </div>
-              <button type="submit" class="btn">Update Profile</button>
-            </form>
-          </div>
+                  <div
+                    class="message"
+                    id="authMessage"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  ></div>
 
-          <div
-            class="profile-section"
-            id="adminBootstrapSection"
-            style="display: none"
-          >
-            <h3>Admin Provisioning</h3>
-            <p style="margin-bottom: 12px; color: var(--text-secondary)">
-              No admin user exists yet. Enter the bootstrap secret to grant
-              admin access to this account.
-            </p>
-            <form data-onsubmit="handleAdminBootstrap(event)">
-              <div class="form-group">
-                <label for="adminBootstrapSecret">Bootstrap Secret</label>
-                <input
-                  type="password"
-                  id="adminBootstrapSecret"
-                  autocomplete="current-password"
-                  placeholder="Enter admin bootstrap secret"
-                  required
-                />
+                  <!-- Login Form -->
+                  <form
+                    id="loginForm"
+                    class="auth-form active"
+                    data-onsubmit="handleLogin(event)"
+                    style="display: block"
+                  >
+                    <div class="form-group">
+                      <label for="loginEmail">Email</label>
+                      <input
+                        type="email"
+                        id="loginEmail"
+                        required
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="loginPassword">Password</label>
+                      <input
+                        type="password"
+                        id="loginPassword"
+                        required
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Login</button>
+                    <button
+                      type="button"
+                      id="forgotPasswordLink"
+                      class="link-btn"
+                      data-onclick="showForgotPassword()"
+                    >
+                      Forgot Password?
+                    </button>
+                  </form>
+
+                  <!-- Register Form -->
+                  <form
+                    id="registerForm"
+                    class="auth-form"
+                    data-onsubmit="handleRegister(event)"
+                    style="display: none"
+                  >
+                    <div class="form-group">
+                      <label for="registerName">Name</label>
+                      <input
+                        type="text"
+                        id="registerName"
+                        placeholder="Your Name (optional)"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="registerEmail">Email</label>
+                      <input
+                        type="email"
+                        id="registerEmail"
+                        required
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="registerPassword">Password</label>
+                      <input
+                        type="password"
+                        id="registerPassword"
+                        required
+                        placeholder="••••••••"
+                        minlength="8"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Create Account</button>
+                  </form>
+
+                  <!-- Forgot Password Form -->
+                  <form
+                    id="forgotPasswordForm"
+                    class="auth-form"
+                    data-onsubmit="handleForgotPassword(event)"
+                    style="display: none"
+                  >
+                    <h2 style="margin-bottom: 20px">Reset Password</h2>
+                    <div class="form-group">
+                      <label for="forgotEmail">Email</label>
+                      <input
+                        type="email"
+                        id="forgotEmail"
+                        required
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Send Reset Link</button>
+                    <button
+                      type="button"
+                      id="forgotBackToLoginButton"
+                      class="link-btn"
+                      data-onclick="showLogin()"
+                    >
+                      Back to Login
+                    </button>
+                  </form>
+
+                  <!-- Reset Password Form -->
+                  <form
+                    id="resetPasswordForm"
+                    class="auth-form"
+                    data-onsubmit="handleResetPassword(event)"
+                    style="display: none"
+                  >
+                    <h2 style="margin-bottom: 20px">Set New Password</h2>
+                    <div class="form-group">
+                      <label for="newPassword">New Password</label>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        required
+                        placeholder="••••••••"
+                        minlength="8"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="confirmPassword">Confirm Password</label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        required
+                        placeholder="••••••••"
+                        minlength="8"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Reset Password</button>
+                  </form>
+                </div>
               </div>
-              <button type="submit" class="btn">Grant Admin Access</button>
-            </form>
+
+              <!-- Todos View -->
+              <div id="todosView" class="view">
+                <div
+                  class="message"
+                  id="todosMessage"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                ></div>
+
+                <div class="todos-layout">
+                  <aside
+                    id="projectsRail"
+                    class="projects-rail"
+                    aria-label="Projects"
+                  >
+                    <div class="projects-rail__header">
+                      <h3>Projects</h3>
+                      <button
+                        id="projectsRailToggle"
+                        type="button"
+                        class="mini-btn"
+                      >
+                        Collapse
+                      </button>
+                    </div>
+                    <nav
+                      class="projects-rail__primary"
+                      aria-label="Primary task views"
+                    >
+                      <button
+                        type="button"
+                        class="projects-rail-item projects-rail-item--active"
+                        data-project-key=""
+                        aria-current="page"
+                      >
+                        <span>All tasks</span>
+                        <span class="projects-rail-item__count">0</span>
+                      </button>
+                    </nav>
+                    <div
+                      class="projects-rail__section projects-rail__section--nav"
+                    >
+                      <div class="projects-rail__section-header">
+                        <span>Navigation</span>
+                      </div>
+                      <nav
+                        class="projects-rail__list"
+                        aria-label="View navigation"
+                      >
+                        <div
+                          class="projects-rail-item sidebar-nav-item projects-rail-item--active"
+                          data-sidebar-view="todos"
+                          data-onclick="switchView('todos')"
+                        >
+                          <span>Todos</span>
+                        </div>
+                        <div
+                          class="projects-rail-item sidebar-nav-item"
+                          data-sidebar-view="profile"
+                          data-onclick="switchView('profile')"
+                        >
+                          <span>Profile</span>
+                        </div>
+                      </nav>
+                    </div>
+                    <div class="projects-rail__section">
+                      <div class="projects-rail__section-header">
+                        <span>Projects</span>
+                        <button
+                          id="projectsRailCreateButton"
+                          type="button"
+                          class="mini-btn projects-rail-create-btn"
+                        >
+                          New project
+                        </button>
+                      </div>
+                      <div id="projectsRailList" class="projects-rail__list">
+                        <div
+                          class="projects-rail-item"
+                          data-project-key="sample-project"
+                        >
+                          <span>Sample Project</span>
+                          <span class="projects-rail-item__count">0</span>
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
+
+                  <div
+                    id="projectsRailBackdrop"
+                    class="projects-rail-backdrop"
+                    aria-hidden="true"
+                  ></div>
+                  <aside
+                    id="projectsRailSheet"
+                    class="projects-rail-sheet"
+                    aria-hidden="true"
+                    aria-label="Projects"
+                  >
+                    <div class="projects-rail__header">
+                      <h3>Projects</h3>
+                      <button
+                        id="projectsRailMobileClose"
+                        type="button"
+                        class="btn-icon"
+                        aria-label="Close projects"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div class="projects-rail__primary">
+                      <div
+                        class="projects-rail-item projects-rail-item--active"
+                      >
+                        <span>All tasks</span>
+                        <span class="projects-rail-item__count">0</span>
+                      </div>
+                    </div>
+                    <div
+                      class="projects-rail__section projects-rail__section--nav"
+                    >
+                      <div class="projects-rail__section-header">
+                        <span>Navigation</span>
+                      </div>
+                      <nav
+                        class="projects-rail__list"
+                        aria-label="View navigation"
+                      >
+                        <div
+                          class="projects-rail-item sidebar-nav-item projects-rail-item--active"
+                          data-sidebar-view="todos"
+                          data-onclick="switchView('todos')"
+                        >
+                          <span>Todos</span>
+                        </div>
+                        <div
+                          class="projects-rail-item sidebar-nav-item"
+                          data-sidebar-view="profile"
+                          data-onclick="switchView('profile')"
+                        >
+                          <span>Profile</span>
+                        </div>
+                      </nav>
+                    </div>
+                    <div class="projects-rail__section">
+                      <div class="projects-rail__section-header">
+                        <span>Projects</span>
+                        <button
+                          id="projectsRailSheetCreateButton"
+                          type="button"
+                          class="mini-btn projects-rail-create-btn"
+                        >
+                          New project
+                        </button>
+                      </div>
+                      <div class="projects-rail__list">
+                        <div class="projects-rail-item">
+                          <span>Sample Project</span>
+                          <span class="projects-rail-item__count">0</span>
+                        </div>
+                      </div>
+                    </div>
+                  </aside>
+
+                  <div class="todos-main-zone">
+                    <div class="todos-top-bar">
+                      <div class="todos-top-bar-left">
+                        <button
+                          id="projectsRailMobileOpen"
+                          class="mini-btn projects-rail-mobile-open"
+                          type="button"
+                          aria-controls="projectsRail projectsRailSheet"
+                          aria-expanded="false"
+                        >
+                          <span id="projectsRailTopbarLabel"
+                            >Projects: All tasks</span
+                          >
+                        </button>
+                        <h2>Todos</h2>
+                        <span
+                          id="todosCountSummary"
+                          class="todos-count-summary"
+                        ></span>
+                      </div>
+                      <div class="todos-top-bar-search">
+                        <div class="search-bar">
+                          <label for="searchInput" class="sr-only"
+                            >Search todos</label
+                          >
+                          <input
+                            type="text"
+                            id="searchInput"
+                            class="search-input"
+                            placeholder="Search todos... (Ctrl/Cmd+F)"
+                            data-oninput="filterTodos()"
+                          />
+                          <span class="search-icon">🔍</span>
+                        </div>
+                      </div>
+                      <div class="todos-top-bar-actions">
+                        <button
+                          class="add-btn top-add-btn"
+                          data-onclick="addTodo()"
+                        >
+                          Add Task
+                        </button>
+                        <button
+                          id="moreFiltersToggle"
+                          class="mini-btn more-filters-toggle"
+                          aria-expanded="false"
+                          aria-controls="moreFiltersPanel"
+                        >
+                          More filters
+                        </button>
+                      </div>
+                    </div>
+
+                    <div id="todosScrollRegion">
+                      <div
+                        class="todos-minimal-filters todos-minimal-filters--legacy"
+                      >
+                        <label class="project-filter-label" for="categoryFilter"
+                          >Project</label
+                        >
+                        <select
+                          id="categoryFilter"
+                          data-onchange="filterTodos()"
+                        >
+                          <option value="">All Projects</option>
+                        </select>
+                      </div>
+
+                      <div
+                        id="moreFiltersPanel"
+                        class="more-filters-panel"
+                        role="region"
+                        aria-label="More filters"
+                      >
+                        <div class="date-view-tabs">
+                          <button
+                            class="date-view-tab active"
+                            id="dateViewAll"
+                            data-onclick="setDateView('all')"
+                          >
+                            All
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewToday"
+                            data-onclick="setDateView('today')"
+                          >
+                            Today
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewUpcoming"
+                            data-onclick="setDateView('upcoming')"
+                          >
+                            Upcoming
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewNextMonth"
+                            data-onclick="setDateView('next_month')"
+                          >
+                            Next Month
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewSomeday"
+                            data-onclick="setDateView('someday')"
+                          >
+                            Someday
+                          </button>
+                        </div>
+                        <div class="more-filters-actions">
+                          <button
+                            class="clear-filters-btn"
+                            data-onclick="clearFilters()"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            id="exportIcsButton"
+                            class="mini-btn"
+                            data-onclick="exportVisibleTodosToIcs()"
+                            title="Exports currently filtered due-dated tasks"
+                            disabled
+                          >
+                            Export .ics
+                          </button>
+                        </div>
+                        <div class="ics-export-helper">
+                          Exports currently filtered due-dated tasks.
+                        </div>
+                      </div>
+
+                      <!-- Bulk Actions Toolbar -->
+                      <div
+                        id="bulkActionsToolbar"
+                        class="bulk-actions-toolbar"
+                        style="display: none"
+                      >
+                        <input
+                          type="checkbox"
+                          id="selectAllCheckbox"
+                          class="bulk-checkbox"
+                          data-onchange="toggleSelectAll()"
+                        />
+                        <label
+                          for="selectAllCheckbox"
+                          style="cursor: pointer; user-select: none"
+                          >Select All</label
+                        >
+                        <button data-onclick="completeSelected()">
+                          ✓ Complete Selected
+                        </button>
+                        <button data-onclick="deleteSelected()">
+                          🗑 Delete Selected
+                        </button>
+                        <span class="bulk-count" id="bulkCount"
+                          >0 selected</span
+                        >
+                      </div>
+
+                      <!-- Add Todo Form -->
+                      <div class="add-todo quick-entry">
+                        <label for="todoInput" class="sr-only"
+                          >Todo title</label
+                        >
+                        <input
+                          type="text"
+                          id="todoInput"
+                          placeholder="What needs to be done?"
+                          data-onkeypress="handleTodoKeyPress(event)"
+                        />
+                        <div
+                          id="aiOnCreateAssistRow"
+                          class="ai-on-create-assist"
+                          data-testid="ai-on-create-row"
+                          hidden
+                        ></div>
+                        <div class="field-row">
+                          <label for="todoProjectSelect" class="sr-only"
+                            >Project</label
+                          >
+                          <select id="todoProjectSelect">
+                            <option value="">No project</option>
+                          </select>
+                          <button
+                            class="add-btn"
+                            data-onclick="createProject()"
+                            style="width: auto; padding: 10px 14px"
+                          >
+                            + Project
+                          </button>
+                          <button
+                            class="add-btn"
+                            data-onclick="createSubproject()"
+                            style="
+                              width: auto;
+                              padding: 10px 14px;
+                              background: #0f766e;
+                            "
+                          >
+                            + Subproject
+                          </button>
+                          <button
+                            class="add-btn"
+                            data-onclick="renameProjectTree()"
+                            style="
+                              width: auto;
+                              padding: 10px 14px;
+                              background: #334155;
+                            "
+                          >
+                            Rename Project
+                          </button>
+                          <label for="todoDueDateInput" class="sr-only"
+                            >Todo due date</label
+                          >
+                          <input type="datetime-local" id="todoDueDateInput" />
+                        </div>
+                        <div class="action-row">
+                          <label class="action-label">Priority:</label>
+                          <div class="priority-selector">
+                            <button
+                              class="priority-btn low"
+                              data-onclick="setPriority('low')"
+                              id="priorityLow"
+                            >
+                              Low
+                            </button>
+                            <button
+                              class="priority-btn medium active"
+                              data-onclick="setPriority('medium')"
+                              id="priorityMedium"
+                            >
+                              Medium
+                            </button>
+                            <button
+                              class="priority-btn high"
+                              data-onclick="setPriority('high')"
+                              id="priorityHigh"
+                            >
+                              High
+                            </button>
+                          </div>
+                          <button
+                            id="critiqueDraftButton"
+                            class="add-btn"
+                            data-onclick="critiqueDraftWithAi()"
+                            hidden
+                            style="background: #334155; width: auto"
+                          >
+                            Critique Draft (AI)
+                          </button>
+                        </div>
+                        <div>
+                          <button
+                            class="expand-section"
+                            data-onclick="toggleNotesInput()"
+                          >
+                            <span class="expand-icon" id="notesExpandIcon"
+                              >▶</span
+                            >
+                            <span>Add notes (optional)</span>
+                          </button>
+                          <label for="todoNotesInput" class="sr-only"
+                            >Todo notes</label
+                          >
+                          <textarea
+                            id="todoNotesInput"
+                            class="notes-textarea"
+                            placeholder="Add detailed notes here..."
+                            style="display: none; margin-top: 8px"
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <section
+                        id="aiWorkspace"
+                        class="ai-workspace ai-workspace--collapsed"
+                        hidden
+                      >
+                        <div id="aiWorkspaceHeader" class="ai-workspace-header">
+                          <button
+                            id="aiWorkspaceToggle"
+                            class="ai-workspace-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="aiWorkspaceBody"
+                          >
+                            <span class="ai-workspace-toggle__title"
+                              >AI Assistant</span
+                            >
+                            <span
+                              id="aiWorkspaceToggleChevron"
+                              aria-hidden="true"
+                              >▸</span
+                            >
+                          </button>
+                          <span
+                            id="aiWorkspaceStatus"
+                            class="ai-workspace-status-chip"
+                            >Ready</span
+                          >
+                          <div class="ai-workspace-header-actions">
+                            <button
+                              id="aiWorkspaceDraftButton"
+                              class="mini-btn"
+                              type="button"
+                              data-onclick="openAiWorkspaceForBrainDump()"
+                            >
+                              Draft tasks
+                            </button>
+                            <button
+                              id="aiWorkspacePlanButton"
+                              class="mini-btn"
+                              type="button"
+                              data-onclick="openAiWorkspaceForGoalPlan()"
+                            >
+                              Plan from goal
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          id="aiWorkspaceBody"
+                          class="ai-workspace-body"
+                          role="region"
+                          aria-label="AI workspace"
+                        >
+                          <div class="ai-workspace-inputs">
+                            <input
+                              type="text"
+                              id="goalInput"
+                              placeholder="Describe an outcome (e.g., Launch onboarding revamp)"
+                            />
+                            <input
+                              type="datetime-local"
+                              id="goalTargetDateInput"
+                            />
+                            <button
+                              id="generatePlanButton"
+                              class="add-btn"
+                              data-onclick="generatePlanWithAi()"
+                            >
+                              Generate Plan
+                            </button>
+                          </div>
+                          <div class="ai-brain-dump">
+                            <label for="brainDumpInput">Brain dump</label>
+                            <textarea
+                              id="brainDumpInput"
+                              class="ai-brain-dump-input"
+                              maxlength="8000"
+                              placeholder="Paste rough thoughts, constraints, and goals. Example: Launch beta by June, finalize onboarding copy, coordinate QA, prep support docs."
+                            ></textarea>
+                            <div class="ai-brain-dump-actions">
+                              <button
+                                id="brainDumpPlanButton"
+                                class="add-btn"
+                                data-onclick="draftPlanFromBrainDumpWithAi()"
+                              >
+                                Draft tasks from brain dump
+                              </button>
+                              <button
+                                class="mini-btn"
+                                data-onclick="clearBrainDumpInput()"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                            <div class="ai-brain-dump-helper">
+                              We'll draft tasks - you can edit before applying.
+                            </div>
+                          </div>
+                          <div
+                            id="aiCritiquePanel"
+                            style="display: none; margin-top: 12px"
+                          ></div>
+                          <div
+                            id="aiPlanPanel"
+                            style="display: none; margin-top: 12px"
+                          ></div>
+                          <details class="ai-meta" id="aiMetaDetails">
+                            <summary>Insights and history</summary>
+                            <div id="aiUsageSummary"></div>
+                            <div id="aiPerformanceInsights"></div>
+                            <div id="aiFeedbackInsights"></div>
+                            <div id="aiSuggestionHistory"></div>
+                          </details>
+                        </div>
+                      </section>
+
+                      <div id="todosListHeader" class="todos-list-header">
+                        <div class="todos-list-header__context">
+                          <span
+                            id="todosListHeaderBreadcrumb"
+                            class="todos-list-header__breadcrumb"
+                            >Projects /</span
+                          >
+                          <div
+                            id="todosListHeaderTitle"
+                            class="todos-list-header__title"
+                          >
+                            All tasks
+                          </div>
+                          <span
+                            id="todosListHeaderDateBadge"
+                            class="todos-list-header__date-badge"
+                            hidden
+                          ></span>
+                        </div>
+                        <div
+                          id="todosListHeaderCount"
+                          class="todos-list-header__count"
+                        >
+                          0 tasks
+                        </div>
+                      </div>
+                      <section
+                        id="todayPlanPanel"
+                        class="today-plan-panel"
+                        data-testid="today-plan-panel"
+                        hidden
+                      ></section>
+
+                      <div id="todosContent">
+                        <div class="loading">
+                          <div class="spinner"></div>
+                          Loading todos...
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="editTodoModal"
+                  class="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="editTodoModalTitle"
+                  style="display: none"
+                >
+                  <div class="modal-card">
+                    <h3 id="editTodoModalTitle">Edit Task</h3>
+                    <div class="form-group">
+                      <label for="editTodoTitle">Title</label>
+                      <input type="text" id="editTodoTitle" maxlength="200" />
+                    </div>
+                    <div class="form-group">
+                      <label for="editTodoDescription">Description</label>
+                      <textarea id="editTodoDescription" rows="3"></textarea>
+                    </div>
+                    <div class="field-row">
+                      <div class="form-group" style="flex: 1; margin-bottom: 0">
+                        <label for="editTodoProjectSelect">Project</label>
+                        <select id="editTodoProjectSelect">
+                          <option value="">No project</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="flex: 1; margin-bottom: 0">
+                        <label for="editTodoPriority">Priority</label>
+                        <select id="editTodoPriority">
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="flex: 1; margin-bottom: 0">
+                        <label for="editTodoDueDate">Due date</label>
+                        <input type="datetime-local" id="editTodoDueDate" />
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="editTodoNotes">Notes</label>
+                      <textarea id="editTodoNotes" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                      <button
+                        class="add-btn"
+                        data-onclick="saveEditedTodo()"
+                        style="width: auto"
+                      >
+                        Save
+                      </button>
+                      <button
+                        class="add-btn"
+                        data-onclick="closeEditTodoModal()"
+                        style="width: auto; background: #64748b"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="projectCrudModal"
+                  class="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="projectCrudModalTitle"
+                  style="display: none"
+                >
+                  <div class="modal-card project-crud-modal-card">
+                    <h3 id="projectCrudModalTitle">New project</h3>
+                    <form id="projectCrudForm">
+                      <div class="form-group">
+                        <label for="projectCrudNameInput">Project name</label>
+                        <input
+                          id="projectCrudNameInput"
+                          type="text"
+                          maxlength="50"
+                          autocomplete="off"
+                          placeholder="e.g. Work / Client A"
+                        />
+                      </div>
+                      <div class="modal-actions">
+                        <button
+                          id="projectCrudSubmitButton"
+                          class="add-btn"
+                          type="submit"
+                          style="width: auto"
+                        >
+                          Create
+                        </button>
+                        <button
+                          id="projectCrudCancelButton"
+                          class="add-btn"
+                          type="button"
+                          style="width: auto; background: #64748b"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <div
+                  id="todoDrawerBackdrop"
+                  class="todo-drawer-backdrop"
+                  aria-hidden="true"
+                ></div>
+                <aside
+                  id="todoDetailsDrawer"
+                  class="todo-drawer"
+                  aria-hidden="true"
+                >
+                  <div class="todo-drawer__header">
+                    <h2 id="todoDrawerTitle">Task</h2>
+                    <button
+                      id="todoDrawerClose"
+                      type="button"
+                      class="btn-icon"
+                      aria-label="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div class="todo-drawer__content">
+                    <div class="todo-drawer__section">
+                      <div class="todo-drawer__section-title">Essentials</div>
+                      <div class="skeleton-line"></div>
+                      <div class="skeleton-line skeleton-line--short"></div>
+                      <div class="skeleton-line"></div>
+                    </div>
+                    <div class="todo-drawer__section">
+                      <div class="todo-drawer__section-title">Details</div>
+                      <div class="skeleton-line"></div>
+                      <div class="skeleton-line"></div>
+                      <div class="skeleton-line skeleton-line--short"></div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+
+              <!-- Profile View -->
+              <div id="profileView" class="view">
+                <div
+                  class="message"
+                  id="profileMessage"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                ></div>
+
+                <!-- Email Verification Banner -->
+                <div
+                  id="verificationBanner"
+                  style="
+                    display: none;
+                    background: #fff3cd;
+                    border: 1px solid #ffc107;
+                    padding: 16px;
+                    border-radius: 8px;
+                    margin-bottom: 20px;
+                  "
+                >
+                  <div
+                    style="
+                      display: flex;
+                      justify-content: space-between;
+                      align-items: center;
+                    "
+                  >
+                    <div>
+                      <strong style="color: #856404"
+                        >⚠️ Email Not Verified</strong
+                      >
+                      <p
+                        style="
+                          color: #856404;
+                          margin-top: 4px;
+                          font-size: 0.9em;
+                        "
+                      >
+                        Please verify your email address to access all features.
+                      </p>
+                    </div>
+                    <button
+                      id="resendVerificationButton"
+                      data-onclick="resendVerification()"
+                      style="
+                        padding: 8px 16px;
+                        background: #ffc107;
+                        color: #000;
+                        border: none;
+                        border-radius: 6px;
+                        cursor: pointer;
+                        font-weight: 500;
+                      "
+                    >
+                      Resend Email
+                    </button>
+                  </div>
+                </div>
+
+                <div class="profile-section">
+                  <h3>Account Information</h3>
+                  <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value" id="profileEmail"></span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Name:</span>
+                    <span class="info-value" id="profileName"></span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Status:</span>
+                    <span class="info-value" id="profileStatus"></span>
+                  </div>
+                  <div class="info-row">
+                    <span class="info-label">Member Since:</span>
+                    <span class="info-value" id="profileCreated"></span>
+                  </div>
+                </div>
+
+                <div class="profile-section">
+                  <h3>Update Profile</h3>
+                  <form data-onsubmit="handleUpdateProfile(event)">
+                    <div class="form-group">
+                      <label for="updateName">Name</label>
+                      <input
+                        type="text"
+                        id="updateName"
+                        placeholder="Your Name"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="updateEmail">Email</label>
+                      <input
+                        type="email"
+                        id="updateEmail"
+                        required
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Update Profile</button>
+                  </form>
+                </div>
+
+                <div
+                  class="profile-section"
+                  id="adminBootstrapSection"
+                  style="display: none"
+                >
+                  <h3>Admin Provisioning</h3>
+                  <p style="margin-bottom: 12px; color: var(--text-secondary)">
+                    No admin user exists yet. Enter the bootstrap secret to
+                    grant admin access to this account.
+                  </p>
+                  <form data-onsubmit="handleAdminBootstrap(event)">
+                    <div class="form-group">
+                      <label for="adminBootstrapSecret">Bootstrap Secret</label>
+                      <input
+                        type="password"
+                        id="adminBootstrapSecret"
+                        autocomplete="current-password"
+                        placeholder="Enter admin bootstrap secret"
+                        required
+                      />
+                    </div>
+                    <button type="submit" class="btn">
+                      Grant Admin Access
+                    </button>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Admin View -->
+              <div id="adminView" class="view">
+                <div
+                  class="message"
+                  id="adminMessage"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                ></div>
+                <h2>User Management</h2>
+                <div id="adminContent">
+                  <div class="loading">
+                    <div class="spinner"></div>
+                    Loading users...
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
-        <!-- Admin View -->
-        <div id="adminView" class="view">
-          <div
-            class="message"
-            id="adminMessage"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
-          ></div>
-          <h2>User Management</h2>
-          <div id="adminContent">
-            <div class="loading">
-              <div class="spinner"></div>
-              Loading users...
-            </div>
-          </div>
-        </div>
-      </div>
+      </main>
     </div>
     <script src="/state.js" defer></script>
     <script src="/apiClient.js" defer></script>

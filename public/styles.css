@@ -98,6 +98,11 @@ body.dark-mode {
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   font-family: var(--font-sans);
   font-size: var(--fs-md);
@@ -109,9 +114,97 @@ body {
     var(--bg-gradient-start) 0%,
     var(--bg-gradient-end) 100%
   );
-  min-height: 100vh;
-  padding: var(--s-5);
+  min-height: 100dvh;
+  padding: 0;
+  overflow: hidden;
   transition: background 0.3s ease;
+}
+
+#appShell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+#appSidebar {
+  display: none;
+  min-height: 0;
+  padding: var(--s-4);
+  border-right: 1px solid var(--border-color);
+  background: var(--surface-2);
+}
+
+#appMain {
+  min-width: 0;
+  min-height: 0;
+}
+
+#appMainScroll {
+  min-height: 100dvh;
+  max-height: 100dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--s-5);
+}
+
+body.is-todos-view #appShell {
+  grid-template-columns: 272px minmax(0, 1fr);
+}
+
+body.is-todos-view #appMainScroll {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+body.is-todos-view #appSidebar {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.app-sidebar__brand {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0 var(--s-1);
+}
+
+#projectsRailHost {
+  min-height: 0;
+  flex: 1 1 auto;
+  display: flex;
+}
+
+#projectsRailHost > #projectsRail {
+  position: static;
+  top: auto;
+  height: 100%;
+  max-height: 100%;
+  width: 100%;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
+}
+
+.app-sidebar__bottom {
+  margin-top: auto;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--border-color);
+}
+
+.app-sidebar__settings {
+  width: 100%;
 }
 
 h1,
@@ -348,8 +441,11 @@ body.is-todos-view .nav-tab.active {
 }
 
 body.is-todos-view .container {
-  height: calc(100dvh - 48px);
-  max-height: calc(100dvh - 48px);
+  height: 100%;
+  max-height: 100%;
+  max-width: none;
+  margin: 0;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -1536,6 +1632,10 @@ textarea:focus-visible,
 
 .todos-layout--rail-collapsed {
   grid-template-columns: 84px minmax(0, 1fr);
+}
+
+.todos-layout--sidebar-mounted {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .todos-main-zone {
@@ -2737,6 +2837,21 @@ button.projects-rail-item {
   }
 
   body {
+    padding: 0;
+  }
+
+  #appShell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  #appSidebar,
+  body.is-todos-view #appSidebar {
+    display: none;
+  }
+
+  #appMainScroll {
+    min-height: 100dvh;
+    max-height: 100dvh;
     padding: 10px;
   }
 
@@ -2768,8 +2883,8 @@ button.projects-rail-item {
   }
 
   body.is-todos-view .container {
-    height: calc(100dvh - 20px);
-    max-height: calc(100dvh - 20px);
+    height: 100%;
+    max-height: 100%;
   }
 
   .todos-top-bar {
@@ -4398,6 +4513,16 @@ textarea:disabled {
 }
 
 @media (max-width: 768px) {
+  .todos-top-bar {
+    grid-template-columns: 1fr;
+  }
+
+  .todos-top-bar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
   .todos-list-header {
     flex-wrap: wrap;
   }
