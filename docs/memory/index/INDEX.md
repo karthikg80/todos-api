@@ -34,6 +34,7 @@ Quick-reference to find things. Keep this flat and current.
 | Current context (brief) | `docs/memory/brief/BRIEF.md`               |
 | This index              | `docs/memory/index/INDEX.md`               |
 | Archived briefs         | `docs/memory/archive/`                      |
+| Latest archive snapshot | `docs/memory/archive/2026-02-21-brief-pre-sidebar-nav-polish.md` |
 
 ## Feature Specs
 
