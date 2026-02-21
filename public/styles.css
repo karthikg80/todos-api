@@ -645,6 +645,25 @@ textarea:focus-visible,
   color: var(--text-primary);
 }
 
+.quick-entry-toolbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.quick-entry-properties-toggle--active {
+  background: color-mix(in oklab, var(--accent) 14%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--border-color));
+}
+
+.quick-entry-properties-panel {
+  display: grid;
+  gap: var(--s-3);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  padding: var(--s-3);
+  background: var(--surface-2);
+}
+
 .field-row {
   display: flex;
   gap: var(--s-3);
@@ -1828,7 +1847,7 @@ textarea:focus-visible,
   padding-top: var(--s-3);
 }
 
-.projects-rail__section--nav {
+.projects-rail__section--workspace {
   border-top: 1px solid var(--border-color);
 }
 
@@ -1844,8 +1863,16 @@ textarea:focus-visible,
 
 .projects-rail-create-btn {
   width: auto;
-  padding: 6px 10px;
-  font-size: 0.78rem;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0 8px;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.workspace-view-item {
+  justify-content: flex-start;
+  font-weight: var(--fw-medium);
 }
 
 .projects-rail-row {

@@ -261,31 +261,48 @@
                         Collapse
                       </button>
                     </div>
-                    <nav
-                      class="projects-rail__primary"
-                      aria-label="Primary task views"
-                    >
-                      <button
-                        type="button"
-                        class="projects-rail-item projects-rail-item--active"
-                        data-project-key=""
-                        aria-current="page"
-                      >
-                        <span>All tasks</span>
-                        <span class="projects-rail-item__count">0</span>
-                      </button>
-                    </nav>
                     <div
-                      class="projects-rail__section projects-rail__section--nav"
+                      class="projects-rail__section projects-rail__section--workspace"
                     >
                       <div class="projects-rail__section-header">
-                        <span>Navigation</span>
+                        <span>Workspace</span>
                       </div>
                       <nav
-                        class="projects-rail__list sidebar-nav-list"
-                        aria-label="View navigation"
-                        data-sidebar-nav-target
-                      ></nav>
+                        class="projects-rail__primary"
+                        aria-label="Workspace views"
+                      >
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item projects-rail-item--active"
+                          data-workspace-view="all"
+                          data-project-key=""
+                          aria-current="page"
+                        >
+                          <span>All tasks</span>
+                          <span class="projects-rail-item__count">0</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="today"
+                        >
+                          <span>Today</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="upcoming"
+                        >
+                          <span>Upcoming</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="completed"
+                        >
+                          <span>Completed</span>
+                        </button>
+                      </nav>
                     </div>
                     <div class="projects-rail__section">
                       <div class="projects-rail__section-header">
@@ -294,8 +311,9 @@
                           id="projectsRailCreateButton"
                           type="button"
                           class="mini-btn projects-rail-create-btn"
+                          aria-label="Create project"
                         >
-                          New project
+                          +
                         </button>
                       </div>
                       <div id="projectsRailList" class="projects-rail__list">
@@ -332,25 +350,48 @@
                         ×
                       </button>
                     </div>
-                    <div class="projects-rail__primary">
-                      <div
-                        class="projects-rail-item projects-rail-item--active"
-                      >
-                        <span>All tasks</span>
-                        <span class="projects-rail-item__count">0</span>
-                      </div>
-                    </div>
                     <div
-                      class="projects-rail__section projects-rail__section--nav"
+                      class="projects-rail__section projects-rail__section--workspace"
                     >
                       <div class="projects-rail__section-header">
-                        <span>Navigation</span>
+                        <span>Workspace</span>
                       </div>
                       <nav
-                        class="projects-rail__list sidebar-nav-list"
-                        aria-label="View navigation"
-                        data-sidebar-nav-target
-                      ></nav>
+                        class="projects-rail__primary"
+                        aria-label="Workspace views"
+                      >
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item projects-rail-item--active"
+                          data-workspace-view="all"
+                          data-project-key=""
+                          aria-current="page"
+                        >
+                          <span>All tasks</span>
+                          <span class="projects-rail-item__count">0</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="today"
+                        >
+                          <span>Today</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="upcoming"
+                        >
+                          <span>Upcoming</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="completed"
+                        >
+                          <span>Completed</span>
+                        </button>
+                      </nav>
                     </div>
                     <div class="projects-rail__section">
                       <div class="projects-rail__section-header">
@@ -359,8 +400,9 @@
                           id="projectsRailSheetCreateButton"
                           type="button"
                           class="mini-btn projects-rail-create-btn"
+                          aria-label="Create project"
                         >
-                          New project
+                          +
                         </button>
                       </div>
                       <div class="projects-rail__list">
@@ -554,87 +596,110 @@
                           placeholder="What needs to be done?"
                           data-onkeypress="handleTodoKeyPress(event)"
                         />
+                        <div class="quick-entry-toolbar">
+                          <button
+                            id="quickEntryPropertiesToggle"
+                            class="mini-btn quick-entry-properties-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="quickEntryPropertiesPanel"
+                          >
+                            Properties
+                          </button>
+                        </div>
                         <div
                           id="aiOnCreateAssistRow"
                           class="ai-on-create-assist"
                           data-testid="ai-on-create-row"
                           hidden
                         ></div>
-                        <div class="field-row">
-                          <label for="todoProjectSelect" class="sr-only"
-                            >Project</label
-                          >
-                          <select id="todoProjectSelect">
-                            <option value="">No project</option>
-                          </select>
-                          <button
-                            class="add-btn"
-                            data-onclick="createProject()"
-                            style="width: auto; padding: 10px 14px"
-                          >
-                            + Project
-                          </button>
-                          <button
-                            class="add-btn"
-                            data-onclick="createSubproject()"
-                            style="
-                              width: auto;
-                              padding: 10px 14px;
-                              background: #0f766e;
-                            "
-                          >
-                            + Subproject
-                          </button>
-                          <button
-                            class="add-btn"
-                            data-onclick="renameProjectTree()"
-                            style="
-                              width: auto;
-                              padding: 10px 14px;
-                              background: #334155;
-                            "
-                          >
-                            Rename Project
-                          </button>
-                          <label for="todoDueDateInput" class="sr-only"
-                            >Todo due date</label
-                          >
-                          <input type="datetime-local" id="todoDueDateInput" />
-                        </div>
-                        <div class="action-row">
-                          <label class="action-label">Priority:</label>
-                          <div class="priority-selector">
-                            <button
-                              class="priority-btn low"
-                              data-onclick="setPriority('low')"
-                              id="priorityLow"
+                        <div
+                          id="quickEntryPropertiesPanel"
+                          class="quick-entry-properties-panel"
+                          hidden
+                        >
+                          <div class="field-row">
+                            <label for="todoProjectSelect" class="sr-only"
+                              >Project</label
                             >
-                              Low
+                            <select id="todoProjectSelect">
+                              <option value="">No project</option>
+                            </select>
+                            <button
+                              id="quickEntryCreateProjectButton"
+                              class="add-btn"
+                              data-onclick="createProject()"
+                              style="width: auto; padding: 10px 14px"
+                            >
+                              + Project
                             </button>
                             <button
-                              class="priority-btn medium active"
-                              data-onclick="setPriority('medium')"
-                              id="priorityMedium"
+                              id="quickEntryCreateSubprojectButton"
+                              class="add-btn"
+                              data-onclick="createSubproject()"
+                              style="
+                                width: auto;
+                                padding: 10px 14px;
+                                background: #0f766e;
+                              "
                             >
-                              Medium
+                              + Subproject
                             </button>
                             <button
-                              class="priority-btn high"
-                              data-onclick="setPriority('high')"
-                              id="priorityHigh"
+                              id="quickEntryRenameProjectButton"
+                              class="add-btn"
+                              data-onclick="renameProjectTree()"
+                              style="
+                                width: auto;
+                                padding: 10px 14px;
+                                background: #334155;
+                              "
                             >
-                              High
+                              Rename Project
+                            </button>
+                            <label for="todoDueDateInput" class="sr-only"
+                              >Todo due date</label
+                            >
+                            <input
+                              type="datetime-local"
+                              id="todoDueDateInput"
+                            />
+                          </div>
+                          <div class="action-row">
+                            <label class="action-label">Priority:</label>
+                            <div class="priority-selector">
+                              <button
+                                class="priority-btn low"
+                                data-onclick="setPriority('low')"
+                                id="priorityLow"
+                              >
+                                Low
+                              </button>
+                              <button
+                                class="priority-btn medium active"
+                                data-onclick="setPriority('medium')"
+                                id="priorityMedium"
+                              >
+                                Medium
+                              </button>
+                              <button
+                                class="priority-btn high"
+                                data-onclick="setPriority('high')"
+                                id="priorityHigh"
+                              >
+                                High
+                              </button>
+                            </div>
+                            <button
+                              id="critiqueDraftButton"
+                              class="add-btn"
+                              data-onclick="critiqueDraftWithAi()"
+                              hidden
+                              style="background: #334155; width: auto"
+                            >
+                              Critique Draft (AI)
                             </button>
                           </div>
-                          <button
-                            id="critiqueDraftButton"
-                            class="add-btn"
-                            data-onclick="critiqueDraftWithAi()"
-                            hidden
-                            style="background: #334155; width: auto"
-                          >
-                            Critique Draft (AI)
-                          </button>
                         </div>
                         <div>
                           <button

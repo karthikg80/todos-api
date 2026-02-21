@@ -194,6 +194,7 @@ let suppressOnCreateAssistInput = false;
 onCreateAssistState.dismissedTodoIds = loadOnCreateDismissedTodoIds();
 let todayPlanState = createInitialTodayPlanState();
 let todayPlanGenerationSeq = 0;
+let isQuickEntryPropertiesOpen = false;
 
 function emitAiSuggestionUndoTelemetry({
   surface,
@@ -383,6 +384,40 @@ function persistAiWorkspaceVisibleState(isVisible) {
   } catch (error) {
     // Ignore storage failures.
   }
+}
+
+function setQuickEntryPropertiesOpen(nextOpen) {
+  isQuickEntryPropertiesOpen = !!nextOpen;
+  const panel = document.getElementById("quickEntryPropertiesPanel");
+  const toggle = document.getElementById("quickEntryPropertiesToggle");
+  if (panel instanceof HTMLElement) {
+    panel.hidden = !isQuickEntryPropertiesOpen;
+  }
+  if (toggle instanceof HTMLElement) {
+    toggle.setAttribute("aria-expanded", String(isQuickEntryPropertiesOpen));
+    toggle.classList.toggle(
+      "quick-entry-properties-toggle--active",
+      isQuickEntryPropertiesOpen,
+    );
+  }
+}
+
+function syncQuickEntryProjectActions() {
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const createSubprojectButton = document.getElementById(
+    "quickEntryCreateSubprojectButton",
+  );
+  const renameProjectButton = document.getElementById(
+    "quickEntryRenameProjectButton",
+  );
+  const hasProjectSelected =
+    projectSelect instanceof HTMLSelectElement && !!projectSelect.value;
+
+  [createSubprojectButton, renameProjectButton].forEach((button) => {
+    if (!(button instanceof HTMLElement)) return;
+    button.hidden = !hasProjectSelected;
+    button.setAttribute("aria-hidden", String(!hasProjectSelected));
+  });
 }
 
 function getAiWorkspaceElements() {
@@ -623,6 +658,8 @@ function init() {
     setAuthState(AUTH_STATE.UNAUTHENTICATED);
   }
   renderOnCreateAssistRow();
+  setQuickEntryPropertiesOpen(false);
+  syncQuickEntryProjectActions();
   handleVerificationStatusFromUrl();
 }
 
@@ -2599,6 +2636,8 @@ async function addTodo() {
       projectSelect.value = "";
       dueDateInput.value = "";
       notesInput.value = "";
+      setQuickEntryPropertiesOpen(false);
+      syncQuickEntryProjectActions();
 
       // Reset priority to medium
       setPriority("medium");
@@ -2747,6 +2786,7 @@ function updateProjectSelectOptions() {
     const selected = todoProjectSelect.value || "";
     todoProjectSelect.innerHTML = renderOptions(selected);
     todoProjectSelect.value = selected;
+    syncQuickEntryProjectActions();
   }
   if (editProjectSelect) {
     const selected = editProjectSelect.value || "";
@@ -3261,15 +3301,62 @@ function setDateView(view, { skipApply = false } = {}) {
     upcoming: "dateViewUpcoming",
     next_month: "dateViewNextMonth",
     someday: "dateViewSomeday",
+    completed: "",
   };
-  Object.values(ids).forEach((id) => {
-    document.getElementById(id)?.classList.remove("active");
-  });
-  const activeId = ids[view] || ids.all;
-  document.getElementById(activeId)?.classList.add("active");
+  Object.values(ids)
+    .filter(Boolean)
+    .forEach((id) => {
+      document.getElementById(id)?.classList.remove("active");
+    });
+  if (view !== "completed") {
+    const activeId = ids[view] || ids.all;
+    document.getElementById(activeId)?.classList.add("active");
+  }
+  syncWorkspaceViewState();
   if (!skipApply) {
     applyFiltersAndRender({ reason: "date-view" });
   }
+}
+
+function matchesWorkspaceView(view) {
+  if (view === "all") {
+    return getSelectedProjectKey() === "" && currentDateView === "all";
+  }
+  if (view === "completed") {
+    return getSelectedProjectKey() === "" && currentDateView === "completed";
+  }
+  return getSelectedProjectKey() === "" && currentDateView === view;
+}
+
+function syncWorkspaceViewState() {
+  document
+    .querySelectorAll(".workspace-view-item[data-workspace-view]")
+    .forEach((item) => {
+      if (!(item instanceof HTMLElement)) return;
+      const view = item.getAttribute("data-workspace-view") || "all";
+      const isActive = matchesWorkspaceView(view);
+      item.classList.toggle("projects-rail-item--active", isActive);
+      if (isActive) {
+        item.setAttribute("aria-current", "page");
+      } else {
+        item.removeAttribute("aria-current");
+      }
+    });
+}
+
+function selectWorkspaceView(view, triggerEl = null) {
+  const normalizedView = String(view || "all").toLowerCase();
+  const nextView =
+    normalizedView === "today" ||
+    normalizedView === "upcoming" ||
+    normalizedView === "completed"
+      ? normalizedView
+      : "all";
+  if (triggerEl instanceof HTMLElement) {
+    triggerEl.blur();
+  }
+  setSelectedProjectKey("", { reason: "workspace-view", skipApply: true });
+  setDateView(nextView, { skipApply: false });
 }
 
 function isSameLocalDay(a, b) {
@@ -3283,6 +3370,9 @@ function isSameLocalDay(a, b) {
 function matchesDateView(todo) {
   if (currentDateView === "all") {
     return true;
+  }
+  if (currentDateView === "completed") {
+    return !!todo.completed;
   }
 
   const dueDate = todo.dueDate ? new Date(todo.dueDate) : null;
@@ -3564,6 +3654,7 @@ function setSelectedProjectKey(
   }
 
   railRovingFocusKey = nextValue || "";
+  syncWorkspaceViewState();
   if (!skipApply) {
     applyFiltersAndRender({ reason });
   }
@@ -3583,6 +3674,7 @@ function getCurrentDateViewLabel() {
     all: "",
     today: "Today",
     upcoming: "Upcoming",
+    completed: "Completed",
     next_month: "Next month",
     someday: "Someday",
   };
@@ -4222,6 +4314,7 @@ function renderProjectsRail() {
     railRovingFocusKey = selectedProject || "";
   }
   setProjectsRailActiveState(selectedProject);
+  syncWorkspaceViewState();
   setProjectsRailCollapsed(isRailCollapsed);
   updateTopbarProjectsButton(getSelectedProjectLabel(selectedProject));
 }
@@ -9177,6 +9270,17 @@ function bindProjectsRailHandlers() {
       closeRailProjectMenu();
     }
 
+    const workspaceViewButton = target.closest(
+      ".workspace-view-item[data-workspace-view]",
+    );
+    if (workspaceViewButton instanceof HTMLElement) {
+      const view = workspaceViewButton.getAttribute("data-workspace-view");
+      event.preventDefault();
+      event.stopPropagation();
+      selectWorkspaceView(view, workspaceViewButton);
+      return;
+    }
+
     const projectButton = target.closest(
       ".projects-rail-item[data-project-key]",
     );
@@ -9271,6 +9375,17 @@ function bindProjectsRailHandlers() {
     }
 
     if (event.key === "Enter") {
+      const focusedWorkspaceView = target.closest(
+        ".workspace-view-item[data-workspace-view]",
+      );
+      if (focusedWorkspaceView instanceof HTMLElement) {
+        event.preventDefault();
+        const view =
+          focusedWorkspaceView.getAttribute("data-workspace-view") || "all";
+        selectWorkspaceView(view, focusedWorkspaceView);
+        return;
+      }
+
       const focusedOption = target.closest(
         ".projects-rail-item[data-project-key]",
       );
@@ -9383,9 +9498,21 @@ function bindCriticalHandlers() {
     closeProjectsRailSheet({ restoreFocus: true });
   });
 
+  bindClick("quickEntryPropertiesToggle", () => {
+    setQuickEntryPropertiesOpen(!isQuickEntryPropertiesOpen);
+  });
+
   bindClick("aiWorkspaceToggle", () => {
     toggleAiWorkspace();
   });
+
+  const todoProjectSelect = document.getElementById("todoProjectSelect");
+  if (todoProjectSelect && todoProjectSelect.dataset.bound !== "true") {
+    todoProjectSelect.addEventListener("change", () => {
+      syncQuickEntryProjectActions();
+    });
+    todoProjectSelect.dataset.bound = "true";
+  }
 
   const resendBtn = document.getElementById("resendVerificationButton");
   if (resendBtn && !resendBtn.dataset.bound) {
@@ -9501,6 +9628,8 @@ function showAppView() {
   resetTodayPlanState();
   renderOnCreateAssistRow();
   renderTodayPlanPanel();
+  setQuickEntryPropertiesOpen(false);
+  syncQuickEntryProjectActions();
 }
 
 // Show auth view
