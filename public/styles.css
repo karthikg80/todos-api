@@ -205,6 +205,8 @@ body.is-todos-view #appSidebar {
 
 .app-sidebar__settings {
   width: 100%;
+}
+
 body.is-todos-view {
   padding: 0;
   overflow: hidden;
