@@ -78,7 +78,12 @@ test.describe("Auth UI", () => {
     });
 
     await page.goto("/");
-    await page.getByRole("button", { name: "Profile" }).click();
+    const settingsButton = page.getByRole("button", { name: "Settings" });
+    if (await settingsButton.first().isVisible()) {
+      await settingsButton.first().click();
+    } else {
+      await page.getByRole("button", { name: "Profile" }).click();
+    }
     await expect(page.locator("#verificationBanner")).toBeVisible();
 
     await page.getByRole("button", { name: "Resend Email" }).click();

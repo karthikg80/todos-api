@@ -60,7 +60,7 @@
               </button>
               <button
                 class="nav-tab"
-                data-onclick="switchView('profile', this)"
+                data-onclick="switchView('settings', this)"
               >
                 Profile
               </button>
@@ -419,12 +419,148 @@
                   <div class="todos-main-zone">
                     <section id="settingsPane" class="settings-pane" hidden>
                       <h2>Settings</h2>
+                      <div
+                        class="message"
+                        id="profileMessage"
+                        role="status"
+                        aria-live="polite"
+                        aria-atomic="true"
+                      ></div>
+                      <div
+                        id="verificationBanner"
+                        style="
+                          display: none;
+                          background: #fff3cd;
+                          border: 1px solid #ffc107;
+                          padding: 16px;
+                          border-radius: 8px;
+                          margin-bottom: 20px;
+                        "
+                      >
+                        <div
+                          style="
+                            display: flex;
+                            justify-content: space-between;
+                            align-items: center;
+                          "
+                        >
+                          <div>
+                            <strong style="color: #856404"
+                              >⚠️ Email Not Verified</strong
+                            >
+                            <p
+                              style="
+                                color: #856404;
+                                margin-top: 4px;
+                                font-size: 0.9em;
+                              "
+                            >
+                              Please verify your email address to access all
+                              features.
+                            </p>
+                          </div>
+                          <button
+                            id="resendVerificationButton"
+                            data-onclick="resendVerification()"
+                            style="
+                              padding: 8px 16px;
+                              background: #ffc107;
+                              color: #000;
+                              border: none;
+                              border-radius: 6px;
+                              cursor: pointer;
+                              font-weight: 500;
+                            "
+                          >
+                            Resend Email
+                          </button>
+                        </div>
+                      </div>
                       <div class="settings-pane__section">
                         <h3>Profile</h3>
                         <p>
                           Manage your profile from this panel while keeping the
                           workspace sidebar visible.
                         </p>
+                      </div>
+                      <div class="profile-section">
+                        <h3>Account Information</h3>
+                        <div class="info-row">
+                          <span class="info-label">Email:</span>
+                          <span class="info-value" id="profileEmail"></span>
+                        </div>
+                        <div class="info-row">
+                          <span class="info-label">Name:</span>
+                          <span class="info-value" id="profileName"></span>
+                        </div>
+                        <div class="info-row">
+                          <span class="info-label">Status:</span>
+                          <span class="info-value" id="profileStatus"></span>
+                        </div>
+                        <div class="info-row">
+                          <span class="info-label">Member Since:</span>
+                          <span class="info-value" id="profileCreated"></span>
+                        </div>
+                      </div>
+
+                      <div class="profile-section">
+                        <h3>Update Profile</h3>
+                        <form data-onsubmit="handleUpdateProfile(event)">
+                          <div class="form-group">
+                            <label for="updateName">Name</label>
+                            <input
+                              type="text"
+                              id="updateName"
+                              placeholder="Your Name"
+                            />
+                          </div>
+                          <div class="form-group">
+                            <label for="updateEmail">Email</label>
+                            <input
+                              type="email"
+                              id="updateEmail"
+                              required
+                              placeholder="your@email.com"
+                            />
+                          </div>
+                          <button type="submit" class="btn">
+                            Update Profile
+                          </button>
+                        </form>
+                      </div>
+
+                      <div
+                        class="profile-section"
+                        id="adminBootstrapSection"
+                        style="display: none"
+                      >
+                        <h3>Admin Provisioning</h3>
+                        <p
+                          style="
+                            margin-bottom: 12px;
+                            color: var(--text-secondary);
+                          "
+                        >
+                          No admin user exists yet. Enter the bootstrap secret
+                          to grant admin access to this account.
+                        </p>
+                        <form data-onsubmit="handleAdminBootstrap(event)">
+                          <div class="form-group">
+                            <label for="adminBootstrapSecret"
+                              >Bootstrap Secret</label
+                            >
+                            <input
+                              type="password"
+                              id="adminBootstrapSecret"
+                              autocomplete="current-password"
+                              placeholder="Enter admin bootstrap secret"
+                              required
+                            />
+                          </div>
+                          <button type="submit" class="btn">
+                            Grant Admin Access
+                          </button>
+                        </form>
                       </div>
                     </section>
                     <div class="todos-top-bar">
@@ -1027,134 +1163,17 @@
 
               <!-- Profile View -->
               <div id="profileView" class="view">
-                <div
-                  class="message"
-                  id="profileMessage"
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
-                ></div>
-
-                <!-- Email Verification Banner -->
-                <div
-                  id="verificationBanner"
-                  style="
-                    display: none;
-                    background: #fff3cd;
-                    border: 1px solid #ffc107;
-                    padding: 16px;
-                    border-radius: 8px;
-                    margin-bottom: 20px;
-                  "
-                >
-                  <div
-                    style="
-                      display: flex;
-                      justify-content: space-between;
-                      align-items: center;
-                    "
-                  >
-                    <div>
-                      <strong style="color: #856404"
-                        >⚠️ Email Not Verified</strong
-                      >
-                      <p
-                        style="
-                          color: #856404;
-                          margin-top: 4px;
-                          font-size: 0.9em;
-                        "
-                      >
-                        Please verify your email address to access all features.
-                      </p>
-                    </div>
-                    <button
-                      id="resendVerificationButton"
-                      data-onclick="resendVerification()"
-                      style="
-                        padding: 8px 16px;
-                        background: #ffc107;
-                        color: #000;
-                        border: none;
-                        border-radius: 6px;
-                        cursor: pointer;
-                        font-weight: 500;
-                      "
-                    >
-                      Resend Email
-                    </button>
-                  </div>
-                </div>
-
                 <div class="profile-section">
-                  <h3>Account Information</h3>
-                  <div class="info-row">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value" id="profileEmail"></span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Name:</span>
-                    <span class="info-value" id="profileName"></span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Status:</span>
-                    <span class="info-value" id="profileStatus"></span>
-                  </div>
-                  <div class="info-row">
-                    <span class="info-label">Member Since:</span>
-                    <span class="info-value" id="profileCreated"></span>
-                  </div>
-                </div>
-
-                <div class="profile-section">
-                  <h3>Update Profile</h3>
-                  <form data-onsubmit="handleUpdateProfile(event)">
-                    <div class="form-group">
-                      <label for="updateName">Name</label>
-                      <input
-                        type="text"
-                        id="updateName"
-                        placeholder="Your Name"
-                      />
-                    </div>
-                    <div class="form-group">
-                      <label for="updateEmail">Email</label>
-                      <input
-                        type="email"
-                        id="updateEmail"
-                        required
-                        placeholder="your@email.com"
-                      />
-                    </div>
-                    <button type="submit" class="btn">Update Profile</button>
-                  </form>
-                </div>
-
-                <div
-                  class="profile-section"
-                  id="adminBootstrapSection"
-                  style="display: none"
-                >
-                  <h3>Admin Provisioning</h3>
-                  <p style="margin-bottom: 12px; color: var(--text-secondary)">
-                    No admin user exists yet. Enter the bootstrap secret to
-                    grant admin access to this account.
+                  <h3>Profile moved</h3>
+                  <p>
+                    Profile settings now live in the Settings pane inside Todos.
                   </p>
-                  <form data-onsubmit="handleAdminBootstrap(event)">
-                    <div class="form-group">
-                      <label for="adminBootstrapSecret">Bootstrap Secret</label>
-                      <input
-                        type="password"
-                        id="adminBootstrapSecret"
-                        autocomplete="current-password"
-                        placeholder="Enter admin bootstrap secret"
-                        required
-                      />
-                    </div>
-                    <button type="submit" class="btn">
-                      Grant Admin Access
-                    </button>
-                  </form>
+                  <button
+                    class="btn"
+                    data-onclick="switchView('settings', this)"
+                  >
+                    Open Settings
+                  </button>
                 </div>
               </div>
 

@@ -12,6 +12,7 @@ Full-stack todo application. Express + Prisma + PostgreSQL backend, vanilla JS f
 - Notion-style shell is active: pinned sidebar + pinned topbar, main pane scroll.
 - Sidebar remains the primary navigation surface for workspace flows.
 - Settings is available from the sidebar bottom and renders in the Todos shell.
+- Profile controls (email verification + account updates) now render inside the Settings pane.
 - AI internal category handling is hardened; `AI Plan` is hidden from nav/filter surfaces.
 
 ## Active Architecture Patterns
@@ -23,8 +24,8 @@ Full-stack todo application. Express + Prisma + PostgreSQL backend, vanilla JS f
 
 ## Active Constraints
 
-- Keep legacy top tabs while Playwright depends on them.
-- Do not break `Profile` test path until tests are migrated to Settings-only navigation.
+- Keep legacy top tabs only as compatibility affordances; desktop Todos hides them, mobile can expose them when sidebar is hidden.
+- UI tests should target the Settings route trigger, not `profileView` activation as a required user path.
 - Internal categories are data-visible under `All tasks` but excluded from navigation/selectors.
 
 ## Recent Decisions (2026-02-21)

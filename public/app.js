@@ -197,7 +197,10 @@ const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
 const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
 const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
-const SIDEBAR_NAV_ITEMS = [{ view: "settings", label: "Settings" }];
+const SIDEBAR_NAV_ITEMS = [
+  { view: "todos", label: "Todos" },
+  { view: "settings", label: "Settings" },
+];
 let isAiWorkspaceCollapsed = true;
 let isAiWorkspaceVisible = AI_DEBUG_ENABLED;
 let onCreateAssistState = createInitialOnCreateAssistState();
@@ -984,13 +987,19 @@ function updateUserDisplay() {
   }
 
   const adminBadge = document.getElementById("adminBadge");
-  if (currentUser.role === "admin") {
+  const isAdmin = currentUser.role === "admin";
+  if (isAdmin) {
     adminBadge.className = "admin-badge";
     adminBadge.textContent = "⭐ Admin";
     adminBadge.style.display = "inline-block";
   } else {
     adminBadge.style.display = "none";
   }
+  const adminNavTab = document.getElementById("adminNavTab");
+  if (adminNavTab instanceof HTMLElement) {
+    adminNavTab.style.display = isAdmin ? "block" : "none";
+  }
+  document.body.classList.toggle("is-admin-user", isAdmin);
 
   // Update profile view
   document.getElementById("profileEmail").textContent = currentUser.email;
@@ -2772,10 +2781,13 @@ function updateCategoryFilter() {
 // splitProjectPath … renderProjectOptionEntry — from projectPathUtils.js
 
 function getAllProjects() {
-  const fromTodos = todos
-    .map((todo) => normalizeProjectPath(todo.category))
-    .filter((value) => value.length > 0 && !AI_INTERNAL_CATEGORIES.has(value));
-  return expandProjectTree([...customProjects, ...fromTodos]);
+  const projectNames = [
+    ...customProjects,
+    ...todos.map((todo) => todo.category),
+  ]
+    .map((value) => normalizeProjectPath(value))
+    .filter((value) => value.length > 0 && !isInternalCategoryPath(value));
+  return expandProjectTree(projectNames);
 }
 
 function refreshProjectCatalog() {
@@ -4011,11 +4023,17 @@ function renderCommandPalette() {
 function executeCommandPaletteItem(item, triggerEl = null) {
   if (!item) return;
 
+  const todosView = document.getElementById("todosView");
+  const shouldSwitchToTodos =
+    !(todosView instanceof HTMLElement) ||
+    !todosView.classList.contains("active") ||
+    todosView.classList.contains("todos-view--settings-active");
+
   if (item.type === "action" && item.payload === "add-task") {
     const todosTab = document.querySelector(
       ".nav-tab[data-onclick*=\"switchView('todos'\"]",
     );
-    if (!document.getElementById("todosView")?.classList.contains("active")) {
+    if (shouldSwitchToTodos) {
       switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
     }
     closeCommandPalette({ restoreFocus: false });
@@ -4029,7 +4047,7 @@ function executeCommandPaletteItem(item, triggerEl = null) {
     const todosTab = document.querySelector(
       ".nav-tab[data-onclick*=\"switchView('todos'\"]",
     );
-    if (!document.getElementById("todosView")?.classList.contains("active")) {
+    if (shouldSwitchToTodos) {
       switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
     }
     setSelectedProjectKey(String(item.payload || ""));
@@ -4040,7 +4058,7 @@ function executeCommandPaletteItem(item, triggerEl = null) {
     const todosTab = document.querySelector(
       ".nav-tab[data-onclick*=\"switchView('todos'\"]",
     );
-    if (!document.getElementById("todosView")?.classList.contains("active")) {
+    if (shouldSwitchToTodos) {
       switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
     }
 
@@ -8968,8 +8986,9 @@ function syncSidebarNavState(activeView) {
 
 // Switch view
 function switchView(view, triggerEl = null) {
-  const isSettingsView = view === "settings";
-  const primaryView = isSettingsView ? "todos" : view;
+  const requestedView = view === "profile" ? "settings" : view;
+  const isSettingsView = requestedView === "settings";
+  const primaryView = isSettingsView ? "todos" : requestedView;
 
   document
     .querySelectorAll(".view")
@@ -9000,7 +9019,7 @@ function switchView(view, triggerEl = null) {
   }
   setTodosViewBodyState(primaryView === "todos");
   setSettingsPaneVisible(isSettingsView);
-  syncSidebarNavState(view);
+  syncSidebarNavState(requestedView);
 
   if (isSettingsView) {
     closeCommandPalette({ restoreFocus: false });
@@ -9009,7 +9028,7 @@ function switchView(view, triggerEl = null) {
     closeProjectsRailSheet({ restoreFocus: false });
     closeTodoDrawer({ restoreFocus: false });
     updateUserDisplay();
-  } else if (view === "todos") {
+  } else if (requestedView === "todos") {
     closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
@@ -9022,14 +9041,7 @@ function switchView(view, triggerEl = null) {
     loadAiUsage();
     loadAiInsights();
     loadAiFeedbackSummary();
-  } else if (view === "profile") {
-    closeCommandPalette({ restoreFocus: false });
-    closeProjectCrudModal({ restoreFocus: false });
-    closeMoreFilters();
-    closeProjectsRailSheet({ restoreFocus: false });
-    closeTodoDrawer({ restoreFocus: false });
-    updateUserDisplay();
-  } else if (view === "admin") {
+  } else if (requestedView === "admin") {
     closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
     closeMoreFilters();
@@ -9660,6 +9672,7 @@ function showAuthView() {
   document.getElementById("navTabs").style.display = "none";
   document.getElementById("userBar").style.display = "none";
   document.getElementById("adminNavTab").style.display = "none";
+  document.body.classList.remove("is-admin-user");
   syncSidebarNavState("");
   adminBootstrapAvailable = false;
   closeCommandPalette({ restoreFocus: false });
