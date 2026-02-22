@@ -413,6 +413,18 @@ body.is-todos-view .nav-tabs {
   border-bottom: 1px dashed var(--border-color);
 }
 
+body.is-todos-view.is-admin-user .nav-tabs {
+  display: flex !important;
+}
+
+body.is-todos-view.is-admin-user .nav-tab {
+  display: none;
+}
+
+body.is-todos-view.is-admin-user #adminNavTab {
+  display: inline-flex !important;
+}
+
 body.is-todos-view .nav-tab {
   flex: 0 0 auto;
   border: 1px solid var(--border-color);

@@ -987,13 +987,19 @@ function updateUserDisplay() {
   }
 
   const adminBadge = document.getElementById("adminBadge");
-  if (currentUser.role === "admin") {
+  const isAdmin = currentUser.role === "admin";
+  if (isAdmin) {
     adminBadge.className = "admin-badge";
     adminBadge.textContent = "⭐ Admin";
     adminBadge.style.display = "inline-block";
   } else {
     adminBadge.style.display = "none";
   }
+  const adminNavTab = document.getElementById("adminNavTab");
+  if (adminNavTab instanceof HTMLElement) {
+    adminNavTab.style.display = isAdmin ? "block" : "none";
+  }
+  document.body.classList.toggle("is-admin-user", isAdmin);
 
   // Update profile view
   document.getElementById("profileEmail").textContent = currentUser.email;
@@ -9666,6 +9672,7 @@ function showAuthView() {
   document.getElementById("navTabs").style.display = "none";
   document.getElementById("userBar").style.display = "none";
   document.getElementById("adminNavTab").style.display = "none";
+  document.body.classList.remove("is-admin-user");
   syncSidebarNavState("");
   adminBootstrapAvailable = false;
   closeCommandPalette({ restoreFocus: false });
