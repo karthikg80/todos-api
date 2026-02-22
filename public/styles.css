@@ -4679,3 +4679,218 @@ body.is-todos-view .projects-rail-item,
 body.is-todos-view .todo-item {
   border-color: color-mix(in oklab, var(--border-color) 74%, var(--surface));
 }
+
+/* M9: Sidebar hierarchy + density polish */
+body.is-todos-view #appSidebar {
+  padding: 12px 10px;
+  background: color-mix(in oklab, var(--surface-2) 90%, var(--surface));
+}
+
+body.is-todos-view .app-sidebar__top {
+  gap: 10px;
+}
+
+body.is-todos-view .app-sidebar__brand {
+  padding: 0 8px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
+body.is-todos-view #projectsRailHost > #projectsRail {
+  padding: 0 2px;
+}
+
+body.is-todos-view .projects-rail {
+  gap: 10px;
+}
+
+body.is-todos-view .projects-rail__header {
+  padding: 0 6px 6px;
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--border-color) 70%, transparent);
+}
+
+body.is-todos-view .projects-rail__header h3 {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+body.is-todos-view .projects-rail__section {
+  padding-top: 10px;
+  margin-top: 2px;
+  border-top-color: color-mix(in oklab, var(--border-color) 70%, transparent);
+}
+
+body.is-todos-view .projects-rail__section--workspace {
+  margin-top: 0;
+}
+
+body.is-todos-view .projects-rail__section-header {
+  margin-bottom: 6px;
+  padding: 0 6px;
+  font-size: 12px;
+  text-transform: none;
+  color: color-mix(in oklab, var(--text-secondary) 84%, var(--text-muted));
+}
+
+body.is-todos-view .projects-rail__primary,
+body.is-todos-view .projects-rail__list,
+body.is-todos-view .app-sidebar__settings {
+  gap: 4px;
+}
+
+body.is-todos-view .projects-rail-row {
+  padding-right: 30px;
+}
+
+body.is-todos-view .projects-rail-item,
+body.is-todos-view .sidebar-nav-item {
+  border-radius: 8px;
+  padding: 6px 8px;
+  min-height: 34px;
+  background: transparent;
+  border-color: transparent;
+}
+
+body.is-todos-view .workspace-view-item,
+body.is-todos-view .sidebar-nav-item {
+  font-weight: var(--fw-medium);
+}
+
+body.is-todos-view .projects-rail-item:hover {
+  background: color-mix(in oklab, var(--surface) 86%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--border-color) 70%, transparent);
+}
+
+body.is-todos-view .projects-rail-item--active,
+body.is-todos-view .projects-rail-item[role="option"][aria-selected="true"] {
+  background: color-mix(in oklab, var(--accent) 7%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 22%, var(--border-color));
+}
+
+body.is-todos-view .projects-rail-item__count {
+  font-size: 11px;
+  color: color-mix(in oklab, var(--text-secondary) 82%, var(--text-muted));
+  background: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--border-color) 58%, transparent);
+  padding: 1px 6px;
+  min-width: 20px;
+}
+
+body.is-todos-view .projects-rail-kebab {
+  width: 22px;
+  height: 22px;
+  right: 2px;
+  background: transparent;
+}
+
+body.is-todos-view .app-sidebar__bottom {
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top-color: color-mix(in oklab, var(--border-color) 70%, transparent);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    color-mix(in oklab, var(--surface-2) 92%, var(--surface)) 22%
+  );
+}
+
+body.is-todos-view .app-sidebar__settings .projects-rail-item {
+  justify-content: flex-start;
+}
+
+/* M9: Main panel compaction (keep behavior unchanged) */
+body.is-todos-view #appMainScroll {
+  padding: 12px;
+}
+
+body.is-todos-view .content {
+  padding: 0;
+}
+
+body.is-todos-view .header {
+  padding: 8px 12px;
+}
+
+body.is-todos-view .user-bar {
+  margin-top: 6px;
+}
+
+body.is-todos-view .nav-tabs {
+  padding: 4px 10px;
+  gap: 6px;
+}
+
+body.is-todos-view .nav-tab {
+  padding: 4px 9px;
+  font-size: 11px;
+  color: color-mix(in oklab, var(--text-secondary) 90%, var(--text-muted));
+  background: color-mix(in oklab, var(--surface) 96%, transparent);
+}
+
+body.is-todos-view .nav-tab.active {
+  color: color-mix(in oklab, var(--accent) 70%, var(--text-primary));
+  border-color: color-mix(in oklab, var(--accent) 28%, var(--border-color));
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+}
+
+body.is-todos-view .todos-top-bar {
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 10px 12px;
+}
+
+body.is-todos-view .search-input {
+  padding: 10px 38px 10px 12px;
+}
+
+body.is-todos-view #todosScrollRegion {
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+body.is-todos-view .more-filters-panel {
+  padding: 10px 12px;
+}
+
+body.is-todos-view .add-todo.quick-entry {
+  gap: 8px;
+}
+
+body.is-todos-view .quick-entry > input,
+body.is-todos-view .field-row input,
+body.is-todos-view .field-row select {
+  padding: 10px 12px;
+}
+
+body.is-todos-view .quick-entry-toolbar {
+  margin-top: -2px;
+}
+
+body.is-todos-view .quick-entry-properties-panel {
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+body.is-todos-view .field-row {
+  gap: 10px;
+}
+
+body.is-todos-view .action-row {
+  gap: 10px;
+}
+
+body.is-todos-view .todos-list-header {
+  align-items: center;
+  padding: 10px 12px;
+}
+
+/* M9a: keep legacy top tabs available (less dominant) for Todos<->Settings switching */
+body.is-todos-view .nav-tabs {
+  display: flex !important;
+}
+
+/* M9a: preserve topbar/quick-entry/AI goal input height parity for CTA invariants */
+body.is-todos-view .ai-workspace-inputs input {
+  padding: 10px 12px;
+}

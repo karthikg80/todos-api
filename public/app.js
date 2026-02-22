@@ -197,10 +197,7 @@ const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
 const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
 const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
-const SIDEBAR_NAV_ITEMS = [
-  { view: "todos", label: "Todos" },
-  { view: "settings", label: "Settings" },
-];
+const SIDEBAR_NAV_ITEMS = [{ view: "settings", label: "Settings" }];
 let isAiWorkspaceCollapsed = true;
 let isAiWorkspaceVisible = AI_DEBUG_ENABLED;
 let onCreateAssistState = createInitialOnCreateAssistState();
