@@ -1727,7 +1727,7 @@ textarea:focus-visible,
   border-radius: var(--r-sm);
   background: var(--card-bg);
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
   gap: var(--s-2);
 }
