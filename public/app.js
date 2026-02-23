@@ -197,6 +197,8 @@ const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
 const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
 const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
+const QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY =
+  "todos:quick-entry-properties-open";
 const SIDEBAR_NAV_ITEMS = [{ view: "settings", label: "Settings" }];
 let isAiWorkspaceCollapsed = true;
 let isAiWorkspaceVisible = AI_DEBUG_ENABLED;
@@ -397,8 +399,33 @@ function persistAiWorkspaceVisibleState(isVisible) {
   }
 }
 
-function setQuickEntryPropertiesOpen(nextOpen) {
+function readStoredQuickEntryPropertiesOpenState() {
+  try {
+    return (
+      window.localStorage.getItem(QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY) ===
+      "1"
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
+function persistQuickEntryPropertiesOpenState(isOpen) {
+  try {
+    window.localStorage.setItem(
+      QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY,
+      isOpen ? "1" : "0",
+    );
+  } catch (error) {
+    // Ignore storage failures.
+  }
+}
+
+function setQuickEntryPropertiesOpen(nextOpen, { persist = true } = {}) {
   isQuickEntryPropertiesOpen = !!nextOpen;
+  if (persist) {
+    persistQuickEntryPropertiesOpenState(isQuickEntryPropertiesOpen);
+  }
   const panel = document.getElementById("quickEntryPropertiesPanel");
   const toggle = document.getElementById("quickEntryPropertiesToggle");
   if (panel instanceof HTMLElement) {
@@ -669,7 +696,9 @@ function init() {
     setAuthState(AUTH_STATE.UNAUTHENTICATED);
   }
   renderOnCreateAssistRow();
-  setQuickEntryPropertiesOpen(false);
+  setQuickEntryPropertiesOpen(readStoredQuickEntryPropertiesOpenState(), {
+    persist: false,
+  });
   syncQuickEntryProjectActions();
   handleVerificationStatusFromUrl();
 }
@@ -2653,7 +2682,7 @@ async function addTodo() {
       projectSelect.value = "";
       dueDateInput.value = "";
       notesInput.value = "";
-      setQuickEntryPropertiesOpen(false);
+      setQuickEntryPropertiesOpen(false, { persist: false });
       syncQuickEntryProjectActions();
 
       // Reset priority to medium
@@ -9671,7 +9700,9 @@ function showAppView() {
   resetTodayPlanState();
   renderOnCreateAssistRow();
   renderTodayPlanPanel();
-  setQuickEntryPropertiesOpen(false);
+  setQuickEntryPropertiesOpen(readStoredQuickEntryPropertiesOpenState(), {
+    persist: false,
+  });
   syncQuickEntryProjectActions();
 }
 
