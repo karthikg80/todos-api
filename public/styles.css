@@ -4898,3 +4898,145 @@ body.is-todos-view .nav-tabs {
 body.is-todos-view .ai-workspace-inputs input {
   padding: 10px 12px;
 }
+
+/* M10: Density tighten follow-up (reduce pre-list vertical stack) */
+body.is-todos-view #appSidebar {
+  padding: 10px 8px;
+}
+
+body.is-todos-view #appMainScroll {
+  padding: 10px;
+}
+
+body.is-todos-view .projects-rail__header {
+  padding: 0 4px 5px;
+}
+
+body.is-todos-view .projects-rail__section-header {
+  margin-bottom: 4px;
+  padding: 0 4px;
+}
+
+body.is-todos-view .projects-rail-item,
+body.is-todos-view .sidebar-nav-item {
+  padding: 5px 7px;
+  min-height: 32px;
+}
+
+body.is-todos-view .projects-rail-item__count {
+  padding: 1px 5px;
+}
+
+body.is-todos-view .todos-top-bar {
+  gap: 8px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+}
+
+body.is-todos-view .todos-top-bar-actions {
+  gap: 6px;
+}
+
+body.is-todos-view #todosScrollRegion {
+  gap: 6px;
+  padding-bottom: 6px;
+}
+
+body.is-todos-view .more-filters-panel,
+body.is-todos-view .todos-list-header {
+  padding: 8px 10px;
+}
+
+body.is-todos-view .add-todo.quick-entry {
+  gap: 6px;
+}
+
+body.is-todos-view .quick-entry > input {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+body.is-todos-view .quick-entry-toolbar {
+  margin-top: -4px;
+}
+
+body.is-todos-view .quick-entry-properties-panel {
+  gap: 8px;
+  padding: 8px 10px;
+}
+
+body.is-todos-view .quick-entry-properties-panel .field-row {
+  gap: 8px;
+  align-items: center;
+}
+
+body.is-todos-view .quick-entry-properties-panel .action-row {
+  gap: 8px;
+  align-items: center;
+}
+
+body.is-todos-view .quick-entry-properties-panel .field-row select {
+  min-width: 150px;
+}
+
+body.is-todos-view
+  .quick-entry-properties-panel
+  .field-row
+  input[type="datetime-local"] {
+  min-width: 170px;
+}
+
+body.is-todos-view .quick-entry-properties-panel .field-row .add-btn {
+  padding: 8px 10px !important;
+  font-size: 12px;
+  min-height: 36px;
+}
+
+body.is-todos-view .action-label {
+  font-size: 12px;
+}
+
+body.is-todos-view .priority-selector {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+body.is-todos-view .priority-btn {
+  padding: 6px 10px;
+  font-size: 0.8em;
+  line-height: 1.1;
+}
+
+body.is-todos-view .priority-btn:hover {
+  transform: none;
+}
+
+@media (min-width: 1180px) {
+  body.is-todos-view .quick-entry-properties-panel {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  body.is-todos-view .quick-entry-properties-panel > .field-row {
+    grid-column: 1;
+  }
+
+  body.is-todos-view .quick-entry-properties-panel > .action-row {
+    grid-column: 2;
+    justify-self: end;
+    margin: 0;
+  }
+
+  body.is-todos-view
+    .quick-entry-properties-panel
+    > .action-row
+    #critiqueDraftButton {
+    max-width: 170px;
+  }
+}
+
+@media (max-width: 1179px) {
+  body.is-todos-view .quick-entry-properties-panel {
+    grid-template-columns: 1fr;
+  }
+}
