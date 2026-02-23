@@ -438,6 +438,39 @@ function setQuickEntryPropertiesOpen(nextOpen, { persist = true } = {}) {
       isQuickEntryPropertiesOpen,
     );
   }
+  updateQuickEntryPropertiesSummary();
+}
+
+function formatQuickEntryDueSummary(value) {
+  if (!value) return "No due date";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "No due date";
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function updateQuickEntryPropertiesSummary() {
+  const summaryEl = document.getElementById("quickEntryPropertiesSummary");
+  if (!(summaryEl instanceof HTMLElement)) return;
+
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const projectValue =
+    projectSelect instanceof HTMLSelectElement ? projectSelect.value : "";
+  const dueValue =
+    dueDateInput instanceof HTMLInputElement ? dueDateInput.value : "";
+  const projectLabel = projectValue
+    ? getProjectLeafName(projectValue)
+    : "No project";
+  const dueLabel = formatQuickEntryDueSummary(dueValue);
+  const priorityLabel =
+    currentPriority.charAt(0).toUpperCase() + currentPriority.slice(1);
+
+  summaryEl.textContent = `${projectLabel} • ${dueLabel} • Priority: ${priorityLabel}`;
+  summaryEl.hidden = isQuickEntryPropertiesOpen;
 }
 
 function syncQuickEntryProjectActions() {
@@ -1007,9 +1040,11 @@ function updateUserDisplay() {
   if (currentUser.isVerified) {
     verifiedBadge.className = "verified-badge";
     verifiedBadge.textContent = "✓ Verified";
+    verifiedBadge.style.display = "inline-flex";
   } else {
     verifiedBadge.className = "unverified-badge";
-    verifiedBadge.textContent = "Not Verified";
+    verifiedBadge.textContent = "";
+    verifiedBadge.style.display = "none";
   }
 
   const adminBadge = document.getElementById("adminBadge");
@@ -2687,6 +2722,7 @@ async function addTodo() {
 
       // Reset priority to medium
       setPriority("medium");
+      updateQuickEntryPropertiesSummary();
 
       // Hide notes input
       notesInput.style.display = "none";
@@ -2838,6 +2874,7 @@ function updateProjectSelectOptions() {
     todoProjectSelect.innerHTML = renderOptions(selected);
     todoProjectSelect.value = selected;
     syncQuickEntryProjectActions();
+    updateQuickEntryPropertiesSummary();
   }
   if (editProjectSelect) {
     const selected = editProjectSelect.value || "";
@@ -5965,7 +6002,7 @@ function renderTodos() {
 
       return `
         ${categoryHeader}
-        <li class="todo-item ${todo.completed ? "completed" : ""} ${selectedTodoId === todo.id ? "todo-item--active" : ""}"
+        <li class="todo-item ${todo.completed ? "completed" : ""} ${selectedTodoId === todo.id ? "todo-item--active" : ""} ${isSelected ? "todo-item--bulk-selected" : ""}"
             draggable="true"
             data-todo-id="${todo.id}"
             tabindex="0"
@@ -8216,6 +8253,7 @@ function setPriority(priority) {
       `priority${priority.charAt(0).toUpperCase() + priority.slice(1)}`,
     )
     .classList.add("active");
+  updateQuickEntryPropertiesSummary();
 }
 
 function getPriorityIcon(priority) {
@@ -8858,6 +8896,18 @@ document.addEventListener("keydown", function (e) {
 
   // Ctrl/Cmd + F: Focus on search
   if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+    e.preventDefault();
+    document.getElementById("searchInput")?.focus();
+  }
+
+  if (
+    e.key === "/" &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    !e.altKey &&
+    !e.shiftKey &&
+    !e.isComposing
+  ) {
     e.preventDefault();
     document.getElementById("searchInput")?.focus();
   }
@@ -9582,8 +9632,20 @@ function bindCriticalHandlers() {
   if (todoProjectSelect && todoProjectSelect.dataset.bound !== "true") {
     todoProjectSelect.addEventListener("change", () => {
       syncQuickEntryProjectActions();
+      updateQuickEntryPropertiesSummary();
     });
     todoProjectSelect.dataset.bound = "true";
+  }
+
+  const todoDueDateInput = document.getElementById("todoDueDateInput");
+  if (todoDueDateInput && todoDueDateInput.dataset.bound !== "true") {
+    todoDueDateInput.addEventListener("input", () => {
+      updateQuickEntryPropertiesSummary();
+    });
+    todoDueDateInput.addEventListener("change", () => {
+      updateQuickEntryPropertiesSummary();
+    });
+    todoDueDateInput.dataset.bound = "true";
   }
 
   const resendBtn = document.getElementById("resendVerificationButton");
