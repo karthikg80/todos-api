@@ -3366,6 +3366,21 @@ function syncWorkspaceViewState() {
     });
 }
 
+function ensureTodosShellActive() {
+  const todosView = document.getElementById("todosView");
+  const shouldSwitchToTodos =
+    !(todosView instanceof HTMLElement) ||
+    !todosView.classList.contains("active") ||
+    todosView.classList.contains("todos-view--settings-active");
+
+  if (!shouldSwitchToTodos) return;
+
+  const todosTab = document.querySelector(
+    ".nav-tab[data-onclick*=\"switchView('todos'\"]",
+  );
+  switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
+}
+
 function selectWorkspaceView(view, triggerEl = null) {
   const normalizedView = String(view || "all").toLowerCase();
   const nextView =
@@ -3377,6 +3392,7 @@ function selectWorkspaceView(view, triggerEl = null) {
   if (triggerEl instanceof HTMLElement) {
     triggerEl.blur();
   }
+  ensureTodosShellActive();
   setSelectedProjectKey("", { reason: "workspace-view", skipApply: true });
   setDateView(nextView, { skipApply: false });
 }
@@ -4482,6 +4498,7 @@ function selectProjectFromRail(projectName, triggerEl = null) {
   if (openRailProjectMenuKey) {
     openRailProjectMenuKey = null;
   }
+  ensureTodosShellActive();
   railRovingFocusKey = normalizeProjectPath(projectName);
   setSelectedProjectKey(projectName);
 
