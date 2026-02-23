@@ -1,7 +1,7 @@
 # TASK 112: sidebar-nav-polish-v3
 
 type: Yellow
-status: REVIEW
+status: DONE
 mode: implement
 builder: claude
 reviewer: user
