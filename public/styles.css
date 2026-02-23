@@ -5040,3 +5040,69 @@ body.is-todos-view .priority-btn:hover {
     grid-template-columns: 1fr;
   }
 }
+
+/* M11: Quick-entry accordion density pass (reduce pre-list stack height) */
+body.is-todos-view .add-todo.quick-entry {
+  gap: 4px;
+}
+
+body.is-todos-view .quick-entry > input {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+body.is-todos-view .quick-entry-toolbar {
+  margin-top: -6px;
+  min-height: 28px;
+}
+
+body.is-todos-view .quick-entry-properties-toggle {
+  padding: 4px 8px;
+  font-size: 12px;
+  min-height: 28px;
+}
+
+body.is-todos-view .quick-entry-properties-panel {
+  gap: 6px;
+  padding: 6px 8px;
+  margin-top: 0;
+}
+
+body.is-todos-view .quick-entry-properties-panel .field-row,
+body.is-todos-view .quick-entry-properties-panel .action-row {
+  gap: 6px;
+}
+
+body.is-todos-view .quick-entry-properties-panel .field-row input,
+body.is-todos-view .quick-entry-properties-panel .field-row select,
+body.is-todos-view .quick-entry-properties-panel .field-row .add-btn {
+  min-height: 34px;
+}
+
+body.is-todos-view .quick-entry-properties-panel .field-row .add-btn {
+  padding: 6px 9px !important;
+  font-size: 11px;
+}
+
+body.is-todos-view .action-label {
+  font-size: 11px;
+}
+
+body.is-todos-view .priority-selector {
+  gap: 4px;
+}
+
+body.is-todos-view .priority-btn {
+  padding: 4px 8px;
+  font-size: 0.76em;
+}
+
+body.is-todos-view .expand-section {
+  margin-top: 4px;
+  padding: 4px 6px;
+  font-size: 0.8em;
+}
+
+body.is-todos-view .notes-textarea {
+  margin-top: 4px !important;
+}
