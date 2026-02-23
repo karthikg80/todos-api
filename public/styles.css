@@ -425,6 +425,10 @@ body.is-todos-view.is-admin-user #adminNavTab {
   display: inline-flex !important;
 }
 
+body.is-todos-view.is-admin-user .nav-tab[data-onclick*="switchView('todos'"] {
+  display: inline-flex !important;
+}
+
 body.is-todos-view .nav-tab {
   flex: 0 0 auto;
   border: 1px solid var(--border-color);
