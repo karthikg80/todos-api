@@ -5106,3 +5106,94 @@ body.is-todos-view .expand-section {
 body.is-todos-view .notes-textarea {
   margin-top: 4px !important;
 }
+
+/* M12: secondary top tabs + unified rail row polish */
+body.is-todos-view .nav-tabs {
+  gap: 4px;
+  padding: 3px 8px;
+  background: color-mix(in oklab, var(--card-bg) 96%, var(--surface));
+  border-bottom-color: color-mix(
+    in oklab,
+    var(--border-color) 55%,
+    transparent
+  );
+}
+
+body.is-todos-view .nav-tab {
+  padding: 3px 8px;
+  font-size: 10px;
+  line-height: 1.15;
+  border-radius: 999px;
+  border-color: color-mix(in oklab, var(--border-color) 50%, transparent);
+  background: color-mix(in oklab, var(--surface) 98%, transparent);
+  color: color-mix(in oklab, var(--text-secondary) 78%, var(--text-muted));
+}
+
+body.is-todos-view .nav-tab:hover {
+  background: color-mix(in oklab, var(--surface) 88%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--border-color) 68%, transparent);
+  color: var(--text-secondary);
+}
+
+body.is-todos-view .nav-tab.active {
+  color: color-mix(in oklab, var(--accent) 62%, var(--text-primary));
+  border-color: color-mix(in oklab, var(--accent) 20%, var(--border-color));
+  background: color-mix(in oklab, var(--accent) 4%, var(--surface));
+  box-shadow: none;
+}
+
+body.is-todos-view .projects-rail {
+  gap: 8px;
+}
+
+body.is-todos-view .projects-rail__section {
+  padding-top: 8px;
+  margin-top: 0;
+}
+
+body.is-todos-view .projects-rail__section-header {
+  margin-bottom: 3px;
+  padding: 0 3px;
+  font-size: 11px;
+  letter-spacing: 0.01em;
+}
+
+body.is-todos-view .projects-rail__primary,
+body.is-todos-view .projects-rail__list,
+body.is-todos-view .app-sidebar__settings {
+  gap: 2px;
+}
+
+body.is-todos-view .projects-rail-row {
+  padding-right: 28px;
+}
+
+body.is-todos-view .projects-rail-item,
+body.is-todos-view .sidebar-nav-item {
+  min-height: 30px;
+  padding: 4px 7px;
+  border-radius: 7px;
+  border-color: transparent;
+}
+
+body.is-todos-view .projects-rail-item:hover,
+body.is-todos-view .sidebar-nav-item:hover {
+  background: color-mix(in oklab, var(--surface) 84%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--border-color) 60%, transparent);
+}
+
+body.is-todos-view .projects-rail-item--active,
+body.is-todos-view .projects-rail-item[role="option"][aria-selected="true"] {
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 18%, var(--border-color));
+}
+
+body.is-todos-view .projects-rail-item__count {
+  min-width: 18px;
+  padding: 0 5px;
+  font-size: 10px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--text-secondary) 72%, var(--text-muted));
+  background: color-mix(in oklab, var(--surface) 90%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--border-color) 45%, transparent);
+}
