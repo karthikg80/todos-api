@@ -1273,11 +1273,36 @@ function applyHomeTopFocusResult(
   reasonsById,
   { source = "fallback", requestKey = "" } = {},
 ) {
-  homeTopFocusState.items = Array.isArray(items) ? items.slice(0, 3) : [];
-  homeTopFocusState.reasonsById = reasonsById || {};
+  const nextItems = Array.isArray(items) ? items.slice(0, 3) : [];
+  const nextReasonsById = reasonsById || {};
+  const nextRequestKey = requestKey || homeTopFocusState.requestKey;
+
+  const prevItemIds = (homeTopFocusState.items || []).map((todo) =>
+    String(todo?.id || ""),
+  );
+  const nextItemIds = nextItems.map((todo) => String(todo?.id || ""));
+  const isSameItems =
+    prevItemIds.length === nextItemIds.length &&
+    prevItemIds.every((id, index) => id === nextItemIds[index]);
+  const isSameReasons =
+    JSON.stringify(homeTopFocusState.reasonsById || {}) ===
+    JSON.stringify(nextReasonsById);
+  const isSameState =
+    isSameItems &&
+    isSameReasons &&
+    homeTopFocusState.source === source &&
+    homeTopFocusState.loading === false &&
+    homeTopFocusState.requestKey === nextRequestKey;
+
+  if (isSameState) {
+    return;
+  }
+
+  homeTopFocusState.items = nextItems;
+  homeTopFocusState.reasonsById = nextReasonsById;
   homeTopFocusState.source = source;
   homeTopFocusState.loading = false;
-  homeTopFocusState.requestKey = requestKey || homeTopFocusState.requestKey;
+  homeTopFocusState.requestKey = nextRequestKey;
   const topFocusBody = document.getElementById("homeTopFocusBody");
   if (topFocusBody instanceof HTMLElement || isHomeWorkspaceActive()) {
     renderTodos();
