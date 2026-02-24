@@ -366,7 +366,29 @@ async function openWorkProject(page: Page) {
     name: "Project Headings Tester",
     email: "project-headings@example.com",
   });
-  await page.getByRole("button", { name: /Work/ }).click();
+
+  const mobileProjectsButton = page.locator("#projectsRailMobileOpen");
+  if (await mobileProjectsButton.isVisible()) {
+    await mobileProjectsButton.click();
+    await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+    await page
+      .locator(
+        '#projectsRailSheet .projects-rail-item[data-project-key="Work"]',
+      )
+      .click();
+    await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+  } else {
+    await page
+      .locator('#projectsRail .projects-rail-item[data-project-key="Work"]')
+      .click();
+  }
+
   await expect(page.locator("#todosListHeaderTitle")).toHaveText("Work");
   await expect(page.locator("#projectHeadingCreateButton")).toBeVisible();
 }
