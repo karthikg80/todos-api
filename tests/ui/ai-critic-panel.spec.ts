@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  ensureAllTasksListActive,
+  openTaskComposerSheet,
+} from "./helpers/todos-view";
 
 type CriticMockState = {
   critiqueCalls: Array<Record<string, unknown>>;
@@ -193,6 +197,7 @@ async function registerAndOpenTodos(page: Page) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
+  await ensureAllTasksListActive(page);
   const aiToggle = page.locator("#aiWorkspaceToggle");
   if ((await aiToggle.getAttribute("aria-expanded")) !== "true") {
     await aiToggle.click();
@@ -200,19 +205,11 @@ async function registerAndOpenTodos(page: Page) {
   }
 }
 
-async function openTaskComposer(page: Page) {
-  await page.getByRole("button", { name: "New Task" }).first().click();
-  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-    "aria-hidden",
-    "false",
-  );
-}
-
 test.describe("Task Critic feature flag", () => {
   test("flag off uses legacy critic layout", async ({ page }) => {
     await installCriticMockApi(page);
     await registerAndOpenTodos(page);
-    await openTaskComposer(page);
+    await openTaskComposerSheet(page);
 
     await page.locator("#todoInput").fill("Legacy critic title");
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();
@@ -231,7 +228,7 @@ test.describe("Task Critic feature flag", () => {
     });
     const state = await installCriticMockApi(page);
     await registerAndOpenTodos(page);
-    await openTaskComposer(page);
+    await openTaskComposerSheet(page);
 
     await page.locator("#todoInput").fill("Needs critique");
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();

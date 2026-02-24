@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { ensureAllTasksListActive } from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -204,6 +205,7 @@ async function registerAndOpenTodos(page: Page) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
+  await ensureAllTasksListActive(page);
 }
 
 async function openFirstTodoDrawer(page: Page) {

@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  ensureAllTasksListActive,
+  openTaskComposerSheet,
+} from "./helpers/todos-view";
 
 type UserRecord = {
   id: string;
@@ -240,14 +244,6 @@ async function openMoreFilters(page: Page) {
   await expect(panel).toBeVisible();
 }
 
-async function openTaskComposer(page: Page) {
-  await page.getByRole("button", { name: "New Task" }).first().click();
-  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-    "aria-hidden",
-    "false",
-  );
-}
-
 test.describe("App smoke flows", () => {
   test("login/register/logout/account-switch/delete/reload consistency", async ({
     page,
@@ -263,7 +259,8 @@ test.describe("App smoke flows", () => {
 
     await expect(page.locator("#todosView")).toHaveClass(/active/);
 
-    await openTaskComposer(page);
+    await ensureAllTasksListActive(page);
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("Smoke Todo A");
     await page.getByRole("button", { name: "Add" }).click();
     await expect(page.getByText("Smoke Todo A")).toBeVisible();

@@ -247,10 +247,14 @@ async function installHomeFocusMockApi(
 }
 
 async function openHomeApp(page: Page) {
-  await openTodosViewWithStorageState(page, {
-    name: "Home Focus",
-    email: "home-focus@example.com",
-  });
+  await openTodosViewWithStorageState(
+    page,
+    {
+      name: "Home Focus",
+      email: "home-focus@example.com",
+    },
+    { preserveLandingDefault: true },
+  );
 }
 
 function isMobileViewport(page: Page) {

@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  ensureAllTasksListActive,
+  openTaskComposerSheet,
+} from "./helpers/todos-view";
 
 type TodoRecord = {
   id: string;
@@ -275,20 +279,13 @@ async function registerAndOpenTodos(page: Page, debug = false) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
+  await ensureAllTasksListActive(page);
 }
 
 async function openTodayView(page: Page) {
   await page.locator("#moreFiltersToggle").click();
   await page.locator("#dateViewToday").click();
   await expect(page.locator('[data-testid="today-plan-panel"]')).toBeVisible();
-}
-
-async function openTaskComposer(page: Page) {
-  await page.getByRole("button", { name: "New Task" }).first().click();
-  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-    "aria-hidden",
-    "false",
-  );
 }
 
 test.describe("AI debug metadata visibility", () => {
@@ -300,7 +297,7 @@ test.describe("AI debug metadata visibility", () => {
     page,
   }) => {
     await registerAndOpenTodos(page, false);
-    await openTaskComposer(page);
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("urgent tomorrow website marketing");
 
     const onCreateRow = page.locator('[data-testid="ai-on-create-row"]');
@@ -325,7 +322,7 @@ test.describe("AI debug metadata visibility", () => {
     page,
   }) => {
     await registerAndOpenTodos(page, true);
-    await openTaskComposer(page);
+    await openTaskComposerSheet(page);
 
     await page.locator("#todoInput").fill("urgent tomorrow website");
     const onCreateRow = page.locator('[data-testid="ai-on-create-row"]');

@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { openTodosViewWithStorageState } from "./helpers/todos-view";
+import {
+  openTaskComposerSheet,
+  openTodosViewWithStorageState,
+} from "./helpers/todos-view";
 
 type HeadingRecord = {
   id: string;
@@ -440,10 +443,11 @@ test.describe("Project headings (sections)", () => {
       page.locator(".todo-heading-divider__title", { hasText: "Sprint" }),
     ).toBeVisible();
 
+    await openTaskComposerSheet(page);
     await page.locator("#quickEntryPropertiesToggle").click();
     await page.locator("#todoProjectSelect").selectOption({ label: "Work" });
     await page.locator("#todoInput").fill("Task for sprint");
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
     await expect(page.getByText("Task for sprint")).toBeVisible();
 
     const taskRow = page.locator(".todo-item", { hasText: "Task for sprint" });

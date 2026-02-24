@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { openTodosViewWithStorageState } from "./helpers/todos-view";
+import {
+  openTaskComposerSheet,
+  openTodosViewWithStorageState,
+} from "./helpers/todos-view";
 
 type MockTodo = {
   id: string;
@@ -206,6 +209,7 @@ async function openQuickEntry(page: Page) {
     name: "Quick Entry Tester",
     email: "quick-entry-tester@example.com",
   });
+  await openTaskComposerSheet(page);
   await page.locator("#quickEntryPropertiesToggle").click();
   await expect(page.locator("#todoDueDateInput")).toBeVisible();
 }
@@ -254,7 +258,7 @@ test.describe("Quick entry natural date input", () => {
       .poll(async () => page.locator("#todoInput").inputValue())
       .toBe("Test task");
 
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
     await expect(page.getByText("Test task")).toBeVisible();
     await expect(page.getByText(/tomorrow 6pm/i)).toHaveCount(0);
 

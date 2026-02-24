@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  ensureAllTasksListActive,
+  openTaskComposerSheet,
+} from "./helpers/todos-view";
 
 type SuggestionItem = {
   type: string;
@@ -331,14 +335,7 @@ async function registerAndOpenTodos(page: Page) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
-async function openTaskComposer(page: Page) {
-  await page.getByRole("button", { name: "New Task" }).first().click();
-  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-    "aria-hidden",
-    "false",
-  );
+  await ensureAllTasksListActive(page);
 }
 
 test.describe("On-create decision assist live", () => {
@@ -348,7 +345,7 @@ test.describe("On-create decision assist live", () => {
     await installOnCreateLiveMockApi(page);
     await registerAndOpenTodos(page);
 
-    await openTaskComposer(page);
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("email follow up");
     await page.getByRole("button", { name: "Add" }).click();
 
@@ -380,7 +377,7 @@ test.describe("On-create decision assist live", () => {
     await installOnCreateLiveMockApi(page);
     await registerAndOpenTodos(page);
 
-    await openTaskComposer(page);
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("urgent website fix");
     await page.getByRole("button", { name: "Add" }).click();
 

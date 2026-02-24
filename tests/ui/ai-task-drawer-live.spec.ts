@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  ensureAllTasksListActive,
+  openTaskComposerSheet,
+} from "./helpers/todos-view";
 
 type TodoRecord = {
   id: string;
@@ -384,14 +388,7 @@ async function registerAndOpenTodos(page: Page) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
-}
-
-async function openTaskComposer(page: Page) {
-  await page.getByRole("button", { name: "New Task" }).first().click();
-  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-    "aria-hidden",
-    "false",
-  );
+  await ensureAllTasksListActive(page);
 }
 
 test.describe("AI task drawer decision assist live flow", () => {
@@ -403,7 +400,7 @@ test.describe("AI task drawer decision assist live flow", () => {
   test("renders server-backed drawer suggestions, applies rewrite title, and persists after reload", async ({
     page,
   }) => {
-    await openTaskComposer(page);
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("do thing");
     await page.getByRole("button", { name: "Add" }).click();
 
@@ -437,7 +434,7 @@ test.describe("AI task drawer decision assist live flow", () => {
   test("dismiss hides suggestions and keeps drawer empty after reload", async ({
     page,
   }) => {
-    await openTaskComposer(page);
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("do follow up");
     await page.getByRole("button", { name: "Add" }).click();
 
