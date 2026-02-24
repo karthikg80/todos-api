@@ -253,35 +253,24 @@ async function openHomeApp(page: Page) {
   });
 }
 
+function isMobileViewport(page: Page) {
+  const size = page.viewportSize();
+  return !!size && size.width <= 700;
+}
+
 async function openProjectsRailIfNeeded(page: Page) {
-  const mobileOpen = page.locator("#projectsRailMobileOpen");
-  if (await mobileOpen.isVisible()) {
-    const sheet = page.locator("#projectsRailSheet");
-    const isSheetOpen = (await sheet.getAttribute("aria-hidden")) === "false";
-    if (isSheetOpen) {
-      return "sheet";
-    }
-
-    // On desktop-collapsed layouts the topbar projects button can also be visible;
-    // prefer desktop rail if a target there is actionable.
-    const desktopRail = page.locator("#projectsRail");
-    if (await desktopRail.isVisible()) {
-      return "desktop";
-    }
-
-    await mobileOpen.click();
-    if ((await sheet.getAttribute("aria-hidden")) === "false") {
-      await expect(sheet).toHaveAttribute("aria-hidden", "false");
-      return "sheet";
-    }
-  }
-
-  const desktopRail = page.locator("#projectsRail");
-  if (await desktopRail.isVisible()) {
+  if (!isMobileViewport(page)) {
     return "desktop";
   }
 
-  return "desktop";
+  const mobileOpen = page.locator("#projectsRailMobileOpen");
+  const sheet = page.locator("#projectsRailSheet");
+  const isSheetOpen = (await sheet.getAttribute("aria-hidden")) === "false";
+  if (!isSheetOpen) {
+    await mobileOpen.click();
+    await expect(sheet).toHaveAttribute("aria-hidden", "false");
+  }
+  return "sheet";
 }
 
 async function canClick(locator: ReturnType<Page["locator"]>) {
@@ -294,10 +283,11 @@ async function canClick(locator: ReturnType<Page["locator"]>) {
 }
 
 async function clickWorkspaceView(page: Page, view: string) {
+  const mobile = isMobileViewport(page);
   const desktopTarget = page.locator(
     `#projectsRail .workspace-view-item[data-workspace-view="${view}"]`,
   );
-  if (await desktopTarget.isVisible()) {
+  if (!mobile && (await desktopTarget.isVisible())) {
     if (await canClick(desktopTarget)) {
       await desktopTarget.click();
       return;
@@ -320,10 +310,11 @@ async function clickWorkspaceView(page: Page, view: string) {
 }
 
 async function clickProjectInRail(page: Page, projectKey: string) {
+  const mobile = isMobileViewport(page);
   const desktopTarget = page.locator(
     `#projectsRail .projects-rail-item[data-project-key="${projectKey}"]`,
   );
-  if (await desktopTarget.isVisible()) {
+  if (!mobile && (await desktopTarget.isVisible())) {
     if (await canClick(desktopTarget)) {
       await desktopTarget.click();
       return;
@@ -346,6 +337,14 @@ async function clickProjectInRail(page: Page, projectKey: string) {
 }
 
 async function expectWorkspaceViewActive(page: Page, view: string) {
+  if (!isMobileViewport(page)) {
+    const desktopTarget = page.locator(
+      `#projectsRail .workspace-view-item[data-workspace-view="${view}"]`,
+    );
+    await expect(desktopTarget).toHaveClass(/projects-rail-item--active/);
+    return;
+  }
+
   const mobileOpen = page.locator("#projectsRailMobileOpen");
   if (await mobileOpen.isVisible()) {
     await openProjectsRailIfNeeded(page);
@@ -356,11 +355,6 @@ async function expectWorkspaceViewActive(page: Page, view: string) {
     await page.keyboard.press("Escape");
     return;
   }
-
-  const desktopTarget = page.locator(
-    `#projectsRail .workspace-view-item[data-workspace-view="${view}"]`,
-  );
-  await expect(desktopTarget).toHaveClass(/projects-rail-item--active/);
 }
 
 function buildSeedTodos(): SeedTodo[] {
