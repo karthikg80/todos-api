@@ -256,6 +256,11 @@ test.describe("Topbar CTA invariants", () => {
     const searchH = await searchInput.evaluate((el) =>
       Math.round(el.getBoundingClientRect().height),
     );
+    await addButton.click();
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
     const quickEntryH = await page
       .locator("#todoInput")
       .evaluate((el) => Math.round(el.getBoundingClientRect().height));

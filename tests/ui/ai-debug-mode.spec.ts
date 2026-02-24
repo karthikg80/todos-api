@@ -283,6 +283,14 @@ async function openTodayView(page: Page) {
   await expect(page.locator('[data-testid="today-plan-panel"]')).toBeVisible();
 }
 
+async function openTaskComposer(page: Page) {
+  await page.getByRole("button", { name: "New Task" }).first().click();
+  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+    "aria-hidden",
+    "false",
+  );
+}
+
 test.describe("AI debug metadata visibility", () => {
   test.beforeEach(async ({ page }) => {
     await installAiUiMockApi(page);
@@ -292,6 +300,7 @@ test.describe("AI debug metadata visibility", () => {
     page,
   }) => {
     await registerAndOpenTodos(page, false);
+    await openTaskComposer(page);
     await page.locator("#todoInput").fill("urgent tomorrow website marketing");
 
     const onCreateRow = page.locator('[data-testid="ai-on-create-row"]');
@@ -316,6 +325,7 @@ test.describe("AI debug metadata visibility", () => {
     page,
   }) => {
     await registerAndOpenTodos(page, true);
+    await openTaskComposer(page);
 
     await page.locator("#todoInput").fill("urgent tomorrow website");
     const onCreateRow = page.locator('[data-testid="ai-on-create-row"]');

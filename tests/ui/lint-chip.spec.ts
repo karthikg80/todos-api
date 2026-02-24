@@ -190,6 +190,14 @@ async function registerAndOpen(page: Page) {
   await expect(page.locator("#todosView")).toHaveClass(/active/);
 }
 
+async function openTaskComposer(page: Page) {
+  await page.getByRole("button", { name: "New Task" }).first().click();
+  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+    "aria-hidden",
+    "false",
+  );
+}
+
 // ---------------------------------------------------------------------------
 // On-create surface
 // ---------------------------------------------------------------------------
@@ -198,6 +206,7 @@ test.describe("Lint-first on-create chip", () => {
   test.beforeEach(async ({ page }) => {
     await installMockApi(page);
     await registerAndOpen(page);
+    await openTaskComposer(page);
   });
 
   test("vague title shows lint chip; full assist chips are hidden", async ({
@@ -278,6 +287,7 @@ test.describe("Lint-first task drawer chip", () => {
   test.beforeEach(async ({ page }) => {
     await installMockApi(page);
     await registerAndOpen(page);
+    await openTaskComposer(page);
   });
 
   test("drawer shows lint chip for vague task title; full AI list hidden", async ({

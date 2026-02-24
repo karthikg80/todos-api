@@ -183,10 +183,19 @@ async function revealOnCreateFullAssist(page: Page) {
   }
 }
 
+async function openTaskComposer(page: Page) {
+  await page.getByRole("button", { name: "New Task" }).first().click();
+  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+    "aria-hidden",
+    "false",
+  );
+}
+
 test.describe("AI on-create assist chips", () => {
   test.beforeEach(async ({ page }) => {
     await installOnCreateMockApi(page);
     await registerAndOpenTodos(page);
+    await openTaskComposer(page);
   });
 
   test("shows assist row when title is non-empty and caps chips with expand", async ({

@@ -200,10 +200,19 @@ async function registerAndOpenTodos(page: Page) {
   }
 }
 
+async function openTaskComposer(page: Page) {
+  await page.getByRole("button", { name: "New Task" }).first().click();
+  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+    "aria-hidden",
+    "false",
+  );
+}
+
 test.describe("Task Critic feature flag", () => {
   test("flag off uses legacy critic layout", async ({ page }) => {
     await installCriticMockApi(page);
     await registerAndOpenTodos(page);
+    await openTaskComposer(page);
 
     await page.locator("#todoInput").fill("Legacy critic title");
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();
@@ -222,6 +231,7 @@ test.describe("Task Critic feature flag", () => {
     });
     const state = await installCriticMockApi(page);
     await registerAndOpenTodos(page);
+    await openTaskComposer(page);
 
     await page.locator("#todoInput").fill("Needs critique");
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();

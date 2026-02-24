@@ -333,6 +333,14 @@ async function registerAndOpenTodos(page: Page) {
   await expect(page.locator("#todosView")).toHaveClass(/active/);
 }
 
+async function openTaskComposer(page: Page) {
+  await page.getByRole("button", { name: "New Task" }).first().click();
+  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+    "aria-hidden",
+    "false",
+  );
+}
+
 test.describe("On-create decision assist live", () => {
   test("shows server-backed chips after create, applies rewrite, and persists after reload", async ({
     page,
@@ -340,8 +348,9 @@ test.describe("On-create decision assist live", () => {
     await installOnCreateLiveMockApi(page);
     await registerAndOpenTodos(page);
 
+    await openTaskComposer(page);
     await page.locator("#todoInput").fill("email follow up");
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
 
     await expect(
       page.locator('[data-testid="ai-on-create-row"]'),
@@ -371,8 +380,9 @@ test.describe("On-create decision assist live", () => {
     await installOnCreateLiveMockApi(page);
     await registerAndOpenTodos(page);
 
+    await openTaskComposer(page);
     await page.locator("#todoInput").fill("urgent website fix");
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
 
     const firstCard = page.locator(".ai-create-chip").first();
     await firstCard.getByRole("button", { name: "Dismiss" }).click();

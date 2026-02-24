@@ -386,6 +386,14 @@ async function registerAndOpenTodos(page: Page) {
   await expect(page.locator("#todosView")).toHaveClass(/active/);
 }
 
+async function openTaskComposer(page: Page) {
+  await page.getByRole("button", { name: "New Task" }).first().click();
+  await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+    "aria-hidden",
+    "false",
+  );
+}
+
 test.describe("AI task drawer decision assist live flow", () => {
   test.beforeEach(async ({ page }) => {
     await installTaskDrawerLiveMockApi(page);
@@ -395,8 +403,9 @@ test.describe("AI task drawer decision assist live flow", () => {
   test("renders server-backed drawer suggestions, applies rewrite title, and persists after reload", async ({
     page,
   }) => {
+    await openTaskComposer(page);
     await page.locator("#todoInput").fill("do thing");
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
 
     const row = page.locator(".todo-item").first();
     await row.click();
@@ -428,8 +437,9 @@ test.describe("AI task drawer decision assist live flow", () => {
   test("dismiss hides suggestions and keeps drawer empty after reload", async ({
     page,
   }) => {
+    await openTaskComposer(page);
     await page.locator("#todoInput").fill("do follow up");
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.getByRole("button", { name: "Add" }).click();
 
     const row = page.locator(".todo-item").first();
     await row.click();
