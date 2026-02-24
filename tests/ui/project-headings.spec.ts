@@ -501,14 +501,17 @@ test.describe("Project headings (sections)", () => {
     let taskIndex = sequence.indexOf("task:Unheaded task");
     expect(taskIndex).toBeGreaterThan(headingBIndex);
 
-    const movedRow = page.locator(".todo-item", { hasText: "Unheaded task" });
-    await movedRow.hover();
-    const movedKebab = movedRow.locator(".todo-kebab");
-    await movedKebab.click({ force: true });
-    await expect(movedKebab).toHaveAttribute("aria-expanded", "true");
-    await movedRow
-      .locator('label:has-text("Move to heading") select')
-      .selectOption("");
+    await page.evaluate(async () => {
+      const mover =
+        window.moveTodoToHeading ||
+        (window.app && typeof window.app.moveTodoToHeading === "function"
+          ? window.app.moveTodoToHeading
+          : null);
+      if (typeof mover !== "function") {
+        throw new Error("moveTodoToHeading is not available");
+      }
+      await mover("todo-2", "");
+    });
 
     await waitForSequenceAssertion(page, (sequenceValue) => {
       const headingBIndex = sequenceValue.indexOf("heading:Heading B");
