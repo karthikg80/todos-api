@@ -253,6 +253,67 @@ async function openHomeApp(page: Page) {
   });
 }
 
+async function openProjectsRailIfNeeded(page: Page) {
+  const desktopRail = page.locator("#projectsRail");
+  if (await desktopRail.isVisible()) {
+    return;
+  }
+  const mobileOpen = page.locator("#projectsRailMobileOpen");
+  if (await mobileOpen.isVisible()) {
+    await mobileOpen.click();
+    await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+  }
+}
+
+async function clickWorkspaceView(page: Page, view: string) {
+  await openProjectsRailIfNeeded(page);
+  const desktopTarget = page.locator(
+    `#projectsRail .workspace-view-item[data-workspace-view="${view}"]`,
+  );
+  if (await desktopTarget.isVisible()) {
+    await desktopTarget.click();
+    return;
+  }
+  const sheetTarget = page.locator(
+    `#projectsRailSheet .workspace-view-item[data-workspace-view="${view}"]`,
+  );
+  await sheetTarget.click();
+}
+
+async function clickProjectInRail(page: Page, projectKey: string) {
+  await openProjectsRailIfNeeded(page);
+  const desktopTarget = page.locator(
+    `#projectsRail .projects-rail-item[data-project-key="${projectKey}"]`,
+  );
+  if (await desktopTarget.isVisible()) {
+    await desktopTarget.click();
+    return;
+  }
+  const sheetTarget = page.locator(
+    `#projectsRailSheet .projects-rail-item[data-project-key="${projectKey}"]`,
+  );
+  await sheetTarget.click();
+}
+
+async function expectWorkspaceViewActive(page: Page, view: string) {
+  const desktopTarget = page.locator(
+    `#projectsRail .workspace-view-item[data-workspace-view="${view}"]`,
+  );
+  if (await desktopTarget.isVisible()) {
+    await expect(desktopTarget).toHaveClass(/projects-rail-item--active/);
+    return;
+  }
+  await openProjectsRailIfNeeded(page);
+  const sheetTarget = page.locator(
+    `#projectsRailSheet .workspace-view-item[data-workspace-view="${view}"]`,
+  );
+  await expect(sheetTarget).toHaveClass(/projects-rail-item--active/);
+  await page.keyboard.press("Escape");
+}
+
 function buildSeedTodos(): SeedTodo[] {
   return [
     {
@@ -325,11 +386,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
 
   test("Home is the default landing view", async ({ page }) => {
     await expect(page.locator('[data-testid="home-dashboard"]')).toBeVisible();
-    await expect(
-      page.locator(
-        '#projectsRail .workspace-view-item[data-workspace-view="home"]',
-      ),
-    ).toHaveClass(/projects-rail-item--active/);
+    await expectWorkspaceViewActive(page, "home");
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
   });
 
@@ -360,11 +417,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "true",
     );
 
-    await page
-      .locator(
-        '#projectsRail .workspace-view-item[data-workspace-view="unsorted"]',
-      )
-      .click();
+    await clickWorkspaceView(page, "unsorted");
     await expect(page.locator(".todo-item .todo-title")).toContainText(
       "Sheet entry task",
     );
@@ -373,9 +426,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
   test("Opening sheet inside a project defaults project selector", async ({
     page,
   }) => {
-    await page
-      .locator('#projectsRail .projects-rail-item[data-project-key="Work"]')
-      .click();
+    await clickProjectInRail(page, "Work");
     await page.getByRole("button", { name: "New Task" }).first().click();
     await expect(page.locator("#todoProjectSelect")).toHaveValue("Work");
   });
@@ -383,11 +434,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
   test("Creating a task with a project keeps it out of Unsorted and shows in that project", async ({
     page,
   }) => {
-    await page
-      .locator(
-        '#projectsRail .workspace-view-item[data-workspace-view="unsorted"]',
-      )
-      .click();
+    await clickWorkspaceView(page, "unsorted");
     await page.getByRole("button", { name: "New Task" }).first().click();
     await page.locator("#todoInput").fill("Project scoped task");
     await page.locator("#todoProjectSelect").selectOption("Work");
@@ -401,9 +448,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "Project scoped task",
     );
 
-    await page
-      .locator('#projectsRail .projects-rail-item[data-project-key="Work"]')
-      .click();
+    await clickProjectInRail(page, "Work");
     await expect(page.locator(".todo-item .todo-title")).toContainText(
       "Project scoped task",
     );
@@ -436,9 +481,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "Prepare launch checklist",
     );
 
-    await page
-      .locator('#projectsRail .workspace-view-item[data-workspace-view="home"]')
-      .click();
+    await clickWorkspaceView(page, "home");
     const quickWinsTile = page.locator('[data-home-tile="quick_wins"]');
     await quickWinsTile.getByRole("button", { name: "See all" }).click();
     await expect(page.locator("#todosListHeaderTitle")).toHaveText(
