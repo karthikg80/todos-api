@@ -27,6 +27,7 @@ type PrismaSubtaskRecord = Prisma.SubtaskGetPayload<{}>;
 export class PrismaTodoService implements ITodoService {
   constructor(private prisma: PrismaClient) {}
   private static readonly NOT_FOUND_ERROR = "TODO_NOT_FOUND";
+  static readonly INVALID_HEADING_ERROR = "INVALID_HEADING";
   private normalizeCategory(category?: string | null): string | null {
     if (category === null || category === undefined) {
       return null;
@@ -59,6 +60,32 @@ export class PrismaTodoService implements ITodoService {
     return project.id;
   }
 
+  private async ensureHeadingId(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    projectId: string | null,
+    headingId: string | null,
+  ): Promise<string | null> {
+    if (!headingId) return null;
+    if (!projectId) {
+      throw new Error(PrismaTodoService.INVALID_HEADING_ERROR);
+    }
+    const heading = await tx.heading.findFirst({
+      where: {
+        id: headingId,
+        projectId,
+        project: {
+          userId,
+        },
+      },
+      select: { id: true },
+    });
+    if (!heading) {
+      throw new Error(PrismaTodoService.INVALID_HEADING_ERROR);
+    }
+    return heading.id;
+  }
+
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     const todo = await this.prisma.$transaction(async (tx) => {
       // Lock the user row so concurrent creates are serialized and cannot
@@ -78,6 +105,12 @@ export class PrismaTodoService implements ITodoService {
       const projectId = category
         ? await this.ensureProjectId(tx, userId, category)
         : null;
+      const headingId = await this.ensureHeadingId(
+        tx,
+        userId,
+        projectId,
+        dto.headingId || null,
+      );
 
       return tx.todo.create({
         data: {
@@ -86,6 +119,7 @@ export class PrismaTodoService implements ITodoService {
           completed: false,
           category,
           projectId,
+          headingId,
           dueDate: dto.dueDate,
           order: nextOrder,
           priority: dto.priority || "medium",
@@ -184,17 +218,47 @@ export class PrismaTodoService implements ITodoService {
       if (dto.notes !== undefined) updateData.notes = dto.notes;
 
       const todo = await this.prisma.$transaction(async (tx) => {
+        let nextProjectId: string | null | undefined;
         if (dto.category !== undefined) {
           const category = this.normalizeCategory(dto.category);
           if (!category) {
             updateData.category = null;
             updateData.projectId = null;
+            updateData.headingId = null;
+            nextProjectId = null;
           } else {
             updateData.category = category;
-            updateData.projectId = await this.ensureProjectId(
+            const ensuredProjectId = await this.ensureProjectId(
               tx,
               userId,
               category,
+            );
+            updateData.projectId = ensuredProjectId;
+            updateData.headingId = null;
+            nextProjectId = ensuredProjectId;
+          }
+        }
+
+        if (dto.headingId !== undefined) {
+          if (dto.headingId === null) {
+            updateData.headingId = null;
+          } else {
+            const currentTodo = await tx.todo.findFirst({
+              where: { id, userId },
+              select: { projectId: true },
+            });
+            if (!currentTodo) {
+              return null;
+            }
+            const projectIdForHeading =
+              nextProjectId !== undefined
+                ? nextProjectId
+                : currentTodo.projectId;
+            updateData.headingId = await this.ensureHeadingId(
+              tx,
+              userId,
+              projectIdForHeading,
+              dto.headingId,
             );
           }
         }
@@ -236,6 +300,12 @@ export class PrismaTodoService implements ITodoService {
       // Invalid UUID format.
       if (hasPrismaCode(error, ["P2023"])) {
         return null;
+      }
+      if (
+        error instanceof Error &&
+        error.message === PrismaTodoService.INVALID_HEADING_ERROR
+      ) {
+        throw error;
       }
       throw error;
     }
@@ -531,6 +601,7 @@ export class PrismaTodoService implements ITodoService {
       order: prismaTodo.order,
       priority: prismaTodo.priority || "medium",
       notes: prismaTodo.notes ?? undefined,
+      headingId: prismaTodo.headingId ?? undefined,
       userId: prismaTodo.userId,
       createdAt: prismaTodo.createdAt,
       updatedAt: prismaTodo.updatedAt,

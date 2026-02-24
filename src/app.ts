@@ -22,6 +22,7 @@ import { AiPlannerService } from "./aiService";
 import { UserPlan } from "./routes/aiRouter";
 import { createProjectsRouter } from "./routes/projectsRouter";
 import { IProjectService } from "./interfaces/IProjectService";
+import { IHeadingService } from "./interfaces/IHeadingService";
 
 export function createApp(
   todoService: ITodoService = new TodoService(),
@@ -32,6 +33,7 @@ export function createApp(
   aiDailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>,
   projectService?: IProjectService,
   aiDecisionAssistEnabled?: boolean,
+  headingService?: IHeadingService,
 ) {
   const app = express();
 
@@ -207,7 +209,11 @@ export function createApp(
   app.use("/todos", createTodosRouter({ todoService, resolveTodoUserId }));
   app.use(
     "/projects",
-    createProjectsRouter({ projectService, resolveProjectUserId }),
+    createProjectsRouter({
+      projectService,
+      headingService,
+      resolveProjectUserId,
+    }),
   );
   app.use(
     "/ai",

@@ -5,6 +5,7 @@ import { prisma, disconnectPrisma } from "./prismaClient";
 import { config } from "./config";
 import { PrismaAiSuggestionStore } from "./aiSuggestionStore";
 import { PrismaProjectService } from "./projectService";
+import { PrismaHeadingService } from "./prismaHeadingService";
 
 const PORT = config.port;
 
@@ -12,6 +13,7 @@ const todoService = new PrismaTodoService(prisma);
 const authService = new AuthService(prisma);
 const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
 const projectService = new PrismaProjectService(prisma);
+const headingService = new PrismaHeadingService(prisma);
 const app = createApp(
   todoService,
   authService,
@@ -20,6 +22,8 @@ const app = createApp(
   undefined,
   undefined,
   projectService,
+  undefined,
+  headingService,
 );
 
 const server = app.listen(PORT, () => {

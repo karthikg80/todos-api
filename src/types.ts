@@ -27,12 +27,22 @@ export interface Project {
   todoCount?: number;
 }
 
+export interface Heading {
+  id: string;
+  projectId: string;
+  name: string;
+  sortOrder: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Todo {
   id: string;
   title: string;
   description?: string;
   completed: boolean;
   category?: string;
+  headingId?: string;
   dueDate?: Date;
   order: number;
   priority: Priority;
@@ -51,10 +61,15 @@ export interface UpdateProjectDto {
   name: string;
 }
 
+export interface CreateHeadingDto {
+  name: string;
+}
+
 export interface CreateTodoDto {
   title: string;
   description?: string;
   category?: string;
+  headingId?: string | null;
   dueDate?: Date;
   priority?: Priority;
   notes?: string;
@@ -65,6 +80,7 @@ export interface UpdateTodoDto {
   description?: string;
   completed?: boolean;
   category?: string | null;
+  headingId?: string | null;
   dueDate?: Date | null;
   order?: number;
   priority?: Priority;
