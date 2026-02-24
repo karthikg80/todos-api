@@ -1826,6 +1826,13 @@ textarea:focus-visible,
   background: var(--surface-2);
 }
 
+.todos-list-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
 .todos-list-header__date-badge {
   font-size: var(--fs-xs);
   color: var(--text-secondary);
@@ -1834,6 +1841,47 @@ textarea:focus-visible,
   padding: 2px 8px;
   white-space: nowrap;
   background: var(--surface-2);
+}
+
+.todo-heading-divider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 8px 0 4px;
+  padding: 6px 8px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-color);
+  background: var(--surface-2);
+}
+
+.todo-heading-divider__title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.todo-heading-divider__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.todo-heading-divider__count {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.todo-heading-divider__menu {
+  border: 1px solid var(--border-color);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  min-width: 28px;
+  height: 28px;
+  line-height: 1;
+  cursor: default;
 }
 
 .projects-rail {

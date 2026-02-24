@@ -145,6 +145,8 @@ let planGenerateSource = null;
 let adminBootstrapAvailable = false;
 let customProjects = [];
 let projectRecords = [];
+let projectHeadingsByProjectId = new Map();
+let projectHeadingsLoadSeq = 0;
 let editingTodoId = null;
 const {
   AUTH_STATE,
@@ -1096,6 +1098,10 @@ async function loadProjects() {
     saveCustomProjects();
     updateProjectSelectOptions();
     updateCategoryFilter();
+    renderProjectHeadingCreateButton();
+    if (getSelectedProjectKey()) {
+      await loadHeadingsForProject(getSelectedProjectKey());
+    }
   } catch (error) {
     console.error("Failed to load projects:", error);
   }
@@ -1111,6 +1117,123 @@ function getProjectRecordByName(projectName) {
       (record) => normalizeProjectPath(record?.name) === normalized,
     ) || null
   );
+}
+
+function getProjectHeadings(projectName = getSelectedProjectKey()) {
+  const projectRecord = getProjectRecordByName(projectName);
+  if (!projectRecord?.id) return [];
+  const headings = projectHeadingsByProjectId.get(String(projectRecord.id));
+  return Array.isArray(headings) ? headings : [];
+}
+
+function renderProjectHeadingCreateButton() {
+  const button = document.getElementById("projectHeadingCreateButton");
+  if (!(button instanceof HTMLElement)) return;
+  const selectedProject = getSelectedProjectKey();
+  const projectRecord = getProjectRecordByName(selectedProject);
+  const shouldShow = !!selectedProject && !!projectRecord?.id;
+  button.hidden = !shouldShow;
+  button.setAttribute("aria-hidden", String(!shouldShow));
+}
+
+async function loadHeadingsForProject(projectName = getSelectedProjectKey()) {
+  const normalized = normalizeProjectPath(projectName);
+  const projectRecord = getProjectRecordByName(normalized);
+  if (!normalized || !projectRecord?.id) {
+    renderProjectHeadingCreateButton();
+    return [];
+  }
+
+  const loadSeq = ++projectHeadingsLoadSeq;
+  try {
+    const response = await apiCall(
+      `${API_URL}/projects/${encodeURIComponent(projectRecord.id)}/headings`,
+    );
+    if (loadSeq !== projectHeadingsLoadSeq) {
+      return getProjectHeadings(normalized);
+    }
+    if (!response || !response.ok) {
+      projectHeadingsByProjectId.set(String(projectRecord.id), []);
+      renderProjectHeadingCreateButton();
+      return [];
+    }
+    const data = await response.json();
+    const headings = (Array.isArray(data) ? data : [])
+      .filter((heading) => heading && typeof heading === "object")
+      .map((heading) => ({
+        ...heading,
+        id: String(heading.id || ""),
+        projectId: String(heading.projectId || projectRecord.id),
+        name: String(heading.name || "").trim(),
+        sortOrder: Number.isFinite(Number(heading.sortOrder))
+          ? Number(heading.sortOrder)
+          : 0,
+      }))
+      .filter((heading) => heading.id && heading.name)
+      .sort(
+        (a, b) =>
+          a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, undefined),
+      );
+    projectHeadingsByProjectId.set(String(projectRecord.id), headings);
+    renderProjectHeadingCreateButton();
+    return headings;
+  } catch (error) {
+    console.error("Failed to load project headings:", error);
+    projectHeadingsByProjectId.set(String(projectRecord.id), []);
+    renderProjectHeadingCreateButton();
+    return [];
+  }
+}
+
+function scheduleLoadSelectedProjectHeadings() {
+  window.requestAnimationFrame(() => {
+    loadHeadingsForProject(getSelectedProjectKey()).then(() => {
+      renderTodos();
+    });
+  });
+}
+
+async function createHeadingForSelectedProject() {
+  const selectedProject = getSelectedProjectKey();
+  const projectRecord = getProjectRecordByName(selectedProject);
+  if (!selectedProject || !projectRecord?.id) {
+    showMessage("todosMessage", "Select a project first", "error");
+    return;
+  }
+
+  const name = prompt(`Heading name in "${selectedProject}":`);
+  if (name === null) return;
+  const headingName = String(name || "").trim();
+  if (!headingName) {
+    showMessage("todosMessage", "Heading name cannot be empty", "error");
+    return;
+  }
+
+  try {
+    const response = await apiCall(
+      `${API_URL}/projects/${encodeURIComponent(projectRecord.id)}/headings`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: headingName }),
+      },
+    );
+    if (!response || !response.ok) {
+      const data = response ? await parseApiBody(response) : {};
+      showMessage(
+        "todosMessage",
+        data.error || "Failed to create heading",
+        "error",
+      );
+      return;
+    }
+    await loadHeadingsForProject(selectedProject);
+    renderTodos();
+    showMessage("todosMessage", `Heading "${headingName}" created`, "success");
+  } catch (error) {
+    console.error("Create heading failed:", error);
+    showMessage("todosMessage", "Failed to create heading", "error");
+  }
 }
 
 async function ensureProjectExists(projectName) {
@@ -1189,6 +1312,7 @@ function init() {
     persist: false,
   });
   syncQuickEntryProjectActions();
+  renderProjectHeadingCreateButton();
   renderQuickEntryNaturalDueChip();
   handleVerificationStatusFromUrl();
 }
@@ -4230,6 +4354,8 @@ function setSelectedProjectKey(
   if (!skipApply) {
     applyFiltersAndRender({ reason });
   }
+  renderProjectHeadingCreateButton();
+  scheduleLoadSelectedProjectHeadings();
   return nextValue;
 }
 
@@ -4303,6 +4429,205 @@ function assertNoHorizontalOverflow(container) {
       scrollWidth: container.scrollWidth,
       clientWidth: container.clientWidth,
     });
+  }
+}
+
+function renderHeadingMoveOptions(todo) {
+  const projectName = normalizeProjectPath(todo?.category || "");
+  if (!projectName) return "";
+  const headings = getProjectHeadings(projectName);
+  if (!headings.length) return "";
+
+  const selectedHeadingId = String(todo?.headingId || "");
+  return `
+    <label class="todo-kebab-project-label">
+      Move to heading
+      <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToHeading('${todo.id}', this.value)">
+        <option value="">No heading</option>
+        ${headings
+          .map(
+            (heading) => `
+          <option value="${escapeHtml(String(heading.id))}" ${String(heading.id) === selectedHeadingId ? "selected" : ""}>
+            ${escapeHtml(String(heading.name))}
+          </option>`,
+          )
+          .join("")}
+      </select>
+    </label>
+  `;
+}
+
+function renderTodoRowHtml(todo) {
+  const isOverdue =
+    todo.dueDate && !todo.completed && new Date(todo.dueDate) < new Date();
+  const dueDateStr = todo.dueDate
+    ? new Date(todo.dueDate).toLocaleString()
+    : "";
+  const isSelected = selectedTodos.has(todo.id);
+  const hasSubtasks = !!(todo.subtasks && todo.subtasks.length > 0);
+
+  return `
+    <li class="todo-item ${todo.completed ? "completed" : ""} ${selectedTodoId === todo.id ? "todo-item--active" : ""} ${isSelected ? "todo-item--bulk-selected" : ""}"
+        draggable="true"
+        data-todo-id="${todo.id}"
+        tabindex="0"
+        data-ondragstart="handleDragStart(event)"
+        data-ondragover="handleDragOver(event)"
+        data-ondrop="handleDrop(event)"
+        data-ondragend="handleDragEnd(event)">
+        <input
+            type="checkbox"
+            class="bulk-checkbox"
+            aria-label="Select todo ${escapeHtml(todo.title)}"
+            ${isSelected ? "checked" : ""}
+            data-onchange="toggleSelectTodo('${todo.id}')"
+            data-onclick="event.stopPropagation()"
+        >
+        <span class="drag-handle">⋮⋮</span>
+        <input
+            type="checkbox"
+            class="todo-checkbox"
+            aria-label="Mark todo ${escapeHtml(todo.title)} complete"
+            ${todo.completed ? "checked" : ""}
+            data-onchange="toggleTodo('${todo.id}')"
+        >
+        <div class="todo-content">
+            <div class="todo-title" title="${escapeHtml(todo.title)}">${escapeHtml(todo.title)}</div>
+            ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
+            <div class="todo-meta">
+                ${renderTodoChips(todo, { isOverdue, dueDateStr })}
+            </div>
+            ${hasSubtasks ? renderSubtasks(todo) : ""}
+            ${
+              todo.notes && todo.notes.trim()
+                ? `
+                <div class="notes-section">
+                    <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
+                        <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
+                        <span>📝 Notes</span>
+                    </button>
+                    <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
+                        ${escapeHtml(String(todo.notes))}
+                    </div>
+                </div>
+            `
+                : ""
+            }
+        </div>
+        <div class="todo-row-actions">
+          <button
+            type="button"
+            class="todo-kebab"
+            aria-label="More actions for ${escapeHtml(todo.title)}"
+            aria-expanded="${openTodoKebabId === todo.id ? "true" : "false"}"
+            data-onclick="toggleTodoKebab('${todo.id}', event)"
+          >
+            ⋯
+          </button>
+          <div
+            class="todo-kebab-menu ${openTodoKebabId === todo.id ? "todo-kebab-menu--open" : ""}"
+            role="menu"
+            aria-label="Actions for ${escapeHtml(todo.title)}"
+          >
+            <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openTodoFromKebab('${todo.id}', event)">
+              Open details
+            </button>
+            <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openEditTodoFromKebab('${todo.id}', event)">
+              Edit modal
+            </button>
+            <label class="todo-kebab-project-label">
+              Move to project
+              <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToProject('${todo.id}', this.value)">
+                ${renderProjectOptions(String(todo.category || ""))}
+              </select>
+            </label>
+            ${renderHeadingMoveOptions(todo)}
+            <button
+              type="button"
+              class="todo-kebab-item"
+              role="menuitem"
+              ${hasSubtasks ? "disabled" : ""}
+              data-onclick="aiBreakdownTodo('${todo.id}')"
+            >
+              ${hasSubtasks ? "AI Subtasks Generated" : "AI Break Down Into Subtasks"}
+            </button>
+            <button type="button" class="todo-kebab-item todo-kebab-item--danger" role="menuitem" data-onclick="openDrawerDangerZone('${todo.id}', event)">
+              Delete
+            </button>
+          </div>
+        </div>
+    </li>
+  `;
+}
+
+function renderProjectHeadingGroupedRows(projectTodos, projectName) {
+  const headings = getProjectHeadings(projectName);
+  const normalizedProject = normalizeProjectPath(projectName);
+  const todosForProject = [...projectTodos].sort(
+    (a, b) => (a.order || 0) - (b.order || 0),
+  );
+  const headingsById = new Map(
+    headings.map((heading) => [String(heading.id), heading]),
+  );
+  const unheaded = [];
+  const grouped = new Map();
+  headings.forEach((heading) => grouped.set(String(heading.id), []));
+
+  todosForProject.forEach((todo) => {
+    const todoProject = normalizeProjectPath(todo.category || "");
+    if (normalizedProject && todoProject && todoProject !== normalizedProject) {
+      unheaded.push(todo);
+      return;
+    }
+    const headingId = String(todo.headingId || "");
+    if (!headingId || !headingsById.has(headingId)) {
+      unheaded.push(todo);
+      return;
+    }
+    grouped.get(headingId).push(todo);
+  });
+
+  let rows = "";
+  rows += unheaded.map((todo) => renderTodoRowHtml(todo)).join("");
+  headings.forEach((heading) => {
+    const items = grouped.get(String(heading.id)) || [];
+    rows += `
+      <li class="todo-heading-divider" data-heading-id="${escapeHtml(String(heading.id))}">
+        <span class="todo-heading-divider__title">${escapeHtml(String(heading.name))}</span>
+        <span class="todo-heading-divider__meta">
+          <span class="todo-heading-divider__count">${items.length}</span>
+          <button type="button" class="todo-heading-divider__menu" aria-label="Heading actions" title="Heading actions">⋯</button>
+        </span>
+      </li>
+    `;
+    rows += items.map((todo) => renderTodoRowHtml(todo)).join("");
+  });
+  return rows;
+}
+
+async function moveTodoToHeading(todoId, headingIdValue) {
+  const todo = todos.find((item) => item.id === todoId);
+  if (!todo) return;
+  const nextHeadingId =
+    typeof headingIdValue === "string" && headingIdValue.trim()
+      ? headingIdValue.trim()
+      : null;
+  try {
+    const updated = await applyTodoPatch(todoId, { headingId: nextHeadingId });
+    if (!nextHeadingId) {
+      renderTodos();
+      return;
+    }
+    const projectName = normalizeProjectPath(
+      updated?.category || todo.category || "",
+    );
+    if (projectName) {
+      await loadHeadingsForProject(projectName);
+    }
+    renderTodos();
+  } catch (error) {
+    console.error("Move todo heading failed:", error);
+    showMessage("todosMessage", "Failed to move task to heading", "error");
   }
 }
 
@@ -6439,125 +6764,36 @@ function renderTodos() {
   }
 
   let activeCategory = "";
-  const rows = categorizedTodos
-    .map((todo, index) => {
-      const categoryLabel = String(todo.category || "Uncategorized");
-      const categoryChanged = categoryLabel !== activeCategory;
-      if (categoryChanged) {
-        activeCategory = categoryLabel;
-      }
-      const stats = categoryStats.get(categoryLabel) || { total: 0, done: 0 };
-      const categoryHeader = categoryChanged
-        ? `
+  const selectedProjectKey = getSelectedProjectKey();
+  const shouldGroupByHeading = !!selectedProjectKey;
+  const rows = shouldGroupByHeading
+    ? renderProjectHeadingGroupedRows(filteredTodos, selectedProjectKey)
+    : categorizedTodos
+        .map((todo) => {
+          const categoryLabel = String(todo.category || "Uncategorized");
+          const categoryChanged = categoryLabel !== activeCategory;
+          if (categoryChanged) {
+            activeCategory = categoryLabel;
+          }
+          const stats = categoryStats.get(categoryLabel) || {
+            total: 0,
+            done: 0,
+          };
+          const categoryHeader = categoryChanged
+            ? `
           <li class="todo-group-header">
             <span>📁 ${escapeHtml(categoryLabel)}</span>
             <span>${stats.done}/${stats.total} done</span>
           </li>
         `
-        : "";
+            : "";
 
-      const isOverdue =
-        todo.dueDate && !todo.completed && new Date(todo.dueDate) < new Date();
-      const dueDateStr = todo.dueDate
-        ? new Date(todo.dueDate).toLocaleString()
-        : "";
-      const isSelected = selectedTodos.has(todo.id);
-      const hasSubtasks = !!(todo.subtasks && todo.subtasks.length > 0);
-
-      return `
+          return `
         ${categoryHeader}
-        <li class="todo-item ${todo.completed ? "completed" : ""} ${selectedTodoId === todo.id ? "todo-item--active" : ""} ${isSelected ? "todo-item--bulk-selected" : ""}"
-            draggable="true"
-            data-todo-id="${todo.id}"
-            tabindex="0"
-            data-ondragstart="handleDragStart(event)"
-            data-ondragover="handleDragOver(event)"
-            data-ondrop="handleDrop(event)"
-            data-ondragend="handleDragEnd(event)">
-            <input
-                type="checkbox"
-                class="bulk-checkbox"
-                aria-label="Select todo ${escapeHtml(todo.title)}"
-                ${isSelected ? "checked" : ""}
-                data-onchange="toggleSelectTodo('${todo.id}')"
-                data-onclick="event.stopPropagation()"
-            >
-            <span class="drag-handle">⋮⋮</span>
-            <input
-                type="checkbox"
-                class="todo-checkbox"
-                aria-label="Mark todo ${escapeHtml(todo.title)} complete"
-                ${todo.completed ? "checked" : ""}
-                data-onchange="toggleTodo('${todo.id}')"
-            >
-            <div class="todo-content">
-                <div class="todo-title" title="${escapeHtml(todo.title)}">${escapeHtml(todo.title)}</div>
-                ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
-                <div class="todo-meta">
-                    ${renderTodoChips(todo, { isOverdue, dueDateStr })}
-                </div>
-                ${hasSubtasks ? renderSubtasks(todo) : ""}
-                ${
-                  todo.notes && todo.notes.trim()
-                    ? `
-                    <div class="notes-section">
-                        <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
-                            <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
-                            <span>📝 Notes</span>
-                        </button>
-                        <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
-                            ${escapeHtml(String(todo.notes))}
-                        </div>
-                    </div>
-                `
-                    : ""
-                }
-            </div>
-            <div class="todo-row-actions">
-              <button
-                type="button"
-                class="todo-kebab"
-                aria-label="More actions for ${escapeHtml(todo.title)}"
-                aria-expanded="${openTodoKebabId === todo.id ? "true" : "false"}"
-                data-onclick="toggleTodoKebab('${todo.id}', event)"
-              >
-                ⋯
-              </button>
-              <div
-                class="todo-kebab-menu ${openTodoKebabId === todo.id ? "todo-kebab-menu--open" : ""}"
-                role="menu"
-                aria-label="Actions for ${escapeHtml(todo.title)}"
-              >
-                <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openTodoFromKebab('${todo.id}', event)">
-                  Open details
-                </button>
-                <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openEditTodoFromKebab('${todo.id}', event)">
-                  Edit modal
-                </button>
-                <label class="todo-kebab-project-label">
-                  Move to project
-                  <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToProject('${todo.id}', this.value)">
-                    ${renderProjectOptions(String(todo.category || ""))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  class="todo-kebab-item"
-                  role="menuitem"
-                  ${hasSubtasks ? "disabled" : ""}
-                  data-onclick="aiBreakdownTodo('${todo.id}')"
-                >
-                  ${hasSubtasks ? "AI Subtasks Generated" : "AI Break Down Into Subtasks"}
-                </button>
-                <button type="button" class="todo-kebab-item todo-kebab-item--danger" role="menuitem" data-onclick="openDrawerDangerZone('${todo.id}', event)">
-                  Delete
-                </button>
-              </div>
-            </div>
-        </li>
+        ${renderTodoRowHtml(todo)}
       `;
-    })
-    .join("");
+        })
+        .join("");
 
   container.innerHTML = `
                 <ul class="todos-list">
@@ -10088,6 +10324,10 @@ function bindCriticalHandlers() {
     setQuickEntryPropertiesOpen(!isQuickEntryPropertiesOpen);
   });
 
+  bindClick("projectHeadingCreateButton", () => {
+    createHeadingForSelectedProject();
+  });
+
   bindClick("aiWorkspaceToggle", () => {
     toggleAiWorkspace();
   });
@@ -10150,6 +10390,7 @@ async function logout() {
   aiFeedbackSummary = null;
   customProjects = [];
   projectRecords = [];
+  projectHeadingsByProjectId = new Map();
   openRailProjectMenuKey = null;
   isProjectCrudModalOpen = false;
   projectCrudTargetProject = "";
@@ -10321,6 +10562,22 @@ function invokeBoundExpression(expression, event, element) {
     const arg = token.trim();
     if (arg === "event") return event;
     if (arg === "this") return element;
+    if (arg === "this.value") {
+      if (
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLSelectElement ||
+        element instanceof HTMLTextAreaElement
+      ) {
+        return element.value;
+      }
+      return "";
+    }
+    if (arg === "this.checked") {
+      if (element instanceof HTMLInputElement) {
+        return element.checked;
+      }
+      return false;
+    }
     if (/^'.*'$/.test(arg) || /^\".*\"$/.test(arg)) return arg.slice(1, -1);
     if (arg === "true") return true;
     if (arg === "false") return false;

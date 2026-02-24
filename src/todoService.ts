@@ -30,6 +30,7 @@ export class TodoService implements ITodoService {
       description: dto.description,
       completed: false,
       category: dto.category,
+      headingId: dto.headingId || undefined,
       dueDate: dto.dueDate,
       order: maxOrder + 1,
       priority: dto.priority || "medium",
@@ -141,6 +142,9 @@ export class TodoService implements ITodoService {
       ...(dto.completed !== undefined && { completed: dto.completed }),
       ...(dto.category !== undefined && {
         category: dto.category === null ? undefined : dto.category,
+      }),
+      ...(dto.headingId !== undefined && {
+        headingId: dto.headingId === null ? undefined : dto.headingId,
       }),
       ...(dto.dueDate !== undefined && {
         dueDate: dto.dueDate === null ? undefined : dto.dueDate,

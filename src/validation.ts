@@ -1,5 +1,6 @@
 import {
   CreateProjectDto,
+  CreateHeadingDto,
   CreateSubtaskDto,
   CreateTodoDto,
   UpdateProjectDto,
@@ -50,6 +51,20 @@ function validateProjectName(name: unknown): string {
   return normalized;
 }
 
+function validateHeadingName(name: unknown): string {
+  if (typeof name !== "string") {
+    throw new ValidationError("Heading name must be a string");
+  }
+  const normalized = name.trim();
+  if (!normalized) {
+    throw new ValidationError("Heading name cannot be empty");
+  }
+  if (normalized.length > 100) {
+    throw new ValidationError("Heading name cannot exceed 100 characters");
+  }
+  return normalized;
+}
+
 export function validateCreateProject(data: unknown): CreateProjectDto {
   if (!data || typeof data !== "object") {
     throw new ValidationError("Request body must be an object");
@@ -67,6 +82,16 @@ export function validateUpdateProject(data: unknown): UpdateProjectDto {
   const body = data as Record<string, unknown>;
   return {
     name: validateProjectName(body.name),
+  };
+}
+
+export function validateCreateHeading(data: unknown): CreateHeadingDto {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+  const body = data as Record<string, unknown>;
+  return {
+    name: validateHeadingName(body.name),
   };
 }
 
@@ -210,6 +235,18 @@ export function validateCreateTodo(data: unknown): CreateTodoDto {
     }
   }
 
+  if (body.headingId !== undefined) {
+    if (body.headingId !== null && typeof body.headingId !== "string") {
+      throw new ValidationError("Heading ID must be a string");
+    }
+    if (
+      typeof body.headingId === "string" &&
+      body.headingId.trim().length === 0
+    ) {
+      throw new ValidationError("Heading ID cannot be empty");
+    }
+  }
+
   if (body.priority !== undefined) {
     if (typeof body.priority !== "string") {
       throw new ValidationError("Priority must be a string");
@@ -232,6 +269,8 @@ export function validateCreateTodo(data: unknown): CreateTodoDto {
     title: body.title.trim(),
     description: (body.description as string | undefined)?.trim(),
     category: (body.category as string | undefined)?.trim(),
+    headingId:
+      typeof body.headingId === "string" ? body.headingId.trim() : undefined,
     dueDate: body.dueDate ? new Date(body.dueDate as string) : undefined,
     priority: (body.priority as string | undefined)?.toLowerCase() as
       | Priority
@@ -304,6 +343,21 @@ export function validateUpdateTodo(data: unknown): UpdateTodoDto {
         throw new ValidationError("Invalid due date format");
       }
       update.dueDate = date;
+    }
+  }
+
+  if (body.headingId !== undefined) {
+    if (body.headingId === null) {
+      update.headingId = null;
+    } else {
+      if (typeof body.headingId !== "string") {
+        throw new ValidationError("Heading ID must be a string");
+      }
+      const headingId = body.headingId.trim();
+      if (!headingId) {
+        throw new ValidationError("Heading ID cannot be empty");
+      }
+      update.headingId = headingId;
     }
   }
 
