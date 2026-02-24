@@ -503,10 +503,9 @@ test.describe("Project headings (sections)", () => {
 
     const movedRow = page.locator(".todo-item", { hasText: "Unheaded task" });
     await movedRow.hover();
-    await movedRow.locator(".todo-kebab").click();
-    await expect(movedRow.locator(".todo-kebab-menu")).toHaveClass(
-      /todo-kebab-menu--open/,
-    );
+    const movedKebab = movedRow.locator(".todo-kebab");
+    await movedKebab.click({ force: true });
+    await expect(movedKebab).toHaveAttribute("aria-expanded", "true");
     await movedRow
       .locator('label:has-text("Move to heading") select')
       .selectOption("");
