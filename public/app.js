@@ -145,6 +145,8 @@ let planGenerateSource = null;
 let adminBootstrapAvailable = false;
 let customProjects = [];
 let projectRecords = [];
+let projectHeadingsByProjectId = new Map();
+let projectHeadingsLoadSeq = 0;
 let editingTodoId = null;
 const {
   AUTH_STATE,
@@ -217,6 +219,20 @@ let homeTopFocusState = createInitialHomeTopFocusState();
 
 const HOME_TOP_FOCUS_CACHE_KEY = "todos:home-top-focus-cache";
 const HOME_TOP_FOCUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+let chronoNaturalDateModulePromise = null;
+let quickEntryNaturalDateState = {
+  parseTimer: null,
+  parseSeq: 0,
+  dueSource: "none",
+  dueInputProgrammatic: false,
+  suppressNextTitleInputParse: false,
+  appliedPreview: null,
+  suggestionPreview: null,
+  lastDetected: null,
+  lastSuppressedTextSignature: "",
+  lastSuppressedDetectedSignature: "",
+};
+const QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS = 320;
 
 function emitAiSuggestionUndoTelemetry({
   surface,
@@ -447,6 +463,480 @@ function setQuickEntryPropertiesOpen(nextOpen, { persist = true } = {}) {
       isQuickEntryPropertiesOpen,
     );
   }
+  updateQuickEntryPropertiesSummary();
+}
+
+function formatQuickEntryDueSummary(value) {
+  if (!value) return "No due date";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "No due date";
+  return parsed.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function updateQuickEntryPropertiesSummary() {
+  const summaryEl = document.getElementById("quickEntryPropertiesSummary");
+  if (!(summaryEl instanceof HTMLElement)) return;
+
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const projectValue =
+    projectSelect instanceof HTMLSelectElement ? projectSelect.value : "";
+  const dueValue =
+    dueDateInput instanceof HTMLInputElement ? dueDateInput.value : "";
+  const projectLabel = projectValue
+    ? getProjectLeafName(projectValue)
+    : "No project";
+  const dueLabel = formatQuickEntryDueSummary(dueValue);
+  const priorityLabel =
+    currentPriority.charAt(0).toUpperCase() + currentPriority.slice(1);
+
+  summaryEl.textContent = `${projectLabel} • ${dueLabel} • Priority: ${priorityLabel}`;
+  summaryEl.hidden = isQuickEntryPropertiesOpen;
+}
+
+function getQuickEntryNaturalDateElements() {
+  const titleInput = document.getElementById("todoInput");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const chipRow = document.getElementById("quickEntryNaturalDueChipRow");
+  if (!(titleInput instanceof HTMLInputElement)) return null;
+  if (!(dueDateInput instanceof HTMLInputElement)) return null;
+  if (!(chipRow instanceof HTMLElement)) return null;
+  return { titleInput, dueDateInput, chipRow };
+}
+
+function normalizeQuickEntryTextSignature(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function toLocalDateTimeInputValue(date) {
+  const safeDate = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(safeDate.getTime())) return "";
+  const year = safeDate.getFullYear();
+  const month = String(safeDate.getMonth() + 1).padStart(2, "0");
+  const day = String(safeDate.getDate()).padStart(2, "0");
+  const hours = String(safeDate.getHours()).padStart(2, "0");
+  const minutes = String(safeDate.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function formatQuickEntryNaturalDueLabel(date, { includeTime = true } = {}) {
+  const safeDate = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(safeDate.getTime())) return "";
+  const options = includeTime
+    ? {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }
+    : {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      };
+  return safeDate.toLocaleString(undefined, options);
+}
+
+async function loadChronoNaturalDateModule() {
+  if (window.__chronoNaturalDateModule) {
+    return window.__chronoNaturalDateModule;
+  }
+  if (!chronoNaturalDateModulePromise) {
+    chronoNaturalDateModulePromise = import("/vendor/chrono-node/index.js")
+      .then((module) => {
+        window.__chronoNaturalDateModule = module;
+        return module;
+      })
+      .catch((error) => {
+        chronoNaturalDateModulePromise = null;
+        console.warn("Natural date parser failed to load:", error);
+        return null;
+      });
+  }
+  return chronoNaturalDateModulePromise;
+}
+
+function removeMatchedDatePhraseFromTitle(title, detection) {
+  if (!detection || !Number.isInteger(detection.index)) {
+    return String(title || "").trim();
+  }
+  const rawTitle = String(title || "");
+  const start = Math.max(0, detection.index);
+  const end = Math.min(
+    rawTitle.length,
+    start + String(detection.text || "").length,
+  );
+  if (start >= end) return rawTitle.trim();
+  let nextTitle = `${rawTitle.slice(0, start)} ${rawTitle.slice(end)}`;
+  nextTitle = nextTitle.replace(/\s+/g, " ").trim();
+  nextTitle = nextTitle.replace(/\s+([,.;:!?])/g, "$1");
+  return nextTitle;
+}
+
+function parseQuickEntryNaturalDue(text, chronoModule) {
+  const sourceText = String(text || "");
+  const trimmed = sourceText.trim();
+  if (!trimmed || !chronoModule || typeof chronoModule.parse !== "function") {
+    return null;
+  }
+
+  let results = [];
+  try {
+    results = chronoModule.parse(sourceText, new Date(), {
+      forwardDate: true,
+    });
+  } catch (error) {
+    console.warn("Natural date parse failed:", error);
+    return null;
+  }
+  if (!Array.isArray(results) || results.length === 0) return null;
+
+  const match = results.find((result) => {
+    const textValue = String(result?.text || "").trim();
+    if (!textValue) return false;
+    if (!/[a-zA-Z]|\/|:/.test(textValue)) return false;
+    if (textValue.length < 2) return false;
+    return true;
+  });
+  if (!match || !match.start || typeof match.start.date !== "function")
+    return null;
+
+  const dueDate = match.start.date();
+  if (!(dueDate instanceof Date) || Number.isNaN(dueDate.getTime()))
+    return null;
+  const now = Date.now();
+  const isPast = dueDate.getTime() < now - 60 * 1000;
+  const hasExplicitTime =
+    typeof match.start.isCertain === "function" &&
+    (match.start.isCertain("hour") || match.start.isCertain("minute"));
+  const dueValue = toLocalDateTimeInputValue(dueDate);
+  if (!dueValue) return null;
+
+  return {
+    text: String(match.text || ""),
+    index: Number(match.index) || 0,
+    endIndex: (Number(match.index) || 0) + String(match.text || "").length,
+    dueDate,
+    dueInputValue: dueValue,
+    hasExplicitTime,
+    isPast,
+    displayLabel: formatQuickEntryNaturalDueLabel(dueDate, {
+      includeTime: hasExplicitTime,
+    }),
+    detectedSignature: `${String(match.text || "")
+      .trim()
+      .toLowerCase()}|${dueValue}`,
+  };
+}
+
+function setQuickEntryDueInputValue(value) {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  quickEntryNaturalDateState.dueInputProgrammatic = true;
+  refs.dueDateInput.value = value;
+  refs.dueDateInput.dispatchEvent(new Event("input", { bubbles: true }));
+  refs.dueDateInput.dispatchEvent(new Event("change", { bubbles: true }));
+  quickEntryNaturalDateState.dueInputProgrammatic = false;
+}
+
+function clearQuickEntryNaturalSuggestionPreview() {
+  quickEntryNaturalDateState.suggestionPreview = null;
+}
+
+function renderQuickEntryNaturalDueChip() {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  const { chipRow, dueDateInput } = refs;
+
+  const hasNaturalDuePreview =
+    !!quickEntryNaturalDateState.appliedPreview &&
+    quickEntryNaturalDateState.dueSource === "natural" &&
+    !!dueDateInput.value;
+  if (hasNaturalDuePreview) {
+    chipRow.hidden = false;
+    chipRow.innerHTML = `
+      <div class="quick-entry-natural-due-chip quick-entry-natural-due-chip--applied">
+        <span class="quick-entry-natural-due-chip__label">Due: ${escapeHtml(quickEntryNaturalDateState.appliedPreview.displayLabel)}</span>
+        <button
+          type="button"
+          class="quick-entry-natural-due-chip__action"
+          data-natural-due-action="clear"
+          aria-label="Clear detected due date"
+          title="Clear due date"
+        >
+          ✕
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  if (quickEntryNaturalDateState.suggestionPreview) {
+    chipRow.hidden = false;
+    chipRow.innerHTML = `
+      <div class="quick-entry-natural-due-chip quick-entry-natural-due-chip--suggested">
+        <span class="quick-entry-natural-due-chip__label">Detected: ${escapeHtml(quickEntryNaturalDateState.suggestionPreview.displayLabel)}</span>
+        <button
+          type="button"
+          class="quick-entry-natural-due-chip__action"
+          data-natural-due-action="apply"
+          aria-label="Apply detected due date"
+        >
+          Apply
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  chipRow.hidden = true;
+  chipRow.innerHTML = "";
+}
+
+function resetQuickEntryNaturalDueState() {
+  if (quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(quickEntryNaturalDateState.parseTimer);
+  }
+  quickEntryNaturalDateState.parseTimer = null;
+  quickEntryNaturalDateState.parseSeq += 1;
+  quickEntryNaturalDateState.dueSource = "none";
+  quickEntryNaturalDateState.appliedPreview = null;
+  quickEntryNaturalDateState.suggestionPreview = null;
+  quickEntryNaturalDateState.lastDetected = null;
+  quickEntryNaturalDateState.lastSuppressedTextSignature = "";
+  quickEntryNaturalDateState.lastSuppressedDetectedSignature = "";
+  renderQuickEntryNaturalDueChip();
+}
+
+function applyQuickEntryNaturalDueDetection(
+  detection,
+  { cleanupTitle = true } = {},
+) {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs || !detection) return false;
+
+  setQuickEntryDueInputValue(detection.dueInputValue);
+  quickEntryNaturalDateState.dueSource = "natural";
+  quickEntryNaturalDateState.appliedPreview = {
+    dueInputValue: detection.dueInputValue,
+    displayLabel: detection.displayLabel,
+    detectedSignature: detection.detectedSignature,
+    text: detection.text,
+  };
+  clearQuickEntryNaturalSuggestionPreview();
+
+  if (cleanupTitle) {
+    const cleanedTitle = removeMatchedDatePhraseFromTitle(
+      refs.titleInput.value,
+      detection,
+    );
+    if (cleanedTitle !== refs.titleInput.value) {
+      quickEntryNaturalDateState.suppressNextTitleInputParse = true;
+      refs.titleInput.value = cleanedTitle;
+      refs.titleInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+
+  renderQuickEntryNaturalDueChip();
+  return true;
+}
+
+function shouldSuppressQuickEntryNaturalAutoApply(
+  textSignature,
+  detectionSignature,
+) {
+  return (
+    quickEntryNaturalDateState.lastSuppressedTextSignature === textSignature &&
+    quickEntryNaturalDateState.lastSuppressedDetectedSignature ===
+      detectionSignature
+  );
+}
+
+async function processQuickEntryNaturalDate({
+  trigger = "typing",
+  cleanupTitle = true,
+} = {}) {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return null;
+  const startingTitle = refs.titleInput.value;
+  const textSignature = normalizeQuickEntryTextSignature(startingTitle);
+
+  if (!startingTitle.trim()) {
+    quickEntryNaturalDateState.lastDetected = null;
+    clearQuickEntryNaturalSuggestionPreview();
+    if (quickEntryNaturalDateState.dueSource !== "natural") {
+      quickEntryNaturalDateState.appliedPreview = null;
+    }
+    renderQuickEntryNaturalDueChip();
+    return null;
+  }
+
+  const parseSeq = ++quickEntryNaturalDateState.parseSeq;
+  const chronoModule = await loadChronoNaturalDateModule();
+  if (parseSeq !== quickEntryNaturalDateState.parseSeq) return null;
+
+  const refsAfterLoad = getQuickEntryNaturalDateElements();
+  if (!refsAfterLoad) return null;
+  if (refsAfterLoad.titleInput.value !== startingTitle) return null;
+
+  const detection = parseQuickEntryNaturalDue(startingTitle, chronoModule);
+  quickEntryNaturalDateState.lastDetected = detection;
+
+  if (!detection || detection.isPast) {
+    clearQuickEntryNaturalSuggestionPreview();
+    renderQuickEntryNaturalDueChip();
+    return detection;
+  }
+
+  const hasDueValue = !!refsAfterLoad.dueDateInput.value;
+  const manualDueSet =
+    hasDueValue && quickEntryNaturalDateState.dueSource === "manual";
+  const suppressedAutoApply = shouldSuppressQuickEntryNaturalAutoApply(
+    textSignature,
+    detection.detectedSignature,
+  );
+
+  if (!hasDueValue && !suppressedAutoApply) {
+    applyQuickEntryNaturalDueDetection(detection, {
+      cleanupTitle: cleanupTitle && trigger !== "suggestion-apply",
+    });
+    return detection;
+  }
+
+  if (manualDueSet || (!hasDueValue && suppressedAutoApply)) {
+    quickEntryNaturalDateState.suggestionPreview = {
+      ...detection,
+    };
+  } else {
+    clearQuickEntryNaturalSuggestionPreview();
+  }
+  renderQuickEntryNaturalDueChip();
+  return detection;
+}
+
+function scheduleQuickEntryNaturalDateParse() {
+  if (quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(quickEntryNaturalDateState.parseTimer);
+  }
+  quickEntryNaturalDateState.parseTimer = setTimeout(() => {
+    quickEntryNaturalDateState.parseTimer = null;
+    processQuickEntryNaturalDate({ trigger: "typing", cleanupTitle: true });
+  }, QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS);
+}
+
+function onQuickEntryTitleInputForNaturalDate() {
+  if (quickEntryNaturalDateState.suppressNextTitleInputParse) {
+    quickEntryNaturalDateState.suppressNextTitleInputParse = false;
+    renderQuickEntryNaturalDueChip();
+    return;
+  }
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  const nextSignature = normalizeQuickEntryTextSignature(refs.titleInput.value);
+  if (
+    quickEntryNaturalDateState.lastSuppressedTextSignature !== nextSignature
+  ) {
+    quickEntryNaturalDateState.lastSuppressedTextSignature = "";
+    quickEntryNaturalDateState.lastSuppressedDetectedSignature = "";
+  }
+  if (quickEntryNaturalDateState.dueSource !== "natural") {
+    quickEntryNaturalDateState.appliedPreview = null;
+  }
+  scheduleQuickEntryNaturalDateParse();
+}
+
+function onQuickEntryDueInputChangedByUser() {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  if (quickEntryNaturalDateState.dueInputProgrammatic) return;
+  if (refs.dueDateInput.value) {
+    quickEntryNaturalDateState.dueSource = "manual";
+    quickEntryNaturalDateState.appliedPreview = null;
+  } else {
+    quickEntryNaturalDateState.dueSource = "none";
+    quickEntryNaturalDateState.appliedPreview = null;
+  }
+  renderQuickEntryNaturalDueChip();
+}
+
+function handleQuickEntryNaturalDueChipClick(action) {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  if (action === "clear") {
+    const textSignature = normalizeQuickEntryTextSignature(
+      refs.titleInput.value,
+    );
+    const detectedSignature =
+      quickEntryNaturalDateState.appliedPreview?.detectedSignature ||
+      quickEntryNaturalDateState.lastDetected?.detectedSignature ||
+      "";
+    quickEntryNaturalDateState.lastSuppressedTextSignature = textSignature;
+    quickEntryNaturalDateState.lastSuppressedDetectedSignature =
+      detectedSignature;
+    quickEntryNaturalDateState.appliedPreview = null;
+    quickEntryNaturalDateState.dueSource = "none";
+    setQuickEntryDueInputValue("");
+    if (
+      quickEntryNaturalDateState.lastDetected &&
+      !quickEntryNaturalDateState.lastDetected.isPast
+    ) {
+      quickEntryNaturalDateState.suggestionPreview = {
+        ...quickEntryNaturalDateState.lastDetected,
+      };
+    }
+    renderQuickEntryNaturalDueChip();
+    return;
+  }
+
+  if (action === "apply" && quickEntryNaturalDateState.suggestionPreview) {
+    applyQuickEntryNaturalDueDetection(
+      quickEntryNaturalDateState.suggestionPreview,
+      {
+        cleanupTitle: true,
+      },
+    );
+  }
+}
+
+function bindQuickEntryNaturalDateHandlers() {
+  if (window.__quickEntryNaturalDateHandlersBound) return;
+  window.__quickEntryNaturalDateHandlersBound = true;
+
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+
+  refs.titleInput.addEventListener(
+    "input",
+    onQuickEntryTitleInputForNaturalDate,
+  );
+  refs.dueDateInput.addEventListener(
+    "input",
+    onQuickEntryDueInputChangedByUser,
+  );
+  refs.dueDateInput.addEventListener(
+    "change",
+    onQuickEntryDueInputChangedByUser,
+  );
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const actionEl = target.closest("[data-natural-due-action]");
+    if (!(actionEl instanceof HTMLElement)) return;
+    const action = actionEl.getAttribute("data-natural-due-action");
+    if (!action) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handleQuickEntryNaturalDueChipClick(action);
+  });
 }
 
 function syncQuickEntryProjectActions() {
@@ -1399,6 +1889,10 @@ async function loadProjects() {
     saveCustomProjects();
     updateProjectSelectOptions();
     updateCategoryFilter();
+    renderProjectHeadingCreateButton();
+    if (getSelectedProjectKey()) {
+      await loadHeadingsForProject(getSelectedProjectKey());
+    }
   } catch (error) {
     console.error("Failed to load projects:", error);
   }
@@ -1414,6 +1908,123 @@ function getProjectRecordByName(projectName) {
       (record) => normalizeProjectPath(record?.name) === normalized,
     ) || null
   );
+}
+
+function getProjectHeadings(projectName = getSelectedProjectKey()) {
+  const projectRecord = getProjectRecordByName(projectName);
+  if (!projectRecord?.id) return [];
+  const headings = projectHeadingsByProjectId.get(String(projectRecord.id));
+  return Array.isArray(headings) ? headings : [];
+}
+
+function renderProjectHeadingCreateButton() {
+  const button = document.getElementById("projectHeadingCreateButton");
+  if (!(button instanceof HTMLElement)) return;
+  const selectedProject = getSelectedProjectKey();
+  const projectRecord = getProjectRecordByName(selectedProject);
+  const shouldShow = !!selectedProject && !!projectRecord?.id;
+  button.hidden = !shouldShow;
+  button.setAttribute("aria-hidden", String(!shouldShow));
+}
+
+async function loadHeadingsForProject(projectName = getSelectedProjectKey()) {
+  const normalized = normalizeProjectPath(projectName);
+  const projectRecord = getProjectRecordByName(normalized);
+  if (!normalized || !projectRecord?.id) {
+    renderProjectHeadingCreateButton();
+    return [];
+  }
+
+  const loadSeq = ++projectHeadingsLoadSeq;
+  try {
+    const response = await apiCall(
+      `${API_URL}/projects/${encodeURIComponent(projectRecord.id)}/headings`,
+    );
+    if (loadSeq !== projectHeadingsLoadSeq) {
+      return getProjectHeadings(normalized);
+    }
+    if (!response || !response.ok) {
+      projectHeadingsByProjectId.set(String(projectRecord.id), []);
+      renderProjectHeadingCreateButton();
+      return [];
+    }
+    const data = await response.json();
+    const headings = (Array.isArray(data) ? data : [])
+      .filter((heading) => heading && typeof heading === "object")
+      .map((heading) => ({
+        ...heading,
+        id: String(heading.id || ""),
+        projectId: String(heading.projectId || projectRecord.id),
+        name: String(heading.name || "").trim(),
+        sortOrder: Number.isFinite(Number(heading.sortOrder))
+          ? Number(heading.sortOrder)
+          : 0,
+      }))
+      .filter((heading) => heading.id && heading.name)
+      .sort(
+        (a, b) =>
+          a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, undefined),
+      );
+    projectHeadingsByProjectId.set(String(projectRecord.id), headings);
+    renderProjectHeadingCreateButton();
+    return headings;
+  } catch (error) {
+    console.error("Failed to load project headings:", error);
+    projectHeadingsByProjectId.set(String(projectRecord.id), []);
+    renderProjectHeadingCreateButton();
+    return [];
+  }
+}
+
+function scheduleLoadSelectedProjectHeadings() {
+  window.requestAnimationFrame(() => {
+    loadHeadingsForProject(getSelectedProjectKey()).then(() => {
+      renderTodos();
+    });
+  });
+}
+
+async function createHeadingForSelectedProject() {
+  const selectedProject = getSelectedProjectKey();
+  const projectRecord = getProjectRecordByName(selectedProject);
+  if (!selectedProject || !projectRecord?.id) {
+    showMessage("todosMessage", "Select a project first", "error");
+    return;
+  }
+
+  const name = prompt(`Heading name in "${selectedProject}":`);
+  if (name === null) return;
+  const headingName = String(name || "").trim();
+  if (!headingName) {
+    showMessage("todosMessage", "Heading name cannot be empty", "error");
+    return;
+  }
+
+  try {
+    const response = await apiCall(
+      `${API_URL}/projects/${encodeURIComponent(projectRecord.id)}/headings`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: headingName }),
+      },
+    );
+    if (!response || !response.ok) {
+      const data = response ? await parseApiBody(response) : {};
+      showMessage(
+        "todosMessage",
+        data.error || "Failed to create heading",
+        "error",
+      );
+      return;
+    }
+    await loadHeadingsForProject(selectedProject);
+    renderTodos();
+    showMessage("todosMessage", `Heading "${headingName}" created`, "success");
+  } catch (error) {
+    console.error("Create heading failed:", error);
+    showMessage("todosMessage", "Failed to create heading", "error");
+  }
 }
 
 async function ensureProjectExists(projectName) {
@@ -1454,6 +2065,7 @@ function init() {
   bindTaskComposerHandlers();
   bindOnCreateAssistHandlers();
   bindTodayPlanHandlers();
+  bindQuickEntryNaturalDateHandlers();
 
   // Check for reset token in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -1492,6 +2104,8 @@ function init() {
     persist: false,
   });
   syncQuickEntryProjectActions();
+  renderProjectHeadingCreateButton();
+  renderQuickEntryNaturalDueChip();
   handleVerificationStatusFromUrl();
 }
 
@@ -1799,9 +2413,11 @@ function updateUserDisplay() {
   if (currentUser.isVerified) {
     verifiedBadge.className = "verified-badge";
     verifiedBadge.textContent = "✓ Verified";
+    verifiedBadge.style.display = "inline-flex";
   } else {
     verifiedBadge.className = "unverified-badge";
-    verifiedBadge.textContent = "Not Verified";
+    verifiedBadge.textContent = "";
+    verifiedBadge.style.display = "none";
   }
 
   const adminBadge = document.getElementById("adminBadge");
@@ -3439,6 +4055,12 @@ async function addTodo() {
   const dueDateInput = document.getElementById("todoDueDateInput");
   const notesInput = document.getElementById("todoNotesInput");
 
+  if (quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(quickEntryNaturalDateState.parseTimer);
+    quickEntryNaturalDateState.parseTimer = null;
+  }
+  await processQuickEntryNaturalDate({ trigger: "submit", cleanupTitle: true });
+
   const title = input.value.trim();
   if (!title) return;
 
@@ -3477,11 +4099,13 @@ async function addTodo() {
       projectSelect.value = "";
       dueDateInput.value = "";
       notesInput.value = "";
+      resetQuickEntryNaturalDueState();
       setQuickEntryPropertiesOpen(false, { persist: false });
       syncQuickEntryProjectActions();
 
       // Reset priority to medium
       setPriority("medium");
+      updateQuickEntryPropertiesSummary();
 
       // Hide notes input
       notesInput.style.display = "none";
@@ -3635,6 +4259,7 @@ function updateProjectSelectOptions() {
     todoProjectSelect.innerHTML = renderOptions(selected);
     todoProjectSelect.value = selected;
     syncQuickEntryProjectActions();
+    updateQuickEntryPropertiesSummary();
   }
   if (editProjectSelect) {
     const selected = editProjectSelect.value || "";
@@ -4606,6 +5231,8 @@ function setSelectedProjectKey(
   if (!skipApply) {
     applyFiltersAndRender({ reason });
   }
+  renderProjectHeadingCreateButton();
+  scheduleLoadSelectedProjectHeadings();
   return nextValue;
 }
 
@@ -4703,6 +5330,205 @@ function assertNoHorizontalOverflow(container) {
       scrollWidth: container.scrollWidth,
       clientWidth: container.clientWidth,
     });
+  }
+}
+
+function renderHeadingMoveOptions(todo) {
+  const projectName = normalizeProjectPath(todo?.category || "");
+  if (!projectName) return "";
+  const headings = getProjectHeadings(projectName);
+  if (!headings.length) return "";
+
+  const selectedHeadingId = String(todo?.headingId || "");
+  return `
+    <label class="todo-kebab-project-label">
+      Move to heading
+      <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToHeading('${todo.id}', this.value)">
+        <option value="">No heading</option>
+        ${headings
+          .map(
+            (heading) => `
+          <option value="${escapeHtml(String(heading.id))}" ${String(heading.id) === selectedHeadingId ? "selected" : ""}>
+            ${escapeHtml(String(heading.name))}
+          </option>`,
+          )
+          .join("")}
+      </select>
+    </label>
+  `;
+}
+
+function renderTodoRowHtml(todo) {
+  const isOverdue =
+    todo.dueDate && !todo.completed && new Date(todo.dueDate) < new Date();
+  const dueDateStr = todo.dueDate
+    ? new Date(todo.dueDate).toLocaleString()
+    : "";
+  const isSelected = selectedTodos.has(todo.id);
+  const hasSubtasks = !!(todo.subtasks && todo.subtasks.length > 0);
+
+  return `
+    <li class="todo-item ${todo.completed ? "completed" : ""} ${selectedTodoId === todo.id ? "todo-item--active" : ""} ${isSelected ? "todo-item--bulk-selected" : ""}"
+        draggable="true"
+        data-todo-id="${todo.id}"
+        tabindex="0"
+        data-ondragstart="handleDragStart(event)"
+        data-ondragover="handleDragOver(event)"
+        data-ondrop="handleDrop(event)"
+        data-ondragend="handleDragEnd(event)">
+        <input
+            type="checkbox"
+            class="bulk-checkbox"
+            aria-label="Select todo ${escapeHtml(todo.title)}"
+            ${isSelected ? "checked" : ""}
+            data-onchange="toggleSelectTodo('${todo.id}')"
+            data-onclick="event.stopPropagation()"
+        >
+        <span class="drag-handle">⋮⋮</span>
+        <input
+            type="checkbox"
+            class="todo-checkbox"
+            aria-label="Mark todo ${escapeHtml(todo.title)} complete"
+            ${todo.completed ? "checked" : ""}
+            data-onchange="toggleTodo('${todo.id}')"
+        >
+        <div class="todo-content">
+            <div class="todo-title" title="${escapeHtml(todo.title)}">${escapeHtml(todo.title)}</div>
+            ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
+            <div class="todo-meta">
+                ${renderTodoChips(todo, { isOverdue, dueDateStr })}
+            </div>
+            ${hasSubtasks ? renderSubtasks(todo) : ""}
+            ${
+              todo.notes && todo.notes.trim()
+                ? `
+                <div class="notes-section">
+                    <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
+                        <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
+                        <span>📝 Notes</span>
+                    </button>
+                    <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
+                        ${escapeHtml(String(todo.notes))}
+                    </div>
+                </div>
+            `
+                : ""
+            }
+        </div>
+        <div class="todo-row-actions">
+          <button
+            type="button"
+            class="todo-kebab"
+            aria-label="More actions for ${escapeHtml(todo.title)}"
+            aria-expanded="${openTodoKebabId === todo.id ? "true" : "false"}"
+            data-onclick="toggleTodoKebab('${todo.id}', event)"
+          >
+            ⋯
+          </button>
+          <div
+            class="todo-kebab-menu ${openTodoKebabId === todo.id ? "todo-kebab-menu--open" : ""}"
+            role="menu"
+            aria-label="Actions for ${escapeHtml(todo.title)}"
+          >
+            <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openTodoFromKebab('${todo.id}', event)">
+              Open details
+            </button>
+            <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openEditTodoFromKebab('${todo.id}', event)">
+              Edit modal
+            </button>
+            <label class="todo-kebab-project-label">
+              Move to project
+              <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToProject('${todo.id}', this.value)">
+                ${renderProjectOptions(String(todo.category || ""))}
+              </select>
+            </label>
+            ${renderHeadingMoveOptions(todo)}
+            <button
+              type="button"
+              class="todo-kebab-item"
+              role="menuitem"
+              ${hasSubtasks ? "disabled" : ""}
+              data-onclick="aiBreakdownTodo('${todo.id}')"
+            >
+              ${hasSubtasks ? "AI Subtasks Generated" : "AI Break Down Into Subtasks"}
+            </button>
+            <button type="button" class="todo-kebab-item todo-kebab-item--danger" role="menuitem" data-onclick="openDrawerDangerZone('${todo.id}', event)">
+              Delete
+            </button>
+          </div>
+        </div>
+    </li>
+  `;
+}
+
+function renderProjectHeadingGroupedRows(projectTodos, projectName) {
+  const headings = getProjectHeadings(projectName);
+  const normalizedProject = normalizeProjectPath(projectName);
+  const todosForProject = [...projectTodos].sort(
+    (a, b) => (a.order || 0) - (b.order || 0),
+  );
+  const headingsById = new Map(
+    headings.map((heading) => [String(heading.id), heading]),
+  );
+  const unheaded = [];
+  const grouped = new Map();
+  headings.forEach((heading) => grouped.set(String(heading.id), []));
+
+  todosForProject.forEach((todo) => {
+    const todoProject = normalizeProjectPath(todo.category || "");
+    if (normalizedProject && todoProject && todoProject !== normalizedProject) {
+      unheaded.push(todo);
+      return;
+    }
+    const headingId = String(todo.headingId || "");
+    if (!headingId || !headingsById.has(headingId)) {
+      unheaded.push(todo);
+      return;
+    }
+    grouped.get(headingId).push(todo);
+  });
+
+  let rows = "";
+  rows += unheaded.map((todo) => renderTodoRowHtml(todo)).join("");
+  headings.forEach((heading) => {
+    const items = grouped.get(String(heading.id)) || [];
+    rows += `
+      <li class="todo-heading-divider" data-heading-id="${escapeHtml(String(heading.id))}">
+        <span class="todo-heading-divider__title">${escapeHtml(String(heading.name))}</span>
+        <span class="todo-heading-divider__meta">
+          <span class="todo-heading-divider__count">${items.length}</span>
+          <button type="button" class="todo-heading-divider__menu" aria-label="Heading actions" title="Heading actions">⋯</button>
+        </span>
+      </li>
+    `;
+    rows += items.map((todo) => renderTodoRowHtml(todo)).join("");
+  });
+  return rows;
+}
+
+async function moveTodoToHeading(todoId, headingIdValue) {
+  const todo = todos.find((item) => item.id === todoId);
+  if (!todo) return;
+  const nextHeadingId =
+    typeof headingIdValue === "string" && headingIdValue.trim()
+      ? headingIdValue.trim()
+      : null;
+  try {
+    const updated = await applyTodoPatch(todoId, { headingId: nextHeadingId });
+    if (!nextHeadingId) {
+      renderTodos();
+      return;
+    }
+    const projectName = normalizeProjectPath(
+      updated?.category || todo.category || "",
+    );
+    if (projectName) {
+      await loadHeadingsForProject(projectName);
+    }
+    renderTodos();
+  } catch (error) {
+    console.error("Move todo heading failed:", error);
+    showMessage("todosMessage", "Failed to move task to heading", "error");
   }
 }
 
@@ -6874,125 +7700,36 @@ function renderTodos() {
   }
 
   let activeCategory = "";
-  const rows = categorizedTodos
-    .map((todo, index) => {
-      const categoryLabel = String(todo.category || "Uncategorized");
-      const categoryChanged = categoryLabel !== activeCategory;
-      if (categoryChanged) {
-        activeCategory = categoryLabel;
-      }
-      const stats = categoryStats.get(categoryLabel) || { total: 0, done: 0 };
-      const categoryHeader = categoryChanged
-        ? `
+  const selectedProjectKey = getSelectedProjectKey();
+  const shouldGroupByHeading = !!selectedProjectKey;
+  const rows = shouldGroupByHeading
+    ? renderProjectHeadingGroupedRows(filteredTodos, selectedProjectKey)
+    : categorizedTodos
+        .map((todo) => {
+          const categoryLabel = String(todo.category || "Uncategorized");
+          const categoryChanged = categoryLabel !== activeCategory;
+          if (categoryChanged) {
+            activeCategory = categoryLabel;
+          }
+          const stats = categoryStats.get(categoryLabel) || {
+            total: 0,
+            done: 0,
+          };
+          const categoryHeader = categoryChanged
+            ? `
           <li class="todo-group-header">
             <span>📁 ${escapeHtml(categoryLabel)}</span>
             <span>${stats.done}/${stats.total} done</span>
           </li>
         `
-        : "";
+            : "";
 
-      const isOverdue =
-        todo.dueDate && !todo.completed && new Date(todo.dueDate) < new Date();
-      const dueDateStr = todo.dueDate
-        ? new Date(todo.dueDate).toLocaleString()
-        : "";
-      const isSelected = selectedTodos.has(todo.id);
-      const hasSubtasks = !!(todo.subtasks && todo.subtasks.length > 0);
-
-      return `
+          return `
         ${categoryHeader}
-        <li class="todo-item ${todo.completed ? "completed" : ""} ${selectedTodoId === todo.id ? "todo-item--active" : ""}"
-            draggable="true"
-            data-todo-id="${todo.id}"
-            tabindex="0"
-            data-ondragstart="handleDragStart(event)"
-            data-ondragover="handleDragOver(event)"
-            data-ondrop="handleDrop(event)"
-            data-ondragend="handleDragEnd(event)">
-            <input
-                type="checkbox"
-                class="bulk-checkbox"
-                aria-label="Select todo ${escapeHtml(todo.title)}"
-                ${isSelected ? "checked" : ""}
-                data-onchange="toggleSelectTodo('${todo.id}')"
-                data-onclick="event.stopPropagation()"
-            >
-            <span class="drag-handle">⋮⋮</span>
-            <input
-                type="checkbox"
-                class="todo-checkbox"
-                aria-label="Mark todo ${escapeHtml(todo.title)} complete"
-                ${todo.completed ? "checked" : ""}
-                data-onchange="toggleTodo('${todo.id}')"
-            >
-            <div class="todo-content">
-                <div class="todo-title" title="${escapeHtml(todo.title)}">${escapeHtml(todo.title)}</div>
-                ${todo.description ? `<div class="todo-description">${escapeHtml(todo.description)}</div>` : ""}
-                <div class="todo-meta">
-                    ${renderTodoChips(todo, { isOverdue, dueDateStr })}
-                </div>
-                ${hasSubtasks ? renderSubtasks(todo) : ""}
-                ${
-                  todo.notes && todo.notes.trim()
-                    ? `
-                    <div class="notes-section">
-                        <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
-                            <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
-                            <span>📝 Notes</span>
-                        </button>
-                        <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
-                            ${escapeHtml(String(todo.notes))}
-                        </div>
-                    </div>
-                `
-                    : ""
-                }
-            </div>
-            <div class="todo-row-actions">
-              <button
-                type="button"
-                class="todo-kebab"
-                aria-label="More actions for ${escapeHtml(todo.title)}"
-                aria-expanded="${openTodoKebabId === todo.id ? "true" : "false"}"
-                data-onclick="toggleTodoKebab('${todo.id}', event)"
-              >
-                ⋯
-              </button>
-              <div
-                class="todo-kebab-menu ${openTodoKebabId === todo.id ? "todo-kebab-menu--open" : ""}"
-                role="menu"
-                aria-label="Actions for ${escapeHtml(todo.title)}"
-              >
-                <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openTodoFromKebab('${todo.id}', event)">
-                  Open details
-                </button>
-                <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openEditTodoFromKebab('${todo.id}', event)">
-                  Edit modal
-                </button>
-                <label class="todo-kebab-project-label">
-                  Move to project
-                  <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToProject('${todo.id}', this.value)">
-                    ${renderProjectOptions(String(todo.category || ""))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  class="todo-kebab-item"
-                  role="menuitem"
-                  ${hasSubtasks ? "disabled" : ""}
-                  data-onclick="aiBreakdownTodo('${todo.id}')"
-                >
-                  ${hasSubtasks ? "AI Subtasks Generated" : "AI Break Down Into Subtasks"}
-                </button>
-                <button type="button" class="todo-kebab-item todo-kebab-item--danger" role="menuitem" data-onclick="openDrawerDangerZone('${todo.id}', event)">
-                  Delete
-                </button>
-              </div>
-            </div>
-        </li>
+        ${renderTodoRowHtml(todo)}
       `;
-    })
-    .join("");
+        })
+        .join("");
 
   container.innerHTML = `
                 <ul class="todos-list">
@@ -9153,6 +9890,7 @@ function setPriority(priority) {
       `priority${priority.charAt(0).toUpperCase() + priority.slice(1)}`,
     )
     .classList.add("active");
+  updateQuickEntryPropertiesSummary();
 }
 
 function getPriorityIcon(priority) {
@@ -9795,6 +10533,18 @@ document.addEventListener("keydown", function (e) {
 
   // Ctrl/Cmd + F: Focus on search
   if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+    e.preventDefault();
+    document.getElementById("searchInput")?.focus();
+  }
+
+  if (
+    e.key === "/" &&
+    !e.ctrlKey &&
+    !e.metaKey &&
+    !e.altKey &&
+    !e.shiftKey &&
+    !e.isComposing
+  ) {
     e.preventDefault();
     document.getElementById("searchInput")?.focus();
   }
@@ -10511,6 +11261,10 @@ function bindCriticalHandlers() {
     setQuickEntryPropertiesOpen(!isQuickEntryPropertiesOpen);
   });
 
+  bindClick("projectHeadingCreateButton", () => {
+    createHeadingForSelectedProject();
+  });
+
   bindClick("aiWorkspaceToggle", () => {
     toggleAiWorkspace();
   });
@@ -10519,8 +11273,20 @@ function bindCriticalHandlers() {
   if (todoProjectSelect && todoProjectSelect.dataset.bound !== "true") {
     todoProjectSelect.addEventListener("change", () => {
       syncQuickEntryProjectActions();
+      updateQuickEntryPropertiesSummary();
     });
     todoProjectSelect.dataset.bound = "true";
+  }
+
+  const todoDueDateInput = document.getElementById("todoDueDateInput");
+  if (todoDueDateInput && todoDueDateInput.dataset.bound !== "true") {
+    todoDueDateInput.addEventListener("input", () => {
+      updateQuickEntryPropertiesSummary();
+    });
+    todoDueDateInput.addEventListener("change", () => {
+      updateQuickEntryPropertiesSummary();
+    });
+    todoDueDateInput.dataset.bound = "true";
   }
 
   const resendBtn = document.getElementById("resendVerificationButton");
@@ -10561,6 +11327,7 @@ async function logout() {
   aiFeedbackSummary = null;
   customProjects = [];
   projectRecords = [];
+  projectHeadingsByProjectId = new Map();
   openRailProjectMenuKey = null;
   isProjectCrudModalOpen = false;
   projectCrudTargetProject = "";
@@ -10741,6 +11508,22 @@ function invokeBoundExpression(expression, event, element) {
     const arg = token.trim();
     if (arg === "event") return event;
     if (arg === "this") return element;
+    if (arg === "this.value") {
+      if (
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLSelectElement ||
+        element instanceof HTMLTextAreaElement
+      ) {
+        return element.value;
+      }
+      return "";
+    }
+    if (arg === "this.checked") {
+      if (element instanceof HTMLInputElement) {
+        return element.checked;
+      }
+      return false;
+    }
     if (/^'.*'$/.test(arg) || /^\".*\"$/.test(arg)) return arg.slice(1, -1);
     if (arg === "true") return true;
     if (arg === "false") return false;

@@ -230,6 +230,7 @@ test.describe("Todos layout invariants", () => {
     expect(regionMetrics.scrollWidth).toBe(regionMetrics.clientWidth);
 
     const firstRow = page.locator(".todo-item").first();
+    await expect(firstRow).toBeVisible();
     const kebab = firstRow.locator(".todo-kebab");
     await expect(kebab).toHaveCSS("opacity", "0");
 

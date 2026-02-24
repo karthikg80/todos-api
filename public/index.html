@@ -254,7 +254,7 @@
                     aria-label="Projects"
                   >
                     <div class="projects-rail__header">
-                      <h3>Projects</h3>
+                      <h3>Views & Projects</h3>
                       <button
                         id="projectsRailToggle"
                         type="button"
@@ -267,12 +267,9 @@
                       class="projects-rail__section projects-rail__section--workspace"
                     >
                       <div class="projects-rail__section-header">
-                        <span>Workspace</span>
+                        <span>Views</span>
                       </div>
-                      <nav
-                        class="projects-rail__primary"
-                        aria-label="Workspace views"
-                      >
+                      <nav class="projects-rail__primary" aria-label="Views">
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item projects-rail-item--active"
@@ -356,7 +353,7 @@
                     aria-label="Projects"
                   >
                     <div class="projects-rail__header">
-                      <h3>Projects</h3>
+                      <h3>Views & Projects</h3>
                       <button
                         id="projectsRailMobileClose"
                         type="button"
@@ -370,12 +367,9 @@
                       class="projects-rail__section projects-rail__section--workspace"
                     >
                       <div class="projects-rail__section-header">
-                        <span>Workspace</span>
+                        <span>Views</span>
                       </div>
-                      <nav
-                        class="projects-rail__primary"
-                        aria-label="Workspace views"
-                      >
+                      <nav class="projects-rail__primary" aria-label="Views">
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item projects-rail-item--active"
@@ -619,7 +613,7 @@
                             type="text"
                             id="searchInput"
                             class="search-input"
-                            placeholder="Search todos... (Ctrl/Cmd+F)"
+                            placeholder="Search… (/)"
                             data-oninput="filterTodos()"
                           />
                           <span class="search-icon">🔍</span>
@@ -779,6 +773,13 @@
                           >
                             ×
                           </button>
+                          <div
+                            id="quickEntryPropertiesSummary"
+                            class="quick-entry-properties-summary"
+                            aria-live="polite"
+                          >
+                            No project • No due date • Priority: Medium
+                          </div>
                         </div>
                         <div class="task-composer-sheet__body">
                           <label for="todoInput" class="sr-only"
@@ -791,6 +792,12 @@
                             data-onkeypress="handleTodoKeyPress(event)"
                           />
                           <div
+                            id="quickEntryNaturalDueChipRow"
+                            class="quick-entry-natural-due"
+                            hidden
+                            aria-live="polite"
+                          ></div>
+                          <div
                             id="aiOnCreateAssistRow"
                             class="ai-on-create-assist"
                             data-testid="ai-on-create-row"
@@ -799,6 +806,7 @@
                           <div
                             id="quickEntryPropertiesPanel"
                             class="quick-entry-properties-panel task-composer-properties"
+                            hidden
                           >
                             <div class="field-row task-composer-fields">
                               <label for="todoProjectSelect" class="sr-only"
@@ -807,6 +815,41 @@
                               <select id="todoProjectSelect">
                                 <option value="">No project</option>
                               </select>
+                              <button
+                                id="quickEntryCreateProjectButton"
+                                class="add-btn"
+                                data-onclick="createProject()"
+                                style="width: auto; padding: 10px 14px"
+                                type="button"
+                              >
+                                + Project
+                              </button>
+                              <button
+                                id="quickEntryCreateSubprojectButton"
+                                class="add-btn"
+                                data-onclick="createSubproject()"
+                                style="
+                                  width: auto;
+                                  padding: 10px 14px;
+                                  background: #0f766e;
+                                "
+                                type="button"
+                              >
+                                + Subproject
+                              </button>
+                              <button
+                                id="quickEntryRenameProjectButton"
+                                class="add-btn"
+                                data-onclick="renameProjectTree()"
+                                style="
+                                  width: auto;
+                                  padding: 10px 14px;
+                                  background: #334155;
+                                "
+                                type="button"
+                              >
+                                Rename Project
+                              </button>
                               <div class="task-composer-due-wrap">
                                 <label for="todoDueDateInput" class="sr-only"
                                   >Todo due date</label
@@ -814,6 +857,8 @@
                                 <input
                                   type="datetime-local"
                                   id="todoDueDateInput"
+                                  title="Due date (optional)"
+                                  aria-label="Due date (optional)"
                                 />
                                 <button
                                   id="taskComposerDueClearButton"
@@ -1042,11 +1087,21 @@
                             hidden
                           ></span>
                         </div>
-                        <div
-                          id="todosListHeaderCount"
-                          class="todos-list-header__count"
-                        >
-                          0 tasks
+                        <div class="todos-list-header__actions">
+                          <button
+                            id="projectHeadingCreateButton"
+                            class="mini-btn"
+                            type="button"
+                            hidden
+                          >
+                            + Heading
+                          </button>
+                          <div
+                            id="todosListHeaderCount"
+                            class="todos-list-header__count"
+                          >
+                            0 tasks
+                          </div>
                         </div>
                       </div>
                       <section
@@ -1260,7 +1315,8 @@
     <button
       class="keyboard-shortcuts-btn"
       data-onclick="toggleShortcuts()"
-      title="Keyboard Shortcuts (?)"
+      title="Shortcuts"
+      aria-label="Keyboard shortcuts"
     >
       ⌨️
     </button>
@@ -1319,7 +1375,7 @@
         </div>
         <div class="shortcut-item">
           <span class="shortcut-desc">Search Todos</span>
-          <kbd class="shortcut-key">Ctrl/Cmd + F</kbd>
+          <kbd class="shortcut-key">/</kbd>
         </div>
         <div class="shortcut-item">
           <span class="shortcut-desc">Clear Search</span>

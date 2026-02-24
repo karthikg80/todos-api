@@ -2,18 +2,22 @@ import { Router, Request, Response, NextFunction } from "express";
 import { IProjectService } from "../interfaces/IProjectService";
 import {
   validateCreateProject,
+  validateCreateHeading,
   validateId,
   validateUpdateProject,
 } from "../validation";
 import { DuplicateProjectNameError } from "../projectService";
+import { IHeadingService } from "../interfaces/IHeadingService";
 
 interface ProjectRouterDeps {
   projectService?: IProjectService;
+  headingService?: IHeadingService;
   resolveProjectUserId: (req: Request, res: Response) => string | null;
 }
 
 export function createProjectsRouter({
   projectService,
+  headingService,
   resolveProjectUserId,
 }: ProjectRouterDeps): Router {
   const router = Router();
@@ -144,6 +148,54 @@ export function createProjectsRouter({
           return res.status(404).json({ error: "Project not found" });
         }
         res.status(204).send();
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/:id/headings",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!headingService) {
+          return res.status(501).json({ error: "Headings not configured" });
+        }
+        const userId = resolveProjectUserId(req, res);
+        if (!userId) return;
+        const projectId = req.params.id as string;
+        validateId(projectId);
+        const headings = await headingService.findAllByProject(
+          userId,
+          projectId,
+        );
+        if (headings === null) {
+          return res.status(404).json({ error: "Project not found" });
+        }
+        res.json(headings);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/:id/headings",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!headingService) {
+          return res.status(501).json({ error: "Headings not configured" });
+        }
+        const userId = resolveProjectUserId(req, res);
+        if (!userId) return;
+        const projectId = req.params.id as string;
+        validateId(projectId);
+        const dto = validateCreateHeading(req.body);
+        const heading = await headingService.create(userId, projectId, dto);
+        if (!heading) {
+          return res.status(404).json({ error: "Project not found" });
+        }
+        res.status(201).json(heading);
       } catch (error) {
         next(error);
       }

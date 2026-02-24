@@ -9,6 +9,7 @@ import {
   validateId,
   validateFindTodosQuery,
 } from "../validation";
+import { PrismaTodoService } from "../prismaTodoService";
 
 interface TodoRouterDeps {
   todoService: ITodoService;
@@ -156,6 +157,12 @@ export function createTodosRouter({
       const todo = await todoService.create(userId, dto);
       res.status(201).json(todo);
     } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === PrismaTodoService.INVALID_HEADING_ERROR
+      ) {
+        return res.status(400).json({ error: "Invalid heading for project" });
+      }
       next(error);
     }
   });
@@ -178,6 +185,12 @@ export function createTodosRouter({
 
         res.json(todo);
       } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === PrismaTodoService.INVALID_HEADING_ERROR
+        ) {
+          return res.status(400).json({ error: "Invalid heading for project" });
+        }
         next(error);
       }
     },
