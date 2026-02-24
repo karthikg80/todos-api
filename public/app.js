@@ -10562,6 +10562,22 @@ function invokeBoundExpression(expression, event, element) {
     const arg = token.trim();
     if (arg === "event") return event;
     if (arg === "this") return element;
+    if (arg === "this.value") {
+      if (
+        element instanceof HTMLInputElement ||
+        element instanceof HTMLSelectElement ||
+        element instanceof HTMLTextAreaElement
+      ) {
+        return element.value;
+      }
+      return "";
+    }
+    if (arg === "this.checked") {
+      if (element instanceof HTMLInputElement) {
+        return element.checked;
+      }
+      return false;
+    }
     if (/^'.*'$/.test(arg) || /^\".*\"$/.test(arg)) return arg.slice(1, -1);
     if (arg === "true") return true;
     if (arg === "false") return false;

@@ -477,7 +477,7 @@ test.describe("Project headings (sections)", () => {
     });
     await expect(row.locator(".subtask-title")).toContainText("Nested subtask");
 
-    await row.click();
+    await row.locator(".todo-title").click();
     await expect(page.locator("#todoDetailsDrawer")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.locator("#todoDetailsDrawer")).toBeHidden();
