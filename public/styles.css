@@ -668,6 +668,58 @@ textarea:focus-visible,
   justify-content: flex-start;
 }
 
+.quick-entry-natural-due {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quick-entry-natural-due-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+}
+
+.quick-entry-natural-due-chip__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-entry-natural-due-chip--applied {
+  border-color: rgb(34 197 94 / 35%);
+  background: rgb(34 197 94 / 10%);
+  color: var(--text-primary);
+}
+
+.quick-entry-natural-due-chip--suggested {
+  border-color: rgb(59 130 246 / 35%);
+  background: rgb(59 130 246 / 10%);
+}
+
+.quick-entry-natural-due-chip__action {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.quick-entry-natural-due-chip__action:hover {
+  color: var(--text-primary);
+}
+
 .quick-entry-properties-toggle--active {
   background: color-mix(in oklab, var(--accent) 14%, var(--surface));
   border-color: color-mix(in oklab, var(--accent) 35%, var(--border-color));
@@ -5244,4 +5296,161 @@ body.is-todos-view .projects-rail-item__count {
   color: color-mix(in oklab, var(--text-secondary) 72%, var(--text-muted));
   background: color-mix(in oklab, var(--surface) 90%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 45%, transparent);
+}
+
+/* M13: feedback polish (search hint, hierarchy, quick-entry framing, row clarity) */
+#todosView .todos-top-bar-actions .top-add-btn {
+  box-shadow: 0 6px 14px rgb(15 23 42 / 12%);
+}
+
+#todosView .todos-top-bar-actions .more-filters-toggle {
+  background: color-mix(in oklab, var(--surface) 94%, transparent);
+  color: var(--text-secondary);
+  border: 1px solid color-mix(in oklab, var(--border-color) 85%, transparent);
+  box-shadow: none;
+}
+
+#todosView .todos-top-bar-actions .more-filters-toggle:hover,
+#todosView .todos-top-bar-actions .more-filters-toggle[aria-expanded="true"] {
+  background: color-mix(in oklab, var(--surface-2) 88%, var(--surface));
+  color: var(--text-primary);
+  border-color: color-mix(in oklab, var(--border-color) 100%, transparent);
+}
+
+body.is-todos-view .add-todo.quick-entry {
+  border: 1px solid color-mix(in oklab, var(--border-color) 88%, transparent);
+  border-radius: 12px;
+  padding: 10px;
+  background: color-mix(in oklab, var(--surface) 96%, var(--surface-2));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%);
+}
+
+body.is-todos-view .quick-entry-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 0;
+  min-height: 0;
+}
+
+body.is-todos-view .quick-entry-properties-summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+body.is-todos-view .quick-entry-properties-summary[hidden] {
+  display: none !important;
+}
+
+body.is-todos-view .quick-entry-properties-panel {
+  border-color: color-mix(in oklab, var(--border-color) 70%, transparent);
+  background: color-mix(in oklab, var(--surface-2) 55%, transparent);
+  border-radius: 10px;
+}
+
+body.is-todos-view
+  .quick-entry-properties-panel
+  .field-row
+  input[type="datetime-local"] {
+  color: var(--text-secondary);
+}
+
+body.is-todos-view
+  .quick-entry-properties-panel
+  .field-row
+  input[type="datetime-local"]:focus,
+body.is-todos-view
+  .quick-entry-properties-panel
+  .field-row
+  input[type="datetime-local"]:not(:placeholder-shown) {
+  color: var(--text-primary);
+}
+
+body.is-todos-view .priority-selector {
+  border-radius: 10px;
+}
+
+body.is-todos-view .priority-btn {
+  border-width: 1px;
+  border-color: color-mix(in oklab, var(--border-color) 80%, transparent);
+  color: var(--text-secondary);
+  background: color-mix(in oklab, var(--surface) 98%, transparent);
+}
+
+body.is-todos-view .priority-btn.active {
+  border-width: 2px;
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 22%) inset;
+}
+
+body.is-todos-view .priority-btn.low.active {
+  border-color: color-mix(in oklab, var(--accent-2) 82%, white);
+  background: color-mix(in oklab, var(--accent-2) 88%, black 8%);
+}
+
+body.is-todos-view .priority-btn.medium.active {
+  border-color: #c98900;
+  background: color-mix(in oklab, #c98900 90%, black 8%);
+}
+
+body.is-todos-view .priority-btn.high.active {
+  border-color: color-mix(in oklab, var(--danger) 86%, white);
+  background: color-mix(in oklab, var(--danger) 90%, black 8%);
+}
+
+body.is-todos-view .priority-btn.active::before {
+  content: "●";
+  font-size: 0.7em;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #todosView .todo-item .bulk-checkbox {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 120ms ease;
+  }
+
+  #todosView .todo-item:hover .bulk-checkbox,
+  #todosView .todo-item:focus-within .bulk-checkbox,
+  #todosView .todo-item .bulk-checkbox:checked,
+  #todosView .todo-item.todo-item--bulk-selected .bulk-checkbox {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+}
+
+.keyboard-shortcuts-btn {
+  position: fixed;
+}
+
+.keyboard-shortcuts-btn::after {
+  content: attr(aria-label);
+  position: absolute;
+  right: 58px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgb(15 23 42 / 92%);
+  color: #fff;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  line-height: 1;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 140ms ease;
+}
+
+.keyboard-shortcuts-btn:hover::after,
+.keyboard-shortcuts-btn:focus-visible::after {
+  opacity: 1;
 }
