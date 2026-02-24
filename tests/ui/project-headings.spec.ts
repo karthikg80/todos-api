@@ -415,6 +415,17 @@ async function getVisibleListSequence(page: Page) {
   });
 }
 
+async function waitForSequenceAssertion(
+  page: Page,
+  predicate: (sequence: string[]) => boolean,
+) {
+  await expect
+    .poll(async () => predicate(await getVisibleListSequence(page)), {
+      timeout: 5_000,
+    })
+    .toBe(true);
+}
+
 test.describe("Project headings (sections)", () => {
   test.beforeEach(async ({ page }) => {
     await openWorkProject(page);
@@ -425,9 +436,9 @@ test.describe("Project headings (sections)", () => {
   }) => {
     page.once("dialog", (dialog) => dialog.accept("Sprint"));
     await page.locator("#projectHeadingCreateButton").click();
-    await expect(page.locator(".todo-heading-divider__title")).toContainText(
-      "Sprint",
-    );
+    await expect(
+      page.locator(".todo-heading-divider__title", { hasText: "Sprint" }),
+    ).toBeVisible();
 
     await page.locator("#quickEntryPropertiesToggle").click();
     await page.locator("#todoProjectSelect").selectOption({ label: "Work" });
@@ -442,6 +453,11 @@ test.describe("Project headings (sections)", () => {
       .locator('label:has-text("Move to heading") select')
       .selectOption({ label: "Sprint" });
 
+    await waitForSequenceAssertion(page, (sequence) => {
+      const headingIndex = sequence.indexOf("heading:Sprint");
+      const taskIndex = sequence.indexOf("task:Task for sprint");
+      return headingIndex >= 0 && taskIndex > headingIndex;
+    });
     const sequence = await getVisibleListSequence(page);
     expect(sequence).toContain("heading:Sprint");
     const headingIndex = sequence.indexOf("heading:Sprint");
@@ -453,9 +469,9 @@ test.describe("Project headings (sections)", () => {
   test("task with subtasks still renders under heading grouping", async ({
     page,
   }) => {
-    await expect(page.locator(".todo-heading-divider__title")).toContainText(
-      "Heading A",
-    );
+    await expect(
+      page.locator(".todo-heading-divider__title", { hasText: "Heading A" }),
+    ).toBeVisible();
     const row = page.locator(".todo-item", {
       hasText: "Seed task under heading",
     });
@@ -475,6 +491,11 @@ test.describe("Project headings (sections)", () => {
       .locator('label:has-text("Move to heading") select')
       .selectOption({ label: "Heading B" });
 
+    await waitForSequenceAssertion(page, (sequence) => {
+      const headingBIndex = sequence.indexOf("heading:Heading B");
+      const taskIndex = sequence.indexOf("task:Unheaded task");
+      return headingBIndex >= 0 && taskIndex > headingBIndex;
+    });
     let sequence = await getVisibleListSequence(page);
     let headingBIndex = sequence.indexOf("heading:Heading B");
     let taskIndex = sequence.indexOf("task:Unheaded task");
@@ -487,6 +508,11 @@ test.describe("Project headings (sections)", () => {
       .locator('label:has-text("Move to heading") select')
       .selectOption("");
 
+    await waitForSequenceAssertion(page, (sequenceValue) => {
+      const headingBIndex = sequenceValue.indexOf("heading:Heading B");
+      const taskIndex = sequenceValue.indexOf("task:Unheaded task");
+      return taskIndex >= 0 && headingBIndex > taskIndex;
+    });
     sequence = await getVisibleListSequence(page);
     headingBIndex = sequence.indexOf("heading:Heading B");
     taskIndex = sequence.indexOf("task:Unheaded task");
