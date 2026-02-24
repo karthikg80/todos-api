@@ -218,6 +218,23 @@ export class PrismaTodoService implements ITodoService {
       if (dto.notes !== undefined) updateData.notes = dto.notes;
 
       const todo = await this.prisma.$transaction(async (tx) => {
+        let currentTodoProjectId: string | null | undefined;
+        const getCurrentTodoProjectId = async () => {
+          if (currentTodoProjectId !== undefined) {
+            return currentTodoProjectId;
+          }
+          const currentTodo = await tx.todo.findFirst({
+            where: { id, userId },
+            select: { projectId: true },
+          });
+          if (!currentTodo) {
+            currentTodoProjectId = null;
+            return null;
+          }
+          currentTodoProjectId = currentTodo.projectId;
+          return currentTodoProjectId;
+        };
+
         let nextProjectId: string | null | undefined;
         if (dto.category !== undefined) {
           const category = this.normalizeCategory(dto.category);
@@ -227,6 +244,10 @@ export class PrismaTodoService implements ITodoService {
             updateData.headingId = null;
             nextProjectId = null;
           } else {
+            const previousProjectId = await getCurrentTodoProjectId();
+            if (previousProjectId === null) {
+              return null;
+            }
             updateData.category = category;
             const ensuredProjectId = await this.ensureProjectId(
               tx,
@@ -234,7 +255,9 @@ export class PrismaTodoService implements ITodoService {
               category,
             );
             updateData.projectId = ensuredProjectId;
-            updateData.headingId = null;
+            if (previousProjectId !== ensuredProjectId) {
+              updateData.headingId = null;
+            }
             nextProjectId = ensuredProjectId;
           }
         }
@@ -243,17 +266,12 @@ export class PrismaTodoService implements ITodoService {
           if (dto.headingId === null) {
             updateData.headingId = null;
           } else {
-            const currentTodo = await tx.todo.findFirst({
-              where: { id, userId },
-              select: { projectId: true },
-            });
-            if (!currentTodo) {
+            const projectId = await getCurrentTodoProjectId();
+            if (projectId === null) {
               return null;
             }
             const projectIdForHeading =
-              nextProjectId !== undefined
-                ? nextProjectId
-                : currentTodo.projectId;
+              nextProjectId !== undefined ? nextProjectId : projectId;
             updateData.headingId = await this.ensureHeadingId(
               tx,
               userId,
