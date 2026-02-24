@@ -208,6 +208,20 @@ onCreateAssistState.dismissedTodoIds = loadOnCreateDismissedTodoIds();
 let todayPlanState = createInitialTodayPlanState();
 let todayPlanGenerationSeq = 0;
 let isQuickEntryPropertiesOpen = false;
+let chronoNaturalDateModulePromise = null;
+let quickEntryNaturalDateState = {
+  parseTimer: null,
+  parseSeq: 0,
+  dueSource: "none",
+  dueInputProgrammatic: false,
+  suppressNextTitleInputParse: false,
+  appliedPreview: null,
+  suggestionPreview: null,
+  lastDetected: null,
+  lastSuppressedTextSignature: "",
+  lastSuppressedDetectedSignature: "",
+};
+const QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS = 320;
 
 function emitAiSuggestionUndoTelemetry({
   surface,
@@ -473,6 +487,447 @@ function updateQuickEntryPropertiesSummary() {
   summaryEl.hidden = isQuickEntryPropertiesOpen;
 }
 
+function getQuickEntryNaturalDateElements() {
+  const titleInput = document.getElementById("todoInput");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const chipRow = document.getElementById("quickEntryNaturalDueChipRow");
+  if (!(titleInput instanceof HTMLInputElement)) return null;
+  if (!(dueDateInput instanceof HTMLInputElement)) return null;
+  if (!(chipRow instanceof HTMLElement)) return null;
+  return { titleInput, dueDateInput, chipRow };
+}
+
+function normalizeQuickEntryTextSignature(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function toLocalDateTimeInputValue(date) {
+  const safeDate = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(safeDate.getTime())) return "";
+  const year = safeDate.getFullYear();
+  const month = String(safeDate.getMonth() + 1).padStart(2, "0");
+  const day = String(safeDate.getDate()).padStart(2, "0");
+  const hours = String(safeDate.getHours()).padStart(2, "0");
+  const minutes = String(safeDate.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function formatQuickEntryNaturalDueLabel(date, { includeTime = true } = {}) {
+  const safeDate = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(safeDate.getTime())) return "";
+  const options = includeTime
+    ? {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      }
+    : {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      };
+  return safeDate.toLocaleString(undefined, options);
+}
+
+async function loadChronoNaturalDateModule() {
+  if (window.__chronoNaturalDateModule) {
+    return window.__chronoNaturalDateModule;
+  }
+  if (!chronoNaturalDateModulePromise) {
+    chronoNaturalDateModulePromise = import("/vendor/chrono-node/index.js")
+      .then((module) => {
+        window.__chronoNaturalDateModule = module;
+        return module;
+      })
+      .catch((error) => {
+        chronoNaturalDateModulePromise = null;
+        console.warn("Natural date parser failed to load:", error);
+        return null;
+      });
+  }
+  return chronoNaturalDateModulePromise;
+}
+
+function removeMatchedDatePhraseFromTitle(title, detection) {
+  if (!detection || !Number.isInteger(detection.index)) {
+    return String(title || "").trim();
+  }
+  const rawTitle = String(title || "");
+  const start = Math.max(0, detection.index);
+  const end = Math.min(
+    rawTitle.length,
+    start + String(detection.text || "").length,
+  );
+  if (start >= end) return rawTitle.trim();
+  let nextTitle = `${rawTitle.slice(0, start)} ${rawTitle.slice(end)}`;
+  nextTitle = nextTitle.replace(/\s+/g, " ").trim();
+  nextTitle = nextTitle.replace(/\s+([,.;:!?])/g, "$1");
+  return nextTitle;
+}
+
+function parseQuickEntryNaturalDue(text, chronoModule) {
+  const sourceText = String(text || "");
+  const trimmed = sourceText.trim();
+  if (!trimmed || !chronoModule || typeof chronoModule.parse !== "function") {
+    return null;
+  }
+
+  let results = [];
+  try {
+    results = chronoModule.parse(sourceText, new Date(), {
+      forwardDate: true,
+    });
+  } catch (error) {
+    console.warn("Natural date parse failed:", error);
+    return null;
+  }
+  if (!Array.isArray(results) || results.length === 0) return null;
+
+  const match = results.find((result) => {
+    const textValue = String(result?.text || "").trim();
+    if (!textValue) return false;
+    if (!/[a-zA-Z]|\/|:/.test(textValue)) return false;
+    if (textValue.length < 2) return false;
+    return true;
+  });
+  if (!match || !match.start || typeof match.start.date !== "function")
+    return null;
+
+  const dueDate = match.start.date();
+  if (!(dueDate instanceof Date) || Number.isNaN(dueDate.getTime()))
+    return null;
+  const now = Date.now();
+  const isPast = dueDate.getTime() < now - 60 * 1000;
+  const hasExplicitTime =
+    typeof match.start.isCertain === "function" &&
+    (match.start.isCertain("hour") || match.start.isCertain("minute"));
+  const dueValue = toLocalDateTimeInputValue(dueDate);
+  if (!dueValue) return null;
+
+  return {
+    text: String(match.text || ""),
+    index: Number(match.index) || 0,
+    endIndex: (Number(match.index) || 0) + String(match.text || "").length,
+    dueDate,
+    dueInputValue: dueValue,
+    hasExplicitTime,
+    isPast,
+    displayLabel: formatQuickEntryNaturalDueLabel(dueDate, {
+      includeTime: hasExplicitTime,
+    }),
+    detectedSignature: `${String(match.text || "")
+      .trim()
+      .toLowerCase()}|${dueValue}`,
+  };
+}
+
+function setQuickEntryDueInputValue(value) {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  quickEntryNaturalDateState.dueInputProgrammatic = true;
+  refs.dueDateInput.value = value;
+  refs.dueDateInput.dispatchEvent(new Event("input", { bubbles: true }));
+  refs.dueDateInput.dispatchEvent(new Event("change", { bubbles: true }));
+  quickEntryNaturalDateState.dueInputProgrammatic = false;
+}
+
+function clearQuickEntryNaturalSuggestionPreview() {
+  quickEntryNaturalDateState.suggestionPreview = null;
+}
+
+function renderQuickEntryNaturalDueChip() {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  const { chipRow, dueDateInput } = refs;
+
+  const hasNaturalDuePreview =
+    !!quickEntryNaturalDateState.appliedPreview &&
+    quickEntryNaturalDateState.dueSource === "natural" &&
+    !!dueDateInput.value;
+  if (hasNaturalDuePreview) {
+    chipRow.hidden = false;
+    chipRow.innerHTML = `
+      <div class="quick-entry-natural-due-chip quick-entry-natural-due-chip--applied">
+        <span class="quick-entry-natural-due-chip__label">Due: ${escapeHtml(quickEntryNaturalDateState.appliedPreview.displayLabel)}</span>
+        <button
+          type="button"
+          class="quick-entry-natural-due-chip__action"
+          data-natural-due-action="clear"
+          aria-label="Clear detected due date"
+          title="Clear due date"
+        >
+          ✕
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  if (quickEntryNaturalDateState.suggestionPreview) {
+    chipRow.hidden = false;
+    chipRow.innerHTML = `
+      <div class="quick-entry-natural-due-chip quick-entry-natural-due-chip--suggested">
+        <span class="quick-entry-natural-due-chip__label">Detected: ${escapeHtml(quickEntryNaturalDateState.suggestionPreview.displayLabel)}</span>
+        <button
+          type="button"
+          class="quick-entry-natural-due-chip__action"
+          data-natural-due-action="apply"
+          aria-label="Apply detected due date"
+        >
+          Apply
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  chipRow.hidden = true;
+  chipRow.innerHTML = "";
+}
+
+function resetQuickEntryNaturalDueState() {
+  if (quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(quickEntryNaturalDateState.parseTimer);
+  }
+  quickEntryNaturalDateState.parseTimer = null;
+  quickEntryNaturalDateState.parseSeq += 1;
+  quickEntryNaturalDateState.dueSource = "none";
+  quickEntryNaturalDateState.appliedPreview = null;
+  quickEntryNaturalDateState.suggestionPreview = null;
+  quickEntryNaturalDateState.lastDetected = null;
+  quickEntryNaturalDateState.lastSuppressedTextSignature = "";
+  quickEntryNaturalDateState.lastSuppressedDetectedSignature = "";
+  renderQuickEntryNaturalDueChip();
+}
+
+function applyQuickEntryNaturalDueDetection(
+  detection,
+  { cleanupTitle = true } = {},
+) {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs || !detection) return false;
+
+  setQuickEntryDueInputValue(detection.dueInputValue);
+  quickEntryNaturalDateState.dueSource = "natural";
+  quickEntryNaturalDateState.appliedPreview = {
+    dueInputValue: detection.dueInputValue,
+    displayLabel: detection.displayLabel,
+    detectedSignature: detection.detectedSignature,
+    text: detection.text,
+  };
+  clearQuickEntryNaturalSuggestionPreview();
+
+  if (cleanupTitle) {
+    const cleanedTitle = removeMatchedDatePhraseFromTitle(
+      refs.titleInput.value,
+      detection,
+    );
+    if (cleanedTitle !== refs.titleInput.value) {
+      quickEntryNaturalDateState.suppressNextTitleInputParse = true;
+      refs.titleInput.value = cleanedTitle;
+      refs.titleInput.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+  }
+
+  renderQuickEntryNaturalDueChip();
+  return true;
+}
+
+function shouldSuppressQuickEntryNaturalAutoApply(
+  textSignature,
+  detectionSignature,
+) {
+  return (
+    quickEntryNaturalDateState.lastSuppressedTextSignature === textSignature &&
+    quickEntryNaturalDateState.lastSuppressedDetectedSignature ===
+      detectionSignature
+  );
+}
+
+async function processQuickEntryNaturalDate({
+  trigger = "typing",
+  cleanupTitle = true,
+} = {}) {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return null;
+  const startingTitle = refs.titleInput.value;
+  const textSignature = normalizeQuickEntryTextSignature(startingTitle);
+
+  if (!startingTitle.trim()) {
+    quickEntryNaturalDateState.lastDetected = null;
+    clearQuickEntryNaturalSuggestionPreview();
+    if (quickEntryNaturalDateState.dueSource !== "natural") {
+      quickEntryNaturalDateState.appliedPreview = null;
+    }
+    renderQuickEntryNaturalDueChip();
+    return null;
+  }
+
+  const parseSeq = ++quickEntryNaturalDateState.parseSeq;
+  const chronoModule = await loadChronoNaturalDateModule();
+  if (parseSeq !== quickEntryNaturalDateState.parseSeq) return null;
+
+  const refsAfterLoad = getQuickEntryNaturalDateElements();
+  if (!refsAfterLoad) return null;
+  if (refsAfterLoad.titleInput.value !== startingTitle) return null;
+
+  const detection = parseQuickEntryNaturalDue(startingTitle, chronoModule);
+  quickEntryNaturalDateState.lastDetected = detection;
+
+  if (!detection || detection.isPast) {
+    clearQuickEntryNaturalSuggestionPreview();
+    renderQuickEntryNaturalDueChip();
+    return detection;
+  }
+
+  const hasDueValue = !!refsAfterLoad.dueDateInput.value;
+  const manualDueSet =
+    hasDueValue && quickEntryNaturalDateState.dueSource === "manual";
+  const suppressedAutoApply = shouldSuppressQuickEntryNaturalAutoApply(
+    textSignature,
+    detection.detectedSignature,
+  );
+
+  if (!hasDueValue && !suppressedAutoApply) {
+    applyQuickEntryNaturalDueDetection(detection, {
+      cleanupTitle: cleanupTitle && trigger !== "suggestion-apply",
+    });
+    return detection;
+  }
+
+  if (manualDueSet || (!hasDueValue && suppressedAutoApply)) {
+    quickEntryNaturalDateState.suggestionPreview = {
+      ...detection,
+    };
+  } else {
+    clearQuickEntryNaturalSuggestionPreview();
+  }
+  renderQuickEntryNaturalDueChip();
+  return detection;
+}
+
+function scheduleQuickEntryNaturalDateParse() {
+  if (quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(quickEntryNaturalDateState.parseTimer);
+  }
+  quickEntryNaturalDateState.parseTimer = setTimeout(() => {
+    quickEntryNaturalDateState.parseTimer = null;
+    processQuickEntryNaturalDate({ trigger: "typing", cleanupTitle: true });
+  }, QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS);
+}
+
+function onQuickEntryTitleInputForNaturalDate() {
+  if (quickEntryNaturalDateState.suppressNextTitleInputParse) {
+    quickEntryNaturalDateState.suppressNextTitleInputParse = false;
+    renderQuickEntryNaturalDueChip();
+    return;
+  }
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  const nextSignature = normalizeQuickEntryTextSignature(refs.titleInput.value);
+  if (
+    quickEntryNaturalDateState.lastSuppressedTextSignature !== nextSignature
+  ) {
+    quickEntryNaturalDateState.lastSuppressedTextSignature = "";
+    quickEntryNaturalDateState.lastSuppressedDetectedSignature = "";
+  }
+  if (quickEntryNaturalDateState.dueSource !== "natural") {
+    quickEntryNaturalDateState.appliedPreview = null;
+  }
+  scheduleQuickEntryNaturalDateParse();
+}
+
+function onQuickEntryDueInputChangedByUser() {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  if (quickEntryNaturalDateState.dueInputProgrammatic) return;
+  if (refs.dueDateInput.value) {
+    quickEntryNaturalDateState.dueSource = "manual";
+    quickEntryNaturalDateState.appliedPreview = null;
+  } else {
+    quickEntryNaturalDateState.dueSource = "none";
+    quickEntryNaturalDateState.appliedPreview = null;
+  }
+  renderQuickEntryNaturalDueChip();
+}
+
+function handleQuickEntryNaturalDueChipClick(action) {
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+  if (action === "clear") {
+    const textSignature = normalizeQuickEntryTextSignature(
+      refs.titleInput.value,
+    );
+    const detectedSignature =
+      quickEntryNaturalDateState.appliedPreview?.detectedSignature ||
+      quickEntryNaturalDateState.lastDetected?.detectedSignature ||
+      "";
+    quickEntryNaturalDateState.lastSuppressedTextSignature = textSignature;
+    quickEntryNaturalDateState.lastSuppressedDetectedSignature =
+      detectedSignature;
+    quickEntryNaturalDateState.appliedPreview = null;
+    quickEntryNaturalDateState.dueSource = "none";
+    setQuickEntryDueInputValue("");
+    if (
+      quickEntryNaturalDateState.lastDetected &&
+      !quickEntryNaturalDateState.lastDetected.isPast
+    ) {
+      quickEntryNaturalDateState.suggestionPreview = {
+        ...quickEntryNaturalDateState.lastDetected,
+      };
+    }
+    renderQuickEntryNaturalDueChip();
+    return;
+  }
+
+  if (action === "apply" && quickEntryNaturalDateState.suggestionPreview) {
+    applyQuickEntryNaturalDueDetection(
+      quickEntryNaturalDateState.suggestionPreview,
+      {
+        cleanupTitle: true,
+      },
+    );
+  }
+}
+
+function bindQuickEntryNaturalDateHandlers() {
+  if (window.__quickEntryNaturalDateHandlersBound) return;
+  window.__quickEntryNaturalDateHandlersBound = true;
+
+  const refs = getQuickEntryNaturalDateElements();
+  if (!refs) return;
+
+  refs.titleInput.addEventListener(
+    "input",
+    onQuickEntryTitleInputForNaturalDate,
+  );
+  refs.dueDateInput.addEventListener(
+    "input",
+    onQuickEntryDueInputChangedByUser,
+  );
+  refs.dueDateInput.addEventListener(
+    "change",
+    onQuickEntryDueInputChangedByUser,
+  );
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const actionEl = target.closest("[data-natural-due-action]");
+    if (!(actionEl instanceof HTMLElement)) return;
+    const action = actionEl.getAttribute("data-natural-due-action");
+    if (!action) return;
+    event.preventDefault();
+    event.stopPropagation();
+    handleQuickEntryNaturalDueChipClick(action);
+  });
+}
+
 function syncQuickEntryProjectActions() {
   const projectSelect = document.getElementById("todoProjectSelect");
   const createSubprojectButton = document.getElementById(
@@ -695,6 +1150,7 @@ function init() {
   bindCommandPaletteHandlers();
   bindOnCreateAssistHandlers();
   bindTodayPlanHandlers();
+  bindQuickEntryNaturalDateHandlers();
 
   // Check for reset token in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -733,6 +1189,7 @@ function init() {
     persist: false,
   });
   syncQuickEntryProjectActions();
+  renderQuickEntryNaturalDueChip();
   handleVerificationStatusFromUrl();
 }
 
@@ -2679,6 +3136,12 @@ async function addTodo() {
   const dueDateInput = document.getElementById("todoDueDateInput");
   const notesInput = document.getElementById("todoNotesInput");
 
+  if (quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(quickEntryNaturalDateState.parseTimer);
+    quickEntryNaturalDateState.parseTimer = null;
+  }
+  await processQuickEntryNaturalDate({ trigger: "submit", cleanupTitle: true });
+
   const title = input.value.trim();
   if (!title) return;
 
@@ -2717,6 +3180,7 @@ async function addTodo() {
       projectSelect.value = "";
       dueDateInput.value = "";
       notesInput.value = "";
+      resetQuickEntryNaturalDueState();
       setQuickEntryPropertiesOpen(false, { persist: false });
       syncQuickEntryProjectActions();
 
