@@ -154,6 +154,8 @@ const {
 } = AppStateModule;
 let authState = AUTH_STATE.UNAUTHENTICATED;
 let currentDateView = "all";
+let currentWorkspaceView = "home";
+let homeListDrilldownKey = "";
 let isMoreFiltersOpen = false;
 let selectedTodoId = null;
 let lastFocusedTodoTrigger = null;
@@ -208,6 +210,13 @@ onCreateAssistState.dismissedTodoIds = loadOnCreateDismissedTodoIds();
 let todayPlanState = createInitialTodayPlanState();
 let todayPlanGenerationSeq = 0;
 let isQuickEntryPropertiesOpen = false;
+let isTaskComposerOpen = false;
+let lastTaskComposerTrigger = null;
+let taskComposerDefaultProject = "";
+let homeTopFocusState = createInitialHomeTopFocusState();
+
+const HOME_TOP_FOCUS_CACHE_KEY = "todos:home-top-focus-cache";
+const HOME_TOP_FOCUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 
 function emitAiSuggestionUndoTelemetry({
   surface,
@@ -458,6 +467,788 @@ function syncQuickEntryProjectActions() {
   });
 }
 
+function createInitialHomeTopFocusState() {
+  return {
+    loading: false,
+    requestKey: "",
+    items: [],
+    reasonsById: {},
+    source: "fallback",
+  };
+}
+
+function isHomeWorkspaceActive() {
+  return !getSelectedProjectKey() && currentWorkspaceView === "home";
+}
+
+function isUnsortedWorkspaceActive() {
+  return !getSelectedProjectKey() && currentWorkspaceView === "unsorted";
+}
+
+function hasHomeListDrilldown() {
+  return !getSelectedProjectKey() && !!homeListDrilldownKey;
+}
+
+function clearHomeListDrilldown() {
+  homeListDrilldownKey = "";
+}
+
+function normalizeWorkspaceView(view) {
+  const normalized = String(view || "").toLowerCase();
+  const supported = new Set([
+    "home",
+    "unsorted",
+    "all",
+    "today",
+    "upcoming",
+    "completed",
+  ]);
+  return supported.has(normalized) ? normalized : "all";
+}
+
+function isTodoUnsorted(todo) {
+  return !normalizeProjectPath(todo?.category);
+}
+
+function getTodoDueDate(todo) {
+  if (!todo?.dueDate) return null;
+  const parsed = new Date(todo.dueDate);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getStartOfToday(now = new Date()) {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function getEndOfDay(date) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+}
+
+function formatHomeDueBadge(todo) {
+  const dueDate = getTodoDueDate(todo);
+  if (!dueDate) return "";
+  const now = new Date();
+  const today = getStartOfToday(now);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const dueDay = getStartOfToday(dueDate);
+  if (dueDay < today && !todo.completed) return "Overdue";
+  if (isSameLocalDay(dueDate, now)) return "Today";
+  if (isSameLocalDay(dueDate, tomorrow)) return "Tomorrow";
+  return dueDate.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getOpenTodos() {
+  return todos.filter((todo) => !todo.completed);
+}
+
+function getDueSoonTodos(limit = 6) {
+  const now = new Date();
+  const todayStart = getStartOfToday(now);
+  const dueLimit = getEndOfDay(new Date(todayStart.getTime() + 5 * 86400000));
+  return getOpenTodos()
+    .map((todo) => ({ todo, dueDate: getTodoDueDate(todo) }))
+    .filter(({ dueDate }) => dueDate && dueDate <= dueLimit)
+    .sort((a, b) => {
+      const aOverdue = a.dueDate < todayStart;
+      const bOverdue = b.dueDate < todayStart;
+      if (aOverdue !== bOverdue) return aOverdue ? -1 : 1;
+      if (a.dueDate.getTime() !== b.dueDate.getTime()) {
+        return a.dueDate.getTime() - b.dueDate.getTime();
+      }
+      return String(a.todo.title || "").localeCompare(
+        String(b.todo.title || ""),
+      );
+    })
+    .slice(0, limit)
+    .map(({ todo }) => todo);
+}
+
+function getStaleRiskTodos(limit = 6) {
+  const now = Date.now();
+  return getOpenTodos()
+    .map((todo) => {
+      const updatedMs =
+        Date.parse(String(todo.updatedAt || todo.createdAt || "")) || 0;
+      const createdMs =
+        Date.parse(String(todo.createdAt || "")) || updatedMs || 0;
+      const daysStale = updatedMs ? (now - updatedMs) / 86400000 : 0;
+      const daysOld = createdMs ? (now - createdMs) / 86400000 : 0;
+      const overdueBoost =
+        getTodoDueDate(todo) && getTodoDueDate(todo) < new Date() ? 8 : 0;
+      const priorityBoost =
+        todo.priority === "high" ? 5 : todo.priority === "medium" ? 2 : 0;
+      const unsortedBoost = isTodoUnsorted(todo) ? 4 : 0;
+      const score =
+        daysStale +
+        daysOld * 0.25 +
+        overdueBoost +
+        priorityBoost +
+        unsortedBoost;
+      return { todo, score, daysStale };
+    })
+    .filter((entry) => entry.daysStale >= 2 || entry.score >= 7)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return String(a.todo.title || "").localeCompare(
+        String(b.todo.title || ""),
+      );
+    })
+    .slice(0, limit)
+    .map((entry) => entry.todo);
+}
+
+function getQuickWinTodos(limit = 6) {
+  const now = new Date();
+  return getOpenTodos()
+    .filter((todo) => {
+      const dueDate = getTodoDueDate(todo);
+      const isOverdue = dueDate && dueDate < now;
+      const hasSubtasks =
+        Array.isArray(todo.subtasks) && todo.subtasks.length > 0;
+      const hasNotes = !!String(todo.notes || "").trim();
+      const title = String(todo.title || "").trim();
+      return (
+        !!title &&
+        !isOverdue &&
+        !hasSubtasks &&
+        !hasNotes &&
+        title.length <= 42 &&
+        title.split(/\s+/).filter(Boolean).length <= 8
+      );
+    })
+    .sort((a, b) => {
+      const aPriority =
+        a.priority === "high" ? 0 : a.priority === "medium" ? 1 : 2;
+      const bPriority =
+        b.priority === "high" ? 0 : b.priority === "medium" ? 1 : 2;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      const aDue = getTodoDueDate(a)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bDue = getTodoDueDate(b)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      if (aDue !== bDue) return aDue - bDue;
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    })
+    .slice(0, limit);
+}
+
+function getProjectsToNudge(limit = 4) {
+  const byProject = new Map();
+  const dueSoonSet = new Set(
+    getDueSoonTodos(20).map((todo) => String(todo.id)),
+  );
+  for (const todo of getOpenTodos()) {
+    const project = normalizeProjectPath(todo.category);
+    if (!project) continue;
+    const entry = byProject.get(project) || {
+      projectName: project,
+      openCount: 0,
+      dueSoonCount: 0,
+      overdueCount: 0,
+    };
+    entry.openCount += 1;
+    if (dueSoonSet.has(String(todo.id))) entry.dueSoonCount += 1;
+    const dueDate = getTodoDueDate(todo);
+    if (dueDate && dueDate < new Date()) entry.overdueCount += 1;
+    byProject.set(project, entry);
+  }
+  return Array.from(byProject.values())
+    .sort((a, b) => {
+      const scoreA = a.openCount + a.dueSoonCount * 2 + a.overdueCount * 3;
+      const scoreB = b.openCount + b.dueSoonCount * 2 + b.overdueCount * 3;
+      if (scoreA !== scoreB) return scoreB - scoreA;
+      return a.projectName.localeCompare(b.projectName);
+    })
+    .slice(0, limit);
+}
+
+function getTopFocusFallbackTodos(limit = 3) {
+  const dueSoon = getDueSoonTodos(12);
+  const stale = getStaleRiskTodos(12);
+  const candidates = [...dueSoon, ...stale, ...getOpenTodos()]
+    .filter(
+      (todo, index, list) =>
+        list.findIndex(
+          (candidate) => String(candidate.id) === String(todo.id),
+        ) === index,
+    )
+    .sort((a, b) => {
+      const aDue = getTodoDueDate(a)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const bDue = getTodoDueDate(b)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+      const aPriority =
+        a.priority === "high" ? 0 : a.priority === "medium" ? 1 : 2;
+      const bPriority =
+        b.priority === "high" ? 0 : b.priority === "medium" ? 1 : 2;
+      if (aDue !== bDue) return aDue - bDue;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    });
+  return candidates.slice(0, limit);
+}
+
+function getHomeDashboardModel() {
+  return {
+    dueSoon: getDueSoonTodos(6),
+    staleRisks: getStaleRiskTodos(6),
+    quickWins: getQuickWinTodos(6),
+    projectsToNudge: getProjectsToNudge(4),
+    topFocusFallback: getTopFocusFallbackTodos(3),
+  };
+}
+
+function buildHomeTileListByKey(key) {
+  const model = getHomeDashboardModel();
+  if (key === "due_soon") return model.dueSoon;
+  if (key === "stale_risks") return model.staleRisks;
+  if (key === "quick_wins") return model.quickWins;
+  return [];
+}
+
+function buildHomeTopFocusCandidates() {
+  const candidates = [];
+  const seen = new Set();
+  const push = (todo) => {
+    const id = String(todo?.id || "");
+    if (!id || seen.has(id) || !!todo.completed) return;
+    seen.add(id);
+    candidates.push(todo);
+  };
+  [
+    ...getDueSoonTodos(24),
+    ...getStaleRiskTodos(24),
+    ...getOpenTodos()
+      .filter((todo) => todo.priority === "high" || isTodoUnsorted(todo))
+      .slice(0, 24),
+  ].forEach(push);
+  return candidates.slice(0, 60);
+}
+
+function getHomeTopFocusRequestKey(candidates) {
+  return candidates
+    .map((todo) => `${todo.id}:${todo.updatedAt || ""}`)
+    .sort()
+    .join("|");
+}
+
+function readCachedHomeTopFocus(requestKey) {
+  try {
+    const raw = window.localStorage.getItem(HOME_TOP_FOCUS_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || parsed.requestKey !== requestKey) return null;
+    if (Date.now() - Number(parsed.ts || 0) > HOME_TOP_FOCUS_CACHE_MAX_AGE_MS) {
+      return null;
+    }
+    if (!Array.isArray(parsed.items)) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedHomeTopFocus(
+  requestKey,
+  items,
+  reasonsById,
+  source = "ai",
+) {
+  try {
+    window.localStorage.setItem(
+      HOME_TOP_FOCUS_CACHE_KEY,
+      JSON.stringify({
+        ts: Date.now(),
+        requestKey,
+        items,
+        reasonsById,
+        source,
+      }),
+    );
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+function applyHomeTopFocusResult(
+  items,
+  reasonsById,
+  { source = "fallback", requestKey = "" } = {},
+) {
+  homeTopFocusState.items = Array.isArray(items) ? items.slice(0, 3) : [];
+  homeTopFocusState.reasonsById = reasonsById || {};
+  homeTopFocusState.source = source;
+  homeTopFocusState.loading = false;
+  homeTopFocusState.requestKey = requestKey || homeTopFocusState.requestKey;
+  const topFocusBody = document.getElementById("homeTopFocusBody");
+  if (topFocusBody instanceof HTMLElement || isHomeWorkspaceActive()) {
+    renderTodos();
+  }
+}
+
+async function hydrateHomeTopFocusIfNeeded() {
+  const candidates = buildHomeTopFocusCandidates();
+  const requestKey = getHomeTopFocusRequestKey(candidates);
+  if (!requestKey) {
+    applyHomeTopFocusResult([], {}, { source: "fallback", requestKey: "" });
+    return;
+  }
+  if (homeTopFocusState.loading && homeTopFocusState.requestKey === requestKey)
+    return;
+  if (
+    homeTopFocusState.requestKey === requestKey &&
+    homeTopFocusState.items.length > 0
+  )
+    return;
+
+  const cached = readCachedHomeTopFocus(requestKey);
+  if (cached) {
+    const cachedIds = new Set(candidates.map((todo) => String(todo.id)));
+    const cachedItems = (Array.isArray(cached.items) ? cached.items : [])
+      .map((id) => candidates.find((todo) => String(todo.id) === String(id)))
+      .filter(Boolean);
+    if (cachedItems.length > 0) {
+      applyHomeTopFocusResult(cachedItems, cached.reasonsById || {}, {
+        source: String(cached.source || "ai"),
+        requestKey,
+      });
+      if (cachedIds.size > 0) return;
+    }
+  }
+
+  homeTopFocusState.loading = true;
+  homeTopFocusState.requestKey = requestKey;
+  if (isHomeWorkspaceActive()) {
+    renderTodos();
+  }
+
+  const payload = {
+    surface: "home_focus",
+    topN: 3,
+    candidates: candidates.map((todo) => ({
+      id: String(todo.id),
+      title: String(todo.title || ""),
+      dueAt: todo.dueDate || null,
+      priority: normalizePriorityValue(todo.priority),
+      projectName: normalizeProjectPath(todo.category) || null,
+      createdAt: todo.createdAt || null,
+      updatedAt: todo.updatedAt || null,
+      hasSubtasks: Array.isArray(todo.subtasks) && todo.subtasks.length > 0,
+      notesPresent: !!String(todo.notes || "").trim(),
+    })),
+  };
+
+  try {
+    const response = await apiCall(`${API_URL}/ai/decision-assist/stub`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!response || !response.ok) {
+      throw new Error("home-focus-ai-failed");
+    }
+    const data = await parseApiBody(response);
+    const topFocusRaw = Array.isArray(data?.topFocus) ? data.topFocus : [];
+    const candidateById = new Map(
+      candidates.map((todo) => [String(todo.id), todo]),
+    );
+    const selected = [];
+    const reasonsById = {};
+    for (const item of topFocusRaw) {
+      const todoId = String(item?.todoId || "").trim();
+      if (!todoId || !candidateById.has(todoId)) continue;
+      if (selected.some((todo) => String(todo.id) === todoId)) continue;
+      const reason = String(item?.reason || "")
+        .trim()
+        .slice(0, 80);
+      selected.push(candidateById.get(todoId));
+      if (reason) reasonsById[todoId] = reason;
+      if (selected.length >= 3) break;
+    }
+    if (selected.length === 0) {
+      throw new Error("home-focus-ai-empty");
+    }
+    if (homeTopFocusState.requestKey !== requestKey) return;
+    applyHomeTopFocusResult(selected, reasonsById, {
+      source: "ai",
+      requestKey,
+    });
+    writeCachedHomeTopFocus(
+      requestKey,
+      selected.map((todo) => String(todo.id)),
+      reasonsById,
+      "ai",
+    );
+  } catch (error) {
+    if (homeTopFocusState.requestKey !== requestKey) return;
+    const fallback = getTopFocusFallbackTodos(3);
+    applyHomeTopFocusResult(fallback, {}, { source: "fallback", requestKey });
+    writeCachedHomeTopFocus(
+      requestKey,
+      fallback.map((todo) => String(todo.id)),
+      {},
+      "fallback",
+    );
+  }
+}
+
+function renderHomeTaskRow(todo, { reason = "" } = {}) {
+  const dueBadge = formatHomeDueBadge(todo);
+  return `
+    <div class="home-task-row" data-home-todo-id="${escapeHtml(String(todo.id))}">
+      <input
+        type="checkbox"
+        class="todo-checkbox home-task-row__checkbox"
+        aria-label="Mark ${escapeHtml(String(todo.title || "task"))} complete"
+        ${todo.completed ? "checked" : ""}
+        data-onchange="toggleTodo('${todo.id}')"
+      >
+      <button
+        type="button"
+        class="home-task-row__title"
+        data-onclick="openTodoFromHomeTile('${todo.id}')"
+        title="${escapeHtml(String(todo.title || ""))}"
+      >
+        ${escapeHtml(String(todo.title || "Untitled task"))}
+      </button>
+      ${dueBadge ? `<span class="home-task-row__badge ${dueBadge === "Overdue" ? "home-task-row__badge--overdue" : ""}">${escapeHtml(dueBadge)}</span>` : ""}
+      ${reason ? `<div class="home-task-row__reason">${escapeHtml(reason)}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderHomeTaskTile({
+  key,
+  title,
+  subtitle = "",
+  items = [],
+  seeAllLabel = "See all",
+  emptyText = "No tasks here.",
+  showReasons = false,
+} = {}) {
+  return `
+    <section class="home-tile home-tile--tasks" data-home-tile="${escapeHtml(key)}">
+      <div class="home-tile__header">
+        <div>
+          <h3 class="home-tile__title">${escapeHtml(title)}</h3>
+          ${subtitle ? `<p class="home-tile__subtitle">${escapeHtml(subtitle)}</p>` : ""}
+        </div>
+        ${key !== "top_focus" ? `<button type="button" class="mini-btn home-tile__see-all" data-onclick="openHomeTileList('${escapeHtml(key)}')">${escapeHtml(seeAllLabel)}</button>` : ""}
+      </div>
+      <div class="home-tile__body" ${key === "top_focus" ? 'id="homeTopFocusBody"' : ""}>
+        ${
+          items.length > 0
+            ? items
+                .map((todo) =>
+                  renderHomeTaskRow(todo, {
+                    reason: showReasons
+                      ? String(
+                          homeTopFocusState.reasonsById?.[String(todo.id)] ||
+                            "",
+                        )
+                      : "",
+                  }),
+                )
+                .join("")
+            : `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`
+        }
+        ${
+          key === "top_focus" && homeTopFocusState.loading
+            ? '<div class="home-tile__helper" role="status">Refreshing focus…</div>'
+            : ""
+        }
+      </div>
+    </section>
+  `;
+}
+
+function renderProjectsToNudgeTile(items = []) {
+  return `
+    <section class="home-tile home-tile--projects" data-home-tile="projects_to_nudge">
+      <div class="home-tile__header">
+        <div>
+          <h3 class="home-tile__title">Projects to Nudge</h3>
+          <p class="home-tile__subtitle">Heavy project queues that need a touchpoint.</p>
+        </div>
+      </div>
+      <div class="home-tile__body">
+        ${
+          items.length > 0
+            ? items
+                .map(
+                  (project) => `
+                  <button
+                    type="button"
+                    class="home-project-row"
+                    data-onclick="openHomeProject('${escapeHtml(project.projectName)}')"
+                  >
+                    <span class="home-project-row__name">${escapeHtml(getProjectLeafName(project.projectName))}</span>
+                    <span class="home-project-row__meta">${project.openCount} open${project.overdueCount ? ` · ${project.overdueCount} overdue` : ""}${project.dueSoonCount ? ` · ${project.dueSoonCount} due soon` : ""}</span>
+                  </button>
+                `,
+                )
+                .join("")
+            : '<div class="home-tile__empty">No project hotspots right now.</div>'
+        }
+      </div>
+    </section>
+  `;
+}
+
+function renderHomeDashboard() {
+  const model = getHomeDashboardModel();
+  const fallbackTopFocus = model.topFocusFallback;
+  const topFocusItems =
+    homeTopFocusState.items.length > 0
+      ? homeTopFocusState.items
+      : fallbackTopFocus;
+  void hydrateHomeTopFocusIfNeeded();
+
+  return `
+    <section class="home-dashboard" data-testid="home-dashboard">
+      <div class="home-dashboard__hero">
+        <div>
+          <h2 class="home-dashboard__title">Home</h2>
+          <p class="home-dashboard__subtitle">Where should you pay attention today?</p>
+        </div>
+        <button
+          type="button"
+          class="add-btn home-dashboard__new-task"
+          data-onclick="openTaskComposer()"
+        >
+          New Task
+        </button>
+      </div>
+      <div class="home-dashboard__grid">
+        ${renderHomeTaskTile({
+          key: "top_focus",
+          title: "Top Focus",
+          subtitle:
+            homeTopFocusState.source === "ai"
+              ? "AI-ranked from a bounded candidate set."
+              : "Deterministic fallback focus list.",
+          items: topFocusItems,
+          emptyText: "Nothing urgent right now.",
+          showReasons: homeTopFocusState.source === "ai",
+        })}
+        ${renderHomeTaskTile({
+          key: "due_soon",
+          title: "Due Soon",
+          subtitle: "Overdue, today/tomorrow, then the next 3 days.",
+          items: model.dueSoon,
+          emptyText: "No due-soon tasks.",
+        })}
+        ${renderHomeTaskTile({
+          key: "stale_risks",
+          title: "Stale Risks",
+          subtitle: "Older tasks with low recent activity.",
+          items: model.staleRisks,
+          emptyText: "No stale risks detected.",
+        })}
+        ${renderHomeTaskTile({
+          key: "quick_wins",
+          title: "Quick Wins",
+          subtitle: "Small tasks that can close fast.",
+          items: model.quickWins,
+          emptyText: "No quick wins right now.",
+        })}
+        ${renderProjectsToNudgeTile(model.projectsToNudge)}
+      </div>
+    </section>
+  `;
+}
+
+function openHomeTileList(tileKey) {
+  if (
+    tileKey === "stale_risks" ||
+    tileKey === "quick_wins" ||
+    tileKey === "due_soon"
+  ) {
+    clearHomeListDrilldown();
+    homeListDrilldownKey = tileKey;
+    currentWorkspaceView = "all";
+    setSelectedProjectKey("", { reason: "home-see-all", skipApply: true });
+    setDateView("all", { skipApply: true });
+    applyFiltersAndRender({ reason: `home-see-all-${tileKey}` });
+  }
+}
+
+function openHomeProject(projectName) {
+  clearHomeListDrilldown();
+  currentWorkspaceView = "project";
+  selectProjectFromRail(projectName);
+}
+
+function openTodoFromHomeTile(todoId) {
+  openTodoDrawer(String(todoId || ""), document.activeElement);
+}
+
+function getHomeDrilldownLabel() {
+  const labels = {
+    due_soon: "Due Soon",
+    stale_risks: "Stale Risks",
+    quick_wins: "Quick Wins",
+  };
+  return labels[homeListDrilldownKey] || "";
+}
+
+function getTaskComposerElements() {
+  const sheet = document.getElementById("taskComposerSheet");
+  const backdrop = document.getElementById("taskComposerBackdrop");
+  const titleInput = document.getElementById("todoInput");
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const dueClearButton = document.getElementById("taskComposerDueClearButton");
+  const addButton = document.getElementById("taskComposerAddButton");
+  if (!(sheet instanceof HTMLElement)) return null;
+  if (!(backdrop instanceof HTMLElement)) return null;
+  return {
+    sheet,
+    backdrop,
+    titleInput: titleInput instanceof HTMLInputElement ? titleInput : null,
+    projectSelect:
+      projectSelect instanceof HTMLSelectElement ? projectSelect : null,
+    dueDateInput:
+      dueDateInput instanceof HTMLInputElement ? dueDateInput : null,
+    dueClearButton:
+      dueClearButton instanceof HTMLElement ? dueClearButton : null,
+    addButton: addButton instanceof HTMLButtonElement ? addButton : null,
+  };
+}
+
+function updateTaskComposerDueClearButton() {
+  const refs = getTaskComposerElements();
+  if (!refs || !(refs.dueClearButton instanceof HTMLElement)) return;
+  const hasDue = !!refs.dueDateInput?.value;
+  refs.dueClearButton.hidden = !hasDue;
+  refs.dueClearButton.setAttribute("aria-hidden", String(!hasDue));
+}
+
+function inferTaskComposerDefaultProject() {
+  if (isHomeWorkspaceActive()) return "";
+  if (isUnsortedWorkspaceActive()) return "";
+  if (hasHomeListDrilldown()) return "";
+  return getSelectedProjectKey();
+}
+
+function openTaskComposer(triggerEl = null) {
+  ensureTodosShellActive();
+  const refs = getTaskComposerElements();
+  if (!refs) return;
+  lastTaskComposerTrigger =
+    triggerEl instanceof HTMLElement ? triggerEl : document.activeElement;
+  taskComposerDefaultProject = inferTaskComposerDefaultProject();
+  if (refs.projectSelect && !String(refs.titleInput?.value || "").trim()) {
+    refs.projectSelect.value = taskComposerDefaultProject || "";
+  }
+  isTaskComposerOpen = true;
+  refs.sheet.classList.add("task-composer-sheet--open");
+  refs.sheet.setAttribute("aria-hidden", "false");
+  refs.backdrop.classList.add("task-composer-backdrop--open");
+  refs.backdrop.setAttribute("aria-hidden", "false");
+  updateTaskComposerDueClearButton();
+  window.requestAnimationFrame(() => {
+    refs.titleInput?.focus();
+  });
+}
+
+function closeTaskComposer({
+  restoreFocus = false,
+  force = false,
+  reset = false,
+} = {}) {
+  const refs = getTaskComposerElements();
+  if (!refs || !isTaskComposerOpen) return false;
+  const hasDraft = !!String(refs.titleInput?.value || "").trim();
+  if (hasDraft && !force) return false;
+  isTaskComposerOpen = false;
+  refs.sheet.classList.remove("task-composer-sheet--open");
+  refs.sheet.setAttribute("aria-hidden", "true");
+  refs.backdrop.classList.remove("task-composer-backdrop--open");
+  refs.backdrop.setAttribute("aria-hidden", "true");
+  if (reset) {
+    resetTaskComposerFields();
+  }
+  if (restoreFocus && lastTaskComposerTrigger instanceof HTMLElement) {
+    lastTaskComposerTrigger.focus({ preventScroll: true });
+  }
+  return true;
+}
+
+function cancelTaskComposer() {
+  closeTaskComposer({ restoreFocus: true, force: true, reset: true });
+}
+
+function resetTaskComposerFields() {
+  const input = document.getElementById("todoInput");
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const notesInput = document.getElementById("todoNotesInput");
+  const notesIcon = document.getElementById("notesExpandIcon");
+  if (input instanceof HTMLInputElement) input.value = "";
+  if (projectSelect instanceof HTMLSelectElement) {
+    projectSelect.value = taskComposerDefaultProject || "";
+  }
+  if (dueDateInput instanceof HTMLInputElement) dueDateInput.value = "";
+  if (notesInput instanceof HTMLTextAreaElement) {
+    notesInput.value = "";
+    notesInput.style.display = "none";
+  }
+  if (notesIcon instanceof HTMLElement) {
+    notesIcon.classList.remove("expanded");
+  }
+  setQuickEntryPropertiesOpen(true, { persist: false });
+  setPriority("medium");
+  updateTaskComposerDueClearButton();
+}
+
+function clearTaskComposerDueDate() {
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  if (dueDateInput instanceof HTMLInputElement) {
+    dueDateInput.value = "";
+    dueDateInput.focus();
+  }
+  updateTaskComposerDueClearButton();
+}
+
+function bindTaskComposerHandlers() {
+  if (window.__taskComposerHandlersBound) return;
+  window.__taskComposerHandlersBound = true;
+
+  document.addEventListener("click", (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const backdrop = target.closest("#taskComposerBackdrop");
+    if (backdrop && isTaskComposerOpen) {
+      event.preventDefault();
+      closeTaskComposer({ restoreFocus: true });
+      return;
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape" || !isTaskComposerOpen) return;
+    event.preventDefault();
+    closeTaskComposer({ restoreFocus: true, force: true });
+  });
+
+  document.addEventListener("input", (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.id === "todoDueDateInput") {
+      updateTaskComposerDueClearButton();
+    }
+  });
+}
+
 function getAiWorkspaceElements() {
   const workspace = document.getElementById("aiWorkspace");
   const toggle = document.getElementById("aiWorkspaceToggle");
@@ -660,6 +1451,7 @@ function init() {
   bindTodoDrawerHandlers();
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
+  bindTaskComposerHandlers();
   bindOnCreateAssistHandlers();
   bindTodayPlanHandlers();
 
@@ -1252,12 +2044,14 @@ async function loadTodos() {
       todos = await response.json();
       todosLoadState = "ready";
       todosLoadErrorMessage = "";
+      homeTopFocusState = createInitialHomeTopFocusState();
 
       renderTodos();
       refreshProjectCatalog();
     } else {
       todos = [];
       selectedTodos.clear();
+      homeTopFocusState = createInitialHomeTopFocusState();
       todosLoadState = "error";
       todosLoadErrorMessage = "Couldn't load tasks";
       renderTodos();
@@ -1267,6 +2061,7 @@ async function loadTodos() {
   } catch (error) {
     todos = [];
     selectedTodos.clear();
+    homeTopFocusState = createInitialHomeTopFocusState();
     todosLoadState = "error";
     todosLoadErrorMessage = "Couldn't load tasks";
     renderTodos();
@@ -2691,6 +3486,8 @@ async function addTodo() {
       // Hide notes input
       notesInput.style.display = "none";
       document.getElementById("notesExpandIcon").classList.remove("expanded");
+      updateTaskComposerDueClearButton();
+      closeTaskComposer({ restoreFocus: false, force: true });
       onCreateAssistState = {
         ...createInitialOnCreateAssistState(),
         dismissedTodoIds: onCreateAssistState.dismissedTodoIds,
@@ -3363,6 +4160,14 @@ function setDateView(view, { skipApply = false } = {}) {
     const activeId = ids[view] || ids.all;
     document.getElementById(activeId)?.classList.add("active");
   }
+  if (!skipApply && !getSelectedProjectKey()) {
+    if (view === "today" || view === "upcoming" || view === "completed") {
+      currentWorkspaceView = view;
+    } else {
+      currentWorkspaceView = "all";
+    }
+    clearHomeListDrilldown();
+  }
   syncWorkspaceViewState();
   if (!skipApply) {
     applyFiltersAndRender({ reason: "date-view" });
@@ -3370,13 +4175,32 @@ function setDateView(view, { skipApply = false } = {}) {
 }
 
 function matchesWorkspaceView(view) {
+  if (view === "home") {
+    return !getSelectedProjectKey() && currentWorkspaceView === "home";
+  }
+  if (view === "unsorted") {
+    return !getSelectedProjectKey() && currentWorkspaceView === "unsorted";
+  }
   if (view === "all") {
-    return getSelectedProjectKey() === "" && currentDateView === "all";
+    return (
+      getSelectedProjectKey() === "" &&
+      currentDateView === "all" &&
+      currentWorkspaceView === "all" &&
+      !hasHomeListDrilldown()
+    );
   }
   if (view === "completed") {
-    return getSelectedProjectKey() === "" && currentDateView === "completed";
+    return (
+      getSelectedProjectKey() === "" &&
+      currentDateView === "completed" &&
+      currentWorkspaceView === "completed"
+    );
   }
-  return getSelectedProjectKey() === "" && currentDateView === view;
+  return (
+    getSelectedProjectKey() === "" &&
+    currentDateView === view &&
+    currentWorkspaceView === view
+  );
 }
 
 function syncWorkspaceViewState() {
@@ -3411,7 +4235,7 @@ function ensureTodosShellActive() {
 }
 
 function selectWorkspaceView(view, triggerEl = null) {
-  const normalizedView = String(view || "all").toLowerCase();
+  const normalizedView = normalizeWorkspaceView(view);
   const nextView =
     normalizedView === "today" ||
     normalizedView === "upcoming" ||
@@ -3422,8 +4246,11 @@ function selectWorkspaceView(view, triggerEl = null) {
     triggerEl.blur();
   }
   ensureTodosShellActive();
+  currentWorkspaceView = normalizedView;
+  clearHomeListDrilldown();
   setSelectedProjectKey("", { reason: "workspace-view", skipApply: true });
-  setDateView(nextView, { skipApply: false });
+  setDateView(nextView, { skipApply: true });
+  applyFiltersAndRender({ reason: "workspace-view" });
 }
 
 function isSameLocalDay(a, b) {
@@ -3537,6 +4364,10 @@ function exportVisibleTodosToIcs() {
 function filterTodosList(todosList) {
   let filtered = todosList;
 
+  if (isUnsortedWorkspaceActive()) {
+    filtered = filtered.filter((todo) => isTodoUnsorted(todo));
+  }
+
   // Category filter
   const categoryFilter = getSelectedProjectKey();
   if (categoryFilter) {
@@ -3569,6 +4400,15 @@ function filterTodosList(todosList) {
 
   filtered = filtered.filter((todo) => matchesDateView(todo));
 
+  if (hasHomeListDrilldown()) {
+    const drilldownIds = new Set(
+      buildHomeTileListByKey(homeListDrilldownKey).map((todo) =>
+        String(todo.id),
+      ),
+    );
+    filtered = filtered.filter((todo) => drilldownIds.has(String(todo.id)));
+  }
+
   return filtered;
 }
 
@@ -3597,6 +4437,8 @@ function filterTodos({ skipPipeline = false, reason = "manual" } = {}) {
 
 // Clear all filters
 function clearFilters() {
+  currentWorkspaceView = "all";
+  clearHomeListDrilldown();
   setSelectedProjectKey("", {
     reason: "clear-filters-reset-project",
     skipApply: true,
@@ -3612,7 +4454,15 @@ function getProjectsRailElements() {
   const collapseToggle = document.getElementById("projectsRailToggle");
   const railList = document.getElementById("projectsRailList");
   const desktopPrimary = desktopRail?.querySelector(".projects-rail__primary");
-  const allTasksButton = desktopPrimary?.querySelector(".projects-rail-item");
+  const homeButton = desktopPrimary?.querySelector(
+    '.workspace-view-item[data-workspace-view="home"]',
+  );
+  const unsortedButton = desktopPrimary?.querySelector(
+    '.workspace-view-item[data-workspace-view="unsorted"]',
+  );
+  const allTasksButton = desktopPrimary?.querySelector(
+    '.workspace-view-item[data-workspace-view="all"]',
+  );
   const mobileOpenButton = document.getElementById("projectsRailMobileOpen");
   const mobileCloseButton = document.getElementById("projectsRailMobileClose");
   const createButton = document.getElementById("projectsRailCreateButton");
@@ -3624,7 +4474,13 @@ function getProjectsRailElements() {
     document.getElementById("projectsRailSheetList") ||
     sheet?.querySelector(".projects-rail__section .projects-rail__list");
   const sheetAllTasksButton = sheet?.querySelector(
-    ".projects-rail__primary .projects-rail-item",
+    '.projects-rail__primary .workspace-view-item[data-workspace-view="all"]',
+  );
+  const sheetHomeButton = sheet?.querySelector(
+    '.projects-rail__primary .workspace-view-item[data-workspace-view="home"]',
+  );
+  const sheetUnsortedButton = sheet?.querySelector(
+    '.projects-rail__primary .workspace-view-item[data-workspace-view="unsorted"]',
   );
   const backdrop = document.getElementById("projectsRailBackdrop");
 
@@ -3632,6 +4488,8 @@ function getProjectsRailElements() {
   if (!(collapseToggle instanceof HTMLElement)) return null;
   if (!(railList instanceof HTMLElement)) return null;
   if (!(allTasksButton instanceof HTMLElement)) return null;
+  if (!(homeButton instanceof HTMLElement)) return null;
+  if (!(unsortedButton instanceof HTMLElement)) return null;
   if (!(mobileOpenButton instanceof HTMLElement)) return null;
   if (!(mobileCloseButton instanceof HTMLElement)) return null;
   if (!(createButton instanceof HTMLElement)) return null;
@@ -3639,6 +4497,8 @@ function getProjectsRailElements() {
   if (!(sheet instanceof HTMLElement)) return null;
   if (!(sheetList instanceof HTMLElement)) return null;
   if (!(sheetAllTasksButton instanceof HTMLElement)) return null;
+  if (!(sheetHomeButton instanceof HTMLElement)) return null;
+  if (!(sheetUnsortedButton instanceof HTMLElement)) return null;
   if (!(backdrop instanceof HTMLElement)) return null;
 
   return {
@@ -3646,6 +4506,8 @@ function getProjectsRailElements() {
     desktopRail,
     collapseToggle,
     railList,
+    homeButton,
+    unsortedButton,
     allTasksButton,
     mobileOpenButton,
     mobileCloseButton,
@@ -3653,6 +4515,8 @@ function getProjectsRailElements() {
     sheetCreateButton,
     sheet,
     sheetList,
+    sheetHomeButton,
+    sheetUnsortedButton,
     sheetAllTasksButton,
     backdrop,
   };
@@ -3676,6 +4540,12 @@ function getProjectTodoCount(projectName) {
 }
 
 function getSelectedProjectLabel(selectedProject) {
+  if (!selectedProject && currentWorkspaceView === "home") {
+    return "Home";
+  }
+  if (!selectedProject && currentWorkspaceView === "unsorted") {
+    return "Unsorted";
+  }
   if (!selectedProject) return "All tasks";
   return getProjectLeafName(selectedProject);
 }
@@ -3722,6 +4592,13 @@ function setSelectedProjectKey(
 
   if (filterSelect.value !== nextValue) {
     filterSelect.value = nextValue;
+  }
+
+  if (nextValue) {
+    currentWorkspaceView = "project";
+    clearHomeListDrilldown();
+  } else if (currentWorkspaceView === "project") {
+    currentWorkspaceView = "all";
   }
 
   railRovingFocusKey = nextValue || "";
@@ -3787,6 +4664,30 @@ function updateHeaderAndContextUI({
 }
 
 function updateHeaderFromVisibleTodos(visibleTodos = []) {
+  if (isHomeWorkspaceActive()) {
+    updateHeaderAndContextUI({
+      projectName: "Home",
+      visibleCount: getOpenTodos().length,
+      dateLabel: "",
+    });
+    return;
+  }
+  if (isUnsortedWorkspaceActive()) {
+    updateHeaderAndContextUI({
+      projectName: "Unsorted",
+      visibleCount: getVisibleTodosCount(visibleTodos),
+      dateLabel: "",
+    });
+    return;
+  }
+  if (hasHomeListDrilldown()) {
+    updateHeaderAndContextUI({
+      projectName: getHomeDrilldownLabel() || "Home",
+      visibleCount: getVisibleTodosCount(visibleTodos),
+      dateLabel: "",
+    });
+    return;
+  }
   updateHeaderAndContextUI({
     projectName: getSelectedProjectName(),
     visibleCount: getVisibleTodosCount(visibleTodos),
@@ -4080,7 +4981,7 @@ function executeCommandPaletteItem(item, triggerEl = null) {
     }
     closeCommandPalette({ restoreFocus: false });
     window.requestAnimationFrame(() => {
-      document.getElementById("todoInput")?.focus();
+      openTaskComposer(triggerEl);
     });
     return;
   }
@@ -4092,6 +4993,8 @@ function executeCommandPaletteItem(item, triggerEl = null) {
     if (shouldSwitchToTodos) {
       switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
     }
+    currentWorkspaceView = item.payload ? "project" : "all";
+    clearHomeListDrilldown();
     setSelectedProjectKey(String(item.payload || ""));
     closeCommandPalette({ restoreFocus: false });
   }
@@ -4176,8 +5079,12 @@ function focusActiveProjectItem({ preferSheet = false } = {}) {
   if (!refs) return;
   const root = preferSheet ? refs.sheet : refs.desktopRail;
   const selectedProject = getSelectedProjectKey();
+  const activeWorkspaceItem = root.querySelector(
+    ".workspace-view-item.projects-rail-item--active",
+  );
   const optionSelector = `.projects-rail-item[data-project-key="${escapeSelectorValue(selectedProject)}"]`;
   const activeItem =
+    activeWorkspaceItem ||
     root.querySelector(optionSelector) ||
     root.querySelector('.projects-rail-item[data-project-key=""]') ||
     root.querySelector('.projects-rail-item[aria-current="page"]') ||
@@ -4353,6 +5260,7 @@ function renderProjectsRail() {
 
   const selectedProject = getSelectedProjectKey();
   const allCount = todos.length;
+  const unsortedCount = todos.filter((todo) => isTodoUnsorted(todo)).length;
   const projects = getAllProjects();
   if (openRailProjectMenuKey && !projects.includes(openRailProjectMenuKey)) {
     openRailProjectMenuKey = null;
@@ -4370,14 +5278,26 @@ function renderProjectsRail() {
   const desktopAllCount = refs.allTasksButton.querySelector(
     ".projects-rail-item__count",
   );
+  const desktopUnsortedCount = refs.unsortedButton.querySelector(
+    ".projects-rail-item__count",
+  );
   if (desktopAllCount instanceof HTMLElement) {
     desktopAllCount.textContent = String(allCount);
+  }
+  if (desktopUnsortedCount instanceof HTMLElement) {
+    desktopUnsortedCount.textContent = String(unsortedCount);
   }
   const sheetAllCount = refs.sheetAllTasksButton.querySelector(
     ".projects-rail-item__count",
   );
+  const sheetUnsortedCount = refs.sheetUnsortedButton.querySelector(
+    ".projects-rail-item__count",
+  );
   if (sheetAllCount instanceof HTMLElement) {
     sheetAllCount.textContent = String(allCount);
+  }
+  if (sheetUnsortedCount instanceof HTMLElement) {
+    sheetUnsortedCount.textContent = String(unsortedCount);
   }
 
   refs.allTasksButton.setAttribute("data-project-key", "");
@@ -4529,6 +5449,12 @@ function selectProjectFromRail(projectName, triggerEl = null) {
   }
   ensureTodosShellActive();
   railRovingFocusKey = normalizeProjectPath(projectName);
+  if (normalizeProjectPath(projectName)) {
+    currentWorkspaceView = "project";
+  } else {
+    currentWorkspaceView = "all";
+  }
+  clearHomeListDrilldown();
   setSelectedProjectKey(projectName);
 
   if (isRailSheetOpen) {
@@ -5884,6 +6810,16 @@ function renderTodos() {
         <button id="todosRetryLoadButton" class="mini-btn" data-onclick="retryLoadTodos()">Retry</button>
       </div>
     `;
+    syncTodoDrawerStateWithRender();
+    updateBulkActionsVisibility();
+    updateIcsExportButtonState();
+    assertNoHorizontalOverflow(scrollRegion);
+    return;
+  }
+
+  if (isHomeWorkspaceActive()) {
+    updateHeaderFromVisibleTodos([]);
+    container.innerHTML = renderHomeDashboard();
     syncTodoDrawerStateWithRender();
     updateBulkActionsVisibility();
     updateIcsExportButtonState();
@@ -8200,6 +9136,7 @@ let currentPriority = "medium";
 
 function handleTodoKeyPress(event) {
   if (event.key === "Enter") {
+    event.preventDefault();
     addTodo();
   }
 }
@@ -8853,7 +9790,7 @@ document.addEventListener("keydown", function (e) {
   // Ctrl/Cmd + N: Focus on new todo input
   if ((e.ctrlKey || e.metaKey) && e.key === "n") {
     e.preventDefault();
-    document.getElementById("todoInput")?.focus();
+    openTaskComposer();
   }
 
   // Ctrl/Cmd + F: Focus on search
@@ -9633,6 +10570,8 @@ async function logout() {
   latestPlanSuggestionId = null;
   latestPlanResult = null;
   currentDateView = "all";
+  currentWorkspaceView = "home";
+  clearHomeListDrilldown();
   todosLoadState = "idle";
   todosLoadErrorMessage = "";
   openTodoKebabId = null;
@@ -9652,6 +10591,7 @@ async function logout() {
   closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
   closeProjectsRailSheet({ restoreFocus: false });
+  closeTaskComposer({ restoreFocus: false, force: true, reset: true });
   closeTodoDrawer({ restoreFocus: false });
   showAuthView();
 }
@@ -9671,6 +10611,7 @@ function showAppView() {
   openRailProjectMenuKey = null;
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
+  closeTaskComposer({ restoreFocus: false, force: true, reset: true });
   setProjectsRailCollapsed(readStoredRailCollapsedState());
   setAiWorkspaceVisible(readStoredAiWorkspaceVisibleState(), {
     persist: false,
@@ -9688,6 +10629,8 @@ function showAppView() {
   updateCritiqueDraftButtonState();
   selectedTodos.clear();
   loadCustomProjects();
+  currentWorkspaceView = "home";
+  clearHomeListDrilldown();
   renderTodos();
   updateCategoryFilter();
   loadProjects();
@@ -9703,6 +10646,9 @@ function showAppView() {
   setQuickEntryPropertiesOpen(readStoredQuickEntryPropertiesOpenState(), {
     persist: false,
   });
+  if (!isQuickEntryPropertiesOpen) {
+    setQuickEntryPropertiesOpen(true, { persist: false });
+  }
   syncQuickEntryProjectActions();
 }
 

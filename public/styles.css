@@ -5197,3 +5197,341 @@ body.is-todos-view .projects-rail-item__count {
   background: color-mix(in oklab, var(--surface) 90%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 45%, transparent);
 }
+
+.home-dashboard {
+  display: grid;
+  gap: 14px;
+}
+
+.home-dashboard__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid color-mix(in oklab, var(--border-color) 70%, transparent);
+  border-radius: 14px;
+  background:
+    radial-gradient(
+      circle at 88% 12%,
+      color-mix(in oklab, var(--accent) 12%, transparent),
+      transparent 48%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface) 90%, var(--surface-2)),
+      var(--surface)
+    );
+}
+
+.home-dashboard__title {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.home-dashboard__subtitle {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.home-dashboard__new-task {
+  width: auto;
+  min-width: 112px;
+}
+
+.home-dashboard__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.home-tile {
+  border: 1px solid color-mix(in oklab, var(--border-color) 70%, transparent);
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--surface) 90%, var(--surface-2));
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  padding: 12px;
+}
+
+.home-tile__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.home-tile__title {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.home-tile__subtitle {
+  margin: 4px 0 0;
+  color: var(--text-secondary);
+  font-size: 0.77rem;
+  line-height: 1.25;
+}
+
+.home-tile__see-all {
+  white-space: nowrap;
+}
+
+.home-tile__body {
+  display: grid;
+  gap: 6px;
+}
+
+.home-tile__empty,
+.home-tile__helper {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  padding: 8px 4px;
+}
+
+.home-task-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 7px 8px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
+  border: 1px solid color-mix(in oklab, var(--border-color) 55%, transparent);
+}
+
+.home-task-row__checkbox {
+  margin: 0;
+}
+
+.home-task-row__title {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  color: var(--text-primary);
+  font: inherit;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-task-row__title:hover {
+  color: var(--accent);
+}
+
+.home-task-row__badge {
+  font-size: 0.72rem;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, var(--border-color) 70%, transparent);
+  color: var(--text-secondary);
+  background: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
+}
+
+.home-task-row__badge--overdue {
+  color: #b91c1c;
+  background: color-mix(in oklab, #ef4444 10%, var(--surface));
+  border-color: color-mix(in oklab, #ef4444 30%, var(--border-color));
+}
+
+.home-task-row__reason {
+  grid-column: 2 / -1;
+  color: var(--text-secondary);
+  font-size: 0.73rem;
+  line-height: 1.2;
+}
+
+.home-project-row {
+  width: 100%;
+  border: 1px solid color-mix(in oklab, var(--border-color) 60%, transparent);
+  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 9px 10px;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 3px;
+}
+
+.home-project-row:hover {
+  border-color: color-mix(in oklab, var(--accent) 26%, var(--border-color));
+}
+
+.home-project-row__name {
+  font-weight: 600;
+}
+
+.home-project-row__meta {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.task-composer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.34);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease;
+  z-index: 1100;
+}
+
+.task-composer-backdrop--open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.task-composer-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1101;
+  margin: 0 auto;
+  width: min(760px, calc(100vw - 16px));
+  max-height: min(82vh, 720px);
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--border-color) 75%, transparent);
+  border-bottom: 0;
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 36px rgba(15, 23, 42, 0.18);
+  transform: translateY(calc(100% + 16px));
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+}
+
+.task-composer-sheet--open {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.task-composer-sheet__handle {
+  width: 42px;
+  height: 4px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--border-color) 85%, transparent);
+  margin: 8px auto 4px;
+}
+
+.task-composer-sheet__header,
+.task-composer-sheet__footer {
+  padding: 8px 14px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.task-composer-sheet__header h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.task-composer-sheet__body {
+  overflow: auto;
+  padding: 0 14px 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.task-composer-sheet #todoInput {
+  font-size: 1rem;
+}
+
+.task-composer-properties {
+  display: grid;
+  gap: 10px;
+}
+
+.task-composer-fields {
+  align-items: center;
+}
+
+.task-composer-fields > select {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.task-composer-due-wrap {
+  position: relative;
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.task-composer-due-wrap input {
+  width: 100%;
+  padding-right: 34px;
+}
+
+.task-composer-due-clear {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  min-width: 26px;
+  height: 26px;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.task-composer-actions {
+  align-items: center;
+}
+
+.task-composer-sheet__footer {
+  border-top: 1px solid
+    color-mix(in oklab, var(--border-color) 65%, transparent);
+  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
+}
+
+.task-composer-sheet__footer .add-btn,
+.task-composer-sheet__footer .mini-btn {
+  width: auto;
+}
+
+@media (max-width: 900px) {
+  .home-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-dashboard__hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (max-width: 640px) {
+  .task-composer-sheet {
+    width: 100%;
+    max-height: 88vh;
+    border-left: 0;
+    border-right: 0;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .task-composer-fields,
+  .task-composer-actions {
+    gap: 8px;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .task-composer-due-wrap {
+    width: 100%;
+  }
+
+  .task-composer-sheet__footer {
+    justify-content: flex-end;
+  }
+}

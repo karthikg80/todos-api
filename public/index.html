@@ -276,9 +276,23 @@
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item projects-rail-item--active"
-                          data-workspace-view="all"
-                          data-project-key=""
+                          data-workspace-view="home"
                           aria-current="page"
+                        >
+                          <span>Home</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="unsorted"
+                        >
+                          <span>Unsorted</span>
+                          <span class="projects-rail-item__count">0</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="all"
                         >
                           <span>All tasks</span>
                           <span class="projects-rail-item__count">0</span>
@@ -365,9 +379,23 @@
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item projects-rail-item--active"
-                          data-workspace-view="all"
-                          data-project-key=""
+                          data-workspace-view="home"
                           aria-current="page"
+                        >
+                          <span>Home</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="unsorted"
+                        >
+                          <span>Unsorted</span>
+                          <span class="projects-rail-item__count">0</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="all"
                         >
                           <span>All tasks</span>
                           <span class="projects-rail-item__count">0</span>
@@ -600,9 +628,9 @@
                       <div class="todos-top-bar-actions">
                         <button
                           class="add-btn top-add-btn"
-                          data-onclick="addTodo()"
+                          data-onclick="openTaskComposer()"
                         >
-                          Add Task
+                          New Task
                         </button>
                         <button
                           id="moreFiltersToggle"
@@ -723,143 +751,162 @@
                         >
                       </div>
 
-                      <!-- Add Todo Form -->
-                      <div class="add-todo quick-entry">
-                        <label for="todoInput" class="sr-only"
-                          >Todo title</label
-                        >
-                        <input
-                          type="text"
-                          id="todoInput"
-                          placeholder="What needs to be done?"
-                          data-onkeypress="handleTodoKeyPress(event)"
-                        />
-                        <div class="quick-entry-toolbar">
+                      <div
+                        id="taskComposerBackdrop"
+                        class="task-composer-backdrop"
+                        aria-hidden="true"
+                      ></div>
+                      <section
+                        id="taskComposerSheet"
+                        class="task-composer-sheet"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="taskComposerTitle"
+                        aria-hidden="true"
+                      >
+                        <div
+                          class="task-composer-sheet__handle"
+                          aria-hidden="true"
+                        ></div>
+                        <div class="task-composer-sheet__header">
+                          <h3 id="taskComposerTitle">New Task</h3>
                           <button
-                            id="quickEntryPropertiesToggle"
-                            class="mini-btn quick-entry-properties-toggle"
+                            id="taskComposerCancelIcon"
+                            class="btn-icon"
                             type="button"
-                            aria-expanded="false"
-                            aria-controls="quickEntryPropertiesPanel"
+                            aria-label="Close new task composer"
+                            data-onclick="cancelTaskComposer()"
                           >
-                            Properties
+                            ×
                           </button>
                         </div>
-                        <div
-                          id="aiOnCreateAssistRow"
-                          class="ai-on-create-assist"
-                          data-testid="ai-on-create-row"
-                          hidden
-                        ></div>
-                        <div
-                          id="quickEntryPropertiesPanel"
-                          class="quick-entry-properties-panel"
-                          hidden
-                        >
-                          <div class="field-row">
-                            <label for="todoProjectSelect" class="sr-only"
-                              >Project</label
-                            >
-                            <select id="todoProjectSelect">
-                              <option value="">No project</option>
-                            </select>
-                            <button
-                              id="quickEntryCreateProjectButton"
-                              class="add-btn"
-                              data-onclick="createProject()"
-                              style="width: auto; padding: 10px 14px"
-                            >
-                              + Project
-                            </button>
-                            <button
-                              id="quickEntryCreateSubprojectButton"
-                              class="add-btn"
-                              data-onclick="createSubproject()"
-                              style="
-                                width: auto;
-                                padding: 10px 14px;
-                                background: #0f766e;
-                              "
-                            >
-                              + Subproject
-                            </button>
-                            <button
-                              id="quickEntryRenameProjectButton"
-                              class="add-btn"
-                              data-onclick="renameProjectTree()"
-                              style="
-                                width: auto;
-                                padding: 10px 14px;
-                                background: #334155;
-                              "
-                            >
-                              Rename Project
-                            </button>
-                            <label for="todoDueDateInput" class="sr-only"
-                              >Todo due date</label
-                            >
-                            <input
-                              type="datetime-local"
-                              id="todoDueDateInput"
-                            />
-                          </div>
-                          <div class="action-row">
-                            <label class="action-label">Priority:</label>
-                            <div class="priority-selector">
-                              <button
-                                class="priority-btn low"
-                                data-onclick="setPriority('low')"
-                                id="priorityLow"
+                        <div class="task-composer-sheet__body">
+                          <label for="todoInput" class="sr-only"
+                            >Todo title</label
+                          >
+                          <input
+                            type="text"
+                            id="todoInput"
+                            placeholder="What needs to be done?"
+                            data-onkeypress="handleTodoKeyPress(event)"
+                          />
+                          <div
+                            id="aiOnCreateAssistRow"
+                            class="ai-on-create-assist"
+                            data-testid="ai-on-create-row"
+                            hidden
+                          ></div>
+                          <div
+                            id="quickEntryPropertiesPanel"
+                            class="quick-entry-properties-panel task-composer-properties"
+                          >
+                            <div class="field-row task-composer-fields">
+                              <label for="todoProjectSelect" class="sr-only"
+                                >Project</label
                               >
-                                Low
-                              </button>
+                              <select id="todoProjectSelect">
+                                <option value="">No project</option>
+                              </select>
+                              <div class="task-composer-due-wrap">
+                                <label for="todoDueDateInput" class="sr-only"
+                                  >Todo due date</label
+                                >
+                                <input
+                                  type="datetime-local"
+                                  id="todoDueDateInput"
+                                />
+                                <button
+                                  id="taskComposerDueClearButton"
+                                  class="mini-btn task-composer-due-clear"
+                                  type="button"
+                                  data-onclick="clearTaskComposerDueDate()"
+                                  hidden
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                            <div class="action-row task-composer-actions">
+                              <label class="action-label">Priority:</label>
+                              <div class="priority-selector">
+                                <button
+                                  class="priority-btn low"
+                                  data-onclick="setPriority('low')"
+                                  id="priorityLow"
+                                  type="button"
+                                >
+                                  Low
+                                </button>
+                                <button
+                                  class="priority-btn medium active"
+                                  data-onclick="setPriority('medium')"
+                                  id="priorityMedium"
+                                  type="button"
+                                >
+                                  Medium
+                                </button>
+                                <button
+                                  class="priority-btn high"
+                                  data-onclick="setPriority('high')"
+                                  id="priorityHigh"
+                                  type="button"
+                                >
+                                  High
+                                </button>
+                              </div>
                               <button
-                                class="priority-btn medium active"
-                                data-onclick="setPriority('medium')"
-                                id="priorityMedium"
+                                id="critiqueDraftButton"
+                                class="add-btn"
+                                data-onclick="critiqueDraftWithAi()"
+                                type="button"
+                                hidden
+                                style="background: #334155; width: auto"
                               >
-                                Medium
-                              </button>
-                              <button
-                                class="priority-btn high"
-                                data-onclick="setPriority('high')"
-                                id="priorityHigh"
-                              >
-                                High
+                                Critique Draft (AI)
                               </button>
                             </div>
+                          </div>
+                          <div>
                             <button
-                              id="critiqueDraftButton"
-                              class="add-btn"
-                              data-onclick="critiqueDraftWithAi()"
-                              hidden
-                              style="background: #334155; width: auto"
+                              class="expand-section"
+                              type="button"
+                              data-onclick="toggleNotesInput()"
                             >
-                              Critique Draft (AI)
+                              <span class="expand-icon" id="notesExpandIcon"
+                                >▶</span
+                              >
+                              <span>Add notes (optional)</span>
                             </button>
+                            <label for="todoNotesInput" class="sr-only"
+                              >Todo notes</label
+                            >
+                            <textarea
+                              id="todoNotesInput"
+                              class="notes-textarea"
+                              placeholder="Add detailed notes here..."
+                              style="display: none; margin-top: 8px"
+                            ></textarea>
                           </div>
                         </div>
-                        <div>
+                        <div class="task-composer-sheet__footer">
                           <button
-                            class="expand-section"
-                            data-onclick="toggleNotesInput()"
+                            id="taskComposerCancelButton"
+                            class="mini-btn"
+                            type="button"
+                            data-onclick="cancelTaskComposer()"
                           >
-                            <span class="expand-icon" id="notesExpandIcon"
-                              >▶</span
-                            >
-                            <span>Add notes (optional)</span>
+                            Cancel
                           </button>
-                          <label for="todoNotesInput" class="sr-only"
-                            >Todo notes</label
+                          <button
+                            id="taskComposerAddButton"
+                            class="add-btn"
+                            type="button"
+                            data-onclick="addTodo()"
                           >
-                          <textarea
-                            id="todoNotesInput"
-                            class="notes-textarea"
-                            placeholder="Add detailed notes here..."
-                            style="display: none; margin-top: 8px"
-                          ></textarea>
+                            Add
+                          </button>
                         </div>
-                      </div>
+                      </section>
 
                       <section
                         id="aiWorkspace"
