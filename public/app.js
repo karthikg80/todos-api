@@ -4901,6 +4901,12 @@ function selectWorkspaceView(view, triggerEl = null) {
   setSelectedProjectKey("", { reason: "workspace-view", skipApply: true });
   setDateView(nextView, { skipApply: true });
   applyFiltersAndRender({ reason: "workspace-view" });
+
+  if (isRailSheetOpen) {
+    closeProjectsRailSheet({
+      restoreFocus: !(triggerEl instanceof HTMLElement),
+    });
+  }
 }
 
 function isSameLocalDay(a, b) {
