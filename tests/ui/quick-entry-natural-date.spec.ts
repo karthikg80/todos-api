@@ -258,7 +258,7 @@ test.describe("Quick entry natural date input", () => {
       .poll(async () => page.locator("#todoInput").inputValue())
       .toBe("Test task");
 
-    await page.getByRole("button", { name: "Add" }).click();
+    await page.locator("#taskComposerAddButton").click();
     await expect(page.getByText("Test task")).toBeVisible();
     await expect(page.getByText(/tomorrow 6pm/i)).toHaveCount(0);
 

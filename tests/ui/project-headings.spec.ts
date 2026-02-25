@@ -447,7 +447,7 @@ test.describe("Project headings (sections)", () => {
     await page.locator("#quickEntryPropertiesToggle").click();
     await page.locator("#todoProjectSelect").selectOption({ label: "Work" });
     await page.locator("#todoInput").fill("Task for sprint");
-    await page.getByRole("button", { name: "Add" }).click();
+    await page.locator("#taskComposerAddButton").click();
     await expect(page.getByText("Task for sprint")).toBeVisible();
 
     const taskRow = page.locator(".todo-item", { hasText: "Task for sprint" });

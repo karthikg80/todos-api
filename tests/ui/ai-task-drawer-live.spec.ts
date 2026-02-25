@@ -402,7 +402,7 @@ test.describe("AI task drawer decision assist live flow", () => {
   }) => {
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("do thing");
-    await page.getByRole("button", { name: "Add" }).click();
+    await page.locator("#taskComposerAddButton").click();
 
     const row = page.locator(".todo-item").first();
     await row.click();
@@ -436,7 +436,7 @@ test.describe("AI task drawer decision assist live flow", () => {
   }) => {
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("do follow up");
-    await page.getByRole("button", { name: "Add" }).click();
+    await page.locator("#taskComposerAddButton").click();
 
     const row = page.locator(".todo-item").first();
     await row.click();

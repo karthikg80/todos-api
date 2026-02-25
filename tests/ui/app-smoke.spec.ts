@@ -262,7 +262,7 @@ test.describe("App smoke flows", () => {
     await ensureAllTasksListActive(page);
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("Smoke Todo A");
-    await page.getByRole("button", { name: "Add" }).click();
+    await page.locator("#taskComposerAddButton").click();
     await expect(page.getByText("Smoke Todo A")).toBeVisible();
 
     await page.reload();

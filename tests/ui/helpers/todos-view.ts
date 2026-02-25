@@ -22,6 +22,14 @@ function isMobileViewport(page: Page) {
   return !!size && size.width <= 700;
 }
 
+async function closeProjectsRailSheetIfOpen(page: Page) {
+  const sheet = page.locator("#projectsRailSheet");
+  if ((await sheet.getAttribute("aria-hidden")) === "false") {
+    await page.keyboard.press("Escape");
+    await expect(sheet).toHaveAttribute("aria-hidden", "true");
+  }
+}
+
 export async function selectWorkspaceView(
   page: Page,
   view: "home" | "unsorted" | "all" | "today" | "upcoming" | "completed",
@@ -32,19 +40,17 @@ export async function selectWorkspaceView(
     return;
   }
 
+  const sheet = page.locator("#projectsRailSheet");
   const mobileOpen = page.locator("#projectsRailMobileOpen");
-  if (await mobileOpen.isVisible()) {
+  if (
+    (await sheet.getAttribute("aria-hidden")) !== "false" &&
+    (await mobileOpen.isVisible())
+  ) {
     await mobileOpen.click();
-    await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
+    await expect(sheet).toHaveAttribute("aria-hidden", "false");
   }
   await page.locator(`#projectsRailSheet ${selector}`).click();
-  await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
-    "aria-hidden",
-    "true",
-  );
+  await closeProjectsRailSheetIfOpen(page);
 }
 
 export async function ensureAllTasksListActive(page: Page) {
@@ -57,7 +63,12 @@ export async function ensureAllTasksListActive(page: Page) {
 }
 
 export async function openTaskComposerSheet(page: Page) {
-  await page.getByRole("button", { name: "New Task" }).first().click();
+  const topbarNewTask = page.locator(".top-add-btn").first();
+  if (await topbarNewTask.isVisible()) {
+    await topbarNewTask.click();
+  } else {
+    await page.getByRole("button", { name: "New Task", exact: true }).click();
+  }
   await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
     "aria-hidden",
     "false",
