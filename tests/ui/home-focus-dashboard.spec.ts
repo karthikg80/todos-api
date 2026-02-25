@@ -266,18 +266,24 @@ function isMobileViewport(page: Page) {
 }
 
 async function openProjectsRailIfNeeded(page: Page) {
-  if (!isMobileViewport(page)) {
+  const desktopAll = page.locator(
+    '#projectsRail .workspace-view-item[data-workspace-view="all"]',
+  );
+  if (await canClick(desktopAll)) {
     return "desktop";
   }
 
   const mobileOpen = page.locator("#projectsRailMobileOpen");
   const sheet = page.locator("#projectsRailSheet");
   const isSheetOpen = (await sheet.getAttribute("aria-hidden")) === "false";
-  if (!isSheetOpen) {
+  if (!isSheetOpen && (await canClick(mobileOpen))) {
     await mobileOpen.click();
     await expect(sheet).toHaveAttribute("aria-hidden", "false");
   }
-  return "sheet";
+  if ((await sheet.getAttribute("aria-hidden")) === "false") {
+    return "sheet";
+  }
+  return "desktop";
 }
 
 async function canClick(locator: ReturnType<Page["locator"]>) {
@@ -310,7 +316,7 @@ async function clickWorkspaceView(page: Page, view: string) {
   }
 
   const surface = await openProjectsRailIfNeeded(page);
-  if (surface === "desktop" && (await desktopTarget.isVisible())) {
+  if (surface === "desktop") {
     await desktopTarget.click();
     return;
   }
@@ -334,7 +340,7 @@ async function clickProjectInRail(page: Page, projectKey: string) {
   }
 
   const surface = await openProjectsRailIfNeeded(page);
-  if (surface === "desktop" && (await desktopTarget.isVisible())) {
+  if (surface === "desktop") {
     await desktopTarget.click();
     return;
   }

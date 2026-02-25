@@ -158,6 +158,7 @@ async function registerAndOpenTodos(page: Page) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
+  await ensureAllTasksListActive(page);
 }
 
 async function openMoreFilters(page: Page) {

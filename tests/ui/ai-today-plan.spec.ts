@@ -472,8 +472,8 @@ test.describe("AI today planner panel", () => {
     await openTodayView(page);
   });
 
-  test("does not auto-fetch on initial Today panel open", async () => {
-    expect(state.latestFetchCalls).toBe(0);
+  test("auto-fetches latest plan once on initial Today panel open", async () => {
+    expect(state.latestFetchCalls).toBe(1);
     expect(state.generateCalls).toBe(0);
   });
 

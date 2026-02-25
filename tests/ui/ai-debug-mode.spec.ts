@@ -283,6 +283,16 @@ async function registerAndOpenTodos(page: Page, debug = false) {
 }
 
 async function openTodayView(page: Page) {
+  if (
+    (await page.locator("#taskComposerSheet").getAttribute("aria-hidden")) ===
+    "false"
+  ) {
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+  }
   await page.locator("#moreFiltersToggle").click();
   await page.locator("#dateViewToday").click();
   await expect(page.locator('[data-testid="today-plan-panel"]')).toBeVisible();

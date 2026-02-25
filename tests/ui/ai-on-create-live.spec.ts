@@ -338,6 +338,15 @@ async function registerAndOpenTodos(page: Page) {
   await ensureAllTasksListActive(page);
 }
 
+async function revealOnCreateFullAssist(page: Page) {
+  const lintFix = page.locator(
+    "#aiOnCreateAssistRow .ai-lint-chip__action[data-ai-lint-action='fix']",
+  );
+  if (await lintFix.isVisible()) {
+    await lintFix.click();
+  }
+}
+
 test.describe("On-create decision assist live", () => {
   test("shows server-backed chips after create, applies rewrite, and persists after reload", async ({
     page,
@@ -348,6 +357,7 @@ test.describe("On-create decision assist live", () => {
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("email follow up");
     await page.locator("#taskComposerAddButton").click();
+    await revealOnCreateFullAssist(page);
 
     await expect(
       page.locator('[data-testid="ai-on-create-row"]'),
@@ -365,6 +375,7 @@ test.describe("On-create decision assist live", () => {
     );
 
     await page.reload();
+    await ensureAllTasksListActive(page);
     await expect(page.locator(".todo-title").first()).toContainText(
       "Define next step for email follow-up",
     );
@@ -380,6 +391,7 @@ test.describe("On-create decision assist live", () => {
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("urgent website fix");
     await page.locator("#taskComposerAddButton").click();
+    await revealOnCreateFullAssist(page);
 
     const firstCard = page.locator(".ai-create-chip").first();
     await firstCard.getByRole("button", { name: "Dismiss" }).click();
@@ -387,6 +399,7 @@ test.describe("On-create decision assist live", () => {
     await expect(page.locator(".ai-create-chip")).toHaveCount(0);
 
     await page.reload();
+    await ensureAllTasksListActive(page);
     await expect(page.locator(".ai-create-chip")).toHaveCount(0);
   });
 });

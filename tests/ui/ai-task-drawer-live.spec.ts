@@ -426,6 +426,7 @@ test.describe("AI task drawer decision assist live flow", () => {
     );
 
     await page.reload();
+    await ensureAllTasksListActive(page);
     await expect(page.locator(".todo-item .todo-title").first()).toContainText(
       "Draft do thing",
     );
@@ -458,6 +459,7 @@ test.describe("AI task drawer decision assist live flow", () => {
     );
 
     await page.reload();
+    await ensureAllTasksListActive(page);
     await page.locator(".todo-item").first().click();
     await page
       .locator(

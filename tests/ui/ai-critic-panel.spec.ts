@@ -243,6 +243,7 @@ test.describe("Task Critic feature flag", () => {
       "",
     );
 
+    await page.locator(".critic-future-insights summary").click();
     await page.getByRole("button", { name: "Too generic" }).click();
     await expect(page.locator("#critiqueFeedbackReasonInput")).toHaveValue(
       "Too generic",
@@ -259,6 +260,7 @@ test.describe("Task Critic feature flag", () => {
 
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();
     await expect(page.locator(".critic-panel-enhanced")).toBeVisible();
+    await page.locator(".critic-future-insights summary").click();
     await page.getByRole("button", { name: "Dismiss" }).click();
     await expect(page.locator("#aiCritiquePanel")).toBeHidden();
 
