@@ -243,6 +243,16 @@ test.describe("Task Critic feature flag", () => {
       "",
     );
 
+    // Close the task composer so the critique panel in #aiWorkspace
+    // (behind the sheet's z-1100 backdrop) becomes interactive.
+    await page.evaluate(() =>
+      (window as any).closeTaskComposer({ force: true }),
+    );
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
     await page.locator(".critic-future-insights summary").click();
     await page.getByRole("button", { name: "Too generic" }).click();
     await expect(page.locator("#critiqueFeedbackReasonInput")).toHaveValue(
@@ -251,6 +261,14 @@ test.describe("Task Critic feature flag", () => {
 
     await page.getByRole("button", { name: "Apply both" }).click();
     await expect(page.locator("#aiCritiquePanel")).toBeHidden();
+
+    // Reopen the sheet to verify the applied values and trigger the second critique.
+    await page.evaluate(() => (window as any).openTaskComposer());
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+
     await expect(page.locator("#todoInput")).toHaveValue(
       "Sharper Needs critique",
     );
@@ -259,6 +277,16 @@ test.describe("Task Critic feature flag", () => {
     );
 
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();
+
+    // Close sheet again for the second critique panel interaction.
+    await page.evaluate(() =>
+      (window as any).closeTaskComposer({ force: true }),
+    );
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
     await expect(page.locator(".critic-panel-enhanced")).toBeVisible();
     await page.locator(".critic-future-insights summary").click();
     await page.getByRole("button", { name: "Dismiss" }).click();

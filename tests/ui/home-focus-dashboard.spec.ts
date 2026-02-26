@@ -66,6 +66,30 @@ async function installHomeFocusMockApi(
     return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
   };
 
+  const buildTodosForUser = (userId: string) =>
+    seedTodos.map((todo, index) => ({
+      id: todo.id,
+      title: todo.title,
+      description: null,
+      completed: !!todo.completed,
+      category: todo.category ?? null,
+      dueDate: todo.dueDate ?? null,
+      order: index,
+      priority: todo.priority,
+      notes: todo.notes ?? null,
+      userId,
+      createdAt: todo.createdAt || isoDaysAgo(14),
+      updatedAt: todo.updatedAt || isoDaysAgo(3),
+      subtasks:
+        todo.subtasks?.map((subtask, subIndex) => ({
+          ...subtask,
+          order: subtask.order ?? subIndex,
+          todoId: todo.id,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        })) || [],
+    }));
+
   const authUserId = (route: Route) => {
     const authHeader = route.request().headers().authorization || "";
     const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
@@ -75,7 +99,7 @@ async function installHomeFocusMockApi(
     const id = `cached-user-${userSeq++}`;
     accessTokens.set(token, id);
     if (!todosByUser.has(id)) {
-      todosByUser.set(id, []);
+      todosByUser.set(id, buildTodosForUser(id));
     }
     return id;
   };
@@ -108,31 +132,7 @@ async function installHomeFocusMockApi(
       });
       const token = `token-${tokenSeq++}`;
       accessTokens.set(token, userId);
-      todosByUser.set(
-        userId,
-        seedTodos.map((todo, index) => ({
-          id: todo.id,
-          title: todo.title,
-          description: null,
-          completed: !!todo.completed,
-          category: todo.category ?? null,
-          dueDate: todo.dueDate ?? null,
-          order: index,
-          priority: todo.priority,
-          notes: todo.notes ?? null,
-          userId,
-          createdAt: todo.createdAt || isoDaysAgo(14),
-          updatedAt: todo.updatedAt || isoDaysAgo(3),
-          subtasks:
-            todo.subtasks?.map((subtask, subIndex) => ({
-              ...subtask,
-              order: subtask.order ?? subIndex,
-              todoId: todo.id,
-              createdAt: nowIso(),
-              updatedAt: nowIso(),
-            })) || [],
-        })),
-      );
+      todosByUser.set(userId, buildTodosForUser(userId));
       return json(route, 201, {
         user: { id: userId, email, name: body.name || null },
         token,

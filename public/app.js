@@ -4148,6 +4148,12 @@ async function addTodo() {
       renderOnCreateAssistRow();
       await loadOnCreateDecisionAssist(newTodo);
 
+      // Reopen the sheet if on-create suggestions were returned so the user
+      // can see and interact with the suggestion chips.
+      if (onCreateAssistState.suggestions.length > 0 && !isTaskComposerOpen) {
+        openTaskComposer();
+      }
+
       refreshProjectCatalog();
     }
   } catch (error) {
