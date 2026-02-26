@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  ensureAllTasksListActive,
+  openTaskComposerSheet,
+} from "./helpers/todos-view";
 
 type UserRecord = {
   id: string;
@@ -255,12 +259,19 @@ test.describe("App smoke flows", () => {
 
     await expect(page.locator("#todosView")).toHaveClass(/active/);
 
+    await ensureAllTasksListActive(page);
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("Smoke Todo A");
-    await page.getByRole("button", { name: "Add Task" }).click();
-    await expect(page.getByText("Smoke Todo A")).toBeVisible();
+    await page.locator("#taskComposerAddButton").click();
+    await expect(
+      page.locator(".todo-item .todo-title", { hasText: "Smoke Todo A" }),
+    ).toBeVisible();
 
     await page.reload();
-    await expect(page.getByText("Smoke Todo A")).toBeVisible();
+    await ensureAllTasksListActive(page);
+    await expect(
+      page.locator(".todo-item .todo-title", { hasText: "Smoke Todo A" }),
+    ).toBeVisible();
 
     const firstRow = page.locator(".todo-item").first();
     await firstRow.hover();
@@ -268,10 +279,15 @@ test.describe("App smoke flows", () => {
     await firstRow.locator(".todo-kebab-item--danger").click();
     page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#drawerDeleteTodoButton").click();
-    await expect(page.getByText("Smoke Todo A")).toHaveCount(0);
+    await expect(
+      page.locator(".todo-item .todo-title", { hasText: "Smoke Todo A" }),
+    ).toHaveCount(0);
 
     await page.reload();
-    await expect(page.getByText("Smoke Todo A")).toHaveCount(0);
+    await ensureAllTasksListActive(page);
+    await expect(
+      page.locator(".todo-item .todo-title", { hasText: "Smoke Todo A" }),
+    ).toHaveCount(0);
 
     await page.getByRole("button", { name: "Logout" }).click();
     await expect(page.locator("#authView")).toHaveClass(/active/);

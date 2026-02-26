@@ -256,9 +256,22 @@ test.describe("Topbar CTA invariants", () => {
     const searchH = await searchInput.evaluate((el) =>
       Math.round(el.getBoundingClientRect().height),
     );
+    await addButton.click();
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
     const quickEntryH = await page
       .locator("#todoInput")
       .evaluate((el) => Math.round(el.getBoundingClientRect().height));
+
+    // Close the sheet before interacting with elements behind the modal overlay.
+    await page.keyboard.press("Escape");
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
     const aiToggle = page.locator("#aiWorkspaceToggle");
     if ((await aiToggle.getAttribute("aria-expanded")) !== "true") {
       await aiToggle.click();

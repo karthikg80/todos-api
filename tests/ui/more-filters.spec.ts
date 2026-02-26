@@ -253,11 +253,17 @@ test.describe("More filters disclosure", () => {
     );
   });
 
-  test("top bar Add Task control is present and quick entry remains accessible", async ({
+  test("top bar New Task control opens the composer sheet", async ({
     page,
   }) => {
-    await expect(page.getByRole("button", { name: "Add Task" })).toBeVisible();
-    await page.getByRole("button", { name: "Add Task" }).click();
-    await expect(page.locator("#todoInput")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "New Task" }).first(),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "New Task" }).first().click();
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+    await expect(page.locator("#todoInput")).toBeFocused();
   });
 });

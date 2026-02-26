@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  ensureAllTasksListActive,
+  openTaskComposerSheet,
+} from "./helpers/todos-view";
 
 type CriticMockState = {
   critiqueCalls: Array<Record<string, unknown>>;
@@ -193,6 +197,7 @@ async function registerAndOpenTodos(page: Page) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
+  await ensureAllTasksListActive(page);
   const aiToggle = page.locator("#aiWorkspaceToggle");
   if ((await aiToggle.getAttribute("aria-expanded")) !== "true") {
     await aiToggle.click();
@@ -204,6 +209,7 @@ test.describe("Task Critic feature flag", () => {
   test("flag off uses legacy critic layout", async ({ page }) => {
     await installCriticMockApi(page);
     await registerAndOpenTodos(page);
+    await openTaskComposerSheet(page);
 
     await page.locator("#todoInput").fill("Legacy critic title");
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();
@@ -222,6 +228,7 @@ test.describe("Task Critic feature flag", () => {
     });
     const state = await installCriticMockApi(page);
     await registerAndOpenTodos(page);
+    await openTaskComposerSheet(page);
 
     await page.locator("#todoInput").fill("Needs critique");
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();
@@ -236,6 +243,17 @@ test.describe("Task Critic feature flag", () => {
       "",
     );
 
+    // Close the task composer so the critique panel in #aiWorkspace
+    // (behind the sheet's z-1100 backdrop) becomes interactive.
+    await page.evaluate(() =>
+      (window as any).closeTaskComposer({ force: true }),
+    );
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
+    await page.locator(".critic-future-insights summary").click();
     await page.getByRole("button", { name: "Too generic" }).click();
     await expect(page.locator("#critiqueFeedbackReasonInput")).toHaveValue(
       "Too generic",
@@ -243,6 +261,14 @@ test.describe("Task Critic feature flag", () => {
 
     await page.getByRole("button", { name: "Apply both" }).click();
     await expect(page.locator("#aiCritiquePanel")).toBeHidden();
+
+    // Reopen the sheet to verify the applied values and trigger the second critique.
+    await page.evaluate(() => (window as any).openTaskComposer());
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+
     await expect(page.locator("#todoInput")).toHaveValue(
       "Sharper Needs critique",
     );
@@ -251,7 +277,18 @@ test.describe("Task Critic feature flag", () => {
     );
 
     await page.getByRole("button", { name: "Critique Draft (AI)" }).click();
+
+    // Close sheet again for the second critique panel interaction.
+    await page.evaluate(() =>
+      (window as any).closeTaskComposer({ force: true }),
+    );
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
+
     await expect(page.locator(".critic-panel-enhanced")).toBeVisible();
+    await page.locator(".critic-future-insights summary").click();
     await page.getByRole("button", { name: "Dismiss" }).click();
     await expect(page.locator("#aiCritiquePanel")).toBeHidden();
 

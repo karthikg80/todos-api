@@ -1,4 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import {
+  ensureAllTasksListActive,
+  openTaskComposerSheet,
+} from "./helpers/todos-view";
 
 type SuggestionItem = {
   type: string;
@@ -331,6 +335,16 @@ async function registerAndOpenTodos(page: Page) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
+  await ensureAllTasksListActive(page);
+}
+
+async function revealOnCreateFullAssist(page: Page) {
+  const lintFix = page.locator(
+    "#aiOnCreateAssistRow .ai-lint-chip__action[data-ai-lint-action='fix']",
+  );
+  if (await lintFix.isVisible()) {
+    await lintFix.click();
+  }
 }
 
 test.describe("On-create decision assist live", () => {
@@ -340,8 +354,10 @@ test.describe("On-create decision assist live", () => {
     await installOnCreateLiveMockApi(page);
     await registerAndOpenTodos(page);
 
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("email follow up");
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.locator("#taskComposerAddButton").click();
+    await revealOnCreateFullAssist(page);
 
     await expect(
       page.locator('[data-testid="ai-on-create-row"]'),
@@ -359,6 +375,7 @@ test.describe("On-create decision assist live", () => {
     );
 
     await page.reload();
+    await ensureAllTasksListActive(page);
     await expect(page.locator(".todo-title").first()).toContainText(
       "Define next step for email follow-up",
     );
@@ -371,8 +388,10 @@ test.describe("On-create decision assist live", () => {
     await installOnCreateLiveMockApi(page);
     await registerAndOpenTodos(page);
 
+    await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("urgent website fix");
-    await page.getByRole("button", { name: "Add Task" }).click();
+    await page.locator("#taskComposerAddButton").click();
+    await revealOnCreateFullAssist(page);
 
     const firstCard = page.locator(".ai-create-chip").first();
     await firstCard.getByRole("button", { name: "Dismiss" }).click();
@@ -380,6 +399,7 @@ test.describe("On-create decision assist live", () => {
     await expect(page.locator(".ai-create-chip")).toHaveCount(0);
 
     await page.reload();
+    await ensureAllTasksListActive(page);
     await expect(page.locator(".ai-create-chip")).toHaveCount(0);
   });
 });

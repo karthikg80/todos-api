@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { ensureAllTasksListActive } from "./helpers/todos-view";
 
 type MockApiOptions = {
   failTodoCreateAt?: number | null;
@@ -235,6 +236,7 @@ async function registerAndOpenTodos(page: Page) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
+  await ensureAllTasksListActive(page);
   const aiToggle = page.locator("#aiWorkspaceToggle");
   if ((await aiToggle.getAttribute("aria-expanded")) !== "true") {
     await aiToggle.click();
