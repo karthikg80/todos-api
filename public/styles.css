@@ -5547,7 +5547,8 @@ body.is-todos-view .projects-rail-item__count {
 
 .task-composer-sheet #todoInput {
   width: 100%;
-  padding: 12px;
+  min-height: 40px;
+  padding: 10px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--r-sm);
   font-size: 1rem;
