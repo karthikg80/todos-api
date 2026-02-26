@@ -222,13 +222,13 @@ async function installTodayPlanLiveMockApi(page: Page) {
     }
 
     if (pathname === "/ai/decision-assist/stub" && method === "POST") {
-      state.generateCalls += 1;
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
       const body = (await parseBody(route)) as Record<string, unknown>;
       if (String(body.surface || "") !== "today_plan") {
         return json(route, 400, { error: "surface must be today_plan" });
       }
+      state.generateCalls += 1;
       const todos = todosByUser.get(userId) || [];
       const goal = String(body.goal || "").toLowerCase();
       if (goal.includes("abstain")) {

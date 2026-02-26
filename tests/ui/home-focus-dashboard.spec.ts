@@ -288,7 +288,7 @@ async function openProjectsRailIfNeeded(page: Page) {
 
 async function canClick(locator: ReturnType<Page["locator"]>) {
   try {
-    await locator.click({ trial: true });
+    await locator.click({ trial: true, timeout: 2000 });
     return true;
   } catch {
     return false;
@@ -358,6 +358,14 @@ async function expectWorkspaceViewActive(page: Page, view: string) {
     );
     await expect(desktopTarget).toHaveClass(/projects-rail-item--active/);
     return;
+  }
+
+  // On mobile, close the task composer sheet first so its backdrop
+  // doesn't block the projects rail mobile button.
+  const composerSheet = page.locator("#taskComposerSheet");
+  if ((await composerSheet.getAttribute("aria-hidden")) === "false") {
+    await page.keyboard.press("Escape");
+    await expect(composerSheet).toHaveAttribute("aria-hidden", "true");
   }
 
   const mobileOpen = page.locator("#projectsRailMobileOpen");
@@ -490,9 +498,9 @@ test.describe("Home focus dashboard + sheet composer", () => {
     );
 
     await clickWorkspaceView(page, "unsorted");
-    await expect(page.locator(".todo-item .todo-title")).toContainText(
-      "Sheet entry task",
-    );
+    await expect(
+      page.locator(".todo-item").filter({ hasText: "Sheet entry task" }),
+    ).toBeVisible();
   });
 
   test("Opening sheet inside a project defaults project selector", async ({
@@ -516,21 +524,23 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "aria-hidden",
       "true",
     );
-    await expect(page.locator(".todo-item .todo-title")).not.toContainText(
-      "Project scoped task",
-    );
+    await expect(
+      page.locator(".todo-item").filter({ hasText: "Project scoped task" }),
+    ).toHaveCount(0);
 
     await clickProjectInRail(page, "Work");
-    await expect(page.locator(".todo-item .todo-title")).toContainText(
-      "Project scoped task",
-    );
+    await expect(
+      page.locator(".todo-item").filter({ hasText: "Project scoped task" }),
+    ).toBeVisible();
   });
 
   test("Backdrop click closes when empty and stays open when text exists", async ({
     page,
   }) => {
     await openTaskComposerSheet(page);
-    await page.locator("#taskComposerBackdrop").click();
+    await page
+      .locator("#taskComposerBackdrop")
+      .click({ position: { x: 10, y: 10 } });
     await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
       "aria-hidden",
       "true",
@@ -538,7 +548,9 @@ test.describe("Home focus dashboard + sheet composer", () => {
 
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("Do not close me");
-    await page.locator("#taskComposerBackdrop").click();
+    await page
+      .locator("#taskComposerBackdrop")
+      .click({ position: { x: 10, y: 10 } });
     await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
       "aria-hidden",
       "false",
