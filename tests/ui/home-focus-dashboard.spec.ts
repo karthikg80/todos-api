@@ -40,8 +40,13 @@ async function installHomeFocusMockApi(
   page: Page,
   {
     aiDecisionAssistStatus = 500,
+    aiTopFocus = null,
     seedTodos,
-  }: { aiDecisionAssistStatus?: number; seedTodos: SeedTodo[] },
+  }: {
+    aiDecisionAssistStatus?: number;
+    aiTopFocus?: Array<{ todoId: string; reason?: string }> | null;
+    seedTodos: SeedTodo[];
+  },
 ) {
   const users = new Map<
     string,
@@ -208,7 +213,9 @@ async function installHomeFocusMockApi(
       if (aiDecisionAssistStatus >= 400) {
         return json(route, aiDecisionAssistStatus, { error: "AI unavailable" });
       }
-      return json(route, 200, { topFocus: [] });
+      return json(route, 200, {
+        topFocus: Array.isArray(aiTopFocus) ? aiTopFocus : [],
+      });
     }
 
     if (pathname === "/ai/suggestions" && method === "GET") {
@@ -475,10 +482,55 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "Top Focus",
     );
     await expect(page.locator('[data-home-tile="top_focus"]')).toContainText(
-      /Deterministic fallback focus list|Nothing urgent right now|Send overdue invoice/,
+      /Your 3 most important items right now|Nothing urgent right now|Send overdue invoice/,
     );
     await expect(page.locator('[data-home-tile="due_soon"]')).toContainText(
       /Due Soon|Prepare launch checklist|No tasks/,
+    );
+  });
+
+  test("Home tiles do not duplicate tasks across focus tiles", async ({
+    page,
+  }) => {
+    const titles = await page
+      .locator(
+        [
+          '[data-home-tile="top_focus"] .home-task-row__title',
+          '[data-home-tile="due_soon"] .home-task-row__title',
+          '[data-home-tile="stale_risks"] .home-task-row__title',
+          '[data-home-tile="quick_wins"] .home-task-row__title',
+        ].join(", "),
+      )
+      .evaluateAll((elements) =>
+        elements.map((el) => (el.textContent || "").trim()).filter(Boolean),
+      );
+    const counts = new Map<string, number>();
+    for (const title of titles) {
+      counts.set(title, (counts.get(title) || 0) + 1);
+    }
+    const duplicates = Array.from(counts.entries()).filter(
+      ([, count]) => count > 1,
+    );
+
+    expect(titles.length).toBeGreaterThan(0);
+    expect(duplicates).toEqual([]);
+  });
+
+  test("Top Focus shows user-facing subtitle and reason lines", async ({
+    page,
+  }) => {
+    const topFocusTile = page.locator('[data-home-tile="top_focus"]');
+    await expect(topFocusTile).toContainText(
+      "Your 3 most important items right now.",
+    );
+
+    const rowCount = await topFocusTile.locator(".home-task-row").count();
+    expect(rowCount).toBeGreaterThan(0);
+    await expect(topFocusTile.locator(".home-task-row__reason")).toHaveCount(
+      rowCount,
+    );
+    await expect(topFocusTile).toContainText(
+      /Overdue|Due today|Due tomorrow|High priority|Stale \(no recent activity\)/,
     );
   });
 
@@ -570,5 +622,100 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "Quick Wins",
     );
     await expectListOrEmptyState(page);
+  });
+});
+
+test.describe("Home focus dashboard due-soon grouping", () => {
+  test("Due Soon groups items by urgency buckets", async ({ page }) => {
+    const seedTodos: SeedTodo[] = [
+      {
+        id: "ai-focus-1",
+        title: "Quarterly strategy memo",
+        category: "Work",
+        dueDate: null,
+        priority: "high",
+        createdAt: isoDaysAgo(40),
+        updatedAt: isoDaysAgo(20),
+      },
+      {
+        id: "ai-focus-2",
+        title: "Unsorted cleanup plan",
+        category: null,
+        dueDate: null,
+        priority: "medium",
+        createdAt: isoDaysAgo(25),
+        updatedAt: isoDaysAgo(18),
+      },
+      {
+        id: "ai-focus-3",
+        title: "Backlog risk review",
+        category: "Ops",
+        dueDate: null,
+        priority: "high",
+        createdAt: isoDaysAgo(30),
+        updatedAt: isoDaysAgo(15),
+      },
+      {
+        id: "due-overdue",
+        title: "Past due filing",
+        category: "Admin",
+        dueDate: isoDaysFromNow(-1, 9),
+        priority: "medium",
+        createdAt: isoDaysAgo(10),
+        updatedAt: isoDaysAgo(2),
+      },
+      {
+        id: "due-today",
+        title: "Today follow-up",
+        category: "Work",
+        dueDate: isoDaysFromNow(0, 14),
+        priority: "medium",
+        createdAt: isoDaysAgo(6),
+        updatedAt: isoDaysAgo(1),
+      },
+      {
+        id: "due-tomorrow",
+        title: "Tomorrow prep",
+        category: "Work",
+        dueDate: isoDaysFromNow(1, 10),
+        priority: "low",
+        createdAt: isoDaysAgo(4),
+        updatedAt: isoDaysAgo(1),
+      },
+      {
+        id: "due-next3",
+        title: "Two-day checkpoint",
+        category: "Work",
+        dueDate: isoDaysFromNow(2, 11),
+        priority: "low",
+        createdAt: isoDaysAgo(3),
+        updatedAt: isoDaysAgo(1),
+      },
+    ];
+
+    await installHomeFocusMockApi(page, {
+      aiDecisionAssistStatus: 200,
+      aiTopFocus: [
+        { todoId: "ai-focus-1", reason: "High priority" },
+        { todoId: "ai-focus-2", reason: "Stale (no recent activity)" },
+        { todoId: "ai-focus-3", reason: "High priority" },
+      ],
+      seedTodos,
+    });
+    await openHomeApp(page);
+
+    const dueSoonTile = page.locator('[data-home-tile="due_soon"]');
+    await expect(
+      dueSoonTile.locator('[data-home-task-group="overdue"]'),
+    ).toContainText("Past due filing");
+    await expect(
+      dueSoonTile.locator('[data-home-task-group="today"]'),
+    ).toContainText("Today follow-up");
+    await expect(
+      dueSoonTile.locator('[data-home-task-group="tomorrow"]'),
+    ).toContainText("Tomorrow prep");
+    await expect(
+      dueSoonTile.locator('[data-home-task-group="next_3_days"]'),
+    ).toContainText("Two-day checkpoint");
   });
 });

@@ -5440,9 +5440,33 @@ body.is-todos-view .projects-rail-item__count {
 
 .home-task-row__reason {
   grid-column: 2 / -1;
-  color: var(--text-secondary);
-  font-size: 0.73rem;
+  margin-top: -2px;
+  color: color-mix(in oklab, var(--text-secondary) 86%, var(--surface));
+  font-size: 0.72rem;
   line-height: 1.2;
+}
+
+.home-task-group {
+  display: grid;
+  gap: 5px;
+}
+
+.home-task-group + .home-task-group {
+  margin-top: 4px;
+}
+
+.home-task-group__label {
+  padding: 2px 4px 0;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--text-secondary) 82%, var(--surface));
+}
+
+.home-task-group__items {
+  display: grid;
+  gap: 6px;
 }
 
 .home-project-row {
