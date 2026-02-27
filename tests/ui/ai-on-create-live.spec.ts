@@ -356,8 +356,7 @@ test.describe("On-create decision assist live", () => {
 
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("email follow up");
-    await page.locator("#taskComposerAddButton").click();
-    await revealOnCreateFullAssist(page);
+    await page.locator("#todoInput").press("Enter");
 
     await expect(
       page.locator('[data-testid="ai-on-create-row"]'),
@@ -390,8 +389,7 @@ test.describe("On-create decision assist live", () => {
 
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("urgent website fix");
-    await page.locator("#taskComposerAddButton").click();
-    await revealOnCreateFullAssist(page);
+    await page.locator("#todoInput").press("Enter");
 
     const firstCard = page.locator(".ai-create-chip").first();
     await firstCard.getByRole("button", { name: "Dismiss" }).click();

@@ -63,12 +63,7 @@ export async function ensureAllTasksListActive(page: Page) {
 }
 
 export async function openTaskComposerSheet(page: Page) {
-  const topbarNewTask = page.locator(".top-add-btn").first();
-  if (await topbarNewTask.isVisible()) {
-    await topbarNewTask.click();
-  } else {
-    await page.getByRole("button", { name: "New Task", exact: true }).click();
-  }
+  await page.locator("#floatingNewTaskCta").click();
   await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
     "aria-hidden",
     "false",

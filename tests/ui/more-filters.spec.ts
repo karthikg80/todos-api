@@ -253,17 +253,12 @@ test.describe("More filters disclosure", () => {
     );
   });
 
-  test("top bar New Task control opens the composer sheet", async ({
+  test("floating New Task CTA opens composer and top bar primary Add Task is removed", async ({
     page,
   }) => {
-    await expect(
-      page.getByRole("button", { name: "New Task" }).first(),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "New Task" }).first().click();
-    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
+    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
+    await page.locator("#floatingNewTaskCta").click();
+    await expect(page.locator("#todoInput")).toBeVisible();
     await expect(page.locator("#todoInput")).toBeFocused();
   });
 });

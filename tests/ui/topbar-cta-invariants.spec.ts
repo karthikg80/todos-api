@@ -150,7 +150,7 @@ async function installTopbarInvariantMockApi(
 }
 
 test.describe("Topbar CTA invariants", () => {
-  test("rail expanded keeps CTAs visible and controls consistent", async ({
+  test("rail expanded keeps floating CTA visible and controls consistent", async ({
     page,
     isMobile,
   }) => {
@@ -190,8 +190,9 @@ test.describe("Topbar CTA invariants", () => {
       await expect(rail).not.toHaveClass(/projects-rail--collapsed/);
     }
 
-    const addButton = page.locator(".todos-top-bar .top-add-btn");
+    const addButton = page.locator("#floatingNewTaskCta");
     const searchInput = page.locator("#searchInput");
+    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
     await expect(addButton).toBeVisible();
     await expect(searchInput).toBeVisible();
 

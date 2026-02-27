@@ -262,16 +262,16 @@ test.describe("App smoke flows", () => {
     await ensureAllTasksListActive(page);
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("Smoke Todo A");
-    await page.locator("#taskComposerAddButton").click();
-    await expect(
-      page.locator(".todo-item .todo-title", { hasText: "Smoke Todo A" }),
-    ).toBeVisible();
+    await page.locator("#todoInput").press("Enter");
+    await expect(page.locator(".todo-item .todo-title")).toHaveText(
+      "Smoke Todo A",
+    );
 
     await page.reload();
     await ensureAllTasksListActive(page);
-    await expect(
-      page.locator(".todo-item .todo-title", { hasText: "Smoke Todo A" }),
-    ).toBeVisible();
+    await expect(page.locator(".todo-item .todo-title")).toHaveText(
+      "Smoke Todo A",
+    );
 
     const firstRow = page.locator(".todo-item").first();
     await firstRow.hover();
@@ -279,15 +279,11 @@ test.describe("App smoke flows", () => {
     await firstRow.locator(".todo-kebab-item--danger").click();
     page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#drawerDeleteTodoButton").click();
-    await expect(
-      page.locator(".todo-item .todo-title", { hasText: "Smoke Todo A" }),
-    ).toHaveCount(0);
+    await expect(page.locator(".todo-item .todo-title")).toHaveCount(0);
 
     await page.reload();
     await ensureAllTasksListActive(page);
-    await expect(
-      page.locator(".todo-item .todo-title", { hasText: "Smoke Todo A" }),
-    ).toHaveCount(0);
+    await expect(page.locator(".todo-item .todo-title")).toHaveCount(0);
 
     await page.getByRole("button", { name: "Logout" }).click();
     await expect(page.locator("#authView")).toHaveClass(/active/);
@@ -299,7 +295,7 @@ test.describe("App smoke flows", () => {
     await page.getByRole("button", { name: "Create Account" }).click();
 
     await expect(page.locator("#todosView")).toHaveClass(/active/);
-    await expect(page.getByText("Smoke Todo A")).toHaveCount(0);
+    await expect(page.locator(".todo-item .todo-title")).toHaveCount(0);
   });
 
   test("logout resets date view filter for next session", async ({ page }) => {

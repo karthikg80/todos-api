@@ -198,7 +198,8 @@ test.describe("Top bar projects cleanup", () => {
     test.skip(isMobile, "Desktop-only assertion");
 
     await expect(page.locator(".todos-top-bar #searchInput")).toBeVisible();
-    await expect(page.locator(".todos-top-bar .top-add-btn")).toBeVisible();
+    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
+    await expect(page.locator("#floatingNewTaskCta")).toBeVisible();
     await expect(
       page.locator(".todos-top-bar #moreFiltersToggle"),
     ).toBeVisible();

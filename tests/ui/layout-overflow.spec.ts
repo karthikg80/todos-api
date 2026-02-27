@@ -181,14 +181,15 @@ test.describe("Todos layout overflow hardening", () => {
       )
       .click();
 
-    const addButton = page.locator(".todos-top-bar .top-add-btn");
+    const addButton = page.locator("#floatingNewTaskCta");
     const searchInput = page.locator("#searchInput");
+    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
     await expect(addButton).toBeVisible();
     await expect(searchInput).toBeVisible();
 
     const topbarOverlap = await page.evaluate(() => {
       const add = document.querySelector(
-        ".todos-top-bar .top-add-btn",
+        "#floatingNewTaskCta",
       ) as HTMLElement | null;
       const search = document.querySelector(
         "#searchInput",
