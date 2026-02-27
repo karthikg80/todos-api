@@ -246,11 +246,7 @@ test.describe("Todo drawer mobile polish", () => {
       .toBe("fixed");
     await expect
       .poll(() =>
-        page.evaluate(
-          () =>
-            document.body.style.top.startsWith("-") &&
-            document.body.style.top.endsWith("px"),
-        ),
+        page.evaluate(() => /^-?\d+px$/.test(document.body.style.top)),
       )
       .toBe(true);
 
