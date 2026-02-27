@@ -1043,10 +1043,102 @@ function getOpenTodos() {
   return todos.filter((todo) => !todo.completed);
 }
 
+const HOME_STALE_RISK_DAYS = 14;
+
+function createHomeTodoIdSet(items = []) {
+  return new Set(items.map((todo) => String(todo?.id || "")).filter(Boolean));
+}
+
+function takeExclusiveTodos(
+  candidates = [],
+  limit = 6,
+  usedTodoIds = new Set(),
+) {
+  const selected = [];
+  for (const todo of candidates) {
+    const todoId = String(todo?.id || "");
+    if (!todoId || usedTodoIds.has(todoId) || !!todo?.completed) continue;
+    usedTodoIds.add(todoId);
+    selected.push(todo);
+    if (selected.length >= limit) break;
+  }
+  return selected;
+}
+
+function getHomeTodoDaysSinceRecentActivity(todo) {
+  const updatedMs = Date.parse(
+    String(todo?.updatedAt || todo?.createdAt || ""),
+  );
+  if (!Number.isFinite(updatedMs) || updatedMs <= 0) return 0;
+  return (Date.now() - updatedMs) / 86400000;
+}
+
+function getHomeTopFocusDeterministicReason(todo) {
+  const dueBadge = formatHomeDueBadge(todo);
+  if (dueBadge === "Overdue") return "Overdue";
+  if (dueBadge === "Today") return "Due today";
+  if (dueBadge === "Tomorrow") return "Due tomorrow";
+  if (normalizePriorityValue(todo?.priority) === "high") return "High priority";
+  if (getHomeTodoDaysSinceRecentActivity(todo) >= HOME_STALE_RISK_DAYS) {
+    return "Stale (no recent activity)";
+  }
+  if (
+    isTodoUnsorted(todo) &&
+    getHomeTodoDaysSinceRecentActivity(todo) >= HOME_STALE_RISK_DAYS / 2
+  ) {
+    return "Unsorted and aging";
+  }
+  return "Needs attention";
+}
+
+function getHomeTopFocusReason(todo) {
+  const todoId = String(todo?.id || "");
+  const aiReason = String(homeTopFocusState.reasonsById?.[todoId] || "").trim();
+  return aiReason || getHomeTopFocusDeterministicReason(todo);
+}
+
+function getHomeDueSoonGroupKey(todo) {
+  const dueDate = getTodoDueDate(todo);
+  if (!dueDate) return "";
+  const now = new Date();
+  const today = getStartOfToday(now);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const next3Start = new Date(today);
+  next3Start.setDate(today.getDate() + 2);
+  const next3End = getEndOfDay(new Date(today.getTime() + 4 * 86400000));
+  const dueDay = getStartOfToday(dueDate);
+  if (dueDay < today) return "overdue";
+  if (isSameLocalDay(dueDate, today)) return "today";
+  if (isSameLocalDay(dueDate, tomorrow)) return "tomorrow";
+  if (dueDate >= next3Start && dueDate <= next3End) return "next_3_days";
+  return "";
+}
+
+function buildHomeDueSoonGroups(items = []) {
+  const grouped = {
+    overdue: [],
+    today: [],
+    tomorrow: [],
+    next_3_days: [],
+  };
+  for (const todo of items) {
+    const key = getHomeDueSoonGroupKey(todo);
+    if (!key || !grouped[key]) continue;
+    grouped[key].push(todo);
+  }
+  return [
+    { key: "overdue", label: "Overdue", items: grouped.overdue },
+    { key: "today", label: "Today", items: grouped.today },
+    { key: "tomorrow", label: "Tomorrow", items: grouped.tomorrow },
+    { key: "next_3_days", label: "Next 3 days", items: grouped.next_3_days },
+  ].filter((group) => group.items.length > 0);
+}
+
 function getDueSoonTodos(limit = 6) {
   const now = new Date();
   const todayStart = getStartOfToday(now);
-  const dueLimit = getEndOfDay(new Date(todayStart.getTime() + 5 * 86400000));
+  const dueLimit = getEndOfDay(new Date(todayStart.getTime() + 4 * 86400000));
   return getOpenTodos()
     .map((todo) => ({ todo, dueDate: getTodoDueDate(todo) }))
     .filter(({ dueDate }) => dueDate && dueDate <= dueLimit)
@@ -1075,20 +1167,25 @@ function getStaleRiskTodos(limit = 6) {
         Date.parse(String(todo.createdAt || "")) || updatedMs || 0;
       const daysStale = updatedMs ? (now - updatedMs) / 86400000 : 0;
       const daysOld = createdMs ? (now - createdMs) / 86400000 : 0;
-      const overdueBoost =
-        getTodoDueDate(todo) && getTodoDueDate(todo) < new Date() ? 8 : 0;
-      const priorityBoost =
-        todo.priority === "high" ? 5 : todo.priority === "medium" ? 2 : 0;
-      const unsortedBoost = isTodoUnsorted(todo) ? 4 : 0;
+      const dueDate = getTodoDueDate(todo);
+      const priority = normalizePriorityValue(todo.priority);
+      const isOld = daysStale >= HOME_STALE_RISK_DAYS;
+      const isUnsortedOld = isTodoUnsorted(todo) && daysStale >= 7;
+      const isHighOld = priority === "high" && daysStale >= 7;
+      const isMediumVeryOld =
+        priority === "medium" && daysStale >= HOME_STALE_RISK_DAYS + 7;
+      const qualifies = isOld || isUnsortedOld || isHighOld || isMediumVeryOld;
       const score =
         daysStale +
-        daysOld * 0.25 +
-        overdueBoost +
-        priorityBoost +
-        unsortedBoost;
-      return { todo, score, daysStale };
+        daysOld * 0.2 +
+        (isOld ? 4 : 0) +
+        (isUnsortedOld ? 4 : 0) +
+        (isHighOld ? 3 : 0) +
+        (isMediumVeryOld ? 1 : 0) +
+        (!dueDate ? 1 : 0);
+      return { todo, score, qualifies };
     })
-    .filter((entry) => entry.daysStale >= 2 || entry.score >= 7)
+    .filter((entry) => entry.qualifies)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
       return String(a.todo.title || "").localeCompare(
@@ -1101,10 +1198,16 @@ function getStaleRiskTodos(limit = 6) {
 
 function getQuickWinTodos(limit = 6) {
   const now = new Date();
+  const today = getStartOfToday(now);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
   return getOpenTodos()
     .filter((todo) => {
       const dueDate = getTodoDueDate(todo);
       const isOverdue = dueDate && dueDate < now;
+      const isDueTodayOrTomorrow =
+        !!dueDate &&
+        (isSameLocalDay(dueDate, today) || isSameLocalDay(dueDate, tomorrow));
       const hasSubtasks =
         Array.isArray(todo.subtasks) && todo.subtasks.length > 0;
       const hasNotes = !!String(todo.notes || "").trim();
@@ -1112,9 +1215,10 @@ function getQuickWinTodos(limit = 6) {
       return (
         !!title &&
         !isOverdue &&
+        !isDueTodayOrTomorrow &&
         !hasSubtasks &&
         !hasNotes &&
-        title.length <= 42 &&
+        title.length < 35 &&
         title.split(/\s+/).filter(Boolean).length <= 8
       );
     })
@@ -1186,11 +1290,16 @@ function getTopFocusFallbackTodos(limit = 3) {
   return candidates.slice(0, limit);
 }
 
-function getHomeDashboardModel() {
+function getHomeDashboardModel({ topFocusItems = [] } = {}) {
+  const usedTodoIds = createHomeTodoIdSet(topFocusItems);
+  const dueSoon = takeExclusiveTodos(getDueSoonTodos(24), 6, usedTodoIds);
+  const staleRisks = takeExclusiveTodos(getStaleRiskTodos(24), 6, usedTodoIds);
+  const quickWins = takeExclusiveTodos(getQuickWinTodos(24), 6, usedTodoIds);
   return {
-    dueSoon: getDueSoonTodos(6),
-    staleRisks: getStaleRiskTodos(6),
-    quickWins: getQuickWinTodos(6),
+    dueSoon,
+    dueSoonGroups: buildHomeDueSoonGroups(dueSoon),
+    staleRisks,
+    quickWins,
     projectsToNudge: getProjectsToNudge(4),
     topFocusFallback: getTopFocusFallbackTodos(3),
   };
@@ -1445,10 +1554,42 @@ function renderHomeTaskTile({
   title,
   subtitle = "",
   items = [],
+  groupedItems = null,
   seeAllLabel = "See all",
   emptyText = "No tasks here.",
   showReasons = false,
 } = {}) {
+  const bodyHtml =
+    items.length > 0
+      ? Array.isArray(groupedItems) && groupedItems.length > 0
+        ? groupedItems
+            .map(
+              (group) => `
+                <div class="home-task-group" data-home-task-group="${escapeHtml(group.key)}">
+                  <div class="home-task-group__label">${escapeHtml(group.label)}</div>
+                  <div class="home-task-group__items">
+                    ${group.items
+                      .map((todo) =>
+                        renderHomeTaskRow(todo, {
+                          reason: showReasons
+                            ? getHomeTopFocusReason(todo)
+                            : "",
+                        }),
+                      )
+                      .join("")}
+                  </div>
+                </div>
+              `,
+            )
+            .join("")
+        : items
+            .map((todo) =>
+              renderHomeTaskRow(todo, {
+                reason: showReasons ? getHomeTopFocusReason(todo) : "",
+              }),
+            )
+            .join("")
+      : `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`;
   return `
     <section class="home-tile home-tile--tasks" data-home-tile="${escapeHtml(key)}">
       <div class="home-tile__header">
@@ -1459,22 +1600,7 @@ function renderHomeTaskTile({
         ${key !== "top_focus" ? `<button type="button" class="mini-btn home-tile__see-all" data-onclick="openHomeTileList('${escapeHtml(key)}')">${escapeHtml(seeAllLabel)}</button>` : ""}
       </div>
       <div class="home-tile__body" ${key === "top_focus" ? 'id="homeTopFocusBody"' : ""}>
-        ${
-          items.length > 0
-            ? items
-                .map((todo) =>
-                  renderHomeTaskRow(todo, {
-                    reason: showReasons
-                      ? String(
-                          homeTopFocusState.reasonsById?.[String(todo.id)] ||
-                            "",
-                        )
-                      : "",
-                  }),
-                )
-                .join("")
-            : `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`
-        }
+        ${bodyHtml}
         ${
           key === "top_focus" && homeTopFocusState.loading
             ? '<div class="home-tile__helper" role="status">Refreshing focus…</div>'
@@ -1519,12 +1645,12 @@ function renderProjectsToNudgeTile(items = []) {
 }
 
 function renderHomeDashboard() {
-  const model = getHomeDashboardModel();
-  const fallbackTopFocus = model.topFocusFallback;
+  const fallbackTopFocus = getTopFocusFallbackTodos(3);
   const topFocusItems =
     homeTopFocusState.items.length > 0
       ? homeTopFocusState.items
       : fallbackTopFocus;
+  const model = getHomeDashboardModel({ topFocusItems });
   void hydrateHomeTopFocusIfNeeded();
 
   return `
@@ -1546,19 +1672,17 @@ function renderHomeDashboard() {
         ${renderHomeTaskTile({
           key: "top_focus",
           title: "Top Focus",
-          subtitle:
-            homeTopFocusState.source === "ai"
-              ? "AI-ranked from a bounded candidate set."
-              : "Deterministic fallback focus list.",
+          subtitle: "Your 3 most important items right now.",
           items: topFocusItems,
           emptyText: "Nothing urgent right now.",
-          showReasons: homeTopFocusState.source === "ai",
+          showReasons: true,
         })}
         ${renderHomeTaskTile({
           key: "due_soon",
           title: "Due Soon",
           subtitle: "Overdue, today/tomorrow, then the next 3 days.",
           items: model.dueSoon,
+          groupedItems: model.dueSoonGroups,
           emptyText: "No due-soon tasks.",
         })}
         ${renderHomeTaskTile({
