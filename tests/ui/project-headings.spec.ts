@@ -448,7 +448,9 @@ test.describe("Project headings (sections)", () => {
     await page.locator("#todoProjectSelect").selectOption({ label: "Work" });
     await page.locator("#todoInput").fill("Task for sprint");
     await page.locator("#taskComposerAddButton").click();
-    await expect(page.getByText("Task for sprint")).toBeVisible();
+    await expect(
+      page.locator(".todo-item .todo-title", { hasText: "Task for sprint" }),
+    ).toBeVisible();
 
     const taskRow = page.locator(".todo-item", { hasText: "Task for sprint" });
     await taskRow.hover();

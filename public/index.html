@@ -621,12 +621,6 @@
                       </div>
                       <div class="todos-top-bar-actions">
                         <button
-                          class="add-btn top-add-btn"
-                          data-onclick="openTaskComposer()"
-                        >
-                          New Task
-                        </button>
-                        <button
                           id="moreFiltersToggle"
                           class="mini-btn more-filters-toggle"
                           aria-expanded="false"
@@ -1114,6 +1108,11 @@
                         </div>
                       </div>
                       <section
+                        id="homeFocusDashboard"
+                        class="home-focus-dashboard"
+                        aria-label="Home Focus Dashboard"
+                      ></section>
+                      <section
                         id="todayPlanPanel"
                         class="today-plan-panel"
                         data-testid="today-plan-panel"
@@ -1270,6 +1269,16 @@
                     </div>
                   </div>
                 </aside>
+                <button
+                  id="floatingNewTaskCta"
+                  class="floating-new-task-cta"
+                  type="button"
+                  aria-label="New Task"
+                  title="New Task"
+                  data-onclick="openTaskComposer()"
+                >
+                  + New Task
+                </button>
               </div>
 
               <!-- Profile View -->

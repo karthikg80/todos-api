@@ -197,7 +197,8 @@ test.describe("Todos layout invariants", () => {
     }
 
     const topbar = page.locator(".todos-top-bar");
-    const addBtn = page.locator(".todos-top-bar .top-add-btn");
+    const addBtn = page.locator("#floatingNewTaskCta");
+    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
     await expect(addBtn).toBeVisible();
     await expect(topbar).toBeVisible();
 

@@ -259,8 +259,12 @@ test.describe("Quick entry natural date input", () => {
       .toBe("Test task");
 
     await page.locator("#taskComposerAddButton").click();
-    await expect(page.getByText("Test task")).toBeVisible();
-    await expect(page.getByText(/tomorrow 6pm/i)).toHaveCount(0);
+    await expect(
+      page.locator(".todo-item .todo-title", { hasText: "Test task" }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".todo-item .todo-title", { hasText: /tomorrow 6pm/i }),
+    ).toHaveCount(0);
 
     const createdBodies = (await page.evaluate(
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

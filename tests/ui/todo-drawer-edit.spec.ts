@@ -246,7 +246,9 @@ test.describe("Todo drawer essentials editing", () => {
       .toBeTruthy();
 
     await expect(page.locator("#drawerSaveStatus")).toContainText("Saved");
-    await expect(page.getByText("Updated title")).toBeVisible();
+    await expect(page.locator(".todo-item .todo-title")).toContainText(
+      "Updated title",
+    );
   });
 
   test("saves due date, priority, and project on change", async ({ page }) => {

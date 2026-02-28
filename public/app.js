@@ -7729,6 +7729,357 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
   return chips.slice(0, 2).join("");
 }
 
+function clearHomeFocusDashboard() {
+  const dashboard = document.getElementById("homeFocusDashboard");
+  if (!(dashboard instanceof HTMLElement)) return;
+  dashboard.hidden = true;
+  dashboard.innerHTML = "";
+}
+
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getTodoDueSummary(todo, now = new Date()) {
+  if (!todo?.dueDate) {
+    return {
+      hasDueDate: false,
+      isOverdue: false,
+      daysLate: 0,
+      isToday: false,
+      isTomorrow: false,
+      isNextThreeDays: false,
+    };
+  }
+
+  const due = new Date(todo.dueDate);
+  if (Number.isNaN(due.getTime())) {
+    return {
+      hasDueDate: false,
+      isOverdue: false,
+      daysLate: 0,
+      isToday: false,
+      isTomorrow: false,
+      isNextThreeDays: false,
+    };
+  }
+
+  const nowStart = startOfLocalDay(now);
+  const dueStart = startOfLocalDay(due);
+  const dayDiff = Math.floor(
+    (dueStart.getTime() - nowStart.getTime()) / 86400000,
+  );
+  const daysLate = Math.max(0, -dayDiff);
+
+  return {
+    hasDueDate: true,
+    dueDate: due,
+    isOverdue: dayDiff < 0,
+    daysLate,
+    isToday: dayDiff === 0,
+    isTomorrow: dayDiff === 1,
+    isNextThreeDays: dayDiff >= 2 && dayDiff <= 4,
+  };
+}
+
+function formatDashboardDueChip(todo, dueSummary) {
+  if (!dueSummary.hasDueDate) return "";
+  if (dueSummary.isOverdue) {
+    return dueSummary.daysLate > 0 ? `${dueSummary.daysLate}d late` : "Late";
+  }
+  return dueSummary.dueDate.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function getDashboardReasonLine(todo, dueSummary) {
+  if (dueSummary.isOverdue) return "Overdue";
+  if (dueSummary.isToday) return "Due today";
+  if (dueSummary.isTomorrow) return "Due tomorrow";
+  if (dueSummary.isNextThreeDays) return "Due in the next 3 days";
+  if (todo.priority === "high") return "High priority";
+  if (todo.category) return `Project: ${todo.category}`;
+  return "No due date";
+}
+
+function getTodoRecencyDays(todo, now = new Date()) {
+  const raw = todo?.updatedAt || todo?.createdAt || null;
+  if (!raw) return 0;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return 0;
+  return Math.max(0, Math.floor((now.getTime() - date.getTime()) / 86400000));
+}
+
+function renderTopFocusRow(
+  todo,
+  reason,
+  dueChipLabel,
+  showFallbackOverduePill,
+) {
+  return `
+    <li class="home-focus-row" data-testid="top-focus-row">
+      <div class="home-focus-row__main">
+        <div class="home-focus-row__title">${escapeHtml(String(todo.title || "Untitled task"))}</div>
+        <div class="home-focus-row__reason" data-testid="top-focus-reason">${escapeHtml(reason)}</div>
+      </div>
+      ${
+        dueChipLabel
+          ? `<span class="home-focus-due-chip${dueChipLabel.includes("late") ? " home-focus-due-chip--overdue" : ""}" data-testid="top-focus-due-chip">${escapeHtml(dueChipLabel)}</span>`
+          : showFallbackOverduePill
+            ? '<span class="todo-chip todo-chip--due-overdue" data-testid="top-focus-overdue-pill">Overdue</span>'
+            : ""
+      }
+    </li>
+  `;
+}
+
+function renderHomeFocusDashboard(visibleTodos) {
+  const dashboard = document.getElementById("homeFocusDashboard");
+  if (!(dashboard instanceof HTMLElement)) return;
+
+  const activeTodos = visibleTodos.filter((todo) => !todo.completed);
+  if (activeTodos.length === 0) {
+    dashboard.hidden = true;
+    dashboard.innerHTML = "";
+    return;
+  }
+
+  const now = new Date();
+  const usedTodoIds = new Set();
+  const dueSummaryById = new Map(
+    activeTodos.map((todo) => [String(todo.id), getTodoDueSummary(todo, now)]),
+  );
+
+  const topFocus = [...activeTodos]
+    .sort((a, b) => {
+      const dueA = dueSummaryById.get(String(a.id));
+      const dueB = dueSummaryById.get(String(b.id));
+      const overdueA = dueA?.isOverdue ? 1 : 0;
+      const overdueB = dueB?.isOverdue ? 1 : 0;
+      if (overdueA !== overdueB) return overdueB - overdueA;
+      const dueTimeA = dueA?.hasDueDate
+        ? dueA.dueDate.getTime()
+        : Number.MAX_SAFE_INTEGER;
+      const dueTimeB = dueB?.hasDueDate
+        ? dueB.dueDate.getTime()
+        : Number.MAX_SAFE_INTEGER;
+      if (dueTimeA !== dueTimeB) return dueTimeA - dueTimeB;
+      const priA = a.priority === "high" ? 0 : a.priority === "medium" ? 1 : 2;
+      const priB = b.priority === "high" ? 0 : b.priority === "medium" ? 1 : 2;
+      if (priA !== priB) return priA - priB;
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    })
+    .slice(0, 3);
+
+  const topFocusRows = topFocus
+    .map((todo) => {
+      usedTodoIds.add(String(todo.id));
+      const dueSummary =
+        dueSummaryById.get(String(todo.id)) || getTodoDueSummary(todo, now);
+      const reason = getDashboardReasonLine(todo, dueSummary);
+      const dueChipLabel = formatDashboardDueChip(todo, dueSummary);
+      const showFallbackOverduePill = !dueSummary.hasDueDate && !reason;
+      return renderTopFocusRow(
+        todo,
+        reason,
+        dueChipLabel,
+        showFallbackOverduePill,
+      );
+    })
+    .join("");
+
+  const dueSoonCandidates = activeTodos.filter((todo) => {
+    if (usedTodoIds.has(String(todo.id))) return false;
+    const dueSummary = dueSummaryById.get(String(todo.id));
+    return !!dueSummary?.hasDueDate;
+  });
+
+  const dueGroups = {
+    overdue: [],
+    today: [],
+    tomorrow: [],
+    next3Days: [],
+  };
+
+  dueSoonCandidates.forEach((todo) => {
+    const dueSummary = dueSummaryById.get(String(todo.id));
+    if (!dueSummary) return;
+    if (dueSummary.isOverdue) {
+      dueGroups.overdue.push(todo);
+      usedTodoIds.add(String(todo.id));
+      return;
+    }
+    if (dueSummary.isToday) {
+      dueGroups.today.push(todo);
+      usedTodoIds.add(String(todo.id));
+      return;
+    }
+    if (dueSummary.isTomorrow) {
+      dueGroups.tomorrow.push(todo);
+      usedTodoIds.add(String(todo.id));
+      return;
+    }
+    if (dueSummary.isNextThreeDays) {
+      dueGroups.next3Days.push(todo);
+      usedTodoIds.add(String(todo.id));
+    }
+  });
+
+  const renderDueGroup = (label, todosInGroup) => {
+    if (!todosInGroup.length) return "";
+    return `
+      <div class="home-focus-group">
+        <div class="home-focus-group__label" data-testid="due-soon-group-label">${label}</div>
+        <ul class="home-focus-list">
+          ${todosInGroup
+            .slice(0, 3)
+            .map((todo) => {
+              const dueSummary =
+                dueSummaryById.get(String(todo.id)) ||
+                getTodoDueSummary(todo, now);
+              const dueChip = formatDashboardDueChip(todo, dueSummary);
+              return `
+                <li class="home-focus-row">
+                  <div class="home-focus-row__main">
+                    <div class="home-focus-row__title">${escapeHtml(String(todo.title || "Untitled task"))}</div>
+                    <div class="home-focus-row__reason">${escapeHtml(getDashboardReasonLine(todo, dueSummary))}</div>
+                  </div>
+                  <span class="home-focus-due-chip${dueSummary.isOverdue ? " home-focus-due-chip--overdue" : ""}">
+                    ${escapeHtml(dueChip)}
+                  </span>
+                </li>
+              `;
+            })
+            .join("")}
+        </ul>
+      </div>
+    `;
+  };
+
+  const staleRisks = activeTodos
+    .filter((todo) => !usedTodoIds.has(String(todo.id)))
+    .map((todo) => ({
+      todo,
+      staleDays: getTodoRecencyDays(todo, now),
+      dueSummary:
+        dueSummaryById.get(String(todo.id)) || getTodoDueSummary(todo, now),
+    }))
+    .filter((entry) => entry.staleDays >= 7 || !entry.dueSummary.hasDueDate)
+    .sort((a, b) => b.staleDays - a.staleDays)
+    .slice(0, 3);
+
+  staleRisks.forEach((entry) => usedTodoIds.add(String(entry.todo.id)));
+
+  const staleMarkup = staleRisks.length
+    ? `
+      <ul class="home-focus-list">
+        ${staleRisks
+          .map(
+            ({ todo, staleDays }) => `
+              <li class="home-focus-row">
+                <div class="home-focus-row__main">
+                  <div class="home-focus-row__title">${escapeHtml(String(todo.title || "Untitled task"))}</div>
+                  <div class="home-focus-row__reason">${escapeHtml(`Last touched ${staleDays}d ago`)}</div>
+                </div>
+              </li>
+            `,
+          )
+          .join("")}
+      </ul>
+    `
+    : '<div class="home-focus-empty">No stale risks — nice.</div>';
+
+  const projectStats = new Map();
+  activeTodos
+    .filter((todo) => !usedTodoIds.has(String(todo.id)))
+    .forEach((todo) => {
+      const project = String(todo.category || "Uncategorized");
+      const dueSummary =
+        dueSummaryById.get(String(todo.id)) || getTodoDueSummary(todo, now);
+      const record = projectStats.get(project) || {
+        project,
+        dueSoon: 0,
+        overdue: 0,
+        maxStaleDays: 0,
+      };
+      if (dueSummary.isOverdue) {
+        record.overdue += 1;
+      } else if (
+        dueSummary.isToday ||
+        dueSummary.isTomorrow ||
+        dueSummary.isNextThreeDays
+      ) {
+        record.dueSoon += 1;
+      }
+      record.maxStaleDays = Math.max(
+        record.maxStaleDays,
+        getTodoRecencyDays(todo, now),
+      );
+      projectStats.set(project, record);
+    });
+
+  const projectsToNudge = Array.from(projectStats.values())
+    .sort((a, b) => {
+      if (a.overdue !== b.overdue) return b.overdue - a.overdue;
+      if (a.dueSoon !== b.dueSoon) return b.dueSoon - a.dueSoon;
+      if (a.maxStaleDays !== b.maxStaleDays)
+        return b.maxStaleDays - a.maxStaleDays;
+      return a.project.localeCompare(b.project);
+    })
+    .slice(0, 4);
+
+  const projectsMarkup = projectsToNudge.length
+    ? `
+      <ul class="home-focus-list">
+        ${projectsToNudge
+          .map((entry) => {
+            const whyParts = [];
+            if (entry.dueSoon > 0) whyParts.push(`${entry.dueSoon} due soon`);
+            if (entry.overdue > 0) whyParts.push(`${entry.overdue} overdue`);
+            const why = whyParts.length
+              ? whyParts.join(" • ")
+              : `Last touched ${entry.maxStaleDays}d ago`;
+            return `
+              <li class="home-focus-row">
+                <div class="home-focus-row__main">
+                  <div class="home-focus-row__title">${escapeHtml(entry.project)}</div>
+                  <div class="home-focus-row__reason">${escapeHtml(why)}</div>
+                </div>
+              </li>
+            `;
+          })
+          .join("")}
+      </ul>
+    `
+    : '<div class="home-focus-empty">No projects need nudging.</div>';
+
+  dashboard.hidden = false;
+  dashboard.innerHTML = `
+    <div class="home-focus-grid">
+      <section class="home-focus-card">
+        <h3>Top Focus</h3>
+        <ul class="home-focus-list">${topFocusRows}</ul>
+      </section>
+      <section class="home-focus-card" data-testid="due-soon-card">
+        <h3>Due Soon</h3>
+        ${renderDueGroup("OVERDUE", dueGroups.overdue)}
+        ${renderDueGroup("TODAY", dueGroups.today)}
+        ${renderDueGroup("TOMORROW", dueGroups.tomorrow)}
+        ${renderDueGroup("NEXT 3 DAYS", dueGroups.next3Days)}
+      </section>
+      <section class="home-focus-card">
+        <h3>Stale Risks</h3>
+        ${staleMarkup}
+      </section>
+      <section class="home-focus-card">
+        <h3>Projects to Nudge</h3>
+        ${projectsMarkup}
+      </section>
+    </div>
+  `;
+}
+
 // Render todos
 function renderTodos() {
   const container = document.getElementById("todosContent");
@@ -7744,6 +8095,7 @@ function renderTodos() {
   }
 
   if (todosLoadState === "loading") {
+    clearHomeFocusDashboard();
     updateHeaderFromVisibleTodos([]);
     const skeletonRows = Array.from({ length: 6 })
       .map(
@@ -7785,6 +8137,7 @@ function renderTodos() {
   }
 
   if (todosLoadState === "error" && todos.length === 0) {
+    clearHomeFocusDashboard();
     updateHeaderFromVisibleTodos([]);
     isTodoDrawerOpen = false;
     selectedTodoId = null;
@@ -7815,6 +8168,7 @@ function renderTodos() {
   }
 
   if (todos.length === 0) {
+    clearHomeFocusDashboard();
     updateHeaderFromVisibleTodos([]);
     isTodoDrawerOpen = false;
     selectedTodoId = null;
@@ -7835,6 +8189,7 @@ function renderTodos() {
   }
 
   const filteredTodos = getVisibleTodos();
+  renderHomeFocusDashboard(filteredTodos);
   updateHeaderFromVisibleTodos(filteredTodos);
   if (
     openTodoKebabId &&
@@ -10032,6 +10387,13 @@ function bindTodayPlanHandlers() {
 // ========== PHASE B: PRIORITY, NOTES, SUBTASKS ==========
 let currentPriority = "medium";
 
+function openTodoComposerFromCta() {
+  const input = document.getElementById("todoInput");
+  if (!(input instanceof HTMLInputElement)) return;
+  input.scrollIntoView({ behavior: "smooth", block: "center" });
+  input.focus();
+}
+
 function handleTodoKeyPress(event) {
   if (event.key === "Enter") {
     event.preventDefault();
@@ -10686,10 +11048,18 @@ document.addEventListener("keydown", function (e) {
     return;
   }
 
-  // Ctrl/Cmd + N: Focus on new todo input
-  if ((e.ctrlKey || e.metaKey) && e.key === "n") {
+  // Ctrl/Cmd + N: open task composer
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
     e.preventDefault();
     openTaskComposer();
+    return;
+  }
+
+  // N: open task composer (when not typing in a field)
+  if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "n") {
+    e.preventDefault();
+    openTaskComposer();
+    return;
   }
 
   // Ctrl/Cmd + F: Focus on search

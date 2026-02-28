@@ -2318,6 +2318,114 @@ button.projects-rail-item {
   white-space: nowrap;
 }
 
+.floating-new-task-cta {
+  display: none;
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 45;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff;
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+}
+
+body.is-todos-view .floating-new-task-cta {
+  display: inline-flex;
+  align-items: center;
+}
+
+.home-focus-dashboard {
+  margin-bottom: 8px;
+}
+
+.home-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.home-focus-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  padding: 10px;
+  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
+}
+
+.home-focus-card > h3 {
+  font-size: var(--fs-sm);
+  margin-bottom: 8px;
+}
+
+.home-focus-list {
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.home-focus-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.home-focus-row__main {
+  min-width: 0;
+}
+
+.home-focus-row__title {
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.home-focus-row__reason {
+  margin-top: 2px;
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+}
+
+.home-focus-due-chip {
+  flex: 0 0 auto;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: var(--fs-xs);
+  color: var(--text-secondary);
+  background: var(--surface-2);
+}
+
+.home-focus-due-chip--overdue {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 45%, var(--border-color));
+}
+
+.home-focus-group {
+  margin-bottom: 6px;
+}
+
+.home-focus-group__label {
+  margin-bottom: 4px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.home-focus-empty {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+
 .todos-minimal-filters {
   margin-bottom: 0;
   display: flex;
@@ -4708,6 +4816,15 @@ textarea:disabled {
 }
 
 @media (max-width: 768px) {
+  .home-focus-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .floating-new-task-cta {
+    right: 12px;
+    bottom: 12px;
+  }
+
   .todos-top-bar {
     grid-template-columns: 1fr;
   }

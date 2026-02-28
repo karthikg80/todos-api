@@ -235,7 +235,9 @@ test.describe("Todo list states", () => {
 
     await expect(page.locator("#todosErrorState")).toBeHidden();
     await expect(page.locator("#todosLoadingState")).toBeHidden();
-    await expect(page.getByText("Recovered task")).toBeVisible();
+    await expect(page.locator(".todo-item .todo-title")).toHaveText(
+      "Recovered task",
+    );
     await expect(page.locator(".todo-skeleton-row")).toHaveCount(0);
   });
 

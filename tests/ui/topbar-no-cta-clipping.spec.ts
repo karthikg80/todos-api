@@ -157,8 +157,8 @@ async function registerAndOpenTodos(page: Page) {
   await ensureAllTasksListActive(page);
 }
 
-test.describe("Top bar CTA and rail ellipsis hardening", () => {
-  test("keeps Add Task visible and applies clean single-line truncation in collapsed rail mode", async ({
+test.describe("Top bar and rail ellipsis hardening", () => {
+  test("keeps floating CTA visible and applies clean single-line truncation in collapsed rail mode", async ({
     page,
     isMobile,
   }) => {
@@ -171,7 +171,7 @@ test.describe("Top bar CTA and rail ellipsis hardening", () => {
       {
         id: "todo-topbar-long",
         title:
-          "Very long todo title to keep search and title area busy while asserting Add Task remains visible",
+          "Very long todo title to keep search and title area busy while asserting floating CTA remains visible",
         description: "Long description text",
         notes: null,
         category: longProject,
@@ -192,8 +192,9 @@ test.describe("Top bar CTA and rail ellipsis hardening", () => {
       await expect(rail).not.toHaveClass(/projects-rail--collapsed/);
     }
 
-    const addBtn = page.locator(".todos-top-bar .top-add-btn");
+    const addBtn = page.locator("#floatingNewTaskCta");
     const searchArea = page.locator(".todos-top-bar-search");
+    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
     await expect(addBtn).toBeVisible();
     await expect(searchArea).toBeVisible();
 
