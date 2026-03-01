@@ -8278,7 +8278,7 @@ function renderTodos() {
     return;
   }
 
-  if (todos.length === 0) {
+  if (todos.length === 0 && !getSelectedProjectKey()) {
     clearHomeFocusDashboard();
     updateHeaderFromVisibleTodos([]);
     isTodoDrawerOpen = false;
