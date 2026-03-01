@@ -218,9 +218,14 @@ test.describe("Command palette", () => {
 
   test("Ctrl/Cmd+K opens palette and Escape closes with focus restore", async ({
     page,
+    isMobile,
   }) => {
-    const searchInput = page.locator("#searchInput");
-    await searchInput.focus();
+    // On mobile, #searchInput is in the hidden desktop rail; use the floating
+    // CTA button (always visible) as the pre-palette focus target instead.
+    const focusTarget = isMobile
+      ? page.locator("#floatingNewTaskCta")
+      : page.locator("#searchInput");
+    await focusTarget.focus();
 
     await openCommandPalette(page);
     await expect(page.locator("#commandPaletteInput")).toBeFocused();
@@ -229,7 +234,7 @@ test.describe("Command palette", () => {
     await expect(page.locator("#commandPaletteOverlay")).not.toHaveClass(
       /command-palette-overlay--open/,
     );
-    await expect(searchInput).toBeFocused();
+    await expect(focusTarget).toBeFocused();
   });
 
   test('typing filters commands and shows "Go to All tasks"', async ({
@@ -264,11 +269,17 @@ test.describe("Command palette", () => {
   });
 
   test("Enter on Add task focuses quick entry input", async ({ page }) => {
+    // Settings rail button is visible on desktop; on mobile the sheet is closed
+    // so no Settings button is reachable via role. Use evaluate as fallback.
     const settingsButton = page.getByRole("button", { name: "Settings" });
     if (await settingsButton.first().isVisible()) {
       await settingsButton.first().click();
     } else {
-      await page.getByRole("button", { name: "Profile" }).click();
+      await page.evaluate(() =>
+        (window as Window & { switchView: (v: string) => void }).switchView(
+          "settings",
+        ),
+      );
     }
     await expect(page.locator("#settingsPane")).toBeVisible();
 

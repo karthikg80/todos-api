@@ -197,12 +197,16 @@ test.describe("Top bar projects cleanup", () => {
   }) => {
     test.skip(isMobile, "Desktop-only assertion");
 
-    await expect(page.locator(".todos-top-bar #searchInput")).toBeVisible();
+    // Search and filters moved from the top bar to the desktop rail.
+    await expect(
+      page.locator("#railSearchContainer #searchInput"),
+    ).toBeVisible();
     await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
     await expect(page.locator("#floatingNewTaskCta")).toBeVisible();
-    await expect(
-      page.locator(".todos-top-bar #moreFiltersToggle"),
-    ).toBeVisible();
+    // #moreFiltersToggle is in the rail and hidden by default; it reveals on search focus.
+    await expect(page.locator("#moreFiltersToggle")).toBeHidden();
+    await page.locator("#searchInput").focus();
+    await expect(page.locator("#moreFiltersToggle")).toBeVisible();
     await expect(page.locator(".todos-top-bar #categoryFilter")).toHaveCount(0);
     await expect(page.locator("#projectsRailMobileOpen")).toBeHidden();
   });

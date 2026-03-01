@@ -226,16 +226,13 @@ async function registerAndOpenTodos(page: Page, email: string) {
 }
 
 async function openMoreFilters(page: Page) {
+  // Search focus reveals the toggle; click it to open the filter panel.
+  await page.locator("#searchInput").focus();
+  const panel = page.locator("#moreFiltersPanel");
+  // Guard: if already open (e.g. called twice in one test), avoid toggling closed.
+  if (await panel.isVisible()) return;
   const toggle = page.locator("#moreFiltersToggle");
   await toggle.click();
-  const panel = page.locator("#moreFiltersPanel");
-  if (!(await panel.isVisible())) {
-    await page.evaluate(() => {
-      document
-        .getElementById("moreFiltersPanel")
-        ?.classList.add("more-filters--open");
-    });
-  }
   await expect(panel).toBeVisible();
 }
 

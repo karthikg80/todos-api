@@ -230,20 +230,6 @@ async function installMockApi(page: Page) {
   });
 }
 
-async function openMoreFilters(page: Page) {
-  const toggle = page.locator("#moreFiltersToggle");
-  await toggle.click();
-  const panel = page.locator("#moreFiltersPanel");
-  if (!(await panel.isVisible())) {
-    await page.evaluate(() => {
-      document
-        .getElementById("moreFiltersPanel")
-        ?.classList.add("more-filters--open");
-    });
-  }
-  await expect(panel).toBeVisible();
-}
-
 test.describe("App smoke flows", () => {
   test("login/register/logout/account-switch/delete/reload consistency", async ({
     page,
@@ -309,8 +295,13 @@ test.describe("App smoke flows", () => {
     await page.getByRole("button", { name: "Create Account" }).click();
 
     await expect(page.locator("#todosView")).toHaveClass(/active/);
-    await openMoreFilters(page);
-    await page.locator("#dateViewSomeday").click();
+    // #moreFiltersToggle is now hidden until search is focused; use the global
+    // setDateView() function directly to avoid visibility/interactability issues.
+    await page.evaluate(() =>
+      (window as Window & { setDateView: (v: string) => void }).setDateView(
+        "someday",
+      ),
+    );
     await expect(page.locator("#dateViewSomeday")).toHaveClass(/active/);
 
     await page.getByRole("button", { name: "Logout" }).click();

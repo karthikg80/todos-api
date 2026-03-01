@@ -379,7 +379,9 @@ test.describe("Todo drawer details + kebab actions", () => {
 
     await firstRow.locator(".todo-kebab").click();
     await expect(firstRow.locator(".todo-kebab-menu")).toBeVisible();
-    await page.locator(".todos-top-bar-left h2").click();
+    // .todos-top-bar-left h2 was removed in the sidebar-first layout refactor;
+    // click the list header title (always present) to dismiss the kebab menu.
+    await page.locator("#todosListHeaderTitle").click();
     await expect(firstRow.locator(".todo-kebab-menu")).toBeHidden();
   });
 

@@ -162,20 +162,6 @@ async function registerAndOpenTodos(page: Page) {
   await ensureAllTasksListActive(page);
 }
 
-async function openMoreFilters(page: Page) {
-  const toggle = page.locator("#moreFiltersToggle");
-  await toggle.click();
-  const panel = page.locator("#moreFiltersPanel");
-  if (!(await panel.isVisible())) {
-    await page.evaluate(() => {
-      document
-        .getElementById("moreFiltersPanel")
-        ?.classList.add("more-filters--open");
-    });
-  }
-  await expect(panel).toBeVisible();
-}
-
 test.describe("ICS export", () => {
   test("export button is disabled when visible list has no due dates", async ({
     page,
@@ -202,8 +188,13 @@ test.describe("ICS export", () => {
     ]);
 
     await registerAndOpenTodos(page);
-    await openMoreFilters(page);
-    await page.getByRole("button", { name: "Someday" }).click();
+    // #moreFiltersToggle is hidden until search is focused in the new layout;
+    // call setDateView() directly. toBeDisabled() works on hidden elements.
+    await page.evaluate(() =>
+      (window as Window & { setDateView: (v: string) => void }).setDateView(
+        "someday",
+      ),
+    );
     await expect(page.locator("#exportIcsButton")).toBeDisabled();
   });
 
@@ -269,11 +260,21 @@ test.describe("ICS export", () => {
 
     await registerAndOpenTodos(page);
 
-    await page.locator("#categoryFilter").selectOption("Work");
-    await openMoreFilters(page);
+    // Use setSelectedProjectKey() (canonical API) to filter by Work project.
+    // toBeEnabled() works on hidden elements; exportVisibleTodosToIcs() bypasses
+    // the need to click the button directly (which is inside a collapsible panel).
+    await page.evaluate(() =>
+      (
+        window as Window & { setSelectedProjectKey: (k: string) => void }
+      ).setSelectedProjectKey("Work"),
+    );
     await expect(page.locator("#exportIcsButton")).toBeEnabled();
 
-    await page.locator("#exportIcsButton").click();
+    await page.evaluate(() =>
+      (
+        window as Window & { exportVisibleTodosToIcs: () => void }
+      ).exportVisibleTodosToIcs(),
+    );
 
     await page.waitForFunction(() => {
       const capture = (

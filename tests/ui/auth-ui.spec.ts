@@ -78,11 +78,17 @@ test.describe("Auth UI", () => {
     });
 
     await page.goto("/");
+    // The Settings rail button is visible on desktop; on mobile the sheet is
+    // closed so no Settings button is reachable via role. Use evaluate fallback.
     const settingsButton = page.getByRole("button", { name: "Settings" });
     if (await settingsButton.first().isVisible()) {
       await settingsButton.first().click();
     } else {
-      await page.getByRole("button", { name: "Profile" }).click();
+      await page.evaluate(() =>
+        (window as Window & { switchView: (v: string) => void }).switchView(
+          "settings",
+        ),
+      );
     }
     await expect(page.locator("#verificationBanner")).toBeVisible();
 

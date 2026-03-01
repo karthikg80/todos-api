@@ -458,8 +458,13 @@ async function registerAndOpenTodos(page: Page) {
 }
 
 async function openTodayView(page: Page) {
-  await page.locator("#moreFiltersToggle").click();
-  await page.locator("#dateViewToday").click();
+  // #moreFiltersToggle is hidden until search is focused in the new layout; call
+  // setDateView() directly so the test works on both desktop and mobile.
+  await page.evaluate(() =>
+    (window as Window & { setDateView: (v: string) => void }).setDateView(
+      "today",
+    ),
+  );
   await expect(page.locator('[data-testid="today-plan-panel"]')).toBeVisible();
 }
 

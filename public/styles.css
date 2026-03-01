@@ -1912,7 +1912,8 @@ textarea:focus-visible,
 
 .projects-rail.projects-rail--collapsed .projects-rail__header h3,
 .projects-rail.projects-rail--collapsed .projects-rail__section-header,
-.projects-rail.projects-rail--collapsed .projects-rail__footer {
+.projects-rail.projects-rail--collapsed .projects-rail__footer,
+.projects-rail.projects-rail--collapsed #railSearchContainer {
   display: none;
 }
 
@@ -1963,6 +1964,30 @@ textarea:focus-visible,
 .projects-rail__section {
   border-top: 1px solid var(--border-color);
   padding-top: var(--s-3);
+}
+
+.projects-rail__footer {
+  margin-top: auto;
+  border-top: 1px solid var(--border-color);
+  padding: 8px 0 4px;
+}
+
+/* Admin rail button – hidden by default, revealed for admin users via body class.
+   Use button.admin-rail-btn (type+class specificity 0,1,1) so it beats
+   .projects-rail-item { display: flex } (class-only specificity 0,1,0). */
+button.admin-rail-btn {
+  display: none;
+}
+
+body.is-admin-user button.admin-rail-btn {
+  display: flex;
+}
+
+.rail-search-container {
+  padding: 8px 10px 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .projects-rail__section--workspace {
@@ -2220,6 +2245,18 @@ button.projects-rail-item {
 
 .projects-rail-sheet--open {
   display: grid;
+}
+
+/* Nav tabs permanently hidden — elements stay in DOM for JS switchView() */
+#navTabs {
+  display: none !important;
+}
+
+/* Top bar hidden on desktop; stays visible on mobile for hamburger button */
+@media (min-width: 769px) {
+  .todos-top-bar {
+    display: none;
+  }
 }
 
 .todos-top-bar {
@@ -2557,8 +2594,9 @@ body.is-todos-view .floating-new-task-cta {
 
 .keyboard-shortcuts-btn {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 80px;
+  right: auto;
+  left: 20px;
   width: 50px;
   height: 50px;
   border-radius: 50%;
@@ -3313,8 +3351,9 @@ body.is-todos-view .floating-new-task-cta {
   }
 
   .keyboard-shortcuts-btn {
-    bottom: 15px;
-    right: 15px;
+    bottom: 76px;
+    right: auto;
+    left: 15px;
     width: 45px;
     height: 45px;
     font-size: 1.1em;
@@ -5919,7 +5958,8 @@ body.is-todos-view .priority-btn.active::before {
 .keyboard-shortcuts-btn::after {
   content: attr(aria-label);
   position: absolute;
-  right: 58px;
+  right: auto;
+  left: 58px;
   top: 50%;
   transform: translateY(-50%);
   background: rgb(15 23 42 / 92%);

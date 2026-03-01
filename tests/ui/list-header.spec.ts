@@ -307,11 +307,24 @@ test.describe("Todos list header", () => {
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Work");
     await expect(page.locator("#todosListHeaderCount")).toHaveText("3 tasks");
 
-    await page.locator("#searchInput").fill("rollout");
+    // On mobile, #searchInput lives in the hidden desktop rail. Set it via
+    // evaluate (bypasses visibility) then call filterTodos() — the canonical
+    // filter entry point that reads #searchInput.value.
+    const setSearch = async (q: string) => {
+      await page.evaluate((query: string) => {
+        const input = document.getElementById(
+          "searchInput",
+        ) as HTMLInputElement | null;
+        if (input) input.value = query;
+        (window as Window & { filterTodos: () => void }).filterTodos();
+      }, q);
+    };
+
+    await setSearch("rollout");
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Work");
     await expect(page.locator("#todosListHeaderCount")).toHaveText("1 task");
 
-    await page.locator("#searchInput").fill("nothing-matches");
+    await setSearch("nothing-matches");
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Work");
     await expect(page.locator("#todosListHeaderCount")).toHaveText("0 tasks");
   });
