@@ -1653,37 +1653,17 @@ function renderHomeDashboard() {
       : fallbackTopFocus;
   const model = getHomeDashboardModel({ topFocusItems });
   void hydrateHomeTopFocusIfNeeded();
-  const staleRisksTile =
-    model.staleRisks.length > 0
-      ? renderHomeTaskTile({
-          key: "stale_risks",
-          title: "Stale Risks",
-          subtitle:
-            "Older tasks that have gone quiet long enough to deserve a check-in.",
-          items: model.staleRisks,
-          tileClassName: "home-tile--full",
-          emptyText: "No stale risks detected.",
-        })
-      : "";
 
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
-      <div class="home-dashboard__hero">
-        <div class="home-dashboard__intro">
-          <h2 class="home-dashboard__title">Choose where to enter the work.</h2>
-          <p class="home-dashboard__subtitle">
-            A calm place to choose what deserves attention next.
-          </p>
-        </div>
-        <div class="home-dashboard__hero-actions">
-          <button
-            type="button"
-            class="add-btn home-dashboard__new-task"
-            data-onclick="openTaskComposer()"
-          >
-            New Task
-          </button>
-        </div>
+      <div class="home-dashboard__toolbar">
+        <button
+          type="button"
+          class="add-btn home-dashboard__new-task"
+          data-onclick="openTaskComposer()"
+        >
+          New Task
+        </button>
       </div>
       <div class="home-dashboard__grid">
         ${renderHomeTaskTile({
@@ -1691,7 +1671,6 @@ function renderHomeDashboard() {
           title: "Top Focus",
           subtitle: "The few tasks most worth your attention.",
           items: topFocusItems,
-          tileClassName: "home-tile--feature",
           emptyText: "Nothing urgent right now.",
           showReasons: true,
         })}
@@ -1701,7 +1680,6 @@ function renderHomeDashboard() {
           subtitle: "What needs attention next.",
           items: model.dueSoon,
           groupedItems: model.dueSoonGroups,
-          tileClassName: "home-tile--feature",
           emptyText: "No due-soon tasks.",
         })}
         ${renderHomeTaskTile({
@@ -1709,11 +1687,9 @@ function renderHomeDashboard() {
           title: "Quick Wins",
           subtitle: "Small tasks you can clear quickly.",
           items: model.quickWins,
-          tileClassName: "home-tile--compact",
           emptyText: "No quick wins right now.",
         })}
         ${renderProjectsToNudgeTile(model.projectsToNudge)}
-        ${staleRisksTile}
       </div>
     </section>
   `;
