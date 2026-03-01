@@ -196,28 +196,16 @@ test.describe("Todos layout invariants", () => {
       await expect(rail).not.toHaveClass(/projects-rail--collapsed/);
     }
 
-    const topbar = page.locator(".todos-top-bar");
-    const addBtn = page.locator("#floatingNewTaskCta");
+    // Topbar hidden on desktop; floating CTA and shortcuts btn removed.
+    await expect(page.locator(".todos-top-bar")).toBeHidden();
     await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
-    await expect(addBtn).toBeVisible();
-    await expect(topbar).toBeVisible();
+    await expect(page.locator("#floatingNewTaskCta")).toBeHidden();
+    await expect(page.locator(".keyboard-shortcuts-btn")).toHaveCount(0);
 
-    const topbarMetrics = await topbar.evaluate((el) => ({
-      scrollWidth: el.scrollWidth,
-      clientWidth: el.clientWidth,
-    }));
-    expect(topbarMetrics.scrollWidth).toBeLessThanOrEqual(
-      topbarMetrics.clientWidth + 1,
-    );
-
-    const addBox = await addBtn.boundingBox();
-    const viewport = page.viewportSize();
-    expect(addBox).not.toBeNull();
-    if (addBox) {
-      expect(addBox.x + addBox.width).toBeLessThanOrEqual(
-        (viewport?.width || 1280) - 1,
-      );
-    }
+    // Sidebar search must be accessible on desktop.
+    await expect(
+      page.locator("#railSearchContainer #searchInput"),
+    ).toBeVisible();
 
     await page
       .locator(

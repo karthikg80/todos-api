@@ -1,5 +1,9 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { registerAndOpenTodosView } from "./helpers/todos-view";
+import {
+  registerAndOpenTodosView,
+  selectWorkspaceView,
+  waitForTodosViewIdle,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -150,7 +154,7 @@ async function installTopbarInvariantMockApi(
 }
 
 test.describe("Topbar CTA invariants", () => {
-  test("floating CTA and keyboard shortcuts do not overlap", async ({
+  test("home dashboard new task button opens task composer", async ({
     page,
     isMobile,
   }) => {
@@ -174,42 +178,34 @@ test.describe("Topbar CTA invariants", () => {
       email: "topbar-invariants@example.com",
     });
 
-    const addButton = page.locator("#floatingNewTaskCta");
-    const shortcutsBtn = page.locator(".keyboard-shortcuts-btn");
-    const searchInput = page.locator("#searchInput");
+    // Search input is in the sidebar rail on desktop.
+    await expect(page.locator("#searchInput")).toBeVisible();
 
-    await expect(addButton).toBeVisible();
-    await expect(shortcutsBtn).toBeVisible();
-    // Search input is now in the sidebar rail — still accessible on desktop.
-    await expect(searchInput).toBeVisible();
+    // Floating CTA and keyboard shortcuts FAB are removed on desktop.
+    await expect(page.locator("#floatingNewTaskCta")).toBeHidden();
+    await expect(page.locator(".keyboard-shortcuts-btn")).toHaveCount(0);
 
-    const addBox = await addButton.boundingBox();
-    const shortcutsBox = await shortcutsBtn.boundingBox();
+    // Navigate to Home view where the dashboard hero button lives.
+    // waitForTodosViewIdle ensures any double-render from the async stats fetch
+    // settles before we read the bounding box.
+    await selectWorkspaceView(page, "home");
+    await waitForTodosViewIdle(page);
+
+    // Home dashboard hero's New Task button opens the composer.
+    const heroNewTask = page.locator(".home-dashboard__new-task");
+    await expect(heroNewTask).toBeVisible();
+
+    const heroBox = await heroNewTask.boundingBox();
     const viewport = page.viewportSize();
-
-    expect(addBox).not.toBeNull();
-    expect(shortcutsBox).not.toBeNull();
-
-    if (addBox && shortcutsBox) {
-      // CTA must stay within viewport.
-      expect(addBox.x + addBox.width).toBeLessThanOrEqual(
+    expect(heroBox).not.toBeNull();
+    if (heroBox) {
+      // Button must stay within viewport.
+      expect(heroBox.x + heroBox.width).toBeLessThanOrEqual(
         (viewport?.width || 1280) + 1,
       );
-
-      // The two FABs must not overlap each other.
-      const overlap =
-        addBox.x < shortcutsBox.x + shortcutsBox.width &&
-        addBox.x + addBox.width > shortcutsBox.x &&
-        addBox.y < shortcutsBox.y + shortcutsBox.height &&
-        addBox.y + addBox.height > shortcutsBox.y;
-      expect(overlap).toBe(false);
-
-      // CTA on the right side; shortcuts button on the left side.
-      expect(addBox.x).toBeGreaterThan(shortcutsBox.x + shortcutsBox.width);
     }
 
-    // Clicking the CTA opens the task composer sheet.
-    await addButton.click();
+    await heroNewTask.click();
     await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
       "aria-hidden",
       "false",

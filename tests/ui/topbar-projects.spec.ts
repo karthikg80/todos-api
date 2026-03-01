@@ -202,7 +202,9 @@ test.describe("Top bar projects cleanup", () => {
       page.locator("#railSearchContainer #searchInput"),
     ).toBeVisible();
     await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
-    await expect(page.locator("#floatingNewTaskCta")).toBeVisible();
+    // Floating CTA removed on desktop; home dashboard hero button takes that role.
+    await expect(page.locator("#floatingNewTaskCta")).toBeHidden();
+    await expect(page.locator(".keyboard-shortcuts-btn")).toHaveCount(0);
     // #moreFiltersToggle is in the rail and hidden by default; it reveals on search focus.
     await expect(page.locator("#moreFiltersToggle")).toBeHidden();
     await page.locator("#searchInput").focus();
