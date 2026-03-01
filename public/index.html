@@ -317,6 +317,95 @@
                         </button>
                       </nav>
                     </div>
+                    <div class="rail-search-container" id="railSearchContainer">
+                      <div class="search-bar">
+                        <label for="searchInput" class="sr-only"
+                          >Search todos</label
+                        >
+                        <input
+                          type="text"
+                          id="searchInput"
+                          class="search-input"
+                          placeholder="Search… (/)"
+                          autocomplete="off"
+                          data-oninput="filterTodos()"
+                        />
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                      </div>
+                      <button
+                        id="moreFiltersToggle"
+                        class="mini-btn more-filters-toggle"
+                        aria-expanded="false"
+                        aria-controls="moreFiltersPanel"
+                        hidden
+                      >
+                        Filters
+                      </button>
+                      <div
+                        id="moreFiltersPanel"
+                        class="more-filters-panel"
+                        role="region"
+                        aria-label="More filters"
+                      >
+                        <div class="date-view-tabs">
+                          <button
+                            class="date-view-tab active"
+                            id="dateViewAll"
+                            data-onclick="setDateView('all')"
+                          >
+                            All
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewToday"
+                            data-onclick="setDateView('today')"
+                          >
+                            Today
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewUpcoming"
+                            data-onclick="setDateView('upcoming')"
+                          >
+                            Upcoming
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewNextMonth"
+                            data-onclick="setDateView('next_month')"
+                          >
+                            Next Month
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewSomeday"
+                            data-onclick="setDateView('someday')"
+                          >
+                            Someday
+                          </button>
+                        </div>
+                        <div class="more-filters-actions">
+                          <button
+                            class="clear-filters-btn"
+                            data-onclick="clearFilters()"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            id="exportIcsButton"
+                            class="mini-btn"
+                            data-onclick="exportVisibleTodosToIcs()"
+                            title="Exports currently filtered due-dated tasks"
+                            disabled
+                          >
+                            Export .ics
+                          </button>
+                        </div>
+                        <div class="ics-export-helper">
+                          Exports currently filtered due-dated tasks.
+                        </div>
+                      </div>
+                    </div>
                     <div class="projects-rail__section">
                       <div class="projects-rail__section-header">
                         <span>Projects</span>
@@ -338,6 +427,17 @@
                           <span class="projects-rail-item__count">0</span>
                         </div>
                       </div>
+                    </div>
+                    <div class="projects-rail__footer">
+                      <button
+                        type="button"
+                        class="projects-rail-item"
+                        data-onclick="switchView('settings', this)"
+                      >
+                        <span class="projects-rail-item__label"
+                          >⚙ Settings</span
+                        >
+                      </button>
                     </div>
                   </aside>
 
@@ -417,6 +517,25 @@
                         </button>
                       </nav>
                     </div>
+                    <div
+                      class="rail-search-container"
+                      id="railSearchContainerSheet"
+                    >
+                      <div class="search-bar">
+                        <label for="searchInputSheet" class="sr-only"
+                          >Search todos</label
+                        >
+                        <input
+                          type="text"
+                          id="searchInputSheet"
+                          class="search-input"
+                          placeholder="Search… (/)"
+                          autocomplete="off"
+                          data-oninput="syncSheetSearch()"
+                        />
+                        <span class="search-icon" aria-hidden="true">🔍</span>
+                      </div>
+                    </div>
                     <div class="projects-rail__section">
                       <div class="projects-rail__section-header">
                         <span>Projects</span>
@@ -435,6 +554,17 @@
                           <span class="projects-rail-item__count">0</span>
                         </div>
                       </div>
+                    </div>
+                    <div class="projects-rail__footer">
+                      <button
+                        type="button"
+                        class="projects-rail-item"
+                        data-onclick="switchView('settings', this)"
+                      >
+                        <span class="projects-rail-item__label"
+                          >⚙ Settings</span
+                        >
+                      </button>
                     </div>
                   </aside>
 
@@ -598,42 +728,13 @@
                             >Projects: All tasks</span
                           >
                         </button>
-                        <h2>Todos</h2>
-                        <span
-                          id="todosCountSummary"
-                          class="todos-count-summary"
-                        ></span>
-                      </div>
-                      <div class="todos-top-bar-search">
-                        <div class="search-bar">
-                          <label for="searchInput" class="sr-only"
-                            >Search todos</label
-                          >
-                          <input
-                            type="text"
-                            id="searchInput"
-                            class="search-input"
-                            placeholder="Search… (/)"
-                            data-oninput="filterTodos()"
-                          />
-                          <span class="search-icon">🔍</span>
-                        </div>
-                      </div>
-                      <div class="todos-top-bar-actions">
-                        <button
-                          id="moreFiltersToggle"
-                          class="mini-btn more-filters-toggle"
-                          aria-expanded="false"
-                          aria-controls="moreFiltersPanel"
-                        >
-                          More filters
-                        </button>
                       </div>
                     </div>
 
                     <div id="todosScrollRegion">
                       <div
                         class="todos-minimal-filters todos-minimal-filters--legacy"
+                        hidden
                       >
                         <label class="project-filter-label" for="categoryFilter"
                           >Project</label
@@ -644,71 +745,6 @@
                         >
                           <option value="">All Projects</option>
                         </select>
-                      </div>
-
-                      <div
-                        id="moreFiltersPanel"
-                        class="more-filters-panel"
-                        role="region"
-                        aria-label="More filters"
-                      >
-                        <div class="date-view-tabs">
-                          <button
-                            class="date-view-tab active"
-                            id="dateViewAll"
-                            data-onclick="setDateView('all')"
-                          >
-                            All
-                          </button>
-                          <button
-                            class="date-view-tab"
-                            id="dateViewToday"
-                            data-onclick="setDateView('today')"
-                          >
-                            Today
-                          </button>
-                          <button
-                            class="date-view-tab"
-                            id="dateViewUpcoming"
-                            data-onclick="setDateView('upcoming')"
-                          >
-                            Upcoming
-                          </button>
-                          <button
-                            class="date-view-tab"
-                            id="dateViewNextMonth"
-                            data-onclick="setDateView('next_month')"
-                          >
-                            Next Month
-                          </button>
-                          <button
-                            class="date-view-tab"
-                            id="dateViewSomeday"
-                            data-onclick="setDateView('someday')"
-                          >
-                            Someday
-                          </button>
-                        </div>
-                        <div class="more-filters-actions">
-                          <button
-                            class="clear-filters-btn"
-                            data-onclick="clearFilters()"
-                          >
-                            Clear
-                          </button>
-                          <button
-                            id="exportIcsButton"
-                            class="mini-btn"
-                            data-onclick="exportVisibleTodosToIcs()"
-                            title="Exports currently filtered due-dated tasks"
-                            disabled
-                          >
-                            Export .ics
-                          </button>
-                        </div>
-                        <div class="ics-export-helper">
-                          Exports currently filtered due-dated tasks.
-                        </div>
                       </div>
 
                       <!-- Bulk Actions Toolbar -->
@@ -1073,11 +1109,6 @@
 
                       <div id="todosListHeader" class="todos-list-header">
                         <div class="todos-list-header__context">
-                          <span
-                            id="todosListHeaderBreadcrumb"
-                            class="todos-list-header__breadcrumb"
-                            >Projects /</span
-                          >
                           <div
                             id="todosListHeaderTitle"
                             class="todos-list-header__title"

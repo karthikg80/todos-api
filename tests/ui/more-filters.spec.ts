@@ -192,7 +192,17 @@ test.describe("More filters disclosure", () => {
     });
   });
 
-  test("is collapsed by default with aria-expanded false", async ({ page }) => {
+  test("filter toggle is hidden by default; search focus reveals it collapsed", async ({
+    page,
+    isMobile,
+  }) => {
+    // Search input and filter toggle live in #projectsRail, which is hidden on
+    // mobile. The mobile access path is via the rail sheet; skip here.
+    test.skip(isMobile, "filter controls are in the desktop projects rail");
+
+    await expect(page.locator("#moreFiltersToggle")).toBeHidden();
+    await page.locator("#searchInput").focus();
+    await expect(page.locator("#moreFiltersToggle")).toBeVisible();
     await expect(page.locator("#moreFiltersToggle")).toHaveAttribute(
       "aria-expanded",
       "false",
@@ -202,7 +212,11 @@ test.describe("More filters disclosure", () => {
 
   test("opens via click, updates aria, and focuses first panel control", async ({
     page,
+    isMobile,
   }) => {
+    test.skip(isMobile, "filter controls are in the desktop projects rail");
+
+    await page.locator("#searchInput").focus();
     await page.locator("#moreFiltersToggle").click();
 
     await expect(page.locator("#moreFiltersToggle")).toHaveAttribute(
@@ -214,7 +228,13 @@ test.describe("More filters disclosure", () => {
     await expect(page.locator("#dateViewAll")).toBeFocused();
   });
 
-  test("Escape closes panel and restores focus to toggle", async ({ page }) => {
+  test("Escape closes panel and restores focus to toggle", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "filter controls are in the desktop projects rail");
+
+    await page.locator("#searchInput").focus();
     await page.locator("#moreFiltersToggle").click();
     await expect(page.locator("#moreFiltersPanel")).toBeVisible();
 
@@ -229,7 +249,13 @@ test.describe("More filters disclosure", () => {
     await expect(page.locator("#moreFiltersToggle")).toBeFocused();
   });
 
-  test("moved controls remain reachable inside panel", async ({ page }) => {
+  test("moved controls remain reachable inside panel", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "filter controls are in the desktop projects rail");
+
+    await page.locator("#searchInput").focus();
     await page.locator("#moreFiltersToggle").click();
 
     await expect(page.locator("#moreFiltersPanel #dateViewAll")).toBeVisible();
@@ -253,11 +279,13 @@ test.describe("More filters disclosure", () => {
     );
   });
 
-  test("floating New Task CTA opens composer and top bar primary Add Task is removed", async ({
-    page,
-  }) => {
-    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
+  test("floating New Task CTA opens task composer", async ({ page }) => {
+    await expect(page.locator("#floatingNewTaskCta")).toBeVisible();
     await page.locator("#floatingNewTaskCta").click();
+    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
     await expect(page.locator("#todoInput")).toBeVisible();
     await expect(page.locator("#todoInput")).toBeFocused();
   });

@@ -2256,6 +2256,7 @@ function init() {
   renderProjectHeadingCreateButton();
   renderQuickEntryNaturalDueChip();
   handleVerificationStatusFromUrl();
+  bindRailSearchFocusBehavior();
 }
 
 function handleVerificationStatusFromUrl() {
@@ -5230,6 +5231,8 @@ function clearFilters() {
     skipApply: true,
   });
   document.getElementById("searchInput").value = "";
+  const sheetSearch = document.getElementById("searchInputSheet");
+  if (sheetSearch) sheetSearch.value = "";
   setDateView("all", { skipApply: true });
   applyFiltersAndRender({ reason: "clear-filters" });
 }
@@ -5422,20 +5425,17 @@ function updateHeaderAndContextUI({
   visibleCount = 0,
   dateLabel = "",
 } = {}) {
-  const breadcrumbEl = document.getElementById("todosListHeaderBreadcrumb");
   const titleEl = document.getElementById("todosListHeaderTitle");
   const countEl = document.getElementById("todosListHeaderCount");
   const dateBadgeEl = document.getElementById("todosListHeaderDateBadge");
   if (
     !(titleEl instanceof HTMLElement) ||
     !(countEl instanceof HTMLElement) ||
-    !(breadcrumbEl instanceof HTMLElement) ||
     !(dateBadgeEl instanceof HTMLElement)
   ) {
     return;
   }
 
-  breadcrumbEl.textContent = "Projects /";
   titleEl.textContent = projectName;
   titleEl.setAttribute("title", projectName);
   countEl.textContent = formatVisibleTaskCount(visibleCount);
@@ -6471,6 +6471,7 @@ function openMoreFilters() {
   if (!refs) return;
 
   const { toggle, panel } = refs;
+  toggle.removeAttribute("hidden");
   isMoreFiltersOpen = true;
   panel.classList.add("more-filters--open");
   toggle.setAttribute("aria-expanded", "true");
@@ -6493,6 +6494,15 @@ function closeMoreFilters({ restoreFocus = false } = {}) {
   if (restoreFocus) {
     toggle.focus();
   }
+
+  // When restoreFocus=true the searchInput.blur handler will hide the toggle
+  // naturally once focus moves out of the search/filter area.
+  if (!restoreFocus) {
+    const searchInput = document.getElementById("searchInput");
+    if (document.activeElement !== searchInput) {
+      toggle.setAttribute("hidden", "");
+    }
+  }
 }
 
 function toggleMoreFilters() {
@@ -6501,6 +6511,49 @@ function toggleMoreFilters() {
     return;
   }
   openMoreFilters();
+}
+
+// Syncs the mobile rail-sheet search proxy input to the canonical #searchInput.
+function syncSheetSearch() {
+  const sheetInput = document.getElementById("searchInputSheet");
+  const mainInput = document.getElementById("searchInput");
+  if (sheetInput && mainInput) {
+    mainInput.value = sheetInput.value;
+    filterTodos();
+  }
+}
+
+// Reveals #moreFiltersToggle on search focus; re-hides it on blur when filters
+// are closed and focus has moved outside the search/filter area.
+function bindRailSearchFocusBehavior() {
+  const searchInput = document.getElementById("searchInput");
+  const moreFiltersToggle = document.getElementById("moreFiltersToggle");
+  if (!searchInput || !moreFiltersToggle) return;
+
+  const shouldHideToggle = () => {
+    if (isMoreFiltersOpen) return false;
+    const active = document.activeElement;
+    if (active === searchInput) return false;
+    if (active === moreFiltersToggle) return false;
+    const panel = document.getElementById("moreFiltersPanel");
+    if (panel?.contains(active)) return false;
+    return true;
+  };
+
+  searchInput.addEventListener("focus", () => {
+    moreFiltersToggle.removeAttribute("hidden");
+  });
+
+  // Hide the toggle after the search input loses focus, but only once focus has
+  // fully settled outside the search/filter area (150ms deferred check).
+  // Intentionally no blur handler on moreFiltersToggle itself: attaching one
+  // introduced a timing race in the Escape → close → toggle.focus() flow where
+  // the deferred check ran while focus was still transitioning to the toggle.
+  searchInput.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (shouldHideToggle()) moreFiltersToggle.setAttribute("hidden", "");
+    }, 150);
+  });
 }
 
 function createInitialTaskDrawerAssistState() {
@@ -11026,6 +11079,10 @@ document.addEventListener("keydown", function (e) {
       (refs.panel.contains(activeElement) || refs.toggle === activeElement);
     if (focusedInMoreFilters) {
       e.preventDefault();
+      // Stop the rail keydown handler (registered later on document) from also
+      // handling this Escape and calling collapseToggle.focus(), which would
+      // steal focus away from the toggle we just restored focus to.
+      e.stopImmediatePropagation();
       closeMoreFilters({ restoreFocus: true });
       return;
     }

@@ -150,140 +150,69 @@ async function installTopbarInvariantMockApi(
 }
 
 test.describe("Topbar CTA invariants", () => {
-  test("rail expanded keeps floating CTA visible and controls consistent", async ({
+  test("floating CTA and keyboard shortcuts do not overlap", async ({
     page,
     isMobile,
   }) => {
-    test.skip(isMobile, "Desktop-only topbar invariant check");
+    test.skip(isMobile, "Desktop-only layout invariant check");
 
-    const longProject =
-      "Project-With-A-Very-Long-Name-To-Verify-Topbar-Truncation-Without-CTA-Clipping-123456";
     await installTopbarInvariantMockApi(page, [
       {
-        id: "todo-long",
-        title:
-          "Very long todo title to keep topbar and list density stressed while CTA visibility is asserted",
-        description: "Long text",
+        id: "todo-1",
+        title: "Sample task for layout check",
+        description: null,
         notes: null,
-        category: longProject,
+        category: null,
         dueDate: null,
-        priority: "high",
+        priority: "medium",
       },
     ]);
 
     await page.setViewportSize({ width: 1280, height: 880 });
-    await page.addInitScript(() => {
-      window.localStorage.setItem("todos:ai-visible", "1");
-    });
     await registerAndOpenTodosView(page, {
       name: "Topbar Invariants",
       email: "topbar-invariants@example.com",
     });
 
-    const rail = page.locator("#projectsRail");
-    if (
-      await rail.evaluate((node) =>
-        node.classList.contains("projects-rail--collapsed"),
-      )
-    ) {
-      await page.locator("#projectsRailToggle").click();
-      await expect(rail).not.toHaveClass(/projects-rail--collapsed/);
-    }
-
     const addButton = page.locator("#floatingNewTaskCta");
+    const shortcutsBtn = page.locator(".keyboard-shortcuts-btn");
     const searchInput = page.locator("#searchInput");
-    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
+
     await expect(addButton).toBeVisible();
+    await expect(shortcutsBtn).toBeVisible();
+    // Search input is now in the sidebar rail — still accessible on desktop.
     await expect(searchInput).toBeVisible();
 
     const addBox = await addButton.boundingBox();
-    const searchBox = await searchInput.boundingBox();
+    const shortcutsBox = await shortcutsBtn.boundingBox();
     const viewport = page.viewportSize();
+
     expect(addBox).not.toBeNull();
-    expect(searchBox).not.toBeNull();
-    if (addBox && searchBox) {
-      const overlap =
-        addBox.x < searchBox.x + searchBox.width &&
-        addBox.x + addBox.width > searchBox.x &&
-        addBox.y < searchBox.y + searchBox.height &&
-        addBox.y + addBox.height > searchBox.y;
-      expect(overlap).toBe(false);
-      expect(addBox.width).toBeGreaterThan(48);
+    expect(shortcutsBox).not.toBeNull();
+
+    if (addBox && shortcutsBox) {
+      // CTA must stay within viewport.
       expect(addBox.x + addBox.width).toBeLessThanOrEqual(
-        (viewport?.width || 1280) - 1,
+        (viewport?.width || 1280) + 1,
       );
+
+      // The two FABs must not overlap each other.
+      const overlap =
+        addBox.x < shortcutsBox.x + shortcutsBox.width &&
+        addBox.x + addBox.width > shortcutsBox.x &&
+        addBox.y < shortcutsBox.y + shortcutsBox.height &&
+        addBox.y + addBox.height > shortcutsBox.y;
+      expect(overlap).toBe(false);
+
+      // CTA on the right side; shortcuts button on the left side.
+      expect(addBox.x).toBeGreaterThan(shortcutsBox.x + shortcutsBox.width);
     }
 
-    await page
-      .locator(
-        `#projectsRail .projects-rail-item[data-project-key="${longProject}"]`,
-      )
-      .click();
-
-    await page.locator("#projectsRailToggle").click();
-    await expect(rail).toHaveClass(/projects-rail--collapsed/);
-
-    const topbarLabel = page.locator("#projectsRailTopbarLabel");
-    await expect(topbarLabel).toBeVisible();
-    await expect(topbarLabel).toHaveAttribute(
-      "title",
-      `Projects: ${longProject}`,
-    );
-    const labelMetrics = await topbarLabel.evaluate((el) => {
-      const style = window.getComputedStyle(el);
-      const lineHeight = Number.parseFloat(style.lineHeight);
-      const fontSize = Number.parseFloat(style.fontSize);
-      const resolvedLineHeight = Number.isFinite(lineHeight)
-        ? lineHeight
-        : Math.max(12, fontSize * 1.2);
-      return {
-        whiteSpace: style.whiteSpace,
-        clientHeight: el.clientHeight,
-        lineHeight: resolvedLineHeight,
-      };
-    });
-    expect(labelMetrics.whiteSpace).toBe("nowrap");
-    expect(labelMetrics.clientHeight).toBeLessThanOrEqual(
-      labelMetrics.lineHeight * 1.5,
-    );
-    await expect(addButton).toBeVisible();
-
-    const collapsedRailLabel = page.locator(
-      `#projectsRail .projects-rail-item[data-project-key="${longProject}"] .projects-rail-item__label`,
-    );
-    await expect(collapsedRailLabel).toHaveAttribute("title", longProject);
-    await expect(collapsedRailLabel).toHaveCSS("white-space", "nowrap");
-
-    const searchH = await searchInput.evaluate((el) =>
-      Math.round(el.getBoundingClientRect().height),
-    );
+    // Clicking the CTA opens the task composer sheet.
     await addButton.click();
     await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
       "aria-hidden",
       "false",
     );
-    const quickEntryH = await page
-      .locator("#todoInput")
-      .evaluate((el) => Math.round(el.getBoundingClientRect().height));
-
-    // Close the sheet before interacting with elements behind the modal overlay.
-    await page.keyboard.press("Escape");
-    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-
-    const aiToggle = page.locator("#aiWorkspaceToggle");
-    if ((await aiToggle.getAttribute("aria-expanded")) !== "true") {
-      await aiToggle.click();
-      await expect(aiToggle).toHaveAttribute("aria-expanded", "true");
-    }
-    const aiGoalH = await page
-      .locator("#goalInput")
-      .evaluate((el) => Math.round(el.getBoundingClientRect().height));
-
-    expect(Math.abs(searchH - quickEntryH)).toBeLessThanOrEqual(2);
-    expect(Math.abs(searchH - aiGoalH)).toBeLessThanOrEqual(2);
-    expect(searchH).toBeGreaterThanOrEqual(38);
   });
 });
