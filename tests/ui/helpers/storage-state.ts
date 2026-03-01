@@ -4,7 +4,15 @@ import path from "node:path";
 
 const AUTH_DIR =
   process.env.PLAYWRIGHT_AUTH_DIR || path.join(".playwright", ".auth");
-const STORAGE_STATE_FILE = path.join(AUTH_DIR, "todos-user.json");
+// Each Playwright worker process gets a unique PW_TEST_WORKER_INDEX env var
+// (set before any module is imported). Using it here avoids concurrent
+// read/write races when multiple workers call ensureTodosStorageState()
+// simultaneously on a cold cache.
+const WORKER_INDEX = process.env.PW_TEST_WORKER_INDEX ?? "0";
+const STORAGE_STATE_FILE = path.join(
+  AUTH_DIR,
+  `todos-user-${WORKER_INDEX}.json`,
+);
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
 export const AUTH_TOKEN = "cached-ui-auth-token";
