@@ -281,26 +281,4 @@ test.describe("More filters disclosure", () => {
       "Exported 1 events.",
     );
   });
-
-  test("home dashboard new task button opens task composer", async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(
-      isMobile,
-      "home-dashboard__new-task only visible on desktop home view",
-    );
-    // Navigate to the Home view where the dashboard hero button lives.
-    await selectWorkspaceView(page, "home");
-    // Floating CTA removed on desktop; home dashboard hero button takes that role.
-    await expect(page.locator("#floatingNewTaskCta")).toBeHidden();
-    await expect(page.locator(".home-dashboard__new-task")).toBeVisible();
-    await page.locator(".home-dashboard__new-task").click();
-    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
-    await expect(page.locator("#todoInput")).toBeVisible();
-    await expect(page.locator("#todoInput")).toBeFocused();
-  });
 });

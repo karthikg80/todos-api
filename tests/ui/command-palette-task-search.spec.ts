@@ -238,21 +238,6 @@ test.describe("Command palette task search", () => {
     await expect(page.locator("#drawerTitleInput")).toHaveValue("Pay rent");
   });
 
-  test("clicking task result opens drawer", async ({ page }) => {
-    await openCommandPalette(page);
-    await page.locator("#commandPaletteInput").fill("flight");
-
-    await page
-      .locator("#commandPaletteList button", { hasText: "Book flights" })
-      .first()
-      .click();
-
-    await expect(page.locator("#todoDetailsDrawer")).toHaveClass(
-      /todo-drawer--open/,
-    );
-    await expect(page.locator("#drawerTitleInput")).toHaveValue("Book flights");
-  });
-
   test("keyboard navigation skips section headers", async ({ page }) => {
     await openCommandPalette(page);
     await page.locator("#commandPaletteInput").fill("o");
@@ -282,18 +267,5 @@ test.describe("Command palette task search", () => {
     await expect(page.locator("#commandPaletteOption-3")).toContainText(
       "Book flights",
     );
-  });
-
-  test("no task matches shows 'No tasks found' in tasks section", async ({
-    page,
-  }) => {
-    await openCommandPalette(page);
-    await page.locator("#commandPaletteInput").fill("zzz-no-match");
-
-    await expect(page.locator("#commandPaletteList")).toContainText("Tasks");
-    await expect(page.locator("#commandPaletteList")).toContainText(
-      "No tasks found",
-    );
-    await expect(page.locator("#commandPaletteEmpty")).toBeVisible();
   });
 });

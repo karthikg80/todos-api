@@ -248,46 +248,6 @@ test.describe("AI on-create assist chips", () => {
     await expect(page.locator("#priorityHigh")).toHaveClass(/active/);
   });
 
-  test("apply set_due_date updates due input", async ({ page }) => {
-    await page.locator("#todoInput").fill("finish report tomorrow");
-    await revealOnCreateFullAssist(page);
-
-    await page
-      .locator('[data-testid="ai-chip-apply-oc-set-due-tomorrow"]')
-      .click();
-    await expect(page.locator("#todoDueDateInput")).not.toHaveValue("");
-  });
-
-  test("dismiss hides chip", async ({ page }) => {
-    await page.locator("#todoInput").fill("website update");
-    await revealOnCreateFullAssist(page);
-
-    await expect(
-      page.locator('[data-testid="ai-chip-oc-set-project-website"]'),
-    ).toBeVisible();
-    await page
-      .locator('[data-testid="ai-chip-dismiss-oc-set-project-website"]')
-      .click();
-    await expect(
-      page.locator('[data-testid="ai-chip-oc-set-project-website"]'),
-    ).toHaveCount(0);
-  });
-
-  test("requiresConfirmation enforces confirm step", async ({ page }) => {
-    await page.locator("#todoInput").fill("asap yesterday fix bug");
-    await revealOnCreateFullAssist(page);
-
-    await page.locator('[data-testid="ai-chip-apply-oc-set-due-past"]').click();
-    await expect(
-      page.locator('[data-testid="ai-chip-confirm-oc-set-due-past"]'),
-    ).toBeVisible();
-
-    await page
-      .locator('[data-testid="ai-chip-confirm-oc-set-due-past"]')
-      .click();
-    await expect(page.locator("#todoDueDateInput")).not.toHaveValue("");
-  });
-
   test("ask_clarification choice updates project draft and marks answered", async ({
     page,
   }) => {

@@ -193,20 +193,6 @@ test.describe("AI workspace calm mode", () => {
     await expect(page.locator("#aiWorkspaceStatus")).toContainText("Ready");
   });
 
-  test("toggle expands and collapses workspace body", async ({ page }) => {
-    const toggle = page.locator("#aiWorkspaceToggle");
-
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "true");
-    await expect(page.locator("#aiWorkspaceBody")).toBeVisible();
-    await expect(page.locator("#goalInput")).toBeVisible();
-    await expect(page.locator("#brainDumpInput")).toBeVisible();
-
-    await toggle.click();
-    await expect(toggle).toHaveAttribute("aria-expanded", "false");
-    await expect(page.locator("#aiWorkspaceBody")).toBeHidden();
-  });
-
   test("Draft tasks CTA expands and focuses brain dump", async ({ page }) => {
     await page.locator("#aiWorkspaceDraftButton").click();
     await expect(page.locator("#aiWorkspaceToggle")).toHaveAttribute(

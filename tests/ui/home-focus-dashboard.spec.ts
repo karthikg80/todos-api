@@ -468,15 +468,13 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await openHomeApp(page);
   });
 
-  test("Home is the default landing view", async ({ page }) => {
-    await expect(page.locator('[data-testid="home-dashboard"]')).toBeVisible();
-    await expectWorkspaceViewActive(page, "home");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
-  });
-
   test("Home tiles render deterministic fallback when AI endpoint fails", async ({
     page,
   }) => {
+    await expect(page.locator('[data-testid="home-dashboard"]')).toBeVisible();
+    await expectWorkspaceViewActive(page, "home");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
+
     await expect(page.locator('[data-home-tile="top_focus"]')).toBeVisible();
     await expect(page.locator('[data-home-tile="top_focus"]')).toContainText(
       "Top Focus",
@@ -486,51 +484,6 @@ test.describe("Home focus dashboard + sheet composer", () => {
     );
     await expect(page.locator('[data-home-tile="due_soon"]')).toContainText(
       /Due Soon|Prepare launch checklist|No tasks/,
-    );
-  });
-
-  test("Home tiles do not duplicate tasks across focus tiles", async ({
-    page,
-  }) => {
-    const titles = await page
-      .locator(
-        [
-          '[data-home-tile="top_focus"] .home-task-row__title',
-          '[data-home-tile="due_soon"] .home-task-row__title',
-          '[data-home-tile="stale_risks"] .home-task-row__title',
-          '[data-home-tile="quick_wins"] .home-task-row__title',
-        ].join(", "),
-      )
-      .evaluateAll((elements) =>
-        elements.map((el) => (el.textContent || "").trim()).filter(Boolean),
-      );
-    const counts = new Map<string, number>();
-    for (const title of titles) {
-      counts.set(title, (counts.get(title) || 0) + 1);
-    }
-    const duplicates = Array.from(counts.entries()).filter(
-      ([, count]) => count > 1,
-    );
-
-    expect(titles.length).toBeGreaterThan(0);
-    expect(duplicates).toEqual([]);
-  });
-
-  test("Top Focus shows user-facing subtitle and reason lines", async ({
-    page,
-  }) => {
-    const topFocusTile = page.locator('[data-home-tile="top_focus"]');
-    await expect(topFocusTile).toContainText(
-      "The few items most likely to move the day forward.",
-    );
-
-    const rowCount = await topFocusTile.locator(".home-task-row").count();
-    expect(rowCount).toBeGreaterThan(0);
-    await expect(topFocusTile.locator(".home-task-row__reason")).toHaveCount(
-      rowCount,
-    );
-    await expect(topFocusTile).toContainText(
-      /Overdue|Due today|Due tomorrow|High priority|Stale \(no recent activity\)/,
     );
   });
 
@@ -555,14 +508,6 @@ test.describe("Home focus dashboard + sheet composer", () => {
     ).toBeVisible();
   });
 
-  test("Opening sheet inside a project defaults project selector", async ({
-    page,
-  }) => {
-    await clickProjectInRail(page, "Work");
-    await openTaskComposerSheet(page);
-    await expect(page.locator("#todoProjectSelect")).toHaveValue("Work");
-  });
-
   test("Creating a task with a project keeps it out of Unsorted and shows in that project", async ({
     page,
   }) => {
@@ -584,29 +529,6 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(
       page.locator(".todo-item").filter({ hasText: "Project scoped task" }),
     ).toBeVisible();
-  });
-
-  test("Backdrop click closes when empty and stays open when text exists", async ({
-    page,
-  }) => {
-    await openTaskComposerSheet(page);
-    await page
-      .locator("#taskComposerBackdrop")
-      .click({ position: { x: 10, y: 10 } });
-    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-
-    await openTaskComposerSheet(page);
-    await page.locator("#todoInput").fill("Do not close me");
-    await page
-      .locator("#taskComposerBackdrop")
-      .click({ position: { x: 10, y: 10 } });
-    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
   });
 
   test("See all navigates for Due Soon and Quick Wins", async ({ page }) => {

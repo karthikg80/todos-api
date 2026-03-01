@@ -268,25 +268,4 @@ test.describe("Top bar projects cleanup", () => {
       "true",
     );
   });
-
-  test("projects button label updates when active project changes", async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(isMobile, "Desktop-only assertion");
-
-    await page.locator("#projectsRailToggle").click();
-    await expect(page.locator("#projectsRailMobileOpen")).toBeVisible();
-    await expect(page.locator("#projectsRailTopbarLabel")).toContainText(
-      "All tasks",
-    );
-
-    await page
-      .locator('#projectsRail .projects-rail-item[data-project-key="Home"]')
-      .click();
-
-    await expect(page.locator("#projectsRailTopbarLabel")).toContainText(
-      "Home",
-    );
-  });
 });

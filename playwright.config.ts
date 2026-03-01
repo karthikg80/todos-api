@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const uiPort = Number.parseInt(process.env.UI_PORT || "4173", 10);
+const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${uiPort}`;
+
 export default defineConfig({
   testDir: "./tests/ui",
   snapshotPathTemplate:
@@ -14,10 +17,10 @@ export default defineConfig({
     },
   },
   fullyParallel: false,
-  workers: 1,
+  workers: process.env.CI ? 3 : undefined,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://127.0.0.1:4173",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
@@ -43,8 +46,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "node scripts/ui-static-server.mjs",
-    url: "http://127.0.0.1:4173",
+    command: `UI_PORT=${uiPort} node scripts/ui-static-server.mjs`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
   },

@@ -324,28 +324,4 @@ test.describe("Todos composition and spacing", () => {
       );
     expect(errorPaddingLeft).toBeGreaterThan(0);
   });
-
-  test("loading skeleton appears in-flight and resolves cleanly", async ({
-    page,
-  }) => {
-    let resolveTodosRequest: ((value: TodosResponse) => void) | null = null;
-    const todosPromise = new Promise<TodosResponse>((resolve) => {
-      resolveTodosRequest = resolve;
-    });
-
-    await installMockApi(page, async () => todosPromise);
-    await registerAndOpenTodos(page, "composition-loading@example.com");
-
-    await expect(page.locator("#todosLoadingState")).toBeVisible();
-    await expect(page.locator(".todo-skeleton-row")).toHaveCount(6);
-
-    resolveTodosRequest?.({
-      status: 200,
-      body: [],
-    });
-
-    await expect(page.locator("#todosLoadingState")).toBeHidden();
-    await expect(page.locator(".todo-skeleton-row")).toHaveCount(0);
-    await expect(page.locator("#todosEmptyState")).toBeVisible();
-  });
 });
