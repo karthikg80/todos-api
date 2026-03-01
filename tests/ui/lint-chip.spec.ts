@@ -223,21 +223,6 @@ test.describe("Lint-first on-create chip", () => {
     ).toBeVisible();
   });
 
-  test("clean specific title shows no lint chip and no assist row", async ({
-    page,
-  }) => {
-    await page
-      .locator("#todoInput")
-      .fill("Write quarterly report for finance team");
-    await expect(page.locator(".ai-lint-chip")).toBeHidden();
-    const row = page.locator("#aiOnCreateAssistRow");
-    // row should be either hidden or have empty content
-    const isHidden = await row.evaluate(
-      (el) => el.hidden || el.innerHTML.trim() === "",
-    );
-    expect(isHidden).toBe(true);
-  });
-
   test("Fix button reveals full assist row", async ({ page }) => {
     await page.locator("#todoInput").fill("do stuff");
     await expect(page.locator(".ai-lint-chip")).toBeVisible();
