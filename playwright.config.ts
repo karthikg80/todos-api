@@ -17,7 +17,7 @@ export default defineConfig({
     },
   },
   fullyParallel: false,
-  workers: process.env.CI ? 3 : undefined,
+  workers: process.env.CI ? 2 : 3,
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
