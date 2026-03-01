@@ -392,8 +392,8 @@ async function openWorkProject(page: Page) {
       .click();
   }
 
-  await expect(page.locator("#todosListHeaderTitle")).toHaveText("Work");
-  await expect(page.locator("#projectHeadingCreateButton")).toBeVisible();
+  await expect(page.locator("#todosListHeader")).toBeHidden();
+  await expect(page.locator(".project-inline-actions__heading")).toBeVisible();
 }
 
 async function getVisibleListSequence(page: Page) {
@@ -438,7 +438,7 @@ test.describe("Project headings (sections)", () => {
     page,
   }) => {
     page.once("dialog", (dialog) => dialog.accept("Sprint"));
-    await page.locator("#projectHeadingCreateButton").click();
+    await page.locator(".project-inline-actions__heading").click();
     await expect(
       page.locator(".todo-heading-divider__title", { hasText: "Sprint" }),
     ).toBeVisible();

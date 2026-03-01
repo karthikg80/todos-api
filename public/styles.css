@@ -1045,24 +1045,24 @@ textarea:focus-visible,
 }
 
 .today-plan-panel {
-  margin-top: var(--s-3);
+  margin-top: 0;
   margin-bottom: var(--s-3);
-  border: 1px solid var(--border-color);
-  border-radius: var(--r-md);
-  background: var(--card-bg);
-  padding: var(--s-3);
+  border: 1px solid color-mix(in oklab, var(--border-color) 62%, transparent);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--surface) 95%, var(--surface-2));
+  padding: 12px 14px;
 }
 
 .today-plan-panel__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--s-2);
+  margin-bottom: 10px;
 }
 
 .today-plan-panel__title {
-  font-size: var(--fs-md);
-  font-weight: var(--fw-semibold);
+  font-size: 0.84rem;
+  font-weight: 600;
   color: var(--text-primary);
 }
 
@@ -1778,14 +1778,19 @@ textarea:focus-visible,
   top: 0;
   z-index: 20;
   margin-bottom: 0;
-  padding: var(--s-3);
-  border: 1px solid var(--border-color);
-  border-radius: var(--r-sm);
-  background: var(--card-bg);
+  padding: 6px 2px 12px;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 96%, transparent) 0%,
+    color-mix(in oklab, var(--surface) 96%, transparent) 78%,
+    transparent 100%
+  );
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--s-2);
+  gap: 10px;
 }
 
 .todos-list-header__context {
@@ -1805,25 +1810,22 @@ textarea:focus-visible,
 
 .todos-list-header__title {
   margin: 0;
-  font-size: var(--fs-md);
-  font-weight: var(--fw-semibold);
+  font-size: 0.88rem;
+  font-weight: 600;
   color: var(--text-primary);
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: var(--lh-tight);
+  letter-spacing: 0.01em;
 }
 
 .todos-list-header__count {
   margin: 0;
-  font-size: var(--fs-xs);
-  color: var(--text-secondary);
+  font-size: 0.78rem;
+  color: color-mix(in oklab, var(--text-secondary) 88%, var(--surface));
   white-space: nowrap;
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  padding: 2px 8px;
-  background: var(--surface-2);
 }
 
 .todos-list-header__actions {
@@ -1834,13 +1836,9 @@ textarea:focus-visible,
 }
 
 .todos-list-header__date-badge {
-  font-size: var(--fs-xs);
-  color: var(--text-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  padding: 2px 8px;
+  font-size: 0.72rem;
+  color: color-mix(in oklab, var(--text-secondary) 88%, var(--surface));
   white-space: nowrap;
-  background: var(--surface-2);
 }
 
 .todo-heading-divider {
@@ -1848,17 +1846,17 @@ textarea:focus-visible,
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin: 8px 0 4px;
-  padding: 6px 8px;
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border-color);
-  background: var(--surface-2);
+  margin: 20px 0 8px;
+  padding: 0 2px;
+  border: 0;
+  background: transparent;
 }
 
 .todo-heading-divider__title {
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--text-primary);
 }
 
@@ -1869,19 +1867,38 @@ textarea:focus-visible,
 }
 
 .todo-heading-divider__count {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  font-size: 0.72rem;
+  color: color-mix(in oklab, var(--text-secondary) 84%, var(--surface));
 }
 
 .todo-heading-divider__menu {
-  border: 1px solid var(--border-color);
-  background: var(--input-bg);
-  color: var(--text-secondary);
+  border: 0;
+  background: transparent;
+  color: color-mix(in oklab, var(--text-secondary) 78%, var(--surface));
   border-radius: 999px;
   min-width: 28px;
   height: 28px;
   line-height: 1;
   cursor: default;
+}
+
+.project-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 10px;
+  padding: 0;
+}
+
+.project-inline-actions__task {
+  width: auto;
+  min-width: 108px;
+}
+
+.project-inline-empty {
+  padding: 6px 2px 14px;
+  color: color-mix(in oklab, var(--text-secondary) 88%, var(--surface));
+  font-size: 0.86rem;
 }
 
 .projects-rail {
@@ -2277,6 +2294,13 @@ button.projects-rail-item {
 
 /* Hide context list-header when the home dashboard is rendered in #todosContent */
 #todosScrollRegion:has(#todosContent > .home-dashboard) #todosListHeader {
+  display: none;
+}
+
+#todosView[data-surface-mode="home"] #todosListHeader,
+#todosView[data-surface-mode="project"] #todosListHeader,
+#todosView[data-surface-mode="list"] #homeFocusDashboard,
+#todosView[data-surface-mode="project"] #todayPlanPanel {
   display: none;
 }
 
@@ -5443,88 +5467,132 @@ body.is-todos-view .projects-rail-item__count {
 
 .home-dashboard {
   display: grid;
-  gap: 14px;
+  gap: 20px;
 }
 
 .home-dashboard__hero {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid color-mix(in oklab, var(--border-color) 70%, transparent);
-  border-radius: 14px;
+  gap: 20px;
+  padding: 6px 2px 0;
+}
+
+.home-dashboard__intro {
+  display: grid;
+  gap: 8px;
+  max-width: 560px;
+}
+
+.home-dashboard__eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--text-secondary) 84%, var(--surface));
+}
+
+.home-dashboard__hero-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.home-dashboard__hero::after {
+  content: "";
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  min-height: 104px;
+  border-radius: 18px;
   background:
     radial-gradient(
-      circle at 88% 12%,
-      color-mix(in oklab, var(--accent) 12%, transparent),
-      transparent 48%
+      circle at 75% 22%,
+      color-mix(in oklab, var(--accent) 10%, transparent),
+      transparent 52%
     ),
     linear-gradient(
       180deg,
-      color-mix(in oklab, var(--surface) 90%, var(--surface-2)),
-      var(--surface)
+      color-mix(in oklab, var(--surface) 74%, transparent),
+      transparent
     );
 }
 
 .home-dashboard__title {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: clamp(1.45rem, 2.4vw, 2rem);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
 }
 
 .home-dashboard__subtitle {
   margin: 0;
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  font-size: 0.95rem;
+  line-height: 1.55;
 }
 
 .home-dashboard__new-task {
   width: auto;
   min-width: 112px;
+  align-self: flex-start;
 }
 
 .home-dashboard__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 14px;
   align-items: start;
 }
 
 .home-tile {
-  border: 1px solid color-mix(in oklab, var(--border-color) 70%, transparent);
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--surface) 90%, var(--surface-2));
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-  padding: 12px;
+  grid-column: span 4;
+  border: 1px solid color-mix(in oklab, var(--border-color) 62%, transparent);
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--surface) 93%, var(--surface-2));
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.05);
+  padding: 14px;
+}
+
+.home-tile--feature {
+  grid-column: span 6;
+}
+
+.home-tile--full {
+  grid-column: 1 / -1;
 }
 
 .home-tile__header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .home-tile__title {
   margin: 0;
-  font-size: 0.98rem;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
 }
 
 .home-tile__subtitle {
   margin: 4px 0 0;
   color: var(--text-secondary);
-  font-size: 0.77rem;
-  line-height: 1.25;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .home-tile__see-all {
   white-space: nowrap;
+  background: transparent;
+  border-color: transparent;
+  padding-right: 0;
 }
 
 .home-tile__body {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .home-tile__empty,
@@ -5539,10 +5607,10 @@ body.is-todos-view .projects-rail-item__count {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
-  padding: 7px 8px;
-  border-radius: 10px;
-  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
-  border: 1px solid color-mix(in oklab, var(--border-color) 55%, transparent);
+  padding: 8px 9px;
+  border-radius: 12px;
+  background: color-mix(in oklab, var(--surface) 95%, var(--surface-2));
+  border: 1px solid color-mix(in oklab, var(--border-color) 48%, transparent);
 }
 
 .home-task-row__checkbox {
@@ -5617,12 +5685,12 @@ body.is-todos-view .projects-rail-item__count {
   border: 1px solid color-mix(in oklab, var(--border-color) 60%, transparent);
   background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
   color: var(--text-primary);
-  border-radius: 10px;
-  padding: 9px 10px;
+  border-radius: 12px;
+  padding: 10px 11px;
   text-align: left;
   cursor: pointer;
   display: grid;
-  gap: 3px;
+  gap: 4px;
 }
 
 .home-project-row:hover {
@@ -5780,8 +5848,22 @@ body.is-todos-view .projects-rail-item__count {
   }
 
   .home-dashboard__hero {
-    align-items: stretch;
-    flex-direction: column;
+    display: grid;
+    gap: 12px;
+  }
+
+  .home-dashboard__hero::after {
+    display: none;
+  }
+
+  .home-dashboard__hero-actions {
+    justify-content: flex-start;
+  }
+
+  .home-tile,
+  .home-tile--feature,
+  .home-tile--full {
+    grid-column: auto;
   }
 }
 
@@ -5964,4 +6046,42 @@ body.is-todos-view .priority-btn.active::before {
 .keyboard-shortcuts-btn:hover::after,
 .keyboard-shortcuts-btn:focus-visible::after {
   opacity: 1;
+}
+
+/* Things-inspired surface refinement: final override layer */
+body.is-todos-view #todosView[data-surface-mode="list"] .todos-list-header {
+  padding: 6px 2px 12px;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 96%, transparent) 0%,
+    color-mix(in oklab, var(--surface) 96%, transparent) 78%,
+    transparent 100%
+  );
+}
+
+body.is-todos-view
+  #todosView[data-surface-mode="list"]
+  .todos-list-header__count,
+body.is-todos-view
+  #todosView[data-surface-mode="list"]
+  .todos-list-header__date-badge {
+  border: 0;
+  background: transparent;
+  padding: 0;
+}
+
+body.is-todos-view #todosView[data-surface-mode="project"] #todosContent {
+  padding-top: 2px;
+}
+
+body.is-todos-view
+  #todosView[data-surface-mode="project"]
+  .todo-heading-divider {
+  margin-top: 24px;
+}
+
+body.is-todos-view #todosView .todos-top-bar[hidden] {
+  display: none !important;
 }

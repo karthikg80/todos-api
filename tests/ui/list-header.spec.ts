@@ -304,6 +304,7 @@ test.describe("Todos list header", () => {
 
     await registerAndOpenTodos(page);
     await selectProjectFromRail(page, "Work", isMobile);
+    await expect(page.locator("#todosListHeader")).toBeHidden();
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Work");
     await expect(page.locator("#todosListHeaderCount")).toHaveText("3 tasks");
 
