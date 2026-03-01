@@ -1972,12 +1972,14 @@ textarea:focus-visible,
   padding: 8px 0 4px;
 }
 
-/* Admin rail button – hidden by default, revealed for admin users via body class */
-.admin-rail-btn {
+/* Admin rail button – hidden by default, revealed for admin users via body class.
+   Use button.admin-rail-btn (type+class specificity 0,1,1) so it beats
+   .projects-rail-item { display: flex } (class-only specificity 0,1,0). */
+button.admin-rail-btn {
   display: none;
 }
 
-body.is-admin-user .admin-rail-btn {
+body.is-admin-user button.admin-rail-btn {
   display: flex;
 }
 
