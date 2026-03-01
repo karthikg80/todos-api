@@ -1555,6 +1555,7 @@ function renderHomeTaskTile({
   subtitle = "",
   items = [],
   groupedItems = null,
+  tileClassName = "",
   seeAllLabel = "See all",
   emptyText = "No tasks here.",
   showReasons = false,
@@ -1591,7 +1592,7 @@ function renderHomeTaskTile({
             .join("")
       : `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`;
   return `
-    <section class="home-tile home-tile--tasks" data-home-tile="${escapeHtml(key)}">
+    <section class="home-tile home-tile--tasks ${escapeHtml(tileClassName)}" data-home-tile="${escapeHtml(key)}">
       <div class="home-tile__header">
         <div>
           <h3 class="home-tile__title">${escapeHtml(title)}</h3>
@@ -1613,11 +1614,11 @@ function renderHomeTaskTile({
 
 function renderProjectsToNudgeTile(items = []) {
   return `
-    <section class="home-tile home-tile--projects" data-home-tile="projects_to_nudge">
+    <section class="home-tile home-tile--projects home-tile--compact" data-home-tile="projects_to_nudge">
       <div class="home-tile__header">
         <div>
           <h3 class="home-tile__title">Projects to Nudge</h3>
-          <p class="home-tile__subtitle">Heavy project queues that need a touchpoint.</p>
+          <p class="home-tile__subtitle">Workspaces that would benefit from a light touch.</p>
         </div>
       </div>
       <div class="home-tile__body">
@@ -1652,51 +1653,68 @@ function renderHomeDashboard() {
       : fallbackTopFocus;
   const model = getHomeDashboardModel({ topFocusItems });
   void hydrateHomeTopFocusIfNeeded();
+  const staleRisksTile =
+    model.staleRisks.length > 0
+      ? renderHomeTaskTile({
+          key: "stale_risks",
+          title: "Stale Risks",
+          subtitle:
+            "Older tasks that have gone quiet long enough to deserve a check-in.",
+          items: model.staleRisks,
+          tileClassName: "home-tile--full",
+          emptyText: "No stale risks detected.",
+        })
+      : "";
 
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
       <div class="home-dashboard__hero">
-        <p class="home-dashboard__subtitle">Where should you pay attention today?</p>
-        <button
-          type="button"
-          class="add-btn home-dashboard__new-task"
-          data-onclick="openTaskComposer()"
-        >
-          New Task
-        </button>
+        <div class="home-dashboard__intro">
+          <p class="home-dashboard__eyebrow">Home</p>
+          <h2 class="home-dashboard__title">Choose where to enter the work.</h2>
+          <p class="home-dashboard__subtitle">
+            A calm launchpad for deciding what deserves attention next.
+          </p>
+        </div>
+        <div class="home-dashboard__hero-actions">
+          <button
+            type="button"
+            class="add-btn home-dashboard__new-task"
+            data-onclick="openTaskComposer()"
+          >
+            New Task
+          </button>
+        </div>
       </div>
       <div class="home-dashboard__grid">
         ${renderHomeTaskTile({
           key: "top_focus",
           title: "Top Focus",
-          subtitle: "Your 3 most important items right now.",
+          subtitle: "The few items most likely to move the day forward.",
           items: topFocusItems,
+          tileClassName: "home-tile--feature",
           emptyText: "Nothing urgent right now.",
           showReasons: true,
         })}
         ${renderHomeTaskTile({
           key: "due_soon",
           title: "Due Soon",
-          subtitle: "Overdue, today/tomorrow, then the next 3 days.",
+          subtitle: "A quick read on what is pressing next.",
           items: model.dueSoon,
           groupedItems: model.dueSoonGroups,
+          tileClassName: "home-tile--feature",
           emptyText: "No due-soon tasks.",
-        })}
-        ${renderHomeTaskTile({
-          key: "stale_risks",
-          title: "Stale Risks",
-          subtitle: "Older tasks with low recent activity.",
-          items: model.staleRisks,
-          emptyText: "No stale risks detected.",
         })}
         ${renderHomeTaskTile({
           key: "quick_wins",
           title: "Quick Wins",
-          subtitle: "Small tasks that can close fast.",
+          subtitle: "Short tasks that are easy to clear with intent.",
           items: model.quickWins,
+          tileClassName: "home-tile--compact",
           emptyText: "No quick wins right now.",
         })}
         ${renderProjectsToNudgeTile(model.projectsToNudge)}
+        ${staleRisksTile}
       </div>
     </section>
   `;
@@ -2063,15 +2081,7 @@ function getProjectHeadings(projectName = getSelectedProjectKey()) {
   return Array.isArray(headings) ? headings : [];
 }
 
-function renderProjectHeadingCreateButton() {
-  const button = document.getElementById("projectHeadingCreateButton");
-  if (!(button instanceof HTMLElement)) return;
-  const selectedProject = getSelectedProjectKey();
-  const projectRecord = getProjectRecordByName(selectedProject);
-  const shouldShow = !!selectedProject && !!projectRecord?.id;
-  button.hidden = !shouldShow;
-  button.setAttribute("aria-hidden", String(!shouldShow));
-}
+function renderProjectHeadingCreateButton() {}
 
 async function loadHeadingsForProject(projectName = getSelectedProjectKey()) {
   const normalized = normalizeProjectPath(projectName);
@@ -5430,15 +5440,29 @@ function updateHeaderAndContextUI({
   visibleCount = 0,
   dateLabel = "",
 } = {}) {
+  const todosView = document.getElementById("todosView");
+  const headerEl = document.getElementById("todosListHeader");
   const titleEl = document.getElementById("todosListHeaderTitle");
   const countEl = document.getElementById("todosListHeaderCount");
   const dateBadgeEl = document.getElementById("todosListHeaderDateBadge");
   if (
+    !(headerEl instanceof HTMLElement) ||
     !(titleEl instanceof HTMLElement) ||
     !(countEl instanceof HTMLElement) ||
     !(dateBadgeEl instanceof HTMLElement)
   ) {
     return;
+  }
+
+  const surfaceMode = isHomeWorkspaceActive()
+    ? "home"
+    : getSelectedProjectKey()
+      ? "project"
+      : "list";
+  headerEl.hidden = surfaceMode !== "list";
+  headerEl.setAttribute("aria-hidden", String(surfaceMode !== "list"));
+  if (todosView instanceof HTMLElement) {
+    todosView.dataset.surfaceMode = surfaceMode;
   }
 
   titleEl.textContent = projectName;
@@ -5654,7 +5678,31 @@ function renderProjectHeadingGroupedRows(projectTodos, projectName) {
     grouped.get(headingId).push(todo);
   });
 
-  let rows = "";
+  let rows = `
+    <li class="project-inline-actions" aria-label="Project actions">
+      <button
+        type="button"
+        class="project-inline-actions__task add-btn"
+        data-onclick="openTaskComposer()"
+      >
+        New Task
+      </button>
+      <button
+        type="button"
+        class="project-inline-actions__heading mini-btn"
+        data-onclick="createHeadingForSelectedProject()"
+      >
+        Add Heading
+      </button>
+    </li>
+  `;
+  if (!unheaded.length && !headings.length) {
+    rows += `
+      <li class="project-inline-empty">
+        Start with a task or a heading. The project stays intentionally quiet until you add structure.
+      </li>
+    `;
+  }
   rows += unheaded.map((todo) => renderTodoRowHtml(todo)).join("");
   headings.forEach((heading) => {
     const items = grouped.get(String(heading.id)) || [];
@@ -5703,7 +5751,12 @@ function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
   if (!refs) return;
 
   const topbarLabel = document.getElementById("projectsRailTopbarLabel");
+  const topbar = document.querySelector("#todosView .todos-top-bar");
   const shouldShow = isMobileRailViewport() || isRailCollapsed;
+
+  if (topbar instanceof HTMLElement) {
+    topbar.hidden = !shouldShow;
+  }
 
   refs.mobileOpenButton.classList.toggle(
     "projects-rail-mobile-open--show",
@@ -8247,7 +8300,7 @@ function renderTodos() {
   }
 
   const filteredTodos = getVisibleTodos();
-  renderHomeFocusDashboard(filteredTodos);
+  renderHomeFocusDashboard([]);
   updateHeaderFromVisibleTodos(filteredTodos);
   if (
     openTodoKebabId &&
@@ -11852,10 +11905,6 @@ function bindCriticalHandlers() {
 
   bindClick("quickEntryPropertiesToggle", () => {
     setQuickEntryPropertiesOpen(!isQuickEntryPropertiesOpen);
-  });
-
-  bindClick("projectHeadingCreateButton", () => {
-    createHeadingForSelectedProject();
   });
 
   bindClick("aiWorkspaceToggle", () => {

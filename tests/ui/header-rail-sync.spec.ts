@@ -332,6 +332,7 @@ test.describe("Header + rail sync", () => {
       '#projectsRail .projects-rail-item[data-project-key="Work"]',
     );
     await expect(workRailItem).toHaveAttribute("aria-current", "page");
+    await expect(page.locator("#todosListHeader")).toBeHidden();
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Work");
     await expect(page.locator("#projectsRailTopbarLabel")).toContainText(
       "Work",

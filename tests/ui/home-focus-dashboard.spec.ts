@@ -521,7 +521,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
   }) => {
     const topFocusTile = page.locator('[data-home-tile="top_focus"]');
     await expect(topFocusTile).toContainText(
-      "Your 3 most important items right now.",
+      "The few items most likely to move the day forward.",
     );
 
     const rowCount = await topFocusTile.locator(".home-task-row").count();
