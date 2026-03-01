@@ -192,26 +192,18 @@ test.describe("Top bar and rail ellipsis hardening", () => {
       await expect(rail).not.toHaveClass(/projects-rail--collapsed/);
     }
 
-    const addBtn = page.locator("#floatingNewTaskCta");
-    // Search moved from top-bar (.todos-top-bar-search) into the desktop rail.
-    const searchArea = page.locator("#railSearchContainer .search-bar");
+    // Floating CTA removed on desktop; search is now in the sidebar rail.
+    await expect(page.locator("#floatingNewTaskCta")).toBeHidden();
     await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
-    await expect(addBtn).toBeVisible();
+    const searchArea = page.locator("#railSearchContainer .search-bar");
     await expect(searchArea).toBeVisible();
 
-    const addBox = await addBtn.boundingBox();
+    // Search area must be fully within the viewport.
     const searchBox = await searchArea.boundingBox();
     const viewport = page.viewportSize();
-    expect(addBox).not.toBeNull();
     expect(searchBox).not.toBeNull();
-    if (addBox && searchBox) {
-      const overlap =
-        addBox.x < searchBox.x + searchBox.width &&
-        addBox.x + addBox.width > searchBox.x &&
-        addBox.y < searchBox.y + searchBox.height &&
-        addBox.y + addBox.height > searchBox.y;
-      expect(overlap).toBe(false);
-      expect(addBox.x + addBox.width).toBeLessThanOrEqual(
+    if (searchBox) {
+      expect(searchBox.x + searchBox.width).toBeLessThanOrEqual(
         (viewport?.width || 1280) - 1,
       );
     }

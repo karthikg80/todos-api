@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { openTodosViewWithStorageState } from "./helpers/todos-view";
+import {
+  openTodosViewWithStorageState,
+  selectWorkspaceView,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -279,9 +282,20 @@ test.describe("More filters disclosure", () => {
     );
   });
 
-  test("floating New Task CTA opens task composer", async ({ page }) => {
-    await expect(page.locator("#floatingNewTaskCta")).toBeVisible();
-    await page.locator("#floatingNewTaskCta").click();
+  test("home dashboard new task button opens task composer", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(
+      isMobile,
+      "home-dashboard__new-task only visible on desktop home view",
+    );
+    // Navigate to the Home view where the dashboard hero button lives.
+    await selectWorkspaceView(page, "home");
+    // Floating CTA removed on desktop; home dashboard hero button takes that role.
+    await expect(page.locator("#floatingNewTaskCta")).toBeHidden();
+    await expect(page.locator(".home-dashboard__new-task")).toBeVisible();
+    await page.locator(".home-dashboard__new-task").click();
     await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
       "aria-hidden",
       "false",

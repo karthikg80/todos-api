@@ -1984,14 +1984,16 @@ body.is-admin-user button.admin-rail-btn {
 }
 
 .rail-search-container {
-  padding: 8px 10px 4px;
+  padding: 4px 8px 6px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 2px;
 }
 
 .projects-rail__section--workspace {
-  border-top: 1px solid var(--border-color);
+  border-top: none;
 }
 
 .projects-rail__section-header {
@@ -2252,11 +2254,30 @@ button.projects-rail-item {
   display: none !important;
 }
 
-/* Top bar hidden on desktop; stays visible on mobile for hamburger button */
+/* Top bar hidden on desktop (body.is-todos-view raises specificity to 0,2,0
+   so it beats the base .todos-top-bar{display:grid} rule at 0,1,0).
+   Exception: when the rail is collapsed the topbar re-appears so that
+   #projectsRailMobileOpen (the expand button) and the project label remain
+   accessible. JS toggles .todos-layout--rail-collapsed on .todos-layout. */
 @media (min-width: 769px) {
-  .todos-top-bar {
+  body.is-todos-view .todos-top-bar {
     display: none;
   }
+  body.is-todos-view .todos-layout--rail-collapsed .todos-top-bar {
+    display: grid;
+  }
+}
+
+/* Floating New Task CTA hidden on desktop — the dashboard hero button serves that role */
+@media (min-width: 769px) {
+  .floating-new-task-cta {
+    display: none !important;
+  }
+}
+
+/* Hide context list-header when the home dashboard is rendered in #todosContent */
+#todosScrollRegion:has(#todosContent > .home-dashboard) #todosListHeader {
+  display: none;
 }
 
 .todos-top-bar {
@@ -2590,31 +2611,6 @@ body.is-todos-view .floating-new-task-cta {
 .bulk-count {
   margin-left: auto;
   font-size: 0.9em;
-}
-
-.keyboard-shortcuts-btn {
-  position: fixed;
-  bottom: 80px;
-  right: auto;
-  left: 20px;
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: white;
-  border: none;
-  font-size: 1.3em;
-  cursor: pointer;
-  box-shadow: var(--shadow-1);
-  transition:
-    transform 0.3s,
-    background 0.3s;
-  z-index: 1000;
-}
-
-.keyboard-shortcuts-btn:hover {
-  background: var(--accent-2);
-  transform: scale(1.1);
 }
 
 .shortcuts-overlay {
@@ -3348,15 +3344,6 @@ body.is-todos-view .floating-new-task-cta {
   .bulk-count {
     margin-left: 0;
     margin-top: 8px;
-  }
-
-  .keyboard-shortcuts-btn {
-    bottom: 76px;
-    right: auto;
-    left: 15px;
-    width: 45px;
-    height: 45px;
-    font-size: 1.1em;
   }
 
   .shortcuts-content {
@@ -5486,7 +5473,7 @@ body.is-todos-view .projects-rail-item__count {
 }
 
 .home-dashboard__subtitle {
-  margin: 4px 0 0;
+  margin: 0;
   color: var(--text-secondary);
   font-size: 0.9rem;
 }

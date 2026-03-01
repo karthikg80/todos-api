@@ -63,7 +63,11 @@ export async function ensureAllTasksListActive(page: Page) {
 }
 
 export async function openTaskComposerSheet(page: Page) {
-  await page.locator("#floatingNewTaskCta").click();
+  // Use global openTaskComposer() — floating CTA hidden on desktop since the
+  // home dashboard hero button serves that role.
+  await page.evaluate(() =>
+    (window as unknown as Record<string, () => void>).openTaskComposer(),
+  );
   await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
     "aria-hidden",
     "false",

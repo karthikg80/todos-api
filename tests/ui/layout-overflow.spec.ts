@@ -181,30 +181,10 @@ test.describe("Todos layout overflow hardening", () => {
       )
       .click();
 
-    const addButton = page.locator("#floatingNewTaskCta");
-    const searchInput = page.locator("#searchInput");
+    // Floating CTA removed on desktop; search lives in the sidebar rail.
+    await expect(page.locator("#floatingNewTaskCta")).toBeHidden();
     await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
-    await expect(addButton).toBeVisible();
-    await expect(searchInput).toBeVisible();
-
-    const topbarOverlap = await page.evaluate(() => {
-      const add = document.querySelector(
-        "#floatingNewTaskCta",
-      ) as HTMLElement | null;
-      const search = document.querySelector(
-        "#searchInput",
-      ) as HTMLElement | null;
-      if (!add || !search) return false;
-      const addBox = add.getBoundingClientRect();
-      const searchBox = search.getBoundingClientRect();
-      return (
-        addBox.x < searchBox.x + searchBox.width &&
-        addBox.x + addBox.width > searchBox.x &&
-        addBox.y < searchBox.y + searchBox.height &&
-        addBox.y + addBox.height > searchBox.y
-      );
-    });
-    expect(topbarOverlap).toBe(false);
+    await expect(page.locator("#searchInput")).toBeVisible();
 
     const scrollRegion = page.locator("#todosScrollRegion");
     const regionDimensions = await scrollRegion.evaluate((el) => ({

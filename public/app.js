@@ -1656,10 +1656,7 @@ function renderHomeDashboard() {
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
       <div class="home-dashboard__hero">
-        <div>
-          <h2 class="home-dashboard__title">Home</h2>
-          <p class="home-dashboard__subtitle">Where should you pay attention today?</p>
-        </div>
+        <p class="home-dashboard__subtitle">Where should you pay attention today?</p>
         <button
           type="button"
           class="add-btn home-dashboard__new-task"

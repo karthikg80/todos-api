@@ -263,60 +263,6 @@
                         Collapse
                       </button>
                     </div>
-                    <div
-                      class="projects-rail__section projects-rail__section--workspace"
-                    >
-                      <div class="projects-rail__section-header">
-                        <span>Views</span>
-                      </div>
-                      <nav class="projects-rail__primary" aria-label="Views">
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item projects-rail-item--active"
-                          data-workspace-view="home"
-                          aria-current="page"
-                        >
-                          <span>Home</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="unsorted"
-                        >
-                          <span>Unsorted</span>
-                          <span class="projects-rail-item__count">0</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="all"
-                        >
-                          <span>All tasks</span>
-                          <span class="projects-rail-item__count">0</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="today"
-                        >
-                          <span>Today</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="upcoming"
-                        >
-                          <span>Upcoming</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="completed"
-                        >
-                          <span>Completed</span>
-                        </button>
-                      </nav>
-                    </div>
                     <div class="rail-search-container" id="railSearchContainer">
                       <div class="search-bar">
                         <label for="searchInput" class="sr-only"
@@ -405,6 +351,60 @@
                           Exports currently filtered due-dated tasks.
                         </div>
                       </div>
+                    </div>
+                    <div
+                      class="projects-rail__section projects-rail__section--workspace"
+                    >
+                      <div class="projects-rail__section-header">
+                        <span>Views</span>
+                      </div>
+                      <nav class="projects-rail__primary" aria-label="Views">
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item projects-rail-item--active"
+                          data-workspace-view="home"
+                          aria-current="page"
+                        >
+                          <span>Home</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="unsorted"
+                        >
+                          <span>Unsorted</span>
+                          <span class="projects-rail-item__count">0</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="all"
+                        >
+                          <span>All tasks</span>
+                          <span class="projects-rail-item__count">0</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="today"
+                        >
+                          <span>Today</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="upcoming"
+                        >
+                          <span>Upcoming</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="completed"
+                        >
+                          <span>Completed</span>
+                        </button>
+                      </nav>
                     </div>
                     <div class="projects-rail__section">
                       <div class="projects-rail__section-header">
@@ -1437,16 +1437,6 @@
     <script src="/theme.js" defer></script>
     <script src="/aiSuggestionUtils.js" defer></script>
     <script src="/app.js" defer></script>
-
-    <!-- Keyboard Shortcuts Button -->
-    <button
-      class="keyboard-shortcuts-btn"
-      data-onclick="toggleShortcuts()"
-      title="Shortcuts"
-      aria-label="Keyboard shortcuts"
-    >
-      ⌨️
-    </button>
 
     <!-- Undo/Redo Toast -->
     <div id="undoToast" class="undo-toast">
