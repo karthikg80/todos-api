@@ -27,6 +27,8 @@ A rule enters Canon when:
 
 ### UI Navigation & IA
 - Sidebar is the single primary navigation surface in Todos mode; top tabs remain compatibility affordances only while tests still depend on them.
+- Search belongs to the sidebar rail/sheet in Todos mode; do not reintroduce a persistent main-panel search bar.
+- Search-adjacent controls are contextual disclosure UI: reveal filters/settings from the rail when search is focused or active instead of keeping them permanently visible.
 - Sidebar bottom contains the stable account entry point: `Settings`.
 - `Profile` is presented as Settings content, not as a standalone sidebar nav item.
 - Entering Settings must not collapse or remove the sidebar shell.
