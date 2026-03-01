@@ -1618,7 +1618,7 @@ function renderProjectsToNudgeTile(items = []) {
       <div class="home-tile__header">
         <div>
           <h3 class="home-tile__title">Projects to Nudge</h3>
-          <p class="home-tile__subtitle">Workspaces that would benefit from a light touch.</p>
+          <p class="home-tile__subtitle">Projects that could use a check-in.</p>
         </div>
       </div>
       <div class="home-tile__body">
@@ -1670,10 +1670,9 @@ function renderHomeDashboard() {
     <section class="home-dashboard" data-testid="home-dashboard">
       <div class="home-dashboard__hero">
         <div class="home-dashboard__intro">
-          <p class="home-dashboard__eyebrow">Home</p>
           <h2 class="home-dashboard__title">Choose where to enter the work.</h2>
           <p class="home-dashboard__subtitle">
-            A calm launchpad for deciding what deserves attention next.
+            A calm place to choose what deserves attention next.
           </p>
         </div>
         <div class="home-dashboard__hero-actions">
@@ -1690,7 +1689,7 @@ function renderHomeDashboard() {
         ${renderHomeTaskTile({
           key: "top_focus",
           title: "Top Focus",
-          subtitle: "The few items most likely to move the day forward.",
+          subtitle: "The few tasks most worth your attention.",
           items: topFocusItems,
           tileClassName: "home-tile--feature",
           emptyText: "Nothing urgent right now.",
@@ -1699,7 +1698,7 @@ function renderHomeDashboard() {
         ${renderHomeTaskTile({
           key: "due_soon",
           title: "Due Soon",
-          subtitle: "A quick read on what is pressing next.",
+          subtitle: "What needs attention next.",
           items: model.dueSoon,
           groupedItems: model.dueSoonGroups,
           tileClassName: "home-tile--feature",
@@ -1708,7 +1707,7 @@ function renderHomeDashboard() {
         ${renderHomeTaskTile({
           key: "quick_wins",
           title: "Quick Wins",
-          subtitle: "Short tasks that are easy to clear with intent.",
+          subtitle: "Small tasks you can clear quickly.",
           items: model.quickWins,
           tileClassName: "home-tile--compact",
           emptyText: "No quick wins right now.",
