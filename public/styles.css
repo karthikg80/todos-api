@@ -1972,6 +1972,15 @@ textarea:focus-visible,
   padding: 8px 0 4px;
 }
 
+/* Admin rail button – hidden by default, revealed for admin users via body class */
+.admin-rail-btn {
+  display: none;
+}
+
+body.is-admin-user .admin-rail-btn {
+  display: flex;
+}
+
 .rail-search-container {
   padding: 8px 10px 4px;
   display: flex;

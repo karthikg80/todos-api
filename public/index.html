@@ -438,6 +438,13 @@
                           >⚙ Settings</span
                         >
                       </button>
+                      <button
+                        type="button"
+                        class="projects-rail-item admin-rail-btn"
+                        data-onclick="switchView('admin', this)"
+                      >
+                        <span class="projects-rail-item__label">⭐ Admin</span>
+                      </button>
                     </div>
                   </aside>
 
@@ -535,6 +542,70 @@
                         />
                         <span class="search-icon" aria-hidden="true">🔍</span>
                       </div>
+                      <div
+                        id="moreFiltersPanelSheet"
+                        class="more-filters-panel more-filters--open"
+                        role="region"
+                        aria-label="Filters"
+                      >
+                        <div class="date-view-tabs">
+                          <button
+                            class="date-view-tab active"
+                            id="dateViewAllSheet"
+                            data-onclick="setDateView('all')"
+                          >
+                            All
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewTodaySheet"
+                            data-onclick="setDateView('today')"
+                          >
+                            Today
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewUpcomingSheet"
+                            data-onclick="setDateView('upcoming')"
+                          >
+                            Upcoming
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewNextMonthSheet"
+                            data-onclick="setDateView('next_month')"
+                          >
+                            Next Month
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewSomedaySheet"
+                            data-onclick="setDateView('someday')"
+                          >
+                            Someday
+                          </button>
+                        </div>
+                        <div class="more-filters-actions">
+                          <button
+                            class="clear-filters-btn"
+                            data-onclick="clearFilters()"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            id="exportIcsButtonSheet"
+                            class="mini-btn"
+                            data-onclick="exportVisibleTodosToIcs()"
+                            title="Exports currently filtered due-dated tasks"
+                            disabled
+                          >
+                            Export .ics
+                          </button>
+                        </div>
+                        <div class="ics-export-helper">
+                          Exports currently filtered due-dated tasks.
+                        </div>
+                      </div>
                     </div>
                     <div class="projects-rail__section">
                       <div class="projects-rail__section-header">
@@ -564,6 +635,13 @@
                         <span class="projects-rail-item__label"
                           >⚙ Settings</span
                         >
+                      </button>
+                      <button
+                        type="button"
+                        class="projects-rail-item admin-rail-btn"
+                        data-onclick="switchView('admin', this)"
+                      >
+                        <span class="projects-rail-item__label">⭐ Admin</span>
                       </button>
                     </div>
                   </aside>

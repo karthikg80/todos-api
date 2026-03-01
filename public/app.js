@@ -4932,14 +4932,20 @@ function setDateView(view, { skipApply = false } = {}) {
     someday: "dateViewSomeday",
     completed: "",
   };
+  // Update both desktop rail and mobile-sheet variants ("Sheet"-suffixed IDs).
+  const suffixes = ["", "Sheet"];
   Object.values(ids)
     .filter(Boolean)
     .forEach((id) => {
-      document.getElementById(id)?.classList.remove("active");
+      suffixes.forEach((suffix) => {
+        document.getElementById(id + suffix)?.classList.remove("active");
+      });
     });
   if (view !== "completed") {
     const activeId = ids[view] || ids.all;
-    document.getElementById(activeId)?.classList.add("active");
+    suffixes.forEach((suffix) => {
+      document.getElementById(activeId + suffix)?.classList.add("active");
+    });
   }
   if (!skipApply && !getSelectedProjectKey()) {
     if (view === "today" || view === "upcoming" || view === "completed") {
@@ -5109,10 +5115,12 @@ function getVisibleDueDatedTodos() {
 // padIcsNumber … buildIcsFilename — from icsExport.js
 
 function updateIcsExportButtonState() {
-  const exportButton = document.getElementById("exportIcsButton");
-  if (!exportButton) return;
   const hasExportableTodos = getVisibleDueDatedTodos().length > 0;
-  exportButton.disabled = !hasExportableTodos;
+  // Update both desktop rail and mobile-sheet export buttons.
+  for (const id of ["exportIcsButton", "exportIcsButtonSheet"]) {
+    const btn = document.getElementById(id);
+    if (btn) btn.disabled = !hasExportableTodos;
+  }
 }
 
 function exportVisibleTodosToIcs() {
