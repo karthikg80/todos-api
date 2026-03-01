@@ -189,15 +189,6 @@ async function selectProjectFromRail(
     .click();
 }
 
-async function ensureMoreFiltersOpen(page: Page) {
-  const panel = page.locator("#moreFiltersPanel");
-  const toggle = page.locator("#moreFiltersToggle");
-  if (!(await panel.isVisible())) {
-    await toggle.click();
-    await expect(panel).toBeVisible();
-  }
-}
-
 test.describe("Header + rail sync", () => {
   test.beforeEach(async ({ page }) => {
     await installHeaderRailSyncMockApi(page, [
@@ -259,9 +250,7 @@ test.describe("Header + rail sync", () => {
     }
 
     await expect(allTasksRailItem).toHaveAttribute("aria-current", "page");
-    await expect(page.locator("#todosListHeaderBreadcrumb")).toHaveText(
-      "Projects /",
-    );
+    // #todosListHeaderBreadcrumb was removed in the sidebar-first layout refactor.
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("All tasks");
 
     const visibleCount = await page.locator(".todo-item").count();
@@ -300,8 +289,13 @@ test.describe("Header + rail sync", () => {
     );
     await expect(page.locator("#todosListHeaderCount")).toHaveText("2 tasks");
 
-    await ensureMoreFiltersOpen(page);
-    await page.locator("#dateViewToday").click();
+    // #moreFiltersToggle is hidden until search is focused; call setDateView()
+    // directly so the assertion works on both desktop and mobile.
+    await page.evaluate(() =>
+      (window as Window & { setDateView: (v: string) => void }).setDateView(
+        "today",
+      ),
+    );
     await expect(page.locator("#todosListHeaderDateBadge")).toHaveText("Today");
   });
 
@@ -311,15 +305,27 @@ test.describe("Header + rail sync", () => {
   }) => {
     await selectProjectFromRail(page, "Work", isMobile);
 
+    // Nav tabs (#navTabs) are hidden in the sidebar-first layout. The Settings
+    // rail button is visible on desktop but aria-hidden in the closed sheet on
+    // mobile. Use evaluate as the reliable cross-device fallback.
     const settingsButton = page.getByRole("button", { name: "Settings" });
     if (await settingsButton.first().isVisible()) {
       await settingsButton.first().click();
     } else {
-      await page.getByRole("button", { name: "Profile" }).click();
+      await page.evaluate(() =>
+        (window as Window & { switchView: (v: string) => void }).switchView(
+          "settings",
+        ),
+      );
     }
     await expect(page.locator("#settingsPane")).toBeVisible();
 
-    await page.getByRole("button", { name: "Todos" }).click();
+    // "Todos" nav tab is hidden; navigate back via switchView().
+    await page.evaluate(() =>
+      (window as Window & { switchView: (v: string) => void }).switchView(
+        "todos",
+      ),
+    );
     await expect(page.locator("#todosView")).toHaveClass(/active/);
 
     const workRailItem = page.locator(

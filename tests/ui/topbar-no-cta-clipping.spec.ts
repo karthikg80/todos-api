@@ -193,7 +193,8 @@ test.describe("Top bar and rail ellipsis hardening", () => {
     }
 
     const addBtn = page.locator("#floatingNewTaskCta");
-    const searchArea = page.locator(".todos-top-bar-search");
+    // Search moved from top-bar (.todos-top-bar-search) into the desktop rail.
+    const searchArea = page.locator("#railSearchContainer .search-bar");
     await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
     await expect(addBtn).toBeVisible();
     await expect(searchArea).toBeVisible();
