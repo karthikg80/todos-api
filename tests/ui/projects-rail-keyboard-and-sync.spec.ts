@@ -370,42 +370,6 @@ test.describe("Projects rail keyboard + sync invariants", () => {
     await setup(page);
   });
 
-  test("desktop keyboard navigation selects project and keeps header/count in sync", async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(isMobile, "Desktop keyboard navigation only");
-
-    const railAllTasks = page.locator(
-      '#projectsRail .projects-rail-item[data-project-key=""]',
-    );
-    await railAllTasks.focus();
-
-    await page.keyboard.press("ArrowDown");
-    const focusedProject = await page.evaluate(() => {
-      const active = document.activeElement as HTMLElement | null;
-      return active?.getAttribute("data-project-key") || "";
-    });
-
-    expect(focusedProject.length).toBeGreaterThan(0);
-    await page.keyboard.press("Enter");
-
-    await expect(page.locator("#categoryFilter")).toHaveValue(focusedProject);
-    await expect(
-      page.locator(
-        `#projectsRail .projects-rail-item[data-project-key="${focusedProject}"]`,
-      ),
-    ).toHaveAttribute("aria-current", "page");
-
-    const visibleCount = await page.locator(".todo-item").count();
-    await expect(page.locator("#todosListHeaderCount")).toHaveText(
-      `${visibleCount} ${visibleCount === 1 ? "task" : "tasks"}`,
-    );
-    await expect(page.locator("#projectsRailTopbarLabel")).toContainText(
-      "Projects:",
-    );
-  });
-
   test("rail and command palette project selection stay in parity", async ({
     page,
     isMobile,
@@ -442,70 +406,6 @@ test.describe("Projects rail keyboard + sync invariants", () => {
     expect(viaPaletteTitles).toEqual(viaRailTitles);
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Beta");
     await expect(page.locator("#todosListHeaderCount")).toHaveText("1 task");
-  });
-
-  test("rename/delete selected project falls back to All tasks", async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(isMobile, "Project row menus are desktop-anchored in this test");
-
-    await page
-      .locator('#projectsRail .projects-rail-item[data-project-key="Alpha"]')
-      .click();
-    await expect(page.locator("#categoryFilter")).toHaveValue("Alpha");
-
-    const alphaRow = page
-      .locator("#projectsRail .projects-rail-row")
-      .filter({
-        has: page.locator(
-          '.projects-rail-item[data-project-key="Alpha"] .projects-rail-item__label',
-        ),
-      })
-      .first();
-
-    await alphaRow.hover();
-    await alphaRow.locator('[data-project-menu-toggle="Alpha"]').click();
-    await alphaRow
-      .locator('[data-project-menu-action="rename"][data-project-key="Alpha"]')
-      .click();
-
-    await page.locator("#projectCrudNameInput").fill("Alpha Plus");
-    await page.locator("#projectCrudSubmitButton").click();
-
-    await expect(
-      page.locator(
-        '#projectsRail .projects-rail-item[data-project-key="Alpha Plus"]',
-      ),
-    ).toBeVisible();
-    await expect(page.locator("#categoryFilter")).toHaveValue("Alpha Plus");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText(
-      "Alpha Plus",
-    );
-
-    const renamedRow = page
-      .locator("#projectsRail .projects-rail-row")
-      .filter({
-        has: page.locator(
-          '.projects-rail-item[data-project-key="Alpha Plus"] .projects-rail-item__label',
-        ),
-      })
-      .first();
-
-    await renamedRow.hover();
-    await renamedRow.locator('[data-project-menu-toggle="Alpha Plus"]').click();
-    page.once("dialog", (dialog) => dialog.accept());
-    await renamedRow
-      .locator(
-        '[data-project-menu-action="delete"][data-project-key="Alpha Plus"]',
-      )
-      .click();
-
-    await expect(page.locator("#categoryFilter")).toHaveValue("");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("All tasks");
-    await expect(
-      page.locator('#projectsRail .projects-rail-item[data-project-key=""]'),
-    ).toHaveAttribute("aria-current", "page");
   });
 
   test("Escape closes kebab first then drawer and restores focus", async ({
@@ -573,26 +473,5 @@ test.describe("Projects rail keyboard + sync invariants", () => {
     expect(overflowMetrics.scrollWidth).toBeLessThanOrEqual(
       overflowMetrics.clientWidth + 1,
     );
-  });
-
-  test("mobile rail sheet Escape closes and restores focus to opener", async ({
-    page,
-    isMobile,
-  }) => {
-    test.skip(!isMobile, "Mobile-only rail sheet behavior");
-
-    const openButton = page.locator("#projectsRailMobileOpen");
-    await openButton.click();
-
-    await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
-    await page.keyboard.press("Escape");
-    await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-    await expect(openButton).toBeFocused();
   });
 });

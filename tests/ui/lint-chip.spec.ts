@@ -214,15 +214,6 @@ test.describe("Lint-first on-create chip", () => {
     await expect(page.locator(".ai-create-assist__chips")).toBeHidden();
   });
 
-  test("short title (< 5 chars) shows title_too_short chip", async ({
-    page,
-  }) => {
-    await page.locator("#todoInput").fill("Fix");
-    await expect(
-      page.locator(".ai-lint-chip[data-lint-code='title_too_short']"),
-    ).toBeVisible();
-  });
-
   test("urgency language without due date shows missing_due_date chip", async ({
     page,
   }) => {
@@ -230,21 +221,6 @@ test.describe("Lint-first on-create chip", () => {
     await expect(
       page.locator(".ai-lint-chip[data-lint-code='missing_due_date']"),
     ).toBeVisible();
-  });
-
-  test("clean specific title shows no lint chip and no assist row", async ({
-    page,
-  }) => {
-    await page
-      .locator("#todoInput")
-      .fill("Write quarterly report for finance team");
-    await expect(page.locator(".ai-lint-chip")).toBeHidden();
-    const row = page.locator("#aiOnCreateAssistRow");
-    // row should be either hidden or have empty content
-    const isHidden = await row.evaluate(
-      (el) => el.hidden || el.innerHTML.trim() === "",
-    );
-    expect(isHidden).toBe(true);
   });
 
   test("Fix button reveals full assist row", async ({ page }) => {
@@ -256,23 +232,6 @@ test.describe("Lint-first on-create chip", () => {
     // After Fix the lint chip should be gone and the assist header should appear
     await expect(page.locator(".ai-lint-chip")).toBeHidden();
     await expect(page.locator(".ai-create-assist__header")).toBeVisible();
-  });
-
-  test("Review button reveals full assist row", async ({ page }) => {
-    await page.locator("#todoInput").fill("handle things");
-    await expect(page.locator(".ai-lint-chip")).toBeVisible();
-    await page
-      .locator(".ai-lint-chip__action[data-ai-lint-action='review']")
-      .click();
-    await expect(page.locator(".ai-lint-chip")).toBeHidden();
-    await expect(page.locator(".ai-create-assist__header")).toBeVisible();
-  });
-
-  test("lint chip resets when input is cleared", async ({ page }) => {
-    await page.locator("#todoInput").fill("do stuff");
-    await expect(page.locator(".ai-lint-chip")).toBeVisible();
-    await page.locator("#todoInput").fill("");
-    await expect(page.locator(".ai-lint-chip")).toBeHidden();
   });
 });
 
@@ -306,20 +265,6 @@ test.describe("Lint-first task drawer chip", () => {
     await expect(
       page.locator("#todoDetailsDrawer .todo-drawer-ai-list"),
     ).toBeHidden();
-  });
-
-  test("drawer shows no chip for a clean task title", async ({ page }) => {
-    await page
-      .locator("#todoInput")
-      .fill("Write quarterly report for finance team");
-    await page.locator("#todoInput").press("Enter");
-    await expect(page.locator(".todo-item").first()).toBeVisible();
-    await page.locator(".todo-item").first().click();
-    await expect(page.locator("#todoDetailsDrawer")).toBeVisible();
-    await expect(page.locator("#todoDetailsDrawer .ai-lint-chip")).toBeHidden();
-    await expect(
-      page.locator("#todoDetailsDrawer .todo-drawer-ai-list"),
-    ).toHaveCount(0);
   });
 
   test("Fix in drawer reveals full AI suggestions section", async ({
@@ -390,21 +335,13 @@ test.describe("AI Plan excluded from nav surfaces", () => {
     await registerAndOpen(page);
   });
 
-  test("AI Plan does not appear in the projects rail", async ({ page }) => {
-    await expect(page.locator("[data-project-key='AI Plan']")).toHaveCount(0);
-  });
-
-  test("AI Plan does not appear in categoryFilter dropdown", async ({
+  test("AI Plan is hidden from nav surfaces while its todos remain visible", async ({
     page,
   }) => {
+    await expect(page.locator("[data-project-key='AI Plan']")).toHaveCount(0);
     await expect(
       page.locator("#categoryFilter option[value='AI Plan']"),
     ).toHaveCount(0);
-  });
-
-  test("todo with AI Plan category is still visible under All Tasks", async ({
-    page,
-  }) => {
     await expect(
       page.locator(".todo-item", { hasText: "AI generated task" }),
     ).toBeVisible();

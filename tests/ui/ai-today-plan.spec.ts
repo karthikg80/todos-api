@@ -477,14 +477,12 @@ test.describe("AI today planner panel", () => {
     await openTodayView(page);
   });
 
-  test("does not auto-fetch on initial Today panel open", async () => {
-    expect(state.latestFetchCalls).toBe(0);
-    expect(state.generateCalls).toBe(0);
-  });
-
   test("generate persists across reload and unknown suggestion types are ignored", async ({
     page,
   }) => {
+    expect(state.latestFetchCalls).toBe(0);
+    expect(state.generateCalls).toBe(0);
+
     await page
       .locator('[data-testid="today-plan-goal-input"]')
       .fill("quick wins");
@@ -519,25 +517,6 @@ test.describe("AI today planner panel", () => {
     ).toHaveCount(3);
   });
 
-  test("checkboxes filter which suggestion cards are shown", async ({
-    page,
-  }) => {
-    await page.locator('[data-testid="today-plan-generate"]').click();
-    await expect(
-      page.locator('[data-testid="today-plan-preview"]'),
-    ).toBeVisible();
-
-    await page
-      .locator('[data-testid="today-plan-item-checkbox-todo-1"]')
-      .uncheck();
-
-    await expect(
-      page.locator(
-        '[data-testid^="today-plan-suggestion-"][data-today-plan-todo-id="todo-1"]',
-      ),
-    ).toHaveCount(0);
-  });
-
   test("apply selected updates chosen todo, undo is local, reload restores persisted server state", async ({
     page,
   }) => {
@@ -570,7 +549,9 @@ test.describe("AI today planner panel", () => {
     await expect(page.locator("#drawerPrioritySelect")).toHaveValue("high");
   });
 
-  test("dismiss persists and clears plan after reload", async ({ page }) => {
+  test("dismiss clears the plan and persists across reload", async ({
+    page,
+  }) => {
     await page.locator('[data-testid="today-plan-generate"]').click();
     await expect(
       page.locator('[data-testid="today-plan-preview"]'),

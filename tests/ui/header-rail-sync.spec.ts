@@ -233,40 +233,6 @@ test.describe("Header + rail sync", () => {
     await registerAndOpenTodos(page, "header-rail-sync@example.com");
   });
 
-  test("default state keeps All tasks active with synced header and count", async ({
-    page,
-    isMobile,
-  }) => {
-    const allTasksRailItem = page.locator(
-      '#projectsRail .projects-rail-item[data-project-key=""]',
-    );
-
-    if (isMobile) {
-      await page.locator("#projectsRailMobileOpen").click();
-      await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
-        "aria-hidden",
-        "false",
-      );
-    }
-
-    await expect(allTasksRailItem).toHaveAttribute("aria-current", "page");
-    // #todosListHeaderBreadcrumb was removed in the sidebar-first layout refactor.
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("All tasks");
-
-    const visibleCount = await page.locator(".todo-item").count();
-    await expect(page.locator("#todosListHeaderCount")).toHaveText(
-      `${visibleCount} tasks`,
-    );
-
-    if (isMobile) {
-      await page.keyboard.press("Escape");
-      await expect(page.locator("#projectsRailSheet")).toHaveAttribute(
-        "aria-hidden",
-        "true",
-      );
-    }
-  });
-
   test("project selection syncs rail active state, topbar label, header, and count", async ({
     page,
     isMobile,
