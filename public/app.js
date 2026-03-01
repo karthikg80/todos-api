@@ -1555,10 +1555,10 @@ function renderHomeTaskTile({
   subtitle = "",
   items = [],
   groupedItems = null,
-  tileClassName = "",
   seeAllLabel = "See all",
   emptyText = "No tasks here.",
   showReasons = false,
+  showSeeAll = true,
 } = {}) {
   const bodyHtml =
     items.length > 0
@@ -1592,13 +1592,13 @@ function renderHomeTaskTile({
             .join("")
       : `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`;
   return `
-    <section class="home-tile home-tile--tasks ${escapeHtml(tileClassName)}" data-home-tile="${escapeHtml(key)}">
+    <section class="home-tile" data-home-tile="${escapeHtml(key)}">
       <div class="home-tile__header">
         <div>
           <h3 class="home-tile__title">${escapeHtml(title)}</h3>
           ${subtitle ? `<p class="home-tile__subtitle">${escapeHtml(subtitle)}</p>` : ""}
         </div>
-        ${key !== "top_focus" ? `<button type="button" class="mini-btn home-tile__see-all" data-onclick="openHomeTileList('${escapeHtml(key)}')">${escapeHtml(seeAllLabel)}</button>` : ""}
+        ${showSeeAll ? `<button type="button" class="mini-btn home-tile__see-all" data-onclick="openHomeTileList('${escapeHtml(key)}')">${escapeHtml(seeAllLabel)}</button>` : ""}
       </div>
       <div class="home-tile__body" ${key === "top_focus" ? 'id="homeTopFocusBody"' : ""}>
         ${bodyHtml}
@@ -1614,7 +1614,7 @@ function renderHomeTaskTile({
 
 function renderProjectsToNudgeTile(items = []) {
   return `
-    <section class="home-tile home-tile--projects home-tile--compact" data-home-tile="projects_to_nudge">
+    <section class="home-tile" data-home-tile="projects_to_nudge">
       <div class="home-tile__header">
         <div>
           <h3 class="home-tile__title">Projects to Nudge</h3>
@@ -1673,6 +1673,7 @@ function renderHomeDashboard() {
           items: topFocusItems,
           emptyText: "Nothing urgent right now.",
           showReasons: true,
+          showSeeAll: false,
         })}
         ${renderHomeTaskTile({
           key: "due_soon",
