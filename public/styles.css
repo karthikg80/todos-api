@@ -5467,7 +5467,7 @@ body.is-todos-view .projects-rail-item__count {
 
 .home-dashboard {
   display: grid;
-  gap: 16px;
+  gap: 12px;
 }
 
 .home-dashboard__toolbar {
@@ -5484,7 +5484,8 @@ body.is-todos-view .projects-rail-item__count {
 .home-dashboard__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: 12px;
+  align-items: start;
 }
 
 .home-tile {
@@ -5492,8 +5493,10 @@ body.is-todos-view .projects-rail-item__count {
   border-radius: 18px;
   background: color-mix(in oklab, var(--surface) 96%, var(--surface-2));
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-  padding: 13px;
-  height: 100%;
+  padding: 15px;
+  display: grid;
+  align-content: start;
+  gap: 9px;
 }
 
 .home-tile__header {
@@ -5501,7 +5504,6 @@ body.is-todos-view .projects-rail-item__count {
   justify-content: space-between;
   align-items: flex-start;
   gap: 10px;
-  margin-bottom: 8px;
 }
 
 .home-tile__title {
@@ -5513,8 +5515,9 @@ body.is-todos-view .projects-rail-item__count {
 .home-tile__subtitle {
   margin: 3px 0 0;
   color: var(--text-secondary);
-  font-size: 0.76rem;
-  line-height: 1.35;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  max-width: 32ch;
 }
 
 .home-tile__see-all {
@@ -5541,7 +5544,7 @@ body.is-todos-view .projects-rail-item__count {
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
-  padding: 8px 9px;
+  padding: 7px 9px;
   border-radius: 12px;
   background: color-mix(in oklab, var(--surface) 95%, var(--surface-2));
   border: 1px solid color-mix(in oklab, var(--border-color) 48%, transparent);
@@ -5588,16 +5591,16 @@ body.is-todos-view .projects-rail-item__count {
   margin-top: -2px;
   color: color-mix(in oklab, var(--text-secondary) 86%, var(--surface));
   font-size: 0.72rem;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
 .home-task-group {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 
 .home-task-group + .home-task-group {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .home-task-group__label {
@@ -5620,11 +5623,11 @@ body.is-todos-view .projects-rail-item__count {
   background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
   color: var(--text-primary);
   border-radius: 12px;
-  padding: 10px 11px;
+  padding: 9px 10px;
   text-align: left;
   cursor: pointer;
   display: grid;
-  gap: 4px;
+  gap: 3px;
 }
 
 .home-project-row:hover {
