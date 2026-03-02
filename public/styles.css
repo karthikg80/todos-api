@@ -1927,7 +1927,6 @@ textarea:focus-visible,
   justify-content: center;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail__header h3,
 .projects-rail.projects-rail--collapsed .projects-rail__section-header,
 .projects-rail.projects-rail--collapsed .projects-rail__footer,
 .projects-rail.projects-rail--collapsed #railSearchContainer {
@@ -1959,16 +1958,8 @@ textarea:focus-visible,
 .projects-rail__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--s-2);
-}
-
-.projects-rail__header h3 {
-  margin: 0;
-  font-size: var(--fs-sm);
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .projects-rail__primary,
@@ -4979,11 +4970,6 @@ body.is-todos-view .projects-rail__header {
   padding: 0 6px 6px;
   border-bottom: 1px solid
     color-mix(in oklab, var(--border-color) 70%, transparent);
-}
-
-body.is-todos-view .projects-rail__header h3 {
-  font-size: 12px;
-  letter-spacing: 0.06em;
 }
 
 body.is-todos-view .projects-rail__section {
