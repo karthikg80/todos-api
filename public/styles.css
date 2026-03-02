@@ -5467,78 +5467,33 @@ body.is-todos-view .projects-rail-item__count {
 
 .home-dashboard {
   display: grid;
-  gap: 14px;
+  gap: 16px;
 }
 
-.home-dashboard__hero {
-  display: grid;
-  grid-template-columns: minmax(0, 500px) auto;
-  align-items: end;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 0 2px;
-}
-
-.home-dashboard__intro {
-  display: grid;
-  gap: 5px;
-  max-width: 500px;
-}
-
-.home-dashboard__hero-actions {
+.home-dashboard__toolbar {
   display: flex;
   justify-content: flex-end;
-  margin-left: auto;
-}
-
-.home-dashboard__title {
-  margin: 0;
-  font-size: clamp(1.42rem, 2.15vw, 1.88rem);
-  line-height: 1.08;
-  letter-spacing: -0.02em;
-}
-
-.home-dashboard__subtitle {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.45;
-  max-width: 44ch;
+  padding-top: 4px;
 }
 
 .home-dashboard__new-task {
   width: auto;
-  min-width: 104px;
-  align-self: flex-start;
+  min-width: 112px;
 }
 
 .home-dashboard__grid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 12px;
-  align-items: start;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .home-tile {
-  grid-column: span 4;
   border: 1px solid color-mix(in oklab, var(--border-color) 52%, transparent);
   border-radius: 18px;
   background: color-mix(in oklab, var(--surface) 96%, var(--surface-2));
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
   padding: 13px;
-}
-
-.home-tile--feature {
-  grid-column: span 6;
-}
-
-.home-tile--compact {
-  background: color-mix(in oklab, var(--surface) 97%, var(--surface-2));
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.03);
-}
-
-.home-tile--full {
-  grid-column: 1 / -1;
+  height: 100%;
 }
 
 .home-tile__header {
@@ -5826,20 +5781,12 @@ body.is-todos-view .projects-rail-item__count {
     grid-template-columns: 1fr;
   }
 
-  .home-dashboard__hero {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .home-dashboard__hero-actions {
+  .home-dashboard__toolbar {
     justify-content: flex-start;
     margin-left: 0;
   }
 
-  .home-tile,
-  .home-tile--feature,
-  .home-tile--full {
+  .home-tile {
     grid-column: auto;
   }
 }
