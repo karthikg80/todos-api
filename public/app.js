@@ -203,7 +203,7 @@ const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
 const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
 const QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY =
   "todos:quick-entry-properties-open";
-const SIDEBAR_NAV_ITEMS = [{ view: "settings", label: "Settings" }];
+const SIDEBAR_NAV_ITEMS = [];
 let isAiWorkspaceCollapsed = true;
 let isAiWorkspaceVisible = AI_DEBUG_ENABLED;
 let onCreateAssistState = createInitialOnCreateAssistState();
