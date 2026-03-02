@@ -1618,7 +1618,7 @@ function renderProjectsToNudgeTile(items = []) {
       <div class="home-tile__header">
         <div>
           <h3 class="home-tile__title">Projects to Nudge</h3>
-          <p class="home-tile__subtitle">Projects that could use a check-in.</p>
+          <p class="home-tile__subtitle">Projects that could use a light touch.</p>
         </div>
       </div>
       <div class="home-tile__body">
@@ -1656,7 +1656,8 @@ function renderHomeDashboard() {
 
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
-      <div class="home-dashboard__toolbar">
+      <div class="home-dashboard__utility-row">
+        <p class="home-dashboard__label">Home</p>
         <button
           type="button"
           class="add-btn home-dashboard__new-task"
@@ -1669,7 +1670,7 @@ function renderHomeDashboard() {
         ${renderHomeTaskTile({
           key: "top_focus",
           title: "Top Focus",
-          subtitle: "The few tasks most worth your attention.",
+          subtitle: "The tasks most worth your attention.",
           items: topFocusItems,
           emptyText: "Nothing urgent right now.",
           showReasons: true,
@@ -1678,7 +1679,7 @@ function renderHomeDashboard() {
         ${renderHomeTaskTile({
           key: "due_soon",
           title: "Due Soon",
-          subtitle: "What needs attention next.",
+          subtitle: "What needs attention in the next few days.",
           items: model.dueSoon,
           groupedItems: model.dueSoonGroups,
           emptyText: "No due-soon tasks.",
@@ -1686,7 +1687,7 @@ function renderHomeDashboard() {
         ${renderHomeTaskTile({
           key: "quick_wins",
           title: "Quick Wins",
-          subtitle: "Small tasks you can clear quickly.",
+          subtitle: "Short tasks you can clear without much drag.",
           items: model.quickWins,
           emptyText: "No quick wins right now.",
         })}
