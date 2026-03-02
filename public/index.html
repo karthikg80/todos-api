@@ -13,25 +13,6 @@
         <div class="app-sidebar__top">
           <div id="projectsRailHost" aria-live="polite"></div>
         </div>
-        <div class="app-sidebar__bottom">
-          <div class="app-sidebar__actions">
-            <button
-              type="button"
-              class="projects-rail-item"
-              data-onclick="toggleTheme()"
-              title="Toggle dark mode"
-            >
-              <span class="app-sidebar__theme-label">🌙 Theme</span>
-            </button>
-            <button
-              type="button"
-              class="projects-rail-item"
-              data-onclick="logout()"
-            >
-              <span class="projects-rail-item__label">Logout</span>
-            </button>
-          </div>
-        </div>
       </aside>
       <main id="appMain">
         <div id="appMainScroll">
@@ -272,9 +253,15 @@
                       <button
                         id="projectsRailToggle"
                         type="button"
-                        class="mini-btn"
+                        class="sidebar-toggle-btn"
+                        aria-label="Collapse sidebar"
+                        aria-expanded="true"
                       >
-                        Collapse
+                        <span
+                          class="sidebar-toggle-btn__icon"
+                          aria-hidden="true"
+                          >☰</span
+                        >
                       </button>
                     </div>
                     <div class="rail-search-container" id="railSearchContainer">
@@ -448,6 +435,13 @@
                         <span class="projects-rail-item__label"
                           >⚙ Settings</span
                         >
+                      </button>
+                      <button
+                        type="button"
+                        class="projects-rail-item"
+                        data-onclick="logout()"
+                      >
+                        <span class="projects-rail-item__label">Logout</span>
                       </button>
                       <button
                         type="button"
@@ -642,6 +636,13 @@
                         <span class="projects-rail-item__label"
                           >⚙ Settings</span
                         >
+                      </button>
+                      <button
+                        type="button"
+                        class="projects-rail-item"
+                        data-onclick="logout()"
+                      >
+                        <span class="projects-rail-item__label">Logout</span>
                       </button>
                       <button
                         type="button"

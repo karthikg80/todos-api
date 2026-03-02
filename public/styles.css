@@ -5957,6 +5957,157 @@ body.is-todos-view .priority-btn.active::before {
   opacity: 1;
 }
 
+/* Spec: calm workspace polish */
+
+/* 1. Remove blue body-gradient bleed around main content in todos view */
+body.is-todos-view #appMainScroll {
+  padding: 0;
+}
+
+/* 2. Sidebar toggle: icon-only hamburger button */
+.sidebar-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle-btn:hover {
+  background: color-mix(in oklab, var(--surface) 82%, var(--surface-2));
+  color: var(--text-primary);
+}
+
+.sidebar-toggle-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.sidebar-toggle-btn__icon {
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+
+/* 3. Sidebar header: 48px height, flex row with toggle on left */
+body.is-todos-view .projects-rail__header {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 4px;
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--border-color) 60%, transparent);
+  flex-shrink: 0;
+}
+
+/* 4. Home dashboard: single-column layout with header row */
+.home-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 880px;
+  padding: 24px 32px 40px;
+}
+
+.home-dashboard__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: -8px;
+}
+
+.home-dashboard__title {
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.home-dashboard__new-task {
+  flex-shrink: 0;
+  height: 36px;
+  padding: 0 16px;
+  font-size: 0.875rem;
+  font-weight: var(--fw-semibold);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.home-dashboard__new-task:hover {
+  filter: saturate(1.05) brightness(1.03);
+}
+
+/* Override old grid-based layout */
+.home-dashboard__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+/* Home tile: section-style for single-column layout */
+body.is-todos-view .home-tile {
+  border-radius: 16px;
+  padding: 16px;
+  gap: 12px;
+}
+
+body.is-todos-view .home-tile__header {
+  margin-bottom: 0;
+}
+
+body.is-todos-view .home-tile__title {
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+/* Focus tile: slightly more prominent surface */
+body.is-todos-view .home-tile[data-home-tile="top_focus"] {
+  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--border-color) 60%, transparent);
+}
+
+/* Up Next / Due Soon tile: lighter surface */
+body.is-todos-view .home-tile[data-home-tile="due_soon"],
+body.is-todos-view .home-tile[data-home-tile="projects_to_nudge"] {
+  background: color-mix(in oklab, var(--surface) 98%, var(--surface-2));
+  border-color: color-mix(in oklab, var(--border-color) 40%, transparent);
+}
+
+/* Remove old toolbar spacing */
+.home-dashboard__toolbar {
+  display: none;
+}
+
+/* Remove app-sidebar__bottom styles (no longer used) */
+.app-sidebar__bottom {
+  display: none;
+}
+
+/* Override home-dashboard grid on mobile */
+@media (max-width: 900px) {
+  .home-dashboard {
+    padding: 20px 20px 32px;
+    gap: 24px;
+  }
+}
+
 /* Things-inspired surface refinement: final override layer */
 body.is-todos-view #todosView[data-surface-mode="list"] .todos-list-header {
   padding: 6px 2px 12px;

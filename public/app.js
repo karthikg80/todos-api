@@ -1616,10 +1616,7 @@ function renderProjectsToNudgeTile(items = []) {
   return `
     <section class="home-tile" data-home-tile="projects_to_nudge">
       <div class="home-tile__header">
-        <div>
-          <h3 class="home-tile__title">Projects to Nudge</h3>
-          <p class="home-tile__subtitle">Projects that could use a light touch.</p>
-        </div>
+        <h3 class="home-tile__title">Projects to Nudge</h3>
       </div>
       <div class="home-tile__body">
         ${
@@ -1656,42 +1653,32 @@ function renderHomeDashboard() {
 
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
-      <div class="home-dashboard__toolbar">
+      <div class="home-dashboard__header">
+        <h2 class="home-dashboard__title">Home</h2>
         <button
           type="button"
           class="add-btn home-dashboard__new-task"
           data-onclick="openTaskComposer()"
         >
-          New Task
+          + New Task
         </button>
       </div>
-      <div class="home-dashboard__grid">
-        ${renderHomeTaskTile({
-          key: "top_focus",
-          title: "Top Focus",
-          subtitle: "The tasks most worth your attention.",
-          items: topFocusItems,
-          emptyText: "Nothing urgent right now.",
-          showReasons: true,
-          showSeeAll: false,
-        })}
-        ${renderHomeTaskTile({
-          key: "due_soon",
-          title: "Due Soon",
-          subtitle: "What needs attention in the next few days.",
-          items: model.dueSoon,
-          groupedItems: model.dueSoonGroups,
-          emptyText: "No due-soon tasks.",
-        })}
-        ${renderHomeTaskTile({
-          key: "quick_wins",
-          title: "Quick Wins",
-          subtitle: "Short tasks you can clear without much drag.",
-          items: model.quickWins,
-          emptyText: "No quick wins right now.",
-        })}
-        ${renderProjectsToNudgeTile(model.projectsToNudge)}
-      </div>
+      ${renderHomeTaskTile({
+        key: "top_focus",
+        title: "Focus",
+        items: topFocusItems,
+        emptyText: "Nothing urgent right now.",
+        showReasons: true,
+        showSeeAll: false,
+      })}
+      ${renderHomeTaskTile({
+        key: "due_soon",
+        title: "Up Next",
+        items: model.dueSoon,
+        groupedItems: model.dueSoonGroups,
+        emptyText: "Nothing coming up.",
+      })}
+      ${renderProjectsToNudgeTile(model.projectsToNudge)}
     </section>
   `;
 }
@@ -1723,7 +1710,7 @@ function openTodoFromHomeTile(todoId) {
 
 function getHomeDrilldownLabel() {
   const labels = {
-    due_soon: "Due Soon",
+    due_soon: "Up Next",
     stale_risks: "Stale Risks",
     quick_wins: "Quick Wins",
   };
@@ -6352,7 +6339,10 @@ function setProjectsRailCollapsed(nextCollapsed) {
     isRailCollapsed,
   );
   refs.collapseToggle.setAttribute("aria-expanded", String(!isRailCollapsed));
-  refs.collapseToggle.textContent = isRailCollapsed ? "Expand" : "Collapse";
+  refs.collapseToggle.setAttribute(
+    "aria-label",
+    isRailCollapsed ? "Expand sidebar" : "Collapse sidebar",
+  );
   updateTopbarProjectsButton(getSelectedProjectName());
 }
 

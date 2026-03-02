@@ -477,13 +477,13 @@ test.describe("Home focus dashboard + sheet composer", () => {
 
     await expect(page.locator('[data-home-tile="top_focus"]')).toBeVisible();
     await expect(page.locator('[data-home-tile="top_focus"]')).toContainText(
-      "Top Focus",
+      "Focus",
     );
     await expect(page.locator('[data-home-tile="top_focus"]')).toContainText(
-      /Your 3 most important items right now|Nothing urgent right now|Send overdue invoice/,
+      /Nothing urgent right now|Send overdue invoice/,
     );
     await expect(page.locator('[data-home-tile="due_soon"]')).toContainText(
-      /Due Soon|Prepare launch checklist|No tasks/,
+      /Up Next|Prepare launch checklist|No tasks/,
     );
   });
 
@@ -531,18 +531,10 @@ test.describe("Home focus dashboard + sheet composer", () => {
     ).toBeVisible();
   });
 
-  test("See all navigates for Due Soon and Quick Wins", async ({ page }) => {
-    const dueSoonTile = page.locator('[data-home-tile="due_soon"]');
-    await dueSoonTile.getByRole("button", { name: "See all" }).click();
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Due Soon");
-    await expectListOrEmptyState(page);
-
-    await clickWorkspaceView(page, "home");
-    const quickWinsTile = page.locator('[data-home-tile="quick_wins"]');
-    await quickWinsTile.getByRole("button", { name: "See all" }).click();
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText(
-      "Quick Wins",
-    );
+  test("See all navigates for Up Next", async ({ page }) => {
+    const upNextTile = page.locator('[data-home-tile="due_soon"]');
+    await upNextTile.getByRole("button", { name: "See all" }).click();
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Up Next");
     await expectListOrEmptyState(page);
   });
 });
