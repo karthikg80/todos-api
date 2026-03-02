@@ -1,11 +1,17 @@
 (function initThemeModule(globalScope) {
+  function syncThemeLabel(isDark) {
+    var icon = isDark ? "☀️" : "🌙";
+    var toggleBtn = document.querySelector(".theme-toggle");
+    if (toggleBtn) toggleBtn.textContent = icon;
+    var sidebarLabel = document.querySelector(".app-sidebar__theme-label");
+    if (sidebarLabel) sidebarLabel.textContent = icon + " Theme";
+  }
+
   function toggleTheme() {
     var body = document.body;
     var isDark = body.classList.toggle("dark-mode");
     localStorage.setItem("theme", isDark ? "dark" : "light");
-
-    var toggleBtn = document.querySelector(".theme-toggle");
-    if (toggleBtn) toggleBtn.textContent = isDark ? "☀️" : "🌙";
+    syncThemeLabel(isDark);
   }
 
   function initTheme() {
@@ -17,8 +23,7 @@
 
     if (shouldBeDark) {
       document.body.classList.add("dark-mode");
-      var toggleBtn = document.querySelector(".theme-toggle");
-      if (toggleBtn) toggleBtn.textContent = "☀️";
+      syncThemeLabel(true);
     }
   }
 

@@ -170,13 +170,9 @@ body.is-todos-view #appSidebar {
   flex: 1 1 auto;
 }
 
-.app-sidebar__brand {
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  color: var(--text-secondary);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 0 var(--s-1);
+.app-sidebar__actions {
+  display: grid;
+  gap: 4px;
 }
 
 #projectsRailHost {
@@ -2273,6 +2269,11 @@ button.projects-rail-item {
   }
   body.is-todos-view .todos-layout--rail-collapsed .todos-top-bar {
     display: grid;
+  }
+  /* Header is redundant on desktop todos view — sidebar handles all navigation
+     and account actions. It remains visible on mobile and auth view. */
+  body.is-todos-view .header {
+    display: none;
   }
 }
 
@@ -4952,12 +4953,6 @@ body.is-todos-view .app-sidebar__top {
   gap: 10px;
 }
 
-body.is-todos-view .app-sidebar__brand {
-  padding: 0 8px;
-  font-size: 11px;
-  letter-spacing: 0.1em;
-}
-
 body.is-todos-view #projectsRailHost > #projectsRail {
   padding: 0 2px;
 }
@@ -5494,7 +5489,8 @@ body.is-todos-view .projects-rail-item__count {
 
 .home-tile__title {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 1rem;
+  font-weight: var(--fw-semibold);
   letter-spacing: -0.01em;
 }
 
