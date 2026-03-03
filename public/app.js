@@ -1524,8 +1524,19 @@ async function hydrateHomeTopFocusIfNeeded() {
   }
 }
 
+const HOME_BADGE_ICONS = {
+  Overdue: `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`,
+  Today: `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/></svg>`,
+  Tomorrow: `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`,
+};
+
 function renderHomeTaskRow(todo, { reason = "" } = {}) {
   const dueBadge = formatHomeDueBadge(todo);
+  const badgeIcon =
+    HOME_BADGE_ICONS[dueBadge] ??
+    (dueBadge
+      ? `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`
+      : "");
   return `
     <div class="home-task-row" data-home-todo-id="${escapeHtml(String(todo.id))}">
       <input
@@ -1543,7 +1554,7 @@ function renderHomeTaskRow(todo, { reason = "" } = {}) {
       >
         ${escapeHtml(String(todo.title || "Untitled task"))}
       </button>
-      ${dueBadge ? `<span class="home-task-row__badge ${dueBadge === "Overdue" ? "home-task-row__badge--overdue" : ""}">${escapeHtml(dueBadge)}</span>` : ""}
+      ${dueBadge ? `<span class="home-task-row__badge ${dueBadge === "Overdue" ? "home-task-row__badge--overdue" : ""}">${badgeIcon}${escapeHtml(dueBadge)}</span>` : ""}
       ${reason ? `<div class="home-task-row__reason">${escapeHtml(reason)}</div>` : ""}
     </div>
   `;
@@ -1591,11 +1602,16 @@ function renderHomeTaskTile({
             )
             .join("")
       : `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`;
+  const TILE_ICON_SVG = {
+    top_focus: `<svg class="home-tile__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+    due_soon: `<svg class="home-tile__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>`,
+  };
+  const tileIcon = TILE_ICON_SVG[key] ?? "";
   return `
     <section class="home-tile" data-home-tile="${escapeHtml(key)}">
       <div class="home-tile__header">
-        <div>
-          <h3 class="home-tile__title">${escapeHtml(title)}</h3>
+        <div class="home-tile__title-row">
+          ${tileIcon}<h3 class="home-tile__title">${escapeHtml(title)}</h3>
           ${subtitle ? `<p class="home-tile__subtitle">${escapeHtml(subtitle)}</p>` : ""}
         </div>
         ${showSeeAll ? `<button type="button" class="mini-btn home-tile__see-all" data-onclick="openHomeTileList('${escapeHtml(key)}')">${escapeHtml(seeAllLabel)}</button>` : ""}
@@ -1613,10 +1629,14 @@ function renderHomeTaskTile({
 }
 
 function renderProjectsToNudgeTile(items = []) {
+  const folderIcon = `<svg class="home-project-row__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
   return `
     <section class="home-tile" data-home-tile="projects_to_nudge">
       <div class="home-tile__header">
-        <h3 class="home-tile__title">Projects to Nudge</h3>
+        <div class="home-tile__title-row">
+          <svg class="home-tile__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <h3 class="home-tile__title">Projects to Nudge</h3>
+        </div>
       </div>
       <div class="home-tile__body">
         ${
@@ -1629,7 +1649,7 @@ function renderProjectsToNudgeTile(items = []) {
                     class="home-project-row"
                     data-onclick="openHomeProject('${escapeHtml(project.projectName)}')"
                   >
-                    <span class="home-project-row__name">${escapeHtml(getProjectLeafName(project.projectName))}</span>
+                    <span class="home-project-row__header">${folderIcon}<span class="home-project-row__name">${escapeHtml(getProjectLeafName(project.projectName))}</span></span>
                     <span class="home-project-row__meta">${project.openCount} open${project.overdueCount ? ` · ${project.overdueCount} overdue` : ""}${project.dueSoonCount ? ` · ${project.dueSoonCount} due soon` : ""}</span>
                   </button>
                 `,
@@ -6136,6 +6156,7 @@ function renderProjectsRailListHtml({ projects, selectedProject }) {
             data-project-key="${escapeHtml(projectName)}"
             ${isActive ? 'aria-current="page"' : ""}
           >
+            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
             <span class="projects-rail-item__label" title="${escapeHtml(getProjectLeafName(projectName))}">${escapeHtml(getProjectLeafName(projectName))}</span>
             <span class="projects-rail-item__count">${count}</span>
           </button>
