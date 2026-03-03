@@ -5760,6 +5760,11 @@ function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
     topbarLabel.innerHTML = `Projects: <span class="projects-active-label">${escapeHtml(label)}</span>`;
     topbarLabel.setAttribute("title", `Projects: ${label}`);
   }
+
+  const mobileTitle = document.getElementById("todosMobileTitle");
+  if (mobileTitle instanceof HTMLElement) {
+    mobileTitle.textContent = selectedProjectName || "Home";
+  }
 }
 
 function getCommandPaletteElements() {
@@ -12252,6 +12257,7 @@ function bindDeclarativeHandlers() {
 // because they are referenced via data-onclick / data-onsubmit in HTML.
 // ---------------------------------------------------------------------------
 window.toggleTheme = toggleTheme;
+window.openProjectsFromTopbar = openProjectsFromTopbar;
 
 // Initialize theme immediately
 initTheme();
