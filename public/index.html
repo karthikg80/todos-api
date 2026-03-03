@@ -1752,11 +1752,13 @@
           </svg>
         </button>
         <button
+          id="dockProfileBtn"
           type="button"
           class="dock-icon-btn"
-          data-onclick="logout()"
-          aria-label="Logout"
-          title="Logout"
+          data-onclick="toggleProfilePanel()"
+          aria-label="Profile"
+          aria-haspopup="true"
+          title="Profile"
         >
           <svg
             class="dock-icon"
@@ -1771,9 +1773,9 @@
             stroke-linejoin="round"
             aria-hidden="true"
           >
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-            <polyline points="16 17 21 12 16 7" />
-            <line x1="21" y1="12" x2="9" y2="12" />
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="10" r="3" />
+            <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
           </svg>
         </button>
       </div>
@@ -1832,6 +1834,25 @@
           New Task
         </button>
       </div>
+    </div>
+
+    <!-- Profile panel (anchored above dock Profile button) -->
+    <div
+      id="dockProfilePanel"
+      class="dock-profile-panel"
+      hidden
+      role="dialog"
+      aria-label="Profile"
+    >
+      <span id="dockProfileEmail" class="dock-profile-panel__email"></span>
+      <button
+        type="button"
+        class="dock-profile-panel__logout"
+        data-onclick="logout()"
+        aria-label="Logout"
+      >
+        Logout
+      </button>
     </div>
 
     <script src="/state.js" defer></script>

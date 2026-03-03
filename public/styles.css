@@ -5604,12 +5604,15 @@ body.is-todos-view .projects-rail-item__count {
   border: 1px solid color-mix(in oklab, var(--border-color) 60%, transparent);
   background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
   color: var(--text-primary);
-  border-radius: 12px;
-  padding: 9px 10px;
+  border-radius: 10px;
+  padding: 10px 12px;
   text-align: left;
   cursor: pointer;
   display: grid;
-  gap: 3px;
+  gap: 4px;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease;
 }
 
 .home-project-row:hover {
@@ -6224,11 +6227,10 @@ body.is-todos-view .search-input {
 /* ── Projects section header: quieter ────────────────────────────────────── */
 
 body.is-todos-view .projects-rail__section-label {
-  font-size: 10px;
-  font-weight: var(--fw-semibold);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: color-mix(in oklab, var(--text-muted) 80%, transparent);
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.02em;
+  color: color-mix(in oklab, var(--text-muted) 75%, transparent);
 }
 
 body.is-todos-view .projects-rail-create-btn {
@@ -6271,7 +6273,14 @@ body.is-todos-view .home-tile[data-home-tile="projects_to_nudge"] {
   background: transparent;
   border: none;
   box-shadow: none;
-  padding: 4px 4px 0;
+  padding: 8px 4px 0;
+}
+
+body.is-todos-view
+  .home-tile[data-home-tile="projects_to_nudge"]
+  .home-tile__body {
+  display: grid;
+  gap: 6px;
 }
 
 body.is-todos-view
@@ -6464,4 +6473,70 @@ body.dark-mode .dock-icon--sun {
 
 body.is-admin-user .projects-rail__footer--admin-only {
   display: flex;
+}
+
+/* ========== PROFILE PANEL (dock) ========== */
+
+.dock-profile-panel {
+  position: fixed;
+  bottom: 64px;
+  left: var(--s-5);
+  z-index: 55;
+  width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-md);
+  box-shadow:
+    0 4px 12px rgb(0 0 0 / 8%),
+    0 1px 4px rgb(0 0 0 / 5%);
+  padding: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+/* Author CSS overrides UA [hidden]{display:none} — restore it explicitly. */
+.dock-profile-panel[hidden] {
+  display: none;
+}
+
+.dock-profile-panel__email {
+  display: block;
+  padding: 2px var(--s-2);
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dock-profile-panel__logout {
+  width: 100%;
+  padding: 6px var(--s-2);
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: var(--r-sm);
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
+}
+
+.dock-profile-panel__logout:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.dock-profile-panel__logout:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+@media (max-width: 768px) {
+  .dock-profile-panel {
+    display: none !important;
+  }
 }
