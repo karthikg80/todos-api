@@ -6337,3 +6337,131 @@ body.is-todos-view .home-tile[data-home-tile="top_focus"] .home-tile__icon {
 .projects-rail-item--logout:hover {
   opacity: 0.8;
 }
+
+/* ========== BOTTOM ACTION DOCK ========== */
+.bottom-action-dock {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  height: 56px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--s-5);
+  background: var(--surface-2);
+  border-top: 1px solid var(--border-color);
+  gap: var(--s-3);
+}
+
+body.is-todos-view .bottom-action-dock {
+  display: flex;
+}
+
+@media (max-width: 768px) {
+  .bottom-action-dock {
+    display: none !important;
+  }
+}
+
+.dock__group {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.dock-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.dock-icon-btn:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.dock-icon-btn:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.dock-icon--sun {
+  display: none;
+}
+
+body.dark-mode .dock-icon--moon {
+  display: none;
+}
+
+body.dark-mode .dock-icon--sun {
+  display: block;
+}
+
+.dock-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+  height: 36px;
+  padding: 0 var(--s-4);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+
+.dock-action-btn:hover {
+  opacity: 0.88;
+}
+
+.dock-action-btn:focus-visible {
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+.dock-action-btn--primary {
+  border: none;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #fff;
+}
+
+.dock-action-btn--secondary {
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--muted);
+}
+
+.dock-action-btn--secondary:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+#todosScrollRegion {
+  padding-bottom: 72px;
+}
+
+#projectsRail {
+  padding-bottom: 72px;
+}
+
+.projects-rail__footer--admin-only {
+  display: none;
+}
+
+body.is-admin-user .projects-rail__footer--admin-only {
+  display: flex;
+}

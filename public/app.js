@@ -4482,7 +4482,7 @@ function closeProjectCrudModal({ restoreFocus = true } = {}) {
     if (lastProjectCrudOpener?.isConnected) {
       lastProjectCrudOpener.focus({ preventScroll: true });
     } else {
-      const fallback = document.getElementById("projectsRailCreateButton");
+      const fallback = document.getElementById("dockNewProjectBtn");
       if (fallback instanceof HTMLElement) {
         fallback.focus({ preventScroll: true });
       }
@@ -5279,7 +5279,6 @@ function getProjectsRailElements() {
   if (!(unsortedButton instanceof HTMLElement)) return null;
   if (!(mobileOpenButton instanceof HTMLElement)) return null;
   if (!(mobileCloseButton instanceof HTMLElement)) return null;
-  if (!(createButton instanceof HTMLElement)) return null;
   if (!(sheetCreateButton instanceof HTMLElement)) return null;
   if (!(sheet instanceof HTMLElement)) return null;
   if (!(sheetList instanceof HTMLElement)) return null;
