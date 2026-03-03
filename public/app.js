@@ -189,6 +189,7 @@ let projectCrudTargetProject = "";
 let lastProjectCrudOpener = null;
 let isCommandPaletteOpen = false;
 let commandPaletteQuery = "";
+let isProfilePanelOpen = false;
 let commandPaletteIndex = 0;
 let commandPaletteItems = [];
 let commandPaletteSelectableItems = [];
@@ -1675,13 +1676,6 @@ function renderHomeDashboard() {
     <section class="home-dashboard" data-testid="home-dashboard">
       <div class="home-dashboard__header">
         <h2 class="home-dashboard__title">Home</h2>
-        <button
-          type="button"
-          class="add-btn home-dashboard__new-task"
-          data-onclick="openTaskComposer()"
-        >
-          + New Task
-        </button>
       </div>
       ${renderHomeTaskTile({
         key: "top_focus",
@@ -2202,6 +2196,7 @@ function init() {
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
   bindTaskComposerHandlers();
+  bindDockHandlers();
   bindOnCreateAssistHandlers();
   bindTodayPlanHandlers();
   bindQuickEntryNaturalDateHandlers();
@@ -4988,6 +4983,10 @@ function syncWorkspaceViewState() {
       const view = item.getAttribute("data-workspace-view") || "all";
       const isActive = matchesWorkspaceView(view);
       item.classList.toggle("projects-rail-item--active", isActive);
+      // Clear the project-option aria-selected so the CSS rule
+      // [role="option"][aria-selected="true"] doesn't double-highlight
+      // workspace items when a matching project is selected.
+      item.setAttribute("aria-selected", "false");
       if (isActive) {
         item.setAttribute("aria-current", "page");
       } else {
@@ -11098,6 +11097,12 @@ document.addEventListener("keydown", function (e) {
     return;
   }
 
+  if (e.key === "Escape" && isProfilePanelOpen) {
+    e.preventDefault();
+    closeProfilePanel({ restoreFocus: true });
+    return;
+  }
+
   if (e.key === "Escape" && openTodoKebabId) {
     e.preventDefault();
     closeTodoKebabMenu({ restoreFocus: true });
@@ -11926,6 +11931,54 @@ function bindCriticalHandlers() {
     });
     resendBtn.dataset.bound = "true";
   }
+}
+
+// Profile panel (dock)
+function toggleProfilePanel() {
+  if (isProfilePanelOpen) {
+    closeProfilePanel({ restoreFocus: true });
+  } else {
+    const panel = document.getElementById("dockProfilePanel");
+    if (!(panel instanceof HTMLElement)) return;
+    const emailEl = document.getElementById("dockProfileEmail");
+    if (emailEl instanceof HTMLElement) {
+      emailEl.textContent = currentUser?.email ?? "";
+    }
+    panel.hidden = false;
+    isProfilePanelOpen = true;
+  }
+}
+
+function closeProfilePanel({ restoreFocus = false } = {}) {
+  const panel = document.getElementById("dockProfilePanel");
+  if (panel instanceof HTMLElement) {
+    panel.hidden = true;
+  }
+  isProfilePanelOpen = false;
+  if (restoreFocus) {
+    const trigger = document.getElementById("dockProfileBtn");
+    if (trigger instanceof HTMLElement) trigger.focus();
+  }
+}
+
+function bindDockHandlers() {
+  if (window.__dockHandlersBound) return;
+  window.__dockHandlersBound = true;
+
+  document.addEventListener("click", (event) => {
+    if (!isProfilePanelOpen) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const panel = document.getElementById("dockProfilePanel");
+    const trigger = document.getElementById("dockProfileBtn");
+    if (
+      (panel instanceof HTMLElement && panel.contains(target)) ||
+      (trigger instanceof HTMLElement && trigger.contains(target))
+    ) {
+      return;
+    }
+    closeProfilePanel({ restoreFocus: false });
+  });
 }
 
 // Logout

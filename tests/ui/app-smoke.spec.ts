@@ -4,6 +4,19 @@ import {
   openTaskComposerSheet,
 } from "./helpers/todos-view";
 
+/**
+ * Clicks logout regardless of viewport. On desktop the logout option lives
+ * inside the Profile panel (dock); on mobile it's a direct button in the
+ * header bar. Opens the panel first when it's visible.
+ */
+async function clickLogout(page: Page) {
+  const profileBtn = page.locator("#dockProfileBtn");
+  if (await profileBtn.isVisible()) {
+    await profileBtn.click();
+  }
+  await page.getByRole("button", { name: "Logout" }).click();
+}
+
 type UserRecord = {
   id: string;
   email: string;
@@ -271,7 +284,7 @@ test.describe("App smoke flows", () => {
     await ensureAllTasksListActive(page);
     await expect(page.locator(".todo-item .todo-title")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "Logout" }).click();
+    await clickLogout(page);
     await expect(page.locator("#authView")).toHaveClass(/active/);
 
     await page.getByRole("button", { name: "Register" }).click();
@@ -304,7 +317,7 @@ test.describe("App smoke flows", () => {
     );
     await expect(page.locator("#dateViewSomeday")).toHaveClass(/active/);
 
-    await page.getByRole("button", { name: "Logout" }).click();
+    await clickLogout(page);
     await expect(page.locator("#authView")).toHaveClass(/active/);
 
     await page.getByRole("button", { name: "Register" }).click();
