@@ -1727,7 +1727,7 @@ textarea:focus-visible,
 }
 
 .todos-layout--rail-collapsed {
-  grid-template-columns: 168px minmax(0, 1fr);
+  grid-template-columns: 64px minmax(0, 1fr);
 }
 
 .todos-layout--sidebar-mounted {
@@ -1925,13 +1925,13 @@ textarea:focus-visible,
 }
 
 .projects-rail.projects-rail--collapsed {
-  width: 168px;
-  padding-left: var(--s-2);
-  padding-right: var(--s-2);
+  width: 64px;
+  padding-left: var(--s-1);
+  padding-right: var(--s-1);
 }
 
 .projects-rail.projects-rail--collapsed .projects-rail__header {
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .projects-rail.projects-rail--collapsed .projects-rail__section-header,
@@ -6349,6 +6349,73 @@ body.is-todos-view .projects-rail-item > span:first-child {
   overflow: visible;
   text-overflow: unset;
   white-space: normal;
+}
+
+/* ── Collapsed sidebar: true icon-only rail ───────────────────────────────── */
+
+/* Nav labels (Home/Unsorted/All tasks/Today/Upcoming/Completed) disappear;
+   icons become the sole visual affordance. Use [title] on the button for
+   native browser tooltips (no JS required). */
+body.is-todos-view .projects-rail.projects-rail--collapsed .nav-label {
+  display: none;
+}
+
+/* Center each workspace nav icon in the 64 px column. */
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .workspace-view-item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+  min-height: 40px;
+}
+
+/* Scale icon up slightly so it reads clearly at the smaller rail width. */
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .workspace-view-item
+  .nav-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.7;
+}
+
+/* Boost icon opacity on hover / active so state is still obvious. */
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .workspace-view-item:hover
+  .nav-icon,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .workspace-view-item.projects-rail-item--active
+  .nav-icon {
+  opacity: 0.9;
+}
+
+/* Active pill: keep the subtle accent background; it reads as a centred chip
+   around the icon because the label is gone. */
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .workspace-view-item.projects-rail-item--active {
+  border-radius: 10px;
+}
+
+/* Tighten the workspace section's bottom gap so the projects list below
+   doesn't have excess breathing room at 64 px. */
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__section--workspace {
+  margin-bottom: 0;
+}
+
+/* Projects list items: keep them in DOM (test constraint — tests assert
+   .projects-rail-item__label is visible and text-overflow is nowrap), but
+   push them to a compact strip. Count badges are already hidden globally. */
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-item:not(.workspace-view-item) {
+  min-height: 28px;
+  padding: 3px 4px;
 }
 
 /* Collapsed sidebar: icons lead, labels stay in DOM but constrained by existing
