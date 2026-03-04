@@ -6630,11 +6630,6 @@ body.is-admin-user .projects-rail__footer--admin-only {
     border-bottom: 1px solid var(--border-color);
   }
 
-  /* 7. Hide old breadcrumb top-bar on mobile — replaced by new mobile top bar */
-  body.is-todos-view .todos-top-bar {
-    display: none !important;
-  }
-
   /* 8. Apply consistent mobile padding to the scroll region */
   body.is-todos-view #todosScrollRegion {
     padding-left: 16px;
