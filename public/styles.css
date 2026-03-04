@@ -6540,3 +6540,117 @@ body.is-admin-user .projects-rail__footer--admin-only {
     display: none !important;
   }
 }
+
+/* ========== MOBILE LAYOUT IMPROVEMENTS ========== */
+
+/* Mobile top bar base styles — hidden by default, shown only on mobile todos view */
+.todos-mobile-top-bar {
+  display: none;
+}
+
+.todos-mobile-hamburger,
+.todos-mobile-theme-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.todos-mobile-hamburger:hover,
+.todos-mobile-theme-btn:hover {
+  background: color-mix(in oklab, var(--surface-2) 85%, var(--surface));
+}
+
+.todos-mobile-title {
+  flex: 1;
+  text-align: center;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 var(--s-2);
+}
+
+@media (max-width: 768px) {
+  /* 1. Fix sidebar column reservation — prevents gradient bleed from empty grid column */
+  body.is-todos-view #appShell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* 2. Remove body padding that offsets the container */
+  body.is-todos-view {
+    padding: 0;
+    overflow: hidden;
+  }
+
+  /* 3. Reset main scroll for full-viewport flex layout */
+  body.is-todos-view #appMainScroll {
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    max-height: 100dvh;
+  }
+
+  /* 4. Container fills full viewport — no rounded corners, no offset */
+  body.is-todos-view .container {
+    height: 100dvh;
+    max-height: 100dvh;
+    max-width: 100%;
+    border-radius: 0;
+  }
+
+  /* 5. Hide the old header on mobile todos view — replaced by mobile top bar */
+  body.is-todos-view .header {
+    display: none;
+  }
+
+  /* 6. Show mobile top bar */
+  body.is-todos-view .todos-mobile-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    flex-shrink: 0;
+    padding: 0 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  /* 8. Apply consistent mobile padding to the scroll region */
+  body.is-todos-view #todosScrollRegion {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: 16px;
+  }
+
+  /* 9. Fix floating CTA — anchor to bottom-right of viewport */
+  .floating-new-task-cta {
+    right: 20px;
+    bottom: 24px;
+  }
+
+  /* 10. Reduce card padding on mobile */
+  .home-tile {
+    padding: 16px;
+  }
+
+  /* 11. Home dashboard: remove extra horizontal padding (scroll region handles it) */
+  .home-dashboard {
+    padding-left: 0;
+    padding-right: 0;
+  }
+}
