@@ -1,4 +1,9 @@
-import { CreateProjectDto, Project, UpdateProjectDto } from "../types";
+import {
+  CreateProjectDto,
+  Project,
+  ProjectTaskDisposition,
+  UpdateProjectDto,
+} from "../types";
 
 export interface IProjectService {
   findAll(userId: string): Promise<Project[]>;
@@ -8,5 +13,9 @@ export interface IProjectService {
     projectId: string,
     dto: UpdateProjectDto,
   ): Promise<Project | null>;
-  delete(userId: string, projectId: string): Promise<boolean>;
+  delete(
+    userId: string,
+    projectId: string,
+    taskDisposition: ProjectTaskDisposition,
+  ): Promise<boolean>;
 }

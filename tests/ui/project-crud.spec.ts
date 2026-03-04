@@ -19,10 +19,26 @@ type ProjectRecord = {
   userId: string;
   createdAt: string;
   updatedAt: string;
+  todoCount?: number;
+  openTodoCount?: number;
 };
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function enrichProject(
+  project: ProjectRecord,
+  todos: Array<Record<string, unknown>>,
+) {
+  const matchingTodos = todos.filter(
+    (todo) => String(todo.category || "") === project.name,
+  );
+  return {
+    ...project,
+    todoCount: matchingTodos.length,
+    openTodoCount: matchingTodos.filter((todo) => !todo.completed).length,
+  };
 }
 
 async function installProjectCrudMockApi(page: Page, todosSeed: TodoSeed[]) {
@@ -141,7 +157,13 @@ async function installProjectCrudMockApi(page: Page, todosSeed: TodoSeed[]) {
     if (pathname === "/projects" && method === "GET") {
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
-      return json(route, 200, projectsByUser.get(userId) || []);
+      const projects = projectsByUser.get(userId) || [];
+      const todos = todosByUser.get(userId) || [];
+      return json(
+        route,
+        200,
+        projects.map((project) => enrichProject(project, todos)),
+      );
     }
 
     if (pathname === "/projects" && method === "POST") {
@@ -227,6 +249,8 @@ async function installProjectCrudMockApi(page: Page, todosSeed: TodoSeed[]) {
       if (!userId) return json(route, 401, { error: "Unauthorized" });
 
       const projectId = pathname.split("/")[2];
+      const taskDisposition =
+        url.searchParams.get("taskDisposition") || "unsorted";
       const projects = projectsByUser.get(userId) || [];
       const target = projects.find((project) => project.id === projectId);
       if (!target) {
@@ -239,14 +263,15 @@ async function installProjectCrudMockApi(page: Page, todosSeed: TodoSeed[]) {
       );
 
       const todos = todosByUser.get(userId) || [];
-      todosByUser.set(
-        userId,
-        todos.map((todo) =>
-          String(todo.category || "") === target.name
-            ? { ...todo, category: null, updatedAt: nowIso() }
-            : todo,
-        ),
-      );
+      const nextTodos =
+        taskDisposition === "delete"
+          ? todos.filter((todo) => String(todo.category || "") !== target.name)
+          : todos.map((todo) =>
+              String(todo.category || "") === target.name
+                ? { ...todo, category: null, updatedAt: nowIso() }
+                : todo,
+            );
+      todosByUser.set(userId, nextTodos);
 
       return route.fulfill({ status: 204, body: "" });
     }
@@ -323,7 +348,71 @@ async function registerAndOpenTodos(page: Page, email: string) {
   await ensureAllTasksListActive(page);
 }
 
-test.describe("Projects rail CRUD", () => {
+async function selectProject(
+  page: Page,
+  projectName: string,
+  isMobile: boolean,
+) {
+  if (isMobile) {
+    await page.locator("#projectsRailMobileOpen").click();
+    await page
+      .locator(
+        `#projectsRailSheet .projects-rail-item[data-project-key="${projectName}"]`,
+      )
+      .click();
+    return;
+  }
+
+  await page
+    .locator(
+      `#projectsRail .projects-rail-item[data-project-key="${projectName}"]`,
+    )
+    .click();
+}
+
+async function selectWorkspaceView(
+  page: Page,
+  view: string,
+  isMobile: boolean,
+) {
+  if (isMobile) {
+    await page.locator("#projectsRailMobileOpen").click();
+    await page
+      .locator(
+        `#projectsRailSheet .workspace-view-item[data-workspace-view="${view}"]`,
+      )
+      .click();
+    return;
+  }
+
+  await page
+    .locator(
+      `#projectsRail .workspace-view-item[data-workspace-view="${view}"]`,
+    )
+    .click();
+}
+
+function projectRailItem(page: Page, projectName: string, isMobile: boolean) {
+  return isMobile
+    ? page.locator(
+        `#projectsRailSheet .projects-rail-item[data-project-key="${projectName}"]`,
+      )
+    : page.locator(
+        `#projectsRail .projects-rail-item[data-project-key="${projectName}"]`,
+      );
+}
+
+function workspaceViewItem(page: Page, view: string, isMobile: boolean) {
+  return isMobile
+    ? page.locator(
+        `#projectsRailSheet .workspace-view-item[data-workspace-view="${view}"]`,
+      )
+    : page.locator(
+        `#projectsRail .workspace-view-item[data-workspace-view="${view}"]`,
+      );
+}
+
+test.describe("Project actions drawer", () => {
   test.beforeEach(async ({ page }) => {
     await installProjectCrudMockApi(page, [
       {
@@ -370,84 +459,102 @@ test.describe("Projects rail CRUD", () => {
     await expect(page.locator(".todo-item")).toHaveCount(0);
   });
 
-  test("rename project updates rail label and preserves active state", async ({
+  test("selected project exposes header kebab and saves edits from the drawer", async ({
     page,
     isMobile,
   }) => {
-    test.skip(isMobile, "Desktop-focused CRUD rail interactions");
+    await selectProject(page, "Work", isMobile);
 
-    const workProject = page.locator(
-      '#projectsRail .projects-rail-item[data-project-key="Work"]',
+    await expect(page.locator("#projectViewActionsButton")).toBeVisible();
+    await page.locator("#projectViewActionsButton").click();
+    await expect(page.locator("#projectEditDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "false",
     );
-    await workProject.click();
-    await expect(workProject).toHaveAttribute("aria-current", "page");
+    await expect(page.locator("#projectEditNameInput")).toHaveValue("Work");
+    await page.locator("#projectEditNameInput").fill("Work Ops");
+    await page.locator("#projectEditSaveButton").click();
 
-    await page
-      .locator(
-        '#projectsRail .projects-rail-kebab[data-project-menu-toggle="Work"]',
-      )
-      .click();
-    await page
-      .locator(
-        '#projectsRail .projects-rail-menu-item[data-project-menu-action="rename"][data-project-key="Work"]',
-      )
-      .click();
-
-    await expect(page.locator("#projectCrudModal")).toBeVisible();
-    await expect(page.locator("#projectCrudNameInput")).toHaveValue("Work");
-    await page.locator("#projectCrudNameInput").fill("Work Ops");
-    await page.locator("#projectCrudSubmitButton").click();
-
-    await expect(page.locator("#projectCrudModal")).toBeHidden();
+    await expect(page.locator("#projectEditDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     await expect(page.locator("#categoryFilter")).toHaveValue("Work Ops");
-    await expect(
-      page.locator(
-        '#projectsRail .projects-rail-item[data-project-key="Work Ops"]',
-      ),
-    ).toHaveAttribute("aria-current", "page");
-    await expect(
-      page.locator(
-        '#projectsRail .projects-rail-item[data-project-key="Work"]',
-      ),
-    ).toHaveCount(0);
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Work Ops");
+    await expect(projectRailItem(page, "Work Ops", isMobile)).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(projectRailItem(page, "Work", isMobile)).toHaveCount(0);
   });
 
-  test("delete project removes it and falls back active selection to All tasks", async ({
+  test("delete project can move open tasks to Unsorted and falls back to Home", async ({
     page,
     isMobile,
   }) => {
-    test.skip(isMobile, "Desktop-focused CRUD rail interactions");
-
-    await page
-      .locator('#projectsRail .projects-rail-item[data-project-key="Home"]')
-      .click();
+    await selectProject(page, "Home", isMobile);
     await expect(page.locator("#categoryFilter")).toHaveValue("Home");
-
-    page.once("dialog", (dialog) => {
-      expect(dialog.message()).toContain('Delete project "Home"?');
-      dialog.accept();
-    });
-
+    await page.locator("#projectViewActionsButton").click();
+    await page.locator("#projectEditDeleteButton").click();
+    await expect(page.locator("#projectDeleteDialog")).toBeVisible();
     await page
-      .locator(
-        '#projectsRail .projects-rail-kebab[data-project-menu-toggle="Home"]',
-      )
-      .click();
-    await page
-      .locator(
-        '#projectsRail .projects-rail-menu-item[data-project-menu-action="delete"][data-project-key="Home"]',
-      )
+      .getByRole("button", {
+        name: "Delete project and move tasks to Unsorted",
+      })
       .click();
 
+    await expect(page.locator("#projectEditDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "true",
+    );
     await expect(page.locator("#categoryFilter")).toHaveValue("");
-    await expect(
-      page.locator(
-        '#projectsRail .projects-rail-item[data-project-key="Home"]',
-      ),
-    ).toHaveCount(0);
-    await expect(
-      page.locator('#projectsRail .projects-rail-item[data-project-key=""]'),
-    ).toHaveAttribute("aria-current", "page");
+    await expect(projectRailItem(page, "Home", isMobile)).toHaveCount(0);
+    await expect(workspaceViewItem(page, "home", isMobile)).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await selectWorkspaceView(page, "unsorted", isMobile);
+    await expect(page.locator(".todo-item")).toContainText("Home task");
+  });
+
+  test("delete project can delete its open tasks from the drawer dialog", async ({
+    page,
+    isMobile,
+  }) => {
+    await selectProject(page, "Home", isMobile);
+
+    await page.locator("#projectViewActionsButton").click();
+    await page.locator("#projectEditDeleteButton").click();
+    await page
+      .getByRole("button", {
+        name: "Delete project and delete its tasks",
+      })
+      .click();
+
+    await selectWorkspaceView(page, "all", isMobile);
+    await expect(page.locator(".todo-item")).not.toContainText("Home task");
+  });
+
+  test("mobile uses the same project edit surface as a bottom sheet", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(!isMobile, "Mobile-only sheet behavior");
+
+    await page.locator("#projectsRailMobileOpen").click();
+    await page
+      .locator(
+        '#projectsRailSheet .projects-rail-item[data-project-key="Work"]',
+      )
+      .click();
+    await expect(page.locator("#projectViewActionsButton")).toBeVisible();
+
+    await page.locator("#projectViewActionsButton").click();
+    await expect(page.locator("#projectEditDrawer")).toHaveAttribute(
+      "aria-hidden",
+      "false",
+    );
+    await expect(page.locator("#projectEditDrawer")).toHaveCSS("bottom", "0px");
   });
 
   test("duplicate create error shows message and keeps modal open", async ({

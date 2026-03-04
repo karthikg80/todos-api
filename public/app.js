@@ -187,6 +187,12 @@ let isProjectCrudModalOpen = false;
 let projectCrudMode = "create";
 let projectCrudTargetProject = "";
 let lastProjectCrudOpener = null;
+let isProjectEditDrawerOpen = false;
+let projectEditTargetProject = "";
+let lastProjectEditOpener = null;
+let isProjectEditBodyLocked = false;
+let projectEditScrollLockY = 0;
+let projectDeleteDialogState = null;
 let isCommandPaletteOpen = false;
 let commandPaletteQuery = "";
 let isProfilePanelOpen = false;
@@ -2028,9 +2034,18 @@ async function loadProjects() {
       : [];
     customProjects = expandProjectTree([...customProjects, ...projectNames]);
     saveCustomProjects();
+    const selectedProject = getSelectedProjectKey();
+    if (
+      selectedProject &&
+      !projectNames.includes(selectedProject) &&
+      !getProjectRecordByName(selectedProject)
+    ) {
+      selectWorkspaceView("home");
+    }
     updateProjectSelectOptions();
     updateCategoryFilter();
     renderProjectHeadingCreateButton();
+    renderProjectEditDrawer();
     if (getSelectedProjectKey()) {
       await loadHeadingsForProject(getSelectedProjectKey());
     }
@@ -2049,6 +2064,10 @@ function getProjectRecordByName(projectName) {
       (record) => normalizeProjectPath(record?.name) === normalized,
     ) || null
   );
+}
+
+function getSelectedProjectRecord() {
+  return getProjectRecordByName(getSelectedProjectKey());
 }
 
 function getProjectHeadings(projectName = getSelectedProjectKey()) {
@@ -4427,6 +4446,278 @@ function validateProjectNameInput(
   return { valid: true, message: "", normalized };
 }
 
+function getProjectEditDrawerElements() {
+  const drawer = document.getElementById("projectEditDrawer");
+  const backdrop = document.getElementById("projectEditDrawerBackdrop");
+  const form = document.getElementById("projectEditDrawerForm");
+  const input = document.getElementById("projectEditNameInput");
+  const meta = document.getElementById("projectEditMeta");
+  const close = document.getElementById("projectEditDrawerClose");
+  const save = document.getElementById("projectEditSaveButton");
+  const cancel = document.getElementById("projectEditCancelButton");
+  const deleteButton = document.getElementById("projectEditDeleteButton");
+  if (!(drawer instanceof HTMLElement)) return null;
+  if (!(backdrop instanceof HTMLElement)) return null;
+  if (!(form instanceof HTMLFormElement)) return null;
+  if (!(input instanceof HTMLInputElement)) return null;
+  if (!(meta instanceof HTMLElement)) return null;
+  if (!(close instanceof HTMLButtonElement)) return null;
+  if (!(save instanceof HTMLButtonElement)) return null;
+  if (!(cancel instanceof HTMLButtonElement)) return null;
+  if (!(deleteButton instanceof HTMLButtonElement)) return null;
+  return {
+    drawer,
+    backdrop,
+    form,
+    input,
+    meta,
+    close,
+    save,
+    cancel,
+    deleteButton,
+  };
+}
+
+function getProjectDeleteDialogElements() {
+  const overlay = document.getElementById("projectDeleteDialog");
+  const body = document.getElementById("projectDeleteDialogBody");
+  const actions = document.getElementById("projectDeleteDialogActions");
+  if (!(overlay instanceof HTMLElement)) return null;
+  if (!(body instanceof HTMLElement)) return null;
+  if (!(actions instanceof HTMLElement)) return null;
+  return { overlay, body, actions };
+}
+
+function isProjectSurfaceActive() {
+  return !!getSelectedProjectKey() && currentWorkspaceView === "project";
+}
+
+function lockBodyScrollForProjectEditDrawer() {
+  if (isProjectEditBodyLocked || !isMobileDrawerViewport()) return;
+  const body = document.body;
+  projectEditScrollLockY = window.scrollY || window.pageYOffset || 0;
+  body.classList.add("is-drawer-open");
+  body.style.position = "fixed";
+  body.style.top = `-${projectEditScrollLockY}px`;
+  body.style.left = "0";
+  body.style.right = "0";
+  body.style.width = "100%";
+  isProjectEditBodyLocked = true;
+}
+
+function unlockBodyScrollForProjectEditDrawer() {
+  if (!isProjectEditBodyLocked) return;
+  const body = document.body;
+  body.classList.remove("is-drawer-open");
+  body.style.position = "";
+  body.style.top = "";
+  body.style.left = "";
+  body.style.right = "";
+  body.style.width = "";
+  window.scrollTo(0, projectEditScrollLockY);
+  projectEditScrollLockY = 0;
+  isProjectEditBodyLocked = false;
+}
+
+function renderProjectDeleteDialog() {
+  const refs = getProjectDeleteDialogElements();
+  if (!refs) return;
+
+  if (!projectDeleteDialogState) {
+    refs.overlay.style.display = "none";
+    refs.actions.innerHTML = "";
+    refs.body.textContent = "";
+    return;
+  }
+
+  refs.overlay.style.display = "flex";
+  refs.body.textContent = projectDeleteDialogState.body;
+  refs.actions.innerHTML = projectDeleteDialogState.actions
+    .map(
+      (action, index) => `
+        <button
+          type="button"
+          class="${escapeHtml(action.className || "mini-btn")}"
+          data-project-delete-action="${escapeHtml(action.value)}"
+          ${index === 0 ? 'data-project-delete-default="true"' : ""}
+        >
+          ${escapeHtml(action.label)}
+        </button>
+      `,
+    )
+    .join("");
+
+  window.requestAnimationFrame(() => {
+    const defaultButton = refs.actions.querySelector(
+      "[data-project-delete-default='true']",
+    );
+    if (defaultButton instanceof HTMLElement) {
+      defaultButton.focus({ preventScroll: true });
+    }
+  });
+}
+
+function openProjectDeleteDialog(config) {
+  projectDeleteDialogState = config;
+  renderProjectDeleteDialog();
+}
+
+function closeProjectDeleteDialog() {
+  projectDeleteDialogState = null;
+  renderProjectDeleteDialog();
+}
+
+function renderProjectEditDrawer() {
+  const refs = getProjectEditDrawerElements();
+  if (!refs) return;
+
+  const projectRecord = getProjectRecordByName(projectEditTargetProject);
+  if (!projectRecord) {
+    refs.meta.textContent = "Project not found.";
+  } else {
+    const openCount = Number(projectRecord.openTodoCount || 0);
+    const totalCount = Number(projectRecord.todoCount || 0);
+    const movedLabel =
+      openCount === 1 ? "1 open task" : `${openCount} open tasks`;
+    const totalLabel =
+      totalCount === 1 ? "1 total task" : `${totalCount} total tasks`;
+    refs.meta.textContent = `${movedLabel} • ${totalLabel}`;
+    if (refs.input.value !== projectRecord.name) {
+      refs.input.value = projectRecord.name;
+    }
+  }
+}
+
+function openProjectEditDrawer(
+  opener = null,
+  projectName = getSelectedProjectKey(),
+) {
+  const refs = getProjectEditDrawerElements();
+  const normalized = normalizeProjectPath(projectName);
+  const projectRecord = getProjectRecordByName(normalized);
+  if (!refs || !projectRecord) {
+    showMessage("todosMessage", "Project not found", "error");
+    return;
+  }
+
+  if (isRailSheetOpen) {
+    closeProjectsRailSheet({ restoreFocus: false });
+  }
+
+  isProjectEditDrawerOpen = true;
+  projectEditTargetProject = projectRecord.name;
+  lastProjectEditOpener = opener instanceof HTMLElement ? opener : null;
+  refs.drawer.classList.add("project-edit-drawer--open");
+  refs.drawer.setAttribute("aria-hidden", "false");
+  refs.backdrop.classList.add("project-edit-drawer-backdrop--open");
+  refs.backdrop.setAttribute("aria-hidden", "false");
+  renderProjectEditDrawer();
+  lockBodyScrollForProjectEditDrawer();
+
+  window.requestAnimationFrame(() => {
+    refs.input.focus();
+    refs.input.select();
+  });
+}
+
+function closeProjectEditDrawer({ restoreFocus = true } = {}) {
+  const refs = getProjectEditDrawerElements();
+  if (!refs) return;
+
+  if (projectDeleteDialogState) {
+    closeProjectDeleteDialog();
+  }
+  isProjectEditDrawerOpen = false;
+  projectEditTargetProject = "";
+  refs.drawer.classList.remove("project-edit-drawer--open");
+  refs.drawer.setAttribute("aria-hidden", "true");
+  refs.backdrop.classList.remove("project-edit-drawer-backdrop--open");
+  refs.backdrop.setAttribute("aria-hidden", "true");
+  refs.form.reset();
+  refs.meta.textContent = "";
+  unlockBodyScrollForProjectEditDrawer();
+
+  if (restoreFocus) {
+    const fallback = document.getElementById("projectViewActionsButton");
+    const focusTarget =
+      lastProjectEditOpener instanceof HTMLElement &&
+      lastProjectEditOpener.isConnected
+        ? lastProjectEditOpener
+        : fallback instanceof HTMLElement
+          ? fallback
+          : null;
+    focusTarget?.focus({ preventScroll: true });
+  }
+  lastProjectEditOpener = null;
+}
+
+function syncProjectHeaderActions() {
+  const button = document.getElementById("projectViewActionsButton");
+  if (!(button instanceof HTMLElement)) return;
+  const shouldShow = isProjectSurfaceActive();
+  button.hidden = !shouldShow;
+  button.setAttribute("aria-hidden", String(!shouldShow));
+}
+
+function replaceProjectRecord(projectRecord) {
+  projectRecords = projectRecords.map((item) =>
+    String(item.id) === String(projectRecord.id) ? projectRecord : item,
+  );
+}
+
+function renameProjectLocally(selectedPath, renamedPath, updatedProject) {
+  replaceProjectRecord(updatedProject);
+  todos = todos.map((todo) =>
+    normalizeProjectPath(todo?.category || "") === selectedPath
+      ? { ...todo, category: renamedPath }
+      : todo,
+  );
+
+  customProjects = expandProjectTree(
+    customProjects.map((path) =>
+      normalizeProjectPath(path) === selectedPath ? renamedPath : path,
+    ),
+  );
+  saveCustomProjects();
+  updateProjectSelectOptions();
+  updateCategoryFilter();
+  renderProjectEditDrawer();
+}
+
+function removeProjectLocally(
+  projectName,
+  { taskDisposition = "unsorted" } = {},
+) {
+  const normalized = normalizeProjectPath(projectName);
+  const removed = getProjectRecordByName(normalized);
+  projectRecords = projectRecords.filter(
+    (record) => normalizeProjectPath(record?.name) !== normalized,
+  );
+  customProjects = expandProjectTree(
+    customProjects.filter((path) => normalizeProjectPath(path) !== normalized),
+  );
+  saveCustomProjects();
+
+  if (taskDisposition === "delete") {
+    todos = todos.filter(
+      (todo) => normalizeProjectPath(todo?.category || "") !== normalized,
+    );
+  } else {
+    todos = todos.map((todo) =>
+      normalizeProjectPath(todo?.category || "") === normalized
+        ? { ...todo, category: null, headingId: null }
+        : todo,
+    );
+  }
+
+  if (removed?.id) {
+    projectHeadingsByProjectId.delete(String(removed.id));
+  }
+  updateProjectSelectOptions();
+  updateCategoryFilter();
+  renderProjectEditDrawer();
+}
+
 function getProjectCrudModalElements() {
   const modal = document.getElementById("projectCrudModal");
   const form = document.getElementById("projectCrudForm");
@@ -4547,6 +4838,7 @@ async function createProjectByName(projectName) {
 async function renameProjectByName(fromProjectName, toProjectName) {
   const selectedPath = normalizeProjectPath(fromProjectName);
   const renamedPath = normalizeProjectPath(toProjectName);
+  const activeProject = getSelectedProjectKey();
   if (!selectedPath || !renamedPath) {
     showMessage("todosMessage", "Project name cannot be empty", "error");
     return false;
@@ -4576,35 +4868,19 @@ async function renameProjectByName(fromProjectName, toProjectName) {
       );
       return false;
     }
+    const updatedProject = await response.json();
+    renameProjectLocally(selectedPath, renamedPath, updatedProject);
   } catch (error) {
     console.error("Rename project failed:", error);
     showMessage("todosMessage", "Failed to rename project", "error");
     return false;
   }
 
-  const activeProject = getSelectedProjectKey();
-
-  await loadProjects();
-  await loadTodos();
-
-  const selectedPrefix = `${selectedPath}${PROJECT_PATH_SEPARATOR}`;
-  customProjects = expandProjectTree(
-    customProjects
-      .map((path) => normalizeProjectPath(path))
-      .map((path) => {
-        if (path === selectedPath) return renamedPath;
-        if (path.startsWith(selectedPrefix)) {
-          return `${renamedPath}${path.slice(selectedPath.length)}`;
-        }
-        return path;
-      }),
-  );
-  saveCustomProjects();
-  updateProjectSelectOptions();
-  updateCategoryFilter();
-
   if (activeProject === selectedPath) {
     selectProjectFromRail(renamedPath);
+  } else {
+    renderTodos();
+    updateHeaderFromVisibleTodos(getVisibleTodos());
   }
 
   showMessage(
@@ -4615,7 +4891,10 @@ async function renameProjectByName(fromProjectName, toProjectName) {
   return true;
 }
 
-async function deleteProjectByName(projectName) {
+async function deleteProjectByName(
+  projectName,
+  { taskDisposition = "unsorted" } = {},
+) {
   const normalized = normalizeProjectPath(projectName);
   if (!normalized) return false;
   const projectRecord = getProjectRecordByName(normalized);
@@ -4624,15 +4903,13 @@ async function deleteProjectByName(projectName) {
     return false;
   }
 
-  const confirmed = confirm(
-    `Delete project "${normalized}"? Tasks will remain but project tag may be cleared.`,
-  );
-  if (!confirmed) return false;
-
   try {
-    const response = await apiCall(`${API_URL}/projects/${projectRecord.id}`, {
-      method: "DELETE",
-    });
+    const response = await apiCall(
+      `${API_URL}/projects/${projectRecord.id}?taskDisposition=${encodeURIComponent(taskDisposition)}`,
+      {
+        method: "DELETE",
+      },
+    );
     if (!response || !response.ok) {
       const data = response ? await parseApiBody(response) : {};
       showMessage(
@@ -4649,26 +4926,14 @@ async function deleteProjectByName(projectName) {
   }
 
   const activeProject = getSelectedProjectKey();
-  const deletedPrefix = `${normalized}${PROJECT_PATH_SEPARATOR}`;
-  const shouldFallback =
-    activeProject === normalized || activeProject.startsWith(deletedPrefix);
-
-  await loadProjects();
-  await loadTodos();
-
-  customProjects = customProjects.filter((path) => {
-    const normalizedPath = normalizeProjectPath(path);
-    return (
-      normalizedPath !== normalized && !normalizedPath.startsWith(deletedPrefix)
-    );
-  });
-  customProjects = expandProjectTree(customProjects);
-  saveCustomProjects();
-  updateProjectSelectOptions();
-  updateCategoryFilter();
+  const shouldFallback = activeProject === normalized;
+  removeProjectLocally(normalized, { taskDisposition });
 
   if (shouldFallback) {
-    selectProjectFromRail("");
+    selectWorkspaceView("home");
+  } else {
+    renderTodos();
+    updateHeaderFromVisibleTodos(getVisibleTodos());
   }
 
   showMessage("todosMessage", `Deleted project "${normalized}"`, "success");
@@ -4677,6 +4942,117 @@ async function deleteProjectByName(projectName) {
 
 function createProject() {
   openProjectCrudModal("create", document.activeElement);
+}
+
+async function submitProjectEditDrawer() {
+  const refs = getProjectEditDrawerElements();
+  if (!refs) return;
+
+  const validation = validateProjectNameInput(refs.input.value, {
+    emptyMessage: "Project name cannot be empty",
+  });
+  if (!validation.valid) {
+    showMessage("todosMessage", validation.message, "error");
+    refs.input.focus();
+    return;
+  }
+
+  refs.save.disabled = true;
+  refs.cancel.disabled = true;
+  refs.deleteButton.disabled = true;
+  refs.close.disabled = true;
+
+  try {
+    const didSucceed = await renameProjectByName(
+      projectEditTargetProject,
+      validation.normalized,
+    );
+    if (didSucceed) {
+      closeProjectEditDrawer({ restoreFocus: false });
+    }
+  } finally {
+    refs.save.disabled = false;
+    refs.cancel.disabled = false;
+    refs.deleteButton.disabled = false;
+    refs.close.disabled = false;
+  }
+}
+
+function confirmDeleteSelectedProject(projectName = projectEditTargetProject) {
+  const normalized = normalizeProjectPath(projectName);
+  const projectRecord = getProjectRecordByName(normalized);
+  if (!normalized || !projectRecord) {
+    showMessage("todosMessage", "Project not found", "error");
+    return;
+  }
+
+  const openTodoCount = Number(projectRecord.openTodoCount || 0);
+  if (openTodoCount > 0) {
+    openProjectDeleteDialog({
+      projectName: normalized,
+      body: `"${getProjectLeafName(normalized)}" still has ${openTodoCount} open ${
+        openTodoCount === 1 ? "task" : "tasks"
+      }. Choose whether to keep them in Unsorted or delete them with the project.`,
+      actions: [
+        {
+          value: "unsorted",
+          label: "Delete project and move tasks to Unsorted",
+          className: "add-btn",
+        },
+        {
+          value: "delete",
+          label: "Delete project and delete its tasks",
+          className: "delete-btn",
+        },
+        {
+          value: "cancel",
+          label: "Cancel",
+          className: "mini-btn",
+        },
+      ],
+    });
+    return;
+  }
+
+  openProjectDeleteDialog({
+    projectName: normalized,
+    body: `Delete "${getProjectLeafName(normalized)}"? This cannot be undone.`,
+    actions: [
+      {
+        value: "unsorted",
+        label: "Delete Project",
+        className: "delete-btn",
+      },
+      {
+        value: "cancel",
+        label: "Cancel",
+        className: "mini-btn",
+      },
+    ],
+  });
+}
+
+async function handleProjectDeleteDialogAction(actionValue) {
+  if (!projectDeleteDialogState) return;
+  const projectName = projectDeleteDialogState.projectName;
+  if (actionValue === "cancel") {
+    closeProjectDeleteDialog();
+    return;
+  }
+
+  const refs = getProjectDeleteDialogElements();
+  if (!refs) return;
+  refs.actions
+    .querySelectorAll("button")
+    .forEach((button) => (button.disabled = true));
+
+  const didDelete = await deleteProjectByName(projectName, {
+    taskDisposition: actionValue,
+  });
+  closeProjectDeleteDialog();
+  if (didDelete) {
+    closeProjectEditDrawer({ restoreFocus: false });
+  }
 }
 
 async function createSubproject() {
@@ -5020,6 +5396,12 @@ function selectWorkspaceView(view, triggerEl = null) {
       : "all";
   if (triggerEl instanceof HTMLElement) {
     triggerEl.blur();
+  }
+  if (isProjectEditDrawerOpen) {
+    closeProjectEditDrawer({ restoreFocus: false });
+  }
+  if (projectDeleteDialogState) {
+    closeProjectDeleteDialog();
   }
   ensureTodosShellActive();
   currentWorkspaceView = normalizedView;
@@ -5440,8 +5822,9 @@ function updateHeaderAndContextUI({
     : getSelectedProjectKey()
       ? "project"
       : "list";
-  headerEl.hidden = surfaceMode !== "list";
-  headerEl.setAttribute("aria-hidden", String(surfaceMode !== "list"));
+  const shouldShowHeader = surfaceMode === "list" || surfaceMode === "project";
+  headerEl.hidden = !shouldShowHeader;
+  headerEl.setAttribute("aria-hidden", String(!shouldShowHeader));
   if (todosView instanceof HTMLElement) {
     todosView.dataset.surfaceMode = surfaceMode;
   }
@@ -5458,6 +5841,7 @@ function updateHeaderAndContextUI({
     dateBadgeEl.textContent = "";
   }
 
+  syncProjectHeaderActions();
   updateTopbarProjectsButton(projectName);
 }
 
@@ -6150,9 +6534,8 @@ function renderProjectsRailListHtml({ projects, selectedProject }) {
     .map((projectName) => {
       const isActive = projectName === selectedProject;
       const count = getProjectTodoCount(projectName);
-      const isMenuOpen = openRailProjectMenuKey === projectName;
       return `
-        <div class="projects-rail-row ${isMenuOpen ? "projects-rail-row--menu-open" : ""}">
+        <div class="projects-rail-row">
           <button
             type="button"
             class="projects-rail-item ${isActive ? "projects-rail-item--active" : ""}"
@@ -6163,35 +6546,6 @@ function renderProjectsRailListHtml({ projects, selectedProject }) {
             <span class="projects-rail-item__label" title="${escapeHtml(getProjectLeafName(projectName))}">${escapeHtml(getProjectLeafName(projectName))}</span>
             <span class="projects-rail-item__count">${count}</span>
           </button>
-          <button
-            type="button"
-            class="projects-rail-kebab"
-            aria-label="Project actions for ${escapeHtml(getProjectLeafName(projectName))}"
-            aria-expanded="${isMenuOpen ? "true" : "false"}"
-            data-project-menu-toggle="${escapeHtml(projectName)}"
-          >
-            ⋯
-          </button>
-          <div class="projects-rail-menu ${isMenuOpen ? "projects-rail-menu--open" : ""}" role="menu">
-            <button
-              type="button"
-              class="projects-rail-menu-item"
-              role="menuitem"
-              data-project-menu-action="rename"
-              data-project-key="${escapeHtml(projectName)}"
-            >
-              Rename
-            </button>
-            <button
-              type="button"
-              class="projects-rail-menu-item projects-rail-menu-item--danger"
-              role="menuitem"
-              data-project-menu-action="delete"
-              data-project-key="${escapeHtml(projectName)}"
-            >
-              Delete
-            </button>
-          </div>
         </div>
       `;
     })
@@ -6481,6 +6835,13 @@ function closeProjectsRailSheet({ restoreFocus = false } = {}) {
 function selectProjectFromRail(projectName, triggerEl = null) {
   if (openRailProjectMenuKey) {
     openRailProjectMenuKey = null;
+  }
+  if (
+    isProjectEditDrawerOpen &&
+    normalizeProjectPath(projectName) !==
+      normalizeProjectPath(projectEditTargetProject)
+  ) {
+    closeProjectEditDrawer({ restoreFocus: false });
   }
   ensureTodosShellActive();
   railRovingFocusKey = normalizeProjectPath(projectName);
@@ -11096,6 +11457,18 @@ document.addEventListener("keydown", function (e) {
     return;
   }
 
+  if (e.key === "Escape" && projectDeleteDialogState) {
+    e.preventDefault();
+    closeProjectDeleteDialog();
+    return;
+  }
+
+  if (e.key === "Escape" && isProjectEditDrawerOpen) {
+    e.preventDefault();
+    closeProjectEditDrawer({ restoreFocus: true });
+    return;
+  }
+
   if (e.key === "Escape" && openRailProjectMenuKey) {
     e.preventDefault();
     closeRailProjectMenu({ restoreFocus: true });
@@ -11396,6 +11769,8 @@ function switchView(view, triggerEl = null) {
   if (isSettingsView) {
     closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
+    closeProjectEditDrawer({ restoreFocus: false });
+    closeProjectDeleteDialog();
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
     closeTodoDrawer({ restoreFocus: false });
@@ -11403,6 +11778,8 @@ function switchView(view, triggerEl = null) {
   } else if (requestedView === "todos") {
     closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
+    closeProjectEditDrawer({ restoreFocus: false });
+    closeProjectDeleteDialog();
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
     setAiWorkspaceCollapsed(readStoredAiWorkspaceCollapsedState(), {
@@ -11416,6 +11793,8 @@ function switchView(view, triggerEl = null) {
   } else if (requestedView === "admin") {
     closeCommandPalette({ restoreFocus: false });
     closeProjectCrudModal({ restoreFocus: false });
+    closeProjectEditDrawer({ restoreFocus: false });
+    closeProjectDeleteDialog();
     closeMoreFilters();
     closeProjectsRailSheet({ restoreFocus: false });
     closeTodoDrawer({ restoreFocus: false });
@@ -11637,40 +12016,6 @@ function bindProjectsRailHandlers() {
     const target = event.target;
     if (!(target instanceof Element)) return;
 
-    const menuToggle = target.closest("[data-project-menu-toggle]");
-    if (menuToggle instanceof HTMLElement) {
-      const projectName =
-        menuToggle.getAttribute("data-project-menu-toggle") || "";
-      event.preventDefault();
-      event.stopPropagation();
-      toggleRailProjectMenu(projectName, menuToggle);
-      return;
-    }
-
-    const menuAction = target.closest("[data-project-menu-action]");
-    if (menuAction instanceof HTMLElement) {
-      const action = menuAction.getAttribute("data-project-menu-action");
-      const projectName = menuAction.getAttribute("data-project-key") || "";
-      event.preventDefault();
-      event.stopPropagation();
-      if (action === "rename") {
-        closeRailProjectMenu();
-        openProjectCrudModal("rename", menuAction, projectName);
-      } else if (action === "delete") {
-        closeRailProjectMenu({ restoreFocus: false });
-        deleteProjectByName(projectName);
-      }
-      return;
-    }
-
-    if (
-      openRailProjectMenuKey &&
-      !target.closest(".projects-rail-kebab") &&
-      !target.closest(".projects-rail-menu")
-    ) {
-      closeRailProjectMenu();
-    }
-
     const workspaceViewButton = target.closest(
       ".workspace-view-item[data-workspace-view]",
     );
@@ -11690,6 +12035,14 @@ function bindProjectsRailHandlers() {
       event.preventDefault();
       event.stopPropagation();
       selectProjectFromRail(projectName, projectButton);
+      return;
+    }
+
+    const projectActionsButton = target.closest("#projectViewActionsButton");
+    if (projectActionsButton instanceof HTMLElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      openProjectEditDrawer(projectActionsButton, getSelectedProjectKey());
       return;
     }
 
@@ -11738,15 +12091,67 @@ function bindProjectsRailHandlers() {
     if (modalCancel && isProjectCrudModalOpen) {
       event.preventDefault();
       closeProjectCrudModal();
+      return;
+    }
+
+    const projectDrawerClose = target.closest("#projectEditDrawerClose");
+    if (projectDrawerClose && isProjectEditDrawerOpen) {
+      event.preventDefault();
+      closeProjectEditDrawer({ restoreFocus: true });
+      return;
+    }
+
+    const projectDrawerCancel = target.closest("#projectEditCancelButton");
+    if (projectDrawerCancel && isProjectEditDrawerOpen) {
+      event.preventDefault();
+      closeProjectEditDrawer({ restoreFocus: true });
+      return;
+    }
+
+    const projectDrawerDelete = target.closest("#projectEditDeleteButton");
+    if (projectDrawerDelete && isProjectEditDrawerOpen) {
+      event.preventDefault();
+      confirmDeleteSelectedProject(projectEditTargetProject);
+      return;
+    }
+
+    const projectDrawerBackdrop = target.closest("#projectEditDrawerBackdrop");
+    if (projectDrawerBackdrop && isProjectEditDrawerOpen) {
+      event.preventDefault();
+      closeProjectEditDrawer({ restoreFocus: true });
+      return;
+    }
+
+    const projectDeleteAction = target.closest("[data-project-delete-action]");
+    if (projectDeleteAction instanceof HTMLElement) {
+      event.preventDefault();
+      handleProjectDeleteDialogAction(
+        projectDeleteAction.getAttribute("data-project-delete-action") || "",
+      );
+      return;
+    }
+
+    if (
+      target instanceof HTMLElement &&
+      target.id === "projectDeleteDialog" &&
+      projectDeleteDialogState
+    ) {
+      event.preventDefault();
+      closeProjectDeleteDialog();
     }
   });
 
   document.addEventListener("submit", (event) => {
     const form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
-    if (form.id !== "projectCrudForm") return;
     event.preventDefault();
-    submitProjectCrudModal();
+    if (form.id === "projectCrudForm") {
+      submitProjectCrudModal();
+      return;
+    }
+    if (form.id === "projectEditDrawerForm") {
+      submitProjectEditDrawer();
+    }
   });
 
   document.addEventListener("keydown", (event) => {
@@ -12017,6 +12422,9 @@ async function logout() {
   openRailProjectMenuKey = null;
   isProjectCrudModalOpen = false;
   projectCrudTargetProject = "";
+  isProjectEditDrawerOpen = false;
+  projectEditTargetProject = "";
+  projectDeleteDialogState = null;
   editingTodoId = null;
   latestCritiqueSuggestionId = null;
   latestCritiqueResult = null;
@@ -12043,6 +12451,8 @@ async function logout() {
   renderTodayPlanPanel();
   closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
+  closeProjectEditDrawer({ restoreFocus: false });
+  closeProjectDeleteDialog();
   closeProjectsRailSheet({ restoreFocus: false });
   closeTaskComposer({ restoreFocus: false, force: true, reset: true });
   closeTodoDrawer({ restoreFocus: false });
@@ -12061,6 +12471,8 @@ function showAppView() {
   syncSidebarNavState("todos");
   closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
+  closeProjectEditDrawer({ restoreFocus: false });
+  closeProjectDeleteDialog();
   openRailProjectMenuKey = null;
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
@@ -12121,6 +12533,8 @@ function showAuthView() {
   adminBootstrapAvailable = false;
   closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
+  closeProjectEditDrawer({ restoreFocus: false });
+  closeProjectDeleteDialog();
   openRailProjectMenuKey = null;
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });

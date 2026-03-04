@@ -6,6 +6,12 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, '../public');
+const vendorRoots = [
+  {
+    prefix: '/vendor/chrono-node/',
+    root: path.resolve(__dirname, '../node_modules/chrono-node/dist/esm'),
+  },
+];
 const port = Number.parseInt(process.env.UI_PORT || '4173', 10);
 
 const contentTypes = {
@@ -22,14 +28,26 @@ const contentTypes = {
   '.webmanifest': 'application/manifest+json; charset=utf-8',
 };
 
-function safePath(requestPath) {
+function safePathForRoot(requestPath, baseRoot) {
   const decoded = decodeURIComponent(requestPath.split('?')[0]);
   const normalized = path.normalize(decoded).replace(/^([/\\])+/, '');
-  const resolved = path.resolve(root, normalized || 'index.html');
-  if (!resolved.startsWith(root)) {
+  const resolved = path.resolve(baseRoot, normalized || 'index.html');
+  if (!resolved.startsWith(baseRoot)) {
     return null;
   }
   return resolved;
+}
+
+function safePath(requestPath) {
+  const decoded = decodeURIComponent(requestPath.split('?')[0]);
+
+  for (const vendorRoot of vendorRoots) {
+    if (!decoded.startsWith(vendorRoot.prefix)) continue;
+    const relativePath = decoded.slice(vendorRoot.prefix.length);
+    return safePathForRoot(relativePath, vendorRoot.root);
+  }
+
+  return safePathForRoot(decoded, root);
 }
 
 const server = http.createServer(async (req, res) => {

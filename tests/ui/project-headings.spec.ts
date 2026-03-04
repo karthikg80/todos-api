@@ -392,7 +392,7 @@ async function openWorkProject(page: Page) {
       .click();
   }
 
-  await expect(page.locator("#todosListHeader")).toBeHidden();
+  await expect(page.locator("#todosListHeader")).toBeVisible();
   await expect(page.locator(".project-inline-actions__heading")).toBeVisible();
 }
 

@@ -1570,6 +1570,16 @@
                           >
                             0 tasks
                           </div>
+                          <button
+                            id="projectViewActionsButton"
+                            type="button"
+                            class="btn-icon todos-list-header__project-actions"
+                            aria-label="Edit project"
+                            title="Edit project"
+                            hidden
+                          >
+                            ⋯
+                          </button>
                         </div>
                       </div>
                       <section
@@ -1695,6 +1705,107 @@
                         </button>
                       </div>
                     </form>
+                  </div>
+                </div>
+
+                <div
+                  id="projectEditDrawerBackdrop"
+                  class="project-edit-drawer-backdrop"
+                  aria-hidden="true"
+                ></div>
+                <aside
+                  id="projectEditDrawer"
+                  class="project-edit-drawer"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-hidden="true"
+                  aria-labelledby="projectEditDrawerTitle"
+                >
+                  <div
+                    class="project-edit-drawer__handle"
+                    aria-hidden="true"
+                  ></div>
+                  <div class="project-edit-drawer__header">
+                    <h2 id="projectEditDrawerTitle">Edit Project</h2>
+                    <button
+                      id="projectEditDrawerClose"
+                      type="button"
+                      class="btn-icon"
+                      aria-label="Close edit project drawer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <form
+                    id="projectEditDrawerForm"
+                    class="project-edit-drawer__content"
+                  >
+                    <div class="todo-drawer__section">
+                      <div class="todo-drawer__section-title">Project</div>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditNameInput"
+                      >
+                        <span>Project Name</span>
+                        <input
+                          id="projectEditNameInput"
+                          type="text"
+                          maxlength="50"
+                          autocomplete="off"
+                          required
+                        />
+                      </label>
+                      <p
+                        id="projectEditMeta"
+                        class="project-edit-drawer__meta"
+                      ></p>
+                    </div>
+                    <div
+                      class="todo-drawer__section todo-drawer__section--danger"
+                    >
+                      <div class="todo-drawer__section-title">Danger zone</div>
+                      <button
+                        id="projectEditDeleteButton"
+                        class="delete-btn project-edit-drawer__delete-btn"
+                        type="button"
+                      >
+                        Delete Project
+                      </button>
+                    </div>
+                    <div class="project-edit-drawer__footer">
+                      <button
+                        id="projectEditSaveButton"
+                        class="add-btn"
+                        type="submit"
+                      >
+                        Save
+                      </button>
+                      <button
+                        id="projectEditCancelButton"
+                        class="mini-btn"
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </aside>
+
+                <div
+                  id="projectDeleteDialog"
+                  class="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="projectDeleteDialogTitle"
+                  style="display: none"
+                >
+                  <div class="modal-card project-delete-dialog">
+                    <h3 id="projectDeleteDialogTitle">Delete project?</h3>
+                    <p id="projectDeleteDialogBody"></p>
+                    <div
+                      id="projectDeleteDialogActions"
+                      class="modal-actions project-delete-dialog__actions"
+                    ></div>
                   </div>
                 </div>
 
