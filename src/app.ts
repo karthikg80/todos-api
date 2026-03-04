@@ -128,6 +128,10 @@ export function createApp(
     }),
   );
 
+  app.use(
+    "/vendor/chrono-node",
+    express.static(path.join(__dirname, "../node_modules/chrono-node/dist/esm")),
+  );
   app.use(express.static(path.join(__dirname, "../public")));
 
   app.use(

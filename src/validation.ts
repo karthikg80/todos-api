@@ -3,6 +3,7 @@ import {
   CreateHeadingDto,
   CreateSubtaskDto,
   CreateTodoDto,
+  ProjectTaskDisposition,
   UpdateProjectDto,
   UpdateSubtaskDto,
   UpdateTodoDto,
@@ -83,6 +84,20 @@ export function validateUpdateProject(data: unknown): UpdateProjectDto {
   return {
     name: validateProjectName(body.name),
   };
+}
+
+export function validateProjectTaskDisposition(
+  value: unknown,
+): ProjectTaskDisposition {
+  if (value === undefined || value === null || value === "") {
+    return "unsorted";
+  }
+  if (value === "unsorted" || value === "delete") {
+    return value;
+  }
+  throw new ValidationError(
+    'taskDisposition must be either "unsorted" or "delete"',
+  );
 }
 
 export function validateCreateHeading(data: unknown): CreateHeadingDto {

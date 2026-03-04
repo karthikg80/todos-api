@@ -4,6 +4,7 @@ import {
   validateCreateProject,
   validateCreateHeading,
   validateId,
+  validateProjectTaskDisposition,
   validateUpdateProject,
 } from "../validation";
 import { DuplicateProjectNameError } from "../projectService";
@@ -97,7 +98,7 @@ export function createProjectsRouter({
    *   delete:
    *     tags:
    *       - Projects
-   *     summary: Delete a project and unassign linked todos
+   *     summary: Delete a project and either unassign or delete linked todos
    *     security:
    *       - bearerAuth: []
    *     responses:
@@ -143,7 +144,14 @@ export function createProjectsRouter({
         if (!userId) return;
         const id = req.params.id as string;
         validateId(id);
-        const deleted = await projectService.delete(userId, id);
+        const taskDisposition = validateProjectTaskDisposition(
+          req.query.taskDisposition,
+        );
+        const deleted = await projectService.delete(
+          userId,
+          id,
+          taskDisposition,
+        );
         if (!deleted) {
           return res.status(404).json({ error: "Project not found" });
         }

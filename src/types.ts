@@ -25,6 +25,7 @@ export interface Project {
   createdAt: Date;
   updatedAt: Date;
   todoCount?: number;
+  openTodoCount?: number;
 }
 
 export interface Heading {
@@ -60,6 +61,8 @@ export interface CreateProjectDto {
 export interface UpdateProjectDto {
   name: string;
 }
+
+export type ProjectTaskDisposition = "unsorted" | "delete";
 
 export interface CreateHeadingDto {
   name: string;
