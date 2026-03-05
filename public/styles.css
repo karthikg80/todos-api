@@ -1944,29 +1944,42 @@ textarea:focus-visible,
   display: none;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail-item {
-  justify-content: flex-start;
-  padding-left: 6px;
-  padding-right: 6px;
-  width: 100%;
-  overflow: hidden;
-  gap: 6px;
-}
-
+.projects-rail.projects-rail--collapsed .nav-label,
+.projects-rail.projects-rail--collapsed .projects-rail-item__label,
 .projects-rail.projects-rail--collapsed .projects-rail-item__count {
   display: none;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail-item__label {
-  display: block;
-  flex: 1 1 0;
-  min-width: 0;
-  width: auto;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--fs-xs);
+.projects-rail.projects-rail--collapsed #projectsRailList,
+.projects-rail.projects-rail--collapsed
+  .projects-rail__section:not(.projects-rail__section--workspace) {
+  display: none;
+}
+
+.projects-rail.projects-rail--collapsed .workspace-view-item {
+  justify-content: center;
+  align-items: center;
+  min-height: 46px;
+  height: 46px;
+  padding: 0;
+}
+
+.projects-rail.projects-rail--collapsed .workspace-view-item .nav-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.72;
+}
+
+.projects-rail.projects-rail--collapsed .workspace-view-item:hover .nav-icon,
+.projects-rail.projects-rail--collapsed
+  .workspace-view-item.projects-rail-item--active
+  .nav-icon {
+  opacity: 0.92;
+}
+
+.projects-rail.projects-rail--collapsed
+  .workspace-view-item.projects-rail-item--active {
+  border-radius: 10px;
 }
 
 .projects-rail__header {
