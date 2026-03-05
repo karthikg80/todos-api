@@ -244,19 +244,22 @@ test.describe("Todos layout invariants", () => {
 
     await page.locator("#projectsRailToggle").click();
     await expect(rail).toHaveClass(/projects-rail--collapsed/);
-    const railLabel = page.locator(
-      `#projectsRail .projects-rail-item[data-project-key="${longProject}"] .projects-rail-item__label`,
-    );
-    const labelMetrics = await railLabel.evaluate((el) => {
-      const style = window.getComputedStyle(el);
-      return {
-        whiteSpace: style.whiteSpace,
-        scrollWidth: el.scrollWidth,
-        clientWidth: el.clientWidth,
-      };
-    });
-    expect(labelMetrics.whiteSpace).toBe("nowrap");
-    expect(labelMetrics.scrollWidth).toBeGreaterThan(labelMetrics.clientWidth);
+    await expect(page.locator("#projectsRailList")).toBeHidden();
+    await expect(
+      page.locator(
+        `#projectsRail .projects-rail-item[data-project-key="${longProject}"]`,
+      ),
+    ).toHaveCount(0);
+    await expect(
+      page.locator(
+        '#projectsRail .workspace-view-item[data-workspace-view="home"] .nav-label',
+      ),
+    ).toBeHidden();
+    await expect(
+      page.locator(
+        '#projectsRail .workspace-view-item[data-workspace-view="home"]',
+      ),
+    ).toHaveAttribute("title", "Home");
   });
 
   test("mobile keeps row actions visible by default", async ({

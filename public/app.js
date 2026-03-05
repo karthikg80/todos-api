@@ -193,6 +193,7 @@ let lastProjectEditOpener = null;
 let isProjectEditBodyLocked = false;
 let projectEditScrollLockY = 0;
 let projectDeleteDialogState = null;
+let isProjectDeletePending = false;
 let isCommandPaletteOpen = false;
 let commandPaletteQuery = "";
 let isProfilePanelOpen = false;
@@ -4397,6 +4398,35 @@ function getAllProjects() {
   return expandProjectTree(projectNames);
 }
 
+function buildOpenTodoCountMapByProject() {
+  const map = new Map();
+
+  todos.forEach((todo) => {
+    if (todo?.completed) return;
+    const todoProject = normalizeProjectPath(todo?.category || "");
+    if (!todoProject) return;
+
+    const segments = todoProject.split(PROJECT_PATH_SEPARATOR).filter(Boolean);
+    let prefix = "";
+    segments.forEach((segment) => {
+      prefix = prefix
+        ? `${prefix}${PROJECT_PATH_SEPARATOR}${segment}`
+        : segment;
+      map.set(prefix, (map.get(prefix) || 0) + 1);
+    });
+  });
+
+  return map;
+}
+
+function getProjectsForRail(
+  openTodoCountMap = buildOpenTodoCountMapByProject(),
+) {
+  return getAllProjects().filter(
+    (projectName) => (openTodoCountMap.get(projectName) || 0) > 0,
+  );
+}
+
 function refreshProjectCatalog() {
   customProjects = expandProjectTree([...customProjects, ...getAllProjects()]);
   saveCustomProjects();
@@ -4564,6 +4594,7 @@ function openProjectDeleteDialog(config) {
 
 function closeProjectDeleteDialog() {
   projectDeleteDialogState = null;
+  isProjectDeletePending = false;
   renderProjectDeleteDialog();
 }
 
@@ -4620,9 +4651,10 @@ function openProjectEditDrawer(
   });
 }
 
-function closeProjectEditDrawer({ restoreFocus = true } = {}) {
+function closeProjectEditDrawer({ restoreFocus = true, force = false } = {}) {
   const refs = getProjectEditDrawerElements();
   if (!refs) return;
+  if (isProjectDeletePending && !force) return;
 
   if (projectDeleteDialogState) {
     closeProjectDeleteDialog();
@@ -4699,12 +4731,20 @@ function removeProjectLocally(
   saveCustomProjects();
 
   if (taskDisposition === "delete") {
-    todos = todos.filter(
-      (todo) => normalizeProjectPath(todo?.category || "") !== normalized,
-    );
+    todos = todos.filter((todo) => {
+      const todoProject = normalizeProjectPath(todo?.category || "");
+      if (!todoProject) return true;
+      return (
+        todoProject !== normalized &&
+        !todoProject.startsWith(`${normalized}${PROJECT_PATH_SEPARATOR}`)
+      );
+    });
   } else {
     todos = todos.map((todo) =>
-      normalizeProjectPath(todo?.category || "") === normalized
+      normalizeProjectPath(todo?.category || "") === normalized ||
+      normalizeProjectPath(todo?.category || "").startsWith(
+        `${normalized}${PROJECT_PATH_SEPARATOR}`,
+      )
         ? { ...todo, category: null, headingId: null }
         : todo,
     );
@@ -4925,16 +4965,9 @@ async function deleteProjectByName(
     return false;
   }
 
-  const activeProject = getSelectedProjectKey();
-  const shouldFallback = activeProject === normalized;
   removeProjectLocally(normalized, { taskDisposition });
-
-  if (shouldFallback) {
-    selectWorkspaceView("home");
-  } else {
-    renderTodos();
-    updateHeaderFromVisibleTodos(getVisibleTodos());
-  }
+  renderTodos();
+  updateHeaderFromVisibleTodos(getVisibleTodos());
 
   showMessage("todosMessage", `Deleted project "${normalized}"`, "success");
   return true;
@@ -4979,6 +5012,7 @@ async function submitProjectEditDrawer() {
 }
 
 function confirmDeleteSelectedProject(projectName = projectEditTargetProject) {
+  if (isProjectDeletePending) return;
   const normalized = normalizeProjectPath(projectName);
   const projectRecord = getProjectRecordByName(normalized);
   if (!normalized || !projectRecord) {
@@ -5033,25 +5067,62 @@ function confirmDeleteSelectedProject(projectName = projectEditTargetProject) {
 }
 
 async function handleProjectDeleteDialogAction(actionValue) {
-  if (!projectDeleteDialogState) return;
+  if (!projectDeleteDialogState || isProjectDeletePending) return;
   const projectName = projectDeleteDialogState.projectName;
   if (actionValue === "cancel") {
+    if (isProjectDeletePending) return;
     closeProjectDeleteDialog();
     return;
   }
 
   const refs = getProjectDeleteDialogElements();
   if (!refs) return;
+  isProjectDeletePending = true;
   refs.actions
     .querySelectorAll("button")
     .forEach((button) => (button.disabled = true));
 
-  const didDelete = await deleteProjectByName(projectName, {
-    taskDisposition: actionValue,
-  });
-  closeProjectDeleteDialog();
-  if (didDelete) {
-    closeProjectEditDrawer({ restoreFocus: false });
+  const drawerRefs = getProjectEditDrawerElements();
+  if (drawerRefs) {
+    drawerRefs.save.disabled = true;
+    drawerRefs.cancel.disabled = true;
+    drawerRefs.deleteButton.disabled = true;
+    drawerRefs.close.disabled = true;
+  }
+
+  let didDelete = false;
+  try {
+    didDelete = await deleteProjectByName(projectName, {
+      taskDisposition: actionValue,
+    });
+    if (didDelete) {
+      const normalized = normalizeProjectPath(projectName);
+      closeProjectDeleteDialog();
+      closeProjectEditDrawer({ restoreFocus: false, force: true });
+      if (normalizeProjectPath(getSelectedProjectKey()) === normalized) {
+        setSelectedProjectKey("", {
+          reason: "project-deleted",
+          skipApply: true,
+        });
+        selectWorkspaceView("home");
+      }
+      await Promise.all([loadTodos(), loadProjects()]);
+    }
+  } finally {
+    isProjectDeletePending = false;
+    const latestDrawerRefs = getProjectEditDrawerElements();
+    if (latestDrawerRefs) {
+      latestDrawerRefs.save.disabled = false;
+      latestDrawerRefs.cancel.disabled = false;
+      latestDrawerRefs.deleteButton.disabled = false;
+      latestDrawerRefs.close.disabled = false;
+    }
+    const latestDialogRefs = getProjectDeleteDialogElements();
+    if (latestDialogRefs) {
+      latestDialogRefs.actions
+        .querySelectorAll("button")
+        .forEach((button) => (button.disabled = false));
+    }
   }
 }
 
@@ -5695,8 +5766,9 @@ function isMobileRailViewport() {
 }
 
 function getProjectTodoCount(projectName) {
-  if (!projectName) return todos.length;
+  if (!projectName) return todos.filter((todo) => !todo.completed).length;
   return todos.filter((todo) => {
+    if (todo.completed) return false;
     const todoProject = normalizeProjectPath(todo.category);
     if (!todoProject) return false;
     return (
@@ -6529,11 +6601,18 @@ function openProjectsFromTopbar(triggerEl = null) {
   });
 }
 
-function renderProjectsRailListHtml({ projects, selectedProject }) {
+function renderProjectsRailListHtml({
+  projects,
+  selectedProject,
+  openTodoCountMap = null,
+}) {
   return projects
     .map((projectName) => {
       const isActive = projectName === selectedProject;
-      const count = getProjectTodoCount(projectName);
+      const count =
+        openTodoCountMap instanceof Map
+          ? openTodoCountMap.get(projectName) || 0
+          : getProjectTodoCount(projectName);
       return `
         <div class="projects-rail-row">
           <button
@@ -6647,18 +6726,25 @@ function renderProjectsRail() {
   const selectedProject = getSelectedProjectKey();
   const allCount = todos.length;
   const unsortedCount = todos.filter((todo) => isTodoUnsorted(todo)).length;
-  const projects = getAllProjects();
+  const openTodoCountMap = buildOpenTodoCountMapByProject();
+  const projects = getProjectsForRail(openTodoCountMap);
   if (openRailProjectMenuKey && !projects.includes(openRailProjectMenuKey)) {
     openRailProjectMenuKey = null;
   }
 
-  refs.railList.innerHTML = renderProjectsRailListHtml({
-    projects,
-    selectedProject,
-  });
+  const shouldRenderDesktopProjects = !isRailCollapsed;
+  refs.railList.hidden = !shouldRenderDesktopProjects;
+  refs.railList.innerHTML = shouldRenderDesktopProjects
+    ? renderProjectsRailListHtml({
+        projects,
+        selectedProject,
+        openTodoCountMap,
+      })
+    : "";
   refs.sheetList.innerHTML = renderProjectsRailListHtml({
     projects,
     selectedProject,
+    openTodoCountMap,
   });
 
   const desktopAllCount = refs.allTasksButton.querySelector(
@@ -12097,6 +12183,7 @@ function bindProjectsRailHandlers() {
     const projectDrawerClose = target.closest("#projectEditDrawerClose");
     if (projectDrawerClose && isProjectEditDrawerOpen) {
       event.preventDefault();
+      if (isProjectDeletePending) return;
       closeProjectEditDrawer({ restoreFocus: true });
       return;
     }
@@ -12104,6 +12191,7 @@ function bindProjectsRailHandlers() {
     const projectDrawerCancel = target.closest("#projectEditCancelButton");
     if (projectDrawerCancel && isProjectEditDrawerOpen) {
       event.preventDefault();
+      if (isProjectDeletePending) return;
       closeProjectEditDrawer({ restoreFocus: true });
       return;
     }
@@ -12111,6 +12199,7 @@ function bindProjectsRailHandlers() {
     const projectDrawerDelete = target.closest("#projectEditDeleteButton");
     if (projectDrawerDelete && isProjectEditDrawerOpen) {
       event.preventDefault();
+      if (isProjectDeletePending) return;
       confirmDeleteSelectedProject(projectEditTargetProject);
       return;
     }
@@ -12118,6 +12207,7 @@ function bindProjectsRailHandlers() {
     const projectDrawerBackdrop = target.closest("#projectEditDrawerBackdrop");
     if (projectDrawerBackdrop && isProjectEditDrawerOpen) {
       event.preventDefault();
+      if (isProjectDeletePending) return;
       closeProjectEditDrawer({ restoreFocus: true });
       return;
     }
@@ -12137,6 +12227,7 @@ function bindProjectsRailHandlers() {
       projectDeleteDialogState
     ) {
       event.preventDefault();
+      if (isProjectDeletePending) return;
       closeProjectDeleteDialog();
     }
   });
@@ -12294,6 +12385,7 @@ function bindCriticalHandlers() {
 
   bindClick("projectsRailToggle", () => {
     setProjectsRailCollapsed(!isRailCollapsed);
+    renderProjectsRail();
   });
 
   bindClick("projectsRailMobileOpen", (element) => {
