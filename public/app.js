@@ -5107,6 +5107,9 @@ async function handleProjectDeleteDialogAction(actionValue) {
         selectWorkspaceView("home");
       }
       await Promise.all([loadTodos(), loadProjects()]);
+      if (!getSelectedProjectKey()) {
+        selectWorkspaceView("home");
+      }
     }
   } finally {
     isProjectDeletePending = false;
@@ -6789,6 +6792,7 @@ function renderProjectsRail() {
 }
 
 function setProjectsRailCollapsed(nextCollapsed) {
+  const wasCollapsed = isRailCollapsed;
   isRailCollapsed = !!nextCollapsed;
   persistRailCollapsedState(isRailCollapsed);
   const refs = getProjectsRailElements();
@@ -6808,6 +6812,12 @@ function setProjectsRailCollapsed(nextCollapsed) {
     isRailCollapsed ? "Expand sidebar" : "Collapse sidebar",
   );
   updateTopbarProjectsButton(getSelectedProjectName());
+
+  if (wasCollapsed && !isRailCollapsed && !isMobileRailViewport()) {
+    window.requestAnimationFrame(() => {
+      focusActiveProjectItem({ preferSheet: false });
+    });
+  }
 }
 
 function closeRailProjectMenu({ restoreFocus = false } = {}) {
