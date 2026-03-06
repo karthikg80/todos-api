@@ -6712,6 +6712,16 @@ body.is-todos-view .bottom-action-dock > * {
   z-index: 1;
 }
 
+body.is-todos-view.is-projects-rail-collapsed .bottom-action-dock {
+  justify-content: flex-end;
+}
+
+body.is-todos-view.is-projects-rail-collapsed
+  .bottom-action-dock
+  .dock__group--left {
+  display: none;
+}
+
 @media (max-width: 768px) {
   .bottom-action-dock {
     display: none !important;
