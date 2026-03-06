@@ -6795,6 +6795,7 @@ function setProjectsRailCollapsed(nextCollapsed) {
   const wasCollapsed = isRailCollapsed;
   isRailCollapsed = !!nextCollapsed;
   persistRailCollapsedState(isRailCollapsed);
+  document.body.classList.toggle("is-projects-rail-collapsed", isRailCollapsed);
   const refs = getProjectsRailElements();
   if (!refs) return;
 
