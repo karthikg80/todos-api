@@ -264,7 +264,8 @@ test.describe("Projects rail wiring", () => {
 
     await expect(homeRailItem).toHaveCount(0);
     await expect(page.locator("#categoryFilter")).toHaveValue("Home");
-    await expect(page.locator(".todo-item")).toHaveCount(0);
+    await expect(page.locator(".todo-item")).toHaveCount(1);
+    await expect(page.locator(".todo-item")).toContainText("Home task");
   });
 
   test("desktop keyboard navigation selects project and keeps header/topbar/count in sync", async ({
