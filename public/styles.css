@@ -147,13 +147,15 @@ body {
   padding: var(--s-5);
 }
 
-body.is-todos-view #appShell {
+body.is-todos-view {
   --app-shell-sidebar-width: 272px;
-  grid-template-columns: var(--app-shell-sidebar-width) minmax(0, 1fr);
 }
 
-body.is-todos-view.is-projects-rail-collapsed #appShell {
+body.is-todos-view.is-projects-rail-collapsed {
   --app-shell-sidebar-width: 64px;
+}
+
+body.is-todos-view #appShell {
   grid-template-columns: var(--app-shell-sidebar-width) minmax(0, 1fr);
 }
 
@@ -6376,6 +6378,7 @@ body.is-todos-view .projects-rail.projects-rail--collapsed {
 body.is-todos-view.is-projects-rail-collapsed #appSidebar {
   padding-left: 0;
   padding-right: 0;
+  padding-bottom: 64px;
 }
 
 body.is-todos-view .projects-rail {
