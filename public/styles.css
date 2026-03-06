@@ -6375,6 +6375,30 @@ body.is-todos-view.is-projects-rail-collapsed #appSidebar {
   padding-left: 0;
   padding-right: 0;
 }
+
+body.is-todos-view .projects-rail {
+  display: flex;
+  flex-direction: column;
+}
+
+body.is-todos-view .projects-rail__spacer {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+body.is-todos-view .projects-rail__utility-list {
+  display: grid;
+  gap: 6px;
+}
+
+body.is-todos-view .projects-rail__section--utilities {
+  display: none;
+}
+
+body.is-todos-view .projects-rail-projects-access {
+  display: none;
+}
+
 body.is-todos-view .projects-rail.projects-rail--collapsed .nav-label,
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
@@ -6387,14 +6411,51 @@ body.is-todos-view
 
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
-  .projects-rail__section:not(.projects-rail__section--workspace),
+  .projects-rail__section:not(.projects-rail__section--workspace):not(
+    .projects-rail__section--utilities
+  ),
 body.is-todos-view .projects-rail.projects-rail--collapsed #projectsRailList {
   display: none;
 }
 
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
-  .workspace-view-item {
+  .projects-rail__footer--admin-only {
+  display: none;
+}
+
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__header {
+  justify-content: center;
+  padding-bottom: 8px;
+}
+
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__section--workspace {
+  margin-top: 0;
+  padding-top: 8px;
+  border-top: 0;
+}
+
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__primary {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+
+body.is-todos-view .projects-rail.projects-rail--collapsed .workspace-view-item,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-projects-access,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-utility-item {
+  width: 46px;
+  min-width: 46px;
   justify-content: center;
   align-items: center;
   min-height: 46px;
@@ -6404,7 +6465,21 @@ body.is-todos-view
 
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
+  .projects-rail-projects-access {
+  display: flex;
+}
+
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
   .workspace-view-item
+  .nav-icon,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-projects-access
+  .nav-icon,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-utility-item
   .nav-icon {
   width: 18px;
   height: 18px;
@@ -6418,6 +6493,14 @@ body.is-todos-view
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
   .workspace-view-item.projects-rail-item--active
+  .nav-icon,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-projects-access:hover
+  .nav-icon,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-utility-item:hover
   .nav-icon {
   opacity: 0.92;
 }
@@ -6426,6 +6509,23 @@ body.is-todos-view
   .projects-rail.projects-rail--collapsed
   .workspace-view-item.projects-rail-item--active {
   border-radius: 10px;
+}
+
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__section--utilities {
+  display: block;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid
+    color-mix(in oklab, var(--border-color) 70%, transparent);
+}
+
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__utility-list {
+  justify-items: center;
+  gap: 8px;
 }
 
 /* Toggle button: SVG replaces the old __icon span (no size change needed) */
