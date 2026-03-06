@@ -5763,6 +5763,35 @@ function getProjectsRailElements() {
   };
 }
 
+function openProjectsFromCollapsedRail(triggerEl = null) {
+  if (!isRailCollapsed) return;
+  setProjectsRailCollapsed(false);
+  renderProjectsRail();
+  window.requestAnimationFrame(() => {
+    const refs = getProjectsRailElements();
+    if (!refs) return;
+    const selected = refs.desktopRail.querySelector(
+      `.projects-rail-item[data-project-key="${escapeSelectorValue(getSelectedProjectKey())}"]`,
+    );
+    const firstProject = refs.desktopRail.querySelector(
+      ".projects-rail-item[data-project-key]",
+    );
+    const fallbackTarget =
+      (selected instanceof HTMLElement && selected) ||
+      (firstProject instanceof HTMLElement && firstProject) ||
+      refs.createButton;
+
+    if (fallbackTarget instanceof HTMLElement) {
+      fallbackTarget.focus({ preventScroll: true });
+      return;
+    }
+
+    if (triggerEl instanceof HTMLElement) {
+      triggerEl.focus({ preventScroll: true });
+    }
+  });
+}
+
 function isMobileRailViewport() {
   if (typeof window.matchMedia !== "function") return false;
   return window.matchMedia(MOBILE_DRAWER_MEDIA_QUERY).matches;
@@ -12121,6 +12150,16 @@ function bindProjectsRailHandlers() {
       event.preventDefault();
       event.stopPropagation();
       selectWorkspaceView(view, workspaceViewButton);
+      return;
+    }
+
+    const collapsedProjectsButton = target.closest(
+      "#projectsRailCollapsedProjectsButton",
+    );
+    if (collapsedProjectsButton instanceof HTMLElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      openProjectsFromCollapsedRail(collapsedProjectsButton);
       return;
     }
 
