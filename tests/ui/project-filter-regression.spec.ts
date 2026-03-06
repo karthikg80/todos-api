@@ -335,8 +335,7 @@ async function selectProjectViaTopbar(
     await expect(rail).toHaveClass(/projects-rail--collapsed/);
   }
 
-  await expect(topbarProjectsButton).toBeVisible();
-  await topbarProjectsButton.click();
+  await page.locator("#projectsRailToggle").click();
   await expect(rail).not.toHaveClass(/projects-rail--collapsed/);
   await selectProjectViaRail(page, projectKey);
 }

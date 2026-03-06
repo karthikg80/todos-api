@@ -438,7 +438,7 @@ test.describe("Project actions drawer", () => {
     await registerAndOpenTodos(page, "project-crud@example.com");
   });
 
-  test("create project appears in rail, becomes active, and filters list", async ({
+  test("create empty project becomes active and filters list", async ({
     page,
     isMobile,
   }) => {
@@ -451,11 +451,12 @@ test.describe("Project actions drawer", () => {
 
     await expect(page.locator("#projectCrudModal")).toBeHidden();
     await expect(page.locator("#categoryFilter")).toHaveValue("Errands");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Errands");
     await expect(
       page.locator(
         '#projectsRail .projects-rail-item[data-project-key="Errands"]',
       ),
-    ).toHaveAttribute("aria-current", "page");
+    ).toHaveCount(0);
     await expect(page.locator(".todo-item")).toHaveCount(0);
   });
 

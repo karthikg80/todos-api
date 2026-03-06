@@ -158,7 +158,7 @@ async function registerAndOpenTodos(page: Page) {
 }
 
 test.describe("Top bar and rail ellipsis hardening", () => {
-  test("keeps floating CTA visible and applies clean single-line truncation in collapsed rail mode", async ({
+  test("keeps desktop rail icon-only without project-list overflow in collapsed mode", async ({
     page,
     isMobile,
   }) => {
@@ -211,52 +211,21 @@ test.describe("Top bar and rail ellipsis hardening", () => {
     await page.locator("#projectsRailToggle").click();
     await expect(rail).toHaveClass(/projects-rail--collapsed/);
 
-    const longProjectLabel = page.locator(
-      `#projectsRail .projects-rail-item[data-project-key="${longProject}"] .projects-rail-item__label`,
+    await expect(page.locator("#projectsRailList")).toBeHidden();
+    await expect(
+      page.locator(
+        `#projectsRail .projects-rail-item[data-project-key="${longProject}"]`,
+      ),
+    ).toHaveCount(0);
+    await expect(
+      page.locator(
+        '#projectsRail .workspace-view-item[data-workspace-view="all"] .nav-label',
+      ),
+    ).toBeHidden();
+    const collapsedWidth = await rail.evaluate((el) =>
+      Math.round(el.getBoundingClientRect().width),
     );
-    await expect(longProjectLabel).toBeVisible();
-
-    const labelMetrics = await longProjectLabel.evaluate((el) => {
-      const style = window.getComputedStyle(el);
-      const lineHeight = Number.parseFloat(style.lineHeight);
-      const fontSize = Number.parseFloat(style.fontSize);
-      const resolvedLineHeight = Number.isFinite(lineHeight)
-        ? lineHeight
-        : Math.max(12, fontSize * 1.2);
-      return {
-        scrollWidth: el.scrollWidth,
-        clientWidth: el.clientWidth,
-        clientHeight: el.clientHeight,
-        lineHeight: resolvedLineHeight,
-        whiteSpace: style.whiteSpace,
-      };
-    });
-
-    expect(labelMetrics.whiteSpace).toBe("nowrap");
-    expect(labelMetrics.clientHeight).toBeLessThanOrEqual(
-      labelMetrics.lineHeight * 1.5,
-    );
-    expect(labelMetrics.scrollWidth).toBeGreaterThan(labelMetrics.clientWidth);
-
-    await expect(page.locator("#projectsRailMobileOpen")).toBeVisible();
-    const topbarLabelMetrics = await page
-      .locator("#projectsRailTopbarLabel")
-      .evaluate((el) => {
-        const style = window.getComputedStyle(el);
-        const lineHeight = Number.parseFloat(style.lineHeight);
-        const fontSize = Number.parseFloat(style.fontSize);
-        const resolvedLineHeight = Number.isFinite(lineHeight)
-          ? lineHeight
-          : Math.max(12, fontSize * 1.2);
-        return {
-          whiteSpace: style.whiteSpace,
-          clientHeight: el.clientHeight,
-          lineHeight: resolvedLineHeight,
-        };
-      });
-    expect(topbarLabelMetrics.whiteSpace).toBe("nowrap");
-    expect(topbarLabelMetrics.clientHeight).toBeLessThanOrEqual(
-      topbarLabelMetrics.lineHeight * 1.5,
-    );
+    expect(collapsedWidth).toBeLessThanOrEqual(64);
+    await expect(page.locator(".todos-top-bar")).toBeHidden();
   });
 });

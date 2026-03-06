@@ -193,6 +193,10 @@ body.is-todos-view #appSidebar {
   padding: 0;
 }
 
+#projectsRailHost > #projectsRail.projects-rail--collapsed {
+  width: 64px;
+}
+
 .app-sidebar__bottom {
   margin-top: auto;
   padding-top: var(--s-3);
@@ -1940,29 +1944,42 @@ textarea:focus-visible,
   display: none;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail-item {
-  justify-content: flex-start;
-  padding-left: 6px;
-  padding-right: 6px;
-  width: 100%;
-  overflow: hidden;
-  gap: 6px;
-}
-
+.projects-rail.projects-rail--collapsed .nav-label,
+.projects-rail.projects-rail--collapsed .projects-rail-item__label,
 .projects-rail.projects-rail--collapsed .projects-rail-item__count {
   display: none;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail-item__label {
-  display: block;
-  flex: 1 1 0;
-  min-width: 0;
-  width: auto;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: var(--fs-xs);
+.projects-rail.projects-rail--collapsed #projectsRailList,
+.projects-rail.projects-rail--collapsed
+  .projects-rail__section:not(.projects-rail__section--workspace) {
+  display: none;
+}
+
+.projects-rail.projects-rail--collapsed .workspace-view-item {
+  justify-content: center;
+  align-items: center;
+  min-height: 46px;
+  height: 46px;
+  padding: 0;
+}
+
+.projects-rail.projects-rail--collapsed .workspace-view-item .nav-icon {
+  width: 18px;
+  height: 18px;
+  opacity: 0.72;
+}
+
+.projects-rail.projects-rail--collapsed .workspace-view-item:hover .nav-icon,
+.projects-rail.projects-rail--collapsed
+  .workspace-view-item.projects-rail-item--active
+  .nav-icon {
+  opacity: 0.92;
+}
+
+.projects-rail.projects-rail--collapsed
+  .workspace-view-item.projects-rail-item--active {
+  border-radius: 10px;
 }
 
 .projects-rail__header {
@@ -2375,16 +2392,10 @@ button.projects-rail-item {
 }
 
 /* Top bar hidden on desktop (body.is-todos-view raises specificity to 0,2,0
-   so it beats the base .todos-top-bar{display:grid} rule at 0,1,0).
-   Exception: when the rail is collapsed the topbar re-appears so that
-   #projectsRailMobileOpen (the expand button) and the project label remain
-   accessible. JS toggles .todos-layout--rail-collapsed on .todos-layout. */
+   so it beats the base .todos-top-bar{display:grid} rule at 0,1,0). */
 @media (min-width: 769px) {
   body.is-todos-view .todos-top-bar {
     display: none;
-  }
-  body.is-todos-view .todos-layout--rail-collapsed .todos-top-bar {
-    display: grid;
   }
   /* Header is redundant on desktop todos view — sidebar handles all navigation
      and account actions. It remains visible on mobile and auth view. */
@@ -6351,36 +6362,47 @@ body.is-todos-view .projects-rail-item > span:first-child {
   white-space: normal;
 }
 
-/* ── Collapsed sidebar: true icon-only rail ───────────────────────────────── */
+/* ── Collapsed sidebar: strict icon-only rail ─────────────────────────────── */
+body.is-todos-view .projects-rail.projects-rail--collapsed {
+  width: 64px;
+}
 
-/* Nav labels (Home/Unsorted/All tasks/Today/Upcoming/Completed) disappear;
-   icons become the sole visual affordance. Use [title] on the button for
-   native browser tooltips (no JS required). */
-body.is-todos-view .projects-rail.projects-rail--collapsed .nav-label {
+body.is-todos-view .projects-rail.projects-rail--collapsed .nav-label,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-item__label,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-item__count {
   display: none;
 }
 
-/* Center each workspace nav icon in the 64 px column. */
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__section:not(.projects-rail__section--workspace),
+body.is-todos-view .projects-rail.projects-rail--collapsed #projectsRailList {
+  display: none;
+}
+
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
   .workspace-view-item {
   justify-content: center;
-  padding-left: 0;
-  padding-right: 0;
-  min-height: 40px;
+  align-items: center;
+  min-height: 46px;
+  height: 46px;
+  padding: 0;
 }
 
-/* Scale icon up slightly so it reads clearly at the smaller rail width. */
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
   .workspace-view-item
   .nav-icon {
   width: 18px;
   height: 18px;
-  opacity: 0.7;
+  opacity: 0.72;
 }
 
-/* Boost icon opacity on hover / active so state is still obvious. */
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
   .workspace-view-item:hover
@@ -6389,39 +6411,13 @@ body.is-todos-view
   .projects-rail.projects-rail--collapsed
   .workspace-view-item.projects-rail-item--active
   .nav-icon {
-  opacity: 0.9;
+  opacity: 0.92;
 }
 
-/* Active pill: keep the subtle accent background; it reads as a centred chip
-   around the icon because the label is gone. */
 body.is-todos-view
   .projects-rail.projects-rail--collapsed
   .workspace-view-item.projects-rail-item--active {
   border-radius: 10px;
-}
-
-/* Tighten the workspace section's bottom gap so the projects list below
-   doesn't have excess breathing room at 64 px. */
-body.is-todos-view
-  .projects-rail.projects-rail--collapsed
-  .projects-rail__section--workspace {
-  margin-bottom: 0;
-}
-
-/* Projects list items: keep them in DOM (test constraint — tests assert
-   .projects-rail-item__label is visible and text-overflow is nowrap), but
-   push them to a compact strip. Count badges are already hidden globally. */
-body.is-todos-view
-  .projects-rail.projects-rail--collapsed
-  .projects-rail-item:not(.workspace-view-item) {
-  min-height: 28px;
-  padding: 3px 4px;
-}
-
-/* Collapsed sidebar: icons lead, labels stay in DOM but constrained by existing
-   overflow rules so they remain accessible (visible to a11y / tests). */
-body.is-todos-view .projects-rail.projects-rail--collapsed .nav-icon {
-  opacity: 0.65;
 }
 
 /* Toggle button: SVG replaces the old __icon span (no size change needed) */

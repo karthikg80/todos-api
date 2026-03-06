@@ -191,7 +191,7 @@ test.describe("Top bar projects cleanup", () => {
     await registerAndOpenTodos(page);
   });
 
-  test("desktop collapsed rail shows projects button and restores focus into rail", async ({
+  test("desktop collapsed rail restores focus into rail when expanded", async ({
     page,
     isMobile,
   }) => {
@@ -201,9 +201,9 @@ test.describe("Top bar projects cleanup", () => {
     await expect(page.locator("#projectsRail")).toHaveClass(
       /projects-rail--collapsed/,
     );
-    await expect(page.locator("#projectsRailMobileOpen")).toBeVisible();
+    await expect(page.locator(".todos-top-bar")).toBeHidden();
 
-    await page.locator("#projectsRailMobileOpen").click();
+    await page.locator("#projectsRailToggle").click();
     await expect(page.locator("#projectsRail")).not.toHaveClass(
       /projects-rail--collapsed/,
     );

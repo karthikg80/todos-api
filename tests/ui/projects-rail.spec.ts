@@ -244,7 +244,7 @@ test.describe("Projects rail wiring", () => {
     await expect(page.locator("#categoryFilter")).toHaveValue("Work");
   });
 
-  test("active project item persists across rerender", async ({
+  test("project with zero open tasks is removed from rail after rerender", async ({
     page,
     isMobile,
   }) => {
@@ -258,11 +258,14 @@ test.describe("Projects rail wiring", () => {
     await expect(homeRailItem).toHaveAttribute("aria-current", "page");
     await expect(page.locator("#categoryFilter")).toHaveValue("Home");
 
-    await page.locator(".todo-item .todo-checkbox").first().click();
+    await page
+      .locator('.todo-item:has(.todo-title:text("Home task")) .todo-checkbox')
+      .click();
 
-    await expect(homeRailItem).toHaveAttribute("aria-current", "page");
-    await expect(homeRailItem).toHaveAttribute("aria-selected", "true");
+    await expect(homeRailItem).toHaveCount(0);
     await expect(page.locator("#categoryFilter")).toHaveValue("Home");
+    await expect(page.locator(".todo-item")).toHaveCount(1);
+    await expect(page.locator(".todo-item")).toContainText("Home task");
   });
 
   test("desktop keyboard navigation selects project and keeps header/topbar/count in sync", async ({
