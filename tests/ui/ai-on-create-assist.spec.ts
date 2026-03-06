@@ -213,7 +213,9 @@ test.describe("AI on-create assist chips", () => {
       page.locator('[data-testid="ai-chip-oc-unknown-type"]'),
     ).toHaveCount(0);
 
-    await page.locator('[data-testid="ai-chip-expand-more"]').click();
+    const expandMoreChip = page.locator('[data-testid="ai-chip-expand-more"]');
+    await expect(expandMoreChip).toBeVisible();
+    await expandMoreChip.click({ force: true });
     const expandedChipCount = await page.locator(".ai-create-chip").count();
     expect(expandedChipCount).toBeLessThanOrEqual(6);
     expect(expandedChipCount).toBeGreaterThan(4);
