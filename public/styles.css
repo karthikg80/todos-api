@@ -151,6 +151,10 @@ body.is-todos-view #appShell {
   grid-template-columns: 272px minmax(0, 1fr);
 }
 
+body.is-todos-view.is-projects-rail-collapsed #appShell {
+  grid-template-columns: 64px minmax(0, 1fr);
+}
+
 body.is-todos-view #appMainScroll {
   overflow: hidden;
   display: flex;
@@ -6365,6 +6369,11 @@ body.is-todos-view .projects-rail-item > span:first-child {
 /* ── Collapsed sidebar: strict icon-only rail ─────────────────────────────── */
 body.is-todos-view .projects-rail.projects-rail--collapsed {
   width: 64px;
+}
+
+body.is-todos-view.is-projects-rail-collapsed #appSidebar {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 body.is-todos-view .projects-rail.projects-rail--collapsed .nav-label,
