@@ -188,6 +188,14 @@ describe("Validation", () => {
       ).not.toThrow();
     });
 
+    it("should validate a valid CUID", () => {
+      expect(() => validateId("ck6h4g2xk000001l7f57x8m6f")).not.toThrow();
+    });
+
+    it("should validate a valid ULID", () => {
+      expect(() => validateId("01ARZ3NDEKTSV4RRFFQ69G5FAV")).not.toThrow();
+    });
+
     it("should throw error for non-UUID string", () => {
       expect(() => validateId("valid-id")).toThrow(ValidationError);
       expect(() => validateId("valid-id")).toThrow("Invalid ID format");
