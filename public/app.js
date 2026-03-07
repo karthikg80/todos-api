@@ -6231,7 +6231,6 @@ function moveProjectHeading(headingId, direction) {
   if (!targetId) return;
   reorderProjectHeadings(String(headingId), targetId, "before");
 }
-
 function reorderProjectHeadings(draggedId, targetId, placement = "before") {
   const projectName = getSelectedProjectKey();
   const projectRecord = getProjectRecordByName(projectName);
@@ -6272,10 +6271,10 @@ function reorderProjectHeadings(draggedId, targetId, placement = "before") {
 function getHeadingDropTargetFromTodo(todoId, dropPosition = "before") {
   const projectName = getSelectedProjectKey();
   const headings = getProjectHeadings(projectName);
-  const headingIds = new Set(headings.map((heading) => String(heading.id)));
   if (!headings.length) {
     return null;
   }
+  const headingIds = new Set(headings.map((heading) => String(heading.id)));
   const todo = todos.find((item) => String(item.id) === String(todoId));
   const todoHeadingId = String(todo?.headingId || "");
   if (todoHeadingId && headingIds.has(todoHeadingId)) {
@@ -6288,29 +6287,17 @@ function getHeadingDropTargetFromTodo(todoId, dropPosition = "before") {
         const nextHeading = headings[currentIndex + 1] || null;
         if (dropPosition === "before") {
           if (previousHeading?.id) {
-            return {
-              targetId: String(previousHeading.id),
-              placement: "after",
-            };
+            return { targetId: String(previousHeading.id), placement: "after" };
           }
           if (nextHeading?.id) {
-            return {
-              targetId: String(nextHeading.id),
-              placement: "before",
-            };
+            return { targetId: String(nextHeading.id), placement: "before" };
           }
         } else {
           if (nextHeading?.id) {
-            return {
-              targetId: String(nextHeading.id),
-              placement: "before",
-            };
+            return { targetId: String(nextHeading.id), placement: "before" };
           }
           if (previousHeading?.id) {
-            return {
-              targetId: String(previousHeading.id),
-              placement: "after",
-            };
+            return { targetId: String(previousHeading.id), placement: "after" };
           }
         }
       }
@@ -11289,9 +11276,14 @@ let draggedOverTodoId = null;
 let draggedHeadingId = null;
 
 function handleDragStart(e) {
-  draggedTodoId = e.target.dataset.todoId;
-  e.target.classList.add("dragging");
-  e.dataTransfer.effectAllowed = "move";
+  const row = e.currentTarget;
+  if (!(row instanceof HTMLElement)) return;
+  draggedTodoId = row.dataset.todoId;
+  draggedHeadingId = null;
+  row.classList.add("dragging");
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = "move";
+  }
 }
 
 function handleDragOver(e) {
@@ -11362,12 +11354,22 @@ function handleDrop(e) {
   e.currentTarget.classList.remove("drag-over");
 
   if (draggedTodoId && dropTargetId && draggedTodoId !== dropTargetId) {
-    reorderTodos(draggedTodoId, dropTargetId);
+    const selectedProject = getSelectedProjectKey();
+    const targetTodo = todos.find((todo) => todo.id === dropTargetId) || null;
+    const nextHeadingId = selectedProject
+      ? String(targetTodo?.headingId || "")
+      : null;
+    reorderTodos(draggedTodoId, dropTargetId, {
+      nextHeadingId: selectedProject ? nextHeadingId || null : undefined,
+    });
   }
 }
 
 function handleDragEnd(e) {
-  e.target.classList.remove("dragging");
+  const row = e.currentTarget;
+  if (row instanceof HTMLElement) {
+    row.classList.remove("dragging");
+  }
   document.querySelectorAll(".todo-item").forEach((item) => {
     item.classList.remove("drag-over");
   });
@@ -11383,6 +11385,7 @@ function clearHeadingDragState() {
       "todo-heading-divider--drag-over-before",
       "todo-heading-divider--drag-over-after",
     );
+    delete row.dataset.headingDropPosition;
   });
   document.querySelectorAll(".todo-item").forEach((row) => {
     row.classList.remove(
@@ -11401,6 +11404,7 @@ function handleHeadingDragStart(e) {
   if (!headingId) return;
 
   draggedHeadingId = headingId;
+  draggedTodoId = null;
   row.classList.add("todo-heading-divider--dragging");
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = "move";
@@ -11409,43 +11413,82 @@ function handleHeadingDragStart(e) {
 }
 
 function handleHeadingDragOver(e) {
-  if (!draggedHeadingId) return;
   const row = e.currentTarget;
   if (!(row instanceof HTMLElement)) return;
-  const targetId = row.dataset.headingId || "";
-  if (!targetId || targetId === draggedHeadingId) return;
+  const targetHeadingId = row.dataset.headingId || "";
 
+  if (draggedHeadingId) {
+    if (!targetHeadingId || targetHeadingId === draggedHeadingId) return;
+    e.preventDefault();
+    clearHeadingDragState();
+    const bounds = row.getBoundingClientRect();
+    const dropPosition =
+      e.clientY > bounds.top + bounds.height / 2 ? "after" : "before";
+    row.dataset.headingDropPosition = dropPosition;
+    row.classList.add(
+      dropPosition === "after"
+        ? "todo-heading-divider--drag-over-after"
+        : "todo-heading-divider--drag-over-before",
+    );
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+    return;
+  }
+
+  if (!draggedTodoId || !targetHeadingId) return;
   e.preventDefault();
   clearHeadingDragState();
-  const bounds = row.getBoundingClientRect();
-  const dropPosition =
-    e.clientY > bounds.top + bounds.height / 2 ? "after" : "before";
-  row.dataset.headingDropPosition = dropPosition;
-  row.classList.add(
-    dropPosition === "after"
-      ? "todo-heading-divider--drag-over-after"
-      : "todo-heading-divider--drag-over-before",
-  );
+  row.classList.add("todo-heading-divider--drag-over-before");
   if (e.dataTransfer) {
     e.dataTransfer.dropEffect = "move";
   }
 }
 
+function getFirstTodoIdInHeading(headingId, excludeTodoId = null) {
+  const selectedProject = getSelectedProjectKey();
+  const normalizedProject = normalizeProjectPath(selectedProject);
+  const candidates = [...todos]
+    .filter((todo) => {
+      const todoProject = normalizeProjectPath(todo.category || "");
+      if (normalizedProject && todoProject !== normalizedProject) return false;
+      if (excludeTodoId && String(todo.id) === String(excludeTodoId))
+        return false;
+      return String(todo.headingId || "") === String(headingId || "");
+    })
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+  return candidates[0]?.id || null;
+}
+
 function handleHeadingDrop(e) {
   e.preventDefault();
+  e.stopPropagation();
   const row = e.currentTarget;
   if (!(row instanceof HTMLElement)) return;
-  const targetId = row.dataset.headingId || "";
-  const dropPosition =
-    row.dataset.headingDropPosition === "after" ? "after" : "before";
-  if (!draggedHeadingId || !targetId || draggedHeadingId === targetId) {
+  const targetHeadingId = row.dataset.headingId || "";
+  if (!targetHeadingId) return;
+
+  if (draggedHeadingId) {
+    const dropPosition =
+      row.dataset.headingDropPosition === "after" ? "after" : "before";
+    if (draggedHeadingId !== targetHeadingId) {
+      reorderProjectHeadings(draggedHeadingId, targetHeadingId, dropPosition);
+    }
     clearHeadingDragState();
     draggedHeadingId = null;
     return;
   }
-  reorderProjectHeadings(draggedHeadingId, targetId, dropPosition);
+
+  if (!draggedTodoId) return;
+  const firstTodoId = getFirstTodoIdInHeading(targetHeadingId, draggedTodoId);
+  if (firstTodoId) {
+    reorderTodos(draggedTodoId, firstTodoId, {
+      nextHeadingId: targetHeadingId,
+    });
+  } else {
+    moveTodoToHeading(draggedTodoId, targetHeadingId);
+  }
   clearHeadingDragState();
-  draggedHeadingId = null;
 }
 
 function handleHeadingDragEnd() {
@@ -11453,7 +11496,8 @@ function handleHeadingDragEnd() {
   draggedHeadingId = null;
 }
 
-async function reorderTodos(draggedId, targetId) {
+async function reorderTodos(draggedId, targetId, options = {}) {
+  const { nextHeadingId = undefined } = options;
   const draggedIndex = todos.findIndex((t) => t.id === draggedId);
   const targetIndex = todos.findIndex((t) => t.id === targetId);
 
@@ -11462,6 +11506,10 @@ async function reorderTodos(draggedId, targetId) {
   // Reorder in local array
   const [draggedTodo] = todos.splice(draggedIndex, 1);
   todos.splice(targetIndex, 0, draggedTodo);
+
+  if (nextHeadingId !== undefined) {
+    draggedTodo.headingId = nextHeadingId;
+  }
 
   // Update order values
   todos.forEach((todo, index) => {
@@ -11472,6 +11520,11 @@ async function reorderTodos(draggedId, targetId) {
 
   // Persist complete ordering on backend in a single request.
   try {
+    if (nextHeadingId !== undefined) {
+      await applyTodoPatch(draggedId, {
+        headingId: nextHeadingId === null ? null : String(nextHeadingId),
+      });
+    }
     const response = await apiCall(`${API_URL}/todos/reorder`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
