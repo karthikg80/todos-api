@@ -6173,20 +6173,69 @@ function renderProjectHeadingGroupedRows(projectTodos, projectName) {
     `;
   }
   rows += unheaded.map((todo) => renderTodoRowHtml(todo)).join("");
-  headings.forEach((heading) => {
+  headings.forEach((heading, headingIndex) => {
     const items = grouped.get(String(heading.id)) || [];
+    const moveUpDisabled = headingIndex === 0;
+    const moveDownDisabled = headingIndex === headings.length - 1;
     rows += `
       <li class="todo-heading-divider" data-heading-id="${escapeHtml(String(heading.id))}">
         <span class="todo-heading-divider__title">${escapeHtml(String(heading.name))}</span>
         <span class="todo-heading-divider__meta">
           <span class="todo-heading-divider__count">${items.length}</span>
-          <button type="button" class="todo-heading-divider__menu" aria-label="Heading actions" title="Heading actions">⋯</button>
+          <button
+            type="button"
+            class="todo-heading-divider__move-btn"
+            aria-label="Move heading up"
+            title="Move heading up"
+            ${moveUpDisabled ? "disabled" : ""}
+            data-onclick="moveProjectHeading('${escapeHtml(String(heading.id))}', -1)"
+          >
+            ↑
+          </button>
+          <button
+            type="button"
+            class="todo-heading-divider__move-btn"
+            aria-label="Move heading down"
+            title="Move heading down"
+            ${moveDownDisabled ? "disabled" : ""}
+            data-onclick="moveProjectHeading('${escapeHtml(String(heading.id))}', 1)"
+          >
+            ↓
+          </button>
         </span>
       </li>
     `;
     rows += items.map((todo) => renderTodoRowHtml(todo)).join("");
   });
   return rows;
+}
+
+function moveProjectHeading(headingId, direction) {
+  const projectName = getSelectedProjectKey();
+  const projectRecord = getProjectRecordByName(projectName);
+  if (!projectRecord?.id) return;
+
+  const projectId = String(projectRecord.id);
+  const headings = [...getProjectHeadings(projectName)];
+  if (!headings.length) return;
+
+  const currentIndex = headings.findIndex(
+    (heading) => String(heading.id) === String(headingId),
+  );
+  if (currentIndex < 0) return;
+
+  const nextIndex = currentIndex + Number(direction);
+  if (nextIndex < 0 || nextIndex >= headings.length) return;
+
+  const [movedHeading] = headings.splice(currentIndex, 1);
+  headings.splice(nextIndex, 0, movedHeading);
+
+  const reordered = headings.map((heading, index) => ({
+    ...heading,
+    sortOrder: index,
+  }));
+  projectHeadingsByProjectId.set(projectId, reordered);
+  renderTodos();
 }
 
 async function moveTodoToHeading(todoId, headingIdValue) {
