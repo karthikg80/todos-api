@@ -1869,6 +1869,7 @@ textarea:focus-visible,
   padding: 0 2px;
   border: 0;
   background: transparent;
+  cursor: grab;
 }
 
 .todo-heading-divider__title {
@@ -1883,6 +1884,13 @@ textarea:focus-visible,
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+.todo-heading-divider__drag-handle {
+  color: color-mix(in oklab, var(--text-secondary) 76%, var(--surface));
+  font-size: 0.74rem;
+  letter-spacing: -0.1em;
+  user-select: none;
 }
 
 .todo-heading-divider__count {
@@ -1924,6 +1932,16 @@ textarea:focus-visible,
 .todo-heading-divider__move-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.todo-heading-divider--dragging {
+  opacity: 0.55;
+}
+
+.todo-heading-divider--drag-over {
+  border-top: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
+  margin-top: 18px;
+  padding-top: 2px;
 }
 
 .project-inline-actions {
