@@ -5688,9 +5688,18 @@ function renderProjectHeadingGroupedRows(projectTodos, projectName) {
   headings.forEach((heading) => {
     const items = grouped.get(String(heading.id)) || [];
     rows += `
-      <li class="todo-heading-divider" data-heading-id="${escapeHtml(String(heading.id))}">
+      <li
+        class="todo-heading-divider"
+        data-heading-id="${escapeHtml(String(heading.id))}"
+        draggable="true"
+        data-ondragstart="handleHeadingDragStart(event)"
+        data-ondragover="handleHeadingDragOver(event)"
+        data-ondrop="handleHeadingDrop(event)"
+        data-ondragend="handleHeadingDragEnd(event)"
+      >
         <span class="todo-heading-divider__title">${escapeHtml(String(heading.name))}</span>
         <span class="todo-heading-divider__meta">
+          <span class="todo-heading-divider__drag-handle" aria-hidden="true">⋮⋮</span>
           <span class="todo-heading-divider__count">${items.length}</span>
           <button type="button" class="todo-heading-divider__menu" aria-label="Heading actions" title="Heading actions">⋯</button>
         </span>
@@ -5699,6 +5708,76 @@ function renderProjectHeadingGroupedRows(projectTodos, projectName) {
     rows += items.map((todo) => renderTodoRowHtml(todo)).join("");
   });
   return rows;
+}
+
+function moveProjectHeading(headingId, direction) {
+  const headings = getProjectHeadings();
+  const currentIndex = headings.findIndex(
+    (heading) => String(heading.id) === String(headingId),
+  );
+  if (currentIndex < 0) return;
+  const nextIndex = currentIndex + Number(direction);
+  if (nextIndex < 0 || nextIndex >= headings.length) return;
+  const targetId = String(headings[nextIndex]?.id || "");
+  if (!targetId) return;
+  reorderProjectHeadings(String(headingId), targetId, "before");
+}
+
+function reorderProjectHeadings(draggedId, targetId, placement = "before") {
+  const projectName = getSelectedProjectKey();
+  const projectRecord = getProjectRecordByName(projectName);
+  if (!projectRecord?.id) return;
+
+  const projectId = String(projectRecord.id);
+  const headings = [...getProjectHeadings(projectName)];
+  if (!headings.length) return;
+
+  const draggedIndex = headings.findIndex(
+    (heading) => String(heading.id) === String(draggedId),
+  );
+  const targetIndex = headings.findIndex(
+    (heading) => String(heading.id) === String(targetId),
+  );
+  if (draggedIndex < 0 || targetIndex < 0 || draggedIndex === targetIndex) {
+    return;
+  }
+
+  const [draggedHeading] = headings.splice(draggedIndex, 1);
+  let insertIndex = targetIndex + (placement === "after" ? 1 : 0);
+  if (draggedIndex < insertIndex) {
+    insertIndex -= 1;
+  }
+  insertIndex = Math.max(0, Math.min(insertIndex, headings.length));
+  headings.splice(insertIndex, 0, draggedHeading);
+
+  projectHeadingsByProjectId.set(
+    projectId,
+    headings.map((heading, index) => ({
+      ...heading,
+      sortOrder: index,
+    })),
+  );
+  renderTodos();
+}
+
+function getHeadingDropTargetFromTodo(todoId, dropPosition = "before") {
+  const projectName = getSelectedProjectKey();
+  const headings = getProjectHeadings(projectName);
+  const headingIds = new Set(headings.map((heading) => String(heading.id)));
+  if (!headings.length) {
+    return null;
+  }
+  const todo = todos.find((item) => String(item.id) === String(todoId));
+  const todoHeadingId = String(todo?.headingId || "");
+  if (todoHeadingId && headingIds.has(todoHeadingId)) {
+    return { targetId: todoHeadingId, placement: dropPosition };
+  }
+  const edgeHeading =
+    dropPosition === "after" ? headings[headings.length - 1] : headings[0];
+  if (!edgeHeading?.id) {
+    return null;
+  }
+  return { targetId: String(edgeHeading.id), placement: dropPosition };
 }
 
 async function moveTodoToHeading(todoId, headingIdValue) {
@@ -10664,6 +10743,7 @@ async function aiBreakdownTodo(todoId, force = false) {
 // ========== PHASE A: DRAG & DROP FUNCTIONALITY ==========
 let draggedTodoId = null;
 let draggedOverTodoId = null;
+let draggedHeadingId = null;
 
 function handleDragStart(e) {
   draggedTodoId = e.target.dataset.todoId;
@@ -10672,8 +10752,33 @@ function handleDragStart(e) {
 }
 
 function handleDragOver(e) {
+  if (draggedHeadingId) {
+    const row = e.currentTarget;
+    if (!(row instanceof HTMLElement)) return;
+    const todoId = String(row.dataset.todoId || "");
+    if (!todoId) return;
+    e.preventDefault();
+    clearHeadingDragState();
+    const bounds = row.getBoundingClientRect();
+    const dropPosition =
+      e.clientY > bounds.top + bounds.height / 2 ? "after" : "before";
+    row.dataset.headingDropPosition = dropPosition;
+    row.classList.add("todo-item--heading-drop-target");
+    row.classList.add(
+      dropPosition === "after"
+        ? "todo-item--heading-drop-after"
+        : "todo-item--heading-drop-before",
+    );
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = "move";
+    }
+    return;
+  }
+
   e.preventDefault();
-  e.dataTransfer.dropEffect = "move";
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = "move";
+  }
 
   const todoId = e.currentTarget.dataset.todoId;
   if (todoId !== draggedTodoId) {
@@ -10683,6 +10788,30 @@ function handleDragOver(e) {
 }
 
 function handleDrop(e) {
+  if (draggedHeadingId) {
+    e.preventDefault();
+    e.stopPropagation();
+    const row = e.currentTarget;
+    if (!(row instanceof HTMLElement)) return;
+    const targetTodoId = String(row.dataset.todoId || "");
+    const dropPosition =
+      row.dataset.headingDropPosition === "after" ? "after" : "before";
+    const headingDropTarget = getHeadingDropTargetFromTodo(
+      targetTodoId,
+      dropPosition,
+    );
+    if (headingDropTarget) {
+      reorderProjectHeadings(
+        draggedHeadingId,
+        headingDropTarget.targetId,
+        headingDropTarget.placement,
+      );
+    }
+    clearHeadingDragState();
+    draggedHeadingId = null;
+    return;
+  }
+
   e.preventDefault();
   e.stopPropagation();
 
@@ -10699,8 +10828,86 @@ function handleDragEnd(e) {
   document.querySelectorAll(".todo-item").forEach((item) => {
     item.classList.remove("drag-over");
   });
+  clearHeadingDragState();
   draggedTodoId = null;
   draggedOverTodoId = null;
+}
+
+function clearHeadingDragState() {
+  document.querySelectorAll(".todo-heading-divider").forEach((row) => {
+    row.classList.remove(
+      "todo-heading-divider--dragging",
+      "todo-heading-divider--drag-over-before",
+      "todo-heading-divider--drag-over-after",
+    );
+  });
+  document.querySelectorAll(".todo-item").forEach((row) => {
+    row.classList.remove(
+      "todo-item--heading-drop-target",
+      "todo-item--heading-drop-before",
+      "todo-item--heading-drop-after",
+    );
+    delete row.dataset.headingDropPosition;
+  });
+}
+
+function handleHeadingDragStart(e) {
+  const row = e.currentTarget;
+  if (!(row instanceof HTMLElement)) return;
+  const headingId = row.dataset.headingId || "";
+  if (!headingId) return;
+
+  draggedHeadingId = headingId;
+  row.classList.add("todo-heading-divider--dragging");
+  if (e.dataTransfer) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", headingId);
+  }
+}
+
+function handleHeadingDragOver(e) {
+  if (!draggedHeadingId) return;
+  const row = e.currentTarget;
+  if (!(row instanceof HTMLElement)) return;
+  const targetId = row.dataset.headingId || "";
+  if (!targetId || targetId === draggedHeadingId) return;
+
+  e.preventDefault();
+  clearHeadingDragState();
+  const bounds = row.getBoundingClientRect();
+  const dropPosition =
+    e.clientY > bounds.top + bounds.height / 2 ? "after" : "before";
+  row.dataset.headingDropPosition = dropPosition;
+  row.classList.add(
+    dropPosition === "after"
+      ? "todo-heading-divider--drag-over-after"
+      : "todo-heading-divider--drag-over-before",
+  );
+  if (e.dataTransfer) {
+    e.dataTransfer.dropEffect = "move";
+  }
+}
+
+function handleHeadingDrop(e) {
+  e.preventDefault();
+  const row = e.currentTarget;
+  if (!(row instanceof HTMLElement)) return;
+  const targetId = row.dataset.headingId || "";
+  const dropPosition =
+    row.dataset.headingDropPosition === "after" ? "after" : "before";
+  if (!draggedHeadingId || !targetId || draggedHeadingId === targetId) {
+    clearHeadingDragState();
+    draggedHeadingId = null;
+    return;
+  }
+  reorderProjectHeadings(draggedHeadingId, targetId, dropPosition);
+  clearHeadingDragState();
+  draggedHeadingId = null;
+}
+
+function handleHeadingDragEnd() {
+  clearHeadingDragState();
+  draggedHeadingId = null;
 }
 
 async function reorderTodos(draggedId, targetId) {
