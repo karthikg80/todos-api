@@ -1,4 +1,4 @@
-import { CreateHeadingDto, Heading } from "../types";
+import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "../types";
 
 export interface IHeadingService {
   findAllByProject(
@@ -10,4 +10,9 @@ export interface IHeadingService {
     projectId: string,
     dto: CreateHeadingDto,
   ): Promise<Heading | null>;
+  reorder(
+    userId: string,
+    projectId: string,
+    items: ReorderHeadingItemDto[],
+  ): Promise<Heading[] | null>;
 }

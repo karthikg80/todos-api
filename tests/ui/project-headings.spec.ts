@@ -257,6 +257,44 @@ async function installProjectHeadingsMockApi(page: Page) {
       return json(route, 201, nextHeading);
     }
 
+    if (
+      /^\/projects\/[^/]+\/headings\/reorder$/.test(pathname) &&
+      method === "PUT"
+    ) {
+      const userId = authUserId(route);
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      const projectId = pathname.split("/")[2] || "";
+      const project = (projectsByUser.get(userId) || []).find(
+        (p) => p.id === projectId,
+      );
+      if (!project) return json(route, 404, { error: "Project not found" });
+      const body = (await parseBody(route)) as Array<{
+        id?: string;
+        sortOrder?: number;
+      }>;
+      const list = headingsByProject.get(projectId) || [];
+      const byId = new Map(list.map((heading) => [heading.id, heading]));
+      for (const item of body) {
+        if (!item?.id || !byId.has(String(item.id))) {
+          return json(route, 404, { error: "Project or heading not found" });
+        }
+      }
+      const nextList = list.map((heading) => {
+        const patch = body.find((item) => item?.id === heading.id);
+        if (!patch || typeof patch.sortOrder !== "number") {
+          return heading;
+        }
+        return {
+          ...heading,
+          sortOrder: patch.sortOrder,
+          updatedAt: nowIso(),
+        };
+      });
+      nextList.sort((a, b) => a.sortOrder - b.sortOrder);
+      headingsByProject.set(projectId, nextList);
+      return json(route, 200, nextList);
+    }
+
     if (pathname === "/todos" && method === "GET") {
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
@@ -322,7 +360,34 @@ async function installProjectHeadingsMockApi(page: Page) {
     }
 
     if (pathname === "/todos/reorder" && method === "PUT") {
-      return json(route, 200, []);
+      const userId = authUserId(route);
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      const body = (await parseBody(route)) as Array<{
+        id?: string;
+        order?: number;
+        headingId?: string | null;
+      }>;
+      const list = todosByUser.get(userId) || [];
+      const byId = new Map(list.map((todo) => [todo.id, todo]));
+      for (const item of body) {
+        if (!item?.id || !byId.has(String(item.id))) {
+          return json(route, 404, { error: "One or more todos not found" });
+        }
+      }
+      const nextList = list.map((todo) => {
+        const patch = body.find((item) => item?.id === todo.id);
+        if (!patch) return todo;
+        return {
+          ...todo,
+          order: typeof patch.order === "number" ? patch.order : todo.order,
+          headingId:
+            patch.headingId === undefined ? todo.headingId : patch.headingId,
+          updatedAt: nowIso(),
+        };
+      });
+      nextList.sort((a, b) => a.order - b.order);
+      todosByUser.set(userId, nextList);
+      return json(route, 200, nextList);
     }
 
     if (pathname === "/ai/suggestions" && method === "GET") {
@@ -529,5 +594,39 @@ test.describe("Project headings (sections)", () => {
     taskIndex = sequence.indexOf("task:Unheaded task");
     expect(taskIndex).toBeGreaterThanOrEqual(0);
     expect(headingBIndex).toBeGreaterThan(taskIndex);
+  });
+
+  test("drag task into a heading section", async ({ page }) => {
+    const source = page.locator(".todo-item", { hasText: "Unheaded task" });
+    const target = page.locator(".todo-heading-divider", {
+      hasText: "Heading A",
+    });
+    await source.dragTo(target);
+
+    await waitForSequenceAssertion(page, (sequence) => {
+      const headingAIndex = sequence.indexOf("heading:Heading A");
+      const taskIndex = sequence.indexOf("task:Unheaded task");
+      return headingAIndex >= 0 && taskIndex > headingAIndex;
+    });
+  });
+
+  test("drag heading before another heading", async ({ page }) => {
+    const source = page.locator(".todo-heading-divider", {
+      hasText: "Heading B",
+    });
+    const target = page.locator(".todo-heading-divider", {
+      hasText: "Heading A",
+    });
+    await source.dragTo(target, { targetPosition: { x: 12, y: 2 } });
+
+    await waitForSequenceAssertion(page, (sequence) => {
+      const headingAIndex = sequence.indexOf("heading:Heading A");
+      const headingBIndex = sequence.indexOf("heading:Heading B");
+      return (
+        headingBIndex >= 0 &&
+        headingAIndex >= 0 &&
+        headingBIndex < headingAIndex
+      );
+    });
   });
 });

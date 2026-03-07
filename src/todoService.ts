@@ -191,6 +191,9 @@ export class TodoService implements ITodoService {
       const updatedTodo: Todo = {
         ...todo,
         order: item.order,
+        ...(item.headingId !== undefined && {
+          headingId: item.headingId === null ? undefined : item.headingId,
+        }),
         updatedAt: now,
       };
       this.todos.set(item.id, updatedTodo);

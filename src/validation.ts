@@ -8,6 +8,7 @@ import {
   UpdateSubtaskDto,
   UpdateTodoDto,
   ReorderTodoItemDto,
+  ReorderHeadingItemDto,
   FindTodosQuery,
   Priority,
   TodoSortBy,
@@ -464,6 +465,7 @@ export function validateReorderTodos(data: unknown): ReorderTodoItemDto[] {
 
     const id = entry.id;
     const order = entry.order;
+    const headingId = entry.headingId;
     if (typeof id !== "string") {
       throw new ValidationError(`Item at index ${index} has invalid id`);
     }
@@ -478,10 +480,75 @@ export function validateReorderTodos(data: unknown): ReorderTodoItemDto[] {
     }
     seenIds.add(id);
 
-    return { id, order };
+    if (
+      headingId !== undefined &&
+      headingId !== null &&
+      typeof headingId !== "string"
+    ) {
+      throw new ValidationError(`Item at index ${index} has invalid headingId`);
+    }
+    if (typeof headingId === "string") {
+      if (headingId.trim().length === 0) {
+        throw new ValidationError(
+          `Item at index ${index} has invalid headingId`,
+        );
+      }
+      validateId(headingId);
+    }
+
+    return {
+      id,
+      order,
+      ...(headingId !== undefined && {
+        headingId: typeof headingId === "string" ? headingId.trim() : null,
+      }),
+    };
   });
 
   return items;
+}
+
+export function validateReorderHeadings(
+  data: unknown,
+): ReorderHeadingItemDto[] {
+  if (!Array.isArray(data)) {
+    throw new ValidationError("Request body must be an array");
+  }
+  if (data.length === 0) {
+    throw new ValidationError("At least one heading order item is required");
+  }
+  if (data.length > MAX_REORDER_ITEMS) {
+    throw new ValidationError(
+      `Cannot reorder more than ${MAX_REORDER_ITEMS} headings at once`,
+    );
+  }
+
+  const seenIds = new Set<string>();
+  return data.map((item: unknown, index: number) => {
+    if (!item || typeof item !== "object") {
+      throw new ValidationError(`Item at index ${index} must be an object`);
+    }
+    const entry = item as Record<string, unknown>;
+    const id = entry.id;
+    const sortOrder = entry.sortOrder;
+
+    if (typeof id !== "string") {
+      throw new ValidationError(`Item at index ${index} has invalid id`);
+    }
+    validateId(id);
+    if (
+      typeof sortOrder !== "number" ||
+      !Number.isInteger(sortOrder) ||
+      sortOrder < 0
+    ) {
+      throw new ValidationError(`Item at index ${index} has invalid sortOrder`);
+    }
+    if (seenIds.has(id)) {
+      throw new ValidationError("Duplicate heading IDs are not allowed");
+    }
+    seenIds.add(id);
+    return { id, sortOrder };
+  });
 }
 
 export function validateCreateSubtask(data: unknown): CreateSubtaskDto {

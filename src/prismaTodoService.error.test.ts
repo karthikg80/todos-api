@@ -9,6 +9,9 @@ describe("PrismaTodoService error handling", () => {
         deleteMany: jest.fn(),
         ...todoOverrides,
       },
+      heading: {
+        findMany: jest.fn().mockResolvedValue([]),
+      },
       $transaction: jest.fn(),
     };
 

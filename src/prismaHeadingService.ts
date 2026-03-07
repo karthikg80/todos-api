@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { IHeadingService } from "./interfaces/IHeadingService";
-import { CreateHeadingDto, Heading } from "./types";
+import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "./types";
 import { hasPrismaCode } from "./errorHandling";
 
 type PrismaHeadingRecord = Prisma.HeadingGetPayload<{}>;
@@ -59,6 +59,56 @@ export class PrismaHeadingService implements IHeadingService {
           },
         });
         return this.mapPrismaHeading(heading);
+      });
+    } catch (error) {
+      if (hasPrismaCode(error, ["P2023"])) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async reorder(
+    userId: string,
+    projectId: string,
+    items: ReorderHeadingItemDto[],
+  ): Promise<Heading[] | null> {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const project = await tx.project.findFirst({
+          where: { id: projectId, userId },
+          select: { id: true },
+        });
+        if (!project) return null;
+
+        const headings = await tx.heading.findMany({
+          where: { projectId },
+          select: { id: true, sortOrder: true },
+        });
+        const currentSortOrder = new Map(
+          headings.map((heading) => [heading.id, heading.sortOrder]),
+        );
+
+        for (const item of items) {
+          if (!currentSortOrder.has(item.id)) {
+            return null;
+          }
+        }
+
+        for (const item of items) {
+          if (currentSortOrder.get(item.id) !== item.sortOrder) {
+            await tx.heading.updateMany({
+              where: { id: item.id, projectId },
+              data: { sortOrder: item.sortOrder },
+            });
+          }
+        }
+
+        const ordered = await tx.heading.findMany({
+          where: { projectId },
+          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        });
+        return ordered.map((heading) => this.mapPrismaHeading(heading));
       });
     } catch (error) {
       if (hasPrismaCode(error, ["P2023"])) {
