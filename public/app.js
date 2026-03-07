@@ -6279,6 +6279,42 @@ function getHeadingDropTargetFromTodo(todoId, dropPosition = "before") {
   const todo = todos.find((item) => String(item.id) === String(todoId));
   const todoHeadingId = String(todo?.headingId || "");
   if (todoHeadingId && headingIds.has(todoHeadingId)) {
+    if (todoHeadingId === String(draggedHeadingId || "")) {
+      const currentIndex = headings.findIndex(
+        (heading) => String(heading.id) === todoHeadingId,
+      );
+      if (currentIndex >= 0) {
+        const previousHeading = headings[currentIndex - 1] || null;
+        const nextHeading = headings[currentIndex + 1] || null;
+        if (dropPosition === "before") {
+          if (previousHeading?.id) {
+            return {
+              targetId: String(previousHeading.id),
+              placement: "after",
+            };
+          }
+          if (nextHeading?.id) {
+            return {
+              targetId: String(nextHeading.id),
+              placement: "before",
+            };
+          }
+        } else {
+          if (nextHeading?.id) {
+            return {
+              targetId: String(nextHeading.id),
+              placement: "before",
+            };
+          }
+          if (previousHeading?.id) {
+            return {
+              targetId: String(previousHeading.id),
+              placement: "after",
+            };
+          }
+        }
+      }
+    }
     return { targetId: todoHeadingId, placement: dropPosition };
   }
   const edgeHeading =
