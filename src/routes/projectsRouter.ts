@@ -172,7 +172,6 @@ export function createProjectsRouter({
         const userId = resolveProjectUserId(req, res);
         if (!userId) return;
         const projectId = req.params.id as string;
-        validateId(projectId);
         const headings = await headingService.findAllByProject(
           userId,
           projectId,
@@ -197,7 +196,6 @@ export function createProjectsRouter({
         const userId = resolveProjectUserId(req, res);
         if (!userId) return;
         const projectId = req.params.id as string;
-        validateId(projectId);
         const dto = validateCreateHeading(req.body);
         const heading = await headingService.create(userId, projectId, dto);
         if (!heading) {
