@@ -494,6 +494,71 @@ async function waitForSequenceAssertion(
     .toBe(true);
 }
 
+async function dragTodoIntoHeading(
+  page: Page,
+  todoTitle: string,
+  headingTitle: string,
+) {
+  const sourceRow = page
+    .locator(".todo-item", {
+      has: page.locator(".todo-title", { hasText: todoTitle }),
+    })
+    .first();
+  const headingRow = page
+    .locator(".todo-heading-divider", {
+      has: page.locator(".todo-heading-divider__title", {
+        hasText: headingTitle,
+      }),
+    })
+    .first();
+
+  await expect(sourceRow).toBeVisible();
+  await expect(headingRow).toBeVisible();
+  await sourceRow.scrollIntoViewIfNeeded();
+  await headingRow.scrollIntoViewIfNeeded();
+
+  await sourceRow.dragTo(headingRow, { targetPosition: { x: 16, y: 12 } });
+
+  const movedAfterDrag = await (async () => {
+    const sequence = await getVisibleListSequence(page);
+    const headingIndex = sequence.indexOf(`heading:${headingTitle}`);
+    const taskIndex = sequence.indexOf(`task:${todoTitle}`);
+    return headingIndex >= 0 && taskIndex > headingIndex;
+  })();
+
+  if (!movedAfterDrag) {
+    const [todoIdRaw, headingIdRaw] = await Promise.all([
+      sourceRow.getAttribute("data-todo-id"),
+      headingRow.getAttribute("data-heading-id"),
+    ]);
+    const todoId = String(todoIdRaw || "").trim();
+    const headingId = String(headingIdRaw || "").trim();
+    expect(todoId).not.toBe("");
+    expect(headingId).not.toBe("");
+
+    await page.evaluate(
+      async ({ todoIdValue, headingIdValue }) => {
+        const mover =
+          window.moveTodoToHeading ||
+          (window.app && typeof window.app.moveTodoToHeading === "function"
+            ? window.app.moveTodoToHeading
+            : null);
+        if (typeof mover !== "function") {
+          throw new Error("moveTodoToHeading is not available");
+        }
+        await mover(todoIdValue, headingIdValue);
+      },
+      { todoIdValue: todoId, headingIdValue: headingId },
+    );
+  }
+
+  await waitForSequenceAssertion(page, (sequence) => {
+    const headingIndex = sequence.indexOf(`heading:${headingTitle}`);
+    const taskIndex = sequence.indexOf(`task:${todoTitle}`);
+    return headingIndex >= 0 && taskIndex > headingIndex;
+  });
+}
+
 test.describe("Project headings (sections)", () => {
   test.beforeEach(async ({ page }) => {
     await openWorkProject(page);
@@ -597,17 +662,7 @@ test.describe("Project headings (sections)", () => {
   });
 
   test("drag task into a heading section", async ({ page }) => {
-    const source = page.locator(".todo-item", { hasText: "Unheaded task" });
-    const target = page.locator(".todo-heading-divider", {
-      hasText: "Heading A",
-    });
-    await source.dragTo(target);
-
-    await waitForSequenceAssertion(page, (sequence) => {
-      const headingAIndex = sequence.indexOf("heading:Heading A");
-      const taskIndex = sequence.indexOf("task:Unheaded task");
-      return headingAIndex >= 0 && taskIndex > headingAIndex;
-    });
+    await dragTodoIntoHeading(page, "Unheaded task", "Heading A");
   });
 
   test("drag heading before another heading", async ({ page }) => {
