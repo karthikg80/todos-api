@@ -1901,6 +1901,31 @@ textarea:focus-visible,
   cursor: default;
 }
 
+.todo-heading-divider__move-btn {
+  border: 1px solid color-mix(in oklab, var(--border-color) 74%, transparent);
+  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
+  color: color-mix(in oklab, var(--text-secondary) 82%, var(--surface));
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.todo-heading-divider__move-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  border-color: color-mix(in oklab, var(--border-color) 56%, transparent);
+}
+
+.todo-heading-divider__move-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .project-inline-actions {
   display: flex;
   align-items: center;
