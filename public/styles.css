@@ -1655,6 +1655,18 @@ textarea:focus-visible,
   border-top: 3px solid var(--accent);
 }
 
+.todo-item.todo-item--heading-drop-target {
+  position: relative;
+}
+
+.todo-item.todo-item--heading-drop-before {
+  border-top: 3px solid var(--accent);
+}
+
+.todo-item.todo-item--heading-drop-after {
+  border-bottom: 3px solid var(--accent);
+}
+
 .drag-handle {
   cursor: grab;
   font-size: 1.2em;
@@ -1933,17 +1945,21 @@ textarea:focus-visible,
   opacity: 0.45;
   cursor: not-allowed;
 }
-
 .todo-heading-divider--dragging {
   opacity: 0.55;
 }
 
-.todo-heading-divider--drag-over {
+.todo-heading-divider--drag-over-before {
   border-top: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
   margin-top: 18px;
   padding-top: 2px;
 }
 
+.todo-heading-divider--drag-over-after {
+  border-bottom: 2px solid color-mix(in oklab, var(--accent) 55%, transparent);
+  margin-bottom: 18px;
+  padding-bottom: 2px;
+}
 .project-inline-actions {
   display: flex;
   align-items: center;
