@@ -354,25 +354,76 @@ export class PrismaTodoService implements ITodoService {
         // actually changed — avoids N writes when only a few moved.
         const currentTodos = await tx.todo.findMany({
           where: { userId },
-          select: { id: true, order: true },
+          select: {
+            id: true,
+            order: true,
+            projectId: true,
+            headingId: true,
+          },
         });
-        const currentOrderMap = new Map(
-          currentTodos.map((t) => [t.id, t.order]),
+        const currentTodoMap = new Map(
+          currentTodos.map((todo) => [todo.id, todo]),
         );
+
+        const headingIdsToValidate = new Set<string>();
+        for (const item of items) {
+          if (typeof item.headingId === "string") {
+            headingIdsToValidate.add(item.headingId);
+          }
+        }
+
+        const headingProjectMap = new Map<string, string>();
+        if (headingIdsToValidate.size > 0) {
+          const headingRows = await tx.heading.findMany({
+            where: {
+              id: { in: Array.from(headingIdsToValidate) },
+              project: { userId },
+            },
+            select: {
+              id: true,
+              projectId: true,
+            },
+          });
+          for (const heading of headingRows) {
+            headingProjectMap.set(heading.id, heading.projectId);
+          }
+        }
 
         // Validate all requested IDs exist before writing anything.
         for (const item of items) {
-          if (!currentOrderMap.has(item.id)) {
+          const currentTodo = currentTodoMap.get(item.id);
+          if (!currentTodo) {
             throw new Error(PrismaTodoService.NOT_FOUND_ERROR);
+          }
+          if (item.headingId === undefined) {
+            continue;
+          }
+          if (item.headingId === null) {
+            continue;
+          }
+          const headingProjectId = headingProjectMap.get(item.headingId);
+          if (!headingProjectId || currentTodo.projectId !== headingProjectId) {
+            throw new Error(PrismaTodoService.INVALID_HEADING_ERROR);
           }
         }
 
         // Only update items whose order actually changed (delta-only).
         for (const item of items) {
-          if (currentOrderMap.get(item.id) !== item.order) {
+          const currentTodo = currentTodoMap.get(item.id)!;
+          const orderChanged = currentTodo.order !== item.order;
+          const headingChanged =
+            item.headingId !== undefined &&
+            currentTodo.headingId !== item.headingId;
+          if (orderChanged || headingChanged) {
+            const data: Prisma.TodoUpdateManyMutationInput = {
+              ...(orderChanged && { order: item.order }),
+              ...(item.headingId !== undefined && {
+                headingId: item.headingId,
+              }),
+            };
             await tx.todo.updateMany({
               where: { id: item.id, userId },
-              data: { order: item.order },
+              data,
             });
           }
         }

@@ -8,6 +8,7 @@ import {
   validateCreateProject,
   validateUpdateProject,
   validateFindTodosQuery,
+  validateReorderHeadings,
   ValidationError,
 } from "./validation";
 
@@ -268,6 +269,63 @@ describe("Validation", () => {
           { id: "00000000-0000-1000-8000-000000000001", order: -1 },
         ]),
       ).toThrow("Item at index 0 has invalid order");
+    });
+
+    it("should accept optional headingId as string or null", () => {
+      const items = validateReorderTodos([
+        {
+          id: "00000000-0000-1000-8000-000000000001",
+          order: 0,
+          headingId: "00000000-0000-1000-8000-000000000010",
+        },
+        {
+          id: "00000000-0000-1000-8000-000000000002",
+          order: 1,
+          headingId: null,
+        },
+      ]);
+      expect(items[0].headingId).toBe("00000000-0000-1000-8000-000000000010");
+      expect(items[1].headingId).toBeNull();
+    });
+
+    it("should reject invalid headingId in reorder payload", () => {
+      expect(() =>
+        validateReorderTodos([
+          {
+            id: "00000000-0000-1000-8000-000000000001",
+            order: 0,
+            headingId: "",
+          },
+        ]),
+      ).toThrow("Item at index 0 has invalid headingId");
+    });
+  });
+
+  describe("validateReorderHeadings", () => {
+    it("should validate a valid heading reorder payload", () => {
+      const items = validateReorderHeadings([
+        { id: "00000000-0000-1000-8000-000000000011", sortOrder: 0 },
+        { id: "00000000-0000-1000-8000-000000000012", sortOrder: 1 },
+      ]);
+      expect(items).toHaveLength(2);
+    });
+
+    it("should reject duplicate heading IDs", () => {
+      const id = "00000000-0000-1000-8000-000000000011";
+      expect(() =>
+        validateReorderHeadings([
+          { id, sortOrder: 0 },
+          { id, sortOrder: 1 },
+        ]),
+      ).toThrow("Duplicate heading IDs are not allowed");
+    });
+
+    it("should reject invalid sortOrder", () => {
+      expect(() =>
+        validateReorderHeadings([
+          { id: "00000000-0000-1000-8000-000000000011", sortOrder: -1 },
+        ]),
+      ).toThrow("Item at index 0 has invalid sortOrder");
     });
   });
 

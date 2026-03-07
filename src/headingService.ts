@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { IHeadingService } from "./interfaces/IHeadingService";
-import { CreateHeadingDto, Heading } from "./types";
+import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "./types";
 import { IProjectService } from "./interfaces/IProjectService";
 
 export class HeadingService implements IHeadingService {
@@ -48,5 +48,33 @@ export class HeadingService implements IHeadingService {
     };
     this.headings.set(heading.id, heading);
     return heading;
+  }
+
+  async reorder(
+    userId: string,
+    projectId: string,
+    items: ReorderHeadingItemDto[],
+  ): Promise<Heading[] | null> {
+    const list = await this.findAllByProject(userId, projectId);
+    if (list === null) return null;
+    const currentById = new Map(list.map((heading) => [heading.id, heading]));
+    for (const item of items) {
+      if (!currentById.has(item.id)) {
+        return null;
+      }
+    }
+
+    const now = new Date();
+    for (const item of items) {
+      const existing = currentById.get(item.id)!;
+      const updated: Heading = {
+        ...existing,
+        sortOrder: item.sortOrder,
+        updatedAt: now,
+      };
+      this.headings.set(item.id, updated);
+    }
+
+    return this.findAllByProject(userId, projectId);
   }
 }

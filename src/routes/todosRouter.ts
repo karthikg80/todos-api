@@ -144,6 +144,12 @@ export function createTodosRouter({
 
         res.json(reorderedTodos);
       } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === PrismaTodoService.INVALID_HEADING_ERROR
+        ) {
+          return res.status(400).json({ error: "Invalid heading for project" });
+        }
         next(error);
       }
     },

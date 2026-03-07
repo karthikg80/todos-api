@@ -3,6 +3,7 @@ import { IProjectService } from "../interfaces/IProjectService";
 import {
   validateCreateProject,
   validateCreateHeading,
+  validateReorderHeadings,
   validateId,
   validateProjectTaskDisposition,
   validateUpdateProject,
@@ -202,6 +203,34 @@ export function createProjectsRouter({
           return res.status(404).json({ error: "Project not found" });
         }
         res.status(201).json(heading);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.put(
+    "/:id/headings/reorder",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!headingService) {
+          return res.status(501).json({ error: "Headings not configured" });
+        }
+        const userId = resolveProjectUserId(req, res);
+        if (!userId) return;
+        const projectId = req.params.id as string;
+        const items = validateReorderHeadings(req.body);
+        const reordered = await headingService.reorder(
+          userId,
+          projectId,
+          items,
+        );
+        if (!reordered) {
+          return res
+            .status(404)
+            .json({ error: "Project or heading not found" });
+        }
+        res.json(reordered);
       } catch (error) {
         next(error);
       }

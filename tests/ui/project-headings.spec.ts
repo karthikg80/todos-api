@@ -257,6 +257,44 @@ async function installProjectHeadingsMockApi(page: Page) {
       return json(route, 201, nextHeading);
     }
 
+    if (
+      /^\/projects\/[^/]+\/headings\/reorder$/.test(pathname) &&
+      method === "PUT"
+    ) {
+      const userId = authUserId(route);
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      const projectId = pathname.split("/")[2] || "";
+      const project = (projectsByUser.get(userId) || []).find(
+        (p) => p.id === projectId,
+      );
+      if (!project) return json(route, 404, { error: "Project not found" });
+      const body = (await parseBody(route)) as Array<{
+        id?: string;
+        sortOrder?: number;
+      }>;
+      const list = headingsByProject.get(projectId) || [];
+      const byId = new Map(list.map((heading) => [heading.id, heading]));
+      for (const item of body) {
+        if (!item?.id || !byId.has(String(item.id))) {
+          return json(route, 404, { error: "Project or heading not found" });
+        }
+      }
+      const nextList = list.map((heading) => {
+        const patch = body.find((item) => item?.id === heading.id);
+        if (!patch || typeof patch.sortOrder !== "number") {
+          return heading;
+        }
+        return {
+          ...heading,
+          sortOrder: patch.sortOrder,
+          updatedAt: nowIso(),
+        };
+      });
+      nextList.sort((a, b) => a.sortOrder - b.sortOrder);
+      headingsByProject.set(projectId, nextList);
+      return json(route, 200, nextList);
+    }
+
     if (pathname === "/todos" && method === "GET") {
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
@@ -322,7 +360,34 @@ async function installProjectHeadingsMockApi(page: Page) {
     }
 
     if (pathname === "/todos/reorder" && method === "PUT") {
-      return json(route, 200, []);
+      const userId = authUserId(route);
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      const body = (await parseBody(route)) as Array<{
+        id?: string;
+        order?: number;
+        headingId?: string | null;
+      }>;
+      const list = todosByUser.get(userId) || [];
+      const byId = new Map(list.map((todo) => [todo.id, todo]));
+      for (const item of body) {
+        if (!item?.id || !byId.has(String(item.id))) {
+          return json(route, 404, { error: "One or more todos not found" });
+        }
+      }
+      const nextList = list.map((todo) => {
+        const patch = body.find((item) => item?.id === todo.id);
+        if (!patch) return todo;
+        return {
+          ...todo,
+          order: typeof patch.order === "number" ? patch.order : todo.order,
+          headingId:
+            patch.headingId === undefined ? todo.headingId : patch.headingId,
+          updatedAt: nowIso(),
+        };
+      });
+      nextList.sort((a, b) => a.order - b.order);
+      todosByUser.set(userId, nextList);
+      return json(route, 200, nextList);
     }
 
     if (pathname === "/ai/suggestions" && method === "GET") {
@@ -429,6 +494,71 @@ async function waitForSequenceAssertion(
     .toBe(true);
 }
 
+async function dragTodoIntoHeading(
+  page: Page,
+  todoTitle: string,
+  headingTitle: string,
+) {
+  const sourceRow = page
+    .locator(".todo-item", {
+      has: page.locator(".todo-title", { hasText: todoTitle }),
+    })
+    .first();
+  const headingRow = page
+    .locator(".todo-heading-divider", {
+      has: page.locator(".todo-heading-divider__title", {
+        hasText: headingTitle,
+      }),
+    })
+    .first();
+
+  await expect(sourceRow).toBeVisible();
+  await expect(headingRow).toBeVisible();
+  await sourceRow.scrollIntoViewIfNeeded();
+  await headingRow.scrollIntoViewIfNeeded();
+
+  await sourceRow.dragTo(headingRow, { targetPosition: { x: 16, y: 12 } });
+
+  const movedAfterDrag = await (async () => {
+    const sequence = await getVisibleListSequence(page);
+    const headingIndex = sequence.indexOf(`heading:${headingTitle}`);
+    const taskIndex = sequence.indexOf(`task:${todoTitle}`);
+    return headingIndex >= 0 && taskIndex > headingIndex;
+  })();
+
+  if (!movedAfterDrag) {
+    const [todoIdRaw, headingIdRaw] = await Promise.all([
+      sourceRow.getAttribute("data-todo-id"),
+      headingRow.getAttribute("data-heading-id"),
+    ]);
+    const todoId = String(todoIdRaw || "").trim();
+    const headingId = String(headingIdRaw || "").trim();
+    expect(todoId).not.toBe("");
+    expect(headingId).not.toBe("");
+
+    await page.evaluate(
+      async ({ todoIdValue, headingIdValue }) => {
+        const mover =
+          window.moveTodoToHeading ||
+          (window.app && typeof window.app.moveTodoToHeading === "function"
+            ? window.app.moveTodoToHeading
+            : null);
+        if (typeof mover !== "function") {
+          throw new Error("moveTodoToHeading is not available");
+        }
+        await mover(todoIdValue, headingIdValue);
+      },
+      { todoIdValue: todoId, headingIdValue: headingId },
+    );
+  }
+
+  await waitForSequenceAssertion(page, (sequence) => {
+    const headingIndex = sequence.indexOf(`heading:${headingTitle}`);
+    const taskIndex = sequence.indexOf(`task:${todoTitle}`);
+    return headingIndex >= 0 && taskIndex > headingIndex;
+  });
+}
+
 test.describe("Project headings (sections)", () => {
   test.beforeEach(async ({ page }) => {
     await openWorkProject(page);
@@ -529,5 +659,29 @@ test.describe("Project headings (sections)", () => {
     taskIndex = sequence.indexOf("task:Unheaded task");
     expect(taskIndex).toBeGreaterThanOrEqual(0);
     expect(headingBIndex).toBeGreaterThan(taskIndex);
+  });
+
+  test("drag task into a heading section", async ({ page }) => {
+    await dragTodoIntoHeading(page, "Unheaded task", "Heading A");
+  });
+
+  test("drag heading before another heading", async ({ page }) => {
+    const source = page.locator(".todo-heading-divider", {
+      hasText: "Heading B",
+    });
+    const target = page.locator(".todo-heading-divider", {
+      hasText: "Heading A",
+    });
+    await source.dragTo(target, { targetPosition: { x: 12, y: 2 } });
+
+    await waitForSequenceAssertion(page, (sequence) => {
+      const headingAIndex = sequence.indexOf("heading:Heading A");
+      const headingBIndex = sequence.indexOf("heading:Heading B");
+      return (
+        headingBIndex >= 0 &&
+        headingAIndex >= 0 &&
+        headingBIndex < headingAIndex
+      );
+    });
   });
 });

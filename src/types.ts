@@ -103,6 +103,12 @@ export interface UpdateSubtaskDto {
 export interface ReorderTodoItemDto {
   id: string;
   order: number;
+  headingId?: string | null;
+}
+
+export interface ReorderHeadingItemDto {
+  id: string;
+  sortOrder: number;
 }
 
 export interface FindTodosQuery {
