@@ -47,6 +47,41 @@ Full-stack todo application. Express + Prisma + PostgreSQL backend, vanilla JS f
 - PRs `#142`, `#143`, and `#144` introduced Home as a launchpad/dashboard surface with curated modules and made the composer entry consistent around that surface.
 - The emerging product direction is a calmer, more spacious, more editorial workspace model: `Home` decides, smart views scan lists, and projects organize work. The implementation on `master` is partway through that transition, so not every older shared chrome pattern has been removed yet.
 
+## Recent Decisions (2026-03-01 to 2026-03-06)
+
+- PRs `#149` and `#150` hardened the Playwright test infrastructure: redundant specs were pruned and workers now use per-worker auth state files for parallelization.
+- PR `#151` and follow-up fixes (`#152`, `#154`) polished and rebalanced the Home launchpad surface after initial introduction — modules were simplified and spacing/composition tightened.
+- PRs `#155`, `#156` completed the sidebar chrome cleanup: redundant headings, dead h3 CSS, and leftover decorative sidebar elements removed. The todos view header is now collapsed.
+- PR `#157` was a comprehensive redesign of the Home dashboard and sidebar chrome, establishing the current visual hierarchy and editorial workspace direction as the intentional baseline.
+- PR `#158` integrated Lucide icons across sidebar nav items and restored the Logout button in the sidebar footer, replacing text-only nav affordances.
+- PR `#159` introduced the bottom action dock (fixed-position panel at 64px height, z-index 55) as the home for profile/account quick actions, and cleaned up the sidebar footer to reduce weight.
+- PRs `#160` and `#161` were polish and regression passes: active-state highlighting, profile panel presentation, and mobile layout fixes after the dock and Lucide icon changes.
+- Current uncommitted work adds an icon-only collapsed sidebar rail state at 64px width, with tooltips on hover — the collapsed ↔ expanded toggle is now a first-class interaction.
+
+## Shell Chrome State (as of 2026-03-06)
+
+- Sidebar rail supports icon-only collapsed state at 64px width; expanded state restores labels and section headings.
+- Bottom action dock (`.dock-profile-panel`, z-index 55, fixed) is the home for profile/account quick actions. It does not replace sidebar Settings — Settings remains the primary account surface.
+- Lucide icons are used for sidebar nav items; text-only fallbacks are not present.
+- Logout is available in the sidebar footer (not only in Settings).
+- Mobile layout has a top bar for the Projects button / rail toggle; the dock is visible on mobile.
+
+## Architecture Remediation Backlog (as of 2026-03-06)
+
+Formal architecture review completed. Tasks created in agent queue:
+
+- **Task 129 (Red):** Split `app.js` into ES6 modules — prerequisite for Tasks 130, 132, 134, 136.
+- **Task 130 (Yellow):** Centralize global mutable state — do in same sprint as Task 129.
+- **Task 131 (Yellow):** Replace all `confirm()` / `prompt()` with styled ConfirmDialog/InputDialog.
+- **Task 132 (Yellow):** Universal overlay/dialog manager (focus trap, z-index, Escape, aria-modal).
+- **Task 133 (Red):** Move filter/sort/aggregate to Postgres via Prisma — safe to parallelize with Task 132.
+- **Task 134 (Yellow):** Lightweight pub-sub state dispatch pattern — depends on Task 130.
+- **Task 135 (Green):** Debounce keystroke-triggered render/filter calls — do as warmup in Phase 2.
+- **Tasks 136–142:** Template nodes, virtual scroll, API service isolation, error boundaries, toggle utilities, localStorage constants, CSS layer organization.
+- **Task 143 (Red):** Component framework migration spike — gated on human ADR sign-off; do NOT begin before Tasks 129–142.
+
+Sequencing: Task 129 must land first. Task 133 can run in parallel on the backend layer. Task 143 is last and requires explicit human decision.
+
 ---
 
-_Last updated: 2026-03-01_
+_Last updated: 2026-03-06_
