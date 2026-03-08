@@ -1,3 +1,67 @@
+// =============================================================================
+// TASK 140 DEPENDENCY GRAPH ANALYSIS
+// Generated before any split attempt. Status: BLOCKED (see below).
+//
+// PROPOSED MODULE BOUNDARIES:
+//   todosService.js  — CRUD operations for todos (loadTodos, addTodo, deleteTodo,
+//                      toggleTodo, updateTodo, deleteSelected, undo pipeline)
+//   projectsState.js — Project state (customProjects, projectRecords,
+//                      projectHeadingsByProjectId, setSelectedProjectKey,
+//                      loadProjects, createSubproject, renameProjectTree)
+//   drawerUi.js      — Todo drawer panel (openTodoDrawer, closeTodoDrawer,
+//                      renderTodoDrawer, syncTodoDrawerStateWithRender,
+//                      drawer draft save pipeline)
+//   filterLogic.js   — Filtering + rendering (filterTodos, applyFiltersAndRender,
+//                      renderTodos, updateCategoryFilter, setDateView, clearFilters)
+//   overlayManager.js — Modals + overlays (openEditTodoModal, closeEditTodoModal,
+//                       openProjectCrudModal, openProjectDeleteDialog,
+//                       toggleCommandPalette, toggleShortcuts)
+//
+// CONFIRMED CIRCULAR IMPORT CHAINS:
+//
+//   ① todosService.js ↔ filterLogic.js
+//      • loadTodos() / addTodo() / deleteTodo() / toggleTodo() → call filterTodos()
+//        (filterLogic.js must be imported by todosService.js)
+//      • filterTodos() / renderTodos() → read `todos` array
+//        (todosService.js must be imported by filterLogic.js for `todos` state)
+//      → CIRCULAR: todosService → filterLogic → todosService
+//
+//   ② projectsState.js ↔ filterLogic.js
+//      • setSelectedProjectKey() → calls applyFiltersAndRender()   [filterLogic.js]
+//      • applyFiltersAndRender() → renderTodos() reads customProjects,
+//        projectRecords, projectHeadingsByProjectId                [projectsState.js]
+//      → CIRCULAR: projectsState → filterLogic → projectsState
+//
+//   ③ drawerUi.js ↔ filterLogic.js
+//      • applyFiltersAndRender() → calls syncTodoDrawerStateWithRender() [drawerUi.js]
+//      • openTodoDrawer() / closeTodoDrawer() → call filterTodos()       [filterLogic.js]
+//      → CIRCULAR: filterLogic → drawerUi → filterLogic
+//
+// RESOLUTION ANALYSIS:
+//   Clean resolution requires ONE of:
+//   (A) A shared mutable state module (e.g. store.js) — NOT in the allowed file list.
+//   (B) Changing filterTodos() / setSelectedProjectKey() signatures to accept state
+//       as parameters — explicitly FORBIDDEN by task constraints.
+//   (C) Event-based decoupling (CustomEvent fire-and-forget) — changes the
+//       synchronous call semantics, constituting a behavior change (BLOCKED).
+//   (D) Dynamic import() to break cycles — requires async code paths where
+//       currently synchronous; constitutes a behavior change (BLOCKED).
+//   (E) Completely different module boundaries (e.g. co-locate todos state WITH
+//       filterLogic.js) — still leaves chain ③ unresolved.
+//
+// ADDITIONAL BLOCKER — window[functionName] dispatcher (line ~13318):
+//   The data-onclick dispatcher resolves ~90 handler functions via window[name].
+//   Switching to type="module" removes automatic global scope for all functions.
+//   Every handler would need an explicit window.xxx = xxx assignment in app.js,
+//   making app.js non-thin and defeating the entry-point-orchestrator goal.
+//
+// VERDICT: BLOCKED
+//   Per task constraint: "Circular import that cannot be resolved cleanly →
+//   BLOCKED, report to user."
+//   Three independent circular chains exist. None can be resolved without a
+//   shared store module (file not in allowed list) or forbidden signature changes.
+// =============================================================================
+
 // Configuration
 const API_URL =
   window.location.hostname === "localhost"

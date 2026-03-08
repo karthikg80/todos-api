@@ -1,7 +1,7 @@
 # TASK 140: appjs-es6-module-split
 
 type: Red
-status: READY
+status: BLOCKED
 mode: refactor
 builder: claude
 reviewer: user
@@ -72,9 +72,42 @@ Pure file reorganization — no user-visible behavior change. Risk is introducin
 - Modifies Prisma schema → BLOCKED
 
 ## Deliverable
-- PR URL:
-- Commit SHA(s):
-- Files changed:
-- PASS/FAIL matrix:
+- PR URL: N/A (BLOCKED before any split)
+- Commit SHA(s): dependency-analysis commit only
+- Files changed: public/app.js (dependency map comment added), docs/agent-queue/tasks/red/140-appjs-es6-module-split.md
+- PASS/FAIL matrix: N/A
 
 ## Outcome
+BLOCKED. Dependency graph analysis (pre-split, as required) found three independent
+circular import chains that cannot be resolved within the given constraints:
+
+① todosService.js ↔ filterLogic.js
+  - loadTodos/addTodo/deleteTodo all call filterTodos() after mutations
+  - filterTodos/renderTodos read the `todos` array owned by todosService
+  - Cannot import each other without a cycle
+
+② projectsState.js ↔ filterLogic.js
+  - setSelectedProjectKey() calls applyFiltersAndRender()
+  - applyFiltersAndRender/renderTodos reads customProjects, projectRecords,
+    projectHeadingsByProjectId owned by projectsState
+  - Cannot import each other without a cycle
+
+③ drawerUi.js ↔ filterLogic.js
+  - applyFiltersAndRender() calls syncTodoDrawerStateWithRender() (drawerUi)
+  - Drawer open/close functions call filterTodos/renderTodos (filterLogic)
+  - Cannot import each other without a cycle
+
+Additional concern: the data-onclick dispatcher (line ~13318) resolves ~90 handler
+functions via window[functionName]. Switching to type="module" removes automatic
+global exposure, requiring explicit window.xxx assignments for all ~90 handlers —
+making app.js non-thin.
+
+Resolution options that would unblock this task:
+1. Add a public/store.js shared mutable state module to the allowed file list.
+   All 5 modules import from store.js; store.js has no imports. No cycles.
+2. Allow an event-bus/pubsub pattern (CustomEvent) for post-mutation rerenders
+   instead of direct function calls. This decouples the modules at cost of async
+   semantics where currently synchronous.
+3. Significantly different module boundaries where filterLogic.js co-locates both
+   the todos state and the filter/render pipeline, eliminating chain ①. Chains
+   ② and ③ would still need option 1 or 2 to resolve.
