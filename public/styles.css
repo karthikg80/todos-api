@@ -7118,3 +7118,8 @@ body.is-admin-user .projects-rail__footer--admin-only {
     padding-right: 0;
   }
 }
+
+/* DialogManager managed backdrop — pointer-events must be active so clicks reach it */
+.dm-backdrop {
+  pointer-events: auto;
+}

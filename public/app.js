@@ -95,6 +95,113 @@ const debounce = (fn, ms) => {
   };
 };
 
+// =============================================================================
+// DialogManager — centralizes focus trap, Escape propagation, and aria-modal
+// attribute management for all modal overlay surfaces.
+//
+// Design decisions:
+//   • z-index is NOT managed — each overlay's CSS handles stacking. Touching
+//     z-index here would break backdrops and existing Playwright assertions.
+//   • Focus is NOT auto-managed — each overlay's own open/close function
+//     handles focus movement. DialogManager only traps Tab while a layer is
+//     registered so focus stays within the topmost surface.
+//   • Escape is routed to the topmost layer's onEscape callback. The global
+//     bubble-phase keydown handler must not double-fire for managed layers
+//     (see guard below global keydown registration).
+//   • aria-modal="true" is set on open and removed on close.
+// =============================================================================
+const DialogManager = (() => {
+  const stack = []; // [{ layerId, el, onEscape }]
+
+  function getFocusable(el) {
+    return Array.from(
+      el.querySelectorAll(
+        "a[href],button:not([disabled]),input:not([disabled]),select:not([disabled])," +
+          'textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
+      ),
+    ).filter((e) => !e.closest("[hidden]") && e.offsetParent !== null);
+  }
+
+  function trapFocus(e) {
+    const top = stack[stack.length - 1];
+    if (!top) return;
+    const focusable = getFocusable(top.el);
+    if (!focusable.length) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+
+  function handleKeydown(e) {
+    if (e.key === "Tab" && stack.length > 0) {
+      trapFocus(e);
+      e.stopPropagation();
+      return;
+    }
+    if (e.key === "Escape" && stack.length > 0) {
+      e.stopPropagation();
+      const top = stack[stack.length - 1];
+      if (top.onEscape) top.onEscape();
+    }
+  }
+
+  document.addEventListener("keydown", handleKeydown, true);
+
+  return {
+    /**
+     * Register an overlay layer with DialogManager.
+     * @param {string} layerId     - unique identifier string
+     * @param {HTMLElement} el     - the overlay container element
+     * @param {object} [opts]
+     *   opts.onEscape {function}  - called when Escape pressed on topmost layer
+     */
+    open(layerId, el, opts) {
+      const options = opts || {};
+      if (stack.some((s) => s.layerId === layerId)) return;
+      el.setAttribute("aria-modal", "true");
+      if (!el.getAttribute("role")) {
+        el.setAttribute("role", "dialog");
+      }
+      stack.push({ layerId, el, onEscape: options.onEscape || null });
+    },
+
+    close(layerId) {
+      const idx = stack.findIndex((s) => s.layerId === layerId);
+      if (idx === -1) return;
+      const entry = stack.splice(idx, 1)[0];
+      entry.el.removeAttribute("aria-modal");
+    },
+
+    closeAll() {
+      while (stack.length > 0) {
+        const entry = stack.pop();
+        entry.el.removeAttribute("aria-modal");
+      }
+    },
+
+    isOpen(layerId) {
+      return stack.some((s) => s.layerId === layerId);
+    },
+
+    get depth() {
+      return stack.length;
+    },
+  };
+})();
+
 // ---------------------------------------------------------------------------
 // Module consumption — extracted pure-function modules loaded before app.js
 // via <script defer> in index.html (see state.js, apiClient.js pattern).
@@ -2183,10 +2290,12 @@ function showConfirmDialog(message, onConfirm, onCancel) {
 
     msgEl.textContent = message;
     overlay.style.display = "flex";
+    DialogManager.open("confirmDialog", overlay, { backdrop: false });
     okBtn.focus({ preventScroll: true });
 
     function cleanup() {
       overlay.style.display = "none";
+      DialogManager.close("confirmDialog");
       okBtn.removeEventListener("click", handleOk);
       cancelBtn.removeEventListener("click", handleCancel);
       overlay.removeEventListener("click", handleBackdrop);
@@ -2248,10 +2357,12 @@ function showInputDialog(promptText, onSubmit, onCancel) {
     labelEl.textContent = promptText;
     field.value = "";
     overlay.style.display = "flex";
+    DialogManager.open("inputDialog", overlay, { backdrop: false });
     field.focus({ preventScroll: true });
 
     function cleanup() {
       overlay.style.display = "none";
+      DialogManager.close("inputDialog");
       okBtn.removeEventListener("click", handleOk);
       cancelBtn.removeEventListener("click", handleCancel);
       overlay.removeEventListener("click", handleBackdrop);
@@ -4789,12 +4900,20 @@ function renderProjectDeleteDialog() {
 function openProjectDeleteDialog(config) {
   state.projectDeleteDialogState = config;
   renderProjectDeleteDialog();
+  const el = document.getElementById("projectDeleteDialog");
+  if (el instanceof HTMLElement) {
+    DialogManager.open("projectDeleteDialog", el, {
+      onEscape: closeProjectDeleteDialog,
+      backdrop: false,
+    });
+  }
 }
 
 function closeProjectDeleteDialog() {
   state.projectDeleteDialogState = null;
   state.isProjectDeletePending = false;
   renderProjectDeleteDialog();
+  DialogManager.close("projectDeleteDialog");
 }
 
 function renderProjectEditDrawer() {
@@ -4843,7 +4962,10 @@ function openProjectEditDrawer(
   refs.backdrop.setAttribute("aria-hidden", "false");
   renderProjectEditDrawer();
   lockBodyScrollForProjectEditDrawer();
-
+  DialogManager.open("projectEditDrawer", refs.drawer, {
+    onEscape: () => closeProjectEditDrawer({ restoreFocus: true }),
+    backdrop: false,
+  });
   window.requestAnimationFrame(() => {
     refs.input.focus();
     refs.input.select();
@@ -4867,6 +4989,7 @@ function closeProjectEditDrawer({ restoreFocus = true, force = false } = {}) {
   refs.form.reset();
   refs.meta.textContent = "";
   unlockBodyScrollForProjectEditDrawer();
+  DialogManager.close("projectEditDrawer");
 
   if (restoreFocus) {
     const fallback = document.getElementById("projectViewActionsButton");
@@ -4988,7 +5111,10 @@ function openProjectCrudModal(mode, opener, initialProjectName = "") {
   refs.title.textContent = mode === "rename" ? "Rename project" : "New project";
   refs.submit.textContent = mode === "rename" ? "Save" : "Create";
   refs.input.value = initialProjectName || "";
-
+  DialogManager.open("projectCrudModal", refs.modal, {
+    onEscape: () => closeProjectCrudModal(),
+    backdrop: false,
+  });
   window.requestAnimationFrame(() => {
     refs.input.focus();
     refs.input.select();
@@ -5004,6 +5130,7 @@ function closeProjectCrudModal({ restoreFocus = true } = {}) {
   state.projectCrudTargetProject = "";
   refs.modal.style.display = "none";
   refs.form.reset();
+  DialogManager.close("projectCrudModal");
 
   if (restoreFocus) {
     if (state.lastProjectCrudOpener?.isConnected) {
@@ -5511,13 +5638,19 @@ function openEditTodoModal(todoId) {
   );
   document.getElementById("editTodoNotes").value = todo.notes || "";
 
-  document.getElementById("editTodoModal").style.display = "flex";
+  const editTodoModalEl = document.getElementById("editTodoModal");
+  editTodoModalEl.style.display = "flex";
+  DialogManager.open("editTodoModal", editTodoModalEl, {
+    onEscape: closeEditTodoModal,
+    backdrop: false,
+  });
   document.getElementById("editTodoTitle")?.focus();
 }
 
 function closeEditTodoModal() {
   state.editingTodoId = null;
   document.getElementById("editTodoModal").style.display = "none";
+  DialogManager.close("editTodoModal");
 }
 
 async function saveEditedTodo() {
@@ -6917,6 +7050,7 @@ function closeCommandPalette({ restoreFocus = true } = {}) {
   state.commandPaletteIndex = 0;
   state.commandPaletteSelectableItems = [];
   renderCommandPalette();
+  DialogManager.close("commandPalette");
 
   if (restoreFocus && state.lastFocusedBeforePalette instanceof HTMLElement) {
     state.lastFocusedBeforePalette.focus({ preventScroll: true });
@@ -6940,6 +7074,10 @@ function openCommandPalette() {
   state.commandPaletteIndex = 0;
   state.isCommandPaletteOpen = true;
   renderCommandPalette();
+  DialogManager.open("commandPalette", refs.overlay, {
+    onEscape: () => closeCommandPalette({ restoreFocus: true }),
+    backdrop: false,
+  });
 
   window.requestAnimationFrame(() => {
     refs.input.focus();
@@ -7304,6 +7442,10 @@ function openProjectsRailSheet(triggerEl = null) {
     triggerEl instanceof HTMLElement ? triggerEl : refs.mobileOpenButton;
 
   lockBodyScrollForProjectsRail();
+  DialogManager.open("railSheet", refs.sheet, {
+    onEscape: () => closeProjectsRailSheet({ restoreFocus: true }),
+    backdrop: false,
+  });
   window.requestAnimationFrame(() => {
     focusActiveProjectItem({ preferSheet: true });
   });
@@ -7322,6 +7464,7 @@ function closeProjectsRailSheet({ restoreFocus = false } = {}) {
   refs.mobileOpenButton.setAttribute("aria-expanded", "false");
 
   unlockBodyScrollForProjectsRail();
+  DialogManager.close("railSheet");
   const selectedProject = getSelectedProjectKey();
   updateTopbarProjectsButton(getSelectedProjectLabel(selectedProject));
 
@@ -8465,6 +8608,17 @@ function openTodoDrawer(todoId, triggerEl) {
     backdrop.setAttribute("aria-hidden", "false");
   }
   lockBodyScrollForDrawer();
+  DialogManager.open("todoDrawer", drawer, {
+    onEscape: () => {
+      // Kebab menu inside the drawer takes priority — close it first.
+      if (state.openTodoKebabId) {
+        closeTodoKebabMenu({ restoreFocus: true });
+      } else {
+        closeTodoDrawer({ restoreFocus: true });
+      }
+    },
+    backdrop: false,
+  });
 
   renderTodos();
   const titleInput = document.getElementById("drawerTitleInput");
@@ -8509,6 +8663,7 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
     }
     renderTodoDrawerContent();
   }
+  DialogManager.close("todoDrawer");
   renderTodos();
   unlockBodyScrollForDrawer();
 
@@ -12065,7 +12220,17 @@ async function deleteSelected() {
 // ========== PHASE A: KEYBOARD SHORTCUTS ==========
 function toggleShortcuts() {
   const overlay = document.getElementById("shortcutsOverlay");
+  if (!overlay) return;
+  const isNowOpen = !overlay.classList.contains("active");
   overlay.classList.toggle("active");
+  if (isNowOpen) {
+    DialogManager.open("shortcuts", overlay, {
+      onEscape: toggleShortcuts,
+      backdrop: false,
+    });
+  } else {
+    DialogManager.close("shortcuts");
+  }
 }
 
 function closeShortcutsOverlay(event) {
@@ -13198,6 +13363,10 @@ function toggleProfilePanel() {
     }
     panel.hidden = false;
     state.isProfilePanelOpen = true;
+    DialogManager.open("profilePanel", panel, {
+      onEscape: () => closeProfilePanel({ restoreFocus: true }),
+      backdrop: false,
+    });
   }
 }
 
@@ -13207,6 +13376,7 @@ function closeProfilePanel({ restoreFocus = false } = {}) {
     panel.hidden = true;
   }
   state.isProfilePanelOpen = false;
+  DialogManager.close("profilePanel");
   if (restoreFocus) {
     const trigger = document.getElementById("dockProfileBtn");
     if (trigger instanceof HTMLElement) trigger.focus();
