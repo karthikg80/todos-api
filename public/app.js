@@ -1,4 +1,13 @@
 // =============================================================================
+// ES6 Module Imports — store module provides shared state and hooks.
+// Domain modules (todosService, projectsState, drawerUi, filterLogic,
+// overlayManager) contain split-out code; app.js still holds the monolith
+// implementations and wires hooks after load. Importing only from store.js
+// avoids re-declaration SyntaxErrors (app.js declares the same function names).
+// =============================================================================
+import { state, hooks } from "./store.js";
+
+// =============================================================================
 // TASK 140 DEPENDENCY GRAPH ANALYSIS
 // Generated before any split attempt. Status: BLOCKED (see below).
 //
@@ -13486,11 +13495,204 @@ function bindDeclarativeHandlers() {
 }
 
 // ---------------------------------------------------------------------------
-// Window bridge — functions consumed from modules that must remain on window
-// because they are referenced via data-onclick / data-onsubmit in HTML.
+// Hook wiring — called after all modules are imported so cross-module
+// calls through hooks.X?.() resolve to the correct functions.
+// ---------------------------------------------------------------------------
+(function wireHooks() {
+  // drawerUi ↔ filterLogic
+  hooks.syncTodoDrawerStateWithRender = syncTodoDrawerStateWithRender;
+  // todosService / projectsState / drawerUi → filterLogic
+  hooks.applyFiltersAndRender = applyFiltersAndRender;
+  hooks.renderTodos = renderTodos;
+  hooks.updateCategoryFilter = updateCategoryFilter;
+  // todosService / filterLogic → projectsState
+  hooks.loadProjects = loadProjects;
+  hooks.refreshProjectCatalog = refreshProjectCatalog;
+  hooks.scheduleLoadSelectedProjectHeadings =
+    scheduleLoadSelectedProjectHeadings;
+  hooks.renderProjectHeadingCreateButton = renderProjectHeadingCreateButton;
+  // todosService → overlayManager
+  hooks.showConfirmDialog = showConfirmDialog;
+  // app.js orchestrator callbacks
+  hooks.updateHeaderAndContextUI = updateHeaderAndContextUI;
+  // drawerUi → todosService
+  hooks.applyTodoPatch = applyTodoPatch;
+  hooks.deleteTodo = deleteTodo;
+  hooks.loadTodos = loadTodos;
+  hooks.validateTodoTitle = validateTodoTitle;
+  hooks.toDateInputValue = toDateInputValue;
+  hooks.toIsoFromDateInput = toIsoFromDateInput;
+  // drawerUi → projectsState
+  hooks.getAllProjects = getAllProjects;
+  hooks.normalizeProjectPath = normalizeProjectPath;
+  hooks.renderProjectOptionEntry = renderProjectOptionEntry;
+  // drawerUi → overlayManager
+  hooks.openEditTodoModal = openEditTodoModal;
+  // overlayManager → todosService
+  hooks.toDateTimeLocalValue = toDateTimeLocalValue;
+  hooks.updateProjectSelectOptions = updateProjectSelectOptions;
+  // overlayManager → filterLogic
+  hooks.syncTodoDrawerStateWithRender = syncTodoDrawerStateWithRender;
+  // Utility hooks (from window.Utils / aiSuggestionUtils)
+  hooks.escapeHtml = escapeHtml;
+  hooks.showMessage = showMessage;
+  hooks.parseApiBody = parseApiBody;
+  hooks.normalizeProjectPath = normalizeProjectPath;
+  hooks.expandProjectTree = expandProjectTree;
+  hooks.compareProjectPaths = compareProjectPaths;
+  hooks.getProjectLeafName = getProjectLeafName;
+  hooks.PROJECT_PATH_SEPARATOR = PROJECT_PATH_SEPARATOR;
+  // AI utility hooks
+  hooks.labelForType = labelForType;
+  hooks.shouldRenderTypeForSurface = shouldRenderTypeForSurface;
+  hooks.needsConfirmation = needsConfirmation;
+  hooks.truncateRationale = truncateRationale;
+  hooks.capSuggestions = capSuggestions;
+  hooks.sortSuggestions = sortSuggestions;
+  hooks.confidenceLabel = confidenceLabel;
+  hooks.confidenceBand = confidenceBand;
+  hooks.renderLintChip = renderLintChip;
+  hooks.renderAiDebugMeta = renderAiDebugMeta;
+  hooks.renderAiDebugSuggestionId = renderAiDebugSuggestionId;
+  hooks.lintTodoFields = lintTodoFields;
+  hooks.emitAiSuggestionUndoTelemetry = emitAiSuggestionUndoTelemetry;
+  // Config hooks
+  hooks.API_URL = API_URL;
+  hooks.AI_DEBUG_ENABLED = AI_DEBUG_ENABLED;
+  hooks.FEATURE_TASK_DRAWER_DECISION_ASSIST =
+    FEATURE_TASK_DRAWER_DECISION_ASSIST;
+  hooks.MOBILE_DRAWER_MEDIA_QUERY = MOBILE_DRAWER_MEDIA_QUERY;
+  hooks.apiCall = apiCall;
+  // filterLogic → render sub-hooks
+  hooks.renderProjectsRail = renderProjectsRail;
+  hooks.renderTodayPlanPanel = renderTodayPlanPanel;
+  hooks.clearHomeFocusDashboard = clearHomeFocusDashboard;
+  hooks.renderHomeDashboard = renderHomeDashboard;
+  hooks.updateBulkActionsVisibility = updateBulkActionsVisibility;
+  hooks.updateAiWorkspaceStatusChip = updateAiWorkspaceStatusChip;
+  // projectsState → rail
+  hooks.renderProjectsRail = renderProjectsRail;
+  hooks.closeProjectsRailSheet = closeProjectsRailSheet;
+  // projectsState path utilities
+  hooks.renderProjectOptionEntry = renderProjectOptionEntry;
+  hooks.getSelectedProjectKey = getSelectedProjectKey;
+  // createInitialTaskDrawerAssistState for drawerUi reset
+  hooks.createInitialTaskDrawerAssistState = createInitialTaskDrawerAssistState;
+})();
+
+// ---------------------------------------------------------------------------
+// Window bridge — all functions referenced via data-onclick / data-onsubmit /
+// data-onchange in HTML must be on window because app.js is now a module
+// (modules do not expose top-level declarations to global scope).
 // ---------------------------------------------------------------------------
 window.toggleTheme = toggleTheme;
 window.openProjectsFromTopbar = openProjectsFromTopbar;
+// Auth forms
+window.switchAuthTab = switchAuthTab;
+window.showForgotPassword = showForgotPassword;
+window.showLogin = showLogin;
+window.handleLogin = handleLogin;
+window.handleRegister = handleRegister;
+window.handleForgotPassword = handleForgotPassword;
+window.handleResetPassword = handleResetPassword;
+window.resendVerification = resendVerification;
+// Todo CRUD
+window.addTodo = addTodo;
+window.filterTodos = filterTodos;
+window.clearFilters = clearFilters;
+window.setDateView = setDateView;
+window.handleTodoKeyPress = handleTodoKeyPress;
+window.exportVisibleTodosToIcs = exportVisibleTodosToIcs;
+// Edit modal
+window.saveEditedTodo = saveEditedTodo;
+window.closeEditTodoModal = closeEditTodoModal;
+// Bulk actions
+window.toggleSelectAll = toggleSelectAll;
+window.completeSelected = completeSelected;
+window.deleteSelected = deleteSelected;
+window.performUndo = performUndo;
+// Task composer
+window.openTaskComposer = openTaskComposer;
+window.closeTaskComposer = closeTaskComposer;
+window.cancelTaskComposer = cancelTaskComposer;
+window.toggleNotesInput = toggleNotesInput;
+window.setPriority = setPriority;
+window.clearTaskComposerDueDate = clearTaskComposerDueDate;
+// Projects
+window.createProject = createProject;
+window.createSubproject = createSubproject;
+window.renameProjectTree = renameProjectTree;
+// Project key selection (used directly by UI tests via page.evaluate)
+window.setSelectedProjectKey = setSelectedProjectKey;
+// Views / navigation
+window.switchView = switchView;
+window.toggleProfilePanel = toggleProfilePanel;
+window.logout = logout;
+// Shortcuts / UI toggles
+window.toggleShortcuts = toggleShortcuts;
+window.closeShortcutsOverlay = closeShortcutsOverlay;
+// Admin
+window.handleAdminBootstrap = handleAdminBootstrap;
+// Profile
+window.handleUpdateProfile = handleUpdateProfile;
+// AI workspace
+window.openAiWorkspaceForBrainDump = openAiWorkspaceForBrainDump;
+window.openAiWorkspaceForGoalPlan = openAiWorkspaceForGoalPlan;
+window.critiqueDraftWithAi = critiqueDraftWithAi;
+window.generatePlanWithAi = generatePlanWithAi;
+window.draftPlanFromBrainDumpWithAi = draftPlanFromBrainDumpWithAi;
+window.clearBrainDumpInput = clearBrainDumpInput;
+// Search / filters
+window.syncSheetSearch = syncSheetSearch;
+// Todo interactions (from dynamically-rendered HTML)
+window.retryLoadTodos = retryLoadTodos;
+window.toggleTodo = toggleTodo;
+window.toggleNotes = toggleNotes;
+window.toggleSelectTodo = toggleSelectTodo;
+window.toggleSubtask = toggleSubtask;
+window.toggleTodoKebab = toggleTodoKebab;
+window.openTodoFromKebab = openTodoFromKebab;
+window.openEditTodoFromKebab = openEditTodoFromKebab;
+window.openDrawerDangerZone = openDrawerDangerZone;
+window.openTodoFromHomeTile = openTodoFromHomeTile;
+window.moveTodoToProject = moveTodoToProject;
+window.moveTodoToHeading = moveTodoToHeading;
+window.moveProjectHeading = moveProjectHeading;
+// Drag and drop
+window.handleDragStart = handleDragStart;
+window.handleDragOver = handleDragOver;
+window.handleDrop = handleDrop;
+window.handleDragEnd = handleDragEnd;
+window.handleHeadingDragStart = handleHeadingDragStart;
+window.handleHeadingDragOver = handleHeadingDragOver;
+window.handleHeadingDrop = handleHeadingDrop;
+window.handleHeadingDragEnd = handleHeadingDragEnd;
+// AI critique / plan
+window.applyCritiqueSuggestion = applyCritiqueSuggestion;
+window.applyCritiqueSuggestionMode = applyCritiqueSuggestionMode;
+window.dismissCritiqueSuggestion = dismissCritiqueSuggestion;
+window.setCritiqueFeedbackReason = setCritiqueFeedbackReason;
+window.aiBreakdownTodo = aiBreakdownTodo;
+window.dismissPlanSuggestion = dismissPlanSuggestion;
+window.resetPlanDraft = resetPlanDraft;
+window.addPlanTasksToTodos = addPlanTasksToTodos;
+window.selectAllPlanDraftTasks = selectAllPlanDraftTasks;
+window.selectNoPlanDraftTasks = selectNoPlanDraftTasks;
+window.setPlanDraftTaskSelected = setPlanDraftTaskSelected;
+window.updatePlanDraftTaskTitle = updatePlanDraftTaskTitle;
+window.updatePlanDraftTaskDescription = updatePlanDraftTaskDescription;
+window.updatePlanDraftTaskDueDate = updatePlanDraftTaskDueDate;
+window.updatePlanDraftTaskPriority = updatePlanDraftTaskPriority;
+window.updatePlanDraftTaskProject = updatePlanDraftTaskProject;
+window.retryMarkPlanSuggestionAccepted = retryMarkPlanSuggestionAccepted;
+// Projects / headings
+window.createHeadingForSelectedProject = createHeadingForSelectedProject;
+// Home workspace
+window.openHomeProject = openHomeProject;
+window.openHomeTileList = openHomeTileList;
+// Admin
+window.changeUserRole = changeUserRole;
+window.deleteUser = deleteUser;
 
 // Initialize theme immediately
 initTheme();
