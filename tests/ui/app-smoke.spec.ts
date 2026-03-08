@@ -276,8 +276,9 @@ test.describe("App smoke flows", () => {
     await firstRow.hover();
     await firstRow.locator(".todo-kebab").click();
     await firstRow.locator(".todo-kebab-item--danger").click();
-    page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#drawerDeleteTodoButton").click();
+    await page.locator("#confirmDialog").waitFor({ state: "visible" });
+    await page.locator("#confirmDialogOk").click();
     await expect(page.locator(".todo-item .todo-title")).toHaveCount(0);
 
     await page.reload();

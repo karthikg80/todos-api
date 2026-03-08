@@ -567,8 +567,10 @@ test.describe("Project headings (sections)", () => {
   test("create heading, assign task to it, and render grouping", async ({
     page,
   }) => {
-    page.once("dialog", (dialog) => dialog.accept("Sprint"));
     await page.locator(".project-inline-actions__heading").click();
+    await page.locator("#inputDialog").waitFor({ state: "visible" });
+    await page.locator("#inputDialogField").fill("Sprint");
+    await page.locator("#inputDialogOk").click();
     await expect(
       page.locator(".todo-heading-divider__title", { hasText: "Sprint" }),
     ).toBeVisible();

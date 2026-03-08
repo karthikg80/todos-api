@@ -519,8 +519,9 @@ test.describe("Todo drawer details + kebab actions", () => {
     );
     await expect(page.locator("#drawerDeleteTodoButton")).toBeVisible();
 
-    page.once("dialog", (dialog) => dialog.accept());
     await page.locator("#drawerDeleteTodoButton").click();
+    await page.locator("#confirmDialog").waitFor({ state: "visible" });
+    await page.locator("#confirmDialogOk").click();
 
     await expect(page.getByText("Delete me")).toHaveCount(0);
     await expect

@@ -4088,6 +4088,54 @@ body.is-todos-view .floating-new-task-cta {
   justify-content: flex-end;
 }
 
+.confirm-dialog,
+.input-dialog {
+  max-width: 420px;
+  display: grid;
+  gap: 12px;
+}
+
+.confirm-dialog p,
+.input-dialog .input-dialog__label {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.confirm-dialog p {
+  font-size: 0.95rem;
+}
+
+.confirm-dialog__actions .add-btn,
+.confirm-dialog__actions .mini-btn,
+.input-dialog__actions .add-btn,
+.input-dialog__actions .mini-btn {
+  width: auto;
+}
+
+.input-dialog__label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.input-dialog__field {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--input-bg, var(--surface));
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  box-sizing: border-box;
+}
+
+.input-dialog__field:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted, rgb(99 102 241 / 20%));
+}
+
 .todo-drawer-backdrop {
   position: fixed;
   inset: 0;
