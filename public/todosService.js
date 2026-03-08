@@ -1,0 +1,651 @@
+// =============================================================================
+// todosService.js — Todo CRUD, undo, reorder, bulk operations.
+// Imports state from store.js. Cross-module calls go through hooks.
+// =============================================================================
+import { state, hooks, createInitialHomeTopFocusState } from "./store.js";
+
+// ---------------------------------------------------------------------------
+// Helpers — apiCall, API_URL, normalizeProjectPath, parseApiBody are injected
+// by app.js onto the hooks object after all modules load.
+// ---------------------------------------------------------------------------
+
+function buildTodosQueryParams() {
+  const params = {};
+  params.sortBy = "order";
+  params.sortOrder = "asc";
+  return params;
+}
+
+async function loadTodos() {
+  state.todosLoadState = "loading";
+  state.todosLoadErrorMessage = "";
+  hooks.renderTodos?.();
+
+  try {
+    const queryParams = buildTodosQueryParams();
+    const todosUrl = hooks.buildUrl(`${hooks.API_URL}/todos`, queryParams);
+    const response = await hooks.apiCall(todosUrl);
+    if (response && response.ok) {
+      state.todos = await response.json();
+      state.todosLoadState = "ready";
+      state.todosLoadErrorMessage = "";
+      state.homeTopFocusState = createInitialHomeTopFocusState();
+      hooks.renderTodos?.();
+      hooks.refreshProjectCatalog?.();
+    } else {
+      state.todos = [];
+      state.selectedTodos.clear();
+      state.homeTopFocusState = createInitialHomeTopFocusState();
+      state.todosLoadState = "error";
+      state.todosLoadErrorMessage = "Couldn't load tasks";
+      hooks.renderTodos?.();
+      hooks.refreshProjectCatalog?.();
+      hooks.showMessage?.("todosMessage", "Failed to load todos", "error");
+    }
+  } catch (error) {
+    state.todos = [];
+    state.selectedTodos.clear();
+    state.homeTopFocusState = createInitialHomeTopFocusState();
+    state.todosLoadState = "error";
+    state.todosLoadErrorMessage = "Couldn't load tasks";
+    hooks.renderTodos?.();
+    hooks.refreshProjectCatalog?.();
+    console.error("Load todos error:", error);
+  }
+}
+
+function retryLoadTodos() {
+  loadTodos();
+}
+
+async function addTodo() {
+  const input = document.getElementById("todoInput");
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const notesInput = document.getElementById("todoNotesInput");
+
+  if (state.quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(state.quickEntryNaturalDateState.parseTimer);
+    state.quickEntryNaturalDateState.parseTimer = null;
+  }
+  await hooks.processQuickEntryNaturalDate?.({
+    trigger: "submit",
+    cleanupTitle: true,
+  });
+
+  const title = input.value.trim();
+  if (!title) return;
+
+  const payload = {
+    title,
+    priority: state.currentPriority,
+  };
+
+  const projectPath = hooks.normalizeProjectPath(projectSelect.value);
+  if (projectPath) {
+    payload.category = projectPath;
+  }
+  if (dueDateInput.value) {
+    payload.dueDate = new Date(dueDateInput.value).toISOString();
+  }
+  if (notesInput.value.trim()) {
+    payload.notes = notesInput.value.trim();
+  }
+
+  try {
+    const response = await hooks.apiCall(`${hooks.API_URL}/todos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (response && response.ok) {
+      const newTodo = await response.json();
+      state.todos.unshift(newTodo);
+      hooks.renderTodos?.();
+      hooks.updateCategoryFilter?.();
+      hooks.clearOnCreateDismissed?.(newTodo.id);
+
+      // Clear form
+      input.value = "";
+      projectSelect.value = "";
+      dueDateInput.value = "";
+      notesInput.value = "";
+      hooks.resetQuickEntryNaturalDueState?.();
+      hooks.setQuickEntryPropertiesOpen?.(false, { persist: false });
+      hooks.syncQuickEntryProjectActions?.();
+
+      // Reset priority to medium
+      hooks.setPriority?.("medium");
+      hooks.updateQuickEntryPropertiesSummary?.();
+
+      // Hide notes input
+      notesInput.style.display = "none";
+      document.getElementById("notesExpandIcon")?.classList.remove("expanded");
+      hooks.updateTaskComposerDueClearButton?.();
+      hooks.closeTaskComposer?.({ restoreFocus: false, force: true });
+
+      const { createInitialOnCreateAssistState } = await import("./store.js");
+      state.onCreateAssistState = {
+        ...createInitialOnCreateAssistState(),
+        dismissedTodoIds: state.onCreateAssistState.dismissedTodoIds,
+      };
+      state.onCreateAssistState.mode = "live";
+      state.onCreateAssistState.liveTodoId = newTodo.id;
+      state.onCreateAssistState.showFullAssist = true;
+      state.onCreateAssistState.loading = true;
+      hooks.renderOnCreateAssistRow?.();
+      await hooks.loadOnCreateDecisionAssist?.(newTodo);
+
+      if (
+        state.onCreateAssistState.suggestions.length > 0 &&
+        !state.isTaskComposerOpen
+      ) {
+        hooks.openTaskComposer?.();
+      }
+
+      hooks.refreshProjectCatalog?.();
+    }
+  } catch (error) {
+    console.error("Add todo error:", error);
+  }
+}
+
+async function toggleTodo(id, forceValue = null) {
+  const todo = state.todos.find((t) => t.id === id);
+  if (!todo) return;
+
+  const newCompletedValue = forceValue !== null ? forceValue : !todo.completed;
+
+  try {
+    const response = await hooks.apiCall(`${hooks.API_URL}/todos/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ completed: newCompletedValue }),
+    });
+
+    if (response && response.ok) {
+      const updatedTodo = await response.json();
+      state.todos = state.todos.map((t) => (t.id === id ? updatedTodo : t));
+      hooks.renderTodos?.();
+
+      if (forceValue === null && newCompletedValue) {
+        addUndoAction("complete", { id }, "Todo marked as complete");
+      }
+    }
+  } catch (error) {
+    console.error("Toggle todo error:", error);
+  }
+}
+
+async function deleteTodo(id) {
+  const todo = state.todos.find((t) => t.id === id);
+  if (!todo) return false;
+
+  if (!(await hooks.showConfirmDialog?.("Delete this todo?"))) return false;
+
+  const todoData = { ...todo };
+
+  try {
+    const response = await hooks.apiCall(`${hooks.API_URL}/todos/${id}`, {
+      method: "DELETE",
+    });
+
+    if (response && response.ok) {
+      state.todos = state.todos.filter((t) => t.id !== id);
+      state.selectedTodos.delete(id);
+      hooks.renderTodos?.();
+      hooks.updateCategoryFilter?.();
+
+      addUndoAction("delete", todoData, "Todo deleted");
+      await loadTodos();
+      return true;
+    }
+
+    const errorData = response ? await response.json().catch(() => ({})) : {};
+    hooks.showMessage?.(
+      "todosMessage",
+      errorData.error || "Failed to delete todo",
+      "error",
+    );
+    return false;
+  } catch (error) {
+    hooks.showMessage?.(
+      "todosMessage",
+      "Network error while deleting todo",
+      "error",
+    );
+    console.error("Delete todo error:", error);
+    return false;
+  }
+}
+
+async function moveTodoToProject(todoId, projectValue) {
+  const todo = state.todos.find((item) => item.id === todoId);
+  if (!todo) return;
+  const category =
+    typeof projectValue === "string"
+      ? hooks.normalizeProjectPath(projectValue)
+      : "";
+
+  try {
+    const response = await hooks.apiCall(`${hooks.API_URL}/todos/${todoId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category: category || null }),
+    });
+    if (!response || !response.ok) {
+      throw new Error("Update failed");
+    }
+    const updated = await response.json();
+    state.todos = state.todos.map((item) =>
+      item.id === todoId ? updated : item,
+    );
+    if (category && !state.customProjects.includes(category)) {
+      state.customProjects.push(category);
+    }
+    hooks.refreshProjectCatalog?.();
+    await hooks.loadProjects?.();
+    hooks.renderTodos?.();
+  } catch (error) {
+    console.error("Move todo project failed:", error);
+    hooks.showMessage?.(
+      "todosMessage",
+      "Failed to move task to project",
+      "error",
+    );
+  }
+}
+
+function toDateTimeLocalValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function toDateInputValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function toIsoFromDateInput(value) {
+  if (!value) return null;
+  const parsed = new Date(`${value}T12:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
+function validateTodoTitle(title) {
+  if (!title || !title.trim()) {
+    return "Task title is required";
+  }
+  return null;
+}
+
+async function applyTodoPatch(todoId, patch) {
+  const response = await hooks.apiCall(`${hooks.API_URL}/todos/${todoId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
+  });
+
+  if (!response || !response.ok) {
+    const data = response ? await hooks.parseApiBody(response) : {};
+    throw new Error(data.error || "Failed to update task");
+  }
+
+  const updatedTodo = await response.json();
+  state.todos = state.todos.map((todo) =>
+    todo.id === todoId ? updatedTodo : todo,
+  );
+
+  const projectPath = hooks.normalizeProjectPath(updatedTodo?.category || "");
+  if (projectPath && !state.customProjects.includes(projectPath)) {
+    state.customProjects.push(projectPath);
+  }
+  hooks.refreshProjectCatalog?.();
+  await hooks.loadProjects?.();
+
+  return updatedTodo;
+}
+
+async function reorderTodos(draggedId, targetId, options = {}) {
+  const { nextHeadingId = undefined, placement = "before" } = options;
+  const draggedIndex = state.todos.findIndex((t) => t.id === draggedId);
+  const targetIndex = state.todos.findIndex((t) => t.id === targetId);
+
+  if (draggedIndex === -1 || targetIndex === -1) return;
+
+  const [draggedTodo] = state.todos.splice(draggedIndex, 1);
+  let insertIndex = targetIndex + (placement === "after" ? 1 : 0);
+  if (draggedIndex < insertIndex) {
+    insertIndex -= 1;
+  }
+  insertIndex = Math.max(0, Math.min(insertIndex, state.todos.length));
+  state.todos.splice(insertIndex, 0, draggedTodo);
+
+  if (nextHeadingId !== undefined) {
+    draggedTodo.headingId = nextHeadingId;
+  }
+
+  state.todos.forEach((todo, index) => {
+    todo.order = index;
+  });
+
+  hooks.renderTodos?.();
+
+  try {
+    const response = await hooks.apiCall(`${hooks.API_URL}/todos/reorder`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(
+        state.todos.map((todo) => ({
+          id: todo.id,
+          order: todo.order,
+          ...(todo.id === draggedId &&
+            nextHeadingId !== undefined && { headingId: nextHeadingId }),
+        })),
+      ),
+    });
+
+    if (!response || !response.ok) {
+      console.error(
+        "Failed to persist full todo ordering, reloading from server",
+      );
+      await loadTodos();
+    }
+  } catch (error) {
+    console.error("Failed to update todo order:", error);
+    await loadTodos();
+  }
+}
+
+function toggleSelectTodo(todoId) {
+  if (state.selectedTodos.has(todoId)) {
+    state.selectedTodos.delete(todoId);
+  } else {
+    state.selectedTodos.add(todoId);
+  }
+  updateBulkActionsVisibility();
+  updateSelectAllCheckbox();
+}
+
+function toggleSelectAll() {
+  const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+  const filteredTodos = hooks.filterTodosList?.(state.todos) ?? [];
+
+  if (selectAllCheckbox.checked) {
+    filteredTodos.forEach((todo) => state.selectedTodos.add(todo.id));
+  } else {
+    filteredTodos.forEach((todo) => state.selectedTodos.delete(todo.id));
+  }
+
+  hooks.renderTodos?.();
+}
+
+function updateSelectAllCheckbox() {
+  const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+  if (!selectAllCheckbox) return;
+  const filteredTodos = hooks.filterTodosList?.(state.todos) ?? [];
+  const allSelected =
+    filteredTodos.length > 0 &&
+    filteredTodos.every((todo) => state.selectedTodos.has(todo.id));
+
+  selectAllCheckbox.checked = allSelected;
+}
+
+function updateBulkActionsVisibility() {
+  const toolbar = document.getElementById("bulkActionsToolbar");
+  const bulkCount = document.getElementById("bulkCount");
+
+  if (state.selectedTodos.size > 0) {
+    if (toolbar) toolbar.style.display = "flex";
+    if (bulkCount)
+      bulkCount.textContent = `${state.selectedTodos.size} selected`;
+  } else {
+    if (toolbar) toolbar.style.display = "none";
+  }
+
+  updateSelectAllCheckbox();
+}
+
+async function completeSelected() {
+  if (state.selectedTodos.size === 0) return;
+
+  const selectedIds = Array.from(state.selectedTodos);
+  const completedIds = [];
+
+  for (const todoId of selectedIds) {
+    try {
+      const response = await hooks.apiCall(`${hooks.API_URL}/todos/${todoId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: true }),
+      });
+
+      if (response && response.ok) {
+        const todo = state.todos.find((t) => t.id === todoId);
+        if (todo) {
+          todo.completed = true;
+          completedIds.push(todoId);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to complete todo:", error);
+    }
+  }
+
+  if (completedIds.length > 0) {
+    addUndoAction(
+      "bulk-complete",
+      completedIds,
+      `${completedIds.length} todos marked as complete`,
+    );
+  }
+
+  state.selectedTodos.clear();
+  hooks.renderTodos?.();
+}
+
+async function deleteSelected() {
+  if (state.selectedTodos.size === 0) return;
+
+  if (
+    !(await hooks.showConfirmDialog?.(
+      `Delete ${state.selectedTodos.size} selected todo(s)?`,
+    ))
+  )
+    return;
+
+  const selectedIds = Array.from(state.selectedTodos);
+  const deletedTodos = [];
+  let deletedCount = 0;
+
+  for (const todoId of selectedIds) {
+    try {
+      const response = await hooks.apiCall(`${hooks.API_URL}/todos/${todoId}`, {
+        method: "DELETE",
+      });
+
+      if (response && response.ok) {
+        const todo = state.todos.find((t) => t.id === todoId);
+        if (todo) {
+          deletedTodos.push({ ...todo });
+        }
+        state.todos = state.todos.filter((t) => t.id !== todoId);
+        deletedCount += 1;
+      } else {
+        const errorData = response
+          ? await response.json().catch(() => ({}))
+          : {};
+        console.error(
+          "Failed to delete todo:",
+          todoId,
+          errorData.error || "Unknown error",
+        );
+      }
+    } catch (error) {
+      console.error("Failed to delete todo:", error);
+    }
+  }
+
+  if (deletedTodos.length > 0) {
+    addUndoAction(
+      "bulk-delete",
+      deletedTodos,
+      `${deletedTodos.length} todos deleted`,
+    );
+  }
+
+  state.selectedTodos.clear();
+  hooks.renderTodos?.();
+  hooks.updateCategoryFilter?.();
+  if (deletedCount > 0) {
+    await loadTodos();
+  }
+}
+
+function addUndoAction(action, data, message) {
+  state.undoStack.push({ action, data, timestamp: Date.now() });
+
+  if (state.undoStack.length > 10) {
+    state.undoStack.shift();
+  }
+
+  showUndoToast(message);
+}
+
+function showUndoToast(message) {
+  const toast = document.getElementById("undoToast");
+  const messageEl = document.getElementById("undoMessage");
+
+  if (messageEl) messageEl.textContent = message;
+  if (toast) toast.classList.add("active");
+
+  if (state.undoTimeout) {
+    clearTimeout(state.undoTimeout);
+  }
+
+  state.undoTimeout = setTimeout(() => {
+    if (toast) toast.classList.remove("active");
+  }, 5000);
+}
+
+function performUndo() {
+  if (state.undoStack.length === 0) return;
+
+  const lastAction = state.undoStack.pop();
+  const toast = document.getElementById("undoToast");
+  if (toast) toast.classList.remove("active");
+
+  switch (lastAction.action) {
+    case "delete":
+      restoreTodo(lastAction.data);
+      break;
+    case "complete":
+      toggleTodo(lastAction.data.id, false);
+      break;
+    case "bulk-delete":
+      lastAction.data.forEach((todo) => restoreTodo(todo));
+      break;
+    case "bulk-complete":
+      lastAction.data.forEach((todoId) => toggleTodo(todoId, false));
+      break;
+  }
+}
+
+async function restoreTodo(todoData) {
+  try {
+    const createPayload = {
+      title: todoData.title,
+      description: todoData.description,
+      category: todoData.category,
+      dueDate: todoData.dueDate,
+      priority: todoData.priority,
+      notes: todoData.notes,
+    };
+
+    const response = await hooks.apiCall(`${hooks.API_URL}/todos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(createPayload),
+    });
+
+    if (response && response.ok) {
+      const newTodo = await response.json();
+      let todoToRender = newTodo;
+
+      if (todoData.completed === true || Number.isInteger(todoData.order)) {
+        const updateResponse = await hooks.apiCall(
+          `${hooks.API_URL}/todos/${newTodo.id}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              completed: !!todoData.completed,
+              ...(Number.isInteger(todoData.order)
+                ? { order: todoData.order }
+                : {}),
+            }),
+          },
+        );
+
+        if (updateResponse && updateResponse.ok) {
+          todoToRender = await updateResponse.json();
+        }
+      }
+
+      state.todos.push(todoToRender);
+      state.todos.sort((a, b) => {
+        const aOrder = Number.isInteger(a.order)
+          ? a.order
+          : Number.MAX_SAFE_INTEGER;
+        const bOrder = Number.isInteger(b.order)
+          ? b.order
+          : Number.MAX_SAFE_INTEGER;
+        return aOrder - bOrder;
+      });
+      hooks.renderTodos?.();
+      hooks.updateCategoryFilter?.();
+    }
+  } catch (error) {
+    console.error("Failed to restore todo:", error);
+  }
+}
+
+export {
+  buildTodosQueryParams,
+  loadTodos,
+  retryLoadTodos,
+  addTodo,
+  toggleTodo,
+  deleteTodo,
+  moveTodoToProject,
+  toDateTimeLocalValue,
+  toDateInputValue,
+  toIsoFromDateInput,
+  validateTodoTitle,
+  applyTodoPatch,
+  reorderTodos,
+  toggleSelectTodo,
+  toggleSelectAll,
+  updateSelectAllCheckbox,
+  updateBulkActionsVisibility,
+  completeSelected,
+  deleteSelected,
+  addUndoAction,
+  showUndoToast,
+  performUndo,
+  restoreTodo,
+};
