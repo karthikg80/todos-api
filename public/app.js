@@ -4,6 +4,24 @@ const API_URL =
     ? "http://localhost:3000"
     : window.location.origin;
 
+// Debounce utility — no external dependency.
+// Fires on the leading edge (immediate on first call) and again on the
+// trailing edge (ms after the last call), so single-event triggers (e.g.
+// Playwright fill()) respond instantly while rapid keystrokes are batched.
+const DEBOUNCE_MS = 250;
+const debounce = (fn, ms) => {
+  let t;
+  return (...args) => {
+    const leading = !t;
+    clearTimeout(t);
+    t = setTimeout(() => {
+      t = null;
+      if (!leading) fn(...args);
+    }, ms);
+    if (leading) fn(...args);
+  };
+};
+
 // ---------------------------------------------------------------------------
 // Module consumption — extracted pure-function modules loaded before app.js
 // via <script defer> in index.html (see state.js, apiClient.js pattern).
@@ -13201,6 +13219,10 @@ function bindDeclarativeHandlers() {
   }
   window.__declarativeHandlersBound = true;
 
+  // Per-expression debounce cache: input events are debounced so that rapid
+  // keystrokes (e.g. typing into #searchInput) do not re-render on every key.
+  const inputDebouncedInvokers = new Map();
+
   const events = [
     "click",
     "submit",
@@ -13245,7 +13267,19 @@ function bindDeclarativeHandlers() {
       if (!element) return;
       const expression = element.dataset[attribute];
       if (!expression) return;
-      invokeBoundExpression(expression, event, element);
+      if (eventType === "input") {
+        let fn = inputDebouncedInvokers.get(expression);
+        if (!fn) {
+          fn = debounce(
+            (expr, ev, el) => invokeBoundExpression(expr, ev, el),
+            DEBOUNCE_MS,
+          );
+          inputDebouncedInvokers.set(expression, fn);
+        }
+        fn(expression, event, element);
+      } else {
+        invokeBoundExpression(expression, event, element);
+      }
     });
   }
 }
