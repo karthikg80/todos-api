@@ -14,8 +14,8 @@ import { state, hooks } from "./store.js";
 // PROPOSED MODULE BOUNDARIES:
 //   todosService.js  — CRUD operations for todos (loadTodos, addTodo, deleteTodo,
 //                      toggleTodo, updateTodo, deleteSelected, undo pipeline)
-//   projectsState.js — Project state (customProjects, projectRecords,
-//                      projectHeadingsByProjectId, setSelectedProjectKey,
+//   projectsState.js — Project state (state.customProjects, state.projectRecords,
+//                      state.projectHeadingsByProjectId, setSelectedProjectKey,
 //                      loadProjects, createSubproject, renameProjectTree)
 //   drawerUi.js      — Todo drawer panel (openTodoDrawer, closeTodoDrawer,
 //                      renderTodoDrawer, syncTodoDrawerStateWithRender,
@@ -37,8 +37,8 @@ import { state, hooks } from "./store.js";
 //
 //   ② projectsState.js ↔ filterLogic.js
 //      • setSelectedProjectKey() → calls applyFiltersAndRender()   [filterLogic.js]
-//      • applyFiltersAndRender() → renderTodos() reads customProjects,
-//        projectRecords, projectHeadingsByProjectId                [projectsState.js]
+//      • applyFiltersAndRender() → renderTodos() reads state.customProjects,
+//        state.projectRecords, state.projectHeadingsByProjectId                [projectsState.js]
 //      → CIRCULAR: projectsState → filterLogic → projectsState
 //
 //   ③ drawerUi.js ↔ filterLogic.js
@@ -213,86 +213,12 @@ function isInternalCategoryPath(value) {
 const AppStateModule = window.AppState;
 const ApiClientModule = window.ApiClient;
 
-let currentUser = null;
-let authToken = null;
-let refreshToken = null;
-let todos = [];
-let users = [];
-let aiSuggestions = [];
-let aiUsage = null;
-let aiInsights = null;
-let aiFeedbackSummary = null;
-let latestCritiqueSuggestionId = null;
-let latestCritiqueResult = null;
-let latestCritiqueRequestId = 0;
-let critiqueRequestsInFlight = 0;
-let latestPlanSuggestionId = null;
-let latestPlanResult = null;
-let planDraftState = null;
-let isPlanGenerateInFlight = false;
-let isPlanApplyInFlight = false;
-let isPlanDismissInFlight = false;
-let planGenerateSource = null;
-let adminBootstrapAvailable = false;
-let customProjects = [];
-let projectRecords = [];
-let projectHeadingsByProjectId = new Map();
-let projectHeadingsLoadSeq = 0;
-let editingTodoId = null;
 const {
   AUTH_STATE,
   EMAIL_ACTION_TIMEOUT_MS,
   loadStoredSession,
   persistSession,
 } = AppStateModule;
-let authState = AUTH_STATE.UNAUTHENTICATED;
-let currentDateView = "all";
-let currentWorkspaceView = "home";
-let homeListDrilldownKey = "";
-let isMoreFiltersOpen = false;
-let selectedTodoId = null;
-let lastFocusedTodoTrigger = null;
-let isTodoDrawerOpen = false;
-let isDrawerDetailsOpen = false;
-let openTodoKebabId = null;
-let drawerSaveState = "idle";
-let drawerSaveMessage = "";
-let drawerDraft = null;
-let drawerSaveSequence = 0;
-let drawerDescriptionSaveTimer = null;
-let drawerSaveResetTimer = null;
-let drawerScrollLockY = 0;
-let isDrawerBodyLocked = false;
-let taskDrawerAssistState = createInitialTaskDrawerAssistState();
-let lastFocusedTodoId = null;
-let todosLoadState = "idle";
-let todosLoadErrorMessage = "";
-let isRailCollapsed = false;
-let isRailSheetOpen = false;
-let railRovingFocusKey = "";
-let railScrollLockY = 0;
-let isRailBodyLocked = false;
-let lastFocusedRailTrigger = null;
-let openRailProjectMenuKey = null;
-let isProjectCrudModalOpen = false;
-let projectCrudMode = "create";
-let projectCrudTargetProject = "";
-let lastProjectCrudOpener = null;
-let isProjectEditDrawerOpen = false;
-let projectEditTargetProject = "";
-let lastProjectEditOpener = null;
-let isProjectEditBodyLocked = false;
-let projectEditScrollLockY = 0;
-let projectDeleteDialogState = null;
-let isProjectDeletePending = false;
-let isCommandPaletteOpen = false;
-let commandPaletteQuery = "";
-let isProfilePanelOpen = false;
-let commandPaletteIndex = 0;
-let commandPaletteItems = [];
-let commandPaletteSelectableItems = [];
-let lastFocusedBeforePalette = null;
-let isApplyingFiltersPipeline = false;
 // PROJECT_PATH_SEPARATOR, MOBILE_DRAWER_MEDIA_QUERY — from utils.js
 // ON_CREATE_SURFACE, TODAY_PLAN_SURFACE — from aiSuggestionUtils.js
 // AI_DEBUG_ENABLED, AI_SURFACE_TYPES, AI_SURFACE_IMPACT — from aiSuggestionUtils.js
@@ -303,34 +229,10 @@ const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
 const QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY =
   "todos:quick-entry-properties-open";
 const SIDEBAR_NAV_ITEMS = [];
-let isAiWorkspaceCollapsed = true;
-let isAiWorkspaceVisible = AI_DEBUG_ENABLED;
-let onCreateAssistState = createInitialOnCreateAssistState();
-let suppressOnCreateAssistInput = false;
-onCreateAssistState.dismissedTodoIds = loadOnCreateDismissedTodoIds();
-let todayPlanState = createInitialTodayPlanState();
-let todayPlanGenerationSeq = 0;
-let isQuickEntryPropertiesOpen = false;
-let isTaskComposerOpen = false;
-let lastTaskComposerTrigger = null;
-let taskComposerDefaultProject = "";
-let homeTopFocusState = createInitialHomeTopFocusState();
+state.onCreateAssistState.dismissedTodoIds = loadOnCreateDismissedTodoIds();
 
 const HOME_TOP_FOCUS_CACHE_KEY = "todos:home-top-focus-cache";
 const HOME_TOP_FOCUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
-let chronoNaturalDateModulePromise = null;
-let quickEntryNaturalDateState = {
-  parseTimer: null,
-  parseSeq: 0,
-  dueSource: "none",
-  dueInputProgrammatic: false,
-  suppressNextTitleInputParse: false,
-  appliedPreview: null,
-  suggestionPreview: null,
-  lastDetected: null,
-  lastSuppressedTextSignature: "",
-  lastSuppressedDetectedSignature: "",
-};
 const QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS = 320;
 
 function emitAiSuggestionUndoTelemetry({
@@ -367,27 +269,31 @@ function handleAuthFailure() {
 }
 
 function handleAuthTokens(nextToken, nextRefreshToken) {
-  authToken = nextToken;
-  refreshToken = nextRefreshToken;
-  persistSession({ authToken, refreshToken, currentUser });
+  state.authToken = nextToken;
+  state.refreshToken = nextRefreshToken;
+  persistSession({
+    authToken: state.authToken,
+    refreshToken: state.refreshToken,
+    currentUser: state.currentUser,
+  });
 }
 
 const apiClient = ApiClientModule.createApiClient({
   apiUrl: API_URL,
-  getAuthToken: () => authToken,
-  getRefreshToken: () => refreshToken,
-  getAuthState: () => authState,
+  getAuthToken: () => state.authToken,
+  getRefreshToken: () => state.refreshToken,
+  getAuthState: () => state.authState,
   setAuthState,
   onAuthFailure: handleAuthFailure,
   onAuthTokens: handleAuthTokens,
 });
 
 function setAuthState(nextState) {
-  authState = nextState;
+  state.authState = nextState;
 }
 
 function projectStorageKey() {
-  return `todo-projects:${currentUser?.id || "anonymous"}`;
+  return `todo-projects:${state.currentUser?.id || "anonymous"}`;
 }
 
 function syncProjectsRailHost() {
@@ -546,20 +452,23 @@ function persistQuickEntryPropertiesOpenState(isOpen) {
 }
 
 function setQuickEntryPropertiesOpen(nextOpen, { persist = true } = {}) {
-  isQuickEntryPropertiesOpen = !!nextOpen;
+  state.isQuickEntryPropertiesOpen = !!nextOpen;
   if (persist) {
-    persistQuickEntryPropertiesOpenState(isQuickEntryPropertiesOpen);
+    persistQuickEntryPropertiesOpenState(state.isQuickEntryPropertiesOpen);
   }
   const panel = document.getElementById("quickEntryPropertiesPanel");
   const toggle = document.getElementById("quickEntryPropertiesToggle");
   if (panel instanceof HTMLElement) {
-    panel.hidden = !isQuickEntryPropertiesOpen;
+    panel.hidden = !state.isQuickEntryPropertiesOpen;
   }
   if (toggle instanceof HTMLElement) {
-    toggle.setAttribute("aria-expanded", String(isQuickEntryPropertiesOpen));
+    toggle.setAttribute(
+      "aria-expanded",
+      String(state.isQuickEntryPropertiesOpen),
+    );
     toggle.classList.toggle(
       "quick-entry-properties-toggle--active",
-      isQuickEntryPropertiesOpen,
+      state.isQuickEntryPropertiesOpen,
     );
   }
   updateQuickEntryPropertiesSummary();
@@ -591,10 +500,11 @@ function updateQuickEntryPropertiesSummary() {
     : "No project";
   const dueLabel = formatQuickEntryDueSummary(dueValue);
   const priorityLabel =
-    currentPriority.charAt(0).toUpperCase() + currentPriority.slice(1);
+    state.currentPriority.charAt(0).toUpperCase() +
+    state.currentPriority.slice(1);
 
   summaryEl.textContent = `${projectLabel} • ${dueLabel} • Priority: ${priorityLabel}`;
-  summaryEl.hidden = isQuickEntryPropertiesOpen;
+  summaryEl.hidden = state.isQuickEntryPropertiesOpen;
 }
 
 function getQuickEntryNaturalDateElements() {
@@ -648,19 +558,20 @@ async function loadChronoNaturalDateModule() {
   if (window.__chronoNaturalDateModule) {
     return window.__chronoNaturalDateModule;
   }
-  if (!chronoNaturalDateModulePromise) {
-    chronoNaturalDateModulePromise = import("/vendor/chrono-node/index.js")
-      .then((module) => {
-        window.__chronoNaturalDateModule = module;
-        return module;
-      })
-      .catch((error) => {
-        chronoNaturalDateModulePromise = null;
-        console.warn("Natural date parser failed to load:", error);
-        return null;
-      });
+  if (!state.chronoNaturalDateModulePromise) {
+    state.chronoNaturalDateModulePromise =
+      import("/vendor/chrono-node/index.js")
+        .then((module) => {
+          window.__chronoNaturalDateModule = module;
+          return module;
+        })
+        .catch((error) => {
+          state.chronoNaturalDateModulePromise = null;
+          console.warn("Natural date parser failed to load:", error);
+          return null;
+        });
   }
-  return chronoNaturalDateModulePromise;
+  return state.chronoNaturalDateModulePromise;
 }
 
 function removeMatchedDatePhraseFromTitle(title, detection) {
@@ -739,15 +650,15 @@ function parseQuickEntryNaturalDue(text, chronoModule) {
 function setQuickEntryDueInputValue(value) {
   const refs = getQuickEntryNaturalDateElements();
   if (!refs) return;
-  quickEntryNaturalDateState.dueInputProgrammatic = true;
+  state.quickEntryNaturalDateState.dueInputProgrammatic = true;
   refs.dueDateInput.value = value;
   refs.dueDateInput.dispatchEvent(new Event("input", { bubbles: true }));
   refs.dueDateInput.dispatchEvent(new Event("change", { bubbles: true }));
-  quickEntryNaturalDateState.dueInputProgrammatic = false;
+  state.quickEntryNaturalDateState.dueInputProgrammatic = false;
 }
 
 function clearQuickEntryNaturalSuggestionPreview() {
-  quickEntryNaturalDateState.suggestionPreview = null;
+  state.quickEntryNaturalDateState.suggestionPreview = null;
 }
 
 function renderQuickEntryNaturalDueChip() {
@@ -756,14 +667,14 @@ function renderQuickEntryNaturalDueChip() {
   const { chipRow, dueDateInput } = refs;
 
   const hasNaturalDuePreview =
-    !!quickEntryNaturalDateState.appliedPreview &&
-    quickEntryNaturalDateState.dueSource === "natural" &&
+    !!state.quickEntryNaturalDateState.appliedPreview &&
+    state.quickEntryNaturalDateState.dueSource === "natural" &&
     !!dueDateInput.value;
   if (hasNaturalDuePreview) {
     chipRow.hidden = false;
     chipRow.innerHTML = `
       <div class="quick-entry-natural-due-chip quick-entry-natural-due-chip--applied">
-        <span class="quick-entry-natural-due-chip__label">Due: ${escapeHtml(quickEntryNaturalDateState.appliedPreview.displayLabel)}</span>
+        <span class="quick-entry-natural-due-chip__label">Due: ${escapeHtml(state.quickEntryNaturalDateState.appliedPreview.displayLabel)}</span>
         <button
           type="button"
           class="quick-entry-natural-due-chip__action"
@@ -778,11 +689,11 @@ function renderQuickEntryNaturalDueChip() {
     return;
   }
 
-  if (quickEntryNaturalDateState.suggestionPreview) {
+  if (state.quickEntryNaturalDateState.suggestionPreview) {
     chipRow.hidden = false;
     chipRow.innerHTML = `
       <div class="quick-entry-natural-due-chip quick-entry-natural-due-chip--suggested">
-        <span class="quick-entry-natural-due-chip__label">Detected: ${escapeHtml(quickEntryNaturalDateState.suggestionPreview.displayLabel)}</span>
+        <span class="quick-entry-natural-due-chip__label">Detected: ${escapeHtml(state.quickEntryNaturalDateState.suggestionPreview.displayLabel)}</span>
         <button
           type="button"
           class="quick-entry-natural-due-chip__action"
@@ -801,17 +712,17 @@ function renderQuickEntryNaturalDueChip() {
 }
 
 function resetQuickEntryNaturalDueState() {
-  if (quickEntryNaturalDateState.parseTimer) {
-    clearTimeout(quickEntryNaturalDateState.parseTimer);
+  if (state.quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(state.quickEntryNaturalDateState.parseTimer);
   }
-  quickEntryNaturalDateState.parseTimer = null;
-  quickEntryNaturalDateState.parseSeq += 1;
-  quickEntryNaturalDateState.dueSource = "none";
-  quickEntryNaturalDateState.appliedPreview = null;
-  quickEntryNaturalDateState.suggestionPreview = null;
-  quickEntryNaturalDateState.lastDetected = null;
-  quickEntryNaturalDateState.lastSuppressedTextSignature = "";
-  quickEntryNaturalDateState.lastSuppressedDetectedSignature = "";
+  state.quickEntryNaturalDateState.parseTimer = null;
+  state.quickEntryNaturalDateState.parseSeq += 1;
+  state.quickEntryNaturalDateState.dueSource = "none";
+  state.quickEntryNaturalDateState.appliedPreview = null;
+  state.quickEntryNaturalDateState.suggestionPreview = null;
+  state.quickEntryNaturalDateState.lastDetected = null;
+  state.quickEntryNaturalDateState.lastSuppressedTextSignature = "";
+  state.quickEntryNaturalDateState.lastSuppressedDetectedSignature = "";
   renderQuickEntryNaturalDueChip();
 }
 
@@ -823,8 +734,8 @@ function applyQuickEntryNaturalDueDetection(
   if (!refs || !detection) return false;
 
   setQuickEntryDueInputValue(detection.dueInputValue);
-  quickEntryNaturalDateState.dueSource = "natural";
-  quickEntryNaturalDateState.appliedPreview = {
+  state.quickEntryNaturalDateState.dueSource = "natural";
+  state.quickEntryNaturalDateState.appliedPreview = {
     dueInputValue: detection.dueInputValue,
     displayLabel: detection.displayLabel,
     detectedSignature: detection.detectedSignature,
@@ -838,7 +749,7 @@ function applyQuickEntryNaturalDueDetection(
       detection,
     );
     if (cleanedTitle !== refs.titleInput.value) {
-      quickEntryNaturalDateState.suppressNextTitleInputParse = true;
+      state.quickEntryNaturalDateState.suppressNextTitleInputParse = true;
       refs.titleInput.value = cleanedTitle;
       refs.titleInput.dispatchEvent(new Event("input", { bubbles: true }));
     }
@@ -853,8 +764,9 @@ function shouldSuppressQuickEntryNaturalAutoApply(
   detectionSignature,
 ) {
   return (
-    quickEntryNaturalDateState.lastSuppressedTextSignature === textSignature &&
-    quickEntryNaturalDateState.lastSuppressedDetectedSignature ===
+    state.quickEntryNaturalDateState.lastSuppressedTextSignature ===
+      textSignature &&
+    state.quickEntryNaturalDateState.lastSuppressedDetectedSignature ===
       detectionSignature
   );
 }
@@ -869,25 +781,25 @@ async function processQuickEntryNaturalDate({
   const textSignature = normalizeQuickEntryTextSignature(startingTitle);
 
   if (!startingTitle.trim()) {
-    quickEntryNaturalDateState.lastDetected = null;
+    state.quickEntryNaturalDateState.lastDetected = null;
     clearQuickEntryNaturalSuggestionPreview();
-    if (quickEntryNaturalDateState.dueSource !== "natural") {
-      quickEntryNaturalDateState.appliedPreview = null;
+    if (state.quickEntryNaturalDateState.dueSource !== "natural") {
+      state.quickEntryNaturalDateState.appliedPreview = null;
     }
     renderQuickEntryNaturalDueChip();
     return null;
   }
 
-  const parseSeq = ++quickEntryNaturalDateState.parseSeq;
+  const parseSeq = ++state.quickEntryNaturalDateState.parseSeq;
   const chronoModule = await loadChronoNaturalDateModule();
-  if (parseSeq !== quickEntryNaturalDateState.parseSeq) return null;
+  if (parseSeq !== state.quickEntryNaturalDateState.parseSeq) return null;
 
   const refsAfterLoad = getQuickEntryNaturalDateElements();
   if (!refsAfterLoad) return null;
   if (refsAfterLoad.titleInput.value !== startingTitle) return null;
 
   const detection = parseQuickEntryNaturalDue(startingTitle, chronoModule);
-  quickEntryNaturalDateState.lastDetected = detection;
+  state.quickEntryNaturalDateState.lastDetected = detection;
 
   if (!detection || detection.isPast) {
     clearQuickEntryNaturalSuggestionPreview();
@@ -897,7 +809,7 @@ async function processQuickEntryNaturalDate({
 
   const hasDueValue = !!refsAfterLoad.dueDateInput.value;
   const manualDueSet =
-    hasDueValue && quickEntryNaturalDateState.dueSource === "manual";
+    hasDueValue && state.quickEntryNaturalDateState.dueSource === "manual";
   const suppressedAutoApply = shouldSuppressQuickEntryNaturalAutoApply(
     textSignature,
     detection.detectedSignature,
@@ -911,7 +823,7 @@ async function processQuickEntryNaturalDate({
   }
 
   if (manualDueSet || (!hasDueValue && suppressedAutoApply)) {
-    quickEntryNaturalDateState.suggestionPreview = {
+    state.quickEntryNaturalDateState.suggestionPreview = {
       ...detection,
     };
   } else {
@@ -922,18 +834,18 @@ async function processQuickEntryNaturalDate({
 }
 
 function scheduleQuickEntryNaturalDateParse() {
-  if (quickEntryNaturalDateState.parseTimer) {
-    clearTimeout(quickEntryNaturalDateState.parseTimer);
+  if (state.quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(state.quickEntryNaturalDateState.parseTimer);
   }
-  quickEntryNaturalDateState.parseTimer = setTimeout(() => {
-    quickEntryNaturalDateState.parseTimer = null;
+  state.quickEntryNaturalDateState.parseTimer = setTimeout(() => {
+    state.quickEntryNaturalDateState.parseTimer = null;
     processQuickEntryNaturalDate({ trigger: "typing", cleanupTitle: true });
   }, QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS);
 }
 
 function onQuickEntryTitleInputForNaturalDate() {
-  if (quickEntryNaturalDateState.suppressNextTitleInputParse) {
-    quickEntryNaturalDateState.suppressNextTitleInputParse = false;
+  if (state.quickEntryNaturalDateState.suppressNextTitleInputParse) {
+    state.quickEntryNaturalDateState.suppressNextTitleInputParse = false;
     renderQuickEntryNaturalDueChip();
     return;
   }
@@ -941,13 +853,14 @@ function onQuickEntryTitleInputForNaturalDate() {
   if (!refs) return;
   const nextSignature = normalizeQuickEntryTextSignature(refs.titleInput.value);
   if (
-    quickEntryNaturalDateState.lastSuppressedTextSignature !== nextSignature
+    state.quickEntryNaturalDateState.lastSuppressedTextSignature !==
+    nextSignature
   ) {
-    quickEntryNaturalDateState.lastSuppressedTextSignature = "";
-    quickEntryNaturalDateState.lastSuppressedDetectedSignature = "";
+    state.quickEntryNaturalDateState.lastSuppressedTextSignature = "";
+    state.quickEntryNaturalDateState.lastSuppressedDetectedSignature = "";
   }
-  if (quickEntryNaturalDateState.dueSource !== "natural") {
-    quickEntryNaturalDateState.appliedPreview = null;
+  if (state.quickEntryNaturalDateState.dueSource !== "natural") {
+    state.quickEntryNaturalDateState.appliedPreview = null;
   }
   scheduleQuickEntryNaturalDateParse();
 }
@@ -955,13 +868,13 @@ function onQuickEntryTitleInputForNaturalDate() {
 function onQuickEntryDueInputChangedByUser() {
   const refs = getQuickEntryNaturalDateElements();
   if (!refs) return;
-  if (quickEntryNaturalDateState.dueInputProgrammatic) return;
+  if (state.quickEntryNaturalDateState.dueInputProgrammatic) return;
   if (refs.dueDateInput.value) {
-    quickEntryNaturalDateState.dueSource = "manual";
-    quickEntryNaturalDateState.appliedPreview = null;
+    state.quickEntryNaturalDateState.dueSource = "manual";
+    state.quickEntryNaturalDateState.appliedPreview = null;
   } else {
-    quickEntryNaturalDateState.dueSource = "none";
-    quickEntryNaturalDateState.appliedPreview = null;
+    state.quickEntryNaturalDateState.dueSource = "none";
+    state.quickEntryNaturalDateState.appliedPreview = null;
   }
   renderQuickEntryNaturalDueChip();
 }
@@ -974,30 +887,34 @@ function handleQuickEntryNaturalDueChipClick(action) {
       refs.titleInput.value,
     );
     const detectedSignature =
-      quickEntryNaturalDateState.appliedPreview?.detectedSignature ||
-      quickEntryNaturalDateState.lastDetected?.detectedSignature ||
+      state.quickEntryNaturalDateState.appliedPreview?.detectedSignature ||
+      state.quickEntryNaturalDateState.lastDetected?.detectedSignature ||
       "";
-    quickEntryNaturalDateState.lastSuppressedTextSignature = textSignature;
-    quickEntryNaturalDateState.lastSuppressedDetectedSignature =
+    state.quickEntryNaturalDateState.lastSuppressedTextSignature =
+      textSignature;
+    state.quickEntryNaturalDateState.lastSuppressedDetectedSignature =
       detectedSignature;
-    quickEntryNaturalDateState.appliedPreview = null;
-    quickEntryNaturalDateState.dueSource = "none";
+    state.quickEntryNaturalDateState.appliedPreview = null;
+    state.quickEntryNaturalDateState.dueSource = "none";
     setQuickEntryDueInputValue("");
     if (
-      quickEntryNaturalDateState.lastDetected &&
-      !quickEntryNaturalDateState.lastDetected.isPast
+      state.quickEntryNaturalDateState.lastDetected &&
+      !state.quickEntryNaturalDateState.lastDetected.isPast
     ) {
-      quickEntryNaturalDateState.suggestionPreview = {
-        ...quickEntryNaturalDateState.lastDetected,
+      state.quickEntryNaturalDateState.suggestionPreview = {
+        ...state.quickEntryNaturalDateState.lastDetected,
       };
     }
     renderQuickEntryNaturalDueChip();
     return;
   }
 
-  if (action === "apply" && quickEntryNaturalDateState.suggestionPreview) {
+  if (
+    action === "apply" &&
+    state.quickEntryNaturalDateState.suggestionPreview
+  ) {
     applyQuickEntryNaturalDueDetection(
-      quickEntryNaturalDateState.suggestionPreview,
+      state.quickEntryNaturalDateState.suggestionPreview,
       {
         cleanupTitle: true,
       },
@@ -1067,19 +984,19 @@ function createInitialHomeTopFocusState() {
 }
 
 function isHomeWorkspaceActive() {
-  return !getSelectedProjectKey() && currentWorkspaceView === "home";
+  return !getSelectedProjectKey() && state.currentWorkspaceView === "home";
 }
 
 function isUnsortedWorkspaceActive() {
-  return !getSelectedProjectKey() && currentWorkspaceView === "unsorted";
+  return !getSelectedProjectKey() && state.currentWorkspaceView === "unsorted";
 }
 
 function hasHomeListDrilldown() {
-  return !getSelectedProjectKey() && !!homeListDrilldownKey;
+  return !getSelectedProjectKey() && !!state.homeListDrilldownKey;
 }
 
 function clearHomeListDrilldown() {
-  homeListDrilldownKey = "";
+  state.homeListDrilldownKey = "";
 }
 
 function normalizeWorkspaceView(view) {
@@ -1139,7 +1056,7 @@ function formatHomeDueBadge(todo) {
 }
 
 function getOpenTodos() {
-  return todos.filter((todo) => !todo.completed);
+  return state.todos.filter((todo) => !todo.completed);
 }
 
 const HOME_STALE_RISK_DAYS = 14;
@@ -1192,7 +1109,9 @@ function getHomeTopFocusDeterministicReason(todo) {
 
 function getHomeTopFocusReason(todo) {
   const todoId = String(todo?.id || "");
-  const aiReason = String(homeTopFocusState.reasonsById?.[todoId] || "").trim();
+  const aiReason = String(
+    state.homeTopFocusState.reasonsById?.[todoId] || "",
+  ).trim();
   return aiReason || getHomeTopFocusDeterministicReason(todo);
 }
 
@@ -1483,9 +1402,9 @@ function applyHomeTopFocusResult(
 ) {
   const nextItems = Array.isArray(items) ? items.slice(0, 3) : [];
   const nextReasonsById = reasonsById || {};
-  const nextRequestKey = requestKey || homeTopFocusState.requestKey;
+  const nextRequestKey = requestKey || state.homeTopFocusState.requestKey;
 
-  const prevItemIds = (homeTopFocusState.items || []).map((todo) =>
+  const prevItemIds = (state.homeTopFocusState.items || []).map((todo) =>
     String(todo?.id || ""),
   );
   const nextItemIds = nextItems.map((todo) => String(todo?.id || ""));
@@ -1493,24 +1412,24 @@ function applyHomeTopFocusResult(
     prevItemIds.length === nextItemIds.length &&
     prevItemIds.every((id, index) => id === nextItemIds[index]);
   const isSameReasons =
-    JSON.stringify(homeTopFocusState.reasonsById || {}) ===
+    JSON.stringify(state.homeTopFocusState.reasonsById || {}) ===
     JSON.stringify(nextReasonsById);
   const isSameState =
     isSameItems &&
     isSameReasons &&
-    homeTopFocusState.source === source &&
-    homeTopFocusState.loading === false &&
-    homeTopFocusState.requestKey === nextRequestKey;
+    state.homeTopFocusState.source === source &&
+    state.homeTopFocusState.loading === false &&
+    state.homeTopFocusState.requestKey === nextRequestKey;
 
   if (isSameState) {
     return;
   }
 
-  homeTopFocusState.items = nextItems;
-  homeTopFocusState.reasonsById = nextReasonsById;
-  homeTopFocusState.source = source;
-  homeTopFocusState.loading = false;
-  homeTopFocusState.requestKey = nextRequestKey;
+  state.homeTopFocusState.items = nextItems;
+  state.homeTopFocusState.reasonsById = nextReasonsById;
+  state.homeTopFocusState.source = source;
+  state.homeTopFocusState.loading = false;
+  state.homeTopFocusState.requestKey = nextRequestKey;
   const topFocusBody = document.getElementById("homeTopFocusBody");
   if (topFocusBody instanceof HTMLElement || isHomeWorkspaceActive()) {
     renderTodos();
@@ -1524,11 +1443,14 @@ async function hydrateHomeTopFocusIfNeeded() {
     applyHomeTopFocusResult([], {}, { source: "fallback", requestKey: "" });
     return;
   }
-  if (homeTopFocusState.loading && homeTopFocusState.requestKey === requestKey)
+  if (
+    state.homeTopFocusState.loading &&
+    state.homeTopFocusState.requestKey === requestKey
+  )
     return;
   if (
-    homeTopFocusState.requestKey === requestKey &&
-    homeTopFocusState.items.length > 0
+    state.homeTopFocusState.requestKey === requestKey &&
+    state.homeTopFocusState.items.length > 0
   )
     return;
 
@@ -1547,8 +1469,8 @@ async function hydrateHomeTopFocusIfNeeded() {
     }
   }
 
-  homeTopFocusState.loading = true;
-  homeTopFocusState.requestKey = requestKey;
+  state.homeTopFocusState.loading = true;
+  state.homeTopFocusState.requestKey = requestKey;
   if (isHomeWorkspaceActive()) {
     renderTodos();
   }
@@ -1599,7 +1521,7 @@ async function hydrateHomeTopFocusIfNeeded() {
     if (selected.length === 0) {
       throw new Error("home-focus-ai-empty");
     }
-    if (homeTopFocusState.requestKey !== requestKey) return;
+    if (state.homeTopFocusState.requestKey !== requestKey) return;
     applyHomeTopFocusResult(selected, reasonsById, {
       source: "ai",
       requestKey,
@@ -1611,7 +1533,7 @@ async function hydrateHomeTopFocusIfNeeded() {
       "ai",
     );
   } catch (error) {
-    if (homeTopFocusState.requestKey !== requestKey) return;
+    if (state.homeTopFocusState.requestKey !== requestKey) return;
     const fallback = getTopFocusFallbackTodos(3);
     applyHomeTopFocusResult(fallback, {}, { source: "fallback", requestKey });
     writeCachedHomeTopFocus(
@@ -1718,7 +1640,7 @@ function renderHomeTaskTile({
       <div class="home-tile__body" ${key === "top_focus" ? 'id="homeTopFocusBody"' : ""}>
         ${bodyHtml}
         ${
-          key === "top_focus" && homeTopFocusState.loading
+          key === "top_focus" && state.homeTopFocusState.loading
             ? '<div class="home-tile__helper" role="status">Refreshing focus…</div>'
             : ""
         }
@@ -1764,8 +1686,8 @@ function renderProjectsToNudgeTile(items = []) {
 function renderHomeDashboard() {
   const fallbackTopFocus = getTopFocusFallbackTodos(3);
   const topFocusItems =
-    homeTopFocusState.items.length > 0
-      ? homeTopFocusState.items
+    state.homeTopFocusState.items.length > 0
+      ? state.homeTopFocusState.items
       : fallbackTopFocus;
   const model = getHomeDashboardModel({ topFocusItems });
   void hydrateHomeTopFocusIfNeeded();
@@ -1802,8 +1724,8 @@ function openHomeTileList(tileKey) {
     tileKey === "due_soon"
   ) {
     clearHomeListDrilldown();
-    homeListDrilldownKey = tileKey;
-    currentWorkspaceView = "all";
+    state.homeListDrilldownKey = tileKey;
+    state.currentWorkspaceView = "all";
     setSelectedProjectKey("", { reason: "home-see-all", skipApply: true });
     setDateView("all", { skipApply: true });
     applyFiltersAndRender({ reason: `home-see-all-${tileKey}` });
@@ -1812,7 +1734,7 @@ function openHomeTileList(tileKey) {
 
 function openHomeProject(projectName) {
   clearHomeListDrilldown();
-  currentWorkspaceView = "project";
+  state.currentWorkspaceView = "project";
   selectProjectFromRail(projectName);
 }
 
@@ -1826,7 +1748,7 @@ function getHomeDrilldownLabel() {
     stale_risks: "Stale Risks",
     quick_wins: "Quick Wins",
   };
-  return labels[homeListDrilldownKey] || "";
+  return labels[state.homeListDrilldownKey] || "";
 }
 
 function getTaskComposerElements() {
@@ -1872,13 +1794,13 @@ function openTaskComposer(triggerEl = null) {
   ensureTodosShellActive();
   const refs = getTaskComposerElements();
   if (!refs) return;
-  lastTaskComposerTrigger =
+  state.lastTaskComposerTrigger =
     triggerEl instanceof HTMLElement ? triggerEl : document.activeElement;
-  taskComposerDefaultProject = inferTaskComposerDefaultProject();
+  state.taskComposerDefaultProject = inferTaskComposerDefaultProject();
   if (refs.projectSelect && !String(refs.titleInput?.value || "").trim()) {
-    refs.projectSelect.value = taskComposerDefaultProject || "";
+    refs.projectSelect.value = state.taskComposerDefaultProject || "";
   }
-  isTaskComposerOpen = true;
+  state.isTaskComposerOpen = true;
   refs.sheet.classList.add("task-composer-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "false");
   refs.backdrop.classList.add("task-composer-backdrop--open");
@@ -1895,10 +1817,10 @@ function closeTaskComposer({
   reset = false,
 } = {}) {
   const refs = getTaskComposerElements();
-  if (!refs || !isTaskComposerOpen) return false;
+  if (!refs || !state.isTaskComposerOpen) return false;
   const hasDraft = !!String(refs.titleInput?.value || "").trim();
   if (hasDraft && !force) return false;
-  isTaskComposerOpen = false;
+  state.isTaskComposerOpen = false;
   refs.sheet.classList.remove("task-composer-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "true");
   refs.backdrop.classList.remove("task-composer-backdrop--open");
@@ -1906,8 +1828,8 @@ function closeTaskComposer({
   if (reset) {
     resetTaskComposerFields();
   }
-  if (restoreFocus && lastTaskComposerTrigger instanceof HTMLElement) {
-    lastTaskComposerTrigger.focus({ preventScroll: true });
+  if (restoreFocus && state.lastTaskComposerTrigger instanceof HTMLElement) {
+    state.lastTaskComposerTrigger.focus({ preventScroll: true });
   }
   return true;
 }
@@ -1924,7 +1846,7 @@ function resetTaskComposerFields() {
   const notesIcon = document.getElementById("notesExpandIcon");
   if (input instanceof HTMLInputElement) input.value = "";
   if (projectSelect instanceof HTMLSelectElement) {
-    projectSelect.value = taskComposerDefaultProject || "";
+    projectSelect.value = state.taskComposerDefaultProject || "";
   }
   if (dueDateInput instanceof HTMLInputElement) dueDateInput.value = "";
   if (notesInput instanceof HTMLTextAreaElement) {
@@ -1956,7 +1878,7 @@ function bindTaskComposerHandlers() {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const backdrop = target.closest("#taskComposerBackdrop");
-    if (backdrop && isTaskComposerOpen) {
+    if (backdrop && state.isTaskComposerOpen) {
       event.preventDefault();
       closeTaskComposer({ restoreFocus: true });
       return;
@@ -1964,7 +1886,7 @@ function bindTaskComposerHandlers() {
   });
 
   document.addEventListener("keydown", (event) => {
-    if (event.key !== "Escape" || !isTaskComposerOpen) return;
+    if (event.key !== "Escape" || !state.isTaskComposerOpen) return;
     event.preventDefault();
     closeTaskComposer({ restoreFocus: true, force: true });
   });
@@ -1995,10 +1917,10 @@ function getAiWorkspaceElements() {
 }
 
 function getAiWorkspaceStatusLabel() {
-  if (isPlanGenerateInFlight) {
+  if (state.isPlanGenerateInFlight) {
     return "Working";
   }
-  if (latestPlanResult || latestCritiqueResult) {
+  if (state.latestPlanResult || state.latestCritiqueResult) {
     return "Draft open";
   }
   return "Ready";
@@ -2024,10 +1946,10 @@ function syncAiWorkspaceVisibility(visible) {
 }
 
 function setAiWorkspaceVisible(visible, { persist = true } = {}) {
-  isAiWorkspaceVisible = AI_DEBUG_ENABLED ? true : !!visible;
-  syncAiWorkspaceVisibility(isAiWorkspaceVisible);
+  state.isAiWorkspaceVisible = AI_DEBUG_ENABLED ? true : !!visible;
+  syncAiWorkspaceVisibility(state.isAiWorkspaceVisible);
   if (persist && !AI_DEBUG_ENABLED) {
-    persistAiWorkspaceVisibleState(isAiWorkspaceVisible);
+    persistAiWorkspaceVisibleState(state.isAiWorkspaceVisible);
   }
 }
 
@@ -2035,24 +1957,24 @@ function setAiWorkspaceCollapsed(
   collapsed,
   { persist = true, restoreFocus = false } = {},
 ) {
-  isAiWorkspaceCollapsed = !!collapsed;
+  state.isAiWorkspaceCollapsed = !!collapsed;
   const refs = getAiWorkspaceElements();
   if (refs) {
     refs.workspace.classList.toggle(
       "ai-workspace--collapsed",
-      isAiWorkspaceCollapsed,
+      state.isAiWorkspaceCollapsed,
     );
     refs.toggle.setAttribute(
       "aria-expanded",
-      isAiWorkspaceCollapsed ? "false" : "true",
+      state.isAiWorkspaceCollapsed ? "false" : "true",
     );
-    refs.body.hidden = isAiWorkspaceCollapsed;
+    refs.body.hidden = state.isAiWorkspaceCollapsed;
     if (refs.chevron instanceof HTMLElement) {
-      refs.chevron.textContent = isAiWorkspaceCollapsed ? "▸" : "▾";
+      refs.chevron.textContent = state.isAiWorkspaceCollapsed ? "▸" : "▾";
     }
   }
   if (persist) {
-    persistAiWorkspaceCollapsedState(isAiWorkspaceCollapsed);
+    persistAiWorkspaceCollapsedState(state.isAiWorkspaceCollapsed);
   }
   updateAiWorkspaceStatusChip();
   if (restoreFocus && refs) {
@@ -2061,7 +1983,7 @@ function setAiWorkspaceCollapsed(
 }
 
 function toggleAiWorkspace() {
-  setAiWorkspaceCollapsed(!isAiWorkspaceCollapsed);
+  setAiWorkspaceCollapsed(!state.isAiWorkspaceCollapsed);
 }
 
 function focusAiWorkspaceTarget(targetId) {
@@ -2087,7 +2009,7 @@ function loadCustomProjects() {
   try {
     const raw = localStorage.getItem(projectStorageKey());
     const parsed = raw ? JSON.parse(raw) : [];
-    customProjects = Array.isArray(parsed)
+    state.customProjects = Array.isArray(parsed)
       ? [
           ...new Set(
             parsed
@@ -2099,13 +2021,16 @@ function loadCustomProjects() {
       : [];
   } catch (error) {
     console.error("Failed to load custom projects:", error);
-    customProjects = [];
+    state.customProjects = [];
   }
 }
 
 function saveCustomProjects() {
   try {
-    localStorage.setItem(projectStorageKey(), JSON.stringify(customProjects));
+    localStorage.setItem(
+      projectStorageKey(),
+      JSON.stringify(state.customProjects),
+    );
   } catch (error) {
     console.error("Failed to save custom projects:", error);
   }
@@ -2118,13 +2043,16 @@ async function loadProjects() {
       return;
     }
     const data = await response.json();
-    projectRecords = Array.isArray(data) ? data : [];
+    state.projectRecords = Array.isArray(data) ? data : [];
     const projectNames = Array.isArray(data)
       ? data
           .map((item) => normalizeProjectPath(item?.name))
           .filter((name) => typeof name === "string" && name.length > 0)
       : [];
-    customProjects = expandProjectTree([...customProjects, ...projectNames]);
+    state.customProjects = expandProjectTree([
+      ...state.customProjects,
+      ...projectNames,
+    ]);
     saveCustomProjects();
     const selectedProject = getSelectedProjectKey();
     if (
@@ -2152,7 +2080,7 @@ function getProjectRecordByName(projectName) {
     return null;
   }
   return (
-    projectRecords.find(
+    state.projectRecords.find(
       (record) => normalizeProjectPath(record?.name) === normalized,
     ) || null
   );
@@ -2165,7 +2093,9 @@ function getSelectedProjectRecord() {
 function getProjectHeadings(projectName = getSelectedProjectKey()) {
   const projectRecord = getProjectRecordByName(projectName);
   if (!projectRecord?.id) return [];
-  const headings = projectHeadingsByProjectId.get(String(projectRecord.id));
+  const headings = state.projectHeadingsByProjectId.get(
+    String(projectRecord.id),
+  );
   return Array.isArray(headings) ? headings : [];
 }
 
@@ -2179,16 +2109,16 @@ async function loadHeadingsForProject(projectName = getSelectedProjectKey()) {
     return [];
   }
 
-  const loadSeq = ++projectHeadingsLoadSeq;
+  const loadSeq = ++state.projectHeadingsLoadSeq;
   try {
     const response = await apiCall(
       `${API_URL}/projects/${encodeURIComponent(projectRecord.id)}/headings`,
     );
-    if (loadSeq !== projectHeadingsLoadSeq) {
+    if (loadSeq !== state.projectHeadingsLoadSeq) {
       return getProjectHeadings(normalized);
     }
     if (!response || !response.ok) {
-      projectHeadingsByProjectId.set(String(projectRecord.id), []);
+      state.projectHeadingsByProjectId.set(String(projectRecord.id), []);
       renderProjectHeadingCreateButton();
       return [];
     }
@@ -2209,12 +2139,12 @@ async function loadHeadingsForProject(projectName = getSelectedProjectKey()) {
         (a, b) =>
           a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, undefined),
       );
-    projectHeadingsByProjectId.set(String(projectRecord.id), headings);
+    state.projectHeadingsByProjectId.set(String(projectRecord.id), headings);
     renderProjectHeadingCreateButton();
     return headings;
   } catch (error) {
     console.error("Failed to load project headings:", error);
-    projectHeadingsByProjectId.set(String(projectRecord.id), []);
+    state.projectHeadingsByProjectId.set(String(projectRecord.id), []);
     renderProjectHeadingCreateButton();
     return [];
   }
@@ -2469,9 +2399,9 @@ function init() {
   }
 
   if (token && user) {
-    authToken = token;
-    refreshToken = refresh;
-    currentUser = user;
+    state.authToken = token;
+    state.refreshToken = refresh;
+    state.currentUser = user;
     setAuthState(AUTH_STATE.AUTHENTICATED);
     showAppView();
     loadUserProfile();
@@ -2502,10 +2432,14 @@ function handleVerificationStatusFromUrl() {
     : "Email verification failed or expired. Request a new verification email.";
   const type = isSuccess ? "success" : "error";
 
-  if (currentUser) {
+  if (state.currentUser) {
     if (isSuccess) {
-      currentUser = { ...currentUser, isVerified: true };
-      persistSession({ authToken, refreshToken, currentUser });
+      state.currentUser = { ...state.currentUser, isVerified: true };
+      persistSession({
+        authToken: state.authToken,
+        refreshToken: state.refreshToken,
+        currentUser: state.currentUser,
+      });
       updateUserDisplay();
     }
     const profileTab = document.querySelectorAll(".nav-tab")[1];
@@ -2592,11 +2526,15 @@ async function handleLogin(event) {
     const data = await response.json();
 
     if (response.ok) {
-      authToken = data.token;
-      refreshToken = data.refreshToken;
-      currentUser = data.user;
+      state.authToken = data.token;
+      state.refreshToken = data.refreshToken;
+      state.currentUser = data.user;
       setAuthState(AUTH_STATE.AUTHENTICATED);
-      persistSession({ authToken, refreshToken, currentUser });
+      persistSession({
+        authToken: state.authToken,
+        refreshToken: state.refreshToken,
+        currentUser: state.currentUser,
+      });
       showAppView();
       loadUserProfile();
     } else {
@@ -2630,11 +2568,15 @@ async function handleRegister(event) {
     const data = await response.json();
 
     if (response.ok) {
-      authToken = data.token;
-      refreshToken = data.refreshToken;
-      currentUser = data.user;
+      state.authToken = data.token;
+      state.refreshToken = data.refreshToken;
+      state.currentUser = data.user;
       setAuthState(AUTH_STATE.AUTHENTICATED);
-      persistSession({ authToken, refreshToken, currentUser });
+      persistSession({
+        authToken: state.authToken,
+        refreshToken: state.refreshToken,
+        currentUser: state.currentUser,
+      });
       showMessage("authMessage", "Account created successfully!", "success");
       setTimeout(() => {
         showAppView();
@@ -2770,8 +2712,12 @@ async function loadUserProfile() {
     const response = await apiCall(`${API_URL}/users/me`);
     if (response && response.ok) {
       const user = await response.json();
-      currentUser = { ...currentUser, ...user };
-      persistSession({ authToken, refreshToken, currentUser });
+      state.currentUser = { ...state.currentUser, ...user };
+      persistSession({
+        authToken: state.authToken,
+        refreshToken: state.refreshToken,
+        currentUser: state.currentUser,
+      });
       updateUserDisplay();
       await loadAdminBootstrapStatus();
 
@@ -2787,10 +2733,10 @@ async function loadUserProfile() {
 
 // Update user display
 function updateUserDisplay() {
-  document.getElementById("userEmail").textContent = currentUser.email;
+  document.getElementById("userEmail").textContent = state.currentUser.email;
 
   const verifiedBadge = document.getElementById("verifiedBadge");
-  if (currentUser.isVerified) {
+  if (state.currentUser.isVerified) {
     verifiedBadge.className = "verified-badge";
     verifiedBadge.textContent = "✓ Verified";
     verifiedBadge.style.display = "inline-flex";
@@ -2801,7 +2747,7 @@ function updateUserDisplay() {
   }
 
   const adminBadge = document.getElementById("adminBadge");
-  const isAdmin = currentUser.role === "admin";
+  const isAdmin = state.currentUser.role === "admin";
   if (isAdmin) {
     adminBadge.className = "admin-badge";
     adminBadge.textContent = "⭐ Admin";
@@ -2816,22 +2762,23 @@ function updateUserDisplay() {
   document.body.classList.toggle("is-admin-user", isAdmin);
 
   // Update profile view
-  document.getElementById("profileEmail").textContent = currentUser.email;
+  document.getElementById("profileEmail").textContent = state.currentUser.email;
   document.getElementById("profileName").textContent =
-    currentUser.name || "Not set";
-  document.getElementById("profileStatus").textContent = currentUser.isVerified
+    state.currentUser.name || "Not set";
+  document.getElementById("profileStatus").textContent = state.currentUser
+    .isVerified
     ? "Verified ✓"
     : "Not Verified";
   document.getElementById("profileCreated").textContent = new Date(
-    currentUser.createdAt,
+    state.currentUser.createdAt,
   ).toLocaleDateString();
-  document.getElementById("updateName").value = currentUser.name || "";
-  document.getElementById("updateEmail").value = currentUser.email;
+  document.getElementById("updateName").value = state.currentUser.name || "";
+  document.getElementById("updateEmail").value = state.currentUser.email;
 
   // Show/hide verification banner
   const verificationBanner = document.getElementById("verificationBanner");
   if (verificationBanner) {
-    verificationBanner.style.display = currentUser.isVerified
+    verificationBanner.style.display = state.currentUser.isVerified
       ? "none"
       : "block";
   }
@@ -2840,15 +2787,16 @@ function updateUserDisplay() {
     "adminBootstrapSection",
   );
   if (adminBootstrapSection) {
-    const shouldShow = adminBootstrapAvailable && currentUser.role !== "admin";
+    const shouldShow =
+      state.adminBootstrapAvailable && state.currentUser.role !== "admin";
     adminBootstrapSection.style.display = shouldShow ? "block" : "none";
   }
 }
 
 async function loadAdminBootstrapStatus() {
-  adminBootstrapAvailable = false;
+  state.adminBootstrapAvailable = false;
 
-  if (!currentUser || currentUser.role === "admin") {
+  if (!state.currentUser || state.currentUser.role === "admin") {
     updateUserDisplay();
     return;
   }
@@ -2857,7 +2805,7 @@ async function loadAdminBootstrapStatus() {
     const response = await apiCall(`${API_URL}/auth/bootstrap-admin/status`);
     if (response && response.ok) {
       const status = await response.json();
-      adminBootstrapAvailable = !!status.enabled;
+      state.adminBootstrapAvailable = !!status.enabled;
     }
   } catch (error) {
     console.error("Load bootstrap status error:", error);
@@ -2886,9 +2834,13 @@ async function handleAdminBootstrap(event) {
 
     const data = response ? await response.json() : {};
     if (response && response.ok) {
-      currentUser = { ...currentUser, ...data.user };
-      persistSession({ authToken, refreshToken, currentUser });
-      adminBootstrapAvailable = false;
+      state.currentUser = { ...state.currentUser, ...data.user };
+      persistSession({
+        authToken: state.authToken,
+        refreshToken: state.refreshToken,
+        currentUser: state.currentUser,
+      });
+      state.adminBootstrapAvailable = false;
       document.getElementById("adminNavTab").style.display = "block";
       updateUserDisplay();
       secretInput.value = "";
@@ -2906,7 +2858,7 @@ async function handleAdminBootstrap(event) {
       "error",
     );
     if (data.error === "Admin already provisioned") {
-      adminBootstrapAvailable = false;
+      state.adminBootstrapAvailable = false;
       updateUserDisplay();
     }
   } catch (error) {
@@ -2919,7 +2871,7 @@ async function handleAdminBootstrap(event) {
 async function resendVerification() {
   hideMessage("profileMessage");
 
-  if (!currentUser || !currentUser.email) {
+  if (!state.currentUser || !state.currentUser.email) {
     showMessage("profileMessage", "User email not found", "error");
     return;
   }
@@ -2937,7 +2889,7 @@ async function resendVerification() {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: currentUser.email }),
+        body: JSON.stringify({ email: state.currentUser.email }),
       },
       EMAIL_ACTION_TIMEOUT_MS,
     );
@@ -2997,8 +2949,12 @@ async function handleUpdateProfile(event) {
 
     if (response && response.ok) {
       const updatedUser = await response.json();
-      currentUser = { ...currentUser, ...updatedUser };
-      persistSession({ authToken, refreshToken, currentUser });
+      state.currentUser = { ...state.currentUser, ...updatedUser };
+      persistSession({
+        authToken: state.authToken,
+        refreshToken: state.refreshToken,
+        currentUser: state.currentUser,
+      });
       updateUserDisplay();
       showMessage("profileMessage", "Profile updated successfully!", "success");
     } else {
@@ -3028,8 +2984,8 @@ function buildTodosQueryParams() {
 
 // Load todos
 async function loadTodos() {
-  todosLoadState = "loading";
-  todosLoadErrorMessage = "";
+  state.todosLoadState = "loading";
+  state.todosLoadErrorMessage = "";
   renderTodos();
 
   try {
@@ -3037,29 +2993,29 @@ async function loadTodos() {
     const todosUrl = ApiClientModule.buildUrl(`${API_URL}/todos`, queryParams);
     const response = await apiCall(todosUrl);
     if (response && response.ok) {
-      todos = await response.json();
-      todosLoadState = "ready";
-      todosLoadErrorMessage = "";
-      homeTopFocusState = createInitialHomeTopFocusState();
+      state.todos = await response.json();
+      state.todosLoadState = "ready";
+      state.todosLoadErrorMessage = "";
+      state.homeTopFocusState = createInitialHomeTopFocusState();
 
       renderTodos();
       refreshProjectCatalog();
     } else {
-      todos = [];
-      selectedTodos.clear();
-      homeTopFocusState = createInitialHomeTopFocusState();
-      todosLoadState = "error";
-      todosLoadErrorMessage = "Couldn't load tasks";
+      state.todos = [];
+      state.selectedTodos.clear();
+      state.homeTopFocusState = createInitialHomeTopFocusState();
+      state.todosLoadState = "error";
+      state.todosLoadErrorMessage = "Couldn't load tasks";
       renderTodos();
       refreshProjectCatalog();
       showMessage("todosMessage", "Failed to load todos", "error");
     }
   } catch (error) {
-    todos = [];
-    selectedTodos.clear();
-    homeTopFocusState = createInitialHomeTopFocusState();
-    todosLoadState = "error";
-    todosLoadErrorMessage = "Couldn't load tasks";
+    state.todos = [];
+    state.selectedTodos.clear();
+    state.homeTopFocusState = createInitialHomeTopFocusState();
+    state.todosLoadState = "error";
+    state.todosLoadErrorMessage = "Couldn't load tasks";
     renderTodos();
     refreshProjectCatalog();
     console.error("Load todos error:", error);
@@ -3074,18 +3030,18 @@ async function loadAiSuggestions() {
   try {
     const response = await apiCall(`${API_URL}/ai/suggestions?limit=8`);
     if (!response || !response.ok) {
-      aiSuggestions = [];
+      state.aiSuggestions = [];
       renderAiSuggestionHistory();
       updateAiWorkspaceStatusChip();
       return;
     }
 
-    aiSuggestions = await response.json();
+    state.aiSuggestions = await response.json();
     renderAiSuggestionHistory();
     updateAiWorkspaceStatusChip();
   } catch (error) {
     console.error("Load AI suggestions error:", error);
-    aiSuggestions = [];
+    state.aiSuggestions = [];
     renderAiSuggestionHistory();
     updateAiWorkspaceStatusChip();
   }
@@ -3095,16 +3051,16 @@ async function loadAiUsage() {
   try {
     const response = await apiCall(`${API_URL}/ai/usage`);
     if (!response || !response.ok) {
-      aiUsage = null;
+      state.aiUsage = null;
       renderAiUsageSummary();
       return;
     }
 
-    aiUsage = await response.json();
+    state.aiUsage = await response.json();
     renderAiUsageSummary();
   } catch (error) {
     console.error("Load AI usage error:", error);
-    aiUsage = null;
+    state.aiUsage = null;
     renderAiUsageSummary();
   }
 }
@@ -3115,16 +3071,16 @@ async function loadAiFeedbackSummary() {
       `${API_URL}/ai/feedback-summary?days=30&reasonLimit=3`,
     );
     if (!response || !response.ok) {
-      aiFeedbackSummary = null;
+      state.aiFeedbackSummary = null;
       renderAiFeedbackInsights();
       return;
     }
 
-    aiFeedbackSummary = await response.json();
+    state.aiFeedbackSummary = await response.json();
     renderAiFeedbackInsights();
   } catch (error) {
     console.error("Load AI feedback summary error:", error);
-    aiFeedbackSummary = null;
+    state.aiFeedbackSummary = null;
     renderAiFeedbackInsights();
   }
 }
@@ -3133,16 +3089,16 @@ async function loadAiInsights() {
   try {
     const response = await apiCall(`${API_URL}/ai/insights?days=7`);
     if (!response || !response.ok) {
-      aiInsights = null;
+      state.aiInsights = null;
       renderAiPerformanceInsights();
       return;
     }
 
-    aiInsights = await response.json();
+    state.aiInsights = await response.json();
     renderAiPerformanceInsights();
   } catch (error) {
     console.error("Load AI insights error:", error);
-    aiInsights = null;
+    state.aiInsights = null;
     renderAiPerformanceInsights();
   }
 }
@@ -3151,13 +3107,13 @@ function renderAiUsageSummary() {
   const container = document.getElementById("aiUsageSummary");
   if (!container) return;
 
-  if (!aiUsage) {
+  if (!state.aiUsage) {
     container.innerHTML = "";
     return;
   }
 
-  const resetTime = aiUsage.resetAt
-    ? new Date(aiUsage.resetAt).toLocaleString()
+  const resetTime = state.aiUsage.resetAt
+    ? new Date(state.aiUsage.resetAt).toLocaleString()
     : "N/A";
 
   container.innerHTML = `
@@ -3169,9 +3125,9 @@ function renderAiUsageSummary() {
       border-radius: 8px;
       background: var(--input-bg);
     ">
-      AI plan: <strong>${escapeHtml(String(aiUsage.plan || "free").toUpperCase())}</strong>.
-      Usage today: <strong>${aiUsage.used}/${aiUsage.limit}</strong> used
-      (${aiUsage.remaining} remaining). Resets: ${escapeHtml(resetTime)}
+      AI plan: <strong>${escapeHtml(String(state.aiUsage.plan || "free").toUpperCase())}</strong>.
+      Usage today: <strong>${state.aiUsage.used}/${state.aiUsage.limit}</strong> used
+      (${state.aiUsage.remaining} remaining). Resets: ${escapeHtml(resetTime)}
     </div>
   `;
 }
@@ -3180,18 +3136,18 @@ function renderAiPerformanceInsights() {
   const container = document.getElementById("aiPerformanceInsights");
   if (!container) return;
 
-  if (!aiInsights) {
+  if (!state.aiInsights) {
     container.innerHTML = "";
     return;
   }
 
-  const acceptanceRate = aiInsights.acceptanceRate;
+  const acceptanceRate = state.aiInsights.acceptanceRate;
   const recommendation =
-    typeof aiInsights.recommendation === "string"
-      ? aiInsights.recommendation
+    typeof state.aiInsights.recommendation === "string"
+      ? state.aiInsights.recommendation
       : "";
-  const ratedCount = Number(aiInsights.ratedCount) || 0;
-  const generatedCount = Number(aiInsights.generatedCount) || 0;
+  const ratedCount = Number(state.aiInsights.ratedCount) || 0;
+  const generatedCount = Number(state.aiInsights.generatedCount) || 0;
 
   container.innerHTML = `
     <div style="
@@ -3227,25 +3183,25 @@ function renderAiFeedbackInsights() {
   const container = document.getElementById("aiFeedbackInsights");
   if (!container) return;
 
-  if (!aiFeedbackSummary || aiFeedbackSummary.totalRated < 1) {
+  if (!state.aiFeedbackSummary || state.aiFeedbackSummary.totalRated < 1) {
     container.innerHTML = "";
     return;
   }
 
-  const totalRated = Number(aiFeedbackSummary.totalRated) || 0;
-  const acceptedCount = Number(aiFeedbackSummary.acceptedCount) || 0;
-  const rejectedCount = Number(aiFeedbackSummary.rejectedCount) || 0;
+  const totalRated = Number(state.aiFeedbackSummary.totalRated) || 0;
+  const acceptedCount = Number(state.aiFeedbackSummary.acceptedCount) || 0;
+  const rejectedCount = Number(state.aiFeedbackSummary.rejectedCount) || 0;
   const acceptedRate =
     totalRated > 0 ? Math.round((acceptedCount / totalRated) * 100) : 0;
   const topAcceptedReason =
-    aiFeedbackSummary.acceptedReasons &&
-    aiFeedbackSummary.acceptedReasons.length > 0
-      ? aiFeedbackSummary.acceptedReasons[0]
+    state.aiFeedbackSummary.acceptedReasons &&
+    state.aiFeedbackSummary.acceptedReasons.length > 0
+      ? state.aiFeedbackSummary.acceptedReasons[0]
       : null;
   const topRejectedReason =
-    aiFeedbackSummary.rejectedReasons &&
-    aiFeedbackSummary.rejectedReasons.length > 0
-      ? aiFeedbackSummary.rejectedReasons[0]
+    state.aiFeedbackSummary.rejectedReasons &&
+    state.aiFeedbackSummary.rejectedReasons.length > 0
+      ? state.aiFeedbackSummary.rejectedReasons[0]
       : null;
 
   container.innerHTML = `
@@ -3282,7 +3238,7 @@ function renderAiSuggestionHistory() {
   const container = document.getElementById("aiSuggestionHistory");
   if (!container) return;
 
-  if (!aiSuggestions.length) {
+  if (!state.aiSuggestions.length) {
     container.innerHTML = "";
     return;
   }
@@ -3292,7 +3248,7 @@ function renderAiSuggestionHistory() {
       Recent AI suggestions
     </div>
     <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-      ${aiSuggestions
+      ${state.aiSuggestions
         .map(
           (suggestion) => `
         <span style="
@@ -3419,14 +3375,14 @@ function initPlanDraftState(planResult) {
     .filter((task) => task.title.length > 0);
 
   if (!tasks.length) {
-    planDraftState = null;
+    state.planDraftState = null;
     return;
   }
 
   const originalTasks = tasks.map((task, index) =>
     clonePlanDraftTask(task, index),
   );
-  planDraftState = {
+  state.planDraftState = {
     summary: String(planResult?.summary || "Suggested plan"),
     originalTasks,
     workingTasks: originalTasks.map((task, index) =>
@@ -3438,26 +3394,31 @@ function initPlanDraftState(planResult) {
 }
 
 function clearPlanDraftState() {
-  planDraftState = null;
+  state.planDraftState = null;
 }
 
 function removeAppliedPlanDraftTasks(appliedTempIds) {
-  if (!planDraftState || !appliedTempIds.size) return;
-  planDraftState.workingTasks = planDraftState.workingTasks.filter(
+  if (!state.planDraftState || !appliedTempIds.size) return;
+  state.planDraftState.workingTasks = state.planDraftState.workingTasks.filter(
     (task) => !appliedTempIds.has(task.tempId),
   );
-  planDraftState.originalTasks = planDraftState.originalTasks.filter(
-    (task) => !appliedTempIds.has(task.tempId),
-  );
-  planDraftState.selectedTaskTempIds = new Set(
-    planDraftState.workingTasks
+  state.planDraftState.originalTasks =
+    state.planDraftState.originalTasks.filter(
+      (task) => !appliedTempIds.has(task.tempId),
+    );
+  state.planDraftState.selectedTaskTempIds = new Set(
+    state.planDraftState.workingTasks
       .map((task) => task.tempId)
       .filter((tempId) => !appliedTempIds.has(tempId)),
   );
 }
 
 function isPlanActionBusy() {
-  return isPlanGenerateInFlight || isPlanApplyInFlight || isPlanDismissInFlight;
+  return (
+    state.isPlanGenerateInFlight ||
+    state.isPlanApplyInFlight ||
+    state.isPlanDismissInFlight
+  );
 }
 
 function updatePlanGenerateButtonState() {
@@ -3468,7 +3429,7 @@ function updatePlanGenerateButtonState() {
   if (generateButton) {
     generateButton.disabled = controlsDisabled;
     generateButton.textContent =
-      isPlanGenerateInFlight && planGenerateSource === "goal"
+      state.isPlanGenerateInFlight && state.planGenerateSource === "goal"
         ? "Generating..."
         : "Generate Plan";
   }
@@ -3476,7 +3437,7 @@ function updatePlanGenerateButtonState() {
   if (brainDumpButton) {
     brainDumpButton.disabled = controlsDisabled;
     brainDumpButton.textContent =
-      isPlanGenerateInFlight && planGenerateSource === "brain_dump"
+      state.isPlanGenerateInFlight && state.planGenerateSource === "brain_dump"
         ? "Drafting..."
         : "Draft tasks from brain dump";
   }
@@ -3484,9 +3445,9 @@ function updatePlanGenerateButtonState() {
 }
 
 function getSelectedPlanDraftTasks() {
-  if (!planDraftState) return [];
-  return planDraftState.workingTasks.filter((task) =>
-    planDraftState.selectedTaskTempIds.has(task.tempId),
+  if (!state.planDraftState) return [];
+  return state.planDraftState.workingTasks.filter((task) =>
+    state.planDraftState.selectedTaskTempIds.has(task.tempId),
   );
 }
 
@@ -3516,7 +3477,7 @@ function renderCritiquePanel() {
   const panel = document.getElementById("aiCritiquePanel");
   if (!panel) return;
 
-  if (!latestCritiqueResult) {
+  if (!state.latestCritiqueResult) {
     panel.style.display = "none";
     panel.innerHTML = "";
     updateAiWorkspaceStatusChip();
@@ -3543,16 +3504,16 @@ function renderLegacyCritiquePanel(panel) {
       background: var(--input-bg);
     ">
       <div style="font-weight: 600; margin-bottom: 6px;">
-        Task Critique Score: ${latestCritiqueResult.qualityScore}/100
+        Task Critique Score: ${state.latestCritiqueResult.qualityScore}/100
       </div>
-      <div><strong>Suggested title:</strong> ${escapeHtml(latestCritiqueResult.improvedTitle)}</div>
+      <div><strong>Suggested title:</strong> ${escapeHtml(state.latestCritiqueResult.improvedTitle)}</div>
       ${
-        latestCritiqueResult.improvedDescription
-          ? `<div style="margin-top: 4px;"><strong>Suggested description:</strong> ${escapeHtml(latestCritiqueResult.improvedDescription)}</div>`
+        state.latestCritiqueResult.improvedDescription
+          ? `<div style="margin-top: 4px;"><strong>Suggested description:</strong> ${escapeHtml(state.latestCritiqueResult.improvedDescription)}</div>`
           : ""
       }
       <ul style="margin: 8px 0 10px 18px;">
-        ${latestCritiqueResult.suggestions
+        ${state.latestCritiqueResult.suggestions
           .map((item) => `<li>${escapeHtml(item)}</li>`)
           .join("")}
       </ul>
@@ -3580,20 +3541,20 @@ function renderLegacyCritiquePanel(panel) {
 }
 
 function getCritiqueSuggestions() {
-  if (!Array.isArray(latestCritiqueResult?.suggestions)) return [];
-  return latestCritiqueResult.suggestions
+  if (!Array.isArray(state.latestCritiqueResult?.suggestions)) return [];
+  return state.latestCritiqueResult.suggestions
     .map((item) => String(item || "").trim())
     .filter((item) => item.length > 0);
 }
 
 function renderEnhancedCritiquePanel(panel) {
-  const scoreValue = Number(latestCritiqueResult?.qualityScore);
+  const scoreValue = Number(state.latestCritiqueResult?.qualityScore);
   const hasScore = Number.isFinite(scoreValue);
   const improvedTitle = String(
-    latestCritiqueResult?.improvedTitle || "",
+    state.latestCritiqueResult?.improvedTitle || "",
   ).trim();
   const improvedDescription = String(
-    latestCritiqueResult?.improvedDescription || "",
+    state.latestCritiqueResult?.improvedDescription || "",
   ).trim();
   const suggestions = getCritiqueSuggestions();
 
@@ -3668,7 +3629,7 @@ function updateCritiqueDraftButtonState() {
   if (!(critiqueButton instanceof HTMLButtonElement)) {
     return;
   }
-  const isBusy = critiqueRequestsInFlight > 0;
+  const isBusy = state.critiqueRequestsInFlight > 0;
   critiqueButton.disabled = isBusy;
   critiqueButton.textContent = isBusy ? "Critiquing..." : "Critique Draft (AI)";
 }
@@ -3686,15 +3647,15 @@ function renderPlanPanel() {
   const panel = document.getElementById("aiPlanPanel");
   if (!panel) return;
 
-  if (!latestPlanResult || !planDraftState) {
+  if (!state.latestPlanResult || !state.planDraftState) {
     panel.style.display = "none";
     panel.innerHTML = "";
     updateAiWorkspaceStatusChip();
     return;
   }
 
-  if (!planDraftState.workingTasks.length) {
-    if (!planDraftState.statusSyncFailed) {
+  if (!state.planDraftState.workingTasks.length) {
+    if (!state.planDraftState.statusSyncFailed) {
       panel.style.display = "none";
       panel.innerHTML = "";
       updateAiWorkspaceStatusChip();
@@ -3710,10 +3671,10 @@ function renderPlanPanel() {
         </div>
         <div class="plan-draft-actions-bottom">
           <button class="add-btn" ${controlsDisabled} data-onclick="retryMarkPlanSuggestionAccepted()">${
-            isPlanApplyInFlight ? "Retrying..." : "Retry mark accepted"
+            state.isPlanApplyInFlight ? "Retrying..." : "Retry mark accepted"
           }</button>
           <button class="add-btn" ${controlsDisabled} style="background: #64748b" data-onclick="dismissPlanSuggestion()">${
-            isPlanDismissInFlight ? "Dismissing..." : "Dismiss"
+            state.isPlanDismissInFlight ? "Dismissing..." : "Dismiss"
           }</button>
         </div>
       </div>
@@ -3725,14 +3686,14 @@ function renderPlanPanel() {
   const projects = getAllProjects();
   const hasProjects = projects.length > 0;
   const selectedCount = getSelectedPlanDraftTasks().length;
-  const totalCount = planDraftState.workingTasks.length;
+  const totalCount = state.planDraftState.workingTasks.length;
   const controlsDisabled = isPlanActionBusy() ? "disabled" : "";
 
   panel.style.display = "block";
   panel.innerHTML = `
     <div class="plan-draft-panel">
       <div class="plan-draft-header-row">
-        <div class="plan-draft-title">${escapeHtml(planDraftState.summary)}</div>
+        <div class="plan-draft-title">${escapeHtml(state.planDraftState.summary)}</div>
         <span class="plan-draft-count">${selectedCount}/${totalCount} selected</span>
       </div>
       <div class="plan-draft-actions-top">
@@ -3741,9 +3702,9 @@ function renderPlanPanel() {
         <button class="mini-btn" ${controlsDisabled} data-onclick="resetPlanDraft()">Reset to AI draft</button>
       </div>
       <div class="plan-draft-task-list">
-        ${planDraftState.workingTasks
+        ${state.planDraftState.workingTasks
           .map((task, index) => {
-            const isSelected = planDraftState.selectedTaskTempIds.has(
+            const isSelected = state.planDraftState.selectedTaskTempIds.has(
               task.tempId,
             );
             const selectedAttr = isSelected ? "checked" : "";
@@ -3864,10 +3825,10 @@ function renderPlanPanel() {
       />
       <div class="plan-draft-actions-bottom">
         <button class="add-btn" ${controlsDisabled} data-onclick="addPlanTasksToTodos()">${
-          isPlanApplyInFlight ? "Applying..." : "Apply selected tasks"
+          state.isPlanApplyInFlight ? "Applying..." : "Apply selected tasks"
         }</button>
         <button class="add-btn" ${controlsDisabled} style="background: #64748b" data-onclick="dismissPlanSuggestion()">${
-          isPlanDismissInFlight ? "Dismissing..." : "Dismiss"
+          state.isPlanDismissInFlight ? "Dismissing..." : "Dismiss"
         }</button>
       </div>
     </div>
@@ -3881,43 +3842,43 @@ function renderPlanPanel() {
 }
 
 function setPlanDraftTaskSelected(index, event) {
-  if (!planDraftState || isPlanActionBusy()) return;
-  const task = planDraftState.workingTasks[index];
+  if (!state.planDraftState || isPlanActionBusy()) return;
+  const task = state.planDraftState.workingTasks[index];
   if (!task) return;
   const checked = !!event?.target?.checked;
   if (checked) {
-    planDraftState.selectedTaskTempIds.add(task.tempId);
+    state.planDraftState.selectedTaskTempIds.add(task.tempId);
   } else {
-    planDraftState.selectedTaskTempIds.delete(task.tempId);
+    state.planDraftState.selectedTaskTempIds.delete(task.tempId);
   }
   renderPlanPanel();
 }
 
 function updatePlanDraftTaskTitle(index, event) {
-  if (!planDraftState) return;
-  const task = planDraftState.workingTasks[index];
+  if (!state.planDraftState) return;
+  const task = state.planDraftState.workingTasks[index];
   if (!task) return;
   task.title = String(event?.target?.value || "").slice(0, 200);
 }
 
 function updatePlanDraftTaskDescription(index, event) {
-  if (!planDraftState) return;
-  const task = planDraftState.workingTasks[index];
+  if (!state.planDraftState) return;
+  const task = state.planDraftState.workingTasks[index];
   if (!task) return;
   task.description = String(event?.target?.value || "").slice(0, 1000);
 }
 
 function updatePlanDraftTaskDueDate(index, event) {
-  if (!planDraftState) return;
-  const task = planDraftState.workingTasks[index];
+  if (!state.planDraftState) return;
+  const task = state.planDraftState.workingTasks[index];
   if (!task) return;
   const nextValue = String(event?.target?.value || "").trim();
   task.dueDate = /^\d{4}-\d{2}-\d{2}$/.test(nextValue) ? nextValue : "";
 }
 
 function updatePlanDraftTaskProject(index, event) {
-  if (!planDraftState) return;
-  const task = planDraftState.workingTasks[index];
+  if (!state.planDraftState) return;
+  const task = state.planDraftState.workingTasks[index];
   if (!task) return;
   task.projectName = String(event?.target?.value || "")
     .slice(0, 50)
@@ -3925,8 +3886,8 @@ function updatePlanDraftTaskProject(index, event) {
 }
 
 function updatePlanDraftTaskPriority(index, event) {
-  if (!planDraftState) return;
-  const task = planDraftState.workingTasks[index];
+  if (!state.planDraftState) return;
+  const task = state.planDraftState.workingTasks[index];
   if (!task) return;
   task.priority = normalizePlanDraftPriority(
     String(event?.target?.value || ""),
@@ -3934,47 +3895,47 @@ function updatePlanDraftTaskPriority(index, event) {
 }
 
 function selectAllPlanDraftTasks() {
-  if (!planDraftState || isPlanActionBusy()) return;
-  planDraftState.selectedTaskTempIds = new Set(
-    planDraftState.workingTasks.map((task) => task.tempId),
+  if (!state.planDraftState || isPlanActionBusy()) return;
+  state.planDraftState.selectedTaskTempIds = new Set(
+    state.planDraftState.workingTasks.map((task) => task.tempId),
   );
   renderPlanPanel();
 }
 
 function selectNoPlanDraftTasks() {
-  if (!planDraftState || isPlanActionBusy()) return;
-  planDraftState.selectedTaskTempIds.clear();
+  if (!state.planDraftState || isPlanActionBusy()) return;
+  state.planDraftState.selectedTaskTempIds.clear();
   renderPlanPanel();
 }
 
 function resetPlanDraft() {
-  if (!planDraftState || isPlanActionBusy()) return;
-  planDraftState.workingTasks = planDraftState.originalTasks.map(
+  if (!state.planDraftState || isPlanActionBusy()) return;
+  state.planDraftState.workingTasks = state.planDraftState.originalTasks.map(
     (task, index) => clonePlanDraftTask(task, index),
   );
-  planDraftState.selectedTaskTempIds = new Set(
-    planDraftState.workingTasks.map((task) => task.tempId),
+  state.planDraftState.selectedTaskTempIds = new Set(
+    state.planDraftState.workingTasks.map((task) => task.tempId),
   );
-  planDraftState.statusSyncFailed = false;
+  state.planDraftState.statusSyncFailed = false;
   renderPlanPanel();
 }
 
 async function retryMarkPlanSuggestionAccepted() {
   if (
-    !latestPlanSuggestionId ||
-    !planDraftState ||
-    !planDraftState.statusSyncFailed ||
+    !state.latestPlanSuggestionId ||
+    !state.planDraftState ||
+    !state.planDraftState.statusSyncFailed ||
     isPlanActionBusy()
   ) {
     return;
   }
 
-  isPlanApplyInFlight = true;
+  state.isPlanApplyInFlight = true;
   updatePlanGenerateButtonState();
   renderPlanPanel();
   try {
     const accepted = await updateSuggestionStatus(
-      latestPlanSuggestionId,
+      state.latestPlanSuggestionId,
       "accepted",
       getFeedbackReason("planFeedbackReasonInput", "Plan tasks were added"),
     );
@@ -3986,13 +3947,13 @@ async function retryMarkPlanSuggestionAccepted() {
       );
       return;
     }
-    latestPlanSuggestionId = null;
-    latestPlanResult = null;
+    state.latestPlanSuggestionId = null;
+    state.latestPlanResult = null;
     clearPlanDraftState();
     renderPlanPanel();
     showMessage("todosMessage", "AI suggestion marked accepted", "success");
   } finally {
-    isPlanApplyInFlight = false;
+    state.isPlanApplyInFlight = false;
     updatePlanGenerateButtonState();
     renderPlanPanel();
   }
@@ -4014,8 +3975,8 @@ async function critiqueDraftWithAi() {
     return;
   }
 
-  const requestId = ++latestCritiqueRequestId;
-  critiqueRequestsInFlight += 1;
+  const requestId = ++state.latestCritiqueRequestId;
+  state.critiqueRequestsInFlight += 1;
   updateCritiqueDraftButtonState();
 
   try {
@@ -4029,17 +3990,17 @@ async function critiqueDraftWithAi() {
         dueDate: dueDateInput.value
           ? new Date(dueDateInput.value).toISOString()
           : undefined,
-        priority: currentPriority,
+        priority: state.currentPriority,
       }),
     });
 
     const data = response ? await parseApiBody(response) : {};
-    if (requestId !== latestCritiqueRequestId) {
+    if (requestId !== state.latestCritiqueRequestId) {
       return;
     }
     if (response && response.ok) {
-      latestCritiqueSuggestionId = data.suggestionId;
-      latestCritiqueResult = data;
+      state.latestCritiqueSuggestionId = data.suggestionId;
+      state.latestCritiqueResult = data;
       renderCritiquePanel();
       showMessage(
         "todosMessage",
@@ -4054,7 +4015,7 @@ async function critiqueDraftWithAi() {
 
     showMessage("todosMessage", data.error || "AI critique failed", "error");
     if (response && response.status === 429 && data.usage) {
-      aiUsage = data.usage;
+      state.aiUsage = data.usage;
       renderAiUsageSummary();
       showMessage(
         "todosMessage",
@@ -4065,13 +4026,16 @@ async function critiqueDraftWithAi() {
       );
     }
   } catch (error) {
-    if (requestId !== latestCritiqueRequestId) {
+    if (requestId !== state.latestCritiqueRequestId) {
       return;
     }
     console.error("Critique draft error:", error);
     showMessage("todosMessage", "Failed to run AI critique", "error");
   } finally {
-    critiqueRequestsInFlight = Math.max(0, critiqueRequestsInFlight - 1);
+    state.critiqueRequestsInFlight = Math.max(
+      0,
+      state.critiqueRequestsInFlight - 1,
+    );
     updateCritiqueDraftButtonState();
   }
 }
@@ -4084,7 +4048,7 @@ async function applyCritiqueSuggestionMode(
   mode = "both",
   { overwriteDescription = true } = {},
 ) {
-  if (!latestCritiqueResult) return;
+  if (!state.latestCritiqueResult) return;
 
   const input = document.getElementById("todoInput");
   const notesInput = document.getElementById("todoNotesInput");
@@ -4093,42 +4057,42 @@ async function applyCritiqueSuggestionMode(
   const applyTitle = mode === "title" || mode === "both";
   const applyDescription = mode === "description" || mode === "both";
 
-  if (applyTitle && latestCritiqueResult.improvedTitle) {
-    input.value = latestCritiqueResult.improvedTitle;
+  if (applyTitle && state.latestCritiqueResult.improvedTitle) {
+    input.value = state.latestCritiqueResult.improvedTitle;
   }
 
   if (
     applyDescription &&
-    latestCritiqueResult.improvedDescription &&
+    state.latestCritiqueResult.improvedDescription &&
     (overwriteDescription || !notesInput.value.trim())
   ) {
-    notesInput.value = latestCritiqueResult.improvedDescription;
+    notesInput.value = state.latestCritiqueResult.improvedDescription;
     notesInput.style.display = "block";
     notesIcon.classList.add("expanded");
   }
 
   await updateSuggestionStatus(
-    latestCritiqueSuggestionId,
+    state.latestCritiqueSuggestionId,
     "accepted",
     getFeedbackReason("critiqueFeedbackReasonInput", "Applied to draft"),
   );
-  latestCritiqueSuggestionId = null;
-  latestCritiqueResult = null;
+  state.latestCritiqueSuggestionId = null;
+  state.latestCritiqueResult = null;
   renderCritiquePanel();
   showMessage("todosMessage", "AI suggestion applied to draft", "success");
 }
 
 async function dismissCritiqueSuggestion() {
   await updateSuggestionStatus(
-    latestCritiqueSuggestionId,
+    state.latestCritiqueSuggestionId,
     "rejected",
     getFeedbackReason(
       "critiqueFeedbackReasonInput",
       "Not useful for current context",
     ),
   );
-  latestCritiqueSuggestionId = null;
-  latestCritiqueResult = null;
+  state.latestCritiqueSuggestionId = null;
+  state.latestCritiqueResult = null;
   renderCritiquePanel();
 }
 
@@ -4145,8 +4109,8 @@ async function generatePlanWithAi() {
     return;
   }
 
-  isPlanGenerateInFlight = true;
-  planGenerateSource = "goal";
+  state.isPlanGenerateInFlight = true;
+  state.planGenerateSource = "goal";
   updatePlanGenerateButtonState();
   try {
     const response = await apiCall(`${API_URL}/ai/plan-from-goal`, {
@@ -4176,7 +4140,7 @@ async function generatePlanWithAi() {
       "error",
     );
     if (response && response.status === 429 && data.usage) {
-      aiUsage = data.usage;
+      state.aiUsage = data.usage;
       renderAiUsageSummary();
       showMessage(
         "todosMessage",
@@ -4190,8 +4154,8 @@ async function generatePlanWithAi() {
     console.error("Generate plan error:", error);
     showMessage("todosMessage", "Failed to generate AI plan", "error");
   } finally {
-    isPlanGenerateInFlight = false;
-    planGenerateSource = null;
+    state.isPlanGenerateInFlight = false;
+    state.planGenerateSource = null;
     updatePlanGenerateButtonState();
     renderPlanPanel();
   }
@@ -4207,8 +4171,8 @@ function clearBrainDumpInput() {
 }
 
 async function handlePlanFromGoalSuccess(data, successMessage) {
-  latestPlanSuggestionId = data.suggestionId;
-  latestPlanResult = data;
+  state.latestPlanSuggestionId = data.suggestionId;
+  state.latestPlanResult = data;
   initPlanDraftState(data);
   const planPanel = document.getElementById("aiPlanPanel");
   if (planPanel) {
@@ -4245,8 +4209,8 @@ async function draftPlanFromBrainDumpWithAi() {
     return;
   }
 
-  isPlanGenerateInFlight = true;
-  planGenerateSource = "brain_dump";
+  state.isPlanGenerateInFlight = true;
+  state.planGenerateSource = "brain_dump";
   updatePlanGenerateButtonState();
   try {
     const response = await apiCall(`${API_URL}/ai/plan-from-goal`, {
@@ -4270,7 +4234,7 @@ async function draftPlanFromBrainDumpWithAi() {
       "error",
     );
     if (response && response.status === 429 && data.usage) {
-      aiUsage = data.usage;
+      state.aiUsage = data.usage;
       renderAiUsageSummary();
       showMessage(
         "todosMessage",
@@ -4288,15 +4252,19 @@ async function draftPlanFromBrainDumpWithAi() {
       "error",
     );
   } finally {
-    isPlanGenerateInFlight = false;
-    planGenerateSource = null;
+    state.isPlanGenerateInFlight = false;
+    state.planGenerateSource = null;
     updatePlanGenerateButtonState();
     renderPlanPanel();
   }
 }
 
 async function addPlanTasksToTodos() {
-  if (!latestPlanSuggestionId || !planDraftState || isPlanActionBusy()) {
+  if (
+    !state.latestPlanSuggestionId ||
+    !state.planDraftState ||
+    isPlanActionBusy()
+  ) {
     return;
   }
 
@@ -4322,7 +4290,7 @@ async function addPlanTasksToTodos() {
     return;
   }
 
-  isPlanApplyInFlight = true;
+  state.isPlanApplyInFlight = true;
   updatePlanGenerateButtonState();
   renderPlanPanel();
   try {
@@ -4363,15 +4331,15 @@ async function addPlanTasksToTodos() {
     removeAppliedPlanDraftTasks(createdTempIds);
 
     const accepted = await updateSuggestionStatus(
-      latestPlanSuggestionId,
+      state.latestPlanSuggestionId,
       "accepted",
       getFeedbackReason("planFeedbackReasonInput", "Plan tasks were added"),
     );
 
     await loadTodos();
     if (!accepted) {
-      if (planDraftState) {
-        planDraftState.statusSyncFailed = true;
+      if (state.planDraftState) {
+        state.planDraftState.statusSyncFailed = true;
       }
       renderPlanPanel();
       showMessage(
@@ -4382,8 +4350,8 @@ async function addPlanTasksToTodos() {
       return;
     }
 
-    latestPlanSuggestionId = null;
-    latestPlanResult = null;
+    state.latestPlanSuggestionId = null;
+    state.latestPlanResult = null;
     clearPlanDraftState();
     renderPlanPanel();
     showMessage(
@@ -4395,34 +4363,34 @@ async function addPlanTasksToTodos() {
     console.error("Apply planned tasks error:", error);
     showMessage("todosMessage", "Failed to apply AI suggestion", "error");
   } finally {
-    isPlanApplyInFlight = false;
+    state.isPlanApplyInFlight = false;
     updatePlanGenerateButtonState();
     renderPlanPanel();
   }
 }
 
 async function dismissPlanSuggestion() {
-  if (!latestPlanSuggestionId || isPlanActionBusy()) {
+  if (!state.latestPlanSuggestionId || isPlanActionBusy()) {
     return;
   }
-  isPlanDismissInFlight = true;
+  state.isPlanDismissInFlight = true;
   updatePlanGenerateButtonState();
   renderPlanPanel();
   try {
     await updateSuggestionStatus(
-      latestPlanSuggestionId,
+      state.latestPlanSuggestionId,
       "rejected",
       getFeedbackReason(
         "planFeedbackReasonInput",
         "Plan did not match intended approach",
       ),
     );
-    latestPlanSuggestionId = null;
-    latestPlanResult = null;
+    state.latestPlanSuggestionId = null;
+    state.latestPlanResult = null;
     clearPlanDraftState();
     showMessage("todosMessage", "AI plan dismissed", "success");
   } finally {
-    isPlanDismissInFlight = false;
+    state.isPlanDismissInFlight = false;
     updatePlanGenerateButtonState();
     renderPlanPanel();
   }
@@ -4435,9 +4403,9 @@ async function addTodo() {
   const dueDateInput = document.getElementById("todoDueDateInput");
   const notesInput = document.getElementById("todoNotesInput");
 
-  if (quickEntryNaturalDateState.parseTimer) {
-    clearTimeout(quickEntryNaturalDateState.parseTimer);
-    quickEntryNaturalDateState.parseTimer = null;
+  if (state.quickEntryNaturalDateState.parseTimer) {
+    clearTimeout(state.quickEntryNaturalDateState.parseTimer);
+    state.quickEntryNaturalDateState.parseTimer = null;
   }
   await processQuickEntryNaturalDate({ trigger: "submit", cleanupTitle: true });
 
@@ -4446,7 +4414,7 @@ async function addTodo() {
 
   const payload = {
     title,
-    priority: currentPriority,
+    priority: state.currentPriority,
   };
 
   const projectPath = normalizeProjectPath(projectSelect.value);
@@ -4469,7 +4437,7 @@ async function addTodo() {
 
     if (response && response.ok) {
       const newTodo = await response.json();
-      todos.unshift(newTodo);
+      state.todos.unshift(newTodo);
       renderTodos();
       updateCategoryFilter();
       clearOnCreateDismissed(newTodo.id);
@@ -4492,20 +4460,23 @@ async function addTodo() {
       document.getElementById("notesExpandIcon").classList.remove("expanded");
       updateTaskComposerDueClearButton();
       closeTaskComposer({ restoreFocus: false, force: true });
-      onCreateAssistState = {
+      state.onCreateAssistState = {
         ...createInitialOnCreateAssistState(),
-        dismissedTodoIds: onCreateAssistState.dismissedTodoIds,
+        dismissedTodoIds: state.onCreateAssistState.dismissedTodoIds,
       };
-      onCreateAssistState.mode = "live";
-      onCreateAssistState.liveTodoId = newTodo.id;
-      onCreateAssistState.showFullAssist = true;
-      onCreateAssistState.loading = true;
+      state.onCreateAssistState.mode = "live";
+      state.onCreateAssistState.liveTodoId = newTodo.id;
+      state.onCreateAssistState.showFullAssist = true;
+      state.onCreateAssistState.loading = true;
       renderOnCreateAssistRow();
       await loadOnCreateDecisionAssist(newTodo);
 
       // Reopen the sheet if on-create suggestions were returned so the user
       // can see and interact with the suggestion chips.
-      if (onCreateAssistState.suggestions.length > 0 && !isTaskComposerOpen) {
+      if (
+        state.onCreateAssistState.suggestions.length > 0 &&
+        !state.isTaskComposerOpen
+      ) {
         openTaskComposer();
       }
 
@@ -4518,7 +4489,7 @@ async function addTodo() {
 
 // Toggle todo
 async function toggleTodo(id, forceValue = null) {
-  const todo = todos.find((t) => t.id === id);
+  const todo = state.todos.find((t) => t.id === id);
   if (!todo) return;
 
   const newCompletedValue = forceValue !== null ? forceValue : !todo.completed;
@@ -4532,7 +4503,7 @@ async function toggleTodo(id, forceValue = null) {
 
     if (response && response.ok) {
       const updatedTodo = await response.json();
-      todos = todos.map((t) => (t.id === id ? updatedTodo : t));
+      state.todos = state.todos.map((t) => (t.id === id ? updatedTodo : t));
       renderTodos();
 
       // Add undo action only if user initiated (not programmatic)
@@ -4547,7 +4518,7 @@ async function toggleTodo(id, forceValue = null) {
 
 // Delete todo
 async function deleteTodo(id) {
-  const todo = todos.find((t) => t.id === id);
+  const todo = state.todos.find((t) => t.id === id);
   if (!todo) return false;
 
   if (!(await showConfirmDialog("Delete this todo?"))) return false;
@@ -4561,8 +4532,8 @@ async function deleteTodo(id) {
     });
 
     if (response && response.ok) {
-      todos = todos.filter((t) => t.id !== id);
-      selectedTodos.delete(id);
+      state.todos = state.todos.filter((t) => t.id !== id);
+      state.selectedTodos.delete(id);
       renderTodos();
       updateCategoryFilter();
 
@@ -4615,8 +4586,8 @@ function updateCategoryFilter() {
 
 function getAllProjects() {
   const projectNames = [
-    ...customProjects,
-    ...todos.map((todo) => todo.category),
+    ...state.customProjects,
+    ...state.todos.map((todo) => todo.category),
   ]
     .map((value) => normalizeProjectPath(value))
     .filter((value) => value.length > 0 && !isInternalCategoryPath(value));
@@ -4626,7 +4597,7 @@ function getAllProjects() {
 function buildOpenTodoCountMapByProject() {
   const map = new Map();
 
-  todos.forEach((todo) => {
+  state.todos.forEach((todo) => {
     if (todo?.completed) return;
     const todoProject = normalizeProjectPath(todo?.category || "");
     if (!todoProject) return;
@@ -4653,7 +4624,10 @@ function getProjectsForRail(
 }
 
 function refreshProjectCatalog() {
-  customProjects = expandProjectTree([...customProjects, ...getAllProjects()]);
+  state.customProjects = expandProjectTree([
+    ...state.customProjects,
+    ...getAllProjects(),
+  ]);
   saveCustomProjects();
   updateProjectSelectOptions();
   updateCategoryFilter();
@@ -4744,24 +4718,24 @@ function getProjectDeleteDialogElements() {
 }
 
 function isProjectSurfaceActive() {
-  return !!getSelectedProjectKey() && currentWorkspaceView === "project";
+  return !!getSelectedProjectKey() && state.currentWorkspaceView === "project";
 }
 
 function lockBodyScrollForProjectEditDrawer() {
-  if (isProjectEditBodyLocked || !isMobileDrawerViewport()) return;
+  if (state.isProjectEditBodyLocked || !isMobileDrawerViewport()) return;
   const body = document.body;
-  projectEditScrollLockY = window.scrollY || window.pageYOffset || 0;
+  state.projectEditScrollLockY = window.scrollY || window.pageYOffset || 0;
   body.classList.add("is-drawer-open");
   body.style.position = "fixed";
-  body.style.top = `-${projectEditScrollLockY}px`;
+  body.style.top = `-${state.projectEditScrollLockY}px`;
   body.style.left = "0";
   body.style.right = "0";
   body.style.width = "100%";
-  isProjectEditBodyLocked = true;
+  state.isProjectEditBodyLocked = true;
 }
 
 function unlockBodyScrollForProjectEditDrawer() {
-  if (!isProjectEditBodyLocked) return;
+  if (!state.isProjectEditBodyLocked) return;
   const body = document.body;
   body.classList.remove("is-drawer-open");
   body.style.position = "";
@@ -4769,16 +4743,16 @@ function unlockBodyScrollForProjectEditDrawer() {
   body.style.left = "";
   body.style.right = "";
   body.style.width = "";
-  window.scrollTo(0, projectEditScrollLockY);
-  projectEditScrollLockY = 0;
-  isProjectEditBodyLocked = false;
+  window.scrollTo(0, state.projectEditScrollLockY);
+  state.projectEditScrollLockY = 0;
+  state.isProjectEditBodyLocked = false;
 }
 
 function renderProjectDeleteDialog() {
   const refs = getProjectDeleteDialogElements();
   if (!refs) return;
 
-  if (!projectDeleteDialogState) {
+  if (!state.projectDeleteDialogState) {
     refs.overlay.style.display = "none";
     refs.actions.innerHTML = "";
     refs.body.textContent = "";
@@ -4786,8 +4760,8 @@ function renderProjectDeleteDialog() {
   }
 
   refs.overlay.style.display = "flex";
-  refs.body.textContent = projectDeleteDialogState.body;
-  refs.actions.innerHTML = projectDeleteDialogState.actions
+  refs.body.textContent = state.projectDeleteDialogState.body;
+  refs.actions.innerHTML = state.projectDeleteDialogState.actions
     .map(
       (action, index) => `
         <button
@@ -4813,13 +4787,13 @@ function renderProjectDeleteDialog() {
 }
 
 function openProjectDeleteDialog(config) {
-  projectDeleteDialogState = config;
+  state.projectDeleteDialogState = config;
   renderProjectDeleteDialog();
 }
 
 function closeProjectDeleteDialog() {
-  projectDeleteDialogState = null;
-  isProjectDeletePending = false;
+  state.projectDeleteDialogState = null;
+  state.isProjectDeletePending = false;
   renderProjectDeleteDialog();
 }
 
@@ -4827,7 +4801,7 @@ function renderProjectEditDrawer() {
   const refs = getProjectEditDrawerElements();
   if (!refs) return;
 
-  const projectRecord = getProjectRecordByName(projectEditTargetProject);
+  const projectRecord = getProjectRecordByName(state.projectEditTargetProject);
   if (!projectRecord) {
     refs.meta.textContent = "Project not found.";
   } else {
@@ -4856,13 +4830,13 @@ function openProjectEditDrawer(
     return;
   }
 
-  if (isRailSheetOpen) {
+  if (state.isRailSheetOpen) {
     closeProjectsRailSheet({ restoreFocus: false });
   }
 
-  isProjectEditDrawerOpen = true;
-  projectEditTargetProject = projectRecord.name;
-  lastProjectEditOpener = opener instanceof HTMLElement ? opener : null;
+  state.isProjectEditDrawerOpen = true;
+  state.projectEditTargetProject = projectRecord.name;
+  state.lastProjectEditOpener = opener instanceof HTMLElement ? opener : null;
   refs.drawer.classList.add("project-edit-drawer--open");
   refs.drawer.setAttribute("aria-hidden", "false");
   refs.backdrop.classList.add("project-edit-drawer-backdrop--open");
@@ -4879,13 +4853,13 @@ function openProjectEditDrawer(
 function closeProjectEditDrawer({ restoreFocus = true, force = false } = {}) {
   const refs = getProjectEditDrawerElements();
   if (!refs) return;
-  if (isProjectDeletePending && !force) return;
+  if (state.isProjectDeletePending && !force) return;
 
-  if (projectDeleteDialogState) {
+  if (state.projectDeleteDialogState) {
     closeProjectDeleteDialog();
   }
-  isProjectEditDrawerOpen = false;
-  projectEditTargetProject = "";
+  state.isProjectEditDrawerOpen = false;
+  state.projectEditTargetProject = "";
   refs.drawer.classList.remove("project-edit-drawer--open");
   refs.drawer.setAttribute("aria-hidden", "true");
   refs.backdrop.classList.remove("project-edit-drawer-backdrop--open");
@@ -4897,15 +4871,15 @@ function closeProjectEditDrawer({ restoreFocus = true, force = false } = {}) {
   if (restoreFocus) {
     const fallback = document.getElementById("projectViewActionsButton");
     const focusTarget =
-      lastProjectEditOpener instanceof HTMLElement &&
-      lastProjectEditOpener.isConnected
-        ? lastProjectEditOpener
+      state.lastProjectEditOpener instanceof HTMLElement &&
+      state.lastProjectEditOpener.isConnected
+        ? state.lastProjectEditOpener
         : fallback instanceof HTMLElement
           ? fallback
           : null;
     focusTarget?.focus({ preventScroll: true });
   }
-  lastProjectEditOpener = null;
+  state.lastProjectEditOpener = null;
 }
 
 function syncProjectHeaderActions() {
@@ -4917,21 +4891,21 @@ function syncProjectHeaderActions() {
 }
 
 function replaceProjectRecord(projectRecord) {
-  projectRecords = projectRecords.map((item) =>
+  state.projectRecords = state.projectRecords.map((item) =>
     String(item.id) === String(projectRecord.id) ? projectRecord : item,
   );
 }
 
 function renameProjectLocally(selectedPath, renamedPath, updatedProject) {
   replaceProjectRecord(updatedProject);
-  todos = todos.map((todo) =>
+  state.todos = state.todos.map((todo) =>
     normalizeProjectPath(todo?.category || "") === selectedPath
       ? { ...todo, category: renamedPath }
       : todo,
   );
 
-  customProjects = expandProjectTree(
-    customProjects.map((path) =>
+  state.customProjects = expandProjectTree(
+    state.customProjects.map((path) =>
       normalizeProjectPath(path) === selectedPath ? renamedPath : path,
     ),
   );
@@ -4947,16 +4921,18 @@ function removeProjectLocally(
 ) {
   const normalized = normalizeProjectPath(projectName);
   const removed = getProjectRecordByName(normalized);
-  projectRecords = projectRecords.filter(
+  state.projectRecords = state.projectRecords.filter(
     (record) => normalizeProjectPath(record?.name) !== normalized,
   );
-  customProjects = expandProjectTree(
-    customProjects.filter((path) => normalizeProjectPath(path) !== normalized),
+  state.customProjects = expandProjectTree(
+    state.customProjects.filter(
+      (path) => normalizeProjectPath(path) !== normalized,
+    ),
   );
   saveCustomProjects();
 
   if (taskDisposition === "delete") {
-    todos = todos.filter((todo) => {
+    state.todos = state.todos.filter((todo) => {
       const todoProject = normalizeProjectPath(todo?.category || "");
       if (!todoProject) return true;
       return (
@@ -4965,7 +4941,7 @@ function removeProjectLocally(
       );
     });
   } else {
-    todos = todos.map((todo) =>
+    state.todos = state.todos.map((todo) =>
       normalizeProjectPath(todo?.category || "") === normalized ||
       normalizeProjectPath(todo?.category || "").startsWith(
         `${normalized}${PROJECT_PATH_SEPARATOR}`,
@@ -4976,7 +4952,7 @@ function removeProjectLocally(
   }
 
   if (removed?.id) {
-    projectHeadingsByProjectId.delete(String(removed.id));
+    state.projectHeadingsByProjectId.delete(String(removed.id));
   }
   updateProjectSelectOptions();
   updateCategoryFilter();
@@ -5003,10 +4979,10 @@ function openProjectCrudModal(mode, opener, initialProjectName = "") {
   const refs = getProjectCrudModalElements();
   if (!refs) return;
 
-  isProjectCrudModalOpen = true;
-  projectCrudMode = mode;
-  projectCrudTargetProject = initialProjectName || "";
-  lastProjectCrudOpener = opener instanceof HTMLElement ? opener : null;
+  state.isProjectCrudModalOpen = true;
+  state.projectCrudMode = mode;
+  state.projectCrudTargetProject = initialProjectName || "";
+  state.lastProjectCrudOpener = opener instanceof HTMLElement ? opener : null;
 
   refs.modal.style.display = "flex";
   refs.title.textContent = mode === "rename" ? "Rename project" : "New project";
@@ -5023,15 +4999,15 @@ function closeProjectCrudModal({ restoreFocus = true } = {}) {
   const refs = getProjectCrudModalElements();
   if (!refs) return;
 
-  isProjectCrudModalOpen = false;
-  projectCrudMode = "create";
-  projectCrudTargetProject = "";
+  state.isProjectCrudModalOpen = false;
+  state.projectCrudMode = "create";
+  state.projectCrudTargetProject = "";
   refs.modal.style.display = "none";
   refs.form.reset();
 
   if (restoreFocus) {
-    if (lastProjectCrudOpener?.isConnected) {
-      lastProjectCrudOpener.focus({ preventScroll: true });
+    if (state.lastProjectCrudOpener?.isConnected) {
+      state.lastProjectCrudOpener.focus({ preventScroll: true });
     } else {
       const fallback = document.getElementById("dockNewProjectBtn");
       if (fallback instanceof HTMLElement) {
@@ -5039,7 +5015,7 @@ function closeProjectCrudModal({ restoreFocus = true } = {}) {
       }
     }
   }
-  lastProjectCrudOpener = null;
+  state.lastProjectCrudOpener = null;
 }
 
 async function submitProjectCrudModal() {
@@ -5060,9 +5036,9 @@ async function submitProjectCrudModal() {
 
   try {
     let didSucceed = false;
-    if (projectCrudMode === "rename") {
+    if (state.projectCrudMode === "rename") {
       didSucceed = await renameProjectByName(
-        projectCrudTargetProject,
+        state.projectCrudTargetProject,
         nextName,
       );
     } else {
@@ -5088,9 +5064,9 @@ async function createProjectByName(projectName) {
     return false;
   }
 
-  if (!customProjects.includes(projectName)) {
-    customProjects.push(projectName);
-    customProjects = expandProjectTree(customProjects);
+  if (!state.customProjects.includes(projectName)) {
+    state.customProjects.push(projectName);
+    state.customProjects = expandProjectTree(state.customProjects);
     saveCustomProjects();
   }
 
@@ -5222,7 +5198,7 @@ async function submitProjectEditDrawer() {
 
   try {
     const didSucceed = await renameProjectByName(
-      projectEditTargetProject,
+      state.projectEditTargetProject,
       validation.normalized,
     );
     if (didSucceed) {
@@ -5236,8 +5212,10 @@ async function submitProjectEditDrawer() {
   }
 }
 
-function confirmDeleteSelectedProject(projectName = projectEditTargetProject) {
-  if (isProjectDeletePending) return;
+function confirmDeleteSelectedProject(
+  projectName = state.projectEditTargetProject,
+) {
+  if (state.isProjectDeletePending) return;
   const normalized = normalizeProjectPath(projectName);
   const projectRecord = getProjectRecordByName(normalized);
   if (!normalized || !projectRecord) {
@@ -5292,17 +5270,17 @@ function confirmDeleteSelectedProject(projectName = projectEditTargetProject) {
 }
 
 async function handleProjectDeleteDialogAction(actionValue) {
-  if (!projectDeleteDialogState || isProjectDeletePending) return;
-  const projectName = projectDeleteDialogState.projectName;
+  if (!state.projectDeleteDialogState || state.isProjectDeletePending) return;
+  const projectName = state.projectDeleteDialogState.projectName;
   if (actionValue === "cancel") {
-    if (isProjectDeletePending) return;
+    if (state.isProjectDeletePending) return;
     closeProjectDeleteDialog();
     return;
   }
 
   const refs = getProjectDeleteDialogElements();
   if (!refs) return;
-  isProjectDeletePending = true;
+  state.isProjectDeletePending = true;
   refs.actions
     .querySelectorAll("button")
     .forEach((button) => (button.disabled = true));
@@ -5337,7 +5315,7 @@ async function handleProjectDeleteDialogAction(actionValue) {
       }
     }
   } finally {
-    isProjectDeletePending = false;
+    state.isProjectDeletePending = false;
     const latestDrawerRefs = getProjectEditDrawerElements();
     if (latestDrawerRefs) {
       latestDrawerRefs.save.disabled = false;
@@ -5390,9 +5368,9 @@ async function createSubproject() {
   if (!created) {
     return;
   }
-  if (!customProjects.includes(combinedPath)) {
-    customProjects.push(combinedPath);
-    customProjects = expandProjectTree(customProjects);
+  if (!state.customProjects.includes(combinedPath)) {
+    state.customProjects.push(combinedPath);
+    state.customProjects = expandProjectTree(state.customProjects);
     saveCustomProjects();
     updateProjectSelectOptions();
     updateCategoryFilter();
@@ -5425,7 +5403,7 @@ function renderProjectOptions(selectedProject = "") {
 }
 
 async function moveTodoToProject(todoId, projectValue) {
-  const todo = todos.find((item) => item.id === todoId);
+  const todo = state.todos.find((item) => item.id === todoId);
   if (!todo) return;
   const category =
     typeof projectValue === "string" ? normalizeProjectPath(projectValue) : "";
@@ -5440,9 +5418,11 @@ async function moveTodoToProject(todoId, projectValue) {
       throw new Error("Update failed");
     }
     const updated = await response.json();
-    todos = todos.map((item) => (item.id === todoId ? updated : item));
-    if (category && !customProjects.includes(category)) {
-      customProjects.push(category);
+    state.todos = state.todos.map((item) =>
+      item.id === todoId ? updated : item,
+    );
+    if (category && !state.customProjects.includes(category)) {
+      state.customProjects.push(category);
     }
     refreshProjectCatalog();
     await loadProjects();
@@ -5502,11 +5482,13 @@ async function applyTodoPatch(todoId, patch) {
   }
 
   const updatedTodo = await response.json();
-  todos = todos.map((todo) => (todo.id === todoId ? updatedTodo : todo));
+  state.todos = state.todos.map((todo) =>
+    todo.id === todoId ? updatedTodo : todo,
+  );
 
   const projectPath = normalizeProjectPath(updatedTodo?.category || "");
-  if (projectPath && !customProjects.includes(projectPath)) {
-    customProjects.push(projectPath);
+  if (projectPath && !state.customProjects.includes(projectPath)) {
+    state.customProjects.push(projectPath);
   }
   refreshProjectCatalog();
   await loadProjects();
@@ -5515,9 +5497,9 @@ async function applyTodoPatch(todoId, patch) {
 }
 
 function openEditTodoModal(todoId) {
-  const todo = todos.find((item) => item.id === todoId);
+  const todo = state.todos.find((item) => item.id === todoId);
   if (!todo) return;
-  editingTodoId = todoId;
+  state.editingTodoId = todoId;
 
   document.getElementById("editTodoTitle").value = todo.title || "";
   document.getElementById("editTodoDescription").value = todo.description || "";
@@ -5534,12 +5516,12 @@ function openEditTodoModal(todoId) {
 }
 
 function closeEditTodoModal() {
-  editingTodoId = null;
+  state.editingTodoId = null;
   document.getElementById("editTodoModal").style.display = "none";
 }
 
 async function saveEditedTodo() {
-  if (!editingTodoId) return;
+  if (!state.editingTodoId) return;
   const title = document.getElementById("editTodoTitle").value.trim();
   const titleError = validateTodoTitle(title);
   if (titleError) {
@@ -5567,7 +5549,7 @@ async function saveEditedTodo() {
   };
 
   try {
-    await applyTodoPatch(editingTodoId, payload);
+    await applyTodoPatch(state.editingTodoId, payload);
     renderTodos();
     syncTodoDrawerStateWithRender();
     closeEditTodoModal();
@@ -5583,7 +5565,7 @@ async function saveEditedTodo() {
 }
 
 function setDateView(view, { skipApply = false } = {}) {
-  currentDateView = view;
+  state.currentDateView = view;
   const ids = {
     all: "dateViewAll",
     today: "dateViewToday",
@@ -5609,9 +5591,9 @@ function setDateView(view, { skipApply = false } = {}) {
   }
   if (!skipApply && !getSelectedProjectKey()) {
     if (view === "today" || view === "upcoming" || view === "completed") {
-      currentWorkspaceView = view;
+      state.currentWorkspaceView = view;
     } else {
-      currentWorkspaceView = "all";
+      state.currentWorkspaceView = "all";
     }
     clearHomeListDrilldown();
   }
@@ -5623,30 +5605,32 @@ function setDateView(view, { skipApply = false } = {}) {
 
 function matchesWorkspaceView(view) {
   if (view === "home") {
-    return !getSelectedProjectKey() && currentWorkspaceView === "home";
+    return !getSelectedProjectKey() && state.currentWorkspaceView === "home";
   }
   if (view === "unsorted") {
-    return !getSelectedProjectKey() && currentWorkspaceView === "unsorted";
+    return (
+      !getSelectedProjectKey() && state.currentWorkspaceView === "unsorted"
+    );
   }
   if (view === "all") {
     return (
       getSelectedProjectKey() === "" &&
-      currentDateView === "all" &&
-      currentWorkspaceView === "all" &&
+      state.currentDateView === "all" &&
+      state.currentWorkspaceView === "all" &&
       !hasHomeListDrilldown()
     );
   }
   if (view === "completed") {
     return (
       getSelectedProjectKey() === "" &&
-      currentDateView === "completed" &&
-      currentWorkspaceView === "completed"
+      state.currentDateView === "completed" &&
+      state.currentWorkspaceView === "completed"
     );
   }
   return (
     getSelectedProjectKey() === "" &&
-    currentDateView === view &&
-    currentWorkspaceView === view
+    state.currentDateView === view &&
+    state.currentWorkspaceView === view
   );
 }
 
@@ -5696,20 +5680,20 @@ function selectWorkspaceView(view, triggerEl = null) {
   if (triggerEl instanceof HTMLElement) {
     triggerEl.blur();
   }
-  if (isProjectEditDrawerOpen) {
+  if (state.isProjectEditDrawerOpen) {
     closeProjectEditDrawer({ restoreFocus: false });
   }
-  if (projectDeleteDialogState) {
+  if (state.projectDeleteDialogState) {
     closeProjectDeleteDialog();
   }
   ensureTodosShellActive();
-  currentWorkspaceView = normalizedView;
+  state.currentWorkspaceView = normalizedView;
   clearHomeListDrilldown();
   setSelectedProjectKey("", { reason: "workspace-view", skipApply: true });
   setDateView(nextView, { skipApply: true });
   applyFiltersAndRender({ reason: "workspace-view" });
 
-  if (isRailSheetOpen) {
+  if (state.isRailSheetOpen) {
     closeProjectsRailSheet({
       restoreFocus: !(triggerEl instanceof HTMLElement),
     });
@@ -5725,10 +5709,10 @@ function isSameLocalDay(a, b) {
 }
 
 function matchesDateView(todo) {
-  if (currentDateView === "all") {
+  if (state.currentDateView === "all") {
     return true;
   }
-  if (currentDateView === "completed") {
+  if (state.currentDateView === "completed") {
     return !!todo.completed;
   }
 
@@ -5745,23 +5729,23 @@ function matchesDateView(todo) {
     999,
   );
 
-  if (currentDateView === "someday") {
+  if (state.currentDateView === "someday") {
     return !dueDate;
   }
   if (!dueDate) {
     return false;
   }
 
-  if (currentDateView === "today") {
+  if (state.currentDateView === "today") {
     return isSameLocalDay(dueDate, now);
   }
 
-  if (currentDateView === "upcoming") {
+  if (state.currentDateView === "upcoming") {
     const upcomingEnd = new Date(todayEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
     return dueDate > todayEnd && dueDate <= upcomingEnd;
   }
 
-  if (currentDateView === "next_month") {
+  if (state.currentDateView === "next_month") {
     const nextMonth = (now.getMonth() + 1) % 12;
     const nextMonthYear =
       now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
@@ -5775,7 +5759,7 @@ function matchesDateView(todo) {
 }
 
 function getVisibleTodos() {
-  return filterTodosList(todos);
+  return filterTodosList(state.todos);
 }
 
 function getVisibleDueDatedTodos() {
@@ -5867,7 +5851,7 @@ function filterTodosList(todosList) {
 
   if (hasHomeListDrilldown()) {
     const drilldownIds = new Set(
-      buildHomeTileListByKey(homeListDrilldownKey).map((todo) =>
+      buildHomeTileListByKey(state.homeListDrilldownKey).map((todo) =>
         String(todo.id),
       ),
     );
@@ -5878,8 +5862,8 @@ function filterTodosList(todosList) {
 }
 
 function applyFiltersAndRender({ reason = "unknown" } = {}) {
-  if (isApplyingFiltersPipeline) return;
-  isApplyingFiltersPipeline = true;
+  if (state.isApplyingFiltersPipeline) return;
+  state.isApplyingFiltersPipeline = true;
   try {
     // Keep filterTodos in the pipeline to preserve legacy entry-point semantics.
     filterTodos({ skipPipeline: true, reason });
@@ -5887,7 +5871,7 @@ function applyFiltersAndRender({ reason = "unknown" } = {}) {
     updateHeaderFromVisibleTodos(getVisibleTodos());
     syncTodoDrawerStateWithRender();
   } finally {
-    isApplyingFiltersPipeline = false;
+    state.isApplyingFiltersPipeline = false;
   }
 }
 
@@ -5902,7 +5886,7 @@ function filterTodos({ skipPipeline = false, reason = "manual" } = {}) {
 
 // Clear all filters
 function clearFilters() {
-  currentWorkspaceView = "all";
+  state.currentWorkspaceView = "all";
   clearHomeListDrilldown();
   setSelectedProjectKey("", {
     reason: "clear-filters-reset-project",
@@ -5989,7 +5973,7 @@ function getProjectsRailElements() {
 }
 
 function openProjectsFromCollapsedRail(triggerEl = null) {
-  if (!isRailCollapsed) return;
+  if (!state.isRailCollapsed) return;
   setProjectsRailCollapsed(false);
   renderProjectsRail();
   window.requestAnimationFrame(() => {
@@ -6023,8 +6007,8 @@ function isMobileRailViewport() {
 }
 
 function getProjectTodoCount(projectName) {
-  if (!projectName) return todos.filter((todo) => !todo.completed).length;
-  return todos.filter((todo) => {
+  if (!projectName) return state.todos.filter((todo) => !todo.completed).length;
+  return state.todos.filter((todo) => {
     if (todo.completed) return false;
     const todoProject = normalizeProjectPath(todo.category);
     if (!todoProject) return false;
@@ -6036,10 +6020,10 @@ function getProjectTodoCount(projectName) {
 }
 
 function getSelectedProjectLabel(selectedProject) {
-  if (!selectedProject && currentWorkspaceView === "home") {
+  if (!selectedProject && state.currentWorkspaceView === "home") {
     return "Home";
   }
-  if (!selectedProject && currentWorkspaceView === "unsorted") {
+  if (!selectedProject && state.currentWorkspaceView === "unsorted") {
     return "Unsorted";
   }
   if (!selectedProject) return "All tasks";
@@ -6091,13 +6075,13 @@ function setSelectedProjectKey(
   }
 
   if (nextValue) {
-    currentWorkspaceView = "project";
+    state.currentWorkspaceView = "project";
     clearHomeListDrilldown();
-  } else if (currentWorkspaceView === "project") {
-    currentWorkspaceView = "all";
+  } else if (state.currentWorkspaceView === "project") {
+    state.currentWorkspaceView = "all";
   }
 
-  railRovingFocusKey = nextValue || "";
+  state.railRovingFocusKey = nextValue || "";
   syncWorkspaceViewState();
   if (!skipApply) {
     applyFiltersAndRender({ reason });
@@ -6124,7 +6108,7 @@ function getCurrentDateViewLabel() {
     next_month: "Next month",
     someday: "Someday",
   };
-  return labels[currentDateView] || "";
+  return labels[state.currentDateView] || "";
 }
 
 function updateHeaderAndContextUI({
@@ -6248,11 +6232,11 @@ function renderTodoRowHtml(todo) {
   const dueDateStr = todo.dueDate
     ? new Date(todo.dueDate).toLocaleString()
     : "";
-  const isSelected = selectedTodos.has(todo.id);
+  const isSelected = state.selectedTodos.has(todo.id);
   const hasSubtasks = !!(todo.subtasks && todo.subtasks.length > 0);
 
   return `
-    <li class="todo-item ${todo.completed ? "completed" : ""} ${selectedTodoId === todo.id ? "todo-item--active" : ""} ${isSelected ? "todo-item--bulk-selected" : ""}"
+    <li class="todo-item ${todo.completed ? "completed" : ""} ${state.selectedTodoId === todo.id ? "todo-item--active" : ""} ${isSelected ? "todo-item--bulk-selected" : ""}"
         draggable="true"
         data-todo-id="${todo.id}"
         tabindex="0"
@@ -6304,13 +6288,13 @@ function renderTodoRowHtml(todo) {
             type="button"
             class="todo-kebab"
             aria-label="More actions for ${escapeHtml(todo.title)}"
-            aria-expanded="${openTodoKebabId === todo.id ? "true" : "false"}"
+            aria-expanded="${state.openTodoKebabId === todo.id ? "true" : "false"}"
             data-onclick="toggleTodoKebab('${todo.id}', event)"
           >
             ⋯
           </button>
           <div
-            class="todo-kebab-menu ${openTodoKebabId === todo.id ? "todo-kebab-menu--open" : ""}"
+            class="todo-kebab-menu ${state.openTodoKebabId === todo.id ? "todo-kebab-menu--open" : ""}"
             role="menu"
             aria-label="Actions for ${escapeHtml(todo.title)}"
           >
@@ -6483,7 +6467,7 @@ function reorderProjectHeadings(draggedId, targetId, placement = "before") {
   insertIndex = Math.max(0, Math.min(insertIndex, headings.length));
   headings.splice(insertIndex, 0, draggedHeading);
 
-  projectHeadingsByProjectId.set(
+  state.projectHeadingsByProjectId.set(
     projectId,
     headings.map((heading, index) => ({
       ...heading,
@@ -6526,7 +6510,7 @@ function getHeadingDropTargetFromTodo(todoId, dropPosition = "before") {
     return null;
   }
   const headingIds = new Set(headings.map((heading) => String(heading.id)));
-  const todo = todos.find((item) => String(item.id) === String(todoId));
+  const todo = state.todos.find((item) => String(item.id) === String(todoId));
   const todoHeadingId = String(todo?.headingId || "");
   if (todoHeadingId && headingIds.has(todoHeadingId)) {
     if (todoHeadingId === String(draggedHeadingId || "")) {
@@ -6563,7 +6547,7 @@ function getHeadingDropTargetFromTodo(todoId, dropPosition = "before") {
   return { targetId: String(edgeHeading.id), placement: dropPosition };
 }
 async function moveTodoToHeading(todoId, headingIdValue) {
-  const todo = todos.find((item) => item.id === todoId);
+  const todo = state.todos.find((item) => item.id === todoId);
   if (!todo) return;
   const nextHeadingId =
     typeof headingIdValue === "string" && headingIdValue.trim()
@@ -6594,7 +6578,7 @@ function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
 
   const topbarLabel = document.getElementById("projectsRailTopbarLabel");
   const topbar = document.querySelector("#todosView .todos-top-bar");
-  const shouldShow = isMobileRailViewport() || isRailCollapsed;
+  const shouldShow = isMobileRailViewport() || state.isRailCollapsed;
 
   if (topbar instanceof HTMLElement) {
     topbar.hidden = !shouldShow;
@@ -6606,7 +6590,9 @@ function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
   );
   refs.mobileOpenButton.setAttribute(
     "aria-expanded",
-    String(isMobileRailViewport() ? isRailSheetOpen : !isRailCollapsed),
+    String(
+      isMobileRailViewport() ? state.isRailSheetOpen : !state.isRailCollapsed,
+    ),
   );
   if (shouldShow) {
     refs.mobileOpenButton.removeAttribute("aria-hidden");
@@ -6672,9 +6658,9 @@ function buildCommandPaletteItems() {
 
 function getCommandPaletteCommandMatches(query) {
   if (!query) {
-    return commandPaletteItems;
+    return state.commandPaletteItems;
   }
-  return commandPaletteItems.filter((item) =>
+  return state.commandPaletteItems.filter((item) =>
     item.label.toLowerCase().includes(query),
   );
 }
@@ -6685,7 +6671,7 @@ function getCommandPaletteTaskMatches(query) {
   }
 
   const normalizedQuery = query.toLowerCase();
-  const ranked = todos
+  const ranked = state.todos
     .map((todo) => {
       const title = String(todo.title || "");
       const description = String(todo.description || "");
@@ -6735,7 +6721,7 @@ function getCommandPaletteTaskMatches(query) {
 }
 
 function getCommandPaletteRenderModel() {
-  const query = commandPaletteQuery.trim().toLowerCase();
+  const query = state.commandPaletteQuery.trim().toLowerCase();
   const commandMatches = getCommandPaletteCommandMatches(query);
   const taskMatches = getCommandPaletteTaskMatches(query);
   const rows = [];
@@ -6785,24 +6771,27 @@ function renderCommandPalette() {
 
   refs.overlay.classList.toggle(
     "command-palette-overlay--open",
-    isCommandPaletteOpen,
+    state.isCommandPaletteOpen,
   );
-  refs.overlay.setAttribute("aria-hidden", String(!isCommandPaletteOpen));
-  refs.input.value = commandPaletteQuery;
+  refs.overlay.setAttribute("aria-hidden", String(!state.isCommandPaletteOpen));
+  refs.input.value = state.commandPaletteQuery;
 
   const renderModel = getCommandPaletteRenderModel();
-  commandPaletteSelectableItems = renderModel.selectableItems;
-  if (commandPaletteSelectableItems.length === 0) {
-    commandPaletteIndex = 0;
-  } else if (commandPaletteIndex > commandPaletteSelectableItems.length - 1) {
-    commandPaletteIndex = commandPaletteSelectableItems.length - 1;
+  state.commandPaletteSelectableItems = renderModel.selectableItems;
+  if (state.commandPaletteSelectableItems.length === 0) {
+    state.commandPaletteIndex = 0;
+  } else if (
+    state.commandPaletteIndex >
+    state.commandPaletteSelectableItems.length - 1
+  ) {
+    state.commandPaletteIndex = state.commandPaletteSelectableItems.length - 1;
   }
 
-  refs.input.setAttribute("aria-expanded", String(isCommandPaletteOpen));
+  refs.input.setAttribute("aria-expanded", String(state.isCommandPaletteOpen));
   refs.input.setAttribute(
     "aria-activedescendant",
-    commandPaletteSelectableItems.length > 0
-      ? `commandPaletteOption-${commandPaletteIndex}`
+    state.commandPaletteSelectableItems.length > 0
+      ? `commandPaletteOption-${state.commandPaletteIndex}`
       : "",
   );
 
@@ -6817,7 +6806,7 @@ function renderCommandPalette() {
       }
 
       selectableIndex += 1;
-      const isActive = selectableIndex === commandPaletteIndex;
+      const isActive = selectableIndex === state.commandPaletteIndex;
       const item = row.item;
       if (item.type === "task") {
         return `
@@ -6885,7 +6874,7 @@ function executeCommandPaletteItem(item, triggerEl = null) {
     if (shouldSwitchToTodos) {
       switchView("todos", todosTab instanceof HTMLElement ? todosTab : null);
     }
-    currentWorkspaceView = item.payload ? "project" : "all";
+    state.currentWorkspaceView = item.payload ? "project" : "all";
     clearHomeListDrilldown();
     setSelectedProjectKey(String(item.payload || ""));
     closeCommandPalette({ restoreFocus: false });
@@ -6910,46 +6899,46 @@ function executeCommandPaletteItem(item, triggerEl = null) {
 }
 
 function moveCommandPaletteSelection(delta) {
-  const visibleCount = commandPaletteSelectableItems.length;
+  const visibleCount = state.commandPaletteSelectableItems.length;
   if (visibleCount === 0) {
-    commandPaletteIndex = 0;
+    state.commandPaletteIndex = 0;
     renderCommandPalette();
     return;
   }
-  commandPaletteIndex =
-    (commandPaletteIndex + delta + visibleCount) % visibleCount;
+  state.commandPaletteIndex =
+    (state.commandPaletteIndex + delta + visibleCount) % visibleCount;
   renderCommandPalette();
 }
 
 function closeCommandPalette({ restoreFocus = true } = {}) {
-  if (!isCommandPaletteOpen) return;
-  isCommandPaletteOpen = false;
-  commandPaletteQuery = "";
-  commandPaletteIndex = 0;
-  commandPaletteSelectableItems = [];
+  if (!state.isCommandPaletteOpen) return;
+  state.isCommandPaletteOpen = false;
+  state.commandPaletteQuery = "";
+  state.commandPaletteIndex = 0;
+  state.commandPaletteSelectableItems = [];
   renderCommandPalette();
 
-  if (restoreFocus && lastFocusedBeforePalette instanceof HTMLElement) {
-    lastFocusedBeforePalette.focus({ preventScroll: true });
+  if (restoreFocus && state.lastFocusedBeforePalette instanceof HTMLElement) {
+    state.lastFocusedBeforePalette.focus({ preventScroll: true });
   }
 }
 
 function openCommandPalette() {
-  if (!currentUser) return;
+  if (!state.currentUser) return;
 
   const refs = getCommandPaletteElements();
   if (!refs) return;
-  if (isCommandPaletteOpen) return;
+  if (state.isCommandPaletteOpen) return;
 
-  lastFocusedBeforePalette =
+  state.lastFocusedBeforePalette =
     document.activeElement instanceof HTMLElement
       ? document.activeElement
       : null;
-  commandPaletteItems = buildCommandPaletteItems();
-  commandPaletteSelectableItems = [];
-  commandPaletteQuery = "";
-  commandPaletteIndex = 0;
-  isCommandPaletteOpen = true;
+  state.commandPaletteItems = buildCommandPaletteItems();
+  state.commandPaletteSelectableItems = [];
+  state.commandPaletteQuery = "";
+  state.commandPaletteIndex = 0;
+  state.isCommandPaletteOpen = true;
   renderCommandPalette();
 
   window.requestAnimationFrame(() => {
@@ -6959,7 +6948,7 @@ function openCommandPalette() {
 }
 
 function toggleCommandPalette() {
-  if (isCommandPaletteOpen) {
+  if (state.isCommandPaletteOpen) {
     closeCommandPalette({ restoreFocus: true });
     return;
   }
@@ -6982,7 +6971,8 @@ function focusActiveProjectItem({ preferSheet = false } = {}) {
     root.querySelector('.projects-rail-item[aria-current="page"]') ||
     root.querySelector(".projects-rail-item[data-project-key]");
   if (activeItem instanceof HTMLElement) {
-    railRovingFocusKey = activeItem.getAttribute("data-project-key") || "";
+    state.railRovingFocusKey =
+      activeItem.getAttribute("data-project-key") || "";
     activeItem.focus();
   }
 }
@@ -6993,13 +6983,13 @@ function openProjectsFromTopbar(triggerEl = null) {
     return;
   }
 
-  if (isRailCollapsed) {
+  if (state.isRailCollapsed) {
     setProjectsRailCollapsed(false);
   }
 
   const refs = getProjectsRailElements();
   if (triggerEl instanceof HTMLElement && refs) {
-    lastFocusedRailTrigger = triggerEl;
+    state.lastFocusedRailTrigger = triggerEl;
   }
   window.requestAnimationFrame(() => {
     focusActiveProjectItem({ preferSheet: false });
@@ -7060,7 +7050,7 @@ function moveRailOptionFocus(root, delta) {
   const currentKey =
     focusedKey !== null
       ? focusedKey
-      : railRovingFocusKey || getSelectedProjectKey();
+      : state.railRovingFocusKey || getSelectedProjectKey();
   const currentIndex = options.findIndex(
     (button) => (button.getAttribute("data-project-key") || "") === currentKey,
   );
@@ -7069,7 +7059,7 @@ function moveRailOptionFocus(root, delta) {
   const nextOption = options[nextIndex];
   if (!(nextOption instanceof HTMLElement)) return;
 
-  railRovingFocusKey = nextOption.getAttribute("data-project-key") || "";
+  state.railRovingFocusKey = nextOption.getAttribute("data-project-key") || "";
   options.forEach((button, index) => {
     button.setAttribute("tabindex", index === nextIndex ? "0" : "-1");
   });
@@ -7111,10 +7101,12 @@ function setProjectsRailActiveState(selectedProject) {
 
   const desktopFocusKey =
     getCurrentRailFocusKey(refs.desktopRail) ||
-    railRovingFocusKey ||
+    state.railRovingFocusKey ||
     selectedProject;
   const sheetFocusKey =
-    getCurrentRailFocusKey(refs.sheet) || railRovingFocusKey || selectedProject;
+    getCurrentRailFocusKey(refs.sheet) ||
+    state.railRovingFocusKey ||
+    selectedProject;
 
   syncRailA11yState(refs.desktopRail, selectedProject, desktopFocusKey);
   syncRailA11yState(refs.sheet, selectedProject, sheetFocusKey);
@@ -7124,20 +7116,25 @@ function renderProjectsRail() {
   const refs = getProjectsRailElements();
   if (!refs) return;
 
-  if (isRailSheetOpen && !isMobileRailViewport()) {
+  if (state.isRailSheetOpen && !isMobileRailViewport()) {
     closeProjectsRailSheet({ restoreFocus: false });
   }
 
   const selectedProject = getSelectedProjectKey();
-  const allCount = todos.length;
-  const unsortedCount = todos.filter((todo) => isTodoUnsorted(todo)).length;
+  const allCount = state.todos.length;
+  const unsortedCount = state.todos.filter((todo) =>
+    isTodoUnsorted(todo),
+  ).length;
   const openTodoCountMap = buildOpenTodoCountMapByProject();
   const projects = getProjectsForRail(openTodoCountMap);
-  if (openRailProjectMenuKey && !projects.includes(openRailProjectMenuKey)) {
-    openRailProjectMenuKey = null;
+  if (
+    state.openRailProjectMenuKey &&
+    !projects.includes(state.openRailProjectMenuKey)
+  ) {
+    state.openRailProjectMenuKey = null;
   }
 
-  const shouldRenderDesktopProjects = !isRailCollapsed;
+  const shouldRenderDesktopProjects = !state.isRailCollapsed;
   refs.railList.hidden = !shouldRenderDesktopProjects;
   refs.railList.innerHTML = shouldRenderDesktopProjects
     ? renderProjectsRailListHtml({
@@ -7184,39 +7181,45 @@ function renderProjectsRail() {
   refs.sheetAllTasksButton.classList.add("projects-rail-item");
   refs.sheetAllTasksButton.setAttribute("title", "All tasks");
 
-  if (!railRovingFocusKey) {
-    railRovingFocusKey = selectedProject || "";
+  if (!state.railRovingFocusKey) {
+    state.railRovingFocusKey = selectedProject || "";
   }
   setProjectsRailActiveState(selectedProject);
   syncWorkspaceViewState();
-  setProjectsRailCollapsed(isRailCollapsed);
+  setProjectsRailCollapsed(state.isRailCollapsed);
   updateTopbarProjectsButton(getSelectedProjectLabel(selectedProject));
 }
 
 function setProjectsRailCollapsed(nextCollapsed) {
-  const wasCollapsed = isRailCollapsed;
-  isRailCollapsed = !!nextCollapsed;
-  persistRailCollapsedState(isRailCollapsed);
-  document.body.classList.toggle("is-projects-rail-collapsed", isRailCollapsed);
+  const wasCollapsed = state.isRailCollapsed;
+  state.isRailCollapsed = !!nextCollapsed;
+  persistRailCollapsedState(state.isRailCollapsed);
+  document.body.classList.toggle(
+    "is-projects-rail-collapsed",
+    state.isRailCollapsed,
+  );
   const refs = getProjectsRailElements();
   if (!refs) return;
 
   refs.desktopRail.classList.toggle(
     "projects-rail--collapsed",
-    isRailCollapsed,
+    state.isRailCollapsed,
   );
   refs.layout?.classList.toggle(
     "todos-layout--rail-collapsed",
-    isRailCollapsed,
+    state.isRailCollapsed,
   );
-  refs.collapseToggle.setAttribute("aria-expanded", String(!isRailCollapsed));
+  refs.collapseToggle.setAttribute(
+    "aria-expanded",
+    String(!state.isRailCollapsed),
+  );
   refs.collapseToggle.setAttribute(
     "aria-label",
-    isRailCollapsed ? "Expand sidebar" : "Collapse sidebar",
+    state.isRailCollapsed ? "Expand sidebar" : "Collapse sidebar",
   );
   updateTopbarProjectsButton(getSelectedProjectName());
 
-  if (wasCollapsed && !isRailCollapsed && !isMobileRailViewport()) {
+  if (wasCollapsed && !state.isRailCollapsed && !isMobileRailViewport()) {
     window.requestAnimationFrame(() => {
       focusActiveProjectItem({ preferSheet: false });
     });
@@ -7224,8 +7227,8 @@ function setProjectsRailCollapsed(nextCollapsed) {
 }
 
 function closeRailProjectMenu({ restoreFocus = false } = {}) {
-  const previousKey = openRailProjectMenuKey;
-  openRailProjectMenuKey = null;
+  const previousKey = state.openRailProjectMenuKey;
+  state.openRailProjectMenuKey = null;
   renderProjectsRail();
 
   if (restoreFocus && previousKey) {
@@ -7240,8 +7243,8 @@ function closeRailProjectMenu({ restoreFocus = false } = {}) {
 
 function toggleRailProjectMenu(projectName, triggerEl = null) {
   if (!projectName) return;
-  const willOpen = openRailProjectMenuKey !== projectName;
-  openRailProjectMenuKey = willOpen ? projectName : null;
+  const willOpen = state.openRailProjectMenuKey !== projectName;
+  state.openRailProjectMenuKey = willOpen ? projectName : null;
   renderProjectsRail();
   if (!willOpen) return;
 
@@ -7260,20 +7263,20 @@ function toggleRailProjectMenu(projectName, triggerEl = null) {
 }
 
 function lockBodyScrollForProjectsRail() {
-  if (isRailBodyLocked || isDrawerBodyLocked) return;
+  if (state.isRailBodyLocked || state.isDrawerBodyLocked) return;
   const body = document.body;
-  railScrollLockY = window.scrollY || 0;
+  state.railScrollLockY = window.scrollY || 0;
   body.classList.add("is-projects-rail-open");
   body.style.position = "fixed";
-  body.style.top = `-${railScrollLockY}px`;
+  body.style.top = `-${state.railScrollLockY}px`;
   body.style.left = "0";
   body.style.right = "0";
   body.style.width = "100%";
-  isRailBodyLocked = true;
+  state.isRailBodyLocked = true;
 }
 
 function unlockBodyScrollForProjectsRail() {
-  if (!isRailBodyLocked || isDrawerBodyLocked) return;
+  if (!state.isRailBodyLocked || state.isDrawerBodyLocked) return;
   const body = document.body;
   body.classList.remove("is-projects-rail-open");
   body.style.position = "";
@@ -7281,23 +7284,23 @@ function unlockBodyScrollForProjectsRail() {
   body.style.left = "";
   body.style.right = "";
   body.style.width = "";
-  window.scrollTo(0, railScrollLockY);
-  railScrollLockY = 0;
-  isRailBodyLocked = false;
+  window.scrollTo(0, state.railScrollLockY);
+  state.railScrollLockY = 0;
+  state.isRailBodyLocked = false;
 }
 
 function openProjectsRailSheet(triggerEl = null) {
   const refs = getProjectsRailElements();
-  if (!refs || isRailSheetOpen || !isMobileRailViewport()) return;
+  if (!refs || state.isRailSheetOpen || !isMobileRailViewport()) return;
 
   closeRailProjectMenu();
-  isRailSheetOpen = true;
+  state.isRailSheetOpen = true;
   refs.sheet.classList.add("projects-rail-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "false");
   refs.backdrop.classList.add("projects-rail-backdrop--open");
   refs.backdrop.setAttribute("aria-hidden", "false");
   refs.mobileOpenButton.setAttribute("aria-expanded", "true");
-  lastFocusedRailTrigger =
+  state.lastFocusedRailTrigger =
     triggerEl instanceof HTMLElement ? triggerEl : refs.mobileOpenButton;
 
   lockBodyScrollForProjectsRail();
@@ -7308,10 +7311,10 @@ function openProjectsRailSheet(triggerEl = null) {
 
 function closeProjectsRailSheet({ restoreFocus = false } = {}) {
   const refs = getProjectsRailElements();
-  if (!refs || !isRailSheetOpen) return;
+  if (!refs || !state.isRailSheetOpen) return;
 
   closeRailProjectMenu();
-  isRailSheetOpen = false;
+  state.isRailSheetOpen = false;
   refs.sheet.classList.remove("projects-rail-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "true");
   refs.backdrop.classList.remove("projects-rail-backdrop--open");
@@ -7324,35 +7327,35 @@ function closeProjectsRailSheet({ restoreFocus = false } = {}) {
 
   if (restoreFocus) {
     const focusTarget =
-      lastFocusedRailTrigger instanceof HTMLElement
-        ? lastFocusedRailTrigger
+      state.lastFocusedRailTrigger instanceof HTMLElement
+        ? state.lastFocusedRailTrigger
         : refs.mobileOpenButton;
     focusTarget.focus({ preventScroll: true });
   }
 }
 
 function selectProjectFromRail(projectName, triggerEl = null) {
-  if (openRailProjectMenuKey) {
-    openRailProjectMenuKey = null;
+  if (state.openRailProjectMenuKey) {
+    state.openRailProjectMenuKey = null;
   }
   if (
-    isProjectEditDrawerOpen &&
+    state.isProjectEditDrawerOpen &&
     normalizeProjectPath(projectName) !==
-      normalizeProjectPath(projectEditTargetProject)
+      normalizeProjectPath(state.projectEditTargetProject)
   ) {
     closeProjectEditDrawer({ restoreFocus: false });
   }
   ensureTodosShellActive();
-  railRovingFocusKey = normalizeProjectPath(projectName);
+  state.railRovingFocusKey = normalizeProjectPath(projectName);
   if (normalizeProjectPath(projectName)) {
-    currentWorkspaceView = "project";
+    state.currentWorkspaceView = "project";
   } else {
-    currentWorkspaceView = "all";
+    state.currentWorkspaceView = "all";
   }
   clearHomeListDrilldown();
   setSelectedProjectKey(projectName);
 
-  if (isRailSheetOpen) {
+  if (state.isRailSheetOpen) {
     closeProjectsRailSheet({
       restoreFocus: !(triggerEl instanceof HTMLElement),
     });
@@ -7380,7 +7383,7 @@ function openMoreFilters() {
 
   const { toggle, panel } = refs;
   toggle.removeAttribute("hidden");
-  isMoreFiltersOpen = true;
+  state.isMoreFiltersOpen = true;
   panel.classList.add("more-filters--open");
   toggle.setAttribute("aria-expanded", "true");
 
@@ -7395,7 +7398,7 @@ function closeMoreFilters({ restoreFocus = false } = {}) {
   if (!refs) return;
 
   const { toggle, panel } = refs;
-  isMoreFiltersOpen = false;
+  state.isMoreFiltersOpen = false;
   panel.classList.remove("more-filters--open");
   toggle.setAttribute("aria-expanded", "false");
 
@@ -7414,7 +7417,7 @@ function closeMoreFilters({ restoreFocus = false } = {}) {
 }
 
 function toggleMoreFilters() {
-  if (isMoreFiltersOpen) {
+  if (state.isMoreFiltersOpen) {
     closeMoreFilters();
     return;
   }
@@ -7439,7 +7442,7 @@ function bindRailSearchFocusBehavior() {
   if (!searchInput || !moreFiltersToggle) return;
 
   const shouldHideToggle = () => {
-    if (isMoreFiltersOpen) return false;
+    if (state.isMoreFiltersOpen) return false;
     const active = document.activeElement;
     if (active === searchInput) return false;
     if (active === moreFiltersToggle) return false;
@@ -7507,7 +7510,7 @@ function isTaskDrawerDismissed(todoId) {
 }
 
 function resetTaskDrawerAssistState(todoId = "") {
-  taskDrawerAssistState = {
+  state.taskDrawerAssistState = {
     ...createInitialTaskDrawerAssistState(),
     todoId,
   };
@@ -7597,8 +7600,8 @@ function renderTaskDrawerAssistSection(todoId) {
   // Lint-first gate: show lint chip only when a heuristic fires.
   // Full panel should render only after explicit user action.
   // In debug mode, always show the full panel so developers see all metadata.
-  const state = taskDrawerAssistState;
-  if (!state.showFullAssist && !AI_DEBUG_ENABLED) {
+  const assistState = state.taskDrawerAssistState;
+  if (!assistState.showFullAssist && !AI_DEBUG_ENABLED) {
     const todo = getTodoById(todoId);
     const issue = todo
       ? lintTodoFields({
@@ -7606,7 +7609,7 @@ function renderTaskDrawerAssistSection(todoId) {
           dueDate: todo.dueDate || "",
           priority: todo.priority || "",
           subtasks: Array.isArray(todo.subtasks) ? todo.subtasks : [],
-          allTodos: todos,
+          allTodos: state.todos,
         })
       : null;
     if (issue) {
@@ -7633,37 +7636,38 @@ function renderTaskDrawerAssistSection(todoId) {
     <div class="todo-drawer__section">
       <div class="todo-drawer__section-title">AI Suggestions</div>
       ${renderAiDebugMeta({
-        requestId: state.requestId,
-        generatedAt: state.generatedAt,
-        contractVersion: state.contractVersion,
+        requestId: assistState.requestId,
+        generatedAt: assistState.generatedAt,
+        contractVersion: assistState.contractVersion,
       })}
-      ${state.loading ? '<div class="ai-empty" role="status">Loading suggestions...</div>' : ""}
+      ${assistState.loading ? '<div class="ai-empty" role="status">Loading suggestions...</div>' : ""}
       ${
-        state.unavailable
+        assistState.unavailable
           ? '<div class="ai-empty" role="status">AI Suggestions unavailable.</div>'
           : ""
       }
-      ${state.error ? `<div class="ai-empty" role="status">${escapeHtml(state.error)}</div>` : ""}
+      ${assistState.error ? `<div class="ai-empty" role="status">${escapeHtml(assistState.error)}</div>` : ""}
       ${
-        !state.loading &&
-        !state.unavailable &&
-        !state.error &&
-        (state.mustAbstain || state.suggestions.length === 0)
+        !assistState.loading &&
+        !assistState.unavailable &&
+        !assistState.error &&
+        (assistState.mustAbstain || assistState.suggestions.length === 0)
           ? '<div class="ai-empty" role="status">No suggestions right now.</div>'
           : ""
       }
       ${
-        state.suggestions.length > 0
+        assistState.suggestions.length > 0
           ? `<div class="todo-drawer-ai-list">
-              ${state.suggestions
+              ${assistState.suggestions
                 .map((suggestion) => {
                   const confidenceLabel = confidenceLabelForSuggestion(
                     suggestion.confidence,
                   );
                   const applying =
-                    state.applyingSuggestionId === suggestion.suggestionId;
+                    assistState.applyingSuggestionId ===
+                    suggestion.suggestionId;
                   const confirmOpen =
-                    state.confirmSuggestionId === suggestion.suggestionId;
+                    assistState.confirmSuggestionId === suggestion.suggestionId;
                   return `
                     <div class="todo-drawer-ai-card ai-card" data-testid="task-drawer-ai-card-${escapeHtml(suggestion.suggestionId)}">
                       <div class="todo-drawer-ai-card__top">
@@ -7674,7 +7678,8 @@ function renderTaskDrawerAssistSection(todoId) {
                       <div class="todo-drawer-ai-card__rationale ai-tooltip">${escapeHtml(suggestion.rationale)}</div>
                       ${renderAiDebugSuggestionId(suggestion.suggestionId)}
                       ${
-                        state.lastUndoSuggestionId === suggestion.suggestionId
+                        assistState.lastUndoSuggestionId ===
+                        suggestion.suggestionId
                           ? `<div class="ai-tooltip">Undone locally</div>`
                           : ""
                       }
@@ -7730,7 +7735,9 @@ function renderTaskDrawerAssistSection(todoId) {
                           Dismiss
                         </button>
                         ${
-                          state.undoBySuggestionId[suggestion.suggestionId]
+                          assistState.undoBySuggestionId[
+                            suggestion.suggestionId
+                          ]
                             ? `
                               <button
                                 type="button"
@@ -7759,7 +7766,7 @@ function renderTaskDrawerAssistSection(todoId) {
   window.requestAnimationFrame(() => {
     const confirmButton = document.querySelector(
       `[data-drawer-ai-action="confirm-apply"][data-drawer-ai-suggestion-id="${escapeSelectorValue(
-        state.confirmSuggestionId || "",
+        assistState.confirmSuggestionId || "",
       )}"]`,
     );
     if (confirmButton instanceof HTMLElement) {
@@ -7788,11 +7795,11 @@ function getTodoDrawerElements() {
 }
 
 function getTodoById(todoId) {
-  return todos.find((todo) => todo.id === todoId) || null;
+  return state.todos.find((todo) => todo.id === todoId) || null;
 }
 
 function initializeDrawerDraft(todo) {
-  drawerDraft = {
+  state.drawerDraft = {
     id: todo.id,
     title: String(todo.title || ""),
     completed: !!todo.completed,
@@ -7807,20 +7814,20 @@ function initializeDrawerDraft(todo) {
 
 function getCurrentDrawerDraft(todo) {
   if (!todo) return null;
-  if (!drawerDraft || drawerDraft.id !== todo.id) {
+  if (!state.drawerDraft || state.drawerDraft.id !== todo.id) {
     initializeDrawerDraft(todo);
   }
-  return drawerDraft;
+  return state.drawerDraft;
 }
 
-function setDrawerSaveState(state, message = "") {
-  if (drawerSaveResetTimer) {
-    clearTimeout(drawerSaveResetTimer);
-    drawerSaveResetTimer = null;
+function setDrawerSaveState(newState, message = "") {
+  if (state.drawerSaveResetTimer) {
+    clearTimeout(state.drawerSaveResetTimer);
+    state.drawerSaveResetTimer = null;
   }
 
-  drawerSaveState = state;
-  drawerSaveMessage = message;
+  state.drawerSaveState = newState;
+  state.drawerSaveMessage = message;
   const statusEl = document.getElementById("drawerSaveStatus");
   if (!(statusEl instanceof HTMLElement)) return;
 
@@ -7830,12 +7837,12 @@ function setDrawerSaveState(state, message = "") {
     saved: "Saved",
     error: message || "Save failed",
   };
-  statusEl.textContent = textByState[state] || textByState.idle;
-  statusEl.setAttribute("data-state", state);
+  statusEl.textContent = textByState[newState] || textByState.idle;
+  statusEl.setAttribute("data-state", newState);
 
-  if (state === "saved") {
-    drawerSaveResetTimer = setTimeout(() => {
-      if (drawerSaveState === "saved") {
+  if (newState === "saved") {
+    state.drawerSaveResetTimer = setTimeout(() => {
+      if (state.drawerSaveState === "saved") {
         setDrawerSaveState("idle");
       }
     }, 1200);
@@ -7891,20 +7898,20 @@ function isMobileDrawerViewport() {
 }
 
 function lockBodyScrollForDrawer() {
-  if (isDrawerBodyLocked || !isMobileDrawerViewport()) return;
+  if (state.isDrawerBodyLocked || !isMobileDrawerViewport()) return;
   const body = document.body;
-  drawerScrollLockY = window.scrollY || window.pageYOffset || 0;
+  state.drawerScrollLockY = window.scrollY || window.pageYOffset || 0;
   body.classList.add("is-drawer-open");
   body.style.position = "fixed";
-  body.style.top = `-${drawerScrollLockY}px`;
+  body.style.top = `-${state.drawerScrollLockY}px`;
   body.style.left = "0";
   body.style.right = "0";
   body.style.width = "100%";
-  isDrawerBodyLocked = true;
+  state.isDrawerBodyLocked = true;
 }
 
 function unlockBodyScrollForDrawer() {
-  if (!isDrawerBodyLocked) return;
+  if (!state.isDrawerBodyLocked) return;
   const body = document.body;
   body.classList.remove("is-drawer-open");
   body.style.position = "";
@@ -7912,28 +7919,28 @@ function unlockBodyScrollForDrawer() {
   body.style.left = "";
   body.style.right = "";
   body.style.width = "";
-  window.scrollTo(0, drawerScrollLockY);
-  isDrawerBodyLocked = false;
+  window.scrollTo(0, state.drawerScrollLockY);
+  state.isDrawerBodyLocked = false;
 }
 
 async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
-  if (!selectedTodoId || !drawerDraft) return;
+  if (!state.selectedTodoId || !state.drawerDraft) return;
 
   if (validateTitle) {
-    const titleError = validateTodoTitle(drawerDraft.title);
+    const titleError = validateTodoTitle(state.drawerDraft.title);
     if (titleError) {
       setDrawerSaveState("error", titleError);
       return;
     }
   }
 
-  const requestId = ++drawerSaveSequence;
+  const requestId = ++state.drawerSaveSequence;
   const focusState = captureDrawerFocusState();
   setDrawerSaveState("saving");
 
   try {
-    const updatedTodo = await applyTodoPatch(selectedTodoId, patch);
-    if (requestId !== drawerSaveSequence) {
+    const updatedTodo = await applyTodoPatch(state.selectedTodoId, patch);
+    if (requestId !== state.drawerSaveSequence) {
       return;
     }
     initializeDrawerDraft(updatedTodo);
@@ -7942,7 +7949,7 @@ async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
     syncTodoDrawerStateWithRender();
     restoreDrawerFocusState(focusState);
   } catch (error) {
-    if (requestId !== drawerSaveSequence) {
+    if (requestId !== state.drawerSaveSequence) {
       return;
     }
     setDrawerSaveState("error", error.message || "Save failed");
@@ -7950,9 +7957,9 @@ async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
 }
 
 function updateDrawerDraftField(field, value) {
-  if (!drawerDraft) return;
-  drawerDraft[field] = value;
-  if (drawerSaveState !== "saving") {
+  if (!state.drawerDraft) return;
+  state.drawerDraft[field] = value;
+  if (state.drawerSaveState !== "saving") {
     setDrawerSaveState("idle");
   }
 }
@@ -7963,8 +7970,11 @@ function onDrawerTitleInput(event) {
 }
 
 function onDrawerTitleBlur() {
-  if (!drawerDraft) return;
-  saveDrawerPatch({ title: drawerDraft.title.trim() }, { validateTitle: true });
+  if (!state.drawerDraft) return;
+  saveDrawerPatch(
+    { title: state.drawerDraft.title.trim() },
+    { validateTitle: true },
+  );
 }
 
 function onDrawerTitleKeydown(event) {
@@ -8001,23 +8011,23 @@ function onDrawerPriorityChange(event) {
 function onDrawerDescriptionInput(event) {
   const description = String(event?.target?.value || "");
   updateDrawerDraftField("description", description);
-  if (drawerDescriptionSaveTimer) {
-    clearTimeout(drawerDescriptionSaveTimer);
+  if (state.drawerDescriptionSaveTimer) {
+    clearTimeout(state.drawerDescriptionSaveTimer);
   }
-  drawerDescriptionSaveTimer = setTimeout(() => {
-    if (!drawerDraft) return;
-    const nextDescription = String(drawerDraft.description || "").trim();
+  state.drawerDescriptionSaveTimer = setTimeout(() => {
+    if (!state.drawerDraft) return;
+    const nextDescription = String(state.drawerDraft.description || "").trim();
     saveDrawerPatch({ description: nextDescription || "" });
   }, 500);
 }
 
 function onDrawerDescriptionBlur() {
-  if (!drawerDraft) return;
-  if (drawerDescriptionSaveTimer) {
-    clearTimeout(drawerDescriptionSaveTimer);
-    drawerDescriptionSaveTimer = null;
+  if (!state.drawerDraft) return;
+  if (state.drawerDescriptionSaveTimer) {
+    clearTimeout(state.drawerDescriptionSaveTimer);
+    state.drawerDescriptionSaveTimer = null;
   }
-  const description = String(drawerDraft.description || "").trim();
+  const description = String(state.drawerDraft.description || "").trim();
   saveDrawerPatch({ description: description || "" });
 }
 
@@ -8034,8 +8044,8 @@ function onDrawerNotesInput(event) {
 }
 
 function onDrawerNotesBlur() {
-  if (!drawerDraft) return;
-  const notes = String(drawerDraft.notes || "").trim();
+  if (!state.drawerDraft) return;
+  const notes = String(state.drawerDraft.notes || "").trim();
   saveDrawerPatch({ notes: notes || null });
 }
 
@@ -8052,9 +8062,9 @@ function onDrawerCategoryInput(event) {
 }
 
 function onDrawerCategoryBlur() {
-  if (!drawerDraft) return;
+  if (!state.drawerDraft) return;
   const normalized = normalizeProjectPath(
-    String(drawerDraft.categoryDetail || ""),
+    String(state.drawerDraft.categoryDetail || ""),
   );
   updateDrawerDraftField("project", normalized || "");
   updateDrawerDraftField("categoryDetail", normalized || "");
@@ -8096,15 +8106,15 @@ function renderTodoDrawerContent() {
   if (!refs) return;
 
   const { titleEl, contentEl } = refs;
-  if (!selectedTodoId) {
+  if (!state.selectedTodoId) {
     titleEl.textContent = "Task";
     contentEl.innerHTML = "";
     return;
   }
 
-  const todo = getTodoById(selectedTodoId);
+  const todo = getTodoById(state.selectedTodoId);
   if (!todo) {
-    drawerDraft = null;
+    state.drawerDraft = null;
     titleEl.textContent = "Task";
     contentEl.innerHTML = `
       <div class="todo-drawer__section">
@@ -8116,7 +8126,7 @@ function renderTodoDrawerContent() {
   }
 
   const draft = getCurrentDrawerDraft(todo);
-  const detailsExpanded = isDrawerDetailsOpen;
+  const detailsExpanded = state.isDrawerDetailsOpen;
   const detailsToggleLabel = detailsExpanded ? "Hide details" : "Show details";
   const detailsPanelHidden = detailsExpanded ? "" : "hidden";
 
@@ -8124,7 +8134,7 @@ function renderTodoDrawerContent() {
   contentEl.innerHTML = `
     <div class="todo-drawer__section">
       <div class="todo-drawer__section-title">Essentials</div>
-      <div class="todo-drawer__save-status" id="drawerSaveStatus" data-state="${escapeHtml(drawerSaveState)}">Ready</div>
+      <div class="todo-drawer__save-status" id="drawerSaveStatus" data-state="${escapeHtml(state.drawerSaveState)}">Ready</div>
       <label class="todo-drawer__field" for="drawerTitleInput">
         <span>Title</span>
         <input
@@ -8200,7 +8210,7 @@ function renderTodoDrawerContent() {
       </button>
     </div>
   `;
-  setDrawerSaveState(drawerSaveState, drawerSaveMessage);
+  setDrawerSaveState(state.drawerSaveState, state.drawerSaveMessage);
 }
 
 async function fetchTaskDrawerLatestSuggestion(todoId) {
@@ -8225,48 +8235,48 @@ async function generateTaskDrawerSuggestion(todo) {
 }
 
 async function loadTaskDrawerDecisionAssist(todoId, allowGenerate = true) {
-  if (!isTodoDrawerOpen || selectedTodoId !== todoId) return;
+  if (!state.isTodoDrawerOpen || state.selectedTodoId !== todoId) return;
   const todo = getTodoById(todoId);
   if (!todo) return;
   if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
-    taskDrawerAssistState.unavailable = true;
+    state.taskDrawerAssistState.unavailable = true;
     return;
   }
 
-  if (taskDrawerAssistState.todoId !== todoId) {
+  if (state.taskDrawerAssistState.todoId !== todoId) {
     resetTaskDrawerAssistState(todoId);
   }
-  taskDrawerAssistState.loading = true;
-  taskDrawerAssistState.error = "";
-  taskDrawerAssistState.unavailable = false;
+  state.taskDrawerAssistState.loading = true;
+  state.taskDrawerAssistState.error = "";
+  state.taskDrawerAssistState.unavailable = false;
   renderTodoDrawerContent();
 
   try {
     let latestResponse = await fetchTaskDrawerLatestSuggestion(todoId);
     if (latestResponse.status === 403 || latestResponse.status === 404) {
-      taskDrawerAssistState.loading = false;
-      taskDrawerAssistState.unavailable = true;
+      state.taskDrawerAssistState.loading = false;
+      state.taskDrawerAssistState.unavailable = true;
       renderTodoDrawerContent();
       return;
     }
 
     if (latestResponse.status === 204) {
       if (isTaskDrawerDismissed(todoId)) {
-        taskDrawerAssistState.loading = false;
-        taskDrawerAssistState.mustAbstain = true;
+        state.taskDrawerAssistState.loading = false;
+        state.taskDrawerAssistState.mustAbstain = true;
         renderTodoDrawerContent();
         return;
       }
       if (!allowGenerate) {
-        taskDrawerAssistState.loading = false;
-        taskDrawerAssistState.mustAbstain = true;
+        state.taskDrawerAssistState.loading = false;
+        state.taskDrawerAssistState.mustAbstain = true;
         renderTodoDrawerContent();
         return;
       }
       const generated = await generateTaskDrawerSuggestion(todo);
       if (generated.status === 403 || generated.status === 404) {
-        taskDrawerAssistState.loading = false;
-        taskDrawerAssistState.unavailable = true;
+        state.taskDrawerAssistState.loading = false;
+        state.taskDrawerAssistState.unavailable = true;
         renderTodoDrawerContent();
         return;
       }
@@ -8274,66 +8284,66 @@ async function loadTaskDrawerDecisionAssist(todoId, allowGenerate = true) {
     }
 
     if (!latestResponse.ok) {
-      taskDrawerAssistState.loading = false;
-      taskDrawerAssistState.error = "Could not load suggestions.";
+      state.taskDrawerAssistState.loading = false;
+      state.taskDrawerAssistState.error = "Could not load suggestions.";
       renderTodoDrawerContent();
       return;
     }
 
     const payload = await latestResponse.json();
-    if (!isTodoDrawerOpen || selectedTodoId !== todoId) return;
+    if (!state.isTodoDrawerOpen || state.selectedTodoId !== todoId) return;
     const envelope = payload?.outputEnvelope || {};
-    taskDrawerAssistState.loading = false;
-    taskDrawerAssistState.aiSuggestionId = String(
+    state.taskDrawerAssistState.loading = false;
+    state.taskDrawerAssistState.aiSuggestionId = String(
       payload?.aiSuggestionId || "",
     );
-    taskDrawerAssistState.mustAbstain = !!envelope.must_abstain;
-    taskDrawerAssistState.contractVersion = envelope.contractVersion;
-    taskDrawerAssistState.requestId = envelope.requestId;
-    taskDrawerAssistState.generatedAt = envelope.generatedAt;
-    taskDrawerAssistState.suggestions = normalizeTaskDrawerAssistEnvelope(
-      taskDrawerAssistState.aiSuggestionId,
+    state.taskDrawerAssistState.mustAbstain = !!envelope.must_abstain;
+    state.taskDrawerAssistState.contractVersion = envelope.contractVersion;
+    state.taskDrawerAssistState.requestId = envelope.requestId;
+    state.taskDrawerAssistState.generatedAt = envelope.generatedAt;
+    state.taskDrawerAssistState.suggestions = normalizeTaskDrawerAssistEnvelope(
+      state.taskDrawerAssistState.aiSuggestionId,
       envelope,
       todoId,
     );
-    taskDrawerAssistState.confirmSuggestionId = "";
-    taskDrawerAssistState.applyingSuggestionId = "";
+    state.taskDrawerAssistState.confirmSuggestionId = "";
+    state.taskDrawerAssistState.applyingSuggestionId = "";
     renderTodoDrawerContent();
   } catch (error) {
     console.error("Task drawer AI load failed:", error);
-    taskDrawerAssistState.loading = false;
-    taskDrawerAssistState.error = "Could not load suggestions.";
+    state.taskDrawerAssistState.loading = false;
+    state.taskDrawerAssistState.error = "Could not load suggestions.";
     renderTodoDrawerContent();
   }
 }
 
 async function applyTaskDrawerSuggestion(suggestionId, confirmed = false) {
-  if (!selectedTodoId) return;
-  const suggestion = taskDrawerAssistState.suggestions.find(
+  if (!state.selectedTodoId) return;
+  const suggestion = state.taskDrawerAssistState.suggestions.find(
     (item) => item.suggestionId === suggestionId,
   );
-  if (!suggestion || !taskDrawerAssistState.aiSuggestionId) return;
+  if (!suggestion || !state.taskDrawerAssistState.aiSuggestionId) return;
 
   if (needsConfirmation(suggestion) && !confirmed) {
-    taskDrawerAssistState.confirmSuggestionId = suggestionId;
+    state.taskDrawerAssistState.confirmSuggestionId = suggestionId;
     renderTodoDrawerContent();
     return;
   }
 
-  const snapshotTodo = getTodoById(selectedTodoId);
+  const snapshotTodo = getTodoById(state.selectedTodoId);
   if (snapshotTodo) {
-    taskDrawerAssistState.undoBySuggestionId[suggestionId] = JSON.parse(
+    state.taskDrawerAssistState.undoBySuggestionId[suggestionId] = JSON.parse(
       JSON.stringify(snapshotTodo),
     );
   }
 
-  taskDrawerAssistState.applyingSuggestionId = suggestionId;
-  taskDrawerAssistState.confirmSuggestionId = "";
+  state.taskDrawerAssistState.applyingSuggestionId = suggestionId;
+  state.taskDrawerAssistState.confirmSuggestionId = "";
   renderTodoDrawerContent();
 
   try {
     const response = await apiCall(
-      `${API_URL}/ai/suggestions/${encodeURIComponent(taskDrawerAssistState.aiSuggestionId)}/apply`,
+      `${API_URL}/ai/suggestions/${encodeURIComponent(state.taskDrawerAssistState.aiSuggestionId)}/apply`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -8346,41 +8356,41 @@ async function applyTaskDrawerSuggestion(suggestionId, confirmed = false) {
 
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
-      taskDrawerAssistState.error =
+      state.taskDrawerAssistState.error =
         typeof data?.error === "string"
           ? data.error
           : "Could not apply suggestion.";
-      taskDrawerAssistState.applyingSuggestionId = "";
+      state.taskDrawerAssistState.applyingSuggestionId = "";
       renderTodoDrawerContent();
       return;
     }
 
     const result = await response.json();
     if (result?.todo?.id) {
-      const index = todos.findIndex((item) => item.id === result.todo.id);
+      const index = state.todos.findIndex((item) => item.id === result.todo.id);
       if (index >= 0) {
-        todos[index] = result.todo;
+        state.todos[index] = result.todo;
       }
     } else {
       await loadTodos();
     }
-    clearTaskDrawerDismissed(selectedTodoId);
-    taskDrawerAssistState.lastUndoSuggestionId = "";
-    await loadTaskDrawerDecisionAssist(selectedTodoId, false);
+    clearTaskDrawerDismissed(state.selectedTodoId);
+    state.taskDrawerAssistState.lastUndoSuggestionId = "";
+    await loadTaskDrawerDecisionAssist(state.selectedTodoId, false);
     renderTodos();
   } catch (error) {
     console.error("Task drawer AI apply failed:", error);
-    taskDrawerAssistState.error = "Could not apply suggestion.";
-    taskDrawerAssistState.applyingSuggestionId = "";
+    state.taskDrawerAssistState.error = "Could not apply suggestion.";
+    state.taskDrawerAssistState.applyingSuggestionId = "";
     renderTodoDrawerContent();
   }
 }
 
 async function dismissTaskDrawerSuggestions(suggestionId) {
-  if (!taskDrawerAssistState.aiSuggestionId) return;
+  if (!state.taskDrawerAssistState.aiSuggestionId) return;
   try {
     await apiCall(
-      `${API_URL}/ai/suggestions/${encodeURIComponent(taskDrawerAssistState.aiSuggestionId)}/dismiss`,
+      `${API_URL}/ai/suggestions/${encodeURIComponent(state.taskDrawerAssistState.aiSuggestionId)}/dismiss`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -8390,30 +8400,32 @@ async function dismissTaskDrawerSuggestions(suggestionId) {
   } catch (error) {
     console.error("Task drawer AI dismiss failed:", error);
   }
-  taskDrawerAssistState.suggestions = [];
-  taskDrawerAssistState.mustAbstain = true;
-  taskDrawerAssistState.confirmSuggestionId = "";
-  taskDrawerAssistState.applyingSuggestionId = "";
-  if (selectedTodoId) {
-    markTaskDrawerDismissed(selectedTodoId);
+  state.taskDrawerAssistState.suggestions = [];
+  state.taskDrawerAssistState.mustAbstain = true;
+  state.taskDrawerAssistState.confirmSuggestionId = "";
+  state.taskDrawerAssistState.applyingSuggestionId = "";
+  if (state.selectedTodoId) {
+    markTaskDrawerDismissed(state.selectedTodoId);
   }
   renderTodoDrawerContent();
 }
 
 function undoTaskDrawerSuggestion(suggestionId) {
-  const snapshot = taskDrawerAssistState.undoBySuggestionId[suggestionId];
-  if (!snapshot || !selectedTodoId) return;
-  const index = todos.findIndex((item) => item.id === selectedTodoId);
+  const snapshot = state.taskDrawerAssistState.undoBySuggestionId[suggestionId];
+  if (!snapshot || !state.selectedTodoId) return;
+  const index = state.todos.findIndex(
+    (item) => item.id === state.selectedTodoId,
+  );
   if (index < 0) return;
-  todos[index] = snapshot;
-  initializeDrawerDraft(todos[index]);
-  delete taskDrawerAssistState.undoBySuggestionId[suggestionId];
-  taskDrawerAssistState.lastUndoSuggestionId = suggestionId;
+  state.todos[index] = snapshot;
+  initializeDrawerDraft(state.todos[index]);
+  delete state.taskDrawerAssistState.undoBySuggestionId[suggestionId];
+  state.taskDrawerAssistState.lastUndoSuggestionId = suggestionId;
   emitAiSuggestionUndoTelemetry({
     surface: "task_drawer",
-    aiSuggestionDbId: taskDrawerAssistState.aiSuggestionId,
+    aiSuggestionDbId: state.taskDrawerAssistState.aiSuggestionId,
     suggestionId,
-    todoId: selectedTodoId,
+    todoId: state.selectedTodoId,
     selectedTodoIdsCount: 1,
   });
   renderTodos();
@@ -8426,23 +8438,24 @@ function openTodoDrawer(todoId, triggerEl) {
   const todo = getTodoById(todoId);
   if (!todo) return;
 
-  if (isRailSheetOpen) {
+  if (state.isRailSheetOpen) {
     closeProjectsRailSheet({ restoreFocus: false });
   }
 
-  selectedTodoId = todoId;
+  state.selectedTodoId = todoId;
   initializeDrawerDraft(todo);
   resetTaskDrawerAssistState(todoId);
-  isDrawerDetailsOpen = false;
-  openTodoKebabId = null;
-  drawerSaveSequence = 0;
+  state.isDrawerDetailsOpen = false;
+  state.openTodoKebabId = null;
+  state.drawerSaveSequence = 0;
   setDrawerSaveState("idle");
-  lastFocusedTodoTrigger = triggerEl instanceof HTMLElement ? triggerEl : null;
-  lastFocusedTodoId =
+  state.lastFocusedTodoTrigger =
+    triggerEl instanceof HTMLElement ? triggerEl : null;
+  state.lastFocusedTodoId =
     triggerEl instanceof HTMLElement
       ? triggerEl.dataset.todoId || todoId
       : todoId;
-  isTodoDrawerOpen = true;
+  state.isTodoDrawerOpen = true;
 
   const { drawer, backdrop } = refs;
   drawer.classList.add("todo-drawer--open");
@@ -8467,22 +8480,22 @@ function openTodoDrawer(todoId, triggerEl) {
 
 function closeTodoDrawer({ restoreFocus = true } = {}) {
   const refs = getTodoDrawerElements();
-  const focusTrigger = lastFocusedTodoTrigger;
-  const focusTodoId = lastFocusedTodoId;
+  const focusTrigger = state.lastFocusedTodoTrigger;
+  const focusTodoId = state.lastFocusedTodoId;
 
-  isTodoDrawerOpen = false;
-  selectedTodoId = null;
-  isDrawerDetailsOpen = false;
-  drawerDraft = null;
+  state.isTodoDrawerOpen = false;
+  state.selectedTodoId = null;
+  state.isDrawerDetailsOpen = false;
+  state.drawerDraft = null;
   resetTaskDrawerAssistState();
-  drawerSaveSequence = 0;
-  if (drawerSaveResetTimer) {
-    clearTimeout(drawerSaveResetTimer);
-    drawerSaveResetTimer = null;
+  state.drawerSaveSequence = 0;
+  if (state.drawerSaveResetTimer) {
+    clearTimeout(state.drawerSaveResetTimer);
+    state.drawerSaveResetTimer = null;
   }
-  if (drawerDescriptionSaveTimer) {
-    clearTimeout(drawerDescriptionSaveTimer);
-    drawerDescriptionSaveTimer = null;
+  if (state.drawerDescriptionSaveTimer) {
+    clearTimeout(state.drawerDescriptionSaveTimer);
+    state.drawerDescriptionSaveTimer = null;
   }
   setDrawerSaveState("idle");
 
@@ -8499,8 +8512,8 @@ function closeTodoDrawer({ restoreFocus = true } = {}) {
   renderTodos();
   unlockBodyScrollForDrawer();
 
-  lastFocusedTodoTrigger = null;
-  lastFocusedTodoId = null;
+  state.lastFocusedTodoTrigger = null;
+  state.lastFocusedTodoId = null;
 
   if (!restoreFocus) return;
 
@@ -8529,7 +8542,7 @@ function syncTodoDrawerStateWithRender() {
   const refs = getTodoDrawerElements();
   if (!refs) return;
 
-  if (!isTodoDrawerOpen || !selectedTodoId) {
+  if (!state.isTodoDrawerOpen || !state.selectedTodoId) {
     refs.drawer.classList.remove("todo-drawer--open");
     refs.drawer.setAttribute("aria-hidden", "true");
     if (refs.backdrop instanceof HTMLElement) {
@@ -8549,14 +8562,14 @@ function syncTodoDrawerStateWithRender() {
 }
 
 function toggleDrawerDetailsPanel() {
-  if (!isTodoDrawerOpen || !selectedTodoId) return;
-  isDrawerDetailsOpen = !isDrawerDetailsOpen;
+  if (!state.isTodoDrawerOpen || !state.selectedTodoId) return;
+  state.isDrawerDetailsOpen = !state.isDrawerDetailsOpen;
   renderTodoDrawerContent();
 }
 
 async function deleteTodoFromDrawer() {
-  if (!selectedTodoId) return;
-  const deletedTodoId = selectedTodoId;
+  if (!state.selectedTodoId) return;
+  const deletedTodoId = state.selectedTodoId;
   const deleted = await deleteTodo(deletedTodoId);
   if (!deleted) return;
 
@@ -8592,8 +8605,8 @@ function getKebabTriggerForTodo(todoId) {
 }
 
 function closeTodoKebabMenu({ restoreFocus = false } = {}) {
-  const activeTodoId = openTodoKebabId;
-  openTodoKebabId = null;
+  const activeTodoId = state.openTodoKebabId;
+  state.openTodoKebabId = null;
   renderTodos();
 
   if (!restoreFocus || !activeTodoId) return;
@@ -8607,8 +8620,8 @@ function toggleTodoKebab(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
 
-  const shouldOpen = openTodoKebabId !== todoId;
-  openTodoKebabId = shouldOpen ? todoId : null;
+  const shouldOpen = state.openTodoKebabId !== todoId;
+  state.openTodoKebabId = shouldOpen ? todoId : null;
   renderTodos();
 
   if (!shouldOpen) return;
@@ -8625,7 +8638,7 @@ function toggleTodoKebab(todoId, event) {
 function openTodoFromKebab(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
-  openTodoKebabId = null;
+  state.openTodoKebabId = null;
   const row = document.querySelector(
     `.todo-item[data-todo-id="${escapeSelectorValue(todoId)}"]`,
   );
@@ -8635,7 +8648,7 @@ function openTodoFromKebab(todoId, event) {
 function openEditTodoFromKebab(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
-  openTodoKebabId = null;
+  state.openTodoKebabId = null;
   renderTodos();
   openEditTodoModal(todoId);
 }
@@ -8643,14 +8656,14 @@ function openEditTodoFromKebab(todoId, event) {
 function openDrawerDangerZone(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
-  openTodoKebabId = null;
+  state.openTodoKebabId = null;
   const row = document.querySelector(
     `.todo-item[data-todo-id="${escapeSelectorValue(todoId)}"]`,
   );
-  if (!isTodoDrawerOpen || selectedTodoId !== todoId) {
+  if (!state.isTodoDrawerOpen || state.selectedTodoId !== todoId) {
     openTodoDrawer(todoId, row instanceof HTMLElement ? row : null);
   }
-  isDrawerDetailsOpen = true;
+  state.isDrawerDetailsOpen = true;
   renderTodoDrawerContent();
   window.requestAnimationFrame(() => {
     const deleteBtn = document.getElementById("drawerDeleteTodoButton");
@@ -9050,12 +9063,12 @@ function renderTodos() {
   renderTodayPlanPanel();
   const scrollRegion = document.getElementById("todosScrollRegion");
 
-  if (todosLoadState !== "loading" && todos.length > 0) {
-    todosLoadState = "ready";
-    todosLoadErrorMessage = "";
+  if (state.todosLoadState !== "loading" && state.todos.length > 0) {
+    state.todosLoadState = "ready";
+    state.todosLoadErrorMessage = "";
   }
 
-  if (todosLoadState === "loading") {
+  if (state.todosLoadState === "loading") {
     clearHomeFocusDashboard();
     updateHeaderFromVisibleTodos([]);
     const skeletonRows = Array.from({ length: 6 })
@@ -9097,17 +9110,17 @@ function renderTodos() {
     return;
   }
 
-  if (todosLoadState === "error" && todos.length === 0) {
+  if (state.todosLoadState === "error" && state.todos.length === 0) {
     clearHomeFocusDashboard();
     updateHeaderFromVisibleTodos([]);
-    isTodoDrawerOpen = false;
-    selectedTodoId = null;
-    openTodoKebabId = null;
+    state.isTodoDrawerOpen = false;
+    state.selectedTodoId = null;
+    state.openTodoKebabId = null;
     container.innerHTML = `
       <div id="todosErrorState" class="todo-list-state todo-list-state--error" role="status" aria-live="polite">
         <div class="empty-state-icon">⚠️</div>
         <h3>Couldn't load tasks</h3>
-        <p>${escapeHtml(todosLoadErrorMessage || "Please check your connection and try again.")}</p>
+        <p>${escapeHtml(state.todosLoadErrorMessage || "Please check your connection and try again.")}</p>
         <button id="todosRetryLoadButton" class="mini-btn" data-onclick="retryLoadTodos()">Retry</button>
       </div>
     `;
@@ -9128,12 +9141,12 @@ function renderTodos() {
     return;
   }
 
-  if (todos.length === 0 && !getSelectedProjectKey()) {
+  if (state.todos.length === 0 && !getSelectedProjectKey()) {
     clearHomeFocusDashboard();
     updateHeaderFromVisibleTodos([]);
-    isTodoDrawerOpen = false;
-    selectedTodoId = null;
-    openTodoKebabId = null;
+    state.isTodoDrawerOpen = false;
+    state.selectedTodoId = null;
+    state.openTodoKebabId = null;
     container.innerHTML = `
                     <div id="todosEmptyState" class="empty-state">
                         <div class="empty-state-icon">✨</div>
@@ -9153,10 +9166,12 @@ function renderTodos() {
   renderHomeFocusDashboard([]);
   updateHeaderFromVisibleTodos(filteredTodos);
   if (
-    openTodoKebabId &&
-    !filteredTodos.some((todo) => String(todo.id) === String(openTodoKebabId))
+    state.openTodoKebabId &&
+    !filteredTodos.some(
+      (todo) => String(todo.id) === String(state.openTodoKebabId),
+    )
   ) {
-    openTodoKebabId = null;
+    state.openTodoKebabId = null;
   }
   const categorizedTodos = [...filteredTodos].sort((a, b) => {
     const categoryA = String(a.category || "Uncategorized");
@@ -9214,9 +9229,9 @@ function renderTodos() {
                 </ul>
             `;
 
-  if (selectedTodoId && !getTodoById(selectedTodoId)) {
-    isTodoDrawerOpen = false;
-    selectedTodoId = null;
+  if (state.selectedTodoId && !getTodoById(state.selectedTodoId)) {
+    state.isTodoDrawerOpen = false;
+    state.selectedTodoId = null;
   }
   syncTodoDrawerStateWithRender();
   updateBulkActionsVisibility();
@@ -9247,9 +9262,10 @@ function createInitialOnCreateAssistState() {
 }
 
 function resetOnCreateAssistState() {
-  const dismissedTodoIds = onCreateAssistState?.dismissedTodoIds || new Set();
-  onCreateAssistState = createInitialOnCreateAssistState();
-  onCreateAssistState.dismissedTodoIds = dismissedTodoIds;
+  const dismissedTodoIds =
+    state.onCreateAssistState?.dismissedTodoIds || new Set();
+  state.onCreateAssistState = createInitialOnCreateAssistState();
+  state.onCreateAssistState.dismissedTodoIds = dismissedTodoIds;
 }
 
 function loadOnCreateDismissedTodoIds() {
@@ -9268,7 +9284,7 @@ function loadOnCreateDismissedTodoIds() {
 function persistOnCreateDismissedTodoIds() {
   try {
     const values = Array.from(
-      onCreateAssistState.dismissedTodoIds || new Set(),
+      state.onCreateAssistState.dismissedTodoIds || new Set(),
     );
     window.localStorage.setItem(
       AI_ON_CREATE_DISMISSED_STORAGE_KEY,
@@ -9281,19 +9297,19 @@ function persistOnCreateDismissedTodoIds() {
 
 function markOnCreateDismissed(todoId) {
   if (!todoId) return;
-  onCreateAssistState.dismissedTodoIds.add(String(todoId));
+  state.onCreateAssistState.dismissedTodoIds.add(String(todoId));
   persistOnCreateDismissedTodoIds();
 }
 
 function clearOnCreateDismissed(todoId) {
   if (!todoId) return;
-  onCreateAssistState.dismissedTodoIds.delete(String(todoId));
+  state.onCreateAssistState.dismissedTodoIds.delete(String(todoId));
   persistOnCreateDismissedTodoIds();
 }
 
 function isOnCreateDismissed(todoId) {
   if (!todoId) return false;
-  return onCreateAssistState.dismissedTodoIds.has(String(todoId));
+  return state.onCreateAssistState.dismissedTodoIds.has(String(todoId));
 }
 
 function getOnCreateImpactRank(type) {
@@ -9645,43 +9661,43 @@ async function generateOnCreateSuggestion(todo) {
 async function loadOnCreateDecisionAssist(todo, allowGenerate = true) {
   if (!todo?.id) return;
   const todoId = String(todo.id);
-  onCreateAssistState.loading = true;
-  onCreateAssistState.error = "";
-  onCreateAssistState.unavailable = false;
-  onCreateAssistState.mode = "live";
-  onCreateAssistState.liveTodoId = todoId;
-  onCreateAssistState.aiSuggestionId = "";
-  onCreateAssistState.envelope = null;
-  onCreateAssistState.suggestions = [];
-  onCreateAssistState.showAll = false;
+  state.onCreateAssistState.loading = true;
+  state.onCreateAssistState.error = "";
+  state.onCreateAssistState.unavailable = false;
+  state.onCreateAssistState.mode = "live";
+  state.onCreateAssistState.liveTodoId = todoId;
+  state.onCreateAssistState.aiSuggestionId = "";
+  state.onCreateAssistState.envelope = null;
+  state.onCreateAssistState.suggestions = [];
+  state.onCreateAssistState.showAll = false;
   renderOnCreateAssistRow();
 
   try {
     let latestResponse = await fetchOnCreateLatestSuggestion(todoId);
     if (latestResponse.status === 403 || latestResponse.status === 404) {
-      onCreateAssistState.loading = false;
-      onCreateAssistState.unavailable = true;
+      state.onCreateAssistState.loading = false;
+      state.onCreateAssistState.unavailable = true;
       renderOnCreateAssistRow();
       return;
     }
 
     if (latestResponse.status === 204) {
       if (isOnCreateDismissed(todoId) || !allowGenerate) {
-        onCreateAssistState.loading = false;
-        onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
+        state.onCreateAssistState.loading = false;
+        state.onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
           surface: ON_CREATE_SURFACE,
           must_abstain: true,
           suggestions: [],
         });
-        onCreateAssistState.suggestions = [];
+        state.onCreateAssistState.suggestions = [];
         renderOnCreateAssistRow();
         return;
       }
 
       const generated = await generateOnCreateSuggestion(todo);
       if (generated.status === 403 || generated.status === 404) {
-        onCreateAssistState.loading = false;
-        onCreateAssistState.unavailable = true;
+        state.onCreateAssistState.loading = false;
+        state.onCreateAssistState.unavailable = true;
         renderOnCreateAssistRow();
         return;
       }
@@ -9689,20 +9705,20 @@ async function loadOnCreateDecisionAssist(todo, allowGenerate = true) {
     }
 
     if (latestResponse.status === 204) {
-      onCreateAssistState.loading = false;
-      onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
+      state.onCreateAssistState.loading = false;
+      state.onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
         surface: ON_CREATE_SURFACE,
         must_abstain: true,
         suggestions: [],
       });
-      onCreateAssistState.suggestions = [];
+      state.onCreateAssistState.suggestions = [];
       renderOnCreateAssistRow();
       return;
     }
 
     if (!latestResponse.ok) {
-      onCreateAssistState.loading = false;
-      onCreateAssistState.error = "Could not load suggestions.";
+      state.onCreateAssistState.loading = false;
+      state.onCreateAssistState.error = "Could not load suggestions.";
       renderOnCreateAssistRow();
       return;
     }
@@ -9711,17 +9727,19 @@ async function loadOnCreateDecisionAssist(todo, allowGenerate = true) {
     const envelope = normalizeOnCreateAssistEnvelope(
       payload?.outputEnvelope || {},
     );
-    onCreateAssistState.loading = false;
-    onCreateAssistState.aiSuggestionId = String(payload?.aiSuggestionId || "");
-    onCreateAssistState.envelope = envelope;
-    onCreateAssistState.suggestions = envelope.suggestions;
-    onCreateAssistState.mode = "live";
-    onCreateAssistState.liveTodoId = todoId;
+    state.onCreateAssistState.loading = false;
+    state.onCreateAssistState.aiSuggestionId = String(
+      payload?.aiSuggestionId || "",
+    );
+    state.onCreateAssistState.envelope = envelope;
+    state.onCreateAssistState.suggestions = envelope.suggestions;
+    state.onCreateAssistState.mode = "live";
+    state.onCreateAssistState.liveTodoId = todoId;
     renderOnCreateAssistRow();
   } catch (error) {
     console.error("On-create AI load failed:", error);
-    onCreateAssistState.loading = false;
-    onCreateAssistState.error = "Could not load suggestions.";
+    state.onCreateAssistState.loading = false;
+    state.onCreateAssistState.error = "Could not load suggestions.";
     renderOnCreateAssistRow();
   }
 }
@@ -9735,16 +9753,16 @@ function refreshOnCreateAssistFromTitle(force = false) {
     renderOnCreateAssistRow();
     return;
   }
-  if (!force && onCreateAssistState.titleBasis === title) {
+  if (!force && state.onCreateAssistState.titleBasis === title) {
     renderOnCreateAssistRow();
     return;
   }
   const envelope = normalizeOnCreateAssistEnvelope(
     buildMockOnCreateAssistEnvelope(title),
   );
-  onCreateAssistState = {
+  state.onCreateAssistState = {
     ...createInitialOnCreateAssistState(),
-    dismissedTodoIds: onCreateAssistState.dismissedTodoIds,
+    dismissedTodoIds: state.onCreateAssistState.dismissedTodoIds,
     titleBasis: title,
     envelope,
     suggestions: envelope.suggestions,
@@ -9755,13 +9773,13 @@ function refreshOnCreateAssistFromTitle(force = false) {
 }
 
 function getOnCreateSuggestionById(suggestionId) {
-  return onCreateAssistState.suggestions.find(
+  return state.onCreateAssistState.suggestions.find(
     (suggestion) => suggestion.suggestionId === suggestionId,
   );
 }
 
 function getActiveOnCreateSuggestions() {
-  return onCreateAssistState.suggestions.filter(
+  return state.onCreateAssistState.suggestions.filter(
     (suggestion) => !suggestion.dismissed,
   );
 }
@@ -9941,8 +9959,8 @@ function renderOnCreateAssistRow() {
   const refs = getOnCreateAssistElements();
   if (!refs) return;
   const title = refs.titleInput.value.trim();
-  const hasLiveContext = !!onCreateAssistState.liveTodoId;
-  if (!title && !hasLiveContext && !onCreateAssistState.loading) {
+  const hasLiveContext = !!state.onCreateAssistState.liveTodoId;
+  if (!title && !hasLiveContext && !state.onCreateAssistState.loading) {
     refs.row.hidden = true;
     refs.row.innerHTML = "";
     return;
@@ -9950,15 +9968,15 @@ function renderOnCreateAssistRow() {
 
   // Lint-first gate: show one chip only; full panel revealed by Fix/Review.
   // In debug mode, always show the full panel so developers see all metadata.
-  if (!onCreateAssistState.showFullAssist && !AI_DEBUG_ENABLED) {
+  if (!state.onCreateAssistState.showFullAssist && !AI_DEBUG_ENABLED) {
     const issue = lintTodoFields({
       title,
       dueDate: refs.dueDateInput ? refs.dueDateInput.value : "",
-      priority: currentPriority,
-      allTodos: todos,
+      priority: state.currentPriority,
+      allTodos: state.todos,
       surface: "on_create",
     });
-    onCreateAssistState.lintIssue = issue;
+    state.onCreateAssistState.lintIssue = issue;
     if (!issue) {
       refs.row.hidden = true;
       refs.row.innerHTML = "";
@@ -9970,7 +9988,7 @@ function renderOnCreateAssistRow() {
   }
 
   refs.row.hidden = false;
-  if (onCreateAssistState.loading) {
+  if (state.onCreateAssistState.loading) {
     refs.row.innerHTML = `
       <div class="ai-create-assist__header">
         <span class="ai-create-assist__title">AI Assist</span>
@@ -9979,7 +9997,7 @@ function renderOnCreateAssistRow() {
     `;
     return;
   }
-  if (onCreateAssistState.unavailable) {
+  if (state.onCreateAssistState.unavailable) {
     refs.row.innerHTML = `
       <div class="ai-create-assist__header">
         <span class="ai-create-assist__title">AI Assist</span>
@@ -9988,7 +10006,7 @@ function renderOnCreateAssistRow() {
     `;
     return;
   }
-  if (onCreateAssistState.error) {
+  if (state.onCreateAssistState.error) {
     refs.row.innerHTML = `
       <div class="ai-create-assist__header">
         <span class="ai-create-assist__title">AI Assist</span>
@@ -10003,14 +10021,14 @@ function renderOnCreateAssistRow() {
       <div class="ai-create-assist__header">
         <span class="ai-create-assist__title">AI Assist</span>
       </div>
-      ${renderAiDebugMeta(onCreateAssistState.envelope || {})}
+      ${renderAiDebugMeta(state.onCreateAssistState.envelope || {})}
       <div class="ai-create-assist__empty ai-empty" role="status">No suggestions right now.</div>
     `;
     return;
   }
 
   const defaultLimit = 4;
-  const visibleLimit = onCreateAssistState.showAll ? 6 : defaultLimit;
+  const visibleLimit = state.onCreateAssistState.showAll ? 6 : defaultLimit;
   const visibleSuggestions = activeSuggestions.slice(0, visibleLimit);
   const hiddenCount = Math.max(
     0,
@@ -10028,15 +10046,15 @@ function renderOnCreateAssistRow() {
             class="ai-create-assist__expand"
             data-testid="ai-chip-expand-more"
             data-ai-create-action="toggle-more"
-            aria-label="${onCreateAssistState.showAll ? "Show fewer suggestions" : `Show ${hiddenCount} more suggestions`}"
+            aria-label="${state.onCreateAssistState.showAll ? "Show fewer suggestions" : `Show ${hiddenCount} more suggestions`}"
           >
-            ${onCreateAssistState.showAll ? "Show less" : `+${hiddenCount} more`}
+            ${state.onCreateAssistState.showAll ? "Show less" : `+${hiddenCount} more`}
           </button>
         `
           : ""
       }
     </div>
-    ${renderAiDebugMeta(onCreateAssistState.envelope || {})}
+    ${renderAiDebugMeta(state.onCreateAssistState.envelope || {})}
     <div class="ai-create-assist__chips">
       ${visibleSuggestions
         .map((suggestion) => {
@@ -10112,7 +10130,7 @@ function snapshotOnCreateDraftState() {
       refs.projectSelect instanceof HTMLSelectElement
         ? refs.projectSelect.value
         : "",
-    priority: currentPriority,
+    priority: state.currentPriority,
   };
 }
 
@@ -10120,7 +10138,7 @@ function restoreOnCreateDraftState(snapshot) {
   if (!snapshot) return;
   const refs = getOnCreateAssistElements();
   if (!refs) return;
-  suppressOnCreateAssistInput = true;
+  state.suppressOnCreateAssistInput = true;
   refs.titleInput.value = snapshot.title || "";
   if (refs.dueDateInput instanceof HTMLInputElement) {
     refs.dueDateInput.value = snapshot.dueDate || "";
@@ -10138,7 +10156,7 @@ function restoreOnCreateDraftState(snapshot) {
   ) {
     setPriority(snapshot.priority);
   }
-  suppressOnCreateAssistInput = false;
+  state.suppressOnCreateAssistInput = false;
 }
 
 function applyOnCreateSuggestion(suggestion, clarificationChoice = "") {
@@ -10152,9 +10170,9 @@ function applyOnCreateSuggestion(suggestion, clarificationChoice = "") {
   if (suggestion.type === "rewrite_title") {
     const nextTitle = String(suggestion.payload.title || "").trim();
     if (nextTitle) {
-      suppressOnCreateAssistInput = true;
+      state.suppressOnCreateAssistInput = true;
       refs.titleInput.value = nextTitle;
-      suppressOnCreateAssistInput = false;
+      state.suppressOnCreateAssistInput = false;
     }
   } else if (suggestion.type === "set_due_date") {
     const dueDateIso = String(suggestion.payload.dueDateISO || "");
@@ -10215,9 +10233,9 @@ function applyOnCreateSuggestion(suggestion, clarificationChoice = "") {
 }
 
 async function applyLiveOnCreateSuggestion(suggestion, confirmed = false) {
-  if (!onCreateAssistState.aiSuggestionId) return;
+  if (!state.onCreateAssistState.aiSuggestionId) return;
   const response = await apiCall(
-    `${API_URL}/ai/suggestions/${encodeURIComponent(onCreateAssistState.aiSuggestionId)}/apply`,
+    `${API_URL}/ai/suggestions/${encodeURIComponent(state.onCreateAssistState.aiSuggestionId)}/apply`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -10229,7 +10247,7 @@ async function applyLiveOnCreateSuggestion(suggestion, confirmed = false) {
   );
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
-    onCreateAssistState.error =
+    state.onCreateAssistState.error =
       typeof data?.error === "string"
         ? data.error
         : "Could not apply suggestion.";
@@ -10239,16 +10257,18 @@ async function applyLiveOnCreateSuggestion(suggestion, confirmed = false) {
 
   const data = await response.json().catch(() => ({}));
   if (data?.todo?.id) {
-    const index = todos.findIndex((item) => item.id === data.todo.id);
+    const index = state.todos.findIndex((item) => item.id === data.todo.id);
     if (index >= 0) {
-      todos[index] = data.todo;
+      state.todos[index] = data.todo;
     }
     renderTodos();
   }
-  clearOnCreateDismissed(onCreateAssistState.liveTodoId);
+  clearOnCreateDismissed(state.onCreateAssistState.liveTodoId);
   const refreshedTodo =
-    (onCreateAssistState.liveTodoId &&
-      todos.find((item) => item.id === onCreateAssistState.liveTodoId)) ||
+    (state.onCreateAssistState.liveTodoId &&
+      state.todos.find(
+        (item) => item.id === state.onCreateAssistState.liveTodoId,
+      )) ||
     null;
   if (refreshedTodo) {
     await loadOnCreateDecisionAssist(refreshedTodo, false);
@@ -10271,7 +10291,7 @@ async function onCreateAssistApplySuggestion(suggestionId) {
     renderOnCreateAssistRow();
     return;
   }
-  if (onCreateAssistState.mode === "live") {
+  if (state.onCreateAssistState.mode === "live") {
     await applyLiveOnCreateSuggestion(suggestion, false);
     return;
   }
@@ -10282,7 +10302,7 @@ async function onCreateAssistApplySuggestion(suggestionId) {
 async function onCreateAssistConfirmApplySuggestion(suggestionId) {
   const suggestion = getOnCreateSuggestionById(suggestionId);
   if (!suggestion || suggestion.dismissed || suggestion.applied) return;
-  if (onCreateAssistState.mode === "live") {
+  if (state.onCreateAssistState.mode === "live") {
     await applyLiveOnCreateSuggestion(suggestion, true);
     return;
   }
@@ -10294,12 +10314,12 @@ async function onCreateAssistDismissSuggestion(suggestionId) {
   const suggestion = getOnCreateSuggestionById(suggestionId);
   if (!suggestion) return;
   if (
-    onCreateAssistState.mode === "live" &&
-    onCreateAssistState.aiSuggestionId
+    state.onCreateAssistState.mode === "live" &&
+    state.onCreateAssistState.aiSuggestionId
   ) {
     try {
       await apiCall(
-        `${API_URL}/ai/suggestions/${encodeURIComponent(onCreateAssistState.aiSuggestionId)}/dismiss`,
+        `${API_URL}/ai/suggestions/${encodeURIComponent(state.onCreateAssistState.aiSuggestionId)}/dismiss`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -10309,15 +10329,15 @@ async function onCreateAssistDismissSuggestion(suggestionId) {
     } catch (error) {
       console.error("On-create AI dismiss failed:", error);
     }
-    markOnCreateDismissed(onCreateAssistState.liveTodoId);
-    onCreateAssistState.suggestions = [];
-    onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
+    markOnCreateDismissed(state.onCreateAssistState.liveTodoId);
+    state.onCreateAssistState.suggestions = [];
+    state.onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
       surface: ON_CREATE_SURFACE,
       must_abstain: true,
       suggestions: [],
     });
-    onCreateAssistState.aiSuggestionId = "";
-    onCreateAssistState.error = "";
+    state.onCreateAssistState.aiSuggestionId = "";
+    state.onCreateAssistState.error = "";
     renderOnCreateAssistRow();
     return;
   }
@@ -10338,9 +10358,9 @@ function onCreateAssistUndoSuggestion(suggestionId) {
   suggestion.undoSnapshot = null;
   emitAiSuggestionUndoTelemetry({
     surface: ON_CREATE_SURFACE,
-    aiSuggestionDbId: onCreateAssistState.aiSuggestionId,
+    aiSuggestionDbId: state.onCreateAssistState.aiSuggestionId,
     suggestionId,
-    todoId: onCreateAssistState.liveTodoId || "",
+    todoId: state.onCreateAssistState.liveTodoId || "",
     selectedTodoIdsCount: 1,
   });
   renderOnCreateAssistRow();
@@ -10369,7 +10389,7 @@ function bindOnCreateAssistHandlers() {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     if (target.id !== "todoInput") return;
-    if (suppressOnCreateAssistInput) {
+    if (state.suppressOnCreateAssistInput) {
       renderOnCreateAssistRow();
       return;
     }
@@ -10385,16 +10405,16 @@ function bindOnCreateAssistHandlers() {
     const lintEl = target.closest("[data-ai-lint-action]");
     if (!(lintEl instanceof HTMLElement)) return;
     const lintAction = lintEl.getAttribute("data-ai-lint-action");
-    onCreateAssistState.showFullAssist = true;
-    if (onCreateAssistState.liveTodoId) {
+    state.onCreateAssistState.showFullAssist = true;
+    if (state.onCreateAssistState.liveTodoId) {
       // Post-create mode: load server-backed suggestions for the saved todo.
-      const todo = getTodoById(onCreateAssistState.liveTodoId);
+      const todo = getTodoById(state.onCreateAssistState.liveTodoId);
       await loadOnCreateDecisionAssist(todo, lintAction === "fix");
     } else {
       // Pre-create mode: regenerate client-side mock suggestions and reveal them.
       // refreshOnCreateAssistFromTitle resets state; set showFullAssist after.
       refreshOnCreateAssistFromTitle(true);
-      onCreateAssistState.showFullAssist = true;
+      state.onCreateAssistState.showFullAssist = true;
       renderOnCreateAssistRow();
     }
   });
@@ -10408,7 +10428,7 @@ function bindOnCreateAssistHandlers() {
     const suggestionId =
       actionEl.getAttribute("data-ai-create-suggestion-id") || "";
     if (action === "toggle-more") {
-      onCreateAssistState.showAll = !onCreateAssistState.showAll;
+      state.onCreateAssistState.showAll = !state.onCreateAssistState.showAll;
       renderOnCreateAssistRow();
       return;
     }
@@ -10446,7 +10466,9 @@ function bindOnCreateAssistHandlers() {
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
     if (
-      !onCreateAssistState.suggestions.some((item) => item.confirmationOpen)
+      !state.onCreateAssistState.suggestions.some(
+        (item) => item.confirmationOpen,
+      )
     ) {
       return;
     }
@@ -10454,7 +10476,7 @@ function bindOnCreateAssistHandlers() {
     if (target instanceof Element && !target.closest("#aiOnCreateAssistRow")) {
       return;
     }
-    onCreateAssistState.suggestions.forEach((item) => {
+    state.onCreateAssistState.suggestions.forEach((item) => {
       item.confirmationOpen = false;
     });
     renderOnCreateAssistRow();
@@ -10481,7 +10503,7 @@ function createInitialTodayPlanState() {
 }
 
 function resetTodayPlanState() {
-  todayPlanState = createInitialTodayPlanState();
+  state.todayPlanState = createInitialTodayPlanState();
 }
 
 function getTodayPlanPanelElement() {
@@ -10499,7 +10521,7 @@ function getTodayPlanConfidenceBadge(confidence) {
 }
 
 function isTodayPlanViewActive() {
-  return currentDateView === "today";
+  return state.currentDateView === "today";
 }
 
 function toEpoch(value) {
@@ -10811,39 +10833,39 @@ async function generateTodayPlanSuggestion(goalText) {
 async function loadTodayPlanDecisionAssist(allowGenerate = false) {
   if (!isTodayPlanViewActive()) return;
   if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
-    todayPlanState.loading = false;
-    todayPlanState.generating = false;
-    todayPlanState.unavailable = true;
-    todayPlanState.hasLoaded = true;
+    state.todayPlanState.loading = false;
+    state.todayPlanState.generating = false;
+    state.todayPlanState.unavailable = true;
+    state.todayPlanState.hasLoaded = true;
     renderTodayPlanPanel();
     return;
   }
 
-  todayPlanState.loading = true;
-  todayPlanState.error = "";
-  todayPlanState.unavailable = false;
+  state.todayPlanState.loading = true;
+  state.todayPlanState.error = "";
+  state.todayPlanState.unavailable = false;
   renderTodayPlanPanel();
 
   try {
     let latestResponse = await fetchTodayPlanLatestSuggestion();
     if (latestResponse.status === 403 || latestResponse.status === 404) {
-      todayPlanState.loading = false;
-      todayPlanState.generating = false;
-      todayPlanState.unavailable = true;
-      todayPlanState.hasLoaded = true;
+      state.todayPlanState.loading = false;
+      state.todayPlanState.generating = false;
+      state.todayPlanState.unavailable = true;
+      state.todayPlanState.hasLoaded = true;
       renderTodayPlanPanel();
       return;
     }
 
     if (latestResponse.status === 204 && allowGenerate) {
       const generated = await generateTodayPlanSuggestion(
-        todayPlanState.goalText,
+        state.todayPlanState.goalText,
       );
       if (generated.status === 403 || generated.status === 404) {
-        todayPlanState.loading = false;
-        todayPlanState.generating = false;
-        todayPlanState.unavailable = true;
-        todayPlanState.hasLoaded = true;
+        state.todayPlanState.loading = false;
+        state.todayPlanState.generating = false;
+        state.todayPlanState.unavailable = true;
+        state.todayPlanState.hasLoaded = true;
         renderTodayPlanPanel();
         return;
       }
@@ -10851,40 +10873,40 @@ async function loadTodayPlanDecisionAssist(allowGenerate = false) {
     }
 
     if (latestResponse.status === 204) {
-      todayPlanState.loading = false;
-      todayPlanState.generating = false;
-      todayPlanState.hasLoaded = true;
-      todayPlanState.aiSuggestionId = "";
-      todayPlanState.envelope = normalizeTodayPlanEnvelope({
+      state.todayPlanState.loading = false;
+      state.todayPlanState.generating = false;
+      state.todayPlanState.hasLoaded = true;
+      state.todayPlanState.aiSuggestionId = "";
+      state.todayPlanState.envelope = normalizeTodayPlanEnvelope({
         surface: TODAY_PLAN_SURFACE,
         must_abstain: false,
         planPreview: { topN: 3, items: [] },
         suggestions: [],
       });
-      todayPlanState.selectedTodoIds = new Set();
-      todayPlanState.dismissedSuggestionIds = new Set();
+      state.todayPlanState.selectedTodoIds = new Set();
+      state.todayPlanState.dismissedSuggestionIds = new Set();
       renderTodayPlanPanel();
       return;
     }
 
     if (!latestResponse.ok) {
-      todayPlanState.loading = false;
-      todayPlanState.generating = false;
-      todayPlanState.error = "Could not load suggestions.";
-      todayPlanState.hasLoaded = true;
+      state.todayPlanState.loading = false;
+      state.todayPlanState.generating = false;
+      state.todayPlanState.error = "Could not load suggestions.";
+      state.todayPlanState.hasLoaded = true;
       renderTodayPlanPanel();
       return;
     }
 
     const payload = await latestResponse.json();
     const envelope = normalizeTodayPlanEnvelope(payload?.outputEnvelope || {});
-    todayPlanState.loading = false;
-    todayPlanState.generating = false;
-    todayPlanState.hasLoaded = true;
-    todayPlanState.aiSuggestionId = String(payload?.aiSuggestionId || "");
-    todayPlanState.envelope = envelope;
-    todayPlanState.dismissedSuggestionIds = new Set();
-    todayPlanState.selectedTodoIds = new Set(
+    state.todayPlanState.loading = false;
+    state.todayPlanState.generating = false;
+    state.todayPlanState.hasLoaded = true;
+    state.todayPlanState.aiSuggestionId = String(payload?.aiSuggestionId || "");
+    state.todayPlanState.envelope = envelope;
+    state.todayPlanState.dismissedSuggestionIds = new Set();
+    state.todayPlanState.selectedTodoIds = new Set(
       envelope.planPreview.items
         .map((item) => String(item.todoId))
         .filter(Boolean),
@@ -10892,25 +10914,27 @@ async function loadTodayPlanDecisionAssist(allowGenerate = false) {
     renderTodayPlanPanel();
   } catch (error) {
     console.error("Today plan AI load failed:", error);
-    todayPlanState.loading = false;
-    todayPlanState.generating = false;
-    todayPlanState.error = "Could not load suggestions.";
-    todayPlanState.hasLoaded = true;
+    state.todayPlanState.loading = false;
+    state.todayPlanState.generating = false;
+    state.todayPlanState.error = "Could not load suggestions.";
+    state.todayPlanState.hasLoaded = true;
     renderTodayPlanPanel();
   }
 }
 
 function getTodayPlanSelectedSuggestionCards() {
-  if (!todayPlanState.envelope) return [];
-  const selectedIds = todayPlanState.selectedTodoIds;
-  const filtered = todayPlanState.envelope.suggestions
+  if (!state.todayPlanState.envelope) return [];
+  const selectedIds = state.todayPlanState.selectedTodoIds;
+  const filtered = state.todayPlanState.envelope.suggestions
     .filter((suggestion) => {
       const todoId = String(suggestion.payload?.todoId || "");
       return todoId && selectedIds.has(todoId);
     })
     .filter(
       (suggestion) =>
-        !todayPlanState.dismissedSuggestionIds.has(suggestion.suggestionId),
+        !state.todayPlanState.dismissedSuggestionIds.has(
+          suggestion.suggestionId,
+        ),
     )
     .filter((suggestion) =>
       shouldRenderTypeForSurface(TODAY_PLAN_SURFACE, suggestion.type),
@@ -10932,15 +10956,17 @@ function renderTodayPlanPanel() {
   }
 
   panel.hidden = false;
-  const goalText = todayPlanState.goalText || "";
-  const envelope = todayPlanState.envelope;
+  const goalText = state.todayPlanState.goalText || "";
+  const envelope = state.todayPlanState.envelope;
   const previewItems = Array.isArray(envelope?.planPreview?.items)
     ? envelope.planPreview.items
     : [];
   const suggestionCards = getTodayPlanSelectedSuggestionCards();
   const emptyMessage = envelope?.must_abstain
     ? "No safe plan right now."
-    : envelope && !todayPlanState.generating && suggestionCards.length === 0
+    : envelope &&
+        !state.todayPlanState.generating &&
+        suggestionCards.length === 0
       ? "No suggestions right now."
       : "";
 
@@ -10949,7 +10975,7 @@ function renderTodayPlanPanel() {
     <div class="today-plan-panel__header">
       <div class="today-plan-panel__title">Plan my day</div>
       ${
-        todayPlanState.lastApplyBatch
+        state.todayPlanState.lastApplyBatch
           ? `
           <button
             type="button"
@@ -10981,25 +11007,25 @@ function renderTodayPlanPanel() {
         class="mini-btn"
         aria-label="Generate plan"
         data-today-plan-action="generate"
-        ${todayPlanState.loading || todayPlanState.generating ? "disabled" : ""}
+        ${state.todayPlanState.loading || state.todayPlanState.generating ? "disabled" : ""}
       >
-        ${todayPlanState.loading || todayPlanState.generating ? "Generating..." : "Generate plan"}
+        ${state.todayPlanState.loading || state.todayPlanState.generating ? "Generating..." : "Generate plan"}
       </button>
     </div>
     ${renderAiDebugMeta(envelope || {})}
     ${
-      todayPlanState.loading || todayPlanState.generating
+      state.todayPlanState.loading || state.todayPlanState.generating
         ? '<div class="today-plan-panel__loading ai-empty" role="status">Generating plan preview...</div>'
         : ""
     }
     ${
-      todayPlanState.unavailable
+      state.todayPlanState.unavailable
         ? '<div class="today-plan-panel__empty ai-empty" role="status">AI Suggestions unavailable.</div>'
         : ""
     }
     ${
-      todayPlanState.error
-        ? `<div class="today-plan-panel__empty ai-empty" role="status">${escapeHtml(todayPlanState.error)}</div>`
+      state.todayPlanState.error
+        ? `<div class="today-plan-panel__empty ai-empty" role="status">${escapeHtml(state.todayPlanState.error)}</div>`
         : ""
     }
     ${
@@ -11008,10 +11034,12 @@ function renderTodayPlanPanel() {
         <div class="today-plan-preview" data-testid="today-plan-preview">
           ${previewItems
             .map((item) => {
-              const todo = todos.find(
+              const todo = state.todos.find(
                 (entry) => String(entry.id) === String(item.todoId),
               );
-              const checked = todayPlanState.selectedTodoIds.has(item.todoId);
+              const checked = state.todayPlanState.selectedTodoIds.has(
+                item.todoId,
+              );
               return `
                 <div class="today-plan-preview__item" data-testid="today-plan-item-${escapeHtml(item.todoId)}">
                   <input
@@ -11043,7 +11071,9 @@ function renderTodayPlanPanel() {
           ${suggestionCards
             .map((suggestion) => {
               const todoId = String(suggestion.payload?.todoId || "");
-              const todo = todos.find((entry) => String(entry.id) === todoId);
+              const todo = state.todos.find(
+                (entry) => String(entry.id) === todoId,
+              );
               const summary =
                 suggestion.type === "set_due_date"
                   ? `Set due ${new Date(String(suggestion.payload?.dueDateISO || "")).toLocaleDateString()}`
@@ -11109,36 +11139,39 @@ async function handleTodayPlanGenerate() {
   const goalInput = document.getElementById("todayPlanGoalInput");
   const goalText =
     goalInput instanceof HTMLInputElement ? goalInput.value.trim() : "";
-  todayPlanState.goalText = goalText;
-  todayPlanState.generating = true;
-  todayPlanState.loading = true;
-  todayPlanState.error = "";
-  todayPlanState.unavailable = false;
-  todayPlanState.loadingMessage = "Generating plan preview...";
+  state.todayPlanState.goalText = goalText;
+  state.todayPlanState.generating = true;
+  state.todayPlanState.loading = true;
+  state.todayPlanState.error = "";
+  state.todayPlanState.unavailable = false;
+  state.todayPlanState.loadingMessage = "Generating plan preview...";
   renderTodayPlanPanel();
 
-  const generationId = ++todayPlanGenerationSeq;
+  const generationId = ++state.todayPlanGenerationSeq;
   await loadTodayPlanDecisionAssist(true);
-  if (generationId !== todayPlanGenerationSeq) return;
-  todayPlanState.loadingMessage = "";
-  todayPlanState.lastApplyBatch = null;
+  if (generationId !== state.todayPlanGenerationSeq) return;
+  state.todayPlanState.loadingMessage = "";
+  state.todayPlanState.lastApplyBatch = null;
   renderTodayPlanPanel();
 }
 
 function handleTodayPlanToggleItem(todoId, checked) {
   if (checked) {
-    todayPlanState.selectedTodoIds.add(todoId);
+    state.todayPlanState.selectedTodoIds.add(todoId);
   } else {
-    todayPlanState.selectedTodoIds.delete(todoId);
+    state.todayPlanState.selectedTodoIds.delete(todoId);
   }
   renderTodayPlanPanel();
 }
 
 async function handleTodayPlanDismissSuggestion(suggestionId) {
-  if (todayPlanState.mode === "live" && todayPlanState.aiSuggestionId) {
+  if (
+    state.todayPlanState.mode === "live" &&
+    state.todayPlanState.aiSuggestionId
+  ) {
     try {
       await apiCall(
-        `${API_URL}/ai/suggestions/${encodeURIComponent(todayPlanState.aiSuggestionId)}/dismiss`,
+        `${API_URL}/ai/suggestions/${encodeURIComponent(state.todayPlanState.aiSuggestionId)}/dismiss`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -11148,24 +11181,24 @@ async function handleTodayPlanDismissSuggestion(suggestionId) {
     } catch (error) {
       console.error("Today plan dismiss failed:", error);
     }
-    todayPlanState.aiSuggestionId = "";
-    todayPlanState.envelope = normalizeTodayPlanEnvelope({
+    state.todayPlanState.aiSuggestionId = "";
+    state.todayPlanState.envelope = normalizeTodayPlanEnvelope({
       surface: TODAY_PLAN_SURFACE,
       must_abstain: false,
       planPreview: { topN: 3, items: [] },
       suggestions: [],
     });
-    todayPlanState.selectedTodoIds = new Set();
-    todayPlanState.dismissedSuggestionIds = new Set();
+    state.todayPlanState.selectedTodoIds = new Set();
+    state.todayPlanState.dismissedSuggestionIds = new Set();
     renderTodayPlanPanel();
     return;
   }
-  todayPlanState.dismissedSuggestionIds.add(suggestionId);
+  state.todayPlanState.dismissedSuggestionIds.add(suggestionId);
   renderTodayPlanPanel();
 }
 
 async function handleTodayPlanApplySelected() {
-  if (!todayPlanState.envelope) return;
+  if (!state.todayPlanState.envelope) return;
   const suggestionsToApply = getTodayPlanSelectedSuggestionCards();
   if (!suggestionsToApply.length) return;
 
@@ -11176,27 +11209,30 @@ async function handleTodayPlanApplySelected() {
   );
   const todoSnapshots = {};
   for (const todoId of affectedTodoIds) {
-    const todo = todos.find((entry) => String(entry.id) === todoId);
+    const todo = state.todos.find((entry) => String(entry.id) === todoId);
     if (!todo) continue;
     todoSnapshots[todoId] = deepClone(todo);
   }
-  const notesDraftSnapshot = deepClone(todayPlanState.notesDraftByTodoId);
-  if (todayPlanState.mode === "live" && todayPlanState.aiSuggestionId) {
+  const notesDraftSnapshot = deepClone(state.todayPlanState.notesDraftByTodoId);
+  if (
+    state.todayPlanState.mode === "live" &&
+    state.todayPlanState.aiSuggestionId
+  ) {
     try {
       const response = await apiCall(
-        `${API_URL}/ai/suggestions/${encodeURIComponent(todayPlanState.aiSuggestionId)}/apply`,
+        `${API_URL}/ai/suggestions/${encodeURIComponent(state.todayPlanState.aiSuggestionId)}/apply`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            selectedTodoIds: Array.from(todayPlanState.selectedTodoIds),
+            selectedTodoIds: Array.from(state.todayPlanState.selectedTodoIds),
             confirmed: true,
           }),
         },
       );
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        todayPlanState.error =
+        state.todayPlanState.error =
           typeof data?.error === "string"
             ? data.error
             : "Could not apply selected suggestions.";
@@ -11207,24 +11243,24 @@ async function handleTodayPlanApplySelected() {
       const updatedTodos = Array.isArray(data?.todos) ? data.todos : [];
       for (const updatedTodo of updatedTodos) {
         if (!updatedTodo?.id) continue;
-        const index = todos.findIndex(
+        const index = state.todos.findIndex(
           (item) => String(item.id) === String(updatedTodo.id),
         );
         if (index >= 0) {
-          todos[index] = updatedTodo;
+          state.todos[index] = updatedTodo;
         }
       }
       await loadTodayPlanDecisionAssist(false);
     } catch (error) {
       console.error("Today plan apply failed:", error);
-      todayPlanState.error = "Could not apply selected suggestions.";
+      state.todayPlanState.error = "Could not apply selected suggestions.";
       renderTodayPlanPanel();
       return;
     }
   } else {
     for (const suggestion of suggestionsToApply) {
       const todoId = String(suggestion.payload?.todoId || "");
-      const todo = todos.find((entry) => String(entry.id) === todoId);
+      const todo = state.todos.find((entry) => String(entry.id) === todoId);
       if (!todo) continue;
 
       if (suggestion.type === "set_priority") {
@@ -11252,14 +11288,14 @@ async function handleTodayPlanApplySelected() {
         continue;
       }
       if (suggestion.type === "propose_next_action") {
-        todayPlanState.notesDraftByTodoId[todoId] = String(
+        state.todayPlanState.notesDraftByTodoId[todoId] = String(
           suggestion.payload?.text || "",
         ).slice(0, 500);
       }
     }
   }
 
-  todayPlanState.lastApplyBatch = {
+  state.todayPlanState.lastApplyBatch = {
     todoSnapshots,
     notesDraftSnapshot,
   };
@@ -11267,19 +11303,21 @@ async function handleTodayPlanApplySelected() {
 }
 
 function handleTodayPlanUndoBatch() {
-  const batch = todayPlanState.lastApplyBatch;
+  const batch = state.todayPlanState.lastApplyBatch;
   if (!batch) return;
   Object.entries(batch.todoSnapshots || {}).forEach(([todoId, snapshot]) => {
-    const index = todos.findIndex((entry) => String(entry.id) === todoId);
+    const index = state.todos.findIndex((entry) => String(entry.id) === todoId);
     if (index === -1) return;
-    todos[index] = snapshot;
+    state.todos[index] = snapshot;
   });
-  todayPlanState.notesDraftByTodoId = deepClone(batch.notesDraftSnapshot || {});
-  todayPlanState.lastApplyBatch = null;
+  state.todayPlanState.notesDraftByTodoId = deepClone(
+    batch.notesDraftSnapshot || {},
+  );
+  state.todayPlanState.lastApplyBatch = null;
   emitAiSuggestionUndoTelemetry({
     surface: TODAY_PLAN_SURFACE,
-    aiSuggestionDbId: todayPlanState.aiSuggestionId,
-    suggestionId: todayPlanState.envelope?.requestId || "",
+    aiSuggestionDbId: state.todayPlanState.aiSuggestionId,
+    suggestionId: state.todayPlanState.envelope?.requestId || "",
     selectedTodoIdsCount: Object.keys(batch.todoSnapshots || {}).length,
   });
   renderTodos();
@@ -11296,7 +11334,7 @@ function bindTodayPlanHandlers() {
     if (!(target instanceof HTMLElement)) return;
     if (target.id !== "todayPlanGoalInput") return;
     if (!(target instanceof HTMLInputElement)) return;
-    todayPlanState.goalText = target.value;
+    state.todayPlanState.goalText = target.value;
   });
 
   document.addEventListener("change", (event) => {
@@ -11346,7 +11384,6 @@ function bindTodayPlanHandlers() {
 }
 
 // ========== PHASE B: PRIORITY, NOTES, SUBTASKS ==========
-let currentPriority = "medium";
 
 function openTodoComposerFromCta() {
   const input = document.getElementById("todoInput");
@@ -11363,7 +11400,7 @@ function handleTodoKeyPress(event) {
 }
 
 function setPriority(priority) {
-  currentPriority = priority;
+  state.currentPriority = priority;
 
   // Update button states
   document.querySelectorAll(".priority-btn").forEach((btn) => {
@@ -11448,7 +11485,7 @@ function renderSubtasks(todo) {
 }
 
 async function toggleSubtask(todoId, subtaskId) {
-  const todo = todos.find((t) => t.id === todoId);
+  const todo = state.todos.find((t) => t.id === todoId);
   if (!todo || !todo.subtasks) return;
 
   const subtask = todo.subtasks.find((s) => s.id === subtaskId);
@@ -11477,7 +11514,7 @@ async function toggleSubtask(todoId, subtaskId) {
 }
 
 async function aiBreakdownTodo(todoId, force = false) {
-  const todo = todos.find((item) => item.id === todoId);
+  const todo = state.todos.find((item) => item.id === todoId);
   if (!todo) return;
 
   try {
@@ -11522,7 +11559,6 @@ async function aiBreakdownTodo(todoId, force = false) {
 }
 
 // ========== PHASE A: DRAG & DROP FUNCTIONALITY ==========
-let draggedTodoId = null;
 let draggedOverTodoId = null;
 let draggedHeadingId = null;
 
@@ -11583,12 +11619,12 @@ function getHeadingRowFromDragEvent(event, fallbackElement = null) {
 function handleDragStart(e, rowElement = null) {
   const row = getTodoRowFromDragEvent(e, rowElement);
   if (!row) return;
-  draggedTodoId = row.dataset.todoId;
+  state.draggedTodoId = row.dataset.todoId;
   draggedHeadingId = null;
   row.classList.add("dragging");
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", draggedTodoId || "");
+    e.dataTransfer.setData("text/plain", state.draggedTodoId || "");
   }
 }
 
@@ -11629,7 +11665,7 @@ function handleDragOver(e, rowElement = null) {
     item.classList.remove("drag-over");
   });
   const todoId = row?.dataset.todoId || "";
-  if (todoId !== draggedTodoId) {
+  if (todoId !== state.draggedTodoId) {
     const bounds = row.getBoundingClientRect();
     const dropPosition =
       e.clientY > bounds.top + bounds.height / 2 ? "after" : "before";
@@ -11676,13 +11712,18 @@ function handleDrop(e, rowElement = null) {
   }
   row?.classList.remove("drag-over");
 
-  if (draggedTodoId && dropTargetId && draggedTodoId !== dropTargetId) {
+  if (
+    state.draggedTodoId &&
+    dropTargetId &&
+    state.draggedTodoId !== dropTargetId
+  ) {
     const selectedProject = getSelectedProjectKey();
-    const targetTodo = todos.find((todo) => todo.id === dropTargetId) || null;
+    const targetTodo =
+      state.todos.find((todo) => todo.id === dropTargetId) || null;
     const nextHeadingId = selectedProject
       ? String(targetTodo?.headingId || "")
       : null;
-    reorderTodos(draggedTodoId, dropTargetId, {
+    reorderTodos(state.draggedTodoId, dropTargetId, {
       nextHeadingId: selectedProject ? nextHeadingId || null : undefined,
       placement,
     });
@@ -11697,7 +11738,7 @@ function handleDragEnd(e, rowElement = null) {
     delete item.dataset.todoDropPosition;
   });
   clearHeadingDragState();
-  draggedTodoId = null;
+  state.draggedTodoId = null;
   draggedOverTodoId = null;
 }
 
@@ -11727,7 +11768,7 @@ function handleHeadingDragStart(e, rowElement = null) {
   if (!headingId) return;
 
   draggedHeadingId = headingId;
-  draggedTodoId = null;
+  state.draggedTodoId = null;
   row.classList.add("todo-heading-divider--dragging");
   if (e.dataTransfer) {
     e.dataTransfer.effectAllowed = "move";
@@ -11759,7 +11800,7 @@ function handleHeadingDragOver(e, rowElement = null) {
     return;
   }
 
-  if (!draggedTodoId || !targetHeadingId) return;
+  if (!state.draggedTodoId || !targetHeadingId) return;
   e.preventDefault();
   clearHeadingDragState();
   row.classList.add("todo-heading-divider--drag-over-before");
@@ -11771,7 +11812,7 @@ function handleHeadingDragOver(e, rowElement = null) {
 function getFirstTodoIdInHeading(headingId, excludeTodoId = null) {
   const selectedProject = getSelectedProjectKey();
   const normalizedProject = normalizeProjectPath(selectedProject);
-  const candidates = [...todos]
+  const candidates = [...state.todos]
     .filter((todo) => {
       const todoProject = normalizeProjectPath(todo.category || "");
       if (normalizedProject && todoProject !== normalizedProject) return false;
@@ -11802,14 +11843,17 @@ function handleHeadingDrop(e, rowElement = null) {
     return;
   }
 
-  if (!draggedTodoId) return;
-  const firstTodoId = getFirstTodoIdInHeading(targetHeadingId, draggedTodoId);
+  if (!state.draggedTodoId) return;
+  const firstTodoId = getFirstTodoIdInHeading(
+    targetHeadingId,
+    state.draggedTodoId,
+  );
   if (firstTodoId) {
-    reorderTodos(draggedTodoId, firstTodoId, {
+    reorderTodos(state.draggedTodoId, firstTodoId, {
       nextHeadingId: targetHeadingId,
     });
   } else {
-    moveTodoToHeading(draggedTodoId, targetHeadingId);
+    moveTodoToHeading(state.draggedTodoId, targetHeadingId);
   }
   clearHeadingDragState();
 }
@@ -11821,26 +11865,26 @@ function handleHeadingDragEnd() {
 
 async function reorderTodos(draggedId, targetId, options = {}) {
   const { nextHeadingId = undefined, placement = "before" } = options;
-  const draggedIndex = todos.findIndex((t) => t.id === draggedId);
-  const targetIndex = todos.findIndex((t) => t.id === targetId);
+  const draggedIndex = state.todos.findIndex((t) => t.id === draggedId);
+  const targetIndex = state.todos.findIndex((t) => t.id === targetId);
 
   if (draggedIndex === -1 || targetIndex === -1) return;
 
   // Reorder in local array
-  const [draggedTodo] = todos.splice(draggedIndex, 1);
+  const [draggedTodo] = state.todos.splice(draggedIndex, 1);
   let insertIndex = targetIndex + (placement === "after" ? 1 : 0);
   if (draggedIndex < insertIndex) {
     insertIndex -= 1;
   }
-  insertIndex = Math.max(0, Math.min(insertIndex, todos.length));
-  todos.splice(insertIndex, 0, draggedTodo);
+  insertIndex = Math.max(0, Math.min(insertIndex, state.todos.length));
+  state.todos.splice(insertIndex, 0, draggedTodo);
 
   if (nextHeadingId !== undefined) {
     draggedTodo.headingId = nextHeadingId;
   }
 
   // Update order values
-  todos.forEach((todo, index) => {
+  state.todos.forEach((todo, index) => {
     todo.order = index;
   });
 
@@ -11852,7 +11896,7 @@ async function reorderTodos(draggedId, targetId, options = {}) {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(
-        todos.map((todo) => ({
+        state.todos.map((todo) => ({
           id: todo.id,
           order: todo.order,
           ...(todo.id === draggedId &&
@@ -11874,13 +11918,12 @@ async function reorderTodos(draggedId, targetId, options = {}) {
 }
 
 // ========== PHASE A: BULK ACTIONS ==========
-let selectedTodos = new Set();
 
 function toggleSelectTodo(todoId) {
-  if (selectedTodos.has(todoId)) {
-    selectedTodos.delete(todoId);
+  if (state.selectedTodos.has(todoId)) {
+    state.selectedTodos.delete(todoId);
   } else {
-    selectedTodos.add(todoId);
+    state.selectedTodos.add(todoId);
   }
   updateBulkActionsVisibility();
   updateSelectAllCheckbox();
@@ -11888,12 +11931,12 @@ function toggleSelectTodo(todoId) {
 
 function toggleSelectAll() {
   const selectAllCheckbox = document.getElementById("selectAllCheckbox");
-  const filteredTodos = filterTodosList(todos);
+  const filteredTodos = filterTodosList(state.todos);
 
   if (selectAllCheckbox.checked) {
-    filteredTodos.forEach((todo) => selectedTodos.add(todo.id));
+    filteredTodos.forEach((todo) => state.selectedTodos.add(todo.id));
   } else {
-    filteredTodos.forEach((todo) => selectedTodos.delete(todo.id));
+    filteredTodos.forEach((todo) => state.selectedTodos.delete(todo.id));
   }
 
   renderTodos();
@@ -11901,10 +11944,10 @@ function toggleSelectAll() {
 
 function updateSelectAllCheckbox() {
   const selectAllCheckbox = document.getElementById("selectAllCheckbox");
-  const filteredTodos = filterTodosList(todos);
+  const filteredTodos = filterTodosList(state.todos);
   const allSelected =
     filteredTodos.length > 0 &&
-    filteredTodos.every((todo) => selectedTodos.has(todo.id));
+    filteredTodos.every((todo) => state.selectedTodos.has(todo.id));
 
   selectAllCheckbox.checked = allSelected;
 }
@@ -11913,9 +11956,9 @@ function updateBulkActionsVisibility() {
   const toolbar = document.getElementById("bulkActionsToolbar");
   const bulkCount = document.getElementById("bulkCount");
 
-  if (selectedTodos.size > 0) {
+  if (state.selectedTodos.size > 0) {
     toolbar.style.display = "flex";
-    bulkCount.textContent = `${selectedTodos.size} selected`;
+    bulkCount.textContent = `${state.selectedTodos.size} selected`;
   } else {
     toolbar.style.display = "none";
   }
@@ -11924,9 +11967,9 @@ function updateBulkActionsVisibility() {
 }
 
 async function completeSelected() {
-  if (selectedTodos.size === 0) return;
+  if (state.selectedTodos.size === 0) return;
 
-  const selectedIds = Array.from(selectedTodos);
+  const selectedIds = Array.from(state.selectedTodos);
   const completedIds = [];
 
   for (const todoId of selectedIds) {
@@ -11938,7 +11981,7 @@ async function completeSelected() {
       });
 
       if (response && response.ok) {
-        const todo = todos.find((t) => t.id === todoId);
+        const todo = state.todos.find((t) => t.id === todoId);
         if (todo) {
           todo.completed = true;
           completedIds.push(todoId);
@@ -11957,19 +12000,21 @@ async function completeSelected() {
     );
   }
 
-  selectedTodos.clear();
+  state.selectedTodos.clear();
   renderTodos();
 }
 
 async function deleteSelected() {
-  if (selectedTodos.size === 0) return;
+  if (state.selectedTodos.size === 0) return;
 
   if (
-    !(await showConfirmDialog(`Delete ${selectedTodos.size} selected todo(s)?`))
+    !(await showConfirmDialog(
+      `Delete ${state.selectedTodos.size} selected todo(s)?`,
+    ))
   )
     return;
 
-  const selectedIds = Array.from(selectedTodos);
+  const selectedIds = Array.from(state.selectedTodos);
   const deletedTodos = [];
   let deletedCount = 0;
 
@@ -11980,11 +12025,11 @@ async function deleteSelected() {
       });
 
       if (response && response.ok) {
-        const todo = todos.find((t) => t.id === todoId);
+        const todo = state.todos.find((t) => t.id === todoId);
         if (todo) {
           deletedTodos.push({ ...todo });
         }
-        todos = todos.filter((t) => t.id !== todoId);
+        state.todos = state.todos.filter((t) => t.id !== todoId);
         deletedCount += 1;
       } else {
         const errorData = response
@@ -12009,7 +12054,7 @@ async function deleteSelected() {
     );
   }
 
-  selectedTodos.clear();
+  state.selectedTodos.clear();
   renderTodos();
   updateCategoryFilter();
   if (deletedCount > 0) {
@@ -12030,15 +12075,13 @@ function closeShortcutsOverlay(event) {
 }
 
 // ========== PHASE E: UNDO/REDO FUNCTIONALITY ==========
-let undoStack = [];
-let undoTimeout = null;
 
 function addUndoAction(action, data, message) {
-  undoStack.push({ action, data, timestamp: Date.now() });
+  state.undoStack.push({ action, data, timestamp: Date.now() });
 
   // Keep only last 10 actions
-  if (undoStack.length > 10) {
-    undoStack.shift();
+  if (state.undoStack.length > 10) {
+    state.undoStack.shift();
   }
 
   showUndoToast(message);
@@ -12052,20 +12095,20 @@ function showUndoToast(message) {
   toast.classList.add("active");
 
   // Clear existing timeout
-  if (undoTimeout) {
-    clearTimeout(undoTimeout);
+  if (state.undoTimeout) {
+    clearTimeout(state.undoTimeout);
   }
 
   // Hide after 5 seconds
-  undoTimeout = setTimeout(() => {
+  state.undoTimeout = setTimeout(() => {
     toast.classList.remove("active");
   }, 5000);
 }
 
 function performUndo() {
-  if (undoStack.length === 0) return;
+  if (state.undoStack.length === 0) return;
 
-  const lastAction = undoStack.pop();
+  const lastAction = state.undoStack.pop();
   const toast = document.getElementById("undoToast");
   toast.classList.remove("active");
 
@@ -12128,8 +12171,8 @@ async function restoreTodo(todoData) {
         }
       }
 
-      todos.push(todoToRender);
-      todos.sort((a, b) => {
+      state.todos.push(todoToRender);
+      state.todos.sort((a, b) => {
         const aOrder = Number.isInteger(a.order)
           ? a.order
           : Number.MAX_SAFE_INTEGER;
@@ -12158,7 +12201,7 @@ document.addEventListener("keydown", function (e) {
     return;
   }
 
-  if (isCommandPaletteOpen) {
+  if (state.isCommandPaletteOpen) {
     if (e.key === "Escape") {
       e.preventDefault();
       closeCommandPalette({ restoreFocus: true });
@@ -12179,7 +12222,8 @@ document.addEventListener("keydown", function (e) {
 
     if (e.key === "Enter") {
       e.preventDefault();
-      const currentItem = commandPaletteSelectableItems[commandPaletteIndex];
+      const currentItem =
+        state.commandPaletteSelectableItems[state.commandPaletteIndex];
       executeCommandPaletteItem(currentItem);
       return;
     }
@@ -12210,7 +12254,7 @@ document.addEventListener("keydown", function (e) {
     }
   }
 
-  if (e.key === "Escape" && !isAiWorkspaceCollapsed) {
+  if (e.key === "Escape" && !state.isAiWorkspaceCollapsed) {
     const refs = getAiWorkspaceElements();
     const activeElement = document.activeElement;
     const focusInAiBody =
@@ -12224,54 +12268,54 @@ document.addEventListener("keydown", function (e) {
     }
   }
 
-  if (e.key === "Escape" && isProjectCrudModalOpen) {
+  if (e.key === "Escape" && state.isProjectCrudModalOpen) {
     e.preventDefault();
     closeProjectCrudModal();
     return;
   }
 
-  if (e.key === "Escape" && projectDeleteDialogState) {
+  if (e.key === "Escape" && state.projectDeleteDialogState) {
     e.preventDefault();
     closeProjectDeleteDialog();
     return;
   }
 
-  if (e.key === "Escape" && isProjectEditDrawerOpen) {
+  if (e.key === "Escape" && state.isProjectEditDrawerOpen) {
     e.preventDefault();
     closeProjectEditDrawer({ restoreFocus: true });
     return;
   }
 
-  if (e.key === "Escape" && openRailProjectMenuKey) {
+  if (e.key === "Escape" && state.openRailProjectMenuKey) {
     e.preventDefault();
     closeRailProjectMenu({ restoreFocus: true });
     return;
   }
 
-  if (e.key === "Escape" && isProfilePanelOpen) {
+  if (e.key === "Escape" && state.isProfilePanelOpen) {
     e.preventDefault();
     closeProfilePanel({ restoreFocus: true });
     return;
   }
 
-  if (e.key === "Escape" && openTodoKebabId) {
+  if (e.key === "Escape" && state.openTodoKebabId) {
     e.preventDefault();
     closeTodoKebabMenu({ restoreFocus: true });
     return;
   }
 
-  if (e.key === "Escape" && editingTodoId) {
+  if (e.key === "Escape" && state.editingTodoId) {
     closeEditTodoModal();
     return;
   }
 
-  if (e.key === "Escape" && isRailSheetOpen) {
+  if (e.key === "Escape" && state.isRailSheetOpen) {
     e.preventDefault();
     closeProjectsRailSheet({ restoreFocus: true });
     return;
   }
 
-  if (e.key === "Escape" && isMoreFiltersOpen) {
+  if (e.key === "Escape" && state.isMoreFiltersOpen) {
     const refs = getMoreFiltersElements();
     const activeElement = document.activeElement;
     const focusedInMoreFilters =
@@ -12288,7 +12332,7 @@ document.addEventListener("keydown", function (e) {
     }
   }
 
-  if (e.key === "Escape" && isTodoDrawerOpen) {
+  if (e.key === "Escape" && state.isTodoDrawerOpen) {
     e.preventDefault();
     closeTodoDrawer({ restoreFocus: true });
     return;
@@ -12361,7 +12405,7 @@ async function loadAdminUsers() {
   try {
     const response = await apiCall(`${API_URL}/admin/users`);
     if (response && response.ok) {
-      users = await response.json();
+      state.users = await response.json();
       renderAdminUsers();
     } else {
       const data = await response.json();
@@ -12394,7 +12438,7 @@ function renderAdminUsers() {
                         </tr>
                     </thead>
                     <tbody>
-                        ${users
+                        ${state.users
                           .map(
                             (user) => `
                             <tr>
@@ -12405,7 +12449,7 @@ function renderAdminUsers() {
                                 <td>${new Date(user.createdAt).toLocaleDateString()}</td>
                                 <td>
                                     ${
-                                      user.id !== currentUser.id
+                                      user.id !== state.currentUser.id
                                         ? `
                                         ${
                                           user.role === "user"
@@ -12593,7 +12637,7 @@ function bindTodoDrawerHandlers() {
     if (!(target instanceof Element)) return;
 
     if (
-      openTodoKebabId &&
+      state.openTodoKebabId &&
       !target.closest(".todo-kebab") &&
       !target.closest(".todo-kebab-menu")
     ) {
@@ -12632,10 +12676,13 @@ function bindTodoDrawerHandlers() {
       const drawerLintEl = target.closest("[data-ai-lint-action]");
       if (drawerLintEl instanceof HTMLElement) {
         const lintAction = drawerLintEl.getAttribute("data-ai-lint-action");
-        taskDrawerAssistState.showFullAssist = true;
+        state.taskDrawerAssistState.showFullAssist = true;
         renderTodoDrawerContent();
-        if (selectedTodoId) {
-          loadTaskDrawerDecisionAssist(selectedTodoId, lintAction === "fix");
+        if (state.selectedTodoId) {
+          loadTaskDrawerDecisionAssist(
+            state.selectedTodoId,
+            lintAction === "fix",
+          );
         }
         return;
       }
@@ -12651,7 +12698,7 @@ function bindTodoDrawerHandlers() {
       } else if (action === "confirm-apply") {
         applyTaskDrawerSuggestion(suggestionId, true);
       } else if (action === "cancel-confirm") {
-        taskDrawerAssistState.confirmSuggestionId = "";
+        state.taskDrawerAssistState.confirmSuggestionId = "";
         renderTodoDrawerContent();
       } else if (action === "dismiss") {
         dismissTaskDrawerSuggestions(suggestionId);
@@ -12757,10 +12804,13 @@ function bindTodoDrawerHandlers() {
       return;
     }
 
-    if (event.key === "Escape" && taskDrawerAssistState.confirmSuggestionId) {
+    if (
+      event.key === "Escape" &&
+      state.taskDrawerAssistState.confirmSuggestionId
+    ) {
       const active = event.target;
       if (active instanceof Element && active.closest("#todoDetailsDrawer")) {
-        taskDrawerAssistState.confirmSuggestionId = "";
+        state.taskDrawerAssistState.confirmSuggestionId = "";
         renderTodoDrawerContent();
         event.preventDefault();
         return;
@@ -12846,14 +12896,14 @@ function bindProjectsRailHandlers() {
     }
 
     const backdrop = target.closest("#projectsRailBackdrop");
-    if (backdrop && isRailSheetOpen) {
+    if (backdrop && state.isRailSheetOpen) {
       event.preventDefault();
       closeProjectsRailSheet({ restoreFocus: true });
       return;
     }
 
     const mobileClose = target.closest("#projectsRailMobileClose");
-    if (mobileClose && isRailSheetOpen) {
+    if (mobileClose && state.isRailSheetOpen) {
       event.preventDefault();
       closeProjectsRailSheet({ restoreFocus: true });
       return;
@@ -12871,40 +12921,40 @@ function bindProjectsRailHandlers() {
     }
 
     const modalCancel = target.closest("#projectCrudCancelButton");
-    if (modalCancel && isProjectCrudModalOpen) {
+    if (modalCancel && state.isProjectCrudModalOpen) {
       event.preventDefault();
       closeProjectCrudModal();
       return;
     }
 
     const projectDrawerClose = target.closest("#projectEditDrawerClose");
-    if (projectDrawerClose && isProjectEditDrawerOpen) {
+    if (projectDrawerClose && state.isProjectEditDrawerOpen) {
       event.preventDefault();
-      if (isProjectDeletePending) return;
+      if (state.isProjectDeletePending) return;
       closeProjectEditDrawer({ restoreFocus: true });
       return;
     }
 
     const projectDrawerCancel = target.closest("#projectEditCancelButton");
-    if (projectDrawerCancel && isProjectEditDrawerOpen) {
+    if (projectDrawerCancel && state.isProjectEditDrawerOpen) {
       event.preventDefault();
-      if (isProjectDeletePending) return;
+      if (state.isProjectDeletePending) return;
       closeProjectEditDrawer({ restoreFocus: true });
       return;
     }
 
     const projectDrawerDelete = target.closest("#projectEditDeleteButton");
-    if (projectDrawerDelete && isProjectEditDrawerOpen) {
+    if (projectDrawerDelete && state.isProjectEditDrawerOpen) {
       event.preventDefault();
-      if (isProjectDeletePending) return;
-      confirmDeleteSelectedProject(projectEditTargetProject);
+      if (state.isProjectDeletePending) return;
+      confirmDeleteSelectedProject(state.projectEditTargetProject);
       return;
     }
 
     const projectDrawerBackdrop = target.closest("#projectEditDrawerBackdrop");
-    if (projectDrawerBackdrop && isProjectEditDrawerOpen) {
+    if (projectDrawerBackdrop && state.isProjectEditDrawerOpen) {
       event.preventDefault();
-      if (isProjectDeletePending) return;
+      if (state.isProjectDeletePending) return;
       closeProjectEditDrawer({ restoreFocus: true });
       return;
     }
@@ -12921,10 +12971,10 @@ function bindProjectsRailHandlers() {
     if (
       target instanceof HTMLElement &&
       target.id === "projectDeleteDialog" &&
-      projectDeleteDialogState
+      state.projectDeleteDialogState
     ) {
       event.preventDefault();
-      if (isProjectDeletePending) return;
+      if (state.isProjectDeletePending) return;
       closeProjectDeleteDialog();
     }
   });
@@ -12990,7 +13040,7 @@ function bindProjectsRailHandlers() {
       return;
     }
 
-    if (event.key === "Escape" && inSheetRail && isRailSheetOpen) {
+    if (event.key === "Escape" && inSheetRail && state.isRailSheetOpen) {
       event.preventDefault();
       closeProjectsRailSheet({ restoreFocus: true });
       return;
@@ -13022,7 +13072,7 @@ function bindCommandPaletteHandlers() {
       return;
     }
 
-    if (!isCommandPaletteOpen) return;
+    if (!state.isCommandPaletteOpen) return;
 
     const option = target.closest("[data-command-id]");
     if (!(option instanceof HTMLElement)) return;
@@ -13032,16 +13082,19 @@ function bindCommandPaletteHandlers() {
       10,
     );
     if (itemIndex < 0) return;
-    executeCommandPaletteItem(commandPaletteSelectableItems[itemIndex], option);
+    executeCommandPaletteItem(
+      state.commandPaletteSelectableItems[itemIndex],
+      option,
+    );
   });
 
   document.addEventListener("input", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     if (target.id !== "commandPaletteInput") return;
-    commandPaletteQuery =
+    state.commandPaletteQuery =
       target instanceof HTMLInputElement ? target.value : String(target.value);
-    commandPaletteIndex = 0;
+    state.commandPaletteIndex = 0;
     renderCommandPalette();
   });
 }
@@ -13081,7 +13134,7 @@ function bindCriticalHandlers() {
   });
 
   bindClick("projectsRailToggle", () => {
-    setProjectsRailCollapsed(!isRailCollapsed);
+    setProjectsRailCollapsed(!state.isRailCollapsed);
     renderProjectsRail();
   });
 
@@ -13094,7 +13147,7 @@ function bindCriticalHandlers() {
   });
 
   bindClick("quickEntryPropertiesToggle", () => {
-    setQuickEntryPropertiesOpen(!isQuickEntryPropertiesOpen);
+    setQuickEntryPropertiesOpen(!state.isQuickEntryPropertiesOpen);
   });
 
   bindClick("aiWorkspaceToggle", () => {
@@ -13134,17 +13187,17 @@ function bindCriticalHandlers() {
 
 // Profile panel (dock)
 function toggleProfilePanel() {
-  if (isProfilePanelOpen) {
+  if (state.isProfilePanelOpen) {
     closeProfilePanel({ restoreFocus: true });
   } else {
     const panel = document.getElementById("dockProfilePanel");
     if (!(panel instanceof HTMLElement)) return;
     const emailEl = document.getElementById("dockProfileEmail");
     if (emailEl instanceof HTMLElement) {
-      emailEl.textContent = currentUser?.email ?? "";
+      emailEl.textContent = state.currentUser?.email ?? "";
     }
     panel.hidden = false;
-    isProfilePanelOpen = true;
+    state.isProfilePanelOpen = true;
   }
 }
 
@@ -13153,7 +13206,7 @@ function closeProfilePanel({ restoreFocus = false } = {}) {
   if (panel instanceof HTMLElement) {
     panel.hidden = true;
   }
-  isProfilePanelOpen = false;
+  state.isProfilePanelOpen = false;
   if (restoreFocus) {
     const trigger = document.getElementById("dockProfileBtn");
     if (trigger instanceof HTMLElement) trigger.focus();
@@ -13165,7 +13218,7 @@ function bindDockHandlers() {
   window.__dockHandlersBound = true;
 
   document.addEventListener("click", (event) => {
-    if (!isProfilePanelOpen) return;
+    if (!state.isProfilePanelOpen) return;
     const target = event.target;
     if (!(target instanceof Element)) return;
     const panel = document.getElementById("dockProfilePanel");
@@ -13183,7 +13236,7 @@ function bindDockHandlers() {
 // Logout
 async function logout() {
   const { refreshToken: storedRefreshToken } = loadStoredSession();
-  const tokenToRevoke = refreshToken || storedRefreshToken;
+  const tokenToRevoke = state.refreshToken || storedRefreshToken;
 
   if (tokenToRevoke) {
     fetch(`${API_URL}/auth/logout`, {
@@ -13195,42 +13248,46 @@ async function logout() {
     });
   }
 
-  authToken = null;
-  refreshToken = null;
-  currentUser = null;
+  state.authToken = null;
+  state.refreshToken = null;
+  state.currentUser = null;
   setAuthState(AUTH_STATE.UNAUTHENTICATED);
-  persistSession({ authToken, refreshToken, currentUser });
-  todos = [];
-  aiSuggestions = [];
-  aiUsage = null;
-  aiInsights = null;
-  aiFeedbackSummary = null;
-  customProjects = [];
-  projectRecords = [];
-  projectHeadingsByProjectId = new Map();
-  openRailProjectMenuKey = null;
-  isProjectCrudModalOpen = false;
-  projectCrudTargetProject = "";
-  isProjectEditDrawerOpen = false;
-  projectEditTargetProject = "";
-  projectDeleteDialogState = null;
-  editingTodoId = null;
-  latestCritiqueSuggestionId = null;
-  latestCritiqueResult = null;
-  latestPlanSuggestionId = null;
-  latestPlanResult = null;
-  currentDateView = "all";
-  currentWorkspaceView = "home";
+  persistSession({
+    authToken: state.authToken,
+    refreshToken: state.refreshToken,
+    currentUser: state.currentUser,
+  });
+  state.todos = [];
+  state.aiSuggestions = [];
+  state.aiUsage = null;
+  state.aiInsights = null;
+  state.aiFeedbackSummary = null;
+  state.customProjects = [];
+  state.projectRecords = [];
+  state.projectHeadingsByProjectId = new Map();
+  state.openRailProjectMenuKey = null;
+  state.isProjectCrudModalOpen = false;
+  state.projectCrudTargetProject = "";
+  state.isProjectEditDrawerOpen = false;
+  state.projectEditTargetProject = "";
+  state.projectDeleteDialogState = null;
+  state.editingTodoId = null;
+  state.latestCritiqueSuggestionId = null;
+  state.latestCritiqueResult = null;
+  state.latestPlanSuggestionId = null;
+  state.latestPlanResult = null;
+  state.currentDateView = "all";
+  state.currentWorkspaceView = "home";
   clearHomeListDrilldown();
-  todosLoadState = "idle";
-  todosLoadErrorMessage = "";
-  openTodoKebabId = null;
-  selectedTodos.clear();
-  if (undoTimeout) {
-    clearTimeout(undoTimeout);
-    undoTimeout = null;
+  state.todosLoadState = "idle";
+  state.todosLoadErrorMessage = "";
+  state.openTodoKebabId = null;
+  state.selectedTodos.clear();
+  if (state.undoTimeout) {
+    clearTimeout(state.undoTimeout);
+    state.undoTimeout = null;
   }
-  undoStack = [];
+  state.undoStack = [];
   document.getElementById("undoToast")?.classList.remove("active");
   clearFilters();
   clearPlanDraftState();
@@ -13262,7 +13319,7 @@ function showAppView() {
   closeProjectCrudModal({ restoreFocus: false });
   closeProjectEditDrawer({ restoreFocus: false });
   closeProjectDeleteDialog();
-  openRailProjectMenuKey = null;
+  state.openRailProjectMenuKey = null;
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
   closeTaskComposer({ restoreFocus: false, force: true, reset: true });
@@ -13275,15 +13332,15 @@ function showAppView() {
   });
   closeTodoDrawer({ restoreFocus: false });
   // Prevent previous account data from flashing while fetching current user's data.
-  todos = [];
-  todosLoadState = "loading";
-  todosLoadErrorMessage = "";
-  openTodoKebabId = null;
-  critiqueRequestsInFlight = 0;
+  state.todos = [];
+  state.todosLoadState = "loading";
+  state.todosLoadErrorMessage = "";
+  state.openTodoKebabId = null;
+  state.critiqueRequestsInFlight = 0;
   updateCritiqueDraftButtonState();
-  selectedTodos.clear();
+  state.selectedTodos.clear();
   loadCustomProjects();
-  currentWorkspaceView = "home";
+  state.currentWorkspaceView = "home";
   clearHomeListDrilldown();
   renderTodos();
   updateCategoryFilter();
@@ -13300,7 +13357,7 @@ function showAppView() {
   setQuickEntryPropertiesOpen(readStoredQuickEntryPropertiesOpenState(), {
     persist: false,
   });
-  if (!isQuickEntryPropertiesOpen) {
+  if (!state.isQuickEntryPropertiesOpen) {
     setQuickEntryPropertiesOpen(true, { persist: false });
   }
   syncQuickEntryProjectActions();
@@ -13319,16 +13376,16 @@ function showAuthView() {
   document.getElementById("adminNavTab").style.display = "none";
   document.body.classList.remove("is-admin-user");
   syncSidebarNavState("");
-  adminBootstrapAvailable = false;
+  state.adminBootstrapAvailable = false;
   closeCommandPalette({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
   closeProjectEditDrawer({ restoreFocus: false });
   closeProjectDeleteDialog();
-  openRailProjectMenuKey = null;
+  state.openRailProjectMenuKey = null;
   closeMoreFilters();
   closeProjectsRailSheet({ restoreFocus: false });
   closeTodoDrawer({ restoreFocus: false });
-  critiqueRequestsInFlight = 0;
+  state.critiqueRequestsInFlight = 0;
   updateCritiqueDraftButtonState();
   resetOnCreateAssistState();
   resetTodayPlanState();
