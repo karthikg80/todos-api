@@ -2155,6 +2155,140 @@ function scheduleLoadSelectedProjectHeadings() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Dialog helpers — styled replacements for native confirm() and prompt()
+// ---------------------------------------------------------------------------
+
+/**
+ * Show a styled confirm dialog. Returns a Promise that resolves true (OK) or
+ * false (Cancel/Escape). Calls onConfirm/onCancel callbacks if provided.
+ */
+function showConfirmDialog(message, onConfirm, onCancel) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("confirmDialog");
+    const msgEl = document.getElementById("confirmDialogMessage");
+    const okBtn = document.getElementById("confirmDialogOk");
+    const cancelBtn = document.getElementById("confirmDialogCancel");
+    if (!overlay || !msgEl || !okBtn || !cancelBtn) {
+      // Fallback to native if DOM nodes are missing
+      const result = window.confirm(message);
+      if (result) onConfirm && onConfirm();
+      else onCancel && onCancel();
+      resolve(result);
+      return;
+    }
+
+    msgEl.textContent = message;
+    overlay.style.display = "flex";
+    okBtn.focus({ preventScroll: true });
+
+    function cleanup() {
+      overlay.style.display = "none";
+      okBtn.removeEventListener("click", handleOk);
+      cancelBtn.removeEventListener("click", handleCancel);
+      overlay.removeEventListener("click", handleBackdrop);
+      document.removeEventListener("keydown", handleKey);
+    }
+
+    function handleOk() {
+      cleanup();
+      onConfirm && onConfirm();
+      resolve(true);
+    }
+
+    function handleCancel() {
+      cleanup();
+      onCancel && onCancel();
+      resolve(false);
+    }
+
+    function handleBackdrop(e) {
+      if (e.target === overlay) handleCancel();
+    }
+
+    function handleKey(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleOk();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        handleCancel();
+      }
+    }
+
+    okBtn.addEventListener("click", handleOk);
+    cancelBtn.addEventListener("click", handleCancel);
+    overlay.addEventListener("click", handleBackdrop);
+    document.addEventListener("keydown", handleKey);
+  });
+}
+
+/**
+ * Show a styled input dialog. Returns a Promise that resolves with the entered
+ * string (OK) or null (Cancel/Escape). Calls onSubmit/onCancel if provided.
+ */
+function showInputDialog(promptText, onSubmit, onCancel) {
+  return new Promise((resolve) => {
+    const overlay = document.getElementById("inputDialog");
+    const labelEl = document.getElementById("inputDialogLabel");
+    const field = document.getElementById("inputDialogField");
+    const okBtn = document.getElementById("inputDialogOk");
+    const cancelBtn = document.getElementById("inputDialogCancel");
+    if (!overlay || !labelEl || !field || !okBtn || !cancelBtn) {
+      const result = window.prompt(promptText);
+      if (result !== null) onSubmit && onSubmit(result);
+      else onCancel && onCancel();
+      resolve(result);
+      return;
+    }
+
+    labelEl.textContent = promptText;
+    field.value = "";
+    overlay.style.display = "flex";
+    field.focus({ preventScroll: true });
+
+    function cleanup() {
+      overlay.style.display = "none";
+      okBtn.removeEventListener("click", handleOk);
+      cancelBtn.removeEventListener("click", handleCancel);
+      overlay.removeEventListener("click", handleBackdrop);
+      document.removeEventListener("keydown", handleKey);
+    }
+
+    function handleOk() {
+      const value = field.value;
+      cleanup();
+      onSubmit && onSubmit(value);
+      resolve(value);
+    }
+
+    function handleCancel() {
+      cleanup();
+      onCancel && onCancel();
+      resolve(null);
+    }
+
+    function handleBackdrop(e) {
+      if (e.target === overlay) handleCancel();
+    }
+
+    function handleKey(e) {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleOk();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        handleCancel();
+      }
+    }
+
+    okBtn.addEventListener("click", handleOk);
+    cancelBtn.addEventListener("click", handleCancel);
+    overlay.addEventListener("click", handleBackdrop);
+    document.addEventListener("keydown", handleKey);
+  });
+}
+
 async function createHeadingForSelectedProject() {
   const selectedProject = getSelectedProjectKey();
   const projectRecord = getProjectRecordByName(selectedProject);
@@ -2163,7 +2297,7 @@ async function createHeadingForSelectedProject() {
     return;
   }
 
-  const name = prompt(`Heading name in "${selectedProject}":`);
+  const name = await showInputDialog(`Heading name in "${selectedProject}":`);
   if (name === null) return;
   const headingName = String(name || "").trim();
   if (!headingName) {
@@ -4343,7 +4477,7 @@ async function deleteTodo(id) {
   const todo = todos.find((t) => t.id === id);
   if (!todo) return false;
 
-  if (!confirm("Delete this todo?")) return false;
+  if (!(await showConfirmDialog("Delete this todo?"))) return false;
 
   // Store todo data for undo
   const todoData = { ...todo };
@@ -5159,7 +5293,7 @@ async function createSubproject() {
     return;
   }
 
-  const name = prompt(`Subproject name under "${parentPath}":`);
+  const name = await showInputDialog(`Subproject name under "${parentPath}":`);
   if (name === null) {
     return;
   }
@@ -11294,7 +11428,7 @@ async function aiBreakdownTodo(todoId, force = false) {
     }
 
     if (response && response.status === 409) {
-      const proceed = confirm(
+      const proceed = await showConfirmDialog(
         "This task already has subtasks. Generate additional subtasks anyway?",
       );
       if (proceed) {
@@ -11757,7 +11891,10 @@ async function completeSelected() {
 async function deleteSelected() {
   if (selectedTodos.size === 0) return;
 
-  if (!confirm(`Delete ${selectedTodos.size} selected todo(s)?`)) return;
+  if (
+    !(await showConfirmDialog(`Delete ${selectedTodos.size} selected todo(s)?`))
+  )
+    return;
 
   const selectedIds = Array.from(selectedTodos);
   const deletedTodos = [];
@@ -12251,9 +12388,9 @@ async function changeUserRole(userId, role) {
 // Delete user
 async function deleteUser(userId) {
   if (
-    !confirm(
+    !(await showConfirmDialog(
       "Are you sure you want to delete this user? This action cannot be undone.",
-    )
+    ))
   )
     return;
 

@@ -2240,6 +2240,58 @@
       </div>
     </div>
 
+    <!-- Confirm Dialog -->
+    <div
+      id="confirmDialog"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmDialogMessage"
+      style="display: none"
+    >
+      <div class="modal-card confirm-dialog">
+        <p id="confirmDialogMessage"></p>
+        <div class="modal-actions confirm-dialog__actions">
+          <button id="confirmDialogOk" type="button" class="add-btn">
+            Confirm
+          </button>
+          <button id="confirmDialogCancel" type="button" class="mini-btn">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Dialog -->
+    <div
+      id="inputDialog"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="inputDialogLabel"
+      style="display: none"
+    >
+      <div class="modal-card input-dialog">
+        <label
+          id="inputDialogLabel"
+          for="inputDialogField"
+          class="input-dialog__label"
+        ></label>
+        <input
+          id="inputDialogField"
+          type="text"
+          class="input-dialog__field"
+          autocomplete="off"
+        />
+        <div class="modal-actions input-dialog__actions">
+          <button id="inputDialogOk" type="button" class="add-btn">OK</button>
+          <button id="inputDialogCancel" type="button" class="mini-btn">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Keyboard Shortcuts Overlay -->
     <div
       id="shortcutsOverlay"
