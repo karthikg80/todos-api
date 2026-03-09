@@ -557,7 +557,7 @@ const DialogManager = (() => {
 
 // ---------------------------------------------------------------------------
 // Module consumption — extracted pure-function modules loaded before app.js
-// via <script defer> in index.html (see utils/state.js, utils/apiClient.js pattern).
+// via <script defer> in index.html (see utils/authSession.js, utils/apiClient.js pattern).
 // ---------------------------------------------------------------------------
 const {
   escapeHtml,
@@ -642,7 +642,7 @@ function isInternalCategoryPath(value) {
 // Lint heuristics provided by utils/lintHeuristics.js (lintTodoFields, renderLintChip)
 // ---------------------------------------------------------------------------
 
-// AppState and ApiClient are loaded by utils/state.js and utils/apiClient.js (both
+// AppState and ApiClient are loaded by utils/authSession.js and utils/apiClient.js (both
 // <script defer> before app.js).  No inline fallback is needed — if either
 // module is missing the app cannot function and we fail fast.
 const AppStateModule = window.AppState;

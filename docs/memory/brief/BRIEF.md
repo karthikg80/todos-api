@@ -95,7 +95,7 @@ Key invariants from this sprint (see Canon candidates):
 
 ## Open Tech Debt
 
-- `state.js` vs `store.js` overlap — relationship never formally resolved
+- ~~`state.js` vs `store.js` overlap~~ resolved in Task 151 (renamed to authSession.js)
 - API rate limiting — no middleware exists on Express layer
 - Component framework migration spike — deferred; requires explicit human ADR before any work begins
 

@@ -1,3 +1,4 @@
+// Auth session persistence — localStorage read/write for token, refreshToken, user. Exposes window.AppState.
 (function initAppState(globalScope) {
   const AUTH_STATE = Object.freeze({
     AUTHENTICATED: "authenticated",

@@ -4,6 +4,7 @@
 // Modules READ and WRITE state.varName directly (no setters needed because
 // state is an exported const object — its *properties* are mutable).
 // =============================================================================
+// Runtime UI state module — exports { state, hooks }. All domain modules import from here. Do not import from authSession.js.
 
 // ---------------------------------------------------------------------------
 // Factory helpers — called during initialization so they live here too.
