@@ -62,6 +62,120 @@ Scripts (use only if available):
 - npm run lint:html
 ```
 
+---
+
+## TASK 144 — Server-Side Filter/Sort/Aggregate (Red · backend)
+
+```
+Read docs/agent-queue/tasks/red/144-server-side-filter-sort-aggregate.md in full
+before doing anything. Then read CLAUDE.md and src/routes/todosRouter.ts.
+
+Execute TASK 144 exactly as specified.
+
+## Context
+
+prismaTodoService.ts already handles server-side filtering for completed,
+priority, category, sortBy, and sortOrder via Prisma where and orderBy.
+
+What remains client-side in public/filterLogic.js (filterTodosList function):
+1. Project filtering — state.selectedProjectKey filters the returned array
+2. Date view filtering — state.currentDateView (today/upcoming/someday/month)
+   filters by todo.dueDate ranges client-side
+3. Full-text search — searchInput value matched against title/description/category
+4. Heading grouping — todos grouped under project headings client-side
+
+The goal is to move 1, 2, and 3 to the server. Heading grouping (4) stays
+client-side as it is a rendering concern, not a data concern.
+
+## Steps
+
+### 1. Audit first — no code changes yet
+Read src/prismaTodoService.ts lines 140–200 to understand the existing
+getTodos(userId, query) interface.
+Read src/routes/todosRouter.ts to see what query params are accepted today.
+Read public/filterLogic.js lines 234–280 (filterTodosList) to map every
+client-side filter condition.
+Produce a gap analysis: which filters are already server-side vs which need adding.
+
+### 2. Extend the backend query contract
+In src/types.ts (or wherever TodoQuery is defined), add:
+  - projectName?: string        — filter by project
+  - dateView?: 'today' | 'upcoming' | 'month' | 'someday' | 'all'
+  - search?: string             — full-text search on title, description, category
+
+In src/prismaTodoService.ts, extend the getTodos where clause:
+  - projectName: where.project = projectName
+  - dateView: translate to Prisma where.dueDate range conditions
+    - today: dueDate >= start of today AND < start of tomorrow
+    - upcoming: dueDate >= start of tomorrow AND <= end of next 7 days
+    - month: dueDate in current calendar month
+    - someday: dueDate IS NULL
+    - all: no dueDate filter
+  - search: use Prisma OR with contains (case-insensitive mode) on
+    title, description, category
+
+In src/routes/todosRouter.ts, expose the three new query params and pass
+them through to the service.
+
+### 3. Update the frontend coordinator
+In public/filterLogic.js, update filterTodos():
+  - Build a query object from current state:
+    { projectName, dateView, search, sortBy, sortOrder, completed, priority }
+  - Pass it as query params to the API fetch in apiClient.js
+  - Remove the array-filtering logic from filterTodosList that is now server-side
+  - Keep filterTodosList as a pass-through or thin post-processor for
+    any purely rendering-side concerns (e.g. heading grouping)
+
+Also update public/apiClient.js to serialize the new query params.
+
+### 4. Integration tests
+For each new filter type, add a test in src/prismaTodoService.test.ts:
+  - projectName filter returns only todos for that project
+  - dateView=today returns only todos due today
+  - dateView=someday returns only todos with no dueDate
+  - search=foo returns todos matching in title, description, or category
+  - Combination: projectName + dateView + search all applied together
+
+### 5. Verification
+Run ALL checks:
+  npx tsc --noEmit
+  npm run format:check
+  npm run lint:html
+  npm run lint:css
+  npm run test:unit
+  CI=1 npm run test:ui:fast
+
+All existing filter behaviors must produce identical results to before.
+
+## Constraints
+- No Prisma schema changes — use existing schema only
+- No new npm dependencies
+- Keep filterTodos() and setSelectedProjectKey() as external API contracts
+  with unchanged signatures
+- Keep response shape backward-compatible OR update frontend atomically in same PR
+- Feature flag the new server-side path if any behavioral uncertainty exists:
+  readBooleanFeatureFlag('serverSideFiltering') — fall back to client-side if false
+- Files allowed: src/todoService.ts, src/prismaTodoService.ts, src/types.ts,
+  src/routes/todosRouter.ts, public/filterLogic.js, public/apiClient.js,
+  tests/ui/ (test updates only, no rewrites)
+- BLOCKED triggers:
+  - Any Prisma schema migration required → BLOCKED
+  - Client-side filter behavior changes visibly → BLOCKED
+  - >12 files touched → BLOCKED
+
+## Branch
+  BRANCH=codex/task-144-server-side-filter-sort-aggregate
+  Base from master.
+
+## Deliverable
+Fill in the Deliverable and Outcome sections of the task file.
+Set status: DONE. Open a PR and provide handoff summary including:
+  - Which filters moved server-side
+  - Which remain client-side and why
+  - Feature flag status (on/off by default)
+  - PASS/FAIL matrix
+```
+
 ## M1b (Optional) - Brain Dump -> Shared Draft Review
 ```text
 Implement M1b as an optional extension after M1: add a brain-dump input that reuses the same editable draft review panel.

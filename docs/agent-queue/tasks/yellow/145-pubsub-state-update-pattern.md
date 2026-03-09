@@ -1,7 +1,7 @@
 # TASK 145: pubsub-state-update-pattern
 
 type: Yellow
-status: READY
+status: DONE
 mode: implement
 builder: claude
 reviewer: user
