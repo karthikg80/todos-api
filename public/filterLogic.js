@@ -3,6 +3,13 @@
 // Imports state from store.js. Cross-module calls go through hooks.
 // =============================================================================
 import { state, hooks } from "./store.js";
+import {
+  buildVisibleTodosQueryParams,
+  clearVisibleTodosState,
+  getVisibleTodosOverride,
+  loadVisibleTodos,
+  shouldUseServerVisibleTodos,
+} from "./todosService.js";
 
 // ---------------------------------------------------------------------------
 // Utility functions injected via hooks by app.js:
@@ -186,6 +193,13 @@ function matchesDateView(todo) {
 }
 
 function getVisibleTodos() {
+  const queryParams = buildVisibleTodosQueryParams();
+  if (shouldUseServerVisibleTodos(queryParams)) {
+    const override = getVisibleTodosOverride();
+    if (Array.isArray(override)) {
+      return filterTodosList(override);
+    }
+  }
   return filterTodosList(state.todos);
 }
 
@@ -284,7 +298,12 @@ function applyFiltersAndRender({ reason = "unknown" } = {}) {
   if (state.isApplyingFiltersPipeline) return;
   state.isApplyingFiltersPipeline = true;
   try {
-    filterTodos({ skipPipeline: true, reason });
+    const queryParams = buildVisibleTodosQueryParams();
+    if (shouldUseServerVisibleTodos(queryParams)) {
+      void loadVisibleTodos();
+    } else {
+      clearVisibleTodosState();
+    }
     renderTodos();
     updateHeaderFromVisibleTodos(getVisibleTodos());
     hooks.syncTodoDrawerStateWithRender?.();

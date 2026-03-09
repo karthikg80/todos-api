@@ -160,6 +160,61 @@ describe("PrismaTodoService (Integration)", () => {
       expect(todos).toHaveLength(1);
       expect(todos[0].title).toBe("Charlie");
     });
+
+    it("should filter by project prefix and search query", async () => {
+      await service.create(TEST_USER_ID, {
+        title: "Ship report",
+        category: "Work",
+      });
+      await service.create(TEST_USER_ID, {
+        title: "Backend report",
+        category: "Work / Backend",
+      });
+      await service.create(TEST_USER_ID, {
+        title: "Home report",
+        category: "Home",
+      });
+
+      const todos = await service.findAll(TEST_USER_ID, {
+        project: "Work",
+        search: "report",
+      });
+
+      expect(todos).toHaveLength(2);
+      expect(todos.map((todo) => todo.title)).toEqual(
+        expect.arrayContaining(["Ship report", "Backend report"]),
+      );
+    });
+
+    it("should filter by unsorted flag and due date window", async () => {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      await service.create(TEST_USER_ID, {
+        title: "Loose today",
+        dueDate: new Date(todayStart),
+      });
+      await service.create(TEST_USER_ID, {
+        title: "Project today",
+        category: "Work",
+        dueDate: new Date(todayStart),
+      });
+      await service.create(TEST_USER_ID, {
+        title: "Loose later",
+        dueDate: new Date(todayEnd.getTime() + 86400000),
+      });
+
+      const todos = await service.findAll(TEST_USER_ID, {
+        unsorted: true,
+        dueDateFrom: todayStart,
+        dueDateTo: todayEnd,
+      });
+
+      expect(todos).toHaveLength(1);
+      expect(todos[0].title).toBe("Loose today");
+    });
   });
 
   describe("findById", () => {

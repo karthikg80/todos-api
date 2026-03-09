@@ -115,6 +115,14 @@ export interface FindTodosQuery {
   completed?: boolean;
   priority?: Priority;
   category?: string;
+  search?: string;
+  project?: string;
+  unsorted?: boolean;
+  dueDateFrom?: Date;
+  dueDateTo?: Date;
+  dueDateAfter?: Date;
+  dueDateBefore?: Date;
+  dueDateIsNull?: boolean;
   sortBy?: TodoSortBy;
   sortOrder?: SortOrder;
   page?: number;

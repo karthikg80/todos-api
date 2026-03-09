@@ -24,6 +24,7 @@ export class ValidationError extends Error {
 
 const MAX_REORDER_ITEMS = 500;
 const MAX_PAGE_SIZE = 100;
+const MAX_SEARCH_QUERY_LENGTH = 200;
 const VALID_SORT_FIELDS: TodoSortBy[] = [
   "order",
   "createdAt",
@@ -122,6 +123,39 @@ function parsePositiveInt(value: unknown, field: string): number {
   return parsed;
 }
 
+function parseOptionalBooleanQuery(
+  value: unknown,
+  field: string,
+): boolean | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  throw new ValidationError(`${field} must be "true" or "false"`);
+}
+
+function parseOptionalDateQuery(
+  value: unknown,
+  field: string,
+): Date | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} must be an ISO 8601 date string`);
+  }
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new ValidationError(`${field} must be an ISO 8601 date string`);
+  }
+  return parsed;
+}
+
 export function validateFindTodosQuery(query: unknown): FindTodosQuery {
   if (!query || typeof query !== "object") {
     throw new ValidationError("Query must be an object");
@@ -162,6 +196,84 @@ export function validateFindTodosQuery(query: unknown): FindTodosQuery {
       throw new ValidationError("category cannot exceed 50 characters");
     }
     normalized.category = category;
+  }
+
+  if (q.search !== undefined) {
+    if (typeof q.search !== "string") {
+      throw new ValidationError("search must be a string");
+    }
+    const search = q.search.trim();
+    if (!search) {
+      throw new ValidationError("search cannot be empty");
+    }
+    if (search.length > MAX_SEARCH_QUERY_LENGTH) {
+      throw new ValidationError(
+        `search cannot exceed ${MAX_SEARCH_QUERY_LENGTH} characters`,
+      );
+    }
+    normalized.search = search;
+  }
+
+  if (q.project !== undefined) {
+    if (typeof q.project !== "string") {
+      throw new ValidationError("project must be a string");
+    }
+    const project = q.project.trim();
+    if (!project) {
+      throw new ValidationError("project cannot be empty");
+    }
+    if (project.length > 50) {
+      throw new ValidationError("project cannot exceed 50 characters");
+    }
+    normalized.project = project;
+  }
+
+  const unsorted = parseOptionalBooleanQuery(q.unsorted, "unsorted");
+  if (unsorted !== undefined) {
+    normalized.unsorted = unsorted;
+  }
+
+  const dueDateIsNull = parseOptionalBooleanQuery(
+    q.dueDateIsNull,
+    "dueDateIsNull",
+  );
+  if (dueDateIsNull !== undefined) {
+    normalized.dueDateIsNull = dueDateIsNull;
+  }
+
+  const dueDateFrom = parseOptionalDateQuery(q.dueDateFrom, "dueDateFrom");
+  if (dueDateFrom) {
+    normalized.dueDateFrom = dueDateFrom;
+  }
+
+  const dueDateTo = parseOptionalDateQuery(q.dueDateTo, "dueDateTo");
+  if (dueDateTo) {
+    normalized.dueDateTo = dueDateTo;
+  }
+
+  const dueDateAfter = parseOptionalDateQuery(q.dueDateAfter, "dueDateAfter");
+  if (dueDateAfter) {
+    normalized.dueDateAfter = dueDateAfter;
+  }
+
+  const dueDateBefore = parseOptionalDateQuery(
+    q.dueDateBefore,
+    "dueDateBefore",
+  );
+  if (dueDateBefore) {
+    normalized.dueDateBefore = dueDateBefore;
+  }
+
+  if (
+    normalized.dueDateIsNull === true &&
+    (normalized.dueDateFrom ||
+      normalized.dueDateTo ||
+      normalized.dueDateAfter ||
+      normalized.dueDateBefore)
+  ) {
+    throw new ValidationError(
+      "dueDateIsNull cannot be combined with due date range filters",
+    );
   }
 
   if (q.sortBy !== undefined) {

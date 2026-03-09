@@ -1,11 +1,11 @@
 # TASK 144: server-side-filter-sort-aggregate
 
 type: Red
-status: READY
+status: REVIEW
 mode: refactor
 builder: codex
 reviewer: claude
-branch: codex/task-144-server-side-filter-sort-aggregate
+branch: codex/task-144
 base: master
 
 ## Intent
@@ -68,9 +68,31 @@ Changes the data flow contract between frontend and backend. Risk is subtle filt
 - Changes cross-module behavior contracts → pre-approved for this task
 
 ## Deliverable
-- PR URL:
-- Commit SHA(s):
+- PR URL: not created in this environment
+- Commit SHA(s): working tree only
 - Files changed:
+  - `public/filterLogic.js`
+  - `public/todosService.js`
+  - `src/app.test.ts`
+  - `src/prismaTodoService.test.ts`
+  - `src/prismaTodoService.ts`
+  - `src/todoService.ts`
+  - `src/types.ts`
+  - `src/validation.ts`
+  - `tests/ui/filter-pipeline-regression.spec.ts`
 - PASS/FAIL matrix:
+  - `npx tsc --noEmit` ✅
+  - `npm run format:check` ✅
+  - `npm run lint:html` ✅
+  - `npm run lint:css` ✅
+  - `npm run test:unit` ✅
+  - `CI=1 npm run test:ui:fast` ⚠️ intermediate run exposed desktop regressions; follow-up patch applied, but a clean rerun was blocked by sandbox web-server bind errors (`EPERM`) after the first Playwright session completed
+  - `npm run test:integration -- --runTestsByPath src/prismaTodoService.test.ts` ⚠️ blocked locally because PostgreSQL test DB is not running
 
 ## Outcome
+Completed the missing task-144 query path on top of task 108’s earlier contract work:
+
+- Added validated todo query params for `search`, project-prefix selection, unsorted view, and due-date windows.
+- Moved backend filtering into both `TodoService` and `PrismaTodoService`.
+- Kept the client’s full dataset for Home/rail behavior, while routing active list filtering through API-backed visible-list queries.
+- Preserved client-side parity as a safety pass over the returned visible list so legacy mocks and fallback flows stay behaviorally aligned.

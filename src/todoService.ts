@@ -11,8 +11,81 @@ import {
 import { randomUUID } from "crypto";
 import { ITodoService } from "./interfaces/ITodoService";
 
+const PROJECT_PATH_SEPARATOR = " / ";
+
 export class TodoService implements ITodoService {
   private todos: Map<string, Todo> = new Map();
+
+  private matchesProjectQuery(
+    todo: Todo,
+    projectQuery: string | undefined,
+  ): boolean {
+    if (!projectQuery) {
+      return true;
+    }
+    const todoProject = String(todo.category || "").trim();
+    return (
+      todoProject === projectQuery ||
+      todoProject.startsWith(`${projectQuery}${PROJECT_PATH_SEPARATOR}`)
+    );
+  }
+
+  private matchesSearchQuery(
+    todo: Todo,
+    searchQuery: string | undefined,
+  ): boolean {
+    if (!searchQuery) {
+      return true;
+    }
+    const needle = searchQuery.toLowerCase();
+    return (
+      todo.title.toLowerCase().includes(needle) ||
+      String(todo.description || "")
+        .toLowerCase()
+        .includes(needle) ||
+      String(todo.category || "")
+        .toLowerCase()
+        .includes(needle)
+    );
+  }
+
+  private matchesDueDateQuery(
+    todo: Todo,
+    query: FindTodosQuery | undefined,
+  ): boolean {
+    if (!query) {
+      return true;
+    }
+    if (query.dueDateIsNull === true) {
+      return !todo.dueDate;
+    }
+
+    const dueDate = todo.dueDate;
+    const hasRangeFilter =
+      !!query.dueDateFrom ||
+      !!query.dueDateTo ||
+      !!query.dueDateAfter ||
+      !!query.dueDateBefore;
+    if (!hasRangeFilter) {
+      return true;
+    }
+    if (!dueDate) {
+      return false;
+    }
+    if (query.dueDateFrom && dueDate < query.dueDateFrom) {
+      return false;
+    }
+    if (query.dueDateTo && dueDate > query.dueDateTo) {
+      return false;
+    }
+    if (query.dueDateAfter && dueDate <= query.dueDateAfter) {
+      return false;
+    }
+    if (query.dueDateBefore && dueDate >= query.dueDateBefore) {
+      return false;
+    }
+    return true;
+  }
 
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     const now = new Date();
@@ -61,6 +134,24 @@ export class TodoService implements ITodoService {
     if (query?.category !== undefined) {
       todos = todos.filter((todo) => (todo.category ?? "") === query.category);
     }
+
+    if (query?.unsorted) {
+      todos = todos.filter((todo) => !String(todo.category || "").trim());
+    }
+
+    if (query?.project) {
+      todos = todos.filter((todo) =>
+        this.matchesProjectQuery(todo, query.project),
+      );
+    }
+
+    if (query?.search) {
+      todos = todos.filter((todo) =>
+        this.matchesSearchQuery(todo, query.search),
+      );
+    }
+
+    todos = todos.filter((todo) => this.matchesDueDateQuery(todo, query));
 
     const sortBy = query?.sortBy ?? "order";
     const sortOrder = query?.sortOrder ?? "asc";

@@ -66,7 +66,7 @@ Full-stack todo application. Express + Prisma + PostgreSQL backend, vanilla JS f
 - Logout is available in the sidebar footer (not only in Settings).
 - Mobile layout has a top bar for the Projects button / rail toggle; the dock is visible on mobile.
 
-## Architecture Remediation Backlog (as of 2026-03-06)
+## Architecture Remediation Backlog (as of 2026-03-09)
 
 Formal architecture review completed. Tasks created in agent queue:
 
@@ -74,14 +74,14 @@ Formal architecture review completed. Tasks created in agent queue:
 - **Task 130 (Yellow):** Centralize global mutable state — do in same sprint as Task 129.
 - **Task 131 (Yellow):** Replace all `confirm()` / `prompt()` with styled ConfirmDialog/InputDialog.
 - **Task 132 (Yellow):** Universal overlay/dialog manager (focus trap, z-index, Escape, aria-modal).
-- **Task 133 (Red):** Move filter/sort/aggregate to Postgres via Prisma — safe to parallelize with Task 132.
+- **Task 144 (Red):** Server-backed filter/sort query path is now implemented for active project/search/date/unsorted list views; the client still keeps a parity pass over the returned visible list while Home/rail surfaces continue to rely on the full local dataset.
 - **Task 134 (Yellow):** Lightweight pub-sub state dispatch pattern — depends on Task 130.
 - **Task 135 (Green):** Debounce keystroke-triggered render/filter calls — do as warmup in Phase 2.
 - **Tasks 136–142:** Template nodes, virtual scroll, API service isolation, error boundaries, toggle utilities, localStorage constants, CSS layer organization.
 - **Task 143 (Red):** Component framework migration spike — gated on human ADR sign-off; do NOT begin before Tasks 129–142.
 
-Sequencing: Task 129 must land first. Task 133 can run in parallel on the backend layer. Task 143 is last and requires explicit human decision.
+Sequencing: Task 129 must land first. Task 144 can run in parallel on the backend layer. Task 143 is last and requires explicit human decision.
 
 ---
 
-_Last updated: 2026-03-06_
+_Last updated: 2026-03-09_
