@@ -371,7 +371,7 @@ function getProjectEditDrawerElements() {
 
 function getProjectDeleteDialogElements() {
   const dialog = document.getElementById("projectDeleteDialog");
-  const message = document.getElementById("projectDeleteDialogMessage");
+  const message = document.getElementById("projectDeleteDialogBody");
   const actions = document.getElementById("projectDeleteDialogActions");
   if (!(dialog instanceof HTMLElement)) return null;
   if (!(message instanceof HTMLElement)) return null;
@@ -404,39 +404,36 @@ function renderProjectDeleteDialog() {
   const refs = getProjectDeleteDialogElements();
   if (!refs) return;
   if (!state.projectDeleteDialogState) {
-    refs.dialog.hidden = true;
+    refs.dialog.style.display = "none";
     refs.message.textContent = "";
     refs.actions.innerHTML = "";
     return;
   }
-  const { body, actions } = state.projectDeleteDialogState;
-  refs.message.textContent = body || "";
-  refs.actions.innerHTML = (actions || [])
+  refs.dialog.style.display = "flex";
+  refs.message.textContent = state.projectDeleteDialogState.body || "";
+  refs.actions.innerHTML = (state.projectDeleteDialogState.actions || [])
     .map(
-      (action) => `
+      (action, index) => `
       <button
         type="button"
         class="${hooks.escapeHtml?.(action.className || "mini-btn")}"
-        data-action-value="${hooks.escapeHtml?.(action.value)}"
+        data-project-delete-action="${hooks.escapeHtml?.(action.value)}"
+        ${index === 0 ? 'data-project-delete-default="true"' : ""}
       >
         ${hooks.escapeHtml?.(action.label)}
       </button>
     `,
     )
     .join("");
-  refs.dialog.hidden = false;
 
-  refs.actions.querySelectorAll("button").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const value = btn.dataset.actionValue;
-      handleProjectDeleteDialogAction(value);
-    });
+  window.requestAnimationFrame(() => {
+    const defaultButton = refs.actions.querySelector(
+      "[data-project-delete-default='true']",
+    );
+    if (defaultButton instanceof HTMLElement) {
+      defaultButton.focus({ preventScroll: true });
+    }
   });
-
-  const firstBtn = refs.actions.querySelector("button");
-  if (firstBtn instanceof HTMLElement) {
-    firstBtn.focus({ preventScroll: true });
-  }
 }
 
 function openProjectDeleteDialog(config) {

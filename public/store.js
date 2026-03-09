@@ -61,14 +61,20 @@ export function createInitialOnCreateAssistState() {
 
 export function createInitialTodayPlanState() {
   return {
-    loading: false,
-    aiSuggestionId: "",
     goalText: "",
-    suggestion: null,
-    selectedCardIds: new Set(),
-    undoBatch: null,
-    applyInFlight: false,
-    dismissInFlight: false,
+    generating: false,
+    loading: false,
+    unavailable: false,
+    error: "",
+    hasLoaded: false,
+    mode: "live",
+    aiSuggestionId: "",
+    envelope: null,
+    selectedTodoIds: new Set(),
+    dismissedSuggestionIds: new Set(),
+    notesDraftByTodoId: {},
+    lastApplyBatch: null,
+    loadingMessage: "",
   };
 }
 

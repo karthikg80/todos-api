@@ -478,14 +478,10 @@ function updateHeaderFromVisibleTodos(visibleTodos = []) {
     return;
   }
 
-  const selectedProject = getSelectedProjectKey();
-  const projectLabel = getSelectedProjectLabel(selectedProject);
-  const dateLabel = selectedProject ? "" : getCurrentDateViewLabel();
-
   updateHeaderAndContextUI({
-    projectName: projectLabel,
+    projectName: getSelectedProjectName(),
     visibleCount: getVisibleTodosCount(visibleTodos),
-    dateLabel,
+    dateLabel: getCurrentDateViewLabel(),
   });
 }
 
@@ -633,66 +629,97 @@ function renderProjectHeadingGroupedRows(projectTodos, projectName) {
   const todosForProject = [...projectTodos].sort(
     (a, b) => (a.order || 0) - (b.order || 0),
   );
-  const headingsById = new Map(headings.map((h) => [String(h.id), h]));
+  const headingsById = new Map(
+    headings.map((heading) => [String(heading.id), heading]),
+  );
+  const unheaded = [];
+  const grouped = new Map();
+  headings.forEach((heading) => grouped.set(String(heading.id), []));
 
-  const groupedByHeading = new Map();
-  const ungroupedTodos = [];
-
-  for (const todo of todosForProject) {
-    const headingId = String(todo.headingId || "");
-    if (headingId && headingsById.has(headingId)) {
-      if (!groupedByHeading.has(headingId)) {
-        groupedByHeading.set(headingId, []);
-      }
-      groupedByHeading.get(headingId).push(todo);
-    } else {
-      ungroupedTodos.push(todo);
+  todosForProject.forEach((todo) => {
+    const todoProject = hooks.normalizeProjectPath(todo.category || "");
+    if (normalizedProject && todoProject && todoProject !== normalizedProject) {
+      unheaded.push(todo);
+      return;
     }
+    const headingId = String(todo.headingId || "");
+    if (!headingId || !headingsById.has(headingId)) {
+      unheaded.push(todo);
+      return;
+    }
+    grouped.get(headingId).push(todo);
+  });
+
+  let rows = `
+    <li class="project-inline-actions" aria-label="Project actions">
+      <button
+        type="button"
+        class="project-inline-actions__task add-btn"
+        data-onclick="openTaskComposer()"
+      >
+        New Task
+      </button>
+      <button
+        type="button"
+        class="project-inline-actions__heading mini-btn"
+        data-onclick="createHeadingForSelectedProject()"
+      >
+        Add Heading
+      </button>
+    </li>
+  `;
+  if (!unheaded.length && !headings.length) {
+    rows += `
+      <li class="project-inline-empty">
+        Start with a task or a heading. The project stays intentionally quiet until you add structure.
+      </li>
+    `;
   }
-
-  const rows = [];
-
-  for (const heading of headings) {
-    const hid = String(heading.id);
-    rows.push(`
+  rows += unheaded.map((todo) => renderTodoRowHtml(todo)).join("");
+  headings.forEach((heading, headingIndex) => {
+    const items = grouped.get(String(heading.id)) || [];
+    const moveUpDisabled = headingIndex === 0;
+    const moveDownDisabled = headingIndex === headings.length - 1;
+    rows += `
       <li
         class="todo-heading-divider"
-        data-heading-id="${hid}"
-        data-project="${hooks.escapeHtml?.(normalizedProject)}"
+        data-heading-id="${hooks.escapeHtml?.(String(heading.id))}"
         draggable="true"
         data-ondragstart="handleHeadingDragStart(event, this)"
         data-ondragover="handleHeadingDragOver(event, this)"
         data-ondrop="handleHeadingDrop(event, this)"
-        data-ondragend="handleHeadingDragEnd()"
+        data-ondragend="handleHeadingDragEnd(event, this)"
       >
-        <span class="todo-heading-divider__name">${hooks.escapeHtml?.(heading.name)}</span>
-        <span class="todo-heading-divider__actions">
+        <span class="todo-heading-divider__title">${hooks.escapeHtml?.(String(heading.name))}</span>
+        <span class="todo-heading-divider__meta">
+          <span class="todo-heading-divider__drag-handle" aria-hidden="true">⋮⋮</span>
+          <span class="todo-heading-divider__count">${items.length}</span>
           <button
             type="button"
             class="todo-heading-divider__move-btn"
             aria-label="Move heading up"
-            data-onclick="moveProjectHeading('${hid}', 'up')"
-          >\u25b2</button>
+            title="Move heading up"
+            ${moveUpDisabled ? "disabled" : ""}
+            data-onclick="moveProjectHeading('${hooks.escapeHtml?.(String(heading.id))}', -1)"
+          >
+            ↑
+          </button>
           <button
             type="button"
             class="todo-heading-divider__move-btn"
             aria-label="Move heading down"
-            data-onclick="moveProjectHeading('${hid}', 'down')"
-          >\u25bc</button>
+            title="Move heading down"
+            ${moveDownDisabled ? "disabled" : ""}
+            data-onclick="moveProjectHeading('${hooks.escapeHtml?.(String(heading.id))}', 1)"
+          >
+            ↓
+          </button>
         </span>
       </li>
-    `);
-    const headingTodos = groupedByHeading.get(hid) || [];
-    for (const todo of headingTodos) {
-      rows.push(renderTodoRowHtml(todo));
-    }
-  }
-
-  for (const todo of ungroupedTodos) {
-    rows.push(renderTodoRowHtml(todo));
-  }
-
-  return rows.join("");
+    `;
+    rows += items.map((todo) => renderTodoRowHtml(todo)).join("");
+  });
+  return rows;
 }
 
 function renderTodos() {
