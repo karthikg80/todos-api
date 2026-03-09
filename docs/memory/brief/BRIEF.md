@@ -19,6 +19,12 @@ Full-stack todo application. Express + Prisma + PostgreSQL backend, vanilla JS f
 
 ## Active Architecture Patterns
 
+- ES6 modules throughout — all domain logic in named modules under `client/modules/` and `client/utils/`; no globals except window registrations in app.js.
+- `store.js` is the shared mutable state hub — all modules import `{ state, hooks }` from store.js; store.js imports nobody. Import DAG: store.js ← domain modules ← app.js.
+- EventBus pub-sub: state mutations dispatch events, renderers subscribe — `applyFiltersAndRender()` is never called directly.
+- DialogManager singleton: all 12 overlay surfaces wired through `open()`/`close()`/`closeAll()` with focus trap and Escape routing.
+- Server-side filtering: project, dateView, search execute in Postgres via Prisma; client `filterTodosList()` is a thin post-processor for heading grouping only.
+- Debounce: all input/keyup handlers that trigger `filterTodos()` use DEBOUNCE_MS=250.
 - Event delegation on container elements (never on dynamic children).
 - `filterTodos()` is the single filter entry point.
 - `setSelectedProjectKey()` is the only project selection API.
@@ -66,21 +72,32 @@ Full-stack todo application. Express + Prisma + PostgreSQL backend, vanilla JS f
 - Logout is available in the sidebar footer (not only in Settings).
 - Mobile layout has a top bar for the Projects button / rail toggle; the dock is visible on mobile.
 
-## Architecture Remediation Backlog (as of 2026-03-09)
+## Architecture Remediation — COMPLETE (as of 2026-03-09)
 
-Formal architecture review completed. Tasks created in agent queue:
+All 10 arch review tasks (140–149) merged. Repo restructure (Task 150) also complete.
 
-- **Task 129 (Red):** Split `app.js` into ES6 modules — prerequisite for Tasks 130, 132, 134, 136.
-- **Task 130 (Yellow):** Centralize global mutable state — do in same sprint as Task 129.
-- **Task 131 (Yellow):** Replace all `confirm()` / `prompt()` with styled ConfirmDialog/InputDialog.
-- **Task 132 (Yellow):** Universal overlay/dialog manager (focus trap, z-index, Escape, aria-modal).
-- **Task 144 (Red):** Server-backed filter/sort query path is now implemented for active project/search/date/unsorted list views; the client still keeps a parity pass over the returned visible list while Home/rail surfaces continue to rely on the full local dataset.
-- **Task 134 (Yellow):** Lightweight pub-sub state dispatch pattern — depends on Task 130.
-- **Task 135 (Green):** Debounce keystroke-triggered render/filter calls — do as warmup in Phase 2.
-- **Tasks 136–142:** Template nodes, virtual scroll, API service isolation, error boundaries, toggle utilities, localStorage constants, CSS layer organization.
-- **Task 143 (Red):** Component framework migration spike — gated on human ADR sign-off; do NOT begin before Tasks 129–142.
+- app.js: 13,918 lines → 1,975 lines (thin orchestrator)
+- 29 focused JS modules in `client/modules/` and `client/utils/`
+- `public/` renamed to `client/` with `modules/` and `utils/` subdirs
+- `src/` organized into `services/`, `middleware/`, `validation/` subdirs
 
-Sequencing: Task 129 must land first. Task 144 can run in parallel on the backend layer. Task 143 is last and requires explicit human decision.
+Key invariants from this sprint (see Canon candidates):
+- `store.js` imports from nobody — circular imports structurally impossible
+- diff-before-delete discipline when extracting functions to modules
+- tsc --noEmit after each module batch, never after all at once
+
+## Shipped Features (M1–M3)
+
+- **M1:** AI Plan Review UX — editable draft rows, select/deselect, apply guards (PR #39)
+- **M2:** Task Critic Evolution — feature-flagged structured panel, granular apply, stale-response guard (PRs #41, #89)
+- **M3:** Calendar export (.ics) — client-side ICS export for filtered due-dated todos (PR #42)
+- **Task 113:** Sidebar density polish — done, merged
+
+## Open Tech Debt
+
+- `state.js` vs `store.js` overlap — relationship never formally resolved
+- API rate limiting — no middleware exists on Express layer
+- Component framework migration spike — deferred; requires explicit human ADR before any work begins
 
 ---
 
