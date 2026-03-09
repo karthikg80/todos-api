@@ -1,12 +1,12 @@
 import { ValidationError } from "./validation";
-import { Priority } from "./types";
+import { Priority } from "../types";
 import {
   CritiqueTaskInput,
   DecisionAssistStubInput,
   PlanFromGoalInput,
-} from "./aiService";
+} from "../services/aiService";
 import { DecisionAssistSurface } from "./aiContracts";
-import { AiSuggestionStatus } from "./aiSuggestionStore";
+import { AiSuggestionStatus } from "../services/aiSuggestionStore";
 
 const PRIORITIES: Priority[] = ["low", "medium", "high"];
 const MIN_PLAN_TASKS = 3;

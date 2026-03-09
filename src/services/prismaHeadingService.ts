@@ -1,7 +1,7 @@
 import { PrismaClient, Prisma } from "@prisma/client";
-import { IHeadingService } from "./interfaces/IHeadingService";
-import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "./types";
-import { hasPrismaCode } from "./errorHandling";
+import { IHeadingService } from "../interfaces/IHeadingService";
+import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "../types";
+import { hasPrismaCode } from "../errorHandling";
 
 type PrismaHeadingRecord = Prisma.HeadingGetPayload<{}>;
 

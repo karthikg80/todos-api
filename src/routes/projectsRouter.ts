@@ -7,8 +7,8 @@ import {
   validateId,
   validateProjectTaskDisposition,
   validateUpdateProject,
-} from "../validation";
-import { DuplicateProjectNameError } from "../projectService";
+} from "../validation/validation";
+import { DuplicateProjectNameError } from "../services/projectService";
 import { IHeadingService } from "../interfaces/IHeadingService";
 
 interface ProjectRouterDeps {

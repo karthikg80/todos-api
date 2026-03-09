@@ -1,4 +1,4 @@
-import { RegisterDto, LoginDto } from "./authService";
+import { RegisterDto, LoginDto } from "../services/authService";
 
 export interface ValidationError {
   field: string;

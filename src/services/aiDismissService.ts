@@ -1,4 +1,4 @@
-import { DecisionAssistSurface } from "./aiContracts";
+import { DecisionAssistSurface } from "../validation/aiContracts";
 import { AiSuggestionRecord } from "./aiSuggestionStore";
 import {
   TODO_BOUND_TYPE,

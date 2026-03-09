@@ -8,7 +8,7 @@ import {
   createInitialOnCreateAssistState,
   createInitialTodayPlanState,
   createInitialHomeTopFocusState,
-} from "./store.js";
+} from "./modules/store.js";
 import {
   buildTodosQueryParams,
   loadTodos,
@@ -33,7 +33,7 @@ import {
   showUndoToast,
   performUndo,
   restoreTodo,
-} from "./todosService.js";
+} from "./modules/todosService.js";
 import {
   projectStorageKey,
   loadCustomProjects,
@@ -83,7 +83,7 @@ import {
   renameProjectTree,
   renderProjectOptions,
   updateCategoryFilter,
-} from "./projectsState.js";
+} from "./modules/projectsState.js";
 import {
   setDateView,
   matchesWorkspaceView,
@@ -120,19 +120,19 @@ import {
   renderTodoRowHtml,
   renderProjectHeadingGroupedRows,
   renderTodos,
-} from "./filterLogic.js";
+} from "./modules/filterLogic.js";
 import {
   showConfirmDialog,
   showInputDialog,
   openEditTodoModal,
   closeEditTodoModal,
   saveEditedTodo,
-} from "./overlayManager.js";
+} from "./modules/overlayManager.js";
 import {
   readBooleanFeatureFlag,
   isEnhancedTaskCriticEnabled,
   isTaskDrawerDecisionAssistEnabled,
-} from "./featureFlags.js";
+} from "./modules/featureFlags.js";
 import {
   syncProjectsRailHost,
   renderSidebarNavigation,
@@ -175,7 +175,7 @@ import {
   openProjectsFromTopbar,
   syncSidebarNavState,
   bindProjectsRailHandlers,
-} from "./railUi.js";
+} from "./modules/railUi.js";
 import {
   setAuthState,
   handleAuthFailure,
@@ -198,7 +198,7 @@ import {
   logout,
   showAppView,
   showAuthView,
-} from "./authUi.js";
+} from "./modules/authUi.js";
 import {
   readStoredQuickEntryPropertiesOpenState,
   persistQuickEntryPropertiesOpenState,
@@ -234,7 +234,7 @@ import {
   resetTaskComposerFields,
   clearTaskComposerDueDate,
   bindTaskComposerHandlers,
-} from "./quickEntry.js";
+} from "./modules/quickEntry.js";
 import {
   getTodoDueDate,
   getStartOfToday,
@@ -276,7 +276,7 @@ import {
   getTodoRecencyDays,
   renderTopFocusRow,
   renderHomeFocusDashboard,
-} from "./homeDashboard.js";
+} from "./modules/homeDashboard.js";
 import {
   getAiWorkspaceElements,
   getAiWorkspaceStatusLabel,
@@ -335,7 +335,7 @@ import {
   draftPlanFromBrainDumpWithAi,
   addPlanTasksToTodos,
   dismissPlanSuggestion,
-} from "./aiWorkspace.js";
+} from "./modules/aiWorkspace.js";
 import {
   markTaskDrawerDismissed,
   clearTaskDrawerDismissed,
@@ -379,15 +379,15 @@ import {
   openEditTodoFromKebab,
   openDrawerDangerZone,
   bindTodoDrawerHandlers,
-} from "./drawerUi.js";
+} from "./modules/drawerUi.js";
 import {
   loadAdminUsers,
   renderAdminUsers,
   changeUserRole,
   deleteUser,
-} from "./adminUsers.js";
-import * as DragDrop from "./dragDrop.js";
-import { toggleShortcuts, closeShortcutsOverlay } from "./shortcuts.js";
+} from "./modules/adminUsers.js";
+import * as DragDrop from "./modules/dragDrop.js";
+import { toggleShortcuts, closeShortcutsOverlay } from "./modules/shortcuts.js";
 import {
   getCommandPaletteElements,
   buildCommandPaletteItems,
@@ -401,10 +401,10 @@ import {
   openCommandPalette,
   toggleCommandPalette,
   bindCommandPaletteHandlers,
-} from "./commandPalette.js";
-import * as TaskDrawerAssist from "./taskDrawerAssist.js";
-import * as OnCreateAssist from "./onCreateAssist.js";
-import * as TodayPlan from "./todayPlan.js";
+} from "./modules/commandPalette.js";
+import * as TaskDrawerAssist from "./modules/taskDrawerAssist.js";
+import * as OnCreateAssist from "./modules/onCreateAssist.js";
+import * as TodayPlan from "./modules/todayPlan.js";
 
 // =============================================================================
 // EventBus — minimal pub-sub for decoupled state→render wiring.
@@ -557,7 +557,7 @@ const DialogManager = (() => {
 
 // ---------------------------------------------------------------------------
 // Module consumption — extracted pure-function modules loaded before app.js
-// via <script defer> in index.html (see state.js, apiClient.js pattern).
+// via <script defer> in index.html (see utils/state.js, utils/apiClient.js pattern).
 // ---------------------------------------------------------------------------
 const {
   escapeHtml,
@@ -639,10 +639,10 @@ function isInternalCategoryPath(value) {
 }
 
 // ---------------------------------------------------------------------------
-// Lint heuristics provided by lintHeuristics.js (lintTodoFields, renderLintChip)
+// Lint heuristics provided by utils/lintHeuristics.js (lintTodoFields, renderLintChip)
 // ---------------------------------------------------------------------------
 
-// AppState and ApiClient are loaded by state.js and apiClient.js (both
+// AppState and ApiClient are loaded by utils/state.js and utils/apiClient.js (both
 // <script defer> before app.js).  No inline fallback is needed — if either
 // module is missing the app cannot function and we fail fast.
 const AppStateModule = window.AppState;
@@ -654,9 +654,9 @@ const {
   loadStoredSession,
   persistSession,
 } = AppStateModule;
-// PROJECT_PATH_SEPARATOR, MOBILE_DRAWER_MEDIA_QUERY — from utils.js
-// ON_CREATE_SURFACE, TODAY_PLAN_SURFACE — from aiSuggestionUtils.js
-// AI_DEBUG_ENABLED, AI_SURFACE_TYPES, AI_SURFACE_IMPACT — from aiSuggestionUtils.js
+// PROJECT_PATH_SEPARATOR, MOBILE_DRAWER_MEDIA_QUERY — from utils/utils.js
+// ON_CREATE_SURFACE, TODAY_PLAN_SURFACE — from utils/aiSuggestionUtils.js
+// AI_DEBUG_ENABLED, AI_SURFACE_TYPES, AI_SURFACE_IMPACT — from utils/aiSuggestionUtils.js
 const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
 const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
 const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
@@ -1467,8 +1467,8 @@ function bindDockHandlers() {
   });
 }
 
-// showMessage, hideMessage, escapeHtml — from utils.js
-// toggleTheme, initTheme — from theme.js
+// showMessage, hideMessage, escapeHtml — from utils/utils.js
+// toggleTheme, initTheme — from utils/theme.js
 
 // ========== PHASE E: SERVICE WORKER REGISTRATION ==========
 if ("serviceWorker" in navigator) {

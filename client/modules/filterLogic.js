@@ -19,8 +19,8 @@ import {
 //   hooks.renderProjectOptions (from projectsState)
 //   hooks.renderTodoChips, hooks.renderSubtasks (from app.js)
 //   hooks.buildHomeTileListByKey (from app.js)
-//   hooks.buildIcsContentForTodos, hooks.buildIcsFilename (from icsExport.js)
-//   hooks.showMessage (from utils.js)
+//   hooks.buildIcsContentForTodos, hooks.buildIcsFilename (from utils/icsExport.js)
+//   hooks.showMessage (from utils/utils.js)
 // ---------------------------------------------------------------------------
 
 function setDateView(view, { skipApply = false } = {}) {

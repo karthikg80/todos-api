@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { EmailService } from "./emailService";
-import { config } from "./config";
+import { config } from "../config";
 
 export interface RegisterDto {
   email: string;

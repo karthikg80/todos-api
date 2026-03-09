@@ -13,7 +13,7 @@ import {
   Priority,
   TodoSortBy,
   SortOrder,
-} from "./types";
+} from "../types";
 
 export class ValidationError extends Error {
   constructor(message: string) {

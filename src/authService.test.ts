@@ -1,4 +1,4 @@
-import { AuthService } from "./authService";
+import { AuthService } from "./services/authService";
 import { prisma } from "./prismaClient";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";

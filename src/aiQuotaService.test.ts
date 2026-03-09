@@ -5,8 +5,11 @@ import {
   getCurrentUtcDayStart,
   getNextUtcDayStart,
   UserPlan,
-} from "./aiQuotaService";
-import { IAiSuggestionStore, AiFeedbackSummary } from "./aiSuggestionStore";
+} from "./services/aiQuotaService";
+import {
+  IAiSuggestionStore,
+  AiFeedbackSummary,
+} from "./services/aiSuggestionStore";
 
 // ── Helpers ──
 

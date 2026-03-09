@@ -1,4 +1,4 @@
-import { isValidEmail } from "./authValidation";
+import { isValidEmail } from "./validation/authValidation";
 
 describe("Auth validation", () => {
   describe("isValidEmail", () => {

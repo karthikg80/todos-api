@@ -1,10 +1,10 @@
-import { Priority } from "./types";
-import { config } from "./config";
+import { Priority } from "../types";
+import { config } from "../config";
 import {
   DecisionAssistOutput,
   DecisionAssistSurface,
   validateDecisionAssistOutput,
-} from "./aiContracts";
+} from "../validation/aiContracts";
 import { randomUUID } from "crypto";
 
 export interface CritiqueTaskInput {

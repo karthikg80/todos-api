@@ -1,4 +1,4 @@
-import { DecisionAssistSurface } from "./aiContracts";
+import { DecisionAssistSurface } from "../validation/aiContracts";
 
 export type DecisionAssistTelemetryEventName =
   | "ai_suggestion_generated"

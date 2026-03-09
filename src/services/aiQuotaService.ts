@@ -1,5 +1,5 @@
 import { IAiSuggestionStore } from "./aiSuggestionStore";
-import { config } from "./config";
+import { config } from "../config";
 
 export type UserPlan = "free" | "pro" | "team";
 

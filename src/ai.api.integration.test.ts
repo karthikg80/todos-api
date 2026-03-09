@@ -1,10 +1,10 @@
 import request from "supertest";
 import { createApp } from "./app";
-import { PrismaTodoService } from "./prismaTodoService";
-import { AuthService } from "./authService";
-import { PrismaAiSuggestionStore } from "./aiSuggestionStore";
+import { PrismaTodoService } from "./services/prismaTodoService";
+import { AuthService } from "./services/authService";
+import { PrismaAiSuggestionStore } from "./services/aiSuggestionStore";
 import { prisma } from "./prismaClient";
-import * as decisionAssistTelemetry from "./decisionAssistTelemetry";
+import * as decisionAssistTelemetry from "./services/decisionAssistTelemetry";
 
 describe("AI API Integration", () => {
   let app: any;

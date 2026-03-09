@@ -6,10 +6,10 @@ import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import { ITodoService } from "./interfaces/ITodoService";
-import { TodoService } from "./todoService";
-import { AuthService } from "./authService";
-import { authMiddleware } from "./authMiddleware";
-import { adminMiddleware } from "./adminMiddleware";
+import { TodoService } from "./services/todoService";
+import { AuthService } from "./services/authService";
+import { authMiddleware } from "./middleware/authMiddleware";
+import { adminMiddleware } from "./middleware/adminMiddleware";
 import { config } from "./config";
 import { errorHandler } from "./errorHandling";
 import { createTodosRouter } from "./routes/todosRouter";
@@ -17,8 +17,8 @@ import { createAuthRouter } from "./routes/authRouter";
 import { createAdminRouter } from "./routes/adminRouter";
 import { createUsersRouter } from "./routes/usersRouter";
 import { createAiRouter } from "./routes/aiRouter";
-import { IAiSuggestionStore } from "./aiSuggestionStore";
-import { AiPlannerService } from "./aiService";
+import { IAiSuggestionStore } from "./services/aiSuggestionStore";
+import { AiPlannerService } from "./services/aiService";
 import { UserPlan } from "./routes/aiRouter";
 import { createProjectsRouter } from "./routes/projectsRouter";
 import { IProjectService } from "./interfaces/IProjectService";
@@ -134,7 +134,7 @@ export function createApp(
       path.join(__dirname, "../node_modules/chrono-node/dist/esm"),
     ),
   );
-  app.use(express.static(path.join(__dirname, "../public")));
+  app.use(express.static(path.join(__dirname, "../client")));
 
   app.use(
     "/api-docs",

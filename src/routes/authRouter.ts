@@ -5,8 +5,8 @@ import {
   NextFunction,
   RequestHandler,
 } from "express";
-import { AuthService } from "../authService";
-import { validateRegister, validateLogin } from "../authValidation";
+import { AuthService } from "../services/authService";
+import { validateRegister, validateLogin } from "../validation/authValidation";
 import { HttpError } from "../errorHandling";
 
 interface AuthRouterDeps {

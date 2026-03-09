@@ -351,12 +351,17 @@ Tests automatically use a separate test database (`todos_test`) to avoid affecti
 
 ```
 todos-api/
-├── public/                  # Static frontend (HTML/CSS/vanilla JS)
+├── client/                  # Static frontend shell + modular vanilla JS
+│   ├── modules/             # Domain JS modules
+│   ├── utils/               # Shared frontend utilities
+│   └── vendor/              # Synced vendor assets
 ├── prisma/                  # Prisma schema + migrations
 ├── src/
+│   ├── services/            # Domain/services (todos, projects, auth, AI)
+│   ├── middleware/          # Express middleware modules
+│   ├── validation/          # Validation/contracts
 │   ├── routes/              # Express routers (auth/todos/projects/ai/users/admin)
 │   ├── interfaces/          # Service contracts
-│   ├── *Service.ts          # Domain/services (todos, projects, auth, AI)
 │   ├── app.ts               # App composition
 │   └── server.ts            # Entrypoint
 ├── test/                    # Jest setup/teardown helpers

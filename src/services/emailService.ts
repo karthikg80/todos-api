@@ -1,6 +1,6 @@
 import nodemailer from "nodemailer";
 import { randomBytes } from "crypto";
-import { config } from "./config";
+import { config } from "../config";
 
 export class EmailService {
   private transporter: nodemailer.Transporter | null;

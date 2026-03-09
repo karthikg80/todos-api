@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { AuthService } from "../authService";
+import { AuthService } from "../services/authService";
 import { HttpError, hasPrismaCode } from "../errorHandling";
 
 interface AdminRouterDeps {
