@@ -9,11 +9,190 @@ import { state, hooks, createInitialHomeTopFocusState } from "./store.js";
 // by app.js onto the hooks object after all modules load.
 // ---------------------------------------------------------------------------
 
+const visibleTodosState = {
+  items: null,
+  queryKey: "",
+  pendingQueryKey: "",
+  loading: false,
+  requestSeq: 0,
+};
+
 function buildTodosQueryParams() {
   const params = {};
   params.sortBy = "order";
   params.sortOrder = "asc";
   return params;
+}
+
+function getSearchInputValue() {
+  const primary = document.getElementById("searchInput");
+  const sheet = document.getElementById("searchInputSheet");
+  const raw =
+    (primary instanceof HTMLInputElement && primary.value) ||
+    (sheet instanceof HTMLInputElement && sheet.value) ||
+    "";
+  return raw.trim();
+}
+
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function endOfLocalDay(date) {
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    23,
+    59,
+    59,
+    999,
+  );
+}
+
+function buildVisibleTodosQueryParams() {
+  const params = buildTodosQueryParams();
+  if (state.currentWorkspaceView === "home" || state.homeListDrilldownKey) {
+    return params;
+  }
+
+  const selectedProject = hooks.getSelectedProjectKey?.() || "";
+  if (selectedProject) {
+    params.project = selectedProject;
+  }
+
+  if (state.currentWorkspaceView === "unsorted") {
+    params.unsorted = true;
+  }
+
+  const search = getSearchInputValue();
+  if (search) {
+    params.search = search;
+  }
+
+  const now = new Date();
+  if (state.currentDateView === "completed") {
+    params.completed = true;
+  } else if (state.currentDateView === "today") {
+    params.dueDateFrom = startOfLocalDay(now).toISOString();
+    params.dueDateTo = endOfLocalDay(now).toISOString();
+  } else if (state.currentDateView === "upcoming") {
+    params.dueDateAfter = endOfLocalDay(now).toISOString();
+    params.dueDateTo = new Date(
+      endOfLocalDay(now).getTime() + 7 * 24 * 60 * 60 * 1000,
+    ).toISOString();
+  } else if (state.currentDateView === "next_month") {
+    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const monthAfterNextStart = new Date(
+      nextMonthStart.getFullYear(),
+      nextMonthStart.getMonth() + 1,
+      1,
+    );
+    params.dueDateFrom = nextMonthStart.toISOString();
+    params.dueDateBefore = monthAfterNextStart.toISOString();
+  } else if (state.currentDateView === "someday") {
+    params.dueDateIsNull = true;
+  }
+
+  return params;
+}
+
+function getVisibleTodosQueryKey(params = buildVisibleTodosQueryParams()) {
+  return new URLSearchParams(
+    Object.entries(params).map(([key, value]) => [key, String(value)]),
+  ).toString();
+}
+
+function shouldUseServerVisibleTodos(params = buildVisibleTodosQueryParams()) {
+  return Object.keys(params).some(
+    (key) => key !== "sortBy" && key !== "sortOrder",
+  );
+}
+
+function clearVisibleTodosState() {
+  visibleTodosState.items = null;
+  visibleTodosState.queryKey = "";
+  visibleTodosState.pendingQueryKey = "";
+  visibleTodosState.loading = false;
+}
+
+function getVisibleTodosOverride() {
+  const queryParams = buildVisibleTodosQueryParams();
+  if (!shouldUseServerVisibleTodos(queryParams)) {
+    return null;
+  }
+  const queryKey = getVisibleTodosQueryKey(queryParams);
+  if (visibleTodosState.queryKey !== queryKey) {
+    return null;
+  }
+  return Array.isArray(visibleTodosState.items)
+    ? visibleTodosState.items
+    : null;
+}
+
+function isVisibleTodosLoading() {
+  if (!shouldUseServerVisibleTodos()) {
+    return false;
+  }
+  return (
+    visibleTodosState.loading &&
+    visibleTodosState.pendingQueryKey === getVisibleTodosQueryKey()
+  );
+}
+
+async function loadVisibleTodos({ force = false } = {}) {
+  const queryParams = buildVisibleTodosQueryParams();
+  if (!shouldUseServerVisibleTodos(queryParams)) {
+    clearVisibleTodosState();
+    return false;
+  }
+
+  const queryKey = getVisibleTodosQueryKey(queryParams);
+  if (
+    !force &&
+    visibleTodosState.queryKey === queryKey &&
+    Array.isArray(visibleTodosState.items) &&
+    !visibleTodosState.loading
+  ) {
+    return true;
+  }
+
+  const requestSeq = visibleTodosState.requestSeq + 1;
+  visibleTodosState.requestSeq = requestSeq;
+  visibleTodosState.loading = true;
+  visibleTodosState.pendingQueryKey = queryKey;
+  hooks.renderTodos?.();
+
+  try {
+    const todosUrl = hooks.buildUrl(`${hooks.API_URL}/todos`, queryParams);
+    const response = await hooks.apiCall(todosUrl);
+    if (requestSeq !== visibleTodosState.requestSeq) {
+      return true;
+    }
+    if (response && response.ok) {
+      visibleTodosState.items = await response.json();
+      visibleTodosState.queryKey = queryKey;
+      visibleTodosState.loading = false;
+      hooks.renderTodos?.();
+      return true;
+    }
+  } catch (error) {
+    console.error("Visible todos query failed:", error);
+  }
+
+  if (requestSeq === visibleTodosState.requestSeq) {
+    clearVisibleTodosState();
+    hooks.renderTodos?.();
+  }
+  return false;
+}
+
+async function refreshVisibleTodosIfNeeded() {
+  if (!shouldUseServerVisibleTodos()) {
+    clearVisibleTodosState();
+    return;
+  }
+  await loadVisibleTodos({ force: true });
 }
 
 async function loadTodos() {
@@ -30,12 +209,14 @@ async function loadTodos() {
       state.todosLoadState = "ready";
       state.todosLoadErrorMessage = "";
       state.homeTopFocusState = createInitialHomeTopFocusState();
+      await refreshVisibleTodosIfNeeded();
       hooks.renderTodos?.();
       hooks.refreshProjectCatalog?.();
     } else {
       state.todos = [];
       state.selectedTodos.clear();
       state.homeTopFocusState = createInitialHomeTopFocusState();
+      clearVisibleTodosState();
       state.todosLoadState = "error";
       state.todosLoadErrorMessage = "Couldn't load tasks";
       hooks.renderTodos?.();
@@ -46,6 +227,7 @@ async function loadTodos() {
     state.todos = [];
     state.selectedTodos.clear();
     state.homeTopFocusState = createInitialHomeTopFocusState();
+    clearVisibleTodosState();
     state.todosLoadState = "error";
     state.todosLoadErrorMessage = "Couldn't load tasks";
     hooks.renderTodos?.();
@@ -102,6 +284,7 @@ async function addTodo() {
     if (response && response.ok) {
       const newTodo = await response.json();
       state.todos.unshift(newTodo);
+      await refreshVisibleTodosIfNeeded();
       hooks.renderTodos?.();
       hooks.updateCategoryFilter?.();
       hooks.clearOnCreateDismissed?.(newTodo.id);
@@ -167,6 +350,7 @@ async function toggleTodo(id, forceValue = null) {
     if (response && response.ok) {
       const updatedTodo = await response.json();
       state.todos = state.todos.map((t) => (t.id === id ? updatedTodo : t));
+      await refreshVisibleTodosIfNeeded();
       hooks.renderTodos?.();
 
       if (forceValue === null && newCompletedValue) {
@@ -246,6 +430,7 @@ async function moveTodoToProject(todoId, projectValue) {
     }
     hooks.refreshProjectCatalog?.();
     await hooks.loadProjects?.();
+    await refreshVisibleTodosIfNeeded();
     hooks.renderTodos?.();
   } catch (error) {
     console.error("Move todo project failed:", error);
@@ -316,6 +501,7 @@ async function applyTodoPatch(todoId, patch) {
   }
   hooks.refreshProjectCatalog?.();
   await hooks.loadProjects?.();
+  await refreshVisibleTodosIfNeeded();
 
   return updatedTodo;
 }
@@ -364,6 +550,8 @@ async function reorderTodos(draggedId, targetId, options = {}) {
         "Failed to persist full todo ordering, reloading from server",
       );
       await loadTodos();
+    } else {
+      await refreshVisibleTodosIfNeeded();
     }
   } catch (error) {
     console.error("Failed to update todo order:", error);
@@ -383,7 +571,7 @@ function toggleSelectTodo(todoId) {
 
 function toggleSelectAll() {
   const selectAllCheckbox = document.getElementById("selectAllCheckbox");
-  const filteredTodos = hooks.filterTodosList?.(state.todos) ?? [];
+  const filteredTodos = hooks.getVisibleTodos?.() ?? [];
 
   if (selectAllCheckbox.checked) {
     filteredTodos.forEach((todo) => state.selectedTodos.add(todo.id));
@@ -397,7 +585,7 @@ function toggleSelectAll() {
 function updateSelectAllCheckbox() {
   const selectAllCheckbox = document.getElementById("selectAllCheckbox");
   if (!selectAllCheckbox) return;
-  const filteredTodos = hooks.filterTodosList?.(state.todos) ?? [];
+  const filteredTodos = hooks.getVisibleTodos?.() ?? [];
   const allSelected =
     filteredTodos.length > 0 &&
     filteredTodos.every((todo) => state.selectedTodos.has(todo.id));
@@ -455,6 +643,7 @@ async function completeSelected() {
   }
 
   state.selectedTodos.clear();
+  await refreshVisibleTodosIfNeeded();
   hooks.renderTodos?.();
 }
 
@@ -616,6 +805,7 @@ async function restoreTodo(todoData) {
           : Number.MAX_SAFE_INTEGER;
         return aOrder - bOrder;
       });
+      await refreshVisibleTodosIfNeeded();
       hooks.renderTodos?.();
       hooks.updateCategoryFilter?.();
     }
@@ -626,6 +816,12 @@ async function restoreTodo(todoData) {
 
 export {
   buildTodosQueryParams,
+  buildVisibleTodosQueryParams,
+  clearVisibleTodosState,
+  getVisibleTodosOverride,
+  isVisibleTodosLoading,
+  loadVisibleTodos,
+  shouldUseServerVisibleTodos,
   loadTodos,
   retryLoadTodos,
   addTodo,

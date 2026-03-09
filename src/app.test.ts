@@ -184,6 +184,62 @@ describe("Todos API", () => {
       expect(response.body[0].title).toBe("Parent task");
     });
 
+    it("should filter by project prefix and search query", async () => {
+      await request(app)
+        .post("/todos")
+        .send({ title: "Ship report", category: "Work" });
+      await request(app)
+        .post("/todos")
+        .send({ title: "Backend report", category: "Work / Backend" });
+      await request(app)
+        .post("/todos")
+        .send({ title: "Home report", category: "Home" });
+
+      const response = await request(app)
+        .get("/todos")
+        .query({ project: "Work", search: "report" })
+        .expect(200);
+
+      expect(response.body).toHaveLength(2);
+      expect(
+        response.body.map((todo: { title: string }) => todo.title),
+      ).toEqual(expect.arrayContaining(["Ship report", "Backend report"]));
+    });
+
+    it("should filter by unsorted flag and due date window", async () => {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      const todayEnd = new Date();
+      todayEnd.setHours(23, 59, 59, 999);
+
+      await request(app)
+        .post("/todos")
+        .send({ title: "Loose today", dueDate: todayStart.toISOString() });
+      await request(app).post("/todos").send({
+        title: "Project today",
+        category: "Work",
+        dueDate: todayStart.toISOString(),
+      });
+      await request(app)
+        .post("/todos")
+        .send({
+          title: "Loose later",
+          dueDate: new Date(todayEnd.getTime() + 86400000).toISOString(),
+        });
+
+      const response = await request(app)
+        .get("/todos")
+        .query({
+          unsorted: "true",
+          dueDateFrom: todayStart.toISOString(),
+          dueDateTo: todayEnd.toISOString(),
+        })
+        .expect(200);
+
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].title).toBe("Loose today");
+    });
+
     it("should return 400 for invalid todo list query", async () => {
       const response = await request(app)
         .get("/todos")

@@ -64,6 +64,91 @@ async function installFilterPipelineMockApi(page: Page, todosSeed: TodoSeed[]) {
       body: JSON.stringify(body),
     });
 
+  const filterTodosForQuery = (
+    todos: Array<Record<string, unknown>>,
+    url: URL,
+  ) => {
+    let filtered = [...todos];
+    const project = url.searchParams.get("project") || "";
+    if (project) {
+      filtered = filtered.filter((todo) => {
+        const category = String(todo.category || "");
+        return category === project || category.startsWith(`${project} / `);
+      });
+    }
+
+    if (url.searchParams.get("unsorted") === "true") {
+      filtered = filtered.filter((todo) => !String(todo.category || "").trim());
+    }
+
+    const search = (url.searchParams.get("search") || "").trim().toLowerCase();
+    if (search) {
+      filtered = filtered.filter((todo) =>
+        [todo.title, todo.description, todo.category]
+          .map((value) => String(value || "").toLowerCase())
+          .some((value) => value.includes(search)),
+      );
+    }
+
+    const completed = url.searchParams.get("completed");
+    if (completed === "true" || completed === "false") {
+      filtered = filtered.filter(
+        (todo) => Boolean(todo.completed) === (completed === "true"),
+      );
+    }
+
+    const dueDateIsNull = url.searchParams.get("dueDateIsNull");
+    if (dueDateIsNull === "true") {
+      filtered = filtered.filter((todo) => !todo.dueDate);
+    }
+
+    const dueDateFrom = url.searchParams.get("dueDateFrom");
+    if (dueDateFrom) {
+      const from = new Date(dueDateFrom).getTime();
+      filtered = filtered.filter((todo) => {
+        const due = todo.dueDate
+          ? new Date(String(todo.dueDate)).getTime()
+          : NaN;
+        return Number.isFinite(due) && due >= from;
+      });
+    }
+
+    const dueDateTo = url.searchParams.get("dueDateTo");
+    if (dueDateTo) {
+      const to = new Date(dueDateTo).getTime();
+      filtered = filtered.filter((todo) => {
+        const due = todo.dueDate
+          ? new Date(String(todo.dueDate)).getTime()
+          : NaN;
+        return Number.isFinite(due) && due <= to;
+      });
+    }
+
+    const dueDateAfter = url.searchParams.get("dueDateAfter");
+    if (dueDateAfter) {
+      const after = new Date(dueDateAfter).getTime();
+      filtered = filtered.filter((todo) => {
+        const due = todo.dueDate
+          ? new Date(String(todo.dueDate)).getTime()
+          : NaN;
+        return Number.isFinite(due) && due > after;
+      });
+    }
+
+    const dueDateBefore = url.searchParams.get("dueDateBefore");
+    if (dueDateBefore) {
+      const before = new Date(dueDateBefore).getTime();
+      filtered = filtered.filter((todo) => {
+        const due = todo.dueDate
+          ? new Date(String(todo.dueDate)).getTime()
+          : NaN;
+        return Number.isFinite(due) && due < before;
+      });
+    }
+
+    return filtered.sort((a, b) => Number(a.order || 0) - Number(b.order || 0));
+  };
+
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     const pathname = url.pathname;
@@ -158,7 +243,11 @@ async function installFilterPipelineMockApi(page: Page, todosSeed: TodoSeed[]) {
     if (pathname === "/todos" && method === "GET") {
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
-      return json(route, 200, todosByUser.get(userId) || []);
+      return json(
+        route,
+        200,
+        filterTodosForQuery(todosByUser.get(userId) || [], url),
+      );
     }
 
     if (pathname.startsWith("/todos/") && method === "PUT") {
@@ -524,5 +613,64 @@ test.describe("Filter pipeline regression", () => {
     expect(capturedTodosUrl).not.toBeNull();
     expect(capturedTodosUrl!.searchParams.get("sortBy")).toBe("order");
     expect(capturedTodosUrl!.searchParams.get("sortOrder")).toBe("asc");
+  });
+
+  test("active filters send search, project, and date window query params", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "Desktop rail interactions only");
+
+    const capturedTodosUrls: URL[] = [];
+
+    await installFilterPipelineMockApi(page, [
+      {
+        id: "a-1",
+        title: "Alpha report",
+        description: null,
+        notes: null,
+        category: "Project A",
+        dueDate: todayIsoAt(9),
+        priority: "medium",
+      },
+      {
+        id: "b-1",
+        title: "Beta note",
+        description: null,
+        notes: null,
+        category: "Project B",
+        dueDate: null,
+        priority: "low",
+      },
+    ]);
+
+    await page.route("**/todos*", async (route) => {
+      const url = new URL(route.request().url());
+      if (url.pathname === "/todos" && route.request().method() === "GET") {
+        capturedTodosUrls.push(url);
+      }
+      return route.fallback();
+    });
+
+    await registerAndOpenTodos(page, "query-active-filters@example.com");
+    await page
+      .locator(
+        '#projectsRail .projects-rail-item[data-project-key="Project A"]',
+      )
+      .click();
+    await page.locator("#searchInput").fill("report");
+    await openMoreFilters(page);
+    await page.locator("#dateViewToday").click();
+
+    await expect(page.locator("#todosListHeaderCount")).toHaveText("1 task");
+
+    const filteredRequest = [...capturedTodosUrls]
+      .reverse()
+      .find((url) => url.searchParams.get("project") === "Project A");
+
+    expect(filteredRequest).toBeDefined();
+    expect(filteredRequest!.searchParams.get("search")).toBe("report");
+    expect(filteredRequest!.searchParams.get("dueDateFrom")).toBeTruthy();
+    expect(filteredRequest!.searchParams.get("dueDateTo")).toBeTruthy();
   });
 });

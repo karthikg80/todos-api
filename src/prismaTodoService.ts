@@ -19,6 +19,7 @@ type PrismaTodoWithRelations = Prisma.TodoGetPayload<{
 }>;
 
 type PrismaSubtaskRecord = Prisma.SubtaskGetPayload<{}>;
+const PROJECT_PATH_SEPARATOR = " / ";
 
 /**
  * Prisma-based implementation of ITodoService using PostgreSQL database.
@@ -28,6 +29,7 @@ export class PrismaTodoService implements ITodoService {
   constructor(private prisma: PrismaClient) {}
   private static readonly NOT_FOUND_ERROR = "TODO_NOT_FOUND";
   static readonly INVALID_HEADING_ERROR = "INVALID_HEADING";
+
   private normalizeCategory(category?: string | null): string | null {
     if (category === null || category === undefined) {
       return null;
@@ -86,6 +88,79 @@ export class PrismaTodoService implements ITodoService {
     return heading.id;
   }
 
+  private buildFindAllWhere(
+    userId: string,
+    query?: FindTodosQuery,
+  ): Prisma.TodoWhereInput {
+    const where: Prisma.TodoWhereInput = { userId };
+    const and: Prisma.TodoWhereInput[] = [];
+
+    if (query?.completed !== undefined) {
+      where.completed = query.completed;
+    }
+    if (query?.priority) {
+      where.priority = query.priority;
+    }
+    if (query?.category !== undefined) {
+      where.category = query.category;
+    }
+    if (query?.unsorted) {
+      and.push({
+        OR: [{ category: null }, { category: "" }],
+      });
+    }
+    if (query?.project) {
+      and.push({
+        OR: [
+          { category: query.project },
+          {
+            category: {
+              startsWith: `${query.project}${PROJECT_PATH_SEPARATOR}`,
+            },
+          },
+        ],
+      });
+    }
+    if (query?.search) {
+      and.push({
+        OR: [
+          { title: { contains: query.search, mode: "insensitive" } },
+          { description: { contains: query.search, mode: "insensitive" } },
+          { category: { contains: query.search, mode: "insensitive" } },
+        ],
+      });
+    }
+    if (query?.dueDateIsNull) {
+      and.push({ dueDate: null });
+    } else if (
+      query?.dueDateFrom ||
+      query?.dueDateTo ||
+      query?.dueDateAfter ||
+      query?.dueDateBefore
+    ) {
+      const dueDate: Prisma.DateTimeNullableFilter = { not: null };
+      if (query.dueDateFrom) {
+        dueDate.gte = query.dueDateFrom;
+      }
+      if (query.dueDateTo) {
+        dueDate.lte = query.dueDateTo;
+      }
+      if (query.dueDateAfter) {
+        dueDate.gt = query.dueDateAfter;
+      }
+      if (query.dueDateBefore) {
+        dueDate.lt = query.dueDateBefore;
+      }
+      and.push({ dueDate });
+    }
+
+    if (and.length) {
+      where.AND = and;
+    }
+
+    return where;
+  }
+
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     const todo = await this.prisma.$transaction(async (tx) => {
       // Lock the user row so concurrent creates are serialized and cannot
@@ -139,16 +214,7 @@ export class PrismaTodoService implements ITodoService {
   }
 
   async findAll(userId: string, query?: FindTodosQuery): Promise<Todo[]> {
-    const where: Prisma.TodoWhereInput = { userId };
-    if (query?.completed !== undefined) {
-      where.completed = query.completed;
-    }
-    if (query?.priority) {
-      where.priority = query.priority;
-    }
-    if (query?.category !== undefined) {
-      where.category = query.category;
-    }
+    const where = this.buildFindAllWhere(userId, query);
 
     const sortBy: TodoSortBy = query?.sortBy ?? "order";
     const sortOrder: SortOrder = query?.sortOrder ?? "asc";
