@@ -1,7 +1,7 @@
 # TASK 146: debounce-render-filter-triggers
 
 type: Green
-status: READY
+status: DONE
 mode: implement
 builder: claude
 reviewer: user
