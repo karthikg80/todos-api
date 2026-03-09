@@ -235,6 +235,159 @@ Open a PR and provide handoff summary including:
 
 ---
 
+## TASK 151 — Clarify state.js vs store.js naming
+
+```
+Read CLAUDE.md before doing anything.
+
+Execute TASK 151: resolve the confusing state.js / store.js naming by renaming state.js to authSession.js.
+This is a pure rename + comment pass — no logic changes.
+
+## What this task does
+
+Two files have misleadingly similar names:
+- client/utils/state.js — IIFE script that wraps localStorage auth session (token, refreshToken, user). Exposes window.AppState.
+- client/modules/store.js — ES6 module exporting { state, hooks } — the shared runtime UI state object.
+
+They are architecturally clean and completely separate concerns. The task makes the names reflect that.
+
+## Steps
+
+1. Rename client/utils/state.js → client/utils/authSession.js
+   - git mv client/utils/state.js client/utils/authSession.js
+
+2. Update client/index.html:
+   - Find: src="/utils/state.js"
+   - Replace: src="/utils/authSession.js"
+
+3. Update comments in client/app.js that reference utils/state.js:
+   - Two comment lines reference utils/state.js — update to utils/authSession.js
+
+4. Add clarifying top comment to client/utils/authSession.js (first line after the opening):
+   // Auth session persistence — localStorage read/write for token, refreshToken, user. Exposes window.AppState.
+
+5. Add clarifying top comment to client/modules/store.js (after the existing header block):
+   // Runtime UI state module — exports { state, hooks }. All domain modules import from here. Do not import from authSession.js.
+
+6. Update docs/memory/brief/BRIEF.md — in the Open Tech Debt section, replace:
+   "- `state.js` vs `store.js` overlap — relationship never formally resolved"
+   with:
+   "- ~~`state.js` vs `store.js` overlap~~ resolved in Task 151 (renamed to authSession.js)"
+
+7. Update docs/next-enhancements.md similarly.
+
+## Verification
+
+Run ALL checks — all must pass:
+  npm run lint:html
+  npm run lint:css
+  npm run test:unit
+  CI=1 npm run test:ui:fast
+
+Also verify manually:
+  - App loads in browser with no 404 for authSession.js in network tab
+  - Login/logout flow works (window.AppState.persistSession is available)
+  - Console is clean on app load
+
+## Constraints
+- Pure rename + comment only — zero logic changes
+- window.AppState interface must remain exactly unchanged
+- Do not rename store.js
+- Files to touch: client/utils/state.js (rename), client/index.html, client/app.js, client/modules/store.js (comment only), docs/memory/brief/BRIEF.md, docs/next-enhancements.md
+- BLOCKED if any auth behavior changes
+- BLOCKED if touches >6 files
+
+## Branch
+  BRANCH=codex/task-151-clarify-state-vs-store-naming
+  Base from master.
+
+## Deliverable
+Open a PR. Fill in the Deliverable and Outcome sections of docs/agent-queue/tasks/yellow/151-clarify-state-vs-store-naming.md.
+Set status: DONE.
+```
+
+---
+
+## TASK 152 — Extract rate-limit middleware
+
+```
+Read CLAUDE.md before doing anything.
+
+Execute TASK 152: extract the inline rate-limit configuration from src/app.ts into src/middleware/rateLimitMiddleware.ts.
+This is a pure extraction — no behavior changes.
+
+## What this task does
+
+src/app.ts currently defines three rate limiters inline (around lines 155–195):
+- authLimiter: 5 req / 15 min → applied to /auth routes
+- emailActionLimiter: 20 req / 15 min → applied to email action routes
+- apiLimiter: 100 req / 15 min → applied to /api, /todos, /users, /ai, /projects
+
+All three use express-rate-limit (already installed). The isTest bypass
+(process.env.NODE_ENV === 'test' → noLimit passthrough) is also inline.
+
+This task moves them to the middleware layer where they belong.
+
+## Steps
+
+1. Read src/app.ts lines 150–200 to understand the exact current limiter definitions.
+   Read src/middleware/authMiddleware.ts to understand the existing export pattern.
+
+2. Create src/middleware/rateLimitMiddleware.ts:
+   - Import rateLimit from express-rate-limit and RequestHandler from express
+   - Reproduce the isTest constant (process.env.NODE_ENV === 'test')
+   - Reproduce the noLimit passthrough handler
+   - Export authLimiter, emailActionLimiter, apiLimiter with identical config to current inline versions
+   - Add JSDoc block at top:
+     /**
+      * Rate limit middleware.
+      * authLimiter:        5 req / 15 min — applied to /auth routes
+      * emailActionLimiter: 20 req / 15 min — applied to email action routes
+      * apiLimiter:         100 req / 15 min — applied to /api, /todos, /users, /ai, /projects
+      * All limiters are bypassed when NODE_ENV=test.
+      */
+
+3. Update src/app.ts:
+   - Add import: import { authLimiter, emailActionLimiter, apiLimiter } from './middleware/rateLimitMiddleware';
+   - Remove the inline isTest, noLimit, authLimiter, emailActionLimiter, apiLimiter definitions
+   - Keep all app.use() calls exactly as they are (only the definitions move, not the usage)
+
+4. Update docs/memory/brief/BRIEF.md — in the Open Tech Debt section, replace:
+   "- API rate limiting — no middleware exists on Express layer"
+   with:
+   "- ~~API rate limiting~~ resolved in Task 152 (extracted to rateLimitMiddleware.ts)"
+
+5. Update docs/next-enhancements.md similarly.
+
+## Verification
+
+Run ALL checks — all must pass:
+  npx tsc --noEmit
+  npm run format:check
+  npm run test:unit
+  CI=1 npm run test:ui:fast
+
+## Constraints
+- Pure extraction — zero behavior changes
+- Rate limit values and window durations must be identical to current
+- isTest bypass logic must be preserved in rateLimitMiddleware.ts
+- Do not introduce any new npm dependencies
+- All three limiters must live in the single new file — do not split further
+- Files to touch: src/middleware/rateLimitMiddleware.ts (new), src/app.ts, docs/ (2 files)
+- BLOCKED if any rate limit values change
+- BLOCKED if touches >4 source files
+
+## Branch
+  BRANCH=codex/task-152-extract-rate-limit-middleware
+  Base from master.
+
+## Deliverable
+Open a PR. Fill in the Deliverable and Outcome sections of docs/agent-queue/tasks/yellow/152-extract-rate-limit-middleware.md.
+Set status: DONE.
+```
+
+---
+
 ## TASK 144 — Server-Side Filter/Sort/Aggregate (Red · backend)
 
 ```
