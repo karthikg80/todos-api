@@ -257,9 +257,7 @@ export function renderAiPerformanceInsights() {
       : "";
 
   const rateDisplay =
-    typeof acceptanceRate === "number"
-      ? `${Math.round(acceptanceRate * 100)}%`
-      : "N/A";
+    typeof acceptanceRate === "number" ? `${acceptanceRate}%` : "N/A";
 
   container.innerHTML = `
     <div style="
