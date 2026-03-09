@@ -280,31 +280,51 @@ export function renderAiFeedbackInsights() {
   const container = document.getElementById("aiFeedbackInsights");
   if (!container) return;
 
-  if (!state.aiFeedbackSummary) {
+  if (!state.aiFeedbackSummary || state.aiFeedbackSummary.totalRated < 1) {
     container.innerHTML = "";
     return;
   }
 
-  const total = state.aiFeedbackSummary.total || 0;
-  const accepted = state.aiFeedbackSummary.accepted || 0;
-  const rejected = state.aiFeedbackSummary.rejected || 0;
-  const topReasons = Array.isArray(state.aiFeedbackSummary.topReasons)
-    ? state.aiFeedbackSummary.topReasons
-    : [];
+  const totalRated = Number(state.aiFeedbackSummary.totalRated) || 0;
+  const acceptedCount = Number(state.aiFeedbackSummary.acceptedCount) || 0;
+  const rejectedCount = Number(state.aiFeedbackSummary.rejectedCount) || 0;
+  const acceptedRate =
+    totalRated > 0 ? Math.round((acceptedCount / totalRated) * 100) : 0;
+  const topAcceptedReason =
+    state.aiFeedbackSummary.acceptedReasons &&
+    state.aiFeedbackSummary.acceptedReasons.length > 0
+      ? state.aiFeedbackSummary.acceptedReasons[0]
+      : null;
+  const topRejectedReason =
+    state.aiFeedbackSummary.rejectedReasons &&
+    state.aiFeedbackSummary.rejectedReasons.length > 0
+      ? state.aiFeedbackSummary.rejectedReasons[0]
+      : null;
 
   container.innerHTML = `
     <div style="
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      padding: 8px 10px;
       border: 1px solid var(--border-color);
       border-radius: 8px;
       background: var(--input-bg);
+      padding: 10px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
     ">
-      <strong>Feedback (30d):</strong> ${total} total, ${accepted} accepted, ${rejected} rejected
+      <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">
+        AI Feedback Insights (30d)
+      </div>
+      <div>
+        Acceptance rate: <strong>${acceptedRate}%</strong>
+        (${acceptedCount}/${totalRated}), rejected: <strong>${rejectedCount}</strong>
+      </div>
       ${
-        topReasons.length
-          ? `<div style="margin-top: 4px;">Top reasons: ${topReasons.map((r) => escapeHtml(String(r))).join(", ")}</div>`
+        topAcceptedReason
+          ? `<div style="margin-top: 4px;">Top accepted reason: <strong>${escapeHtml(String(topAcceptedReason.reason))}</strong> (${topAcceptedReason.count})</div>`
+          : ""
+      }
+      ${
+        topRejectedReason
+          ? `<div style="margin-top: 4px;">Top rejected reason: <strong>${escapeHtml(String(topRejectedReason.reason))}</strong> (${topRejectedReason.count})</div>`
           : ""
       }
     </div>
