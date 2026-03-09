@@ -174,6 +174,24 @@ import {
 } from "./drawerUi.js";
 
 // =============================================================================
+// EventBus — minimal pub-sub for decoupled state→render wiring.
+// =============================================================================
+const EventBus = (() => {
+  const subs = {};
+  return {
+    subscribe(event, handler) {
+      (subs[event] ??= []).push(handler);
+    },
+    unsubscribe(event, handler) {
+      if (subs[event]) subs[event] = subs[event].filter((h) => h !== handler);
+    },
+    dispatch(event, payload) {
+      (subs[event] ?? []).forEach((h) => h(payload));
+    },
+  };
+})();
+
+// =============================================================================
 // TASK 140 DEPENDENCY GRAPH ANALYSIS
 // Generated before any split attempt. Status: BLOCKED (see below).
 //
@@ -1950,7 +1968,7 @@ function openHomeTileList(tileKey) {
     state.currentWorkspaceView = "all";
     setSelectedProjectKey("", { reason: "home-see-all", skipApply: true });
     setDateView("all", { skipApply: true });
-    applyFiltersAndRender({ reason: `home-see-all-${tileKey}` });
+    EventBus.dispatch("todos:changed", { reason: `home-see-all-${tileKey}` });
   }
 }
 
@@ -4256,7 +4274,7 @@ function selectWorkspaceView(view, triggerEl = null) {
   clearHomeListDrilldown();
   setSelectedProjectKey("", { reason: "workspace-view", skipApply: true });
   setDateView(nextView, { skipApply: true });
-  applyFiltersAndRender({ reason: "workspace-view" });
+  EventBus.dispatch("todos:changed", { reason: "workspace-view" });
 
   if (state.isRailSheetOpen) {
     closeProjectsRailSheet({
@@ -5397,7 +5415,7 @@ function syncSheetSearch() {
   const mainInput = document.getElementById("searchInput");
   if (sheetInput && mainInput) {
     mainInput.value = sheetInput.value;
-    filterTodos();
+    EventBus.dispatch("todos:changed");
   }
 }
 
@@ -8965,7 +8983,7 @@ document.addEventListener("keydown", function (e) {
     // Allow Esc to clear search
     if (e.key === "Escape" && e.target.id === "searchInput") {
       e.target.value = "";
-      filterTodos();
+      EventBus.dispatch("todos:changed");
       e.target.blur();
     }
     return;
@@ -9983,8 +10001,14 @@ function bindDeclarativeHandlers() {
   // drawerUi ↔ filterLogic
   hooks.syncTodoDrawerStateWithRender = syncTodoDrawerStateWithRender;
   // todosService / projectsState / drawerUi → filterLogic
-  hooks.applyFiltersAndRender = applyFiltersAndRender;
-  hooks.renderTodos = renderTodos;
+  // domain modules dispatch via hooks; EventBus delivers to subscribers
+  hooks.applyFiltersAndRender = (payload) =>
+    EventBus.dispatch("todos:changed", payload);
+  hooks.renderTodos = () => EventBus.dispatch("todos:render");
+
+  // Subscribe renderers
+  EventBus.subscribe("todos:changed", applyFiltersAndRender);
+  EventBus.subscribe("todos:render", renderTodos);
   hooks.updateCategoryFilter = updateCategoryFilter;
   // todosService / filterLogic → projectsState
   hooks.loadProjects = loadProjects;
