@@ -64,6 +64,177 @@ Scripts (use only if available):
 
 ---
 
+## TASK 150 — Folder Restructure (client/ + src/ reorganization)
+
+```
+Read CLAUDE.md before doing anything.
+
+Execute TASK 150: reorganize the repository folder structure as specified below.
+This is a pure file-move refactor — no logic changes, no new code.
+
+## What this task does
+
+Three changes:
+1. Rename public/ → client/ and create subdirectories modules/ and utils/
+2. Organize src/ flat files into services/, middleware/, validation/ subdirectories
+3. Update all references to the moved paths
+
+---
+
+## Part 1 — client/ restructure
+
+### Create new directory structure
+  client/
+    modules/     ← domain JS modules
+    utils/       ← shared utility JS files
+    vendor/      ← already exists, move as-is
+
+### Move rules for public/ → client/
+
+Files to move into client/modules/:
+  store.js, todosService.js, projectsState.js, filterLogic.js,
+  drawerUi.js, overlayManager.js, featureFlags.js, authUi.js,
+  railUi.js, quickEntry.js, homeDashboard.js, aiWorkspace.js,
+  adminUsers.js, dragDrop.js, shortcuts.js, commandPalette.js,
+  taskDrawerAssist.js, onCreateAssist.js, todayPlan.js
+
+Files to move into client/utils/:
+  utils.js, apiClient.js, projectPathUtils.js, lintHeuristics.js,
+  icsExport.js, aiSuggestionUtils.js, theme.js, state.js
+
+Files to move into client/ root (not in a subdirectory):
+  app.js, index.html, styles.css, service-worker.js,
+  favicon.svg, bimi-logo.svg
+
+Move vendor/ directory as-is to client/vendor/
+
+### Update import paths in all moved JS files
+After moving, every import statement that references a peer module must
+be updated to reflect the new relative path. For example:
+  - app.js imports from modules: "./store.js" → "./modules/store.js"
+  - modules import from each other: "./filterLogic.js" → "./filterLogic.js" (unchanged, same dir)
+  - modules import from utils: "./apiClient.js" → "../utils/apiClient.js"
+  - utils import from store: "./store.js" → "../modules/store.js"
+
+Before moving anything, produce the complete import graph:
+  grep -rn "^import" public/*.js
+This tells you exactly which files import which — use it to update paths correctly.
+
+---
+
+## Part 2 — src/ restructure
+
+### Create new subdirectories
+  src/services/
+  src/middleware/
+  src/validation/
+
+### Move rules for src/
+
+Files to move into src/services/:
+  todoService.ts, prismaTodoService.ts, prismaHeadingService.ts,
+  projectService.ts, headingService.ts, authService.ts,
+  aiService.ts, aiApplyService.ts, aiDismissService.ts,
+  aiQuotaService.ts, aiSuggestionStore.ts, aiNormalizationService.ts,
+  decisionAssistTelemetry.ts, decisionAssistThrottle.ts,
+  emailService.ts
+
+Files to move into src/middleware/:
+  authMiddleware.ts, adminMiddleware.ts
+
+Files to move into src/validation/:
+  authValidation.ts, validation.ts, aiValidation.ts, aiContracts.ts
+
+Files that stay at src/ root:
+  app.ts, server.ts, config.ts, types.ts, errorHandling.ts,
+  prismaClient.ts, swagger.ts
+  (plus interfaces/, routes/, generated/ subdirs — unchanged)
+
+### Update all TypeScript imports after moving
+Every file that imports from a moved file needs its import path updated.
+Use tsc --noEmit after each batch to catch broken imports immediately.
+
+---
+
+## Part 3 — Update external references
+
+After all files are moved, update these specific references:
+
+1. src/app.ts — static file serving path:
+   Change: path.join(__dirname, "../public")
+   To:     path.join(__dirname, "../client")
+
+2. package.json — lint scripts:
+   Change: "public/**/*.html"  →  "client/**/*.html"
+   (two scripts: lint:css and lint:html)
+
+3. index.html — all <script src=...> and import paths:
+   Update any src paths that reference module files to use modules/ prefix
+   Update any src paths that reference util files to use utils/ prefix
+
+4. service-worker.js — if it caches any file paths, update them
+
+5. playwright.config.ts and any test files in tests/ui/ —
+   if they reference public/ paths, update to client/
+
+6. .gitignore, .railwayignore — if they reference public/, update to client/
+
+---
+
+## Execution order
+
+1. Audit: run `grep -rn "^import" public/*.js` and produce the full import graph
+2. Move src/ files into services/, middleware/, validation/ subdirs
+3. Run npx tsc --noEmit — fix any broken imports before proceeding
+4. Create client/ directory structure
+5. Move public/ files to client/ following move rules above
+6. Update all import paths in moved JS files
+7. Update external references (src/app.ts, package.json, index.html, etc.)
+8. Delete the now-empty public/ directory
+9. Run all verification checks
+
+---
+
+## Verification
+
+Run ALL checks — all must pass:
+  npx tsc --noEmit
+  npm run format:check
+  npm run lint:html
+  npm run lint:css
+  npm run test:unit
+  CI=1 npm run test:ui:fast
+
+Also verify manually:
+  - App loads in browser (index.html served correctly from client/)
+  - No 404s for JS module imports in browser devtools network tab
+  - npm run dev starts without errors
+
+---
+
+## Constraints
+- No logic changes of any kind — pure file moves and path updates
+- No new npm dependencies
+- Do NOT move test files (*.test.ts) — they stay co-located with source
+- Do NOT move src/generated/ or src/interfaces/ or src/routes/ — already organized
+- BLOCKED if any circular import is introduced
+- BLOCKED if app fails to load in browser after restructure
+- tsc --noEmit must pass after EACH part (after src/ moves, after client/ moves)
+
+## Branch
+  BRANCH=codex/task-150-folder-restructure
+  Base from master.
+
+## Deliverable
+Open a PR and provide handoff summary including:
+  - Complete list of files moved
+  - All import paths updated
+  - All external references updated
+  - PASS/FAIL matrix
+```
+
+---
+
 ## TASK 144 — Server-Side Filter/Sort/Aggregate (Red · backend)
 
 ```
