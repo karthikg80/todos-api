@@ -1,6 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { AuthService } from "../authService";
-import { isValidEmail } from "../authValidation";
+import { AuthService } from "../services/authService";
+import { isValidEmail } from "../validation/authValidation";
 
 interface UsersRouterDeps {
   authService?: AuthService;

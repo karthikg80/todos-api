@@ -1,9 +1,9 @@
 import request from "supertest";
 import { createApp } from "./app";
-import { PrismaTodoService } from "./prismaTodoService";
-import { AuthService } from "./authService";
+import { PrismaTodoService } from "./services/prismaTodoService";
+import { AuthService } from "./services/authService";
 import { prisma } from "./prismaClient";
-import { PrismaProjectService } from "./projectService";
+import { PrismaProjectService } from "./services/projectService";
 
 describe("Authentication API", () => {
   let app: any;

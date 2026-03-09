@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthService } from "./authService";
+import { AuthService } from "../services/authService";
 
 // Extend Express Request to include user
 declare global {

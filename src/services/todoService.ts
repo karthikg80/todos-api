@@ -7,9 +7,9 @@ import {
   UpdateSubtaskDto,
   ReorderTodoItemDto,
   FindTodosQuery,
-} from "./types";
+} from "../types";
 import { randomUUID } from "crypto";
-import { ITodoService } from "./interfaces/ITodoService";
+import { ITodoService } from "../interfaces/ITodoService";
 
 const PROJECT_PATH_SEPARATOR = " / ";
 

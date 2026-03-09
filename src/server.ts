@@ -1,11 +1,11 @@
 import { createApp } from "./app";
-import { PrismaTodoService } from "./prismaTodoService";
-import { AuthService } from "./authService";
+import { PrismaTodoService } from "./services/prismaTodoService";
+import { AuthService } from "./services/authService";
 import { prisma, disconnectPrisma } from "./prismaClient";
 import { config } from "./config";
-import { PrismaAiSuggestionStore } from "./aiSuggestionStore";
-import { PrismaProjectService } from "./projectService";
-import { PrismaHeadingService } from "./prismaHeadingService";
+import { PrismaAiSuggestionStore } from "./services/aiSuggestionStore";
+import { PrismaProjectService } from "./services/projectService";
+import { PrismaHeadingService } from "./services/prismaHeadingService";
 
 const PORT = config.port;
 

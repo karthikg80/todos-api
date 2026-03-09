@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthService } from "./authService";
+import { AuthService } from "../services/authService";
 
 /**
  * Middleware to check if user is an admin

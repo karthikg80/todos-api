@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { ValidationError } from "./validation";
+import { ValidationError } from "./validation/validation";
 
 type ErrorCodeCarrier = { code?: unknown };
 

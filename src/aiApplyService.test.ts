@@ -3,13 +3,13 @@ import {
   applyTodayPlanSuggestions,
   ApplyTodoBoundResult,
   ApplyTodayPlanResult,
-} from "./aiApplyService";
+} from "./services/aiApplyService";
 import { ITodoService } from "./interfaces/ITodoService";
 import { IProjectService } from "./interfaces/IProjectService";
 import {
   NormalizedTodoBoundSuggestion,
   NormalizedTodayPlanSuggestion,
-} from "./aiNormalizationService";
+} from "./services/aiNormalizationService";
 
 // ── Helpers ──
 

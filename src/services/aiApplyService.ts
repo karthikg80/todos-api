@@ -1,6 +1,6 @@
-import { ITodoService } from "./interfaces/ITodoService";
-import { IProjectService } from "./interfaces/IProjectService";
-import { Priority } from "./types";
+import { ITodoService } from "../interfaces/ITodoService";
+import { IProjectService } from "../interfaces/IProjectService";
+import { Priority } from "../types";
 import {
   NormalizedTodoBoundSuggestion,
   NormalizedTodayPlanSuggestion,

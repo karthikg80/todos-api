@@ -4,10 +4,12 @@ Full-stack todo application with Express/Prisma backend and vanilla JS frontend.
 
 ## Project Structure
 
-- **Frontend:** Static HTML/CSS/JS in `public/` (no build step, no framework).
-  - `public/app.js` — all client-side logic (vanilla JS, event delegation model).
-  - `public/styles.css` — all styles.
-  - `public/index.html` — single-page app shell.
+- **Frontend:** Static HTML/CSS/JS in `client/` (no build step, no framework).
+  - `client/app.js` — app entrypoint/orchestration.
+  - `client/modules/` — domain JS modules.
+  - `client/utils/` — shared utility JS files.
+  - `client/styles.css` — all styles.
+  - `client/index.html` — single-page app shell.
 - **Backend:** Express + Prisma + PostgreSQL in `src/`.
 - **Tests:**
   - Unit: `src/*.test.ts` — Jest, run with `npm run test:unit`.
@@ -25,7 +27,7 @@ Full-stack todo application with Express/Prisma backend and vanilla JS frontend.
 
 These are load-bearing patterns. Do not change them.
 
-- **Event delegation:** `public/app.js` uses delegated event listeners on container elements. Do not attach listeners directly to dynamic child elements.
+- **Event delegation:** `client/app.js` uses delegated event listeners on container elements. Do not attach listeners directly to dynamic child elements.
 - **Filter pipeline:** `#categoryFilter` + `filterTodos()` is the canonical filter path. All project/category/status filtering routes through it.
 - **Project selection:** Use `setSelectedProjectKey(...)` for all project selection entry points. Do not bypass it.
 - **DOM-ready signal:** After auth/navigation, wait for `#todosView.active` + `#todosContent` visible + no `.loading` children. See `waitForTodosViewIdle()` in `tests/ui/helpers/todos-view.ts`.

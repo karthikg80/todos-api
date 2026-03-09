@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { validateDecisionAssistOutput } from "./aiContracts";
-import { ValidationError } from "./validation";
+import { validateDecisionAssistOutput } from "./validation/aiContracts";
+import { ValidationError } from "./validation/validation";
 
 describe("validateDecisionAssistOutput", () => {
   it("accepts a valid on_create payload", () => {

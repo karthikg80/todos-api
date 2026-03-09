@@ -8,8 +8,8 @@ import {
   validateReorderTodos,
   validateId,
   validateFindTodosQuery,
-} from "../validation";
-import { PrismaTodoService } from "../prismaTodoService";
+} from "../validation/validation";
+import { PrismaTodoService } from "../services/prismaTodoService";
 
 interface TodoRouterDeps {
   todoService: ITodoService;

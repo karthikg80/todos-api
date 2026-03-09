@@ -1,4 +1,4 @@
-import { PrismaTodoService } from "./prismaTodoService";
+import { PrismaTodoService } from "./services/prismaTodoService";
 import { prisma } from "./prismaClient";
 
 const TEST_USER_ID = "test-user-123";

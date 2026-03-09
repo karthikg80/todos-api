@@ -1,5 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
-import { ITodoService } from "./interfaces/ITodoService";
+import { ITodoService } from "../interfaces/ITodoService";
 import {
   Todo,
   Subtask,
@@ -11,8 +11,8 @@ import {
   FindTodosQuery,
   TodoSortBy,
   SortOrder,
-} from "./types";
-import { hasPrismaCode } from "./errorHandling";
+} from "../types";
+import { hasPrismaCode } from "../errorHandling";
 
 type PrismaTodoWithRelations = Prisma.TodoGetPayload<{
   include: { project: true; subtasks: true };

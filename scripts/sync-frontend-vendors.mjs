@@ -5,7 +5,7 @@ const rootDir = process.cwd();
 const vendors = [
   {
     from: path.join(rootDir, "node_modules", "chrono-node", "dist", "esm"),
-    to: path.join(rootDir, "public", "vendor", "chrono-node"),
+    to: path.join(rootDir, "client", "vendor", "chrono-node"),
   },
 ];
 

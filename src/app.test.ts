@@ -1,6 +1,6 @@
 import request from "supertest";
 import { createApp } from "./app";
-import { TodoService } from "./todoService";
+import { TodoService } from "./services/todoService";
 import type { Express } from "express";
 
 describe("Todos API", () => {

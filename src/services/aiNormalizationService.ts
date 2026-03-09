@@ -4,9 +4,9 @@ import {
   DecisionAssistSuggestionType,
   DecisionAssistSurface,
   validateDecisionAssistOutput,
-} from "./aiContracts";
+} from "../validation/aiContracts";
 import { IAiSuggestionStore, AiSuggestionRecord } from "./aiSuggestionStore";
-import { CreateTodoDto, Priority } from "./types";
+import { CreateTodoDto, Priority } from "../types";
 
 // ── Surface and type constants ──
 

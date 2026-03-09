@@ -1,6 +1,6 @@
 import request from "supertest";
 import { createApp } from "./app";
-import { TodoService } from "./todoService";
+import { TodoService } from "./services/todoService";
 import type { Express } from "express";
 import type { IProjectService } from "./interfaces/IProjectService";
 import type {

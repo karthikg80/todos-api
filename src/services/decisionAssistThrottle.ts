@@ -1,4 +1,4 @@
-import { DecisionAssistSurface } from "./aiContracts";
+import { DecisionAssistSurface } from "../validation/aiContracts";
 import { AiSuggestionRecord } from "./aiSuggestionStore";
 
 const REJECT_WINDOW_MS = 30 * 60 * 1000;

@@ -1,4 +1,4 @@
-import { TodoService } from "./todoService";
+import { TodoService } from "./services/todoService";
 
 const TEST_USER_ID = "test-user-123";
 const TEST_USER_ID_2 = "test-user-456";

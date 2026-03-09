@@ -1,4 +1,4 @@
-import { PrismaTodoService } from "./prismaTodoService";
+import { PrismaTodoService } from "./services/prismaTodoService";
 
 describe("PrismaTodoService error handling", () => {
   function createService(todoOverrides: Partial<any>) {

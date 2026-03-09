@@ -10,7 +10,7 @@ import {
   validateFindTodosQuery,
   validateReorderHeadings,
   ValidationError,
-} from "./validation";
+} from "./validation/validation";
 
 describe("Validation", () => {
   describe("validateCreateTodo", () => {

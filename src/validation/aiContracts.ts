@@ -1,5 +1,5 @@
 import { ValidationError } from "./validation";
-import { Priority } from "./types";
+import { Priority } from "../types";
 
 export type DecisionAssistSurface = "on_create" | "task_drawer" | "today_plan";
 

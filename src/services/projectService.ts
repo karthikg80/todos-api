@@ -1,12 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-import { IProjectService } from "./interfaces/IProjectService";
+import { IProjectService } from "../interfaces/IProjectService";
 import {
   CreateProjectDto,
   Project,
   ProjectTaskDisposition,
   UpdateProjectDto,
-} from "./types";
-import { hasPrismaCode } from "./errorHandling";
+} from "../types";
+import { hasPrismaCode } from "../errorHandling";
 
 export class DuplicateProjectNameError extends Error {
   constructor() {

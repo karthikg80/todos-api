@@ -8,6 +8,6 @@ playwright-report/
 test-results/
 blob-report/
 .playwright/.auth/
-public/vendor/chrono-node/
+client/vendor/chrono-node/
 
 /src/generated/prisma

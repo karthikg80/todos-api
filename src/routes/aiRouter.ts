@@ -1,9 +1,9 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { AiPlannerService } from "../aiService";
+import { AiPlannerService } from "../services/aiService";
 import {
   IAiSuggestionStore,
   InMemoryAiSuggestionStore,
-} from "../aiSuggestionStore";
+} from "../services/aiSuggestionStore";
 import {
   validateApplySuggestionInput,
   validateBreakdownTodoInput,
@@ -16,23 +16,23 @@ import {
   validatePlanFromGoalInput,
   validateSuggestionListQuery,
   validateSuggestionStatusInput,
-} from "../aiValidation";
+} from "../validation/aiValidation";
 import {
   DecisionAssistSurface,
   validateDecisionAssistOutput,
-} from "../aiContracts";
-import { validateId } from "../validation";
+} from "../validation/aiContracts";
+import { validateId } from "../validation/validation";
 import { ITodoService } from "../interfaces/ITodoService";
 import { config } from "../config";
 import { IProjectService } from "../interfaces/IProjectService";
-import * as decisionAssistTelemetry from "../decisionAssistTelemetry";
-import { evaluateDecisionAssistThrottle } from "../decisionAssistThrottle";
+import * as decisionAssistTelemetry from "../services/decisionAssistTelemetry";
+import { evaluateDecisionAssistThrottle } from "../services/decisionAssistThrottle";
 import {
   AiQuotaService,
   buildLimitsByPlan,
   buildInsightsRecommendation,
   UserPlan,
-} from "../aiQuotaService";
+} from "../services/aiQuotaService";
 import {
   TASK_DRAWER_SURFACE,
   ON_CREATE_SURFACE,
@@ -50,14 +50,14 @@ import {
   NormalizedTodoBoundSuggestion,
   NormalizedTodayPlanEnvelope,
   NormalizedTodayPlanSuggestion,
-} from "../aiNormalizationService";
+} from "../services/aiNormalizationService";
 import {
   applyTodoBoundSuggestion,
   applyTodayPlanSuggestions,
-} from "../aiApplyService";
-import { validateDismissable } from "../aiDismissService";
+} from "../services/aiApplyService";
+import { validateDismissable } from "../services/aiDismissService";
 
-export { UserPlan } from "../aiQuotaService";
+export { UserPlan } from "../services/aiQuotaService";
 
 interface AiRouterDeps {
   aiPlannerService?: AiPlannerService;

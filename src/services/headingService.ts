@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
-import { IHeadingService } from "./interfaces/IHeadingService";
-import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "./types";
-import { IProjectService } from "./interfaces/IProjectService";
+import { IHeadingService } from "../interfaces/IHeadingService";
+import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "../types";
+import { IProjectService } from "../interfaces/IProjectService";
 
 export class HeadingService implements IHeadingService {
   private headings = new Map<string, Heading>();
