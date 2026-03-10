@@ -1,7 +1,7 @@
 # TASK 155: dom-boundary-discipline-filterlogic
 
 type: Yellow
-status: READY
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude
@@ -131,11 +131,37 @@ filterLogic.js is the single filter entry point and will be touched in every fut
 - New abstraction layer introduced → BLOCKED (out of scope)
 
 ## Deliverable
-- PR URL
-- Commit SHA(s)
-- Files changed
-- Audit output (list of getElementById calls before/after)
-- PASS/FAIL matrix
+- PR URL: `https://github.com/karthikg80/todos-api/pull/new/codex/task-155-dom-boundary-discipline-filterlogic` (branch pushed; `gh pr create` was blocked by `api.github.com` connectivity in sandbox)
+- Commit SHA(s): Implementation commit `b55aee99ce09898ef8641e7a5dc6228d4064841e`
+- Files changed:
+  - `client/modules/filterLogic.js`
+  - `docs/agent-queue/tasks/yellow/155-dom-boundary-discipline-filterlogic.md`
+- Audit output (before):
+  - `41`, `47` in `setDateView()` -> `B`
+  - `97` in `syncWorkspaceViewState()` -> `B`
+  - `213` in `updateIcsExportButtonState()` -> `B`
+  - `270` in `filterTodosList()` -> `C`
+  - `330`, `332` in `clearFilters()` -> `B`
+  - `339` in `getSelectedProjectFilterValue()` -> `A`
+  - `353` in `setSelectedProjectKey()` -> `B`
+  - `428`-`432` in `updateHeaderAndContextUI()` -> `B`
+  - `745`, `750` in `renderTodos()` -> `B`
+- Audit output (after):
+  - All inline `getElementById` / `querySelector` callsites are bracketed by `DOM Boundary Layer` section markers.
+  - `filterTodosList()` no longer contains an inline DOM query.
+  - `getVisibleTodos({ searchQuery })` and `filterTodosList(..., { searchQuery })` now accept explicit search input values.
+- PASS/FAIL matrix:
+  - PASS `npx tsc --noEmit`
+  - PASS `npm run format:check`
+  - PASS `npm run lint:html`
+  - PASS `npm run lint:css`
+  - FAIL `npm run test:unit` -> sandbox blocked `listen EPERM: operation not permitted 0.0.0.0`
+  - FAIL `CI=1 npm run test:ui:fast` -> sandbox blocked `listen EPERM: operation not permitted 127.0.0.1:4173`
+  - FAIL Manual smoke -> blocked because sandbox disallows starting the local UI server
 
 ## Outcome
-(filled after completion)
+Added explicit DOM coupling policy documentation to `filterLogic.js`, marked each direct DOM-querying cluster with `DOM Boundary Layer` section dividers, and extracted the one pure-logic violation out of `filterTodosList()` into a boundary reader plus explicit `searchQuery` parameters.
+
+No behavior changes were introduced in the filter pipeline. `app.js` did not need updates because existing callers continue to use the default DOM-backed search query path through `getVisibleTodos()`.
+
+Static verification passed (`tsc`, format, HTML lint, CSS lint). Server-backed verification and manual smoke could not complete in this sandbox because local `listen(...)` calls are rejected with `EPERM`.

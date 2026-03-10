@@ -405,24 +405,7 @@ import {
 import * as TaskDrawerAssist from "./modules/taskDrawerAssist.js";
 import * as OnCreateAssist from "./modules/onCreateAssist.js";
 import * as TodayPlan from "./modules/todayPlan.js";
-
-// =============================================================================
-// EventBus — minimal pub-sub for decoupled state→render wiring.
-// =============================================================================
-const EventBus = (() => {
-  const subs = {};
-  return {
-    subscribe(event, handler) {
-      (subs[event] ??= []).push(handler);
-    },
-    unsubscribe(event, handler) {
-      if (subs[event]) subs[event] = subs[event].filter((h) => h !== handler);
-    },
-    dispatch(event, payload) {
-      (subs[event] ?? []).forEach((h) => h(payload));
-    },
-  };
-})();
+import { EventBus } from "./modules/eventBus.js";
 
 // Configuration
 const API_URL =
@@ -1625,10 +1608,9 @@ function bindDeclarativeHandlers() {
   // drawerUi ↔ filterLogic
   hooks.syncTodoDrawerStateWithRender = syncTodoDrawerStateWithRender;
   // todosService / projectsState / drawerUi → filterLogic
-  // domain modules dispatch via hooks; EventBus delivers to subscribers
+  // domain modules dispatch directly via EventBus; EventBus delivers to subscribers
   hooks.applyFiltersAndRender = (payload) =>
     EventBus.dispatch("todos:changed", payload);
-  hooks.renderTodos = () => EventBus.dispatch("todos:render");
 
   // Subscribe renderers
   EventBus.subscribe("todos:changed", applyFiltersAndRender);

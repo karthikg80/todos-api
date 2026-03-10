@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { state, hooks } from "./store.js";
+import { EventBus } from "./eventBus.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 // ---------------------------------------------------------------------------
@@ -512,7 +513,7 @@ export async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
     if (requestId !== state.drawerSaveSequence) return;
     initializeDrawerDraft(updatedTodo);
     setDrawerSaveState("saved");
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
     syncTodoDrawerStateWithRender();
     restoreDrawerFocusState(focusState);
   } catch (error) {
@@ -976,7 +977,7 @@ export async function applyTaskDrawerSuggestion(
     clearTaskDrawerDismissed(state.selectedTodoId);
     state.taskDrawerAssistState.lastUndoSuggestionId = "";
     await loadTaskDrawerDecisionAssist(state.selectedTodoId, false);
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
   } catch (error) {
     console.error("Task drawer AI apply failed:", error);
     state.taskDrawerAssistState.error = "Could not apply suggestion.";
@@ -1031,7 +1032,7 @@ export function undoTaskDrawerSuggestion(suggestionId) {
       selectedTodoIdsCount: 1,
     });
   }
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "undo-applied" });
   syncTodoDrawerStateWithRender();
 }
 
@@ -1073,7 +1074,7 @@ export function openTodoDrawer(todoId, triggerEl) {
   }
   lockBodyScrollForDrawer();
 
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
   const titleInput = document.getElementById("drawerTitleInput");
   if (titleInput instanceof HTMLElement) {
     titleInput.focus();
@@ -1116,7 +1117,7 @@ export function closeTodoDrawer({ restoreFocus = true } = {}) {
     }
     renderTodoDrawerContent();
   }
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
   unlockBodyScrollForDrawer();
 
   state.lastFocusedTodoTrigger = null;
@@ -1210,7 +1211,7 @@ export function getKebabTriggerForTodo(todoId) {
 export function closeTodoKebabMenu({ restoreFocus = false } = {}) {
   const activeTodoId = state.openTodoKebabId;
   state.openTodoKebabId = null;
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
 
   if (!restoreFocus || !activeTodoId) return;
   window.requestAnimationFrame(() => {
@@ -1225,7 +1226,7 @@ export function toggleTodoKebab(todoId, event) {
 
   const shouldOpen = state.openTodoKebabId !== todoId;
   state.openTodoKebabId = shouldOpen ? todoId : null;
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
 
   if (!shouldOpen) return;
   window.requestAnimationFrame(() => {
@@ -1252,7 +1253,7 @@ export function openEditTodoFromKebab(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
   state.openTodoKebabId = null;
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
   hooks.openEditTodoModal?.(todoId);
 }
 
