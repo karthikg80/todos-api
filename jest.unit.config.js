@@ -12,5 +12,6 @@ module.exports = {
     "**/src/api.contract.test.ts",
     "**/src/aiQuotaService.test.ts",
     "**/src/aiApplyService.test.ts",
+    "**/src/agentRouter.test.ts",
   ],
 };
