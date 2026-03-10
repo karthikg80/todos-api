@@ -4,6 +4,7 @@
 // =============================================================================
 
 import { state, hooks } from "./store.js";
+import { EventBus } from "./eventBus.js";
 import { createInitialOnCreateAssistState } from "./store.js";
 import { getAllProjects } from "./projectsState.js";
 import { applyFiltersAndRender } from "./filterLogic.js";
@@ -1014,7 +1015,7 @@ async function applyLiveOnCreateSuggestion(suggestion, confirmed = false) {
     if (index >= 0) {
       state.todos[index] = data.todo;
     }
-    hooks.renderTodos();
+    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
   }
   clearOnCreateDismissed(state.onCreateAssistState.liveTodoId);
   const refreshedTodo =
