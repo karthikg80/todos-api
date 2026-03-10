@@ -1,7 +1,7 @@
 # TASK 152: extract-rate-limit-middleware
 
 type: Yellow
-status: READY
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude
@@ -90,10 +90,24 @@ If any of these occur, set status to BLOCKED and request re-approval:
 - New npm dependency required
 
 ## Deliverable
-- PR URL
-- Commit SHA(s)
-- Files changed (should be: new rateLimitMiddleware.ts, updated app.ts, docs)
-- PASS/FAIL matrix
+- PR URL: https://github.com/karthikg80/todos-api/pull/new/codex/task-152-extract-rate-limit-middleware (branch pushed; sandbox could not complete GitHub PR creation)
+- Commit SHA(s): 3e11be874bd45b7b46c53c46b19eb35eb1dc870c
+- Files changed:
+  - `src/middleware/rateLimitMiddleware.ts`
+  - `src/app.ts`
+  - `docs/memory/brief/BRIEF.md`
+  - `docs/next-enhancements.md`
+  - `docs/agent-queue/tasks/yellow/152-extract-rate-limit-middleware.md`
+- PASS/FAIL matrix:
+  - `npx tsc --noEmit` — PASS
+  - `npm run format:check` — PASS
+  - `npm run lint:html` — PASS
+  - `npm run lint:css` — PASS
+  - `npm run test:unit` — BLOCKED (`listen EPERM: operation not permitted 0.0.0.0` in sandbox)
+  - `CI=1 npm run test:ui:fast` — BLOCKED (`listen EPERM: operation not permitted 127.0.0.1:4173` in sandbox)
 
 ## Outcome
-(filled after completion)
+- Extracted the inline auth, email action, and API rate-limit middleware definitions from `src/app.ts` into `src/middleware/rateLimitMiddleware.ts`.
+- Preserved the exact limiter windows, max values, messages, headers config, and `NODE_ENV=test` bypass behavior with no route wiring changes.
+- Marked the Express-layer rate-limiting tech debt item as resolved in the brief and next-enhancements docs.
+- Pushed branch `codex/task-152-extract-rate-limit-middleware`; PR auto-creation was blocked by sandbox GitHub/API access limits, so the branch creation URL is recorded above.
