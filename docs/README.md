@@ -9,6 +9,7 @@ Navigation map for this directory.
 | `WORKFLOW.md`            | How tasks flow through the system (start here)                 |
 | `SAFETY_GUARDRAILS.md`   | Operational safety rules for all agents                        |
 | `agent-accessibility.md` | First-pass server contract and safety model for machine agents |
+| `assistant-mcp.md`       | Remote MCP adapter for assistant clients                       |
 | `agent-ops/`             | Dual-agent protocol (state machine, review contract)           |
 | `agent-queue/`           | Task queue: templates, README, and task folders                |
 | `architecture/`          | Architecture invariants (structural rules)                     |

@@ -17,12 +17,14 @@ import { createAdminRouter } from "./routes/adminRouter";
 import { createUsersRouter } from "./routes/usersRouter";
 import { createAiRouter } from "./routes/aiRouter";
 import { createAgentRouter } from "./routes/agentRouter";
+import { createMcpRouter } from "./routes/mcpRouter";
 import { IAiSuggestionStore } from "./services/aiSuggestionStore";
 import { AiPlannerService } from "./services/aiService";
 import { UserPlan } from "./routes/aiRouter";
 import { createProjectsRouter } from "./routes/projectsRouter";
 import { IProjectService } from "./interfaces/IProjectService";
 import { IHeadingService } from "./interfaces/IHeadingService";
+import { AgentExecutor } from "./agent/agentExecutor";
 import {
   authLimiter,
   emailActionLimiter,
@@ -41,6 +43,7 @@ export function createApp(
   headingService?: IHeadingService,
 ) {
   const app = express();
+  const agentExecutor = new AgentExecutor({ todoService, projectService });
 
   const resolveTodoUserId = (req: Request, res: Response): string | null => {
     if (authService) {
@@ -161,6 +164,7 @@ export function createApp(
   app.use("/ai", apiLimiter);
   app.use("/projects", apiLimiter);
   app.use("/agent", apiLimiter);
+  app.use("/mcp", apiLimiter);
 
   app.use(
     "/auth",
@@ -212,9 +216,15 @@ export function createApp(
   app.use(
     "/agent",
     createAgentRouter({
-      todoService,
+      agentExecutor,
       authService,
-      projectService,
+    }),
+  );
+  app.use(
+    "/mcp",
+    createMcpRouter({
+      agentExecutor,
+      authService,
     }),
   );
 
