@@ -7,8 +7,7 @@ import { state, hooks } from "./store.js";
 import { createInitialOnCreateAssistState } from "./store.js";
 import { getAllProjects } from "./projectsState.js";
 import { applyFiltersAndRender } from "./filterLogic.js";
-
-const AI_ON_CREATE_DISMISSED_STORAGE_KEY = "todos:ai-on-create-dismissed";
+import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 function resetOnCreateAssistState() {
   const dismissedTodoIds =
@@ -19,7 +18,9 @@ function resetOnCreateAssistState() {
 
 function loadOnCreateDismissedTodoIds() {
   try {
-    const raw = window.localStorage.getItem(AI_ON_CREATE_DISMISSED_STORAGE_KEY);
+    const raw = window.localStorage.getItem(
+      STORAGE_KEYS.AI_ON_CREATE_DISMISSED,
+    );
     const parsed = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return new Set();
     return new Set(
@@ -36,7 +37,7 @@ function persistOnCreateDismissedTodoIds() {
       state.onCreateAssistState.dismissedTodoIds || new Set(),
     );
     window.localStorage.setItem(
-      AI_ON_CREATE_DISMISSED_STORAGE_KEY,
+      STORAGE_KEYS.AI_ON_CREATE_DISMISSED,
       JSON.stringify(values),
     );
   } catch {

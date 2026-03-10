@@ -8,20 +8,19 @@ import {
   hasHomeListDrilldown,
   getSelectedProjectKey,
 } from "./filterLogic.js";
+import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 const { escapeHtml, getProjectLeafName } = (() => ({
   escapeHtml: (window.Utils || {}).escapeHtml,
   getProjectLeafName: (window.ProjectPathUtils || {}).getProjectLeafName,
 }))();
 
-const QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY =
-  "todos:quick-entry-properties-open";
 const QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS = 320;
 
 export function readStoredQuickEntryPropertiesOpenState() {
   try {
     return (
-      window.localStorage.getItem(QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY) ===
+      window.localStorage.getItem(STORAGE_KEYS.QUICK_ENTRY_PROPERTIES_OPEN) ===
       "1"
     );
   } catch (error) {
@@ -32,7 +31,7 @@ export function readStoredQuickEntryPropertiesOpenState() {
 export function persistQuickEntryPropertiesOpenState(isOpen) {
   try {
     window.localStorage.setItem(
-      QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY,
+      STORAGE_KEYS.QUICK_ENTRY_PROPERTIES_OPEN,
       isOpen ? "1" : "0",
     );
   } catch (error) {

@@ -27,16 +27,12 @@ import {
   submitProjectEditDrawer,
 } from "./projectsState.js";
 import { closeTodoDrawer } from "./drawerUi.js";
+import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 const { escapeHtml, PROJECT_PATH_SEPARATOR, MOBILE_DRAWER_MEDIA_QUERY } =
   window.Utils || {};
 const { normalizeProjectPath, getProjectLeafName } =
   window.ProjectPathUtils || {};
-
-// Storage key constants (duplicated from app.js for module isolation)
-const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
-const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
-const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
 
 const SIDEBAR_NAV_ITEMS = [];
 
@@ -116,7 +112,7 @@ export function setTodosViewBodyState(isTodosView) {
 export function readStoredRailCollapsedState() {
   try {
     return (
-      window.localStorage.getItem(PROJECTS_RAIL_COLLAPSED_STORAGE_KEY) === "1"
+      window.localStorage.getItem(STORAGE_KEYS.PROJECTS_RAIL_COLLAPSED) === "1"
     );
   } catch (error) {
     return false;
@@ -126,7 +122,7 @@ export function readStoredRailCollapsedState() {
 export function persistRailCollapsedState(isCollapsed) {
   try {
     window.localStorage.setItem(
-      PROJECTS_RAIL_COLLAPSED_STORAGE_KEY,
+      STORAGE_KEYS.PROJECTS_RAIL_COLLAPSED,
       isCollapsed ? "1" : "0",
     );
   } catch (error) {
@@ -141,7 +137,7 @@ export function persistRailCollapsedState(isCollapsed) {
 export function readStoredAiWorkspaceCollapsedState() {
   try {
     const stored = window.localStorage.getItem(
-      AI_WORKSPACE_COLLAPSED_STORAGE_KEY,
+      STORAGE_KEYS.AI_WORKSPACE_COLLAPSED,
     );
     if (stored === null) return true;
     return stored === "1";
@@ -155,7 +151,7 @@ export function readStoredAiWorkspaceVisibleState() {
   if (AI_DEBUG_ENABLED) return true;
   try {
     const stored = window.localStorage.getItem(
-      AI_WORKSPACE_VISIBLE_STORAGE_KEY,
+      STORAGE_KEYS.AI_WORKSPACE_VISIBLE,
     );
     if (stored === null) return false;
     return stored === "1";
@@ -167,7 +163,7 @@ export function readStoredAiWorkspaceVisibleState() {
 export function persistAiWorkspaceCollapsedState(isCollapsed) {
   try {
     window.localStorage.setItem(
-      AI_WORKSPACE_COLLAPSED_STORAGE_KEY,
+      STORAGE_KEYS.AI_WORKSPACE_COLLAPSED,
       isCollapsed ? "1" : "0",
     );
   } catch (error) {
@@ -178,7 +174,7 @@ export function persistAiWorkspaceCollapsedState(isCollapsed) {
 export function persistAiWorkspaceVisibleState(isVisible) {
   try {
     window.localStorage.setItem(
-      AI_WORKSPACE_VISIBLE_STORAGE_KEY,
+      STORAGE_KEYS.AI_WORKSPACE_VISIBLE,
       isVisible ? "1" : "0",
     );
   } catch (error) {

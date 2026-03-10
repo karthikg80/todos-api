@@ -4,6 +4,7 @@
 // Modules READ and WRITE state.varName directly (no setters needed because
 // state is an exported const object — its *properties* are mutable).
 // =============================================================================
+import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 // ---------------------------------------------------------------------------
 // Factory helpers — called during initialization so they live here too.
@@ -18,7 +19,7 @@ export function createInitialTaskDrawerAssistState() {
       if (q === "1" || q === "true") return true;
       if (q === "0" || q === "false") return false;
       const raw = window.localStorage.getItem(
-        "feature.taskDrawerDecisionAssist",
+        STORAGE_KEYS.FEATURE_TASK_DRAWER_ASSIST,
       );
       return raw === "1" || raw === "true";
     } catch {

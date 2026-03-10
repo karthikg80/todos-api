@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { state, hooks } from "./store.js";
+import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 // ---------------------------------------------------------------------------
 // Utilities (local, not cross-module)
@@ -23,7 +24,7 @@ function escapeSelectorValue(value) {
 // ---------------------------------------------------------------------------
 
 function taskDrawerDismissKey(todoId) {
-  return `taskDrawerAssist:dismissed:${todoId}`;
+  return `${STORAGE_KEYS.TASK_DRAWER_DISMISSED_PREFIX}${todoId}`;
 }
 
 export function markTaskDrawerDismissed(todoId) {
