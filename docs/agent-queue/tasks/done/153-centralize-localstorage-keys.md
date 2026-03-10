@@ -1,7 +1,7 @@
 # TASK 153: centralize-localstorage-keys
 
 type: Green
-status: READY
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude
@@ -104,4 +104,7 @@ localStorage keys are currently defined as module-local constants across 5 files
 - PASS/FAIL matrix
 
 ## Outcome
-(filled after completion)
+Extracted 9 localStorage key strings from 7 modules into client/utils/storageKeys.js.
+All consumers updated to import STORAGE_KEYS. Key VALUES preserved unchanged (including
+existing TASK_DRAWER_DISMISSED_PREFIX which was taskDrawerAssist:dismissed: in production).
+PR #196 merged. Diff against master: exactly the 10 task-153 files, nothing extra.
