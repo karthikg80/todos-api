@@ -1,38 +1,21 @@
 # Agent Queue
 
-Queue items live in `docs/agent-queue/tasks/` as markdown files.
+This directory is legacy archive material from the pre-GitHub-Issues workflow.
 
-## Task Directories
+## Current Rule
 
-| Directory       | Purpose                              |
-|-----------------|--------------------------------------|
-| `tasks/green/`  | Small, local changes (fast path)     |
-| `tasks/yellow/` | Bounded, single-module changes       |
-| `tasks/red/`    | Cross-module or high-risk changes    |
-| `tasks/blocked/` | Escalated/blocked tasks               |
-| `tasks/done/`   | Completed tasks (moved after DONE)   |
+- Do not create new markdown task files here.
+- Do not use markdown files here as the live source of task state.
+- Track active work in GitHub Issues and the GitHub Project board instead.
 
-**Source-of-truth rule:** If the task file's `type:` header and its folder location disagree, the folder classification takes precedence.
+## What Stays Here
 
-## Templates
+- Historical task files that were already created
+- Older templates and prompts that are still useful as reference
+- Archived execution notes that no longer drive live status
 
-- `TEMPLATE.md` — Original simple template (still valid for quick tasks).
-- `TEMPLATE_V2.md` — Classified template with Green/Yellow/Red support, MIC-lite, and scope escalation.
+## Migration Guidance
 
-## Quick Usage
-
-1. Copy the appropriate template into `tasks/green/`, `tasks/yellow/`, or `tasks/red/`.
-2. Fill required fields (at minimum: Intent, Acceptance Criteria).
-3. Set `status: READY`.
-4. Run:
-   - `scripts/dual-agent-runner.sh next`
-   - `scripts/dual-agent-runner.sh handoff-builder <task-file>`
-   - `scripts/dual-agent-runner.sh set-status <task-file> REVIEW`
-   - `scripts/dual-agent-runner.sh handoff-reviewer <task-file>`
-5. Move completed tasks to `tasks/done/`.
-
-## Supported Statuses
-
-`READY` → `RUNNING` → `REVIEW` → `FIX` → `REVIEW` → `MERGE` → `DONE`
-
-Any state → `BLOCKED` (with reason + owner). See scope escalation in `DUAL_AGENT_PROTOCOL.md`.
+- If an old markdown task becomes active again, open or update a GitHub Issue for it.
+- Move the active state into GitHub Issues and Projects.
+- Do not backfill the entire archive.

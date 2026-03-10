@@ -1,0 +1,85 @@
+name: Task
+description: Implementation work item for product, engineering, or docs changes
+title: "[Task]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form for actionable implementation work.
+        GitHub Issues are the source of truth for task state.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should be built, changed, or delivered?
+      placeholder: Add a concise description of the work.
+    validations:
+      required: true
+  - type: textarea
+    id: why-this-matters
+    attributes:
+      label: Why this matters
+      description: Why is this work worth doing now?
+      placeholder: Describe the user, product, or engineering reason.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-outcome
+    attributes:
+      label: Expected outcome
+      description: What should be true when this issue is done?
+      placeholder: Describe the desired end state.
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope / non-goals
+      description: Call out what is in scope and what should stay out of scope.
+      placeholder: |
+        In scope:
+        - ...
+
+        Non-goals:
+        - ...
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: Use a short checklist of concrete completion criteria.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: textarea
+    id: areas-files
+    attributes:
+      label: Areas/files likely involved
+      description: Point to the main surfaces or modules likely to change.
+      placeholder: client/modules/..., src/..., docs/...
+    validations:
+      required: true
+  - type: dropdown
+    id: suggested-agent
+    attributes:
+      label: Suggested agent
+      description: Who should take the first pass?
+      options:
+        - Codex
+        - Claude
+        - Human
+    validations:
+      required: true
+  - type: dropdown
+    id: brief-required
+    attributes:
+      label: Brief required?
+      description: Does this issue require a durable brief or protocol update?
+      options:
+        - "No"
+        - "Yes"
+    validations:
+      required: true
