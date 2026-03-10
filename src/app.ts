@@ -16,6 +16,7 @@ import { createAuthRouter } from "./routes/authRouter";
 import { createAdminRouter } from "./routes/adminRouter";
 import { createUsersRouter } from "./routes/usersRouter";
 import { createAiRouter } from "./routes/aiRouter";
+import { createAgentRouter } from "./routes/agentRouter";
 import { IAiSuggestionStore } from "./services/aiSuggestionStore";
 import { AiPlannerService } from "./services/aiService";
 import { UserPlan } from "./routes/aiRouter";
@@ -159,6 +160,7 @@ export function createApp(
   app.use("/users", apiLimiter);
   app.use("/ai", apiLimiter);
   app.use("/projects", apiLimiter);
+  app.use("/agent", apiLimiter);
 
   app.use(
     "/auth",
@@ -205,6 +207,14 @@ export function createApp(
       resolveAiUserPlan,
       projectService,
       decisionAssistEnabled: aiDecisionAssistEnabled,
+    }),
+  );
+  app.use(
+    "/agent",
+    createAgentRouter({
+      todoService,
+      authService,
+      projectService,
     }),
   );
 

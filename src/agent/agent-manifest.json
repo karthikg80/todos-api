@@ -1,0 +1,358 @@
+{
+  "version": "1.0.0",
+  "surface": "agent_accessibility_v1",
+  "basePath": "/agent",
+  "description": "First-pass agent capability contract for the todos app. This surface stays thin over the existing server-side todo and project services.",
+  "auth": {
+    "mode": "bearer_if_configured",
+    "manifestPublic": true
+  },
+  "headers": [
+    {
+      "name": "Authorization",
+      "requiredWhen": "auth_configured",
+      "description": "Bearer access token for authenticated agent calls."
+    },
+    {
+      "name": "X-Agent-Name",
+      "requiredWhen": "optional",
+      "description": "Logical agent identifier recorded in trace logs."
+    },
+    {
+      "name": "X-Agent-Request-Id",
+      "requiredWhen": "optional",
+      "description": "Caller-supplied correlation ID echoed in responses and logs."
+    },
+    {
+      "name": "Idempotency-Key",
+      "requiredWhen": "optional",
+      "description": "Optional first-pass idempotency key for create actions. Replays return the original successful response for matching input in the current process."
+    }
+  ],
+  "responseEnvelope": {
+    "success": {
+      "shape": {
+        "ok": true,
+        "action": "string",
+        "readOnly": "boolean",
+        "data": "object",
+        "trace": {
+          "requestId": "string",
+          "actor": "string",
+          "idempotencyKey": "string?",
+          "timestamp": "ISO-8601 string",
+          "replayed": "boolean?"
+        }
+      }
+    },
+    "error": {
+      "shape": {
+        "ok": false,
+        "action": "string",
+        "error": {
+          "code": "string",
+          "message": "string",
+          "retryable": "boolean",
+          "hint": "string?",
+          "details": "object?"
+        },
+        "trace": {
+          "requestId": "string",
+          "actor": "string",
+          "idempotencyKey": "string?",
+          "timestamp": "ISO-8601 string"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "priority": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "todo": {
+      "type": "object",
+      "notes": "Returned task objects reuse the existing server Todo shape. Project association currently flows through the category compatibility field.",
+      "properties": {
+        "id": "string",
+        "title": "string",
+        "description": "string?",
+        "completed": "boolean",
+        "category": "string?",
+        "headingId": "string?",
+        "dueDate": "ISO-8601 string?",
+        "order": "integer",
+        "priority": { "$ref": "#/definitions/priority" },
+        "notes": "string?",
+        "userId": "string",
+        "createdAt": "ISO-8601 string",
+        "updatedAt": "ISO-8601 string",
+        "subtasks": "Subtask[]?"
+      }
+    },
+    "project": {
+      "type": "object",
+      "properties": {
+        "id": "string",
+        "name": "string",
+        "userId": "string",
+        "createdAt": "ISO-8601 string",
+        "updatedAt": "ISO-8601 string",
+        "todoCount": "integer?",
+        "openTodoCount": "integer?"
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "list_tasks",
+      "description": "List tasks for the current user with optional filters.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/list_tasks",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "completed": { "type": "boolean" },
+          "priority": { "$ref": "#/definitions/priority" },
+          "category": { "type": "string" },
+          "project": { "type": "string" },
+          "unsorted": { "type": "boolean" },
+          "dueDateFrom": { "type": "string", "format": "date-time" },
+          "dueDateTo": { "type": "string", "format": "date-time" },
+          "dueDateAfter": { "type": "string", "format": "date-time" },
+          "dueDateBefore": { "type": "string", "format": "date-time" },
+          "dueDateIsNull": { "type": "boolean" },
+          "sortBy": {
+            "type": "string",
+            "enum": [
+              "order",
+              "createdAt",
+              "updatedAt",
+              "dueDate",
+              "priority",
+              "title"
+            ]
+          },
+          "sortOrder": {
+            "type": "string",
+            "enum": ["asc", "desc"]
+          },
+          "page": { "type": "integer", "minimum": 1 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+        }
+      },
+      "output": {
+        "dataKey": "tasks",
+        "type": "array",
+        "items": { "$ref": "#/definitions/todo" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "search_tasks",
+      "description": "Search tasks for the current user by text, with optional filters.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/search_tasks",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["search"],
+        "properties": {
+          "search": { "type": "string", "maxLength": 200 },
+          "completed": { "type": "boolean" },
+          "priority": { "$ref": "#/definitions/priority" },
+          "category": { "type": "string" },
+          "project": { "type": "string" },
+          "unsorted": { "type": "boolean" },
+          "dueDateFrom": { "type": "string", "format": "date-time" },
+          "dueDateTo": { "type": "string", "format": "date-time" },
+          "dueDateAfter": { "type": "string", "format": "date-time" },
+          "dueDateBefore": { "type": "string", "format": "date-time" },
+          "dueDateIsNull": { "type": "boolean" },
+          "sortBy": {
+            "type": "string",
+            "enum": [
+              "order",
+              "createdAt",
+              "updatedAt",
+              "dueDate",
+              "priority",
+              "title"
+            ]
+          },
+          "sortOrder": {
+            "type": "string",
+            "enum": ["asc", "desc"]
+          },
+          "page": { "type": "integer", "minimum": 1 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+        }
+      },
+      "output": {
+        "dataKey": "tasks",
+        "type": "array",
+        "items": { "$ref": "#/definitions/todo" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "get_task",
+      "description": "Fetch a single task by ID.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/get_task",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" }
+        }
+      },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "create_task",
+      "description": "Create a new task using the existing server-side task rules.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/create_task",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title"],
+        "properties": {
+          "title": { "type": "string", "maxLength": 200 },
+          "description": { "type": "string", "maxLength": 1000 },
+          "category": { "type": "string", "maxLength": 50 },
+          "headingId": { "type": ["string", "null"] },
+          "dueDate": { "type": "string", "format": "date-time" },
+          "priority": { "$ref": "#/definitions/priority" },
+          "notes": { "type": "string", "maxLength": 10000 }
+        }
+      },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "optional_header_for_create_flow"
+    },
+    {
+      "name": "update_task",
+      "description": "Update a task by ID using the existing partial update semantics.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/update_task",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "title": { "type": "string", "maxLength": 200 },
+          "description": { "type": ["string", "null"], "maxLength": 1000 },
+          "completed": { "type": "boolean" },
+          "category": { "type": ["string", "null"], "maxLength": 50 },
+          "headingId": { "type": ["string", "null"] },
+          "dueDate": { "type": ["string", "null"], "format": "date-time" },
+          "order": { "type": "integer", "minimum": 0 },
+          "priority": {
+            "type": ["string", "null"],
+            "enum": ["low", "medium", "high", null]
+          },
+          "notes": { "type": ["string", "null"], "maxLength": 10000 }
+        }
+      },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_implemented_yet"
+    },
+    {
+      "name": "complete_task",
+      "description": "Set a task completion state explicitly. Defaults to completed=true.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/complete_task",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "completed": { "type": "boolean" }
+        }
+      },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_projects",
+      "description": "List projects for the current user when the project service is configured.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/list_projects",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "dataKey": "projects",
+        "type": "array",
+        "items": { "$ref": "#/definitions/project" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "create_project",
+      "description": "Create a project using the existing server-side project rules.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/create_project",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "maxLength": 50 }
+        }
+      },
+      "output": {
+        "dataKey": "project",
+        "$ref": "#/definitions/project"
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "optional_header_for_create_flow"
+    }
+  ],
+  "notes": [
+    "This first pass does not expose destructive deletes, bulk mutations, or natural-language resolution.",
+    "Create-flow idempotency is process-local and intended as a pragmatic retry guard, not a durable cross-process guarantee.",
+    "Task project association currently follows the existing category/project compatibility rules already enforced by server services."
+  ]
+}
