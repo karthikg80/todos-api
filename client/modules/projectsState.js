@@ -4,6 +4,7 @@
 // =============================================================================
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
+import { applyUiAction } from "./stateActions.js";
 
 function projectStorageKey() {
   return `todo-projects:${state.currentUser?.id || "anonymous"}`;
@@ -492,9 +493,10 @@ function openProjectEditDrawer(
     hooks.closeProjectsRailSheet?.({ restoreFocus: false });
   }
 
-  state.isProjectEditDrawerOpen = true;
-  state.projectEditTargetProject = projectRecord.name;
-  state.lastProjectEditOpener = opener instanceof HTMLElement ? opener : null;
+  applyUiAction("projectEdit/open", {
+    opener,
+    projectName: projectRecord.name,
+  });
   refs.drawer.classList.add("project-edit-drawer--open");
   refs.drawer.setAttribute("aria-hidden", "false");
   refs.backdrop.classList.add("project-edit-drawer-backdrop--open");
@@ -515,12 +517,12 @@ function closeProjectEditDrawer({ restoreFocus = true, force = false } = {}) {
   const refs = getProjectEditDrawerElements();
   if (!refs) return;
   if (state.isProjectDeletePending && !force) return;
+  const lastProjectEditOpener = state.lastProjectEditOpener;
 
   if (state.projectDeleteDialogState) {
     closeProjectDeleteDialog();
   }
-  state.isProjectEditDrawerOpen = false;
-  state.projectEditTargetProject = "";
+  applyUiAction("projectEdit/close");
   refs.drawer.classList.remove("project-edit-drawer--open");
   refs.drawer.setAttribute("aria-hidden", "true");
   refs.backdrop.classList.remove("project-edit-drawer-backdrop--open");
@@ -533,15 +535,14 @@ function closeProjectEditDrawer({ restoreFocus = true, force = false } = {}) {
   if (restoreFocus) {
     const fallback = document.getElementById("projectViewActionsButton");
     const focusTarget =
-      state.lastProjectEditOpener instanceof HTMLElement &&
-      state.lastProjectEditOpener.isConnected
-        ? state.lastProjectEditOpener
+      lastProjectEditOpener instanceof HTMLElement &&
+      lastProjectEditOpener.isConnected
+        ? lastProjectEditOpener
         : fallback instanceof HTMLElement
           ? fallback
           : null;
     focusTarget?.focus({ preventScroll: true });
   }
-  state.lastProjectEditOpener = null;
 }
 
 function syncProjectHeaderActions() {
@@ -641,10 +642,11 @@ function openProjectCrudModal(mode, opener, initialProjectName = "") {
   const refs = getProjectCrudModalElements();
   if (!refs) return;
 
-  state.isProjectCrudModalOpen = true;
-  state.projectCrudMode = mode;
-  state.projectCrudTargetProject = initialProjectName || "";
-  state.lastProjectCrudOpener = opener instanceof HTMLElement ? opener : null;
+  applyUiAction("projectCrud/open", {
+    mode,
+    opener,
+    initialProjectName,
+  });
 
   refs.modal.style.display = "flex";
   hooks.DialogManager?.open("projectCrudModal", refs.modal, {
@@ -663,17 +665,16 @@ function openProjectCrudModal(mode, opener, initialProjectName = "") {
 function closeProjectCrudModal({ restoreFocus = true } = {}) {
   const refs = getProjectCrudModalElements();
   if (!refs) return;
+  const lastProjectCrudOpener = state.lastProjectCrudOpener;
 
-  state.isProjectCrudModalOpen = false;
-  state.projectCrudMode = "create";
-  state.projectCrudTargetProject = "";
+  applyUiAction("projectCrud/close");
   refs.modal.style.display = "none";
   hooks.DialogManager?.close("projectCrudModal");
   refs.form.reset();
 
   if (restoreFocus) {
-    if (state.lastProjectCrudOpener?.isConnected) {
-      state.lastProjectCrudOpener.focus({ preventScroll: true });
+    if (lastProjectCrudOpener?.isConnected) {
+      lastProjectCrudOpener.focus({ preventScroll: true });
     } else {
       const fallback = document.getElementById("dockNewProjectBtn");
       if (fallback instanceof HTMLElement) {
@@ -681,7 +682,6 @@ function closeProjectCrudModal({ restoreFocus = true } = {}) {
       }
     }
   }
-  state.lastProjectCrudOpener = null;
 }
 
 async function submitProjectCrudModal() {

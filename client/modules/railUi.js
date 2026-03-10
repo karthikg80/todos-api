@@ -4,13 +4,13 @@
 // Cross-module calls go through hooks (wired by app.js).
 // =============================================================================
 import { state, hooks } from "./store.js";
+import { applyDomainAction, applyUiAction } from "./stateActions.js";
 import {
   getSelectedProjectKey,
   getSelectedProjectLabel,
   getSelectedProjectName,
   syncWorkspaceViewState,
   isTodoUnsorted,
-  clearHomeListDrilldown,
   setSelectedProjectKey,
 } from "./filterLogic.js";
 import {
@@ -688,14 +688,15 @@ export function openProjectsRailSheet(triggerEl = null) {
   if (!refs || state.isRailSheetOpen || !isMobileRailViewport()) return;
 
   closeRailProjectMenu();
-  state.isRailSheetOpen = true;
+  applyUiAction("railSheet/open", {
+    triggerEl:
+      triggerEl instanceof HTMLElement ? triggerEl : refs.mobileOpenButton,
+  });
   refs.sheet.classList.add("projects-rail-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "false");
   refs.backdrop.classList.add("projects-rail-backdrop--open");
   refs.backdrop.setAttribute("aria-hidden", "false");
   refs.mobileOpenButton.setAttribute("aria-expanded", "true");
-  state.lastFocusedRailTrigger =
-    triggerEl instanceof HTMLElement ? triggerEl : refs.mobileOpenButton;
 
   lockBodyScrollForProjectsRail();
   hooks.DialogManager?.open("railSheet", refs.sheet, {
@@ -716,9 +717,10 @@ export function openProjectsRailSheet(triggerEl = null) {
 export function closeProjectsRailSheet({ restoreFocus = false } = {}) {
   const refs = getProjectsRailElements();
   if (!refs || !state.isRailSheetOpen) return;
+  const focusRestoreTarget = state.lastFocusedRailTrigger;
 
   closeRailProjectMenu();
-  state.isRailSheetOpen = false;
+  applyUiAction("railSheet/close");
   refs.sheet.classList.remove("projects-rail-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "true");
   refs.backdrop.classList.remove("projects-rail-backdrop--open");
@@ -732,8 +734,8 @@ export function closeProjectsRailSheet({ restoreFocus = false } = {}) {
 
   if (restoreFocus) {
     const focusTarget =
-      state.lastFocusedRailTrigger instanceof HTMLElement
-        ? state.lastFocusedRailTrigger
+      focusRestoreTarget instanceof HTMLElement
+        ? focusRestoreTarget
         : refs.mobileOpenButton;
     focusTarget.focus({ preventScroll: true });
   }
@@ -751,13 +753,7 @@ export function selectProjectFromRail(projectName, triggerEl = null) {
     closeProjectEditDrawer({ restoreFocus: false });
   }
   hooks.ensureTodosShellActive?.();
-  state.railRovingFocusKey = normalizeProjectPath(projectName);
-  if (normalizeProjectPath(projectName)) {
-    state.currentWorkspaceView = "project";
-  } else {
-    state.currentWorkspaceView = "all";
-  }
-  clearHomeListDrilldown();
+  applyDomainAction("projectSelection:set", { projectName });
   setSelectedProjectKey(projectName);
 
   if (state.isRailSheetOpen) {
@@ -792,7 +788,7 @@ export function openMoreFilters() {
 
   const { toggle, panel } = refs;
   toggle.removeAttribute("hidden");
-  state.isMoreFiltersOpen = true;
+  applyUiAction("moreFilters:set", { isOpen: true });
   panel.classList.add("more-filters--open");
   toggle.setAttribute("aria-expanded", "true");
 
@@ -807,7 +803,7 @@ export function closeMoreFilters({ restoreFocus = false } = {}) {
   if (!refs) return;
 
   const { toggle, panel } = refs;
-  state.isMoreFiltersOpen = false;
+  applyUiAction("moreFilters:set", { isOpen: false });
   panel.classList.remove("more-filters--open");
   toggle.setAttribute("aria-expanded", "false");
 

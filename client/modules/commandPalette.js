@@ -6,6 +6,7 @@
 import { state, hooks } from "./store.js";
 import { getAllProjects } from "./projectsState.js";
 import { setSelectedProjectKey } from "./filterLogic.js";
+import { applyUiAction } from "./stateActions.js";
 import { toggleShortcuts, closeShortcutsOverlay } from "./shortcuts.js";
 
 function getCommandPaletteElements() {
@@ -274,8 +275,6 @@ function executeCommandPaletteItem(item, triggerEl = null) {
         todosTab instanceof HTMLElement ? todosTab : null,
       );
     }
-    state.currentWorkspaceView = item.payload ? "project" : "all";
-    hooks.clearHomeListDrilldown();
     setSelectedProjectKey(String(item.payload || ""));
     closeCommandPalette({ restoreFocus: false });
   }
@@ -315,15 +314,13 @@ function moveCommandPaletteSelection(delta) {
 
 function closeCommandPalette({ restoreFocus = true } = {}) {
   if (!state.isCommandPaletteOpen) return;
-  state.isCommandPaletteOpen = false;
-  state.commandPaletteQuery = "";
-  state.commandPaletteIndex = 0;
-  state.commandPaletteSelectableItems = [];
+  const focusTarget = state.lastFocusedBeforePalette;
+  applyUiAction("commandPalette/close");
   renderCommandPalette();
   hooks.DialogManager.close("commandPalette");
 
-  if (restoreFocus && state.lastFocusedBeforePalette instanceof HTMLElement) {
-    state.lastFocusedBeforePalette.focus({ preventScroll: true });
+  if (restoreFocus && focusTarget instanceof HTMLElement) {
+    focusTarget.focus({ preventScroll: true });
   }
 }
 
@@ -334,15 +331,10 @@ function openCommandPalette() {
   if (!refs) return;
   if (state.isCommandPaletteOpen) return;
 
-  state.lastFocusedBeforePalette =
-    document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null;
-  state.commandPaletteItems = buildCommandPaletteItems();
-  state.commandPaletteSelectableItems = [];
-  state.commandPaletteQuery = "";
-  state.commandPaletteIndex = 0;
-  state.isCommandPaletteOpen = true;
+  applyUiAction("commandPalette/open", {
+    opener: document.activeElement,
+    items: buildCommandPaletteItems(),
+  });
   renderCommandPalette();
   hooks.DialogManager.open("commandPalette", refs.overlay, {
     onEscape: () => closeCommandPalette({ restoreFocus: true }),
@@ -402,9 +394,12 @@ function bindCommandPaletteHandlers() {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
     if (target.id !== "commandPaletteInput") return;
-    state.commandPaletteQuery =
-      target instanceof HTMLInputElement ? target.value : String(target.value);
-    state.commandPaletteIndex = 0;
+    applyUiAction("commandPalette/query:set", {
+      query:
+        target instanceof HTMLInputElement
+          ? target.value
+          : String(target.value),
+    });
     renderCommandPalette();
   });
 }

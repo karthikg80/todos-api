@@ -2,6 +2,7 @@
 // homeDashboard.js — Home workspace dashboard, top-focus AI, focus tiles
 // =============================================================================
 import { state, hooks } from "./store.js";
+import { applyDomainAction } from "./stateActions.js";
 import {
   isSameLocalDay,
   isTodoUnsorted,
@@ -743,8 +744,8 @@ export function openHomeTileList(tileKey) {
     tileKey === "due_soon"
   ) {
     clearHomeListDrilldown();
-    state.homeListDrilldownKey = tileKey;
-    state.currentWorkspaceView = "all";
+    applyDomainAction("homeDrilldown:set", { tileKey });
+    applyDomainAction("workspace/view:set", { view: "all" });
     setSelectedProjectKey("", { reason: "home-see-all", skipApply: true });
     setDateView("all", { skipApply: true });
     hooks.applyFiltersAndRender?.({ reason: `home-see-all-${tileKey}` });
@@ -753,7 +754,6 @@ export function openHomeTileList(tileKey) {
 
 export function openHomeProject(projectName) {
   clearHomeListDrilldown();
-  state.currentWorkspaceView = "project";
   selectProjectFromRail(projectName);
 }
 
