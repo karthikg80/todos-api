@@ -108,7 +108,7 @@ Key invariants added by P1:
 - `filterTodosList()` is a pure function (no DOM reads)
 - All overlay open/close goes through OverlayManager
 
-## P2 Sprint — IN REVIEW (PR #203, Task 160)
+## P2 Sprint — COMPLETE (PR #203, Task 160, merged 2026-03-10)
 
 Three new focused modules reducing structural duplication in high-churn UI flows:
 - `stateActions.js` — explicit `applyUiAction(type, payload)` dispatcher replacing ad-hoc boolean writes

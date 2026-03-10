@@ -1,7 +1,7 @@
 # TASK 160: p2-state-templates-async
 
 type: Yellow
-status: PENDING_REVIEW
+status: DONE
 mode: refactor
 builder: codex
 reviewer: claude
@@ -58,4 +58,7 @@ Filter/render pipeline untouched. No new dependencies.
 - CI=1 npm run test:ui:fast: PASS (205 passed, 33 skipped)
 
 ## Outcome
-(to be filled after merge)
+Merged as PR #203 (SHA 0550a15). stateActions.js (402 lines), asyncLifecycle.js (27 lines),
+and uiTemplates.js (206 lines) added to client/modules/. 10 existing modules rewired to use
+explicit state transitions, shared async lifecycle, and centralized template helpers.
+All checks green: tsc, format, test:unit, test:ui:fast (205 passed, 33 skipped).
