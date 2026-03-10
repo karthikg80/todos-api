@@ -13,6 +13,7 @@ import {
   patchTodoContentMetadata,
   patchVisibleCategoryGroupStats,
 } from "./todosViewPatches.js";
+import { EventBus } from "./eventBus.js";
 
 // ---------------------------------------------------------------------------
 // Helpers — apiCall, API_URL, normalizeProjectPath, parseApiBody are injected
@@ -171,7 +172,7 @@ async function loadVisibleTodos({ force = false } = {}) {
   visibleTodosState.requestSeq = requestSeq;
   visibleTodosState.loading = true;
   visibleTodosState.pendingQueryKey = queryKey;
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "todos-loading" });
 
   try {
     const todosUrl = hooks.buildUrl(`${hooks.API_URL}/todos`, queryParams);
@@ -183,7 +184,7 @@ async function loadVisibleTodos({ force = false } = {}) {
       visibleTodosState.items = await response.json();
       visibleTodosState.queryKey = queryKey;
       visibleTodosState.loading = false;
-      hooks.renderTodos?.();
+      EventBus.dispatch("todos:changed", { reason: "todos-loaded" });
       return true;
     }
   } catch (error) {
@@ -192,7 +193,7 @@ async function loadVisibleTodos({ force = false } = {}) {
 
   if (requestSeq === visibleTodosState.requestSeq) {
     clearVisibleTodosState();
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "todos-load-error" });
   }
   return false;
 }
@@ -208,7 +209,7 @@ async function refreshVisibleTodosIfNeeded() {
 async function loadTodos() {
   state.todosLoadState = "loading";
   state.todosLoadErrorMessage = "";
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "todos-loading" });
 
   try {
     const queryParams = buildTodosQueryParams();
@@ -220,7 +221,7 @@ async function loadTodos() {
       state.todosLoadErrorMessage = "";
       state.homeTopFocusState = createInitialHomeTopFocusState();
       await refreshVisibleTodosIfNeeded();
-      hooks.renderTodos?.();
+      EventBus.dispatch("todos:changed", { reason: "todos-loaded" });
       hooks.refreshProjectCatalog?.();
     } else {
       state.todos = [];
@@ -229,7 +230,7 @@ async function loadTodos() {
       clearVisibleTodosState();
       state.todosLoadState = "error";
       state.todosLoadErrorMessage = "Couldn't load tasks";
-      hooks.renderTodos?.();
+      EventBus.dispatch("todos:changed", { reason: "todos-load-error" });
       hooks.refreshProjectCatalog?.();
       hooks.showMessage?.("todosMessage", "Failed to load todos", "error");
     }
@@ -240,7 +241,7 @@ async function loadTodos() {
     clearVisibleTodosState();
     state.todosLoadState = "error";
     state.todosLoadErrorMessage = "Couldn't load tasks";
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "todos-load-error" });
     hooks.refreshProjectCatalog?.();
     console.error("Load todos error:", error);
   }
@@ -295,7 +296,7 @@ async function addTodo() {
       const newTodo = await response.json();
       state.todos.unshift(newTodo);
       await refreshVisibleTodosIfNeeded();
-      hooks.renderTodos?.();
+      EventBus.dispatch("todos:changed", { reason: "todo-added" });
       hooks.updateCategoryFilter?.();
       hooks.clearOnCreateDismissed?.(newTodo.id);
 
@@ -375,7 +376,7 @@ async function toggleTodo(id, forceValue = null) {
         hooks.syncTodoDrawerStateWithRender?.();
       } else {
         await refreshVisibleTodosIfNeeded();
-        hooks.renderTodos?.();
+        EventBus.dispatch("todos:changed", { reason: "todo-toggled" });
       }
 
       if (forceValue === null && newCompletedValue) {
@@ -403,7 +404,7 @@ async function deleteTodo(id) {
     if (response && response.ok) {
       state.todos = state.todos.filter((t) => t.id !== id);
       state.selectedTodos.delete(id);
-      hooks.renderTodos?.();
+      EventBus.dispatch("todos:changed", { reason: "todo-deleted" });
       hooks.updateCategoryFilter?.();
 
       addUndoAction("delete", todoData, "Todo deleted");
@@ -456,7 +457,7 @@ async function moveTodoToProject(todoId, projectValue) {
     hooks.refreshProjectCatalog?.();
     await hooks.loadProjects?.();
     await refreshVisibleTodosIfNeeded();
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
   } catch (error) {
     console.error("Move todo project failed:", error);
     hooks.showMessage?.(
@@ -554,7 +555,7 @@ async function reorderTodos(draggedId, targetId, options = {}) {
     todo.order = index;
   });
 
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "todos-reordered" });
 
   try {
     const response = await hooks.apiCall(`${hooks.API_URL}/todos/reorder`, {
@@ -662,7 +663,7 @@ async function completeSelected() {
 
   state.selectedTodos.clear();
   await refreshVisibleTodosIfNeeded();
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "bulk-action" });
 }
 
 async function deleteSelected() {
@@ -716,7 +717,7 @@ async function deleteSelected() {
   }
 
   state.selectedTodos.clear();
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "bulk-action" });
   hooks.updateCategoryFilter?.();
   if (deletedCount > 0) {
     await loadTodos();
@@ -824,7 +825,7 @@ async function restoreTodo(todoData) {
         return aOrder - bOrder;
       });
       await refreshVisibleTodosIfNeeded();
-      hooks.renderTodos?.();
+      EventBus.dispatch("todos:changed", { reason: "undo-applied" });
       hooks.updateCategoryFilter?.();
     }
   } catch (error) {

@@ -4,6 +4,7 @@
 //             hooks (wired by app.js for cross-module calls).
 // =============================================================================
 import { state, hooks } from "./store.js";
+import { EventBus } from "./eventBus.js";
 import { clearHomeListDrilldown, clearFilters } from "./filterLogic.js";
 import {
   closeProjectCrudModal,
@@ -766,7 +767,7 @@ export function showAppView() {
   loadCustomProjects();
   state.currentWorkspaceView = "home";
   clearHomeListDrilldown();
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "state-changed" });
   updateCategoryFilter();
   loadProjects();
   loadTodos();

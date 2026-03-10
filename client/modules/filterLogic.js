@@ -2,6 +2,16 @@
 // filterLogic.js — Filter pipeline, rendering, date/workspace views.
 // Imports state from store.js. Cross-module calls go through hooks.
 // =============================================================================
+/**
+ * filterLogic.js — Filter/sort entry point and project selection API.
+ *
+ * DOM Coupling Policy:
+ * Functions in the "DOM Boundary Layer" section below intentionally read or
+ * write DOM elements. This is acceptable for view-controller glue.
+ *
+ * Functions OUTSIDE that section must not contain getElementById/querySelector.
+ * Pass values as parameters instead so they remain unit-testable.
+ */
 import { state, hooks } from "./store.js";
 import {
   buildVisibleTodosQueryParams,
@@ -23,6 +33,11 @@ import {
 //   hooks.showMessage (from utils/utils.js)
 // ---------------------------------------------------------------------------
 
+// =============================================================================
+// DOM Boundary Layer — functions below intentionally read/write DOM elements.
+// This is acceptable view-controller glue. Do not add getElementById calls
+// outside this section.
+// =============================================================================
 function setDateView(view, { skipApply = false } = {}) {
   state.currentDateView = view;
   const ids = {
@@ -108,6 +123,9 @@ function syncWorkspaceViewState() {
       }
     });
 }
+// =============================================================================
+// End DOM Boundary Layer
+// =============================================================================
 
 function isHomeWorkspaceActive() {
   return !getSelectedProjectKey() && state.currentWorkspaceView === "home";
@@ -192,21 +210,28 @@ function matchesDateView(todo) {
   return dueDate >= todayStart;
 }
 
-function getVisibleTodos() {
+function getVisibleTodos({ searchQuery } = {}) {
+  const currentSearchQuery =
+    typeof searchQuery === "string" ? searchQuery : getSearchInputValue();
   const queryParams = buildVisibleTodosQueryParams();
   if (shouldUseServerVisibleTodos(queryParams)) {
     const override = getVisibleTodosOverride();
     if (Array.isArray(override)) {
-      return filterTodosList(override);
+      return filterTodosList(override, { searchQuery: currentSearchQuery });
     }
   }
-  return filterTodosList(state.todos);
+  return filterTodosList(state.todos, { searchQuery: currentSearchQuery });
 }
 
-function getVisibleDueDatedTodos() {
-  return getVisibleTodos().filter((todo) => !!todo.dueDate);
+function getVisibleDueDatedTodos(options) {
+  return getVisibleTodos(options).filter((todo) => !!todo.dueDate);
 }
 
+// =============================================================================
+// DOM Boundary Layer — functions below intentionally read/write DOM elements.
+// This is acceptable view-controller glue. Do not add getElementById calls
+// outside this section.
+// =============================================================================
 function updateIcsExportButtonState() {
   const hasExportableTodos = getVisibleDueDatedTodos().length > 0;
   for (const id of ["exportIcsButton", "exportIcsButtonSheet"]) {
@@ -244,8 +269,11 @@ function exportVisibleTodosToIcs() {
     "success",
   );
 }
+// =============================================================================
+// End DOM Boundary Layer
+// =============================================================================
 
-function filterTodosList(todosList) {
+function filterTodosList(todosList, { searchQuery = "" } = {}) {
   let filtered = todosList;
 
   if (isUnsortedWorkspaceActive()) {
@@ -266,17 +294,15 @@ function filterTodosList(todosList) {
     });
   }
 
-  const searchQuery = document
-    .getElementById("searchInput")
-    ?.value.toLowerCase()
-    .trim();
-  if (searchQuery) {
+  const normalizedSearchQuery = String(searchQuery).toLowerCase().trim();
+  if (normalizedSearchQuery) {
     filtered = filtered.filter(
       (todo) =>
-        todo.title.toLowerCase().includes(searchQuery) ||
+        todo.title.toLowerCase().includes(normalizedSearchQuery) ||
         (todo.description &&
-          todo.description.toLowerCase().includes(searchQuery)) ||
-        (todo.category && todo.category.toLowerCase().includes(searchQuery)),
+          todo.description.toLowerCase().includes(normalizedSearchQuery)) ||
+        (todo.category &&
+          todo.category.toLowerCase().includes(normalizedSearchQuery)),
     );
   }
 
@@ -320,6 +346,27 @@ function filterTodos({ skipPipeline = false, reason = "manual" } = {}) {
   return getVisibleTodos();
 }
 
+// =============================================================================
+// DOM Boundary Layer — functions below intentionally read/write DOM elements.
+// This is acceptable view-controller glue. Do not add getElementById calls
+// outside this section.
+// =============================================================================
+function getSearchInputValue() {
+  // DOM read: intentional boundary — reads current filter state from DOM
+  const searchInput = document.getElementById("searchInput");
+  if (searchInput instanceof HTMLInputElement) {
+    return searchInput.value;
+  }
+
+  // DOM read: intentional boundary — reads current filter state from DOM
+  const sheetSearch = document.getElementById("searchInputSheet");
+  if (sheetSearch instanceof HTMLInputElement) {
+    return sheetSearch.value;
+  }
+
+  return "";
+}
+
 function clearFilters() {
   state.currentWorkspaceView = "all";
   clearHomeListDrilldown();
@@ -336,6 +383,7 @@ function clearFilters() {
 }
 
 function getSelectedProjectFilterValue() {
+  // DOM read: intentional boundary — reads current filter state from DOM
   const filter = document.getElementById("categoryFilter");
   if (!(filter instanceof HTMLSelectElement)) return "";
   const normalized = hooks.normalizeProjectPath(filter.value);
@@ -387,6 +435,9 @@ function setSelectedProjectKey(
   hooks.scheduleLoadSelectedProjectHeadings?.();
   return nextValue;
 }
+// =============================================================================
+// End DOM Boundary Layer
+// =============================================================================
 
 function getSelectedProjectName() {
   return getSelectedProjectLabel(getSelectedProjectKey());
@@ -420,6 +471,11 @@ function formatVisibleTaskCount(taskCount) {
   return `${taskCount} ${taskCount === 1 ? "task" : "tasks"}`;
 }
 
+// =============================================================================
+// DOM Boundary Layer — functions below intentionally read/write DOM elements.
+// This is acceptable view-controller glue. Do not add getElementById calls
+// outside this section.
+// =============================================================================
 function updateHeaderAndContextUI({
   projectName = "All tasks",
   visibleCount = 0,
@@ -916,6 +972,9 @@ function renderTodos() {
   updateIcsExportButtonState();
   assertNoHorizontalOverflow(scrollRegion);
 }
+// =============================================================================
+// End DOM Boundary Layer
+// =============================================================================
 
 export {
   setDateView,

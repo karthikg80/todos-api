@@ -3,6 +3,7 @@
 // Imports state from store.js. Cross-module calls go through hooks.
 // =============================================================================
 import { state, hooks } from "./store.js";
+import { EventBus } from "./eventBus.js";
 
 function projectStorageKey() {
   return `todo-projects:${state.currentUser?.id || "anonymous"}`;
@@ -156,7 +157,7 @@ async function loadHeadingsForProject(projectName = getSelectedProjectKey()) {
 function scheduleLoadSelectedProjectHeadings() {
   window.requestAnimationFrame(() => {
     loadHeadingsForProject(getSelectedProjectKey()).then(() => {
-      hooks.renderTodos?.();
+      EventBus.dispatch("todos:changed", { reason: "project-selected" });
     });
   });
 }
@@ -202,7 +203,7 @@ async function createHeadingForSelectedProject() {
       return;
     }
     await loadHeadingsForProject(selectedProject);
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "state-changed" });
     hooks.showMessage?.(
       "todosMessage",
       `Heading "${headingName}" created`,
@@ -796,7 +797,7 @@ async function renameProjectByName(fromProjectName, toProjectName) {
   if (activeProject === selectedPath) {
     hooks.selectProjectFromRail?.(renamedPath);
   } else {
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "project-selected" });
     hooks.updateHeaderFromVisibleTodos?.(hooks.getVisibleTodos?.() ?? []);
   }
 
@@ -843,7 +844,7 @@ async function deleteProjectByName(
   }
 
   removeProjectLocally(normalized, { taskDisposition });
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "project-selected" });
   hooks.updateHeaderFromVisibleTodos?.(hooks.getVisibleTodos?.() ?? []);
 
   hooks.showMessage?.(

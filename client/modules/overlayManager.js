@@ -6,6 +6,7 @@
 // =============================================================================
 
 import { state, hooks } from "./store.js";
+import { EventBus } from "./eventBus.js";
 
 const DomSelectors = window.DomSelectors || {};
 
@@ -408,7 +409,7 @@ export async function saveEditedTodo() {
 
   try {
     await hooks.applyTodoPatch(state.editingTodoId, payload);
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
     hooks.syncTodoDrawerStateWithRender?.();
     closeEditTodoModal({ restoreFocus: false });
     showMessage("todosMessage", "Task updated", "success");

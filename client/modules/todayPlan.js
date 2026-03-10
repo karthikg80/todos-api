@@ -4,6 +4,7 @@
 // =============================================================================
 
 import { state, hooks } from "./store.js";
+import { EventBus } from "./eventBus.js";
 import { createInitialTodayPlanState } from "./store.js";
 
 function deepClone(value) {
@@ -812,7 +813,7 @@ async function handleTodayPlanApplySelected() {
     todoSnapshots,
     notesDraftSnapshot,
   };
-  hooks.renderTodos();
+  EventBus.dispatch("todos:changed", { reason: "bulk-action" });
 }
 
 function handleTodayPlanUndoBatch() {
@@ -833,7 +834,7 @@ function handleTodayPlanUndoBatch() {
     suggestionId: state.todayPlanState.envelope?.requestId || "",
     selectedTodoIdsCount: Object.keys(batch.todoSnapshots || {}).length,
   });
-  hooks.renderTodos();
+  EventBus.dispatch("todos:changed", { reason: "undo-applied" });
 }
 
 function bindTodayPlanHandlers() {

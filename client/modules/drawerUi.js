@@ -5,6 +5,7 @@
 // =============================================================================
 
 import { state, hooks } from "./store.js";
+import { EventBus } from "./eventBus.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
 import {
   hasTodoRow,
@@ -553,7 +554,7 @@ export async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
       }
       patchTodoContentMetadata(updatedTodo.id, updatedTodo);
     } else {
-      hooks.renderTodos?.();
+      EventBus.dispatch("todos:changed", { reason: "todo-updated" });
     }
     syncTodoDrawerStateWithRender();
     restoreDrawerFocusState(focusState);
@@ -1018,7 +1019,7 @@ export async function applyTaskDrawerSuggestion(
     clearTaskDrawerDismissed(state.selectedTodoId);
     state.taskDrawerAssistState.lastUndoSuggestionId = "";
     await loadTaskDrawerDecisionAssist(state.selectedTodoId, false);
-    hooks.renderTodos?.();
+    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
   } catch (error) {
     console.error("Task drawer AI apply failed:", error);
     state.taskDrawerAssistState.error = "Could not apply suggestion.";
@@ -1073,7 +1074,7 @@ export function undoTaskDrawerSuggestion(suggestionId) {
       selectedTodoIdsCount: 1,
     });
   }
-  hooks.renderTodos?.();
+  EventBus.dispatch("todos:changed", { reason: "undo-applied" });
   syncTodoDrawerStateWithRender();
 }
 
