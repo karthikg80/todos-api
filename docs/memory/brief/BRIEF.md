@@ -94,12 +94,38 @@ Key invariants from this sprint (see Canon candidates):
 - **M3:** Calendar export (.ics) — client-side ICS export for filtered due-dated todos (PR #42)
 - **Task 113:** Sidebar density polish — done, merged
 
+## P1 Sprint — COMPLETE (2026-03-09 to 2026-03-10)
+
+Four PRs forming a coherent sequence: decouple render triggers → tighten module boundaries → repo cleanup → overlay coordination + safe patching.
+
+- **PR #199 (Task 156):** EventBus extracted to `client/modules/eventBus.js`. 34 `hooks.renderTodos?.()` calls across 7 modules replaced with `EventBus.dispatch("todos:changed", { reason })`. Business logic no longer commands renders directly.
+- **PR #200 (Task 157):** DOM Boundary Layer policy added to `filterLogic.js`. Category C violation in `filterTodosList()` fixed — pure functions are now pure.
+- **PR #201 (Task 158):** Repo cleanup — 7 stale `.worktrees/*` submodule refs removed; task docs 151/152 moved to done/.
+- **PR #202 (Task 159):** Overlay coordination centralized via expanded `overlayManager.js`. Selector layer (`selectorLayer.js`) and targeted row patching (`todosViewPatches.js`) introduced to reduce avoidable full rerenders. Full rerender fallbacks preserved.
+
+Key invariants added by P1:
+- EventBus is the only render trigger — domain modules emit, renderers subscribe
+- `filterTodosList()` is a pure function (no DOM reads)
+- All overlay open/close goes through OverlayManager
+
+## P2 Sprint — COMPLETE (PR #203, Task 160, merged 2026-03-10)
+
+Three new focused modules reducing structural duplication in high-churn UI flows:
+- `stateActions.js` — explicit `applyUiAction(type, payload)` dispatcher replacing ad-hoc boolean writes
+- `asyncLifecycle.js` — `runAsyncLifecycle()` helper normalizing load/error/empty patterns
+- `uiTemplates.js` — shared string-template helpers replacing duplicated inline HTML construction
+
+All verifications green (tsc, format, test:unit, test:ui:fast 205/33).
+
 ## Open Tech Debt
 
 - ~~`state.js` vs `store.js` overlap~~ resolved in Task 151 (renamed to authSession.js)
-- API rate limiting resolved in Task 152 (extracted to rateLimitMiddleware.ts)
+- ~~API rate limiting~~ resolved in Task 152 (extracted to rateLimitMiddleware.ts)
+- ~~localStorage key centralization~~ resolved in Task 153 (storageKeys.js)
+- ~~hooks.renderTodos coupling~~ resolved in Task 154/PR #199 (EventBus module)
+- ~~DOM boundary violations in filterLogic~~ resolved in Task 155/PR #200
 - Component framework migration spike — deferred; requires explicit human ADR before any work begins
 
 ---
 
-_Last updated: 2026-03-09_
+_Last updated: 2026-03-10_
