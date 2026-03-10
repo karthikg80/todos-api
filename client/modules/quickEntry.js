@@ -8,6 +8,7 @@ import {
   hasHomeListDrilldown,
   getSelectedProjectKey,
 } from "./filterLogic.js";
+import { applyUiAction } from "./stateActions.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 const { escapeHtml, getProjectLeafName } = (() => ({
@@ -40,7 +41,7 @@ export function persistQuickEntryPropertiesOpenState(isOpen) {
 }
 
 export function setQuickEntryPropertiesOpen(nextOpen, { persist = true } = {}) {
-  state.isQuickEntryPropertiesOpen = !!nextOpen;
+  applyUiAction("quickEntry/properties:set", { isOpen: nextOpen });
   if (persist) {
     persistQuickEntryPropertiesOpenState(state.isQuickEntryPropertiesOpen);
   }
@@ -607,13 +608,14 @@ export function openTaskComposer(triggerEl = null) {
   hooks.ensureTodosShellActive?.();
   const refs = getTaskComposerElements();
   if (!refs) return;
-  state.lastTaskComposerTrigger =
-    triggerEl instanceof HTMLElement ? triggerEl : document.activeElement;
-  state.taskComposerDefaultProject = inferTaskComposerDefaultProject();
+  const defaultProject = inferTaskComposerDefaultProject();
+  applyUiAction("taskComposer/open", {
+    triggerEl,
+    defaultProject,
+  });
   if (refs.projectSelect && !String(refs.titleInput?.value || "").trim()) {
     refs.projectSelect.value = state.taskComposerDefaultProject || "";
   }
-  state.isTaskComposerOpen = true;
   refs.sheet.classList.add("task-composer-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "false");
   refs.backdrop.classList.add("task-composer-backdrop--open");
@@ -637,7 +639,8 @@ export function closeTaskComposer({
   if (!refs || !state.isTaskComposerOpen) return false;
   const hasDraft = !!String(refs.titleInput?.value || "").trim();
   if (hasDraft && !force) return false;
-  state.isTaskComposerOpen = false;
+  const focusTarget = state.lastTaskComposerTrigger;
+  applyUiAction("taskComposer/close");
   refs.sheet.classList.remove("task-composer-sheet--open");
   refs.sheet.setAttribute("aria-hidden", "true");
   refs.backdrop.classList.remove("task-composer-backdrop--open");
@@ -646,8 +649,8 @@ export function closeTaskComposer({
   if (reset) {
     resetTaskComposerFields();
   }
-  if (restoreFocus && state.lastTaskComposerTrigger instanceof HTMLElement) {
-    state.lastTaskComposerTrigger.focus({ preventScroll: true });
+  if (restoreFocus && focusTarget instanceof HTMLElement) {
+    focusTarget.focus({ preventScroll: true });
   }
   return true;
 }

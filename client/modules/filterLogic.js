@@ -13,6 +13,8 @@
  * Pass values as parameters instead so they remain unit-testable.
  */
 import { state, hooks } from "./store.js";
+import { applyDomainAction } from "./stateActions.js";
+import { renderTodoRowTemplate } from "./uiTemplates.js";
 import {
   buildVisibleTodosQueryParams,
   clearVisibleTodosState,
@@ -64,9 +66,9 @@ function setDateView(view, { skipApply = false } = {}) {
   }
   if (!skipApply && !getSelectedProjectKey()) {
     if (view === "today" || view === "upcoming" || view === "completed") {
-      state.currentWorkspaceView = view;
+      applyDomainAction("workspace/view:set", { view });
     } else {
-      state.currentWorkspaceView = "all";
+      applyDomainAction("workspace/view:set", { view: "all" });
     }
     clearHomeListDrilldown();
   }
@@ -140,7 +142,7 @@ function hasHomeListDrilldown() {
 }
 
 function clearHomeListDrilldown() {
-  state.homeListDrilldownKey = "";
+  applyDomainAction("homeDrilldown:clear");
 }
 
 function normalizeWorkspaceView(view) {
@@ -368,7 +370,7 @@ function getSearchInputValue() {
 }
 
 function clearFilters() {
-  state.currentWorkspaceView = "all";
+  applyDomainAction("workspace/view:set", { view: "all" });
   clearHomeListDrilldown();
   setSelectedProjectKey("", {
     reason: "clear-filters-reset-project",
@@ -419,14 +421,7 @@ function setSelectedProjectKey(
     filterSelect.value = nextValue;
   }
 
-  if (nextValue) {
-    state.currentWorkspaceView = "project";
-    clearHomeListDrilldown();
-  } else if (state.currentWorkspaceView === "project") {
-    state.currentWorkspaceView = "all";
-  }
-
-  state.railRovingFocusKey = nextValue || "";
+  applyDomainAction("projectSelection:set", { projectName: nextValue });
   syncWorkspaceViewState();
   if (!skipApply) {
     applyFiltersAndRender({ reason });
@@ -602,100 +597,38 @@ function renderTodoRowHtml(todo) {
     ? new Date(todo.dueDate).toLocaleString()
     : "";
   const isSelected = state.selectedTodos.has(todo.id);
-  const hasSubtasks = !!(todo.subtasks && todo.subtasks.length > 0);
 
-  return `
-    <li class="todo-item ${todo.completed ? "completed" : ""} ${state.selectedTodoId === todo.id ? "todo-item--active" : ""} ${isSelected ? "todo-item--bulk-selected" : ""}"
-        draggable="true"
-        data-todo-id="${todo.id}"
-        tabindex="0"
-        data-ondragstart="handleDragStart(event, this)"
-        data-ondragover="handleDragOver(event, this)"
-        data-ondrop="handleDrop(event, this)"
-        data-ondragend="handleDragEnd(event, this)">
-        <input
-            type="checkbox"
-            class="bulk-checkbox"
-            aria-label="Select todo ${hooks.escapeHtml?.(todo.title)}"
-            ${isSelected ? "checked" : ""}
-            data-onchange="toggleSelectTodo('${todo.id}')"
-            data-onclick="event.stopPropagation()"
-        >
-        <span class="drag-handle">\u22ee\u22ee</span>
-        <input
-            type="checkbox"
-            class="todo-checkbox"
-            aria-label="Mark todo ${hooks.escapeHtml?.(todo.title)} complete"
-            ${todo.completed ? "checked" : ""}
-            data-onchange="toggleTodo('${todo.id}')"
-        >
-        <div class="todo-content">
-            <div class="todo-title" title="${hooks.escapeHtml?.(todo.title)}">${hooks.escapeHtml?.(todo.title)}</div>
-            ${todo.description ? `<div class="todo-description">${hooks.escapeHtml?.(todo.description)}</div>` : ""}
-            <div class="todo-meta">
-                ${hooks.renderTodoChips?.(todo, { isOverdue, dueDateStr }) ?? ""}
+  return renderTodoRowTemplate({
+    todo,
+    isSelected,
+    isActive: state.selectedTodoId === todo.id,
+    kebabExpanded: state.openTodoKebabId === todo.id,
+    descriptionHtml: todo.description
+      ? `<div class="todo-description">${hooks.escapeHtml?.(todo.description)}</div>`
+      : "",
+    metaHtml: hooks.renderTodoChips?.(todo, { isOverdue, dueDateStr }) ?? "",
+    subtasksHtml:
+      todo.subtasks && todo.subtasks.length > 0
+        ? (hooks.renderSubtasks?.(todo) ?? "")
+        : "",
+    notesHtml:
+      todo.notes && todo.notes.trim()
+        ? `
+          <div class="notes-section">
+            <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
+              <span class="expand-icon" id="notes-icon-${todo.id}">\u25b6</span>
+              <span>\u{1F4DD} Notes</span>
+            </button>
+            <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
+              ${hooks.escapeHtml?.(String(todo.notes))}
             </div>
-            ${hasSubtasks ? (hooks.renderSubtasks?.(todo) ?? "") : ""}
-            ${
-              todo.notes && todo.notes.trim()
-                ? `
-                <div class="notes-section">
-                    <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
-                        <span class="expand-icon" id="notes-icon-${todo.id}">\u25b6</span>
-                        <span>\u{1F4DD} Notes</span>
-                    </button>
-                    <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
-                        ${hooks.escapeHtml?.(String(todo.notes))}
-                    </div>
-                </div>
-            `
-                : ""
-            }
-        </div>
-        <div class="todo-row-actions">
-          <button
-            type="button"
-            class="todo-kebab"
-            aria-label="More actions for ${hooks.escapeHtml?.(todo.title)}"
-            aria-expanded="${state.openTodoKebabId === todo.id ? "true" : "false"}"
-            data-onclick="toggleTodoKebab('${todo.id}', event)"
-          >
-            \u22ef
-          </button>
-          <div
-            class="todo-kebab-menu ${state.openTodoKebabId === todo.id ? "todo-kebab-menu--open" : ""}"
-            role="menu"
-            aria-label="Actions for ${hooks.escapeHtml?.(todo.title)}"
-          >
-            <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openTodoFromKebab('${todo.id}', event)">
-              Open details
-            </button>
-            <button type="button" class="todo-kebab-item" role="menuitem" data-onclick="openEditTodoFromKebab('${todo.id}', event)">
-              Edit modal
-            </button>
-            <label class="todo-kebab-project-label">
-              Move to project
-              <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToProject('${todo.id}', this.value)">
-                ${hooks.renderProjectOptions?.(String(todo.category || "")) ?? ""}
-              </select>
-            </label>
-            ${renderHeadingMoveOptions(todo)}
-            <button
-              type="button"
-              class="todo-kebab-item"
-              role="menuitem"
-              ${hasSubtasks ? "disabled" : ""}
-              data-onclick="aiBreakdownTodo('${todo.id}')"
-            >
-              ${hasSubtasks ? "AI Subtasks Generated" : "AI Break Down Into Subtasks"}
-            </button>
-            <button type="button" class="todo-kebab-item todo-kebab-item--danger" role="menuitem" data-onclick="openDrawerDangerZone('${todo.id}', event)">
-              Delete
-            </button>
           </div>
-        </div>
-    </li>
-  `;
+        `
+        : "",
+    projectOptionsHtml:
+      hooks.renderProjectOptions?.(String(todo.category || "")) ?? "",
+    headingMoveOptionsHtml: renderHeadingMoveOptions(todo),
+  });
 }
 
 function renderProjectHeadingGroupedRows(projectTodos, projectName) {

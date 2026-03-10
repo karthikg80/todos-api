@@ -5,16 +5,15 @@
 
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
-import { createInitialOnCreateAssistState } from "./store.js";
+import { runAsyncLifecycle } from "./asyncLifecycle.js";
 import { getAllProjects } from "./projectsState.js";
 import { applyFiltersAndRender } from "./filterLogic.js";
+import { applyAsyncAction } from "./stateActions.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import { renderPanelHeader, renderPanelState } from "./uiTemplates.js";
 
 function resetOnCreateAssistState() {
-  const dismissedTodoIds =
-    state.onCreateAssistState?.dismissedTodoIds || new Set();
-  state.onCreateAssistState = createInitialOnCreateAssistState();
-  state.onCreateAssistState.dismissedTodoIds = dismissedTodoIds;
+  applyAsyncAction("onCreateAssist/reset");
 }
 
 function loadOnCreateDismissedTodoIds() {
@@ -413,87 +412,85 @@ async function generateOnCreateSuggestion(todo) {
 async function loadOnCreateDecisionAssist(todo, allowGenerate = true) {
   if (!todo?.id) return;
   const todoId = String(todo.id);
-  state.onCreateAssistState.loading = true;
-  state.onCreateAssistState.error = "";
-  state.onCreateAssistState.unavailable = false;
-  state.onCreateAssistState.mode = "live";
-  state.onCreateAssistState.liveTodoId = todoId;
-  state.onCreateAssistState.aiSuggestionId = "";
-  state.onCreateAssistState.envelope = null;
-  state.onCreateAssistState.suggestions = [];
-  state.onCreateAssistState.showAll = false;
-  renderOnCreateAssistRow();
-
-  try {
-    let latestResponse = await fetchOnCreateLatestSuggestion(todoId);
-    if (latestResponse.status === 403 || latestResponse.status === 404) {
-      state.onCreateAssistState.loading = false;
-      state.onCreateAssistState.unavailable = true;
+  await runAsyncLifecycle({
+    start: () => {
+      applyAsyncAction("onCreateAssist/start", { todoId });
       renderOnCreateAssistRow();
-      return;
-    }
+    },
+    run: async () => {
+      let latestResponse = await fetchOnCreateLatestSuggestion(todoId);
+      if (latestResponse.status === 403 || latestResponse.status === 404) {
+        return { outcome: "unavailable" };
+      }
 
-    if (latestResponse.status === 204) {
-      if (isOnCreateDismissed(todoId) || !allowGenerate) {
-        state.onCreateAssistState.loading = false;
-        state.onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
-          surface: hooks.ON_CREATE_SURFACE,
-          must_abstain: true,
-          suggestions: [],
+      if (latestResponse.status === 204) {
+        if (isOnCreateDismissed(todoId) || !allowGenerate) {
+          return {
+            outcome: "empty",
+            envelope: normalizeOnCreateAssistEnvelope({
+              surface: hooks.ON_CREATE_SURFACE,
+              must_abstain: true,
+              suggestions: [],
+            }),
+          };
+        }
+
+        const generated = await generateOnCreateSuggestion(todo);
+        if (generated.status === 403 || generated.status === 404) {
+          return { outcome: "unavailable" };
+        }
+        latestResponse = await fetchOnCreateLatestSuggestion(todoId);
+      }
+
+      if (latestResponse.status === 204) {
+        return {
+          outcome: "empty",
+          envelope: normalizeOnCreateAssistEnvelope({
+            surface: hooks.ON_CREATE_SURFACE,
+            must_abstain: true,
+            suggestions: [],
+          }),
+        };
+      }
+
+      if (!latestResponse.ok) {
+        return { outcome: "failure" };
+      }
+
+      const payload = await latestResponse.json();
+      const envelope = normalizeOnCreateAssistEnvelope(
+        payload?.outputEnvelope || {},
+      );
+      return {
+        outcome: "success",
+        payload: {
+          todoId,
+          aiSuggestionId: String(payload?.aiSuggestionId || ""),
+          envelope,
+          suggestions: envelope.suggestions,
+        },
+      };
+    },
+    success: (result) => {
+      if (result?.outcome === "unavailable") {
+        applyAsyncAction("onCreateAssist/unavailable");
+      } else if (result?.outcome === "empty") {
+        applyAsyncAction("onCreateAssist/empty", {
+          envelope: result.envelope,
         });
-        state.onCreateAssistState.suggestions = [];
-        renderOnCreateAssistRow();
-        return;
+      } else if (result?.outcome === "failure") {
+        applyAsyncAction("onCreateAssist/failure");
+      } else if (result?.outcome === "success") {
+        applyAsyncAction("onCreateAssist/success", result.payload);
       }
-
-      const generated = await generateOnCreateSuggestion(todo);
-      if (generated.status === 403 || generated.status === 404) {
-        state.onCreateAssistState.loading = false;
-        state.onCreateAssistState.unavailable = true;
-        renderOnCreateAssistRow();
-        return;
-      }
-      latestResponse = await fetchOnCreateLatestSuggestion(todoId);
-    }
-
-    if (latestResponse.status === 204) {
-      state.onCreateAssistState.loading = false;
-      state.onCreateAssistState.envelope = normalizeOnCreateAssistEnvelope({
-        surface: hooks.ON_CREATE_SURFACE,
-        must_abstain: true,
-        suggestions: [],
-      });
-      state.onCreateAssistState.suggestions = [];
       renderOnCreateAssistRow();
-      return;
-    }
-
-    if (!latestResponse.ok) {
-      state.onCreateAssistState.loading = false;
-      state.onCreateAssistState.error = "Could not load suggestions.";
+    },
+    failure: (error) => {
+      console.error("On-create AI load failed:", error);
+      applyAsyncAction("onCreateAssist/failure");
       renderOnCreateAssistRow();
-      return;
-    }
-
-    const payload = await latestResponse.json();
-    const envelope = normalizeOnCreateAssistEnvelope(
-      payload?.outputEnvelope || {},
-    );
-    state.onCreateAssistState.loading = false;
-    state.onCreateAssistState.aiSuggestionId = String(
-      payload?.aiSuggestionId || "",
-    );
-    state.onCreateAssistState.envelope = envelope;
-    state.onCreateAssistState.suggestions = envelope.suggestions;
-    state.onCreateAssistState.mode = "live";
-    state.onCreateAssistState.liveTodoId = todoId;
-    renderOnCreateAssistRow();
-  } catch (error) {
-    console.error("On-create AI load failed:", error);
-    state.onCreateAssistState.loading = false;
-    state.onCreateAssistState.error = "Could not load suggestions.";
-    renderOnCreateAssistRow();
-  }
+    },
+  });
 }
 
 function refreshOnCreateAssistFromTitle(force = false) {
@@ -512,15 +509,11 @@ function refreshOnCreateAssistFromTitle(force = false) {
   const envelope = normalizeOnCreateAssistEnvelope(
     buildMockOnCreateAssistEnvelope(title),
   );
-  state.onCreateAssistState = {
-    ...createInitialOnCreateAssistState(),
-    dismissedTodoIds: state.onCreateAssistState.dismissedTodoIds,
+  applyAsyncAction("onCreateAssist/mock", {
     titleBasis: title,
     envelope,
     suggestions: envelope.suggestions,
-    mode: "mock",
-    showAll: false,
-  };
+  });
   renderOnCreateAssistRow();
 }
 
@@ -743,41 +736,47 @@ function renderOnCreateAssistRow() {
 
   refs.row.hidden = false;
   if (state.onCreateAssistState.loading) {
-    refs.row.innerHTML = `
-      <div class="ai-create-assist__header">
-        <span class="ai-create-assist__title">AI Assist</span>
-      </div>
-      <div class="ai-create-assist__empty ai-empty" role="status">Loading suggestions...</div>
-    `;
+    refs.row.innerHTML = renderPanelState({
+      headerClass: "ai-create-assist__header",
+      titleClass: "ai-create-assist__title",
+      title: "AI Assist",
+      messageClass: "ai-create-assist__empty ai-empty",
+      message: "Loading suggestions...",
+    });
     return;
   }
   if (state.onCreateAssistState.unavailable) {
-    refs.row.innerHTML = `
-      <div class="ai-create-assist__header">
-        <span class="ai-create-assist__title">AI Assist</span>
-      </div>
-      <div class="ai-create-assist__empty ai-empty" role="status">AI Suggestions unavailable.</div>
-    `;
+    refs.row.innerHTML = renderPanelState({
+      headerClass: "ai-create-assist__header",
+      titleClass: "ai-create-assist__title",
+      title: "AI Assist",
+      messageClass: "ai-create-assist__empty ai-empty",
+      message: "AI Suggestions unavailable.",
+    });
     return;
   }
   if (state.onCreateAssistState.error) {
-    refs.row.innerHTML = `
-      <div class="ai-create-assist__header">
-        <span class="ai-create-assist__title">AI Assist</span>
-      </div>
-      <div class="ai-create-assist__empty ai-empty" role="status">No suggestions right now.</div>
-    `;
+    refs.row.innerHTML = renderPanelState({
+      headerClass: "ai-create-assist__header",
+      titleClass: "ai-create-assist__title",
+      title: "AI Assist",
+      messageClass: "ai-create-assist__empty ai-empty",
+      message: "No suggestions right now.",
+    });
     return;
   }
   const activeSuggestions = getActiveOnCreateSuggestions();
   if (activeSuggestions.length === 0) {
-    refs.row.innerHTML = `
-      <div class="ai-create-assist__header">
-        <span class="ai-create-assist__title">AI Assist</span>
-      </div>
-      ${hooks.renderAiDebugMeta(state.onCreateAssistState.envelope || {})}
-      <div class="ai-create-assist__empty ai-empty" role="status">No suggestions right now.</div>
-    `;
+    refs.row.innerHTML = renderPanelState({
+      headerClass: "ai-create-assist__header",
+      titleClass: "ai-create-assist__title",
+      title: "AI Assist",
+      debugHtml: hooks.renderAiDebugMeta(
+        state.onCreateAssistState.envelope || {},
+      ),
+      messageClass: "ai-create-assist__empty ai-empty",
+      message: "No suggestions right now.",
+    });
     return;
   }
 
@@ -790,24 +789,25 @@ function renderOnCreateAssistRow() {
   );
 
   refs.row.innerHTML = `
-    <div class="ai-create-assist__header">
-      <span class="ai-create-assist__title">AI Assist</span>
-      ${
+    ${renderPanelHeader({
+      className: "ai-create-assist__header",
+      titleClass: "ai-create-assist__title",
+      title: "AI Assist",
+      actionsHtml:
         hiddenCount > 0
           ? `
-          <button
-            type="button"
-            class="ai-create-assist__expand"
-            data-testid="ai-chip-expand-more"
-            data-ai-create-action="toggle-more"
-            aria-label="${state.onCreateAssistState.showAll ? "Show fewer suggestions" : `Show ${hiddenCount} more suggestions`}"
-          >
-            ${state.onCreateAssistState.showAll ? "Show less" : `+${hiddenCount} more`}
-          </button>
-        `
-          : ""
-      }
-    </div>
+            <button
+              type="button"
+              class="ai-create-assist__expand"
+              data-testid="ai-chip-expand-more"
+              data-ai-create-action="toggle-more"
+              aria-label="${state.onCreateAssistState.showAll ? "Show fewer suggestions" : `Show ${hiddenCount} more suggestions`}"
+            >
+              ${state.onCreateAssistState.showAll ? "Show less" : `+${hiddenCount} more`}
+            </button>
+          `
+          : "",
+    })}
     ${hooks.renderAiDebugMeta(state.onCreateAssistState.envelope || {})}
     <div class="ai-create-assist__chips">
       ${visibleSuggestions

@@ -6,6 +6,8 @@
 
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
+import { runAsyncLifecycle } from "./asyncLifecycle.js";
+import { applyAsyncAction, applyUiAction } from "./stateActions.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
 import {
   hasTodoRow,
@@ -17,6 +19,11 @@ import {
   patchTodoKebabState,
   patchVisibleCategoryGroupStats,
 } from "./todosViewPatches.js";
+import {
+  renderDrawerAccordionSection,
+  renderDrawerSection,
+  renderStatusMessage,
+} from "./uiTemplates.js";
 
 // ---------------------------------------------------------------------------
 // Utilities (local, not cross-module)
@@ -63,23 +70,7 @@ export function isTaskDrawerDismissed(todoId) {
 // ---------------------------------------------------------------------------
 
 export function resetTaskDrawerAssistState(todoId = "") {
-  const { createInitialTaskDrawerAssistState } = hooks;
-  state.taskDrawerAssistState = createInitialTaskDrawerAssistState
-    ? { ...createInitialTaskDrawerAssistState(), todoId }
-    : {
-        todoId,
-        loading: false,
-        unavailable: false,
-        error: "",
-        aiSuggestionId: "",
-        mustAbstain: false,
-        suggestions: [],
-        applyingSuggestionId: "",
-        confirmSuggestionId: "",
-        undoBySuggestionId: {},
-        lastUndoSuggestionId: "",
-        showFullAssist: false,
-      };
+  applyAsyncAction("taskDrawerAssist/reset", { todoId });
 }
 
 function getTaskDrawerSuggestionLabel(type) {
@@ -195,23 +186,21 @@ function renderTaskDrawerAssistSection(todoId) {
           })
         : null;
     if (issue) {
-      return `
-        <div class="todo-drawer__section">
-          <div class="todo-drawer__section-title">AI Suggestions</div>
-          ${hooks.renderLintChip ? hooks.renderLintChip(issue) : ""}
-        </div>
-      `;
+      return renderDrawerSection({
+        title: "AI Suggestions",
+        bodyHtml: hooks.renderLintChip ? hooks.renderLintChip(issue) : "",
+      });
     }
     return "";
   }
 
   if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
-    return `
-      <div class="todo-drawer__section">
-        <div class="todo-drawer__section-title">AI Suggestions</div>
-        <div class="ai-empty" role="status">AI Suggestions unavailable.</div>
-      </div>
-    `;
+    return renderDrawerSection({
+      title: "AI Suggestions",
+      bodyHtml: renderStatusMessage({
+        message: "AI Suggestions unavailable.",
+      }),
+    });
   }
 
   const aiDebugMeta = hooks.renderAiDebugMeta
@@ -222,24 +211,34 @@ function renderTaskDrawerAssistSection(todoId) {
       })
     : "";
 
-  const base = `
-    <div class="todo-drawer__section">
-      <div class="todo-drawer__section-title">AI Suggestions</div>
-      ${aiDebugMeta}
-      ${assistState.loading ? '<div class="ai-empty" role="status">Loading suggestions...</div>' : ""}
-      ${assistState.unavailable ? '<div class="ai-empty" role="status">AI Suggestions unavailable.</div>' : ""}
-      ${assistState.error ? `<div class="ai-empty" role="status">${escapeHtml(assistState.error)}</div>` : ""}
-      ${
-        !assistState.loading &&
-        !assistState.unavailable &&
-        !assistState.error &&
-        (assistState.mustAbstain || assistState.suggestions.length === 0)
-          ? '<div class="ai-empty" role="status">No suggestions right now.</div>'
-          : ""
-      }
-      ${
-        assistState.suggestions.length > 0
-          ? `<div class="todo-drawer-ai-list">
+  const bodyHtml = `
+    ${aiDebugMeta}
+    ${
+      assistState.loading
+        ? renderStatusMessage({ message: "Loading suggestions..." })
+        : ""
+    }
+    ${
+      assistState.unavailable
+        ? renderStatusMessage({ message: "AI Suggestions unavailable." })
+        : ""
+    }
+    ${
+      assistState.error
+        ? renderStatusMessage({ message: assistState.error })
+        : ""
+    }
+    ${
+      !assistState.loading &&
+      !assistState.unavailable &&
+      !assistState.error &&
+      (assistState.mustAbstain || assistState.suggestions.length === 0)
+        ? renderStatusMessage({ message: "No suggestions right now." })
+        : ""
+    }
+    ${
+      assistState.suggestions.length > 0
+        ? `<div class="todo-drawer-ai-list">
             ${assistState.suggestions
               .map((suggestion) => {
                 const confidenceLabel = hooks.confidenceLabel
@@ -316,9 +315,8 @@ function renderTaskDrawerAssistSection(todoId) {
               })
               .join("")}
           </div>`
-          : ""
-      }
-    </div>
+        : ""
+    }
   `;
 
   window.requestAnimationFrame(() => {
@@ -330,7 +328,10 @@ function renderTaskDrawerAssistSection(todoId) {
     }
   });
 
-  return base;
+  return renderDrawerSection({
+    title: "AI Suggestions",
+    bodyHtml,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -740,24 +741,21 @@ export function renderTodoDrawerContent() {
   if (!todo) {
     state.drawerDraft = null;
     titleEl.textContent = "Task";
-    contentEl.innerHTML = `
-      <div class="todo-drawer__section">
-        <div class="todo-drawer__section-title">Unavailable</div>
-        <p>This task is no longer available in the current view.</p>
-      </div>
-    `;
+    contentEl.innerHTML = renderDrawerSection({
+      title: "Unavailable",
+      bodyHtml: "<p>This task is no longer available in the current view.</p>",
+    });
     return;
   }
 
   const draft = getCurrentDrawerDraft(todo);
   const detailsExpanded = state.isDrawerDetailsOpen;
-  const detailsToggleLabel = detailsExpanded ? "Hide details" : "Show details";
-  const detailsPanelHidden = detailsExpanded ? "" : "hidden";
 
   titleEl.textContent = "Task";
   contentEl.innerHTML = `
-    <div class="todo-drawer__section">
-      <div class="todo-drawer__section-title">Essentials</div>
+    ${renderDrawerSection({
+      title: "Essentials",
+      bodyHtml: `
       <div class="todo-drawer__save-status" id="drawerSaveStatus" data-state="${escapeHtml(state.drawerSaveState)}">Ready</div>
       <label class="todo-drawer__field" for="drawerTitleInput">
         <span>Title</span>
@@ -790,25 +788,15 @@ export function renderTodoDrawerContent() {
           <option value="high" ${draft.priority === "high" ? "selected" : ""}>High</option>
         </select>
       </label>
-    </div>
+    `,
+    })}
     ${renderTaskDrawerAssistSection(todo.id)}
-    <div class="todo-drawer__section">
-      <button
-        id="drawerDetailsToggle"
-        type="button"
-        class="todo-drawer__accordion-toggle"
-        aria-expanded="${detailsExpanded ? "true" : "false"}"
-        aria-controls="drawerDetailsPanel"
-      >
-        <span>Details</span>
-        <span class="todo-drawer__accordion-chevron" aria-hidden="true">${detailsExpanded ? "▾" : "▸"}</span>
-      </button>
-      <div
-        id="drawerDetailsPanel"
-        class="todo-drawer__accordion-panel ${detailsExpanded ? "todo-drawer__accordion-panel--open" : ""}"
-        aria-hidden="${detailsExpanded ? "false" : "true"}"
-        ${detailsPanelHidden}
-      >
+    ${renderDrawerAccordionSection({
+      toggleId: "drawerDetailsToggle",
+      panelId: "drawerDetailsPanel",
+      title: "Details",
+      expanded: detailsExpanded,
+      bodyHtml: `
         <label class="todo-drawer__field" for="drawerDescriptionTextarea">
           <span>Description</span>
           <textarea id="drawerDescriptionTextarea" maxlength="1000">${escapeHtml(draft.description)}</textarea>
@@ -825,14 +813,17 @@ export function renderTodoDrawerContent() {
           <div class="todo-drawer__subtasks-title">Subtasks</div>
           ${renderDrawerSubtasks(todo)}
         </div>
-      </div>
-    </div>
-    <div class="todo-drawer__section todo-drawer__section--danger">
-      <div class="todo-drawer__section-title">Danger zone</div>
+      `,
+    })}
+    ${renderDrawerSection({
+      title: "Danger zone",
+      className: "todo-drawer__section todo-drawer__section--danger",
+      bodyHtml: `
       <button id="drawerDeleteTodoButton" class="delete-btn todo-drawer__delete-btn" type="button">
         Delete task
       </button>
-    </div>
+    `,
+    })}
   `;
   setDrawerSaveState(state.drawerSaveState, state.drawerSaveMessage);
 }
@@ -876,82 +867,78 @@ export async function loadTaskDrawerDecisionAssist(
   const FEATURE_TASK_DRAWER_DECISION_ASSIST =
     hooks.FEATURE_TASK_DRAWER_DECISION_ASSIST || false;
   if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
-    state.taskDrawerAssistState.unavailable = true;
+    applyAsyncAction("taskDrawerAssist/unavailable");
+    renderTodoDrawerContent();
     return;
   }
 
-  if (state.taskDrawerAssistState.todoId !== todoId) {
-    resetTaskDrawerAssistState(todoId);
-  }
-  state.taskDrawerAssistState.loading = true;
-  state.taskDrawerAssistState.error = "";
-  state.taskDrawerAssistState.unavailable = false;
-  renderTodoDrawerContent();
-
-  try {
-    let latestResponse = await fetchTaskDrawerLatestSuggestion(todoId);
-    if (latestResponse.status === 403 || latestResponse.status === 404) {
-      state.taskDrawerAssistState.loading = false;
-      state.taskDrawerAssistState.unavailable = true;
+  await runAsyncLifecycle({
+    start: () => {
+      applyAsyncAction("taskDrawerAssist/start", { todoId });
       renderTodoDrawerContent();
-      return;
-    }
+    },
+    run: async () => {
+      let latestResponse = await fetchTaskDrawerLatestSuggestion(todoId);
+      if (latestResponse.status === 403 || latestResponse.status === 404) {
+        return { outcome: "unavailable" };
+      }
 
-    if (latestResponse.status === 204) {
-      if (isTaskDrawerDismissed(todoId)) {
-        state.taskDrawerAssistState.loading = false;
-        state.taskDrawerAssistState.mustAbstain = true;
-        renderTodoDrawerContent();
-        return;
+      if (latestResponse.status === 204) {
+        if (isTaskDrawerDismissed(todoId) || !allowGenerate) {
+          return { outcome: "abstain" };
+        }
+        const generated = await generateTaskDrawerSuggestion(todo);
+        if (generated.status === 403 || generated.status === 404) {
+          return { outcome: "unavailable" };
+        }
+        latestResponse = await fetchTaskDrawerLatestSuggestion(todoId);
+        if (latestResponse.status === 204) {
+          return { outcome: "abstain" };
+        }
       }
-      if (!allowGenerate) {
-        state.taskDrawerAssistState.loading = false;
-        state.taskDrawerAssistState.mustAbstain = true;
-        renderTodoDrawerContent();
-        return;
-      }
-      const generated = await generateTaskDrawerSuggestion(todo);
-      if (generated.status === 403 || generated.status === 404) {
-        state.taskDrawerAssistState.loading = false;
-        state.taskDrawerAssistState.unavailable = true;
-        renderTodoDrawerContent();
-        return;
-      }
-      latestResponse = await fetchTaskDrawerLatestSuggestion(todoId);
-    }
 
-    if (!latestResponse.ok) {
-      state.taskDrawerAssistState.loading = false;
-      state.taskDrawerAssistState.error = "Could not load suggestions.";
+      if (!latestResponse.ok) {
+        return { outcome: "failure" };
+      }
+
+      const payload = await latestResponse.json();
+      const envelope = payload?.outputEnvelope || {};
+      return {
+        outcome: "success",
+        payload: {
+          aiSuggestionId: String(payload?.aiSuggestionId || ""),
+          mustAbstain: !!envelope.must_abstain,
+          contractVersion: envelope.contractVersion,
+          requestId: envelope.requestId,
+          generatedAt: envelope.generatedAt,
+          suggestions: normalizeTaskDrawerAssistEnvelope(
+            String(payload?.aiSuggestionId || ""),
+            envelope,
+            todoId,
+          ),
+        },
+      };
+    },
+    success: (result) => {
+      if (!state.isTodoDrawerOpen || state.selectedTodoId !== todoId) return;
+      if (result?.outcome === "unavailable") {
+        applyAsyncAction("taskDrawerAssist/unavailable");
+      } else if (result?.outcome === "abstain") {
+        applyAsyncAction("taskDrawerAssist/abstain");
+      } else if (result?.outcome === "failure") {
+        applyAsyncAction("taskDrawerAssist/failure");
+      } else if (result?.outcome === "success") {
+        applyAsyncAction("taskDrawerAssist/success", result.payload);
+      }
       renderTodoDrawerContent();
-      return;
-    }
-
-    const payload = await latestResponse.json();
-    if (!state.isTodoDrawerOpen || state.selectedTodoId !== todoId) return;
-    const envelope = payload?.outputEnvelope || {};
-    state.taskDrawerAssistState.loading = false;
-    state.taskDrawerAssistState.aiSuggestionId = String(
-      payload?.aiSuggestionId || "",
-    );
-    state.taskDrawerAssistState.mustAbstain = !!envelope.must_abstain;
-    state.taskDrawerAssistState.contractVersion = envelope.contractVersion;
-    state.taskDrawerAssistState.requestId = envelope.requestId;
-    state.taskDrawerAssistState.generatedAt = envelope.generatedAt;
-    state.taskDrawerAssistState.suggestions = normalizeTaskDrawerAssistEnvelope(
-      state.taskDrawerAssistState.aiSuggestionId,
-      envelope,
-      todoId,
-    );
-    state.taskDrawerAssistState.confirmSuggestionId = "";
-    state.taskDrawerAssistState.applyingSuggestionId = "";
-    renderTodoDrawerContent();
-  } catch (error) {
-    console.error("Task drawer AI load failed:", error);
-    state.taskDrawerAssistState.loading = false;
-    state.taskDrawerAssistState.error = "Could not load suggestions.";
-    renderTodoDrawerContent();
-  }
+    },
+    failure: (error) => {
+      console.error("Task drawer AI load failed:", error);
+      if (!state.isTodoDrawerOpen || state.selectedTodoId !== todoId) return;
+      applyAsyncAction("taskDrawerAssist/failure");
+      renderTodoDrawerContent();
+    },
+  });
 }
 
 export async function applyTaskDrawerSuggestion(
@@ -1092,20 +1079,11 @@ export function openTodoDrawer(todoId, triggerEl) {
     hooks.closeProjectsRailSheet?.({ restoreFocus: false });
   }
 
-  state.selectedTodoId = todoId;
   initializeDrawerDraft(todo);
   resetTaskDrawerAssistState(todoId);
-  state.isDrawerDetailsOpen = false;
-  state.openTodoKebabId = null;
   state.drawerSaveSequence = 0;
   setDrawerSaveState("idle");
-  state.lastFocusedTodoTrigger =
-    triggerEl instanceof HTMLElement ? triggerEl : null;
-  state.lastFocusedTodoId =
-    triggerEl instanceof HTMLElement
-      ? triggerEl.dataset.todoId || todoId
-      : todoId;
-  state.isTodoDrawerOpen = true;
+  applyUiAction("todoDrawer/open", { todoId, triggerEl });
 
   const { drawer, backdrop } = refs;
   drawer.classList.add("todo-drawer--open");
@@ -1149,10 +1127,7 @@ export function closeTodoDrawer({ restoreFocus = true } = {}) {
   const focusTrigger = state.lastFocusedTodoTrigger;
   const focusTodoId = state.lastFocusedTodoId;
 
-  state.isTodoDrawerOpen = false;
-  state.selectedTodoId = null;
-  state.isDrawerDetailsOpen = false;
-  state.openTodoKebabId = null;
+  applyUiAction("todoDrawer/close");
   state.drawerDraft = null;
   resetTaskDrawerAssistState();
   state.drawerSaveSequence = 0;
@@ -1180,9 +1155,6 @@ export function closeTodoDrawer({ restoreFocus = true } = {}) {
   patchTodoKebabState();
   patchSelectedTodoRowActiveState();
   unlockBodyScrollForDrawer();
-
-  state.lastFocusedTodoTrigger = null;
-  state.lastFocusedTodoId = null;
 
   if (!restoreFocus) return;
 
@@ -1232,7 +1204,9 @@ export function syncTodoDrawerStateWithRender() {
 
 export function toggleDrawerDetailsPanel() {
   if (!state.isTodoDrawerOpen || !state.selectedTodoId) return;
-  state.isDrawerDetailsOpen = !state.isDrawerDetailsOpen;
+  applyUiAction("todoDrawer/details:set", {
+    isOpen: !state.isDrawerDetailsOpen,
+  });
   renderTodoDrawerContent();
 }
 
@@ -1271,7 +1245,7 @@ export function getKebabTriggerForTodo(todoId) {
 
 export function closeTodoKebabMenu({ restoreFocus = false } = {}) {
   const activeTodoId = state.openTodoKebabId;
-  state.openTodoKebabId = null;
+  applyUiAction("todoKebab:set", { todoId: null });
   patchTodoKebabState();
 
   if (!restoreFocus || !activeTodoId) return;
@@ -1286,7 +1260,9 @@ export function toggleTodoKebab(todoId, event) {
   event?.stopPropagation?.();
 
   const shouldOpen = state.openTodoKebabId !== todoId;
-  state.openTodoKebabId = shouldOpen ? todoId : null;
+  applyUiAction("todoKebab:set", {
+    todoId: shouldOpen ? todoId : null,
+  });
   patchTodoKebabState();
 
   if (!shouldOpen) return;
@@ -1303,7 +1279,7 @@ export function toggleTodoKebab(todoId, event) {
 export function openTodoFromKebab(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
-  state.openTodoKebabId = null;
+  applyUiAction("todoKebab:set", { todoId: null });
   const row = document.querySelector(
     `.todo-item[data-todo-id="${escapeSelectorValue(todoId)}"]`,
   );
@@ -1313,7 +1289,7 @@ export function openTodoFromKebab(todoId, event) {
 export function openEditTodoFromKebab(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
-  state.openTodoKebabId = null;
+  applyUiAction("todoKebab:set", { todoId: null });
   patchTodoKebabState();
   hooks.openEditTodoModal?.(todoId);
 }
@@ -1321,14 +1297,14 @@ export function openEditTodoFromKebab(todoId, event) {
 export function openDrawerDangerZone(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
-  state.openTodoKebabId = null;
+  applyUiAction("todoKebab:set", { todoId: null });
   const row = document.querySelector(
     `.todo-item[data-todo-id="${escapeSelectorValue(todoId)}"]`,
   );
   if (!state.isTodoDrawerOpen || state.selectedTodoId !== todoId) {
     openTodoDrawer(todoId, row instanceof HTMLElement ? row : null);
   }
-  state.isDrawerDetailsOpen = true;
+  applyUiAction("todoDrawer/details:set", { isOpen: true });
   renderTodoDrawerContent();
   window.requestAnimationFrame(() => {
     const deleteBtn = document.getElementById("drawerDeleteTodoButton");

@@ -4,6 +4,7 @@
 import { state, hooks } from "./store.js";
 import { loadTodos } from "./todosService.js";
 import { getAllProjects } from "./projectsState.js";
+import { applyUiAction } from "./stateActions.js";
 import {
   persistAiWorkspaceCollapsedState,
   persistAiWorkspaceVisibleState,
@@ -64,7 +65,10 @@ export function syncAiWorkspaceVisibility(visible) {
 
 export function setAiWorkspaceVisible(visible, { persist = true } = {}) {
   const AI_DEBUG_ENABLED = hooks.AI_DEBUG_ENABLED;
-  state.isAiWorkspaceVisible = AI_DEBUG_ENABLED ? true : !!visible;
+  applyUiAction("aiWorkspace/visible:set", {
+    visible,
+    debugEnabled: AI_DEBUG_ENABLED,
+  });
   syncAiWorkspaceVisibility(state.isAiWorkspaceVisible);
   if (persist && !AI_DEBUG_ENABLED) {
     persistAiWorkspaceVisibleState(state.isAiWorkspaceVisible);
@@ -75,7 +79,7 @@ export function setAiWorkspaceCollapsed(
   collapsed,
   { persist = true, restoreFocus = false } = {},
 ) {
-  state.isAiWorkspaceCollapsed = !!collapsed;
+  applyUiAction("aiWorkspace/collapsed:set", { collapsed });
   const refs = getAiWorkspaceElements();
   if (refs) {
     refs.workspace.classList.toggle(

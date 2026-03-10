@@ -5,14 +5,16 @@
 
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
-import { createInitialTodayPlanState } from "./store.js";
+import { runAsyncLifecycle } from "./asyncLifecycle.js";
+import { applyAsyncAction, applyDomainAction } from "./stateActions.js";
+import { renderPanelHeader, renderStatusMessage } from "./uiTemplates.js";
 
 function deepClone(value) {
   return JSON.parse(JSON.stringify(value));
 }
 
 function resetTodayPlanState() {
-  state.todayPlanState = createInitialTodayPlanState();
+  applyAsyncAction("todayPlan/reset");
 }
 
 function getTodayPlanPanelElement() {
@@ -345,93 +347,88 @@ async function generateTodayPlanSuggestion(goalText) {
 async function loadTodayPlanDecisionAssist(allowGenerate = false) {
   if (!isTodayPlanViewActive()) return;
   if (!hooks.FEATURE_TASK_DRAWER_DECISION_ASSIST) {
-    state.todayPlanState.loading = false;
-    state.todayPlanState.generating = false;
-    state.todayPlanState.unavailable = true;
-    state.todayPlanState.hasLoaded = true;
+    applyAsyncAction("todayPlan/unavailable");
     renderTodayPlanPanel();
     return;
   }
 
-  state.todayPlanState.loading = true;
-  state.todayPlanState.error = "";
-  state.todayPlanState.unavailable = false;
-  renderTodayPlanPanel();
-
-  try {
-    let latestResponse = await fetchTodayPlanLatestSuggestion();
-    if (latestResponse.status === 403 || latestResponse.status === 404) {
-      state.todayPlanState.loading = false;
-      state.todayPlanState.generating = false;
-      state.todayPlanState.unavailable = true;
-      state.todayPlanState.hasLoaded = true;
-      renderTodayPlanPanel();
-      return;
-    }
-
-    if (latestResponse.status === 204 && allowGenerate) {
-      const generated = await generateTodayPlanSuggestion(
-        state.todayPlanState.goalText,
-      );
-      if (generated.status === 403 || generated.status === 404) {
-        state.todayPlanState.loading = false;
-        state.todayPlanState.generating = false;
-        state.todayPlanState.unavailable = true;
-        state.todayPlanState.hasLoaded = true;
-        renderTodayPlanPanel();
-        return;
-      }
-      latestResponse = await fetchTodayPlanLatestSuggestion();
-    }
-
-    if (latestResponse.status === 204) {
-      state.todayPlanState.loading = false;
-      state.todayPlanState.generating = false;
-      state.todayPlanState.hasLoaded = true;
-      state.todayPlanState.aiSuggestionId = "";
-      state.todayPlanState.envelope = normalizeTodayPlanEnvelope({
-        surface: hooks.TODAY_PLAN_SURFACE,
-        must_abstain: false,
-        planPreview: { topN: 3, items: [] },
-        suggestions: [],
+  await runAsyncLifecycle({
+    start: () => {
+      applyAsyncAction("todayPlan/start", {
+        generating: state.todayPlanState.generating,
+        loadingMessage:
+          state.todayPlanState.loadingMessage || "Generating plan preview...",
       });
-      state.todayPlanState.selectedTodoIds = new Set();
-      state.todayPlanState.dismissedSuggestionIds = new Set();
       renderTodayPlanPanel();
-      return;
-    }
+    },
+    run: async () => {
+      let latestResponse = await fetchTodayPlanLatestSuggestion();
+      if (latestResponse.status === 403 || latestResponse.status === 404) {
+        return { outcome: "unavailable" };
+      }
 
-    if (!latestResponse.ok) {
-      state.todayPlanState.loading = false;
-      state.todayPlanState.generating = false;
-      state.todayPlanState.error = "Could not load suggestions.";
-      state.todayPlanState.hasLoaded = true;
+      if (latestResponse.status === 204 && allowGenerate) {
+        const generated = await generateTodayPlanSuggestion(
+          state.todayPlanState.goalText,
+        );
+        if (generated.status === 403 || generated.status === 404) {
+          return { outcome: "unavailable" };
+        }
+        latestResponse = await fetchTodayPlanLatestSuggestion();
+      }
+
+      if (latestResponse.status === 204) {
+        return {
+          outcome: "empty",
+          envelope: normalizeTodayPlanEnvelope({
+            surface: hooks.TODAY_PLAN_SURFACE,
+            must_abstain: false,
+            planPreview: { topN: 3, items: [] },
+            suggestions: [],
+          }),
+        };
+      }
+
+      if (!latestResponse.ok) {
+        return { outcome: "failure" };
+      }
+
+      const payload = await latestResponse.json();
+      const envelope = normalizeTodayPlanEnvelope(
+        payload?.outputEnvelope || {},
+      );
+      return {
+        outcome: "success",
+        payload: {
+          aiSuggestionId: String(payload?.aiSuggestionId || ""),
+          envelope,
+          selectedTodoIds: envelope.planPreview.items
+            .map((item) => String(item.todoId))
+            .filter(Boolean),
+        },
+      };
+    },
+    success: (result) => {
+      if (result?.outcome === "unavailable") {
+        applyAsyncAction("todayPlan/unavailable");
+      } else if (result?.outcome === "empty") {
+        applyAsyncAction("todayPlan/empty", {
+          envelope: result.envelope,
+          selectedTodoIds: [],
+        });
+      } else if (result?.outcome === "failure") {
+        applyAsyncAction("todayPlan/failure");
+      } else if (result?.outcome === "success") {
+        applyAsyncAction("todayPlan/success", result.payload);
+      }
       renderTodayPlanPanel();
-      return;
-    }
-
-    const payload = await latestResponse.json();
-    const envelope = normalizeTodayPlanEnvelope(payload?.outputEnvelope || {});
-    state.todayPlanState.loading = false;
-    state.todayPlanState.generating = false;
-    state.todayPlanState.hasLoaded = true;
-    state.todayPlanState.aiSuggestionId = String(payload?.aiSuggestionId || "");
-    state.todayPlanState.envelope = envelope;
-    state.todayPlanState.dismissedSuggestionIds = new Set();
-    state.todayPlanState.selectedTodoIds = new Set(
-      envelope.planPreview.items
-        .map((item) => String(item.todoId))
-        .filter(Boolean),
-    );
-    renderTodayPlanPanel();
-  } catch (error) {
-    console.error("Today plan AI load failed:", error);
-    state.todayPlanState.loading = false;
-    state.todayPlanState.generating = false;
-    state.todayPlanState.error = "Could not load suggestions.";
-    state.todayPlanState.hasLoaded = true;
-    renderTodayPlanPanel();
-  }
+    },
+    failure: (error) => {
+      console.error("Today plan AI load failed:", error);
+      applyAsyncAction("todayPlan/failure");
+      renderTodayPlanPanel();
+    },
+  });
 }
 
 function getTodayPlanSelectedSuggestionCards() {
@@ -486,11 +483,12 @@ function renderTodayPlanPanel() {
 
   panel.setAttribute("data-testid", "today-plan-panel");
   panel.innerHTML = `
-    <div class="today-plan-panel__header">
-      <div class="today-plan-panel__title">Plan my day</div>
-      ${
-        state.todayPlanState.lastApplyBatch
-          ? `
+    ${renderPanelHeader({
+      className: "today-plan-panel__header",
+      titleClass: "today-plan-panel__title",
+      title: "Plan my day",
+      actionsHtml: state.todayPlanState.lastApplyBatch
+        ? `
           <button
             type="button"
             class="today-plan-panel__undo ai-undo"
@@ -501,9 +499,8 @@ function renderTodayPlanPanel() {
             Undo
           </button>
         `
-          : ""
-      }
-    </div>
+        : "",
+    })}
     <div class="today-plan-panel__controls">
       <label class="sr-only" for="todayPlanGoalInput">Goal (optional)</label>
       <input
@@ -529,17 +526,28 @@ function renderTodayPlanPanel() {
     ${hooks.renderAiDebugMeta(envelope || {})}
     ${
       state.todayPlanState.loading || state.todayPlanState.generating
-        ? '<div class="today-plan-panel__loading ai-empty" role="status">Generating plan preview...</div>'
+        ? renderStatusMessage({
+            className: "today-plan-panel__loading ai-empty",
+            message:
+              state.todayPlanState.loadingMessage ||
+              "Generating plan preview...",
+          })
         : ""
     }
     ${
       state.todayPlanState.unavailable
-        ? '<div class="today-plan-panel__empty ai-empty" role="status">AI Suggestions unavailable.</div>'
+        ? renderStatusMessage({
+            className: "today-plan-panel__empty ai-empty",
+            message: "AI Suggestions unavailable.",
+          })
         : ""
     }
     ${
       state.todayPlanState.error
-        ? `<div class="today-plan-panel__empty ai-empty" role="status">${hooks.escapeHtml(state.todayPlanState.error)}</div>`
+        ? renderStatusMessage({
+            className: "today-plan-panel__empty ai-empty",
+            message: state.todayPlanState.error,
+          })
         : ""
     }
     ${
@@ -577,7 +585,14 @@ function renderTodayPlanPanel() {
       `
         : ""
     }
-    ${emptyMessage ? `<div class="today-plan-panel__empty ai-empty" role="status">${hooks.escapeHtml(emptyMessage)}</div>` : ""}
+    ${
+      emptyMessage
+        ? renderStatusMessage({
+            className: "today-plan-panel__empty ai-empty",
+            message: emptyMessage,
+          })
+        : ""
+    }
     ${
       suggestionCards.length > 0
         ? `
@@ -653,28 +668,25 @@ async function handleTodayPlanGenerate() {
   const goalInput = document.getElementById("todayPlanGoalInput");
   const goalText =
     goalInput instanceof HTMLInputElement ? goalInput.value.trim() : "";
-  state.todayPlanState.goalText = goalText;
-  state.todayPlanState.generating = true;
-  state.todayPlanState.loading = true;
-  state.todayPlanState.error = "";
-  state.todayPlanState.unavailable = false;
-  state.todayPlanState.loadingMessage = "Generating plan preview...";
+  applyDomainAction("todayPlan/goal:set", { goalText });
+  applyAsyncAction("todayPlan/start", {
+    generating: true,
+    loadingMessage: "Generating plan preview...",
+  });
   renderTodayPlanPanel();
 
   const generationId = ++state.todayPlanGenerationSeq;
   await loadTodayPlanDecisionAssist(true);
   if (generationId !== state.todayPlanGenerationSeq) return;
-  state.todayPlanState.loadingMessage = "";
-  state.todayPlanState.lastApplyBatch = null;
+  applyAsyncAction("todayPlan/generate:complete");
   renderTodayPlanPanel();
 }
 
 function handleTodayPlanToggleItem(todoId, checked) {
-  if (checked) {
-    state.todayPlanState.selectedTodoIds.add(todoId);
-  } else {
-    state.todayPlanState.selectedTodoIds.delete(todoId);
-  }
+  applyDomainAction("todayPlan/selection:set", {
+    todoId,
+    selected: checked,
+  });
   renderTodayPlanPanel();
 }
 
@@ -695,15 +707,15 @@ async function handleTodayPlanDismissSuggestion(suggestionId) {
     } catch (error) {
       console.error("Today plan dismiss failed:", error);
     }
-    state.todayPlanState.aiSuggestionId = "";
-    state.todayPlanState.envelope = normalizeTodayPlanEnvelope({
-      surface: hooks.TODAY_PLAN_SURFACE,
-      must_abstain: false,
-      planPreview: { topN: 3, items: [] },
-      suggestions: [],
+    applyAsyncAction("todayPlan/empty", {
+      envelope: normalizeTodayPlanEnvelope({
+        surface: hooks.TODAY_PLAN_SURFACE,
+        must_abstain: false,
+        planPreview: { topN: 3, items: [] },
+        suggestions: [],
+      }),
+      selectedTodoIds: [],
     });
-    state.todayPlanState.selectedTodoIds = new Set();
-    state.todayPlanState.dismissedSuggestionIds = new Set();
     renderTodayPlanPanel();
     return;
   }
@@ -746,10 +758,12 @@ async function handleTodayPlanApplySelected() {
       );
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        state.todayPlanState.error =
-          typeof data?.error === "string"
-            ? data.error
-            : "Could not apply selected suggestions.";
+        applyAsyncAction("todayPlan/failure", {
+          error:
+            typeof data?.error === "string"
+              ? data.error
+              : "Could not apply selected suggestions.",
+        });
         renderTodayPlanPanel();
         return;
       }
@@ -767,7 +781,9 @@ async function handleTodayPlanApplySelected() {
       await loadTodayPlanDecisionAssist(false);
     } catch (error) {
       console.error("Today plan apply failed:", error);
-      state.todayPlanState.error = "Could not apply selected suggestions.";
+      applyAsyncAction("todayPlan/failure", {
+        error: "Could not apply selected suggestions.",
+      });
       renderTodayPlanPanel();
       return;
     }
@@ -848,7 +864,9 @@ function bindTodayPlanHandlers() {
     if (!(target instanceof HTMLElement)) return;
     if (target.id !== "todayPlanGoalInput") return;
     if (!(target instanceof HTMLInputElement)) return;
-    state.todayPlanState.goalText = target.value;
+    applyDomainAction("todayPlan/goal:set", {
+      goalText: target.value,
+    });
   });
 
   document.addEventListener("change", (event) => {
