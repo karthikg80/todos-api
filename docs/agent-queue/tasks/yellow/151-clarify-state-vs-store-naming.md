@@ -84,6 +84,8 @@ The `state.js` name causes ambiguity: new developers and agents alike may assume
 
 ## Scope Escalation Triggers
 
+## Scope Escalation Triggers
+
 If any of these occur, set status to BLOCKED and request re-approval:
 
 - Change touches >6 files

@@ -82,6 +82,7 @@ All 10 arch review tasks (140–149) merged. Repo restructure (Task 150) also co
 - `src/` organized into `services/`, `middleware/`, `validation/` subdirs
 
 Key invariants from this sprint (see Canon candidates):
+
 - `store.js` imports from nobody — circular imports structurally impossible
 - diff-before-delete discipline when extracting functions to modules
 - tsc --noEmit after each module batch, never after all at once
