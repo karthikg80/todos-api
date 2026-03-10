@@ -110,6 +110,21 @@ Key invariants added by P1:
 
 ## P2 Sprint — COMPLETE (PR #203, Task 160, merged 2026-03-10)
 
+## P3 Sprint — COMPLETE (PR #207, Task 163, merged 2026-03-10)
+
+Responsive architecture cleanup, targeted DOM patching, and debounce narrowing.
+- `responsiveLayout.js` (new) — single owner of viewport mode and rail presentation state
+- `stateActions.js` + `store.js` — viewport and rail presentation actions/fields added
+- `railUi.js` — targeted project row reconciliation by identity; no more container replacement
+- `todosViewPatches.js` + `todosService.js` + `drawerUi.js` — safe patch-by-id paths consolidated
+- `app.js` — debouncing narrowed to filter/search inputs only
+- `taskDrawerAssist.js` + `filterLogic.js` — viewport inference routed through responsiveLayout.js
+
+Key invariants added by P3:
+- Responsive state is owned in one place — consumers never infer viewport independently
+- Project row updates are targeted; container replacement eliminated from the rail
+- Debounce applies to filter/search only, not all declarative inputs
+
 Three new focused modules reducing structural duplication in high-churn UI flows:
 - `stateActions.js` — explicit `applyUiAction(type, payload)` dispatcher replacing ad-hoc boolean writes
 - `asyncLifecycle.js` — `runAsyncLifecycle()` helper normalizing load/error/empty patterns
