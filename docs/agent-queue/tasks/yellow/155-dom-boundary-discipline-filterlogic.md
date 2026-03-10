@@ -131,8 +131,8 @@ filterLogic.js is the single filter entry point and will be touched in every fut
 - New abstraction layer introduced → BLOCKED (out of scope)
 
 ## Deliverable
-- PR URL: Blocked in sandbox until branch push/PR creation can run against GitHub
-- Commit SHA(s): Pending local commit at handoff
+- PR URL: `https://github.com/karthikg80/todos-api/pull/new/codex/task-155-dom-boundary-discipline-filterlogic` (branch pushed; `gh pr create` was blocked by `api.github.com` connectivity in sandbox)
+- Commit SHA(s): Implementation commit `b55aee99ce09898ef8641e7a5dc6228d4064841e`
 - Files changed:
   - `client/modules/filterLogic.js`
   - `docs/agent-queue/tasks/yellow/155-dom-boundary-discipline-filterlogic.md`
