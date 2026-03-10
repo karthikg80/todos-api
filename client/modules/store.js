@@ -5,6 +5,7 @@
 // state is an exported const object — its *properties* are mutable).
 // =============================================================================
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+// Runtime UI state module — exports { state, hooks }. All domain modules import from here. Do not import from authSession.js.
 
 // ---------------------------------------------------------------------------
 // Factory helpers — called during initialization so they live here too.
