@@ -64,6 +64,362 @@ Scripts (use only if available):
 
 ---
 
+## TASK 153 — Centralize localStorage keys
+
+```
+Read CLAUDE.md before doing anything.
+
+Execute TASK 153: extract all scattered localStorage key string constants into
+a single client/utils/storageKeys.js module. Pure extraction — no behavior changes.
+
+## What this task does
+
+localStorage keys are currently defined as module-local constants across 5 modules:
+- railUi.js: PROJECTS_RAIL_COLLAPSED_STORAGE_KEY, AI_WORKSPACE_COLLAPSED_STORAGE_KEY, AI_WORKSPACE_VISIBLE_STORAGE_KEY
+- quickEntry.js: QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY
+- homeDashboard.js: HOME_TOP_FOCUS_CACHE_KEY
+- onCreateAssist.js: AI_ON_CREATE_DISMISSED_STORAGE_KEY
+- featureFlags.js: inline strings "feature.enhancedTaskCritic", "feature.taskDrawerDecisionAssist"
+- store.js: inline string "feature.taskDrawerDecisionAssist"
+- drawerUi.js: dynamic key via taskDrawerDismissKey(todoId) function
+
+## Steps
+
+1. Audit first: run
+     grep -rn "getItem\|setItem" client/modules/*.js
+   and confirm the full list of keys. Verify none were missed.
+
+2. Create client/utils/storageKeys.js:
+
+```js
+// storageKeys.js — Central registry of all localStorage key strings.
+// Import STORAGE_KEYS from here rather than hardcoding strings inline.
+export const STORAGE_KEYS = {
+  PROJECTS_RAIL_COLLAPSED:      "todos:projects-rail-collapsed",
+  AI_WORKSPACE_COLLAPSED:       "todos:ai-collapsed",
+  AI_WORKSPACE_VISIBLE:         "todos:ai-visible",
+  QUICK_ENTRY_PROPERTIES_OPEN:  "todos:quick-entry-properties-open",
+  HOME_TOP_FOCUS_CACHE:         "todos:home-top-focus-cache",
+  AI_ON_CREATE_DISMISSED:       "todos:ai-on-create-dismissed",
+  FEATURE_ENHANCED_TASK_CRITIC: "feature.enhancedTaskCritic",
+  FEATURE_TASK_DRAWER_ASSIST:   "feature.taskDrawerDecisionAssist",
+  TASK_DRAWER_DISMISSED_PREFIX: "todos:task-drawer-dismissed:",
+};
+```
+
+3. Update each consumer — import and use STORAGE_KEYS.*:
+
+   railUi.js:
+     Remove the 3 local const definitions.
+     Add: import { STORAGE_KEYS } from "../utils/storageKeys.js";
+     Replace each constant name with STORAGE_KEYS.PROJECTS_RAIL_COLLAPSED etc.
+
+   quickEntry.js:
+     Remove QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY const.
+     Add import, use STORAGE_KEYS.QUICK_ENTRY_PROPERTIES_OPEN.
+
+   homeDashboard.js:
+     Remove HOME_TOP_FOCUS_CACHE_KEY const.
+     Add import, use STORAGE_KEYS.HOME_TOP_FOCUS_CACHE.
+
+   onCreateAssist.js:
+     Remove AI_ON_CREATE_DISMISSED_STORAGE_KEY const.
+     Add import, use STORAGE_KEYS.AI_ON_CREATE_DISMISSED.
+
+   featureFlags.js:
+     Replace inline strings "feature.enhancedTaskCritic" and "feature.taskDrawerDecisionAssist"
+     with STORAGE_KEYS.FEATURE_ENHANCED_TASK_CRITIC and STORAGE_KEYS.FEATURE_TASK_DRAWER_ASSIST.
+     Add import.
+
+   store.js:
+     Replace inline "feature.taskDrawerDecisionAssist" with STORAGE_KEYS.FEATURE_TASK_DRAWER_ASSIST.
+     Add import.
+
+   drawerUi.js:
+     Replace the inline prefix string in taskDrawerDismissKey:
+       return `todos:task-drawer-dismissed:${todoId}`;
+     becomes:
+       return `${STORAGE_KEYS.TASK_DRAWER_DISMISSED_PREFIX}${todoId}`;
+     Add import.
+
+4. Do NOT add authSession keys (authToken, refreshToken, user) — those belong to AppState.
+
+5. Update docs/memory/brief/BRIEF.md Open Tech Debt section — mark storageKeys item resolved.
+   Update docs/next-enhancements.md similarly.
+
+## Critical constraint
+Key string VALUES must not change — any change breaks existing user preferences stored
+in their browsers. Only the constant names and their location change.
+
+## Verification
+
+Run ALL checks — all must pass:
+  npx tsc --noEmit
+  npm run lint:html
+  npm run lint:css
+  npm run test:unit
+  CI=1 npm run test:ui:fast
+
+Also verify manually:
+  - App loads, sidebar collapsed state persists on reload
+  - Quick entry properties open state persists
+  - Feature flags readable via localStorage override
+
+## Branch
+  BRANCH=codex/task-153-centralize-localstorage-keys
+  Base from master.
+
+## Deliverable
+Open a PR. Fill in Deliverable and Outcome sections of
+docs/agent-queue/tasks/green/153-centralize-localstorage-keys.md.
+Set status: DONE.
+```
+
+---
+
+## TASK 154 — Reduce hooks.renderTodos sweep coupling
+
+```
+Read CLAUDE.md before doing anything.
+
+Execute TASK 154: replace direct hooks.renderTodos?.() calls in domain modules
+with EventBus.dispatch("todos:changed") so modules signal state changes rather
+than commanding render sweeps. Pure wiring change — behavior identical.
+
+## Background
+
+app.js currently wires:
+  hooks.renderTodos = () => EventBus.dispatch("todos:render");
+  EventBus.subscribe("todos:changed", applyFiltersAndRender);
+  EventBus.subscribe("todos:render", renderTodos);
+
+Domain modules call hooks.renderTodos?.() directly — ~71 calls total.
+This creates coupling where business logic commands render sweeps.
+
+The fix: modules dispatch EventBus.dispatch("todos:changed", { reason }) instead.
+Since todos:changed already routes to applyFiltersAndRender, behavior is unchanged.
+
+## Steps
+
+### Step 1: Audit (no code changes yet)
+Run: grep -rn "hooks.renderTodos" client/modules/
+Produce a count per file. Expected:
+  todosService.js: ~17
+  filterLogic.js: ~10
+  projectsState.js: ~9
+  drawerUi.js: ~14
+  (others may have additional)
+
+### Step 2: Extract EventBus to its own module
+EventBus is currently defined inline in app.js (~line 410).
+Extract the exact definition to client/modules/eventBus.js:
+
+```js
+// eventBus.js — Minimal pub-sub for decoupled state→render wiring.
+export const EventBus = (() => {
+  const subscribers = {};
+  return {
+    subscribe(event, fn) {
+      if (!subscribers[event]) subscribers[event] = [];
+      subscribers[event].push(fn);
+    },
+    dispatch(event, payload) {
+      (subscribers[event] || []).forEach((fn) => fn(payload));
+    },
+  };
+})();
+```
+
+In app.js: remove the inline EventBus definition and add:
+  import { EventBus } from "./modules/eventBus.js";
+
+### Step 3: Replace hooks.renderTodos?.() calls in domain modules
+In each domain module, replace:
+  hooks.renderTodos?.();
+with:
+  EventBus.dispatch("todos:changed", { reason: "<descriptive-reason>" });
+
+Add import to each module:
+  import { EventBus } from "./eventBus.js";
+
+Reason strings should be descriptive:
+  After todo add: { reason: "todo-added" }
+  After todo delete: { reason: "todo-deleted" }
+  After todo toggle: { reason: "todo-toggled" }
+  After project change: { reason: "project-selected" }
+  (use your judgment for context-specific reasons)
+
+### Step 4: Clean up app.js
+After step 3, check if any caller of hooks.renderTodos remains.
+If none remain:
+  Remove the line: hooks.renderTodos = () => EventBus.dispatch("todos:render");
+  Remove the subscription: EventBus.subscribe("todos:render", renderTodos);
+Keep: EventBus.subscribe("todos:changed", applyFiltersAndRender);
+
+### Step 5: Do NOT change these hooks — they render specific sub-surfaces:
+  hooks.renderProjectsRail?.()
+  hooks.renderTodayPlanPanel?.()
+  hooks.renderHomeDashboard?.()
+  hooks.renderProjectHeadingCreateButton?.()
+  hooks.renderOnCreateAssistRow?.()
+  Any hooks.render* that is NOT hooks.renderTodos
+
+### Step 6: Update docs
+Update docs/memory/brief/BRIEF.md Active Architecture Patterns:
+Change the EventBus description to reflect that domain modules now dispatch
+todos:changed events and hooks.renderTodos no longer exists.
+
+## Verification
+
+Run ALL checks — all must pass:
+  npx tsc --noEmit
+  npm run test:unit
+  CI=1 npm run test:ui:fast
+
+Manual smoke test:
+  - Add a todo: list updates
+  - Complete a todo: list updates
+  - Delete a todo: list updates
+  - Switch project: list filters correctly
+  - Search: list filters correctly
+  Run: grep -rn "hooks.renderTodos" client/modules/ → must return 0 results
+
+## Constraints
+- Behavior must be identical — pure wiring change
+- Each dispatch must have a meaningful reason string
+- hooks.render* for non-todos surfaces must remain unchanged
+- BLOCKED if any todo mutation stops triggering re-render
+- BLOCKED if touches >12 files
+
+## Branch
+  BRANCH=codex/task-154-reduce-hooks-render-sweep-coupling
+  Base from master.
+
+## Deliverable
+Open a PR. Fill in Deliverable and Outcome sections of
+docs/agent-queue/tasks/yellow/154-reduce-hooks-render-sweep-coupling.md.
+Set status: DONE.
+```
+
+---
+
+## TASK 155 — DOM boundary discipline in filterLogic.js
+
+```
+Read CLAUDE.md before doing anything.
+
+Execute TASK 155: make filterLogic.js self-documenting about its DOM coupling
+policy, and ensure no pure logic function contains an inline getElementById.
+Zero behavior changes.
+
+## Background
+
+filterLogic.js is the single filter entry point. It currently reaches into the
+DOM from both view-controller glue functions (acceptable) and from pure logic
+functions (not acceptable — makes testing harder).
+
+The goal is NOT to remove all DOM access from filterLogic.js — that would be
+a framework-level refactor. The goal is to:
+1. Document where DOM coupling is intentional vs accidental
+2. Ensure pure logic functions (sort, filter, compute) accept values as parameters
+3. Group intentional DOM functions in a clearly marked section
+
+## Steps
+
+### Step 1: Audit (no code changes yet)
+Run: grep -n "getElementById\|querySelector" client/modules/filterLogic.js
+
+For each result, classify:
+  A) Reading an input VALUE used in logic (searchInput.value, categoryFilter.value)
+  B) Manipulating a display element (classList, innerHTML, hidden, setAttribute)
+  C) Pure logic function that incidentally queries DOM
+
+Document the classification before touching anything.
+
+### Step 2: Add module-level JSDoc to filterLogic.js
+
+At the very top of filterLogic.js (after existing header comment), add:
+
+```js
+/**
+ * filterLogic.js — Filter/sort entry point and project selection API.
+ *
+ * DOM Coupling Policy:
+ * Functions in the "DOM Boundary Layer" section below intentionally read or
+ * write DOM elements. This is acceptable for view-controller glue.
+ *
+ * Functions OUTSIDE that section must not contain getElementById/querySelector.
+ * Pass values as parameters instead so they remain unit-testable.
+ */
+```
+
+### Step 3: Add DOM Boundary Layer section comment
+
+Find the cluster of functions that intentionally touch DOM
+(getSearchInputValue, getSelectedProjectFilterValue, setSelectedProjectKey,
+updateTodosListHeader, clearFilters, and similar).
+
+Add this section divider above the first of them:
+```js
+// =============================================================================
+// DOM Boundary Layer — functions below intentionally read/write DOM elements.
+// This is acceptable view-controller glue. Do not add getElementById calls
+// outside this section.
+// =============================================================================
+```
+
+### Step 4: Fix any Category C violations
+
+If Step 1 found any pure logic/sorting/filtering functions (e.g. sortTodos,
+filterTodosList, getVisibleTodos) that contain getElementById:
+- Extract the DOM read to a parameter
+- Update the single caller in app.js or filterLogic.js to read the value and pass it
+
+If NO Category C violations exist, document this explicitly: "Audit found no
+pure logic functions with getElementById — only view-controller glue functions."
+
+### Step 5: Mark intentional DOM readers with inline comments
+
+For each function in the DOM Boundary Layer that reads an input value, add a
+one-line comment above the getElementById call:
+  // DOM read: intentional boundary — reads current filter state from DOM
+
+## Verification
+
+Run ALL checks — all must pass:
+  npm run test:unit
+  CI=1 npm run test:ui:fast
+
+Manual smoke:
+  - Search works
+  - Project filter works
+  - Date view switching works
+  - Clear filters works
+
+Post-task audit:
+  grep -n "getElementById" client/modules/filterLogic.js
+  → All results should be inside the DOM Boundary Layer section
+
+## Constraints
+- Zero behavior changes
+- Touch only filterLogic.js and app.js (call site updates only if params added)
+- Do not introduce new abstractions
+- BLOCKED if any filter behavior changes
+- BLOCKED if touches >2 files
+
+## Branch
+  BRANCH=codex/task-155-dom-boundary-discipline-filterlogic
+  Base from master.
+
+## Deliverable
+Open a PR. Include the Step 1 audit output in the PR description.
+Fill in Deliverable and Outcome sections of
+docs/agent-queue/tasks/yellow/155-dom-boundary-discipline-filterlogic.md.
+Set status: DONE.
+```
+
+---
+
 ## TASK 150 — Folder Restructure (client/ + src/ reorganization)
 
 ```
