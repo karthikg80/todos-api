@@ -11,6 +11,6 @@
 
 No tasks currently queued. Candidates for next sprint:
 
-- `state.js` vs `store.js` overlap — relationship between the two files has never been formally resolved
+- ~~`state.js` vs `store.js` overlap~~ resolved in Task 151 (renamed to authSession.js)
 - API rate limiting — no middleware exists on the Express layer
 - Component framework migration spike — was deferred (Task 143 original numbering); requires explicit human ADR decision before any work begins
