@@ -7,6 +7,16 @@
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import {
+  hasTodoRow,
+  patchHeaderCountsFromVisibleTodos,
+  patchProjectsRailCounts,
+  patchSelectedTodoRowActiveState,
+  patchTodoCompleted,
+  patchTodoContentMetadata,
+  patchTodoKebabState,
+  patchVisibleCategoryGroupStats,
+} from "./todosViewPatches.js";
 
 // ---------------------------------------------------------------------------
 // Utilities (local, not cross-module)
@@ -427,7 +437,7 @@ function captureDrawerFocusState() {
   return focusState;
 }
 
-function restoreDrawerFocusState(focusState) {
+function applyDrawerFocusState(focusState) {
   if (!focusState || !focusState.id) return;
   const target = document.getElementById(focusState.id);
   if (!(target instanceof HTMLElement)) return;
@@ -446,6 +456,13 @@ function restoreDrawerFocusState(focusState) {
       );
     }
   }
+}
+
+function restoreDrawerFocusState(focusState) {
+  applyDrawerFocusState(focusState);
+  window.requestAnimationFrame(() => {
+    applyDrawerFocusState(focusState);
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -513,7 +530,32 @@ export async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
     if (requestId !== state.drawerSaveSequence) return;
     initializeDrawerDraft(updatedTodo);
     setDrawerSaveState("saved");
-    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
+    const patchKeys = Object.keys(patch);
+    const canPatchInPlace =
+      !hooks.shouldUseServerVisibleTodos?.() &&
+      state.currentWorkspaceView === "all" &&
+      !state.homeListDrilldownKey &&
+      patchKeys.every((key) =>
+        ["title", "description", "notes", "priority", "completed"].includes(
+          key,
+        ),
+      ) &&
+      (patchKeys.includes("completed")
+        ? state.currentDateView !== "completed"
+        : true) &&
+      hasTodoRow(updatedTodo.id);
+
+    if (canPatchInPlace) {
+      if (patchKeys.includes("completed")) {
+        patchTodoCompleted(updatedTodo.id, updatedTodo.completed);
+        patchVisibleCategoryGroupStats();
+        patchProjectsRailCounts();
+        patchHeaderCountsFromVisibleTodos();
+      }
+      patchTodoContentMetadata(updatedTodo.id, updatedTodo);
+    } else {
+      EventBus.dispatch("todos:changed", { reason: "todo-updated" });
+    }
     syncTodoDrawerStateWithRender();
     restoreDrawerFocusState(focusState);
   } catch (error) {
@@ -1073,8 +1115,24 @@ export function openTodoDrawer(todoId, triggerEl) {
     backdrop.setAttribute("aria-hidden", "false");
   }
   lockBodyScrollForDrawer();
+  hooks.DialogManager?.open("todoDrawer", drawer, {
+    onEscape: () => {
+      if (state.taskDrawerAssistState.confirmSuggestionId) {
+        state.taskDrawerAssistState.confirmSuggestionId = "";
+        renderTodoDrawerContent();
+        return;
+      }
+      if (state.openTodoKebabId) {
+        closeTodoKebabMenu({ restoreFocus: true });
+        return;
+      }
+      closeTodoDrawer({ restoreFocus: true });
+    },
+  });
 
-  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
+  renderTodoDrawerContent();
+  patchTodoKebabState();
+  patchSelectedTodoRowActiveState();
   const titleInput = document.getElementById("drawerTitleInput");
   if (titleInput instanceof HTMLElement) {
     titleInput.focus();
@@ -1094,6 +1152,7 @@ export function closeTodoDrawer({ restoreFocus = true } = {}) {
   state.isTodoDrawerOpen = false;
   state.selectedTodoId = null;
   state.isDrawerDetailsOpen = false;
+  state.openTodoKebabId = null;
   state.drawerDraft = null;
   resetTaskDrawerAssistState();
   state.drawerSaveSequence = 0;
@@ -1115,9 +1174,11 @@ export function closeTodoDrawer({ restoreFocus = true } = {}) {
       backdrop.classList.remove("todo-drawer-backdrop--open");
       backdrop.setAttribute("aria-hidden", "true");
     }
+    hooks.DialogManager?.close("todoDrawer");
     renderTodoDrawerContent();
   }
-  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
+  patchTodoKebabState();
+  patchSelectedTodoRowActiveState();
   unlockBodyScrollForDrawer();
 
   state.lastFocusedTodoTrigger = null;
@@ -1211,7 +1272,7 @@ export function getKebabTriggerForTodo(todoId) {
 export function closeTodoKebabMenu({ restoreFocus = false } = {}) {
   const activeTodoId = state.openTodoKebabId;
   state.openTodoKebabId = null;
-  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
+  patchTodoKebabState();
 
   if (!restoreFocus || !activeTodoId) return;
   window.requestAnimationFrame(() => {
@@ -1226,7 +1287,7 @@ export function toggleTodoKebab(todoId, event) {
 
   const shouldOpen = state.openTodoKebabId !== todoId;
   state.openTodoKebabId = shouldOpen ? todoId : null;
-  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
+  patchTodoKebabState();
 
   if (!shouldOpen) return;
   window.requestAnimationFrame(() => {
@@ -1253,7 +1314,7 @@ export function openEditTodoFromKebab(todoId, event) {
   event?.preventDefault?.();
   event?.stopPropagation?.();
   state.openTodoKebabId = null;
-  EventBus.dispatch("todos:changed", { reason: "drawer-state-changed" });
+  patchTodoKebabState();
   hooks.openEditTodoModal?.(todoId);
 }
 

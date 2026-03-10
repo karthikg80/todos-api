@@ -406,11 +406,19 @@ function renderProjectDeleteDialog() {
   if (!refs) return;
   if (!state.projectDeleteDialogState) {
     refs.dialog.style.display = "none";
+    hooks.DialogManager?.close("projectDeleteDialog");
     refs.message.textContent = "";
     refs.actions.innerHTML = "";
     return;
   }
   refs.dialog.style.display = "flex";
+  hooks.DialogManager?.open("projectDeleteDialog", refs.dialog, {
+    onEscape: () => {
+      if (!state.isProjectDeletePending) {
+        closeProjectDeleteDialog();
+      }
+    },
+  });
   refs.message.textContent = state.projectDeleteDialogState.body || "";
   refs.actions.innerHTML = (state.projectDeleteDialogState.actions || [])
     .map(
@@ -491,6 +499,9 @@ function openProjectEditDrawer(
   refs.drawer.setAttribute("aria-hidden", "false");
   refs.backdrop.classList.add("project-edit-drawer-backdrop--open");
   refs.backdrop.setAttribute("aria-hidden", "false");
+  hooks.DialogManager?.open("projectEditDrawer", refs.drawer, {
+    onEscape: () => closeProjectEditDrawer({ restoreFocus: true }),
+  });
   renderProjectEditDrawer();
   lockBodyScrollForProjectEditDrawer();
 
@@ -514,6 +525,7 @@ function closeProjectEditDrawer({ restoreFocus = true, force = false } = {}) {
   refs.drawer.setAttribute("aria-hidden", "true");
   refs.backdrop.classList.remove("project-edit-drawer-backdrop--open");
   refs.backdrop.setAttribute("aria-hidden", "true");
+  hooks.DialogManager?.close("projectEditDrawer");
   refs.form.reset();
   refs.meta.textContent = "";
   unlockBodyScrollForProjectEditDrawer();
@@ -635,6 +647,9 @@ function openProjectCrudModal(mode, opener, initialProjectName = "") {
   state.lastProjectCrudOpener = opener instanceof HTMLElement ? opener : null;
 
   refs.modal.style.display = "flex";
+  hooks.DialogManager?.open("projectCrudModal", refs.modal, {
+    onEscape: () => closeProjectCrudModal({ restoreFocus: true }),
+  });
   refs.title.textContent = mode === "rename" ? "Rename project" : "New project";
   refs.submit.textContent = mode === "rename" ? "Save" : "Create";
   refs.input.value = initialProjectName || "";
@@ -653,6 +668,7 @@ function closeProjectCrudModal({ restoreFocus = true } = {}) {
   state.projectCrudMode = "create";
   state.projectCrudTargetProject = "";
   refs.modal.style.display = "none";
+  hooks.DialogManager?.close("projectCrudModal");
   refs.form.reset();
 
   if (restoreFocus) {

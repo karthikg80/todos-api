@@ -699,7 +699,13 @@ export function openProjectsRailSheet(triggerEl = null) {
 
   lockBodyScrollForProjectsRail();
   hooks.DialogManager?.open("railSheet", refs.sheet, {
-    onEscape: () => closeProjectsRailSheet({ restoreFocus: true }),
+    onEscape: () => {
+      if (state.openRailProjectMenuKey) {
+        closeRailProjectMenu({ restoreFocus: true });
+        return;
+      }
+      closeProjectsRailSheet({ restoreFocus: true });
+    },
     backdrop: false,
   });
   window.requestAnimationFrame(() => {

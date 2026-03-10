@@ -3,6 +3,16 @@
 // Imports state from store.js. Cross-module calls go through hooks.
 // =============================================================================
 import { state, hooks, createInitialHomeTopFocusState } from "./store.js";
+import {
+  hasTodoRow,
+  patchBulkToolbar,
+  patchHeaderCountsFromVisibleTodos,
+  patchProjectsRailCounts,
+  patchTodoBulkSelected,
+  patchTodoCompleted,
+  patchTodoContentMetadata,
+  patchVisibleCategoryGroupStats,
+} from "./todosViewPatches.js";
 import { EventBus } from "./eventBus.js";
 
 // ---------------------------------------------------------------------------
@@ -351,8 +361,23 @@ async function toggleTodo(id, forceValue = null) {
     if (response && response.ok) {
       const updatedTodo = await response.json();
       state.todos = state.todos.map((t) => (t.id === id ? updatedTodo : t));
-      await refreshVisibleTodosIfNeeded();
-      EventBus.dispatch("todos:changed", { reason: "todo-toggled" });
+      const canPatchInPlace =
+        !hooks.shouldUseServerVisibleTodos?.() &&
+        state.currentWorkspaceView === "all" &&
+        !state.homeListDrilldownKey &&
+        hasTodoRow(id);
+
+      if (canPatchInPlace) {
+        patchTodoCompleted(id, updatedTodo.completed);
+        patchTodoContentMetadata(id, updatedTodo);
+        patchVisibleCategoryGroupStats();
+        patchProjectsRailCounts();
+        patchHeaderCountsFromVisibleTodos();
+        hooks.syncTodoDrawerStateWithRender?.();
+      } else {
+        await refreshVisibleTodosIfNeeded();
+        EventBus.dispatch("todos:changed", { reason: "todo-toggled" });
+      }
 
       if (forceValue === null && newCompletedValue) {
         addUndoAction("complete", { id }, "Todo marked as complete");
@@ -566,12 +591,13 @@ function toggleSelectTodo(todoId) {
   } else {
     state.selectedTodos.add(todoId);
   }
-  updateBulkActionsVisibility();
-  updateSelectAllCheckbox();
+  patchTodoBulkSelected(todoId, state.selectedTodos.has(todoId));
+  patchBulkToolbar();
 }
 
 function toggleSelectAll() {
   const selectAllCheckbox = document.getElementById("selectAllCheckbox");
+  if (!(selectAllCheckbox instanceof HTMLInputElement)) return;
   const filteredTodos = hooks.getVisibleTodos?.() ?? [];
 
   if (selectAllCheckbox.checked) {
@@ -580,7 +606,10 @@ function toggleSelectAll() {
     filteredTodos.forEach((todo) => state.selectedTodos.delete(todo.id));
   }
 
-  EventBus.dispatch("todos:changed", { reason: "bulk-action" });
+  filteredTodos.forEach((todo) => {
+    patchTodoBulkSelected(todo.id, state.selectedTodos.has(todo.id));
+  });
+  patchBulkToolbar();
 }
 
 function updateSelectAllCheckbox() {
@@ -595,18 +624,7 @@ function updateSelectAllCheckbox() {
 }
 
 function updateBulkActionsVisibility() {
-  const toolbar = document.getElementById("bulkActionsToolbar");
-  const bulkCount = document.getElementById("bulkCount");
-
-  if (state.selectedTodos.size > 0) {
-    if (toolbar) toolbar.style.display = "flex";
-    if (bulkCount)
-      bulkCount.textContent = `${state.selectedTodos.size} selected`;
-  } else {
-    if (toolbar) toolbar.style.display = "none";
-  }
-
-  updateSelectAllCheckbox();
+  patchBulkToolbar();
 }
 
 async function completeSelected() {
