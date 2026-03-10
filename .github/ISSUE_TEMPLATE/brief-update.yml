@@ -1,0 +1,49 @@
+name: Brief Update
+description: Capture a change that belongs in durable repo guidance
+title: "[Brief]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form when durable guidance, protocol, or canon needs to change.
+        Docs are for durable guidance, not live task state.
+  - type: textarea
+    id: durable-guidance
+    attributes:
+      label: Durable guidance that changed
+      description: What new lasting rule, decision, or operating note needs to be recorded?
+      placeholder: Describe the durable change in guidance.
+    validations:
+      required: true
+  - type: textarea
+    id: docs-to-update
+    attributes:
+      label: Doc(s) to update
+      description: Which durable docs should change?
+      placeholder: docs/WORKFLOW.md, docs/memory/brief/BRIEF.md, docs/...
+    validations:
+      required: true
+  - type: textarea
+    id: why-docs
+    attributes:
+      label: Why this should live in docs
+      description: Explain why this belongs in durable documentation rather than issue comments or PR notes.
+      placeholder: Explain why future contributors will need this guidance.
+    validations:
+      required: true
+  - type: input
+    id: related-work
+    attributes:
+      label: Related issue / PR
+      description: Link the related issue or PR if one exists.
+      placeholder: "#123, #456"
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: What makes this documentation update complete?
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
