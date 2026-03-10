@@ -97,7 +97,7 @@ Key invariants from this sprint (see Canon candidates):
 ## Open Tech Debt
 
 - ~~`state.js` vs `store.js` overlap~~ resolved in Task 151 (renamed to authSession.js)
-- API rate limiting — no middleware exists on Express layer
+- API rate limiting resolved in Task 152 (extracted to rateLimitMiddleware.ts)
 - Component framework migration spike — deferred; requires explicit human ADR before any work begins
 
 ---
