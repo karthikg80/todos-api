@@ -657,16 +657,9 @@ const {
 // PROJECT_PATH_SEPARATOR, MOBILE_DRAWER_MEDIA_QUERY — from utils/utils.js
 // ON_CREATE_SURFACE, TODAY_PLAN_SURFACE — from utils/aiSuggestionUtils.js
 // AI_DEBUG_ENABLED, AI_SURFACE_TYPES, AI_SURFACE_IMPACT — from utils/aiSuggestionUtils.js
-const PROJECTS_RAIL_COLLAPSED_STORAGE_KEY = "todos:projects-rail-collapsed";
-const AI_WORKSPACE_COLLAPSED_STORAGE_KEY = "todos:ai-collapsed";
-const AI_WORKSPACE_VISIBLE_STORAGE_KEY = "todos:ai-visible";
-const QUICK_ENTRY_PROPERTIES_OPEN_STORAGE_KEY =
-  "todos:quick-entry-properties-open";
 const SIDEBAR_NAV_ITEMS = [];
 state.onCreateAssistState.dismissedTodoIds =
   OnCreateAssist.loadOnCreateDismissedTodoIds();
-
-const HOME_TOP_FOCUS_CACHE_KEY = "todos:home-top-focus-cache";
 const HOME_TOP_FOCUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS = 320;
 

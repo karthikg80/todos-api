@@ -5,9 +5,10 @@
 
 import { state, hooks } from "./store.js";
 import { getAllProjects } from "./projectsState.js";
+import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 function taskDrawerDismissKey(todoId) {
-  return `taskDrawerAssist:dismissed:${todoId}`;
+  return `${STORAGE_KEYS.TASK_DRAWER_DISMISSED_PREFIX}${todoId}`;
 }
 
 function getTaskDrawerSuggestionLabel(type) {

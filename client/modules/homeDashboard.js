@@ -14,12 +14,12 @@ import {
 } from "./filterLogic.js";
 import { selectProjectFromRail } from "./railUi.js";
 import { openTodoDrawer } from "./drawerUi.js";
+import { STORAGE_KEYS } from "../utils/storageKeys.js";
 
 const { escapeHtml } = window.Utils || {};
 const { getProjectLeafName, normalizeProjectPath } =
   window.ProjectPathUtils || {};
 
-const HOME_TOP_FOCUS_CACHE_KEY = "todos:home-top-focus-cache";
 const HOME_TOP_FOCUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const HOME_STALE_RISK_DAYS = 14;
 
@@ -371,7 +371,7 @@ export function getHomeTopFocusRequestKey(candidates) {
 
 export function readCachedHomeTopFocus(requestKey) {
   try {
-    const raw = window.localStorage.getItem(HOME_TOP_FOCUS_CACHE_KEY);
+    const raw = window.localStorage.getItem(STORAGE_KEYS.HOME_TOP_FOCUS_CACHE);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
     if (!parsed || parsed.requestKey !== requestKey) return null;
@@ -393,7 +393,7 @@ export function writeCachedHomeTopFocus(
 ) {
   try {
     window.localStorage.setItem(
-      HOME_TOP_FOCUS_CACHE_KEY,
+      STORAGE_KEYS.HOME_TOP_FOCUS_CACHE,
       JSON.stringify({
         ts: Date.now(),
         requestKey,
