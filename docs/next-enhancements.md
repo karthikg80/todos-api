@@ -12,5 +12,5 @@
 No tasks currently queued. Candidates for next sprint:
 
 - ~~`state.js` vs `store.js` overlap~~ resolved in Task 151 (renamed to authSession.js)
-- API rate limiting — no middleware exists on the Express layer
+- API rate limiting resolved in Task 152 (extracted to rateLimitMiddleware.ts)
 - Component framework migration spike — was deferred (Task 143 original numbering); requires explicit human ADR decision before any work begins

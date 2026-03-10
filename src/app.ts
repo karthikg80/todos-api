@@ -2,7 +2,6 @@ import express, { Request, Response, RequestHandler } from "express";
 import path from "path";
 import cors from "cors";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import { ITodoService } from "./interfaces/ITodoService";
@@ -23,6 +22,11 @@ import { UserPlan } from "./routes/aiRouter";
 import { createProjectsRouter } from "./routes/projectsRouter";
 import { IProjectService } from "./interfaces/IProjectService";
 import { IHeadingService } from "./interfaces/IHeadingService";
+import {
+  authLimiter,
+  emailActionLimiter,
+  apiLimiter,
+} from "./middleware/rateLimitMiddleware";
 
 export function createApp(
   todoService: ITodoService = new TodoService(),
@@ -149,38 +153,6 @@ export function createApp(
     res.setHeader("Content-Type", "application/json");
     res.send(swaggerSpec);
   });
-
-  const isTest = process.env.NODE_ENV === "test";
-  const noLimit: RequestHandler = (_req, _res, next) => next();
-  const authLimiter = isTest
-    ? noLimit
-    : rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 5,
-        message: "Too many authentication attempts, please try again later",
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
-
-  const emailActionLimiter = isTest
-    ? noLimit
-    : rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 20,
-        message: "Too many email actions, please try again later",
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
-
-  const apiLimiter = isTest
-    ? noLimit
-    : rateLimit({
-        windowMs: 15 * 60 * 1000,
-        max: 100,
-        message: "Too many requests, please try again later",
-        standardHeaders: true,
-        legacyHeaders: false,
-      });
 
   app.use("/api", apiLimiter);
   app.use("/todos", apiLimiter);
