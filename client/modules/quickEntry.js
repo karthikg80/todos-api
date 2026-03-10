@@ -618,6 +618,10 @@ export function openTaskComposer(triggerEl = null) {
   refs.sheet.setAttribute("aria-hidden", "false");
   refs.backdrop.classList.add("task-composer-backdrop--open");
   refs.backdrop.setAttribute("aria-hidden", "false");
+  hooks.DialogManager?.open("taskComposer", refs.sheet, {
+    onEscape: () =>
+      closeTaskComposer({ restoreFocus: true, force: true, reset: false }),
+  });
   updateTaskComposerDueClearButton();
   window.requestAnimationFrame(() => {
     refs.titleInput?.focus();
@@ -638,6 +642,7 @@ export function closeTaskComposer({
   refs.sheet.setAttribute("aria-hidden", "true");
   refs.backdrop.classList.remove("task-composer-backdrop--open");
   refs.backdrop.setAttribute("aria-hidden", "true");
+  hooks.DialogManager?.close("taskComposer");
   if (reset) {
     resetTaskComposerFields();
   }

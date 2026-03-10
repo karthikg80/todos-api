@@ -891,9 +891,9 @@ function renderTodos() {
           };
           const categoryHeader = categoryChanged
             ? `
-          <li class="todo-group-header">
+          <li class="todo-group-header" data-category-group-key="${hooks.escapeHtml?.(categoryLabel)}">
             <span>\u{1F4C1} ${hooks.escapeHtml?.(categoryLabel)}</span>
-            <span>${stats.done}/${stats.total} done</span>
+            <span data-category-group-stats="true">${stats.done}/${stats.total} done</span>
           </li>
         `
             : "";

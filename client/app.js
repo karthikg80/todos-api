@@ -33,6 +33,7 @@ import {
   showUndoToast,
   performUndo,
   restoreTodo,
+  shouldUseServerVisibleTodos,
 } from "./modules/todosService.js";
 import {
   projectStorageKey,
@@ -122,6 +123,7 @@ import {
   renderTodos,
 } from "./modules/filterLogic.js";
 import {
+  DialogManager,
   showConfirmDialog,
   showInputDialog,
   openEditTodoModal,
@@ -447,113 +449,6 @@ const debounce = (fn, ms) => {
     if (leading) fn(...args);
   };
 };
-
-// =============================================================================
-// DialogManager — centralizes focus trap, Escape propagation, and aria-modal
-// attribute management for all modal overlay surfaces.
-//
-// Design decisions:
-//   • z-index is NOT managed — each overlay's CSS handles stacking. Touching
-//     z-index here would break backdrops and existing Playwright assertions.
-//   • Focus is NOT auto-managed — each overlay's own open/close function
-//     handles focus movement. DialogManager only traps Tab while a layer is
-//     registered so focus stays within the topmost surface.
-//   • Escape is routed to the topmost layer's onEscape callback. The global
-//     bubble-phase keydown handler must not double-fire for managed layers
-//     (see guard below global keydown registration).
-//   • aria-modal="true" is set on open and removed on close.
-// =============================================================================
-const DialogManager = (() => {
-  const stack = []; // [{ layerId, el, onEscape }]
-
-  function getFocusable(el) {
-    return Array.from(
-      el.querySelectorAll(
-        "a[href],button:not([disabled]),input:not([disabled]),select:not([disabled])," +
-          'textarea:not([disabled]),[tabindex]:not([tabindex="-1"])',
-      ),
-    ).filter((e) => !e.closest("[hidden]") && e.offsetParent !== null);
-  }
-
-  function trapFocus(e) {
-    const top = stack[stack.length - 1];
-    if (!top) return;
-    const focusable = getFocusable(top.el);
-    if (!focusable.length) {
-      e.preventDefault();
-      return;
-    }
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    if (e.shiftKey) {
-      if (document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      }
-    } else {
-      if (document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-  }
-
-  function handleKeydown(e) {
-    if (e.key === "Tab" && stack.length > 0) {
-      trapFocus(e);
-      e.stopPropagation();
-      return;
-    }
-    if (e.key === "Escape" && stack.length > 0) {
-      e.stopPropagation();
-      const top = stack[stack.length - 1];
-      if (top.onEscape) top.onEscape();
-    }
-  }
-
-  document.addEventListener("keydown", handleKeydown, true);
-
-  return {
-    /**
-     * Register an overlay layer with DialogManager.
-     * @param {string} layerId     - unique identifier string
-     * @param {HTMLElement} el     - the overlay container element
-     * @param {object} [opts]
-     *   opts.onEscape {function}  - called when Escape pressed on topmost layer
-     */
-    open(layerId, el, opts) {
-      const options = opts || {};
-      if (stack.some((s) => s.layerId === layerId)) return;
-      el.setAttribute("aria-modal", "true");
-      if (!el.getAttribute("role")) {
-        el.setAttribute("role", "dialog");
-      }
-      stack.push({ layerId, el, onEscape: options.onEscape || null });
-    },
-
-    close(layerId) {
-      const idx = stack.findIndex((s) => s.layerId === layerId);
-      if (idx === -1) return;
-      const entry = stack.splice(idx, 1)[0];
-      entry.el.removeAttribute("aria-modal");
-    },
-
-    closeAll() {
-      while (stack.length > 0) {
-        const entry = stack.pop();
-        entry.el.removeAttribute("aria-modal");
-      }
-    },
-
-    isOpen(layerId) {
-      return stack.some((s) => s.layerId === layerId);
-    },
-
-    get depth() {
-      return stack.length;
-    },
-  };
-})();
 
 // ---------------------------------------------------------------------------
 // Module consumption — extracted pure-function modules loaded before app.js
@@ -1634,6 +1529,7 @@ function bindDeclarativeHandlers() {
   EventBus.subscribe("todos:changed", applyFiltersAndRender);
   EventBus.subscribe("todos:render", renderTodos);
   hooks.updateCategoryFilter = updateCategoryFilter;
+  hooks.shouldUseServerVisibleTodos = shouldUseServerVisibleTodos;
   // todosService / filterLogic → projectsState
   hooks.loadProjects = loadProjects;
   hooks.refreshProjectCatalog = refreshProjectCatalog;
