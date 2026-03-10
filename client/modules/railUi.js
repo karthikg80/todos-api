@@ -8,7 +8,6 @@ import { applyDomainAction, applyUiAction } from "./stateActions.js";
 import {
   getSelectedProjectKey,
   getSelectedProjectLabel,
-  getSelectedProjectName,
   syncWorkspaceViewState,
   isTodoUnsorted,
   setSelectedProjectKey,
@@ -262,7 +261,6 @@ export function getProjectsRailElements() {
 export function openProjectsFromCollapsedRail(triggerEl = null) {
   if (!state.isRailCollapsed) return;
   setProjectsRailCollapsed(false);
-  renderProjectsRail();
   window.requestAnimationFrame(() => {
     const refs = getProjectsRailElements();
     if (!refs) return;
@@ -289,8 +287,18 @@ export function openProjectsFromCollapsedRail(triggerEl = null) {
 }
 
 export function isMobileRailViewport() {
+  if (typeof hooks.isMobileViewport === "function") {
+    return hooks.isMobileViewport();
+  }
   if (typeof window.matchMedia !== "function") return false;
   return window.matchMedia(MOBILE_DRAWER_MEDIA_QUERY).matches;
+}
+
+function getRailPresentationMode() {
+  if (typeof hooks.getRailPresentationMode === "function") {
+    return hooks.getRailPresentationMode();
+  }
+  return isMobileRailViewport() ? "sheet" : "sidebar";
 }
 
 export function getProjectTodoCount(projectName) {
@@ -312,7 +320,8 @@ export function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
 
   const topbarLabel = document.getElementById("projectsRailTopbarLabel");
   const topbar = document.querySelector("#todosView .todos-top-bar");
-  const shouldShow = isMobileRailViewport() || state.isRailCollapsed;
+  const railPresentationMode = getRailPresentationMode();
+  const shouldShow = railPresentationMode === "sheet" || state.isRailCollapsed;
 
   if (topbar instanceof HTMLElement) {
     topbar.hidden = !shouldShow;
@@ -325,7 +334,9 @@ export function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
   refs.mobileOpenButton.setAttribute(
     "aria-expanded",
     String(
-      isMobileRailViewport() ? state.isRailSheetOpen : !state.isRailCollapsed,
+      railPresentationMode === "sheet"
+        ? state.isRailSheetOpen
+        : !state.isRailCollapsed,
     ),
   );
   if (shouldShow) {
@@ -358,25 +369,155 @@ export function renderProjectsRailListHtml({
   openTodoCountMap = null,
 }) {
   return projects
-    .map((projectName) => {
-      const isActive = projectName === selectedProject;
-      const count =
-        openTodoCountMap instanceof Map
-          ? openTodoCountMap.get(projectName) || 0
-          : getProjectTodoCount(projectName);
-      const svgIcon =
-        '<svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
-      const leafName = getProjectLeafName(projectName);
-      return (
-        `<div class="projects-rail-row">` +
-        `<button type="button" class="projects-rail-item${isActive ? " projects-rail-item--active" : ""}" data-project-key="${escapeHtml(projectName)}"${isActive ? ' aria-current="page"' : ""}>` +
-        svgIcon +
-        `<span class="projects-rail-item__label" title="${escapeHtml(leafName)}">${escapeHtml(leafName)}</span>` +
-        `<span class="projects-rail-item__count">${count}</span>` +
-        `</button></div>`
-      );
-    })
+    .map((projectName) =>
+      renderProjectsRailRowHtml(projectName, {
+        selectedProject,
+        count:
+          openTodoCountMap instanceof Map
+            ? openTodoCountMap.get(projectName) || 0
+            : getProjectTodoCount(projectName),
+      }),
+    )
     .join("");
+}
+
+function renderProjectsRailRowHtml(
+  projectName,
+  { selectedProject = "", count = 0 } = {},
+) {
+  const isActive = projectName === selectedProject;
+  const svgIcon =
+    '<svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+  const leafName = getProjectLeafName(projectName);
+  return (
+    `<div class="projects-rail-row">` +
+    `<button type="button" class="projects-rail-item${isActive ? " projects-rail-item--active" : ""}" data-project-key="${escapeHtml(projectName)}"${isActive ? ' aria-current="page"' : ""}>` +
+    svgIcon +
+    `<span class="projects-rail-item__label" title="${escapeHtml(leafName)}">${escapeHtml(leafName)}</span>` +
+    `<span class="projects-rail-item__count">${count}</span>` +
+    `</button></div>`
+  );
+}
+
+function createProjectsRailRowElement(
+  projectName,
+  { selectedProject = "", count = 0 } = {},
+) {
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = renderProjectsRailRowHtml(projectName, {
+    selectedProject,
+    count,
+  }).trim();
+  return wrapper.firstElementChild instanceof HTMLElement
+    ? wrapper.firstElementChild
+    : null;
+}
+
+function patchProjectsRailRowElement(
+  row,
+  projectName,
+  { selectedProject = "", count = 0 } = {},
+) {
+  if (!(row instanceof HTMLElement)) return;
+  const button = row.querySelector(".projects-rail-item[data-project-key]");
+  if (!(button instanceof HTMLButtonElement)) return;
+
+  const isActive = projectName === selectedProject;
+  const leafName = getProjectLeafName(projectName);
+  const label = row.querySelector(".projects-rail-item__label");
+  const countEl = row.querySelector(".projects-rail-item__count");
+
+  button.setAttribute("type", "button");
+  button.setAttribute("data-project-key", projectName);
+  button.classList.toggle("projects-rail-item--active", isActive);
+  if (isActive) {
+    button.setAttribute("aria-current", "page");
+  } else {
+    button.removeAttribute("aria-current");
+  }
+
+  if (label instanceof HTMLElement) {
+    label.textContent = leafName;
+    label.setAttribute("title", leafName);
+  }
+  if (countEl instanceof HTMLElement) {
+    countEl.textContent = String(count);
+  }
+}
+
+function reconcileProjectsRailList(
+  root,
+  { projects, selectedProject, openTodoCountMap = null } = {},
+) {
+  if (!(root instanceof HTMLElement)) return;
+
+  const existingRowsByProject = new Map();
+  root.querySelectorAll(".projects-rail-row").forEach((row) => {
+    if (!(row instanceof HTMLElement)) return;
+    const button = row.querySelector(".projects-rail-item[data-project-key]");
+    if (!(button instanceof HTMLElement)) return;
+    existingRowsByProject.set(
+      button.getAttribute("data-project-key") || "",
+      row,
+    );
+  });
+
+  let insertionPoint = root.firstElementChild;
+  const desiredKeys = new Set(projects);
+
+  projects.forEach((projectName) => {
+    const count =
+      openTodoCountMap instanceof Map
+        ? openTodoCountMap.get(projectName) || 0
+        : getProjectTodoCount(projectName);
+    let row = existingRowsByProject.get(projectName) || null;
+    if (!(row instanceof HTMLElement)) {
+      row = createProjectsRailRowElement(projectName, {
+        selectedProject,
+        count,
+      });
+    }
+    if (!(row instanceof HTMLElement)) return;
+
+    patchProjectsRailRowElement(row, projectName, {
+      selectedProject,
+      count,
+    });
+
+    if (row !== insertionPoint) {
+      root.insertBefore(row, insertionPoint);
+    }
+    insertionPoint = row.nextElementSibling;
+  });
+
+  existingRowsByProject.forEach((row, projectKey) => {
+    if (desiredKeys.has(projectKey)) return;
+    row.remove();
+  });
+}
+
+function syncDesktopProjectsRailList(
+  root,
+  { projects, selectedProject, openTodoCountMap = null } = {},
+) {
+  if (!(root instanceof HTMLElement)) return;
+
+  const shouldRenderDesktopProjects = !state.isRailCollapsed;
+  root.hidden = !shouldRenderDesktopProjects;
+  root.setAttribute("aria-hidden", String(!shouldRenderDesktopProjects));
+
+  if (!shouldRenderDesktopProjects) {
+    if (root.firstElementChild) {
+      root.replaceChildren();
+    }
+    return;
+  }
+
+  reconcileProjectsRailList(root, {
+    projects,
+    selectedProject,
+    openTodoCountMap,
+  });
 }
 
 export function getRailOptionElements(root) {
@@ -528,16 +669,12 @@ export function renderProjectsRail() {
     state.openRailProjectMenuKey = null;
   }
 
-  const shouldRenderDesktopProjects = !state.isRailCollapsed;
-  refs.railList.hidden = !shouldRenderDesktopProjects;
-  refs.railList.innerHTML = shouldRenderDesktopProjects
-    ? renderProjectsRailListHtml({
-        projects,
-        selectedProject,
-        openTodoCountMap,
-      })
-    : "";
-  refs.sheetList.innerHTML = renderProjectsRailListHtml({
+  syncDesktopProjectsRailList(refs.railList, {
+    projects,
+    selectedProject,
+    openTodoCountMap,
+  });
+  reconcileProjectsRailList(refs.sheetList, {
     projects,
     selectedProject,
     openTodoCountMap,
@@ -580,14 +717,34 @@ export function renderProjectsRail() {
   }
   setProjectsRailActiveState(selectedProject);
   syncWorkspaceViewState();
-  setProjectsRailCollapsed(state.isRailCollapsed);
-  updateTopbarProjectsButton(getSelectedProjectLabel(selectedProject));
+  setProjectsRailCollapsed(state.isRailCollapsed, {
+    persist: false,
+    focusOnExpand: false,
+    projects,
+    selectedProject,
+    openTodoCountMap,
+  });
 }
 
-export function setProjectsRailCollapsed(nextCollapsed) {
+export function patchProjectsRailView() {
+  renderProjectsRail();
+}
+
+export function setProjectsRailCollapsed(
+  nextCollapsed,
+  {
+    persist = true,
+    focusOnExpand = true,
+    projects = null,
+    selectedProject = getSelectedProjectKey(),
+    openTodoCountMap = null,
+  } = {},
+) {
   const wasCollapsed = state.isRailCollapsed;
-  state.isRailCollapsed = !!nextCollapsed;
-  persistRailCollapsedState(state.isRailCollapsed);
+  applyUiAction("rail/collapsed:set", { collapsed: nextCollapsed });
+  if (persist) {
+    persistRailCollapsedState(state.isRailCollapsed);
+  }
   document.body.classList.toggle(
     "is-projects-rail-collapsed",
     state.isRailCollapsed,
@@ -611,9 +768,26 @@ export function setProjectsRailCollapsed(nextCollapsed) {
     "aria-label",
     state.isRailCollapsed ? "Expand sidebar" : "Collapse sidebar",
   );
-  updateTopbarProjectsButton(getSelectedProjectName());
+  const nextOpenTodoCountMap =
+    openTodoCountMap instanceof Map
+      ? openTodoCountMap
+      : buildOpenTodoCountMapByProject();
+  const nextProjects = Array.isArray(projects)
+    ? projects
+    : getProjectsForRail(nextOpenTodoCountMap);
+  syncDesktopProjectsRailList(refs.railList, {
+    projects: nextProjects,
+    selectedProject,
+    openTodoCountMap: nextOpenTodoCountMap,
+  });
+  updateTopbarProjectsButton(getSelectedProjectLabel(selectedProject));
 
-  if (wasCollapsed && !state.isRailCollapsed && !isMobileRailViewport()) {
+  if (
+    focusOnExpand &&
+    wasCollapsed &&
+    !state.isRailCollapsed &&
+    !isMobileRailViewport()
+  ) {
     window.requestAnimationFrame(() => {
       focusActiveProjectItem({ preferSheet: false });
     });

@@ -14,8 +14,7 @@ import {
   patchHeaderCountsFromVisibleTodos,
   patchProjectsRailCounts,
   patchSelectedTodoRowActiveState,
-  patchTodoCompleted,
-  patchTodoContentMetadata,
+  patchTodoById,
   patchTodoKebabState,
   patchVisibleCategoryGroupStats,
 } from "./todosViewPatches.js";
@@ -474,6 +473,9 @@ const MOBILE_DRAWER_MEDIA_QUERY =
   hooks.MOBILE_DRAWER_MEDIA_QUERY || "(max-width: 768px)";
 
 function isMobileDrawerViewport() {
+  if (typeof hooks.isMobileViewport === "function") {
+    return hooks.isMobileViewport();
+  }
   if (window.matchMedia) {
     return window.matchMedia(MOBILE_DRAWER_MEDIA_QUERY).matches;
   }
@@ -547,13 +549,14 @@ export async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
       hasTodoRow(updatedTodo.id);
 
     if (canPatchInPlace) {
+      patchTodoById(updatedTodo.id, updatedTodo, {
+        syncCompleted: patchKeys.includes("completed"),
+      });
       if (patchKeys.includes("completed")) {
-        patchTodoCompleted(updatedTodo.id, updatedTodo.completed);
         patchVisibleCategoryGroupStats();
         patchProjectsRailCounts();
         patchHeaderCountsFromVisibleTodos();
       }
-      patchTodoContentMetadata(updatedTodo.id, updatedTodo);
     } else {
       EventBus.dispatch("todos:changed", { reason: "todo-updated" });
     }

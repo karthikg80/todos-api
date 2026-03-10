@@ -120,6 +120,16 @@ export function applyUiAction(type, payload = {}) {
     case "moreFilters:set":
       state.isMoreFiltersOpen = !!payload.isOpen;
       return state.isMoreFiltersOpen;
+    case "rail/collapsed:set":
+      state.isRailCollapsed = !!payload.collapsed;
+      return state.isRailCollapsed;
+    case "rail/presentation:set":
+      state.railPresentationMode =
+        payload.mode === "sheet" ? "sheet" : "sidebar";
+      return state.railPresentationMode;
+    case "viewport/mode:set":
+      state.viewportMode = payload.mode === "mobile" ? "mobile" : "desktop";
+      return state.viewportMode;
     case "projectCrud/open":
       state.isProjectCrudModalOpen = true;
       state.projectCrudMode = payload.mode === "rename" ? "rename" : "create";

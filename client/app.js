@@ -152,6 +152,7 @@ import {
   getProjectTodoCount,
   updateTopbarProjectsButton,
   setProjectsRailActiveState,
+  patchProjectsRailView,
   renderProjectsRail,
   setProjectsRailCollapsed,
   closeRailProjectMenu,
@@ -178,6 +179,11 @@ import {
   syncSidebarNavState,
   bindProjectsRailHandlers,
 } from "./modules/railUi.js";
+import {
+  bindResponsiveLayoutState,
+  getRailPresentationMode,
+  isMobileViewport,
+} from "./modules/responsiveLayout.js";
 import {
   setAuthState,
   handleAuthFailure,
@@ -419,7 +425,7 @@ const API_URL =
 // Fires on the leading edge (immediate on first call) and again on the
 // trailing edge (ms after the last call), so single-event triggers (e.g.
 // Playwright fill()) respond instantly while rapid keystrokes are batched.
-const DEBOUNCE_MS = 250;
+const FILTER_INPUT_DEBOUNCE_MS = 180;
 const debounce = (fn, ms) => {
   let t;
   return (...args) => {
@@ -432,6 +438,11 @@ const debounce = (fn, ms) => {
     if (leading) fn(...args);
   };
 };
+
+const DEBOUNCED_INPUT_EXPRESSIONS = new Set([
+  "filterTodos()",
+  "syncSheetSearch()",
+]);
 
 // ---------------------------------------------------------------------------
 // Module consumption — extracted pure-function modules loaded before app.js
@@ -1235,7 +1246,6 @@ function bindCriticalHandlers() {
 
   bindClick("projectsRailToggle", () => {
     setProjectsRailCollapsed(!state.isRailCollapsed);
-    renderProjectsRail();
   });
 
   bindClick("projectsRailMobileOpen", (element) => {
@@ -1430,8 +1440,8 @@ function bindDeclarativeHandlers() {
   }
   window.__declarativeHandlersBound = true;
 
-  // Per-expression debounce cache: input events are debounced so that rapid
-  // keystrokes (e.g. typing into #searchInput) do not re-render on every key.
+  // Only search/filter inputs are debounced; other input handlers stay
+  // immediate so task composition and assist surfaces remain responsive.
   const inputDebouncedInvokers = new Map();
 
   const events = [
@@ -1478,12 +1488,15 @@ function bindDeclarativeHandlers() {
       if (!element) return;
       const expression = element.dataset[attribute];
       if (!expression) return;
-      if (eventType === "input") {
+      if (
+        eventType === "input" &&
+        DEBOUNCED_INPUT_EXPRESSIONS.has(expression)
+      ) {
         let fn = inputDebouncedInvokers.get(expression);
         if (!fn) {
           fn = debounce(
             (expr, ev, el) => invokeBoundExpression(expr, ev, el),
-            DEBOUNCE_MS,
+            FILTER_INPUT_DEBOUNCE_MS,
           );
           inputDebouncedInvokers.set(expression, fn);
         }
@@ -1601,8 +1614,14 @@ function bindDeclarativeHandlers() {
   // railUi cross-module hooks
   hooks.DialogManager = DialogManager;
   hooks.ensureTodosShellActive = ensureTodosShellActive;
+  hooks.getRailPresentationMode = getRailPresentationMode;
+  hooks.isMobileViewport = isMobileViewport;
+  hooks.onResponsiveLayoutChanged = () => {
+    renderProjectsRail();
+  };
   // filterLogic → render sub-hooks
   hooks.renderProjectsRail = renderProjectsRail;
+  hooks.patchProjectsRailView = patchProjectsRailView;
   hooks.renderTodayPlanPanel = TodayPlan.renderTodayPlanPanel;
   hooks.clearHomeFocusDashboard = clearHomeFocusDashboard;
   hooks.renderHomeDashboard = renderHomeDashboard;
@@ -1784,6 +1803,7 @@ window.deleteUser = deleteUser;
 // App bootstrap
 // ---------------------------------------------------------------------------
 function init() {
+  bindResponsiveLayoutState();
   renderSidebarNavigation();
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
