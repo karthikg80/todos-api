@@ -141,6 +141,8 @@ export const state = {
   currentWorkspaceView: "home",
   homeListDrilldownKey: "",
   isMoreFiltersOpen: false,
+  viewportMode: "desktop",
+  railPresentationMode: "sidebar",
 
   // Todo drawer
   selectedTodoId: null,

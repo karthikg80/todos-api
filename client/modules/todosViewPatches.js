@@ -263,6 +263,19 @@ export function patchTodoContentMetadata(todoId, updatedTodo) {
   }
 }
 
+export function patchTodoById(
+  todoId,
+  updatedTodo,
+  { syncCompleted = true, syncContent = true } = {},
+) {
+  if (syncCompleted) {
+    patchTodoCompleted(todoId, updatedTodo?.completed);
+  }
+  if (syncContent) {
+    patchTodoContentMetadata(todoId, updatedTodo);
+  }
+}
+
 export function patchHeaderCountsFromVisibleTodos(
   visibleTodos = getVisibleTodos(),
 ) {
@@ -291,6 +304,11 @@ export function patchVisibleCategoryGroupStats(
 }
 
 export function patchProjectsRailCounts() {
+  if (typeof hooks.patchProjectsRailView === "function") {
+    hooks.patchProjectsRailView();
+    return;
+  }
+
   const refs = DomSelectors.getRailElements
     ? DomSelectors.getRailElements()
     : {

@@ -734,7 +734,7 @@ function renderTodos() {
   const container = document.getElementById("todosContent");
   if (!container) return;
 
-  hooks.renderProjectsRail?.();
+  hooks.patchProjectsRailView?.();
   hooks.renderTodayPlanPanel?.();
   const scrollRegion = document.getElementById("todosScrollRegion");
 

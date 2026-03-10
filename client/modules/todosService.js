@@ -8,9 +8,8 @@ import {
   patchBulkToolbar,
   patchHeaderCountsFromVisibleTodos,
   patchProjectsRailCounts,
+  patchTodoById,
   patchTodoBulkSelected,
-  patchTodoCompleted,
-  patchTodoContentMetadata,
   patchVisibleCategoryGroupStats,
 } from "./todosViewPatches.js";
 import { EventBus } from "./eventBus.js";
@@ -368,8 +367,7 @@ async function toggleTodo(id, forceValue = null) {
         hasTodoRow(id);
 
       if (canPatchInPlace) {
-        patchTodoCompleted(id, updatedTodo.completed);
-        patchTodoContentMetadata(id, updatedTodo);
+        patchTodoById(id, updatedTodo);
         patchVisibleCategoryGroupStats();
         patchProjectsRailCounts();
         patchHeaderCountsFromVisibleTodos();

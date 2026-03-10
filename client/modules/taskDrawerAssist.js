@@ -333,6 +333,9 @@ function restoreDrawerFocusState(focusState) {
 }
 
 function isMobileDrawerViewport() {
+  if (typeof hooks.isMobileViewport === "function") {
+    return hooks.isMobileViewport();
+  }
   if (window.matchMedia) {
     return window.matchMedia(hooks.MOBILE_DRAWER_MEDIA_QUERY).matches;
   }
