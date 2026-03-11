@@ -12,6 +12,8 @@ const MAX_STATE_LENGTH = 200;
 const MAX_CLIENT_NAME_LENGTH = 120;
 const PKCE_MIN_LENGTH = 43;
 const PKCE_MAX_LENGTH = 128;
+const OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE = "authorization_code";
+const OAUTH_CLIENT_GRANT_REFRESH_TOKEN = "refresh_token";
 
 export interface CreateMcpTokenDto {
   scopes: McpScope[];
@@ -193,13 +195,13 @@ function normalizeState(value: unknown): string | undefined {
 
 function normalizeGrantTypes(value: unknown): string[] {
   if (value === undefined) {
-    return ["authorization_code"];
+    return [OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE];
   }
   if (!Array.isArray(value) || value.length === 0) {
     throw new ValidationError("grant_types must be a non-empty array");
   }
 
-  const grantTypes = Array.from(
+  const requestedGrantTypes = Array.from(
     new Set(
       value.map((entry) => {
         if (typeof entry !== "string" || !entry.trim()) {
@@ -210,13 +212,28 @@ function normalizeGrantTypes(value: unknown): string[] {
     ),
   );
 
-  if (grantTypes.some((grantType) => grantType !== "authorization_code")) {
+  const allowedGrantTypes = new Set([
+    OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE,
+    OAUTH_CLIENT_GRANT_REFRESH_TOKEN,
+  ]);
+  if (
+    requestedGrantTypes.some((grantType) => !allowedGrantTypes.has(grantType))
+  ) {
     throw new ValidationError(
-      'grant_types must only include "authorization_code"',
+      'grant_types must only include "authorization_code" and optional "refresh_token"',
     );
   }
 
-  return grantTypes;
+  if (!requestedGrantTypes.includes(OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE)) {
+    throw new ValidationError('grant_types must include "authorization_code"');
+  }
+
+  return [
+    OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE,
+    ...(requestedGrantTypes.includes(OAUTH_CLIENT_GRANT_REFRESH_TOKEN)
+      ? [OAUTH_CLIENT_GRANT_REFRESH_TOKEN]
+      : []),
+  ];
 }
 
 function normalizeResponseTypes(value: unknown): string[] {

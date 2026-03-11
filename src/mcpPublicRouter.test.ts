@@ -141,7 +141,46 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(response.body.redirect_uris).toEqual([
       "https://chat.openai.com/aip/callback",
     ]);
+    expect(response.body.grant_types).toEqual(["authorization_code"]);
     expect(response.body.token_endpoint_auth_method).toBe("none");
+  });
+
+  it("accepts public clients that request refresh-token grant metadata", async () => {
+    const response = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        client_name: "Codex",
+        grant_types: ["refresh_token", "authorization_code"],
+        response_types: ["code"],
+        token_endpoint_auth_method: "none",
+      })
+      .expect(201);
+
+    expect(response.body.client_id).toEqual(expect.any(String));
+    expect(response.body.grant_types).toEqual([
+      "authorization_code",
+      "refresh_token",
+    ]);
+    expect(response.body.response_types).toEqual(["code"]);
+  });
+
+  it("rejects unsupported OAuth client grant types during registration", async () => {
+    const response = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        grant_types: ["authorization_code", "client_credentials"],
+      })
+      .expect(400);
+
+    expect(response.body.error).toBe("invalid_client_metadata");
+    expect(response.body.error_description).toContain(
+      '"authorization_code" and optional "refresh_token"',
+    );
+    expect(response.body.error_details.code).toBe(
+      "MCP_OAUTH_AUTHORIZE_INVALID",
+    );
   });
 
   it("completes the browser-style OAuth code flow for a registered connector", async () => {
