@@ -1,6 +1,9 @@
 import jwt from "jsonwebtoken";
 import { config } from "../config";
 
+const OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE = "authorization_code";
+const OAUTH_CLIENT_GRANT_REFRESH_TOKEN = "refresh_token";
+
 export interface McpRegisteredClient {
   clientId: string;
   redirectUris: string[];
@@ -30,13 +33,52 @@ interface McpClientPayload {
   exp?: number;
 }
 
+function normalizeSupportedGrantTypes(grantTypes?: unknown): string[] {
+  if (grantTypes !== undefined && !Array.isArray(grantTypes)) {
+    throw new Error("Unsupported OAuth client metadata");
+  }
+
+  const requestedGrantTypes =
+    grantTypes && grantTypes.length > 0
+      ? Array.from(
+          new Set(
+            grantTypes.map((grantType) => {
+              if (typeof grantType !== "string" || !grantType.trim()) {
+                throw new Error("Unsupported OAuth client metadata");
+              }
+              return grantType.trim();
+            }),
+          ),
+        )
+      : [OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE];
+
+  if (!requestedGrantTypes.includes(OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE)) {
+    throw new Error("Unsupported OAuth client metadata");
+  }
+
+  const allowedGrantTypes = new Set([
+    OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE,
+    OAUTH_CLIENT_GRANT_REFRESH_TOKEN,
+  ]);
+  if (
+    requestedGrantTypes.some((grantType) => !allowedGrantTypes.has(grantType))
+  ) {
+    throw new Error("Unsupported OAuth client metadata");
+  }
+
+  return [
+    OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE,
+    ...(requestedGrantTypes.includes(OAUTH_CLIENT_GRANT_REFRESH_TOKEN)
+      ? [OAUTH_CLIENT_GRANT_REFRESH_TOKEN]
+      : []),
+  ];
+}
+
 export class McpClientService {
   private readonly CLIENT_ID_TTL_SECONDS = 365 * 24 * 60 * 60;
 
   registerClient(input: RegisterMcpClientInput): McpRegisteredClient {
-    const grantTypes = input.grantTypes?.length
-      ? [...input.grantTypes]
-      : ["authorization_code"];
+    const grantTypes = normalizeSupportedGrantTypes(input.grantTypes);
     const responseTypes = input.responseTypes?.length
       ? [...input.responseTypes]
       : ["code"];
@@ -44,7 +86,6 @@ export class McpClientService {
 
     if (
       tokenEndpointAuthMethod !== "none" ||
-      grantTypes.some((grantType) => grantType !== "authorization_code") ||
       responseTypes.some((responseType) => responseType !== "code")
     ) {
       throw new Error("Unsupported OAuth client metadata");
@@ -83,6 +124,9 @@ export class McpClientService {
         clientId,
         config.accessJwtSecret,
       ) as Partial<McpClientPayload>;
+      const normalizedGrantTypes = normalizeSupportedGrantTypes(
+        payload.grantTypes,
+      );
 
       if (
         payload.tokenType !== "mcp_oauth_client" ||
@@ -93,9 +137,6 @@ export class McpClientService {
       }
 
       if (
-        payload.grantTypes?.some(
-          (grantType) => grantType !== "authorization_code",
-        ) ||
         payload.responseTypes?.some((responseType) => responseType !== "code")
       ) {
         throw new Error("Invalid OAuth client");
@@ -111,10 +152,7 @@ export class McpClientService {
         ...(typeof payload.clientName === "string" && payload.clientName.trim()
           ? { clientName: payload.clientName.trim() }
           : {}),
-        grantTypes:
-          payload.grantTypes && payload.grantTypes.length > 0
-            ? [...payload.grantTypes]
-            : ["authorization_code"],
+        grantTypes: normalizedGrantTypes,
         responseTypes:
           payload.responseTypes && payload.responseTypes.length > 0
             ? [...payload.responseTypes]

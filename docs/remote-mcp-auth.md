@@ -56,7 +56,7 @@ Input:
 
 - `redirect_uris`
 - `client_name` (optional)
-- `grant_types` (`authorization_code` only)
+- `grant_types` (`authorization_code`, or `authorization_code` plus `refresh_token` for connector compatibility)
 - `response_types` (`code` only)
 - `token_endpoint_auth_method` (`none` only)
 
@@ -213,7 +213,7 @@ First-pass compatibility target:
 
 Current limitation:
 
-- no refresh-token flow yet, so reconnect or relink is required once the MCP access token expires
+- client registration accepts `refresh_token` metadata for compatibility, but the server does not issue refresh tokens yet, so reconnect or relink is still required once the MCP access token expires
 
 ## Local Development
 
