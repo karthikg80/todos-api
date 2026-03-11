@@ -33,10 +33,14 @@ function requiredScopesForAction(actionName: AgentActionName): McpScope[] {
     case "create_task":
     case "update_task":
     case "complete_task":
+    case "move_task_to_project":
       return [TASK_WRITE_SCOPE];
     case "list_projects":
       return [PROJECT_READ_SCOPE];
     case "create_project":
+    case "update_project":
+    case "delete_project":
+    case "archive_project":
       return [PROJECT_WRITE_SCOPE];
   }
 }
@@ -91,7 +95,7 @@ export function listMcpTools(input: {
     inputSchema: cloneJson(tool.inputSchema),
     annotations: {
       readOnlyHint: tool.readOnly,
-      destructiveHint: false,
+      destructiveHint: tool.name === "delete_project",
       idempotentHint: tool.name === "create_task",
       openWorldHint: false,
     },

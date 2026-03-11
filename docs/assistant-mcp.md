@@ -46,8 +46,12 @@ Initial public tools:
 - `create_task`
 - `update_task`
 - `complete_task`
+- `move_task_to_project`
 - `list_projects`
 - `create_project`
+- `update_project`
+- `delete_project`
+- `archive_project`
 
 `tools/list` only returns tools allowed by the current token scopes.
 
@@ -118,6 +122,8 @@ Current behavior:
 Current limitation:
 
 - idempotency state is still process-local and in-memory
+- `delete_project` unassigns tasks by default unless `moveTasksToProjectId` is supplied
+- project archiving is metadata-only in this pass; archived projects remain listable
 
 ## Deployment and Connector Validation
 

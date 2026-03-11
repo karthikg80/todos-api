@@ -5,6 +5,7 @@ import {
   Priority,
   SortOrder,
   TodoSortBy,
+  UpdateProjectDto,
   UpdateTodoDto,
 } from "../types";
 import {
@@ -57,6 +58,10 @@ const CREATE_TASK_KEYS = [
 const UPDATE_TASK_KEYS = ["id", ...CREATE_TASK_KEYS, "completed", "order"];
 const COMPLETE_TASK_KEYS = ["id", "completed"];
 const CREATE_PROJECT_KEYS = ["name"];
+const UPDATE_PROJECT_KEYS = ["id", "name"];
+const DELETE_PROJECT_KEYS = ["id", "moveTasksToProjectId"];
+const MOVE_TASK_TO_PROJECT_KEYS = ["taskId", "projectId"];
+const ARCHIVE_PROJECT_KEYS = ["id", "archived"];
 
 function ensureObject(data: unknown, label: string): Record<string, unknown> {
   if (data === undefined || data === null) {
@@ -355,4 +360,82 @@ export function validateAgentCreateProjectInput(
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, CREATE_PROJECT_KEYS, "Agent action input");
   return validateCreateProject(body);
+}
+
+export function validateAgentUpdateProjectInput(data: unknown): {
+  id: string;
+  changes: UpdateProjectDto;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, UPDATE_PROJECT_KEYS, "Agent action input");
+  const id = parseId(body);
+  const { id: _id, ...changes } = body;
+  return { id, changes: validateCreateProject(changes) };
+}
+
+export function validateAgentDeleteProjectInput(data: unknown): {
+  id: string;
+  moveTasksToProjectId: string | null;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, DELETE_PROJECT_KEYS, "Agent action input");
+  const id = parseId(body);
+
+  if (
+    body.moveTasksToProjectId === undefined ||
+    body.moveTasksToProjectId === null
+  ) {
+    return { id, moveTasksToProjectId: null };
+  }
+
+  if (typeof body.moveTasksToProjectId !== "string") {
+    throw new ValidationError("moveTasksToProjectId must be a string or null");
+  }
+
+  validateId(body.moveTasksToProjectId);
+  if (body.moveTasksToProjectId === id) {
+    throw new ValidationError(
+      "moveTasksToProjectId must reference a different project",
+    );
+  }
+
+  return { id, moveTasksToProjectId: body.moveTasksToProjectId };
+}
+
+export function validateAgentMoveTaskToProjectInput(data: unknown): {
+  taskId: string;
+  projectId: string | null;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, MOVE_TASK_TO_PROJECT_KEYS, "Agent action input");
+
+  if (typeof body.taskId !== "string") {
+    throw new ValidationError("taskId is required and must be a string");
+  }
+  validateId(body.taskId);
+
+  if (body.projectId === undefined || body.projectId === null) {
+    return { taskId: body.taskId, projectId: null };
+  }
+
+  if (typeof body.projectId !== "string") {
+    throw new ValidationError("projectId must be a string or null");
+  }
+  validateId(body.projectId);
+
+  return { taskId: body.taskId, projectId: body.projectId };
+}
+
+export function validateAgentArchiveProjectInput(data: unknown): {
+  id: string;
+  archived: boolean;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, ARCHIVE_PROJECT_KEYS, "Agent action input");
+  const id = parseId(body);
+  const archived = parseOptionalBoolean(body.archived, "archived");
+  if (archived === undefined) {
+    throw new ValidationError("archived is required and must be a boolean");
+  }
+  return { id, archived };
 }

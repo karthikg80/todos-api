@@ -69,8 +69,10 @@ function buildMockProjectService(
 ): IProjectService {
   return {
     findAll: jest.fn().mockResolvedValue([]),
+    findById: jest.fn().mockResolvedValue(null),
     create: jest.fn(),
     update: jest.fn(),
+    setArchived: jest.fn(),
     delete: jest.fn(),
     ...overrides,
   };

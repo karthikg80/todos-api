@@ -15,14 +15,16 @@ import type {
 function createProjectServiceMock(): jest.Mocked<IProjectService> {
   return {
     findAll: jest.fn<Promise<Project[]>, [string]>(),
+    findById: jest.fn<Promise<Project | null>, [string, string]>(),
     create: jest.fn<Promise<Project>, [string, CreateProjectDto]>(),
     update: jest.fn<
       Promise<Project | null>,
       [string, string, UpdateProjectDto]
     >(),
+    setArchived: jest.fn<Promise<Project | null>, [string, string, boolean]>(),
     delete: jest.fn<
       Promise<boolean>,
-      [string, string, ProjectTaskDisposition]
+      [string, string, ProjectTaskDisposition, (string | null)?]
     >(),
   };
 }
@@ -333,6 +335,43 @@ describe("Remote MCP router auth and scopes", () => {
     });
   });
 
+  it("exposes the new project-management tools when write scopes are granted", async () => {
+    currentSession = buildMcpSession("user-1", [
+      "projects.read",
+      "projects.write",
+      "tasks.read",
+      "tasks.write",
+    ]);
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer write-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 4.1,
+        method: "tools/list",
+      })
+      .expect(200);
+
+    const toolNames = response.body.result.tools.map(
+      (tool: { name: string }) => tool.name,
+    );
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        "update_project",
+        "delete_project",
+        "move_task_to_project",
+        "archive_project",
+      ]),
+    );
+
+    const deleteProjectTool = response.body.result.tools.find(
+      (tool: { name: string }) => tool.name === "delete_project",
+    );
+    expect(deleteProjectTool.annotations.destructiveHint).toBe(true);
+    expect(deleteProjectTool.auth.requiredScopes).toEqual(["projects.write"]);
+  });
+
   it("rejects write tools when write scope is missing", async () => {
     currentSession = buildMcpSession("user-1", ["tasks.read"]);
 
@@ -443,5 +482,44 @@ describe("Remote MCP router auth and scopes", () => {
     );
 
     logSpy.mockRestore();
+  });
+
+  it("moves a task to a project through the MCP surface", async () => {
+    currentSession = buildMcpSession("user-1", ["tasks.read", "tasks.write"]);
+    const task = await todoService.create("user-1", {
+      title: "Move via MCP",
+    });
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000031",
+      name: "Ops",
+      archived: false,
+      userId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 1,
+      openTodoCount: 1,
+    });
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer task-write-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 9,
+        method: "tools/call",
+        params: {
+          name: "move_task_to_project",
+          arguments: {
+            taskId: task.id,
+            projectId: "00000000-0000-1000-8000-000000000031",
+          },
+        },
+      })
+      .expect(200);
+
+    expect(response.body.result.isError).toBeUndefined();
+    expect(response.body.result.structuredContent.data.task.category).toBe(
+      "Ops",
+    );
   });
 });

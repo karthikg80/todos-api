@@ -153,8 +153,12 @@ The older `read` / `write` aliases are still accepted by validation and expanded
 | `create_task`    | No        | `tasks.write`    |
 | `update_task`    | No        | `tasks.write`    |
 | `complete_task`  | No        | `tasks.write`    |
+| `move_task_to_project` | No  | `tasks.write`    |
 | `list_projects`  | Yes       | `projects.read`  |
 | `create_project` | No        | `projects.write` |
+| `update_project` | No        | `projects.write` |
+| `delete_project` | No        | `projects.write` |
+| `archive_project` | No       | `projects.write` |
 
 `tools/list` only returns tools the token is allowed to use.
 
