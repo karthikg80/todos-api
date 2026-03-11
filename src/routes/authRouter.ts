@@ -8,6 +8,7 @@ import {
 import { AuthService } from "../services/authService";
 import { validateRegister, validateLogin } from "../validation/authValidation";
 import { HttpError } from "../errorHandling";
+import { validateCreateMcpTokenInput } from "../validation/mcpValidation";
 
 interface AuthRouterDeps {
   authService?: AuthService;
@@ -179,6 +180,37 @@ export function createAuthRouter({
           message:
             "If the email exists and is not verified, a verification link has been sent",
         });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/mcp/token",
+    authLimiter,
+    requireAuthIfConfigured,
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!authService) {
+        return res.status(501).json({ error: "Authentication not configured" });
+      }
+
+      try {
+        const userId = req.user?.userId;
+        const email = req.user?.email;
+        if (!userId || !email) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const input = validateCreateMcpTokenInput(req.body);
+        const token = authService.createMcpToken({
+          userId,
+          email,
+          scopes: input.scopes,
+          assistantName: input.assistantName,
+        });
+
+        res.status(201).json(token);
       } catch (error) {
         next(error);
       }

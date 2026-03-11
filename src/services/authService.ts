@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { EmailService } from "./emailService";
 import { config } from "../config";
+import { McpScope } from "../types";
 
 export interface RegisterDto {
   email: string;
@@ -31,6 +32,19 @@ export interface JwtPayload {
   email: string;
 }
 
+export interface McpTokenPayload extends JwtPayload {
+  tokenType: "mcp";
+  scopes: McpScope[];
+  assistantName?: string;
+}
+
+export interface McpTokenResponse {
+  token: string;
+  scopes: McpScope[];
+  expiresAt: string;
+  assistantName?: string;
+}
+
 export interface AdminBootstrapStatus {
   enabled: boolean;
   reason?: "not_configured" | "already_admin" | "already_provisioned";
@@ -41,6 +55,8 @@ export class AuthService {
   private readonly ACCESS_JWT_SECRET: string;
   private readonly REFRESH_JWT_SECRET: string;
   private readonly JWT_EXPIRES_IN = "15m"; // Short-lived access token
+  private readonly MCP_JWT_EXPIRES_IN = "30d";
+  private readonly MCP_JWT_EXPIRES_IN_MS = 30 * 24 * 60 * 60 * 1000;
   private readonly REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
   private readonly allowLegacyPlaintextRefreshTokenFallback: boolean;
   private readonly legacyRefreshTokenFallbackUntil: Date | null;
@@ -193,6 +209,80 @@ export class AuthService {
         throw new Error("Invalid token");
       }
       throw new Error("Token verification failed");
+    }
+  }
+
+  createMcpToken(input: {
+    userId: string;
+    email: string;
+    scopes: McpScope[];
+    assistantName?: string;
+  }): McpTokenResponse {
+    const token = jwt.sign(
+      {
+        userId: input.userId,
+        email: input.email,
+        tokenType: "mcp",
+        scopes: input.scopes,
+        ...(input.assistantName ? { assistantName: input.assistantName } : {}),
+      },
+      this.ACCESS_JWT_SECRET,
+      {
+        expiresIn: this.MCP_JWT_EXPIRES_IN,
+      },
+    );
+
+    return {
+      token,
+      scopes: [...input.scopes],
+      expiresAt: new Date(
+        Date.now() + this.MCP_JWT_EXPIRES_IN_MS,
+      ).toISOString(),
+      ...(input.assistantName ? { assistantName: input.assistantName } : {}),
+    };
+  }
+
+  verifyMcpToken(token: string): McpTokenPayload {
+    try {
+      const payload = jwt.verify(
+        token,
+        this.ACCESS_JWT_SECRET,
+      ) as Partial<McpTokenPayload>;
+
+      if (payload.tokenType !== "mcp") {
+        throw new Error("Invalid MCP token");
+      }
+
+      if (
+        !Array.isArray(payload.scopes) ||
+        payload.scopes.length === 0 ||
+        payload.scopes.some((scope) => scope !== "read" && scope !== "write")
+      ) {
+        throw new Error("Invalid MCP token");
+      }
+
+      if (
+        typeof payload.userId !== "string" ||
+        typeof payload.email !== "string"
+      ) {
+        throw new Error("Invalid MCP token");
+      }
+
+      return {
+        userId: payload.userId,
+        email: payload.email,
+        tokenType: "mcp",
+        scopes: payload.scopes as McpScope[],
+        ...(typeof payload.assistantName === "string" &&
+        payload.assistantName.trim()
+          ? { assistantName: payload.assistantName.trim() }
+          : {}),
+      };
+    } catch (error: any) {
+      if (error?.name === "TokenExpiredError") {
+        throw new Error("Token expired");
+      }
+      throw new Error("Invalid MCP token");
     }
   }
 
