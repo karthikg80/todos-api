@@ -79,7 +79,7 @@ Query parameters:
 - `client_id`
 - `redirect_uri`
 - `response_type=code`
-- `scope`
+- `scope` (optional; defaults to `tasks.read projects.read`)
 - `state` (optional)
 - `code_challenge`
 - `code_challenge_method=S256`

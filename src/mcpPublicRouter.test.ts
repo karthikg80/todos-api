@@ -274,6 +274,87 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(token.body.scope).toBe("tasks.read tasks.write");
   });
 
+  it("defaults authorize scopes when the connector omits scope", async () => {
+    const register = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        client_name: "Codex",
+      })
+      .expect(201);
+
+    const pkce = createPkcePair(
+      "oauth-verifier-default-scope-1111111111111111111111111111",
+    );
+    const agent = request.agent(app);
+
+    const authorizeUrl = `/oauth/authorize?client_id=${encodeURIComponent(
+      register.body.client_id,
+    )}&redirect_uri=${encodeURIComponent(
+      "https://chat.openai.com/aip/callback",
+    )}&response_type=code&state=state-default-scope&code_challenge=${encodeURIComponent(
+      pkce.challenge,
+    )}&code_challenge_method=S256`;
+
+    const loginPage = await agent.get(authorizeUrl).expect(200);
+    expect(loginPage.text).toContain("Connect Assistant");
+
+    const login = await agent
+      .post("/oauth/authorize/login")
+      .type("form")
+      .send({
+        email: "user-1@example.com",
+        password: "password123",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        state: "state-default-scope",
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+      })
+      .expect(303);
+
+    expect(login.headers.location).toContain("/oauth/authorize?");
+    expect(login.headers.location).toContain("scope=projects.read+tasks.read");
+
+    const consent = await agent.get(login.headers.location).expect(200);
+    expect(consent.text).toContain("Authorize Assistant");
+    expect(consent.text).toContain("tasks.read");
+    expect(consent.text).toContain("projects.read");
+
+    const approve = await agent
+      .post("/oauth/authorize/decision")
+      .type("form")
+      .send({
+        decision: "approve",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        state: "state-default-scope",
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+      })
+      .expect(303);
+
+    const redirectUrl = new URL(approve.headers.location);
+    const code = redirectUrl.searchParams.get("code");
+    expect(code).toEqual(expect.any(String));
+
+    const token = await request(app)
+      .post("/oauth/token")
+      .type("form")
+      .send({
+        grant_type: "authorization_code",
+        code,
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        code_verifier: pkce.verifier,
+      })
+      .expect(200);
+
+    expect(token.body.scope).toBe("projects.read tasks.read");
+  });
+
   it("advertises resource metadata when MCP auth is missing", async () => {
     const response = await request(app).get("/mcp").expect(401);
 
