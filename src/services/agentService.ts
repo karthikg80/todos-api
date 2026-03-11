@@ -6,6 +6,7 @@ import {
   FindTodosQuery,
   Project,
   Todo,
+  UpdateProjectDto,
   UpdateTodoDto,
 } from "../types";
 
@@ -61,5 +62,70 @@ export class AgentService {
       throw new Error("Projects not configured");
     }
     return this.deps.projectService.create(userId, dto);
+  }
+
+  async updateProject(
+    userId: string,
+    id: string,
+    dto: UpdateProjectDto,
+  ): Promise<Project | null> {
+    if (!this.deps.projectService) {
+      throw new Error("Projects not configured");
+    }
+    return this.deps.projectService.update(userId, id, dto);
+  }
+
+  async deleteProject(
+    userId: string,
+    id: string,
+    moveTasksToProjectId?: string | null,
+  ): Promise<boolean> {
+    if (!this.deps.projectService) {
+      throw new Error("Projects not configured");
+    }
+    return this.deps.projectService.delete(
+      userId,
+      id,
+      "unsorted",
+      moveTasksToProjectId,
+    );
+  }
+
+  async moveTaskToProject(
+    userId: string,
+    taskId: string,
+    projectId: string | null,
+  ): Promise<Todo | null> {
+    if (!this.deps.projectService) {
+      throw new Error("Projects not configured");
+    }
+
+    let category: string | null = null;
+    if (projectId) {
+      const project = await this.deps.projectService.findById(
+        userId,
+        projectId,
+      );
+      if (!project) {
+        return null;
+      }
+      category = project.name;
+    }
+
+    return this.deps.todoService.update(userId, taskId, {
+      category,
+      headingId: null,
+    });
+  }
+
+  async archiveProject(
+    userId: string,
+    id: string,
+    archived: boolean,
+  ): Promise<Project | null> {
+    if (!this.deps.projectService) {
+      throw new Error("Projects not configured");
+    }
+    return this.deps.projectService.setArchived(userId, id, archived);
   }
 }

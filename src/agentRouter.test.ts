@@ -14,14 +14,16 @@ import type {
 function createProjectServiceMock(): jest.Mocked<IProjectService> {
   return {
     findAll: jest.fn<Promise<Project[]>, [string]>(),
+    findById: jest.fn<Promise<Project | null>, [string, string]>(),
     create: jest.fn<Promise<Project>, [string, CreateProjectDto]>(),
     update: jest.fn<
       Promise<Project | null>,
       [string, string, UpdateProjectDto]
     >(),
+    setArchived: jest.fn<Promise<Project | null>, [string, string, boolean]>(),
     delete: jest.fn<
       Promise<boolean>,
-      [string, string, ProjectTaskDisposition]
+      [string, string, ProjectTaskDisposition, (string | null)?]
     >(),
   };
 }
@@ -172,6 +174,7 @@ describe("Agent router", () => {
     projectService.create.mockResolvedValue({
       id: "proj-1",
       name: "Platform",
+      archived: false,
       userId: "default-user",
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -220,5 +223,115 @@ describe("Agent router", () => {
     expect(response.body.readOnly).toBe(true);
     expect(response.body.error.code).toBe("AUTH_REQUIRED");
     expect(response.body.trace.requestId).toBeDefined();
+  });
+
+  it("rejects invalid project rename input before calling the project service", async () => {
+    const response = await request(app)
+      .post("/agent/write/update_project")
+      .send({
+        id: "00000000-0000-1000-8000-000000000000",
+        name: "   ",
+      })
+      .expect(400);
+
+    expect(response.body.ok).toBe(false);
+    expect(response.body.action).toBe("update_project");
+    expect(response.body.error.code).toBe("INVALID_INPUT");
+    expect(projectService.update).not.toHaveBeenCalled();
+  });
+
+  it("moves a task to another project through the agent surface", async () => {
+    const task = await todoService.create("default-user", {
+      title: "Move this task",
+    });
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000001",
+      name: "Platform",
+      archived: false,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 3,
+      openTodoCount: 2,
+    });
+
+    const response = await request(app)
+      .post("/agent/write/move_task_to_project")
+      .send({
+        taskId: task.id,
+        projectId: "00000000-0000-1000-8000-000000000001",
+      })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.data.task.category).toBe("Platform");
+    expect(projectService.findById).toHaveBeenCalledWith(
+      "default-user",
+      "00000000-0000-1000-8000-000000000001",
+    );
+  });
+
+  it("rejects cross-user project moves through the agent surface", async () => {
+    const task = await todoService.create("default-user", {
+      title: "Private task",
+    });
+    projectService.findById.mockResolvedValue(null);
+
+    const response = await request(app)
+      .post("/agent/write/move_task_to_project")
+      .send({
+        taskId: task.id,
+        projectId: "00000000-0000-1000-8000-000000000002",
+      })
+      .expect(404);
+
+    expect(response.body.ok).toBe(false);
+    expect(response.body.action).toBe("move_task_to_project");
+    expect(response.body.error.code).toBe("RESOURCE_NOT_FOUND_OR_FORBIDDEN");
+  });
+
+  it("deletes projects with reassignment through the agent surface", async () => {
+    projectService.delete.mockResolvedValue(true);
+
+    const response = await request(app)
+      .post("/agent/write/delete_project")
+      .send({
+        id: "00000000-0000-1000-8000-000000000010",
+        moveTasksToProjectId: "00000000-0000-1000-8000-000000000011",
+      })
+      .expect(200);
+
+    expect(projectService.delete).toHaveBeenCalledWith(
+      "default-user",
+      "00000000-0000-1000-8000-000000000010",
+      "unsorted",
+      "00000000-0000-1000-8000-000000000011",
+    );
+    expect(response.body.data.deleted).toBe(true);
+    expect(response.body.data.taskDisposition).toBe("reassigned");
+  });
+
+  it("archives projects through the agent surface", async () => {
+    projectService.setArchived.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000020",
+      name: "Platform",
+      archived: true,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 4,
+      openTodoCount: 2,
+    });
+
+    const response = await request(app)
+      .post("/agent/write/archive_project")
+      .send({
+        id: "00000000-0000-1000-8000-000000000020",
+        archived: true,
+      })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.data.project.archived).toBe(true);
   });
 });

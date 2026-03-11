@@ -100,6 +100,22 @@ export function createAgentRouter({
     "/write/create_project",
     createAgentActionHandler(agentExecutor, "create_project"),
   );
+  router.post(
+    "/write/update_project",
+    createAgentActionHandler(agentExecutor, "update_project"),
+  );
+  router.post(
+    "/write/delete_project",
+    createAgentActionHandler(agentExecutor, "delete_project"),
+  );
+  router.post(
+    "/write/move_task_to_project",
+    createAgentActionHandler(agentExecutor, "move_task_to_project"),
+  );
+  router.post(
+    "/write/archive_project",
+    createAgentActionHandler(agentExecutor, "archive_project"),
+  );
 
   return router;
 }

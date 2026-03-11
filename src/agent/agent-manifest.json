@@ -95,6 +95,7 @@
       "properties": {
         "id": "string",
         "name": "string",
+        "archived": "boolean",
         "userId": "string",
         "createdAt": "ISO-8601 string",
         "updatedAt": "ISO-8601 string",
@@ -348,10 +349,123 @@
       },
       "errorModel": "structured_agent_error",
       "idempotency": "optional_header_for_create_flow"
+    },
+    {
+      "name": "update_project",
+      "description": "Rename an existing project by ID.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/update_project",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "name"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "maxLength": 50 }
+        }
+      },
+      "output": {
+        "dataKey": "project",
+        "$ref": "#/definitions/project"
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "delete_project",
+      "description": "Delete a project and either reassign its tasks or unassign them, following existing server-side rules.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/delete_project",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "moveTasksToProjectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          }
+        }
+      },
+      "output": {
+        "dataKey": "result",
+        "type": "object",
+        "properties": {
+          "deleted": { "type": "boolean" },
+          "projectId": { "type": "string" },
+          "movedTasksToProjectId": { "type": ["string", "null"] },
+          "taskDisposition": {
+            "type": "string",
+            "enum": ["reassigned", "unassigned"]
+          }
+        }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "move_task_to_project",
+      "description": "Move a task to another project by project ID, or unassign it when projectId is null.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/move_task_to_project",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId"],
+        "properties": {
+          "taskId": { "type": "string", "format": "uuid" },
+          "projectId": { "type": ["string", "null"], "format": "uuid" }
+        }
+      },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "archive_project",
+      "description": "Set the archived state for a project by ID.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/archive_project",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "archived"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "archived": { "type": "boolean" }
+        }
+      },
+      "output": {
+        "dataKey": "project",
+        "$ref": "#/definitions/project"
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
     }
   ],
   "notes": [
-    "This first pass does not expose destructive deletes, bulk mutations, or natural-language resolution.",
+    "Project deletion through the agent surface defaults to unassigning linked tasks unless moveTasksToProjectId is provided.",
+    "Project archiving is metadata-only in this pass; archived projects remain visible in list_projects responses.",
     "Create-flow idempotency is process-local and intended as a pragmatic retry guard, not a durable cross-process guarantee.",
     "Task project association currently follows the existing category/project compatibility rules already enforced by server services."
   ]

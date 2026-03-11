@@ -27,8 +27,12 @@ Supported actions:
 - `create_task`
 - `update_task`
 - `complete_task`
+- `move_task_to_project`
 - `list_projects`
 - `create_project`
+- `update_project`
+- `delete_project`
+- `archive_project`
 
 ## Read vs Write
 
@@ -44,7 +48,9 @@ That split is reflected in both code and the manifest metadata.
 - Agent actions reuse the existing `todoService` and `projectService` implementations.
 - Existing server-side validation remains the source of truth for create/update rules.
 - The first pass preserves the current project/category compatibility path already used by the server. Task payloads still use the current task shape rather than inventing a parallel domain model.
-- Destructive deletes, bulk operations, and natural-language resolution are intentionally not part of this first pass.
+- Project deletion defaults to unassigning linked tasks unless a target project ID is provided for reassignment.
+- Project archiving is metadata-only in this pass. Archived projects still appear in list responses with `archived: true`.
+- Bulk operations and natural-language resolution are intentionally not part of this first pass.
 
 ## Errors
 
@@ -92,5 +98,5 @@ This is enough for first-pass auditability without introducing a new persistence
 
 - extend idempotency beyond create flows if retry semantics are needed for more writes
 - decide whether project/category compatibility should eventually become a first-class `projectId` agent contract
-- add destructive confirmation patterns before exposing delete or bulk write actions
+- add destructive confirmation patterns before exposing broader delete or bulk write actions
 - add richer persisted audit storage if log-only tracing is no longer sufficient

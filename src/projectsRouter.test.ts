@@ -13,14 +13,16 @@ import type {
 function createProjectServiceMock(): jest.Mocked<IProjectService> {
   return {
     findAll: jest.fn<Promise<Project[]>, [string]>(),
+    findById: jest.fn<Promise<Project | null>, [string, string]>(),
     create: jest.fn<Promise<Project>, [string, CreateProjectDto]>(),
     update: jest.fn<
       Promise<Project | null>,
       [string, string, UpdateProjectDto]
     >(),
+    setArchived: jest.fn<Promise<Project | null>, [string, string, boolean]>(),
     delete: jest.fn<
       Promise<boolean>,
-      [string, string, ProjectTaskDisposition]
+      [string, string, ProjectTaskDisposition, (string | null)?]
     >(),
   };
 }

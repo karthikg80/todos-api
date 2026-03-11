@@ -5,13 +5,17 @@ import agentManifest from "./agent-manifest.json";
 import { AgentIdempotencyService } from "../services/agentIdempotencyService";
 import { AgentService } from "../services/agentService";
 import {
+  validateAgentArchiveProjectInput,
   validateAgentCompleteTaskInput,
   validateAgentCreateProjectInput,
   validateAgentCreateTaskInput,
+  validateAgentDeleteProjectInput,
   validateAgentGetTaskInput,
   validateAgentListProjectsInput,
   validateAgentListTasksInput,
+  validateAgentMoveTaskToProjectInput,
   validateAgentSearchTasksInput,
+  validateAgentUpdateProjectInput,
   validateAgentUpdateTaskInput,
 } from "../validation/agentValidation";
 
@@ -23,7 +27,11 @@ export type AgentActionName =
   | "update_task"
   | "complete_task"
   | "list_projects"
-  | "create_project";
+  | "create_project"
+  | "update_project"
+  | "delete_project"
+  | "move_task_to_project"
+  | "archive_project";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -382,6 +390,85 @@ export class AgentExecutor {
         case "create_project": {
           const createInput = validateAgentCreateProjectInput(input);
           return await this.handleCreateProject(action, context, createInput);
+        }
+        case "update_project": {
+          const { id, changes } = validateAgentUpdateProjectInput(input);
+          const project = await this.agentService.updateProject(
+            context.userId,
+            id,
+            changes,
+          );
+          if (!project) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { project });
+        }
+        case "delete_project": {
+          const { id, moveTasksToProjectId } =
+            validateAgentDeleteProjectInput(input);
+          const deleted = await this.agentService.deleteProject(
+            context.userId,
+            id,
+            moveTasksToProjectId,
+          );
+          if (!deleted) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the source and target project IDs belong to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, {
+            deleted: true,
+            projectId: id,
+            movedTasksToProjectId: moveTasksToProjectId,
+            taskDisposition: moveTasksToProjectId ? "reassigned" : "unassigned",
+          });
+        }
+        case "move_task_to_project": {
+          const { taskId, projectId } =
+            validateAgentMoveTaskToProjectInput(input);
+          const task = await this.agentService.moveTaskToProject(
+            context.userId,
+            taskId,
+            projectId,
+          );
+          if (!task) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Task or project not found",
+              false,
+              "Verify the task ID and target project ID belong to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { task });
+        }
+        case "archive_project": {
+          const { id, archived } = validateAgentArchiveProjectInput(input);
+          const project = await this.agentService.archiveProject(
+            context.userId,
+            id,
+            archived,
+          );
+          if (!project) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { project });
         }
       }
     } catch (error) {

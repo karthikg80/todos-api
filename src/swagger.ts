@@ -162,6 +162,10 @@ const options: swaggerJsdoc.Options = {
               maxLength: 50,
               description: "Project path/name",
             },
+            archived: {
+              type: "boolean",
+              description: "Whether the project is archived",
+            },
             userId: {
               type: "string",
               format: "uuid",
@@ -170,6 +174,10 @@ const options: swaggerJsdoc.Options = {
             todoCount: {
               type: "integer",
               description: "Number of todos linked to this project",
+            },
+            openTodoCount: {
+              type: "integer",
+              description: "Number of incomplete todos linked to this project",
             },
             createdAt: {
               type: "string",

@@ -99,6 +99,8 @@ describe("API Contract", () => {
       expect(schemas.Todo.properties.notes).toBeDefined();
       expect(schemas.Todo.properties.order).toBeDefined();
       expect(schemas.Todo.properties.subtasks).toBeDefined();
+      expect(schemas.Project.properties.archived).toBeDefined();
+      expect(schemas.Project.properties.openTodoCount).toBeDefined();
     });
 
     it("documents todo list query params for filtering and pagination", async () => {
