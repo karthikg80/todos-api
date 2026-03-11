@@ -53,6 +53,7 @@ Quick-reference to find things. Keep this flat and current.
 | ------------------- | ------------------------------ |
 | Agent accessibility | `docs/agent-accessibility.md`  |
 | Assistant MCP       | `docs/assistant-mcp.md`        |
+| Remote MCP auth     | `docs/remote-mcp-auth.md`      |
 | Codex task prompts  | `docs/codex-prompts.md`        |
 | Codex task config   | `.codex/tasks/ui-testing.md`   |
 | Dual-agent runner   | `scripts/dual-agent-runner.sh` |

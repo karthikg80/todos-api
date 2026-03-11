@@ -1,16 +1,21 @@
-import { randomUUID } from "crypto";
 import { Request, Response, Router } from "express";
 import packageJson from "../../package.json";
 import { AgentActionName, AgentExecutor } from "../agent/agentExecutor";
 import { config } from "../config";
-import { AuthService, McpTokenPayload } from "../services/authService";
-import { McpScope } from "../types";
+import {
+  buildMcpRequestId,
+  buildScopeError,
+  hasRequiredToolScopes,
+  resolveMcpAuthContext,
+} from "../mcp/mcpAuth";
+import { buildStructuredMcpError } from "../mcp/mcpErrors";
 import {
   getMcpToolDefinition,
   listMcpTools,
   MCP_PROTOCOL_VERSION,
 } from "../mcp/mcpToolCatalog";
-import { hasMcpScope } from "../validation/mcpValidation";
+import { AuthService } from "../services/authService";
+import { McpScope } from "../types";
 
 type JsonRpcId = number | string | null;
 
@@ -24,50 +29,6 @@ interface JsonRpcRequest {
 interface McpRouterDeps {
   agentExecutor: AgentExecutor;
   authService?: AuthService;
-}
-
-type McpSession = McpTokenPayload;
-
-function buildMcpRequestId(req: Request, requestId?: JsonRpcId): string {
-  const headerId = req.header("x-mcp-request-id");
-  if (typeof headerId === "string" && headerId.trim()) {
-    return headerId.trim();
-  }
-  if (typeof requestId === "string" || typeof requestId === "number") {
-    return `mcp-${requestId}`;
-  }
-  return randomUUID();
-}
-
-function buildActor(req: Request, session: McpSession): string {
-  const assistantHeader = req.header("x-assistant-name");
-  if (typeof assistantHeader === "string" && assistantHeader.trim()) {
-    return assistantHeader.trim();
-  }
-  if (session.assistantName) {
-    return session.assistantName;
-  }
-  const userAgent = req.header("user-agent");
-  if (typeof userAgent === "string" && userAgent.trim()) {
-    return userAgent.trim();
-  }
-  return "unknown-assistant";
-}
-
-function buildStructuredError(input: {
-  code: string;
-  message: string;
-  retryable: boolean;
-  hint?: string;
-  details?: Record<string, unknown>;
-}) {
-  return {
-    code: input.code,
-    message: input.message,
-    retryable: input.retryable,
-    ...(input.hint ? { hint: input.hint } : {}),
-    ...(input.details ? { details: input.details } : {}),
-  };
 }
 
 function jsonRpcSuccess(id: JsonRpcId, result: Record<string, unknown>) {
@@ -120,32 +81,6 @@ function parseRequest(body: unknown): JsonRpcRequest | null {
   };
 }
 
-function logMcpRequest(input: {
-  requestId: string;
-  userId?: string;
-  actor?: string;
-  scopes?: McpScope[];
-  method: string;
-  outcome: "success" | "error";
-  toolName?: string;
-  errorCode?: string;
-}) {
-  console.info(
-    JSON.stringify({
-      type: "assistant_mcp_call",
-      requestId: input.requestId,
-      userId: input.userId,
-      actor: input.actor,
-      scopes: input.scopes,
-      method: input.method,
-      toolName: input.toolName,
-      outcome: input.outcome,
-      errorCode: input.errorCode,
-      ts: new Date().toISOString(),
-    }),
-  );
-}
-
 function buildToolErrorResult(message: string, error: Record<string, unknown>) {
   return {
     content: [{ type: "text", text: message }],
@@ -154,108 +89,15 @@ function buildToolErrorResult(message: string, error: Record<string, unknown>) {
   };
 }
 
-function rejectUnexpectedOrigin(req: Request): Record<string, unknown> | null {
-  const origin = req.header("origin");
-  if (!origin) {
-    return null;
-  }
-  if (config.corsOrigins.includes(origin)) {
-    return null;
-  }
-  return buildStructuredError({
-    code: "MCP_ORIGIN_NOT_ALLOWED",
-    message: "Origin not allowed for MCP requests",
-    retryable: false,
-    hint: "Use a non-browser MCP client or configure the origin in CORS_ORIGINS.",
-  });
-}
-
-function authenticateMcpRequest(
-  req: Request,
-  authService?: AuthService,
-): {
-  session?: McpSession;
-  error?: Record<string, unknown>;
-  httpStatus: number;
-} {
-  if (!authService) {
-    return {
-      httpStatus: 501,
-      error: buildStructuredError({
-        code: "MCP_NOT_CONFIGURED",
-        message: "MCP is not configured",
-        retryable: false,
-        hint: "Enable application authentication before using the remote MCP surface.",
-      }),
-    };
-  }
-
-  const authHeader = req.header("authorization");
-  if (!authHeader) {
-    return {
-      httpStatus: 401,
-      error: buildStructuredError({
-        code: "MCP_AUTH_REQUIRED",
-        message: "Authorization header missing",
-        retryable: false,
-        hint: "Provide Authorization: Bearer <mcp-token>.",
-      }),
-    };
-  }
-
-  const parts = authHeader.split(" ");
-  if (parts.length !== 2 || parts[0] !== "Bearer") {
-    return {
-      httpStatus: 401,
-      error: buildStructuredError({
-        code: "MCP_INVALID_AUTHORIZATION_FORMAT",
-        message: "Invalid authorization format. Expected: Bearer <token>",
-        retryable: false,
-        hint: "Send a bearer MCP token using the Authorization header.",
-      }),
-    };
-  }
-
-  try {
-    return {
-      httpStatus: 200,
-      session: authService.verifyMcpToken(parts[1]),
-    };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (message === "Token expired") {
-      return {
-        httpStatus: 401,
-        error: buildStructuredError({
-          code: "MCP_TOKEN_EXPIRED",
-          message: "Token expired",
-          retryable: false,
-          hint: "Mint a new MCP token via /auth/mcp/token and retry.",
-        }),
-      };
-    }
-
-    return {
-      httpStatus: 401,
-      error: buildStructuredError({
-        code: "MCP_INVALID_TOKEN",
-        message: "Invalid MCP token",
-        retryable: false,
-        hint: "Use a valid MCP token minted via /auth/mcp/token.",
-      }),
-    };
-  }
-}
-
 function normalizeToolArguments(params: unknown): {
   name?: string;
   args: Record<string, unknown>;
-  error?: Record<string, unknown>;
+  error?: ReturnType<typeof buildStructuredMcpError>;
 } {
   if (!params || typeof params !== "object" || Array.isArray(params)) {
     return {
       args: {},
-      error: buildStructuredError({
+      error: buildStructuredMcpError({
         code: "MCP_INVALID_PARAMS",
         message: "tools/call params must be an object",
         retryable: false,
@@ -268,7 +110,7 @@ function normalizeToolArguments(params: unknown): {
   if (typeof rawParams.name !== "string" || !rawParams.name.trim()) {
     return {
       args: {},
-      error: buildStructuredError({
+      error: buildStructuredMcpError({
         code: "MCP_TOOL_NAME_REQUIRED",
         message: "Tool name is required",
         retryable: false,
@@ -285,7 +127,7 @@ function normalizeToolArguments(params: unknown): {
     return {
       name: rawParams.name.trim(),
       args: {},
-      error: buildStructuredError({
+      error: buildStructuredMcpError({
         code: "MCP_INVALID_TOOL_ARGUMENTS",
         message: "Tool arguments must be an object",
         retryable: false,
@@ -298,6 +140,55 @@ function normalizeToolArguments(params: unknown): {
     name: rawParams.name.trim(),
     args: (rawParams.arguments as Record<string, unknown>) || {},
   };
+}
+
+function rejectUnexpectedOrigin(req: Request) {
+  const origin = req.header("origin");
+  if (!origin || config.corsOrigins.includes(origin)) {
+    return null;
+  }
+  return buildStructuredMcpError({
+    code: "MCP_ORIGIN_NOT_ALLOWED",
+    message: "Origin not allowed for MCP requests",
+    retryable: false,
+    hint: "Use a non-browser MCP client or configure the origin in CORS_ORIGINS.",
+  });
+}
+
+function logMcpRequest(input: {
+  requestId: string;
+  userId?: string;
+  actor?: string;
+  scopes?: McpScope[];
+  method: string;
+  outcome: "success" | "error";
+  toolName?: string;
+  errorCode?: string;
+  authOutcome?:
+    | "authenticated"
+    | "missing"
+    | "invalid"
+    | "expired"
+    | "session_invalid"
+    | "scope_denied";
+  requiredScopes?: McpScope[];
+}) {
+  console.info(
+    JSON.stringify({
+      type: "assistant_mcp_call",
+      requestId: input.requestId,
+      userId: input.userId,
+      actor: input.actor,
+      scopes: input.scopes,
+      method: input.method,
+      toolName: input.toolName,
+      outcome: input.outcome,
+      authOutcome: input.authOutcome,
+      requiredScopes: input.requiredScopes,
+      errorCode: input.errorCode,
+      ts: new Date().toISOString(),
+    }),
+  );
 }
 
 export function createMcpRouter({
@@ -332,7 +223,7 @@ export function createMcpRouter({
           id: null,
           code: -32600,
           message: "Invalid Request",
-          data: buildStructuredError({
+          data: buildStructuredMcpError({
             code: "MCP_INVALID_REQUEST",
             message: "Request must be a JSON-RPC 2.0 object",
             retryable: false,
@@ -349,7 +240,7 @@ export function createMcpRouter({
         requestId,
         method: parsedRequest.method,
         outcome: "error",
-        errorCode: originError.code as string,
+        errorCode: originError.code,
       });
       res.status(403).json(
         jsonRpcError({
@@ -362,33 +253,37 @@ export function createMcpRouter({
       return;
     }
 
-    if (parsedRequest.method === "notifications/initialized") {
-      logMcpRequest({
-        requestId,
-        method: parsedRequest.method,
-        outcome: "success",
-      });
-      res.status(202).end();
-      return;
-    }
-
-    const auth = authenticateMcpRequest(req, authService);
-    if (!auth.session || auth.error) {
+    const auth = await resolveMcpAuthContext({
+      req,
+      authService,
+      requestId,
+    });
+    if (!auth.context || auth.error) {
+      const errorCode = auth.error?.code;
+      const authOutcome =
+        errorCode === "MCP_UNAUTHENTICATED"
+          ? "missing"
+          : errorCode === "MCP_AUTH_EXPIRED"
+            ? "expired"
+            : errorCode === "MCP_INVALID_SESSION"
+              ? "session_invalid"
+              : "invalid";
       logMcpRequest({
         requestId,
         method: parsedRequest.method,
         outcome: "error",
-        errorCode: auth.error?.code as string | undefined,
+        authOutcome,
+        errorCode,
       });
       res.status(auth.httpStatus).json(
         jsonRpcError({
           id: parsedRequest.id ?? null,
           code: -32001,
-          message: auth.error?.message as string,
+          message: auth.error?.message || "Authentication failed",
           data:
             auth.error ||
-            buildStructuredError({
-              code: "MCP_AUTH_FAILED",
+            buildStructuredMcpError({
+              code: "MCP_UNAUTHENTICATED",
               message: "Authentication failed",
               retryable: false,
             }),
@@ -397,8 +292,8 @@ export function createMcpRouter({
       return;
     }
 
-    const session = auth.session;
-    const actor = buildActor(req, session);
+    const { context } = auth;
+    const { session, actor, user } = context;
 
     switch (parsedRequest.method) {
       case "initialize": {
@@ -406,9 +301,10 @@ export function createMcpRouter({
           requestId,
           method: parsedRequest.method,
           outcome: "success",
-          userId: session.userId,
+          userId: user.id,
           actor,
           scopes: session.scopes,
+          authOutcome: "authenticated",
         });
         res.status(200).json(
           jsonRpcSuccess(parsedRequest.id ?? null, {
@@ -423,7 +319,7 @@ export function createMcpRouter({
               version: packageJson.version,
             },
             instructions:
-              "Use tools/list to discover your scoped tools. This server is stateless, user-scoped, and expects a bearer MCP token minted through /auth/mcp/token.",
+              "Use tools/list to discover your scoped tools. Link an app user account through /auth/mcp/oauth/authorize and /auth/mcp/oauth/token to mint a scoped bearer token. /auth/mcp/token remains available for local development.",
           }),
         );
         return;
@@ -433,11 +329,25 @@ export function createMcpRouter({
           requestId,
           method: parsedRequest.method,
           outcome: "success",
-          userId: session.userId,
+          userId: user.id,
           actor,
           scopes: session.scopes,
+          authOutcome: "authenticated",
         });
         res.status(200).json(jsonRpcSuccess(parsedRequest.id ?? null, {}));
+        return;
+      }
+      case "notifications/initialized": {
+        logMcpRequest({
+          requestId,
+          method: parsedRequest.method,
+          outcome: "success",
+          userId: user.id,
+          actor,
+          scopes: session.scopes,
+          authOutcome: "authenticated",
+        });
+        res.status(202).end();
         return;
       }
       case "tools/list": {
@@ -449,9 +359,10 @@ export function createMcpRouter({
           requestId,
           method: parsedRequest.method,
           outcome: "success",
-          userId: session.userId,
+          userId: user.id,
           actor,
           scopes: session.scopes,
+          authOutcome: "authenticated",
         });
         res.status(200).json(
           jsonRpcSuccess(parsedRequest.id ?? null, {
@@ -467,19 +378,20 @@ export function createMcpRouter({
             requestId,
             method: parsedRequest.method,
             outcome: "error",
-            userId: session.userId,
+            userId: user.id,
             actor,
             scopes: session.scopes,
-            errorCode: normalized.error?.code as string | undefined,
+            authOutcome: "authenticated",
+            errorCode: normalized.error?.code,
           });
           res.status(400).json(
             jsonRpcError({
               id: parsedRequest.id ?? null,
               code: -32602,
-              message: normalized.error?.message as string,
+              message: normalized.error?.message || "Invalid params",
               data:
                 normalized.error ||
-                buildStructuredError({
+                buildStructuredMcpError({
                   code: "MCP_INVALID_PARAMS",
                   message: "Invalid tool call params",
                   retryable: false,
@@ -494,7 +406,7 @@ export function createMcpRouter({
           !tool ||
           (tool.requiresProjectService && !agentExecutor.hasProjectService())
         ) {
-          const error = buildStructuredError({
+          const error = buildStructuredMcpError({
             code: "MCP_TOOL_NOT_FOUND",
             message: `Tool "${normalized.name}" is not available`,
             retryable: false,
@@ -504,10 +416,11 @@ export function createMcpRouter({
             requestId,
             method: parsedRequest.method,
             outcome: "error",
-            userId: session.userId,
+            userId: user.id,
             actor,
             scopes: session.scopes,
             toolName: normalized.name,
+            authOutcome: "authenticated",
             errorCode: error.code,
           });
           res.status(200).json(
@@ -526,24 +439,21 @@ export function createMcpRouter({
           return;
         }
 
-        if (!hasMcpScope(session.scopes, tool.requiredScope)) {
-          const error = buildStructuredError({
-            code: "MCP_SCOPE_REQUIRED",
-            message: `Tool "${tool.name}" requires ${tool.requiredScope} scope`,
-            retryable: false,
-            hint: "Mint a new MCP token with the required scopes via /auth/mcp/token.",
-            details: {
-              requiredScope: tool.requiredScope,
-            },
+        if (!hasRequiredToolScopes(session.scopes, tool.requiredScopes)) {
+          const error = buildScopeError({
+            toolName: tool.name,
+            requiredScopes: tool.requiredScopes,
           });
           logMcpRequest({
             requestId,
             method: parsedRequest.method,
             outcome: "error",
-            userId: session.userId,
+            userId: user.id,
             actor,
             scopes: session.scopes,
             toolName: normalized.name,
+            authOutcome: "scope_denied",
+            requiredScopes: tool.requiredScopes,
             errorCode: error.code,
           });
           res.status(200).json(
@@ -577,7 +487,7 @@ export function createMcpRouter({
           tool.name as AgentActionName,
           toolArguments,
           {
-            userId: session.userId,
+            userId: user.id,
             requestId,
             actor,
             surface: "mcp",
@@ -590,10 +500,11 @@ export function createMcpRouter({
             requestId,
             method: parsedRequest.method,
             outcome: "success",
-            userId: session.userId,
+            userId: user.id,
             actor,
             scopes: session.scopes,
             toolName: normalized.name,
+            authOutcome: "authenticated",
           });
           res.status(200).json(
             jsonRpcSuccess(parsedRequest.id ?? null, {
@@ -613,10 +524,11 @@ export function createMcpRouter({
           requestId,
           method: parsedRequest.method,
           outcome: "error",
-          userId: session.userId,
+          userId: user.id,
           actor,
           scopes: session.scopes,
           toolName: normalized.name,
+          authOutcome: "authenticated",
           errorCode: result.body.error.code,
         });
         res
@@ -630,19 +542,20 @@ export function createMcpRouter({
         return;
       }
       default: {
-        const error = buildStructuredError({
+        const error = buildStructuredMcpError({
           code: "MCP_METHOD_NOT_FOUND",
           message: `Method "${parsedRequest.method}" is not supported`,
           retryable: false,
-          hint: "Use initialize, ping, tools/list, or tools/call.",
+          hint: "Use initialize, ping, tools/list, tools/call, or notifications/initialized.",
         });
         logMcpRequest({
           requestId,
           method: parsedRequest.method,
           outcome: "error",
-          userId: session.userId,
+          userId: user.id,
           actor,
           scopes: session.scopes,
+          authOutcome: "authenticated",
           errorCode: error.code,
         });
         res.status(404).json(
