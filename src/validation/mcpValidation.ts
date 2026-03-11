@@ -1,5 +1,6 @@
 import { McpScope } from "../types";
 import {
+  DEFAULT_MCP_SCOPES,
   formatMcpScopes,
   hasAllMcpScopes,
   normalizeMcpScopes,
@@ -281,7 +282,7 @@ function normalizeTokenEndpointAuthMethod(value: unknown): "none" {
 
 function normalizeScopesFromOAuthField(value: unknown): McpScope[] {
   if (value === undefined) {
-    throw new ValidationError("scope is required");
+    return [...DEFAULT_MCP_SCOPES];
   }
   if (typeof value !== "string") {
     throw new ValidationError("scope must be a string");
@@ -292,7 +293,9 @@ function normalizeScopesFromOAuthField(value: unknown): McpScope[] {
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
 
-  return normalizeMcpScopes(entries);
+  return normalizeMcpScopes(entries, {
+    defaultScopes: DEFAULT_MCP_SCOPES,
+  });
 }
 
 export function validateCreateMcpTokenInput(data: unknown): CreateMcpTokenDto {
