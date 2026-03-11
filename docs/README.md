@@ -4,16 +4,19 @@ Navigation map for this directory.
 
 ## Agent Workflow
 
-| Path                     | Purpose                                                        |
-| ------------------------ | -------------------------------------------------------------- |
-| `WORKFLOW.md`            | How tasks flow through the system (start here)                 |
-| `SAFETY_GUARDRAILS.md`   | Operational safety rules for all agents                        |
-| `agent-accessibility.md` | First-pass server contract and safety model for machine agents |
-| `assistant-mcp.md`       | Remote MCP adapter for assistant clients                       |
-| `agent-ops/`             | Dual-agent protocol (state machine, review contract)           |
-| `agent-queue/`           | Task queue: templates, README, and task folders                |
-| `architecture/`          | Architecture invariants (structural rules)                     |
-| `memory/`                | Canon / Brief / Index / Archive for context compaction         |
+| Path                     | Purpose                                                                       |
+| ------------------------ | ----------------------------------------------------------------------------- |
+| `WORKFLOW.md`            | GitHub-native workflow rules for issues, projects, PRs, and docs (start here) |
+| `SAFETY_GUARDRAILS.md`   | Operational safety rules for all agents                                       |
+| `agent-accessibility.md` | First-pass server contract and safety model for machine agents                |
+| `assistant-mcp.md`       | Remote MCP adapter for assistant clients                                      |
+| `ops/`                   | Repo operations runbooks and GitHub project setup notes                       |
+| `agent-ops/`             | Dual-agent protocol (state machine, review contract)                          |
+| `agent-queue/`           | Legacy markdown task archive and historical prompts                           |
+| `architecture/`          | Architecture invariants (structural rules)                                    |
+| `memory/`                | Canon / Brief / Index / Archive for context compaction                        |
+
+Task state lives in GitHub Issues and GitHub Projects. Docs are for durable guidance only.
 
 ## Feature Specs
 
