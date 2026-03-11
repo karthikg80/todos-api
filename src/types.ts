@@ -1,5 +1,9 @@
 export type Priority = "low" | "medium" | "high";
-export type McpScope = "read" | "write";
+export type McpScope =
+  | "tasks.read"
+  | "tasks.write"
+  | "projects.read"
+  | "projects.write";
 export type TodoSortBy =
   | "order"
   | "createdAt"

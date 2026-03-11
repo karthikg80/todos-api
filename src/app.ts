@@ -25,6 +25,7 @@ import { createProjectsRouter } from "./routes/projectsRouter";
 import { IProjectService } from "./interfaces/IProjectService";
 import { IHeadingService } from "./interfaces/IHeadingService";
 import { AgentExecutor } from "./agent/agentExecutor";
+import { McpOAuthService } from "./services/mcpOAuthService";
 import {
   authLimiter,
   emailActionLimiter,
@@ -44,6 +45,7 @@ export function createApp(
 ) {
   const app = express();
   const agentExecutor = new AgentExecutor({ todoService, projectService });
+  const mcpOAuthService = new McpOAuthService();
 
   const resolveTodoUserId = (req: Request, res: Response): string | null => {
     if (authService) {
@@ -170,6 +172,7 @@ export function createApp(
     "/auth",
     createAuthRouter({
       authService,
+      mcpOAuthService,
       authLimiter,
       emailActionLimiter,
       requireAuthIfConfigured,

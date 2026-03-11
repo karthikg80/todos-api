@@ -5,6 +5,7 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { EmailService } from "./emailService";
 import { config } from "../config";
 import { McpScope } from "../types";
+import { formatMcpScopes, normalizeMcpScopes } from "../mcp/mcpScopes";
 
 export interface RegisterDto {
   email: string;
@@ -36,13 +37,18 @@ export interface McpTokenPayload extends JwtPayload {
   tokenType: "mcp";
   scopes: McpScope[];
   assistantName?: string;
+  clientId?: string;
 }
 
 export interface McpTokenResponse {
   token: string;
+  tokenType: "Bearer";
+  scope: string;
   scopes: McpScope[];
   expiresAt: string;
+  expiresIn: number;
   assistantName?: string;
+  clientId?: string;
 }
 
 export interface AdminBootstrapStatus {
@@ -217,14 +223,19 @@ export class AuthService {
     email: string;
     scopes: McpScope[];
     assistantName?: string;
+    clientId?: string;
   }): McpTokenResponse {
+    const normalizedScopes = normalizeMcpScopes(input.scopes, {
+      requireNonEmpty: true,
+    });
     const token = jwt.sign(
       {
         userId: input.userId,
         email: input.email,
         tokenType: "mcp",
-        scopes: input.scopes,
+        scopes: normalizedScopes,
         ...(input.assistantName ? { assistantName: input.assistantName } : {}),
+        ...(input.clientId ? { clientId: input.clientId } : {}),
       },
       this.ACCESS_JWT_SECRET,
       {
@@ -234,11 +245,15 @@ export class AuthService {
 
     return {
       token,
-      scopes: [...input.scopes],
+      tokenType: "Bearer",
+      scope: formatMcpScopes(normalizedScopes),
+      scopes: [...normalizedScopes],
       expiresAt: new Date(
         Date.now() + this.MCP_JWT_EXPIRES_IN_MS,
       ).toISOString(),
+      expiresIn: Math.floor(this.MCP_JWT_EXPIRES_IN_MS / 1000),
       ...(input.assistantName ? { assistantName: input.assistantName } : {}),
+      ...(input.clientId ? { clientId: input.clientId } : {}),
     };
   }
 
@@ -253,11 +268,12 @@ export class AuthService {
         throw new Error("Invalid MCP token");
       }
 
-      if (
-        !Array.isArray(payload.scopes) ||
-        payload.scopes.length === 0 ||
-        payload.scopes.some((scope) => scope !== "read" && scope !== "write")
-      ) {
+      let scopes: McpScope[];
+      try {
+        scopes = normalizeMcpScopes(payload.scopes, {
+          requireNonEmpty: true,
+        });
+      } catch (_error) {
         throw new Error("Invalid MCP token");
       }
 
@@ -272,10 +288,13 @@ export class AuthService {
         userId: payload.userId,
         email: payload.email,
         tokenType: "mcp",
-        scopes: payload.scopes as McpScope[],
+        scopes,
         ...(typeof payload.assistantName === "string" &&
         payload.assistantName.trim()
           ? { assistantName: payload.assistantName.trim() }
+          : {}),
+        ...(typeof payload.clientId === "string" && payload.clientId.trim()
+          ? { clientId: payload.clientId.trim() }
           : {}),
       };
     } catch (error: any) {

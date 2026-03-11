@@ -223,7 +223,7 @@ function toAgentError(error: unknown): {
     return {
       status: 404,
       error: {
-        code: "NOT_FOUND",
+        code: "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
         message: mapped.message,
         retryable: false,
         hint: "Verify the referenced resource ID belongs to the authenticated user.",
@@ -326,7 +326,7 @@ export class AgentExecutor {
           if (!task) {
             throw new AgentExecutionError(
               404,
-              "TASK_NOT_FOUND",
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
               "Task not found",
               false,
               "Verify the task ID belongs to the authenticated user.",
@@ -348,7 +348,7 @@ export class AgentExecutor {
           if (!task) {
             throw new AgentExecutionError(
               404,
-              "TASK_NOT_FOUND",
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
               "Task not found",
               false,
               "Verify the task ID belongs to the authenticated user.",
@@ -366,7 +366,7 @@ export class AgentExecutor {
           if (!task) {
             throw new AgentExecutionError(
               404,
-              "TASK_NOT_FOUND",
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
               "Task not found",
               false,
               "Verify the task ID belongs to the authenticated user.",

@@ -10,6 +10,7 @@ Navigation map for this directory.
 | `SAFETY_GUARDRAILS.md`   | Operational safety rules for all agents                                       |
 | `agent-accessibility.md` | First-pass server contract and safety model for machine agents                |
 | `assistant-mcp.md`       | Remote MCP adapter for assistant clients                                      |
+| `remote-mcp-auth.md`     | Account linking, auth, scopes, and local testing for the remote MCP surface   |
 | `ops/`                   | Repo operations runbooks and GitHub project setup notes                       |
 | `agent-ops/`             | Dual-agent protocol (state machine, review contract)                          |
 | `agent-queue/`           | Legacy markdown task archive and historical prompts                           |
