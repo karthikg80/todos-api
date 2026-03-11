@@ -7,8 +7,9 @@ import {
 import { ValidationError } from "./validation";
 
 const MAX_ASSISTANT_NAME_LENGTH = 100;
-const MAX_CLIENT_ID_LENGTH = 200;
+const MAX_CLIENT_ID_LENGTH = 5000;
 const MAX_STATE_LENGTH = 200;
+const MAX_CLIENT_NAME_LENGTH = 120;
 const PKCE_MIN_LENGTH = 43;
 const PKCE_MAX_LENGTH = 128;
 
@@ -34,6 +35,24 @@ export interface ExchangeMcpAuthorizationCodeDto {
   clientId: string;
   redirectUri: string;
   codeVerifier: string;
+}
+
+export interface RegisterMcpClientDto {
+  redirectUris: string[];
+  clientName?: string;
+  grantTypes: string[];
+  responseTypes: string[];
+  tokenEndpointAuthMethod: "none";
+}
+
+export interface OAuthAuthorizeRequestDto {
+  responseType: "code";
+  clientId: string;
+  redirectUri: string;
+  scopes: McpScope[];
+  state?: string;
+  codeChallenge: string;
+  codeChallengeMethod: "S256";
 }
 
 function ensureObject(data: unknown): Record<string, unknown> {
@@ -101,6 +120,14 @@ function normalizeRedirectUri(value: unknown): string {
   return redirectUri!;
 }
 
+function normalizeRedirectUris(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new ValidationError("redirect_uris must be a non-empty array");
+  }
+
+  return Array.from(new Set(value.map((entry) => normalizeRedirectUri(entry))));
+}
+
 function normalizePkceField(input: {
   value: unknown;
   field: "codeChallenge" | "codeVerifier";
@@ -136,6 +163,14 @@ function normalizeAssistantName(value: unknown): string | undefined {
   });
 }
 
+function normalizeClientName(value: unknown): string | undefined {
+  return normalizeStringField({
+    value,
+    field: "client_name",
+    maxLength: MAX_CLIENT_NAME_LENGTH,
+  });
+}
+
 function normalizeClientId(
   value: unknown,
   required: boolean,
@@ -154,6 +189,93 @@ function normalizeState(value: unknown): string | undefined {
     field: "state",
     maxLength: MAX_STATE_LENGTH,
   });
+}
+
+function normalizeGrantTypes(value: unknown): string[] {
+  if (value === undefined) {
+    return ["authorization_code"];
+  }
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new ValidationError("grant_types must be a non-empty array");
+  }
+
+  const grantTypes = Array.from(
+    new Set(
+      value.map((entry) => {
+        if (typeof entry !== "string" || !entry.trim()) {
+          throw new ValidationError("grant_types entries must be strings");
+        }
+        return entry.trim();
+      }),
+    ),
+  );
+
+  if (grantTypes.some((grantType) => grantType !== "authorization_code")) {
+    throw new ValidationError(
+      'grant_types must only include "authorization_code"',
+    );
+  }
+
+  return grantTypes;
+}
+
+function normalizeResponseTypes(value: unknown): string[] {
+  if (value === undefined) {
+    return ["code"];
+  }
+  if (!Array.isArray(value) || value.length === 0) {
+    throw new ValidationError("response_types must be a non-empty array");
+  }
+
+  const responseTypes = Array.from(
+    new Set(
+      value.map((entry) => {
+        if (typeof entry !== "string" || !entry.trim()) {
+          throw new ValidationError("response_types entries must be strings");
+        }
+        return entry.trim();
+      }),
+    ),
+  );
+
+  if (responseTypes.some((responseType) => responseType !== "code")) {
+    throw new ValidationError('response_types must only include "code"');
+  }
+
+  return responseTypes;
+}
+
+function normalizeTokenEndpointAuthMethod(value: unknown): "none" {
+  if (value === undefined) {
+    return "none";
+  }
+  if (typeof value !== "string" || !value.trim()) {
+    throw new ValidationError(
+      "token_endpoint_auth_method must be a string when provided",
+    );
+  }
+  if (value.trim() !== "none") {
+    throw new ValidationError(
+      'token_endpoint_auth_method must be "none" for public PKCE clients',
+    );
+  }
+  return "none";
+}
+
+function normalizeScopesFromOAuthField(value: unknown): McpScope[] {
+  if (value === undefined) {
+    throw new ValidationError("scope is required");
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError("scope must be a string");
+  }
+
+  const entries = value
+    .split(" ")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+
+  return normalizeMcpScopes(entries);
 }
 
 export function validateCreateMcpTokenInput(data: unknown): CreateMcpTokenDto {
@@ -263,6 +385,73 @@ export function validateExchangeMcpAuthorizationCodeInput(
       value: body.codeVerifier,
       field: "codeVerifier",
     }),
+  };
+}
+
+export function validateRegisterMcpClientInput(
+  data: unknown,
+): RegisterMcpClientDto {
+  const body = ensureObject(data);
+  const allowedKeys = [
+    "redirect_uris",
+    "client_name",
+    "grant_types",
+    "response_types",
+    "token_endpoint_auth_method",
+  ];
+  const unknownKeys = Object.keys(body).filter(
+    (key) => !allowedKeys.includes(key),
+  );
+  if (unknownKeys.length > 0) {
+    throw new ValidationError(
+      `Request body contains unsupported field(s): ${unknownKeys.join(", ")}`,
+    );
+  }
+
+  return {
+    redirectUris: normalizeRedirectUris(body.redirect_uris),
+    clientName: normalizeClientName(body.client_name),
+    grantTypes: normalizeGrantTypes(body.grant_types),
+    responseTypes: normalizeResponseTypes(body.response_types),
+    tokenEndpointAuthMethod: normalizeTokenEndpointAuthMethod(
+      body.token_endpoint_auth_method,
+    ),
+  };
+}
+
+export function validateOAuthAuthorizeRequest(
+  data: unknown,
+): OAuthAuthorizeRequestDto {
+  const input = ensureObject(data);
+  const responseType = normalizeStringField({
+    value: input.response_type,
+    field: "response_type",
+    required: true,
+  });
+  if (responseType !== "code") {
+    throw new ValidationError('response_type must be "code"');
+  }
+
+  const codeChallengeMethod = normalizeStringField({
+    value: input.code_challenge_method ?? "S256",
+    field: "code_challenge_method",
+    required: true,
+  });
+  if (codeChallengeMethod !== "S256") {
+    throw new ValidationError("code_challenge_method must be S256");
+  }
+
+  return {
+    responseType: "code",
+    clientId: normalizeClientId(input.client_id, true)!,
+    redirectUri: normalizeRedirectUri(input.redirect_uri),
+    scopes: normalizeScopesFromOAuthField(input.scope),
+    state: normalizeState(input.state),
+    codeChallenge: normalizePkceField({
+      value: input.code_challenge,
+      field: "codeChallenge",
+    }),
+    codeChallengeMethod: "S256",
   };
 }
 

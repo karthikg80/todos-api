@@ -4,6 +4,7 @@ import { AuthService, McpTokenPayload } from "../services/authService";
 import { McpScope } from "../types";
 import { buildStructuredMcpError } from "./mcpErrors";
 import { hasAllMcpScopes } from "./mcpScopes";
+import { config } from "../config";
 
 type JsonRpcId = number | string | null;
 
@@ -184,4 +185,25 @@ export function hasRequiredToolScopes(
   requiredScopes: McpScope[],
 ) {
   return hasAllMcpScopes(availableScopes, requiredScopes);
+}
+
+export function buildMcpWwwAuthenticateHeader(input?: {
+  error?: "invalid_token";
+  errorDescription?: string;
+}) {
+  const parts = [
+    'Bearer realm="todos-api-mcp"',
+    `resource_metadata="${config.baseUrl}/.well-known/oauth-protected-resource"`,
+  ];
+
+  if (input?.error) {
+    parts.push(`error="${input.error}"`);
+  }
+  if (input?.errorDescription) {
+    parts.push(
+      `error_description="${input.errorDescription.replace(/"/g, "")}"`,
+    );
+  }
+
+  return parts.join(", ");
 }

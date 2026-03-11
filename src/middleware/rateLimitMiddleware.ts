@@ -6,6 +6,7 @@ import rateLimit from "express-rate-limit";
  * authLimiter: 5 req / 15 min — applied to /auth routes
  * emailActionLimiter: 20 req / 15 min — applied to email action routes
  * apiLimiter: 100 req / 15 min — applied to /api, /todos, /users, /ai, /projects
+ * mcpPublicLimiter: 60 req / min — applied to public MCP/OAuth endpoints
  * All limiters are bypassed when NODE_ENV=test.
  */
 const isTest = process.env.NODE_ENV === "test";
@@ -37,6 +38,16 @@ export const apiLimiter: RequestHandler = isTest
       windowMs: 15 * 60 * 1000,
       max: 100,
       message: "Too many requests, please try again later",
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+
+export const mcpPublicLimiter: RequestHandler = isTest
+  ? noLimit
+  : rateLimit({
+      windowMs: 60 * 1000,
+      max: 60,
+      message: "Too many MCP requests, please try again later",
       standardHeaders: true,
       legacyHeaders: false,
     });
