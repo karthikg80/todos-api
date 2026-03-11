@@ -1,6 +1,12 @@
 import agentManifest from "../agent/agent-manifest.json";
 import { AgentActionName } from "../agent/agentExecutor";
 import { McpScope } from "../types";
+import {
+  PROJECT_READ_SCOPE,
+  PROJECT_WRITE_SCOPE,
+  TASK_READ_SCOPE,
+  TASK_WRITE_SCOPE,
+} from "./mcpScopes";
 import { hasMcpScope } from "../validation/mcpValidation";
 
 export const MCP_PROTOCOL_VERSION = "2025-11-25";
@@ -10,12 +16,29 @@ type ToolCatalogEntry = {
   description: string;
   inputSchema: Record<string, unknown>;
   readOnly: boolean;
-  requiredScope: McpScope;
+  requiredScopes: McpScope[];
   requiresProjectService: boolean;
 };
 
 function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function requiredScopesForAction(actionName: AgentActionName): McpScope[] {
+  switch (actionName) {
+    case "list_tasks":
+    case "search_tasks":
+    case "get_task":
+      return [TASK_READ_SCOPE];
+    case "create_task":
+    case "update_task":
+    case "complete_task":
+      return [TASK_WRITE_SCOPE];
+    case "list_projects":
+      return [PROJECT_READ_SCOPE];
+    case "create_project":
+      return [PROJECT_WRITE_SCOPE];
+  }
 }
 
 function buildCatalog(): ToolCatalogEntry[] {
@@ -43,7 +66,7 @@ function buildCatalog(): ToolCatalogEntry[] {
       description: action.description,
       inputSchema,
       readOnly: action.readOnly,
-      requiredScope: action.readOnly ? "read" : "write",
+      requiredScopes: requiredScopesForAction(action.name as AgentActionName),
       requiresProjectService: Boolean(
         action.availability?.requires?.includes("project_service"),
       ),
@@ -61,7 +84,7 @@ export function listMcpTools(input: {
     if (tool.requiresProjectService && !input.projectServiceEnabled) {
       return false;
     }
-    return hasMcpScope(input.scopes, tool.requiredScope);
+    return hasMcpScope(input.scopes, tool.requiredScopes);
   }).map((tool) => ({
     name: tool.name,
     description: tool.description,
@@ -71,6 +94,18 @@ export function listMcpTools(input: {
       destructiveHint: false,
       idempotentHint: tool.name === "create_task",
       openWorldHint: false,
+    },
+    auth: {
+      required: true,
+      requiredScopes: [...tool.requiredScopes],
+      readOnly: tool.readOnly,
+      errors: [
+        "MCP_UNAUTHENTICATED",
+        "MCP_INVALID_TOKEN",
+        "MCP_AUTH_EXPIRED",
+        "MCP_INSUFFICIENT_SCOPE",
+        "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+      ],
     },
   }));
 }

@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import request from "supertest";
 import type { Express } from "express";
 import { createApp } from "./app";
@@ -26,40 +27,79 @@ function createProjectServiceMock(): jest.Mocked<IProjectService> {
   };
 }
 
-function buildMcpSession(scopes: McpScope[]) {
+function buildMcpSession(
+  userId: string,
+  scopes: McpScope[],
+  assistantName = "ChatGPT",
+) {
   return {
-    userId: "user-1",
-    email: "user@example.com",
+    userId,
+    email: `${userId}@example.com`,
     tokenType: "mcp" as const,
     scopes,
-    assistantName: "ChatGPT",
+    assistantName,
+    clientId: "chatgpt-client",
   };
 }
 
-describe("Remote MCP router", () => {
+function createPkcePair(verifier: string) {
+  const challenge = createHash("sha256")
+    .update(verifier, "utf8")
+    .digest("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+  return { verifier, challenge };
+}
+
+describe("Remote MCP router auth and scopes", () => {
   let app: Express;
   let todoService: TodoService;
   let projectService: jest.Mocked<IProjectService>;
+  let currentSession: ReturnType<typeof buildMcpSession>;
   let mockAuthService: {
     verifyToken: jest.Mock;
     createMcpToken: jest.Mock;
     verifyMcpToken: jest.Mock;
+    getUserById: jest.Mock;
   };
 
   beforeEach(() => {
     todoService = new TodoService();
     projectService = createProjectServiceMock();
+    currentSession = buildMcpSession("user-1", ["projects.read", "tasks.read"]);
+
     mockAuthService = {
       verifyToken: jest
         .fn()
-        .mockReturnValue({ userId: "user-1", email: "user@example.com" }),
-      createMcpToken: jest.fn().mockReturnValue({
-        token: "mcp-token-1",
-        scopes: ["read", "write"],
-        expiresAt: "2026-04-09T00:00:00.000Z",
-        assistantName: "ChatGPT",
+        .mockReturnValue({ userId: "user-1", email: "user-1@example.com" }),
+      createMcpToken: jest.fn().mockImplementation((input) => ({
+        token: `mcp-token-${input.userId}`,
+        tokenType: "Bearer",
+        scope: [...input.scopes].sort().join(" "),
+        scopes: [...input.scopes].sort(),
+        expiresAt: "2026-04-10T00:00:00.000Z",
+        expiresIn: 2592000,
+        assistantName: input.assistantName,
+        clientId: input.clientId,
+      })),
+      verifyMcpToken: jest.fn().mockImplementation(() => currentSession),
+      getUserById: jest.fn().mockImplementation(async (userId: string) => {
+        if (userId === "missing-user") {
+          return null;
+        }
+
+        return {
+          id: userId,
+          email: `${userId}@example.com`,
+          name: userId,
+          isVerified: true,
+          role: "user",
+          plan: "free",
+          createdAt: new Date("2026-03-11T00:00:00.000Z"),
+          updatedAt: new Date("2026-03-11T00:00:00.000Z"),
+        };
       }),
-      verifyMcpToken: jest.fn().mockReturnValue(buildMcpSession(["read"])),
     };
 
     app = createApp(
@@ -73,57 +113,197 @@ describe("Remote MCP router", () => {
     );
   });
 
-  it("issues scoped MCP tokens for authenticated users", async () => {
+  it("issues scoped MCP tokens directly for local development", async () => {
     const response = await request(app)
       .post("/auth/mcp/token")
       .set("Authorization", "Bearer app-access-token")
-      .send({ scopes: ["write"], assistantName: "ChatGPT" })
+      .send({
+        scopes: ["tasks.write"],
+        assistantName: "ChatGPT",
+        clientId: "chatgpt-client",
+      })
       .expect(201);
 
     expect(mockAuthService.createMcpToken).toHaveBeenCalledWith({
       userId: "user-1",
-      email: "user@example.com",
-      scopes: ["read", "write"],
+      email: "user-1@example.com",
+      scopes: ["tasks.write"],
       assistantName: "ChatGPT",
+      clientId: "chatgpt-client",
     });
     expect(response.body).toEqual({
-      token: "mcp-token-1",
-      scopes: ["read", "write"],
-      expiresAt: "2026-04-09T00:00:00.000Z",
+      token: "mcp-token-user-1",
+      tokenType: "Bearer",
+      scope: "tasks.write",
+      scopes: ["tasks.write"],
+      expiresAt: "2026-04-10T00:00:00.000Z",
+      expiresIn: 2592000,
       assistantName: "ChatGPT",
+      clientId: "chatgpt-client",
     });
   });
 
-  it("initializes the stateless MCP surface for an authenticated user", async () => {
+  it("starts OAuth-style assistant linking for an authenticated app user", async () => {
+    const pkce = createPkcePair(
+      "verifier-value-0000000000000000000000000000000000000",
+    );
+
+    const response = await request(app)
+      .post("/auth/mcp/oauth/authorize")
+      .set("Authorization", "Bearer app-access-token")
+      .send({
+        clientId: "chatgpt-client",
+        redirectUri: "https://chat.openai.com/aip/callback",
+        scopes: ["tasks.read", "projects.read"],
+        assistantName: "ChatGPT",
+        state: "opaque-state",
+        codeChallenge: pkce.challenge,
+        codeChallengeMethod: "S256",
+      })
+      .expect(201);
+
+    expect(response.body.authorizationCode).toEqual(expect.any(String));
+    expect(response.body.tokenEndpoint).toBe("/auth/mcp/oauth/token");
+    expect(response.body.scopes).toEqual(["projects.read", "tasks.read"]);
+    expect(response.body.state).toBe("opaque-state");
+  });
+
+  it("exchanges an authorization code for a scoped MCP access token", async () => {
+    const pkce = createPkcePair(
+      "oauth-verifier-111111111111111111111111111111111111111",
+    );
+
+    const authorize = await request(app)
+      .post("/auth/mcp/oauth/authorize")
+      .set("Authorization", "Bearer app-access-token")
+      .send({
+        clientId: "chatgpt-client",
+        redirectUri: "https://chat.openai.com/aip/callback",
+        scopes: ["tasks.read", "tasks.write"],
+        assistantName: "ChatGPT",
+        codeChallenge: pkce.challenge,
+        codeChallengeMethod: "S256",
+      })
+      .expect(201);
+
+    const exchange = await request(app)
+      .post("/auth/mcp/oauth/token")
+      .send({
+        grantType: "authorization_code",
+        code: authorize.body.authorizationCode,
+        clientId: "chatgpt-client",
+        redirectUri: "https://chat.openai.com/aip/callback",
+        codeVerifier: pkce.verifier,
+      })
+      .expect(200);
+
+    expect(mockAuthService.createMcpToken).toHaveBeenCalledWith({
+      userId: "user-1",
+      email: "user-1@example.com",
+      scopes: ["tasks.read", "tasks.write"],
+      assistantName: "ChatGPT",
+      clientId: "chatgpt-client",
+    });
+    expect(exchange.body).toEqual({
+      accessToken: "mcp-token-user-1",
+      tokenType: "Bearer",
+      expiresAt: "2026-04-10T00:00:00.000Z",
+      expiresIn: 2592000,
+      scope: "tasks.read tasks.write",
+      scopes: ["tasks.read", "tasks.write"],
+      assistantName: "ChatGPT",
+      clientId: "chatgpt-client",
+    });
+  });
+
+  it("returns structured errors when the PKCE verifier is wrong", async () => {
+    const pkce = createPkcePair(
+      "oauth-verifier-222222222222222222222222222222222222222",
+    );
+
+    const authorize = await request(app)
+      .post("/auth/mcp/oauth/authorize")
+      .set("Authorization", "Bearer app-access-token")
+      .send({
+        clientId: "claude-client",
+        redirectUri: "https://claude.ai/oauth/callback",
+        scopes: ["tasks.read"],
+        assistantName: "Claude",
+        codeChallenge: pkce.challenge,
+        codeChallengeMethod: "S256",
+      })
+      .expect(201);
+
+    const exchange = await request(app)
+      .post("/auth/mcp/oauth/token")
+      .send({
+        grantType: "authorization_code",
+        code: authorize.body.authorizationCode,
+        clientId: "claude-client",
+        redirectUri: "https://claude.ai/oauth/callback",
+        codeVerifier: "wrong-verifier-333333333333333333333333333333333333333",
+      })
+      .expect(401);
+
+    expect(exchange.body.error.code).toBe("MCP_INVALID_CODE_VERIFIER");
+  });
+
+  it("rejects missing MCP auth with a structured protocol error", async () => {
     const response = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer mcp-token-1")
       .send({
         jsonrpc: "2.0",
         id: 1,
         method: "initialize",
-        params: {
-          protocolVersion: "2025-11-25",
-          capabilities: {},
-          clientInfo: { name: "ChatGPT", version: "1.0" },
-        },
       })
-      .expect(200);
+      .expect(401);
 
-    expect(response.body.result.protocolVersion).toBe("2025-11-25");
-    expect(response.body.result.capabilities.tools.listChanged).toBe(false);
-    expect(response.body.result.serverInfo.name).toBe("todos-api-mcp");
+    expect(response.body.error.data.code).toBe("MCP_UNAUTHENTICATED");
   });
 
-  it("lists only read tools for read-scoped MCP tokens", async () => {
-    mockAuthService.verifyMcpToken.mockReturnValue(buildMcpSession(["read"]));
+  it("rejects expired MCP access tokens", async () => {
+    mockAuthService.verifyMcpToken.mockImplementation(() => {
+      throw new Error("Token expired");
+    });
 
     const response = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer mcp-token-1")
+      .set("Authorization", "Bearer expired-token")
       .send({
         jsonrpc: "2.0",
         id: 2,
+        method: "ping",
+      })
+      .expect(401);
+
+    expect(response.body.error.data.code).toBe("MCP_AUTH_EXPIRED");
+  });
+
+  it("rejects MCP tokens that no longer resolve to a user", async () => {
+    currentSession = buildMcpSession("missing-user", ["tasks.read"]);
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer orphaned-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 3,
+        method: "ping",
+      })
+      .expect(401);
+
+    expect(response.body.error.data.code).toBe("MCP_INVALID_SESSION");
+  });
+
+  it("lists only tools allowed by the current scopes and exposes auth metadata", async () => {
+    currentSession = buildMcpSession("user-1", ["projects.read", "tasks.read"]);
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer scoped-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 4,
         method: "tools/list",
       })
       .expect(200);
@@ -135,17 +315,33 @@ describe("Remote MCP router", () => {
     expect(toolNames).toContain("list_projects");
     expect(toolNames).not.toContain("create_task");
     expect(toolNames).not.toContain("create_project");
+
+    const listTasksTool = response.body.result.tools.find(
+      (tool: { name: string }) => tool.name === "list_tasks",
+    );
+    expect(listTasksTool.auth).toEqual({
+      required: true,
+      requiredScopes: ["tasks.read"],
+      readOnly: true,
+      errors: [
+        "MCP_UNAUTHENTICATED",
+        "MCP_INVALID_TOKEN",
+        "MCP_AUTH_EXPIRED",
+        "MCP_INSUFFICIENT_SCOPE",
+        "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+      ],
+    });
   });
 
-  it("rejects write tools for read-scoped MCP tokens with structured errors", async () => {
-    mockAuthService.verifyMcpToken.mockReturnValue(buildMcpSession(["read"]));
+  it("rejects write tools when write scope is missing", async () => {
+    currentSession = buildMcpSession("user-1", ["tasks.read"]);
 
     const response = await request(app)
       .post("/mcp")
-      .set("Authorization", "Bearer mcp-token-1")
+      .set("Authorization", "Bearer readonly-token")
       .send({
         jsonrpc: "2.0",
-        id: 3,
+        id: 5,
         method: "tools/call",
         params: {
           name: "create_task",
@@ -156,14 +352,41 @@ describe("Remote MCP router", () => {
 
     expect(response.body.result.isError).toBe(true);
     expect(response.body.result.structuredContent.error.code).toBe(
-      "MCP_SCOPE_REQUIRED",
+      "MCP_INSUFFICIENT_SCOPE",
+    );
+    expect(
+      response.body.result.structuredContent.error.details.requiredScopes,
+    ).toEqual(["tasks.write"]);
+  });
+
+  it("blocks cross-user task access through the MCP surface", async () => {
+    const todo = await todoService.create("user-1", {
+      title: "User 1 private task",
+    });
+    currentSession = buildMcpSession("user-2", ["tasks.read"]);
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer user-2-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 6,
+        method: "tools/call",
+        params: {
+          name: "get_task",
+          arguments: { id: todo.id },
+        },
+      })
+      .expect(200);
+
+    expect(response.body.result.isError).toBe(true);
+    expect(response.body.result.structuredContent.error.code).toBe(
+      "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
     );
   });
 
-  it("reuses the internal agent layer for create_task with MCP idempotency and logging", async () => {
-    mockAuthService.verifyMcpToken.mockReturnValue(
-      buildMcpSession(["read", "write"]),
-    );
+  it("reuses the internal agent layer for create_task with idempotency and audit logging", async () => {
+    currentSession = buildMcpSession("user-1", ["tasks.read", "tasks.write"]);
     const logSpy = jest.spyOn(console, "info").mockImplementation(() => {});
 
     const firstResponse = await request(app)
@@ -171,7 +394,7 @@ describe("Remote MCP router", () => {
       .set("Authorization", "Bearer mcp-token-1")
       .send({
         jsonrpc: "2.0",
-        id: 4,
+        id: 7,
         method: "tools/call",
         params: {
           name: "create_task",
@@ -188,7 +411,7 @@ describe("Remote MCP router", () => {
       .set("Authorization", "Bearer mcp-token-1")
       .send({
         jsonrpc: "2.0",
-        id: 5,
+        id: 8,
         method: "tools/call",
         params: {
           name: "create_task",
@@ -211,6 +434,9 @@ describe("Remote MCP router", () => {
     );
     expect(logSpy).toHaveBeenCalledWith(
       expect.stringContaining('"type":"assistant_mcp_call"'),
+    );
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"authOutcome":"authenticated"'),
     );
     expect(logSpy).toHaveBeenCalledWith(
       expect.stringContaining('"toolName":"create_task"'),

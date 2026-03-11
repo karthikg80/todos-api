@@ -10,30 +10,16 @@ Thin remote MCP layer for connecting registered todos app users from ChatGPT-, C
 
 ## Auth Model
 
-This first pass uses app-minted bearer tokens rather than OAuth.
+The remote MCP surface now expects a user-linked bearer token minted through the app-authenticated OAuth-style linking flow:
 
 1. The user signs in through the normal app auth flow and gets a standard app access token.
-2. The user calls `POST /auth/mcp/token` with that app token.
-3. The server returns a scoped MCP token.
-4. The assistant client uses that MCP token as `Authorization: Bearer <token>` when calling `/mcp`.
+2. The signed-in app starts assistant linking with `POST /auth/mcp/oauth/authorize`.
+3. The assistant exchanges the short-lived authorization code at `POST /auth/mcp/oauth/token`.
+4. The assistant calls `POST /mcp` with `Authorization: Bearer <accessToken>`.
 
-Current limitation:
+Detailed auth flow, scope mapping, and local development notes live in `docs/remote-mcp-auth.md`.
 
-- MCP tokens are minted manually through the API.
-- There is no OAuth discovery, consent screen, or token refresh flow for assistant clients yet.
-
-## Scopes
-
-Supported scopes are intentionally simple:
-
-- `read`
-- `write`
-
-Rules:
-
-- `read` allows read-only tools.
-- `write` allows mutating tools.
-- write tokens are normalized to include `read` as well.
+For local development only, `POST /auth/mcp/token` still exists as a direct token mint shortcut behind normal app auth.
 
 ## Supported Tools
 
@@ -48,7 +34,7 @@ Initial tools:
 - `list_projects`
 - `create_project`
 
-Tool discovery happens through standard MCP `tools/list`.
+Tool discovery happens through standard MCP `tools/list`, and each listed tool includes explicit auth metadata for required scopes and error expectations.
 
 ## Protocol Shape
 
@@ -72,7 +58,14 @@ Tool-level failures return:
 - `result.isError = true`
 - `result.structuredContent` carrying structured machine-usable error details
 
-The structured error shape includes stable codes, human-readable messages, retryability, and hints when the next step is clear.
+Auth and scope failures use stable codes such as:
+
+- `MCP_UNAUTHENTICATED`
+- `MCP_INVALID_TOKEN`
+- `MCP_AUTH_EXPIRED`
+- `MCP_INVALID_SESSION`
+- `MCP_INSUFFICIENT_SCOPE`
+- `RESOURCE_NOT_FOUND_OR_FORBIDDEN`
 
 ## Auditability
 
@@ -81,7 +74,8 @@ Assistant-triggered MCP calls emit lightweight structured logs with:
 - request ID
 - user ID
 - assistant identity
-- scopes
+- granted scopes
+- auth outcome
 - MCP method
 - tool name
 - outcome / error code
@@ -90,7 +84,7 @@ The delegated internal agent execution also logs its own action trace with `surf
 
 ## Idempotency
 
-First-pass idempotency is implemented for MCP `create_task` via an optional `idempotencyKey` argument.
+First-pass idempotency remains implemented for MCP `create_task` via an optional `idempotencyKey` argument.
 
 Current behavior:
 
@@ -103,7 +97,8 @@ Current limitation:
 
 ## Limitations / Follow-Up
 
-- add OAuth-based MCP auth for production-ready assistant connection flows
-- extend idempotency beyond `create_task` if assistant retry behavior needs it
-- decide whether `/mcp` should support SSE streaming once a concrete client requires it
-- add persisted audit storage if log-only tracing stops being enough
+- the OAuth-style linking flow is JSON API based and does not yet expose provider-facing discovery or consent UI
+- access tokens do not yet have refresh-token rotation for assistant clients
+- idempotency is only implemented for `create_task`
+- auditability is log-based only; there is no persisted audit store yet
+- add SSE support only if a concrete MCP client requires it
