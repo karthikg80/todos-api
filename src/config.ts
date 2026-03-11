@@ -53,6 +53,19 @@ const smtpUser = (process.env.SMTP_USER || "").trim();
 const smtpPass = (process.env.SMTP_PASS || "").trim();
 const smtpFrom = (process.env.SMTP_FROM || "").trim();
 const baseUrl = (process.env.BASE_URL || "").trim();
+const requestBodyLimit = (process.env.REQUEST_BODY_LIMIT || "256kb").trim();
+const formBodyLimit = (process.env.FORM_BODY_LIMIT || "64kb").trim();
+const requestTimeoutMsRaw = (process.env.REQUEST_TIMEOUT_MS || "30000").trim();
+const headersTimeoutMsRaw = (process.env.HEADERS_TIMEOUT_MS || "35000").trim();
+const keepAliveTimeoutMsRaw = (
+  process.env.KEEP_ALIVE_TIMEOUT_MS || "5000"
+).trim();
+const mcpOauthSessionCookieName = (
+  process.env.MCP_OAUTH_SESSION_COOKIE_NAME || "mcp_link_session"
+).trim();
+const mcpOauthSessionMaxAgeMsRaw = (
+  process.env.MCP_OAUTH_SESSION_MAX_AGE_MS || "900000"
+).trim();
 const aiProviderEnabled =
   (process.env.AI_PROVIDER_ENABLED || "false").toLowerCase() === "true";
 const aiProviderBaseUrl = (
@@ -88,6 +101,10 @@ const aiDailySuggestionLimitTeam = Number.parseInt(
 const aiDecisionAssistEnabled = ["1", "true"].includes(
   (process.env.AI_DECISION_ASSIST || "false").toLowerCase(),
 );
+const requestTimeoutMs = Number.parseInt(requestTimeoutMsRaw, 10);
+const headersTimeoutMs = Number.parseInt(headersTimeoutMsRaw, 10);
+const keepAliveTimeoutMs = Number.parseInt(keepAliveTimeoutMsRaw, 10);
+const mcpOauthSessionMaxAgeMs = Number.parseInt(mcpOauthSessionMaxAgeMsRaw, 10);
 
 if (nodeEnv === "production") {
   if (!databaseUrl) {
@@ -116,6 +133,10 @@ if (nodeEnv === "production") {
     throw new Error("CORS_ORIGINS must be configured in production");
   }
 
+  if (!baseUrl) {
+    throw new Error("BASE_URL must be set in production");
+  }
+
   if (emailFeaturesEnabled) {
     if (!smtpHost) {
       throw new Error(
@@ -135,11 +156,6 @@ if (nodeEnv === "production") {
     if (!smtpFrom) {
       throw new Error(
         "SMTP_FROM must be set in production when EMAIL_FEATURES_ENABLED=true",
-      );
-    }
-    if (!baseUrl) {
-      throw new Error(
-        "BASE_URL must be set in production when EMAIL_FEATURES_ENABLED=true",
       );
     }
   }
@@ -176,6 +192,25 @@ export const config = {
   smtpPass,
   smtpFrom,
   baseUrl: baseUrl || "http://localhost:3000",
+  requestBodyLimit,
+  formBodyLimit,
+  requestTimeoutMs:
+    Number.isInteger(requestTimeoutMs) && requestTimeoutMs > 0
+      ? requestTimeoutMs
+      : 30000,
+  headersTimeoutMs:
+    Number.isInteger(headersTimeoutMs) && headersTimeoutMs > 0
+      ? headersTimeoutMs
+      : 35000,
+  keepAliveTimeoutMs:
+    Number.isInteger(keepAliveTimeoutMs) && keepAliveTimeoutMs >= 0
+      ? keepAliveTimeoutMs
+      : 5000,
+  mcpOauthSessionCookieName: mcpOauthSessionCookieName || "mcp_link_session",
+  mcpOauthSessionMaxAgeMs:
+    Number.isInteger(mcpOauthSessionMaxAgeMs) && mcpOauthSessionMaxAgeMs > 0
+      ? mcpOauthSessionMaxAgeMs
+      : 15 * 60 * 1000,
   aiProviderEnabled,
   aiProviderBaseUrl,
   aiProviderApiKey,

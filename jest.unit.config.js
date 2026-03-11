@@ -14,5 +14,6 @@ module.exports = {
     "**/src/aiApplyService.test.ts",
     "**/src/agentRouter.test.ts",
     "**/src/mcpRouter.test.ts",
+    "**/src/mcpPublicRouter.test.ts",
   ],
 };

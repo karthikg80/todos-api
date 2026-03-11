@@ -26,10 +26,13 @@ import { IProjectService } from "./interfaces/IProjectService";
 import { IHeadingService } from "./interfaces/IHeadingService";
 import { AgentExecutor } from "./agent/agentExecutor";
 import { McpOAuthService } from "./services/mcpOAuthService";
+import { McpClientService } from "./services/mcpClientService";
+import { createMcpPublicRouter } from "./routes/mcpPublicRouter";
 import {
   authLimiter,
   emailActionLimiter,
   apiLimiter,
+  mcpPublicLimiter,
 } from "./middleware/rateLimitMiddleware";
 
 export function createApp(
@@ -46,6 +49,7 @@ export function createApp(
   const app = express();
   const agentExecutor = new AgentExecutor({ todoService, projectService });
   const mcpOAuthService = new McpOAuthService();
+  const mcpClientService = new McpClientService();
 
   const resolveTodoUserId = (req: Request, res: Response): string | null => {
     if (authService) {
@@ -124,7 +128,8 @@ export function createApp(
     app.use(cors());
   }
 
-  app.use(express.json());
+  app.use(express.json({ limit: config.requestBodyLimit }));
+  app.use(express.urlencoded({ extended: false, limit: config.formBodyLimit }));
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -167,6 +172,8 @@ export function createApp(
   app.use("/projects", apiLimiter);
   app.use("/agent", apiLimiter);
   app.use("/mcp", apiLimiter);
+  app.use("/oauth", mcpPublicLimiter);
+  app.use("/.well-known", mcpPublicLimiter);
 
   app.use(
     "/auth",
@@ -176,6 +183,14 @@ export function createApp(
       authLimiter,
       emailActionLimiter,
       requireAuthIfConfigured,
+    }),
+  );
+
+  app.use(
+    createMcpPublicRouter({
+      authService,
+      mcpOAuthService,
+      mcpClientService,
     }),
   );
 

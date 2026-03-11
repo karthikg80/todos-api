@@ -26,6 +26,34 @@ const app = createApp(
   headingService,
 );
 
+app.get("/healthz", (_req, res) => {
+  res.status(200).json({
+    ok: true,
+    service: "todos-api",
+    now: new Date().toISOString(),
+  });
+});
+
+app.get("/readyz", async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.status(200).json({
+      ok: true,
+      service: "todos-api",
+      database: "ready",
+      now: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Readiness check failed", error);
+    res.status(503).json({
+      ok: false,
+      service: "todos-api",
+      database: "unavailable",
+      now: new Date().toISOString(),
+    });
+  }
+});
+
 const server = app.listen(PORT, () => {
   console.log(`Todos API server running on port ${PORT}`);
   console.log(`Environment: ${config.nodeEnv}`);
@@ -33,6 +61,10 @@ const server = app.listen(PORT, () => {
     `Database: ${config.databaseUrl ? "Connected" : "Not configured"}`,
   );
 });
+
+server.requestTimeout = config.requestTimeoutMs;
+server.headersTimeout = config.headersTimeoutMs;
+server.keepAliveTimeout = config.keepAliveTimeoutMs;
 
 // Graceful shutdown handlers
 async function gracefulShutdown(signal: string) {

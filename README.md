@@ -15,6 +15,7 @@ A production-ready REST API for managing todos with JWT auth, PostgreSQL persist
 - 🌍 Environment-based configuration (dev/test/prod)
 - 🔐 Refresh token rotation and auth route protection
 - 🤖 AI-assisted task critique and goal-to-plan suggestions
+- 🔌 Remote MCP surface for assistant connectors over the internal agent layer
 
 ## Prerequisites
 
@@ -393,6 +394,12 @@ The canonical schema is in `prisma/schema.prisma` and includes auth/user tables,
 | `PORT`                   | Server port                               | `3000`                                                     |
 | `NODE_ENV`               | Environment (development/test/production) | `development`                                              |
 | `EMAIL_FEATURES_ENABLED` | Enable verification/reset email delivery  | `true`                                                     |
+| `BASE_URL`               | Public app/API base URL                   | `http://localhost:3000`                                    |
+| `REQUEST_BODY_LIMIT`     | JSON body size limit                      | `256kb`                                                    |
+| `FORM_BODY_LIMIT`        | Form body size limit                      | `64kb`                                                     |
+| `REQUEST_TIMEOUT_MS`     | Node request timeout                      | `30000`                                                    |
+| `HEADERS_TIMEOUT_MS`     | Node headers timeout                      | `35000`                                                    |
+| `KEEP_ALIVE_TIMEOUT_MS`  | Node keep-alive timeout                   | `5000`                                                     |
 
 ## Deployment
 
@@ -412,6 +419,7 @@ This compiles TypeScript and generates the Prisma client.
    export DATABASE_URL="postgresql://user:password@host:5432/todos_prod"
    export NODE_ENV="production"
    export PORT="3000"
+   export BASE_URL="https://your-public-api.example.com"
    ```
 
 2. Run migrations:
@@ -428,6 +436,25 @@ This compiles TypeScript and generates the Prisma client.
 ### Docker Deployment
 
 The PostgreSQL container is configured for local development. For production, use a managed database service (AWS RDS, Google Cloud SQL, etc.) and update the `DATABASE_URL` accordingly.
+
+### Remote MCP Deployment
+
+The public assistant connector surface is exposed from the same service under:
+
+- `GET /mcp`
+- `POST /mcp`
+- `GET /.well-known/oauth-protected-resource`
+- `GET /.well-known/oauth-authorization-server`
+- `POST /oauth/register`
+- `GET /oauth/authorize`
+- `POST /oauth/token`
+
+Supporting docs:
+
+- `docs/assistant-mcp.md`
+- `docs/remote-mcp-auth.md`
+- `docs/ops/railway-remote-mcp-deploy.md`
+- `docs/ops/connector-smoke-checklist.md`
 
 ## Troubleshooting
 

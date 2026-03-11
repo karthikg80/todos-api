@@ -1,29 +1,44 @@
 # Assistant MCP
 
-Thin remote MCP layer for connecting registered todos app users from ChatGPT-, Claude-, or similar assistant clients.
+Thin remote MCP layer for connecting registered Todos app users from ChatGPT, Claude, or similar assistant clients.
 
-## Architecture
+## What This Layer Does
 
-- `/agent` remains the internal task-oriented capability surface.
-- `/mcp` is a thin remote MCP adapter over that internal layer.
-- `/mcp` does not duplicate todo or project business rules. It delegates tool execution to the shared internal agent executor, which still uses the existing server-side todo and project services.
+- keeps `/agent` as the internal task-oriented capability surface
+- exposes `/mcp` as the public remote MCP adapter over that internal layer
+- reuses the shared internal agent executor instead of duplicating todo or project rules
+- requires every MCP call to resolve to a concrete authenticated app user
 
-## Auth Model
+This is the public connector layer. The internal machine-facing contract still lives in `docs/agent-accessibility.md`.
 
-The remote MCP surface now expects a user-linked bearer token minted through the app-authenticated OAuth-style linking flow:
+## Public Endpoints
 
-1. The user signs in through the normal app auth flow and gets a standard app access token.
-2. The signed-in app starts assistant linking with `POST /auth/mcp/oauth/authorize`.
-3. The assistant exchanges the short-lived authorization code at `POST /auth/mcp/oauth/token`.
-4. The assistant calls `POST /mcp` with `Authorization: Bearer <accessToken>`.
+Runtime endpoints:
 
-Detailed auth flow, scope mapping, and local development notes live in `docs/remote-mcp-auth.md`.
+- `GET /mcp`
+  SSE-style stream endpoint for remote MCP clients that expect long-lived transport.
+- `POST /mcp`
+  Streamable HTTP JSON-RPC endpoint for MCP methods and tool calls.
+- `GET /.well-known/oauth-protected-resource`
+  OAuth protected-resource metadata for remote clients.
+- `GET /.well-known/oauth-authorization-server`
+  Authorization server metadata.
+- `POST /oauth/register`
+  Dynamic client registration for public PKCE clients.
+- `GET /oauth/authorize`
+  Browser-based user sign-in and consent page.
+- `POST /oauth/token`
+  Authorization code exchange for an MCP bearer token.
+- `GET /healthz`
+  Liveness signal for the deployed service.
+- `GET /readyz`
+  Readiness signal, including database reachability.
 
-For local development only, `POST /auth/mcp/token` still exists as a direct token mint shortcut behind normal app auth.
+Detailed auth and scope behavior lives in `docs/remote-mcp-auth.md`.
 
 ## Supported Tools
 
-Initial tools:
+Initial public tools:
 
 - `list_tasks`
 - `search_tasks`
@@ -34,31 +49,42 @@ Initial tools:
 - `list_projects`
 - `create_project`
 
-Tool discovery happens through standard MCP `tools/list`, and each listed tool includes explicit auth metadata for required scopes and error expectations.
+`tools/list` only returns tools allowed by the current token scopes.
+
+## Auth and Scope Model
+
+- browser-based account linking reuses the app's existing user auth
+- connector tokens are MCP-scoped bearer tokens, not app session tokens
+- supported scopes:
+  - `tasks.read`
+  - `tasks.write`
+  - `projects.read`
+  - `projects.write`
+- write tools are denied unless the token carries the matching write scope
+- no MCP path trusts caller-provided user IDs for authorization
 
 ## Protocol Shape
 
-- Endpoint: `POST /mcp`
-- Transport style: stateless Streamable HTTP with JSON responses
-- Implemented methods:
+- `/mcp` supports both:
+  - `GET` for SSE-style connector transport
+  - `POST` for stateless Streamable HTTP JSON-RPC
+- implemented MCP methods:
   - `initialize`
   - `ping`
   - `tools/list`
   - `tools/call`
   - `notifications/initialized`
 
-This first pass does not implement SSE streaming over `GET /mcp`.
-
-## Errors
+## Error Shape
 
 Protocol-level failures return JSON-RPC errors with structured `error.data`.
 
 Tool-level failures return:
 
 - `result.isError = true`
-- `result.structuredContent` carrying structured machine-usable error details
+- `result.structuredContent.error` with machine-usable details
 
-Auth and scope failures use stable codes such as:
+Stable auth and authorization codes include:
 
 - `MCP_UNAUTHENTICATED`
 - `MCP_INVALID_TOKEN`
@@ -67,24 +93,22 @@ Auth and scope failures use stable codes such as:
 - `MCP_INSUFFICIENT_SCOPE`
 - `RESOURCE_NOT_FOUND_OR_FORBIDDEN`
 
-## Auditability
+## Observability and Safety
 
-Assistant-triggered MCP calls emit lightweight structured logs with:
+The public MCP layer adds:
 
-- request ID
-- user ID
-- assistant identity
-- granted scopes
-- auth outcome
-- MCP method
-- tool name
-- outcome / error code
+- request IDs
+- user-scoped tool execution
+- structured auth and scope-denial logs
+- latency logging for `/mcp` calls
+- body-size limits and HTTP timeouts
+- rate limiting on public OAuth and discovery endpoints
 
-The delegated internal agent execution also logs its own action trace with `surface: "mcp"`.
+The delegated internal agent execution still emits its own action trace with `surface: "mcp"`.
 
 ## Idempotency
 
-First-pass idempotency remains implemented for MCP `create_task` via an optional `idempotencyKey` argument.
+First-pass idempotency is implemented for `create_task` via an optional `idempotencyKey` tool argument.
 
 Current behavior:
 
@@ -93,12 +117,20 @@ Current behavior:
 
 Current limitation:
 
-- idempotency storage is still process-local and in-memory
+- idempotency state is still process-local and in-memory
 
-## Limitations / Follow-Up
+## Deployment and Connector Validation
 
-- the OAuth-style linking flow is JSON API based and does not yet expose provider-facing discovery or consent UI
-- access tokens do not yet have refresh-token rotation for assistant clients
+Deployment and beta-verification runbooks live in:
+
+- `docs/ops/railway-remote-mcp-deploy.md`
+- `docs/ops/connector-smoke-checklist.md`
+
+Those docs also record what remains manual from this sandboxed environment.
+
+## Current Limitations
+
+- no refresh-token flow yet for assistant clients
+- no persisted audit store or token revocation list yet
 - idempotency is only implemented for `create_task`
-- auditability is log-based only; there is no persisted audit store yet
-- add SSE support only if a concrete MCP client requires it
+- the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access

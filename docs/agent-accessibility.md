@@ -18,6 +18,7 @@ This is intentionally a thin layer over the existing Express routers and service
 The initial machine-readable contract lives in `src/agent/agent-manifest.json` and is exposed at runtime through `GET /agent/manifest`.
 
 The remote assistant-facing MCP adapter that builds on this internal layer is documented in `docs/assistant-mcp.md`, with auth and scope details in `docs/remote-mcp-auth.md`.
+Public deployment and connector validation runbooks live under `docs/ops/`.
 Supported actions:
 
 - `list_tasks`

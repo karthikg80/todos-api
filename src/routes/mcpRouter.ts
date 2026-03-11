@@ -4,6 +4,7 @@ import { AgentActionName, AgentExecutor } from "../agent/agentExecutor";
 import { config } from "../config";
 import {
   buildMcpRequestId,
+  buildMcpWwwAuthenticateHeader,
   buildScopeError,
   hasRequiredToolScopes,
   resolveMcpAuthContext,
@@ -172,6 +173,8 @@ function logMcpRequest(input: {
     | "session_invalid"
     | "scope_denied";
   requiredScopes?: McpScope[];
+  httpStatus?: number;
+  latencyMs?: number;
 }) {
   console.info(
     JSON.stringify({
@@ -185,6 +188,8 @@ function logMcpRequest(input: {
       outcome: input.outcome,
       authOutcome: input.authOutcome,
       requiredScopes: input.requiredScopes,
+      httpStatus: input.httpStatus,
+      latencyMs: input.latencyMs,
       errorCode: input.errorCode,
       ts: new Date().toISOString(),
     }),
@@ -197,17 +202,89 @@ export function createMcpRouter({
 }: McpRouterDeps): Router {
   const router = Router();
 
-  router.get("/", (_req: Request, res: Response) => {
-    res.status(405).json({
-      error: {
-        code: "MCP_GET_NOT_SUPPORTED",
-        message:
-          "This MCP endpoint currently supports stateless POST requests only.",
-      },
+  router.get("/", async (req: Request, res: Response) => {
+    const requestId = buildMcpRequestId(req);
+    const startedAt = Date.now();
+    const auth = await resolveMcpAuthContext({
+      req,
+      authService,
+      requestId,
+    });
+
+    if (!auth.context || auth.error) {
+      const errorCode = auth.error?.code;
+      const authOutcome =
+        errorCode === "MCP_UNAUTHENTICATED"
+          ? "missing"
+          : errorCode === "MCP_AUTH_EXPIRED"
+            ? "expired"
+            : errorCode === "MCP_INVALID_SESSION"
+              ? "session_invalid"
+              : "invalid";
+      logMcpRequest({
+        requestId,
+        method: "get_stream",
+        outcome: "error",
+        authOutcome,
+        errorCode,
+        httpStatus: auth.httpStatus,
+        latencyMs: Date.now() - startedAt,
+      });
+      res.setHeader(
+        "WWW-Authenticate",
+        buildMcpWwwAuthenticateHeader(
+          errorCode && errorCode !== "MCP_UNAUTHENTICATED"
+            ? {
+                error: "invalid_token",
+                errorDescription: auth.error?.message,
+              }
+            : undefined,
+        ),
+      );
+      res.status(auth.httpStatus).json({
+        error:
+          auth.error ||
+          buildStructuredMcpError({
+            code: "MCP_UNAUTHENTICATED",
+            message: "Authentication failed",
+            retryable: false,
+          }),
+      });
+      return;
+    }
+
+    const { context } = auth;
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-store");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders?.();
+    res.write(`: connected requestId=${context.requestId}\n\n`);
+
+    const heartbeat = setInterval(() => {
+      if (!res.writableEnded) {
+        res.write(`: keepalive ${Date.now()}\n\n`);
+      }
+    }, 15000);
+
+    req.on("close", () => {
+      clearInterval(heartbeat);
+    });
+
+    logMcpRequest({
+      requestId,
+      method: "get_stream",
+      outcome: "success",
+      userId: context.user.id,
+      actor: context.actor,
+      scopes: context.session.scopes,
+      authOutcome: "authenticated",
+      httpStatus: 200,
+      latencyMs: Date.now() - startedAt,
     });
   });
 
   router.post("/", async (req: Request, res: Response) => {
+    const startedAt = Date.now();
     const parsedRequest = parseRequest(req.body);
     const requestId = buildMcpRequestId(req, parsedRequest?.id);
 
@@ -217,6 +294,8 @@ export function createMcpRouter({
         method: "invalid_request",
         outcome: "error",
         errorCode: "MCP_INVALID_REQUEST",
+        httpStatus: 400,
+        latencyMs: Date.now() - startedAt,
       });
       res.status(400).json(
         jsonRpcError({
@@ -241,6 +320,8 @@ export function createMcpRouter({
         method: parsedRequest.method,
         outcome: "error",
         errorCode: originError.code,
+        httpStatus: 403,
+        latencyMs: Date.now() - startedAt,
       });
       res.status(403).json(
         jsonRpcError({
@@ -274,7 +355,20 @@ export function createMcpRouter({
         outcome: "error",
         authOutcome,
         errorCode,
+        httpStatus: auth.httpStatus,
+        latencyMs: Date.now() - startedAt,
       });
+      res.setHeader(
+        "WWW-Authenticate",
+        buildMcpWwwAuthenticateHeader(
+          errorCode && errorCode !== "MCP_UNAUTHENTICATED"
+            ? {
+                error: "invalid_token",
+                errorDescription: auth.error?.message,
+              }
+            : undefined,
+        ),
+      );
       res.status(auth.httpStatus).json(
         jsonRpcError({
           id: parsedRequest.id ?? null,
@@ -305,6 +399,8 @@ export function createMcpRouter({
           actor,
           scopes: session.scopes,
           authOutcome: "authenticated",
+          httpStatus: 200,
+          latencyMs: Date.now() - startedAt,
         });
         res.status(200).json(
           jsonRpcSuccess(parsedRequest.id ?? null, {
@@ -319,7 +415,7 @@ export function createMcpRouter({
               version: packageJson.version,
             },
             instructions:
-              "Use tools/list to discover your scoped tools. Link an app user account through /auth/mcp/oauth/authorize and /auth/mcp/oauth/token to mint a scoped bearer token. /auth/mcp/token remains available for local development.",
+              "Use tools/list to discover your scoped tools. Public connectors should use /.well-known OAuth metadata plus /oauth/authorize, /oauth/token, and /oauth/register. /auth/mcp/token remains available for local development.",
           }),
         );
         return;
@@ -333,6 +429,8 @@ export function createMcpRouter({
           actor,
           scopes: session.scopes,
           authOutcome: "authenticated",
+          httpStatus: 200,
+          latencyMs: Date.now() - startedAt,
         });
         res.status(200).json(jsonRpcSuccess(parsedRequest.id ?? null, {}));
         return;
@@ -346,6 +444,8 @@ export function createMcpRouter({
           actor,
           scopes: session.scopes,
           authOutcome: "authenticated",
+          httpStatus: 202,
+          latencyMs: Date.now() - startedAt,
         });
         res.status(202).end();
         return;
@@ -363,6 +463,8 @@ export function createMcpRouter({
           actor,
           scopes: session.scopes,
           authOutcome: "authenticated",
+          httpStatus: 200,
+          latencyMs: Date.now() - startedAt,
         });
         res.status(200).json(
           jsonRpcSuccess(parsedRequest.id ?? null, {
@@ -383,6 +485,8 @@ export function createMcpRouter({
             scopes: session.scopes,
             authOutcome: "authenticated",
             errorCode: normalized.error?.code,
+            httpStatus: 400,
+            latencyMs: Date.now() - startedAt,
           });
           res.status(400).json(
             jsonRpcError({
@@ -422,6 +526,8 @@ export function createMcpRouter({
             toolName: normalized.name,
             authOutcome: "authenticated",
             errorCode: error.code,
+            httpStatus: 200,
+            latencyMs: Date.now() - startedAt,
           });
           res.status(200).json(
             jsonRpcSuccess(
@@ -455,6 +561,8 @@ export function createMcpRouter({
             authOutcome: "scope_denied",
             requiredScopes: tool.requiredScopes,
             errorCode: error.code,
+            httpStatus: 200,
+            latencyMs: Date.now() - startedAt,
           });
           res.status(200).json(
             jsonRpcSuccess(
@@ -505,6 +613,8 @@ export function createMcpRouter({
             scopes: session.scopes,
             toolName: normalized.name,
             authOutcome: "authenticated",
+            httpStatus: 200,
+            latencyMs: Date.now() - startedAt,
           });
           res.status(200).json(
             jsonRpcSuccess(parsedRequest.id ?? null, {
@@ -530,6 +640,8 @@ export function createMcpRouter({
           toolName: normalized.name,
           authOutcome: "authenticated",
           errorCode: result.body.error.code,
+          httpStatus: 200,
+          latencyMs: Date.now() - startedAt,
         });
         res
           .status(200)
@@ -557,6 +669,8 @@ export function createMcpRouter({
           scopes: session.scopes,
           authOutcome: "authenticated",
           errorCode: error.code,
+          httpStatus: 404,
+          latencyMs: Date.now() - startedAt,
         });
         res.status(404).json(
           jsonRpcError({
