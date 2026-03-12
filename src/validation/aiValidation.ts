@@ -1,4 +1,4 @@
-import { ValidationError } from "./validation";
+import { ValidationError, validateId } from "./validation";
 import { Priority } from "../types";
 import {
   CritiqueTaskInput,
@@ -263,10 +263,9 @@ export function validateDecisionAssistLatestQuery(query: any): {
     if (typeof query.todoId !== "string" || query.todoId.trim().length === 0) {
       throw new ValidationError("todoId must be a non-empty string");
     }
-    if (query.todoId.trim().length > 120) {
-      throw new ValidationError("todoId cannot exceed 120 characters");
-    }
-    todoId = query.todoId.trim();
+    const normalizedTodoId = query.todoId.trim();
+    validateId(normalizedTodoId);
+    todoId = normalizedTodoId;
   }
 
   if (TODO_REQUIRED_DECISION_ASSIST_SURFACES.includes(surface) && !todoId) {

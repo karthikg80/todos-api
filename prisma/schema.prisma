@@ -126,7 +126,7 @@ model RefreshToken {
 }
 
 model Project {
-  id             String                @id @default(uuid())
+  id             String                @id @default(uuid()) @db.Uuid
   name           String                @db.VarChar(50)
   description    String?               @db.Text
   status         ProjectStatus         @default(active)
@@ -152,8 +152,8 @@ model Project {
 }
 
 model Heading {
-  id        String   @id @default(uuid())
-  projectId String   @map("project_id")
+  id        String   @id @default(uuid()) @db.Uuid
+  projectId String   @db.Uuid @map("project_id")
   name      String   @db.VarChar(100)
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
@@ -168,14 +168,14 @@ model Heading {
 }
 
 model Todo {
-  id                    String             @id @default(uuid())
+  id                    String             @id @default(uuid()) @db.Uuid
   title                 String             @db.VarChar(200)
   description           String?            @db.VarChar(1000)
   status                TodoStatus         @default(next)
   completed             Boolean            @default(false)
   category              String?            @db.VarChar(50)
-  projectId             String?            @map("project_id")
-  headingId             String?            @map("heading_id")
+  projectId             String?            @db.Uuid @map("project_id")
+  headingId             String?            @db.Uuid @map("heading_id")
   context               String?            @db.VarChar(100)
   energy                TodoEnergy?
   dueDate               DateTime?          @map("due_date")
@@ -221,12 +221,12 @@ model Todo {
 }
 
 model Subtask {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid()) @db.Uuid
   title       String   @db.VarChar(200)
   completed   Boolean  @default(false)
   order       Int      @default(0)
   completedAt DateTime? @map("completed_at")
-  todoId      String   @map("todo_id")
+  todoId      String   @db.Uuid @map("todo_id")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -261,7 +261,7 @@ model AiSuggestion {
 model AiSuggestionAppliedTodo {
   id           String   @id @default(uuid())
   suggestionId String   @map("suggestion_id")
-  todoId       String   @map("todo_id")
+  todoId       String   @db.Uuid @map("todo_id")
   createdAt    DateTime @default(now()) @map("created_at")
 
   suggestion AiSuggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)

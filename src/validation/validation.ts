@@ -1257,14 +1257,7 @@ export function validateId(id: string): void {
   const normalized = id.trim();
   const uuidPattern =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  const cuidPattern = /^c[a-z0-9]{24}$/;
-  const ulidPattern = /^[0-9A-HJKMNP-TV-Z]{26}$/i;
-
-  if (
-    !uuidPattern.test(normalized) &&
-    !cuidPattern.test(normalized) &&
-    !ulidPattern.test(normalized)
-  ) {
+  if (!uuidPattern.test(normalized)) {
     throw new ValidationError("Invalid ID format");
   }
 }
