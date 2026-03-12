@@ -32,13 +32,19 @@ export interface CreateMcpAuthorizationCodeDto {
   codeChallengeMethod: "S256";
 }
 
-export interface ExchangeMcpAuthorizationCodeDto {
-  grantType: "authorization_code";
-  code: string;
-  clientId: string;
-  redirectUri: string;
-  codeVerifier: string;
-}
+export type ExchangeMcpTokenDto =
+  | {
+      grantType: "authorization_code";
+      code: string;
+      clientId: string;
+      redirectUri: string;
+      codeVerifier: string;
+    }
+  | {
+      grantType: "refresh_token";
+      refreshToken: string;
+      clientId: string;
+    };
 
 export interface RegisterMcpClientDto {
   redirectUris: string[];
@@ -364,7 +370,7 @@ export function validateCreateMcpAuthorizationCodeInput(
 
 export function validateExchangeMcpAuthorizationCodeInput(
   data: unknown,
-): ExchangeMcpAuthorizationCodeDto {
+): ExchangeMcpTokenDto {
   const body = ensureObject(data);
   const allowedKeys = [
     "grantType",
@@ -372,6 +378,7 @@ export function validateExchangeMcpAuthorizationCodeInput(
     "clientId",
     "redirectUri",
     "codeVerifier",
+    "refreshToken",
   ];
   const unknownKeys = Object.keys(body).filter(
     (key) => !allowedKeys.includes(key),
@@ -387,8 +394,26 @@ export function validateExchangeMcpAuthorizationCodeInput(
     field: "grantType",
     required: true,
   });
-  if (grantType !== "authorization_code") {
-    throw new ValidationError('grantType must be "authorization_code"');
+  if (
+    grantType !== OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE &&
+    grantType !== OAUTH_CLIENT_GRANT_REFRESH_TOKEN
+  ) {
+    throw new ValidationError(
+      'grantType must be "authorization_code" or "refresh_token"',
+    );
+  }
+
+  if (grantType === OAUTH_CLIENT_GRANT_REFRESH_TOKEN) {
+    return {
+      grantType: "refresh_token",
+      refreshToken: normalizeStringField({
+        value: body.refreshToken,
+        field: "refreshToken",
+        required: true,
+        maxLength: 500,
+      })!,
+      clientId: normalizeClientId(body.clientId, true)!,
+    };
   }
 
   return {

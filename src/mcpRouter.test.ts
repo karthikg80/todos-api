@@ -215,7 +215,53 @@ describe("Remote MCP router auth and scopes", () => {
       scopes: ["tasks.read", "tasks.write"],
       assistantName: "ChatGPT",
       clientId: "chatgpt-client",
+      refreshToken: expect.any(String),
+      refreshTokenExpiresAt: expect.any(String),
+      refreshTokenExpiresIn: 2592000,
     });
+  });
+
+  it("rotates MCP refresh tokens through the internal OAuth token endpoint", async () => {
+    const pkce = createPkcePair(
+      "oauth-verifier-refresh-111111111111111111111111111111111111",
+    );
+
+    const authorize = await request(app)
+      .post("/auth/mcp/oauth/authorize")
+      .set("Authorization", "Bearer app-access-token")
+      .send({
+        clientId: "chatgpt-client",
+        redirectUri: "https://chat.openai.com/aip/callback",
+        scopes: ["tasks.read", "tasks.write"],
+        assistantName: "ChatGPT",
+        codeChallenge: pkce.challenge,
+        codeChallengeMethod: "S256",
+      })
+      .expect(201);
+
+    const exchange = await request(app)
+      .post("/auth/mcp/oauth/token")
+      .send({
+        grantType: "authorization_code",
+        code: authorize.body.authorizationCode,
+        clientId: "chatgpt-client",
+        redirectUri: "https://chat.openai.com/aip/callback",
+        codeVerifier: pkce.verifier,
+      })
+      .expect(200);
+
+    const refreshed = await request(app)
+      .post("/auth/mcp/oauth/token")
+      .send({
+        grantType: "refresh_token",
+        refreshToken: exchange.body.refreshToken,
+        clientId: "chatgpt-client",
+      })
+      .expect(200);
+
+    expect(refreshed.body.accessToken).toBe("mcp-token-user-1");
+    expect(refreshed.body.refreshToken).toEqual(expect.any(String));
+    expect(refreshed.body.refreshToken).not.toBe(exchange.body.refreshToken);
   });
 
   it("returns structured errors when the PKCE verifier is wrong", async () => {

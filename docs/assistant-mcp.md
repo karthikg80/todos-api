@@ -142,10 +142,10 @@ Current behavior:
 
 - same key + same input => replay the original success response
 - same key + different input => structured conflict error
+- production/runtime storage is durable across restarts and multiple app instances
 
 Current limitation:
 
-- idempotency state is still process-local and in-memory
 - `delete_project` unassigns tasks by default unless `moveTasksToProjectId` is supplied
 - project archiving is metadata-only in this pass; archived projects remain listable
 
@@ -160,7 +160,7 @@ Those docs also record what remains manual from this sandboxed environment.
 
 ## Current Limitations
 
-- no refresh-token flow yet for assistant clients
-- no persisted audit store or token revocation list yet
+- no user-facing token revocation UI or assistant session management yet
 - idempotency is implemented for `create_task` and `create_project`
+- persisted audit records are lightweight operational traces, not a full analytics platform
 - the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access

@@ -93,14 +93,15 @@ Current behavior:
 
 - same key + same input => replay the original success response
 - same key + different input => structured conflict error
+- production/runtime storage is durable across restarts and multiple app instances
 
 Current limitation:
 
-- storage is process-local and in-memory, so it protects retry behavior within a running server instance but is not yet durable across restarts or multiple app instances
+- idempotency is still only implemented for the create flows that currently need safe retries
 
 ## Traceability
 
-Agent actions emit lightweight structured logs with:
+Agent actions emit lightweight structured logs and a lightweight persisted audit record with:
 
 - action name
 - read/write flag
@@ -110,11 +111,11 @@ Agent actions emit lightweight structured logs with:
 - agent identifier
 - idempotency key when supplied
 
-This is enough for first-pass auditability without introducing a new persistence layer.
+This is enough for operational debugging without introducing a separate analytics platform.
 
 ## Known Gaps / Follow-Up
 
 - extend idempotency beyond create flows if retry semantics are needed for more writes
 - decide when the project/category compatibility path can be retired in favor of `projectId` only
 - add destructive confirmation patterns before exposing broader delete or bulk write actions
-- add richer persisted audit storage if log-only tracing is no longer sufficient
+- add richer audit reporting or revocation UI if operational needs outgrow the current trace tables

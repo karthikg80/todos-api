@@ -1,3 +1,4 @@
+import { Prisma, PrismaClient } from "@prisma/client";
 import { createHash } from "crypto";
 
 interface CachedAgentResponse {
@@ -46,6 +47,8 @@ function cloneJsonSafe<T>(value: T): T {
 }
 
 export class AgentIdempotencyService {
+  constructor(private readonly prisma?: PrismaClient) {}
+
   private readonly ttlMs = 24 * 60 * 60 * 1000;
   private readonly entries = new Map<string, CachedAgentResponse>();
 
@@ -66,12 +69,52 @@ export class AgentIdempotencyService {
     }
   }
 
-  lookup(
+  async lookup(
     action: string,
     userId: string,
     idempotencyKey: string,
     input: unknown,
-  ): IdempotencyLookupResult {
+  ): Promise<IdempotencyLookupResult> {
+    if (this.prisma) {
+      const existing = await this.prisma.agentIdempotencyRecord.findUnique({
+        where: {
+          action_userId_idempotencyKey: {
+            action,
+            userId,
+            idempotencyKey,
+          },
+        },
+      });
+
+      if (!existing) {
+        return { kind: "miss" };
+      }
+
+      if (existing.expiresAt.getTime() <= Date.now()) {
+        await this.prisma.agentIdempotencyRecord.delete({
+          where: {
+            action_userId_idempotencyKey: {
+              action,
+              userId,
+              idempotencyKey,
+            },
+          },
+        });
+        return { kind: "miss" };
+      }
+
+      const inputHash = this.hashInput(input);
+      if (existing.inputHash !== inputHash) {
+        return { kind: "conflict" };
+      }
+
+      return {
+        kind: "replay",
+        status: existing.status,
+        body: cloneJsonSafe(existing.response),
+      };
+    }
+
     this.pruneExpiredEntries();
 
     const cacheKey = this.makeCacheKey(action, userId, idempotencyKey);
@@ -92,14 +135,43 @@ export class AgentIdempotencyService {
     };
   }
 
-  store(
+  async store(
     action: string,
     userId: string,
     idempotencyKey: string,
     input: unknown,
     status: number,
     body: unknown,
-  ): void {
+  ): Promise<void> {
+    if (this.prisma) {
+      const existing = await this.prisma.agentIdempotencyRecord.findUnique({
+        where: {
+          action_userId_idempotencyKey: {
+            action,
+            userId,
+            idempotencyKey,
+          },
+        },
+      });
+
+      if (existing) {
+        return;
+      }
+
+      await this.prisma.agentIdempotencyRecord.create({
+        data: {
+          action,
+          userId,
+          idempotencyKey,
+          inputHash: this.hashInput(input),
+          status,
+          response: cloneJsonSafe(body) as Prisma.InputJsonValue,
+          expiresAt: new Date(Date.now() + this.ttlMs),
+        },
+      });
+      return;
+    }
+
     this.pruneExpiredEntries();
 
     this.entries.set(this.makeCacheKey(action, userId, idempotencyKey), {

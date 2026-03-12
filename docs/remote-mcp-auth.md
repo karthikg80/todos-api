@@ -56,7 +56,7 @@ Input:
 
 - `redirect_uris`
 - `client_name` (optional)
-- `grant_types` (`authorization_code`, or `authorization_code` plus `refresh_token` for connector compatibility)
+- `grant_types` (`authorization_code`, or `authorization_code` plus `refresh_token`)
 - `response_types` (`code` only)
 - `token_endpoint_auth_method` (`none` only)
 
@@ -236,9 +236,10 @@ First-pass compatibility target:
 - `GET /mcp` SSE transport
 - `POST /mcp` Streamable HTTP JSON-RPC
 
-Current limitation:
+Current behavior:
 
-- client registration accepts `refresh_token` metadata for compatibility, but the server does not issue refresh tokens yet, so reconnect or relink is still required once the MCP access token expires
+- the server issues refresh tokens for clients registered with `grant_types=["authorization_code","refresh_token"]`
+- refresh-token exchange rotates the refresh token and returns a new access token plus a replacement refresh token
 
 ## Local Development
 
@@ -249,7 +250,8 @@ Typical local public-flow test:
 3. Visit the generated `GET /oauth/authorize` URL in a browser.
 4. Sign in with a real app user and approve scopes.
 5. Exchange the returned code at `POST /oauth/token`.
-6. Use the bearer token on `/mcp`.
+6. Persist the returned `refresh_token` if the client registered for refresh support.
+7. Use the bearer token on `/mcp`.
 
 For direct local shortcuts only, `POST /auth/mcp/token` still mints a scoped token from a signed-in app session.
 
@@ -260,8 +262,7 @@ Detailed deployment and smoke steps live in:
 
 ## Current Limitations
 
-- authorization codes and idempotency state are process-local
-- MCP tokens are JWTs and are not individually revocable yet
-- no refresh tokens or token rotation yet
-- no persisted audit store yet
+- MCP access tokens are still JWTs and are not individually revocable yet
+- refresh tokens are rotated and stored durably, but there is no user-facing revoke-all-assistants UI yet
+- persisted audit records are lightweight operational traces, not a full analytics pipeline
 - real public deployment and connector validation must be completed from a networked environment with Railway and provider access
