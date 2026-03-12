@@ -328,6 +328,10 @@ export class AuthService {
     }
   }
 
+  getPrismaClient(): PrismaClient {
+    return this.prisma;
+  }
+
   /**
    * Generate JWT token for user
    */

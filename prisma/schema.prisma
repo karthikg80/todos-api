@@ -107,6 +107,10 @@ model User {
   todos             Todo[]
   projects          Project[]
   refreshTokens     RefreshToken[]
+  mcpAuthorizationCodes McpAuthorizationCode[]
+  mcpRefreshTokens  McpRefreshToken[]
+  agentIdempotencyRecords AgentIdempotencyRecord[]
+  agentActionAudits AgentActionAudit[]
   aiSuggestions     AiSuggestion[]
 
   @@map("users")
@@ -123,6 +127,93 @@ model RefreshToken {
 
   @@map("refresh_tokens")
   @@index([userId])
+}
+
+model McpAuthorizationCode {
+  code               String   @id @db.Uuid
+  userId             String   @map("user_id")
+  email              String   @db.VarChar(255)
+  clientId           String   @db.VarChar(5000) @map("client_id")
+  redirectUri        String   @db.VarChar(1000) @map("redirect_uri")
+  scopes             String[] @default([])
+  assistantName      String?  @db.VarChar(100) @map("assistant_name")
+  state              String?  @db.VarChar(200)
+  codeChallenge      String   @db.VarChar(128) @map("code_challenge")
+  codeChallengeMethod String  @db.VarChar(10) @map("code_challenge_method")
+  expiresAt          DateTime @map("expires_at")
+  usedAt             DateTime? @map("used_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mcp_authorization_codes")
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model McpRefreshToken {
+  id            String   @id @default(uuid()) @db.Uuid
+  tokenHash     String   @unique @db.VarChar(128) @map("token_hash")
+  userId        String   @map("user_id")
+  email         String   @db.VarChar(255)
+  scopes        String[] @default([])
+  assistantName String?  @db.VarChar(100) @map("assistant_name")
+  clientId      String?  @db.VarChar(5000) @map("client_id")
+  expiresAt     DateTime @map("expires_at")
+  revokedAt     DateTime? @map("revoked_at")
+  rotatedAt     DateTime? @map("rotated_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("mcp_refresh_tokens")
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AgentIdempotencyRecord {
+  id             String   @id @default(uuid()) @db.Uuid
+  action         String   @db.VarChar(100)
+  userId         String   @map("user_id")
+  idempotencyKey String   @db.VarChar(255) @map("idempotency_key")
+  inputHash      String   @db.VarChar(64) @map("input_hash")
+  status         Int
+  response       Json
+  expiresAt      DateTime @map("expires_at")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("agent_idempotency_records")
+  @@unique([action, userId, idempotencyKey])
+  @@index([expiresAt])
+  @@index([userId])
+}
+
+model AgentActionAudit {
+  id             String   @id @default(uuid()) @db.Uuid
+  surface        String   @db.VarChar(20)
+  action         String   @db.VarChar(100)
+  readOnly       Boolean  @map("read_only")
+  outcome        String   @db.VarChar(20)
+  status         Int
+  userId         String   @map("user_id")
+  requestId      String   @db.VarChar(255) @map("request_id")
+  actor          String   @db.VarChar(255)
+  idempotencyKey String?  @db.VarChar(255) @map("idempotency_key")
+  replayed       Boolean  @default(false)
+  errorCode      String?  @db.VarChar(100) @map("error_code")
+  metadata       Json?
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("agent_action_audits")
+  @@index([userId, createdAt])
+  @@index([requestId])
+  @@index([action, createdAt])
 }
 
 model Project {

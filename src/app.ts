@@ -47,8 +47,16 @@ export function createApp(
   headingService?: IHeadingService,
 ) {
   const app = express();
-  const agentExecutor = new AgentExecutor({ todoService, projectService });
-  const mcpOAuthService = new McpOAuthService();
+  const persistencePrisma =
+    authService instanceof AuthService
+      ? authService.getPrismaClient()
+      : undefined;
+  const agentExecutor = new AgentExecutor({
+    todoService,
+    projectService,
+    persistencePrisma,
+  });
+  const mcpOAuthService = new McpOAuthService(persistencePrisma);
   const mcpClientService = new McpClientService();
 
   const resolveTodoUserId = (req: Request, res: Response): string | null => {

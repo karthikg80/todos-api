@@ -191,6 +191,7 @@ describe("Public MCP OAuth and discovery routes", () => {
       .send({
         redirect_uris: ["https://chat.openai.com/aip/callback"],
         client_name: "ChatGPT",
+        grant_types: ["authorization_code", "refresh_token"],
       })
       .expect(201);
 
@@ -274,6 +275,9 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(token.body.access_token).toBe("mcp-token-user-1");
     expect(token.body.token_type).toBe("Bearer");
     expect(token.body.scope).toBe("tasks.read tasks.write");
+    expect(token.body.refresh_token).toEqual(expect.any(String));
+    expect(token.body.refresh_token_expires_at).toEqual(expect.any(String));
+    expect(token.body.refresh_token_expires_in).toBe(2592000);
   });
 
   it("defaults authorize scopes when the connector omits scope", async () => {
@@ -355,6 +359,90 @@ describe("Public MCP OAuth and discovery routes", () => {
       .expect(200);
 
     expect(token.body.scope).toBe("projects.read tasks.read");
+  });
+
+  it("rotates refresh tokens through the public OAuth token endpoint", async () => {
+    const register = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        client_name: "Codex",
+        grant_types: ["authorization_code", "refresh_token"],
+      })
+      .expect(201);
+
+    const pkce = createPkcePair(
+      "oauth-verifier-public-refresh-1111111111111111111111111111",
+    );
+    const agent = request.agent(app);
+
+    const authorizeUrl = `/oauth/authorize?client_id=${encodeURIComponent(
+      register.body.client_id,
+    )}&redirect_uri=${encodeURIComponent(
+      "https://chat.openai.com/aip/callback",
+    )}&response_type=code&scope=${encodeURIComponent(
+      "tasks.read tasks.write",
+    )}&code_challenge=${encodeURIComponent(
+      pkce.challenge,
+    )}&code_challenge_method=S256`;
+
+    await agent.get(authorizeUrl).expect(200);
+    const login = await agent
+      .post("/oauth/authorize/login")
+      .type("form")
+      .send({
+        email: "user-1@example.com",
+        password: "password123",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        scope: "tasks.read tasks.write",
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+      })
+      .expect(303);
+    await agent.get(login.headers.location).expect(200);
+    const approve = await agent
+      .post("/oauth/authorize/decision")
+      .type("form")
+      .send({
+        decision: "approve",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        scope: "tasks.read tasks.write",
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+      })
+      .expect(303);
+
+    const code = new URL(approve.headers.location).searchParams.get("code");
+
+    const token = await request(app)
+      .post("/oauth/token")
+      .type("form")
+      .send({
+        grant_type: "authorization_code",
+        code,
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        code_verifier: pkce.verifier,
+      })
+      .expect(200);
+
+    const refreshed = await request(app)
+      .post("/oauth/token")
+      .type("form")
+      .send({
+        grant_type: "refresh_token",
+        refresh_token: token.body.refresh_token,
+        client_id: register.body.client_id,
+      })
+      .expect(200);
+
+    expect(refreshed.body.access_token).toBe("mcp-token-user-1");
+    expect(refreshed.body.refresh_token).toEqual(expect.any(String));
+    expect(refreshed.body.refresh_token).not.toBe(token.body.refresh_token);
   });
 
   it("advertises resource metadata when MCP auth is missing", async () => {

@@ -118,7 +118,7 @@ export async function resolveMcpAuthContext(input: {
           code: "MCP_AUTH_EXPIRED",
           message: "MCP access token expired",
           retryable: false,
-          hint: "Repeat the MCP OAuth link flow to mint a fresh token.",
+          hint: "Use the MCP refresh-token grant if available, or repeat the link flow to mint a fresh token.",
         }),
       };
     }

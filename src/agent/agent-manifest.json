@@ -26,7 +26,7 @@
     {
       "name": "Idempotency-Key",
       "requiredWhen": "optional",
-      "description": "Optional first-pass idempotency key for create actions. Replays return the original successful response for matching input in the current process."
+      "description": "Optional idempotency key for create actions. Replays return the original successful response for matching input, backed by durable storage in the normal server runtime."
     }
   ],
   "responseEnvelope": {

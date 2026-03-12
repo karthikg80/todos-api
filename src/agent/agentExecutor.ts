@@ -3,7 +3,9 @@ import { IProjectService } from "../interfaces/IProjectService";
 import { ITodoService } from "../interfaces/ITodoService";
 import agentManifest from "./agent-manifest.json";
 import { AgentIdempotencyService } from "../services/agentIdempotencyService";
+import { AgentAuditService } from "../services/agentAuditService";
 import { AgentService } from "../services/agentService";
+import { PrismaClient } from "@prisma/client";
 import {
   validateAgentAddSubtaskInput,
   validateAgentAnalyzeProjectHealthInput,
@@ -76,6 +78,7 @@ export type AgentActionName =
 interface AgentExecutorDeps {
   todoService: ITodoService;
   projectService?: IProjectService;
+  persistencePrisma?: PrismaClient;
 }
 
 export interface AgentExecutionContext {
@@ -347,12 +350,44 @@ function toAgentError(error: unknown): {
 
 export class AgentExecutor {
   private readonly agentService: AgentService;
-  private readonly idempotencyService = new AgentIdempotencyService();
+  private readonly idempotencyService: AgentIdempotencyService;
+  private readonly auditService: AgentAuditService;
 
   constructor(private readonly deps: AgentExecutorDeps) {
+    this.idempotencyService = new AgentIdempotencyService(
+      deps.persistencePrisma,
+    );
+    this.auditService = new AgentAuditService(deps.persistencePrisma);
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
+    });
+  }
+
+  private persistActionAudit(
+    context: AgentExecutionContext,
+    payload: {
+      action: AgentActionName;
+      readOnly: boolean;
+      status: number;
+      outcome: "success" | "error";
+      errorCode?: string;
+      replayed?: boolean;
+    },
+  ): void {
+    logAgentAction(context, payload);
+    void this.auditService.record({
+      surface: context.surface,
+      action: payload.action,
+      readOnly: payload.readOnly,
+      outcome: payload.outcome,
+      status: payload.status,
+      userId: context.userId,
+      requestId: context.requestId,
+      actor: context.actor,
+      idempotencyKey: context.idempotencyKey,
+      replayed: payload.replayed,
+      errorCode: payload.errorCode,
     });
   }
 
@@ -860,7 +895,7 @@ export class AgentExecutor {
     const idempotencyKey = context.idempotencyKey;
 
     if (idempotencyKey) {
-      const lookup = this.idempotencyService.lookup(
+      const lookup = await this.idempotencyService.lookup(
         action,
         context.userId,
         idempotencyKey,
@@ -884,7 +919,7 @@ export class AgentExecutor {
             originalRequestId: replayed.trace.requestId,
           }),
         };
-        logAgentAction(context, {
+        this.persistActionAudit(context, {
           action,
           readOnly,
           status: lookup.status,
@@ -904,7 +939,7 @@ export class AgentExecutor {
     );
     const response = this.buildSuccessBody(action, readOnly, context, { task });
     if (idempotencyKey) {
-      this.idempotencyService.store(
+      await this.idempotencyService.store(
         action,
         context.userId,
         idempotencyKey,
@@ -913,7 +948,7 @@ export class AgentExecutor {
         response,
       );
     }
-    logAgentAction(context, {
+    this.persistActionAudit(context, {
       action,
       readOnly,
       status: 201,
@@ -934,7 +969,7 @@ export class AgentExecutor {
     const idempotencyKey = context.idempotencyKey;
 
     if (idempotencyKey) {
-      const lookup = this.idempotencyService.lookup(
+      const lookup = await this.idempotencyService.lookup(
         action,
         context.userId,
         idempotencyKey,
@@ -958,7 +993,7 @@ export class AgentExecutor {
             originalRequestId: replayed.trace.requestId,
           }),
         };
-        logAgentAction(context, {
+        this.persistActionAudit(context, {
           action,
           readOnly,
           status: lookup.status,
@@ -980,7 +1015,7 @@ export class AgentExecutor {
       project,
     });
     if (idempotencyKey) {
-      this.idempotencyService.store(
+      await this.idempotencyService.store(
         action,
         context.userId,
         idempotencyKey,
@@ -989,7 +1024,7 @@ export class AgentExecutor {
         response,
       );
     }
-    logAgentAction(context, {
+    this.persistActionAudit(context, {
       action,
       readOnly,
       status: 201,
@@ -1008,7 +1043,7 @@ export class AgentExecutor {
     status: number,
     data: Record<string, unknown>,
   ): AgentExecutionResult {
-    logAgentAction(context, {
+    this.persistActionAudit(context, {
       action,
       readOnly,
       status,
@@ -1042,7 +1077,7 @@ export class AgentExecutor {
     error: unknown,
   ): AgentExecutionResult {
     const payload = toAgentError(error);
-    logAgentAction(context, {
+    this.persistActionAudit(context, {
       action,
       readOnly,
       status: payload.status,

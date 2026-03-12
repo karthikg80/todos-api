@@ -271,6 +271,38 @@ function mapTokenExchangeError(error: unknown) {
         code: "MCP_INVALID_CODE_VERIFIER",
         hint: "Use the original PKCE verifier from the authorization request.",
       };
+    case "Invalid refresh token":
+      return {
+        status: 401,
+        error: "invalid_grant",
+        description: "Refresh token is invalid",
+        code: "MCP_REFRESH_TOKEN_INVALID",
+        hint: "Start a new auth flow or use the latest refresh token.",
+      };
+    case "Refresh token expired":
+      return {
+        status: 401,
+        error: "invalid_grant",
+        description: "Refresh token expired",
+        code: "MCP_REFRESH_TOKEN_EXPIRED",
+        hint: "Restart the connector auth flow to mint a fresh token set.",
+      };
+    case "Refresh token already rotated":
+      return {
+        status: 409,
+        error: "invalid_grant",
+        description: "Refresh token already used",
+        code: "MCP_REFRESH_TOKEN_REUSED",
+        hint: "Retry with the newest refresh token returned by the prior exchange.",
+      };
+    case "Refresh token client mismatch":
+      return {
+        status: 401,
+        error: "invalid_grant",
+        description: "Refresh token client binding mismatch",
+        code: "MCP_REFRESH_TOKEN_CLIENT_MISMATCH",
+        hint: "Use the same client_id that originally received the refresh token.",
+      };
     case "Invalid OAuth client":
     case "OAuth client expired":
       return {
@@ -668,7 +700,7 @@ export function createMcpPublicRouter({
         );
       }
 
-      const authCode = mcpOAuthService.createAuthorizationCode({
+      const authCode = await mcpOAuthService.createAuthorizationCode({
         userId: linkSession.userId,
         email: linkSession.email,
         clientId: authorize.clientId,
@@ -737,37 +769,74 @@ export function createMcpPublicRouter({
         clientId: req.body.client_id || req.body.clientId,
         redirectUri: req.body.redirect_uri || req.body.redirectUri,
         codeVerifier: req.body.code_verifier || req.body.codeVerifier,
+        refreshToken: req.body.refresh_token || req.body.refreshToken,
       });
-      const client = mcpClientService.assertRedirectUri(
-        input.clientId,
-        input.redirectUri,
-      );
-      const exchange = mcpOAuthService.exchangeAuthorizationCode({
-        code: input.code,
-        clientId: input.clientId,
-        redirectUri: input.redirectUri,
-        codeVerifier: input.codeVerifier,
-      });
-      const user = await authService.getUserById(exchange.userId);
+      const client =
+        input.grantType === "authorization_code"
+          ? mcpClientService.assertRedirectUri(
+              input.clientId,
+              input.redirectUri,
+            )
+          : mcpClientService.resolveClient(input.clientId);
+      const exchange =
+        input.grantType === "authorization_code"
+          ? await mcpOAuthService.exchangeAuthorizationCode({
+              code: input.code,
+              clientId: input.clientId,
+              redirectUri: input.redirectUri,
+              codeVerifier: input.codeVerifier,
+            })
+          : null;
+      const refreshExchange =
+        input.grantType === "refresh_token"
+          ? await mcpOAuthService.exchangeRefreshToken({
+              refreshToken: input.refreshToken,
+              clientId: input.clientId,
+            })
+          : null;
+      const linkedSession = exchange || refreshExchange!;
+      const user = await authService.getUserById(linkedSession.userId);
       if (!user) {
         throw new Error("Linked user account no longer exists");
       }
 
       const token = authService.createMcpToken({
-        userId: exchange.userId,
-        email: exchange.email,
-        scopes: exchange.scopes,
-        assistantName: exchange.assistantName || client.clientName,
-        clientId: exchange.clientId,
+        userId: linkedSession.userId,
+        email: linkedSession.email,
+        scopes: linkedSession.scopes,
+        assistantName: linkedSession.assistantName || client.clientName,
+        clientId: linkedSession.clientId,
       });
+      const shouldIssueRefreshToken =
+        client.grantTypes.includes("refresh_token") ||
+        input.grantType === "refresh_token";
+      const issuedRefreshToken =
+        shouldIssueRefreshToken && input.grantType === "authorization_code"
+          ? await mcpOAuthService.createRefreshToken({
+              userId: linkedSession.userId,
+              email: linkedSession.email,
+              scopes: linkedSession.scopes,
+              assistantName: linkedSession.assistantName || client.clientName,
+              clientId: linkedSession.clientId,
+            })
+          : null;
+      const rotatedRefreshToken =
+        shouldIssueRefreshToken && refreshExchange
+          ? {
+              refreshToken: refreshExchange.refreshToken,
+              expiresAt: refreshExchange.refreshTokenExpiresAt,
+              expiresIn: refreshExchange.refreshTokenExpiresIn,
+            }
+          : null;
+      const refreshTokenPayload = issuedRefreshToken || rotatedRefreshToken;
 
       logMcpOauthEvent({
         requestId,
         event: "token_success",
-        userId: exchange.userId,
-        clientId: exchange.clientId,
+        userId: linkedSession.userId,
+        clientId: linkedSession.clientId,
         clientName: client.clientName,
-        scopes: exchange.scopes,
+        scopes: linkedSession.scopes,
       });
 
       setNoStoreHeaders(res);
@@ -777,6 +846,13 @@ export function createMcpPublicRouter({
         expires_in: token.expiresIn,
         scope: token.scope,
         ...(token.expiresAt ? { expires_at: token.expiresAt } : {}),
+        ...(refreshTokenPayload
+          ? {
+              refresh_token: refreshTokenPayload.refreshToken,
+              refresh_token_expires_at: refreshTokenPayload.expiresAt,
+              refresh_token_expires_in: refreshTokenPayload.expiresIn,
+            }
+          : {}),
       });
     } catch (error) {
       const mapped = mapTokenExchangeError(error);
