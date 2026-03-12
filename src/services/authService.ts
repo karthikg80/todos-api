@@ -96,6 +96,35 @@ export class AuthService {
     return Date.now() <= this.legacyRefreshTokenFallbackUntil.getTime();
   }
 
+  // Keep auth responses off the SMTP critical path.
+  private dispatchAsyncTask(
+    task: () => Promise<void>,
+    onError: (error: unknown) => void,
+  ): void {
+    void Promise.resolve().then(task).catch(onError);
+  }
+
+  dispatchVerificationEmail(
+    userId: string,
+    failureMessage = "Failed to send verification email:",
+  ): void {
+    this.dispatchAsyncTask(
+      () => this.sendVerificationEmail(userId),
+      (error) => {
+        console.error(failureMessage, error);
+      },
+    );
+  }
+
+  private dispatchPasswordResetEmail(email: string, token: string): void {
+    this.dispatchAsyncTask(
+      () => this.emailService.sendPasswordResetEmail(email, token),
+      (error) => {
+        console.error("Failed to send password reset email:", error);
+      },
+    );
+  }
+
   /**
    * Register a new user
    * @throws Error if email already exists or validation fails
@@ -122,13 +151,7 @@ export class AuthService {
       },
     });
 
-    // Send verification email
-    try {
-      await this.sendVerificationEmail(user.id);
-    } catch (error) {
-      console.error("Failed to send verification email:", error);
-      // Continue anyway - user can resend later
-    }
+    this.dispatchVerificationEmail(user.id);
 
     // Generate JWT token and refresh token
     const token = this.generateToken({
@@ -437,15 +460,10 @@ export class AuthService {
 
     // Send new verification email when email changes
     if (emailIsChanging) {
-      try {
-        await this.sendVerificationEmail(userId);
-      } catch (error) {
-        console.error(
-          "Failed to send verification email after email change:",
-          error,
-        );
-        // Continue anyway - user can resend later
-      }
+      this.dispatchVerificationEmail(
+        userId,
+        "Failed to send verification email after email change:",
+      );
     }
 
     return updatedUser;
@@ -645,7 +663,7 @@ export class AuthService {
       },
     });
 
-    await this.emailService.sendPasswordResetEmail(user.email, token);
+    this.dispatchPasswordResetEmail(user.email, token);
   }
 
   /**
