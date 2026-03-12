@@ -1,4 +1,4 @@
-import type { Priority, Project, TaskStatus } from "../types";
+import type { Energy, Priority, Project, TaskStatus } from "../types";
 
 export type PlannerMode = "suggest" | "apply";
 
@@ -11,16 +11,22 @@ export type PlannerTaskStatus =
 
 export type PlannerRecommendationType =
   | "create_next_action"
+  | "review_task"
   | "review_stale_task"
   | "follow_up_waiting_task"
-  | "plan_project";
+  | "plan_project"
+  | "review_project";
 
 export type PlannerFindingType =
   | "missing_next_action"
   | "stale_task"
   | "waiting_task"
   | "upcoming_deadline"
-  | "empty_active_project";
+  | "empty_active_project"
+  | "blocked_task";
+
+export type PlannerImpact = "low" | "medium" | "high";
+export type PlannerEffort = "low" | "medium" | "high";
 
 export interface PlannerTaskSuggestion {
   title: string;
@@ -78,7 +84,7 @@ export interface WeeklyReviewSummary {
   upcomingTasks: number;
 }
 
-export interface WeeklyReviewFinding {
+export interface PlannerFinding {
   type: PlannerFindingType;
   projectId?: string;
   projectName?: string;
@@ -87,18 +93,77 @@ export interface WeeklyReviewFinding {
   reason: string;
 }
 
-export interface WeeklyReviewAction {
+export interface PlannerRecommendation {
   type: PlannerRecommendationType;
   projectId?: string;
   taskId?: string;
   title: string;
   reason: string;
+}
+
+export interface WeeklyReviewAction extends PlannerRecommendation {
   createdTaskId?: string;
 }
+
+export type WeeklyReviewFinding = PlannerFinding;
 
 export interface WeeklyReviewResult {
   summary: WeeklyReviewSummary;
   findings: WeeklyReviewFinding[];
   recommendedActions: WeeklyReviewAction[];
   appliedActions: WeeklyReviewAction[];
+}
+
+export interface DecideNextWorkInput {
+  userId: string;
+  availableMinutes?: number | null;
+  energy?: Energy | null;
+  context?: string[];
+  mode?: PlannerMode;
+}
+
+export interface DecideNextWorkRecommendation {
+  taskId: string;
+  projectId?: string | null;
+  title: string;
+  reason: string;
+  impact: PlannerImpact;
+  effort: PlannerEffort;
+}
+
+export interface DecideNextWorkResult {
+  recommendedTasks: DecideNextWorkRecommendation[];
+}
+
+export interface AnalyzeProjectHealthInput {
+  userId: string;
+  projectId: string;
+}
+
+export interface AnalyzeProjectHealthIntervention extends PlannerRecommendation {}
+
+export interface AnalyzeProjectHealthResult {
+  projectId: string;
+  healthScore: number;
+  risks: string[];
+  recommendedInterventions: AnalyzeProjectHealthIntervention[];
+}
+
+export interface AnalyzeWorkGraphInput {
+  userId: string;
+  projectId: string;
+}
+
+export interface WorkGraphTaskNode {
+  taskId: string;
+  title: string;
+  dependsOnTaskIds: string[];
+  reason: string;
+}
+
+export interface AnalyzeWorkGraphResult {
+  blockedTasks: WorkGraphTaskNode[];
+  unblockedTasks: WorkGraphTaskNode[];
+  criticalPath: WorkGraphTaskNode[];
+  parallelWork: WorkGraphTaskNode[];
 }

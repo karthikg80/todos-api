@@ -366,6 +366,31 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(response.body.error.code).toBe("MCP_UNAUTHENTICATED");
   });
 
+  it("lists the planner runtime read tools for authenticated public clients", async () => {
+    currentSession = buildMcpSession("user-1", ["projects.read", "tasks.read"]);
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer mcp-token-user-1")
+      .send({
+        jsonrpc: "2.0",
+        id: 21,
+        method: "tools/list",
+      })
+      .expect(200);
+
+    const toolNames = response.body.result.tools.map(
+      (tool: { name: string }) => tool.name,
+    );
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        "decide_next_work",
+        "analyze_project_health",
+        "analyze_work_graph",
+      ]),
+    );
+  });
+
   it("opens an authenticated MCP stream endpoint for streamable-http clients", async () => {
     const response = await request(app)
       .get("/mcp")

@@ -92,6 +92,21 @@ describe("Agent router", () => {
           enabled: true,
           readOnly: false,
         }),
+        expect.objectContaining({
+          name: "decide_next_work",
+          enabled: true,
+          readOnly: true,
+        }),
+        expect.objectContaining({
+          name: "analyze_project_health",
+          enabled: true,
+          readOnly: true,
+        }),
+        expect.objectContaining({
+          name: "analyze_work_graph",
+          enabled: true,
+          readOnly: true,
+        }),
       ]),
     );
   });
@@ -323,6 +338,125 @@ describe("Agent router", () => {
           projectName: "Admin",
         }),
       ]),
+    );
+  });
+
+  it("decides the next work through the read surface", async () => {
+    projectService.findAll.mockResolvedValue([
+      {
+        id: "00000000-0000-1000-8000-000000000044",
+        name: "Platform",
+        status: "active",
+        archived: false,
+        userId: "default-user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        todoCount: 0,
+        openTodoCount: 0,
+      } as Project,
+    ]);
+
+    await todoService.create("default-user", {
+      title: "Investigate overdue bug",
+      projectId: "00000000-0000-1000-8000-000000000044",
+      category: "Platform",
+      status: "next",
+      priority: "high",
+      dueDate: new Date("2026-03-11T12:00:00.000Z"),
+      context: "computer",
+      energy: "medium",
+      estimateMinutes: 45,
+    });
+
+    const response = await request(app)
+      .post("/agent/read/decide_next_work")
+      .send({
+        availableMinutes: 60,
+        energy: "medium",
+        context: ["computer"],
+      })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.action).toBe("decide_next_work");
+    expect(response.body.data.decision.recommendedTasks[0].title).toBe(
+      "Investigate overdue bug",
+    );
+  });
+
+  it("analyzes project health through the read surface", async () => {
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000045",
+      name: "Migration",
+      status: "active",
+      archived: false,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project);
+
+    await todoService.create("default-user", {
+      title: "Await vendor answer",
+      projectId: "00000000-0000-1000-8000-000000000045",
+      category: "Migration",
+      status: "waiting",
+      waitingOn: "vendor answer",
+    });
+
+    const response = await request(app)
+      .post("/agent/read/analyze_project_health")
+      .send({
+        projectId: "00000000-0000-1000-8000-000000000045",
+      })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.action).toBe("analyze_project_health");
+    expect(response.body.data.health.risks).toEqual(
+      expect.arrayContaining(["No next action defined"]),
+    );
+  });
+
+  it("analyzes work graph dependencies through the read surface", async () => {
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000046",
+      name: "Launch",
+      status: "active",
+      archived: false,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project);
+
+    const foundation = await todoService.create("default-user", {
+      title: "Define rollout scope",
+      projectId: "00000000-0000-1000-8000-000000000046",
+      category: "Launch",
+      status: "next",
+    });
+    await todoService.create("default-user", {
+      title: "Approve launch checklist",
+      projectId: "00000000-0000-1000-8000-000000000046",
+      category: "Launch",
+      status: "next",
+      dependsOnTaskIds: [foundation.id],
+    });
+
+    const response = await request(app)
+      .post("/agent/read/analyze_work_graph")
+      .send({
+        projectId: "00000000-0000-1000-8000-000000000046",
+      })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.action).toBe("analyze_work_graph");
+    expect(response.body.data.graph.blockedTasks[0].title).toBe(
+      "Approve launch checklist",
     );
   });
 
