@@ -93,6 +93,28 @@ describe("AuthService", () => {
       });
       expect(dbUser).toBeDefined();
     });
+
+    it("should not block registration on verification email delivery", async () => {
+      let resolveEmail!: () => void;
+      const emailDeferred = new Promise<void>((resolve) => {
+        resolveEmail = resolve;
+      });
+      const sendVerificationEmailSpy = jest
+        .spyOn(authService, "sendVerificationEmail")
+        .mockReturnValue(emailDeferred);
+
+      const result = await authService.register({
+        email: "async-register@example.com",
+        password: "password123",
+      });
+
+      expect(result.user.email).toBe("async-register@example.com");
+      expect(sendVerificationEmailSpy).toHaveBeenCalledTimes(1);
+
+      resolveEmail();
+      await emailDeferred;
+      sendVerificationEmailSpy.mockRestore();
+    });
   });
 
   describe("login", () => {
@@ -257,6 +279,35 @@ describe("AuthService", () => {
     it("should return null for non-existent user", async () => {
       const user = await authService.getUserById("non-existent-id");
       expect(user).toBeNull();
+    });
+  });
+
+  describe("requestPasswordReset", () => {
+    it("should not block on password reset email delivery", async () => {
+      const hashedPassword = await bcrypt.hash("password123", 10);
+      await prisma.user.create({
+        data: {
+          email: "password-reset@example.com",
+          password: hashedPassword,
+        },
+      });
+
+      let resolveEmail!: () => void;
+      const emailDeferred = new Promise<void>((resolve) => {
+        resolveEmail = resolve;
+      });
+      const sendPasswordResetEmailSpy = jest
+        .spyOn((authService as any).emailService, "sendPasswordResetEmail")
+        .mockReturnValue(emailDeferred);
+
+      await expect(
+        authService.requestPasswordReset("password-reset@example.com"),
+      ).resolves.toBeUndefined();
+      expect(sendPasswordResetEmailSpy).toHaveBeenCalledTimes(1);
+
+      resolveEmail();
+      await emailDeferred;
+      sendPasswordResetEmailSpy.mockRestore();
     });
   });
 

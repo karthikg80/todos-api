@@ -472,6 +472,7 @@ describe("Todos API", () => {
           id: "user-1",
           isVerified: false,
         }),
+        dispatchVerificationEmail: jest.fn(),
         sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
       } as any;
 
@@ -484,6 +485,10 @@ describe("Todos API", () => {
 
       expect(mockAuthService.getUserByEmail).toHaveBeenCalledWith(
         "mixed@example.com",
+      );
+      expect(mockAuthService.dispatchVerificationEmail).toHaveBeenCalledWith(
+        "user-1",
+        "Failed to send verification email after resend request:",
       );
     });
 

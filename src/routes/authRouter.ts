@@ -384,7 +384,10 @@ export function createAuthRouter({
         const user = await authService.getUserByEmail(normalizedEmail);
 
         if (user && !user.isVerified) {
-          await authService.sendVerificationEmail(user.id);
+          authService.dispatchVerificationEmail(
+            user.id,
+            "Failed to send verification email after resend request:",
+          );
         }
 
         res.json({
