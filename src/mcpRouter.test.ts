@@ -411,6 +411,9 @@ describe("Remote MCP router auth and scopes", () => {
         "plan_project",
         "ensure_next_action",
         "weekly_review",
+        "decide_next_work",
+        "analyze_project_health",
+        "analyze_work_graph",
         "rename_project",
       ]),
     );
@@ -431,6 +434,14 @@ describe("Remote MCP router auth and scopes", () => {
       "projects.read",
       "tasks.read",
       "tasks.write",
+    ]);
+
+    const decideNextWorkTool = response.body.result.tools.find(
+      (tool: { name: string }) => tool.name === "decide_next_work",
+    );
+    expect(decideNextWorkTool.auth.requiredScopes).toEqual([
+      "projects.read",
+      "tasks.read",
     ]);
   });
 
@@ -627,6 +638,62 @@ describe("Remote MCP router auth and scopes", () => {
     );
     expect(response.body.result.structuredContent.data.result.task.status).toBe(
       "next",
+    );
+  });
+
+  it("analyzes the work graph through the planner MCP tools", async () => {
+    currentSession = buildMcpSession("user-1", ["projects.read", "tasks.read"]);
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000052",
+      name: "Launch",
+      status: "active",
+      archived: false,
+      userId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    });
+
+    const foundation = await todoService.create("user-1", {
+      title: "Define rollout scope",
+      projectId: "00000000-0000-1000-8000-000000000052",
+      category: "Launch",
+      status: "next",
+    });
+    await todoService.create("user-1", {
+      title: "Approve launch checklist",
+      projectId: "00000000-0000-1000-8000-000000000052",
+      category: "Launch",
+      status: "next",
+      dependsOnTaskIds: [foundation.id],
+    });
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer planner-read-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 11,
+        method: "tools/call",
+        params: {
+          name: "analyze_work_graph",
+          arguments: {
+            projectId: "00000000-0000-1000-8000-000000000052",
+          },
+        },
+      })
+      .expect(200);
+
+    expect(response.body.result.isError).toBeUndefined();
+    expect(
+      response.body.result.structuredContent.data.graph.blockedTasks,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          title: "Approve launch checklist",
+        }),
+      ]),
     );
   });
 });

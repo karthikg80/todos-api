@@ -16,6 +16,9 @@ import {
   UpdateTodoDto,
 } from "../types";
 import {
+  AnalyzeProjectHealthResult,
+  AnalyzeWorkGraphResult,
+  DecideNextWorkResult,
   EnsureNextActionResult,
   PlanProjectResult,
   WeeklyReviewResult,
@@ -482,6 +485,53 @@ export class AgentService {
       userId,
       mode: input.mode,
       includeArchived: input.includeArchived,
+    });
+  }
+
+  async decideNextWorkForUser(
+    userId: string,
+    input: {
+      availableMinutes?: number | null;
+      energy?: Energy | null;
+      context?: string[];
+      mode?: "suggest" | "apply";
+    },
+  ): Promise<DecideNextWorkResult> {
+    if (!this.plannerService) {
+      throw new Error("Projects not configured");
+    }
+    return this.plannerService.decideNextWork({
+      userId,
+      availableMinutes: input.availableMinutes,
+      energy: input.energy,
+      context: input.context,
+      mode: input.mode,
+    });
+  }
+
+  async analyzeProjectHealthForUser(
+    userId: string,
+    input: { projectId: string },
+  ): Promise<AnalyzeProjectHealthResult | null> {
+    if (!this.plannerService) {
+      throw new Error("Projects not configured");
+    }
+    return this.plannerService.analyzeProjectHealth({
+      userId,
+      projectId: input.projectId,
+    });
+  }
+
+  async analyzeWorkGraphForUser(
+    userId: string,
+    input: { projectId: string },
+  ): Promise<AnalyzeWorkGraphResult | null> {
+    if (!this.plannerService) {
+      throw new Error("Projects not configured");
+    }
+    return this.plannerService.analyzeWorkGraph({
+      userId,
+      projectId: input.projectId,
     });
   }
 }

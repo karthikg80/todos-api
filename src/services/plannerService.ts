@@ -2,6 +2,12 @@ import type { IPlannerService } from "../interfaces/IPlannerService";
 import type { IProjectService } from "../interfaces/IProjectService";
 import type { ITodoService } from "../interfaces/ITodoService";
 import type {
+  AnalyzeProjectHealthInput,
+  AnalyzeProjectHealthResult,
+  AnalyzeWorkGraphInput,
+  AnalyzeWorkGraphResult,
+  DecideNextWorkInput,
+  DecideNextWorkResult,
   EnsureNextActionInput,
   EnsureNextActionResult,
   PlanProjectInput,
@@ -10,21 +16,38 @@ import type {
   WeeklyReviewInput,
   WeeklyReviewResult,
 } from "../types/plannerTypes";
-import {
-  buildProjectPlan,
-  deriveNextAction,
-  findExistingNextAction,
-  findWeeklyReviewFindings,
-  projectTasksForProject,
-} from "./plannerHeuristics";
+import { DecisionEngine } from "./planner/decisionEngine";
+import { ProjectPlanningEngine } from "./planner/projectPlanningEngine";
+import { projectTasksForProject } from "./planner/plannerHeuristics";
+import { ReviewEngine } from "./planner/reviewEngine";
+import { WorkGraphEngine } from "./planner/workGraphEngine";
 
 interface PlannerServiceDeps {
   projectService?: IProjectService;
   todoService: ITodoService;
+  projectPlanningEngine?: ProjectPlanningEngine;
+  reviewEngine?: ReviewEngine;
+  decisionEngine?: DecisionEngine;
+  workGraphEngine?: WorkGraphEngine;
 }
 
 export class PlannerService implements IPlannerService {
-  constructor(private readonly deps: PlannerServiceDeps) {}
+  private readonly projectPlanningEngine: ProjectPlanningEngine;
+  private readonly reviewEngine: ReviewEngine;
+  private readonly decisionEngine: DecisionEngine;
+  private readonly workGraphEngine: WorkGraphEngine;
+
+  constructor(private readonly deps: PlannerServiceDeps) {
+    this.projectPlanningEngine =
+      deps.projectPlanningEngine || new ProjectPlanningEngine();
+    this.reviewEngine =
+      deps.reviewEngine ||
+      new ReviewEngine({
+        projectPlanningEngine: this.projectPlanningEngine,
+      });
+    this.decisionEngine = deps.decisionEngine || new DecisionEngine();
+    this.workGraphEngine = deps.workGraphEngine || new WorkGraphEngine();
+  }
 
   private getProjectService(): IProjectService {
     if (!this.deps.projectService) {
@@ -68,7 +91,7 @@ export class PlannerService implements IPlannerService {
           context.project.description ||
           context.project.name,
       ).trim() || context.project.name;
-    const suggestedTasks = buildProjectPlan({
+    const suggestedTasks = this.projectPlanningEngine.planProject({
       project: context.project,
       tasks: context.projectTasks,
       goal,
@@ -126,7 +149,11 @@ export class PlannerService implements IPlannerService {
       return null;
     }
 
-    const existing = findExistingNextAction(context.projectTasks);
+    const planningResult = this.projectPlanningEngine.ensureNextAction({
+      project: context.project,
+      tasks: context.projectTasks,
+    });
+    const existing = planningResult.existingTask;
     if (existing) {
       return {
         projectId: context.project.id,
@@ -141,7 +168,7 @@ export class PlannerService implements IPlannerService {
       };
     }
 
-    const suggestion = deriveNextAction(context.project, context.projectTasks);
+    const suggestion = planningResult.suggestion;
     if (!suggestion) {
       return {
         projectId: context.project.id,
@@ -207,7 +234,7 @@ export class PlannerService implements IPlannerService {
       ? [...activeTasks, ...archivedTasks]
       : activeTasks;
 
-    const base = findWeeklyReviewFindings({
+    const base = this.reviewEngine.weeklyReview({
       projects,
       tasks,
       now: new Date(),
@@ -250,5 +277,60 @@ export class PlannerService implements IPlannerService {
       recommendedActions: base.recommendedActions,
       appliedActions,
     };
+  }
+
+  async decideNextWork(
+    input: DecideNextWorkInput,
+  ): Promise<DecideNextWorkResult> {
+    const [tasks, projects] = await Promise.all([
+      this.deps.todoService.findAll(input.userId, {
+        archived: false,
+      }),
+      this.getProjectService().findAll(input.userId),
+    ]);
+
+    return this.decisionEngine.decideNextWork({
+      projects,
+      tasks,
+      now: new Date(),
+      availableMinutes: input.availableMinutes,
+      energy: input.energy,
+      context: input.context || [],
+    });
+  }
+
+  async analyzeProjectHealth(
+    input: AnalyzeProjectHealthInput,
+  ): Promise<AnalyzeProjectHealthResult | null> {
+    const context = await this.loadProjectContext(
+      input.userId,
+      input.projectId,
+    );
+    if (!context) {
+      return null;
+    }
+
+    return this.reviewEngine.analyzeProjectHealth({
+      project: context.project,
+      tasks: context.projectTasks,
+      now: new Date(),
+    });
+  }
+
+  async analyzeWorkGraph(
+    input: AnalyzeWorkGraphInput,
+  ): Promise<AnalyzeWorkGraphResult | null> {
+    const context = await this.loadProjectContext(
+      input.userId,
+      input.projectId,
+    );
+    if (!context) {
+      return null;
+    }
+
+    return this.workGraphEngine.analyzeWorkGraph({
+      projectTasks: context.projectTasks,
+      allTasks: context.tasks,
+    });
   }
 }

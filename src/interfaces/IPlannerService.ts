@@ -1,4 +1,10 @@
 import type {
+  AnalyzeProjectHealthInput,
+  AnalyzeProjectHealthResult,
+  AnalyzeWorkGraphInput,
+  AnalyzeWorkGraphResult,
+  DecideNextWorkInput,
+  DecideNextWorkResult,
   EnsureNextActionInput,
   EnsureNextActionResult,
   PlanProjectInput,
@@ -15,4 +21,11 @@ export interface IPlannerService {
     input: EnsureNextActionInput,
   ): Promise<EnsureNextActionResult | null>;
   weeklyReview(input: WeeklyReviewInput): Promise<WeeklyReviewResult>;
+  decideNextWork(input: DecideNextWorkInput): Promise<DecideNextWorkResult>;
+  analyzeProjectHealth(
+    input: AnalyzeProjectHealthInput,
+  ): Promise<AnalyzeProjectHealthResult | null>;
+  analyzeWorkGraph(
+    input: AnalyzeWorkGraphInput,
+  ): Promise<AnalyzeWorkGraphResult | null>;
 }

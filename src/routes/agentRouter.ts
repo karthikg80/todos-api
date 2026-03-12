@@ -120,6 +120,18 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "review_projects"),
   );
   router.post(
+    "/read/decide_next_work",
+    createAgentActionHandler(agentExecutor, "decide_next_work"),
+  );
+  router.post(
+    "/read/analyze_project_health",
+    createAgentActionHandler(agentExecutor, "analyze_project_health"),
+  );
+  router.post(
+    "/read/analyze_work_graph",
+    createAgentActionHandler(agentExecutor, "analyze_work_graph"),
+  );
+  router.post(
     "/write/create_task",
     createAgentActionHandler(agentExecutor, "create_task"),
   );

@@ -161,6 +161,9 @@ const REVIEW_PROJECTS_KEYS = ["dueForReviewOnly"];
 const PLAN_PROJECT_KEYS = ["projectId", "goal", "constraints", "mode"];
 const ENSURE_NEXT_ACTION_KEYS = ["projectId", "mode"];
 const WEEKLY_REVIEW_KEYS = ["mode", "includeArchived"];
+const DECIDE_NEXT_WORK_KEYS = ["availableMinutes", "energy", "context", "mode"];
+const ANALYZE_PROJECT_HEALTH_KEYS = ["projectId"];
+const ANALYZE_WORK_GRAPH_KEYS = ["projectId"];
 
 function ensureObject(data: unknown, label: string): Record<string, unknown> {
   if (data === undefined || data === null) {
@@ -259,6 +262,30 @@ function parseOptionalPositiveInt(
   return value;
 }
 
+function parseOptionalNonNegativeInt(
+  value: unknown,
+  field: string,
+  maxValue?: number,
+): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value) ||
+    value < 0 ||
+    (typeof maxValue === "number" && value > maxValue)
+  ) {
+    if (typeof maxValue === "number") {
+      throw new ValidationError(
+        `${field} must be a non-negative integer not greater than ${maxValue}`,
+      );
+    }
+    throw new ValidationError(`${field} must be a non-negative integer`);
+  }
+  return value;
+}
+
 function parseOptionalPriority(value: unknown): Priority | undefined {
   if (value === undefined) {
     return undefined;
@@ -324,6 +351,20 @@ function parseOptionalEnergyList(value: unknown): Energy[] | undefined {
     }
     return energy;
   });
+}
+
+function parseOptionalEnergy(value: unknown): Energy | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError("energy must be low, medium, or high");
+  }
+  const energy = value.toLowerCase() as Energy;
+  if (!VALID_ENERGIES.includes(energy)) {
+    throw new ValidationError("energy must be low, medium, or high");
+  }
+  return energy;
 }
 
 function parseOptionalStringList(
@@ -1003,5 +1044,46 @@ export function validateAgentWeeklyReviewInput(data: unknown): {
     mode: parseOptionalPlannerMode(body.mode) ?? "suggest",
     includeArchived:
       parseOptionalBoolean(body.includeArchived, "includeArchived") ?? false,
+  };
+}
+
+export function validateAgentDecideNextWorkInput(data: unknown): {
+  availableMinutes?: number | null;
+  energy?: Energy | null;
+  context?: string[];
+  mode: PlannerMode;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, DECIDE_NEXT_WORK_KEYS, "Agent action input");
+  return {
+    availableMinutes:
+      parseOptionalNonNegativeInt(
+        body.availableMinutes,
+        "availableMinutes",
+        1440,
+      ) ?? undefined,
+    energy: parseOptionalEnergy(body.energy) ?? undefined,
+    context: parseOptionalStringList(body.context, "context", 10, 100),
+    mode: parseOptionalPlannerMode(body.mode) ?? "suggest",
+  };
+}
+
+export function validateAgentAnalyzeProjectHealthInput(data: unknown): {
+  projectId: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, ANALYZE_PROJECT_HEALTH_KEYS, "Agent action input");
+  return {
+    projectId: parseRequiredId(body, "projectId"),
+  };
+}
+
+export function validateAgentAnalyzeWorkGraphInput(data: unknown): {
+  projectId: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, ANALYZE_WORK_GRAPH_KEYS, "Agent action input");
+  return {
+    projectId: parseRequiredId(body, "projectId"),
   };
 }

@@ -6,11 +6,14 @@ import { AgentIdempotencyService } from "../services/agentIdempotencyService";
 import { AgentService } from "../services/agentService";
 import {
   validateAgentAddSubtaskInput,
+  validateAgentAnalyzeProjectHealthInput,
+  validateAgentAnalyzeWorkGraphInput,
   validateAgentArchiveProjectInput,
   validateAgentArchiveTaskInput,
   validateAgentCompleteTaskInput,
   validateAgentCreateProjectInput,
   validateAgentCreateTaskInput,
+  validateAgentDecideNextWorkInput,
   validateAgentDeleteSubtaskInput,
   validateAgentDeleteTaskInput,
   validateAgentDeleteProjectInput,
@@ -65,7 +68,10 @@ export type AgentActionName =
   | "review_projects"
   | "plan_project"
   | "ensure_next_action"
-  | "weekly_review";
+  | "weekly_review"
+  | "decide_next_work"
+  | "analyze_project_health"
+  | "analyze_work_graph";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -134,6 +140,9 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "list_stale_tasks",
   "list_projects_without_next_action",
   "review_projects",
+  "decide_next_work",
+  "analyze_project_health",
+  "analyze_work_graph",
 ]);
 
 function buildTrace(
@@ -793,6 +802,48 @@ export class AgentExecutor {
             plannerInput,
           );
           return this.success(action, readOnly, context, 200, { review });
+        }
+        case "decide_next_work": {
+          const plannerInput = validateAgentDecideNextWorkInput(input);
+          const decision = await this.agentService.decideNextWorkForUser(
+            context.userId,
+            plannerInput,
+          );
+          return this.success(action, readOnly, context, 200, { decision });
+        }
+        case "analyze_project_health": {
+          const plannerInput = validateAgentAnalyzeProjectHealthInput(input);
+          const health = await this.agentService.analyzeProjectHealthForUser(
+            context.userId,
+            plannerInput,
+          );
+          if (!health) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { health });
+        }
+        case "analyze_work_graph": {
+          const plannerInput = validateAgentAnalyzeWorkGraphInput(input);
+          const graph = await this.agentService.analyzeWorkGraphForUser(
+            context.userId,
+            plannerInput,
+          );
+          if (!graph) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { graph });
         }
       }
     } catch (error) {

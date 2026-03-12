@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -262,17 +262,41 @@
         "stale_task",
         "waiting_task",
         "upcoming_deadline",
-        "empty_active_project"
+        "empty_active_project",
+        "blocked_task"
       ]
     },
     "plannerRecommendationType": {
       "type": "string",
       "enum": [
         "create_next_action",
+        "review_task",
         "review_stale_task",
         "follow_up_waiting_task",
-        "plan_project"
+        "plan_project",
+        "review_project"
       ]
+    },
+    "plannerImpact": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "plannerEffort": {
+      "type": "string",
+      "enum": ["low", "medium", "high"]
+    },
+    "workGraphTaskNode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "taskId": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "dependsOnTaskIds": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" }
+        },
+        "reason": { "type": "string" }
+      }
     }
   },
   "actions": [
@@ -1299,6 +1323,143 @@
                 "createdTaskId": { "type": "string", "format": "uuid" }
               }
             }
+          }
+        }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "decide_next_work",
+      "description": "Rank the best next tasks for the current user based on urgency, effort, energy, and dependencies.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/decide_next_work",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "availableMinutes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1440
+          },
+          "energy": { "$ref": "#/definitions/energy" },
+          "context": {
+            "type": "array",
+            "items": { "type": "string", "maxLength": 100 },
+            "maxItems": 10
+          },
+          "mode": { "$ref": "#/definitions/plannerMode" }
+        }
+      },
+      "output": {
+        "dataKey": "decision",
+        "type": "object",
+        "properties": {
+          "recommendedTasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "taskId": { "type": "string", "format": "uuid" },
+                "projectId": { "type": ["string", "null"], "format": "uuid" },
+                "title": { "type": "string" },
+                "reason": { "type": "string" },
+                "impact": { "$ref": "#/definitions/plannerImpact" },
+                "effort": { "$ref": "#/definitions/plannerEffort" }
+              }
+            }
+          }
+        }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "analyze_project_health",
+      "description": "Return a project health view with risks and recommended interventions.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/analyze_project_health",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "projectId": { "type": "string", "format": "uuid" }
+        },
+        "required": ["projectId"]
+      },
+      "output": {
+        "dataKey": "health",
+        "type": "object",
+        "properties": {
+          "projectId": { "type": "string", "format": "uuid" },
+          "healthScore": { "type": "integer" },
+          "risks": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "recommendedInterventions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "$ref": "#/definitions/plannerRecommendationType" },
+                "projectId": { "type": "string", "format": "uuid" },
+                "taskId": { "type": "string", "format": "uuid" },
+                "title": { "type": "string" },
+                "reason": { "type": "string" }
+              }
+            }
+          }
+        }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "analyze_work_graph",
+      "description": "Analyze project dependencies to show blocked work, unblocked work, and the current critical path.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/analyze_work_graph",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "projectId": { "type": "string", "format": "uuid" }
+        },
+        "required": ["projectId"]
+      },
+      "output": {
+        "dataKey": "graph",
+        "type": "object",
+        "properties": {
+          "blockedTasks": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/workGraphTaskNode" }
+          },
+          "unblockedTasks": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/workGraphTaskNode" }
+          },
+          "criticalPath": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/workGraphTaskNode" }
+          },
+          "parallelWork": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/workGraphTaskNode" }
           }
         }
       },

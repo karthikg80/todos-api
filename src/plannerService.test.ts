@@ -242,4 +242,131 @@ describe("PlannerService", () => {
       ),
     ).toBe(true);
   });
+
+  it("ranks next work recommendations deterministically", async () => {
+    const todoService = new TodoService();
+    const project = makeProject("project-1", "Platform");
+    const plannerService = new PlannerService({
+      todoService,
+      projectService: createProjectServiceMock([project]),
+    });
+
+    await todoService.create(USER_ID, {
+      title: "Investigate overdue bug",
+      projectId: project.id,
+      category: project.name,
+      status: "next",
+      priority: "high",
+      dueDate: new Date("2026-03-11T12:00:00.000Z"),
+      context: "computer",
+      energy: "medium",
+      estimateMinutes: 45,
+    });
+    await todoService.create(USER_ID, {
+      title: "Long workshop",
+      projectId: project.id,
+      category: project.name,
+      status: "next",
+      priority: "medium",
+      context: "office",
+      energy: "high",
+      estimateMinutes: 180,
+    });
+
+    const result = await plannerService.decideNextWork({
+      userId: USER_ID,
+      availableMinutes: 60,
+      energy: "medium",
+      context: ["computer"],
+      mode: "suggest",
+    });
+
+    expect(result.recommendedTasks).toHaveLength(1);
+    expect(result.recommendedTasks[0].title).toBe("Investigate overdue bug");
+    expect(result.recommendedTasks[0].reason).toContain("overdue");
+  });
+
+  it("analyzes project health and returns explainable risks", async () => {
+    const todoService = new TodoService();
+    const project = makeProject("project-1", "Migration");
+    const plannerService = new PlannerService({
+      todoService,
+      projectService: createProjectServiceMock([project]),
+    });
+
+    const waitingTask = await todoService.create(USER_ID, {
+      title: "Await vendor answer",
+      projectId: project.id,
+      category: project.name,
+      status: "waiting",
+      waitingOn: "vendor answer",
+    });
+    waitingTask.updatedAt = new Date("2026-01-01T12:00:00.000Z");
+
+    const result = await plannerService.analyzeProjectHealth({
+      userId: USER_ID,
+      projectId: project.id,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.healthScore).toBeLessThan(100);
+    expect(result?.risks).toEqual(
+      expect.arrayContaining([
+        "No next action defined",
+        "No recent activity",
+        "Key work is waiting on an external dependency",
+      ]),
+    );
+  });
+
+  it("analyzes the work graph for blocked and unblocked tasks", async () => {
+    const todoService = new TodoService();
+    const project = makeProject("project-1", "Launch");
+    const plannerService = new PlannerService({
+      todoService,
+      projectService: createProjectServiceMock([project]),
+    });
+
+    const foundation = await todoService.create(USER_ID, {
+      title: "Define rollout scope",
+      projectId: project.id,
+      category: project.name,
+      status: "next",
+    });
+    const dependency = await todoService.create(USER_ID, {
+      title: "Approve launch checklist",
+      projectId: project.id,
+      category: project.name,
+      status: "next",
+      dependsOnTaskIds: [foundation.id],
+    });
+    await todoService.create(USER_ID, {
+      title: "Publish announcement",
+      projectId: project.id,
+      category: project.name,
+      status: "next",
+      dependsOnTaskIds: [dependency.id],
+    });
+
+    const result = await plannerService.analyzeWorkGraph({
+      userId: USER_ID,
+      projectId: project.id,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result?.blockedTasks.map((task) => task.title)).toEqual(
+      expect.arrayContaining([
+        "Approve launch checklist",
+        "Publish announcement",
+      ]),
+    );
+    expect(result?.unblockedTasks.map((task) => task.title)).toContain(
+      "Define rollout scope",
+    );
+    expect(result?.criticalPath.map((task) => task.title)).toEqual([
+      "Define rollout scope",
+      "Approve launch checklist",
+      "Publish announcement",
+    ]);
+  });
 });
