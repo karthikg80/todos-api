@@ -12,8 +12,13 @@ SELECT
     ELSE (
       SUBSTRING(md5('legacy-project:' || p."id") FROM 1 FOR 8) || '-' ||
       SUBSTRING(md5('legacy-project:' || p."id") FROM 9 FOR 4) || '-' ||
-      SUBSTRING(md5('legacy-project:' || p."id") FROM 13 FOR 4) || '-' ||
-      SUBSTRING(md5('legacy-project:' || p."id") FROM 17 FOR 4) || '-' ||
+      '5' || SUBSTRING(md5('legacy-project:' || p."id") FROM 14 FOR 3) || '-' ||
+      SUBSTRING(
+        '89ab'
+        FROM ((get_byte(decode(SUBSTRING(md5('legacy-project:' || p."id") FROM 17 FOR 2), 'hex'), 0) % 4) + 1)
+        FOR 1
+      ) ||
+      SUBSTRING(md5('legacy-project:' || p."id") FROM 19 FOR 3) || '-' ||
       SUBSTRING(md5('legacy-project:' || p."id") FROM 21 FOR 12)
     )::UUID
   END
