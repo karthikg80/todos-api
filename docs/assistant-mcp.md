@@ -64,6 +64,9 @@ Initial public tools:
 - `plan_project`
 - `ensure_next_action`
 - `weekly_review`
+- `decide_next_work`
+- `analyze_project_health`
+- `analyze_work_graph`
 - `create_project`
 - `update_project`
 - `rename_project`
@@ -75,6 +78,8 @@ Initial public tools:
 For the planner write-capable tools, `tools/list` exposes the minimum scopes
 needed to run the default `mode: "suggest"` behavior, plus mode-scoped
 requirements for `apply`.
+
+Planner runtime details live in `docs/planner-runtime.md`.
 
 ## Auth and Scope Model
 
@@ -89,7 +94,24 @@ requirements for `apply`.
 - `plan_project`, `ensure_next_action`, and `weekly_review` are mode-aware:
   - `mode: "suggest"` requires `projects.read` + `tasks.read`
   - `mode: "apply"` additionally requires `tasks.write`
+- `decide_next_work`, `analyze_project_health`, and `analyze_work_graph` are
+  read-only planner analysis tools:
+  - they require `projects.read` + `tasks.read`
+  - they do not mutate in the current runtime
 - no MCP path trusts caller-provided user IDs for authorization
+
+## Planner Runtime
+
+The planner MCP tools now route through a dedicated internal planner runtime:
+
+- `PlannerService` is the public facade for planner operations
+- `ProjectPlanningEngine` powers project plans and next-action derivation
+- `ReviewEngine` powers weekly-review findings and project-health analysis
+- `DecisionEngine` powers next-work ranking
+- `WorkGraphEngine` powers dependency and blocked/unblocked analysis
+
+Those engines reuse the canonical task/project services underneath, so MCP
+connectors do not get a parallel business-logic path.
 
 ## Protocol Shape
 

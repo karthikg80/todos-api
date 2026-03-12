@@ -171,6 +171,9 @@ The older `read` / `write` aliases are still accepted by validation and expanded
 | `plan_project` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
 | `ensure_next_action` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
 | `weekly_review` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
+| `decide_next_work` | Yes | `projects.read`, `tasks.read` |
+| `analyze_project_health` | Yes | `projects.read`, `tasks.read` |
+| `analyze_work_graph` | Yes | `projects.read`, `tasks.read` |
 | `create_project` | No        | `projects.write` |
 | `update_project` | No        | `projects.write` |
 | `rename_project` | No        | `projects.write` |
@@ -182,6 +185,9 @@ The older `read` / `write` aliases are still accepted by validation and expanded
 For the planner tools above, `tools/list` exposes the minimum scopes needed to
 run the default `mode: "suggest"` behavior, plus mode-scoped requirements for
 `apply`.
+
+The planner-runtime architecture behind these tools is documented in
+`docs/planner-runtime.md`.
 
 ## Auth-Related Errors
 
