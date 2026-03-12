@@ -14,6 +14,7 @@ import {
   getMcpToolDefinition,
   listMcpTools,
   MCP_PROTOCOL_VERSION,
+  requiredScopesForToolCall,
 } from "../mcp/mcpToolCatalog";
 import { AuthService } from "../services/authService";
 import { McpScope } from "../types";
@@ -545,10 +546,15 @@ export function createMcpRouter({
           return;
         }
 
-        if (!hasRequiredToolScopes(session.scopes, tool.requiredScopes)) {
+        const requiredScopes = requiredScopesForToolCall(
+          tool.name,
+          normalized.args,
+        );
+
+        if (!hasRequiredToolScopes(session.scopes, requiredScopes)) {
           const error = buildScopeError({
             toolName: tool.name,
-            requiredScopes: tool.requiredScopes,
+            requiredScopes,
           });
           logMcpRequest({
             requestId,
@@ -559,7 +565,7 @@ export function createMcpRouter({
             scopes: session.scopes,
             toolName: normalized.name,
             authOutcome: "scope_denied",
-            requiredScopes: tool.requiredScopes,
+            requiredScopes,
             errorCode: error.code,
             httpStatus: 200,
             latencyMs: Date.now() - startedAt,

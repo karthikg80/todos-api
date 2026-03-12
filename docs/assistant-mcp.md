@@ -72,6 +72,10 @@ Initial public tools:
 
 `tools/list` only returns tools allowed by the current token scopes.
 
+For the planner write-capable tools, `tools/list` exposes the minimum scopes
+needed to run the default `mode: "suggest"` behavior, plus mode-scoped
+requirements for `apply`.
+
 ## Auth and Scope Model
 
 - browser-based account linking reuses the app's existing user auth
@@ -82,6 +86,9 @@ Initial public tools:
   - `projects.read`
   - `projects.write`
 - write tools are denied unless the token carries the matching write scope
+- `plan_project`, `ensure_next_action`, and `weekly_review` are mode-aware:
+  - `mode: "suggest"` requires `projects.read` + `tasks.read`
+  - `mode: "apply"` additionally requires `tasks.write`
 - no MCP path trusts caller-provided user IDs for authorization
 
 ## Protocol Shape

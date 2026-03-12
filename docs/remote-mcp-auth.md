@@ -168,9 +168,9 @@ The older `read` / `write` aliases are still accepted by validation and expanded
 | `get_project`    | Yes       | `projects.read`  |
 | `review_projects` | Yes      | `projects.read`  |
 | `list_projects_without_next_action` | Yes | `projects.read`, `tasks.read` |
-| `plan_project` | No | `projects.read`, `tasks.read`, `tasks.write` |
-| `ensure_next_action` | No | `projects.read`, `tasks.read`, `tasks.write` |
-| `weekly_review` | No | `projects.read`, `tasks.read`, `tasks.write` |
+| `plan_project` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
+| `ensure_next_action` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
+| `weekly_review` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
 | `create_project` | No        | `projects.write` |
 | `update_project` | No        | `projects.write` |
 | `rename_project` | No        | `projects.write` |
@@ -178,6 +178,10 @@ The older `read` / `write` aliases are still accepted by validation and expanded
 | `archive_project` | No       | `projects.write` |
 
 `tools/list` only returns tools the token is allowed to use.
+
+For the planner tools above, `tools/list` exposes the minimum scopes needed to
+run the default `mode: "suggest"` behavior, plus mode-scoped requirements for
+`apply`.
 
 ## Auth-Related Errors
 

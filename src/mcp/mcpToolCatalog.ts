@@ -17,6 +17,8 @@ type ToolCatalogEntry = {
   inputSchema: Record<string, unknown>;
   readOnly: boolean;
   requiredScopes: McpScope[];
+  modeScopedRequiredScopes?: Partial<Record<"suggest" | "apply", McpScope[]>>;
+  defaultMode?: "suggest";
   requiresProjectService: boolean;
 };
 
@@ -24,7 +26,32 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-function requiredScopesForAction(actionName: AgentActionName): McpScope[] {
+const PLANNER_MODE_SCOPED_ACTIONS = new Set<AgentActionName>([
+  "plan_project",
+  "ensure_next_action",
+  "weekly_review",
+]);
+
+const PLANNER_SUGGEST_SCOPES: McpScope[] = [
+  PROJECT_READ_SCOPE,
+  TASK_READ_SCOPE,
+];
+
+const PLANNER_APPLY_SCOPES: McpScope[] = [
+  PROJECT_READ_SCOPE,
+  TASK_READ_SCOPE,
+  TASK_WRITE_SCOPE,
+];
+
+function isPlannerModeScopedAction(
+  actionName: AgentActionName,
+): actionName is "plan_project" | "ensure_next_action" | "weekly_review" {
+  return PLANNER_MODE_SCOPED_ACTIONS.has(actionName);
+}
+
+function minimumRequiredScopesForAction(
+  actionName: AgentActionName,
+): McpScope[] {
   switch (actionName) {
     case "list_tasks":
     case "search_tasks":
@@ -54,7 +81,7 @@ function requiredScopesForAction(actionName: AgentActionName): McpScope[] {
     case "plan_project":
     case "ensure_next_action":
     case "weekly_review":
-      return [PROJECT_READ_SCOPE, TASK_READ_SCOPE, TASK_WRITE_SCOPE];
+      return [...PLANNER_SUGGEST_SCOPES];
     case "decide_next_work":
     case "analyze_project_health":
     case "analyze_work_graph":
@@ -66,6 +93,36 @@ function requiredScopesForAction(actionName: AgentActionName): McpScope[] {
     case "archive_project":
       return [PROJECT_WRITE_SCOPE];
   }
+}
+
+function modeScopedRequiredScopesForAction(
+  actionName: AgentActionName,
+): Partial<Record<"suggest" | "apply", McpScope[]>> | undefined {
+  if (!isPlannerModeScopedAction(actionName)) {
+    return undefined;
+  }
+
+  return {
+    suggest: [...PLANNER_SUGGEST_SCOPES],
+    apply: [...PLANNER_APPLY_SCOPES],
+  };
+}
+
+function isApplyMode(args: Record<string, unknown>): boolean {
+  return (
+    typeof args.mode === "string" && args.mode.trim().toLowerCase() === "apply"
+  );
+}
+
+export function requiredScopesForToolCall(
+  actionName: AgentActionName,
+  args: Record<string, unknown>,
+): McpScope[] {
+  if (isPlannerModeScopedAction(actionName) && isApplyMode(args)) {
+    return [...PLANNER_APPLY_SCOPES];
+  }
+
+  return minimumRequiredScopesForAction(actionName);
 }
 
 function buildCatalog(): ToolCatalogEntry[] {
@@ -92,7 +149,15 @@ function buildCatalog(): ToolCatalogEntry[] {
       description: action.description,
       inputSchema,
       readOnly: action.readOnly,
-      requiredScopes: requiredScopesForAction(action.name as AgentActionName),
+      requiredScopes: minimumRequiredScopesForAction(
+        action.name as AgentActionName,
+      ),
+      modeScopedRequiredScopes: modeScopedRequiredScopesForAction(
+        action.name as AgentActionName,
+      ),
+      defaultMode: isPlannerModeScopedAction(action.name as AgentActionName)
+        ? "suggest"
+        : undefined,
       requiresProjectService: Boolean(
         action.availability?.requires?.includes("project_service"),
       ),
@@ -126,6 +191,12 @@ export function listMcpTools(input: {
     auth: {
       required: true,
       requiredScopes: [...tool.requiredScopes],
+      ...(tool.modeScopedRequiredScopes
+        ? {
+            modeScopedRequiredScopes: cloneJson(tool.modeScopedRequiredScopes),
+            defaultMode: tool.defaultMode,
+          }
+        : {}),
       readOnly: tool.readOnly,
       errors: [
         "MCP_UNAUTHENTICATED",

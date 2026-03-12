@@ -384,6 +384,9 @@ describe("Public MCP OAuth and discovery routes", () => {
     );
     expect(toolNames).toEqual(
       expect.arrayContaining([
+        "plan_project",
+        "ensure_next_action",
+        "weekly_review",
         "decide_next_work",
         "analyze_project_health",
         "analyze_work_graph",

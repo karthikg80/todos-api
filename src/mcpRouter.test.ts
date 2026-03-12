@@ -315,6 +315,16 @@ describe("Remote MCP router auth and scopes", () => {
     );
     expect(toolNames).toContain("list_tasks");
     expect(toolNames).toContain("list_projects");
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        "plan_project",
+        "ensure_next_action",
+        "weekly_review",
+        "decide_next_work",
+        "analyze_project_health",
+        "analyze_work_graph",
+      ]),
+    );
     expect(toolNames).not.toContain("create_task");
     expect(toolNames).not.toContain("create_project");
 
@@ -333,6 +343,19 @@ describe("Remote MCP router auth and scopes", () => {
         "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
       ],
     });
+
+    const ensureNextActionTool = response.body.result.tools.find(
+      (tool: { name: string }) => tool.name === "ensure_next_action",
+    );
+    expect(ensureNextActionTool.auth.requiredScopes).toEqual([
+      "projects.read",
+      "tasks.read",
+    ]);
+    expect(ensureNextActionTool.auth.modeScopedRequiredScopes).toEqual({
+      suggest: ["projects.read", "tasks.read"],
+      apply: ["projects.read", "tasks.read", "tasks.write"],
+    });
+    expect(ensureNextActionTool.auth.defaultMode).toBe("suggest");
   });
 
   it("exposes the new project-management tools when write scopes are granted", async () => {
@@ -433,8 +456,11 @@ describe("Remote MCP router auth and scopes", () => {
     expect(ensureNextActionTool.auth.requiredScopes).toEqual([
       "projects.read",
       "tasks.read",
-      "tasks.write",
     ]);
+    expect(ensureNextActionTool.auth.modeScopedRequiredScopes).toEqual({
+      suggest: ["projects.read", "tasks.read"],
+      apply: ["projects.read", "tasks.read", "tasks.write"],
+    });
 
     const decideNextWorkTool = response.body.result.tools.find(
       (tool: { name: string }) => tool.name === "decide_next_work",
@@ -469,6 +495,140 @@ describe("Remote MCP router auth and scopes", () => {
     expect(
       response.body.result.structuredContent.error.details.requiredScopes,
     ).toEqual(["tasks.write"]);
+  });
+
+  it("allows planner suggest calls with read-only scopes", async () => {
+    currentSession = buildMcpSession("user-1", ["projects.read", "tasks.read"]);
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000091",
+      name: "Planner",
+      goal: "Ship planner docs",
+      status: "active",
+      archived: false,
+      userId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project);
+    projectService.findAll.mockResolvedValue([
+      {
+        id: "00000000-0000-1000-8000-000000000091",
+        name: "Planner",
+        goal: "Ship planner docs",
+        status: "active",
+        archived: false,
+        userId: "user-1",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        todoCount: 0,
+        openTodoCount: 0,
+      } as Project,
+    ]);
+
+    const planResponse = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer planner-read-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 5.1,
+        method: "tools/call",
+        params: {
+          name: "plan_project",
+          arguments: {
+            projectId: "00000000-0000-1000-8000-000000000091",
+            mode: "suggest",
+          },
+        },
+      })
+      .expect(200);
+
+    const ensureResponse = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer planner-read-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 5.2,
+        method: "tools/call",
+        params: {
+          name: "ensure_next_action",
+          arguments: {
+            projectId: "00000000-0000-1000-8000-000000000091",
+            mode: "suggest",
+          },
+        },
+      })
+      .expect(200);
+
+    const reviewResponse = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer planner-read-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 5.3,
+        method: "tools/call",
+        params: {
+          name: "weekly_review",
+          arguments: {
+            mode: "suggest",
+          },
+        },
+      })
+      .expect(200);
+
+    expect(planResponse.body.result.isError).toBeUndefined();
+    expect(
+      planResponse.body.result.structuredContent.data.plan.suggestedTasks
+        .length,
+    ).toBeGreaterThan(0);
+    expect(ensureResponse.body.result.isError).toBeUndefined();
+    expect(
+      ensureResponse.body.result.structuredContent.data.result.created,
+    ).toBe(false);
+    expect(reviewResponse.body.result.isError).toBeUndefined();
+    expect(
+      reviewResponse.body.result.structuredContent.data.review.summary,
+    ).toBeDefined();
+  });
+
+  it("rejects planner apply calls when write scope is missing", async () => {
+    currentSession = buildMcpSession("user-1", ["projects.read", "tasks.read"]);
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000092",
+      name: "Planner",
+      status: "active",
+      archived: false,
+      userId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project);
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer planner-readonly-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 5.4,
+        method: "tools/call",
+        params: {
+          name: "ensure_next_action",
+          arguments: {
+            projectId: "00000000-0000-1000-8000-000000000092",
+            mode: "apply",
+          },
+        },
+      })
+      .expect(200);
+
+    expect(response.body.result.isError).toBe(true);
+    expect(response.body.result.structuredContent.error.code).toBe(
+      "MCP_INSUFFICIENT_SCOPE",
+    );
+    expect(
+      response.body.result.structuredContent.error.details.requiredScopes,
+    ).toEqual(["projects.read", "tasks.read", "tasks.write"]);
   });
 
   it("blocks cross-user task access through the MCP surface", async () => {
