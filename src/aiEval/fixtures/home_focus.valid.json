@@ -1,0 +1,22 @@
+{
+  "requestId": "home-focus-req-1",
+  "surface": "home_focus",
+  "must_abstain": false,
+  "suggestions": [
+    {
+      "type": "focus_task",
+      "confidence": 0.81,
+      "rationale": "This blocks the rest of anniversary vacation planning and is due soon.",
+      "payload": {
+        "taskId": "task-123",
+        "todoId": "task-123",
+        "projectId": "project-456",
+        "title": "Decide on the island to go",
+        "summary": "This blocks the rest of anniversary vacation planning and is due soon.",
+        "reason": "Due soon and likely blocking related work.",
+        "source": "deterministic"
+      },
+      "suggestionId": "home-focus-1-task-123"
+    }
+  ]
+}

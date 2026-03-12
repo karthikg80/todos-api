@@ -79,6 +79,11 @@ export interface DecisionAssistStubInput {
     priority?: Priority;
     createdAt?: string;
     updatedAt?: string;
+    projectId?: string;
+    projectName?: string;
+    category?: string;
+    hasSubtasks?: boolean;
+    notesPresent?: boolean;
   }>;
 }
 
@@ -504,6 +509,157 @@ function priorityWeight(priority?: string): number {
   return 1;
 }
 
+function startOfToday(now = new Date()): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function daysSince(value?: string): number {
+  if (!value) return Infinity;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return Infinity;
+  return Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 86400000));
+}
+
+type HomeFocusCandidate = NonNullable<
+  DecisionAssistStubInput["todoCandidates"]
+>[number];
+
+function getHomeFocusDueBucket(candidate: HomeFocusCandidate): number {
+  if (!candidate.dueDate) return 4;
+  const dueDate = new Date(candidate.dueDate);
+  if (Number.isNaN(dueDate.getTime())) return 4;
+  const today = startOfToday();
+  const dueDay = startOfToday(dueDate);
+  const dayDiff = Math.floor(
+    (dueDay.getTime() - today.getTime()) / (24 * 60 * 60 * 1000),
+  );
+  if (dayDiff < 0) return 0;
+  if (dayDiff === 0) return 1;
+  if (dayDiff === 1) return 2;
+  if (dayDiff <= 3) return 3;
+  return 4;
+}
+
+function getHomeFocusConfidence(
+  candidate: HomeFocusCandidate,
+  dueBucket: number,
+): number {
+  if (dueBucket === 0) return 0.91;
+  if (dueBucket === 1) return 0.87;
+  if (dueBucket === 2) return 0.82;
+  if (dueBucket === 3) return 0.78;
+  if (priorityWeight(candidate.priority) >= 3) return 0.74;
+  if (daysSince(candidate.updatedAt || candidate.createdAt) >= 14) return 0.69;
+  return 0.62;
+}
+
+function buildHomeFocusSummary(
+  candidate: HomeFocusCandidate,
+  dueBucket: number,
+): string {
+  const projectName = candidate.projectName || candidate.category || "";
+  if (dueBucket === 0) {
+    return projectName
+      ? `This is overdue in ${projectName} and should be resolved before more work slips.`
+      : "This is overdue and should be resolved before more work slips.";
+  }
+  if (dueBucket === 1) {
+    return projectName
+      ? `This is due today in ${projectName}, so it is the safest focus pick.`
+      : "This is due today, so it is the safest focus pick.";
+  }
+  if (dueBucket === 2 || dueBucket === 3) {
+    return projectName
+      ? `This is due soon in ${projectName} and is at risk of slipping if ignored.`
+      : "This is due soon and is at risk of slipping if ignored.";
+  }
+  if (priorityWeight(candidate.priority) >= 3) {
+    return projectName
+      ? `This is a high-priority task in ${projectName} and deserves focused attention next.`
+      : "This is high priority and deserves focused attention next.";
+  }
+  if (daysSince(candidate.updatedAt || candidate.createdAt) >= 14) {
+    return projectName
+      ? `This has been quiet in ${projectName} for a while and looks ready for a decision.`
+      : "This has been quiet for a while and looks ready for a decision.";
+  }
+  if (candidate.hasSubtasks) {
+    return "This already has structure, which makes it a good focus candidate.";
+  }
+  if (candidate.notesPresent) {
+    return "This already has context captured, so it should be quick to resume.";
+  }
+  return projectName
+    ? `This is an active task in ${projectName} with clear enough context to move forward.`
+    : "This is an active task with clear enough context to move forward.";
+}
+
+function buildHomeFocusSuggestions(
+  input: DecisionAssistStubInput,
+): DecisionAssistOutput {
+  const requestId = randomUUID();
+  const candidates = Array.isArray(input.todoCandidates)
+    ? input.todoCandidates.filter((item) => item.id && item.title)
+    : [];
+  if (!candidates.length) {
+    return validateDecisionAssistOutput({
+      requestId,
+      surface: "home_focus",
+      must_abstain: true,
+      suggestions: [],
+    });
+  }
+
+  const selected = [...candidates]
+    .sort((a, b) => {
+      const dueBucketA = getHomeFocusDueBucket(a);
+      const dueBucketB = getHomeFocusDueBucket(b);
+      if (dueBucketA !== dueBucketB) return dueBucketA - dueBucketB;
+
+      const priorityDelta =
+        priorityWeight(b.priority) - priorityWeight(a.priority);
+      if (priorityDelta !== 0) return priorityDelta;
+
+      const staleDelta =
+        daysSince(b.updatedAt || b.createdAt) -
+        daysSince(a.updatedAt || a.createdAt);
+      if (staleDelta !== 0) return staleDelta;
+
+      const projectDelta =
+        Number(!!b.projectName || !!b.category) -
+        Number(!!a.projectName || !!a.category);
+      if (projectDelta !== 0) return projectDelta;
+
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    })
+    .slice(0, Math.min(input.topN || 3, 3));
+
+  return validateDecisionAssistOutput({
+    requestId,
+    surface: "home_focus",
+    must_abstain: selected.length === 0,
+    suggestions: selected.map((candidate, index) => {
+      const dueBucket = getHomeFocusDueBucket(candidate);
+      const summary = buildHomeFocusSummary(candidate, dueBucket);
+      return {
+        type: "focus_task",
+        confidence: getHomeFocusConfidence(candidate, dueBucket),
+        rationale: summary,
+        payload: {
+          taskId: candidate.id,
+          todoId: candidate.id,
+          projectId: candidate.projectId,
+          title: candidate.title,
+          summary,
+          reason: summary,
+          source: "deterministic",
+        },
+        suggestionId: `home-focus-${index + 1}-${candidate.id}`,
+      };
+    }),
+  });
+}
+
 function estimateTodoMinutes(
   title: string,
   mode: "quick" | "deep" | "balanced",
@@ -527,6 +683,10 @@ export function generateDecisionAssistStubOutput(
   const surface = input.surface;
   const requestId = randomUUID();
   const suggestions: DecisionAssistOutput["suggestions"] = [];
+
+  if (surface === "home_focus") {
+    return buildHomeFocusSuggestions(input);
+  }
 
   if (surface === "on_create" || surface === "task_drawer") {
     const title = input.title?.trim() || "Untitled task";

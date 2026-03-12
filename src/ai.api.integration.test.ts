@@ -211,6 +211,63 @@ describe("AI API Integration", () => {
     expect(Array.isArray(latest.body.outputEnvelope.suggestions)).toBe(true);
   });
 
+  it("generates home_focus stub and returns latest pending envelope without todoId", async () => {
+    const todoA = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Decide on the island to go", priority: "high" })
+      .expect(201);
+    const todoB = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Book ferry tickets", priority: "medium" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "home_focus",
+        topN: 3,
+        candidates: [
+          {
+            id: todoA.body.id,
+            title: todoA.body.title,
+            priority: "high",
+            projectName: "Anniversary vacation",
+          },
+          {
+            id: todoB.body.id,
+            title: todoB.body.title,
+            priority: "medium",
+            dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+            projectName: "Anniversary vacation",
+          },
+        ],
+      })
+      .expect(200);
+
+    expect(generated.body.suggestionId).toBeDefined();
+
+    const latest = await request(app)
+      .get("/ai/suggestions/latest?surface=home_focus")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(latest.body.aiSuggestionId).toBe(generated.body.suggestionId);
+    expect(latest.body.status).toBe("pending");
+    expect(latest.body.outputEnvelope.surface).toBe("home_focus");
+    expect(Array.isArray(latest.body.outputEnvelope.suggestions)).toBe(true);
+    expect(latest.body.outputEnvelope.suggestions[0]).toEqual(
+      expect.objectContaining({
+        type: "focus_task",
+        todoId: expect.any(String),
+        title: expect.any(String),
+        summary: expect.any(String),
+      }),
+    );
+  });
+
   it("throttles decision-assist generation after repeated rejects", async () => {
     const todoId = await createTaskDrawerTodo("reject burst throttle");
     for (let i = 0; i < 3; i += 1) {
@@ -817,6 +874,53 @@ describe("AI API Integration", () => {
       .expect(400);
   });
 
+  it("applies home_focus suggestion by returning the selected todo", async () => {
+    const todo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Review contractor shortlist", priority: "high" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "home_focus",
+        topN: 3,
+        candidates: [
+          {
+            id: todo.body.id,
+            title: todo.body.title,
+            priority: "high",
+            projectName: "House project",
+          },
+        ],
+      })
+      .expect(200);
+
+    const latest = await request(app)
+      .get("/ai/suggestions/latest?surface=home_focus")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    const focusSuggestion = latest.body.outputEnvelope.suggestions[0];
+    expect(focusSuggestion?.suggestionId).toBeDefined();
+
+    const applied = await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/apply`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ suggestionId: focusSuggestion.suggestionId })
+      .expect(200);
+
+    expect(applied.body.todo.id).toBe(todo.body.id);
+    expect(applied.body.appliedSuggestionId).toBe(focusSuggestion.suggestionId);
+
+    const persisted = await prisma.aiSuggestion.findUnique({
+      where: { id: generated.body.suggestionId },
+    });
+    expect(persisted?.status).toBe("accepted");
+  });
+
   it("rejects on_create apply when requiresConfirmation is true and confirmed is missing", async () => {
     const createdTodo = await request(app)
       .post("/todos")
@@ -953,6 +1057,42 @@ describe("AI API Integration", () => {
     expect(persisted?.status).toBe("rejected");
   });
 
+  it("dismisses home_focus suggestion set by marking suggestion rejected", async () => {
+    const todo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "Pick anniversary venue", priority: "high" })
+      .expect(201);
+
+    const generated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "home_focus",
+        topN: 3,
+        candidates: [
+          {
+            id: todo.body.id,
+            title: todo.body.title,
+            priority: "high",
+            projectName: "Anniversary vacation",
+          },
+        ],
+      })
+      .expect(200);
+
+    await request(app)
+      .post(`/ai/suggestions/${generated.body.suggestionId}/dismiss`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ dismissAll: true })
+      .expect(204);
+
+    const persisted = await prisma.aiSuggestion.findUnique({
+      where: { id: generated.body.suggestionId },
+    });
+    expect(persisted?.status).toBe("rejected");
+  });
+
   it("emits decision assist telemetry lifecycle events for all surfaces", async () => {
     const emitSpy = jest
       .spyOn(decisionAssistTelemetry, "emitDecisionAssistTelemetry")
@@ -972,6 +1112,11 @@ describe("AI API Integration", () => {
       .post("/todos")
       .set("Authorization", `Bearer ${authToken}`)
       .send({ title: "telemetry today plan todo" })
+      .expect(201);
+    const homeFocusTodo = await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ title: "telemetry home focus todo" })
       .expect(201);
 
     const taskDrawerGenerated = await request(app)
@@ -1054,6 +1199,33 @@ describe("AI API Integration", () => {
       .set("Authorization", `Bearer ${authToken}`)
       .expect(200);
 
+    const homeFocusGenerated = await request(app)
+      .post("/ai/decision-assist/stub")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        surface: "home_focus",
+        candidates: [
+          {
+            id: homeFocusTodo.body.id,
+            title: homeFocusTodo.body.title,
+            priority: "high",
+            projectName: "Telemetry",
+          },
+        ],
+      })
+      .expect(200);
+
+    const homeFocusLatest = await request(app)
+      .get("/ai/suggestions/latest?surface=home_focus")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    await request(app)
+      .post(`/ai/suggestions/${homeFocusGenerated.body.suggestionId}/dismiss`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({ dismissAll: true })
+      .expect(204);
+
     const lifecycleEvents = new Set(
       emitSpy.mock.calls.map((call) => String(call[0]?.eventName || "")),
     );
@@ -1072,7 +1244,12 @@ describe("AI API Integration", () => {
         .map((call) => call[0]?.surface),
     );
     expect(Array.from(generatedSurfaces)).toEqual(
-      expect.arrayContaining(["task_drawer", "on_create", "today_plan"]),
+      expect.arrayContaining([
+        "task_drawer",
+        "on_create",
+        "today_plan",
+        "home_focus",
+      ]),
     );
   });
 

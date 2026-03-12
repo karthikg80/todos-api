@@ -35,7 +35,8 @@ const extractSurface = (
   if (
     inputSurface === "task_drawer" ||
     inputSurface === "on_create" ||
-    inputSurface === "today_plan"
+    inputSurface === "today_plan" ||
+    inputSurface === "home_focus"
   ) {
     return inputSurface;
   }

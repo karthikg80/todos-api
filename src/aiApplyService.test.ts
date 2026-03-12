@@ -1,12 +1,12 @@
 import {
+  applyHomeFocusSuggestion,
   applyTodoBoundSuggestion,
   applyTodayPlanSuggestions,
-  ApplyTodoBoundResult,
-  ApplyTodayPlanResult,
 } from "./services/aiApplyService";
 import { ITodoService } from "./interfaces/ITodoService";
 import { IProjectService } from "./interfaces/IProjectService";
 import {
+  NormalizedHomeFocusSuggestion,
   NormalizedTodoBoundSuggestion,
   NormalizedTodayPlanSuggestion,
 } from "./services/aiNormalizationService";
@@ -97,6 +97,30 @@ function makeSuggestion(
     payload,
     suggestionId: "sug-1",
     requiresConfirmation: false,
+    ...overrides,
+  };
+}
+
+function makeHomeFocusSuggestion(
+  overrides: Partial<NormalizedHomeFocusSuggestion> = {},
+): NormalizedHomeFocusSuggestion {
+  return {
+    type: "focus_task",
+    confidence: 0.83,
+    rationale: "This is due soon and should stay visible.",
+    payload: {
+      taskId: TODO_ID,
+      todoId: TODO_ID,
+      title: "Buy groceries",
+      summary: "This is due soon and should stay visible.",
+      source: "deterministic",
+    },
+    suggestionId: "home-focus-1",
+    taskId: TODO_ID,
+    todoId: TODO_ID,
+    title: "Buy groceries",
+    summary: "This is due soon and should stay visible.",
+    source: "deterministic",
     ...overrides,
   };
 }
@@ -347,6 +371,23 @@ describe("applyTodoBoundSuggestion", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.status).toBe(404);
+    }
+  });
+});
+
+describe("applyHomeFocusSuggestion", () => {
+  it("returns the resolved todo for a valid focus suggestion", async () => {
+    const todoService = buildMockTodoService();
+    const result = await applyHomeFocusSuggestion({
+      selected: makeHomeFocusSuggestion(),
+      todoService,
+      userId: USER_ID,
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.todo.id).toBe(TODO_ID);
+      expect(result.appliedTodoIds).toEqual([TODO_ID]);
     }
   });
 });

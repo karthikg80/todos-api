@@ -19,6 +19,11 @@ const ALLOWED_DECISION_ASSIST_SURFACES: DecisionAssistSurface[] = [
   "on_create",
   "task_drawer",
   "today_plan",
+  "home_focus",
+];
+const TODO_REQUIRED_DECISION_ASSIST_SURFACES: DecisionAssistSurface[] = [
+  "on_create",
+  "task_drawer",
 ];
 
 function parseDate(value: unknown, field: string): Date {
@@ -264,7 +269,7 @@ export function validateDecisionAssistLatestQuery(query: any): {
     todoId = query.todoId.trim();
   }
 
-  if (surface !== "today_plan" && !todoId) {
+  if (TODO_REQUIRED_DECISION_ASSIST_SURFACES.includes(surface) && !todoId) {
     throw new ValidationError("todoId is required");
   }
 
@@ -468,12 +473,17 @@ export function validateDecisionAssistStubInput(
     anchorDateISO = parsed.toISOString();
   }
 
+  const rawTodoCandidates =
+    data.todoCandidates !== undefined ? data.todoCandidates : data.candidates;
   let todoCandidates: DecisionAssistStubInput["todoCandidates"];
-  if (data.todoCandidates !== undefined) {
-    if (!Array.isArray(data.todoCandidates)) {
+  if (rawTodoCandidates !== undefined) {
+    if (!Array.isArray(rawTodoCandidates)) {
       throw new ValidationError("todoCandidates must be an array");
     }
-    todoCandidates = data.todoCandidates.map((item: unknown, index: number) => {
+    if (rawTodoCandidates.length > 60) {
+      throw new ValidationError("todoCandidates cannot exceed 60 items");
+    }
+    todoCandidates = rawTodoCandidates.map((item: unknown, index: number) => {
       if (!item || typeof item !== "object") {
         throw new ValidationError(`todoCandidates[${index}] must be an object`);
       }
@@ -484,10 +494,12 @@ export function validateDecisionAssistStubInput(
       if (typeof record.title !== "string" || !record.title.trim()) {
         throw new ValidationError(`todoCandidates[${index}].title is required`);
       }
+      const dueDateRaw =
+        typeof record.dueAt === "string" ? record.dueAt : record.dueDate;
       if (
-        record.dueDate !== undefined &&
-        (typeof record.dueDate !== "string" ||
-          Number.isNaN(new Date(record.dueDate).getTime()))
+        dueDateRaw !== undefined &&
+        (typeof dueDateRaw !== "string" ||
+          Number.isNaN(new Date(dueDateRaw).getTime()))
       ) {
         throw new ValidationError(
           `todoCandidates[${index}].dueDate must be a valid ISO date`,
@@ -502,21 +514,50 @@ export function validateDecisionAssistStubInput(
           `todoCandidates[${index}].priority must be low, medium, or high`,
         );
       }
+      const parseOptionalDateString = (value: unknown, field: string) => {
+        if (value === undefined) {
+          return undefined;
+        }
+        if (
+          typeof value !== "string" ||
+          Number.isNaN(new Date(value).getTime())
+        ) {
+          throw new ValidationError(
+            `todoCandidates[${index}].${field} must be a valid ISO date`,
+          );
+        }
+        return new Date(value).toISOString();
+      };
+
       return {
         id: record.id.trim(),
         title: record.title.trim(),
         dueDate:
-          typeof record.dueDate === "string"
-            ? new Date(record.dueDate).toISOString()
+          typeof dueDateRaw === "string"
+            ? new Date(dueDateRaw).toISOString()
             : undefined,
         priority:
           typeof record.priority === "string"
             ? (record.priority.toLowerCase() as Priority)
             : undefined,
-        createdAt:
-          typeof record.createdAt === "string" ? record.createdAt : undefined,
-        updatedAt:
-          typeof record.updatedAt === "string" ? record.updatedAt : undefined,
+        createdAt: parseOptionalDateString(record.createdAt, "createdAt"),
+        updatedAt: parseOptionalDateString(record.updatedAt, "updatedAt"),
+        projectId:
+          typeof record.projectId === "string" && record.projectId.trim()
+            ? record.projectId.trim()
+            : undefined,
+        projectName:
+          typeof record.projectName === "string" && record.projectName.trim()
+            ? record.projectName.trim()
+            : typeof record.category === "string" && record.category.trim()
+              ? record.category.trim()
+              : undefined,
+        category:
+          typeof record.category === "string" && record.category.trim()
+            ? record.category.trim()
+            : undefined,
+        hasSubtasks: record.hasSubtasks === true,
+        notesPresent: record.notesPresent === true,
       };
     });
   }

@@ -1,6 +1,7 @@
 import { DecisionAssistSurface } from "../validation/aiContracts";
 import { AiSuggestionRecord } from "./aiSuggestionStore";
 import {
+  HOME_FOCUS_SURFACE,
   TODO_BOUND_TYPE,
   TODO_BOUND_SURFACES,
   TODAY_PLAN_SURFACE,
@@ -23,13 +24,22 @@ export function validateDismissable(
     suggestion.input &&
     typeof suggestion.input.surface === "string" &&
     suggestion.input.surface === TODAY_PLAN_SURFACE;
+  const isHomeFocusSuggestion =
+    suggestion.type === TODO_BOUND_TYPE &&
+    suggestion.input &&
+    typeof suggestion.input.surface === "string" &&
+    suggestion.input.surface === HOME_FOCUS_SURFACE;
 
-  if (!isTodoBoundSuggestion && !isTodayPlanSuggestion) {
+  if (
+    !isTodoBoundSuggestion &&
+    !isTodayPlanSuggestion &&
+    !isHomeFocusSuggestion
+  ) {
     return {
       ok: false,
       status: 400,
       error:
-        "Only on_create/task_drawer/today_plan suggestions can be dismissed",
+        "Only on_create/task_drawer/today_plan/home_focus suggestions can be dismissed",
     };
   }
 
@@ -41,13 +51,14 @@ export function validateDismissable(
 
   if (
     !TODO_BOUND_SURFACES.has(inputSurface) &&
-    inputSurface !== TODAY_PLAN_SURFACE
+    inputSurface !== TODAY_PLAN_SURFACE &&
+    inputSurface !== HOME_FOCUS_SURFACE
   ) {
     return {
       ok: false,
       status: 400,
       error:
-        "Only on_create/task_drawer/today_plan suggestions can be dismissed",
+        "Only on_create/task_drawer/today_plan/home_focus suggestions can be dismissed",
     };
   }
 

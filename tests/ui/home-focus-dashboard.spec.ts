@@ -41,10 +41,14 @@ async function installHomeFocusMockApi(
   {
     aiDecisionAssistStatus = 500,
     aiTopFocus = null,
+    homeFocusSequences = null,
     seedTodos,
   }: {
     aiDecisionAssistStatus?: number;
     aiTopFocus?: Array<{ todoId: string; reason?: string }> | null;
+    homeFocusSequences?: Array<
+      Array<{ todoId: string; summary?: string; reason?: string }>
+    > | null;
     seedTodos: SeedTodo[];
   },
 ) {
@@ -54,9 +58,16 @@ async function installHomeFocusMockApi(
   >();
   const accessTokens = new Map<string, string>();
   const todosByUser = new Map<string, Array<Record<string, unknown>>>();
+  let latestHomeSuggestion: {
+    id: string;
+    status: "pending" | "accepted" | "rejected";
+    outputEnvelope: Record<string, unknown>;
+  } | null = null;
   let userSeq = 1;
   let tokenSeq = 1;
   let todoSeq = 1000;
+  let homeFocusSeq = 1;
+  let homeFocusGenerateSeq = 0;
 
   const nowIso = () => new Date().toISOString();
   const json = (route: Route, status: number, body: unknown) =>
@@ -69,6 +80,23 @@ async function installHomeFocusMockApi(
   const parseBody = async (route: Route) => {
     const raw = route.request().postData();
     return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+  };
+
+  const getHomeFocusCards = () => {
+    if (Array.isArray(homeFocusSequences) && homeFocusSequences.length > 0) {
+      const index = Math.min(
+        homeFocusGenerateSeq,
+        homeFocusSequences.length - 1,
+      );
+      return homeFocusSequences[index] || [];
+    }
+    return Array.isArray(aiTopFocus)
+      ? aiTopFocus.map((item) => ({
+          todoId: item.todoId,
+          summary: item.reason,
+          reason: item.reason,
+        }))
+      : [];
   };
 
   const buildTodosForUser = (userId: string) =>
@@ -107,6 +135,48 @@ async function installHomeFocusMockApi(
       todosByUser.set(id, buildTodosForUser(id));
     }
     return id;
+  };
+
+  const buildHomeFocusEnvelope = (
+    userId: string,
+    cards: Array<{ todoId: string; summary?: string; reason?: string }>,
+  ) => {
+    const todos = todosByUser.get(userId) || [];
+    const todoById = new Map(
+      todos.map((todo) => [String(todo.id), todo] as const),
+    );
+    const suggestions = cards
+      .map((card) => {
+        const todo = todoById.get(String(card.todoId || ""));
+        if (!todo) return null;
+        const summary = String(
+          card.summary || card.reason || "Suggested focus for Home.",
+        ).trim();
+        return {
+          type: "focus_task",
+          suggestionId: `home-focus-${homeFocusSeq++}`,
+          confidence: 0.81,
+          payload: {
+            todoId: String(todo.id),
+            taskId: String(todo.id),
+            projectId:
+              typeof todo.projectId === "string" ? todo.projectId : undefined,
+            title: String(todo.title || ""),
+            summary,
+            source: "deterministic",
+          },
+        };
+      })
+      .filter(Boolean);
+
+    return {
+      contractVersion: 1,
+      generatedAt: nowIso(),
+      requestId: `home-focus-request-${homeFocusGenerateSeq + 1}`,
+      surface: "home_focus",
+      must_abstain: suggestions.length === 0,
+      suggestions,
+    };
   };
 
   await page.route("**/*", async (route) => {
@@ -210,11 +280,29 @@ async function installHomeFocusMockApi(
     }
 
     if (pathname === "/ai/decision-assist/stub" && method === "POST") {
+      const body = await parseBody(route);
+      if (String(body.surface || "") !== "home_focus") {
+        return json(route, 404, { error: "Not found" });
+      }
       if (aiDecisionAssistStatus >= 400) {
         return json(route, aiDecisionAssistStatus, { error: "AI unavailable" });
       }
+      const userId = authUserId(route);
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      const outputEnvelope = buildHomeFocusEnvelope(
+        userId,
+        getHomeFocusCards(),
+      );
+      const suggestionId = `home-focus-db-${homeFocusGenerateSeq + 1}`;
+      latestHomeSuggestion = {
+        id: suggestionId,
+        status: "pending",
+        outputEnvelope,
+      };
+      homeFocusGenerateSeq += 1;
       return json(route, 200, {
-        topFocus: Array.isArray(aiTopFocus) ? aiTopFocus : [],
+        ...outputEnvelope,
+        suggestionId,
       });
     }
 
@@ -222,7 +310,79 @@ async function installHomeFocusMockApi(
       return json(route, 200, []);
     }
     if (pathname === "/ai/suggestions/latest" && method === "GET") {
-      return json(route, 404, { error: "Not found" });
+      if (url.searchParams.get("surface") !== "home_focus") {
+        return json(route, 404, { error: "Not found" });
+      }
+      if (!latestHomeSuggestion || latestHomeSuggestion.status !== "pending") {
+        return route.fulfill({ status: 204, body: "" });
+      }
+      return json(route, 200, {
+        aiSuggestionId: latestHomeSuggestion.id,
+        status: latestHomeSuggestion.status,
+        outputEnvelope: latestHomeSuggestion.outputEnvelope,
+      });
+    }
+    if (
+      pathname.startsWith("/ai/suggestions/") &&
+      pathname.endsWith("/apply") &&
+      method === "POST"
+    ) {
+      const userId = authUserId(route);
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      const suggestionDbId = pathname.split("/")[3];
+      if (!latestHomeSuggestion || latestHomeSuggestion.id !== suggestionDbId) {
+        return json(route, 404, { error: "Suggestion not found" });
+      }
+      const body = await parseBody(route);
+      const selectedSuggestion = Array.isArray(
+        latestHomeSuggestion.outputEnvelope.suggestions,
+      )
+        ? latestHomeSuggestion.outputEnvelope.suggestions.find(
+            (item) =>
+              item &&
+              typeof item === "object" &&
+              String((item as Record<string, unknown>).suggestionId || "") ===
+                String(body.suggestionId || ""),
+          )
+        : null;
+      if (!selectedSuggestion || typeof selectedSuggestion !== "object") {
+        return json(route, 404, { error: "Suggestion item not found" });
+      }
+      const payload =
+        selectedSuggestion.payload &&
+        typeof selectedSuggestion.payload === "object"
+          ? selectedSuggestion.payload
+          : {};
+      const todoId = String(payload.todoId || "");
+      const todo = (todosByUser.get(userId) || []).find(
+        (item) => String(item.id) === todoId,
+      );
+      if (!todo) {
+        return json(route, 404, { error: "Todo not found" });
+      }
+      latestHomeSuggestion = null;
+      return json(route, 200, {
+        todo,
+        appliedSuggestionId: String(body.suggestionId || ""),
+        suggestion: {
+          id: suggestionDbId,
+          status: "accepted",
+          appliedTodoIds: [todoId],
+        },
+        idempotent: false,
+      });
+    }
+    if (
+      pathname.startsWith("/ai/suggestions/") &&
+      pathname.endsWith("/dismiss") &&
+      method === "POST"
+    ) {
+      const suggestionDbId = pathname.split("/")[3];
+      if (!latestHomeSuggestion || latestHomeSuggestion.id !== suggestionDbId) {
+        return json(route, 404, { error: "Suggestion not found" });
+      }
+      latestHomeSuggestion = null;
+      return route.fulfill({ status: 204, body: "" });
     }
     if (pathname === "/ai/usage" && method === "GET") {
       return json(route, 200, {
@@ -536,6 +696,71 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await upNextTile.getByRole("button", { name: "See all" }).click();
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Up Next");
     await expectListOrEmptyState(page);
+  });
+});
+
+test.describe("Home focus AI lifecycle", () => {
+  test("Home focus suggestions render and dismiss through the shared AI lifecycle", async ({
+    page,
+  }) => {
+    await installHomeFocusMockApi(page, {
+      aiDecisionAssistStatus: 200,
+      homeFocusSequences: [
+        [
+          {
+            todoId: "todo-today",
+            summary: "Due today and blocking the rest of launch prep.",
+          },
+        ],
+        [
+          {
+            todoId: "todo-overdue",
+            summary: "Overdue and should be closed before anything else.",
+          },
+        ],
+      ],
+      seedTodos: buildSeedTodos(),
+    });
+    await openHomeApp(page);
+
+    const focusTile = page.locator('[data-home-tile="top_focus"]');
+    await expect(focusTile).toContainText(
+      "Due today and blocking the rest of launch prep.",
+    );
+    await focusTile.getByRole("button", { name: "Dismiss" }).click();
+    await expect(focusTile).toContainText(
+      "Overdue and should be closed before anything else.",
+    );
+  });
+
+  test("Applying a Home focus suggestion opens the selected task drawer", async ({
+    page,
+  }) => {
+    await installHomeFocusMockApi(page, {
+      aiDecisionAssistStatus: 200,
+      homeFocusSequences: [
+        [
+          {
+            todoId: "todo-today",
+            summary: "Due today and blocking the rest of launch prep.",
+          },
+        ],
+      ],
+      seedTodos: buildSeedTodos(),
+    });
+    await openHomeApp(page);
+
+    const focusTile = page.locator('[data-home-tile="top_focus"]');
+    await expect(focusTile).toContainText(
+      "Due today and blocking the rest of launch prep.",
+    );
+    await focusTile.getByRole("button", { name: "Use focus" }).click();
+    await expect(page.locator("#todoDetailsDrawer")).toHaveClass(
+      /todo-drawer--open/,
+    );
+    await expect(page.locator("#drawerTitleInput")).toHaveValue(
+      "Prepare launch checklist",
+    );
   });
 });
 

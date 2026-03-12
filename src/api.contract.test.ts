@@ -7,7 +7,16 @@ describe("API Contract", () => {
   let app: Express;
 
   beforeEach(() => {
-    app = createApp(new TodoService());
+    app = createApp(
+      new TodoService(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
   });
 
   describe("PUT /todos/reorder", () => {
@@ -303,6 +312,44 @@ describe("API Contract", () => {
       expect(response.body.requestId).toEqual(expect.any(String));
       expect(Array.isArray(response.body.suggestions)).toBe(true);
       expect(response.body.suggestions.length).toBeGreaterThan(0);
+      expect(response.body.suggestionId).toBeDefined();
+
+      const list = await request(app).get("/ai/suggestions").expect(200);
+      expect(list.body[0]).toEqual(
+        expect.objectContaining({
+          id: response.body.suggestionId,
+          type: "task_critic",
+          status: "pending",
+        }),
+      );
+    });
+
+    it("generates contract-validated home_focus suggestion stub and persists it", async () => {
+      const response = await request(app)
+        .post("/ai/decision-assist/stub")
+        .send({
+          surface: "home_focus",
+          topN: 3,
+          candidates: [
+            {
+              id: "todo-home-1",
+              title: "Decide on the island to go",
+              dueAt: "2026-03-15T12:00:00.000Z",
+              priority: "high",
+              projectName: "Anniversary vacation",
+            },
+          ],
+        })
+        .expect(200);
+
+      expect(response.body.surface).toBe("home_focus");
+      expect(response.body.requestId).toEqual(expect.any(String));
+      expect(Array.isArray(response.body.suggestions)).toBe(true);
+      expect(response.body.suggestions[0]).toEqual(
+        expect.objectContaining({
+          type: "focus_task",
+        }),
+      );
       expect(response.body.suggestionId).toBeDefined();
 
       const list = await request(app).get("/ai/suggestions").expect(200);

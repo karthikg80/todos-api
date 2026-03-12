@@ -5855,6 +5855,23 @@ body.is-todos-view .projects-rail-item__count {
   line-height: 1.25;
 }
 
+.home-task-row__actions {
+  grid-column: 2 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.home-task-row__action {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+}
+
+.home-task-row__action--secondary {
+  background: transparent;
+}
+
 .home-task-group {
   display: grid;
   gap: 4px;

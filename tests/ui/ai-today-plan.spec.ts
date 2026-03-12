@@ -202,13 +202,13 @@ async function installTodayPlanLiveMockApi(page: Page) {
     }
 
     if (pathname === "/ai/suggestions/latest" && method === "GET") {
-      state.latestFetchCalls += 1;
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
       const surface = searchParams.get("surface") || "";
       if (surface !== "today_plan") {
         return route.fulfill({ status: 204, body: "" });
       }
+      state.latestFetchCalls += 1;
       const plans = plansByUser.get(userId) || [];
       const latest = plans.find((item) => item.status === "pending") || null;
       if (!latest) {
