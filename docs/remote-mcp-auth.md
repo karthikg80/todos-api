@@ -168,6 +168,9 @@ The older `read` / `write` aliases are still accepted by validation and expanded
 | `get_project`    | Yes       | `projects.read`  |
 | `review_projects` | Yes      | `projects.read`  |
 | `list_projects_without_next_action` | Yes | `projects.read`, `tasks.read` |
+| `plan_project` | No | `projects.read`, `tasks.read`, `tasks.write` |
+| `ensure_next_action` | No | `projects.read`, `tasks.read`, `tasks.write` |
+| `weekly_review` | No | `projects.read`, `tasks.read`, `tasks.write` |
 | `create_project` | No        | `projects.write` |
 | `update_project` | No        | `projects.write` |
 | `rename_project` | No        | `projects.write` |

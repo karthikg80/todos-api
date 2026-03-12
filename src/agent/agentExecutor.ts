@@ -25,12 +25,15 @@ import {
   validateAgentListUpcomingInput,
   validateAgentListWaitingOnInput,
   validateAgentMoveTaskToProjectInput,
+  validateAgentPlanProjectInput,
   validateAgentRenameProjectInput,
   validateAgentReviewProjectsInput,
   validateAgentSearchTasksInput,
+  validateAgentEnsureNextActionInput,
   validateAgentUpdateSubtaskInput,
   validateAgentUpdateProjectInput,
   validateAgentUpdateTaskInput,
+  validateAgentWeeklyReviewInput,
 } from "../validation/agentValidation";
 
 export type AgentActionName =
@@ -59,7 +62,10 @@ export type AgentActionName =
   | "list_upcoming"
   | "list_stale_tasks"
   | "list_projects_without_next_action"
-  | "review_projects";
+  | "review_projects"
+  | "plan_project"
+  | "ensure_next_action"
+  | "weekly_review";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -745,6 +751,48 @@ export class AgentExecutor {
             filters,
           );
           return this.success(action, readOnly, context, 200, { projects });
+        }
+        case "plan_project": {
+          const plannerInput = validateAgentPlanProjectInput(input);
+          const plan = await this.agentService.planProjectForUser(
+            context.userId,
+            plannerInput,
+          );
+          if (!plan) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { plan });
+        }
+        case "ensure_next_action": {
+          const plannerInput = validateAgentEnsureNextActionInput(input);
+          const result = await this.agentService.ensureNextActionForUser(
+            context.userId,
+            plannerInput,
+          );
+          if (!result) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { result });
+        }
+        case "weekly_review": {
+          const plannerInput = validateAgentWeeklyReviewInput(input);
+          const review = await this.agentService.weeklyReviewForUser(
+            context.userId,
+            plannerInput,
+          );
+          return this.success(action, readOnly, context, 200, { review });
         }
       }
     } catch (error) {

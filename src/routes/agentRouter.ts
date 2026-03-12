@@ -175,6 +175,18 @@ export function createAgentRouter({
     "/write/archive_project",
     createAgentActionHandler(agentExecutor, "archive_project"),
   );
+  router.post(
+    "/write/plan_project",
+    createAgentActionHandler(agentExecutor, "plan_project"),
+  );
+  router.post(
+    "/write/ensure_next_action",
+    createAgentActionHandler(agentExecutor, "ensure_next_action"),
+  );
+  router.post(
+    "/write/weekly_review",
+    createAgentActionHandler(agentExecutor, "weekly_review"),
+  );
 
   return router;
 }

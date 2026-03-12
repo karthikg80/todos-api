@@ -77,6 +77,21 @@ describe("Agent router", () => {
           enabled: true,
           readOnly: true,
         }),
+        expect.objectContaining({
+          name: "plan_project",
+          enabled: true,
+          readOnly: false,
+        }),
+        expect.objectContaining({
+          name: "ensure_next_action",
+          enabled: true,
+          readOnly: false,
+        }),
+        expect.objectContaining({
+          name: "weekly_review",
+          enabled: true,
+          readOnly: false,
+        }),
       ]),
     );
   });
@@ -215,6 +230,100 @@ describe("Agent router", () => {
     expect(projectService.create).toHaveBeenCalledTimes(1);
     expect(firstResponse.body.data.project.name).toBe("Platform");
     expect(replayResponse.body.trace.replayed).toBe(true);
+  });
+
+  it("plans a project through the write surface", async () => {
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000041",
+      name: "Vacation",
+      goal: "Plan anniversary vacation",
+      status: "active",
+      archived: false,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project);
+
+    const response = await request(app)
+      .post("/agent/write/plan_project")
+      .send({
+        projectId: "00000000-0000-1000-8000-000000000041",
+        goal: "Plan anniversary vacation",
+        mode: "suggest",
+      })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.action).toBe("plan_project");
+    expect(response.body.data.plan.project).toEqual({
+      id: "00000000-0000-1000-8000-000000000041",
+      name: "Vacation",
+    });
+    expect(response.body.data.plan.suggestedTasks.length).toBeGreaterThan(0);
+  });
+
+  it("creates a missing next action through the write surface", async () => {
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000042",
+      name: "Ops",
+      status: "active",
+      archived: false,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project);
+
+    const response = await request(app)
+      .post("/agent/write/ensure_next_action")
+      .send({
+        projectId: "00000000-0000-1000-8000-000000000042",
+        mode: "apply",
+      })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.action).toBe("ensure_next_action");
+    expect(response.body.data.result.created).toBe(true);
+    expect(response.body.data.result.task.status).toBe("next");
+  });
+
+  it("returns weekly review findings through the write surface", async () => {
+    projectService.findAll.mockResolvedValue([
+      {
+        id: "00000000-0000-1000-8000-000000000043",
+        name: "Admin",
+        status: "active",
+        archived: false,
+        userId: "default-user",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        todoCount: 0,
+        openTodoCount: 0,
+      } as Project,
+    ]);
+
+    const response = await request(app)
+      .post("/agent/write/weekly_review")
+      .send({
+        mode: "suggest",
+      })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.action).toBe("weekly_review");
+    expect(response.body.data.review.summary.projectsWithoutNextAction).toBe(0);
+    expect(response.body.data.review.findings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: "empty_active_project",
+          projectName: "Admin",
+        }),
+      ]),
+    );
   });
 
   it("returns agent auth errors in the structured action envelope", async () => {

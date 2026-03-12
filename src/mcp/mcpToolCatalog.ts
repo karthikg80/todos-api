@@ -51,6 +51,10 @@ function requiredScopesForAction(actionName: AgentActionName): McpScope[] {
       return [PROJECT_READ_SCOPE];
     case "list_projects_without_next_action":
       return [PROJECT_READ_SCOPE, TASK_READ_SCOPE];
+    case "plan_project":
+    case "ensure_next_action":
+    case "weekly_review":
+      return [PROJECT_READ_SCOPE, TASK_READ_SCOPE, TASK_WRITE_SCOPE];
     case "create_project":
     case "update_project":
     case "rename_project":

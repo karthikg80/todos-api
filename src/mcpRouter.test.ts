@@ -408,6 +408,9 @@ describe("Remote MCP router auth and scopes", () => {
         "list_stale_tasks",
         "list_projects_without_next_action",
         "review_projects",
+        "plan_project",
+        "ensure_next_action",
+        "weekly_review",
         "rename_project",
       ]),
     );
@@ -420,6 +423,15 @@ describe("Remote MCP router auth and scopes", () => {
         type: "string",
       }),
     );
+
+    const ensureNextActionTool = response.body.result.tools.find(
+      (tool: { name: string }) => tool.name === "ensure_next_action",
+    );
+    expect(ensureNextActionTool.auth.requiredScopes).toEqual([
+      "projects.read",
+      "tasks.read",
+      "tasks.write",
+    ]);
   });
 
   it("rejects write tools when write scope is missing", async () => {
@@ -571,6 +583,50 @@ describe("Remote MCP router auth and scopes", () => {
     expect(response.body.result.isError).toBeUndefined();
     expect(response.body.result.structuredContent.data.task.category).toBe(
       "Ops",
+    );
+  });
+
+  it("creates a next action through the planner MCP tool", async () => {
+    currentSession = buildMcpSession("user-1", [
+      "projects.read",
+      "tasks.read",
+      "tasks.write",
+    ]);
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000051",
+      name: "Ops",
+      status: "active",
+      archived: false,
+      userId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    });
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer planner-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 10,
+        method: "tools/call",
+        params: {
+          name: "ensure_next_action",
+          arguments: {
+            projectId: "00000000-0000-1000-8000-000000000051",
+            mode: "apply",
+          },
+        },
+      })
+      .expect(200);
+
+    expect(response.body.result.isError).toBeUndefined();
+    expect(response.body.result.structuredContent.data.result.created).toBe(
+      true,
+    );
+    expect(response.body.result.structuredContent.data.result.task.status).toBe(
+      "next",
     );
   });
 });

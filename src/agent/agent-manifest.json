@@ -233,6 +233,46 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "updatedAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "plannerMode": {
+      "type": "string",
+      "enum": ["suggest", "apply"]
+    },
+    "plannerTaskSuggestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": ["string", "null"] },
+        "priority": {
+          "type": ["string", "null"],
+          "enum": ["low", "medium", "high", "urgent", null]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["next", "in_progress", "waiting", "scheduled", "someday"]
+        },
+        "reason": { "type": "string" }
+      }
+    },
+    "plannerFindingType": {
+      "type": "string",
+      "enum": [
+        "missing_next_action",
+        "stale_task",
+        "waiting_task",
+        "upcoming_deadline",
+        "empty_active_project"
+      ]
+    },
+    "plannerRecommendationType": {
+      "type": "string",
+      "enum": [
+        "create_next_action",
+        "review_stale_task",
+        "follow_up_waiting_task",
+        "plan_project"
+      ]
     }
   },
   "actions": [
@@ -1093,6 +1133,174 @@
         "dataKey": "projects",
         "type": "array",
         "items": { "$ref": "#/definitions/project" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "plan_project",
+      "description": "Generate a practical project plan and optionally create the missing tasks through the canonical task service.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/plan_project",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "projectId": { "type": "string", "format": "uuid" },
+          "goal": { "type": ["string", "null"], "maxLength": 200 },
+          "constraints": {
+            "type": "array",
+            "items": { "type": "string", "maxLength": 200 },
+            "maxItems": 20
+          },
+          "mode": { "$ref": "#/definitions/plannerMode" }
+        },
+        "required": ["projectId"]
+      },
+      "output": {
+        "dataKey": "plan",
+        "type": "object",
+        "properties": {
+          "project": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string", "format": "uuid" },
+              "name": { "type": "string" }
+            }
+          },
+          "summary": { "type": "string" },
+          "suggestedTasks": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/plannerTaskSuggestion" }
+          },
+          "createdTaskIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          }
+        }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "ensure_next_action",
+      "description": "Ensure a project has one concrete next action and optionally create it through the canonical task service.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/ensure_next_action",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "projectId": { "type": "string", "format": "uuid" },
+          "mode": { "$ref": "#/definitions/plannerMode" }
+        },
+        "required": ["projectId"]
+      },
+      "output": {
+        "dataKey": "result",
+        "type": "object",
+        "properties": {
+          "projectId": { "type": "string", "format": "uuid" },
+          "hasNextAction": { "type": "boolean" },
+          "created": { "type": "boolean" },
+          "task": {
+            "type": ["object", "null"],
+            "properties": {
+              "id": { "type": ["string", "null"], "format": "uuid" },
+              "title": { "type": "string" },
+              "status": {
+                "type": "string",
+                "enum": ["next", "in_progress"]
+              }
+            }
+          },
+          "reason": { "type": "string" }
+        }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "weekly_review",
+      "description": "Review the user's system, return structured findings, and optionally apply safe next-action creation.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/weekly_review",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "mode": { "$ref": "#/definitions/plannerMode" },
+          "includeArchived": { "type": "boolean" }
+        }
+      },
+      "output": {
+        "dataKey": "review",
+        "type": "object",
+        "properties": {
+          "summary": {
+            "type": "object",
+            "properties": {
+              "projectsWithoutNextAction": { "type": "integer" },
+              "staleTasks": { "type": "integer" },
+              "waitingTasks": { "type": "integer" },
+              "upcomingTasks": { "type": "integer" }
+            }
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "$ref": "#/definitions/plannerFindingType" },
+                "projectId": { "type": "string", "format": "uuid" },
+                "projectName": { "type": "string" },
+                "taskId": { "type": "string", "format": "uuid" },
+                "taskTitle": { "type": "string" },
+                "reason": { "type": "string" }
+              }
+            }
+          },
+          "recommendedActions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "$ref": "#/definitions/plannerRecommendationType" },
+                "projectId": { "type": "string", "format": "uuid" },
+                "taskId": { "type": "string", "format": "uuid" },
+                "title": { "type": "string" },
+                "reason": { "type": "string" },
+                "createdTaskId": { "type": "string", "format": "uuid" }
+              }
+            }
+          },
+          "appliedActions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": { "$ref": "#/definitions/plannerRecommendationType" },
+                "projectId": { "type": "string", "format": "uuid" },
+                "taskId": { "type": "string", "format": "uuid" },
+                "title": { "type": "string" },
+                "reason": { "type": "string" },
+                "createdTaskId": { "type": "string", "format": "uuid" }
+              }
+            }
+          }
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
