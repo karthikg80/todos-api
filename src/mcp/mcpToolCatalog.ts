@@ -29,16 +29,31 @@ function requiredScopesForAction(actionName: AgentActionName): McpScope[] {
     case "list_tasks":
     case "search_tasks":
     case "get_task":
+    case "list_today":
+    case "list_next_actions":
+    case "list_waiting_on":
+    case "list_upcoming":
+    case "list_stale_tasks":
       return [TASK_READ_SCOPE];
     case "create_task":
     case "update_task":
     case "complete_task":
+    case "archive_task":
+    case "delete_task":
+    case "add_subtask":
+    case "update_subtask":
+    case "delete_subtask":
     case "move_task_to_project":
       return [TASK_WRITE_SCOPE];
     case "list_projects":
+    case "get_project":
+    case "review_projects":
       return [PROJECT_READ_SCOPE];
+    case "list_projects_without_next_action":
+      return [PROJECT_READ_SCOPE, TASK_READ_SCOPE];
     case "create_project":
     case "update_project":
+    case "rename_project":
     case "delete_project":
     case "archive_project":
       return [PROJECT_WRITE_SCOPE];
@@ -51,7 +66,7 @@ function buildCatalog(): ToolCatalogEntry[] {
       action.inputSchema as Record<string, unknown>,
     );
 
-    if (action.name === "create_task") {
+    if (action.name === "create_task" || action.name === "create_project") {
       const properties =
         (inputSchema.properties as Record<string, unknown> | undefined) || {};
       inputSchema.properties = {
@@ -59,8 +74,7 @@ function buildCatalog(): ToolCatalogEntry[] {
         idempotencyKey: {
           type: "string",
           maxLength: 200,
-          description:
-            "Optional first-pass retry guard for create_task. Reuse the same key with the same input to replay the original success response.",
+          description: `Optional first-pass retry guard for ${action.name}. Reuse the same key with the same input to replay the original success response.`,
         },
       };
     }
@@ -95,8 +109,10 @@ export function listMcpTools(input: {
     inputSchema: cloneJson(tool.inputSchema),
     annotations: {
       readOnlyHint: tool.readOnly,
-      destructiveHint: tool.name === "delete_project",
-      idempotentHint: tool.name === "create_task",
+      destructiveHint:
+        tool.name === "delete_project" || tool.name === "delete_task",
+      idempotentHint:
+        tool.name === "create_task" || tool.name === "create_project",
       openWorldHint: false,
     },
     auth: {

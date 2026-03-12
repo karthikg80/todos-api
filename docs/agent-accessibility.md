@@ -24,13 +24,27 @@ Supported actions:
 - `list_tasks`
 - `search_tasks`
 - `get_task`
+- `get_project`
 - `create_task`
 - `update_task`
 - `complete_task`
+- `archive_task`
+- `delete_task`
+- `add_subtask`
+- `update_subtask`
+- `delete_subtask`
 - `move_task_to_project`
+- `list_today`
+- `list_next_actions`
+- `list_waiting_on`
+- `list_upcoming`
+- `list_stale_tasks`
 - `list_projects`
+- `list_projects_without_next_action`
+- `review_projects`
 - `create_project`
 - `update_project`
+- `rename_project`
 - `delete_project`
 - `archive_project`
 
@@ -47,8 +61,9 @@ That split is reflected in both code and the manifest metadata.
 
 - Agent actions reuse the existing `todoService` and `projectService` implementations.
 - Existing server-side validation remains the source of truth for create/update rules.
-- The first pass preserves the current project/category compatibility path already used by the server. Task payloads still use the current task shape rather than inventing a parallel domain model.
+- The first pass preserves the current project/category compatibility path already used by the server. `projectId` is the canonical project relationship, while `category` remains available for backward compatibility and transition.
 - Project deletion defaults to unassigning linked tasks unless a target project ID is provided for reassignment.
+- Task deletion defaults to archival unless `hardDelete=true` is explicitly requested.
 - Project archiving is metadata-only in this pass. Archived projects still appear in list responses with `archived: true`.
 - Bulk operations and natural-language resolution are intentionally not part of this first pass.
 
@@ -97,6 +112,6 @@ This is enough for first-pass auditability without introducing a new persistence
 ## Known Gaps / Follow-Up
 
 - extend idempotency beyond create flows if retry semantics are needed for more writes
-- decide whether project/category compatibility should eventually become a first-class `projectId` agent contract
+- decide when the project/category compatibility path can be retired in favor of `projectId` only
 - add destructive confirmation patterns before exposing broader delete or bulk write actions
 - add richer persisted audit storage if log-only tracing is no longer sufficient

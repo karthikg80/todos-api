@@ -53,12 +53,29 @@ describe("Agent router", () => {
     expect(response.body.ok).toBe(true);
     expect(response.body.action).toBe("manifest");
     expect(response.body.data.manifest.basePath).toBe("/agent");
+    expect(
+      response.body.data.manifest.definitions.todo.properties.status,
+    ).toEqual(
+      expect.objectContaining({
+        $ref: "#/definitions/taskStatus",
+      }),
+    );
     expect(response.body.data.manifest.actions).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           name: "create_project",
           enabled: true,
           readOnly: false,
+        }),
+        expect.objectContaining({
+          name: "archive_task",
+          enabled: true,
+          readOnly: false,
+        }),
+        expect.objectContaining({
+          name: "list_today",
+          enabled: true,
+          readOnly: true,
         }),
       ]),
     );
@@ -174,6 +191,7 @@ describe("Agent router", () => {
     projectService.create.mockResolvedValue({
       id: "proj-1",
       name: "Platform",
+      status: "active",
       archived: false,
       userId: "default-user",
       createdAt: new Date(),
@@ -247,6 +265,7 @@ describe("Agent router", () => {
     projectService.findById.mockResolvedValue({
       id: "00000000-0000-1000-8000-000000000001",
       name: "Platform",
+      status: "active",
       archived: false,
       userId: "default-user",
       createdAt: new Date(),
@@ -315,6 +334,7 @@ describe("Agent router", () => {
     projectService.setArchived.mockResolvedValue({
       id: "00000000-0000-1000-8000-000000000020",
       name: "Platform",
+      status: "archived",
       archived: true,
       userId: "default-user",
       createdAt: new Date(),

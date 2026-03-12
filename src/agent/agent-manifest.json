@@ -1,8 +1,8 @@
 {
-  "version": "1.0.0",
-  "surface": "agent_accessibility_v1",
+  "version": "1.1.0",
+  "surface": "agent_accessibility_v2",
   "basePath": "/agent",
-  "description": "First-pass agent capability contract for the todos app. This surface stays thin over the existing server-side todo and project services.",
+  "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
   "auth": {
     "mode": "bearer_if_configured",
     "manifestPublic": true
@@ -68,46 +68,177 @@
   "definitions": {
     "priority": {
       "type": "string",
+      "enum": ["low", "medium", "high", "urgent"]
+    },
+    "taskStatus": {
+      "type": "string",
+      "enum": [
+        "inbox",
+        "next",
+        "in_progress",
+        "waiting",
+        "scheduled",
+        "someday",
+        "done",
+        "cancelled"
+      ]
+    },
+    "projectStatus": {
+      "type": "string",
+      "enum": ["active", "on_hold", "completed", "archived"]
+    },
+    "energy": {
+      "type": "string",
       "enum": ["low", "medium", "high"]
+    },
+    "reviewCadence": {
+      "type": "string",
+      "enum": ["weekly", "biweekly", "monthly", "quarterly"]
+    },
+    "taskSource": {
+      "type": "string",
+      "enum": ["manual", "chat", "email", "import", "automation"]
+    },
+    "todoRecurrence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["none", "daily", "weekly", "monthly", "yearly", "rrule"]
+        },
+        "interval": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "rrule": {
+          "type": ["string", "null"],
+          "maxLength": 4000
+        },
+        "nextOccurrence": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        }
+      }
+    },
+    "subtask": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "order": { "type": ["integer", "null"] },
+        "completedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      }
     },
     "todo": {
       "type": "object",
-      "notes": "Returned task objects reuse the existing server Todo shape. Project association currently flows through the category compatibility field.",
+      "notes": "Canonical task shape returned by the server. category remains supported for compatibility while projectId is the canonical project link.",
       "properties": {
-        "id": "string",
-        "title": "string",
-        "description": "string?",
-        "completed": "boolean",
-        "category": "string?",
-        "headingId": "string?",
-        "dueDate": "ISO-8601 string?",
-        "order": "integer",
-        "priority": { "$ref": "#/definitions/priority" },
-        "notes": "string?",
-        "userId": "string",
-        "createdAt": "ISO-8601 string",
-        "updatedAt": "ISO-8601 string",
-        "subtasks": "Subtask[]?"
+        "id": { "type": "string", "format": "uuid" },
+        "title": { "type": "string" },
+        "description": { "type": ["string", "null"] },
+        "status": { "$ref": "#/definitions/taskStatus" },
+        "completed": { "type": "boolean" },
+        "projectId": { "type": ["string", "null"], "format": "uuid" },
+        "category": { "type": ["string", "null"] },
+        "priority": {
+          "type": ["string", "null"],
+          "enum": ["low", "medium", "high", "urgent", null]
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "context": { "type": ["string", "null"] },
+        "energy": {
+          "type": ["string", "null"],
+          "enum": ["low", "medium", "high", null]
+        },
+        "headingId": { "type": ["string", "null"], "format": "uuid" },
+        "dueDate": { "type": ["string", "null"], "format": "date-time" },
+        "startDate": { "type": ["string", "null"], "format": "date-time" },
+        "scheduledDate": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "reviewDate": { "type": ["string", "null"], "format": "date-time" },
+        "completedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "estimateMinutes": {
+          "type": ["integer", "null"],
+          "minimum": 0
+        },
+        "waitingOn": { "type": ["string", "null"] },
+        "dependsOnTaskIds": {
+          "type": "array",
+          "items": { "type": "string", "format": "uuid" }
+        },
+        "order": { "type": "integer" },
+        "archived": { "type": "boolean" },
+        "recurrence": { "$ref": "#/definitions/todoRecurrence" },
+        "source": {
+          "type": ["string", "null"],
+          "enum": ["manual", "chat", "email", "import", "automation", null]
+        },
+        "createdByPrompt": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] },
+        "subtasks": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/subtask" }
+        },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       }
     },
     "project": {
       "type": "object",
       "properties": {
-        "id": "string",
-        "name": "string",
-        "archived": "boolean",
-        "userId": "string",
-        "createdAt": "ISO-8601 string",
-        "updatedAt": "ISO-8601 string",
-        "todoCount": "integer?",
-        "openTodoCount": "integer?"
+        "id": { "type": "string", "format": "uuid" },
+        "name": { "type": "string" },
+        "description": { "type": ["string", "null"] },
+        "status": { "$ref": "#/definitions/projectStatus" },
+        "priority": {
+          "type": ["string", "null"],
+          "enum": ["low", "medium", "high", "urgent", null]
+        },
+        "area": { "type": ["string", "null"] },
+        "goal": { "type": ["string", "null"] },
+        "targetDate": { "type": ["string", "null"], "format": "date-time" },
+        "reviewCadence": {
+          "type": ["string", "null"],
+          "enum": ["weekly", "biweekly", "monthly", "quarterly", null]
+        },
+        "lastReviewedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "archived": { "type": "boolean" },
+        "archivedAt": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "taskCount": { "type": ["integer", "null"] },
+        "openTaskCount": { "type": ["integer", "null"] },
+        "completedTaskCount": { "type": ["integer", "null"] },
+        "todoCount": { "type": ["integer", "null"] },
+        "openTodoCount": { "type": ["integer", "null"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       }
     }
   },
   "actions": [
     {
       "name": "list_tasks",
-      "description": "List tasks for the current user with optional filters.",
+      "description": "List tasks for the current user with optional filtering, scheduling, and workflow fields.",
       "readOnly": true,
       "method": "POST",
       "path": "/agent/read/list_tasks",
@@ -117,14 +248,47 @@
         "properties": {
           "completed": { "type": "boolean" },
           "priority": { "$ref": "#/definitions/priority" },
+          "status": {
+            "oneOf": [
+              { "$ref": "#/definitions/taskStatus" },
+              {
+                "type": "array",
+                "items": { "$ref": "#/definitions/taskStatus" }
+              }
+            ]
+          },
           "category": { "type": "string" },
           "project": { "type": "string" },
+          "projectId": { "type": "string", "format": "uuid" },
           "unsorted": { "type": "boolean" },
+          "archived": { "type": "boolean" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "context": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "energy": {
+            "oneOf": [
+              { "$ref": "#/definitions/energy" },
+              {
+                "type": "array",
+                "items": { "$ref": "#/definitions/energy" }
+              }
+            ]
+          },
           "dueDateFrom": { "type": "string", "format": "date-time" },
           "dueDateTo": { "type": "string", "format": "date-time" },
           "dueDateAfter": { "type": "string", "format": "date-time" },
           "dueDateBefore": { "type": "string", "format": "date-time" },
           "dueDateIsNull": { "type": "boolean" },
+          "startDateFrom": { "type": "string", "format": "date-time" },
+          "startDateTo": { "type": "string", "format": "date-time" },
+          "scheduledDateFrom": { "type": "string", "format": "date-time" },
+          "scheduledDateTo": { "type": "string", "format": "date-time" },
+          "reviewDateFrom": { "type": "string", "format": "date-time" },
+          "reviewDateTo": { "type": "string", "format": "date-time" },
+          "updatedBefore": { "type": "string", "format": "date-time" },
+          "updatedAfter": { "type": "string", "format": "date-time" },
           "sortBy": {
             "type": "string",
             "enum": [
@@ -154,7 +318,7 @@
     },
     {
       "name": "search_tasks",
-      "description": "Search tasks for the current user by text, with optional filters.",
+      "description": "Search tasks by text with the same filters as list_tasks.",
       "readOnly": true,
       "method": "POST",
       "path": "/agent/read/search_tasks",
@@ -166,14 +330,44 @@
           "search": { "type": "string", "maxLength": 200 },
           "completed": { "type": "boolean" },
           "priority": { "$ref": "#/definitions/priority" },
+          "status": {
+            "oneOf": [
+              { "$ref": "#/definitions/taskStatus" },
+              {
+                "type": "array",
+                "items": { "$ref": "#/definitions/taskStatus" }
+              }
+            ]
+          },
           "category": { "type": "string" },
           "project": { "type": "string" },
+          "projectId": { "type": "string", "format": "uuid" },
           "unsorted": { "type": "boolean" },
+          "archived": { "type": "boolean" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "context": { "type": "array", "items": { "type": "string" } },
+          "energy": {
+            "oneOf": [
+              { "$ref": "#/definitions/energy" },
+              {
+                "type": "array",
+                "items": { "$ref": "#/definitions/energy" }
+              }
+            ]
+          },
           "dueDateFrom": { "type": "string", "format": "date-time" },
           "dueDateTo": { "type": "string", "format": "date-time" },
           "dueDateAfter": { "type": "string", "format": "date-time" },
           "dueDateBefore": { "type": "string", "format": "date-time" },
           "dueDateIsNull": { "type": "boolean" },
+          "startDateFrom": { "type": "string", "format": "date-time" },
+          "startDateTo": { "type": "string", "format": "date-time" },
+          "scheduledDateFrom": { "type": "string", "format": "date-time" },
+          "scheduledDateTo": { "type": "string", "format": "date-time" },
+          "reviewDateFrom": { "type": "string", "format": "date-time" },
+          "reviewDateTo": { "type": "string", "format": "date-time" },
+          "updatedBefore": { "type": "string", "format": "date-time" },
+          "updatedAfter": { "type": "string", "format": "date-time" },
           "sortBy": {
             "type": "string",
             "enum": [
@@ -215,16 +409,34 @@
           "id": { "type": "string", "format": "uuid" }
         }
       },
-      "output": {
-        "dataKey": "task",
-        "$ref": "#/definitions/todo"
+      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "get_project",
+      "description": "Fetch a single project by ID.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/get_project",
+      "availability": {
+        "requires": ["project_service"]
       },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" }
+        }
+      },
+      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
     {
       "name": "create_task",
-      "description": "Create a new task using the existing server-side task rules.",
+      "description": "Create a task using the server-side task rules and canonical task fields.",
       "readOnly": false,
       "method": "POST",
       "path": "/agent/write/create_task",
@@ -234,24 +446,57 @@
         "required": ["title"],
         "properties": {
           "title": { "type": "string", "maxLength": 200 },
-          "description": { "type": "string", "maxLength": 1000 },
-          "category": { "type": "string", "maxLength": 50 },
-          "headingId": { "type": ["string", "null"] },
-          "dueDate": { "type": "string", "format": "date-time" },
-          "priority": { "$ref": "#/definitions/priority" },
-          "notes": { "type": "string", "maxLength": 10000 }
+          "description": { "type": ["string", "null"], "maxLength": 1000 },
+          "status": { "$ref": "#/definitions/taskStatus" },
+          "completed": { "type": "boolean" },
+          "projectId": { "type": ["string", "null"], "format": "uuid" },
+          "category": { "type": ["string", "null"], "maxLength": 50 },
+          "headingId": { "type": ["string", "null"], "format": "uuid" },
+          "dueDate": { "type": ["string", "null"], "format": "date-time" },
+          "startDate": { "type": ["string", "null"], "format": "date-time" },
+          "scheduledDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "reviewDate": { "type": ["string", "null"], "format": "date-time" },
+          "priority": {
+            "type": ["string", "null"],
+            "enum": ["low", "medium", "high", "urgent", null]
+          },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "context": { "type": ["string", "null"] },
+          "energy": {
+            "type": ["string", "null"],
+            "enum": ["low", "medium", "high", null]
+          },
+          "estimateMinutes": { "type": ["integer", "null"], "minimum": 0 },
+          "waitingOn": { "type": ["string", "null"], "maxLength": 255 },
+          "dependsOnTaskIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          },
+          "archived": { "type": "boolean" },
+          "recurrence": {
+            "oneOf": [
+              { "$ref": "#/definitions/todoRecurrence" },
+              { "type": "null" }
+            ]
+          },
+          "source": {
+            "type": ["string", "null"],
+            "enum": ["manual", "chat", "email", "import", "automation", null]
+          },
+          "createdByPrompt": { "type": ["string", "null"], "maxLength": 4000 },
+          "notes": { "type": ["string", "null"], "maxLength": 10000 }
         }
       },
-      "output": {
-        "dataKey": "task",
-        "$ref": "#/definitions/todo"
-      },
+      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
       "errorModel": "structured_agent_error",
       "idempotency": "optional_header_for_create_flow"
     },
     {
       "name": "update_task",
-      "description": "Update a task by ID using the existing partial update semantics.",
+      "description": "Update a task by ID using partial task semantics.",
       "readOnly": false,
       "method": "POST",
       "path": "/agent/write/update_task",
@@ -263,22 +508,51 @@
           "id": { "type": "string", "format": "uuid" },
           "title": { "type": "string", "maxLength": 200 },
           "description": { "type": ["string", "null"], "maxLength": 1000 },
+          "status": { "$ref": "#/definitions/taskStatus" },
           "completed": { "type": "boolean" },
+          "projectId": { "type": ["string", "null"], "format": "uuid" },
           "category": { "type": ["string", "null"], "maxLength": 50 },
-          "headingId": { "type": ["string", "null"] },
+          "headingId": { "type": ["string", "null"], "format": "uuid" },
           "dueDate": { "type": ["string", "null"], "format": "date-time" },
+          "startDate": { "type": ["string", "null"], "format": "date-time" },
+          "scheduledDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "reviewDate": { "type": ["string", "null"], "format": "date-time" },
           "order": { "type": "integer", "minimum": 0 },
           "priority": {
             "type": ["string", "null"],
+            "enum": ["low", "medium", "high", "urgent", null]
+          },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "context": { "type": ["string", "null"] },
+          "energy": {
+            "type": ["string", "null"],
             "enum": ["low", "medium", "high", null]
           },
+          "estimateMinutes": { "type": ["integer", "null"], "minimum": 0 },
+          "waitingOn": { "type": ["string", "null"], "maxLength": 255 },
+          "dependsOnTaskIds": {
+            "type": "array",
+            "items": { "type": "string", "format": "uuid" }
+          },
+          "archived": { "type": "boolean" },
+          "recurrence": {
+            "oneOf": [
+              { "$ref": "#/definitions/todoRecurrence" },
+              { "type": "null" }
+            ]
+          },
+          "source": {
+            "type": ["string", "null"],
+            "enum": ["manual", "chat", "email", "import", "automation", null]
+          },
+          "createdByPrompt": { "type": ["string", "null"], "maxLength": 4000 },
           "notes": { "type": ["string", "null"], "maxLength": 10000 }
         }
       },
-      "output": {
-        "dataKey": "task",
-        "$ref": "#/definitions/todo"
-      },
+      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
       "errorModel": "structured_agent_error",
       "idempotency": "not_implemented_yet"
     },
@@ -297,16 +571,130 @@
           "completed": { "type": "boolean" }
         }
       },
+      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "archive_task",
+      "description": "Set the archived state for a task by ID.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/archive_task",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "archived"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "archived": { "type": "boolean" }
+        }
+      },
+      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "delete_task",
+      "description": "Archive a task by default, or hard-delete it when hardDelete=true.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/delete_task",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "hardDelete": { "type": "boolean" }
+        }
+      },
       "output": {
-        "dataKey": "task",
-        "$ref": "#/definitions/todo"
+        "dataKey": "result",
+        "type": "object",
+        "properties": {
+          "deleted": { "type": "boolean" },
+          "archived": { "type": "boolean" },
+          "task": {
+            "oneOf": [{ "$ref": "#/definitions/todo" }, { "type": "null" }]
+          },
+          "taskId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "add_subtask",
+      "description": "Add a subtask to a task owned by the current user.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/add_subtask",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId", "title"],
+        "properties": {
+          "taskId": { "type": "string", "format": "uuid" },
+          "title": { "type": "string", "maxLength": 200 }
+        }
+      },
+      "output": { "dataKey": "subtask", "$ref": "#/definitions/subtask" },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "update_subtask",
+      "description": "Update a subtask title, completion state, or ordering.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/update_subtask",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId", "subtaskId"],
+        "properties": {
+          "taskId": { "type": "string", "format": "uuid" },
+          "subtaskId": { "type": "string", "format": "uuid" },
+          "title": { "type": "string", "maxLength": 200 },
+          "completed": { "type": "boolean" },
+          "order": { "type": "integer", "minimum": 0 }
+        }
+      },
+      "output": { "dataKey": "subtask", "$ref": "#/definitions/subtask" },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "delete_subtask",
+      "description": "Delete a subtask from a task owned by the current user.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/delete_subtask",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId", "subtaskId"],
+        "properties": {
+          "taskId": { "type": "string", "format": "uuid" },
+          "subtaskId": { "type": "string", "format": "uuid" }
+        }
+      },
+      "output": {
+        "dataKey": "result",
+        "type": "object",
+        "properties": {
+          "deleted": { "type": "boolean" },
+          "taskId": { "type": "string", "format": "uuid" },
+          "subtaskId": { "type": "string", "format": "uuid" }
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
     {
       "name": "list_projects",
-      "description": "List projects for the current user when the project service is configured.",
+      "description": "List projects for the current user with optional status, archive, and review cadence filters.",
       "readOnly": true,
       "method": "POST",
       "path": "/agent/read/list_projects",
@@ -316,7 +704,27 @@
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
-        "properties": {}
+        "properties": {
+          "status": {
+            "oneOf": [
+              { "$ref": "#/definitions/projectStatus" },
+              {
+                "type": "array",
+                "items": { "$ref": "#/definitions/projectStatus" }
+              }
+            ]
+          },
+          "archived": { "type": "boolean" },
+          "reviewCadence": {
+            "oneOf": [
+              { "$ref": "#/definitions/reviewCadence" },
+              {
+                "type": "array",
+                "items": { "$ref": "#/definitions/reviewCadence" }
+              }
+            ]
+          }
+        }
       },
       "output": {
         "dataKey": "projects",
@@ -340,22 +748,83 @@
         "additionalProperties": false,
         "required": ["name"],
         "properties": {
-          "name": { "type": "string", "maxLength": 50 }
+          "name": { "type": "string", "maxLength": 50 },
+          "description": { "type": ["string", "null"], "maxLength": 4000 },
+          "status": {
+            "type": ["string", "null"],
+            "enum": ["active", "on_hold", "completed", "archived", null]
+          },
+          "priority": {
+            "type": ["string", "null"],
+            "enum": ["low", "medium", "high", "urgent", null]
+          },
+          "area": { "type": ["string", "null"], "maxLength": 100 },
+          "goal": { "type": ["string", "null"], "maxLength": 4000 },
+          "targetDate": { "type": ["string", "null"], "format": "date-time" },
+          "reviewCadence": {
+            "type": ["string", "null"],
+            "enum": ["weekly", "biweekly", "monthly", "quarterly", null]
+          },
+          "lastReviewedAt": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "archived": { "type": "boolean" }
         }
       },
-      "output": {
-        "dataKey": "project",
-        "$ref": "#/definitions/project"
-      },
+      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
       "errorModel": "structured_agent_error",
       "idempotency": "optional_header_for_create_flow"
     },
     {
       "name": "update_project",
-      "description": "Rename an existing project by ID.",
+      "description": "Update a project by ID with richer metadata fields.",
       "readOnly": false,
       "method": "POST",
       "path": "/agent/write/update_project",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "name": { "type": "string", "maxLength": 50 },
+          "description": { "type": ["string", "null"], "maxLength": 4000 },
+          "status": {
+            "type": ["string", "null"],
+            "enum": ["active", "on_hold", "completed", "archived", null]
+          },
+          "priority": {
+            "type": ["string", "null"],
+            "enum": ["low", "medium", "high", "urgent", null]
+          },
+          "area": { "type": ["string", "null"], "maxLength": 100 },
+          "goal": { "type": ["string", "null"], "maxLength": 4000 },
+          "targetDate": { "type": ["string", "null"], "format": "date-time" },
+          "reviewCadence": {
+            "type": ["string", "null"],
+            "enum": ["weekly", "biweekly", "monthly", "quarterly", null]
+          },
+          "lastReviewedAt": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "archived": { "type": "boolean" }
+        }
+      },
+      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "rename_project",
+      "description": "Rename an existing project by ID.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/rename_project",
       "availability": {
         "requires": ["project_service"]
       },
@@ -368,16 +837,13 @@
           "name": { "type": "string", "maxLength": 50 }
         }
       },
-      "output": {
-        "dataKey": "project",
-        "$ref": "#/definitions/project"
-      },
+      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
     {
       "name": "delete_project",
-      "description": "Delete a project and either reassign its tasks or unassign them, following existing server-side rules.",
+      "description": "Delete a project, optionally reassigning its tasks or archiving the project instead.",
       "readOnly": false,
       "method": "POST",
       "path": "/agent/write/delete_project",
@@ -393,7 +859,8 @@
           "moveTasksToProjectId": {
             "type": ["string", "null"],
             "format": "uuid"
-          }
+          },
+          "archiveInstead": { "type": "boolean" }
         }
       },
       "output": {
@@ -401,11 +868,18 @@
         "type": "object",
         "properties": {
           "deleted": { "type": "boolean" },
-          "projectId": { "type": "string" },
-          "movedTasksToProjectId": { "type": ["string", "null"] },
+          "archived": { "type": "boolean" },
+          "projectId": { "type": "string", "format": "uuid" },
+          "movedTasksToProjectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "project": {
+            "oneOf": [{ "$ref": "#/definitions/project" }, { "type": "null" }]
+          },
           "taskDisposition": {
-            "type": "string",
-            "enum": ["reassigned", "unassigned"]
+            "type": ["string", "null"],
+            "enum": ["reassigned", "unassigned", null]
           }
         }
       },
@@ -430,10 +904,7 @@
           "projectId": { "type": ["string", "null"], "format": "uuid" }
         }
       },
-      "output": {
-        "dataKey": "task",
-        "$ref": "#/definitions/todo"
-      },
+      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -455,18 +926,182 @@
           "archived": { "type": "boolean" }
         }
       },
+      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_today",
+      "description": "List tasks due or scheduled for today, with optional overdue and completed inclusion.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/list_today",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "includeOverdue": { "type": "boolean" },
+          "includeCompleted": { "type": "boolean" }
+        }
+      },
       "output": {
-        "dataKey": "project",
-        "$ref": "#/definitions/project"
+        "dataKey": "tasks",
+        "type": "array",
+        "items": { "$ref": "#/definitions/todo" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_next_actions",
+      "description": "List next or in-progress actions, optionally filtered by project, context, energy, and limit.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/list_next_actions",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "projectId": { "type": ["string", "null"], "format": "uuid" },
+          "context": { "type": "array", "items": { "type": "string" } },
+          "energy": {
+            "type": "array",
+            "items": { "$ref": "#/definitions/energy" }
+          },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+        }
+      },
+      "output": {
+        "dataKey": "tasks",
+        "type": "array",
+        "items": { "$ref": "#/definitions/todo" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_waiting_on",
+      "description": "List waiting tasks or tasks with waitingOn metadata, optionally scoped to a project.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/list_waiting_on",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "projectId": { "type": ["string", "null"], "format": "uuid" }
+        }
+      },
+      "output": {
+        "dataKey": "tasks",
+        "type": "array",
+        "items": { "$ref": "#/definitions/todo" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_upcoming",
+      "description": "List upcoming due or scheduled tasks within the requested day horizon.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/list_upcoming",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "days": { "type": "integer", "minimum": 1, "maximum": 365 },
+          "includeScheduled": { "type": "boolean" },
+          "includeDue": { "type": "boolean" }
+        }
+      },
+      "output": {
+        "dataKey": "tasks",
+        "type": "array",
+        "items": { "$ref": "#/definitions/todo" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_stale_tasks",
+      "description": "List tasks not updated within the requested age threshold.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/list_stale_tasks",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "daysSinceUpdate": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 3650
+          },
+          "completed": { "type": "boolean" }
+        }
+      },
+      "output": {
+        "dataKey": "tasks",
+        "type": "array",
+        "items": { "$ref": "#/definitions/todo" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_projects_without_next_action",
+      "description": "List active projects that do not currently have a next or in-progress action.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/list_projects_without_next_action",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "includeOnHold": { "type": "boolean" }
+        }
+      },
+      "output": {
+        "dataKey": "projects",
+        "type": "array",
+        "items": { "$ref": "#/definitions/project" }
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "review_projects",
+      "description": "List projects due for review, or all non-archived projects when dueForReviewOnly=false.",
+      "readOnly": true,
+      "method": "POST",
+      "path": "/agent/read/review_projects",
+      "availability": {
+        "requires": ["project_service"]
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "dueForReviewOnly": { "type": "boolean" }
+        }
+      },
+      "output": {
+        "dataKey": "projects",
+        "type": "array",
+        "items": { "$ref": "#/definitions/project" }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     }
   ],
   "notes": [
-    "Project deletion through the agent surface defaults to unassigning linked tasks unless moveTasksToProjectId is provided.",
-    "Project archiving is metadata-only in this pass; archived projects remain visible in list_projects responses.",
-    "Create-flow idempotency is process-local and intended as a pragmatic retry guard, not a durable cross-process guarantee.",
-    "Task project association currently follows the existing category/project compatibility rules already enforced by server services."
+    "category remains supported for backward compatibility while projectId is the canonical project relationship.",
+    "completed=true maps to status=done. Non-completed tasks default to a workflow status such as next or the explicitly provided status.",
+    "Archived tasks are excluded from task list queries by default unless archived=true is requested.",
+    "delete_project unassigns tasks by default unless moveTasksToProjectId is supplied."
   ]
 }

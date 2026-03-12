@@ -457,9 +457,9 @@ describe("Validation", () => {
       expect(result.name).toBe("Personal");
     });
 
-    it("should throw for missing name", () => {
+    it("should throw for empty update payload", () => {
       expect(() => validateUpdateProject({})).toThrow(
-        "Project name must be a string",
+        "At least one field must be provided for update",
       );
     });
 
@@ -495,10 +495,9 @@ describe("Validation", () => {
       expect(result.priority).toBe("high");
     });
 
-    it("should throw for invalid priority", () => {
-      expect(() => validateFindTodosQuery({ priority: "urgent" })).toThrow(
-        "priority must be low, medium, or high",
-      );
+    it("should parse urgent priority", () => {
+      const result = validateFindTodosQuery({ priority: "urgent" });
+      expect(result.priority).toBe("urgent");
     });
 
     it("should parse valid category", () => {

@@ -3,7 +3,11 @@ import {
   CreateHeadingDto,
   CreateSubtaskDto,
   CreateTodoDto,
+  Energy,
+  ProjectStatus,
   ProjectTaskDisposition,
+  RecurrenceType,
+  ReviewCadence,
   UpdateProjectDto,
   UpdateSubtaskDto,
   UpdateTodoDto,
@@ -11,6 +15,8 @@ import {
   ReorderHeadingItemDto,
   FindTodosQuery,
   Priority,
+  TaskSource,
+  TaskStatus,
   TodoSortBy,
   SortOrder,
 } from "../types";
@@ -34,7 +40,399 @@ const VALID_SORT_FIELDS: TodoSortBy[] = [
   "title",
 ];
 const VALID_SORT_ORDERS: SortOrder[] = ["asc", "desc"];
-const VALID_PRIORITIES: Priority[] = ["low", "medium", "high"];
+const VALID_PRIORITIES: Priority[] = ["low", "medium", "high", "urgent"];
+const VALID_TASK_STATUSES: TaskStatus[] = [
+  "inbox",
+  "next",
+  "in_progress",
+  "waiting",
+  "scheduled",
+  "someday",
+  "done",
+  "cancelled",
+];
+const VALID_PROJECT_STATUSES: ProjectStatus[] = [
+  "active",
+  "on_hold",
+  "completed",
+  "archived",
+];
+const VALID_ENERGIES: Energy[] = ["low", "medium", "high"];
+const VALID_REVIEW_CADENCES: ReviewCadence[] = [
+  "weekly",
+  "biweekly",
+  "monthly",
+  "quarterly",
+];
+const VALID_TASK_SOURCES: TaskSource[] = [
+  "manual",
+  "chat",
+  "email",
+  "import",
+  "automation",
+];
+const VALID_RECURRENCE_TYPES: RecurrenceType[] = [
+  "none",
+  "daily",
+  "weekly",
+  "monthly",
+  "yearly",
+  "rrule",
+];
+
+function normalizeNullableString(
+  value: unknown,
+  field: string,
+  maxLength: number,
+): string | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} must be a string`);
+  }
+  const normalized = value.trim();
+  if (normalized.length > maxLength) {
+    throw new ValidationError(`${field} cannot exceed ${maxLength} characters`);
+  }
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeOptionalString(
+  value: unknown,
+  field: string,
+  maxLength: number,
+): string | undefined {
+  const normalized = normalizeNullableString(value, field, maxLength);
+  return normalized === null ? undefined : normalized;
+}
+
+function normalizeDateValue(
+  value: unknown,
+  field: string,
+  allowNull = false,
+): Date | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(`${field} must be a string`);
+    }
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} must be a string`);
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    throw new ValidationError(`Invalid ${field} format`);
+  }
+  return date;
+}
+
+function normalizePriorityValue(
+  value: unknown,
+  field: string,
+  allowNull: boolean,
+): Priority | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(
+        `${field} must be low, medium, high, or urgent`,
+      );
+    }
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} must be low, medium, high, or urgent`);
+  }
+  const priority = value.toLowerCase() as Priority;
+  if (!VALID_PRIORITIES.includes(priority)) {
+    throw new ValidationError(`${field} must be low, medium, high, or urgent`);
+  }
+  return priority;
+}
+
+function normalizeTaskStatusValue(
+  value: unknown,
+  field: string,
+  allowNull: boolean,
+): TaskStatus | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(`${field} is required`);
+    }
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  const status = value.toLowerCase() as TaskStatus;
+  if (!VALID_TASK_STATUSES.includes(status)) {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  return status;
+}
+
+function normalizeProjectStatusValue(
+  value: unknown,
+  field: string,
+  allowNull: boolean,
+): ProjectStatus | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(`${field} is required`);
+    }
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  const status = value.toLowerCase() as ProjectStatus;
+  if (!VALID_PROJECT_STATUSES.includes(status)) {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  return status;
+}
+
+function normalizeEnergyValue(
+  value: unknown,
+  field: string,
+  allowNull: boolean,
+): Energy | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(`${field} is required`);
+    }
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  const energy = value.toLowerCase() as Energy;
+  if (!VALID_ENERGIES.includes(energy)) {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  return energy;
+}
+
+function normalizeReviewCadenceValue(
+  value: unknown,
+  field: string,
+  allowNull: boolean,
+): ReviewCadence | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(`${field} is required`);
+    }
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  const cadence = value.toLowerCase() as ReviewCadence;
+  if (!VALID_REVIEW_CADENCES.includes(cadence)) {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  return cadence;
+}
+
+function normalizeTaskSourceValue(
+  value: unknown,
+  field: string,
+  allowNull: boolean,
+): TaskSource | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(`${field} is required`);
+    }
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  const source = value.toLowerCase() as TaskSource;
+  if (!VALID_TASK_SOURCES.includes(source)) {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  return source;
+}
+
+function normalizeStringList(
+  value: unknown,
+  field: string,
+  maxItems: number,
+  itemMaxLength: number,
+): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(value)) {
+    throw new ValidationError(`${field} must be an array of strings`);
+  }
+  if (value.length > maxItems) {
+    throw new ValidationError(`${field} cannot exceed ${maxItems} items`);
+  }
+  return Array.from(
+    new Set(
+      value.map((entry) => {
+        if (typeof entry !== "string") {
+          throw new ValidationError(`${field} must be an array of strings`);
+        }
+        const normalized = entry.trim();
+        if (!normalized) {
+          throw new ValidationError(`${field} cannot contain empty values`);
+        }
+        if (normalized.length > itemMaxLength) {
+          throw new ValidationError(
+            `${field} entries cannot exceed ${itemMaxLength} characters`,
+          );
+        }
+        return normalized;
+      }),
+    ),
+  );
+}
+
+function normalizeIdList(
+  value: unknown,
+  field: string,
+  maxItems: number,
+): string[] | undefined {
+  const ids = normalizeStringList(value, field, maxItems, 120);
+  if (!ids) {
+    return undefined;
+  }
+  ids.forEach((id) => validateId(id));
+  return ids;
+}
+
+function normalizeOptionalInteger(
+  value: unknown,
+  field: string,
+  allowNull: boolean,
+): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(`${field} must be a non-negative integer`);
+    }
+    return null;
+  }
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throw new ValidationError(`${field} must be a non-negative integer`);
+  }
+  return value;
+}
+
+function normalizeRecurrenceInput(
+  value: unknown,
+  allowNull: boolean,
+):
+  | CreateTodoDto["recurrence"]
+  | UpdateTodoDto["recurrence"]
+  | null
+  | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError("recurrence must be an object");
+    }
+    return null;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) {
+    throw new ValidationError("recurrence must be an object");
+  }
+
+  const body = value as Record<string, unknown>;
+  const recurrenceType = body.type;
+  let type: RecurrenceType | undefined;
+  if (recurrenceType !== undefined) {
+    if (typeof recurrenceType !== "string") {
+      throw new ValidationError("recurrence.type is invalid");
+    }
+    const normalized = recurrenceType.toLowerCase() as RecurrenceType;
+    if (!VALID_RECURRENCE_TYPES.includes(normalized)) {
+      throw new ValidationError("recurrence.type is invalid");
+    }
+    type = normalized;
+  }
+
+  const interval = normalizeOptionalInteger(
+    body.interval,
+    "recurrence.interval",
+    true,
+  );
+  const rrule = normalizeNullableString(body.rrule, "recurrence.rrule", 4000);
+  const nextOccurrence = normalizeDateValue(
+    body.nextOccurrence,
+    "recurrence.nextOccurrence",
+    true,
+  );
+
+  if (
+    type === undefined &&
+    interval === undefined &&
+    rrule === undefined &&
+    nextOccurrence === undefined
+  ) {
+    throw new ValidationError("recurrence must include at least one field");
+  }
+
+  return {
+    ...(type !== undefined ? { type } : {}),
+    ...(interval !== undefined ? { interval } : {}),
+    ...(rrule !== undefined ? { rrule } : {}),
+    ...(nextOccurrence !== undefined ? { nextOccurrence } : {}),
+  };
+}
+
+function validateTaskDateOrdering(input: {
+  startDate?: Date | null;
+  scheduledDate?: Date | null;
+  dueDate?: Date | null;
+}) {
+  if (
+    input.startDate &&
+    input.dueDate &&
+    input.dueDate.getTime() < input.startDate.getTime()
+  ) {
+    throw new ValidationError("dueDate cannot be earlier than startDate");
+  }
+  if (
+    input.scheduledDate &&
+    input.dueDate &&
+    input.scheduledDate.getTime() > input.dueDate.getTime()
+  ) {
+    throw new ValidationError("scheduledDate cannot be later than dueDate");
+  }
+}
 
 function validateProjectName(name: unknown): string {
   if (typeof name !== "string") {
@@ -73,8 +471,39 @@ export function validateCreateProject(data: unknown): CreateProjectDto {
     throw new ValidationError("Request body must be an object");
   }
   const body = data as Record<string, unknown>;
+
+  const status = normalizeProjectStatusValue(body.status, "status", true);
+  const archived =
+    body.archived === undefined
+      ? undefined
+      : body.archived === null
+        ? null
+        : typeof body.archived === "boolean"
+          ? body.archived
+          : (() => {
+              throw new ValidationError("archived must be a boolean");
+            })();
+  if (archived === null) {
+    throw new ValidationError("archived must be a boolean");
+  }
+
   return {
     name: validateProjectName(body.name),
+    description: normalizeNullableString(body.description, "description", 4000),
+    status: status ?? undefined,
+    priority: normalizePriorityValue(body.priority, "priority", true),
+    area: normalizeNullableString(body.area, "area", 100),
+    goal: normalizeNullableString(body.goal, "goal", 4000),
+    targetDate: normalizeDateValue(body.targetDate, "targetDate", true),
+    reviewCadence:
+      normalizeReviewCadenceValue(body.reviewCadence, "reviewCadence", true) ??
+      undefined,
+    lastReviewedAt: normalizeDateValue(
+      body.lastReviewedAt,
+      "lastReviewedAt",
+      true,
+    ),
+    archived: archived ?? undefined,
   };
 }
 
@@ -83,9 +512,67 @@ export function validateUpdateProject(data: unknown): UpdateProjectDto {
     throw new ValidationError("Request body must be an object");
   }
   const body = data as Record<string, unknown>;
-  return {
-    name: validateProjectName(body.name),
-  };
+  const update: UpdateProjectDto = {};
+
+  if (body.name !== undefined) {
+    update.name = validateProjectName(body.name);
+  }
+
+  if (body.description !== undefined) {
+    update.description = normalizeNullableString(
+      body.description,
+      "description",
+      4000,
+    );
+  }
+
+  if (body.status !== undefined) {
+    update.status =
+      normalizeProjectStatusValue(body.status, "status", true) ?? null;
+  }
+
+  if (body.priority !== undefined) {
+    update.priority = normalizePriorityValue(body.priority, "priority", true);
+  }
+
+  if (body.area !== undefined) {
+    update.area = normalizeNullableString(body.area, "area", 100);
+  }
+
+  if (body.goal !== undefined) {
+    update.goal = normalizeNullableString(body.goal, "goal", 4000);
+  }
+
+  if (body.targetDate !== undefined) {
+    update.targetDate = normalizeDateValue(body.targetDate, "targetDate", true);
+  }
+
+  if (body.reviewCadence !== undefined) {
+    update.reviewCadence =
+      normalizeReviewCadenceValue(body.reviewCadence, "reviewCadence", true) ??
+      null;
+  }
+
+  if (body.lastReviewedAt !== undefined) {
+    update.lastReviewedAt = normalizeDateValue(
+      body.lastReviewedAt,
+      "lastReviewedAt",
+      true,
+    );
+  }
+
+  if (body.archived !== undefined) {
+    if (typeof body.archived !== "boolean") {
+      throw new ValidationError("archived must be a boolean");
+    }
+    update.archived = body.archived;
+  }
+
+  if (Object.keys(update).length === 0) {
+    throw new ValidationError("At least one field must be provided for update");
+  }
+
+  return update;
 }
 
 export function validateProjectTaskDisposition(
@@ -156,6 +643,38 @@ function parseOptionalDateQuery(
   return parsed;
 }
 
+function parseOptionalStringListQuery(
+  value: unknown,
+  field: string,
+  maxItems: number,
+  itemMaxLength: number,
+): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} must be a comma-separated string`);
+  }
+  const normalized = value
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+  if (normalized.length === 0) {
+    throw new ValidationError(`${field} cannot be empty`);
+  }
+  if (normalized.length > maxItems) {
+    throw new ValidationError(`${field} cannot exceed ${maxItems} items`);
+  }
+  normalized.forEach((entry) => {
+    if (entry.length > itemMaxLength) {
+      throw new ValidationError(
+        `${field} entries cannot exceed ${itemMaxLength} characters`,
+      );
+    }
+  });
+  return Array.from(new Set(normalized));
+}
+
 export function validateFindTodosQuery(query: unknown): FindTodosQuery {
   if (!query || typeof query !== "object") {
     throw new ValidationError("Query must be an object");
@@ -174,14 +693,19 @@ export function validateFindTodosQuery(query: unknown): FindTodosQuery {
   }
 
   if (q.priority !== undefined) {
-    if (typeof q.priority !== "string") {
-      throw new ValidationError("priority must be low, medium, or high");
-    }
-    const priority = q.priority.toLowerCase() as Priority;
-    if (!VALID_PRIORITIES.includes(priority)) {
-      throw new ValidationError("priority must be low, medium, or high");
-    }
-    normalized.priority = priority;
+    normalized.priority =
+      normalizePriorityValue(q.priority, "priority", false) ?? undefined;
+  }
+
+  if (q.status !== undefined) {
+    const statuses = parseOptionalStringListQuery(q.status, "status", 20, 40);
+    normalized.statuses = statuses?.map((status) => {
+      const normalizedStatus = status.toLowerCase() as TaskStatus;
+      if (!VALID_TASK_STATUSES.includes(normalizedStatus)) {
+        throw new ValidationError(`status contains invalid value: ${status}`);
+      }
+      return normalizedStatus;
+    });
   }
 
   if (q.category !== undefined) {
@@ -228,9 +752,43 @@ export function validateFindTodosQuery(query: unknown): FindTodosQuery {
     normalized.project = project;
   }
 
+  if (q.projectId !== undefined) {
+    if (typeof q.projectId !== "string") {
+      throw new ValidationError("projectId must be a string");
+    }
+    validateId(q.projectId);
+    normalized.projectId = q.projectId;
+  }
+
   const unsorted = parseOptionalBooleanQuery(q.unsorted, "unsorted");
   if (unsorted !== undefined) {
     normalized.unsorted = unsorted;
+  }
+
+  const archived = parseOptionalBooleanQuery(q.archived, "archived");
+  if (archived !== undefined) {
+    normalized.archived = archived;
+  }
+
+  const tags = parseOptionalStringListQuery(q.tags, "tags", 25, 50);
+  if (tags) {
+    normalized.tags = tags;
+  }
+
+  const contexts = parseOptionalStringListQuery(q.context, "context", 10, 100);
+  if (contexts) {
+    normalized.contexts = contexts;
+  }
+
+  const energies = parseOptionalStringListQuery(q.energy, "energy", 10, 20);
+  if (energies) {
+    normalized.energies = energies.map((entry) => {
+      const energy = entry.toLowerCase() as Energy;
+      if (!VALID_ENERGIES.includes(energy)) {
+        throw new ValidationError(`energy contains invalid value: ${entry}`);
+      }
+      return energy;
+    });
   }
 
   const dueDateIsNull = parseOptionalBooleanQuery(
@@ -262,6 +820,61 @@ export function validateFindTodosQuery(query: unknown): FindTodosQuery {
   );
   if (dueDateBefore) {
     normalized.dueDateBefore = dueDateBefore;
+  }
+
+  const startDateFrom = parseOptionalDateQuery(
+    q.startDateFrom,
+    "startDateFrom",
+  );
+  if (startDateFrom) {
+    normalized.startDateFrom = startDateFrom;
+  }
+
+  const startDateTo = parseOptionalDateQuery(q.startDateTo, "startDateTo");
+  if (startDateTo) {
+    normalized.startDateTo = startDateTo;
+  }
+
+  const scheduledDateFrom = parseOptionalDateQuery(
+    q.scheduledDateFrom,
+    "scheduledDateFrom",
+  );
+  if (scheduledDateFrom) {
+    normalized.scheduledDateFrom = scheduledDateFrom;
+  }
+
+  const scheduledDateTo = parseOptionalDateQuery(
+    q.scheduledDateTo,
+    "scheduledDateTo",
+  );
+  if (scheduledDateTo) {
+    normalized.scheduledDateTo = scheduledDateTo;
+  }
+
+  const reviewDateFrom = parseOptionalDateQuery(
+    q.reviewDateFrom,
+    "reviewDateFrom",
+  );
+  if (reviewDateFrom) {
+    normalized.reviewDateFrom = reviewDateFrom;
+  }
+
+  const reviewDateTo = parseOptionalDateQuery(q.reviewDateTo, "reviewDateTo");
+  if (reviewDateTo) {
+    normalized.reviewDateTo = reviewDateTo;
+  }
+
+  const updatedBefore = parseOptionalDateQuery(
+    q.updatedBefore,
+    "updatedBefore",
+  );
+  if (updatedBefore) {
+    normalized.updatedBefore = updatedBefore;
+  }
+
+  const updatedAfter = parseOptionalDateQuery(q.updatedAfter, "updatedAfter");
+  if (updatedAfter) {
+    normalized.updatedAfter = updatedAfter;
   }
 
   if (
@@ -335,33 +948,16 @@ export function validateCreateTodo(data: unknown): CreateTodoDto {
     throw new ValidationError("Title cannot exceed 200 characters");
   }
 
-  if (body.description !== undefined) {
-    if (typeof body.description !== "string") {
-      throw new ValidationError("Description must be a string");
-    }
-    if (body.description.length > 1000) {
-      throw new ValidationError("Description cannot exceed 1000 characters");
-    }
-  }
-
-  if (body.category !== undefined) {
-    if (typeof body.category !== "string") {
-      throw new ValidationError("Category must be a string");
-    }
-    if (body.category.length > 50) {
-      throw new ValidationError("Category cannot exceed 50 characters");
-    }
-  }
-
-  if (body.dueDate !== undefined) {
-    if (typeof body.dueDate !== "string") {
-      throw new ValidationError("Due date must be a string");
-    }
-    const date = new Date(body.dueDate);
-    if (isNaN(date.getTime())) {
-      throw new ValidationError("Invalid due date format");
-    }
-  }
+  const projectId =
+    body.projectId === undefined || body.projectId === null
+      ? body.projectId === null
+        ? null
+        : undefined
+      : typeof body.projectId === "string"
+        ? (validateId(body.projectId), body.projectId.trim())
+        : (() => {
+            throw new ValidationError("projectId must be a string");
+          })();
 
   if (body.headingId !== undefined) {
     if (body.headingId !== null && typeof body.headingId !== "string") {
@@ -373,37 +969,86 @@ export function validateCreateTodo(data: unknown): CreateTodoDto {
     ) {
       throw new ValidationError("Heading ID cannot be empty");
     }
-  }
-
-  if (body.priority !== undefined) {
-    if (typeof body.priority !== "string") {
-      throw new ValidationError("Priority must be a string");
-    }
-    if (!["low", "medium", "high"].includes(body.priority.toLowerCase())) {
-      throw new ValidationError("Priority must be low, medium, or high");
+    if (typeof body.headingId === "string") {
+      validateId(body.headingId);
     }
   }
 
-  if (body.notes !== undefined) {
-    if (typeof body.notes !== "string") {
-      throw new ValidationError("Notes must be a string");
-    }
-    if (body.notes.length > 10000) {
-      throw new ValidationError("Notes cannot exceed 10000 characters");
-    }
+  const status = normalizeTaskStatusValue(body.status, "status", true);
+  const completed =
+    body.completed === undefined
+      ? undefined
+      : typeof body.completed === "boolean"
+        ? body.completed
+        : (() => {
+            throw new ValidationError("Completed must be a boolean");
+          })();
+  const dueDate = normalizeDateValue(body.dueDate, "dueDate", true);
+  const startDate = normalizeDateValue(body.startDate, "startDate", true);
+  const scheduledDate = normalizeDateValue(
+    body.scheduledDate,
+    "scheduledDate",
+    true,
+  );
+  const reviewDate = normalizeDateValue(body.reviewDate, "reviewDate", true);
+  const estimateMinutes = normalizeOptionalInteger(
+    body.estimateMinutes,
+    "estimateMinutes",
+    true,
+  );
+
+  validateTaskDateOrdering({ startDate, scheduledDate, dueDate });
+
+  let normalizedStatus = status ?? "next";
+  let normalizedCompleted = completed ?? false;
+  if (normalizedCompleted) {
+    normalizedStatus = "done";
+  } else if (normalizedStatus === "done") {
+    normalizedCompleted = true;
   }
 
   return {
     title: body.title.trim(),
-    description: (body.description as string | undefined)?.trim(),
-    category: (body.category as string | undefined)?.trim(),
+    description: normalizeNullableString(body.description, "Description", 1000),
+    status: normalizedStatus,
+    completed: normalizedCompleted,
+    projectId,
+    category: normalizeNullableString(body.category, "category", 50),
     headingId:
-      typeof body.headingId === "string" ? body.headingId.trim() : undefined,
-    dueDate: body.dueDate ? new Date(body.dueDate as string) : undefined,
-    priority: (body.priority as string | undefined)?.toLowerCase() as
-      | Priority
-      | undefined,
-    notes: (body.notes as string | undefined)?.trim(),
+      typeof body.headingId === "string"
+        ? body.headingId.trim()
+        : body.headingId,
+    dueDate,
+    startDate,
+    scheduledDate,
+    reviewDate,
+    priority: normalizePriorityValue(body.priority, "priority", true),
+    tags: normalizeStringList(body.tags, "tags", 25, 50),
+    context: normalizeNullableString(body.context, "context", 100),
+    energy: normalizeEnergyValue(body.energy, "energy", true),
+    estimateMinutes,
+    waitingOn: normalizeNullableString(body.waitingOn, "waitingOn", 255),
+    dependsOnTaskIds: normalizeIdList(
+      body.dependsOnTaskIds,
+      "dependsOnTaskIds",
+      50,
+    ),
+    archived:
+      body.archived === undefined
+        ? undefined
+        : typeof body.archived === "boolean"
+          ? body.archived
+          : (() => {
+              throw new ValidationError("archived must be a boolean");
+            })(),
+    recurrence: normalizeRecurrenceInput(body.recurrence, true) ?? undefined,
+    source: normalizeTaskSourceValue(body.source, "source", true),
+    createdByPrompt: normalizeNullableString(
+      body.createdByPrompt,
+      "createdByPrompt",
+      4000,
+    ),
+    notes: normalizeNullableString(body.notes, "notes", 10000),
   };
 }
 
@@ -429,13 +1074,11 @@ export function validateUpdateTodo(data: unknown): UpdateTodoDto {
   }
 
   if (body.description !== undefined) {
-    if (typeof body.description !== "string") {
-      throw new ValidationError("Description must be a string");
-    }
-    if (body.description.length > 1000) {
-      throw new ValidationError("Description cannot exceed 1000 characters");
-    }
-    update.description = body.description.trim();
+    update.description = normalizeNullableString(
+      body.description,
+      "Description",
+      1000,
+    );
   }
 
   if (body.completed !== undefined) {
@@ -445,33 +1088,45 @@ export function validateUpdateTodo(data: unknown): UpdateTodoDto {
     update.completed = body.completed;
   }
 
-  if (body.category !== undefined) {
-    if (body.category === null) {
-      update.category = null;
+  if (body.status !== undefined) {
+    update.status =
+      normalizeTaskStatusValue(body.status, "status", true) ?? undefined;
+  }
+
+  if (body.projectId !== undefined) {
+    if (body.projectId === null) {
+      update.projectId = null;
     } else {
-      if (typeof body.category !== "string") {
-        throw new ValidationError("Category must be a string");
+      if (typeof body.projectId !== "string") {
+        throw new ValidationError("projectId must be a string");
       }
-      if (body.category.length > 50) {
-        throw new ValidationError("Category cannot exceed 50 characters");
-      }
-      update.category = body.category.trim();
+      validateId(body.projectId);
+      update.projectId = body.projectId.trim();
     }
   }
 
+  if (body.category !== undefined) {
+    update.category = normalizeNullableString(body.category, "category", 50);
+  }
+
   if (body.dueDate !== undefined) {
-    if (body.dueDate === null) {
-      update.dueDate = null;
-    } else {
-      if (typeof body.dueDate !== "string") {
-        throw new ValidationError("Due date must be a string");
-      }
-      const date = new Date(body.dueDate);
-      if (isNaN(date.getTime())) {
-        throw new ValidationError("Invalid due date format");
-      }
-      update.dueDate = date;
-    }
+    update.dueDate = normalizeDateValue(body.dueDate, "dueDate", true);
+  }
+
+  if (body.startDate !== undefined) {
+    update.startDate = normalizeDateValue(body.startDate, "startDate", true);
+  }
+
+  if (body.scheduledDate !== undefined) {
+    update.scheduledDate = normalizeDateValue(
+      body.scheduledDate,
+      "scheduledDate",
+      true,
+    );
+  }
+
+  if (body.reviewDate !== undefined) {
+    update.reviewDate = normalizeDateValue(body.reviewDate, "reviewDate", true);
   }
 
   if (body.headingId !== undefined) {
@@ -485,6 +1140,7 @@ export function validateUpdateTodo(data: unknown): UpdateTodoDto {
       if (!headingId) {
         throw new ValidationError("Heading ID cannot be empty");
       }
+      validateId(headingId);
       update.headingId = headingId;
     }
   }
@@ -503,28 +1159,87 @@ export function validateUpdateTodo(data: unknown): UpdateTodoDto {
     if (body.priority === null) {
       update.priority = "medium";
     } else {
-      if (typeof body.priority !== "string") {
-        throw new ValidationError("Priority must be a string");
-      }
-      if (!["low", "medium", "high"].includes(body.priority.toLowerCase())) {
-        throw new ValidationError("Priority must be low, medium, or high");
-      }
-      update.priority = body.priority.toLowerCase() as Priority;
+      update.priority =
+        normalizePriorityValue(body.priority, "priority", true) ?? null;
     }
   }
 
-  if (body.notes !== undefined) {
-    if (body.notes === null) {
-      update.notes = null;
-    } else {
-      if (typeof body.notes !== "string") {
-        throw new ValidationError("Notes must be a string");
-      }
-      if (body.notes.length > 10000) {
-        throw new ValidationError("Notes cannot exceed 10000 characters");
-      }
-      update.notes = body.notes.trim();
+  if (body.tags !== undefined) {
+    update.tags = normalizeStringList(body.tags, "tags", 25, 50);
+  }
+
+  if (body.context !== undefined) {
+    update.context = normalizeNullableString(body.context, "context", 100);
+  }
+
+  if (body.energy !== undefined) {
+    update.energy = normalizeEnergyValue(body.energy, "energy", true);
+  }
+
+  if (body.estimateMinutes !== undefined) {
+    update.estimateMinutes = normalizeOptionalInteger(
+      body.estimateMinutes,
+      "estimateMinutes",
+      true,
+    );
+  }
+
+  if (body.waitingOn !== undefined) {
+    update.waitingOn = normalizeNullableString(
+      body.waitingOn,
+      "waitingOn",
+      255,
+    );
+  }
+
+  if (body.dependsOnTaskIds !== undefined) {
+    update.dependsOnTaskIds = normalizeIdList(
+      body.dependsOnTaskIds,
+      "dependsOnTaskIds",
+      50,
+    );
+  }
+
+  if (body.archived !== undefined) {
+    if (typeof body.archived !== "boolean") {
+      throw new ValidationError("archived must be a boolean");
     }
+    update.archived = body.archived;
+  }
+
+  if (body.recurrence !== undefined) {
+    update.recurrence = normalizeRecurrenceInput(body.recurrence, true);
+  }
+
+  if (body.source !== undefined) {
+    update.source = normalizeTaskSourceValue(body.source, "source", true);
+  }
+
+  if (body.createdByPrompt !== undefined) {
+    update.createdByPrompt = normalizeNullableString(
+      body.createdByPrompt,
+      "createdByPrompt",
+      4000,
+    );
+  }
+
+  if (body.notes !== undefined) {
+    update.notes = normalizeNullableString(body.notes, "notes", 10000);
+  }
+
+  validateTaskDateOrdering({
+    startDate: update.startDate !== undefined ? update.startDate : undefined,
+    scheduledDate:
+      update.scheduledDate !== undefined ? update.scheduledDate : undefined,
+    dueDate: update.dueDate !== undefined ? update.dueDate : undefined,
+  });
+
+  if (update.completed === true) {
+    update.status = "done";
+  } else if (update.completed === false && update.status === "done") {
+    throw new ValidationError(
+      "completed=false cannot be combined with status=done",
+    );
   }
 
   if (Object.keys(update).length === 0) {

@@ -16,6 +16,34 @@ const PROJECT_PATH_SEPARATOR = " / ";
 export class TodoService implements ITodoService {
   private todos: Map<string, Todo> = new Map();
 
+  private buildTodoState(input: {
+    currentStatus?: Todo["status"];
+    currentCompleted?: boolean;
+    currentCompletedAt?: Date | null;
+    nextStatus?: Todo["status"];
+    nextCompleted?: boolean;
+  }) {
+    let status = input.nextStatus ?? input.currentStatus ?? "next";
+    let completed = input.nextCompleted ?? input.currentCompleted ?? false;
+    let completedAt = input.currentCompletedAt ?? null;
+
+    if (input.nextStatus !== undefined && input.nextStatus !== "done") {
+      completed = input.nextCompleted ?? false;
+    }
+
+    if (completed) {
+      status = "done";
+      completedAt = completedAt || new Date();
+    } else if (status === "done") {
+      status = "next";
+      completedAt = null;
+    } else {
+      completedAt = null;
+    }
+
+    return { status, completed, completedAt };
+  }
+
   private matchesProjectQuery(
     todo: Todo,
     projectQuery: string | undefined,
@@ -43,9 +71,16 @@ export class TodoService implements ITodoService {
       String(todo.description || "")
         .toLowerCase()
         .includes(needle) ||
+      String(todo.notes || "")
+        .toLowerCase()
+        .includes(needle) ||
       String(todo.category || "")
         .toLowerCase()
-        .includes(needle)
+        .includes(needle) ||
+      String(todo.waitingOn || "")
+        .toLowerCase()
+        .includes(needle) ||
+      todo.tags.some((tag) => tag.toLowerCase().includes(needle))
     );
   }
 
@@ -87,6 +122,26 @@ export class TodoService implements ITodoService {
     return true;
   }
 
+  private matchesDateRange(
+    value: Date | null | undefined,
+    from?: Date,
+    to?: Date,
+  ): boolean {
+    if (!from && !to) {
+      return true;
+    }
+    if (!value) {
+      return false;
+    }
+    if (from && value < from) {
+      return false;
+    }
+    if (to && value > to) {
+      return false;
+    }
+    return true;
+  }
+
   async create(userId: string, dto: CreateTodoDto): Promise<Todo> {
     const now = new Date();
 
@@ -96,18 +151,43 @@ export class TodoService implements ITodoService {
     );
     const maxOrder =
       userTodos.length > 0 ? Math.max(...userTodos.map((t) => t.order)) : -1;
+    const state = this.buildTodoState({
+      nextStatus: dto.status,
+      nextCompleted: dto.completed,
+    });
 
     const todo: Todo = {
       id: randomUUID(),
       title: dto.title,
-      description: dto.description,
-      completed: false,
-      category: dto.category,
+      description: dto.description ?? undefined,
+      status: state.status,
+      completed: state.completed,
+      projectId: dto.projectId ?? undefined,
+      category: dto.category ?? undefined,
+      tags: dto.tags ?? [],
+      context: dto.context ?? undefined,
+      energy: dto.energy ?? undefined,
       headingId: dto.headingId || undefined,
       dueDate: dto.dueDate,
+      startDate: dto.startDate,
+      scheduledDate: dto.scheduledDate,
+      reviewDate: dto.reviewDate,
+      completedAt: state.completedAt,
+      estimateMinutes: dto.estimateMinutes ?? undefined,
+      waitingOn: dto.waitingOn ?? undefined,
+      dependsOnTaskIds: dto.dependsOnTaskIds ?? [],
       order: maxOrder + 1,
       priority: dto.priority || "medium",
-      notes: dto.notes,
+      archived: dto.archived ?? false,
+      recurrence: {
+        type: dto.recurrence?.type ?? "none",
+        interval: dto.recurrence?.interval ?? undefined,
+        rrule: dto.recurrence?.rrule ?? undefined,
+        nextOccurrence: dto.recurrence?.nextOccurrence ?? undefined,
+      },
+      source: dto.source ?? undefined,
+      createdByPrompt: dto.createdByPrompt ?? undefined,
+      notes: dto.notes ?? undefined,
       userId,
       createdAt: now,
       updatedAt: now,
@@ -120,7 +200,8 @@ export class TodoService implements ITodoService {
 
   async findAll(userId: string, query?: FindTodosQuery): Promise<Todo[]> {
     let todos = Array.from(this.todos.values()).filter(
-      (todo) => todo.userId === userId,
+      (todo) =>
+        todo.userId === userId && (query?.archived ?? false) === todo.archived,
     );
 
     if (query?.completed !== undefined) {
@@ -131,8 +212,18 @@ export class TodoService implements ITodoService {
       todos = todos.filter((todo) => todo.priority === query.priority);
     }
 
+    if (query?.statuses?.length) {
+      todos = todos.filter((todo) => query.statuses?.includes(todo.status));
+    }
+
     if (query?.category !== undefined) {
       todos = todos.filter((todo) => (todo.category ?? "") === query.category);
+    }
+
+    if (query?.projectId !== undefined) {
+      todos = todos.filter(
+        (todo) => (todo.projectId ?? null) === query.projectId,
+      );
     }
 
     if (query?.unsorted) {
@@ -151,7 +242,53 @@ export class TodoService implements ITodoService {
       );
     }
 
+    if (query?.tags?.length) {
+      todos = todos.filter((todo) =>
+        query.tags?.some((tag) => todo.tags.includes(tag)),
+      );
+    }
+
+    if (query?.contexts?.length) {
+      todos = todos.filter((todo) =>
+        query.contexts?.includes(String(todo.context || "")),
+      );
+    }
+
+    if (query?.energies?.length) {
+      todos = todos.filter((todo) =>
+        todo.energy ? query.energies?.includes(todo.energy) : false,
+      );
+    }
+
     todos = todos.filter((todo) => this.matchesDueDateQuery(todo, query));
+    todos = todos.filter((todo) =>
+      this.matchesDateRange(
+        todo.startDate,
+        query?.startDateFrom,
+        query?.startDateTo,
+      ),
+    );
+    todos = todos.filter((todo) =>
+      this.matchesDateRange(
+        todo.scheduledDate,
+        query?.scheduledDateFrom,
+        query?.scheduledDateTo,
+      ),
+    );
+    todos = todos.filter((todo) =>
+      this.matchesDateRange(
+        todo.reviewDate,
+        query?.reviewDateFrom,
+        query?.reviewDateTo,
+      ),
+    );
+    todos = todos.filter((todo) =>
+      this.matchesDateRange(
+        todo.updatedAt,
+        query?.updatedAfter,
+        query?.updatedBefore,
+      ),
+    );
 
     const sortBy = query?.sortBy ?? "order";
     const sortOrder = query?.sortOrder ?? "asc";
@@ -160,6 +297,7 @@ export class TodoService implements ITodoService {
       low: 0,
       medium: 1,
       high: 2,
+      urgent: 3,
     };
 
     todos.sort((a, b) => {
@@ -184,7 +322,9 @@ export class TodoService implements ITodoService {
           }
           break;
         case "priority":
-          result = priorityRank[a.priority] - priorityRank[b.priority];
+          result =
+            priorityRank[a.priority ?? "medium"] -
+            priorityRank[b.priority ?? "medium"];
           break;
         case "title":
           result = a.title.localeCompare(b.title);
@@ -229,8 +369,12 @@ export class TodoService implements ITodoService {
     const updated: Todo = {
       ...todo,
       ...(dto.title !== undefined && { title: dto.title }),
-      ...(dto.description !== undefined && { description: dto.description }),
-      ...(dto.completed !== undefined && { completed: dto.completed }),
+      ...(dto.description !== undefined && {
+        description: dto.description ?? undefined,
+      }),
+      ...(dto.projectId !== undefined && {
+        projectId: dto.projectId ?? undefined,
+      }),
       ...(dto.category !== undefined && {
         category: dto.category === null ? undefined : dto.category,
       }),
@@ -240,13 +384,68 @@ export class TodoService implements ITodoService {
       ...(dto.dueDate !== undefined && {
         dueDate: dto.dueDate === null ? undefined : dto.dueDate,
       }),
+      ...(dto.startDate !== undefined && {
+        startDate: dto.startDate === null ? undefined : dto.startDate,
+      }),
+      ...(dto.scheduledDate !== undefined && {
+        scheduledDate:
+          dto.scheduledDate === null ? undefined : dto.scheduledDate,
+      }),
+      ...(dto.reviewDate !== undefined && {
+        reviewDate: dto.reviewDate === null ? undefined : dto.reviewDate,
+      }),
       ...(dto.order !== undefined && { order: dto.order }),
-      ...(dto.priority !== undefined && { priority: dto.priority }),
+      ...(dto.priority !== undefined && { priority: dto.priority || "medium" }),
+      ...(dto.tags !== undefined && { tags: dto.tags }),
+      ...(dto.context !== undefined && {
+        context: dto.context === null ? undefined : dto.context,
+      }),
+      ...(dto.energy !== undefined && {
+        energy: dto.energy === null ? undefined : dto.energy,
+      }),
+      ...(dto.estimateMinutes !== undefined && {
+        estimateMinutes:
+          dto.estimateMinutes === null ? undefined : dto.estimateMinutes,
+      }),
+      ...(dto.waitingOn !== undefined && {
+        waitingOn: dto.waitingOn === null ? undefined : dto.waitingOn,
+      }),
+      ...(dto.dependsOnTaskIds !== undefined && {
+        dependsOnTaskIds: dto.dependsOnTaskIds,
+      }),
+      ...(dto.archived !== undefined && { archived: dto.archived }),
+      ...(dto.recurrence !== undefined && {
+        recurrence:
+          dto.recurrence === null
+            ? { type: "none" }
+            : {
+                ...todo.recurrence,
+                ...dto.recurrence,
+              },
+      }),
+      ...(dto.source !== undefined && {
+        source: dto.source === null ? undefined : dto.source,
+      }),
+      ...(dto.createdByPrompt !== undefined && {
+        createdByPrompt:
+          dto.createdByPrompt === null ? undefined : dto.createdByPrompt,
+      }),
       ...(dto.notes !== undefined && {
         notes: dto.notes === null ? undefined : dto.notes,
       }),
       updatedAt: new Date(),
     };
+
+    const state = this.buildTodoState({
+      currentStatus: todo.status,
+      currentCompleted: todo.completed,
+      currentCompletedAt: todo.completedAt,
+      nextStatus: dto.status,
+      nextCompleted: dto.completed,
+    });
+    updated.status = state.status;
+    updated.completed = state.completed;
+    updated.completedAt = state.completedAt ?? undefined;
 
     this.todos.set(id, updated);
     return updated;
@@ -324,6 +523,7 @@ export class TodoService implements ITodoService {
       title: dto.title,
       completed: false,
       order: maxOrder + 1,
+      completedAt: undefined,
       todoId,
       createdAt: now,
       updatedAt: now,
@@ -361,6 +561,9 @@ export class TodoService implements ITodoService {
       ...(dto.title !== undefined && { title: dto.title }),
       ...(dto.completed !== undefined && { completed: dto.completed }),
       ...(dto.order !== undefined && { order: dto.order }),
+      ...(dto.completed !== undefined && {
+        completedAt: dto.completed ? now : undefined,
+      }),
       updatedAt: now,
     };
 
