@@ -8,6 +8,7 @@ import {
   createInitialTaskDrawerAssistState,
   createInitialOnCreateAssistState,
   createInitialTodayPlanState,
+  createInitialHomeAiState,
 } from "./store.js";
 
 function getNormalizedProjectKey(value) {
@@ -31,6 +32,13 @@ function createOnCreateAssistState() {
   return {
     ...createInitialOnCreateAssistState(),
     dismissedTodoIds,
+  };
+}
+
+function createHomeAiState(requestKey = "") {
+  return {
+    ...createInitialHomeAiState(),
+    requestKey: String(requestKey || ""),
   };
 }
 
@@ -406,6 +414,96 @@ export function applyAsyncAction(type, payload = {}) {
       state.todayPlanState.loadingMessage = "";
       state.todayPlanState.lastApplyBatch = null;
       return state.todayPlanState;
+    case "homeAi/reset":
+      state.homeAi = createHomeAiState(payload.requestKey);
+      return state.homeAi;
+    case "homeAi/start":
+      state.homeAi =
+        state.homeAi?.requestKey === String(payload.requestKey || "")
+          ? {
+              ...state.homeAi,
+              status: "loading",
+              error: null,
+              unavailable: false,
+              applyingSuggestionId: "",
+              dismissingSuggestionId: "",
+            }
+          : {
+              ...createHomeAiState(payload.requestKey),
+              status: "loading",
+            };
+      return state.homeAi;
+    case "homeAi/unavailable":
+      state.homeAi = {
+        ...state.homeAi,
+        status: "unavailable",
+        aiSuggestionId: "",
+        suggestions: [],
+        error: null,
+        unavailable: true,
+        lastLoadedAt: new Date().toISOString(),
+        applyingSuggestionId: "",
+        dismissingSuggestionId: "",
+      };
+      return state.homeAi;
+    case "homeAi/empty":
+      state.homeAi = {
+        ...state.homeAi,
+        status: "ready",
+        aiSuggestionId: "",
+        suggestions: [],
+        error: null,
+        unavailable: false,
+        lastLoadedAt: new Date().toISOString(),
+        applyingSuggestionId: "",
+        dismissingSuggestionId: "",
+      };
+      return state.homeAi;
+    case "homeAi/success":
+      state.homeAi = {
+        ...state.homeAi,
+        status: "ready",
+        aiSuggestionId: String(payload.aiSuggestionId || ""),
+        suggestions: Array.isArray(payload.suggestions)
+          ? payload.suggestions
+          : [],
+        error: null,
+        unavailable: false,
+        lastLoadedAt: new Date().toISOString(),
+        applyingSuggestionId: "",
+        dismissingSuggestionId: "",
+      };
+      return state.homeAi;
+    case "homeAi/failure":
+      state.homeAi = {
+        ...state.homeAi,
+        status: "error",
+        aiSuggestionId: "",
+        suggestions: [],
+        error: String(payload.error || "Could not load home focus."),
+        unavailable: false,
+        lastLoadedAt: new Date().toISOString(),
+        applyingSuggestionId: "",
+        dismissingSuggestionId: "",
+      };
+      return state.homeAi;
+    case "homeAi/error:set":
+      state.homeAi.error = String(payload.error || "");
+      return state.homeAi;
+    case "homeAi/apply:start":
+      state.homeAi.applyingSuggestionId = String(payload.suggestionId || "");
+      state.homeAi.error = null;
+      return state.homeAi;
+    case "homeAi/apply:complete":
+      state.homeAi.applyingSuggestionId = "";
+      return state.homeAi;
+    case "homeAi/dismiss:start":
+      state.homeAi.dismissingSuggestionId = String(payload.suggestionId || "");
+      state.homeAi.error = null;
+      return state.homeAi;
+    case "homeAi/dismiss:complete":
+      state.homeAi.dismissingSuggestionId = "";
+      return state.homeAi;
     default:
       return undefined;
   }

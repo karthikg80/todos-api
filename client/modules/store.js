@@ -80,13 +80,17 @@ export function createInitialTodayPlanState() {
   };
 }
 
-export function createInitialHomeTopFocusState() {
+export function createInitialHomeAiState() {
   return {
-    loading: false,
+    status: "idle",
+    aiSuggestionId: "",
     requestKey: "",
-    items: [],
-    reasonsById: {},
-    source: "fallback",
+    suggestions: [],
+    lastLoadedAt: null,
+    error: null,
+    unavailable: false,
+    applyingSuggestionId: "",
+    dismissingSuggestionId: "",
   };
 }
 
@@ -217,8 +221,8 @@ export const state = {
   lastTaskComposerTrigger: null,
   taskComposerDefaultProject: "",
 
-  // Home top focus
-  homeTopFocusState: null, // initialized below
+  // Home AI
+  homeAi: null, // initialized below
 
   // Chrono natural date
   chronoNaturalDateModulePromise: null,
@@ -253,7 +257,7 @@ export const state = {
 state.taskDrawerAssistState = createInitialTaskDrawerAssistState();
 state.onCreateAssistState = createInitialOnCreateAssistState();
 state.todayPlanState = createInitialTodayPlanState();
-state.homeTopFocusState = createInitialHomeTopFocusState();
+state.homeAi = createInitialHomeAiState();
 
 // ---------------------------------------------------------------------------
 // Cross-module hooks — app.js wires all hooks after all modules are loaded.

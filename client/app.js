@@ -7,7 +7,6 @@ import {
   createInitialTaskDrawerAssistState,
   createInitialOnCreateAssistState,
   createInitialTodayPlanState,
-  createInitialHomeTopFocusState,
 } from "./modules/store.js";
 import {
   buildTodosQueryParams,
@@ -414,6 +413,10 @@ import {
 import * as TaskDrawerAssist from "./modules/taskDrawerAssist.js";
 import * as OnCreateAssist from "./modules/onCreateAssist.js";
 import * as TodayPlan from "./modules/todayPlan.js";
+import {
+  applyHomeFocusSuggestion,
+  dismissHomeFocusSuggestion,
+} from "./modules/homeAiService.js";
 import { EventBus } from "./modules/eventBus.js";
 
 // Configuration
@@ -486,6 +489,7 @@ const {
   AI_DEBUG_ENABLED,
   ON_CREATE_SURFACE,
   TODAY_PLAN_SURFACE,
+  HOME_FOCUS_SURFACE,
   AI_SURFACE_TYPES,
   AI_SURFACE_IMPACT,
   isKnownSuggestionType,
@@ -550,7 +554,6 @@ const {
 const SIDEBAR_NAV_ITEMS = [];
 state.onCreateAssistState.dismissedTodoIds =
   OnCreateAssist.loadOnCreateDismissedTodoIds();
-const HOME_TOP_FOCUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS = 320;
 
 function emitAiSuggestionUndoTelemetry({
@@ -1558,6 +1561,7 @@ function bindDeclarativeHandlers() {
   hooks.impactRankForSurface = impactRankForSurface;
   hooks.ON_CREATE_SURFACE = ON_CREATE_SURFACE;
   hooks.TODAY_PLAN_SURFACE = TODAY_PLAN_SURFACE;
+  hooks.HOME_FOCUS_SURFACE = HOME_FOCUS_SURFACE;
   hooks.isKnownSuggestionType = isKnownSuggestionType;
   hooks.initializeDrawerDraft = initializeDrawerDraft;
   hooks.setDrawerSaveState = setDrawerSaveState;
@@ -1706,6 +1710,8 @@ window.createHeadingForSelectedProject = createHeadingForSelectedProject;
 // Home workspace
 window.openHomeProject = openHomeProject;
 window.openHomeTileList = openHomeTileList;
+window.applyHomeFocusSuggestion = applyHomeFocusSuggestion;
+window.dismissHomeFocusSuggestion = dismissHomeFocusSuggestion;
 // Admin
 window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;

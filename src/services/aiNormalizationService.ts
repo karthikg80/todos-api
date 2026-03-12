@@ -13,6 +13,7 @@ import { CreateTodoDto, Priority } from "../types";
 export const TASK_DRAWER_SURFACE: DecisionAssistSurface = "task_drawer";
 export const ON_CREATE_SURFACE: DecisionAssistSurface = "on_create";
 export const TODAY_PLAN_SURFACE: DecisionAssistSurface = "today_plan";
+export const HOME_FOCUS_SURFACE: DecisionAssistSurface = "home_focus";
 export const TODO_BOUND_TYPE: "task_critic" = "task_critic";
 
 export const TODO_BOUND_SURFACES = new Set<DecisionAssistSurface>([
@@ -25,6 +26,9 @@ export const TODAY_PLAN_ALLOWED_TYPES = new Set<DecisionAssistSuggestionType>([
   "set_priority",
   "split_subtasks",
   "propose_next_action",
+]);
+export const HOME_FOCUS_ALLOWED_TYPES = new Set<DecisionAssistSuggestionType>([
+  "focus_task",
 ]);
 
 export const TODO_BOUND_ALLOWED_TYPES: Record<
@@ -72,6 +76,21 @@ export type NormalizedTodayPlanSuggestion = DecisionAssistSuggestion & {
 
 export type NormalizedTodayPlanEnvelope = DecisionAssistOutput & {
   suggestions: NormalizedTodayPlanSuggestion[];
+};
+
+export type NormalizedHomeFocusSuggestion = DecisionAssistSuggestion & {
+  suggestionId: string;
+  taskId: string;
+  todoId: string;
+  projectId?: string;
+  title: string;
+  summary: string;
+  source: "deterministic" | "ai" | "hybrid";
+  payload: Record<string, unknown>;
+};
+
+export type NormalizedHomeFocusEnvelope = DecisionAssistOutput & {
+  suggestions: NormalizedHomeFocusSuggestion[];
 };
 
 // ── Small helpers ──
@@ -189,6 +208,93 @@ export function normalizeTodayPlanEnvelope(
   };
 }
 
+function parseHomeFocusSource(
+  value: unknown,
+): "deterministic" | "ai" | "hybrid" {
+  if (value === "ai" || value === "hybrid") {
+    return value;
+  }
+  return "deterministic";
+}
+
+export function normalizeHomeFocusEnvelope(
+  rawOutput: Record<string, unknown>,
+): NormalizedHomeFocusEnvelope {
+  const validated = validateDecisionAssistOutput(rawOutput);
+  if (validated.surface !== HOME_FOCUS_SURFACE) {
+    throw new Error("Suggestion envelope surface mismatch");
+  }
+
+  const normalizedSuggestions = validated.suggestions.reduce<
+    NormalizedHomeFocusSuggestion[]
+  >((acc, item, index) => {
+    if (!HOME_FOCUS_ALLOWED_TYPES.has(item.type)) {
+      return acc;
+    }
+    const rawItem =
+      Array.isArray(rawOutput.suggestions) &&
+      rawOutput.suggestions[index] &&
+      typeof rawOutput.suggestions[index] === "object"
+        ? (rawOutput.suggestions[index] as Record<string, unknown>)
+        : {};
+    const payload =
+      item.payload && typeof item.payload === "object"
+        ? ({ ...item.payload } as Record<string, unknown>)
+        : {};
+    const todoIdRaw =
+      typeof payload.todoId === "string"
+        ? payload.todoId.trim()
+        : typeof payload.taskId === "string"
+          ? payload.taskId.trim()
+          : "";
+    if (!todoIdRaw) {
+      return acc;
+    }
+    const suggestionIdRaw =
+      typeof rawItem.suggestionId === "string"
+        ? rawItem.suggestionId.trim()
+        : "";
+    const title = typeof payload.title === "string" ? payload.title.trim() : "";
+    const summary =
+      typeof payload.summary === "string" && payload.summary.trim()
+        ? payload.summary.trim()
+        : item.rationale;
+    if (!title || !summary) {
+      return acc;
+    }
+    acc.push({
+      ...item,
+      suggestionId: suggestionIdRaw || `home-focus-${index + 1}`,
+      taskId:
+        typeof payload.taskId === "string" && payload.taskId.trim()
+          ? payload.taskId.trim()
+          : todoIdRaw,
+      todoId: todoIdRaw,
+      projectId:
+        typeof payload.projectId === "string" && payload.projectId.trim()
+          ? payload.projectId.trim()
+          : undefined,
+      title,
+      summary,
+      source: parseHomeFocusSource(payload.source),
+      payload: {
+        ...payload,
+        todoId: todoIdRaw,
+        taskId:
+          typeof payload.taskId === "string" && payload.taskId.trim()
+            ? payload.taskId.trim()
+            : todoIdRaw,
+      },
+    });
+    return acc;
+  }, []);
+
+  return {
+    ...validated,
+    suggestions: normalizedSuggestions,
+  };
+}
+
 // ── Plan task parsing ──
 
 export function parsePlanTasks(
@@ -295,6 +401,24 @@ export async function findLatestPendingTodayPlanSuggestion(
       const inputTodoId =
         typeof record.input?.todoId === "string" ? record.input.todoId : "";
       return inputSurface === TODAY_PLAN_SURFACE && !inputTodoId;
+    }) || null
+  );
+}
+
+export async function findLatestPendingHomeFocusSuggestion(
+  suggestionStore: IAiSuggestionStore,
+  userId: string,
+): Promise<AiSuggestionRecord | null> {
+  const records = await suggestionStore.listByUser(userId, 100);
+  return (
+    records.find((record) => {
+      if (record.status !== "pending") return false;
+      if (record.type !== TODO_BOUND_TYPE) return false;
+      const inputSurface =
+        typeof record.input?.surface === "string" ? record.input.surface : "";
+      const inputTodoId =
+        typeof record.input?.todoId === "string" ? record.input.todoId : "";
+      return inputSurface === HOME_FOCUS_SURFACE && !inputTodoId;
     }) || null
   );
 }

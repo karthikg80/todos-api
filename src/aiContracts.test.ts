@@ -121,6 +121,34 @@ describe("validateDecisionAssistOutput", () => {
 
     expect(result.planPreview?.items).toHaveLength(3);
   });
+
+  it("accepts a valid home_focus payload", () => {
+    const result = validateDecisionAssistOutput({
+      requestId: "req-home-1",
+      surface: "home_focus",
+      must_abstain: false,
+      suggestions: [
+        {
+          type: "focus_task",
+          confidence: 0.81,
+          rationale: "This blocks the rest of anniversary vacation planning.",
+          payload: {
+            taskId: "todo-123",
+            todoId: "todo-123",
+            projectId: "project-456",
+            title: "Decide on the island to go",
+            summary:
+              "This blocks the rest of anniversary vacation planning and is due soon.",
+            reason: "Due soon and likely blocking related work.",
+            source: "deterministic",
+          },
+        },
+      ],
+    });
+
+    expect(result.surface).toBe("home_focus");
+    expect(result.suggestions[0]?.type).toBe("focus_task");
+  });
 });
 
 describe("decision assist golden eval fixtures", () => {
@@ -128,18 +156,24 @@ describe("decision assist golden eval fixtures", () => {
   const readFixture = (name: string) =>
     JSON.parse(fs.readFileSync(path.join(fixtureDir, name), "utf8"));
 
-  it("accepts valid fixtures for task_drawer, on_create, and today_plan", () => {
+  it("accepts valid fixtures for task_drawer, on_create, today_plan, and home_focus", () => {
     const surfaces = [
       "task_drawer.valid.json",
       "on_create.valid.json",
       "today_plan.valid.json",
+      "home_focus.valid.json",
     ]
       .map((fixtureName) =>
         validateDecisionAssistOutput(readFixture(fixtureName)),
       )
       .map((result) => result.surface);
 
-    expect(surfaces).toEqual(["task_drawer", "on_create", "today_plan"]);
+    expect(surfaces).toEqual([
+      "task_drawer",
+      "on_create",
+      "today_plan",
+      "home_focus",
+    ]);
   });
 
   it("rejects malformed fixture cases", () => {

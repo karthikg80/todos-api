@@ -1,7 +1,11 @@
 import { ValidationError } from "./validation";
 import { Priority } from "../types";
 
-export type DecisionAssistSurface = "on_create" | "task_drawer" | "today_plan";
+export type DecisionAssistSurface =
+  | "on_create"
+  | "task_drawer"
+  | "today_plan"
+  | "home_focus";
 
 export type DecisionAssistSuggestionType =
   | "set_due_date"
@@ -12,7 +16,8 @@ export type DecisionAssistSuggestionType =
   | "propose_next_action"
   | "split_subtasks"
   | "ask_clarification"
-  | "defer_task";
+  | "defer_task"
+  | "focus_task";
 
 export interface DecisionAssistSuggestion {
   type: DecisionAssistSuggestionType;
@@ -50,6 +55,7 @@ const ALLOWED_SURFACES: DecisionAssistSurface[] = [
   "on_create",
   "task_drawer",
   "today_plan",
+  "home_focus",
 ];
 const ALLOWED_SUGGESTION_TYPES: DecisionAssistSuggestionType[] = [
   "set_due_date",
@@ -61,9 +67,11 @@ const ALLOWED_SUGGESTION_TYPES: DecisionAssistSuggestionType[] = [
   "split_subtasks",
   "ask_clarification",
   "defer_task",
+  "focus_task",
 ];
 const ALLOWED_PRIORITIES: Priority[] = ["low", "medium", "high"];
 const ALLOWED_DEFER_STRATEGIES = ["someday", "next_week", "next_month"];
+const ALLOWED_HOME_FOCUS_SOURCES = ["deterministic", "ai", "hybrid"];
 const MAX_RATIONALE_LENGTH = 240;
 const MAX_TEXT_LENGTH = 200;
 const MAX_PROJECT_OR_CATEGORY_LENGTH = 50;
@@ -230,6 +238,40 @@ function validateDeferTaskPayload(payload: Record<string, unknown>) {
   }
 }
 
+function validateFocusTaskPayload(payload: Record<string, unknown>) {
+  const taskId =
+    typeof payload.taskId === "string" ? payload.taskId.trim() : "";
+  const todoId =
+    typeof payload.todoId === "string" ? payload.todoId.trim() : "";
+  if (!taskId && !todoId) {
+    throw new ValidationError(
+      "payload for focus_task must include taskId or todoId",
+    );
+  }
+
+  assertString(payload.title, "payload.title");
+  assertString(payload.summary, "payload.summary", MAX_RATIONALE_LENGTH);
+
+  if (payload.projectId !== undefined) {
+    assertString(payload.projectId, "payload.projectId", 120);
+  }
+  if (payload.reason !== undefined) {
+    assertString(payload.reason, "payload.reason", MAX_RATIONALE_LENGTH);
+  }
+  if (payload.source !== undefined) {
+    if (typeof payload.source !== "string") {
+      throw new ValidationError(
+        "payload.source must be deterministic, ai, or hybrid",
+      );
+    }
+    if (!ALLOWED_HOME_FOCUS_SOURCES.includes(payload.source)) {
+      throw new ValidationError(
+        "payload.source must be deterministic, ai, or hybrid",
+      );
+    }
+  }
+}
+
 function validateSuggestion(
   suggestion: unknown,
   clarificationCount: { count: number },
@@ -291,6 +333,9 @@ function validateSuggestion(
       break;
     case "defer_task":
       validateDeferTaskPayload(payload);
+      break;
+    case "focus_task":
+      validateFocusTaskPayload(payload);
       break;
     default:
       throw new ValidationError(`Unsupported suggestion.type: ${type}`);

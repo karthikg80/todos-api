@@ -2,7 +2,7 @@
 // todosService.js — Todo CRUD, undo, reorder, bulk operations.
 // Imports state from store.js. Cross-module calls go through hooks.
 // =============================================================================
-import { state, hooks, createInitialHomeTopFocusState } from "./store.js";
+import { state, hooks, createInitialHomeAiState } from "./store.js";
 import {
   hasTodoRow,
   patchBulkToolbar,
@@ -218,14 +218,14 @@ async function loadTodos() {
       state.todos = await response.json();
       state.todosLoadState = "ready";
       state.todosLoadErrorMessage = "";
-      state.homeTopFocusState = createInitialHomeTopFocusState();
+      state.homeAi = createInitialHomeAiState();
       await refreshVisibleTodosIfNeeded();
       EventBus.dispatch("todos:changed", { reason: "todos-loaded" });
       hooks.refreshProjectCatalog?.();
     } else {
       state.todos = [];
       state.selectedTodos.clear();
-      state.homeTopFocusState = createInitialHomeTopFocusState();
+      state.homeAi = createInitialHomeAiState();
       clearVisibleTodosState();
       state.todosLoadState = "error";
       state.todosLoadErrorMessage = "Couldn't load tasks";
@@ -236,7 +236,7 @@ async function loadTodos() {
   } catch (error) {
     state.todos = [];
     state.selectedTodos.clear();
-    state.homeTopFocusState = createInitialHomeTopFocusState();
+    state.homeAi = createInitialHomeAiState();
     clearVisibleTodosState();
     state.todosLoadState = "error";
     state.todosLoadErrorMessage = "Couldn't load tasks";

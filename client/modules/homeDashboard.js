@@ -10,18 +10,15 @@ import {
   setDateView,
   setSelectedProjectKey,
   clearHomeListDrilldown,
-  isHomeWorkspaceActive,
-  renderTodos,
 } from "./filterLogic.js";
 import { selectProjectFromRail } from "./railUi.js";
 import { openTodoDrawer } from "./drawerUi.js";
-import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import { loadHomeFocusSuggestions } from "./homeAiService.js";
 
 const { escapeHtml } = window.Utils || {};
 const { getProjectLeafName, normalizeProjectPath } =
   window.ProjectPathUtils || {};
 
-const HOME_TOP_FOCUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const HOME_STALE_RISK_DAYS = 14;
 
 // ---------------------------------------------------------------------------
@@ -118,13 +115,20 @@ export function getHomeTopFocusDeterministicReason(todo) {
   return "";
 }
 
+export function getHomeAiSuggestionByTodoId(todoId) {
+  const normalizedTodoId = String(todoId || "");
+  if (!normalizedTodoId) return null;
+  return (
+    (Array.isArray(state.homeAi?.suggestions)
+      ? state.homeAi.suggestions
+      : []
+    ).find((suggestion) => suggestion.todoId === normalizedTodoId) || null
+  );
+}
+
 export function getHomeTopFocusReason(todo) {
-  const id = String(todo?.id || "");
-  const aiReason =
-    id && state.homeTopFocusState.reasonsById
-      ? state.homeTopFocusState.reasonsById[id]
-      : null;
-  if (aiReason) return aiReason;
+  const aiSuggestion = getHomeAiSuggestionByTodoId(todo?.id);
+  if (aiSuggestion?.summary) return aiSuggestion.summary;
   return getHomeTopFocusDeterministicReason(todo);
 }
 
@@ -370,195 +374,61 @@ export function getHomeTopFocusRequestKey(candidates) {
     .join("|");
 }
 
-export function readCachedHomeTopFocus(requestKey) {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEYS.HOME_TOP_FOCUS_CACHE);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || parsed.requestKey !== requestKey) return null;
-    if (Date.now() - Number(parsed.ts || 0) > HOME_TOP_FOCUS_CACHE_MAX_AGE_MS) {
-      return null;
-    }
-    if (!Array.isArray(parsed.items)) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+export function readCachedHomeTopFocus() {
+  return null;
 }
 
-export function writeCachedHomeTopFocus(
-  requestKey,
-  items,
-  reasonsById,
-  source = "ai",
-) {
-  try {
-    window.localStorage.setItem(
-      STORAGE_KEYS.HOME_TOP_FOCUS_CACHE,
-      JSON.stringify({
-        ts: Date.now(),
-        requestKey,
-        items,
-        reasonsById,
-        source,
-      }),
-    );
-  } catch {
-    // Ignore storage failures.
-  }
+export function writeCachedHomeTopFocus() {
+  return null;
 }
 
-export function applyHomeTopFocusResult(
-  items,
-  reasonsById,
-  { source = "fallback", requestKey = "" } = {},
-) {
-  const nextItems = Array.isArray(items) ? items.slice(0, 3) : [];
-  const nextReasonsById = reasonsById || {};
-  const nextRequestKey = requestKey || state.homeTopFocusState.requestKey;
-
-  const prevItemIds = (state.homeTopFocusState.items || []).map((todo) =>
-    String(todo?.id || ""),
+export function buildHomeAiTopFocusItems() {
+  const todoById = new Map(
+    getOpenTodos().map((todo) => [String(todo.id), todo]),
   );
-  const nextItemIds = nextItems.map((todo) => String(todo?.id || ""));
-  const isSameItems =
-    prevItemIds.length === nextItemIds.length &&
-    prevItemIds.every((id, index) => id === nextItemIds[index]);
-  const isSameReasons =
-    JSON.stringify(state.homeTopFocusState.reasonsById || {}) ===
-    JSON.stringify(nextReasonsById);
-  const isSameState =
-    isSameItems &&
-    isSameReasons &&
-    state.homeTopFocusState.source === source &&
-    state.homeTopFocusState.loading === false &&
-    state.homeTopFocusState.requestKey === nextRequestKey;
-
-  if (isSameState) {
-    return;
+  const selected = [];
+  for (const suggestion of Array.isArray(state.homeAi?.suggestions)
+    ? state.homeAi.suggestions
+    : []) {
+    const todo = todoById.get(String(suggestion.todoId || ""));
+    if (!todo) continue;
+    if (selected.some((item) => String(item.id) === String(todo.id))) continue;
+    selected.push(todo);
+    if (selected.length >= 3) break;
   }
+  return selected;
+}
 
-  state.homeTopFocusState.items = nextItems;
-  state.homeTopFocusState.reasonsById = nextReasonsById;
-  state.homeTopFocusState.source = source;
-  state.homeTopFocusState.loading = false;
-  state.homeTopFocusState.requestKey = nextRequestKey;
-  const topFocusBody = document.getElementById("homeTopFocusBody");
-  if (topFocusBody instanceof HTMLElement || isHomeWorkspaceActive()) {
-    renderTodos();
-  }
+export function applyHomeTopFocusResult() {
+  return null;
 }
 
 export async function hydrateHomeTopFocusIfNeeded() {
   const candidates = buildHomeTopFocusCandidates();
   const requestKey = getHomeTopFocusRequestKey(candidates);
   if (!requestKey) {
-    applyHomeTopFocusResult([], {}, { source: "fallback", requestKey: "" });
+    await loadHomeFocusSuggestions({ candidates: [], requestKey: "" });
     return;
   }
-  if (
-    state.homeTopFocusState.loading &&
-    state.homeTopFocusState.requestKey === requestKey
-  )
-    return;
-  if (
-    state.homeTopFocusState.requestKey === requestKey &&
-    state.homeTopFocusState.items.length > 0
-  )
-    return;
-
-  const cached = readCachedHomeTopFocus(requestKey);
-  if (cached) {
-    const cachedIds = new Set(candidates.map((todo) => String(todo.id)));
-    const cachedItems = (Array.isArray(cached.items) ? cached.items : [])
-      .map((id) => candidates.find((todo) => String(todo.id) === String(id)))
-      .filter(Boolean);
-    if (cachedItems.length > 0) {
-      applyHomeTopFocusResult(cachedItems, cached.reasonsById || {}, {
-        source: String(cached.source || "ai"),
-        requestKey,
-      });
-      if (cachedIds.size > 0) return;
-    }
-  }
-
-  state.homeTopFocusState.loading = true;
-  state.homeTopFocusState.requestKey = requestKey;
-  if (isHomeWorkspaceActive()) {
-    renderTodos();
-  }
-
-  const payload = {
-    surface: "home_focus",
-    topN: 3,
+  await loadHomeFocusSuggestions({
     candidates: candidates.map((todo) => ({
       id: String(todo.id),
       title: String(todo.title || ""),
       dueAt: todo.dueDate || null,
       priority: normalizePriorityValue(todo.priority),
+      projectId:
+        typeof todo.projectId === "string" && todo.projectId.trim()
+          ? todo.projectId.trim()
+          : null,
       projectName: normalizeProjectPath(todo.category) || null,
+      category: normalizeProjectPath(todo.category) || null,
       createdAt: todo.createdAt || null,
       updatedAt: todo.updatedAt || null,
       hasSubtasks: Array.isArray(todo.subtasks) && todo.subtasks.length > 0,
       notesPresent: !!String(todo.notes || "").trim(),
     })),
-  };
-
-  try {
-    const response = await hooks.apiCall(
-      `${hooks.API_URL}/ai/decision-assist/stub`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      },
-    );
-    if (!response || !response.ok) {
-      throw new Error("home-focus-ai-failed");
-    }
-    const data = await hooks.parseApiBody(response);
-    const topFocusRaw = Array.isArray(data?.topFocus) ? data.topFocus : [];
-    const candidateById = new Map(
-      candidates.map((todo) => [String(todo.id), todo]),
-    );
-    const selected = [];
-    const reasonsById = {};
-    for (const item of topFocusRaw) {
-      const todoId = String(item?.todoId || "").trim();
-      if (!todoId || !candidateById.has(todoId)) continue;
-      if (selected.some((todo) => String(todo.id) === todoId)) continue;
-      const reason = String(item?.reason || "")
-        .trim()
-        .slice(0, 80);
-      selected.push(candidateById.get(todoId));
-      if (reason) reasonsById[todoId] = reason;
-      if (selected.length >= 3) break;
-    }
-    if (selected.length === 0) {
-      throw new Error("home-focus-ai-empty");
-    }
-    if (state.homeTopFocusState.requestKey !== requestKey) return;
-    applyHomeTopFocusResult(selected, reasonsById, {
-      source: "ai",
-      requestKey,
-    });
-    writeCachedHomeTopFocus(
-      requestKey,
-      selected.map((todo) => String(todo.id)),
-      reasonsById,
-      "ai",
-    );
-  } catch (error) {
-    if (state.homeTopFocusState.requestKey !== requestKey) return;
-    const fallback = getTopFocusFallbackTodos(3);
-    applyHomeTopFocusResult(fallback, {}, { source: "fallback", requestKey });
-    writeCachedHomeTopFocus(
-      requestKey,
-      fallback.map((todo) => String(todo.id)),
-      {},
-      "fallback",
-    );
-  }
+    requestKey,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -572,6 +442,13 @@ const HOME_BADGE_ICONS = {
 };
 
 export function renderHomeTaskRow(todo, { reason = "" } = {}) {
+  const aiSuggestion = getHomeAiSuggestionByTodoId(todo?.id);
+  const isApplying =
+    !!aiSuggestion &&
+    state.homeAi?.applyingSuggestionId === aiSuggestion.suggestionId;
+  const isDismissing =
+    !!aiSuggestion &&
+    state.homeAi?.dismissingSuggestionId === aiSuggestion.suggestionId;
   const dueBadge = formatHomeDueBadge(todo);
   const badgeIcon =
     HOME_BADGE_ICONS[dueBadge] ??
@@ -597,8 +474,43 @@ export function renderHomeTaskRow(todo, { reason = "" } = {}) {
       </button>
       ${dueBadge ? `<span class="home-task-row__badge ${dueBadge === "Overdue" ? "home-task-row__badge--overdue" : ""}">${badgeIcon}${escapeHtml(dueBadge)}</span>` : ""}
       ${reason ? `<div class="home-task-row__reason">${escapeHtml(reason)}</div>` : ""}
+      ${
+        aiSuggestion
+          ? `<div class="home-task-row__actions">
+              <button
+                type="button"
+                class="mini-btn home-task-row__action"
+                data-onclick="applyHomeFocusSuggestion('${escapeHtml(aiSuggestion.suggestionId)}')"
+                ${isApplying || isDismissing ? "disabled" : ""}
+              >
+                ${isApplying ? "Opening…" : "Use focus"}
+              </button>
+              <button
+                type="button"
+                class="mini-btn home-task-row__action home-task-row__action--secondary"
+                data-onclick="dismissHomeFocusSuggestion('${escapeHtml(aiSuggestion.suggestionId)}')"
+                ${isApplying || isDismissing ? "disabled" : ""}
+              >
+                ${isDismissing ? "Dismissing…" : "Dismiss"}
+              </button>
+            </div>`
+          : ""
+      }
     </div>
   `;
+}
+
+function getHomeTopFocusHelperMessage() {
+  if (state.homeAi?.status === "loading") {
+    return "Refreshing focus…";
+  }
+  if (state.homeAi?.error) {
+    return state.homeAi.error;
+  }
+  if (state.homeAi?.unavailable) {
+    return "Using focus fallback.";
+  }
+  return "";
 }
 
 export function renderHomeTaskTile({
@@ -660,8 +572,8 @@ export function renderHomeTaskTile({
       <div class="home-tile__body" ${key === "top_focus" ? 'id="homeTopFocusBody"' : ""}>
         ${bodyHtml}
         ${
-          key === "top_focus" && state.homeTopFocusState.loading
-            ? '<div class="home-tile__helper" role="status">Refreshing focus\u2026</div>'
+          key === "top_focus" && getHomeTopFocusHelperMessage()
+            ? `<div class="home-tile__helper" role="status">${escapeHtml(getHomeTopFocusHelperMessage())}</div>`
             : ""
         }
       </div>
@@ -704,11 +616,10 @@ export function renderProjectsToNudgeTile(items = []) {
 }
 
 export function renderHomeDashboard() {
+  const aiTopFocusItems = buildHomeAiTopFocusItems();
   const fallbackTopFocus = getTopFocusFallbackTodos(3);
   const topFocusItems =
-    state.homeTopFocusState.items.length > 0
-      ? state.homeTopFocusState.items
-      : fallbackTopFocus;
+    aiTopFocusItems.length > 0 ? aiTopFocusItems : fallbackTopFocus;
   const model = getHomeDashboardModel({ topFocusItems });
   void hydrateHomeTopFocusIfNeeded();
 

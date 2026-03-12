@@ -34,24 +34,30 @@ import {
   UserPlan,
 } from "../services/aiQuotaService";
 import {
+  HOME_FOCUS_SURFACE,
   TASK_DRAWER_SURFACE,
   ON_CREATE_SURFACE,
   TODAY_PLAN_SURFACE,
   TODO_BOUND_TYPE,
   TODO_BOUND_SURFACES,
+  normalizeHomeFocusEnvelope,
   normalizeTodoBoundEnvelope,
   normalizeTodayPlanEnvelope,
   parsePlanTasks,
   buildThrottleAbstainEnvelope,
   parseOptionalTopN,
   findLatestPendingDecisionAssistSuggestion,
+  findLatestPendingHomeFocusSuggestion,
   findLatestPendingTodayPlanSuggestion,
+  NormalizedHomeFocusEnvelope,
+  NormalizedHomeFocusSuggestion,
   NormalizedTodoBoundEnvelope,
   NormalizedTodoBoundSuggestion,
   NormalizedTodayPlanEnvelope,
   NormalizedTodayPlanSuggestion,
 } from "../services/aiNormalizationService";
 import {
+  applyHomeFocusSuggestion,
   applyTodoBoundSuggestion,
   applyTodayPlanSuggestions,
 } from "../services/aiApplyService";
@@ -187,6 +193,9 @@ export function createAiRouter({
           if (!ensureDecisionAssistFeatureEnabled(res)) return;
         }
         if (input.surface === TODAY_PLAN_SURFACE) {
+          if (!ensureDecisionAssistFeatureEnabled(res)) return;
+        }
+        if (input.surface === HOME_FOCUS_SURFACE) {
           if (!ensureDecisionAssistFeatureEnabled(res)) return;
         }
         if (
@@ -524,9 +533,11 @@ export function createAiRouter({
         );
         const isTodoBound = TODO_BOUND_SURFACES.has(surface);
         const isTodayPlan = surface === TODAY_PLAN_SURFACE;
-        if (!isTodoBound && !isTodayPlan) {
+        const isHomeFocus = surface === HOME_FOCUS_SURFACE;
+        if (!isTodoBound && !isTodayPlan && !isHomeFocus) {
           return res.status(400).json({
-            error: "surface must be on_create, task_drawer, or today_plan",
+            error:
+              "surface must be on_create, task_drawer, today_plan, or home_focus",
           });
         }
 
@@ -537,7 +548,15 @@ export function createAiRouter({
               String(todoId || ""),
               surface,
             )
-          : await findLatestPendingTodayPlanSuggestion(suggestionStore, userId);
+          : isTodayPlan
+            ? await findLatestPendingTodayPlanSuggestion(
+                suggestionStore,
+                userId,
+              )
+            : await findLatestPendingHomeFocusSuggestion(
+                suggestionStore,
+                userId,
+              );
         if (!latest) {
           const throttle = await shouldThrottleDecisionAssist(userId, surface);
           if (throttle.throttled) {
@@ -564,7 +583,9 @@ export function createAiRouter({
                 String(todoId || ""),
                 surface,
               )
-            : normalizeTodayPlanEnvelope(latest.output);
+            : isTodayPlan
+              ? normalizeTodayPlanEnvelope(latest.output)
+              : normalizeHomeFocusEnvelope(latest.output);
           emitDecisionAssistTelemetrySafe({
             eventName: "ai_suggestion_viewed",
             surface,
@@ -927,7 +948,7 @@ export function createAiRouter({
           });
         }
 
-        // ── Todo-bound apply path ──
+        // ── Home-focus apply path ──
         if (!ensureDecisionAssistFeatureEnabled(res)) return;
         if (suggestion.type !== TODO_BOUND_TYPE) {
           return res.status(400).json({
@@ -939,6 +960,98 @@ export function createAiRouter({
             ? suggestion.input.surface
             : "";
         const inputSurface = inputSurfaceRaw as DecisionAssistSurface;
+        if (inputSurface === HOME_FOCUS_SURFACE) {
+          if (!suggestionId) {
+            return res
+              .status(400)
+              .json({ error: "suggestionId is required for suggestion apply" });
+          }
+
+          if (
+            suggestion.status === "accepted" &&
+            Array.isArray(suggestion.appliedTodoIds) &&
+            suggestion.appliedTodoIds.length > 0
+          ) {
+            const todo = await todoService.findById(
+              userId,
+              suggestion.appliedTodoIds[0],
+            );
+            if (todo) {
+              return res.json({
+                todo,
+                appliedSuggestionId: suggestionId,
+                suggestion,
+                idempotent: true,
+              });
+            }
+          }
+          if (suggestion.status !== "pending") {
+            return res
+              .status(409)
+              .json({ error: "Suggestion is no longer pending" });
+          }
+
+          let envelope: NormalizedHomeFocusEnvelope;
+          try {
+            envelope = normalizeHomeFocusEnvelope(suggestion.output);
+          } catch {
+            return res
+              .status(400)
+              .json({ error: "Stored suggestion output is invalid" });
+          }
+
+          const selected = (
+            envelope.suggestions as NormalizedHomeFocusSuggestion[]
+          ).find((item) => item.suggestionId === suggestionId);
+          if (!selected) {
+            return res.status(404).json({ error: "Suggestion item not found" });
+          }
+
+          const applyResult = await applyHomeFocusSuggestion({
+            selected,
+            todoService,
+            userId,
+          });
+          if (!applyResult.ok) {
+            return res
+              .status(applyResult.status)
+              .json({ error: applyResult.error });
+          }
+
+          const updatedSuggestion = await suggestionStore.markApplied(
+            userId,
+            id,
+            applyResult.appliedTodoIds,
+            {
+              reason: reason || `applied:${selected.suggestionId}`,
+              source: "home_focus_apply",
+              suggestionId: selected.suggestionId,
+              updatedAt: new Date().toISOString(),
+            },
+          );
+          if (!updatedSuggestion) {
+            return res.status(404).json({ error: "Suggestion not found" });
+          }
+
+          emitDecisionAssistTelemetrySafe({
+            eventName: "ai_suggestion_applied",
+            surface: HOME_FOCUS_SURFACE,
+            aiSuggestionDbId: id,
+            suggestionId: selected.suggestionId,
+            todoId: applyResult.todo.id,
+            suggestionCount: envelope.suggestions.length,
+            selectedTodoIdsCount: 1,
+          });
+
+          return res.json({
+            todo: applyResult.todo,
+            appliedSuggestionId: selected.suggestionId,
+            suggestion: updatedSuggestion,
+            idempotent: false,
+          });
+        }
+
+        // ── Todo-bound apply path ──
         if (!TODO_BOUND_SURFACES.has(inputSurface)) {
           return res.status(400).json({
             error: "Only on_create or task_drawer suggestions can be applied",

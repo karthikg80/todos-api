@@ -2,6 +2,7 @@ import { ITodoService } from "../interfaces/ITodoService";
 import { IProjectService } from "../interfaces/IProjectService";
 import { Priority } from "../types";
 import {
+  NormalizedHomeFocusSuggestion,
   NormalizedTodoBoundSuggestion,
   NormalizedTodayPlanSuggestion,
 } from "./aiNormalizationService";
@@ -21,6 +22,14 @@ export type ApplyTodayPlanResult =
       updatedTodos: NonNullable<
         Awaited<ReturnType<ITodoService["findById"]>>
       >[];
+      appliedTodoIds: string[];
+    }
+  | { ok: false; status: number; error: string };
+
+export type ApplyHomeFocusResult =
+  | {
+      ok: true;
+      todo: NonNullable<Awaited<ReturnType<ITodoService["findById"]>>>;
       appliedTodoIds: string[];
     }
   | { ok: false; status: number; error: string };
@@ -222,6 +231,42 @@ export async function applyTodoBoundSuggestion(params: {
   }
 
   return { ok: true, updatedTodo };
+}
+
+// ── Home-focus apply ──
+
+export async function applyHomeFocusSuggestion(params: {
+  selected: NormalizedHomeFocusSuggestion;
+  todoService: ITodoService;
+  userId: string;
+}): Promise<ApplyHomeFocusResult> {
+  const { selected, todoService, userId } = params;
+  const todoId =
+    typeof selected.todoId === "string" && selected.todoId.trim()
+      ? selected.todoId.trim()
+      : typeof selected.payload?.todoId === "string"
+        ? selected.payload.todoId.trim()
+        : typeof selected.payload?.taskId === "string"
+          ? selected.payload.taskId.trim()
+          : "";
+  if (!todoId) {
+    return {
+      ok: false,
+      status: 400,
+      error: "focus_task suggestion is missing todo context",
+    };
+  }
+
+  const todo = await todoService.findById(userId, todoId);
+  if (!todo) {
+    return { ok: false, status: 404, error: "Todo not found" };
+  }
+
+  return {
+    ok: true,
+    todo,
+    appliedTodoIds: [todo.id],
+  };
 }
 
 // ── Today-plan apply ──

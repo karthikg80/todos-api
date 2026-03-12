@@ -12,6 +12,7 @@
 
   var ON_CREATE_SURFACE = "on_create";
   var TODAY_PLAN_SURFACE = "today_plan";
+  var HOME_FOCUS_SURFACE = "home_focus";
 
   var AI_SURFACE_TYPES = Object.freeze({
     [ON_CREATE_SURFACE]: new Set([
@@ -28,6 +29,7 @@
       "split_subtasks",
       "propose_next_action",
     ]),
+    [HOME_FOCUS_SURFACE]: new Set(["focus_task"]),
     task_drawer: new Set([
       "rewrite_title",
       "split_subtasks",
@@ -55,6 +57,9 @@
       set_priority: 1,
       split_subtasks: 2,
       propose_next_action: 3,
+    }),
+    [HOME_FOCUS_SURFACE]: Object.freeze({
+      focus_task: 0,
     }),
     task_drawer: Object.freeze({
       propose_next_action: 0,
@@ -127,6 +132,7 @@
       split_subtasks: "Split subtasks",
       propose_next_action: "Propose next action",
       propose_create_project: "Propose create project",
+      focus_task: "Focus task",
     };
     return labels[String(type || "")] || "Suggestion";
   }
@@ -182,6 +188,7 @@
     AI_DEBUG_ENABLED: AI_DEBUG_ENABLED,
     ON_CREATE_SURFACE: ON_CREATE_SURFACE,
     TODAY_PLAN_SURFACE: TODAY_PLAN_SURFACE,
+    HOME_FOCUS_SURFACE: HOME_FOCUS_SURFACE,
     AI_SURFACE_TYPES: AI_SURFACE_TYPES,
     AI_SURFACE_IMPACT: AI_SURFACE_IMPACT,
     isKnownSuggestionType: isKnownSuggestionType,
