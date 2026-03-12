@@ -853,7 +853,7 @@ export class PrismaTodoService implements ITodoService {
         const todoRows = await tx.$queryRaw<Array<{ id: string }>>`
           SELECT "id"
           FROM "todos"
-          WHERE "id" = ${todoId} AND "user_id" = ${userId}
+          WHERE "id" = CAST(${todoId} AS UUID) AND "user_id" = ${userId}
           FOR UPDATE
         `;
 
@@ -898,7 +898,7 @@ export class PrismaTodoService implements ITodoService {
         const todoRows = await tx.$queryRaw<Array<{ id: string }>>`
           SELECT "id"
           FROM "todos"
-          WHERE "id" = ${todoId} AND "user_id" = ${userId}
+          WHERE "id" = CAST(${todoId} AS UUID) AND "user_id" = ${userId}
           FOR UPDATE
         `;
         if (todoRows.length === 0) {
