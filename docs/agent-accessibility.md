@@ -18,6 +18,8 @@ This is intentionally a thin layer over the existing Express routers and service
 The initial machine-readable contract lives in `src/agent/agent-manifest.json` and is exposed at runtime through `GET /agent/manifest`.
 
 The remote assistant-facing MCP adapter that builds on this internal layer is documented in `docs/assistant-mcp.md`, with auth and scope details in `docs/remote-mcp-auth.md`.
+The planner runtime that now sits under the planning tools is documented in
+`docs/planner-runtime.md`.
 Public deployment and connector validation runbooks live under `docs/ops/`.
 Supported actions:
 
@@ -45,11 +47,35 @@ Supported actions:
 - `plan_project`
 - `ensure_next_action`
 - `weekly_review`
+- `decide_next_work`
+- `analyze_project_health`
+- `analyze_work_graph`
 - `create_project`
 - `update_project`
 - `rename_project`
 - `delete_project`
 - `archive_project`
+
+## Planner Runtime
+
+Planning behavior now routes through a dedicated planner layer instead of
+living directly in MCP handlers, agent routes, or UI code:
+
+- MCP tools / AI routes / UI routes
+- `PlannerService`
+- planner engines
+- canonical `projectService` / `todoService`
+- database
+
+Current engine boundaries:
+
+- `ProjectPlanningEngine`: `plan_project`, `ensure_next_action`
+- `ReviewEngine`: `weekly_review`, `analyze_project_health`
+- `DecisionEngine`: `decide_next_work`
+- `WorkGraphEngine`: `analyze_work_graph`
+
+This keeps planning logic reusable for MCP today and AI/UI surfaces later
+without introducing a second business-logic stack.
 
 ## Read vs Write
 
