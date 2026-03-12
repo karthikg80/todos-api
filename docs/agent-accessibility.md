@@ -42,6 +42,9 @@ Supported actions:
 - `list_projects`
 - `list_projects_without_next_action`
 - `review_projects`
+- `plan_project`
+- `ensure_next_action`
+- `weekly_review`
 - `create_project`
 - `update_project`
 - `rename_project`

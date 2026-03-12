@@ -2,6 +2,30 @@ import request from "supertest";
 import { createApp } from "./app";
 import { TodoService } from "./services/todoService";
 import type { Express } from "express";
+import type { IProjectService } from "./interfaces/IProjectService";
+import type {
+  CreateProjectDto,
+  Project,
+  ProjectTaskDisposition,
+  UpdateProjectDto,
+} from "./types";
+
+function createProjectServiceMock(): jest.Mocked<IProjectService> {
+  return {
+    findAll: jest.fn<Promise<Project[]>, [string]>(),
+    findById: jest.fn<Promise<Project | null>, [string, string]>(),
+    create: jest.fn<Promise<Project>, [string, CreateProjectDto]>(),
+    update: jest.fn<
+      Promise<Project | null>,
+      [string, string, UpdateProjectDto]
+    >(),
+    setArchived: jest.fn<Promise<Project | null>, [string, string, boolean]>(),
+    delete: jest.fn<
+      Promise<boolean>,
+      [string, string, ProjectTaskDisposition, (string | null)?]
+    >(),
+  };
+}
 
 describe("API Contract", () => {
   let app: Express;
@@ -164,6 +188,34 @@ describe("API Contract", () => {
       expect(
         response.body?.paths?.["/ai/todos/{id}/breakdown"]?.post,
       ).toBeDefined();
+    });
+
+    it("exposes planner actions in the runtime agent manifest", async () => {
+      const appWithProjects = createApp(
+        new TodoService(),
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        createProjectServiceMock(),
+        true,
+      );
+
+      const response = await request(appWithProjects)
+        .get("/agent/manifest")
+        .expect(200);
+
+      const actionNames = response.body.data.manifest.actions.map(
+        (action: { name: string }) => action.name,
+      );
+      expect(actionNames).toEqual(
+        expect.arrayContaining([
+          "plan_project",
+          "ensure_next_action",
+          "weekly_review",
+        ]),
+      );
     });
   });
 

@@ -14,6 +14,7 @@ import {
   UpdateSubtaskDto,
   UpdateTodoDto,
 } from "../types";
+import { PlannerMode } from "../types/plannerTypes";
 import {
   ValidationError,
   validateCreateProject,
@@ -157,6 +158,9 @@ const LIST_UPCOMING_KEYS = ["days", "includeScheduled", "includeDue"];
 const LIST_STALE_TASK_KEYS = ["daysSinceUpdate", "completed"];
 const LIST_PROJECTS_WITHOUT_NEXT_ACTION_KEYS = ["includeOnHold"];
 const REVIEW_PROJECTS_KEYS = ["dueForReviewOnly"];
+const PLAN_PROJECT_KEYS = ["projectId", "goal", "constraints", "mode"];
+const ENSURE_NEXT_ACTION_KEYS = ["projectId", "mode"];
+const WEEKLY_REVIEW_KEYS = ["mode", "includeArchived"];
 
 function ensureObject(data: unknown, label: string): Record<string, unknown> {
   if (data === undefined || data === null) {
@@ -384,6 +388,20 @@ function parseOptionalSortOrder(value: unknown): SortOrder | undefined {
     throw new ValidationError("sortOrder must be asc or desc");
   }
   return sortOrder;
+}
+
+function parseOptionalPlannerMode(value: unknown): PlannerMode | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError('mode must be "suggest" or "apply"');
+  }
+  const mode = value.toLowerCase() as PlannerMode;
+  if (mode !== "suggest" && mode !== "apply") {
+    throw new ValidationError('mode must be "suggest" or "apply"');
+  }
+  return mode;
 }
 
 function parseId(body: Record<string, unknown>): string {
@@ -931,5 +949,59 @@ export function validateAgentReviewProjectsInput(data: unknown): {
   return {
     dueForReviewOnly:
       parseOptionalBoolean(body.dueForReviewOnly, "dueForReviewOnly") ?? true,
+  };
+}
+
+export function validateAgentPlanProjectInput(data: unknown): {
+  projectId: string;
+  goal?: string | null;
+  constraints?: string[];
+  mode: PlannerMode;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, PLAN_PROJECT_KEYS, "Agent action input");
+
+  const goal =
+    body.goal === undefined || body.goal === null
+      ? body.goal === null
+        ? null
+        : undefined
+      : parseOptionalString(body.goal, "goal", 200);
+
+  return {
+    projectId: parseRequiredId(body, "projectId"),
+    goal,
+    constraints: parseOptionalStringList(
+      body.constraints,
+      "constraints",
+      20,
+      200,
+    ),
+    mode: parseOptionalPlannerMode(body.mode) ?? "suggest",
+  };
+}
+
+export function validateAgentEnsureNextActionInput(data: unknown): {
+  projectId: string;
+  mode: PlannerMode;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, ENSURE_NEXT_ACTION_KEYS, "Agent action input");
+  return {
+    projectId: parseRequiredId(body, "projectId"),
+    mode: parseOptionalPlannerMode(body.mode) ?? "suggest",
+  };
+}
+
+export function validateAgentWeeklyReviewInput(data: unknown): {
+  mode: PlannerMode;
+  includeArchived: boolean;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, WEEKLY_REVIEW_KEYS, "Agent action input");
+  return {
+    mode: parseOptionalPlannerMode(body.mode) ?? "suggest",
+    includeArchived:
+      parseOptionalBoolean(body.includeArchived, "includeArchived") ?? false,
   };
 }

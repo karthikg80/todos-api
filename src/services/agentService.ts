@@ -1,5 +1,7 @@
 import { IProjectService } from "../interfaces/IProjectService";
+import { IPlannerService } from "../interfaces/IPlannerService";
 import { ITodoService } from "../interfaces/ITodoService";
+import { PlannerService } from "./plannerService";
 import {
   CreateProjectDto,
   CreateSubtaskDto,
@@ -13,14 +15,31 @@ import {
   UpdateSubtaskDto,
   UpdateTodoDto,
 } from "../types";
+import {
+  EnsureNextActionResult,
+  PlanProjectResult,
+  WeeklyReviewResult,
+} from "../types/plannerTypes";
 
 interface AgentServiceDeps {
   todoService: ITodoService;
   projectService?: IProjectService;
+  plannerService?: IPlannerService;
 }
 
 export class AgentService {
-  constructor(private readonly deps: AgentServiceDeps) {}
+  private readonly plannerService?: IPlannerService;
+
+  constructor(private readonly deps: AgentServiceDeps) {
+    this.plannerService =
+      deps.plannerService ||
+      (deps.projectService
+        ? new PlannerService({
+            todoService: deps.todoService,
+            projectService: deps.projectService,
+          })
+        : undefined);
+  }
 
   private startOfDay(date: Date): Date {
     return new Date(
@@ -408,6 +427,61 @@ export class AgentService {
         nextReview.getDate() + cadenceDays[project.reviewCadence],
       );
       return nextReview <= now;
+    });
+  }
+
+  async planProjectForUser(
+    userId: string,
+    input: {
+      projectId: string;
+      goal?: string | null;
+      constraints?: string[];
+      mode?: "suggest" | "apply";
+    },
+  ): Promise<PlanProjectResult | null> {
+    if (!this.plannerService) {
+      throw new Error("Projects not configured");
+    }
+    return this.plannerService.planProject({
+      userId,
+      projectId: input.projectId,
+      goal: input.goal,
+      constraints: input.constraints,
+      mode: input.mode,
+    });
+  }
+
+  async ensureNextActionForUser(
+    userId: string,
+    input: {
+      projectId: string;
+      mode?: "suggest" | "apply";
+    },
+  ): Promise<EnsureNextActionResult | null> {
+    if (!this.plannerService) {
+      throw new Error("Projects not configured");
+    }
+    return this.plannerService.ensureNextAction({
+      userId,
+      projectId: input.projectId,
+      mode: input.mode,
+    });
+  }
+
+  async weeklyReviewForUser(
+    userId: string,
+    input: {
+      mode?: "suggest" | "apply";
+      includeArchived?: boolean;
+    },
+  ): Promise<WeeklyReviewResult> {
+    if (!this.plannerService) {
+      throw new Error("Projects not configured");
+    }
+    return this.plannerService.weeklyReview({
+      userId,
+      mode: input.mode,
+      includeArchived: input.includeArchived,
     });
   }
 }
