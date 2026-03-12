@@ -45,7 +45,7 @@ export function isOpenTask(task: Todo): boolean {
 }
 
 export function includesProjectTask(project: Project, task: Todo): boolean {
-  return task.projectId === project.id || task.category === project.name;
+  return task.projectId === project.id;
 }
 
 export function projectTasksForProject(

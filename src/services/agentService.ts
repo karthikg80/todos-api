@@ -69,7 +69,7 @@ export class AgentService {
   }
 
   private projectMatchesTask(project: Project, task: Todo): boolean {
-    return task.projectId === project.id || task.category === project.name;
+    return task.projectId === project.id;
   }
 
   async listTasks(userId: string, query: FindTodosQuery): Promise<Todo[]> {

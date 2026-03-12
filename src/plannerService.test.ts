@@ -319,6 +319,38 @@ describe("PlannerService", () => {
     );
   });
 
+  it("does not treat category-only tasks as existing project work", async () => {
+    const todoService = new TodoService();
+    const project = makeProject("project-1", "Ops");
+    const plannerService = new PlannerService({
+      todoService,
+      projectService: createProjectServiceMock([project]),
+    });
+
+    await todoService.create(USER_ID, {
+      title: "Legacy category-only next action",
+      category: project.name,
+      status: "next",
+    });
+
+    const result = await plannerService.ensureNextAction({
+      userId: USER_ID,
+      projectId: project.id,
+      mode: "apply",
+    });
+
+    expect(result?.created).toBe(true);
+    expect(result?.task?.title).toBe("Define the first concrete step for Ops");
+
+    const projectTasks = await todoService.findAll(USER_ID, {
+      archived: false,
+      projectId: project.id,
+    });
+    expect(projectTasks.map((task) => task.title)).toEqual([
+      "Define the first concrete step for Ops",
+    ]);
+  });
+
   it("analyzes the work graph for blocked and unblocked tasks", async () => {
     const todoService = new TodoService();
     const project = makeProject("project-1", "Launch");

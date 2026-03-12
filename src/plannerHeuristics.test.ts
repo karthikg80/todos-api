@@ -5,6 +5,7 @@ import {
   findExistingNextAction,
   findWeeklyReviewFindings,
   projectHasNextAction,
+  projectTasksForProject,
 } from "./services/plannerHeuristics";
 
 const USER_ID = "user-1";
@@ -121,6 +122,24 @@ describe("plannerHeuristics", () => {
     expect(suggestion).not.toBeNull();
     expect(suggestion?.title).toBe("Follow up on vendor quote");
     expect(suggestion?.status).toBe("next");
+  });
+
+  it("uses canonical projectId when matching project tasks", () => {
+    const project = makeProject("project-1", "Platform");
+    const matchingTask = makeTask("task-1", "Canonical task", {
+      projectId: project.id,
+      category: "Platform",
+    });
+    const legacyOnlyTask = makeTask("task-2", "Legacy category-only task", {
+      category: "Platform",
+    });
+
+    const projectTasks = projectTasksForProject(project, [
+      matchingTask,
+      legacyOnlyTask,
+    ]);
+
+    expect(projectTasks.map((task) => task.id)).toEqual(["task-1"]);
   });
 
   it("classifies weekly review findings and recommends safe follow-up actions", () => {
