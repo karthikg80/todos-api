@@ -20,6 +20,15 @@ describe("AI validation", () => {
     ).toThrow(new ValidationError("todoId is required"));
   });
 
+  it("rejects non-UUID todoId for persisted decision-assist surfaces", () => {
+    expect(() =>
+      validateDecisionAssistLatestQuery({
+        surface: "task_drawer",
+        todoId: "todo-1",
+      }),
+    ).toThrow(new ValidationError("Invalid ID format"));
+  });
+
   it("accepts home_focus stub input with candidate alias payload", () => {
     const result = validateDecisionAssistStubInput({
       surface: "home_focus",
