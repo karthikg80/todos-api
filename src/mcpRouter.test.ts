@@ -372,6 +372,56 @@ describe("Remote MCP router auth and scopes", () => {
     expect(deleteProjectTool.auth.requiredScopes).toEqual(["projects.write"]);
   });
 
+  it("exposes the expanded task, subtask, and review tools when scopes allow them", async () => {
+    currentSession = buildMcpSession("user-1", [
+      "projects.read",
+      "projects.write",
+      "tasks.read",
+      "tasks.write",
+    ]);
+
+    const response = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer expanded-scope-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 4.2,
+        method: "tools/list",
+      })
+      .expect(200);
+
+    const toolNames = response.body.result.tools.map(
+      (tool: { name: string }) => tool.name,
+    );
+
+    expect(toolNames).toEqual(
+      expect.arrayContaining([
+        "archive_task",
+        "delete_task",
+        "add_subtask",
+        "update_subtask",
+        "delete_subtask",
+        "list_today",
+        "list_next_actions",
+        "list_waiting_on",
+        "list_upcoming",
+        "list_stale_tasks",
+        "list_projects_without_next_action",
+        "review_projects",
+        "rename_project",
+      ]),
+    );
+
+    const createProjectTool = response.body.result.tools.find(
+      (tool: { name: string }) => tool.name === "create_project",
+    );
+    expect(createProjectTool.inputSchema.properties.idempotencyKey).toEqual(
+      expect.objectContaining({
+        type: "string",
+      }),
+    );
+  });
+
   it("rejects write tools when write scope is missing", async () => {
     currentSession = buildMcpSession("user-1", ["tasks.read"]);
 
@@ -492,6 +542,7 @@ describe("Remote MCP router auth and scopes", () => {
     projectService.findById.mockResolvedValue({
       id: "00000000-0000-1000-8000-000000000031",
       name: "Ops",
+      status: "active",
       archived: false,
       userId: "user-1",
       createdAt: new Date(),

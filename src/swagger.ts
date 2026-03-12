@@ -94,15 +94,57 @@ const options: swaggerJsdoc.Options = {
               nullable: true,
               description: "Todo description",
             },
+            status: {
+              type: "string",
+              enum: [
+                "inbox",
+                "next",
+                "in_progress",
+                "waiting",
+                "scheduled",
+                "someday",
+                "done",
+                "cancelled",
+              ],
+              description: "Workflow status",
+            },
             completed: {
               type: "boolean",
               description: "Completion status",
+            },
+            projectId: {
+              type: "string",
+              format: "uuid",
+              nullable: true,
+              description: "Canonical project relationship",
             },
             category: {
               type: "string",
               maxLength: 50,
               nullable: true,
-              description: "Todo category",
+              description: "Legacy category / project compatibility field",
+            },
+            tags: {
+              type: "array",
+              items: { type: "string" },
+              description: "Task tags",
+            },
+            context: {
+              type: "string",
+              nullable: true,
+              description: "Execution context",
+            },
+            energy: {
+              type: "string",
+              enum: ["low", "medium", "high"],
+              nullable: true,
+              description: "Energy requirement",
+            },
+            headingId: {
+              type: "string",
+              format: "uuid",
+              nullable: true,
+              description: "Optional heading relationship inside a project",
             },
             dueDate: {
               type: "string",
@@ -110,14 +152,103 @@ const options: swaggerJsdoc.Options = {
               nullable: true,
               description: "Due date",
             },
+            startDate: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Start date",
+            },
+            scheduledDate: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Scheduled date",
+            },
+            reviewDate: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Review date",
+            },
+            completedAt: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Completion timestamp",
+            },
+            estimateMinutes: {
+              type: "integer",
+              nullable: true,
+              minimum: 0,
+              description: "Estimated effort in minutes",
+            },
+            waitingOn: {
+              type: "string",
+              nullable: true,
+              description: "External dependency or person blocking the task",
+            },
+            dependsOnTaskIds: {
+              type: "array",
+              items: {
+                type: "string",
+                format: "uuid",
+              },
+              description: "Task dependencies",
+            },
             order: {
               type: "integer",
               description: "Display order (ascending)",
             },
+            archived: {
+              type: "boolean",
+              description: "Whether the task is archived",
+            },
             priority: {
               type: "string",
-              enum: ["low", "medium", "high"],
+              enum: ["low", "medium", "high", "urgent"],
               description: "Priority level",
+            },
+            recurrence: {
+              type: "object",
+              nullable: true,
+              properties: {
+                type: {
+                  type: "string",
+                  enum: [
+                    "none",
+                    "daily",
+                    "weekly",
+                    "monthly",
+                    "yearly",
+                    "rrule",
+                  ],
+                },
+                interval: {
+                  type: "integer",
+                  nullable: true,
+                },
+                rrule: {
+                  type: "string",
+                  nullable: true,
+                },
+                nextOccurrence: {
+                  type: "string",
+                  format: "date-time",
+                  nullable: true,
+                },
+              },
+              description: "Recurrence metadata",
+            },
+            source: {
+              type: "string",
+              enum: ["manual", "chat", "email", "import", "automation"],
+              nullable: true,
+              description: "Task creation source",
+            },
+            createdByPrompt: {
+              type: "string",
+              nullable: true,
+              description: "Prompt that created the task when applicable",
             },
             notes: {
               type: "string",
@@ -162,14 +293,76 @@ const options: swaggerJsdoc.Options = {
               maxLength: 50,
               description: "Project path/name",
             },
+            description: {
+              type: "string",
+              nullable: true,
+              description: "Project description",
+            },
+            status: {
+              type: "string",
+              enum: ["active", "on_hold", "completed", "archived"],
+              description: "Project workflow status",
+            },
+            priority: {
+              type: "string",
+              enum: ["low", "medium", "high", "urgent"],
+              nullable: true,
+              description: "Project priority",
+            },
+            area: {
+              type: "string",
+              nullable: true,
+              description: "Higher-level area of responsibility",
+            },
+            goal: {
+              type: "string",
+              nullable: true,
+              description: "Project goal or outcome",
+            },
+            targetDate: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Target completion date",
+            },
+            reviewCadence: {
+              type: "string",
+              enum: ["weekly", "biweekly", "monthly", "quarterly"],
+              nullable: true,
+              description: "Review cadence",
+            },
+            lastReviewedAt: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Last project review timestamp",
+            },
             archived: {
               type: "boolean",
               description: "Whether the project is archived",
+            },
+            archivedAt: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Archive timestamp",
             },
             userId: {
               type: "string",
               format: "uuid",
               description: "Owner user ID",
+            },
+            taskCount: {
+              type: "integer",
+              description: "Number of tasks linked to this project",
+            },
+            openTaskCount: {
+              type: "integer",
+              description: "Number of incomplete tasks linked to this project",
+            },
+            completedTaskCount: {
+              type: "integer",
+              description: "Number of completed tasks linked to this project",
             },
             todoCount: {
               type: "integer",
@@ -211,6 +404,12 @@ const options: swaggerJsdoc.Options = {
             order: {
               type: "integer",
               description: "Display order (ascending)",
+            },
+            completedAt: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Completion timestamp",
             },
             todoId: {
               type: "string",

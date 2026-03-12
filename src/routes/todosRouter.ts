@@ -41,13 +41,30 @@ export function createTodosRouter({
    *         name: priority
    *         schema:
    *           type: string
-   *           enum: [low, medium, high]
+   *           enum: [low, medium, high, urgent]
    *         description: Filter by priority
+   *       - in: query
+   *         name: status
+   *         schema:
+   *           type: string
+   *           enum: [inbox, next, in_progress, waiting, scheduled, someday, done, cancelled]
+   *         description: Filter by workflow status
    *       - in: query
    *         name: category
    *         schema:
    *           type: string
    *         description: Filter by exact category name
+   *       - in: query
+   *         name: projectId
+   *         schema:
+   *           type: string
+   *           format: uuid
+   *         description: Filter by canonical project relationship
+   *       - in: query
+   *         name: archived
+   *         schema:
+   *           type: boolean
+   *         description: Include archived tasks when true
    *       - in: query
    *         name: sortBy
    *         schema:
@@ -150,6 +167,18 @@ export function createTodosRouter({
         ) {
           return res.status(400).json({ error: "Invalid heading for project" });
         }
+        if (
+          error instanceof Error &&
+          error.message === PrismaTodoService.INVALID_PROJECT_ERROR
+        ) {
+          return res.status(404).json({ error: "Project not found" });
+        }
+        if (
+          error instanceof Error &&
+          error.message === PrismaTodoService.INVALID_DEPENDENCY_ERROR
+        ) {
+          return res.status(400).json({ error: "Invalid task dependency" });
+        }
         next(error);
       }
     },
@@ -168,6 +197,18 @@ export function createTodosRouter({
         error.message === PrismaTodoService.INVALID_HEADING_ERROR
       ) {
         return res.status(400).json({ error: "Invalid heading for project" });
+      }
+      if (
+        error instanceof Error &&
+        error.message === PrismaTodoService.INVALID_PROJECT_ERROR
+      ) {
+        return res.status(404).json({ error: "Project not found" });
+      }
+      if (
+        error instanceof Error &&
+        error.message === PrismaTodoService.INVALID_DEPENDENCY_ERROR
+      ) {
+        return res.status(400).json({ error: "Invalid task dependency" });
       }
       next(error);
     }
@@ -196,6 +237,12 @@ export function createTodosRouter({
           error.message === PrismaTodoService.INVALID_HEADING_ERROR
         ) {
           return res.status(400).json({ error: "Invalid heading for project" });
+        }
+        if (
+          error instanceof Error &&
+          error.message === PrismaTodoService.INVALID_DEPENDENCY_ERROR
+        ) {
+          return res.status(400).json({ error: "Invalid task dependency" });
         }
         next(error);
       }

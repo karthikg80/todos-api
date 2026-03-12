@@ -52,9 +52,7 @@ describe("PrismaTodoService error handling", () => {
 
   it("update should rethrow unknown errors", async () => {
     const service = createService({
-      updateMany: jest
-        .fn()
-        .mockRejectedValue(new Error("database unavailable")),
+      findFirst: jest.fn().mockRejectedValue(new Error("database unavailable")),
     });
 
     await expect(

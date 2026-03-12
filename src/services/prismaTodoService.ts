@@ -1,4 +1,9 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import {
+  PrismaClient,
+  Prisma,
+  TodoRecurrenceType as PrismaTodoRecurrenceType,
+  TodoStatus as PrismaTodoStatus,
+} from "@prisma/client";
 import { ITodoService } from "../interfaces/ITodoService";
 import {
   Todo,
@@ -29,6 +34,8 @@ export class PrismaTodoService implements ITodoService {
   constructor(private prisma: PrismaClient) {}
   private static readonly NOT_FOUND_ERROR = "TODO_NOT_FOUND";
   static readonly INVALID_HEADING_ERROR = "INVALID_HEADING";
+  static readonly INVALID_PROJECT_ERROR = "INVALID_PROJECT";
+  static readonly INVALID_DEPENDENCY_ERROR = "INVALID_DEPENDENCY";
 
   private normalizeCategory(category?: string | null): string | null {
     if (category === null || category === undefined) {
@@ -62,6 +69,17 @@ export class PrismaTodoService implements ITodoService {
     return project.id;
   }
 
+  private async findOwnedProject(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    projectId: string,
+  ) {
+    return tx.project.findFirst({
+      where: { id: projectId, userId },
+      select: { id: true, name: true },
+    });
+  }
+
   private async ensureHeadingId(
     tx: Prisma.TransactionClient,
     userId: string,
@@ -88,11 +106,130 @@ export class PrismaTodoService implements ITodoService {
     return heading.id;
   }
 
+  private buildTodoState(input: {
+    currentStatus?: Todo["status"];
+    currentCompleted?: boolean;
+    currentCompletedAt?: Date | null;
+    nextStatus?: Todo["status"];
+    nextCompleted?: boolean;
+  }): {
+    status: Todo["status"];
+    completed: boolean;
+    completedAt: Date | null;
+  } {
+    let status = input.nextStatus ?? input.currentStatus ?? "next";
+    let completed = input.nextCompleted ?? input.currentCompleted ?? false;
+    let completedAt = input.currentCompletedAt ?? null;
+
+    if (input.nextStatus !== undefined && input.nextStatus !== "done") {
+      completed = input.nextCompleted ?? false;
+    }
+
+    if (completed) {
+      status = "done";
+      if (!completedAt) {
+        completedAt = new Date();
+      }
+    } else if (status === "done") {
+      status =
+        input.currentStatus && input.currentStatus !== "done"
+          ? input.currentStatus
+          : "next";
+      completedAt = null;
+    } else {
+      completedAt = null;
+    }
+
+    return { status, completed, completedAt };
+  }
+
+  private buildRecurrenceFields(
+    recurrence:
+      | CreateTodoDto["recurrence"]
+      | UpdateTodoDto["recurrence"]
+      | null
+      | undefined,
+    current?: {
+      type: PrismaTodoRecurrenceType;
+      interval: number | null;
+      rrule: string | null;
+      nextOccurrence: Date | null;
+    },
+  ):
+    | {
+        recurrenceType: PrismaTodoRecurrenceType;
+        recurrenceInterval: number | null;
+        recurrenceRrule: string | null;
+        recurrenceNextOccurrence: Date | null;
+      }
+    | undefined {
+    if (recurrence === undefined) {
+      return undefined;
+    }
+    if (recurrence === null) {
+      return {
+        recurrenceType: "none",
+        recurrenceInterval: null,
+        recurrenceRrule: null,
+        recurrenceNextOccurrence: null,
+      };
+    }
+
+    const nextType = (recurrence?.type ??
+      current?.type ??
+      "none") as PrismaTodoRecurrenceType;
+    return {
+      recurrenceType: nextType,
+      recurrenceInterval:
+        recurrence?.interval !== undefined
+          ? recurrence.interval
+          : (current?.interval ?? null),
+      recurrenceRrule:
+        recurrence?.rrule !== undefined
+          ? recurrence.rrule
+          : (current?.rrule ?? null),
+      recurrenceNextOccurrence:
+        recurrence?.nextOccurrence !== undefined
+          ? recurrence.nextOccurrence
+          : (current?.nextOccurrence ?? null),
+    };
+  }
+
+  private async validateDependencyIds(
+    tx: Prisma.TransactionClient,
+    userId: string,
+    dependsOnTaskIds: string[] | undefined,
+    currentTodoId?: string,
+  ) {
+    if (dependsOnTaskIds === undefined) {
+      return undefined;
+    }
+    if (currentTodoId && dependsOnTaskIds.includes(currentTodoId)) {
+      throw new Error(PrismaTodoService.INVALID_DEPENDENCY_ERROR);
+    }
+    if (dependsOnTaskIds.length === 0) {
+      return [];
+    }
+    const count = await tx.todo.count({
+      where: {
+        userId,
+        id: { in: dependsOnTaskIds },
+      },
+    });
+    if (count !== dependsOnTaskIds.length) {
+      throw new Error(PrismaTodoService.INVALID_DEPENDENCY_ERROR);
+    }
+    return dependsOnTaskIds;
+  }
+
   private buildFindAllWhere(
     userId: string,
     query?: FindTodosQuery,
   ): Prisma.TodoWhereInput {
-    const where: Prisma.TodoWhereInput = { userId };
+    const where: Prisma.TodoWhereInput = {
+      userId,
+      archived: query?.archived ?? false,
+    };
     const and: Prisma.TodoWhereInput[] = [];
 
     if (query?.completed !== undefined) {
@@ -101,8 +238,14 @@ export class PrismaTodoService implements ITodoService {
     if (query?.priority) {
       where.priority = query.priority;
     }
+    if (query?.statuses?.length) {
+      where.status = { in: query.statuses };
+    }
     if (query?.category !== undefined) {
       where.category = query.category;
+    }
+    if (query?.projectId) {
+      where.projectId = query.projectId;
     }
     if (query?.unsorted) {
       and.push({
@@ -126,9 +269,20 @@ export class PrismaTodoService implements ITodoService {
         OR: [
           { title: { contains: query.search, mode: "insensitive" } },
           { description: { contains: query.search, mode: "insensitive" } },
+          { notes: { contains: query.search, mode: "insensitive" } },
           { category: { contains: query.search, mode: "insensitive" } },
+          { waitingOn: { contains: query.search, mode: "insensitive" } },
         ],
       });
+    }
+    if (query?.tags?.length) {
+      and.push({ tags: { hasSome: query.tags } });
+    }
+    if (query?.contexts?.length) {
+      and.push({ context: { in: query.contexts } });
+    }
+    if (query?.energies?.length) {
+      and.push({ energy: { in: query.energies } });
     }
     if (query?.dueDateIsNull) {
       and.push({ dueDate: null });
@@ -153,6 +307,46 @@ export class PrismaTodoService implements ITodoService {
       }
       and.push({ dueDate });
     }
+    if (query?.startDateFrom || query?.startDateTo) {
+      const startDate: Prisma.DateTimeNullableFilter = { not: null };
+      if (query.startDateFrom) {
+        startDate.gte = query.startDateFrom;
+      }
+      if (query.startDateTo) {
+        startDate.lte = query.startDateTo;
+      }
+      and.push({ startDate });
+    }
+    if (query?.scheduledDateFrom || query?.scheduledDateTo) {
+      const scheduledDate: Prisma.DateTimeNullableFilter = { not: null };
+      if (query.scheduledDateFrom) {
+        scheduledDate.gte = query.scheduledDateFrom;
+      }
+      if (query.scheduledDateTo) {
+        scheduledDate.lte = query.scheduledDateTo;
+      }
+      and.push({ scheduledDate });
+    }
+    if (query?.reviewDateFrom || query?.reviewDateTo) {
+      const reviewDate: Prisma.DateTimeNullableFilter = { not: null };
+      if (query.reviewDateFrom) {
+        reviewDate.gte = query.reviewDateFrom;
+      }
+      if (query.reviewDateTo) {
+        reviewDate.lte = query.reviewDateTo;
+      }
+      and.push({ reviewDate });
+    }
+    if (query?.updatedAfter || query?.updatedBefore) {
+      const updatedAt: Prisma.DateTimeFilter = {};
+      if (query.updatedAfter) {
+        updatedAt.gte = query.updatedAfter;
+      }
+      if (query.updatedBefore) {
+        updatedAt.lte = query.updatedBefore;
+      }
+      and.push({ updatedAt });
+    }
 
     if (and.length) {
       where.AND = and;
@@ -176,28 +370,64 @@ export class PrismaTodoService implements ITodoService {
         select: { order: true },
       });
       const nextOrder = (maxOrderTodo?.order ?? -1) + 1;
-      const category = this.normalizeCategory(dto.category);
-      const projectId = category
-        ? await this.ensureProjectId(tx, userId, category)
-        : null;
+      let projectId: string | null = null;
+      let category: string | null = null;
+      if (dto.projectId) {
+        const project = await this.findOwnedProject(tx, userId, dto.projectId);
+        if (!project) {
+          throw new Error(PrismaTodoService.INVALID_PROJECT_ERROR);
+        }
+        projectId = project.id;
+        category = project.name;
+      } else {
+        category = this.normalizeCategory(dto.category);
+        projectId = category
+          ? await this.ensureProjectId(tx, userId, category)
+          : null;
+      }
       const headingId = await this.ensureHeadingId(
         tx,
         userId,
         projectId,
         dto.headingId || null,
       );
+      const state = this.buildTodoState({
+        nextStatus: dto.status,
+        nextCompleted: dto.completed,
+      });
+      const dependsOnTaskIds = await this.validateDependencyIds(
+        tx,
+        userId,
+        dto.dependsOnTaskIds,
+      );
+      const recurrence = this.buildRecurrenceFields(dto.recurrence);
 
       return tx.todo.create({
         data: {
           title: dto.title,
           description: dto.description,
-          completed: false,
+          status: state.status as PrismaTodoStatus,
+          completed: state.completed,
           category,
           projectId,
           headingId,
           dueDate: dto.dueDate,
+          startDate: dto.startDate,
+          scheduledDate: dto.scheduledDate,
+          reviewDate: dto.reviewDate,
+          completedAt: state.completedAt,
+          context: dto.context,
+          energy: dto.energy ?? null,
+          estimateMinutes: dto.estimateMinutes,
+          waitingOn: dto.waitingOn,
+          dependsOnTaskIds: dependsOnTaskIds ?? [],
+          tags: dto.tags ?? [],
           order: nextOrder,
           priority: dto.priority || "medium",
+          archived: dto.archived ?? false,
+          ...(recurrence || {}),
+          source: dto.source ?? null,
+          createdByPrompt: dto.createdByPrompt,
           notes: dto.notes,
           userId,
         },
@@ -277,54 +507,96 @@ export class PrismaTodoService implements ITodoService {
       if (dto.title !== undefined) updateData.title = dto.title;
       if (dto.description !== undefined)
         updateData.description = dto.description;
-      if (dto.completed !== undefined) updateData.completed = dto.completed;
       if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate;
+      if (dto.startDate !== undefined) updateData.startDate = dto.startDate;
+      if (dto.scheduledDate !== undefined) {
+        updateData.scheduledDate = dto.scheduledDate;
+      }
+      if (dto.reviewDate !== undefined) updateData.reviewDate = dto.reviewDate;
       if (dto.order !== undefined) updateData.order = dto.order;
-      if (dto.priority !== undefined) updateData.priority = dto.priority;
+      if (dto.priority !== undefined)
+        updateData.priority = dto.priority || "medium";
+      if (dto.tags !== undefined) updateData.tags = dto.tags;
+      if (dto.context !== undefined) updateData.context = dto.context;
+      if (dto.energy !== undefined) updateData.energy = dto.energy;
+      if (dto.estimateMinutes !== undefined) {
+        updateData.estimateMinutes = dto.estimateMinutes;
+      }
+      if (dto.waitingOn !== undefined) updateData.waitingOn = dto.waitingOn;
+      if (dto.archived !== undefined) updateData.archived = dto.archived;
+      if (dto.source !== undefined) updateData.source = dto.source;
+      if (dto.createdByPrompt !== undefined) {
+        updateData.createdByPrompt = dto.createdByPrompt;
+      }
       if (dto.notes !== undefined) updateData.notes = dto.notes;
 
       const todo = await this.prisma.$transaction(async (tx) => {
-        let currentTodoProjectId: string | null | undefined;
-        const getCurrentTodoProjectId = async () => {
-          if (currentTodoProjectId !== undefined) {
-            return currentTodoProjectId;
-          }
-          const currentTodo = await tx.todo.findFirst({
-            where: { id, userId },
-            select: { projectId: true },
-          });
-          if (!currentTodo) {
-            currentTodoProjectId = null;
-            return null;
-          }
-          currentTodoProjectId = currentTodo.projectId;
-          return currentTodoProjectId;
-        };
+        const currentTodo = await tx.todo.findFirst({
+          where: { id, userId },
+          select: {
+            id: true,
+            projectId: true,
+            status: true,
+            completed: true,
+            completedAt: true,
+            recurrenceType: true,
+            recurrenceInterval: true,
+            recurrenceRrule: true,
+            recurrenceNextOccurrence: true,
+          },
+        });
+        if (!currentTodo) {
+          return null;
+        }
 
-        let nextProjectId: string | null | undefined;
-        if (dto.category !== undefined) {
+        let nextProjectId = currentTodo.projectId;
+        let projectChanged = false;
+
+        if (dto.projectId !== undefined) {
+          if (dto.projectId === null) {
+            nextProjectId = null;
+            projectChanged = currentTodo.projectId !== null;
+            updateData.projectId = null;
+            updateData.category = null;
+            updateData.headingId = null;
+          } else {
+            const project = await this.findOwnedProject(
+              tx,
+              userId,
+              dto.projectId,
+            );
+            if (!project) {
+              return null;
+            }
+            nextProjectId = project.id;
+            projectChanged = currentTodo.projectId !== project.id;
+            updateData.projectId = project.id;
+            updateData.category = project.name;
+            if (projectChanged && dto.headingId === undefined) {
+              updateData.headingId = null;
+            }
+          }
+        } else if (dto.category !== undefined) {
           const category = this.normalizeCategory(dto.category);
           if (!category) {
+            nextProjectId = null;
+            projectChanged = currentTodo.projectId !== null;
             updateData.category = null;
             updateData.projectId = null;
             updateData.headingId = null;
-            nextProjectId = null;
           } else {
-            const previousProjectId = await getCurrentTodoProjectId();
-            if (previousProjectId === null) {
-              return null;
-            }
-            updateData.category = category;
             const ensuredProjectId = await this.ensureProjectId(
               tx,
               userId,
               category,
             );
+            nextProjectId = ensuredProjectId;
+            projectChanged = currentTodo.projectId !== ensuredProjectId;
+            updateData.category = category;
             updateData.projectId = ensuredProjectId;
-            if (previousProjectId !== ensuredProjectId) {
+            if (projectChanged && dto.headingId === undefined) {
               updateData.headingId = null;
             }
-            nextProjectId = ensuredProjectId;
           }
         }
 
@@ -332,19 +604,43 @@ export class PrismaTodoService implements ITodoService {
           if (dto.headingId === null) {
             updateData.headingId = null;
           } else {
-            const projectId = await getCurrentTodoProjectId();
-            if (projectId === null) {
-              return null;
-            }
-            const projectIdForHeading =
-              nextProjectId !== undefined ? nextProjectId : projectId;
             updateData.headingId = await this.ensureHeadingId(
               tx,
               userId,
-              projectIdForHeading,
+              nextProjectId,
               dto.headingId,
             );
           }
+        }
+
+        const state = this.buildTodoState({
+          currentStatus: currentTodo.status,
+          currentCompleted: currentTodo.completed,
+          currentCompletedAt: currentTodo.completedAt,
+          nextStatus: dto.status,
+          nextCompleted: dto.completed,
+        });
+        updateData.status = state.status as PrismaTodoStatus;
+        updateData.completed = state.completed;
+        updateData.completedAt = state.completedAt;
+
+        if (dto.dependsOnTaskIds !== undefined) {
+          updateData.dependsOnTaskIds = await this.validateDependencyIds(
+            tx,
+            userId,
+            dto.dependsOnTaskIds,
+            id,
+          );
+        }
+
+        const recurrence = this.buildRecurrenceFields(dto.recurrence, {
+          type: currentTodo.recurrenceType,
+          interval: currentTodo.recurrenceInterval,
+          rrule: currentTodo.recurrenceRrule,
+          nextOccurrence: currentTodo.recurrenceNextOccurrence,
+        });
+        if (recurrence) {
+          Object.assign(updateData, recurrence);
         }
 
         if (Object.keys(updateData).length === 0) {
@@ -575,6 +871,7 @@ export class PrismaTodoService implements ITodoService {
           data: {
             title: dto.title,
             completed: false,
+            completedAt: null,
             order: (maxOrder?.order ?? -1) + 1,
             todoId,
           },
@@ -611,7 +908,10 @@ export class PrismaTodoService implements ITodoService {
         if (dto.order === undefined) {
           const updateData: Prisma.SubtaskUpdateManyMutationInput = {};
           if (dto.title !== undefined) updateData.title = dto.title;
-          if (dto.completed !== undefined) updateData.completed = dto.completed;
+          if (dto.completed !== undefined) {
+            updateData.completed = dto.completed;
+            updateData.completedAt = dto.completed ? new Date() : null;
+          }
 
           const updated = await tx.subtask.updateMany({
             where: { id: subtaskId, todoId },
@@ -666,6 +966,7 @@ export class PrismaTodoService implements ITodoService {
             }
             if (dto.completed !== undefined) {
               data.completed = dto.completed;
+              data.completedAt = dto.completed ? new Date() : null;
             }
           }
           await tx.subtask.update({
@@ -730,11 +1031,32 @@ export class PrismaTodoService implements ITodoService {
       id: prismaTodo.id,
       title: prismaTodo.title,
       description: prismaTodo.description ?? undefined,
+      status: prismaTodo.status,
       completed: prismaTodo.completed,
+      projectId: prismaTodo.projectId ?? undefined,
       category: prismaTodo.project?.name ?? prismaTodo.category ?? undefined,
+      tags: prismaTodo.tags ?? [],
+      context: prismaTodo.context ?? undefined,
+      energy: prismaTodo.energy ?? undefined,
       dueDate: prismaTodo.dueDate ?? undefined,
+      startDate: prismaTodo.startDate ?? undefined,
+      scheduledDate: prismaTodo.scheduledDate ?? undefined,
+      reviewDate: prismaTodo.reviewDate ?? undefined,
+      completedAt: prismaTodo.completedAt ?? undefined,
+      estimateMinutes: prismaTodo.estimateMinutes ?? undefined,
+      waitingOn: prismaTodo.waitingOn ?? undefined,
+      dependsOnTaskIds: prismaTodo.dependsOnTaskIds ?? [],
       order: prismaTodo.order,
       priority: prismaTodo.priority || "medium",
+      archived: prismaTodo.archived,
+      recurrence: {
+        type: prismaTodo.recurrenceType,
+        interval: prismaTodo.recurrenceInterval ?? undefined,
+        rrule: prismaTodo.recurrenceRrule ?? undefined,
+        nextOccurrence: prismaTodo.recurrenceNextOccurrence ?? undefined,
+      },
+      source: prismaTodo.source ?? undefined,
+      createdByPrompt: prismaTodo.createdByPrompt ?? undefined,
       notes: prismaTodo.notes ?? undefined,
       headingId: prismaTodo.headingId ?? undefined,
       userId: prismaTodo.userId,
@@ -750,6 +1072,7 @@ export class PrismaTodoService implements ITodoService {
       title: prismaSubtask.title,
       completed: prismaSubtask.completed,
       order: prismaSubtask.order,
+      completedAt: prismaSubtask.completedAt ?? undefined,
       todoId: prismaSubtask.todoId,
       createdAt: prismaSubtask.createdAt,
       updatedAt: prismaSubtask.updatedAt,

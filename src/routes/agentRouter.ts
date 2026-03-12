@@ -81,8 +81,43 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "get_task"),
   );
   router.post(
+    "/read/get_project",
+    createAgentActionHandler(agentExecutor, "get_project"),
+  );
+  router.post(
     "/read/list_projects",
     createAgentActionHandler(agentExecutor, "list_projects"),
+  );
+  router.post(
+    "/read/list_today",
+    createAgentActionHandler(agentExecutor, "list_today"),
+  );
+  router.post(
+    "/read/list_next_actions",
+    createAgentActionHandler(agentExecutor, "list_next_actions"),
+  );
+  router.post(
+    "/read/list_waiting_on",
+    createAgentActionHandler(agentExecutor, "list_waiting_on"),
+  );
+  router.post(
+    "/read/list_upcoming",
+    createAgentActionHandler(agentExecutor, "list_upcoming"),
+  );
+  router.post(
+    "/read/list_stale_tasks",
+    createAgentActionHandler(agentExecutor, "list_stale_tasks"),
+  );
+  router.post(
+    "/read/list_projects_without_next_action",
+    createAgentActionHandler(
+      agentExecutor,
+      "list_projects_without_next_action",
+    ),
+  );
+  router.post(
+    "/read/review_projects",
+    createAgentActionHandler(agentExecutor, "review_projects"),
   );
   router.post(
     "/write/create_task",
@@ -97,12 +132,36 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "complete_task"),
   );
   router.post(
+    "/write/archive_task",
+    createAgentActionHandler(agentExecutor, "archive_task"),
+  );
+  router.post(
+    "/write/delete_task",
+    createAgentActionHandler(agentExecutor, "delete_task"),
+  );
+  router.post(
+    "/write/add_subtask",
+    createAgentActionHandler(agentExecutor, "add_subtask"),
+  );
+  router.post(
+    "/write/update_subtask",
+    createAgentActionHandler(agentExecutor, "update_subtask"),
+  );
+  router.post(
+    "/write/delete_subtask",
+    createAgentActionHandler(agentExecutor, "delete_subtask"),
+  );
+  router.post(
     "/write/create_project",
     createAgentActionHandler(agentExecutor, "create_project"),
   );
   router.post(
     "/write/update_project",
     createAgentActionHandler(agentExecutor, "update_project"),
+  );
+  router.post(
+    "/write/rename_project",
+    createAgentActionHandler(agentExecutor, "rename_project"),
   );
   router.post(
     "/write/delete_project",

@@ -150,13 +150,27 @@ The older `read` / `write` aliases are still accepted by validation and expanded
 | `list_tasks`     | Yes       | `tasks.read`     |
 | `search_tasks`   | Yes       | `tasks.read`     |
 | `get_task`       | Yes       | `tasks.read`     |
+| `list_today`     | Yes       | `tasks.read`     |
+| `list_next_actions` | Yes    | `tasks.read`     |
+| `list_waiting_on` | Yes      | `tasks.read`     |
+| `list_upcoming`  | Yes       | `tasks.read`     |
+| `list_stale_tasks` | Yes     | `tasks.read`     |
 | `create_task`    | No        | `tasks.write`    |
 | `update_task`    | No        | `tasks.write`    |
 | `complete_task`  | No        | `tasks.write`    |
+| `archive_task`   | No        | `tasks.write`    |
+| `delete_task`    | No        | `tasks.write`    |
+| `add_subtask`    | No        | `tasks.write`    |
+| `update_subtask` | No        | `tasks.write`    |
+| `delete_subtask` | No        | `tasks.write`    |
 | `move_task_to_project` | No  | `tasks.write`    |
 | `list_projects`  | Yes       | `projects.read`  |
+| `get_project`    | Yes       | `projects.read`  |
+| `review_projects` | Yes      | `projects.read`  |
+| `list_projects_without_next_action` | Yes | `projects.read`, `tasks.read` |
 | `create_project` | No        | `projects.write` |
 | `update_project` | No        | `projects.write` |
+| `rename_project` | No        | `projects.write` |
 | `delete_project` | No        | `projects.write` |
 | `archive_project` | No       | `projects.write` |
 

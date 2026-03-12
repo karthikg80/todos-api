@@ -37,6 +37,54 @@ describe("TodoService", () => {
 
       expect(todo1.id).not.toBe(todo2.id);
     });
+
+    it("should create a todo with the expanded task fields", async () => {
+      const dueDate = new Date("2026-03-20T10:00:00.000Z");
+      const scheduledDate = new Date("2026-03-18T09:00:00.000Z");
+      const reviewDate = new Date("2026-03-19T08:00:00.000Z");
+      const todo = await service.create(TEST_USER_ID, {
+        title: "Plan trip",
+        description: "Book hotel and flights",
+        status: "scheduled",
+        projectId: "project-1",
+        category: "Travel",
+        tags: ["travel", "planning"],
+        context: "computer",
+        energy: "medium",
+        dueDate,
+        scheduledDate,
+        reviewDate,
+        estimateMinutes: 45,
+        waitingOn: "Airline sale",
+        dependsOnTaskIds: ["task-a"],
+        archived: false,
+        recurrence: { type: "weekly", interval: 1 },
+        source: "chat",
+        createdByPrompt: "Plan my vacation",
+        notes: "Use miles if possible",
+      });
+
+      expect(todo.status).toBe("scheduled");
+      expect(todo.projectId).toBe("project-1");
+      expect(todo.tags).toEqual(["travel", "planning"]);
+      expect(todo.context).toBe("computer");
+      expect(todo.energy).toBe("medium");
+      expect(todo.dueDate).toEqual(dueDate);
+      expect(todo.scheduledDate).toEqual(scheduledDate);
+      expect(todo.reviewDate).toEqual(reviewDate);
+      expect(todo.estimateMinutes).toBe(45);
+      expect(todo.waitingOn).toBe("Airline sale");
+      expect(todo.dependsOnTaskIds).toEqual(["task-a"]);
+      expect(todo.recurrence).toEqual({
+        type: "weekly",
+        interval: 1,
+        rrule: undefined,
+        nextOccurrence: undefined,
+      });
+      expect(todo.source).toBe("chat");
+      expect(todo.createdByPrompt).toBe("Plan my vacation");
+      expect(todo.notes).toBe("Use miles if possible");
+    });
   });
 
   describe("findAll", () => {
@@ -154,6 +202,45 @@ describe("TodoService", () => {
       expect(updated!.completed).toBe(true);
     });
 
+    it("should update the expanded task fields", async () => {
+      const created = await service.create(TEST_USER_ID, { title: "Original" });
+      const scheduledDate = new Date("2026-03-21T09:30:00.000Z");
+      const updated = await service.update(TEST_USER_ID, created.id, {
+        status: "waiting",
+        projectId: "project-2",
+        category: "Personal",
+        tags: ["home"],
+        context: "phone",
+        energy: "low",
+        scheduledDate,
+        estimateMinutes: 15,
+        waitingOn: "Landlord reply",
+        dependsOnTaskIds: ["dep-1", "dep-2"],
+        archived: true,
+        recurrence: { type: "monthly", interval: 1 },
+        source: "automation",
+        createdByPrompt: "Keep following up",
+        notes: "Ping again if no reply",
+      });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.status).toBe("waiting");
+      expect(updated!.projectId).toBe("project-2");
+      expect(updated!.category).toBe("Personal");
+      expect(updated!.tags).toEqual(["home"]);
+      expect(updated!.context).toBe("phone");
+      expect(updated!.energy).toBe("low");
+      expect(updated!.scheduledDate).toEqual(scheduledDate);
+      expect(updated!.estimateMinutes).toBe(15);
+      expect(updated!.waitingOn).toBe("Landlord reply");
+      expect(updated!.dependsOnTaskIds).toEqual(["dep-1", "dep-2"]);
+      expect(updated!.archived).toBe(true);
+      expect(updated!.recurrence.type).toBe("monthly");
+      expect(updated!.source).toBe("automation");
+      expect(updated!.createdByPrompt).toBe("Keep following up");
+      expect(updated!.notes).toBe("Ping again if no reply");
+    });
+
     it("should return null for non-existent ID", async () => {
       const updated = await service.update(TEST_USER_ID, "non-existent-id", {
         title: "Test",
@@ -172,6 +259,21 @@ describe("TodoService", () => {
       expect(updated!.updatedAt.getTime()).toBeGreaterThanOrEqual(
         originalUpdatedAt.getTime(),
       );
+    });
+
+    it("should set status=done and completedAt when completing a task", async () => {
+      const created = await service.create(TEST_USER_ID, {
+        title: "Finish taxes",
+      });
+
+      const updated = await service.update(TEST_USER_ID, created.id, {
+        completed: true,
+      });
+
+      expect(updated).not.toBeNull();
+      expect(updated!.completed).toBe(true);
+      expect(updated!.status).toBe("done");
+      expect(updated!.completedAt).toBeInstanceOf(Date);
     });
   });
 

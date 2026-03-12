@@ -94,13 +94,21 @@ describe("API Contract", () => {
       expect(schemas.User.properties.role).toBeDefined();
       expect(schemas.User.properties.isVerified).toBeDefined();
       expect(schemas.Todo.properties.priority).toBeDefined();
+      expect(schemas.Todo.properties.status).toBeDefined();
+      expect(schemas.Todo.properties.projectId).toBeDefined();
       expect(schemas.Todo.properties.category).toBeDefined();
       expect(schemas.Todo.properties.dueDate).toBeDefined();
+      expect(schemas.Todo.properties.scheduledDate).toBeDefined();
+      expect(schemas.Todo.properties.completedAt).toBeDefined();
+      expect(schemas.Todo.properties.archived).toBeDefined();
       expect(schemas.Todo.properties.notes).toBeDefined();
       expect(schemas.Todo.properties.order).toBeDefined();
       expect(schemas.Todo.properties.subtasks).toBeDefined();
       expect(schemas.Project.properties.archived).toBeDefined();
+      expect(schemas.Project.properties.status).toBeDefined();
+      expect(schemas.Project.properties.reviewCadence).toBeDefined();
       expect(schemas.Project.properties.openTodoCount).toBeDefined();
+      expect(schemas.Subtask.properties.completedAt).toBeDefined();
     });
 
     it("documents todo list query params for filtering and pagination", async () => {
@@ -117,7 +125,10 @@ describe("API Contract", () => {
         expect.arrayContaining([
           "completed",
           "priority",
+          "status",
           "category",
+          "projectId",
+          "archived",
           "sortBy",
           "sortOrder",
           "page",

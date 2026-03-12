@@ -43,13 +43,27 @@ Initial public tools:
 - `list_tasks`
 - `search_tasks`
 - `get_task`
+- `get_project`
 - `create_task`
 - `update_task`
 - `complete_task`
+- `archive_task`
+- `delete_task`
+- `add_subtask`
+- `update_subtask`
+- `delete_subtask`
 - `move_task_to_project`
+- `list_today`
+- `list_next_actions`
+- `list_waiting_on`
+- `list_upcoming`
+- `list_stale_tasks`
 - `list_projects`
+- `list_projects_without_next_action`
+- `review_projects`
 - `create_project`
 - `update_project`
+- `rename_project`
 - `delete_project`
 - `archive_project`
 
@@ -138,5 +152,5 @@ Those docs also record what remains manual from this sandboxed environment.
 
 - no refresh-token flow yet for assistant clients
 - no persisted audit store or token revocation list yet
-- idempotency is only implemented for `create_task`
+- idempotency is implemented for `create_task` and `create_project`
 - the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access

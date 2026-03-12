@@ -23,14 +23,23 @@ export class PrismaProjectService implements IProjectService {
     rows: Array<{
       id: string;
       name: string;
+      description: string | null;
+      status: Project["status"];
+      priority: Project["priority"];
+      area: string | null;
+      goal: string | null;
+      targetDate: Date | null;
+      reviewCadence: Project["reviewCadence"];
+      lastReviewedAt: Date | null;
       archived: boolean;
+      archivedAt: Date | null;
       userId: string;
       createdAt: Date;
       updatedAt: Date;
       _count: { todos: number };
     }>,
   ): Promise<Project[]> {
-    const openTodoCountByProjectId = await this.getOpenTodoCountMap(
+    const projectCounts = await this.getProjectCountMaps(
       userId,
       rows.map((row) => row.id),
     );
@@ -38,38 +47,76 @@ export class PrismaProjectService implements IProjectService {
     return rows.map((row) => ({
       id: row.id,
       name: row.name,
+      description: row.description,
+      status: row.status,
+      priority: row.priority ?? undefined,
+      area: row.area,
+      goal: row.goal,
+      targetDate: row.targetDate,
+      reviewCadence: row.reviewCadence ?? undefined,
+      lastReviewedAt: row.lastReviewedAt,
       archived: row.archived,
+      archivedAt: row.archivedAt,
       userId: row.userId,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
+      taskCount: row._count.todos,
+      openTaskCount: projectCounts.openByProjectId.get(row.id) || 0,
+      completedTaskCount: projectCounts.completedByProjectId.get(row.id) || 0,
       todoCount: row._count.todos,
-      openTodoCount: openTodoCountByProjectId.get(row.id) || 0,
+      openTodoCount: projectCounts.openByProjectId.get(row.id) || 0,
     }));
   }
 
-  private async getOpenTodoCountMap(
+  private async getProjectCountMaps(
     userId: string,
     projectIds: string[],
-  ): Promise<Map<string, number>> {
+  ): Promise<{
+    openByProjectId: Map<string, number>;
+    completedByProjectId: Map<string, number>;
+  }> {
     if (!projectIds.length) {
-      return new Map();
+      return {
+        openByProjectId: new Map(),
+        completedByProjectId: new Map(),
+      };
     }
 
-    const rows = await this.prisma.todo.groupBy({
-      by: ["projectId"],
-      where: {
-        userId,
-        completed: false,
-        projectId: { in: projectIds },
-      },
-      _count: { _all: true },
-    });
+    const [openRows, completedRows] = await Promise.all([
+      this.prisma.todo.groupBy({
+        by: ["projectId"],
+        where: {
+          userId,
+          completed: false,
+          archived: false,
+          projectId: { in: projectIds },
+        },
+        _count: { _all: true },
+      }),
+      this.prisma.todo.groupBy({
+        by: ["projectId"],
+        where: {
+          userId,
+          completed: true,
+          archived: false,
+          projectId: { in: projectIds },
+        },
+        _count: { _all: true },
+      }),
+    ]);
 
-    return new Map(
-      rows
-        .filter((row) => typeof row.projectId === "string" && row.projectId)
-        .map((row) => [String(row.projectId), row._count._all]),
-    );
+    return {
+      openByProjectId: new Map(
+        openRows
+          .filter((row) => typeof row.projectId === "string" && row.projectId)
+          .map((row) => [String(row.projectId), row._count._all]),
+      ),
+      completedByProjectId: new Map(
+        completedRows
+          .filter((row) => typeof row.projectId === "string" && row.projectId)
+          .map((row) => [String(row.projectId), row._count._all]),
+      ),
+    };
   }
 
   async findAll(userId: string): Promise<Project[]> {
@@ -111,20 +158,44 @@ export class PrismaProjectService implements IProjectService {
 
   async create(userId: string, dto: CreateProjectDto): Promise<Project> {
     try {
+      const archived = dto.archived === true || dto.status === "archived";
+      const status = archived ? "archived" : dto.status || "active";
+      const archivedAt = archived ? new Date() : null;
       const row = await this.prisma.project.create({
         data: {
-          archived: false,
           name: dto.name,
+          description: dto.description,
+          status,
+          priority: dto.priority ?? null,
+          area: dto.area,
+          goal: dto.goal,
+          targetDate: dto.targetDate,
+          reviewCadence: dto.reviewCadence ?? null,
+          lastReviewedAt: dto.lastReviewedAt,
+          archived,
+          archivedAt,
           userId,
         },
       });
       return {
         id: row.id,
         name: row.name,
+        description: row.description,
+        status: row.status,
+        priority: row.priority ?? undefined,
+        area: row.area,
+        goal: row.goal,
+        targetDate: row.targetDate,
+        reviewCadence: row.reviewCadence ?? undefined,
+        lastReviewedAt: row.lastReviewedAt,
         archived: row.archived,
+        archivedAt: row.archivedAt,
         userId: row.userId,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
+        taskCount: 0,
+        openTaskCount: 0,
+        completedTaskCount: 0,
         todoCount: 0,
         openTodoCount: 0,
       };
@@ -150,30 +221,82 @@ export class PrismaProjectService implements IProjectService {
           return null;
         }
 
+        const archived =
+          dto.archived !== undefined
+            ? dto.archived
+            : dto.status !== undefined
+              ? dto.status === "archived"
+              : existing.archived;
+        const status = archived
+          ? "archived"
+          : dto.status && dto.status !== "archived"
+            ? dto.status
+            : existing.status === "archived"
+              ? "active"
+              : existing.status;
+        const archivedAt = archived ? existing.archivedAt || new Date() : null;
+
         const updated = await tx.project.update({
           where: { id: projectId },
-          data: { name: dto.name },
+          data: {
+            ...(dto.name !== undefined ? { name: dto.name } : {}),
+            ...(dto.description !== undefined
+              ? { description: dto.description }
+              : {}),
+            ...(dto.priority !== undefined ? { priority: dto.priority } : {}),
+            ...(dto.area !== undefined ? { area: dto.area } : {}),
+            ...(dto.goal !== undefined ? { goal: dto.goal } : {}),
+            ...(dto.targetDate !== undefined
+              ? { targetDate: dto.targetDate }
+              : {}),
+            ...(dto.reviewCadence !== undefined
+              ? { reviewCadence: dto.reviewCadence }
+              : {}),
+            ...(dto.lastReviewedAt !== undefined
+              ? { lastReviewedAt: dto.lastReviewedAt }
+              : {}),
+            archived,
+            archivedAt,
+            status,
+          },
         });
 
         // Keep legacy category column synchronized until full API migration is complete.
-        await tx.todo.updateMany({
-          where: { userId, projectId },
-          data: { category: dto.name },
-        });
+        if (dto.name !== undefined) {
+          await tx.todo.updateMany({
+            where: { userId, projectId },
+            data: { category: dto.name },
+          });
+        }
 
-        const [count, openTodoCount] = await Promise.all([
+        const [count, openTodoCount, completedTaskCount] = await Promise.all([
           tx.todo.count({ where: { userId, projectId } }),
           tx.todo.count({
-            where: { userId, projectId, completed: false },
+            where: { userId, projectId, completed: false, archived: false },
+          }),
+          tx.todo.count({
+            where: { userId, projectId, completed: true, archived: false },
           }),
         ]);
         return {
           id: updated.id,
           name: updated.name,
+          description: updated.description,
+          status: updated.status,
+          priority: updated.priority ?? undefined,
+          area: updated.area,
+          goal: updated.goal,
+          targetDate: updated.targetDate,
+          reviewCadence: updated.reviewCadence ?? undefined,
+          lastReviewedAt: updated.lastReviewedAt,
           archived: updated.archived,
+          archivedAt: updated.archivedAt,
           userId: updated.userId,
           createdAt: updated.createdAt,
           updatedAt: updated.updatedAt,
+          taskCount: count,
+          openTaskCount: openTodoCount,
+          completedTaskCount,
           todoCount: count,
           openTodoCount,
         };
@@ -195,37 +318,7 @@ export class PrismaProjectService implements IProjectService {
     archived: boolean,
   ): Promise<Project | null> {
     try {
-      return await this.prisma.$transaction(async (tx) => {
-        const existing = await tx.project.findFirst({
-          where: { id: projectId, userId },
-        });
-        if (!existing) {
-          return null;
-        }
-
-        const updated = await tx.project.update({
-          where: { id: projectId },
-          data: { archived },
-        });
-
-        const [count, openTodoCount] = await Promise.all([
-          tx.todo.count({ where: { userId, projectId } }),
-          tx.todo.count({
-            where: { userId, projectId, completed: false },
-          }),
-        ]);
-
-        return {
-          id: updated.id,
-          name: updated.name,
-          archived: updated.archived,
-          userId: updated.userId,
-          createdAt: updated.createdAt,
-          updatedAt: updated.updatedAt,
-          todoCount: count,
-          openTodoCount,
-        };
-      });
+      return await this.update(userId, projectId, { archived });
     } catch (error: unknown) {
       if (hasPrismaCode(error, ["P2023"])) {
         return null;

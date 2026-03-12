@@ -28,6 +28,55 @@ enum TodoPriority {
   low
   medium
   high
+  urgent
+}
+
+enum TodoStatus {
+  inbox
+  next
+  in_progress
+  waiting
+  scheduled
+  someday
+  done
+  cancelled
+}
+
+enum ProjectStatus {
+  active
+  on_hold
+  completed
+  archived
+}
+
+enum TodoEnergy {
+  low
+  medium
+  high
+}
+
+enum ProjectReviewCadence {
+  weekly
+  biweekly
+  monthly
+  quarterly
+}
+
+enum TodoSource {
+  manual
+  chat
+  email
+  import
+  automation
+}
+
+enum TodoRecurrenceType {
+  none
+  daily
+  weekly
+  monthly
+  yearly
+  rrule
 }
 
 enum AiSuggestionType {
@@ -77,12 +126,21 @@ model RefreshToken {
 }
 
 model Project {
-  id        String   @id @default(uuid())
-  name      String   @db.VarChar(50)
-  archived  Boolean  @default(false)
-  userId    String   @map("user_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id             String                @id @default(uuid())
+  name           String                @db.VarChar(50)
+  description    String?               @db.Text
+  status         ProjectStatus         @default(active)
+  priority       TodoPriority?
+  area           String?               @db.VarChar(100)
+  goal           String?               @db.Text
+  targetDate     DateTime?             @map("target_date")
+  reviewCadence  ProjectReviewCadence? @map("review_cadence")
+  lastReviewedAt DateTime?             @map("last_reviewed_at")
+  archived       Boolean               @default(false)
+  archivedAt     DateTime?             @map("archived_at")
+  userId         String                @map("user_id")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
 
   user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   todos Todo[]
@@ -110,20 +168,38 @@ model Heading {
 }
 
 model Todo {
-  id          String    @id @default(uuid())
-  title       String    @db.VarChar(200)
-  description String?   @db.VarChar(1000)
-  completed   Boolean   @default(false)
-  category    String?   @db.VarChar(50)
-  projectId   String?   @map("project_id")
-  headingId   String?   @map("heading_id")
-  dueDate     DateTime? @map("due_date")
-  order       Int       @default(0)
-  priority    TodoPriority @default(medium)
-  notes       String?   @db.Text
-  userId      String    @map("user_id")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id                    String             @id @default(uuid())
+  title                 String             @db.VarChar(200)
+  description           String?            @db.VarChar(1000)
+  status                TodoStatus         @default(next)
+  completed             Boolean            @default(false)
+  category              String?            @db.VarChar(50)
+  projectId             String?            @map("project_id")
+  headingId             String?            @map("heading_id")
+  context               String?            @db.VarChar(100)
+  energy                TodoEnergy?
+  dueDate               DateTime?          @map("due_date")
+  startDate             DateTime?          @map("start_date")
+  scheduledDate         DateTime?          @map("scheduled_date")
+  reviewDate            DateTime?          @map("review_date")
+  completedAt           DateTime?          @map("completed_at")
+  estimateMinutes       Int?               @map("estimate_minutes")
+  waitingOn             String?            @map("waiting_on") @db.VarChar(255)
+  dependsOnTaskIds      String[]           @default([]) @map("depends_on_task_ids")
+  tags                  String[]           @default([])
+  order                 Int                @default(0)
+  priority              TodoPriority       @default(medium)
+  archived              Boolean            @default(false)
+  recurrenceType        TodoRecurrenceType @default(none) @map("recurrence_type")
+  recurrenceInterval    Int?               @map("recurrence_interval")
+  recurrenceRrule       String?            @map("recurrence_rrule") @db.Text
+  recurrenceNextOccurrence DateTime?       @map("recurrence_next_occurrence")
+  source                TodoSource?
+  createdByPrompt       String?            @map("created_by_prompt") @db.Text
+  notes                 String?            @db.Text
+  userId                String             @map("user_id")
+  createdAt             DateTime           @default(now()) @map("created_at")
+  updatedAt             DateTime           @updatedAt @map("updated_at")
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
@@ -136,18 +212,23 @@ model Todo {
   @@index([userId, projectId])
   @@index([userId, headingId])
   @@index([userId, dueDate])
+  @@index([userId, status])
+  @@index([userId, archived])
+  @@index([userId, projectId, status])
+  @@index([userId, scheduledDate])
   @@index([userId, order])
   @@index([userId, priority])
 }
 
 model Subtask {
-  id        String   @id @default(uuid())
-  title     String   @db.VarChar(200)
-  completed Boolean  @default(false)
-  order     Int      @default(0)
-  todoId    String   @map("todo_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(200)
+  completed   Boolean  @default(false)
+  order       Int      @default(0)
+  completedAt DateTime? @map("completed_at")
+  todoId      String   @map("todo_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   todo Todo @relation(fields: [todoId], references: [id], onDelete: Cascade)
 

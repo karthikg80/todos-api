@@ -652,7 +652,7 @@ export function createAiRouter({
             title: todo.title,
             description: todo.description,
             notes: todo.notes,
-            priority: todo.priority,
+            priority: todo.priority ?? undefined,
             maxSubtasks,
           },
           feedbackContext,

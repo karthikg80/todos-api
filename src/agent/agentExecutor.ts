@@ -5,16 +5,30 @@ import agentManifest from "./agent-manifest.json";
 import { AgentIdempotencyService } from "../services/agentIdempotencyService";
 import { AgentService } from "../services/agentService";
 import {
+  validateAgentAddSubtaskInput,
   validateAgentArchiveProjectInput,
+  validateAgentArchiveTaskInput,
   validateAgentCompleteTaskInput,
   validateAgentCreateProjectInput,
   validateAgentCreateTaskInput,
+  validateAgentDeleteSubtaskInput,
+  validateAgentDeleteTaskInput,
   validateAgentDeleteProjectInput,
+  validateAgentGetProjectInput,
   validateAgentGetTaskInput,
+  validateAgentListNextActionsInput,
   validateAgentListProjectsInput,
+  validateAgentListProjectsWithoutNextActionInput,
   validateAgentListTasksInput,
+  validateAgentListStaleTasksInput,
+  validateAgentListTodayInput,
+  validateAgentListUpcomingInput,
+  validateAgentListWaitingOnInput,
   validateAgentMoveTaskToProjectInput,
+  validateAgentRenameProjectInput,
+  validateAgentReviewProjectsInput,
   validateAgentSearchTasksInput,
+  validateAgentUpdateSubtaskInput,
   validateAgentUpdateProjectInput,
   validateAgentUpdateTaskInput,
 } from "../validation/agentValidation";
@@ -23,15 +37,29 @@ export type AgentActionName =
   | "list_tasks"
   | "search_tasks"
   | "get_task"
+  | "get_project"
   | "create_task"
   | "update_task"
   | "complete_task"
+  | "archive_task"
+  | "delete_task"
+  | "add_subtask"
+  | "update_subtask"
+  | "delete_subtask"
   | "list_projects"
   | "create_project"
   | "update_project"
+  | "rename_project"
   | "delete_project"
   | "move_task_to_project"
-  | "archive_project";
+  | "archive_project"
+  | "list_today"
+  | "list_next_actions"
+  | "list_waiting_on"
+  | "list_upcoming"
+  | "list_stale_tasks"
+  | "list_projects_without_next_action"
+  | "review_projects";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -91,7 +119,15 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "list_tasks",
   "search_tasks",
   "get_task",
+  "get_project",
   "list_projects",
+  "list_today",
+  "list_next_actions",
+  "list_waiting_on",
+  "list_upcoming",
+  "list_stale_tasks",
+  "list_projects_without_next_action",
+  "review_projects",
 ]);
 
 function buildTrace(
@@ -187,6 +223,28 @@ function toAgentError(error: unknown): {
           message: "Invalid heading for project",
           retryable: false,
           hint: "Use a heading that belongs to the same project as the task.",
+        },
+      };
+    }
+    if (error.message === "INVALID_DEPENDENCY") {
+      return {
+        status: 400,
+        error: {
+          code: "INVALID_TASK_DEPENDENCY",
+          message: "One or more dependency task IDs are invalid",
+          retryable: false,
+          hint: "Use dependency task IDs that belong to the authenticated user and do not reference the task itself.",
+        },
+      };
+    }
+    if (error.message === "INVALID_PROJECT") {
+      return {
+        status: 404,
+        error: {
+          code: "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+          message: "Project not found",
+          retryable: false,
+          hint: "Verify the referenced project ID belongs to the authenticated user.",
         },
       };
     }
@@ -342,6 +400,23 @@ export class AgentExecutor {
           }
           return this.success(action, readOnly, context, 200, { task });
         }
+        case "get_project": {
+          const { id } = validateAgentGetProjectInput(input);
+          const project = await this.agentService.getProject(
+            context.userId,
+            id,
+          );
+          if (!project) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { project });
+        }
         case "create_task": {
           const createInput = validateAgentCreateTaskInput(input);
           return await this.handleCreateTask(action, context, createInput);
@@ -382,9 +457,113 @@ export class AgentExecutor {
           }
           return this.success(action, readOnly, context, 200, { task });
         }
+        case "archive_task": {
+          const { id, archived } = validateAgentArchiveTaskInput(input);
+          const task = await this.agentService.archiveTask(
+            context.userId,
+            id,
+            archived,
+          );
+          if (!task) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Task not found",
+              false,
+              "Verify the task ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { task });
+        }
+        case "delete_task": {
+          const { id, hardDelete } = validateAgentDeleteTaskInput(input);
+          const result = await this.agentService.deleteTask(
+            context.userId,
+            id,
+            hardDelete,
+          );
+          if (!result) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Task not found",
+              false,
+              "Verify the task ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, {
+            deleted: hardDelete === true,
+            archived: hardDelete === true ? false : true,
+            task: typeof result === "boolean" ? null : result,
+            taskId: id,
+          });
+        }
+        case "add_subtask": {
+          const { taskId, changes } = validateAgentAddSubtaskInput(input);
+          const subtask = await this.agentService.addSubtask(
+            context.userId,
+            taskId,
+            changes,
+          );
+          if (!subtask) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Task not found",
+              false,
+              "Verify the parent task ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 201, { subtask });
+        }
+        case "update_subtask": {
+          const { taskId, subtaskId, changes } =
+            validateAgentUpdateSubtaskInput(input);
+          const subtask = await this.agentService.updateSubtask(
+            context.userId,
+            taskId,
+            subtaskId,
+            changes,
+          );
+          if (!subtask) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Task or subtask not found",
+              false,
+              "Verify the task ID and subtask ID belong to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { subtask });
+        }
+        case "delete_subtask": {
+          const { taskId, subtaskId } = validateAgentDeleteSubtaskInput(input);
+          const deleted = await this.agentService.deleteSubtask(
+            context.userId,
+            taskId,
+            subtaskId,
+          );
+          if (!deleted) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Task or subtask not found",
+              false,
+              "Verify the task ID and subtask ID belong to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, {
+            deleted: true,
+            taskId,
+            subtaskId,
+          });
+        }
         case "list_projects": {
-          validateAgentListProjectsInput(input);
-          const projects = await this.agentService.listProjects(context.userId);
+          const filters = validateAgentListProjectsInput(input);
+          const projects = await this.agentService.listProjects(
+            context.userId,
+            filters,
+          );
           return this.success(action, readOnly, context, 200, { projects });
         }
         case "create_project": {
@@ -409,9 +588,48 @@ export class AgentExecutor {
           }
           return this.success(action, readOnly, context, 200, { project });
         }
+        case "rename_project": {
+          const { id, name } = validateAgentRenameProjectInput(input);
+          const project = await this.agentService.renameProject(
+            context.userId,
+            id,
+            name,
+          );
+          if (!project) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, { project });
+        }
         case "delete_project": {
-          const { id, moveTasksToProjectId } =
+          const { id, moveTasksToProjectId, archiveInstead } =
             validateAgentDeleteProjectInput(input);
+          if (archiveInstead) {
+            const project = await this.agentService.archiveProject(
+              context.userId,
+              id,
+              true,
+            );
+            if (!project) {
+              throw new AgentExecutionError(
+                404,
+                "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+                "Project not found",
+                false,
+                "Verify the project ID belongs to the authenticated user.",
+              );
+            }
+            return this.success(action, readOnly, context, 200, {
+              deleted: false,
+              archived: true,
+              project,
+            });
+          }
           const deleted = await this.agentService.deleteProject(
             context.userId,
             id,
@@ -469,6 +687,64 @@ export class AgentExecutor {
             );
           }
           return this.success(action, readOnly, context, 200, { project });
+        }
+        case "list_today": {
+          const filters = validateAgentListTodayInput(input);
+          const tasks = await this.agentService.listToday(
+            context.userId,
+            filters,
+          );
+          return this.success(action, readOnly, context, 200, { tasks });
+        }
+        case "list_next_actions": {
+          const filters = validateAgentListNextActionsInput(input);
+          const tasks = await this.agentService.listNextActions(
+            context.userId,
+            filters,
+          );
+          return this.success(action, readOnly, context, 200, { tasks });
+        }
+        case "list_waiting_on": {
+          const filters = validateAgentListWaitingOnInput(input);
+          const tasks = await this.agentService.listWaitingOn(
+            context.userId,
+            filters,
+          );
+          return this.success(action, readOnly, context, 200, { tasks });
+        }
+        case "list_upcoming": {
+          const filters = validateAgentListUpcomingInput(input);
+          const tasks = await this.agentService.listUpcoming(
+            context.userId,
+            filters,
+          );
+          return this.success(action, readOnly, context, 200, { tasks });
+        }
+        case "list_stale_tasks": {
+          const filters = validateAgentListStaleTasksInput(input);
+          const tasks = await this.agentService.listStaleTasks(
+            context.userId,
+            filters,
+          );
+          return this.success(action, readOnly, context, 200, { tasks });
+        }
+        case "list_projects_without_next_action": {
+          const filters =
+            validateAgentListProjectsWithoutNextActionInput(input);
+          const projects =
+            await this.agentService.listProjectsWithoutNextAction(
+              context.userId,
+              filters,
+            );
+          return this.success(action, readOnly, context, 200, { projects });
+        }
+        case "review_projects": {
+          const filters = validateAgentReviewProjectsInput(input);
+          const projects = await this.agentService.reviewProjects(
+            context.userId,
+            filters,
+          );
+          return this.success(action, readOnly, context, 200, { projects });
         }
       }
     } catch (error) {
