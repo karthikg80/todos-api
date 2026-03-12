@@ -263,6 +263,6 @@ Detailed deployment and smoke steps live in:
 ## Current Limitations
 
 - MCP access tokens are still JWTs and are not individually revocable yet
-- refresh tokens are rotated and stored durably, but there is no user-facing revoke-all-assistants UI yet
+- refresh tokens are rotated, stored durably, and survive app restarts, but there is no user-facing revoke-all-assistants UI yet
 - persisted audit records are lightweight operational traces, not a full analytics pipeline
 - real public deployment and connector validation must be completed from a networked environment with Railway and provider access
