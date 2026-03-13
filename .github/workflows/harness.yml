@@ -39,3 +39,7 @@ jobs:
         with:
           name: harness-cleanup-report
           path: artifacts/harness/cleanup-report
+
+      - name: Notify harness regression
+        if: failure()
+        run: node scripts/harness/issue-alert.mjs
