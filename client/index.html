@@ -1469,6 +1469,21 @@
                               </div>
                             </div>
                             <div class="action-row task-composer-actions">
+                              <label class="task-composer-inline-field">
+                                <span>Status</span>
+                                <select id="todoStatusSelect">
+                                  <option value="next" selected>Next</option>
+                                  <option value="inbox">Inbox</option>
+                                  <option value="in_progress">
+                                    In progress
+                                  </option>
+                                  <option value="waiting">Waiting</option>
+                                  <option value="scheduled">Scheduled</option>
+                                  <option value="someday">Someday</option>
+                                  <option value="done">Done</option>
+                                  <option value="cancelled">Cancelled</option>
+                                </select>
+                              </label>
                               <label class="action-label">Priority:</label>
                               <div class="priority-selector">
                                 <button
@@ -1506,6 +1521,116 @@
                               >
                                 Critique Draft (AI)
                               </button>
+                            </div>
+                            <div class="field-row task-composer-fields">
+                              <label
+                                class="task-composer-inline-field"
+                                for="todoStartDateInput"
+                              >
+                                <span>Start</span>
+                                <input
+                                  type="datetime-local"
+                                  id="todoStartDateInput"
+                                />
+                              </label>
+                              <label
+                                class="task-composer-inline-field"
+                                for="todoScheduledDateInput"
+                              >
+                                <span>Scheduled</span>
+                                <input
+                                  type="datetime-local"
+                                  id="todoScheduledDateInput"
+                                />
+                              </label>
+                              <label
+                                class="task-composer-inline-field"
+                                for="todoReviewDateInput"
+                              >
+                                <span>Review</span>
+                                <input
+                                  type="datetime-local"
+                                  id="todoReviewDateInput"
+                                />
+                              </label>
+                            </div>
+                            <div class="field-row task-composer-fields">
+                              <label
+                                class="task-composer-inline-field"
+                                for="todoContextInput"
+                              >
+                                <span>Context</span>
+                                <input
+                                  type="text"
+                                  id="todoContextInput"
+                                  maxlength="100"
+                                  placeholder="@computer"
+                                />
+                              </label>
+                              <label
+                                class="task-composer-inline-field"
+                                for="todoEnergySelect"
+                              >
+                                <span>Energy</span>
+                                <select id="todoEnergySelect">
+                                  <option value="" selected>None</option>
+                                  <option value="low">Low</option>
+                                  <option value="medium">Medium</option>
+                                  <option value="high">High</option>
+                                </select>
+                              </label>
+                              <label
+                                class="task-composer-inline-field"
+                                for="todoEstimateInput"
+                              >
+                                <span>Estimate</span>
+                                <input
+                                  type="number"
+                                  id="todoEstimateInput"
+                                  min="0"
+                                  step="1"
+                                  placeholder="Min"
+                                />
+                              </label>
+                            </div>
+                            <div class="field-row task-composer-fields">
+                              <label
+                                class="task-composer-inline-field task-composer-inline-field--wide"
+                                for="todoTagsInput"
+                              >
+                                <span>Tags</span>
+                                <input
+                                  type="text"
+                                  id="todoTagsInput"
+                                  maxlength="512"
+                                  placeholder="comma, separated, tags"
+                                />
+                              </label>
+                              <label
+                                class="task-composer-inline-field task-composer-inline-field--wide"
+                                for="todoWaitingOnInput"
+                              >
+                                <span>Waiting on</span>
+                                <input
+                                  type="text"
+                                  id="todoWaitingOnInput"
+                                  maxlength="255"
+                                  placeholder="Person, vendor, approval..."
+                                />
+                              </label>
+                            </div>
+                            <div class="field-row task-composer-fields">
+                              <label
+                                class="task-composer-inline-field task-composer-inline-field--wide"
+                                for="todoDependsOnInput"
+                              >
+                                <span>Depends on task IDs</span>
+                                <textarea
+                                  id="todoDependsOnInput"
+                                  rows="2"
+                                  placeholder="comma-separated task UUIDs"
+                                ></textarea>
+                              </label>
                             </div>
                           </div>
                           <div>

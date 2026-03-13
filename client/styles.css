@@ -6023,6 +6023,33 @@ body.is-todos-view .projects-rail-item__count {
   flex: 1 1 220px;
 }
 
+.task-composer-inline-field {
+  display: flex;
+  flex: 1 1 180px;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+.task-composer-inline-field > input,
+.task-composer-inline-field > select,
+.task-composer-inline-field > textarea {
+  width: 100%;
+}
+
+.task-composer-inline-field--wide {
+  flex-basis: 260px;
+}
+
+.todo-drawer__meta {
+  display: grid;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 .task-composer-due-wrap {
   position: relative;
   flex: 1 1 240px;
