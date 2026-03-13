@@ -65,8 +65,6 @@ export class AuthService {
   private readonly MCP_JWT_EXPIRES_IN = "30d";
   private readonly MCP_JWT_EXPIRES_IN_MS = 30 * 24 * 60 * 60 * 1000;
   private readonly REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
-  private readonly allowLegacyPlaintextRefreshTokenFallback: boolean;
-  private readonly legacyRefreshTokenFallbackUntil: Date | null;
   private emailService: EmailService;
 
   constructor(private prisma: PrismaClient) {
@@ -79,22 +77,7 @@ export class AuthService {
       process.env.JWT_REFRESH_SECRET ||
       process.env.JWT_SECRET ||
       config.refreshJwtSecret;
-    this.allowLegacyPlaintextRefreshTokenFallback =
-      (process.env.ALLOW_LEGACY_PLAINTEXT_REFRESH_TOKEN || "").toLowerCase() ===
-        "true" || config.allowLegacyPlaintextRefreshTokenFallback;
-    this.legacyRefreshTokenFallbackUntil =
-      config.legacyRefreshTokenFallbackUntil || null;
     this.emailService = new EmailService();
-  }
-
-  private shouldAllowLegacyPlaintextRefreshTokenFallback(): boolean {
-    if (!this.allowLegacyPlaintextRefreshTokenFallback) {
-      return false;
-    }
-    if (!this.legacyRefreshTokenFallbackUntil) {
-      return true;
-    }
-    return Date.now() <= this.legacyRefreshTokenFallbackUntil.getTime();
   }
 
   // Keep auth responses off the SMTP critical path.
@@ -593,38 +576,6 @@ export class AuthService {
       where: { token: hashedToken },
       include: { user: true },
     });
-
-    // Backward compatibility: opt-in and time-bound one-time rotation from older plaintext rows.
-    // TODO: Remove this fallback entirely after migration window closes.
-    if (!storedToken && this.shouldAllowLegacyPlaintextRefreshTokenFallback()) {
-      const legacyToken = await this.prisma.refreshToken.findUnique({
-        where: { token: refreshToken },
-        include: { user: true },
-      });
-      if (legacyToken) {
-        console.warn(
-          "[auth] rotating legacy plaintext refresh token row",
-          JSON.stringify({
-            refreshTokenId: legacyToken.id,
-            userId: legacyToken.userId,
-          }),
-        );
-        storedToken = await this.prisma.refreshToken.update({
-          where: { id: legacyToken.id },
-          data: { token: hashedToken },
-          include: { user: true },
-        });
-      }
-    } else if (
-      !storedToken &&
-      this.allowLegacyPlaintextRefreshTokenFallback &&
-      this.legacyRefreshTokenFallbackUntil &&
-      Date.now() > this.legacyRefreshTokenFallbackUntil.getTime()
-    ) {
-      console.warn(
-        `[auth] legacy plaintext refresh token fallback disabled after cutoff ${this.legacyRefreshTokenFallbackUntil.toISOString()}`,
-      );
-    }
 
     if (!storedToken) {
       throw new Error("Invalid refresh token");

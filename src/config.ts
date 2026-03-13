@@ -21,21 +21,6 @@ const databaseUrl =
   nodeEnv === "test"
     ? testDatabaseUrlFromAlias || databaseUrlTestRaw
     : process.env.DATABASE_URL;
-const allowLegacyPlaintextRefreshTokenFallback =
-  (
-    process.env.ALLOW_LEGACY_PLAINTEXT_REFRESH_TOKEN || "false"
-  ).toLowerCase() === "true";
-const legacyRefreshTokenFallbackUntilRaw = (
-  process.env.LEGACY_REFRESH_TOKEN_FALLBACK_UNTIL || "2026-12-31T23:59:59.000Z"
-).trim();
-const legacyRefreshTokenFallbackUntilDate = new Date(
-  legacyRefreshTokenFallbackUntilRaw,
-);
-const legacyRefreshTokenFallbackUntil = Number.isNaN(
-  legacyRefreshTokenFallbackUntilDate.getTime(),
-)
-  ? null
-  : legacyRefreshTokenFallbackUntilDate;
 const corsOrigins = (process.env.CORS_ORIGINS || "")
   .split(",")
   .map((origin) => origin.trim())
@@ -215,8 +200,6 @@ export const config = {
   aiProviderBaseUrl,
   aiProviderApiKey,
   aiProviderModel,
-  allowLegacyPlaintextRefreshTokenFallback,
-  legacyRefreshTokenFallbackUntil,
   aiDailySuggestionLimit:
     Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
       ? aiDailySuggestionLimit

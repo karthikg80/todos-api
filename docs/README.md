@@ -14,6 +14,7 @@ Navigation map for this directory.
 | `planner-runtime.md`     | Planner runtime architecture and tool-to-engine mapping                       |
 | `ops/railway-remote-mcp-deploy.md` | Railway deployment runbook for the public MCP surface            |
 | `ops/connector-smoke-checklist.md` | Manual ChatGPT / Claude connector smoke checklist                  |
+| `ops/refresh-token-fallback-removal.md` | Refresh-token cutover and legacy cleanup step               |
 | `ops/`                   | Repo operations runbooks and GitHub project setup notes                       |
 | `agent-ops/`             | Dual-agent protocol (state machine, review contract)                          |
 | `agent-queue/`           | Legacy markdown task archive and historical prompts                           |
