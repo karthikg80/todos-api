@@ -1,0 +1,45 @@
+name: Harness Regression
+
+on:
+  schedule:
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  harness:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run eval suites
+        run: npm run eval:all
+
+      - name: Generate harness cleanup report
+        run: npm run harness:cleanup-report
+
+      - name: Upload eval artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: harness-evals
+          path: artifacts/evals
+
+      - name: Upload harness report
+        uses: actions/upload-artifact@v4
+        with:
+          name: harness-cleanup-report
+          path: artifacts/harness/cleanup-report
+
+      - name: Notify harness regression
+        if: failure()
+        run: node scripts/harness/issue-alert.mjs
