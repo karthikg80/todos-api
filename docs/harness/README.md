@@ -15,6 +15,9 @@ state.
 | `docs/harness/EVALS.md`       | Eval strategy, current runners, and artifact expectations |
 | `docs/harness/INVARIANT_MATRIX.md` | Matrix of repo invariants, enforcement points, and gaps |
 | `scripts/harness/`            | Bootstrap, session-start, and smoke scripts |
+| `scripts/check-architecture-invariants.mjs` | Mechanical guard for architecture rules |
+| `scripts/check-harness-drift.mjs` | Mechanical guard for docs/runtime drift |
+| `scripts/harness/cleanup-report.mjs` | Recurring cleanup report generator |
 
 ## Session artifacts
 
@@ -38,5 +41,22 @@ tracking. Initialize them from `.codex/templates/`.
 - The harness is script-first and repo-native.
 - The repo continues to use Node, Jest, Playwright, Prisma, and shell scripts.
 - External harness platforms are intentionally out of scope for the first pass.
+
+## Recurring cleanup loop
+
+Run these locally when touching harness-sensitive areas:
+
+- `npm run check:architecture`
+- `npm run check:harness-drift`
+- `npm run harness:cleanup-report`
+
+The cleanup report writes actionable output under
+`artifacts/harness/cleanup-report/`.
+
+Every meaningful production bug or review finding should become one of:
+
+- a new eval case
+- a new mechanical guard
+- or a durable docs update
 
 See `docs/harness/SESSION_FLOW.md` for how a session should use these files.

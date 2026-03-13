@@ -53,6 +53,8 @@ Before editing code, establish whether the current worktree is healthy.
 The harness baseline should include:
 
 - typecheck
+- architecture invariant guard
+- harness drift guard
 - formatting check
 - HTML validation
 - CSS lint
@@ -65,6 +67,10 @@ The smoke script should automate the minimal baseline:
 
 It should stay small and reuse the repo’s existing deterministic checks rather
 than inventing a second CI stack.
+
+When app code changes locally, the architecture guard also expects a valid
+`.codex/context-ack.json` based on `.codex/templates/context-ack.json`.
+This stays local-only and is skipped in CI.
 
 ## 5. Make the smallest coherent change
 
@@ -87,7 +93,16 @@ For code changes, run the repo-required checks:
 If a failure is unrelated, record that explicitly in the local progress log and
 handoff instead of silently working around it.
 
-## 7. Prepare handoff
+## 7. Feed findings back into the harness
+
+Every meaningful production bug or review finding should land in the repo as at
+least one of:
+
+- a new eval case
+- a new mechanical guard
+- or a durable docs update
+
+## 8. Prepare handoff
 
 The final handoff should include:
 
