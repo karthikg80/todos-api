@@ -165,7 +165,14 @@ The delegated internal agent execution still emits its own action trace with `su
 
 ## Idempotency
 
-First-pass idempotency is implemented for `create_task` via an optional `idempotencyKey` tool argument.
+Durable idempotency is implemented through an optional `idempotencyKey` tool
+argument on:
+
+- `create_task`
+- `create_project`
+- `plan_project` when `mode="apply"`
+- `ensure_next_action` when `mode="apply"`
+- `weekly_review` when `mode="apply"`
 
 Current behavior:
 
@@ -190,6 +197,6 @@ Those docs also record what remains manual from this sandboxed environment.
 ## Current Limitations
 
 - revocation/session management exists as API routes, but there is still no polished in-app assistant management UI
-- idempotency is implemented for `create_task` and `create_project`
+- idempotency is implemented for `create_task`, `create_project`, and the planner apply flows that can create duplicate tasks on retry
 - persisted audit records are lightweight operational traces, not a full analytics platform
 - the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access

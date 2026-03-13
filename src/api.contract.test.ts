@@ -219,6 +219,27 @@ describe("API Contract", () => {
           "analyze_work_graph",
         ]),
       );
+
+      const actionsByName = new Map<
+        string,
+        { name: string; idempotency?: string }
+      >(
+        response.body.data.manifest.actions.map(
+          (action: { name: string; idempotency?: string }) => [
+            action.name,
+            action,
+          ],
+        ),
+      );
+      expect(actionsByName.get("plan_project")?.idempotency).toBe(
+        "optional_header_for_apply_flow",
+      );
+      expect(actionsByName.get("ensure_next_action")?.idempotency).toBe(
+        "optional_header_for_apply_flow",
+      );
+      expect(actionsByName.get("weekly_review")?.idempotency).toBe(
+        "optional_header_for_apply_flow",
+      );
     });
   });
 

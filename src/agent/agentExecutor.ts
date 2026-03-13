@@ -148,6 +148,12 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "analyze_work_graph",
 ]);
 
+const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
+  "plan_project",
+  "ensure_next_action",
+  "weekly_review",
+]);
+
 function buildTrace(
   context: AgentExecutionContext,
   extras: Record<string, unknown> = {},
@@ -798,45 +804,105 @@ export class AgentExecutor {
         }
         case "plan_project": {
           const plannerInput = validateAgentPlanProjectInput(input);
-          const plan = await this.agentService.planProjectForUser(
-            context.userId,
-            plannerInput,
-          );
-          if (!plan) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-              "Project not found",
-              false,
-              "Verify the project ID belongs to the authenticated user.",
+          const executePlanProject = async () => {
+            const plan = await this.agentService.planProjectForUser(
+              context.userId,
+              plannerInput,
+            );
+            if (!plan) {
+              throw new AgentExecutionError(
+                404,
+                "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+                "Project not found",
+                false,
+                "Verify the project ID belongs to the authenticated user.",
+              );
+            }
+            return { plan };
+          };
+          if (
+            IDEMPOTENT_PLANNER_APPLY_ACTIONS.has(action) &&
+            plannerInput.mode === "apply"
+          ) {
+            return await this.handleIdempotentWriteAction(
+              action,
+              context,
+              plannerInput,
+              executePlanProject,
             );
           }
-          return this.success(action, readOnly, context, 200, { plan });
+          return this.success(
+            action,
+            readOnly,
+            context,
+            200,
+            await executePlanProject(),
+          );
         }
         case "ensure_next_action": {
           const plannerInput = validateAgentEnsureNextActionInput(input);
-          const result = await this.agentService.ensureNextActionForUser(
-            context.userId,
-            plannerInput,
-          );
-          if (!result) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-              "Project not found",
-              false,
-              "Verify the project ID belongs to the authenticated user.",
+          const executeEnsureNextAction = async () => {
+            const result = await this.agentService.ensureNextActionForUser(
+              context.userId,
+              plannerInput,
+            );
+            if (!result) {
+              throw new AgentExecutionError(
+                404,
+                "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+                "Project not found",
+                false,
+                "Verify the project ID belongs to the authenticated user.",
+              );
+            }
+            return { result };
+          };
+          if (
+            IDEMPOTENT_PLANNER_APPLY_ACTIONS.has(action) &&
+            plannerInput.mode === "apply"
+          ) {
+            return await this.handleIdempotentWriteAction(
+              action,
+              context,
+              plannerInput,
+              executeEnsureNextAction,
             );
           }
-          return this.success(action, readOnly, context, 200, { result });
+          return this.success(
+            action,
+            readOnly,
+            context,
+            200,
+            await executeEnsureNextAction(),
+          );
         }
         case "weekly_review": {
           const plannerInput = validateAgentWeeklyReviewInput(input);
-          const review = await this.agentService.weeklyReviewForUser(
-            context.userId,
-            plannerInput,
+          const executeWeeklyReview = async () => {
+            const review = await this.agentService.weeklyReviewForUser(
+              context.userId,
+              plannerInput,
+            );
+            return { review };
+          };
+          if (
+            IDEMPOTENT_PLANNER_APPLY_ACTIONS.has(action) &&
+            plannerInput.mode === "apply"
+          ) {
+            return await this.handleIdempotentWriteAction(
+              action,
+              context,
+              plannerInput,
+              executeWeeklyReview,
+            );
+          }
+          return this.success(
+            action,
+            readOnly,
+            context,
+            200,
+            await executeWeeklyReview(),
           );
-          return this.success(action, readOnly, context, 200, { review });
         }
         case "decide_next_work": {
           const plannerInput = validateAgentDecideNextWorkInput(input);
@@ -1032,6 +1098,83 @@ export class AgentExecutor {
     });
     return {
       status: 201,
+      body: response,
+    };
+  }
+
+  private async handleIdempotentWriteAction(
+    action: AgentActionName,
+    context: AgentExecutionContext,
+    input: unknown,
+    execute: () => Promise<Record<string, unknown>>,
+    successStatus = 200,
+  ): Promise<AgentExecutionResult> {
+    const readOnly = false;
+    const idempotencyKey = context.idempotencyKey;
+
+    if (idempotencyKey) {
+      const lookup = await this.idempotencyService.lookup(
+        action,
+        context.userId,
+        idempotencyKey,
+        input,
+      );
+      if (lookup.kind === "conflict") {
+        throw new AgentExecutionError(
+          409,
+          "IDEMPOTENCY_CONFLICT",
+          "Idempotency key already used for different input",
+          false,
+          "Reuse the original payload or supply a new idempotency key.",
+        );
+      }
+      if (lookup.kind === "replay") {
+        const replayed = lookup.body as AgentSuccessEnvelope;
+        const response = {
+          ...replayed,
+          trace: buildTrace(context, {
+            replayed: true,
+            originalRequestId: replayed.trace.requestId,
+          }),
+        };
+        this.persistActionAudit(context, {
+          action,
+          readOnly,
+          status: lookup.status,
+          outcome: "success",
+          replayed: true,
+        });
+        return {
+          status: lookup.status,
+          body: response,
+        };
+      }
+    }
+
+    const response = this.buildSuccessBody(
+      action,
+      readOnly,
+      context,
+      await execute(),
+    );
+    if (idempotencyKey) {
+      await this.idempotencyService.store(
+        action,
+        context.userId,
+        idempotencyKey,
+        input,
+        successStatus,
+        response,
+      );
+    }
+    this.persistActionAudit(context, {
+      action,
+      readOnly,
+      status: successStatus,
+      outcome: "success",
+    });
+    return {
+      status: successStatus,
       body: response,
     };
   }
