@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
+  "version": "1.2.1",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -26,7 +26,7 @@
     {
       "name": "Idempotency-Key",
       "requiredWhen": "optional",
-      "description": "Optional idempotency key for create actions. Replays return the original successful response for matching input, backed by durable storage in the normal server runtime."
+      "description": "Optional idempotency key for supported create actions and planner apply flows. Replays return the original successful response for matching input, backed by durable storage in the normal server runtime."
     }
   ],
   "responseEnvelope": {
@@ -1208,7 +1208,7 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "optional_header_for_apply_flow"
     },
     {
       "name": "ensure_next_action",
@@ -1250,7 +1250,7 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "optional_header_for_apply_flow"
     },
     {
       "name": "weekly_review",
@@ -1327,7 +1327,7 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "optional_header_for_apply_flow"
     },
     {
       "name": "decide_next_work",

@@ -110,10 +110,14 @@ This keeps the existing app routes unchanged while making the agent surface pred
 
 ## Idempotency
 
-The first pass adds idempotency for create flows through the optional `Idempotency-Key` header on:
+Durable idempotency is implemented through the optional `Idempotency-Key`
+header on:
 
 - `create_task`
 - `create_project`
+- `plan_project` when `mode=apply`
+- `ensure_next_action` when `mode=apply`
+- `weekly_review` when `mode=apply`
 
 Current behavior:
 
@@ -123,7 +127,7 @@ Current behavior:
 
 Current limitation:
 
-- idempotency is still only implemented for the create flows that currently need safe retries
+- idempotency is still only implemented for create flows and the planner apply flows where duplicate task creation is the main retry risk
 
 ## Traceability
 
@@ -141,7 +145,7 @@ This is enough for operational debugging without introducing a separate analytic
 
 ## Known Gaps / Follow-Up
 
-- extend idempotency beyond create flows if retry semantics are needed for more writes
+- extend idempotency beyond create flows and planner apply flows if retry semantics are needed for more writes
 - decide when the project/category compatibility path can be retired in favor of `projectId` only
 - add destructive confirmation patterns before exposing broader delete or bulk write actions
 - add richer audit reporting or revocation UI if operational needs outgrow the current trace tables

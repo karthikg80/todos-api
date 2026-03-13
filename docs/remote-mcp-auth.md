@@ -219,6 +219,10 @@ For the planner tools above, `tools/list` exposes the minimum scopes needed to
 run the default `mode: "suggest"` behavior, plus mode-scoped requirements for
 `apply`.
 
+For `create_task`, `create_project`, and the planner tools that support
+`mode: "apply"`, MCP callers can also send an optional `idempotencyKey`
+argument to make safe retries replay the original success response.
+
 The planner-runtime architecture behind these tools is documented in
 `docs/planner-runtime.md`.
 

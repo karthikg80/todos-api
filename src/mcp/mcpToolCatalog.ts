@@ -32,6 +32,14 @@ const PLANNER_MODE_SCOPED_ACTIONS = new Set<AgentActionName>([
   "weekly_review",
 ]);
 
+const MCP_IDEMPOTENCY_KEY_ACTIONS = new Set<AgentActionName>([
+  "create_task",
+  "create_project",
+  "plan_project",
+  "ensure_next_action",
+  "weekly_review",
+]);
+
 const PLANNER_SUGGEST_SCOPES: McpScope[] = [
   PROJECT_READ_SCOPE,
   TASK_READ_SCOPE,
@@ -47,6 +55,12 @@ function isPlannerModeScopedAction(
   actionName: AgentActionName,
 ): actionName is "plan_project" | "ensure_next_action" | "weekly_review" {
   return PLANNER_MODE_SCOPED_ACTIONS.has(actionName);
+}
+
+export function supportsMcpIdempotencyKey(
+  actionName: AgentActionName,
+): boolean {
+  return MCP_IDEMPOTENCY_KEY_ACTIONS.has(actionName);
 }
 
 function minimumRequiredScopesForAction(
@@ -131,7 +145,7 @@ function buildCatalog(): ToolCatalogEntry[] {
       action.inputSchema as Record<string, unknown>,
     );
 
-    if (action.name === "create_task" || action.name === "create_project") {
+    if (supportsMcpIdempotencyKey(action.name as AgentActionName)) {
       const properties =
         (inputSchema.properties as Record<string, unknown> | undefined) || {};
       inputSchema.properties = {
@@ -139,7 +153,9 @@ function buildCatalog(): ToolCatalogEntry[] {
         idempotencyKey: {
           type: "string",
           maxLength: 200,
-          description: `Optional first-pass retry guard for ${action.name}. Reuse the same key with the same input to replay the original success response.`,
+          description: isPlannerModeScopedAction(action.name as AgentActionName)
+            ? `Optional durable retry guard for ${action.name} when mode="apply". Reuse the same key with the same input to replay the original success response.`
+            : `Optional durable retry guard for ${action.name}. Reuse the same key with the same input to replay the original success response.`,
         },
       };
     }
@@ -184,8 +200,7 @@ export function listMcpTools(input: {
       readOnlyHint: tool.readOnly,
       destructiveHint:
         tool.name === "delete_project" || tool.name === "delete_task",
-      idempotentHint:
-        tool.name === "create_task" || tool.name === "create_project",
+      idempotentHint: supportsMcpIdempotencyKey(tool.name),
       openWorldHint: false,
     },
     auth: {

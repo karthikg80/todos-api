@@ -279,6 +279,128 @@ describe("Agent router", () => {
     expect(replayResponse.body.trace.replayed).toBe(true);
   });
 
+  it("replays ensure_next_action apply responses for matching idempotency keys", async () => {
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000051",
+      name: "Ops",
+      status: "active",
+      archived: false,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project);
+
+    const firstResponse = await request(app)
+      .post("/agent/write/ensure_next_action")
+      .set("Idempotency-Key", "planner-ensure-1")
+      .send({
+        projectId: "00000000-0000-1000-8000-000000000051",
+        mode: "apply",
+      })
+      .expect(200);
+
+    const replayResponse = await request(app)
+      .post("/agent/write/ensure_next_action")
+      .set("Idempotency-Key", "planner-ensure-1")
+      .send({
+        projectId: "00000000-0000-1000-8000-000000000051",
+        mode: "apply",
+      })
+      .expect(200);
+
+    const tasks = await todoService.findAll("default-user", {
+      archived: false,
+    });
+
+    expect(firstResponse.body.data.result.created).toBe(true);
+    expect(replayResponse.body.trace.replayed).toBe(true);
+    expect(replayResponse.body.data.result.task.id).toBe(
+      firstResponse.body.data.result.task.id,
+    );
+    expect(tasks).toHaveLength(1);
+  });
+
+  it("returns a structured idempotency conflict for mismatched plan_project apply payloads", async () => {
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000052",
+      name: "Vacation",
+      goal: "Plan trip",
+      status: "active",
+      archived: false,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project);
+
+    await request(app)
+      .post("/agent/write/plan_project")
+      .set("Idempotency-Key", "planner-plan-1")
+      .send({
+        projectId: "00000000-0000-1000-8000-000000000052",
+        goal: "Plan vacation",
+        mode: "apply",
+      })
+      .expect(200);
+
+    const response = await request(app)
+      .post("/agent/write/plan_project")
+      .set("Idempotency-Key", "planner-plan-1")
+      .send({
+        projectId: "00000000-0000-1000-8000-000000000052",
+        goal: "Plan a different vacation",
+        mode: "apply",
+      })
+      .expect(409);
+
+    expect(response.body.ok).toBe(false);
+    expect(response.body.action).toBe("plan_project");
+    expect(response.body.error.code).toBe("IDEMPOTENCY_CONFLICT");
+  });
+
+  it("replays weekly_review apply responses without duplicating created tasks", async () => {
+    const reviewProject = {
+      id: "00000000-0000-1000-8000-000000000053",
+      name: "Admin",
+      status: "active",
+      archived: false,
+      userId: "default-user",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    } as Project;
+    projectService.findAll.mockResolvedValue([reviewProject]);
+    projectService.findById.mockResolvedValue(reviewProject);
+
+    const firstResponse = await request(app)
+      .post("/agent/write/weekly_review")
+      .set("Idempotency-Key", "planner-review-1")
+      .send({
+        mode: "apply",
+      })
+      .expect(200);
+
+    const replayResponse = await request(app)
+      .post("/agent/write/weekly_review")
+      .set("Idempotency-Key", "planner-review-1")
+      .send({
+        mode: "apply",
+      })
+      .expect(200);
+
+    const tasks = await todoService.findAll("default-user", {
+      archived: false,
+    });
+
+    expect(firstResponse.body.data.review.appliedActions).toHaveLength(1);
+    expect(replayResponse.body.trace.replayed).toBe(true);
+    expect(tasks).toHaveLength(1);
+  });
+
   it("plans a project through the write surface", async () => {
     projectService.findById.mockResolvedValue({
       id: "00000000-0000-1000-8000-000000000041",
