@@ -1,3 +1,7 @@
+import type { IPlannerService } from "../interfaces/IPlannerService";
+import type { IProjectService } from "../interfaces/IProjectService";
+import type { ITodoService } from "../interfaces/ITodoService";
+import type { DecideNextWorkResult } from "../types/plannerTypes";
 import { Priority } from "../types";
 import { config } from "../config";
 import {
@@ -6,6 +10,7 @@ import {
   validateDecisionAssistOutput,
 } from "../validation/aiContracts";
 import { randomUUID } from "crypto";
+import { PlannerService } from "./plannerService";
 
 export interface CritiqueTaskInput {
   title: string;
@@ -89,6 +94,17 @@ export interface DecisionAssistStubInput {
 
 interface AiProvider {
   generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T>;
+}
+
+interface GenerateDecisionAssistContext {
+  userId?: string;
+}
+
+interface AiPlannerServiceDeps {
+  provider?: AiProvider;
+  plannerService?: IPlannerService;
+  todoService?: ITodoService;
+  projectService?: IProjectService;
 }
 
 const ACTION_VERBS = new Set([
@@ -660,6 +676,53 @@ function buildHomeFocusSuggestions(
   });
 }
 
+function confidenceFromPlannerImpact(
+  impact?: DecideNextWorkResult["recommendedTasks"][number]["impact"],
+): number {
+  switch (impact) {
+    case "high":
+      return 0.84;
+    case "medium":
+      return 0.76;
+    default:
+      return 0.68;
+  }
+}
+
+function buildHomeFocusSuggestionsFromPlanner(
+  result: DecideNextWorkResult,
+  topN?: 3 | 5,
+): DecisionAssistOutput {
+  const requestId = randomUUID();
+  const selected = Array.isArray(result.recommendedTasks)
+    ? result.recommendedTasks.slice(0, Math.min(topN || 3, 3))
+    : [];
+
+  return validateDecisionAssistOutput({
+    requestId,
+    surface: "home_focus",
+    must_abstain: selected.length === 0,
+    suggestions: selected.map((recommendation, index) => {
+      const summary = String(recommendation.reason || "").trim();
+      return {
+        type: "focus_task",
+        confidence: confidenceFromPlannerImpact(recommendation.impact),
+        rationale: summary,
+        payload: {
+          taskId: recommendation.taskId,
+          todoId: recommendation.taskId,
+          projectId: recommendation.projectId || undefined,
+          title: recommendation.title,
+          summary,
+          reason: summary,
+          source: "deterministic",
+        },
+        suggestionId: `home-focus-planner-${index + 1}-${recommendation.taskId}`,
+      };
+    }),
+  });
+}
+
 function estimateTodoMinutes(
   title: string,
   mode: "quick" | "deep" | "balanced",
@@ -909,11 +972,20 @@ export function generateDecisionAssistStubOutput(
 
 export class AiPlannerService {
   private readonly provider?: AiProvider;
+  private readonly plannerService?: IPlannerService;
 
-  constructor() {
-    if (config.aiProviderEnabled) {
-      this.provider = new OpenAiCompatibleProvider();
-    }
+  constructor(deps: AiPlannerServiceDeps = {}) {
+    this.provider =
+      deps.provider ||
+      (config.aiProviderEnabled ? new OpenAiCompatibleProvider() : undefined);
+    this.plannerService =
+      deps.plannerService ||
+      (deps.todoService
+        ? new PlannerService({
+            todoService: deps.todoService,
+            projectService: deps.projectService,
+          })
+        : undefined);
   }
 
   async critiqueTask(
@@ -1048,7 +1120,31 @@ export class AiPlannerService {
 
   async generateDecisionAssistStub(
     input: DecisionAssistStubInput,
+    context: GenerateDecisionAssistContext = {},
   ): Promise<DecisionAssistOutput> {
+    if (input.surface === "home_focus") {
+      if (this.plannerService && context.userId) {
+        try {
+          const decision = await this.plannerService.decideNextWork({
+            userId: context.userId,
+            mode: "suggest",
+          });
+          if (
+            decision.recommendedTasks.length > 0 ||
+            !Array.isArray(input.todoCandidates) ||
+            input.todoCandidates.length === 0
+          ) {
+            return buildHomeFocusSuggestionsFromPlanner(decision, input.topN);
+          }
+        } catch (error) {
+          console.warn(
+            "Planner-backed home focus failed, using deterministic fallback",
+            error,
+          );
+        }
+      }
+    }
+
     return generateDecisionAssistStubOutput(input);
   }
 }

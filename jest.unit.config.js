@@ -8,6 +8,7 @@ module.exports = {
     "**/src/todoService.test.ts",
     "**/src/validation.test.ts",
     "**/src/aiContracts.test.ts",
+    "**/src/aiService.test.ts",
     "**/src/prismaTodoService.error.test.ts",
     "**/src/api.contract.test.ts",
     "**/src/aiQuotaService.test.ts",
