@@ -9,6 +9,7 @@ test-results/
 blob-report/
 .playwright/.auth/
 client/vendor/chrono-node/
+artifacts/evals/
 .codex/context-ack.json
 .codex/progress.md
 .codex/feature-checklist.json
