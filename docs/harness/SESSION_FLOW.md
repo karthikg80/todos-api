@@ -7,6 +7,10 @@ Required flow for a code-changing harness session.
 Use the repo-required worktree flow from `AGENTS.md`. One branch and one
 worktree should correspond to one issue or PR.
 
+The harness bootstrap script should automate that flow:
+
+- `scripts/harness/bootstrap-worktree.sh <issue-number> <short-feature-name>`
+
 ## 2. Get bearings before editing
 
 At the start of a session:
@@ -20,6 +24,10 @@ At the start of a session:
    - this harness directory
 4. inspect recent relevant git history if the area has moved recently
 5. initialize local `.codex/` session artifacts from `.codex/templates/`
+
+The harness session-start script should automate this:
+
+- `scripts/harness/session-start.sh <issue-number>`
 
 ## 3. Create local session artifacts
 
@@ -51,8 +59,12 @@ The harness baseline should include:
 - fast unit tests when relevant to the area
 - a deterministic UI/browser smoke when the task touches the app surface
 
-The upcoming session scripts should automate this, but the flow is mandatory
-even before those scripts exist.
+The smoke script should automate the minimal baseline:
+
+- `scripts/harness/smoke.sh`
+
+It should stay small and reuse the repo’s existing deterministic checks rather
+than inventing a second CI stack.
 
 ## 5. Make the smallest coherent change
 

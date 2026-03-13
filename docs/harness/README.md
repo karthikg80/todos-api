@@ -14,6 +14,7 @@ state.
 | `docs/harness/SESSION_FLOW.md`| Required flow for starting and running a worktree session |
 | `docs/harness/EVALS.md`       | Eval strategy, current runners, and artifact expectations |
 | `docs/harness/INVARIANT_MATRIX.md` | Matrix of repo invariants, enforcement points, and gaps |
+| `scripts/harness/`            | Bootstrap, session-start, and smoke scripts |
 
 ## Session artifacts
 
