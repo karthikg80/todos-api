@@ -216,7 +216,14 @@ export function createApp(
 
   app.use("/admin", createAdminRouter({ authService }));
   app.use("/users", createUsersRouter({ authService }));
-  app.use("/todos", createTodosRouter({ todoService, resolveTodoUserId }));
+  app.use(
+    "/todos",
+    createTodosRouter({
+      todoService,
+      projectService,
+      resolveTodoUserId,
+    }),
+  );
   app.use(
     "/projects",
     createProjectsRouter({

@@ -1,5 +1,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { ITodoService } from "../interfaces/ITodoService";
+import { IProjectService } from "../interfaces/IProjectService";
 import {
   validateCreateTodo,
   validateUpdateTodo,
@@ -10,14 +11,17 @@ import {
   validateFindTodosQuery,
 } from "../validation/validation";
 import { PrismaTodoService } from "../services/prismaTodoService";
+import { applyLegacyCategoryProjectWriteCompatibility } from "../services/projectWriteCompatibility";
 
 interface TodoRouterDeps {
   todoService: ITodoService;
+  projectService?: IProjectService;
   resolveTodoUserId: (req: Request, res: Response) => string | null;
 }
 
 export function createTodosRouter({
   todoService,
+  projectService,
   resolveTodoUserId,
 }: TodoRouterDeps): Router {
   const router = Router();
@@ -189,7 +193,12 @@ export function createTodosRouter({
       const userId = resolveTodoUserId(req, res);
       if (!userId) return;
       const dto = validateCreateTodo(req.body);
-      const todo = await todoService.create(userId, dto);
+      const compatibleDto = await applyLegacyCategoryProjectWriteCompatibility(
+        userId,
+        dto,
+        projectService,
+      );
+      const todo = await todoService.create(userId, compatibleDto);
       res.status(201).json(todo);
     } catch (error) {
       if (
@@ -224,7 +233,13 @@ export function createTodosRouter({
         validateId(id);
 
         const dto = validateUpdateTodo(req.body);
-        const todo = await todoService.update(userId, id, dto);
+        const compatibleDto =
+          await applyLegacyCategoryProjectWriteCompatibility(
+            userId,
+            dto,
+            projectService,
+          );
+        const todo = await todoService.update(userId, id, compatibleDto);
 
         if (!todo) {
           return res.status(404).json({ error: "Todo not found" });

@@ -6,6 +6,7 @@ import {
   NormalizedTodoBoundSuggestion,
   NormalizedTodayPlanSuggestion,
 } from "./aiNormalizationService";
+import { applyLegacyCategoryProjectWriteCompatibility } from "./projectWriteCompatibility";
 
 // ── Result types ──
 
@@ -157,9 +158,16 @@ export async function applyTodoBoundSuggestion(params: {
         };
       }
 
-      const updated = await todoService.update(userId, inputTodoId, {
-        category: nextCategory,
-      });
+      const compatibleDto = await applyLegacyCategoryProjectWriteCompatibility(
+        userId,
+        { category: nextCategory },
+        projectService,
+      );
+      const updated = await todoService.update(
+        userId,
+        inputTodoId,
+        compatibleDto,
+      );
       if (!updated) {
         return { ok: false, status: 404, error: "Todo not found" };
       }

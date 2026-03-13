@@ -12,10 +12,42 @@ import type {
 } from "./types";
 
 function createProjectServiceMock(): jest.Mocked<IProjectService> {
+  const projects: Project[] = [];
+
   return {
-    findAll: jest.fn<Promise<Project[]>, [string]>(),
-    findById: jest.fn<Promise<Project | null>, [string, string]>(),
-    create: jest.fn<Promise<Project>, [string, CreateProjectDto]>(),
+    findAll: jest
+      .fn<Promise<Project[]>, [string]>()
+      .mockImplementation(async (userId) =>
+        projects.filter((project) => project.userId === userId),
+      ),
+    findById: jest
+      .fn<Promise<Project | null>, [string, string]>()
+      .mockImplementation(
+        async (userId, id) =>
+          projects.find(
+            (project) => project.userId === userId && project.id === id,
+          ) ?? null,
+      ),
+    create: jest
+      .fn<Promise<Project>, [string, CreateProjectDto]>()
+      .mockImplementation(async (userId, dto) => {
+        const project: Project = {
+          id: `project-${projects.length + 1}`,
+          name: dto.name,
+          status: dto.status ?? "active",
+          archived: dto.archived ?? false,
+          userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          taskCount: 0,
+          openTaskCount: 0,
+          completedTaskCount: 0,
+          todoCount: 0,
+          openTodoCount: 0,
+        };
+        projects.push(project);
+        return project;
+      }),
     update: jest.fn<
       Promise<Project | null>,
       [string, string, UpdateProjectDto]

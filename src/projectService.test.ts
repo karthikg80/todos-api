@@ -42,13 +42,13 @@ describe("PrismaProjectService (Integration)", () => {
     });
   });
 
-  it("renames a project and synchronizes linked task categories", async () => {
+  it("renames a project without rewriting the stored legacy category column", async () => {
     const project = await projectService.create(TEST_USER_ID, {
       name: "Work / Client A",
     });
     const todo = await todoService.create(TEST_USER_ID, {
       title: "Ship report",
-      category: "Work / Client A",
+      projectId: project.id,
     });
 
     const updated = await projectService.update(TEST_USER_ID, project.id, {
@@ -66,6 +66,7 @@ describe("PrismaProjectService (Integration)", () => {
       where: { id: todo.id },
       include: { project: true },
     });
+    expect(dbTodo?.category).toBe("Work / Client A");
     expect(dbTodo?.project?.name).toBe("Work / Client B");
   });
 
@@ -85,7 +86,7 @@ describe("PrismaProjectService (Integration)", () => {
     const target = await projectService.create(TEST_USER_ID, { name: "Beta" });
     const todo = await todoService.create(TEST_USER_ID, {
       title: "Move me",
-      category: "Alpha",
+      projectId: source.id,
     });
 
     const deleted = await projectService.delete(
@@ -114,7 +115,7 @@ describe("PrismaProjectService (Integration)", () => {
     const source = await projectService.create(TEST_USER_ID, { name: "Alpha" });
     const todo = await todoService.create(TEST_USER_ID, {
       title: "Unassign me",
-      category: "Alpha",
+      projectId: source.id,
     });
 
     const deleted = await projectService.delete(

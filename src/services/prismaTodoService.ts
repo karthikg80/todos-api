@@ -45,30 +45,6 @@ export class PrismaTodoService implements ITodoService {
     return trimmed.length > 0 ? trimmed : null;
   }
 
-  private async ensureProjectId(
-    tx: Prisma.TransactionClient,
-    userId: string,
-    projectName: string,
-  ): Promise<string> {
-    const project = await tx.project.upsert({
-      where: {
-        userId_name: {
-          userId,
-          name: projectName,
-        },
-      },
-      create: {
-        name: projectName,
-        userId,
-      },
-      update: {},
-      select: {
-        id: true,
-      },
-    });
-    return project.id;
-  }
-
   private async findOwnedProject(
     tx: Prisma.TransactionClient,
     userId: string,
@@ -242,24 +218,50 @@ export class PrismaTodoService implements ITodoService {
       where.status = { in: query.statuses };
     }
     if (query?.category !== undefined) {
-      where.category = query.category;
+      and.push({
+        OR: [
+          { project: { is: { name: query.category } } },
+          {
+            AND: [{ projectId: null }, { category: query.category }],
+          },
+        ],
+      });
     }
     if (query?.projectId) {
       where.projectId = query.projectId;
     }
     if (query?.unsorted) {
       and.push({
-        OR: [{ category: null }, { category: "" }],
+        projectId: null,
       });
     }
     if (query?.project) {
       and.push({
         OR: [
-          { category: query.project },
           {
-            category: {
-              startsWith: `${query.project}${PROJECT_PATH_SEPARATOR}`,
+            project: { is: { name: query.project } },
+          },
+          {
+            project: {
+              is: {
+                name: {
+                  startsWith: `${query.project}${PROJECT_PATH_SEPARATOR}`,
+                },
+              },
             },
+          },
+          {
+            AND: [{ projectId: null }, { category: query.project }],
+          },
+          {
+            AND: [
+              { projectId: null },
+              {
+                category: {
+                  startsWith: `${query.project}${PROJECT_PATH_SEPARATOR}`,
+                },
+              },
+            ],
           },
         ],
       });
@@ -270,6 +272,13 @@ export class PrismaTodoService implements ITodoService {
           { title: { contains: query.search, mode: "insensitive" } },
           { description: { contains: query.search, mode: "insensitive" } },
           { notes: { contains: query.search, mode: "insensitive" } },
+          {
+            project: {
+              is: {
+                name: { contains: query.search, mode: "insensitive" },
+              },
+            },
+          },
           { category: { contains: query.search, mode: "insensitive" } },
           { waitingOn: { contains: query.search, mode: "insensitive" } },
         ],
@@ -381,9 +390,6 @@ export class PrismaTodoService implements ITodoService {
         category = project.name;
       } else {
         category = this.normalizeCategory(dto.category);
-        projectId = category
-          ? await this.ensureProjectId(tx, userId, category)
-          : null;
       }
       const headingId = await this.ensureHeadingId(
         tx,
@@ -578,26 +584,7 @@ export class PrismaTodoService implements ITodoService {
           }
         } else if (dto.category !== undefined) {
           const category = this.normalizeCategory(dto.category);
-          if (!category) {
-            nextProjectId = null;
-            projectChanged = currentTodo.projectId !== null;
-            updateData.category = null;
-            updateData.projectId = null;
-            updateData.headingId = null;
-          } else {
-            const ensuredProjectId = await this.ensureProjectId(
-              tx,
-              userId,
-              category,
-            );
-            nextProjectId = ensuredProjectId;
-            projectChanged = currentTodo.projectId !== ensuredProjectId;
-            updateData.category = category;
-            updateData.projectId = ensuredProjectId;
-            if (projectChanged && dto.headingId === undefined) {
-              updateData.headingId = null;
-            }
-          }
+          updateData.category = category;
         }
 
         if (dto.headingId !== undefined) {
