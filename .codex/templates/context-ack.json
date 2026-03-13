@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "issue": "",
+  "branch": "",
+  "worktree": "",
+  "startedAt": "",
+  "docsRead": [
+    "AGENTS.md",
+    "docs/WORKFLOW.md",
+    "docs/architecture/AGENT_RULES.md",
+    "docs/harness/README.md",
+    "docs/harness/SESSION_FLOW.md",
+    "docs/harness/INVARIANT_MATRIX.md"
+  ],
+  "acknowledgedInvariants": [],
+  "notes": ""
+}

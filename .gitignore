@@ -9,5 +9,8 @@ test-results/
 blob-report/
 .playwright/.auth/
 client/vendor/chrono-node/
+.codex/context-ack.json
+.codex/progress.md
+.codex/feature-checklist.json
 
 /src/generated/prisma

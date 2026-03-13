@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "issue": "",
+  "title": "",
+  "branch": "",
+  "checks": [
+    {
+      "id": "understand-scope",
+      "label": "Understand scope and current architecture",
+      "done": false
+    },
+    {
+      "id": "implement",
+      "label": "Implement the smallest coherent change",
+      "done": false
+    },
+    {
+      "id": "verify",
+      "label": "Run the required verification commands",
+      "done": false
+    },
+    {
+      "id": "handoff",
+      "label": "Prepare PR and handoff summary",
+      "done": false
+    }
+  ],
+  "notes": []
+}
