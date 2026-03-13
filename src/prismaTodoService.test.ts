@@ -82,7 +82,7 @@ describe("PrismaTodoService (Integration)", () => {
       expect(found!.title).toBe("Persistent Todo");
     });
 
-    it("should create and link a project when category is provided", async () => {
+    it("should keep category-only creates unassigned", async () => {
       const todo = await service.create(TEST_USER_ID, {
         title: "Project linked todo",
         category: "Work / Client A",
@@ -93,12 +93,25 @@ describe("PrismaTodoService (Integration)", () => {
         where: { id: todo.id },
         include: { project: true },
       });
-      expect(dbTodo?.project?.name).toBe("Work / Client A");
+      expect(dbTodo?.projectId).toBeNull();
+      expect(dbTodo?.project).toBeNull();
+    });
 
-      const projectCount = await prisma.project.count({
-        where: { userId: TEST_USER_ID, name: "Work / Client A" },
+    it("should derive category from the linked project when projectId is provided", async () => {
+      const project = await prisma.project.create({
+        data: {
+          userId: TEST_USER_ID,
+          name: "Work / Client A",
+        },
       });
-      expect(projectCount).toBe(1);
+
+      const todo = await service.create(TEST_USER_ID, {
+        title: "Project linked todo",
+        projectId: project.id,
+      });
+
+      expect(todo.projectId).toBe(project.id);
+      expect(todo.category).toBe("Work / Client A");
     });
   });
 
@@ -191,6 +204,12 @@ describe("PrismaTodoService (Integration)", () => {
       todayStart.setHours(0, 0, 0, 0);
       const todayEnd = new Date();
       todayEnd.setHours(23, 59, 59, 999);
+      const project = await prisma.project.create({
+        data: {
+          userId: TEST_USER_ID,
+          name: "Work",
+        },
+      });
 
       await service.create(TEST_USER_ID, {
         title: "Loose today",
@@ -198,7 +217,7 @@ describe("PrismaTodoService (Integration)", () => {
       });
       await service.create(TEST_USER_ID, {
         title: "Project today",
-        category: "Work",
+        projectId: project.id,
         dueDate: new Date(todayStart),
       });
       await service.create(TEST_USER_ID, {
@@ -361,10 +380,17 @@ describe("PrismaTodoService (Integration)", () => {
       expect(found!.title).toBe("Updated");
     });
 
-    it("should update linked project when category changes", async () => {
+    it("should update the stored category without changing projectId", async () => {
       const created = await service.create(TEST_USER_ID, {
         title: "Todo with project",
-        category: "Work / Client A",
+        projectId: (
+          await prisma.project.create({
+            data: {
+              userId: TEST_USER_ID,
+              name: "Work / Client A",
+            },
+          })
+        ).id,
       });
 
       const updated = await service.update(TEST_USER_ID, created.id, {
@@ -372,18 +398,15 @@ describe("PrismaTodoService (Integration)", () => {
       });
 
       expect(updated).not.toBeNull();
-      expect(updated!.category).toBe("Work / Client B");
+      expect(updated!.category).toBe("Work / Client A");
 
       const dbTodo = await prisma.todo.findUnique({
         where: { id: created.id },
         include: { project: true },
       });
-      expect(dbTodo?.project?.name).toBe("Work / Client B");
-
-      const newProjectCount = await prisma.project.count({
-        where: { userId: TEST_USER_ID, name: "Work / Client B" },
-      });
-      expect(newProjectCount).toBe(1);
+      expect(dbTodo?.category).toBe("Work / Client B");
+      expect(dbTodo?.project?.name).toBe("Work / Client A");
+      expect(dbTodo?.projectId).toBe(created.projectId);
     });
   });
 

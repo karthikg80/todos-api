@@ -208,4 +208,37 @@ describe("AgentService", () => {
 
     expect(withoutNextAction.map((project) => project.name)).toEqual(["Work"]);
   });
+
+  it("resolves category-only task creates through the project service edge adapter", async () => {
+    const todoService = new TodoService();
+    const project = makeProject("project-1", "Work");
+    const projectService = createProjectServiceMock([project]);
+
+    const agentService = new AgentService({ todoService, projectService });
+    const created = await agentService.createTask(USER_ID, {
+      title: "Project scoped task",
+      category: "Work",
+    });
+
+    expect(created.projectId).toBe(project.id);
+    expect(created.category).toBe("Work");
+  });
+
+  it("creates a project when category-only agent writes target a missing project", async () => {
+    const todoService = new TodoService();
+    const createdProject = makeProject("project-2", "Backlog");
+    const projectService = createProjectServiceMock([]);
+    projectService.create.mockResolvedValue(createdProject);
+
+    const agentService = new AgentService({ todoService, projectService });
+    const created = await agentService.createTask(USER_ID, {
+      title: "Backlog task",
+      category: "Backlog",
+    });
+
+    expect(projectService.create).toHaveBeenCalledWith(USER_ID, {
+      name: "Backlog",
+    });
+    expect(created.projectId).toBe(createdProject.id);
+  });
 });

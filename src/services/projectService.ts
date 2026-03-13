@@ -261,14 +261,6 @@ export class PrismaProjectService implements IProjectService {
           },
         });
 
-        // Keep legacy category column synchronized until full API migration is complete.
-        if (dto.name !== undefined) {
-          await tx.todo.updateMany({
-            where: { userId, projectId },
-            data: { category: dto.name },
-          });
-        }
-
         const [count, openTodoCount, completedTaskCount] = await Promise.all([
           tx.todo.count({ where: { userId, projectId } }),
           tx.todo.count({

@@ -280,7 +280,10 @@ describe("applyTodoBoundSuggestion", () => {
     expect(todoService.update).toHaveBeenCalledWith(
       USER_ID,
       TODO_ID,
-      expect.objectContaining({ category: "Work" }),
+      expect.objectContaining({
+        category: "Work",
+        projectId: "proj-1",
+      }),
     );
   });
 

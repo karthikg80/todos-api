@@ -23,6 +23,7 @@ import {
   PlanProjectResult,
   WeeklyReviewResult,
 } from "../types/plannerTypes";
+import { applyLegacyCategoryProjectWriteCompatibility } from "./projectWriteCompatibility";
 
 interface AgentServiceDeps {
   todoService: ITodoService;
@@ -85,7 +86,12 @@ export class AgentService {
   }
 
   async createTask(userId: string, dto: CreateTodoDto): Promise<Todo> {
-    return this.deps.todoService.create(userId, dto);
+    const compatibleDto = await applyLegacyCategoryProjectWriteCompatibility(
+      userId,
+      dto,
+      this.deps.projectService,
+    );
+    return this.deps.todoService.create(userId, compatibleDto);
   }
 
   async updateTask(
@@ -93,7 +99,12 @@ export class AgentService {
     id: string,
     dto: UpdateTodoDto,
   ): Promise<Todo | null> {
-    return this.deps.todoService.update(userId, id, dto);
+    const compatibleDto = await applyLegacyCategoryProjectWriteCompatibility(
+      userId,
+      dto,
+      this.deps.projectService,
+    );
+    return this.deps.todoService.update(userId, id, compatibleDto);
   }
 
   async completeTask(

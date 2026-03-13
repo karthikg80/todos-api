@@ -31,6 +31,7 @@ describe("Authentication API", () => {
   beforeEach(async () => {
     // Clean up before each test
     await prisma.todo.deleteMany();
+    await prisma.project.deleteMany();
     await prisma.user.deleteMany();
   });
 
@@ -530,6 +531,63 @@ describe("Authentication API", () => {
         expect(response.body.title).toBe("Authenticated Todo");
         expect(response.body.userId).toBe(userId);
       });
+
+      it("maps legacy category-only creates onto the canonical project relationship", async () => {
+        const response = await request(app)
+          .post("/todos")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Legacy project create",
+            category: "Work / Client A",
+          })
+          .expect(201);
+
+        expect(response.body.category).toBe("Work / Client A");
+        expect(response.body.projectId).toEqual(expect.any(String));
+
+        const project = await prisma.project.findUnique({
+          where: {
+            userId_name: {
+              userId,
+              name: "Work / Client A",
+            },
+          },
+        });
+        expect(project?.id).toBe(response.body.projectId);
+      });
+
+      it("keeps renamed projects filterable through the category query", async () => {
+        const createdProject = await request(app)
+          .post("/projects")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({ name: "Work / Client A" })
+          .expect(201);
+
+        const createdTodo = await request(app)
+          .post("/todos")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({
+            title: "Ship report",
+            category: "Work / Client A",
+          })
+          .expect(201);
+
+        await request(app)
+          .put(`/projects/${createdProject.body.id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({ name: "Work / Client B" })
+          .expect(200);
+
+        const filtered = await request(app)
+          .get("/todos")
+          .set("Authorization", `Bearer ${authToken}`)
+          .query({ category: "Work / Client B" })
+          .expect(200);
+
+        expect(filtered.body).toHaveLength(1);
+        expect(filtered.body[0].id).toBe(createdTodo.body.id);
+        expect(filtered.body[0].category).toBe("Work / Client B");
+      });
     });
 
     describe("Projects", () => {
@@ -589,6 +647,35 @@ describe("Authentication API", () => {
           .delete(`/projects/${created.body.id}`)
           .set("Authorization", `Bearer ${otherToken}`)
           .expect(404);
+      });
+    });
+
+    describe("PUT /todos/:id", () => {
+      it("maps legacy category-only updates onto the canonical project relationship", async () => {
+        const created = await request(app)
+          .post("/todos")
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({ title: "Needs project" })
+          .expect(201);
+
+        const updated = await request(app)
+          .put(`/todos/${created.body.id}`)
+          .set("Authorization", `Bearer ${authToken}`)
+          .send({ category: "Work / Backend" })
+          .expect(200);
+
+        expect(updated.body.category).toBe("Work / Backend");
+        expect(updated.body.projectId).toEqual(expect.any(String));
+
+        const project = await prisma.project.findUnique({
+          where: {
+            userId_name: {
+              userId,
+              name: "Work / Backend",
+            },
+          },
+        });
+        expect(project?.id).toBe(updated.body.projectId);
       });
     });
 
