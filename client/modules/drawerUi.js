@@ -356,16 +356,35 @@ export function getTodoDrawerElements() {
 
 export function initializeDrawerDraft(todo) {
   const toDateInputValue = hooks.toDateInputValue || ((v) => v || "");
+  const toDateTimeLocalValue = hooks.toDateTimeLocalValue || ((v) => v || "");
   state.drawerDraft = {
     id: todo.id,
     title: String(todo.title || ""),
     completed: !!todo.completed,
+    status: String(todo.status || (todo.completed ? "done" : "next")),
     dueDate: toDateInputValue(todo.dueDate),
+    startDate: toDateTimeLocalValue(todo.startDate),
+    scheduledDate: toDateTimeLocalValue(todo.scheduledDate),
+    reviewDate: toDateTimeLocalValue(todo.reviewDate),
     project: String(todo.category || ""),
     priority: String(todo.priority || "medium"),
     description: String(todo.description || ""),
     notes: String(todo.notes || ""),
     categoryDetail: String(todo.category || ""),
+    tagsText: Array.isArray(todo.tags) ? todo.tags.join(", ") : "",
+    context: String(todo.context || ""),
+    energy: String(todo.energy || ""),
+    estimateMinutes:
+      typeof todo.estimateMinutes === "number"
+        ? String(todo.estimateMinutes)
+        : "",
+    waitingOn: String(todo.waitingOn || ""),
+    dependsOnTaskIdsText: Array.isArray(todo.dependsOnTaskIds)
+      ? todo.dependsOnTaskIds.join(", ")
+      : "",
+    archived: !!todo.archived,
+    source: String(todo.source || ""),
+    completedAt: todo.completedAt ? String(todo.completedAt) : "",
   };
 }
 
@@ -580,6 +599,20 @@ function updateDrawerDraftField(field, value) {
   }
 }
 
+function parseCommaSeparatedList(rawValue) {
+  return String(rawValue || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function toIsoFromDateTimeInput(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
+
 export function onDrawerTitleInput(event) {
   const value = String(event?.target?.value || "");
   updateDrawerDraftField("title", value);
@@ -613,6 +646,32 @@ export function onDrawerDueDateChange(event) {
   saveDrawerPatch({ dueDate: toIsoFromDateInput(dueDate) });
 }
 
+export function onDrawerStatusChange(event) {
+  const status = String(event?.target?.value || "next");
+  const completed = status === "done";
+  updateDrawerDraftField("status", status);
+  updateDrawerDraftField("completed", completed);
+  saveDrawerPatch({ status, completed });
+}
+
+export function onDrawerStartDateChange(event) {
+  const value = String(event?.target?.value || "");
+  updateDrawerDraftField("startDate", value);
+  saveDrawerPatch({ startDate: toIsoFromDateTimeInput(value) });
+}
+
+export function onDrawerScheduledDateChange(event) {
+  const value = String(event?.target?.value || "");
+  updateDrawerDraftField("scheduledDate", value);
+  saveDrawerPatch({ scheduledDate: toIsoFromDateTimeInput(value) });
+}
+
+export function onDrawerReviewDateChange(event) {
+  const value = String(event?.target?.value || "");
+  updateDrawerDraftField("reviewDate", value);
+  saveDrawerPatch({ reviewDate: toIsoFromDateTimeInput(value) });
+}
+
 export function onDrawerProjectChange(event) {
   const normalizeProjectPath = hooks.normalizeProjectPath || ((v) => v);
   const project = normalizeProjectPath(String(event?.target?.value || ""));
@@ -624,6 +683,75 @@ export function onDrawerPriorityChange(event) {
   const priority = String(event?.target?.value || "medium");
   updateDrawerDraftField("priority", priority);
   saveDrawerPatch({ priority });
+}
+
+export function onDrawerContextInput(event) {
+  updateDrawerDraftField("context", String(event?.target?.value || ""));
+}
+
+export function onDrawerContextBlur() {
+  if (!state.drawerDraft) return;
+  const context = String(state.drawerDraft.context || "").trim();
+  saveDrawerPatch({ context: context || null });
+}
+
+export function onDrawerEnergyChange(event) {
+  const energy = String(event?.target?.value || "");
+  updateDrawerDraftField("energy", energy);
+  saveDrawerPatch({ energy: energy || null });
+}
+
+export function onDrawerEstimateChange(event) {
+  const value = String(event?.target?.value || "");
+  updateDrawerDraftField("estimateMinutes", value);
+  const estimateMinutes =
+    value.trim() === "" ? null : Number.parseInt(value, 10);
+  saveDrawerPatch({
+    estimateMinutes: Number.isFinite(estimateMinutes) ? estimateMinutes : null,
+  });
+}
+
+export function onDrawerWaitingOnInput(event) {
+  updateDrawerDraftField("waitingOn", String(event?.target?.value || ""));
+}
+
+export function onDrawerWaitingOnBlur() {
+  if (!state.drawerDraft) return;
+  const waitingOn = String(state.drawerDraft.waitingOn || "").trim();
+  saveDrawerPatch({ waitingOn: waitingOn || null });
+}
+
+export function onDrawerTagsInput(event) {
+  updateDrawerDraftField("tagsText", String(event?.target?.value || ""));
+}
+
+export function onDrawerTagsBlur() {
+  if (!state.drawerDraft) return;
+  saveDrawerPatch({
+    tags: parseCommaSeparatedList(state.drawerDraft.tagsText),
+  });
+}
+
+export function onDrawerDependsOnInput(event) {
+  updateDrawerDraftField(
+    "dependsOnTaskIdsText",
+    String(event?.target?.value || ""),
+  );
+}
+
+export function onDrawerDependsOnBlur() {
+  if (!state.drawerDraft) return;
+  saveDrawerPatch({
+    dependsOnTaskIds: parseCommaSeparatedList(
+      state.drawerDraft.dependsOnTaskIdsText,
+    ),
+  });
+}
+
+export function onDrawerArchivedChange(event) {
+  const archived = !!event?.target?.checked;
+  updateDrawerDraftField("archived", archived);
+  saveDrawerPatch({ archived });
 }
 
 export function onDrawerDescriptionInput(event) {
@@ -773,9 +901,34 @@ export function renderTodoDrawerContent() {
         <span>Completed</span>
         <input id="drawerCompletedToggle" type="checkbox" ${draft.completed ? "checked" : ""} />
       </label>
+      <label class="todo-drawer__field" for="drawerStatusSelect">
+        <span>Status</span>
+        <select id="drawerStatusSelect">
+          <option value="inbox" ${draft.status === "inbox" ? "selected" : ""}>Inbox</option>
+          <option value="next" ${draft.status === "next" ? "selected" : ""}>Next</option>
+          <option value="in_progress" ${draft.status === "in_progress" ? "selected" : ""}>In progress</option>
+          <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Waiting</option>
+          <option value="scheduled" ${draft.status === "scheduled" ? "selected" : ""}>Scheduled</option>
+          <option value="someday" ${draft.status === "someday" ? "selected" : ""}>Someday</option>
+          <option value="done" ${draft.status === "done" ? "selected" : ""}>Done</option>
+          <option value="cancelled" ${draft.status === "cancelled" ? "selected" : ""}>Cancelled</option>
+        </select>
+      </label>
       <label class="todo-drawer__field" for="drawerDueDateInput">
         <span>Due date</span>
         <input id="drawerDueDateInput" type="date" value="${escapeHtml(draft.dueDate)}" />
+      </label>
+      <label class="todo-drawer__field" for="drawerStartDateInput">
+        <span>Start date</span>
+        <input id="drawerStartDateInput" type="datetime-local" value="${escapeHtml(draft.startDate)}" />
+      </label>
+      <label class="todo-drawer__field" for="drawerScheduledDateInput">
+        <span>Scheduled date</span>
+        <input id="drawerScheduledDateInput" type="datetime-local" value="${escapeHtml(draft.scheduledDate)}" />
+      </label>
+      <label class="todo-drawer__field" for="drawerReviewDateInput">
+        <span>Review date</span>
+        <input id="drawerReviewDateInput" type="datetime-local" value="${escapeHtml(draft.reviewDate)}" />
       </label>
       <label class="todo-drawer__field" for="drawerProjectSelect">
         <span>Project</span>
@@ -789,7 +942,25 @@ export function renderTodoDrawerContent() {
           <option value="low" ${draft.priority === "low" ? "selected" : ""}>Low</option>
           <option value="medium" ${draft.priority === "medium" ? "selected" : ""}>Medium</option>
           <option value="high" ${draft.priority === "high" ? "selected" : ""}>High</option>
+          <option value="urgent" ${draft.priority === "urgent" ? "selected" : ""}>Urgent</option>
         </select>
+      </label>
+      <label class="todo-drawer__field" for="drawerContextInput">
+        <span>Context</span>
+        <input id="drawerContextInput" type="text" maxlength="100" value="${escapeHtml(draft.context)}" />
+      </label>
+      <label class="todo-drawer__field" for="drawerEnergySelect">
+        <span>Energy</span>
+        <select id="drawerEnergySelect">
+          <option value="" ${!draft.energy ? "selected" : ""}>None</option>
+          <option value="low" ${draft.energy === "low" ? "selected" : ""}>Low</option>
+          <option value="medium" ${draft.energy === "medium" ? "selected" : ""}>Medium</option>
+          <option value="high" ${draft.energy === "high" ? "selected" : ""}>High</option>
+        </select>
+      </label>
+      <label class="todo-drawer__field" for="drawerEstimateInput">
+        <span>Estimate (minutes)</span>
+        <input id="drawerEstimateInput" type="number" min="0" step="1" value="${escapeHtml(draft.estimateMinutes)}" />
       </label>
     `,
     })}
@@ -808,10 +979,34 @@ export function renderTodoDrawerContent() {
           <span>Notes</span>
           <textarea id="drawerNotesTextarea" maxlength="2000">${escapeHtml(draft.notes)}</textarea>
         </label>
+        <label class="todo-drawer__field" for="drawerTagsInput">
+          <span>Tags</span>
+          <input id="drawerTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="comma, separated, tags" />
+        </label>
+        <label class="todo-drawer__field" for="drawerWaitingOnInput">
+          <span>Waiting on</span>
+          <input id="drawerWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" />
+        </label>
+        <label class="todo-drawer__field" for="drawerDependsOnInput">
+          <span>Depends on task IDs</span>
+          <textarea id="drawerDependsOnInput" maxlength="4000" placeholder="comma-separated task UUIDs">${escapeHtml(draft.dependsOnTaskIdsText)}</textarea>
+        </label>
         <label class="todo-drawer__field" for="drawerCategoryInput">
           <span>Category</span>
           <input id="drawerCategoryInput" type="text" maxlength="50" value="${escapeHtml(draft.categoryDetail)}" />
         </label>
+        <label class="todo-drawer__field todo-drawer__field--inline" for="drawerArchivedToggle">
+          <span>Archived</span>
+          <input id="drawerArchivedToggle" type="checkbox" ${draft.archived ? "checked" : ""} />
+        </label>
+        <div class="todo-drawer__meta">
+          <div><strong>Source:</strong> ${escapeHtml(draft.source || "manual")}</div>
+          ${
+            draft.completedAt
+              ? `<div><strong>Completed at:</strong> ${escapeHtml(new Date(draft.completedAt).toLocaleString())}</div>`
+              : ""
+          }
+        </div>
         <div class="todo-drawer__subtasks">
           <div class="todo-drawer__subtasks-title">Subtasks</div>
           ${renderDrawerSubtasks(todo)}
@@ -1436,6 +1631,22 @@ export function bindTodoDrawerHandlers() {
       onDrawerNotesInput(event);
       return;
     }
+    if (target.id === "drawerContextInput") {
+      onDrawerContextInput(event);
+      return;
+    }
+    if (target.id === "drawerWaitingOnInput") {
+      onDrawerWaitingOnInput(event);
+      return;
+    }
+    if (target.id === "drawerTagsInput") {
+      onDrawerTagsInput(event);
+      return;
+    }
+    if (target.id === "drawerDependsOnInput") {
+      onDrawerDependsOnInput(event);
+      return;
+    }
     if (target.id === "drawerCategoryInput") {
       onDrawerCategoryInput(event);
     }
@@ -1452,12 +1663,40 @@ export function bindTodoDrawerHandlers() {
       onDrawerDueDateChange(event);
       return;
     }
+    if (target.id === "drawerStartDateInput") {
+      onDrawerStartDateChange(event);
+      return;
+    }
+    if (target.id === "drawerScheduledDateInput") {
+      onDrawerScheduledDateChange(event);
+      return;
+    }
+    if (target.id === "drawerReviewDateInput") {
+      onDrawerReviewDateChange(event);
+      return;
+    }
     if (target.id === "drawerProjectSelect") {
       onDrawerProjectChange(event);
       return;
     }
+    if (target.id === "drawerStatusSelect") {
+      onDrawerStatusChange(event);
+      return;
+    }
     if (target.id === "drawerPrioritySelect") {
       onDrawerPriorityChange(event);
+      return;
+    }
+    if (target.id === "drawerEnergySelect") {
+      onDrawerEnergyChange(event);
+      return;
+    }
+    if (target.id === "drawerEstimateInput") {
+      onDrawerEstimateChange(event);
+      return;
+    }
+    if (target.id === "drawerArchivedToggle") {
+      onDrawerArchivedChange(event);
       return;
     }
     if (target.id === "drawerDescriptionTextarea") {
@@ -1481,6 +1720,22 @@ export function bindTodoDrawerHandlers() {
       }
       if (target.id === "drawerNotesTextarea") {
         onDrawerNotesBlur();
+        return;
+      }
+      if (target.id === "drawerContextInput") {
+        onDrawerContextBlur();
+        return;
+      }
+      if (target.id === "drawerWaitingOnInput") {
+        onDrawerWaitingOnBlur();
+        return;
+      }
+      if (target.id === "drawerTagsInput") {
+        onDrawerTagsBlur();
+        return;
+      }
+      if (target.id === "drawerDependsOnInput") {
+        onDrawerDependsOnBlur();
         return;
       }
       if (target.id === "drawerCategoryInput") {

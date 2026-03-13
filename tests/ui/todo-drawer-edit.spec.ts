@@ -11,6 +11,17 @@ type TodoSeed = {
   priority: "low" | "medium" | "high";
   completed?: boolean;
   order?: number;
+  status?: string;
+  startDate?: string | null;
+  scheduledDate?: string | null;
+  reviewDate?: string | null;
+  tags?: string[];
+  context?: string | null;
+  energy?: string | null;
+  estimateMinutes?: number | null;
+  waitingOn?: string | null;
+  dependsOnTaskIds?: string[];
+  archived?: boolean;
 };
 
 type MockOptions = {
@@ -19,6 +30,10 @@ type MockOptions = {
 
 function nowIso() {
   return new Date().toISOString();
+}
+
+function toIsoFromLocalDateTime(value: string) {
+  return new Date(value).toISOString();
 }
 
 async function installDrawerEditMockApi(
@@ -131,6 +146,47 @@ async function installDrawerEditMockApi(
       const userId = authUserId(route);
       if (!userId) return json(route, 401, { error: "Unauthorized" });
       return json(route, 200, todosByUser.get(userId) || []);
+    }
+
+    if (pathname === "/todos" && method === "POST") {
+      const userId = authUserId(route);
+      if (!userId) return json(route, 401, { error: "Unauthorized" });
+      const body = (await parseBody(route)) as Record<string, unknown>;
+      const list = todosByUser.get(userId) || [];
+      const created = {
+        id: `todo-created-${list.length + 1}`,
+        title: String(body.title || ""),
+        description: body.description ?? null,
+        notes: body.notes ?? null,
+        category: body.category ?? null,
+        dueDate: body.dueDate ?? null,
+        priority: body.priority ?? "medium",
+        completed: body.completed ?? body.status === "done",
+        status: body.status ?? "next",
+        startDate: body.startDate ?? null,
+        scheduledDate: body.scheduledDate ?? null,
+        reviewDate: body.reviewDate ?? null,
+        tags: Array.isArray(body.tags) ? body.tags : [],
+        context: body.context ?? null,
+        energy: body.energy ?? null,
+        estimateMinutes:
+          typeof body.estimateMinutes === "number"
+            ? body.estimateMinutes
+            : null,
+        waitingOn: body.waitingOn ?? null,
+        dependsOnTaskIds: Array.isArray(body.dependsOnTaskIds)
+          ? body.dependsOnTaskIds
+          : [],
+        archived: body.archived ?? false,
+        order: list.length,
+        userId,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        subtasks: [],
+      };
+      list.unshift(created);
+      todosByUser.set(userId, list);
+      return json(route, 201, created);
     }
 
     if (pathname.startsWith("/todos/") && method === "PUT") {
@@ -347,6 +403,94 @@ test.describe("Todo drawer essentials editing", () => {
     ).toHaveClass(/todo-item--active/);
   });
 
+  test("saves richer workflow metadata from the drawer", async ({ page }) => {
+    const state = await installDrawerEditMockApi(page, [
+      {
+        id: "todo-rich-1",
+        title: "Rich task",
+        description: "Description",
+        notes: null,
+        category: "Home",
+        dueDate: "2026-05-01T12:00:00.000Z",
+        priority: "medium",
+        status: "next",
+        startDate: null,
+        scheduledDate: null,
+        reviewDate: null,
+        tags: [],
+        context: null,
+        energy: null,
+        estimateMinutes: null,
+        waitingOn: null,
+        dependsOnTaskIds: [],
+        archived: false,
+      },
+    ]);
+
+    await registerAndOpenTodos(page);
+    await openFirstTodoDrawer(page);
+
+    await page.locator("#drawerStatusSelect").selectOption("waiting");
+    await page.locator("#drawerStartDateInput").fill("2026-05-01T09:00");
+    await page.locator("#drawerScheduledDateInput").fill("2026-05-01T10:30");
+    await page.locator("#drawerReviewDateInput").fill("2026-05-04T08:00");
+    await page.locator("#drawerContextInput").fill("@computer");
+    await page.locator("#drawerContextInput").blur();
+    await page.locator("#drawerEnergySelect").selectOption("medium");
+    await page.locator("#drawerEstimateInput").fill("45");
+    await page.locator("#drawerDetailsToggle").click();
+    await expect(page.locator("#drawerDetailsPanel")).toBeVisible();
+    await page.locator("#drawerTagsInput").fill("travel, planning");
+    await page.locator("#drawerTagsInput").blur();
+    await page.locator("#drawerWaitingOnInput").fill("Vendor quote");
+    await page.locator("#drawerWaitingOnInput").blur();
+    await page
+      .locator("#drawerDependsOnInput")
+      .fill(
+        "00000000-0000-1000-8000-000000000001, 00000000-0000-1000-8000-000000000002",
+      );
+    await page.locator("#drawerDependsOnInput").blur();
+    await page.locator("#drawerArchivedToggle").check();
+
+    await expect
+      .poll(() =>
+        state.updatePatches.some((entry) => entry.patch.status === "waiting"),
+      )
+      .toBeTruthy();
+    await expect
+      .poll(() =>
+        state.updatePatches.some(
+          (entry) =>
+            entry.patch.startDate ===
+            toIsoFromLocalDateTime("2026-05-01T09:00"),
+        ),
+      )
+      .toBeTruthy();
+    await expect
+      .poll(() =>
+        state.updatePatches.some(
+          (entry) =>
+            Array.isArray(entry.patch.tags) &&
+            entry.patch.tags.join(",") === "travel,planning",
+        ),
+      )
+      .toBeTruthy();
+    await expect
+      .poll(() =>
+        state.updatePatches.some(
+          (entry) =>
+            Array.isArray(entry.patch.dependsOnTaskIds) &&
+            entry.patch.dependsOnTaskIds.length === 2,
+        ),
+      )
+      .toBeTruthy();
+    await expect
+      .poll(() =>
+        state.updatePatches.some((entry) => entry.patch.archived === true),
+      )
+      .toBeTruthy();
+  });
+
   test("shows save error and preserves unsaved title on API failure", async ({
     page,
   }) => {
@@ -378,5 +522,62 @@ test.describe("Todo drawer essentials editing", () => {
     await expect(page.locator("#drawerTitleInput")).toHaveValue(
       "Unsaved local title",
     );
+  });
+
+  test("creates a task with richer metadata from quick entry", async ({
+    page,
+  }) => {
+    await installDrawerEditMockApi(page, []);
+
+    await registerAndOpenTodos(page);
+    await page.evaluate(() =>
+      (window as unknown as Record<string, () => void>).openTaskComposer(),
+    );
+
+    await page.locator("#todoInput").fill("Plan travel");
+    await page.locator("#todoStatusSelect").selectOption("scheduled");
+    await page.locator("#todoProjectSelect").selectOption("Work");
+    await page.locator("#todoDueDateInput").fill("2026-06-01T12:00");
+    await page.locator("#todoStartDateInput").fill("2026-05-30T09:00");
+    await page.locator("#todoScheduledDateInput").fill("2026-05-31T10:00");
+    await page.locator("#todoReviewDateInput").fill("2026-06-02T08:30");
+    await page.locator("#todoContextInput").fill("@computer");
+    await page.locator("#todoEnergySelect").selectOption("low");
+    await page.locator("#todoEstimateInput").fill("30");
+    await page.locator("#todoTagsInput").fill("travel, planning");
+    await page.locator("#todoWaitingOnInput").fill("Budget approval");
+    await page
+      .locator("#todoDependsOnInput")
+      .fill("00000000-0000-1000-8000-000000000011");
+    await page.getByRole("button", { name: /Add notes/ }).click();
+    await page.locator("#todoNotesInput").fill("Need options ready");
+
+    const createRequest = page.waitForRequest(
+      (request) =>
+        request.url().endsWith("/todos") && request.method() === "POST",
+    );
+    await page.locator("#taskComposerAddButton").click();
+    const request = await createRequest;
+    const payload = JSON.parse(request.postData() || "{}");
+
+    expect(payload).toMatchObject({
+      title: "Plan travel",
+      status: "scheduled",
+      category: "Work",
+      context: "@computer",
+      energy: "low",
+      estimateMinutes: 30,
+      waitingOn: "Budget approval",
+      notes: "Need options ready",
+    });
+    expect(payload.tags).toEqual(["travel", "planning"]);
+    expect(payload.dependsOnTaskIds).toEqual([
+      "00000000-0000-1000-8000-000000000011",
+    ]);
+    expect(payload.startDate).toBe(toIsoFromLocalDateTime("2026-05-30T09:00"));
+    expect(payload.scheduledDate).toBe(
+      toIsoFromLocalDateTime("2026-05-31T10:00"),
+    );
+    expect(payload.reviewDate).toBe(toIsoFromLocalDateTime("2026-06-02T08:30"));
   });
 });

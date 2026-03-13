@@ -255,6 +255,16 @@ async function addTodo() {
   const projectSelect = document.getElementById("todoProjectSelect");
   const dueDateInput = document.getElementById("todoDueDateInput");
   const notesInput = document.getElementById("todoNotesInput");
+  const statusSelect = document.getElementById("todoStatusSelect");
+  const startDateInput = document.getElementById("todoStartDateInput");
+  const scheduledDateInput = document.getElementById("todoScheduledDateInput");
+  const reviewDateInput = document.getElementById("todoReviewDateInput");
+  const contextInput = document.getElementById("todoContextInput");
+  const energySelect = document.getElementById("todoEnergySelect");
+  const estimateInput = document.getElementById("todoEstimateInput");
+  const tagsInput = document.getElementById("todoTagsInput");
+  const waitingOnInput = document.getElementById("todoWaitingOnInput");
+  const dependsOnInput = document.getElementById("todoDependsOnInput");
 
   if (state.quickEntryNaturalDateState.parseTimer) {
     clearTimeout(state.quickEntryNaturalDateState.parseTimer);
@@ -273,12 +283,69 @@ async function addTodo() {
     priority: state.currentPriority,
   };
 
+  const parseCommaSeparatedList = (value) =>
+    String(value || "")
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+
   const projectPath = hooks.normalizeProjectPath(projectSelect.value);
   if (projectPath) {
     payload.category = projectPath;
   }
+  if (statusSelect instanceof HTMLSelectElement && statusSelect.value) {
+    payload.status = statusSelect.value;
+  }
   if (dueDateInput.value) {
     payload.dueDate = new Date(dueDateInput.value).toISOString();
+  }
+  if (
+    startDateInput instanceof HTMLInputElement &&
+    startDateInput.value.trim()
+  ) {
+    payload.startDate = new Date(startDateInput.value).toISOString();
+  }
+  if (
+    scheduledDateInput instanceof HTMLInputElement &&
+    scheduledDateInput.value.trim()
+  ) {
+    payload.scheduledDate = new Date(scheduledDateInput.value).toISOString();
+  }
+  if (
+    reviewDateInput instanceof HTMLInputElement &&
+    reviewDateInput.value.trim()
+  ) {
+    payload.reviewDate = new Date(reviewDateInput.value).toISOString();
+  }
+  if (contextInput instanceof HTMLInputElement && contextInput.value.trim()) {
+    payload.context = contextInput.value.trim();
+  }
+  if (
+    energySelect instanceof HTMLSelectElement &&
+    String(energySelect.value || "").trim()
+  ) {
+    payload.energy = energySelect.value;
+  }
+  if (
+    estimateInput instanceof HTMLInputElement &&
+    estimateInput.value.trim() !== ""
+  ) {
+    payload.estimateMinutes = Number.parseInt(estimateInput.value, 10);
+  }
+  if (tagsInput instanceof HTMLInputElement && tagsInput.value.trim()) {
+    payload.tags = parseCommaSeparatedList(tagsInput.value);
+  }
+  if (
+    waitingOnInput instanceof HTMLInputElement &&
+    waitingOnInput.value.trim()
+  ) {
+    payload.waitingOn = waitingOnInput.value.trim();
+  }
+  if (
+    dependsOnInput instanceof HTMLTextAreaElement &&
+    dependsOnInput.value.trim()
+  ) {
+    payload.dependsOnTaskIds = parseCommaSeparatedList(dependsOnInput.value);
   }
   if (notesInput.value.trim()) {
     payload.notes = notesInput.value.trim();
@@ -303,6 +370,36 @@ async function addTodo() {
       input.value = "";
       projectSelect.value = "";
       dueDateInput.value = "";
+      if (statusSelect instanceof HTMLSelectElement) {
+        statusSelect.value = "next";
+      }
+      if (startDateInput instanceof HTMLInputElement) {
+        startDateInput.value = "";
+      }
+      if (scheduledDateInput instanceof HTMLInputElement) {
+        scheduledDateInput.value = "";
+      }
+      if (reviewDateInput instanceof HTMLInputElement) {
+        reviewDateInput.value = "";
+      }
+      if (contextInput instanceof HTMLInputElement) {
+        contextInput.value = "";
+      }
+      if (energySelect instanceof HTMLSelectElement) {
+        energySelect.value = "";
+      }
+      if (estimateInput instanceof HTMLInputElement) {
+        estimateInput.value = "";
+      }
+      if (tagsInput instanceof HTMLInputElement) {
+        tagsInput.value = "";
+      }
+      if (waitingOnInput instanceof HTMLInputElement) {
+        waitingOnInput.value = "";
+      }
+      if (dependsOnInput instanceof HTMLTextAreaElement) {
+        dependsOnInput.value = "";
+      }
       notesInput.value = "";
       hooks.resetQuickEntryNaturalDueState?.();
       hooks.setQuickEntryPropertiesOpen?.(false, { persist: false });

@@ -665,11 +665,32 @@ export function resetTaskComposerFields() {
   const dueDateInput = document.getElementById("todoDueDateInput");
   const notesInput = document.getElementById("todoNotesInput");
   const notesIcon = document.getElementById("notesExpandIcon");
+  const statusSelect = document.getElementById("todoStatusSelect");
+  const startDateInput = document.getElementById("todoStartDateInput");
+  const scheduledDateInput = document.getElementById("todoScheduledDateInput");
+  const reviewDateInput = document.getElementById("todoReviewDateInput");
+  const contextInput = document.getElementById("todoContextInput");
+  const energySelect = document.getElementById("todoEnergySelect");
+  const estimateInput = document.getElementById("todoEstimateInput");
+  const tagsInput = document.getElementById("todoTagsInput");
+  const waitingOnInput = document.getElementById("todoWaitingOnInput");
+  const dependsOnInput = document.getElementById("todoDependsOnInput");
   if (input instanceof HTMLInputElement) input.value = "";
   if (projectSelect instanceof HTMLSelectElement) {
     projectSelect.value = state.taskComposerDefaultProject || "";
   }
   if (dueDateInput instanceof HTMLInputElement) dueDateInput.value = "";
+  if (statusSelect instanceof HTMLSelectElement) statusSelect.value = "next";
+  if (startDateInput instanceof HTMLInputElement) startDateInput.value = "";
+  if (scheduledDateInput instanceof HTMLInputElement)
+    scheduledDateInput.value = "";
+  if (reviewDateInput instanceof HTMLInputElement) reviewDateInput.value = "";
+  if (contextInput instanceof HTMLInputElement) contextInput.value = "";
+  if (energySelect instanceof HTMLSelectElement) energySelect.value = "";
+  if (estimateInput instanceof HTMLInputElement) estimateInput.value = "";
+  if (tagsInput instanceof HTMLInputElement) tagsInput.value = "";
+  if (waitingOnInput instanceof HTMLInputElement) waitingOnInput.value = "";
+  if (dependsOnInput instanceof HTMLTextAreaElement) dependsOnInput.value = "";
   if (notesInput instanceof HTMLTextAreaElement) {
     notesInput.value = "";
     notesInput.style.display = "none";
