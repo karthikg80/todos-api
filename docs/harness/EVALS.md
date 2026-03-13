@@ -38,6 +38,22 @@ The harness should eventually emit artifacts under `artifacts/evals/`, such as:
 - screenshots when a UI flow is part of grading
 - structured failure reasons
 
+The first committed runner now writes:
+
+- `artifacts/evals/decision-assist/<timestamp>/`
+- `artifacts/evals/planner/<timestamp>/`
+- `artifacts/evals/<suite>/latest.json`
+
+and exposes:
+
+- `npm run eval:decision-assist`
+- `npm run eval:planner`
+- `npm run eval:all`
+
+The runner executes against the current compiled `dist/` output after
+`npx tsc` so eval behavior matches the server/runtime path without introducing a
+separate ts-node-only harness path.
+
 ## Planned suite split
 
 - decision-assist evals
@@ -60,3 +76,17 @@ Use code-based graders first:
 LLM-judge grading can be added later only for areas where deterministic grading
 cannot reasonably capture quality, such as rationale quality or prioritization
 quality.
+
+## Current first-pass suites
+
+Decision-assist:
+
+- regression cases for valid and invalid contract fixtures
+- capability checks for today-plan output shape and telemetry emission
+
+Planner:
+
+- regression cases for suggest-mode planning, existing next-action reuse, and
+  weekly-review findings
+- capability checks for apply-mode task creation and deterministic next-work
+  ranking
