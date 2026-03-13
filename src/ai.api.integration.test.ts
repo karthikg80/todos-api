@@ -215,36 +215,26 @@ describe("AI API Integration", () => {
     const todoA = await request(app)
       .post("/todos")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({ title: "Decide on the island to go", priority: "high" })
+      .send({
+        title: "Finalize travel dates",
+        priority: "high",
+        dueDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      })
       .expect(201);
     const todoB = await request(app)
       .post("/todos")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({ title: "Book ferry tickets", priority: "medium" })
+      .send({
+        title: "Book ferry tickets",
+        priority: "medium",
+        dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      })
       .expect(201);
 
     const generated = await request(app)
       .post("/ai/decision-assist/stub")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        surface: "home_focus",
-        topN: 3,
-        candidates: [
-          {
-            id: todoA.body.id,
-            title: todoA.body.title,
-            priority: "high",
-            projectName: "Anniversary vacation",
-          },
-          {
-            id: todoB.body.id,
-            title: todoB.body.title,
-            priority: "medium",
-            dueAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-            projectName: "Anniversary vacation",
-          },
-        ],
-      })
+      .send({ surface: "home_focus", topN: 3 })
       .expect(200);
 
     expect(generated.body.suggestionId).toBeDefined();
@@ -261,7 +251,7 @@ describe("AI API Integration", () => {
     expect(latest.body.outputEnvelope.suggestions[0]).toEqual(
       expect.objectContaining({
         type: "focus_task",
-        todoId: expect.any(String),
+        todoId: todoA.body.id,
         title: expect.any(String),
         summary: expect.any(String),
       }),
@@ -884,18 +874,7 @@ describe("AI API Integration", () => {
     const generated = await request(app)
       .post("/ai/decision-assist/stub")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        surface: "home_focus",
-        topN: 3,
-        candidates: [
-          {
-            id: todo.body.id,
-            title: todo.body.title,
-            priority: "high",
-            projectName: "House project",
-          },
-        ],
-      })
+      .send({ surface: "home_focus", topN: 3 })
       .expect(200);
 
     const latest = await request(app)
@@ -1067,18 +1046,7 @@ describe("AI API Integration", () => {
     const generated = await request(app)
       .post("/ai/decision-assist/stub")
       .set("Authorization", `Bearer ${authToken}`)
-      .send({
-        surface: "home_focus",
-        topN: 3,
-        candidates: [
-          {
-            id: todo.body.id,
-            title: todo.body.title,
-            priority: "high",
-            projectName: "Anniversary vacation",
-          },
-        ],
-      })
+      .send({ surface: "home_focus", topN: 3 })
       .expect(200);
 
     await request(app)

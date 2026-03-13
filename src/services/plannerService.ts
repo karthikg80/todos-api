@@ -282,11 +282,14 @@ export class PlannerService implements IPlannerService {
   async decideNextWork(
     input: DecideNextWorkInput,
   ): Promise<DecideNextWorkResult> {
+    const projectService = this.deps.projectService;
     const [tasks, projects] = await Promise.all([
       this.deps.todoService.findAll(input.userId, {
         archived: false,
       }),
-      this.getProjectService().findAll(input.userId),
+      projectService
+        ? projectService.findAll(input.userId)
+        : Promise.resolve([]),
     ]);
 
     return this.decisionEngine.decideNextWork({

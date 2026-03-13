@@ -78,7 +78,7 @@ interface AiRouterDeps {
 }
 
 export function createAiRouter({
-  aiPlannerService = new AiPlannerService(),
+  aiPlannerService,
   suggestionStore = new InMemoryAiSuggestionStore(),
   todoService,
   aiDailySuggestionLimit,
@@ -89,6 +89,12 @@ export function createAiRouter({
   decisionAssistEnabled = config.aiDecisionAssistEnabled,
 }: AiRouterDeps): Router {
   const router = Router();
+  const runtimeAiPlannerService =
+    aiPlannerService ||
+    new AiPlannerService({
+      todoService,
+      projectService,
+    });
 
   const limitsByPlan = buildLimitsByPlan({
     aiDailySuggestionLimit,
@@ -224,7 +230,9 @@ export function createAiRouter({
           }
         }
         const output = validateDecisionAssistOutput(
-          await aiPlannerService.generateDecisionAssistStub(input),
+          await runtimeAiPlannerService.generateDecisionAssistStub(input, {
+            userId,
+          }),
         );
 
         const suggestion = await suggestionStore.create({
@@ -282,7 +290,7 @@ export function createAiRouter({
 
         const input = validateCritiqueTaskInput(req.body);
         const feedbackContext = await quotaService.getFeedbackContext(userId);
-        const result = await aiPlannerService.critiqueTask(
+        const result = await runtimeAiPlannerService.critiqueTask(
           input,
           feedbackContext,
         );
@@ -334,7 +342,7 @@ export function createAiRouter({
 
         const input = validatePlanFromGoalInput(req.body);
         const feedbackContext = await quotaService.getFeedbackContext(userId);
-        const result = await aiPlannerService.planFromGoal(
+        const result = await runtimeAiPlannerService.planFromGoal(
           input,
           feedbackContext,
         );
@@ -668,16 +676,17 @@ export function createAiRouter({
         }
 
         const feedbackContext = await quotaService.getFeedbackContext(userId);
-        const breakdown = await aiPlannerService.breakdownTodoIntoSubtasks(
-          {
-            title: todo.title,
-            description: todo.description,
-            notes: todo.notes,
-            priority: todo.priority ?? undefined,
-            maxSubtasks,
-          },
-          feedbackContext,
-        );
+        const breakdown =
+          await runtimeAiPlannerService.breakdownTodoIntoSubtasks(
+            {
+              title: todo.title,
+              description: todo.description,
+              notes: todo.notes,
+              priority: todo.priority ?? undefined,
+              maxSubtasks,
+            },
+            feedbackContext,
+          );
 
         if (
           !Array.isArray(breakdown.subtasks) ||

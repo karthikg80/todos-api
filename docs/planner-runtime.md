@@ -42,6 +42,8 @@ task/project business-logic stack.
 - `decide_next_work` -> `PlannerService.decideNextWork()` -> `DecisionEngine`
 - `analyze_project_health` -> `PlannerService.analyzeProjectHealth()` -> `ReviewEngine`
 - `analyze_work_graph` -> `PlannerService.analyzeWorkGraph()` -> `WorkGraphEngine`
+- Home `home_focus` suggestion generation -> `AiPlannerService` ->
+  `PlannerService.decideNextWork()` -> `DecisionEngine`
 
 ## Scope and Mutation Rules
 
@@ -63,5 +65,6 @@ task/project business-logic stack.
   creating a next action
 - the runtime still carries the repo's temporary `projectId` / `category`
   compatibility bridge until that migration follow-up is retired
-- UI and Home AI surfaces can reuse this runtime later, but are not yet routed
-  through it
+- Home keeps its deterministic client fallback when the planner-backed AI path
+  abstains or fails; the reuse today is in backend focus suggestion generation,
+  not a full dashboard rewrite
