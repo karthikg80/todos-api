@@ -63,8 +63,11 @@ task/project business-logic stack.
   planning engine
 - `weekly_review` apply mode only performs safe starter actions such as
   creating a next action
-- the runtime still carries the repo's temporary `projectId` / `category`
-  compatibility bridge until that migration follow-up is retired
+- planner and agent project matching are `projectId`-only now; any remaining
+  `category` compatibility debt lives in the canonical task/project services,
+  not inside the planner runtime
 - Home keeps its deterministic client fallback when the planner-backed AI path
   abstains or fails; the reuse today is in backend focus suggestion generation,
   not a full dashboard rewrite
+- broader UI surfaces can reuse this runtime later, but are not yet routed
+  through it

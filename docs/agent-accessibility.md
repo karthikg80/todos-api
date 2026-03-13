@@ -90,7 +90,7 @@ That split is reflected in both code and the manifest metadata.
 
 - Agent actions reuse the existing `todoService` and `projectService` implementations.
 - Existing server-side validation remains the source of truth for create/update rules.
-- The first pass preserves the current project/category compatibility path already used by the server. `projectId` is the canonical project relationship, while `category` remains available for backward compatibility and transition.
+- `projectId` is the canonical project relationship for planner and agent matching. `category` still exists only as backward-compatibility debt in the underlying service layer until that transition is fully retired.
 - Project deletion defaults to unassigning linked tasks unless a target project ID is provided for reassignment.
 - Task deletion defaults to archival unless `hardDelete=true` is explicitly requested.
 - Project archiving is metadata-only in this pass. Archived projects still appear in list responses with `archived: true`.
@@ -146,7 +146,7 @@ This is enough for operational debugging without introducing a separate analytic
 ## Known Gaps / Follow-Up
 
 - extend idempotency beyond create flows and planner apply flows if retry semantics are needed for more writes
-- decide when the project/category compatibility path can be retired in favor of `projectId` only
+- retire the remaining service-layer `category` compatibility path once the transition can be completed safely
 - add destructive confirmation patterns before exposing broader delete or bulk write actions
 - add richer audit reporting or revocation UI if operational needs outgrow the current trace tables
 - keep the new MCP assistant-session revoke APIs aligned with any future in-app assistant management UI
