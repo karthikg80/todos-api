@@ -15,6 +15,7 @@ import {
   listMcpTools,
   MCP_PROTOCOL_VERSION,
   requiredScopesForToolCall,
+  supportsMcpIdempotencyKey,
 } from "../mcp/mcpToolCatalog";
 import { AuthService } from "../services/authService";
 import { McpOAuthService } from "../services/mcpOAuthService";
@@ -593,7 +594,7 @@ export function createMcpRouter({
 
         const toolArguments = { ...normalized.args };
         const idempotencyKey =
-          tool.name === "create_task" &&
+          supportsMcpIdempotencyKey(tool.name as AgentActionName) &&
           typeof toolArguments.idempotencyKey === "string" &&
           toolArguments.idempotencyKey.trim()
             ? toolArguments.idempotencyKey.trim()

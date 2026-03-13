@@ -570,6 +570,12 @@ describe("Remote MCP router auth and scopes", () => {
       suggest: ["projects.read", "tasks.read"],
       apply: ["projects.read", "tasks.read", "tasks.write"],
     });
+    expect(ensureNextActionTool.inputSchema.properties.idempotencyKey).toEqual(
+      expect.objectContaining({
+        type: "string",
+      }),
+    );
+    expect(ensureNextActionTool.annotations.idempotentHint).toBe(true);
 
     const decideNextWorkTool = response.body.result.tools.find(
       (tool: { name: string }) => tool.name === "decide_next_work",
@@ -824,6 +830,68 @@ describe("Remote MCP router auth and scopes", () => {
     );
 
     logSpy.mockRestore();
+  });
+
+  it("replays planner apply calls through the MCP surface when idempotencyKey is reused", async () => {
+    currentSession = buildMcpSession("user-1", [
+      "projects.read",
+      "tasks.read",
+      "tasks.write",
+    ]);
+    projectService.findById.mockResolvedValue({
+      id: "00000000-0000-1000-8000-000000000032",
+      name: "Ops",
+      status: "active",
+      archived: false,
+      userId: "user-1",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      todoCount: 0,
+      openTodoCount: 0,
+    });
+
+    const firstResponse = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer task-write-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 8.1,
+        method: "tools/call",
+        params: {
+          name: "ensure_next_action",
+          arguments: {
+            projectId: "00000000-0000-1000-8000-000000000032",
+            mode: "apply",
+            idempotencyKey: "mcp-ensure-1",
+          },
+        },
+      })
+      .expect(200);
+
+    const replayResponse = await request(app)
+      .post("/mcp")
+      .set("Authorization", "Bearer task-write-token")
+      .send({
+        jsonrpc: "2.0",
+        id: 8.2,
+        method: "tools/call",
+        params: {
+          name: "ensure_next_action",
+          arguments: {
+            projectId: "00000000-0000-1000-8000-000000000032",
+            mode: "apply",
+            idempotencyKey: "mcp-ensure-1",
+          },
+        },
+      })
+      .expect(200);
+
+    expect(replayResponse.body.result.structuredContent.trace.replayed).toBe(
+      true,
+    );
+    expect(
+      replayResponse.body.result.structuredContent.data.result.task.id,
+    ).toBe(firstResponse.body.result.structuredContent.data.result.task.id);
   });
 
   it("moves a task to a project through the MCP surface", async () => {
