@@ -29,6 +29,12 @@ Runtime endpoints:
   Browser-based user sign-in and consent page.
 - `POST /oauth/token`
   Authorization code exchange for an MCP bearer token.
+- `POST /oauth/revoke`
+  First-pass OAuth token/session revocation for remote connectors.
+- `GET /auth/mcp/sessions`
+  Signed-in app route for listing active MCP assistant sessions.
+- `POST /auth/mcp/sessions/revoke`
+  Signed-in app route for revoking one assistant session or revoking all MCP sessions.
 - `GET /healthz`
   Liveness signal for the deployed service.
 - `GET /readyz`
@@ -139,6 +145,7 @@ Stable auth and authorization codes include:
 - `MCP_UNAUTHENTICATED`
 - `MCP_INVALID_TOKEN`
 - `MCP_AUTH_EXPIRED`
+- `MCP_AUTH_REVOKED`
 - `MCP_INVALID_SESSION`
 - `MCP_INSUFFICIENT_SCOPE`
 - `RESOURCE_NOT_FOUND_OR_FORBIDDEN`
@@ -182,7 +189,7 @@ Those docs also record what remains manual from this sandboxed environment.
 
 ## Current Limitations
 
-- no user-facing token revocation UI or assistant session management yet
+- revocation/session management exists as API routes, but there is still no polished in-app assistant management UI
 - idempotency is implemented for `create_task` and `create_project`
 - persisted audit records are lightweight operational traces, not a full analytics platform
 - the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access

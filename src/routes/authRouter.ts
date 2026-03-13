@@ -15,6 +15,7 @@ import {
   validateCreateMcpAuthorizationCodeInput,
   validateCreateMcpTokenInput,
   validateExchangeMcpAuthorizationCodeInput,
+  validateRevokeMcpSessionInput,
 } from "../validation/mcpValidation";
 
 interface AuthRouterDeps {
@@ -41,7 +42,11 @@ function logMcpLinkEvent(input: {
     | "token_exchange_success"
     | "token_exchange_error"
     | "legacy_token_success"
-    | "legacy_token_error";
+    | "legacy_token_error"
+    | "session_list_success"
+    | "session_list_error"
+    | "session_revoke_success"
+    | "session_revoke_error";
   userId?: string;
   clientId?: string;
   assistantName?: string;
@@ -262,6 +267,16 @@ function mapAuthorizationCodeError(error: unknown) {
           hint: "Use the same clientId that originally received the refresh token.",
         }),
       };
+    case "Assistant session revoked":
+      return {
+        status: 401,
+        error: buildStructuredMcpError({
+          code: "MCP_ASSISTANT_SESSION_REVOKED",
+          message: "Assistant session has been revoked",
+          retryable: false,
+          hint: "Reconnect the assistant to mint a fresh MCP token set.",
+        }),
+      };
     default:
       return mapAgentFacingError(error);
   }
@@ -461,13 +476,22 @@ export function createAuthRouter({
         }
 
         const input = validateCreateMcpTokenInput(req.body);
+        const session = await mcpOAuthService.createAssistantSession({
+          userId: resolvedUser.user.id,
+          scopes: input.scopes,
+          assistantName: input.assistantName,
+          clientId: input.clientId,
+          source: "local",
+        });
         const token = authService!.createMcpToken({
           userId: resolvedUser.user.id,
           email: resolvedUser.user.email,
           scopes: input.scopes,
           assistantName: input.assistantName,
           clientId: input.clientId,
+          sessionId: session.id,
         });
+        await mcpOAuthService.recordAccessTokenIssued(session.id);
 
         logMcpLinkEvent({
           requestId,
@@ -477,7 +501,10 @@ export function createAuthRouter({
           assistantName: input.assistantName,
           scopes: input.scopes,
         });
-        res.status(201).json(token);
+        res.status(201).json({
+          ...token,
+          sessionId: session.id,
+        });
       } catch (error) {
         const requestId = buildLinkRequestId(req);
         const mapped = mapAgentFacingError(error);
@@ -613,13 +640,26 @@ export function createAuthRouter({
           return sendStructuredError(res, 401, error);
         }
 
+        const existingSessionId =
+          "sessionId" in linkedSession ? linkedSession.sessionId : undefined;
+        const session = existingSessionId
+          ? { id: existingSessionId }
+          : await mcpOAuthService.createAssistantSession({
+              userId: linkedSession.userId,
+              scopes: linkedSession.scopes,
+              assistantName: linkedSession.assistantName,
+              clientId: linkedSession.clientId,
+              source: "oauth",
+            });
         const token = authService.createMcpToken({
           userId: linkedSession.userId,
           email: linkedSession.email,
           scopes: linkedSession.scopes,
           assistantName: linkedSession.assistantName,
           clientId: linkedSession.clientId,
+          sessionId: session.id,
         });
+        await mcpOAuthService.recordAccessTokenIssued(session.id);
         const refreshToken =
           input.grantType === "authorization_code"
             ? await mcpOAuthService.createRefreshToken({
@@ -628,6 +668,7 @@ export function createAuthRouter({
                 scopes: linkedSession.scopes,
                 assistantName: linkedSession.assistantName,
                 clientId: linkedSession.clientId,
+                sessionId: session.id,
               })
             : null;
         const refreshTokenPayload = refreshExchange
@@ -657,6 +698,7 @@ export function createAuthRouter({
             ? { assistantName: token.assistantName }
             : {}),
           ...(token.clientId ? { clientId: token.clientId } : {}),
+          sessionId: session.id,
           refreshToken: refreshTokenPayload!.refreshToken,
           refreshTokenExpiresAt: refreshTokenPayload!.expiresAt,
           refreshTokenExpiresIn: refreshTokenPayload!.expiresIn,
@@ -669,6 +711,132 @@ export function createAuthRouter({
           errorCode: mapped.error.code,
         });
         sendStructuredError(res, mapped.status, mapped.error);
+      }
+    },
+  );
+
+  router.get(
+    "/mcp/sessions",
+    authLimiter,
+    async (req: Request, res: Response) => {
+      const requestId = buildLinkRequestId(req);
+
+      try {
+        const resolvedUser = await resolveAppUserForMcpLink(req, authService);
+        if ("error" in resolvedUser) {
+          logMcpLinkEvent({
+            requestId,
+            event: "session_list_error",
+            errorCode: resolvedUser.error.code,
+          });
+          return sendStructuredError(
+            res,
+            resolvedUser.httpStatus,
+            resolvedUser.error,
+          );
+        }
+
+        const sessions = await mcpOAuthService.listAssistantSessions(
+          resolvedUser.user.id,
+        );
+        logMcpLinkEvent({
+          requestId,
+          event: "session_list_success",
+          userId: resolvedUser.user.id,
+        });
+        return res.status(200).json({ sessions });
+      } catch (error) {
+        const mapped = mapAgentFacingError(error);
+        logMcpLinkEvent({
+          requestId,
+          event: "session_list_error",
+          errorCode: mapped.error.code,
+        });
+        return sendStructuredError(res, mapped.status, mapped.error);
+      }
+    },
+  );
+
+  router.post(
+    "/mcp/sessions/revoke",
+    authLimiter,
+    async (req: Request, res: Response) => {
+      const requestId = buildLinkRequestId(req);
+
+      try {
+        const resolvedUser = await resolveAppUserForMcpLink(req, authService);
+        if ("error" in resolvedUser) {
+          logMcpLinkEvent({
+            requestId,
+            event: "session_revoke_error",
+            errorCode: resolvedUser.error.code,
+          });
+          return sendStructuredError(
+            res,
+            resolvedUser.httpStatus,
+            resolvedUser.error,
+          );
+        }
+
+        const input = validateRevokeMcpSessionInput(req.body);
+        if ("revokeAll" in input && input.revokeAll) {
+          const revokedAt = await authService!.revokeAllMcpTokensForUser(
+            resolvedUser.user.id,
+          );
+          const revokedSessionCount =
+            await mcpOAuthService.revokeAllAssistantSessions(
+              resolvedUser.user.id,
+            );
+          logMcpLinkEvent({
+            requestId,
+            event: "session_revoke_success",
+            userId: resolvedUser.user.id,
+          });
+          return res.status(200).json({
+            revokedAll: true,
+            revokedAt,
+            revokedSessionCount,
+          });
+        }
+
+        const revoked = await mcpOAuthService.revokeAssistantSession({
+          userId: resolvedUser.user.id,
+          sessionId: input.sessionId,
+        });
+
+        if (!revoked) {
+          const error = buildStructuredMcpError({
+            code: "MCP_ASSISTANT_SESSION_NOT_FOUND",
+            message: "Assistant session not found",
+            retryable: false,
+            hint: "Fetch active assistant sessions first and retry with a current sessionId.",
+          });
+          logMcpLinkEvent({
+            requestId,
+            event: "session_revoke_error",
+            userId: resolvedUser.user.id,
+            errorCode: error.code,
+          });
+          return sendStructuredError(res, 404, error);
+        }
+
+        logMcpLinkEvent({
+          requestId,
+          event: "session_revoke_success",
+          userId: resolvedUser.user.id,
+        });
+        return res.status(200).json({
+          revoked: true,
+          sessionId: input.sessionId,
+        });
+      } catch (error) {
+        const mapped = mapAgentFacingError(error);
+        logMcpLinkEvent({
+          requestId,
+          event: "session_revoke_error",
+          errorCode: mapped.error.code,
+        });
+        return sendStructuredError(res, mapped.status, mapped.error);
       }
     },
   );

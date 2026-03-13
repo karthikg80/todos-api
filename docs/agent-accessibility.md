@@ -145,3 +145,4 @@ This is enough for operational debugging without introducing a separate analytic
 - decide when the project/category compatibility path can be retired in favor of `projectId` only
 - add destructive confirmation patterns before exposing broader delete or bulk write actions
 - add richer audit reporting or revocation UI if operational needs outgrow the current trace tables
+- keep the new MCP assistant-session revoke APIs aligned with any future in-app assistant management UI

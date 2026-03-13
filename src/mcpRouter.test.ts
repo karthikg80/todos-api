@@ -132,6 +132,7 @@ describe("Remote MCP router auth and scopes", () => {
       scopes: ["tasks.write"],
       assistantName: "ChatGPT",
       clientId: "chatgpt-client",
+      sessionId: expect.any(String),
     });
     expect(response.body).toEqual({
       token: "mcp-token-user-1",
@@ -142,6 +143,7 @@ describe("Remote MCP router auth and scopes", () => {
       expiresIn: 2592000,
       assistantName: "ChatGPT",
       clientId: "chatgpt-client",
+      sessionId: expect.any(String),
     });
   });
 
@@ -205,6 +207,7 @@ describe("Remote MCP router auth and scopes", () => {
       scopes: ["tasks.read", "tasks.write"],
       assistantName: "ChatGPT",
       clientId: "chatgpt-client",
+      sessionId: expect.any(String),
     });
     expect(exchange.body).toEqual({
       accessToken: "mcp-token-user-1",
@@ -215,6 +218,7 @@ describe("Remote MCP router auth and scopes", () => {
       scopes: ["tasks.read", "tasks.write"],
       assistantName: "ChatGPT",
       clientId: "chatgpt-client",
+      sessionId: expect.any(String),
       refreshToken: expect.any(String),
       refreshTokenExpiresAt: expect.any(String),
       refreshTokenExpiresIn: 2592000,
@@ -262,6 +266,65 @@ describe("Remote MCP router auth and scopes", () => {
     expect(refreshed.body.accessToken).toBe("mcp-token-user-1");
     expect(refreshed.body.refreshToken).toEqual(expect.any(String));
     expect(refreshed.body.refreshToken).not.toBe(exchange.body.refreshToken);
+    expect(refreshed.body.sessionId).toEqual(expect.any(String));
+  });
+
+  it("lists active MCP assistant sessions for the authenticated app user", async () => {
+    await request(app)
+      .post("/auth/mcp/token")
+      .set("Authorization", "Bearer app-access-token")
+      .send({
+        scopes: ["tasks.write"],
+        assistantName: "ChatGPT",
+        clientId: "chatgpt-client",
+      })
+      .expect(201);
+
+    const response = await request(app)
+      .get("/auth/mcp/sessions")
+      .set("Authorization", "Bearer app-access-token")
+      .expect(200);
+
+    expect(response.body.sessions).toEqual([
+      expect.objectContaining({
+        id: expect.any(String),
+        clientId: "chatgpt-client",
+        assistantName: "ChatGPT",
+        scopes: ["tasks.write"],
+        source: "local",
+      }),
+    ]);
+  });
+
+  it("revokes an MCP assistant session for the authenticated app user", async () => {
+    const issued = await request(app)
+      .post("/auth/mcp/token")
+      .set("Authorization", "Bearer app-access-token")
+      .send({
+        scopes: ["tasks.write"],
+        assistantName: "ChatGPT",
+        clientId: "chatgpt-client",
+      })
+      .expect(201);
+
+    const revoke = await request(app)
+      .post("/auth/mcp/sessions/revoke")
+      .set("Authorization", "Bearer app-access-token")
+      .send({
+        sessionId: issued.body.sessionId,
+      })
+      .expect(200);
+
+    expect(revoke.body).toEqual({
+      revoked: true,
+      sessionId: issued.body.sessionId,
+    });
+
+    const listed = await request(app)
+      .get("/auth/mcp/sessions")
+      .set("Authorization", "Bearer app-access-token")
+      .expect(200);
+    expect(listed.body.sessions).toEqual([]);
   });
 
   it("returns structured errors when the PKCE verifier is wrong", async () => {

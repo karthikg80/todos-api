@@ -41,6 +41,7 @@ Returns:
 - `issuer`
 - `authorization_endpoint`
 - `token_endpoint`
+- `revocation_endpoint`
 - `registration_endpoint`
 - `response_types_supported`
 - `grant_types_supported`
@@ -109,12 +110,42 @@ Response:
 - `expires_in`
 - `expires_at`
 - `scope`
+- `session_id`
+
+### `POST /oauth/revoke`
+
+Revokes an issued MCP token.
+
+Form input:
+
+- `token`
+- `client_id` (optional)
+- `token_type_hint` (`refresh_token` or `access_token`, optional)
+
+Behavior:
+
+- revoking a refresh token invalidates the linked assistant session when present
+- revoking an access token invalidates the backing assistant session for newer session-backed tokens
+- older legacy tokens without a session binding fall back to revoke-all for that user
 
 ### `POST /auth/mcp/token`
 
 Local development shortcut only.
 
 This bypasses the public authorization-code flow and mints an MCP token directly from a signed-in app user session. Keep it for local verification, not provider-facing account linking.
+
+### `GET /auth/mcp/sessions`
+
+Lists active MCP assistant sessions for the signed-in app user.
+
+### `POST /auth/mcp/sessions/revoke`
+
+Revokes MCP assistant access for the signed-in app user.
+
+JSON input:
+
+- `{ "sessionId": "<uuid>" }` to revoke one session
+- `{ "revokeAll": true }` to revoke all MCP sessions without rotating unrelated app auth
 
 ## MCP Request Authentication
 
@@ -126,9 +157,11 @@ The server then:
 
 1. verifies token signature and expiry
 2. validates token type is `mcp`
-3. resolves the token to a concrete app user via `getUserById`
-4. enforces scopes before tool execution
-5. denies the request if the linked user is no longer valid
+3. rejects tokens bound to revoked MCP assistant sessions
+4. rejects tokens issued before a user-level MCP revoke-all timestamp
+5. resolves the token to a concrete app user via `getUserById`
+6. enforces scopes before tool execution
+7. denies the request if the linked user is no longer valid
 
 No MCP tool trusts a client-provided user ID.
 
@@ -204,6 +237,7 @@ Important auth codes:
 - `MCP_INVALID_AUTHORIZATION`
 - `MCP_INVALID_TOKEN`
 - `MCP_AUTH_EXPIRED`
+- `MCP_AUTH_REVOKED`
 - `MCP_INVALID_SESSION`
 - `MCP_INSUFFICIENT_SCOPE`
 - `MCP_INVALID_CLIENT`
@@ -225,6 +259,7 @@ The public MCP layer logs lightweight structured events for:
 - login success/failure during connector linking
 - code approval / denial
 - token exchange success/failure
+- revoke success/failure
 - MCP auth success/failure
 - scope denials
 - tool calls with request ID, tool name, user ID, and latency
@@ -246,6 +281,9 @@ Current behavior:
 
 - the server issues refresh tokens for clients registered with `grant_types=["authorization_code","refresh_token"]`
 - refresh-token exchange rotates the refresh token and returns a new access token plus a replacement refresh token
+- public OAuth metadata advertises `revocation_endpoint`
+- signed-in app users can list and revoke assistant sessions through `/auth/mcp/sessions`
+- `POST /oauth/revoke` supports first-pass connector disconnect without touching normal app auth
 
 ## Local Development
 
@@ -268,7 +306,8 @@ Detailed deployment and smoke steps live in:
 
 ## Current Limitations
 
-- MCP access tokens are still JWTs and are not individually revocable yet
-- refresh tokens are rotated, stored durably, and survive app restarts, but there is no user-facing revoke-all-assistants UI yet
+- MCP access tokens are session-revocable, but there is still no polished in-app assistant management UI
+- refresh tokens are rotated, stored durably, and survive app restarts
+- older pre-session MCP tokens are only guaranteed to be invalidated by revoke-all once they are rotated onto the newer session-backed flow
 - persisted audit records are lightweight operational traces, not a full analytics pipeline
 - real public deployment and connector validation must be completed from a networked environment with Railway and provider access
