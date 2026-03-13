@@ -1,9 +1,13 @@
 const { runSuites } = require("./shared/runner");
+const agentSuite = require("./agent/suite");
 const decisionAssistSuite = require("./decision-assist/suite");
+const mcpSuite = require("./mcp/suite");
 const plannerSuite = require("./planner/suite");
 
 const suiteMap = new Map([
+  ["agent", agentSuite],
   ["decision-assist", decisionAssistSuite],
+  ["mcp", mcpSuite],
   ["planner", plannerSuite],
 ]);
 
@@ -11,7 +15,7 @@ async function main() {
   const requested = process.argv[2];
   if (!requested || (requested !== "all" && !suiteMap.has(requested))) {
     console.error(
-      "Usage: node evals/run-suite.js <decision-assist|planner|all>",
+      "Usage: node evals/run-suite.js <agent|decision-assist|mcp|planner|all>",
     );
     process.exit(1);
   }
