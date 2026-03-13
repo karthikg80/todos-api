@@ -5,6 +5,7 @@ import { McpScope } from "../types";
 import { buildStructuredMcpError } from "./mcpErrors";
 import { hasAllMcpScopes } from "./mcpScopes";
 import { config } from "../config";
+import { McpOAuthService } from "../services/mcpOAuthService";
 
 type JsonRpcId = number | string | null;
 
@@ -62,6 +63,7 @@ export function buildMcpActor(
 export async function resolveMcpAuthContext(input: {
   req: Request;
   authService?: AuthService;
+  mcpOAuthService?: McpOAuthService;
   requestId: string;
 }): Promise<{
   httpStatus: number;
@@ -108,7 +110,7 @@ export async function resolveMcpAuthContext(input: {
 
   let session: McpTokenPayload;
   try {
-    session = input.authService.verifyMcpToken(parts[1]);
+    session = await input.authService.verifyMcpToken(parts[1]);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "Token expired") {
@@ -119,6 +121,17 @@ export async function resolveMcpAuthContext(input: {
           message: "MCP access token expired",
           retryable: false,
           hint: "Use the MCP refresh-token grant if available, or repeat the link flow to mint a fresh token.",
+        }),
+      };
+    }
+    if (message === "MCP token revoked") {
+      return {
+        httpStatus: 401,
+        error: buildStructuredMcpError({
+          code: "MCP_AUTH_REVOKED",
+          message: "MCP access token has been revoked",
+          retryable: false,
+          hint: "Reconnect the assistant or mint a new token after re-authorizing access.",
         }),
       };
     }
@@ -145,6 +158,10 @@ export async function resolveMcpAuthContext(input: {
         hint: "Re-link the user account to mint a fresh token.",
       }),
     };
+  }
+
+  if (session.sessionId && input.mcpOAuthService) {
+    await input.mcpOAuthService.recordAssistantSessionUsage(session.sessionId);
   }
 
   return {

@@ -101,6 +101,7 @@ model User {
   resetTokenExpiry  DateTime?      @map("reset_token_expiry")
   role              UserRole       @default(user)
   plan              UserPlan       @default(free)
+  mcpRevokedAfter   DateTime?      @map("mcp_revoked_after")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
 
@@ -108,6 +109,7 @@ model User {
   projects          Project[]
   refreshTokens     RefreshToken[]
   mcpAuthorizationCodes McpAuthorizationCode[]
+  mcpAssistantSessions McpAssistantSession[]
   mcpRefreshTokens  McpRefreshToken[]
   agentIdempotencyRecords AgentIdempotencyRecord[]
   agentActionAudits AgentActionAudit[]
@@ -127,6 +129,27 @@ model RefreshToken {
 
   @@map("refresh_tokens")
   @@index([userId])
+}
+
+model McpAssistantSession {
+  id                    String    @id @default(uuid()) @db.Uuid
+  userId                String    @map("user_id")
+  clientId              String?   @db.VarChar(5000) @map("client_id")
+  assistantName         String?   @db.VarChar(100) @map("assistant_name")
+  scopes                String[]  @default([])
+  source                String    @db.VarChar(20)
+  revokedAt             DateTime? @map("revoked_at")
+  lastAccessTokenIssuedAt DateTime? @map("last_access_token_issued_at")
+  lastUsedAt            DateTime? @map("last_used_at")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  refreshTokens McpRefreshToken[]
+
+  @@map("mcp_assistant_sessions")
+  @@index([userId, revokedAt])
+  @@index([clientId])
 }
 
 model McpAuthorizationCode {
@@ -155,6 +178,7 @@ model McpRefreshToken {
   id            String   @id @default(uuid()) @db.Uuid
   tokenHash     String   @unique @db.VarChar(128) @map("token_hash")
   userId        String   @map("user_id")
+  sessionId     String?  @map("session_id") @db.Uuid
   email         String   @db.VarChar(255)
   scopes        String[] @default([])
   assistantName String?  @db.VarChar(100) @map("assistant_name")
@@ -166,9 +190,11 @@ model McpRefreshToken {
   updatedAt     DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  session McpAssistantSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@map("mcp_refresh_tokens")
   @@index([userId])
+  @@index([sessionId])
   @@index([expiresAt])
 }
 

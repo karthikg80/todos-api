@@ -13,6 +13,7 @@ import {
   validateExchangeMcpAuthorizationCodeInput,
   validateOAuthAuthorizeRequest,
   validateRegisterMcpClientInput,
+  validateRevokeMcpOAuthTokenInput,
 } from "../validation/mcpValidation";
 import { config } from "../config";
 
@@ -181,7 +182,9 @@ function logMcpOauthEvent(input: {
     | "approve_error"
     | "deny"
     | "token_success"
-    | "token_error";
+    | "token_error"
+    | "revoke_success"
+    | "revoke_error";
   userId?: string;
   clientId?: string;
   clientName?: string;
@@ -303,6 +306,14 @@ function mapTokenExchangeError(error: unknown) {
         code: "MCP_REFRESH_TOKEN_CLIENT_MISMATCH",
         hint: "Use the same client_id that originally received the refresh token.",
       };
+    case "Assistant session revoked":
+      return {
+        status: 401,
+        error: "invalid_grant",
+        description: "Assistant session has been revoked",
+        code: "MCP_ASSISTANT_SESSION_REVOKED",
+        hint: "Reconnect the assistant to mint a fresh token set.",
+      };
     case "Invalid OAuth client":
     case "OAuth client expired":
       return {
@@ -375,7 +386,7 @@ export function createMcpPublicRouter({
         title: "Signed Out",
         message:
           "The local MCP linking session has been cleared on this device.",
-        hint: "Existing issued MCP bearer tokens are not revoked automatically.",
+        hint: "Disconnect active assistant sessions from the app or call POST /oauth/revoke to revoke issued MCP tokens.",
       }),
     );
   });
@@ -399,9 +410,10 @@ export function createMcpPublicRouter({
       issuer: config.baseUrl,
       authorization_endpoint: `${config.baseUrl}/oauth/authorize`,
       token_endpoint: `${config.baseUrl}/oauth/token`,
+      revocation_endpoint: `${config.baseUrl}/oauth/revoke`,
       registration_endpoint: `${config.baseUrl}/oauth/register`,
       response_types_supported: ["code"],
-      grant_types_supported: ["authorization_code"],
+      grant_types_supported: ["authorization_code", "refresh_token"],
       token_endpoint_auth_methods_supported: ["none"],
       code_challenge_methods_supported: ["S256"],
       scopes_supported: [
@@ -800,13 +812,26 @@ export function createMcpPublicRouter({
         throw new Error("Linked user account no longer exists");
       }
 
+      const existingSessionId =
+        "sessionId" in linkedSession ? linkedSession.sessionId : undefined;
+      const session = existingSessionId
+        ? { id: existingSessionId }
+        : await mcpOAuthService.createAssistantSession({
+            userId: linkedSession.userId,
+            scopes: linkedSession.scopes,
+            assistantName: linkedSession.assistantName || client.clientName,
+            clientId: linkedSession.clientId,
+            source: "oauth",
+          });
       const token = authService.createMcpToken({
         userId: linkedSession.userId,
         email: linkedSession.email,
         scopes: linkedSession.scopes,
         assistantName: linkedSession.assistantName || client.clientName,
         clientId: linkedSession.clientId,
+        sessionId: session.id,
       });
+      await mcpOAuthService.recordAccessTokenIssued(session.id);
       const shouldIssueRefreshToken =
         client.grantTypes.includes("refresh_token") ||
         input.grantType === "refresh_token";
@@ -818,6 +843,7 @@ export function createMcpPublicRouter({
               scopes: linkedSession.scopes,
               assistantName: linkedSession.assistantName || client.clientName,
               clientId: linkedSession.clientId,
+              sessionId: session.id,
             })
           : null;
       const rotatedRefreshToken =
@@ -846,6 +872,7 @@ export function createMcpPublicRouter({
         expires_in: token.expiresIn,
         scope: token.scope,
         ...(token.expiresAt ? { expires_at: token.expiresAt } : {}),
+        session_id: session.id,
         ...(refreshTokenPayload
           ? {
               refresh_token: refreshTokenPayload.refreshToken,
@@ -866,6 +893,97 @@ export function createMcpPublicRouter({
         description: mapped.description,
         code: mapped.code,
         hint: mapped.hint,
+      });
+    }
+  });
+
+  router.post("/oauth/revoke", async (req, res) => {
+    const requestId = buildRequestId(req);
+    setRequestId(res, requestId);
+    setNoStoreHeaders(res);
+
+    try {
+      if (!authService) {
+        logMcpOauthEvent({
+          requestId,
+          event: "revoke_error",
+          errorCode: "MCP_NOT_CONFIGURED",
+        });
+        return sendOAuthTokenError(res, 501, {
+          error: "server_error",
+          description: "Authentication not configured",
+          code: "MCP_NOT_CONFIGURED",
+        });
+      }
+
+      const input = validateRevokeMcpOAuthTokenInput({
+        token: req.body.token,
+        clientId: req.body.client_id || req.body.clientId,
+        tokenTypeHint: req.body.token_type_hint || req.body.tokenTypeHint,
+      });
+
+      let userId: string | undefined;
+      if (input.tokenTypeHint !== "access_token") {
+        const revokedRefreshToken = await mcpOAuthService.revokeRefreshToken({
+          refreshToken: input.token,
+          clientId: input.clientId,
+        });
+        if (revokedRefreshToken.userId) {
+          userId = revokedRefreshToken.userId;
+        }
+      }
+
+      if (!userId && input.tokenTypeHint !== "refresh_token") {
+        try {
+          const decoded = authService.decodeMcpToken(input.token);
+          userId = decoded.userId;
+          if (decoded.sessionId) {
+            await mcpOAuthService.revokeAssistantSession({
+              userId: decoded.userId,
+              sessionId: decoded.sessionId,
+            });
+          } else {
+            await authService.revokeAllMcpTokensForUser(decoded.userId);
+            await mcpOAuthService.revokeAllAssistantSessions(decoded.userId);
+          }
+        } catch (_error) {
+          // OAuth revocation is intentionally idempotent for invalid or expired tokens.
+        }
+      }
+
+      logMcpOauthEvent({
+        requestId,
+        event: "revoke_success",
+        userId,
+        clientId: input.clientId,
+      });
+      return res.status(200).send();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message === "Refresh token client mismatch") {
+        logMcpOauthEvent({
+          requestId,
+          event: "revoke_error",
+          errorCode: "MCP_REFRESH_TOKEN_CLIENT_MISMATCH",
+        });
+        return sendOAuthTokenError(res, 401, {
+          error: "invalid_client",
+          description: "Refresh token client binding mismatch",
+          code: "MCP_REFRESH_TOKEN_CLIENT_MISMATCH",
+          hint: "Use the same client_id that originally received the refresh token.",
+        });
+      }
+
+      logMcpOauthEvent({
+        requestId,
+        event: "revoke_error",
+        errorCode: "MCP_OAUTH_REVOKE_FAILED",
+      });
+      return sendOAuthTokenError(res, 500, {
+        error: "server_error",
+        description: "OAuth revocation failed",
+        code: "MCP_OAUTH_REVOKE_FAILED",
+        hint: "Retry the revoke request. If it persists, inspect the server logs using the request ID.",
       });
     }
   });

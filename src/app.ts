@@ -251,6 +251,7 @@ export function createApp(
     createMcpRouter({
       agentExecutor,
       authService,
+      mcpOAuthService,
     }),
   );
 

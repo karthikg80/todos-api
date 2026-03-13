@@ -5,7 +5,7 @@ import {
   hasAllMcpScopes,
   normalizeMcpScopes,
 } from "../mcp/mcpScopes";
-import { ValidationError } from "./validation";
+import { ValidationError, validateId } from "./validation";
 
 const MAX_ASSISTANT_NAME_LENGTH = 100;
 const MAX_CLIENT_ID_LENGTH = 5000;
@@ -62,6 +62,21 @@ export interface OAuthAuthorizeRequestDto {
   state?: string;
   codeChallenge: string;
   codeChallengeMethod: "S256";
+}
+
+export type RevokeMcpSessionDto =
+  | {
+      sessionId: string;
+      revokeAll?: false;
+    }
+  | {
+      revokeAll: true;
+    };
+
+export interface RevokeMcpOAuthTokenDto {
+  token: string;
+  clientId?: string;
+  tokenTypeHint?: "refresh_token" | "access_token";
 }
 
 function ensureObject(data: unknown): Record<string, unknown> {
@@ -461,6 +476,68 @@ export function validateRegisterMcpClientInput(
     tokenEndpointAuthMethod: normalizeTokenEndpointAuthMethod(
       body.token_endpoint_auth_method,
     ),
+  };
+}
+
+export function validateRevokeMcpSessionInput(
+  data: unknown,
+): RevokeMcpSessionDto {
+  const body = ensureObject(data);
+
+  if (body.revokeAll === true) {
+    if (body.sessionId !== undefined) {
+      throw new ValidationError(
+        "sessionId cannot be combined with revokeAll=true",
+      );
+    }
+    return { revokeAll: true };
+  }
+
+  const sessionId = normalizeStringField({
+    value: body.sessionId,
+    field: "sessionId",
+    required: true,
+    maxLength: 36,
+  });
+  validateId(sessionId!);
+  return { sessionId: sessionId! };
+}
+
+export function validateRevokeMcpOAuthTokenInput(
+  data: unknown,
+): RevokeMcpOAuthTokenDto {
+  const body = ensureObject(data);
+
+  const token = normalizeStringField({
+    value: body.token,
+    field: "token",
+    required: true,
+    maxLength: 5000,
+  });
+  const clientId = normalizeClientId(body.clientId ?? body.client_id, false);
+
+  let tokenTypeHint: "refresh_token" | "access_token" | undefined;
+  const rawHint = body.tokenTypeHint ?? body.token_type_hint;
+  if (rawHint !== undefined && rawHint !== null) {
+    if (typeof rawHint !== "string" || !rawHint.trim()) {
+      throw new ValidationError("tokenTypeHint must be a string");
+    }
+    const normalizedHint = rawHint.trim();
+    if (
+      normalizedHint !== "refresh_token" &&
+      normalizedHint !== "access_token"
+    ) {
+      throw new ValidationError(
+        'tokenTypeHint must be "refresh_token" or "access_token"',
+      );
+    }
+    tokenTypeHint = normalizedHint;
+  }
+
+  return {
+    token: token!,
+    ...(clientId ? { clientId } : {}),
+    ...(tokenTypeHint ? { tokenTypeHint } : {}),
   };
 }
 

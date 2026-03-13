@@ -38,6 +38,7 @@ export interface McpTokenPayload extends JwtPayload {
   scopes: McpScope[];
   assistantName?: string;
   clientId?: string;
+  sessionId?: string;
 }
 
 export interface McpTokenResponse {
@@ -247,6 +248,7 @@ export class AuthService {
     scopes: McpScope[];
     assistantName?: string;
     clientId?: string;
+    sessionId?: string;
   }): McpTokenResponse {
     const normalizedScopes = normalizeMcpScopes(input.scopes, {
       requireNonEmpty: true,
@@ -259,6 +261,7 @@ export class AuthService {
         scopes: normalizedScopes,
         ...(input.assistantName ? { assistantName: input.assistantName } : {}),
         ...(input.clientId ? { clientId: input.clientId } : {}),
+        ...(input.sessionId ? { sessionId: input.sessionId } : {}),
       },
       this.ACCESS_JWT_SECRET,
       {
@@ -280,12 +283,14 @@ export class AuthService {
     };
   }
 
-  verifyMcpToken(token: string): McpTokenPayload {
+  private decodeVerifiedMcpToken(token: string): McpTokenPayload & {
+    issuedAt: number;
+  } {
     try {
       const payload = jwt.verify(
         token,
         this.ACCESS_JWT_SECRET,
-      ) as Partial<McpTokenPayload>;
+      ) as Partial<McpTokenPayload> & { iat?: unknown };
 
       if (payload.tokenType !== "mcp") {
         throw new Error("Invalid MCP token");
@@ -307,17 +312,25 @@ export class AuthService {
         throw new Error("Invalid MCP token");
       }
 
+      if (typeof payload.iat !== "number") {
+        throw new Error("Invalid MCP token");
+      }
+
       return {
         userId: payload.userId,
         email: payload.email,
         tokenType: "mcp",
         scopes,
+        issuedAt: payload.iat,
         ...(typeof payload.assistantName === "string" &&
         payload.assistantName.trim()
           ? { assistantName: payload.assistantName.trim() }
           : {}),
         ...(typeof payload.clientId === "string" && payload.clientId.trim()
           ? { clientId: payload.clientId.trim() }
+          : {}),
+        ...(typeof payload.sessionId === "string" && payload.sessionId.trim()
+          ? { sessionId: payload.sessionId.trim() }
           : {}),
       };
     } catch (error: any) {
@@ -326,6 +339,69 @@ export class AuthService {
       }
       throw new Error("Invalid MCP token");
     }
+  }
+
+  decodeMcpToken(token: string): McpTokenPayload & {
+    issuedAt: number;
+  } {
+    return this.decodeVerifiedMcpToken(token);
+  }
+
+  async verifyMcpToken(token: string): Promise<McpTokenPayload> {
+    const decoded = this.decodeVerifiedMcpToken(token);
+    const issuedAt = decoded.issuedAt * 1000;
+
+    const userRevocation = await this.prisma.user.findUnique({
+      where: { id: decoded.userId },
+      select: { mcpRevokedAfter: true },
+    });
+
+    if (
+      userRevocation?.mcpRevokedAfter &&
+      issuedAt <= userRevocation.mcpRevokedAfter.getTime()
+    ) {
+      throw new Error("MCP token revoked");
+    }
+
+    if (decoded.sessionId) {
+      const session = await this.prisma.mcpAssistantSession.findUnique({
+        where: { id: decoded.sessionId },
+        select: {
+          userId: true,
+          revokedAt: true,
+        },
+      });
+      if (
+        !session ||
+        session.userId !== decoded.userId ||
+        session.revokedAt !== null
+      ) {
+        throw new Error("MCP token revoked");
+      }
+    }
+
+    return {
+      userId: decoded.userId,
+      email: decoded.email,
+      tokenType: "mcp",
+      scopes: decoded.scopes,
+      ...(decoded.assistantName
+        ? { assistantName: decoded.assistantName }
+        : {}),
+      ...(decoded.clientId ? { clientId: decoded.clientId } : {}),
+      ...(decoded.sessionId ? { sessionId: decoded.sessionId } : {}),
+    };
+  }
+
+  async revokeAllMcpTokensForUser(userId: string): Promise<string> {
+    const revokedAt = new Date();
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        mcpRevokedAfter: revokedAt,
+      },
+    });
+    return revokedAt.toISOString();
   }
 
   getPrismaClient(): PrismaClient {

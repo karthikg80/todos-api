@@ -17,6 +17,7 @@ import {
   requiredScopesForToolCall,
 } from "../mcp/mcpToolCatalog";
 import { AuthService } from "../services/authService";
+import { McpOAuthService } from "../services/mcpOAuthService";
 import { McpScope } from "../types";
 
 type JsonRpcId = number | string | null;
@@ -31,6 +32,7 @@ interface JsonRpcRequest {
 interface McpRouterDeps {
   agentExecutor: AgentExecutor;
   authService?: AuthService;
+  mcpOAuthService?: McpOAuthService;
 }
 
 function jsonRpcSuccess(id: JsonRpcId, result: Record<string, unknown>) {
@@ -200,6 +202,7 @@ function logMcpRequest(input: {
 export function createMcpRouter({
   agentExecutor,
   authService,
+  mcpOAuthService,
 }: McpRouterDeps): Router {
   const router = Router();
 
@@ -209,6 +212,7 @@ export function createMcpRouter({
     const auth = await resolveMcpAuthContext({
       req,
       authService,
+      mcpOAuthService,
       requestId,
     });
 
@@ -338,6 +342,7 @@ export function createMcpRouter({
     const auth = await resolveMcpAuthContext({
       req,
       authService,
+      mcpOAuthService,
       requestId,
     });
     if (!auth.context || auth.error) {
