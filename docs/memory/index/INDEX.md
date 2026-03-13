@@ -10,6 +10,7 @@ Quick-reference to find things. Keep this flat and current.
 | Claude project config    | `CLAUDE.md` (root)                      |
 | Operational guardrails   | `docs/SAFETY_GUARDRAILS.md`             |
 | Architecture invariants  | `docs/architecture/AGENT_RULES.md`      |
+| Harness docs             | `docs/harness/README.md`                |
 | Dual-agent protocol      | `docs/agent-ops/DUAL_AGENT_PROTOCOL.md` |
 
 ## Task Management
@@ -55,8 +56,12 @@ Quick-reference to find things. Keep this flat and current.
 | Assistant MCP       | `docs/assistant-mcp.md`        |
 | Remote MCP auth     | `docs/remote-mcp-auth.md`      |
 | Planner runtime     | `docs/planner-runtime.md`      |
+| Harness session flow | `docs/harness/SESSION_FLOW.md` |
+| Harness evals        | `docs/harness/EVALS.md`        |
+| Harness invariants   | `docs/harness/INVARIANT_MATRIX.md` |
 | MCP deploy runbook  | `docs/ops/railway-remote-mcp-deploy.md` |
 | Connector smoke     | `docs/ops/connector-smoke-checklist.md` |
 | Codex task prompts  | `docs/codex-prompts.md`        |
 | Codex task config   | `.codex/tasks/ui-testing.md`   |
+| Local session templates | `.codex/templates/`         |
 | Dual-agent runner   | `scripts/dual-agent-runner.sh` |
