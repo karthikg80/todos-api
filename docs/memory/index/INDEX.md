@@ -54,6 +54,7 @@ Quick-reference to find things. Keep this flat and current.
 | Agent accessibility | `docs/agent-accessibility.md`  |
 | Assistant MCP       | `docs/assistant-mcp.md`        |
 | Remote MCP auth     | `docs/remote-mcp-auth.md`      |
+| Planner runtime     | `docs/planner-runtime.md`      |
 | MCP deploy runbook  | `docs/ops/railway-remote-mcp-deploy.md` |
 | Connector smoke     | `docs/ops/connector-smoke-checklist.md` |
 | Codex task prompts  | `docs/codex-prompts.md`        |

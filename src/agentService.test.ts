@@ -167,11 +167,13 @@ describe("AgentService", () => {
 
     await todoService.create(USER_ID, {
       title: "Work next action",
+      projectId: "project-1",
       category: "Work",
       status: "next",
     });
     await todoService.create(USER_ID, {
       title: "Personal waiting task",
+      projectId: "project-2",
       category: "Personal",
       status: "waiting",
     });
@@ -185,5 +187,25 @@ describe("AgentService", () => {
     expect(withoutNextAction.map((project) => project.name)).toEqual([
       "Personal",
     ]);
+  });
+
+  it("does not treat category-only tasks as canonical project membership", async () => {
+    const todoService = new TodoService();
+    const projects = [makeProject("project-1", "Work")];
+    const projectService = createProjectServiceMock(projects);
+
+    await todoService.create(USER_ID, {
+      title: "Legacy category-only next action",
+      category: "Work",
+      status: "next",
+    });
+
+    const agentService = new AgentService({ todoService, projectService });
+    const withoutNextAction = await agentService.listProjectsWithoutNextAction(
+      USER_ID,
+      { includeOnHold: false },
+    );
+
+    expect(withoutNextAction.map((project) => project.name)).toEqual(["Work"]);
   });
 });

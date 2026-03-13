@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import request from "supertest";
 import { createApp } from "./app";
 import { PrismaTodoService } from "./services/prismaTodoService";
@@ -776,6 +777,213 @@ describe("Authentication API", () => {
       expect(Array.isArray(list.body)).toBe(true);
       expect(list.body.length).toBeGreaterThan(0);
       expectTodoShape(list.body[0]);
+    });
+  });
+
+  describe("MCP assistant session revocation", () => {
+    async function completePublicMcpLink(input: {
+      email: string;
+      password: string;
+      scope?: string;
+    }) {
+      const registerClient = await request(app)
+        .post("/oauth/register")
+        .send({
+          redirect_uris: ["https://chat.openai.com/aip/callback"],
+          client_name: "ChatGPT",
+          grant_types: ["authorization_code", "refresh_token"],
+        })
+        .expect(201);
+
+      const verifier =
+        "oauth-verifier-auth-api-11111111111111111111111111111111111";
+      const challenge = createHash("sha256")
+        .update(verifier, "utf8")
+        .digest("base64")
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/g, "");
+      const scope = input.scope || "projects.read tasks.read tasks.write";
+      const agent = request.agent(app);
+
+      const authorizeUrl = `/oauth/authorize?client_id=${encodeURIComponent(
+        registerClient.body.client_id,
+      )}&redirect_uri=${encodeURIComponent(
+        "https://chat.openai.com/aip/callback",
+      )}&response_type=code&scope=${encodeURIComponent(
+        scope,
+      )}&code_challenge=${encodeURIComponent(
+        challenge,
+      )}&code_challenge_method=S256`;
+
+      await agent.get(authorizeUrl).expect(200);
+      const login = await agent
+        .post("/oauth/authorize/login")
+        .type("form")
+        .send({
+          email: input.email,
+          password: input.password,
+          client_id: registerClient.body.client_id,
+          redirect_uri: "https://chat.openai.com/aip/callback",
+          response_type: "code",
+          scope,
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+        })
+        .expect(303);
+      await agent.get(login.headers.location).expect(200);
+      const approve = await agent
+        .post("/oauth/authorize/decision")
+        .type("form")
+        .send({
+          decision: "approve",
+          client_id: registerClient.body.client_id,
+          redirect_uri: "https://chat.openai.com/aip/callback",
+          response_type: "code",
+          scope,
+          code_challenge: challenge,
+          code_challenge_method: "S256",
+        })
+        .expect(303);
+
+      const code = new URL(approve.headers.location).searchParams.get("code");
+      const token = await request(app)
+        .post("/oauth/token")
+        .type("form")
+        .send({
+          grant_type: "authorization_code",
+          code,
+          client_id: registerClient.body.client_id,
+          redirect_uri: "https://chat.openai.com/aip/callback",
+          code_verifier: verifier,
+        })
+        .expect(200);
+
+      return {
+        clientId: registerClient.body.client_id as string,
+        accessToken: token.body.access_token as string,
+        refreshToken: token.body.refresh_token as string,
+        sessionId: token.body.session_id as string,
+      };
+    }
+
+    it("revokes a linked assistant session and requires reconnect before MCP use resumes", async () => {
+      const register = await request(app)
+        .post("/auth/register")
+        .send({
+          email: "mcp-revoke@example.com",
+          password: "password123",
+          name: "MCP Revoke",
+        })
+        .expect(201);
+
+      const appToken = register.body.token as string;
+      const linked = await completePublicMcpLink({
+        email: "mcp-revoke@example.com",
+        password: "password123",
+      });
+
+      const sessions = await request(app)
+        .get("/auth/mcp/sessions")
+        .set("Authorization", `Bearer ${appToken}`)
+        .expect(200);
+      expect(sessions.body.sessions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: linked.sessionId,
+            clientId: linked.clientId,
+          }),
+        ]),
+      );
+
+      await request(app)
+        .post("/auth/mcp/sessions/revoke")
+        .set("Authorization", `Bearer ${appToken}`)
+        .send({
+          sessionId: linked.sessionId,
+        })
+        .expect(200);
+
+      const revokedAccess = await request(app)
+        .post("/mcp")
+        .set("Authorization", `Bearer ${linked.accessToken}`)
+        .send({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "ping",
+        })
+        .expect(401);
+      expect(revokedAccess.body.error.data.code).toBe("MCP_AUTH_REVOKED");
+
+      const revokedRefresh = await request(app)
+        .post("/oauth/token")
+        .type("form")
+        .send({
+          grant_type: "refresh_token",
+          refresh_token: linked.refreshToken,
+          client_id: linked.clientId,
+        })
+        .expect(401);
+      expect(revokedRefresh.body.error_details.code).toBe(
+        "MCP_ASSISTANT_SESSION_REVOKED",
+      );
+
+      const relinked = await completePublicMcpLink({
+        email: "mcp-revoke@example.com",
+        password: "password123",
+      });
+
+      await request(app)
+        .post("/mcp")
+        .set("Authorization", `Bearer ${relinked.accessToken}`)
+        .send({
+          jsonrpc: "2.0",
+          id: 2,
+          method: "ping",
+        })
+        .expect(200);
+    });
+
+    it("supports revoke-all without rotating the normal app session", async () => {
+      const register = await request(app)
+        .post("/auth/register")
+        .send({
+          email: "mcp-revoke-all@example.com",
+          password: "password123",
+          name: "MCP Revoke All",
+        })
+        .expect(201);
+
+      const appToken = register.body.token as string;
+      const linked = await completePublicMcpLink({
+        email: "mcp-revoke-all@example.com",
+        password: "password123",
+      });
+
+      const revokeAll = await request(app)
+        .post("/auth/mcp/sessions/revoke")
+        .set("Authorization", `Bearer ${appToken}`)
+        .send({
+          revokeAll: true,
+        })
+        .expect(200);
+      expect(revokeAll.body.revokedAll).toBe(true);
+
+      await request(app)
+        .get("/users/me")
+        .set("Authorization", `Bearer ${appToken}`)
+        .expect(200);
+
+      const revokedAccess = await request(app)
+        .post("/mcp")
+        .set("Authorization", `Bearer ${linked.accessToken}`)
+        .send({
+          jsonrpc: "2.0",
+          id: 3,
+          method: "ping",
+        })
+        .expect(401);
+      expect(revokedAccess.body.error.data.code).toBe("MCP_AUTH_REVOKED");
     });
   });
 });

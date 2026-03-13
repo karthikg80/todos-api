@@ -29,6 +29,12 @@ Runtime endpoints:
   Browser-based user sign-in and consent page.
 - `POST /oauth/token`
   Authorization code exchange for an MCP bearer token.
+- `POST /oauth/revoke`
+  First-pass OAuth token/session revocation for remote connectors.
+- `GET /auth/mcp/sessions`
+  Signed-in app route for listing active MCP assistant sessions.
+- `POST /auth/mcp/sessions/revoke`
+  Signed-in app route for revoking one assistant session or revoking all MCP sessions.
 - `GET /healthz`
   Liveness signal for the deployed service.
 - `GET /readyz`
@@ -64,6 +70,9 @@ Initial public tools:
 - `plan_project`
 - `ensure_next_action`
 - `weekly_review`
+- `decide_next_work`
+- `analyze_project_health`
+- `analyze_work_graph`
 - `create_project`
 - `update_project`
 - `rename_project`
@@ -75,6 +84,8 @@ Initial public tools:
 For the planner write-capable tools, `tools/list` exposes the minimum scopes
 needed to run the default `mode: "suggest"` behavior, plus mode-scoped
 requirements for `apply`.
+
+Planner runtime details live in `docs/planner-runtime.md`.
 
 ## Auth and Scope Model
 
@@ -89,7 +100,24 @@ requirements for `apply`.
 - `plan_project`, `ensure_next_action`, and `weekly_review` are mode-aware:
   - `mode: "suggest"` requires `projects.read` + `tasks.read`
   - `mode: "apply"` additionally requires `tasks.write`
+- `decide_next_work`, `analyze_project_health`, and `analyze_work_graph` are
+  read-only planner analysis tools:
+  - they require `projects.read` + `tasks.read`
+  - they do not mutate in the current runtime
 - no MCP path trusts caller-provided user IDs for authorization
+
+## Planner Runtime
+
+The planner MCP tools now route through a dedicated internal planner runtime:
+
+- `PlannerService` is the public facade for planner operations
+- `ProjectPlanningEngine` powers project plans and next-action derivation
+- `ReviewEngine` powers weekly-review findings and project-health analysis
+- `DecisionEngine` powers next-work ranking
+- `WorkGraphEngine` powers dependency and blocked/unblocked analysis
+
+Those engines reuse the canonical task/project services underneath, so MCP
+connectors do not get a parallel business-logic path.
 
 ## Protocol Shape
 
@@ -117,6 +145,7 @@ Stable auth and authorization codes include:
 - `MCP_UNAUTHENTICATED`
 - `MCP_INVALID_TOKEN`
 - `MCP_AUTH_EXPIRED`
+- `MCP_AUTH_REVOKED`
 - `MCP_INVALID_SESSION`
 - `MCP_INSUFFICIENT_SCOPE`
 - `RESOURCE_NOT_FOUND_OR_FORBIDDEN`
@@ -160,7 +189,7 @@ Those docs also record what remains manual from this sandboxed environment.
 
 ## Current Limitations
 
-- no user-facing token revocation UI or assistant session management yet
+- revocation/session management exists as API routes, but there is still no polished in-app assistant management UI
 - idempotency is implemented for `create_task` and `create_project`
 - persisted audit records are lightweight operational traces, not a full analytics platform
 - the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access
