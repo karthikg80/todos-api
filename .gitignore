@@ -7,6 +7,8 @@ coverage/
 playwright-report/
 test-results/
 blob-report/
+artifacts/evals/
+artifacts/harness/
 .playwright/.auth/
 client/vendor/chrono-node/
 artifacts/evals/

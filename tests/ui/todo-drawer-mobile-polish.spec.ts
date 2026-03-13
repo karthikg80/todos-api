@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { setTimeout as delay } from "node:timers/promises";
 import { ensureAllTasksListActive } from "./helpers/todos-view";
 
 type TodoSeed = {
@@ -133,7 +134,7 @@ async function installDrawerMockApi(
       if (!userId) return json(route, 401, { error: "Unauthorized" });
 
       if (options.putDelayMs && options.putDelayMs > 0) {
-        await page.waitForTimeout(options.putDelayMs);
+        await delay(options.putDelayMs);
       }
 
       const todoId = pathname.split("/")[2];

@@ -10,6 +10,12 @@ cd "${REPO_ROOT}"
 echo "==> typecheck"
 npx tsc --noEmit
 
+echo "==> architecture invariant guard"
+npm run check:architecture
+
+echo "==> harness drift guard"
+npm run check:harness-drift
+
 echo "==> visual tagging guard"
 npm run test:ui:check-visual-tags
 
