@@ -46,7 +46,9 @@ The first committed runner now writes:
 
 and exposes:
 
+- `npm run eval:agent`
 - `npm run eval:decision-assist`
+- `npm run eval:mcp`
 - `npm run eval:planner`
 - `npm run eval:all`
 
@@ -90,3 +92,14 @@ Planner:
   weekly-review findings
 - capability checks for apply-mode task creation and deterministic next-work
   ranking
+
+Agent:
+
+- regression cases for manifest discoverability and read-envelope behavior
+- capability checks for idempotent writes and planner-backed agent flows
+
+MCP:
+
+- regression cases for auth challenge and scope-denial behavior
+- capability checks for public OAuth-to-tools-list flow and idempotent write
+  replay
