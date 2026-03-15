@@ -83,6 +83,8 @@ import {
   renameProjectTree,
   renderProjectOptions,
   updateCategoryFilter,
+  archiveProject,
+  unarchiveProject,
 } from "./modules/projectsState.js";
 import {
   setDateView,
@@ -1584,6 +1586,7 @@ function bindDeclarativeHandlers() {
   hooks.renderOnCreateAssistRow = OnCreateAssist.renderOnCreateAssistRow;
   hooks.renderProjectOptions = renderProjectOptions;
   hooks.renderSubtasks = renderSubtasks;
+  hooks.getProjectRecordByName = getProjectRecordByName;
   hooks.renderTodoChips = TaskDrawerAssist.renderTodoChips;
   hooks.resetQuickEntryNaturalDueState = resetQuickEntryNaturalDueState;
   hooks.selectProjectFromRail = selectProjectFromRail;
@@ -1707,6 +1710,8 @@ window.updatePlanDraftTaskProject = updatePlanDraftTaskProject;
 window.retryMarkPlanSuggestionAccepted = retryMarkPlanSuggestionAccepted;
 // Projects / headings
 window.createHeadingForSelectedProject = createHeadingForSelectedProject;
+window.archiveProject = archiveProject;
+window.unarchiveProject = unarchiveProject;
 // Home workspace
 window.openHomeProject = openHomeProject;
 window.openHomeTileList = openHomeTileList;
