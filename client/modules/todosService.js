@@ -75,11 +75,6 @@ function buildVisibleTodosQueryParams() {
     params.unsorted = true;
   }
 
-  // Exclude archived todos by default (when not viewing completed)
-  if (state.currentDateView !== "completed") {
-    params.archived = false;
-  }
-
   const search = getSearchInputValue();
   if (search) {
     params.search = search;
