@@ -419,7 +419,30 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
     );
   }
 
-  if (todo.category) {
+  // Workflow status chip (show non-default statuses)
+  const status = String(todo.status || "").toLowerCase();
+  const STATUS_LABELS = {
+    waiting: "⏳ Waiting",
+    scheduled: "🗓 Scheduled",
+    someday: "☁️ Someday",
+    in_progress: "▶ In Progress",
+    next: "→ Next",
+    cancelled: "✗ Cancelled",
+  };
+  if (STATUS_LABELS[status]) {
+    chips.push(
+      `<span class="todo-chip todo-chip--status todo-chip--status-${hooks.escapeHtml(status)}" title="${hooks.escapeHtml(STATUS_LABELS[status])}">${hooks.escapeHtml(STATUS_LABELS[status])}</span>`,
+    );
+  }
+
+  // Context chip
+  if (todo.context && chips.length < 2) {
+    chips.push(
+      `<span class="todo-chip todo-chip--context" title="${hooks.escapeHtml(String(todo.context))}">@${hooks.escapeHtml(String(todo.context).replace(/^@/, ""))}</span>`,
+    );
+  }
+
+  if (todo.category && chips.length < 2) {
     chips.push(
       `<span class="todo-chip todo-chip--project" title="${hooks.escapeHtml(todo.category)}">🏷️ ${hooks.escapeHtml(todo.category)}</span>`,
     );

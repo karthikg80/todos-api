@@ -75,6 +75,11 @@ function buildVisibleTodosQueryParams() {
     params.unsorted = true;
   }
 
+  // Exclude archived todos by default (when not viewing completed)
+  if (state.currentDateView !== "completed") {
+    params.archived = false;
+  }
+
   const search = getSearchInputValue();
   if (search) {
     params.search = search;
@@ -292,6 +297,10 @@ async function addTodo() {
   const projectPath = hooks.normalizeProjectPath(projectSelect.value);
   if (projectPath) {
     payload.category = projectPath;
+    const projectRecord = hooks.getProjectRecordByName?.(projectPath);
+    if (projectRecord?.id) {
+      payload.projectId = projectRecord.id;
+    }
   }
   if (statusSelect instanceof HTMLSelectElement && statusSelect.value) {
     payload.status = statusSelect.value;
@@ -534,10 +543,17 @@ async function moveTodoToProject(todoId, projectValue) {
       : "";
 
   try {
+    const movePayload = { category: category || null };
+    if (category) {
+      const projectRecord = hooks.getProjectRecordByName?.(category);
+      if (projectRecord?.id) {
+        movePayload.projectId = projectRecord.id;
+      }
+    }
     const response = await hooks.apiCall(`${hooks.API_URL}/todos/${todoId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ category: category || null }),
+      body: JSON.stringify(movePayload),
     });
     if (!response || !response.ok) {
       throw new Error("Update failed");
@@ -616,7 +632,14 @@ async function applyTodoPatch(todoId, patch) {
     todo.id === todoId ? updatedTodo : todo,
   );
 
-  const projectPath = hooks.normalizeProjectPath(updatedTodo?.category || "");
+  const projectIdentifier = updatedTodo?.projectId
+    ? (state.projectRecords?.find(
+        (r) => String(r.id) === String(updatedTodo.projectId),
+      )?.name ??
+      updatedTodo?.category ??
+      "")
+    : (updatedTodo?.category ?? "");
+  const projectPath = hooks.normalizeProjectPath(projectIdentifier);
   if (projectPath && !state.customProjects.includes(projectPath)) {
     state.customProjects.push(projectPath);
   }
@@ -874,6 +897,7 @@ async function restoreTodo(todoData) {
       title: todoData.title,
       description: todoData.description,
       category: todoData.category,
+      projectId: todoData.projectId || null,
       dueDate: todoData.dueDate,
       priority: todoData.priority,
       notes: todoData.notes,
