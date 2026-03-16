@@ -388,6 +388,96 @@ export function initializeDrawerDraft(todo) {
   };
 }
 
+/**
+ * Selectively sync draft fields from a server response, touching only the
+ * fields corresponding to `patchKeys`. Fields not in the patch (e.g.
+ * dependsOnTaskIdsText when patching `archived`) are left untouched, so
+ * in-progress user edits pending a blur event are never clobbered.
+ */
+function syncDrawerDraftFromPatch(updatedTodo, patchKeys) {
+  if (!state.drawerDraft || state.drawerDraft.id !== updatedTodo.id) {
+    initializeDrawerDraft(updatedTodo);
+    return;
+  }
+  const toDateInputValue = hooks.toDateInputValue || ((v) => v || "");
+  const toDateTimeLocalValue = hooks.toDateTimeLocalValue || ((v) => v || "");
+  const d = state.drawerDraft;
+  for (const key of patchKeys) {
+    switch (key) {
+      case "title":
+        d.title = String(updatedTodo.title || "");
+        break;
+      case "completed":
+        d.completed = !!updatedTodo.completed;
+        d.status = String(
+          updatedTodo.status || (updatedTodo.completed ? "done" : "next"),
+        );
+        break;
+      case "status":
+        d.status = String(
+          updatedTodo.status || (updatedTodo.completed ? "done" : "next"),
+        );
+        break;
+      case "dueDate":
+        d.dueDate = toDateInputValue(updatedTodo.dueDate);
+        break;
+      case "startDate":
+        d.startDate = toDateTimeLocalValue(updatedTodo.startDate);
+        break;
+      case "scheduledDate":
+        d.scheduledDate = toDateTimeLocalValue(updatedTodo.scheduledDate);
+        break;
+      case "reviewDate":
+        d.reviewDate = toDateTimeLocalValue(updatedTodo.reviewDate);
+        break;
+      case "category":
+      case "projectId":
+        d.project = String(updatedTodo.category || "");
+        d.categoryDetail = String(updatedTodo.category || "");
+        break;
+      case "priority":
+        d.priority = String(updatedTodo.priority || "medium");
+        break;
+      case "description":
+        d.description = String(updatedTodo.description || "");
+        break;
+      case "notes":
+        d.notes = String(updatedTodo.notes || "");
+        break;
+      case "tags":
+        d.tagsText = Array.isArray(updatedTodo.tags)
+          ? updatedTodo.tags.join(", ")
+          : "";
+        break;
+      case "context":
+        d.context = String(updatedTodo.context || "");
+        break;
+      case "energy":
+        d.energy = String(updatedTodo.energy || "");
+        break;
+      case "estimateMinutes":
+        d.estimateMinutes =
+          typeof updatedTodo.estimateMinutes === "number"
+            ? String(updatedTodo.estimateMinutes)
+            : "";
+        break;
+      case "waitingOn":
+        d.waitingOn = String(updatedTodo.waitingOn || "");
+        break;
+      case "dependsOnTaskIds":
+        d.dependsOnTaskIdsText = Array.isArray(updatedTodo.dependsOnTaskIds)
+          ? updatedTodo.dependsOnTaskIds.join(", ")
+          : "";
+        break;
+      case "archived":
+        d.archived = !!updatedTodo.archived;
+        break;
+      default:
+        break;
+    }
+  }
+}
+
 function getCurrentDrawerDraft(todo) {
   if (!todo) return null;
   if (!state.drawerDraft || state.drawerDraft.id !== todo.id) {
@@ -550,9 +640,9 @@ export async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
   try {
     const updatedTodo = await hooks.applyTodoPatch(state.selectedTodoId, patch);
     if (requestId !== state.drawerSaveSequence) return;
-    initializeDrawerDraft(updatedTodo);
-    setDrawerSaveState("saved");
     const patchKeys = Object.keys(patch);
+    syncDrawerDraftFromPatch(updatedTodo, patchKeys);
+    setDrawerSaveState("saved");
     const canPatchInPlace =
       !hooks.shouldUseServerVisibleTodos?.() &&
       state.currentWorkspaceView === "all" &&
@@ -876,6 +966,22 @@ export function renderTodoDrawerContent() {
       title: "Unavailable",
       bodyHtml: "<p>This task is no longer available in the current view.</p>",
     });
+    return;
+  }
+
+  // If the user is actively typing in a drawer text input or textarea, skip
+  // replacing innerHTML — doing so would detach the focused element, fire a
+  // premature blur with a stale draft value, and lose the in-progress edit.
+  const activeEl = document.activeElement;
+  if (
+    activeEl instanceof HTMLElement &&
+    contentEl.contains(activeEl) &&
+    (activeEl instanceof HTMLTextAreaElement ||
+      (activeEl instanceof HTMLInputElement &&
+        activeEl.type !== "checkbox" &&
+        activeEl.type !== "radio"))
+  ) {
+    getCurrentDrawerDraft(todo);
     return;
   }
 
