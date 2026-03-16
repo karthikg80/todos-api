@@ -20,6 +20,20 @@ import {
   TodoSortBy,
   SortOrder,
 } from "../types";
+import {
+  MAX_PAGE_SIZE,
+  MAX_REORDER_ITEMS,
+  MAX_SEARCH_QUERY_LENGTH,
+  VALID_ENERGIES,
+  VALID_PRIORITIES,
+  VALID_PROJECT_STATUSES,
+  VALID_RECURRENCE_TYPES,
+  VALID_REVIEW_CADENCES,
+  VALID_SORT_FIELDS,
+  VALID_SORT_ORDERS,
+  VALID_TASK_SOURCES,
+  VALID_TASK_STATUSES,
+} from "./constants";
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -27,58 +41,6 @@ export class ValidationError extends Error {
     this.name = "ValidationError";
   }
 }
-
-const MAX_REORDER_ITEMS = 500;
-const MAX_PAGE_SIZE = 100;
-const MAX_SEARCH_QUERY_LENGTH = 200;
-const VALID_SORT_FIELDS: TodoSortBy[] = [
-  "order",
-  "createdAt",
-  "updatedAt",
-  "dueDate",
-  "priority",
-  "title",
-];
-const VALID_SORT_ORDERS: SortOrder[] = ["asc", "desc"];
-const VALID_PRIORITIES: Priority[] = ["low", "medium", "high", "urgent"];
-const VALID_TASK_STATUSES: TaskStatus[] = [
-  "inbox",
-  "next",
-  "in_progress",
-  "waiting",
-  "scheduled",
-  "someday",
-  "done",
-  "cancelled",
-];
-const VALID_PROJECT_STATUSES: ProjectStatus[] = [
-  "active",
-  "on_hold",
-  "completed",
-  "archived",
-];
-const VALID_ENERGIES: Energy[] = ["low", "medium", "high"];
-const VALID_REVIEW_CADENCES: ReviewCadence[] = [
-  "weekly",
-  "biweekly",
-  "monthly",
-  "quarterly",
-];
-const VALID_TASK_SOURCES: TaskSource[] = [
-  "manual",
-  "chat",
-  "email",
-  "import",
-  "automation",
-];
-const VALID_RECURRENCE_TYPES: RecurrenceType[] = [
-  "none",
-  "daily",
-  "weekly",
-  "monthly",
-  "yearly",
-  "rrule",
-];
 
 function normalizeNullableString(
   value: unknown,
