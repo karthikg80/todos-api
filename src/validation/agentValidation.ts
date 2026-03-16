@@ -71,6 +71,7 @@ const TASK_FIELD_KEYS = [
   "category",
   "headingId",
   "dueDate",
+  "doDate",
   "startDate",
   "scheduledDate",
   "reviewDate",
@@ -86,6 +87,9 @@ const TASK_FIELD_KEYS = [
   "source",
   "createdByPrompt",
   "notes",
+  "blockedReason",
+  "effortScore",
+  "confidenceScore",
 ];
 const LIST_TASK_KEYS = [
   "completed",
@@ -1279,5 +1283,264 @@ export function validateAgentGetAvailabilityWindowsInput(data: unknown): {
   rejectUnknownKeys(body, GET_AVAILABILITY_WINDOWS_KEYS, "Agent action input");
   return {
     date: parseOptionalString(body.date, "date", 10),
+  };
+}
+
+// ── Issue #315: weekly_review apply_safe mode ─────────────────────────────────
+
+export function validateAgentWeeklyReviewWithSafeInput(data: unknown): {
+  mode?: "suggest" | "apply" | "apply_safe";
+  includeArchived?: boolean;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, WEEKLY_REVIEW_KEYS, "Agent action input");
+  const modeVal = parseOptionalString(body.mode, "mode", 20);
+  if (
+    modeVal !== undefined &&
+    modeVal !== "suggest" &&
+    modeVal !== "apply" &&
+    modeVal !== "apply_safe"
+  ) {
+    throw new ValidationError(
+      'mode must be "suggest", "apply", or "apply_safe"',
+    );
+  }
+  return {
+    mode: modeVal as "suggest" | "apply" | "apply_safe" | undefined,
+    includeArchived: parseOptionalBoolean(
+      body.includeArchived,
+      "includeArchived",
+    ),
+  };
+}
+
+// ── Issue #316: create_follow_up_for_waiting_task ─────────────────────────────
+
+const CREATE_FOLLOW_UP_KEYS = [
+  "taskId",
+  "mode",
+  "cooldownDays",
+  "title",
+  "priority",
+];
+
+export function validateAgentCreateFollowUpInput(data: unknown): {
+  taskId: string;
+  mode?: "suggest" | "apply";
+  cooldownDays?: number;
+  title?: string;
+  priority?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, CREATE_FOLLOW_UP_KEYS, "Agent action input");
+  const modeVal = parseOptionalString(body.mode, "mode", 10);
+  if (modeVal !== undefined && modeVal !== "suggest" && modeVal !== "apply") {
+    throw new ValidationError('mode must be "suggest" or "apply"');
+  }
+  return {
+    taskId: parseRequiredId(body, "taskId"),
+    mode: modeVal as "suggest" | "apply" | undefined,
+    cooldownDays: parseOptionalPositiveInt(
+      body.cooldownDays,
+      "cooldownDays",
+      365,
+    ),
+    title: parseOptionalString(body.title, "title", 200),
+    priority: parseOptionalPriority(body.priority),
+  };
+}
+
+// ── Issue #314: job-run locking ───────────────────────────────────────────────
+
+const CLAIM_JOB_RUN_KEYS = ["jobName", "periodKey"];
+const COMPLETE_JOB_RUN_KEYS = ["jobName", "periodKey", "metadata"];
+const FAIL_JOB_RUN_KEYS = ["jobName", "periodKey", "errorMessage"];
+const GET_JOB_RUN_KEYS = ["jobName", "periodKey"];
+const LIST_JOB_RUNS_KEYS = ["jobName", "status", "limit"];
+
+export function validateAgentClaimJobRunInput(data: unknown): {
+  jobName: string;
+  periodKey: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, CLAIM_JOB_RUN_KEYS, "Agent action input");
+  const jobName = parseOptionalString(body.jobName, "jobName", 100);
+  if (!jobName) throw new ValidationError("jobName is required");
+  const periodKey = parseOptionalString(body.periodKey, "periodKey", 20);
+  if (!periodKey) throw new ValidationError("periodKey is required");
+  return { jobName, periodKey };
+}
+
+export function validateAgentCompleteJobRunInput(data: unknown): {
+  jobName: string;
+  periodKey: string;
+  metadata?: unknown;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, COMPLETE_JOB_RUN_KEYS, "Agent action input");
+  const jobName = parseOptionalString(body.jobName, "jobName", 100);
+  if (!jobName) throw new ValidationError("jobName is required");
+  const periodKey = parseOptionalString(body.periodKey, "periodKey", 20);
+  if (!periodKey) throw new ValidationError("periodKey is required");
+  return { jobName, periodKey, metadata: body.metadata };
+}
+
+export function validateAgentFailJobRunInput(data: unknown): {
+  jobName: string;
+  periodKey: string;
+  errorMessage: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, FAIL_JOB_RUN_KEYS, "Agent action input");
+  const jobName = parseOptionalString(body.jobName, "jobName", 100);
+  if (!jobName) throw new ValidationError("jobName is required");
+  const periodKey = parseOptionalString(body.periodKey, "periodKey", 20);
+  if (!periodKey) throw new ValidationError("periodKey is required");
+  const errorMessage =
+    parseOptionalString(body.errorMessage, "errorMessage", 500) ?? "";
+  return { jobName, periodKey, errorMessage };
+}
+
+export function validateAgentGetJobRunInput(data: unknown): {
+  jobName: string;
+  periodKey: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, GET_JOB_RUN_KEYS, "Agent action input");
+  const jobName = parseOptionalString(body.jobName, "jobName", 100);
+  if (!jobName) throw new ValidationError("jobName is required");
+  const periodKey = parseOptionalString(body.periodKey, "periodKey", 20);
+  if (!periodKey) throw new ValidationError("periodKey is required");
+  return { jobName, periodKey };
+}
+
+export function validateAgentListJobRunsInput(data: unknown): {
+  jobName?: string;
+  status?: string;
+  limit?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_JOB_RUNS_KEYS, "Agent action input");
+  return {
+    jobName: parseOptionalString(body.jobName, "jobName", 100),
+    status: parseOptionalString(body.status, "status", 20),
+    limit: parseOptionalPositiveInt(body.limit, "limit", 200),
+  };
+}
+
+// ── Issue #317: list_audit_log with job filter ─────────────────────────────────
+
+const LIST_AUDIT_LOG_EXTENDED_KEYS = [
+  "limit",
+  "since",
+  "action",
+  "jobName",
+  "periodKey",
+  "triggeredBy",
+];
+
+export function validateAgentListAuditLogExtendedInput(data: unknown): {
+  limit?: number;
+  since?: string;
+  actionFilter?: string;
+  jobName?: string;
+  periodKey?: string;
+  triggeredBy?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_AUDIT_LOG_EXTENDED_KEYS, "Agent action input");
+  return {
+    limit: parseOptionalPositiveInt(body.limit, "limit", 200) ?? undefined,
+    since: parseOptionalString(body.since, "since", 30),
+    actionFilter: parseOptionalString(body.action, "action", 60),
+    jobName: parseOptionalString(body.jobName, "jobName", 100),
+    periodKey: parseOptionalString(body.periodKey, "periodKey", 20),
+    triggeredBy: parseOptionalString(body.triggeredBy, "triggeredBy", 20),
+  };
+}
+
+// ── Issue #320: dead-letter store ─────────────────────────────────────────────
+
+const LIST_FAILED_ACTIONS_KEYS = [
+  "jobName",
+  "periodKey",
+  "includeResolved",
+  "limit",
+];
+const RESOLVE_FAILED_ACTION_KEYS = ["id", "resolution"];
+const RECORD_FAILED_ACTION_KEYS = [
+  "jobName",
+  "periodKey",
+  "actionType",
+  "entityType",
+  "entityId",
+  "errorCode",
+  "errorMessage",
+  "payload",
+  "retryable",
+];
+
+export function validateAgentListFailedActionsInput(data: unknown): {
+  jobName?: string;
+  periodKey?: string;
+  includeResolved?: boolean;
+  limit?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_FAILED_ACTIONS_KEYS, "Agent action input");
+  return {
+    jobName: parseOptionalString(body.jobName, "jobName", 100),
+    periodKey: parseOptionalString(body.periodKey, "periodKey", 20),
+    includeResolved: parseOptionalBoolean(
+      body.includeResolved,
+      "includeResolved",
+    ),
+    limit: parseOptionalPositiveInt(body.limit, "limit", 200),
+  };
+}
+
+export function validateAgentResolveFailedActionInput(data: unknown): {
+  id: string;
+  resolution: "retried" | "dismissed";
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, RESOLVE_FAILED_ACTION_KEYS, "Agent action input");
+  const id = parseId(body);
+  const resolution = parseOptionalString(body.resolution, "resolution", 20);
+  if (resolution !== "retried" && resolution !== "dismissed") {
+    throw new ValidationError('resolution must be "retried" or "dismissed"');
+  }
+  return { id, resolution };
+}
+
+export function validateAgentRecordFailedActionInput(data: unknown): {
+  jobName: string;
+  periodKey: string;
+  actionType: string;
+  entityType?: string;
+  entityId?: string;
+  errorCode?: string;
+  errorMessage?: string;
+  payload?: unknown;
+  retryable?: boolean;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, RECORD_FAILED_ACTION_KEYS, "Agent action input");
+  const jobName = parseOptionalString(body.jobName, "jobName", 100);
+  if (!jobName) throw new ValidationError("jobName is required");
+  const periodKey = parseOptionalString(body.periodKey, "periodKey", 20);
+  if (!periodKey) throw new ValidationError("periodKey is required");
+  const actionType = parseOptionalString(body.actionType, "actionType", 100);
+  if (!actionType) throw new ValidationError("actionType is required");
+  return {
+    jobName,
+    periodKey,
+    actionType,
+    entityType: parseOptionalString(body.entityType, "entityType", 50),
+    entityId: parseOptionalString(body.entityId, "entityId", 100),
+    errorCode: parseOptionalString(body.errorCode, "errorCode", 100),
+    errorMessage: parseOptionalString(body.errorMessage, "errorMessage", 1000),
+    payload: body.payload,
+    retryable: parseOptionalBoolean(body.retryable, "retryable"),
   };
 }
