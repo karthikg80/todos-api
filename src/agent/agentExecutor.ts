@@ -6,6 +6,7 @@ import { AgentIdempotencyService } from "../services/agentIdempotencyService";
 import { AgentAuditService } from "../services/agentAuditService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
+import { DryRunResult } from "../types";
 import {
   validateAgentAddSubtaskInput,
   validateAgentAnalyzeProjectHealthInput,
@@ -397,6 +398,42 @@ export class AgentExecutor {
     });
   }
 
+  private buildDryRunResult(
+    action: "create_task" | "update_task",
+    input: Record<string, unknown>,
+  ): DryRunResult {
+    if (action === "create_task") {
+      return {
+        dryRun: true,
+        proposedChanges: [
+          {
+            operation: "create",
+            entityKind: "task",
+            fields: {
+              title: input.title,
+              status: input.status ?? "next",
+              priority: input.priority ?? "medium",
+            },
+          },
+        ],
+      };
+    }
+
+    // update_task
+    const { id: _id, dryRun: _dryRun, ...updateFields } = input;
+    return {
+      dryRun: true,
+      proposedChanges: [
+        {
+          operation: "update",
+          entityKind: "task",
+          entityId: typeof input.id === "string" ? input.id : undefined,
+          fields: updateFields,
+        },
+      ],
+    };
+  }
+
   hasProjectService(): boolean {
     return Boolean(this.deps.projectService);
   }
@@ -475,10 +512,43 @@ export class AgentExecutor {
         }
         case "create_task": {
           const createInput = validateAgentCreateTaskInput(input);
-          return await this.handleCreateTask(action, context, createInput);
+          if (createInput.dryRun === true) {
+            const rawInput = (input as Record<string, unknown>) ?? {};
+            const dryRunResult = this.buildDryRunResult(
+              "create_task",
+              rawInput,
+            );
+            return this.success(
+              action,
+              readOnly,
+              context,
+              200,
+              dryRunResult as unknown as Record<string, unknown>,
+            );
+          }
+          const { dryRun: _createDryRun, ...createFields } = createInput;
+          return await this.handleCreateTask(action, context, createFields);
         }
         case "update_task": {
-          const { id, changes } = validateAgentUpdateTaskInput(input);
+          const {
+            id,
+            changes,
+            dryRun: updateDryRun,
+          } = validateAgentUpdateTaskInput(input);
+          if (updateDryRun === true) {
+            const rawInput = (input as Record<string, unknown>) ?? {};
+            const dryRunResult = this.buildDryRunResult("update_task", {
+              ...rawInput,
+              id,
+            });
+            return this.success(
+              action,
+              readOnly,
+              context,
+              200,
+              dryRunResult as unknown as Record<string, unknown>,
+            );
+          }
           const task = await this.agentService.updateTask(
             context.userId,
             id,
