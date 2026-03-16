@@ -1773,6 +1773,284 @@
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
+    },
+    {
+      "name": "create_follow_up_for_waiting_task",
+      "description": "Create a follow-up next-action task for a task that is in 'waiting' status. Supports a cooldown window to avoid duplicate follow-ups and a suggest/apply mode.",
+      "method": "POST",
+      "path": "/write/create_follow_up_for_waiting_task",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId"],
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the waiting task to create a follow-up for."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["suggest", "apply"],
+            "description": "suggest returns a preview without writing; apply creates the task. Defaults to suggest."
+          },
+          "cooldownDays": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Skip creation if a follow-up was already created within this many days. Defaults to 7."
+          },
+          "title": {
+            "type": "string",
+            "description": "Override the generated follow-up title."
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "urgent"],
+            "description": "Priority for the follow-up task. Defaults to medium."
+          }
+        }
+      },
+      "output": {
+        "description": "created boolean, task (when created), skipped/reason (when cooldown active), and waitingTaskId."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "supported"
+    },
+    {
+      "name": "claim_job_run",
+      "description": "Atomically claim a job run slot for a given jobName+periodKey combination. Returns claimed=false if already claimed (deduplication lock).",
+      "method": "POST",
+      "path": "/write/claim_job_run",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey"],
+        "properties": {
+          "jobName": {
+            "type": "string",
+            "description": "Logical name of the scheduled job (e.g. 'daily_review')."
+          },
+          "periodKey": {
+            "type": "string",
+            "description": "Period identifier (e.g. '2026-03-16'). Combined with jobName for uniqueness."
+          }
+        }
+      },
+      "output": {
+        "description": "claimed boolean and run record when claimed."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "complete_job_run",
+      "description": "Mark a previously claimed job run as completed. Returns 404 if no matching running job run is found.",
+      "method": "POST",
+      "path": "/write/complete_job_run",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey"],
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" },
+          "metadata": {
+            "type": "object",
+            "description": "Optional JSON metadata to store with the completed run."
+          }
+        }
+      },
+      "output": {
+        "description": "completed boolean, jobName, and periodKey."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "fail_job_run",
+      "description": "Mark a previously claimed job run as failed. Returns 404 if no matching running job run is found.",
+      "method": "POST",
+      "path": "/write/fail_job_run",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey", "errorMessage"],
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message describing why the job failed. Truncated to 500 characters."
+          }
+        }
+      },
+      "output": {
+        "description": "failed boolean, jobName, and periodKey."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "get_job_run_status",
+      "description": "Retrieve the status record for a specific jobName+periodKey combination.",
+      "method": "POST",
+      "path": "/read/get_job_run_status",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey"],
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" }
+        }
+      },
+      "output": {
+        "description": "run record or null if not found."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_job_runs",
+      "description": "List recent agent job run records for the authenticated user, optionally filtered by jobName or status.",
+      "method": "POST",
+      "path": "/read/list_job_runs",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "jobName": {
+            "type": "string",
+            "description": "Optional filter by job name."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["running", "completed", "failed"],
+            "description": "Optional filter by run status."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Maximum records to return. Defaults to 50."
+          }
+        }
+      },
+      "output": {
+        "description": "runs array and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "record_failed_action",
+      "description": "Record a failed automation action to the dead-letter store for later inspection or retry.",
+      "method": "POST",
+      "path": "/write/record_failed_action",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey", "actionType"],
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" },
+          "actionType": {
+            "type": "string",
+            "description": "Logical action type that failed (e.g. 'create_follow_up')."
+          },
+          "entityType": {
+            "type": "string",
+            "description": "Optional entity type the action targeted (e.g. 'task')."
+          },
+          "entityId": {
+            "type": "string",
+            "description": "Optional entity ID the action targeted."
+          },
+          "errorCode": { "type": "string" },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message. Truncated to 1000 characters."
+          },
+          "payload": {
+            "type": "object",
+            "description": "Optional JSON payload for retry context."
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether the action can be retried. Defaults to false."
+          }
+        }
+      },
+      "output": {
+        "description": "record object with the created failed-action entry."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_failed_actions",
+      "description": "List failed automation actions from the dead-letter store, optionally filtered by jobName, periodKey, or resolved status.",
+      "method": "POST",
+      "path": "/read/list_failed_actions",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" },
+          "includeResolved": {
+            "type": "boolean",
+            "description": "Include already-resolved entries. Defaults to false."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        }
+      },
+      "output": {
+        "description": "records array and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "resolve_failed_action",
+      "description": "Resolve (dismiss or mark retried) a failed automation action in the dead-letter store.",
+      "method": "POST",
+      "path": "/write/resolve_failed_action",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "resolution"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the failed action record to resolve."
+          },
+          "resolution": {
+            "type": "string",
+            "enum": ["retried", "dismissed"],
+            "description": "How the failed action was resolved."
+          }
+        }
+      },
+      "output": {
+        "description": "resolved boolean indicating whether the record was found and updated."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
     }
   ],
   "notes": [

@@ -120,7 +120,18 @@ function minimumRequiredScopesForAction(
       return [TASK_READ_SCOPE, PROJECT_READ_SCOPE];
     case "triage_capture_item":
     case "triage_inbox":
+    case "create_follow_up_for_waiting_task":
       return [TASK_WRITE_SCOPE];
+    case "claim_job_run":
+    case "complete_job_run":
+    case "fail_job_run":
+    case "record_failed_action":
+    case "resolve_failed_action":
+      return [TASK_WRITE_SCOPE];
+    case "get_job_run_status":
+    case "list_job_runs":
+    case "list_failed_actions":
+      return [TASK_READ_SCOPE];
   }
 }
 

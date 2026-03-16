@@ -13,6 +13,9 @@ interface AgentAuditRecordInput {
   idempotencyKey?: string;
   replayed?: boolean;
   errorCode?: string;
+  jobName?: string;
+  jobPeriodKey?: string;
+  triggeredBy?: "user" | "automation" | "agent";
 }
 
 export class AgentAuditService {
@@ -76,6 +79,9 @@ export class AgentAuditService {
         idempotencyKey: input.idempotencyKey,
         replayed: input.replayed || false,
         errorCode: input.errorCode,
+        jobName: input.jobName,
+        jobPeriodKey: input.jobPeriodKey,
+        triggeredBy: input.triggeredBy,
         metadata,
       },
     });
