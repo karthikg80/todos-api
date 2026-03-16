@@ -1918,29 +1918,7 @@ export class AgentExecutor {
             );
           }
 
-          // Check cooldown: look for recent follow-ups created for this task
           const cooldown = cooldownDays ?? 7;
-          const cooldownDate = new Date(
-            Date.now() - cooldown * 24 * 60 * 60 * 1000,
-          );
-          const recentFollowUps = await this.agentService.listTasks(
-            context.userId,
-            {
-              statuses: ["inbox", "next", "in_progress"],
-              archived: false,
-              limit: 50,
-            },
-          );
-          const hasRecentFollowUp = recentFollowUps.some((t) => {
-            const createdAt =
-              t.createdAt instanceof Date
-                ? t.createdAt
-                : new Date(t.createdAt as unknown as string);
-            return (
-              t.createdByPrompt?.includes(taskId) && createdAt >= cooldownDate
-            );
-          });
-
           const followUpTitle = title ?? `Follow up: ${waitingTask.title}`;
           const followUp = {
             title: followUpTitle,
@@ -1952,17 +1930,6 @@ export class AgentExecutor {
             createdByPrompt: `follow_up:${taskId}`,
           };
 
-          if (hasRecentFollowUp) {
-            return this.success(action, readOnly, context, 200, {
-              created: false,
-              skipped: true,
-              reason: "cooldown_active",
-              cooldownDays: cooldown,
-              waitingTask: { id: waitingTask.id, title: waitingTask.title },
-              followUp,
-            });
-          }
-
           if (mode !== "apply") {
             return this.success(action, readOnly, context, 200, {
               created: false,
@@ -1972,11 +1939,46 @@ export class AgentExecutor {
             });
           }
 
+          // For apply mode, idempotency lookup fires first so retries with the
+          // same key replay the original success even if cooldown is now active.
           return await this.handleIdempotentWriteAction(
             action,
             context,
             input,
             async () => {
+              // Check cooldown inside the execute callback so idempotency replay
+              // bypasses this check on retries.
+              const cooldownDate = new Date(
+                Date.now() - cooldown * 24 * 60 * 60 * 1000,
+              );
+              const recentFollowUps = await this.agentService.listTasks(
+                context.userId,
+                {
+                  statuses: ["inbox", "next", "in_progress"],
+                  archived: false,
+                  limit: 50,
+                },
+              );
+              const hasRecentFollowUp = recentFollowUps.some((t) => {
+                const createdAt =
+                  t.createdAt instanceof Date
+                    ? t.createdAt
+                    : new Date(t.createdAt as unknown as string);
+                return (
+                  t.createdByPrompt?.includes(taskId) &&
+                  createdAt >= cooldownDate
+                );
+              });
+              if (hasRecentFollowUp) {
+                return {
+                  created: false,
+                  skipped: true,
+                  reason: "cooldown_active",
+                  cooldownDays: cooldown,
+                  waitingTask: { id: waitingTask.id, title: waitingTask.title },
+                  followUp,
+                };
+              }
               const task = await this.agentService.createTask(
                 context.userId,
                 followUp,
@@ -2007,12 +2009,21 @@ export class AgentExecutor {
         case "complete_job_run": {
           const { jobName, periodKey, metadata } =
             validateAgentCompleteJobRunInput(input);
-          await this.jobRunService.completeRun(
+          const completed = await this.jobRunService.completeRun(
             context.userId,
             jobName,
             periodKey,
             metadata,
           );
+          if (!completed) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND",
+              `No running job run found for jobName=${jobName} periodKey=${periodKey}`,
+              false,
+              "Ensure claim_job_run was called first for this job/period combination.",
+            );
+          }
           return this.success(action, readOnly, context, 200, {
             completed: true,
             jobName,
@@ -2022,12 +2033,21 @@ export class AgentExecutor {
         case "fail_job_run": {
           const { jobName, periodKey, errorMessage } =
             validateAgentFailJobRunInput(input);
-          await this.jobRunService.failRun(
+          const failed = await this.jobRunService.failRun(
             context.userId,
             jobName,
             periodKey,
             errorMessage,
           );
+          if (!failed) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND",
+              `No running job run found for jobName=${jobName} periodKey=${periodKey}`,
+              false,
+              "Ensure claim_job_run was called first for this job/period combination.",
+            );
+          }
           return this.success(action, readOnly, context, 200, {
             failed: true,
             jobName,

@@ -48,9 +48,9 @@ export class AgentJobRunService {
     jobName: string,
     periodKey: string,
     metadata?: unknown,
-  ): Promise<void> {
-    if (!this.prisma) return;
-    await this.prisma.agentJobRun.updateMany({
+  ): Promise<boolean> {
+    if (!this.prisma) return true;
+    const result = await this.prisma.agentJobRun.updateMany({
       where: { userId, jobName, periodKey },
       data: {
         status: "completed",
@@ -58,6 +58,7 @@ export class AgentJobRunService {
         metadata: metadata as import("@prisma/client").Prisma.InputJsonValue,
       },
     });
+    return result.count > 0;
   }
 
   async failRun(
@@ -65,9 +66,9 @@ export class AgentJobRunService {
     jobName: string,
     periodKey: string,
     errorMessage: string,
-  ): Promise<void> {
-    if (!this.prisma) return;
-    await this.prisma.agentJobRun.updateMany({
+  ): Promise<boolean> {
+    if (!this.prisma) return true;
+    const result = await this.prisma.agentJobRun.updateMany({
       where: { userId, jobName, periodKey },
       data: {
         status: "failed",
@@ -75,6 +76,7 @@ export class AgentJobRunService {
         errorMessage: errorMessage.slice(0, 500),
       },
     });
+    return result.count > 0;
   }
 
   async getRunStatus(
