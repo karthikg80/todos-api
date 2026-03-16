@@ -39,7 +39,11 @@ export class AgentEnrollmentService {
 
   async enroll(
     userId: string,
-    opts: { timezone?: string; dailyEnabled?: boolean; weeklyEnabled?: boolean } = {},
+    opts: {
+      timezone?: string;
+      dailyEnabled?: boolean;
+      weeklyEnabled?: boolean;
+    } = {},
   ): Promise<EnrollmentStatus> {
     const token = generateRefreshToken();
 
@@ -58,8 +62,12 @@ export class AgentEnrollmentService {
         refreshToken: token,
         active: true,
         ...(opts.timezone !== undefined ? { timezone: opts.timezone } : {}),
-        ...(opts.dailyEnabled !== undefined ? { dailyEnabled: opts.dailyEnabled } : {}),
-        ...(opts.weeklyEnabled !== undefined ? { weeklyEnabled: opts.weeklyEnabled } : {}),
+        ...(opts.dailyEnabled !== undefined
+          ? { dailyEnabled: opts.dailyEnabled }
+          : {}),
+        ...(opts.weeklyEnabled !== undefined
+          ? { weeklyEnabled: opts.weeklyEnabled }
+          : {}),
       },
     });
 
@@ -68,9 +76,15 @@ export class AgentEnrollmentService {
 
   async update(
     userId: string,
-    patch: { timezone?: string; dailyEnabled?: boolean; weeklyEnabled?: boolean },
+    patch: {
+      timezone?: string;
+      dailyEnabled?: boolean;
+      weeklyEnabled?: boolean;
+    },
   ): Promise<EnrollmentStatus> {
-    const existing = await this.prisma.agentEnrollment.findUnique({ where: { userId } });
+    const existing = await this.prisma.agentEnrollment.findUnique({
+      where: { userId },
+    });
     if (!existing || !existing.active) {
       throw Object.assign(new Error("Not enrolled"), { code: "NOT_ENROLLED" });
     }
@@ -79,8 +93,12 @@ export class AgentEnrollmentService {
       where: { userId },
       data: {
         ...(patch.timezone !== undefined ? { timezone: patch.timezone } : {}),
-        ...(patch.dailyEnabled !== undefined ? { dailyEnabled: patch.dailyEnabled } : {}),
-        ...(patch.weeklyEnabled !== undefined ? { weeklyEnabled: patch.weeklyEnabled } : {}),
+        ...(patch.dailyEnabled !== undefined
+          ? { dailyEnabled: patch.dailyEnabled }
+          : {}),
+        ...(patch.weeklyEnabled !== undefined
+          ? { weeklyEnabled: patch.weeklyEnabled }
+          : {}),
       },
     });
 
@@ -95,7 +113,9 @@ export class AgentEnrollmentService {
   }
 
   async getStatus(userId: string): Promise<EnrollmentStatus> {
-    const row = await this.prisma.agentEnrollment.findUnique({ where: { userId } });
+    const row = await this.prisma.agentEnrollment.findUnique({
+      where: { userId },
+    });
 
     if (!row) {
       return {
