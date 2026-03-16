@@ -1,0 +1,42 @@
+[
+  {
+    "description": "Task with clear action verb — should score high",
+    "input": { "id": "task-1", "title": "Review quarterly report" },
+    "expected": { "qualityScore": 5, "issueCount": 0 }
+  },
+  {
+    "description": "Task without action verb — should flag missing verb",
+    "input": { "id": "task-2", "title": "The login situation" },
+    "expected": {
+      "qualityScoreMax": 4,
+      "issueContains": "action verb"
+    }
+  },
+  {
+    "description": "Task with vague phrase — should flag vague verb",
+    "input": { "id": "task-3", "title": "Handle the deployment issue" },
+    "expected": {
+      "qualityScoreMax": 4,
+      "issueContains": "vague phrase"
+    }
+  },
+  {
+    "description": "Task with multiple actions — should flag compound",
+    "input": {
+      "id": "task-4",
+      "title": "Write report and review results and update dashboard"
+    },
+    "expected": {
+      "qualityScoreMax": 4,
+      "issueContains": "multiple actions"
+    }
+  },
+  {
+    "description": "Task with vague placeholder words",
+    "input": { "id": "task-5", "title": "Fix stuff in the auth module" },
+    "expected": {
+      "qualityScoreMax": 4,
+      "issueContains": "placeholder"
+    }
+  }
+]

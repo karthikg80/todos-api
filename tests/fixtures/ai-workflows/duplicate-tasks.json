@@ -1,0 +1,86 @@
+[
+  {
+    "description": "Exact duplicate pair",
+    "input": [
+      {
+        "id": "a",
+        "title": "Buy groceries",
+        "status": "inbox",
+        "projectId": null
+      },
+      {
+        "id": "b",
+        "title": "Buy groceries",
+        "status": "inbox",
+        "projectId": null
+      }
+    ],
+    "expected": {
+      "groupCount": 1,
+      "firstGroupConfidence": 1.0,
+      "firstGroupAction": "archive-older"
+    }
+  },
+  {
+    "description": "Normalized duplicate (articles/punctuation differ)",
+    "input": [
+      {
+        "id": "a",
+        "title": "Review the quarterly report",
+        "status": "inbox",
+        "projectId": null
+      },
+      {
+        "id": "b",
+        "title": "Review quarterly report",
+        "status": "inbox",
+        "projectId": null
+      }
+    ],
+    "expected": {
+      "groupCount": 1,
+      "firstGroupConfidenceMin": 0.85
+    }
+  },
+  {
+    "description": "Near-duplicate in same project",
+    "input": [
+      {
+        "id": "a",
+        "title": "Setup CI pipeline",
+        "status": "next",
+        "projectId": "proj-1"
+      },
+      {
+        "id": "b",
+        "title": "Set up CI pipeline",
+        "status": "next",
+        "projectId": "proj-1"
+      }
+    ],
+    "expected": {
+      "groupCount": 1,
+      "firstGroupConfidenceMin": 0.6
+    }
+  },
+  {
+    "description": "No duplicates — distinct tasks",
+    "input": [
+      {
+        "id": "a",
+        "title": "Write unit tests",
+        "status": "inbox",
+        "projectId": null
+      },
+      {
+        "id": "b",
+        "title": "Deploy to production",
+        "status": "next",
+        "projectId": null
+      }
+    ],
+    "expected": {
+      "groupCount": 0
+    }
+  }
+]
