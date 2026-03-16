@@ -433,6 +433,13 @@ export class PrismaTodoService implements ITodoService {
           archived: dto.archived ?? false,
           ...(recurrence || {}),
           source: dto.source ?? null,
+          doDate: dto.doDate ?? null,
+          blockedReason: dto.blockedReason ?? null,
+          effortScore: dto.effortScore ?? null,
+          confidenceScore: dto.confidenceScore ?? null,
+          sourceText: dto.sourceText ?? null,
+          areaId: dto.areaId ?? null,
+          goalId: dto.goalId ?? null,
           createdByPrompt: dto.createdByPrompt,
           notes: dto.notes,
           userId,
@@ -531,6 +538,16 @@ export class PrismaTodoService implements ITodoService {
       if (dto.waitingOn !== undefined) updateData.waitingOn = dto.waitingOn;
       if (dto.archived !== undefined) updateData.archived = dto.archived;
       if (dto.source !== undefined) updateData.source = dto.source;
+      if (dto.doDate !== undefined) updateData.doDate = dto.doDate;
+      if (dto.blockedReason !== undefined)
+        updateData.blockedReason = dto.blockedReason;
+      if (dto.effortScore !== undefined)
+        updateData.effortScore = dto.effortScore;
+      if (dto.confidenceScore !== undefined)
+        updateData.confidenceScore = dto.confidenceScore;
+      if (dto.sourceText !== undefined) updateData.sourceText = dto.sourceText;
+      if (dto.areaId !== undefined) updateData.areaId = dto.areaId;
+      if (dto.goalId !== undefined) updateData.goalId = dto.goalId;
       if (dto.createdByPrompt !== undefined) {
         updateData.createdByPrompt = dto.createdByPrompt;
       }
@@ -1043,6 +1060,13 @@ export class PrismaTodoService implements ITodoService {
         nextOccurrence: prismaTodo.recurrenceNextOccurrence ?? undefined,
       },
       source: prismaTodo.source ?? undefined,
+      doDate: prismaTodo.doDate ?? null,
+      blockedReason: prismaTodo.blockedReason ?? null,
+      effortScore: prismaTodo.effortScore ?? null,
+      confidenceScore: prismaTodo.confidenceScore ?? null,
+      sourceText: prismaTodo.sourceText ?? null,
+      areaId: prismaTodo.areaId ?? null,
+      goalId: prismaTodo.goalId ?? null,
       createdByPrompt: prismaTodo.createdByPrompt ?? undefined,
       notes: prismaTodo.notes ?? undefined,
       headingId: prismaTodo.headingId ?? undefined,

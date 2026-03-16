@@ -64,6 +64,8 @@ export interface Project {
   lastReviewedAt?: Date | null;
   archived: boolean;
   archivedAt?: Date | null;
+  areaId?: string | null;
+  goalId?: string | null;
   userId: string;
   createdAt: Date;
   updatedAt: Date;
@@ -108,6 +110,13 @@ export interface Todo {
   archived: boolean;
   recurrence: TodoRecurrence;
   source?: TaskSource | null;
+  doDate?: Date | null;
+  blockedReason?: string | null;
+  effortScore?: number | null;
+  confidenceScore?: number | null;
+  sourceText?: string | null;
+  areaId?: string | null;
+  goalId?: string | null;
   createdByPrompt?: string | null;
   notes?: string;
   userId: string;
@@ -170,6 +179,13 @@ export interface CreateTodoDto {
   archived?: boolean;
   recurrence?: Partial<TodoRecurrence> | null;
   source?: TaskSource | null;
+  doDate?: Date | null;
+  blockedReason?: string | null;
+  effortScore?: number | null;
+  confidenceScore?: number | null;
+  sourceText?: string | null;
+  areaId?: string | null;
+  goalId?: string | null;
   createdByPrompt?: string | null;
   notes?: string | null;
 }
@@ -197,6 +213,13 @@ export interface UpdateTodoDto {
   archived?: boolean;
   recurrence?: Partial<TodoRecurrence> | null;
   source?: TaskSource | null;
+  doDate?: Date | null;
+  blockedReason?: string | null;
+  effortScore?: number | null;
+  confidenceScore?: number | null;
+  sourceText?: string | null;
+  areaId?: string | null;
+  goalId?: string | null;
   createdByPrompt?: string | null;
   notes?: string | null;
 }
@@ -220,6 +243,18 @@ export interface ReorderTodoItemDto {
 export interface ReorderHeadingItemDto {
   id: string;
   sortOrder: number;
+}
+
+export interface DryRunPatch {
+  operation: "create" | "update" | "delete";
+  entityKind: "task" | "project" | "capture" | "area" | "goal";
+  entityId?: string;
+  fields: Record<string, unknown>;
+}
+
+export interface DryRunResult {
+  dryRun: true;
+  proposedChanges: DryRunPatch[];
 }
 
 export interface FindTodosQuery {
@@ -252,4 +287,50 @@ export interface FindTodosQuery {
   sortOrder?: SortOrder;
   page?: number;
   limit?: number;
+}
+
+export interface AreaDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GoalDto {
+  id: string;
+  name: string;
+  description?: string | null;
+  targetDate?: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CaptureItemDto {
+  id: string;
+  text: string;
+  source?: string | null;
+  capturedAt: string;
+  lifecycle: "new" | "triaged" | "discarded";
+  triageResult?: unknown;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserPlanningPreferencesDto {
+  maxDailyTasks?: number | null;
+  preferredChunkMinutes?: number | null;
+  deepWorkPreference?: string | null;
+  weekendsActive: boolean;
+  preferredContexts: string[];
+  waitingFollowUpDays: number;
+  workWindowsJson?: unknown;
+}
+
+export interface CreateCaptureItemDto {
+  text: string;
+  source?: string;
+  capturedAt?: string;
 }

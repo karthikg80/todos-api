@@ -106,6 +106,32 @@ function minimumRequiredScopesForAction(
     case "delete_project":
     case "archive_project":
       return [PROJECT_WRITE_SCOPE];
+    case "analyze_task_quality":
+    case "find_duplicate_tasks":
+    case "find_stale_items":
+    case "taxonomy_cleanup_suggestions":
+    case "weekly_review_summary":
+    case "list_audit_log":
+    case "get_availability_windows":
+      return [TASK_READ_SCOPE];
+    case "plan_today":
+    case "break_down_task":
+    case "suggest_next_actions":
+      return [TASK_READ_SCOPE, PROJECT_READ_SCOPE];
+    case "triage_capture_item":
+    case "triage_inbox":
+    case "create_follow_up_for_waiting_task":
+      return [TASK_WRITE_SCOPE];
+    case "claim_job_run":
+    case "complete_job_run":
+    case "fail_job_run":
+    case "record_failed_action":
+    case "resolve_failed_action":
+      return [TASK_WRITE_SCOPE];
+    case "get_job_run_status":
+    case "list_job_runs":
+    case "list_failed_actions":
+      return [TASK_READ_SCOPE];
   }
 }
 

@@ -297,6 +297,32 @@ export function getScheduledTodos(limit = 6) {
     .slice(0, limit);
 }
 
+export function getNextActionTodos(limit = 6) {
+  return getOpenTodos()
+    .filter((todo) => String(todo.status || "").toLowerCase() === "next")
+    .sort((a, b) => {
+      const aPriority =
+        a.priority === "urgent"
+          ? 0
+          : a.priority === "high"
+            ? 1
+            : a.priority === "medium"
+              ? 2
+              : 3;
+      const bPriority =
+        b.priority === "urgent"
+          ? 0
+          : b.priority === "high"
+            ? 1
+            : b.priority === "medium"
+              ? 2
+              : 3;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    })
+    .slice(0, limit);
+}
+
 function isProjectReviewOverdue(projectRecord) {
   if (!projectRecord?.reviewCadence || !projectRecord?.lastReviewedAt)
     return false;
@@ -407,6 +433,11 @@ export function getHomeDashboardModel({ topFocusItems = [] } = {}) {
     6,
     usedTodoIds,
   );
+  const nextActionTodos = takeExclusiveTodos(
+    getNextActionTodos(12),
+    6,
+    usedTodoIds,
+  );
   return {
     dueSoon,
     dueSoonGroups: buildHomeDueSoonGroups(dueSoon),
@@ -414,6 +445,7 @@ export function getHomeDashboardModel({ topFocusItems = [] } = {}) {
     quickWins,
     waitingTodos,
     scheduledTodos,
+    nextActionTodos,
     projectsToNudge: getProjectsToNudge(4),
     topFocusFallback: getTopFocusFallbackTodos(3),
   };
@@ -426,6 +458,7 @@ export function buildHomeTileListByKey(key) {
   if (key === "quick_wins") return model.quickWins;
   if (key === "waiting") return model.waitingTodos;
   if (key === "scheduled") return model.scheduledTodos;
+  if (key === "next_actions") return model.nextActionTodos;
   return [];
 }
 
@@ -745,6 +778,17 @@ export function renderHomeDashboard() {
               title: "Scheduled",
               items: model.scheduledTodos,
               emptyText: "Nothing scheduled.",
+              showSeeAll: false,
+            })
+          : ""
+      }
+      ${
+        model.nextActionTodos.length > 0
+          ? renderHomeTaskTile({
+              key: "next_actions",
+              title: "Next Actions",
+              items: model.nextActionTodos,
+              emptyText: "No next actions.",
               showSeeAll: false,
             })
           : ""

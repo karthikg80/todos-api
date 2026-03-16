@@ -1,0 +1,27 @@
+[
+  {
+    "description": "Clear action verb — should suggest create_task",
+    "input": { "text": "Call dentist to schedule appointment" },
+    "expected": { "kind": "create_task", "confidenceMin": 0.8 }
+  },
+  {
+    "description": "URL — should suggest convert_to_note",
+    "input": { "text": "https://example.com/article-about-planning" },
+    "expected": { "kind": "convert_to_note", "confidenceMin": 0.7 }
+  },
+  {
+    "description": "Very short without verb — should suggest discard",
+    "input": { "text": "um" },
+    "expected": { "kind": "discard", "confidenceMin": 0.5 }
+  },
+  {
+    "description": "Ambiguous text without clear verb — lower confidence task",
+    "input": { "text": "the quarterly planning meeting agenda" },
+    "expected": { "kind": "create_task", "confidenceMax": 0.7 }
+  },
+  {
+    "description": "Write action verb — should be create_task",
+    "input": { "text": "Write up the design doc for auth refactor" },
+    "expected": { "kind": "create_task", "confidenceMin": 0.8 }
+  }
+]

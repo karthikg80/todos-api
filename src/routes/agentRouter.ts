@@ -200,5 +200,104 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "weekly_review"),
   );
 
+  // Anti-entropy
+  router.post(
+    "/read/analyze_task_quality",
+    createAgentActionHandler(agentExecutor, "analyze_task_quality"),
+  );
+  router.post(
+    "/read/find_duplicate_tasks",
+    createAgentActionHandler(agentExecutor, "find_duplicate_tasks"),
+  );
+  router.post(
+    "/read/find_stale_items",
+    createAgentActionHandler(agentExecutor, "find_stale_items"),
+  );
+  router.post(
+    "/read/taxonomy_cleanup_suggestions",
+    createAgentActionHandler(agentExecutor, "taxonomy_cleanup_suggestions"),
+  );
+
+  // Planning
+  router.post(
+    "/read/plan_today",
+    createAgentActionHandler(agentExecutor, "plan_today"),
+  );
+  router.post(
+    "/read/break_down_task",
+    createAgentActionHandler(agentExecutor, "break_down_task"),
+  );
+  router.post(
+    "/read/suggest_next_actions",
+    createAgentActionHandler(agentExecutor, "suggest_next_actions"),
+  );
+  router.post(
+    "/read/weekly_review_summary",
+    createAgentActionHandler(agentExecutor, "weekly_review_summary"),
+  );
+
+  // Triage / audit / availability
+  router.post(
+    "/write/triage_capture_item",
+    createAgentActionHandler(agentExecutor, "triage_capture_item"),
+  );
+  router.post(
+    "/write/triage_inbox",
+    createAgentActionHandler(agentExecutor, "triage_inbox"),
+  );
+  router.post(
+    "/read/list_audit_log",
+    createAgentActionHandler(agentExecutor, "list_audit_log"),
+  );
+  router.post(
+    "/read/get_availability_windows",
+    createAgentActionHandler(agentExecutor, "get_availability_windows"),
+  );
+
+  // Issue #316: follow-up for waiting tasks
+  router.post(
+    "/write/create_follow_up_for_waiting_task",
+    createAgentActionHandler(
+      agentExecutor,
+      "create_follow_up_for_waiting_task",
+    ),
+  );
+
+  // Issue #314: server-side job-run locking
+  router.post(
+    "/write/claim_job_run",
+    createAgentActionHandler(agentExecutor, "claim_job_run"),
+  );
+  router.post(
+    "/write/complete_job_run",
+    createAgentActionHandler(agentExecutor, "complete_job_run"),
+  );
+  router.post(
+    "/write/fail_job_run",
+    createAgentActionHandler(agentExecutor, "fail_job_run"),
+  );
+  router.post(
+    "/read/get_job_run_status",
+    createAgentActionHandler(agentExecutor, "get_job_run_status"),
+  );
+  router.post(
+    "/read/list_job_runs",
+    createAgentActionHandler(agentExecutor, "list_job_runs"),
+  );
+
+  // Issue #320: dead-letter store
+  router.post(
+    "/write/record_failed_action",
+    createAgentActionHandler(agentExecutor, "record_failed_action"),
+  );
+  router.post(
+    "/read/list_failed_actions",
+    createAgentActionHandler(agentExecutor, "list_failed_actions"),
+  );
+  router.post(
+    "/write/resolve_failed_action",
+    createAgentActionHandler(agentExecutor, "resolve_failed_action"),
+  );
+
   return router;
 }

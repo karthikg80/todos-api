@@ -84,6 +84,12 @@ enum AiSuggestionType {
   plan_from_goal
 }
 
+enum CaptureLifecycle {
+  new
+  triaged
+  discarded
+}
+
 enum AiSuggestionStatus {
   pending
   accepted
@@ -113,7 +119,14 @@ model User {
   mcpRefreshTokens  McpRefreshToken[]
   agentIdempotencyRecords AgentIdempotencyRecord[]
   agentActionAudits AgentActionAudit[]
+  agentEnrollment   AgentEnrollment?
+  agentJobRuns      AgentJobRun[]
+  failedAutomationActions FailedAutomationAction[]
   aiSuggestions     AiSuggestion[]
+  captureItems      CaptureItem[]
+  areas             Area[]
+  goals             Goal[]
+  planningPreferences UserPlanningPreferences?
 
   @@map("users")
 }
@@ -231,6 +244,9 @@ model AgentActionAudit {
   idempotencyKey String?  @db.VarChar(255) @map("idempotency_key")
   replayed       Boolean  @default(false)
   errorCode      String?  @db.VarChar(100) @map("error_code")
+  jobName        String?  @db.VarChar(100) @map("job_name")
+  jobPeriodKey   String?  @db.VarChar(20) @map("job_period_key")
+  triggeredBy    String?  @db.VarChar(20) @map("triggered_by")
   metadata       Json?
   createdAt      DateTime @default(now()) @map("created_at")
 
@@ -240,6 +256,7 @@ model AgentActionAudit {
   @@index([userId, createdAt])
   @@index([requestId])
   @@index([action, createdAt])
+  @@index([jobName, jobPeriodKey])
 }
 
 model Project {
@@ -259,9 +276,14 @@ model Project {
   createdAt      DateTime              @default(now()) @map("created_at")
   updatedAt      DateTime              @updatedAt @map("updated_at")
 
-  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  todos Todo[]
+  areaId        String?               @db.Uuid @map("area_id")
+  goalId        String?               @db.Uuid @map("goal_id")
+
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  todos    Todo[]
   headings Heading[]
+  areaRef  Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  goalRef  Goal?   @relation(fields: [goalId], references: [id], onDelete: SetNull)
 
   @@map("projects")
   @@unique([userId, name])
@@ -312,8 +334,15 @@ model Todo {
   recurrenceRrule       String?            @map("recurrence_rrule") @db.Text
   recurrenceNextOccurrence DateTime?       @map("recurrence_next_occurrence")
   source                TodoSource?
+  doDate                DateTime?          @map("do_date")
+  blockedReason         String?            @map("blocked_reason") @db.VarChar(500)
+  effortScore           Int?               @map("effort_score")
+  confidenceScore       Int?               @map("confidence_score")
+  sourceText            String?            @map("source_text") @db.Text
   createdByPrompt       String?            @map("created_by_prompt") @db.Text
   notes                 String?            @db.Text
+  areaId                String?            @db.Uuid @map("area_id")
+  goalId                String?            @db.Uuid @map("goal_id")
   userId                String             @map("user_id")
   createdAt             DateTime           @default(now()) @map("created_at")
   updatedAt             DateTime           @updatedAt @map("updated_at")
@@ -321,6 +350,8 @@ model Todo {
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   heading  Heading?  @relation(fields: [headingId], references: [id], onDelete: SetNull)
+  area     Area?     @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  goal     Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
   subtasks Subtask[]
   aiSuggestionAppliedTodos AiSuggestionAppliedTodo[]
 
@@ -329,6 +360,7 @@ model Todo {
   @@index([userId, projectId])
   @@index([userId, headingId])
   @@index([userId, dueDate])
+  @@index([userId, doDate])
   @@index([userId, status])
   @@index([userId, archived])
   @@index([userId, projectId, status])
@@ -387,4 +419,145 @@ model AiSuggestionAppliedTodo {
   @@map("ai_suggestion_applied_todos")
   @@unique([suggestionId, todoId])
   @@index([todoId])
+}
+
+model CaptureItem {
+  id           String           @id @default(uuid()) @db.Uuid
+  userId       String           @map("user_id")
+  text         String           @db.Text
+  source       String?          @db.VarChar(100)
+  capturedAt   DateTime         @default(now()) @map("captured_at")
+  lifecycle    CaptureLifecycle @default(new)
+  triageResult Json?            @map("triage_result")
+  createdAt    DateTime         @default(now()) @map("created_at")
+  updatedAt    DateTime         @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("capture_items")
+  @@index([userId, lifecycle])
+  @@index([userId, capturedAt])
+}
+
+model Area {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id")
+  name        String    @db.VarChar(100)
+  description String?   @db.Text
+  archived    Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects Project[]
+  todos    Todo[]
+
+  @@map("areas")
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model Goal {
+  id          String    @id @default(uuid()) @db.Uuid
+  userId      String    @map("user_id")
+  name        String    @db.VarChar(200)
+  description String?   @db.Text
+  targetDate  DateTime? @map("target_date")
+  archived    Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projects Project[]
+  todos    Todo[]
+
+  @@map("goals")
+  @@index([userId])
+}
+
+model AgentEnrollment {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @unique @map("user_id")
+  refreshToken   String    @db.VarChar(128) @map("refresh_token")
+  dailyEnabled   Boolean   @default(true) @map("daily_enabled")
+  weeklyEnabled  Boolean   @default(true) @map("weekly_enabled")
+  timezone       String    @default("America/New_York") @db.VarChar(50)
+  active         Boolean   @default(true)
+  enrolledAt     DateTime  @default(now()) @map("enrolled_at")
+  lastRunAt      DateTime? @map("last_run_at")
+  lastRunStatus  String?   @db.VarChar(20) @map("last_run_status")
+  lastRunError   String?   @db.VarChar(500) @map("last_run_error")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("agent_enrollments")
+  @@index([active])
+}
+
+model AgentJobRun {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id")
+  jobName      String    @db.VarChar(100) @map("job_name")
+  periodKey    String    @db.VarChar(20) @map("period_key")
+  status       String    @db.VarChar(20)
+  claimedAt    DateTime  @default(now()) @map("claimed_at")
+  completedAt  DateTime? @map("completed_at")
+  failedAt     DateTime? @map("failed_at")
+  errorMessage String?   @db.VarChar(500) @map("error_message")
+  metadata     Json?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("agent_job_runs")
+  @@unique([userId, jobName, periodKey])
+  @@index([userId])
+  @@index([status])
+}
+
+model FailedAutomationAction {
+  id           String    @id @default(uuid()) @db.Uuid
+  userId       String    @map("user_id")
+  jobName      String    @db.VarChar(100) @map("job_name")
+  periodKey    String    @db.VarChar(20) @map("period_key")
+  actionType   String    @db.VarChar(100) @map("action_type")
+  entityType   String?   @db.VarChar(50) @map("entity_type")
+  entityId     String?   @db.VarChar(100) @map("entity_id")
+  errorCode    String?   @db.VarChar(100) @map("error_code")
+  errorMessage String?   @db.VarChar(1000) @map("error_message")
+  payload      Json?
+  retryable    Boolean   @default(false)
+  retryCount   Int       @default(0) @map("retry_count")
+  resolvedAt   DateTime? @map("resolved_at")
+  resolution   String?   @db.VarChar(20)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("failed_automation_actions")
+  @@index([userId, createdAt])
+  @@index([userId, jobName, periodKey])
+  @@index([resolvedAt])
+}
+
+model UserPlanningPreferences {
+  id                    String   @id @default(uuid()) @db.Uuid
+  userId                String   @unique @map("user_id")
+  maxDailyTasks         Int?     @map("max_daily_tasks")
+  preferredChunkMinutes Int?     @map("preferred_chunk_minutes")
+  deepWorkPreference    String?  @db.VarChar(20) @map("deep_work_preference")
+  weekendsActive        Boolean  @default(true) @map("weekends_active")
+  preferredContexts     String[] @default([]) @map("preferred_contexts")
+  waitingFollowUpDays   Int      @default(7) @map("waiting_follow_up_days")
+  workWindowsJson       Json?    @map("work_windows_json")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_planning_preferences")
 }

@@ -1465,6 +1465,592 @@
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
+    },
+    {
+      "name": "analyze_task_quality",
+      "description": "Analyze open tasks for quality issues: missing action verbs, vague language, multi-action titles, excessive length.",
+      "method": "POST",
+      "path": "/read/analyze_task_quality",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "taskIds": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Optional list of task IDs to analyze. Defaults to all open tasks."
+          },
+          "projectId": {
+            "type": "string",
+            "description": "Optional: filter to tasks in this project."
+          }
+        }
+      },
+      "output": {
+        "dataKey": "results",
+        "type": "array",
+        "description": "Quality analysis result for each task."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "find_duplicate_tasks",
+      "description": "Detect exact, normalized, and near-duplicate open tasks using title similarity.",
+      "method": "POST",
+      "path": "/read/find_duplicate_tasks",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "description": "Optional: scope to a single project."
+          },
+          "scope": {
+            "type": "string",
+            "description": "Optional scope hint (e.g. 'active'). Reserved for future use."
+          }
+        }
+      },
+      "output": {
+        "dataKey": "groups",
+        "type": "array",
+        "description": "Groups of potentially duplicate tasks with confidence and suggested action."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "find_stale_items",
+      "description": "Find tasks and projects not updated within a configurable number of days.",
+      "method": "POST",
+      "path": "/read/find_stale_items",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "staleDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365,
+            "description": "Threshold in days. Items not updated in this many days are stale. Default 30."
+          }
+        }
+      },
+      "output": {
+        "description": "staleTasks and staleProjects arrays, plus the effective staleDays and threshold date."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "taxonomy_cleanup_suggestions",
+      "description": "Suggest project hygiene improvements: similar project names and projects with very few tasks.",
+      "method": "POST",
+      "path": "/read/taxonomy_cleanup_suggestions",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "description": "similarProjects pairs and smallProjects list."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "plan_today",
+      "description": "Build a deterministic day plan by selecting tasks that fit within available time, weighted by priority, due dates, and energy.",
+      "method": "POST",
+      "path": "/read/plan_today",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "availableMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440,
+            "description": "Total available minutes for the day. Default 480."
+          },
+          "energy": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Current energy level, used to weight task effort."
+          },
+          "date": {
+            "type": "string",
+            "description": "ISO date (YYYY-MM-DD). Defaults to today."
+          }
+        }
+      },
+      "output": {
+        "description": "selectedTasks array with estimatedMinutes, plus totalMinutes and remainingMinutes."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "break_down_task",
+      "description": "Suggest subtask decompositions for a task using heuristic patterns based on the task title.",
+      "method": "POST",
+      "path": "/read/break_down_task",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId"],
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the task to decompose."
+          },
+          "maxSubtasks": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10,
+            "description": "Maximum number of suggested subtasks. Default 5."
+          }
+        }
+      },
+      "output": {
+        "description": "suggestedSubtasks array with title and order, plus decompositionBasis."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "suggest_next_actions",
+      "description": "Return prioritized actionable tasks for a project, ordered by status and priority.",
+      "method": "POST",
+      "path": "/read/suggest_next_actions",
+      "readOnly": true,
+      "availability": { "requires": ["project_service"] },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["projectId"],
+        "properties": {
+          "projectId": { "type": "string", "format": "uuid" },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 50 }
+        }
+      },
+      "output": {
+        "description": "suggestedActions task array with projectName and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "weekly_review_summary",
+      "description": "Read-only summary of the current week: tasks completed, created, stale, waiting, inbox count, and projects with no active tasks.",
+      "method": "POST",
+      "path": "/read/weekly_review_summary",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weekStart": {
+            "type": "string",
+            "description": "ISO date for week start (YYYY-MM-DD). Defaults to the current Monday."
+          }
+        }
+      },
+      "output": {
+        "description": "weekStart, weekEnd, completed, created, stale, waiting, inboxCount, projectsWithNoActive."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "triage_capture_item",
+      "description": "Analyze a single capture item and suggest how to convert it to a task, note, or discard it. Pass mode='apply' to mark it as triaged.",
+      "method": "POST",
+      "path": "/write/triage_capture_item",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["captureItemId"],
+        "properties": {
+          "captureItemId": { "type": "string", "format": "uuid" },
+          "mode": {
+            "type": "string",
+            "enum": ["suggest", "apply"],
+            "description": "suggest (default) returns recommendations only; apply marks the item as triaged."
+          }
+        }
+      },
+      "output": {
+        "description": "recommendation object with kind, confidence, why, proposedAction, and applied boolean."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "triage_inbox",
+      "description": "Batch-triage capture items with lifecycle='new'. Returns recommendations for each. Pass mode='apply' to mark them as triaged.",
+      "method": "POST",
+      "path": "/write/triage_inbox",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Max items to process. Default 20."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["suggest", "apply"],
+            "description": "suggest (default) or apply."
+          }
+        }
+      },
+      "output": {
+        "description": "triaged array, totalProcessed, and mode."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_audit_log",
+      "description": "Return recent agent operation audit log entries for the authenticated user.",
+      "method": "POST",
+      "path": "/read/list_audit_log",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "limit": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "since": {
+            "type": "string",
+            "description": "ISO timestamp — return only entries after this date."
+          },
+          "action": {
+            "type": "string",
+            "description": "Optional filter by action name."
+          }
+        }
+      },
+      "output": {
+        "description": "entries array and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "get_availability_windows",
+      "description": "Return time availability windows for a given day, based on planning preferences. Also returns tasks already scheduled for that day.",
+      "method": "POST",
+      "path": "/read/get_availability_windows",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "ISO date (YYYY-MM-DD). Defaults to today."
+          }
+        }
+      },
+      "output": {
+        "description": "windows array with start/end/minutes, scheduledTasks, and totalAvailableMinutes."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "create_follow_up_for_waiting_task",
+      "description": "Create a follow-up next-action task for a task that is in 'waiting' status. Supports a cooldown window to avoid duplicate follow-ups and a suggest/apply mode.",
+      "method": "POST",
+      "path": "/write/create_follow_up_for_waiting_task",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["taskId"],
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the waiting task to create a follow-up for."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["suggest", "apply"],
+            "description": "suggest returns a preview without writing; apply creates the task. Defaults to suggest."
+          },
+          "cooldownDays": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Skip creation if a follow-up was already created within this many days. Defaults to 7."
+          },
+          "title": {
+            "type": "string",
+            "description": "Override the generated follow-up title."
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "urgent"],
+            "description": "Priority for the follow-up task. Defaults to medium."
+          }
+        }
+      },
+      "output": {
+        "description": "created boolean, task (when created), skipped/reason (when cooldown active), and waitingTaskId."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "supported"
+    },
+    {
+      "name": "claim_job_run",
+      "description": "Atomically claim a job run slot for a given jobName+periodKey combination. Returns claimed=false if already claimed (deduplication lock).",
+      "method": "POST",
+      "path": "/write/claim_job_run",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey"],
+        "properties": {
+          "jobName": {
+            "type": "string",
+            "description": "Logical name of the scheduled job (e.g. 'daily_review')."
+          },
+          "periodKey": {
+            "type": "string",
+            "description": "Period identifier (e.g. '2026-03-16'). Combined with jobName for uniqueness."
+          }
+        }
+      },
+      "output": {
+        "description": "claimed boolean and run record when claimed."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "complete_job_run",
+      "description": "Mark a previously claimed job run as completed. Returns 404 if no matching running job run is found.",
+      "method": "POST",
+      "path": "/write/complete_job_run",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey"],
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" },
+          "metadata": {
+            "type": "object",
+            "description": "Optional JSON metadata to store with the completed run."
+          }
+        }
+      },
+      "output": {
+        "description": "completed boolean, jobName, and periodKey."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "fail_job_run",
+      "description": "Mark a previously claimed job run as failed. Returns 404 if no matching running job run is found.",
+      "method": "POST",
+      "path": "/write/fail_job_run",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey", "errorMessage"],
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message describing why the job failed. Truncated to 500 characters."
+          }
+        }
+      },
+      "output": {
+        "description": "failed boolean, jobName, and periodKey."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "get_job_run_status",
+      "description": "Retrieve the status record for a specific jobName+periodKey combination.",
+      "method": "POST",
+      "path": "/read/get_job_run_status",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey"],
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" }
+        }
+      },
+      "output": {
+        "description": "run record or null if not found."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_job_runs",
+      "description": "List recent agent job run records for the authenticated user, optionally filtered by jobName or status.",
+      "method": "POST",
+      "path": "/read/list_job_runs",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "jobName": {
+            "type": "string",
+            "description": "Optional filter by job name."
+          },
+          "status": {
+            "type": "string",
+            "enum": ["running", "completed", "failed"],
+            "description": "Optional filter by run status."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Maximum records to return. Defaults to 50."
+          }
+        }
+      },
+      "output": {
+        "description": "runs array and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "record_failed_action",
+      "description": "Record a failed automation action to the dead-letter store for later inspection or retry.",
+      "method": "POST",
+      "path": "/write/record_failed_action",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey", "actionType"],
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" },
+          "actionType": {
+            "type": "string",
+            "description": "Logical action type that failed (e.g. 'create_follow_up')."
+          },
+          "entityType": {
+            "type": "string",
+            "description": "Optional entity type the action targeted (e.g. 'task')."
+          },
+          "entityId": {
+            "type": "string",
+            "description": "Optional entity ID the action targeted."
+          },
+          "errorCode": { "type": "string" },
+          "errorMessage": {
+            "type": "string",
+            "description": "Error message. Truncated to 1000 characters."
+          },
+          "payload": {
+            "type": "object",
+            "description": "Optional JSON payload for retry context."
+          },
+          "retryable": {
+            "type": "boolean",
+            "description": "Whether the action can be retried. Defaults to false."
+          }
+        }
+      },
+      "output": {
+        "description": "record object with the created failed-action entry."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_failed_actions",
+      "description": "List failed automation actions from the dead-letter store, optionally filtered by jobName, periodKey, or resolved status.",
+      "method": "POST",
+      "path": "/read/list_failed_actions",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "jobName": { "type": "string" },
+          "periodKey": { "type": "string" },
+          "includeResolved": {
+            "type": "boolean",
+            "description": "Include already-resolved entries. Defaults to false."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          }
+        }
+      },
+      "output": {
+        "description": "records array and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "resolve_failed_action",
+      "description": "Resolve (dismiss or mark retried) a failed automation action in the dead-letter store.",
+      "method": "POST",
+      "path": "/write/resolve_failed_action",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "resolution"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the failed action record to resolve."
+          },
+          "resolution": {
+            "type": "string",
+            "enum": ["retried", "dismissed"],
+            "description": "How the failed action was resolved."
+          }
+        }
+      },
+      "output": {
+        "description": "resolved boolean indicating whether the record was found and updated."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
     }
   ],
   "notes": [

@@ -1,0 +1,3 @@
+# Force Python provider — required because Nixpacks otherwise detects the
+# Node.js package.json at the repo root and skips Python setup entirely.
+providers = ["python"]

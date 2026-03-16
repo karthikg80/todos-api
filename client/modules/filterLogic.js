@@ -48,6 +48,8 @@ function setDateView(view, { skipApply = false } = {}) {
     upcoming: "dateViewUpcoming",
     next_month: "dateViewNextMonth",
     someday: "dateViewSomeday",
+    waiting: "dateViewWaiting",
+    scheduled: "dateViewScheduled",
     completed: "",
   };
   const suffixes = ["", "Sheet"];
@@ -181,6 +183,12 @@ function isSameLocalDay(a, b) {
 function matchesDateView(todo) {
   if (state.currentDateView === "all") return true;
   if (state.currentDateView === "completed") return !!todo.completed;
+  if (state.currentDateView === "waiting")
+    return (
+      !todo.completed && String(todo.status || "").toLowerCase() === "waiting"
+    );
+  if (state.currentDateView === "scheduled")
+    return !todo.completed && !!todo.scheduledDate;
 
   const dueDate = todo.dueDate ? new Date(todo.dueDate) : null;
   const now = new Date();
@@ -469,6 +477,8 @@ function getCurrentDateViewLabel() {
     completed: "Completed",
     next_month: "Next month",
     someday: "Someday",
+    waiting: "Waiting",
+    scheduled: "Scheduled",
   };
   return labels[state.currentDateView] || "";
 }
