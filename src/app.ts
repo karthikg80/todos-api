@@ -31,6 +31,8 @@ import { createMcpPublicRouter } from "./routes/mcpPublicRouter";
 import { CaptureService } from "./services/captureService";
 import { createCaptureRouter } from "./routes/captureRouter";
 import { createPreferencesRouter } from "./routes/preferencesRouter";
+import { createAgentEnrollmentRouter } from "./routes/agentEnrollmentRouter";
+import { AgentEnrollmentService } from "./services/agentEnrollmentService";
 import {
   authLimiter,
   emailActionLimiter,
@@ -278,6 +280,12 @@ export function createApp(
 
   if (persistencePrisma) {
     app.use("/preferences", createPreferencesRouter(persistencePrisma));
+
+    const enrollmentService = new AgentEnrollmentService(persistencePrisma);
+    app.use(
+      "/api/agent-enrollment",
+      createAgentEnrollmentRouter({ enrollmentService, authService }),
+    );
   }
 
   app.use(errorHandler);
