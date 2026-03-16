@@ -271,6 +271,49 @@ export function getQuickWinTodos(limit = 6) {
     .slice(0, limit);
 }
 
+export function getWaitingTodos(limit = 6) {
+  return getOpenTodos()
+    .filter((todo) => String(todo.status || "").toLowerCase() === "waiting")
+    .sort((a, b) => {
+      const aTime = Date.parse(String(a.updatedAt || a.createdAt || "")) || 0;
+      const bTime = Date.parse(String(b.updatedAt || b.createdAt || "")) || 0;
+      return aTime - bTime; // longest waiting first
+    })
+    .slice(0, limit);
+}
+
+export function getScheduledTodos(limit = 6) {
+  return getOpenTodos()
+    .filter((todo) => {
+      if (!todo.scheduledDate) return false;
+      const sd = new Date(todo.scheduledDate);
+      return !Number.isNaN(sd.getTime());
+    })
+    .sort((a, b) => {
+      const aTime = new Date(a.scheduledDate).getTime();
+      const bTime = new Date(b.scheduledDate).getTime();
+      return aTime - bTime;
+    })
+    .slice(0, limit);
+}
+
+function isProjectReviewOverdue(projectRecord) {
+  if (!projectRecord?.reviewCadence || !projectRecord?.lastReviewedAt)
+    return false;
+  const lastReviewed = new Date(projectRecord.lastReviewedAt);
+  if (Number.isNaN(lastReviewed.getTime())) return false;
+  const cadenceDays = {
+    weekly: 7,
+    biweekly: 14,
+    monthly: 30,
+    quarterly: 90,
+  };
+  const days = cadenceDays[projectRecord.reviewCadence];
+  if (!days) return false;
+  const daysSinceReview = (Date.now() - lastReviewed.getTime()) / 86400000;
+  return daysSinceReview > days;
+}
+
 export function getProjectsToNudge(limit = 4) {
   const byProject = new Map();
   const dueSoonSet = new Set(
@@ -284,6 +327,7 @@ export function getProjectsToNudge(limit = 4) {
       openCount: 0,
       dueSoonCount: 0,
       overdueCount: 0,
+      reviewOverdue: false,
     };
     entry.openCount += 1;
     if (dueSoonSet.has(String(todo.id))) entry.dueSoonCount += 1;
@@ -291,10 +335,37 @@ export function getProjectsToNudge(limit = 4) {
     if (dueDate && dueDate < new Date()) entry.overdueCount += 1;
     byProject.set(project, entry);
   }
+
+  // Surface review-overdue projects from state.projectRecords
+  for (const record of Array.isArray(state.projectRecords)
+    ? state.projectRecords
+    : []) {
+    if (!isProjectReviewOverdue(record)) continue;
+    const project = normalizeProjectPath(record.name);
+    if (!project) continue;
+    const entry = byProject.get(project) || {
+      projectName: project,
+      openCount: 0,
+      dueSoonCount: 0,
+      overdueCount: 0,
+      reviewOverdue: false,
+    };
+    entry.reviewOverdue = true;
+    byProject.set(project, entry);
+  }
+
   return Array.from(byProject.values())
     .sort((a, b) => {
-      const scoreA = a.openCount + a.dueSoonCount * 2 + a.overdueCount * 3;
-      const scoreB = b.openCount + b.dueSoonCount * 2 + b.overdueCount * 3;
+      const scoreA =
+        a.openCount +
+        a.dueSoonCount * 2 +
+        a.overdueCount * 3 +
+        (a.reviewOverdue ? 2 : 0);
+      const scoreB =
+        b.openCount +
+        b.dueSoonCount * 2 +
+        b.overdueCount * 3 +
+        (b.reviewOverdue ? 2 : 0);
       if (scoreA !== scoreB) return scoreB - scoreA;
       return a.projectName.localeCompare(b.projectName);
     })
@@ -330,11 +401,19 @@ export function getHomeDashboardModel({ topFocusItems = [] } = {}) {
   const dueSoon = takeExclusiveTodos(getDueSoonTodos(24), 6, usedTodoIds);
   const staleRisks = takeExclusiveTodos(getStaleRiskTodos(24), 6, usedTodoIds);
   const quickWins = takeExclusiveTodos(getQuickWinTodos(24), 6, usedTodoIds);
+  const waitingTodos = takeExclusiveTodos(getWaitingTodos(12), 6, usedTodoIds);
+  const scheduledTodos = takeExclusiveTodos(
+    getScheduledTodos(12),
+    6,
+    usedTodoIds,
+  );
   return {
     dueSoon,
     dueSoonGroups: buildHomeDueSoonGroups(dueSoon),
     staleRisks,
     quickWins,
+    waitingTodos,
+    scheduledTodos,
     projectsToNudge: getProjectsToNudge(4),
     topFocusFallback: getTopFocusFallbackTodos(3),
   };
@@ -345,6 +424,8 @@ export function buildHomeTileListByKey(key) {
   if (key === "due_soon") return model.dueSoon;
   if (key === "stale_risks") return model.staleRisks;
   if (key === "quick_wins") return model.quickWins;
+  if (key === "waiting") return model.waitingTodos;
+  if (key === "scheduled") return model.scheduledTodos;
   return [];
 }
 
@@ -416,6 +497,9 @@ export async function hydrateHomeTopFocusIfNeeded() {
       title: String(todo.title || ""),
       dueAt: todo.dueDate || null,
       priority: normalizePriorityValue(todo.priority),
+      status: todo.status || "inbox",
+      context: todo.context || null,
+      energy: todo.energy || null,
       projectId:
         typeof todo.projectId === "string" && todo.projectId.trim()
           ? todo.projectId.trim()
@@ -643,6 +727,28 @@ export function renderHomeDashboard() {
         groupedItems: model.dueSoonGroups,
         emptyText: "Nothing coming up.",
       })}
+      ${
+        model.waitingTodos.length > 0
+          ? renderHomeTaskTile({
+              key: "waiting",
+              title: "Waiting",
+              items: model.waitingTodos,
+              emptyText: "Nothing waiting.",
+              showSeeAll: false,
+            })
+          : ""
+      }
+      ${
+        model.scheduledTodos.length > 0
+          ? renderHomeTaskTile({
+              key: "scheduled",
+              title: "Scheduled",
+              items: model.scheduledTodos,
+              emptyText: "Nothing scheduled.",
+              showSeeAll: false,
+            })
+          : ""
+      }
       ${renderProjectsToNudgeTile(model.projectsToNudge)}
     </section>
   `;

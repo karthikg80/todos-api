@@ -5,6 +5,7 @@
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
 import { applyUiAction } from "./stateActions.js";
+import { toDateInputValue, toIsoFromDateInput } from "./todosService.js";
 
 function projectStorageKey() {
   return `todo-projects:${state.currentUser?.id || "anonymous"}`;
@@ -245,10 +246,18 @@ async function ensureProjectExists(projectName) {
 }
 
 function getAllProjects() {
-  const projectNames = [
-    ...state.customProjects,
-    ...state.todos.map((todo) => todo.category),
-  ]
+  // Get project names from todos — prefer projectId lookup, fall back to category
+  const todoProjectNames = state.todos.map((todo) => {
+    if (todo.projectId) {
+      const record = state.projectRecords.find(
+        (r) => String(r.id) === String(todo.projectId),
+      );
+      return record?.name || todo.category;
+    }
+    return todo.category;
+  });
+
+  const projectNames = [...state.customProjects, ...todoProjectNames]
     .map((value) => hooks.normalizeProjectPath(value))
     .filter(
       (value) => value.length > 0 && !hooks.isInternalCategoryPath?.(value),
@@ -261,7 +270,18 @@ function buildOpenTodoCountMapByProject() {
 
   state.todos.forEach((todo) => {
     if (todo?.completed) return;
-    const todoProject = hooks.normalizeProjectPath(todo?.category || "");
+    // Prefer projectId lookup, fall back to category
+    let todoProject = "";
+    if (todo.projectId) {
+      const record = state.projectRecords.find(
+        (r) => String(r.id) === String(todo.projectId),
+      );
+      todoProject = record?.name
+        ? hooks.normalizeProjectPath(record.name)
+        : hooks.normalizeProjectPath(todo?.category || "");
+    } else {
+      todoProject = hooks.normalizeProjectPath(todo?.category || "");
+    }
     if (!todoProject) return;
 
     const segments = todoProject
@@ -371,6 +391,21 @@ function getProjectEditDrawerElements() {
   };
 }
 
+function getProjectEditDrawerMetaElements() {
+  return {
+    descriptionInput: document.getElementById("projectEditDescriptionInput"),
+    statusSelect: document.getElementById("projectEditStatusSelect"),
+    prioritySelect: document.getElementById("projectEditPrioritySelect"),
+    areaInput: document.getElementById("projectEditAreaInput"),
+    goalInput: document.getElementById("projectEditGoalInput"),
+    targetDateInput: document.getElementById("projectEditTargetDateInput"),
+    reviewCadenceSelect: document.getElementById(
+      "projectEditReviewCadenceSelect",
+    ),
+    archiveButton: document.getElementById("projectEditArchiveButton"),
+  };
+}
+
 function getProjectDeleteDialogElements() {
   const dialog = document.getElementById("projectDeleteDialog");
   const message = document.getElementById("projectDeleteDialogBody");
@@ -474,6 +509,41 @@ function renderProjectEditDrawer() {
     if (refs.input.value !== projectRecord.name) {
       refs.input.value = projectRecord.name;
     }
+
+    // Populate metadata fields (optional — non-null-guarded)
+    const meta = getProjectEditDrawerMetaElements();
+    if (meta.descriptionInput instanceof HTMLElement) {
+      meta.descriptionInput.value = projectRecord.description || "";
+    }
+    if (meta.statusSelect instanceof HTMLElement) {
+      meta.statusSelect.value = projectRecord.status || "active";
+    }
+    if (meta.prioritySelect instanceof HTMLElement) {
+      meta.prioritySelect.value = projectRecord.priority || "";
+    }
+    if (meta.areaInput instanceof HTMLElement) {
+      meta.areaInput.value = projectRecord.area || "";
+    }
+    if (meta.goalInput instanceof HTMLElement) {
+      meta.goalInput.value = projectRecord.goal || "";
+    }
+    if (meta.targetDateInput instanceof HTMLElement) {
+      meta.targetDateInput.value = toDateInputValue(
+        projectRecord.targetDate || "",
+      );
+    }
+    if (meta.reviewCadenceSelect instanceof HTMLElement) {
+      meta.reviewCadenceSelect.value = projectRecord.reviewCadence || "";
+    }
+    if (meta.archiveButton instanceof HTMLElement) {
+      if (projectRecord.archived) {
+        meta.archiveButton.textContent = "Unarchive Project";
+        meta.archiveButton.setAttribute("data-onclick", "unarchiveProject()");
+      } else {
+        meta.archiveButton.textContent = "Archive Project";
+        meta.archiveButton.setAttribute("data-onclick", "archiveProject()");
+      }
+    }
   }
 }
 
@@ -561,11 +631,13 @@ function replaceProjectRecord(projectRecord) {
 
 function renameProjectLocally(selectedPath, renamedPath, updatedProject) {
   replaceProjectRecord(updatedProject);
-  state.todos = state.todos.map((todo) =>
-    hooks.normalizeProjectPath(todo?.category || "") === selectedPath
+  state.todos = state.todos.map((todo) => {
+    // Only mutate category for legacy todos (those without a projectId)
+    if (todo.projectId) return todo;
+    return hooks.normalizeProjectPath(todo?.category || "") === selectedPath
       ? { ...todo, category: renamedPath }
-      : todo,
-  );
+      : todo;
+  });
 
   state.customProjects = hooks.expandProjectTree(
     state.customProjects.map((path) =>
@@ -596,6 +668,10 @@ function removeProjectLocally(
 
   if (taskDisposition === "delete") {
     state.todos = state.todos.filter((todo) => {
+      // Check by projectId (canonical) or category (legacy)
+      if (removed?.id && String(todo.projectId || "") === String(removed.id)) {
+        return false;
+      }
       const todoProject = hooks.normalizeProjectPath(todo?.category || "");
       if (!todoProject) return true;
       return (
@@ -604,14 +680,18 @@ function removeProjectLocally(
       );
     });
   } else {
-    state.todos = state.todos.map((todo) =>
-      hooks.normalizeProjectPath(todo?.category || "") === normalized ||
-      hooks
-        .normalizeProjectPath(todo?.category || "")
-        .startsWith(`${normalized}${hooks.PROJECT_PATH_SEPARATOR}`)
+    state.todos = state.todos.map((todo) => {
+      // Check by projectId (canonical) or category (legacy)
+      const matchesById =
+        removed?.id && String(todo.projectId || "") === String(removed.id);
+      const todoProject = hooks.normalizeProjectPath(todo?.category || "");
+      const matchesByCategory =
+        todoProject === normalized ||
+        todoProject.startsWith(`${normalized}${hooks.PROJECT_PATH_SEPARATOR}`);
+      return matchesById || matchesByCategory
         ? { ...todo, category: null, headingId: null }
-        : todo,
-    );
+        : todo;
+    });
   }
 
   if (removed?.id) {
@@ -878,12 +958,85 @@ async function submitProjectEditDrawer() {
   refs.close.disabled = true;
 
   try {
-    const didSucceed = await renameProjectByName(
+    // Collect metadata fields
+    const meta = getProjectEditDrawerMetaElements();
+    const metaPatch = {};
+    if (meta.descriptionInput instanceof HTMLElement) {
+      metaPatch.description =
+        (meta.descriptionInput.value || "").trim() || null;
+    }
+    if (meta.statusSelect instanceof HTMLElement) {
+      metaPatch.status = meta.statusSelect.value || "active";
+    }
+    if (meta.prioritySelect instanceof HTMLElement) {
+      metaPatch.priority = meta.prioritySelect.value || null;
+    }
+    if (meta.areaInput instanceof HTMLElement) {
+      metaPatch.area = (meta.areaInput.value || "").trim() || null;
+    }
+    if (meta.goalInput instanceof HTMLElement) {
+      metaPatch.goal = (meta.goalInput.value || "").trim() || null;
+    }
+    if (meta.targetDateInput instanceof HTMLElement) {
+      metaPatch.targetDate = toIsoFromDateInput(meta.targetDateInput.value);
+    }
+    if (meta.reviewCadenceSelect instanceof HTMLElement) {
+      metaPatch.reviewCadence = meta.reviewCadenceSelect.value || null;
+    }
+
+    // If name didn't change but metadata did, just do a metadata PUT
+    const selectedPath = hooks.normalizeProjectPath(
       state.projectEditTargetProject,
-      validation.normalized,
     );
-    if (didSucceed) {
+    const renamedPath = validation.normalized;
+    const projectRecord = getProjectRecordByName(selectedPath);
+
+    if (projectRecord && Object.keys(metaPatch).length > 0) {
+      // Capture active project BEFORE rename clears the filter value
+      const activeProject = hooks.getSelectedProjectKey?.();
+      // Always apply metadata via PUT
+      const putBody = { name: renamedPath, ...metaPatch };
+      const response = await hooks.apiCall(
+        `${hooks.API_URL}/projects/${projectRecord.id}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(putBody),
+        },
+      );
+      if (!response || !response.ok) {
+        const data = response ? await hooks.parseApiBody(response) : {};
+        hooks.showMessage?.(
+          "todosMessage",
+          data.error || "Failed to update project",
+          "error",
+        );
+        return;
+      }
+      const updatedProject = await response.json();
+      renameProjectLocally(selectedPath, renamedPath, updatedProject);
+      if (selectedPath !== renamedPath) {
+        if (activeProject === selectedPath) {
+          hooks.selectProjectFromRail?.(renamedPath);
+        } else {
+          EventBus.dispatch("todos:changed", { reason: "project-selected" });
+          hooks.updateHeaderFromVisibleTodos?.(hooks.getVisibleTodos?.() ?? []);
+        }
+      }
+      hooks.showMessage?.(
+        "todosMessage",
+        `Project "${renamedPath}" updated`,
+        "success",
+      );
       closeProjectEditDrawer({ restoreFocus: false });
+    } else {
+      const didSucceed = await renameProjectByName(
+        state.projectEditTargetProject,
+        renamedPath,
+      );
+      if (didSucceed) {
+        closeProjectEditDrawer({ restoreFocus: false });
+      }
     }
   } finally {
     refs.save.disabled = false;
@@ -1100,6 +1253,88 @@ function getSelectedProjectKey() {
   return hooks.getSelectedProjectKey?.() ?? "";
 }
 
+async function archiveProject(projectName) {
+  const normalized = hooks.normalizeProjectPath(
+    projectName || state.projectEditTargetProject || "",
+  );
+  const projectRecord = getProjectRecordByName(normalized);
+  if (!projectRecord) {
+    hooks.showMessage?.("todosMessage", "Project not found", "error");
+    return;
+  }
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/projects/${projectRecord.id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archived: true, status: "archived" }),
+      },
+    );
+    if (!response || !response.ok) {
+      const data = response ? await hooks.parseApiBody(response) : {};
+      hooks.showMessage?.(
+        "todosMessage",
+        data.error || "Failed to archive project",
+        "error",
+      );
+      return;
+    }
+    const updatedProject = await response.json();
+    replaceProjectRecord(updatedProject);
+    renderProjectEditDrawer();
+    hooks.showMessage?.(
+      "todosMessage",
+      `Project "${normalized}" archived`,
+      "success",
+    );
+  } catch (error) {
+    console.error("Archive project failed:", error);
+    hooks.showMessage?.("todosMessage", "Failed to archive project", "error");
+  }
+}
+
+async function unarchiveProject(projectName) {
+  const normalized = hooks.normalizeProjectPath(
+    projectName || state.projectEditTargetProject || "",
+  );
+  const projectRecord = getProjectRecordByName(normalized);
+  if (!projectRecord) {
+    hooks.showMessage?.("todosMessage", "Project not found", "error");
+    return;
+  }
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/projects/${projectRecord.id}`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archived: false, status: "active" }),
+      },
+    );
+    if (!response || !response.ok) {
+      const data = response ? await hooks.parseApiBody(response) : {};
+      hooks.showMessage?.(
+        "todosMessage",
+        data.error || "Failed to unarchive project",
+        "error",
+      );
+      return;
+    }
+    const updatedProject = await response.json();
+    replaceProjectRecord(updatedProject);
+    renderProjectEditDrawer();
+    hooks.showMessage?.(
+      "todosMessage",
+      `Project "${normalized}" unarchived`,
+      "success",
+    );
+  } catch (error) {
+    console.error("Unarchive project failed:", error);
+    hooks.showMessage?.("todosMessage", "Failed to unarchive project", "error");
+  }
+}
+
 export {
   projectStorageKey,
   loadCustomProjects,
@@ -1150,4 +1385,7 @@ export {
   renderProjectOptions,
   updateCategoryFilter,
   getSelectedProjectKey,
+  getProjectEditDrawerMetaElements,
+  archiveProject,
+  unarchiveProject,
 };

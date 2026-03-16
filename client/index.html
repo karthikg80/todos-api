@@ -2001,10 +2001,100 @@
                         class="project-edit-drawer__meta"
                       ></p>
                     </div>
+                    <div class="todo-drawer__section">
+                      <div class="todo-drawer__section-title">Details</div>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditDescriptionInput"
+                      >
+                        <span>Description</span>
+                        <textarea
+                          id="projectEditDescriptionInput"
+                          rows="2"
+                          maxlength="1000"
+                          placeholder="Optional project description"
+                        ></textarea>
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditStatusSelect"
+                      >
+                        <span>Status</span>
+                        <select id="projectEditStatusSelect">
+                          <option value="active">Active</option>
+                          <option value="on_hold">On Hold</option>
+                          <option value="completed">Completed</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditPrioritySelect"
+                      >
+                        <span>Priority</span>
+                        <select id="projectEditPrioritySelect">
+                          <option value="">—</option>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditAreaInput"
+                      >
+                        <span>Area</span>
+                        <input
+                          id="projectEditAreaInput"
+                          type="text"
+                          maxlength="100"
+                          placeholder="e.g. Work, Personal"
+                        />
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditGoalInput"
+                      >
+                        <span>Goal</span>
+                        <textarea
+                          id="projectEditGoalInput"
+                          rows="2"
+                          maxlength="2000"
+                          placeholder="What does success look like?"
+                        ></textarea>
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditTargetDateInput"
+                      >
+                        <span>Target Date</span>
+                        <input id="projectEditTargetDateInput" type="date" />
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditReviewCadenceSelect"
+                      >
+                        <span>Review Cadence</span>
+                        <select id="projectEditReviewCadenceSelect">
+                          <option value="">—</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="biweekly">Biweekly</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                        </select>
+                      </label>
+                    </div>
                     <div
                       class="todo-drawer__section todo-drawer__section--danger"
                     >
                       <div class="todo-drawer__section-title">Danger zone</div>
+                      <button
+                        id="projectEditArchiveButton"
+                        class="mini-btn project-edit-drawer__archive-btn"
+                        type="button"
+                      >
+                        Archive Project
+                      </button>
                       <button
                         id="projectEditDeleteButton"
                         class="delete-btn project-edit-drawer__delete-btn"

@@ -165,7 +165,9 @@ function normalizeWorkspaceView(view) {
 }
 
 function isTodoUnsorted(todo) {
-  return !todo.category || String(todo.category).trim() === "";
+  const hasCategory = !!(todo.category && String(todo.category).trim());
+  const hasProjectId = !!(todo.projectId && String(todo.projectId).trim());
+  return !hasCategory && !hasProjectId;
 }
 
 function isSameLocalDay(a, b) {
@@ -284,7 +286,19 @@ function filterTodosList(todosList, { searchQuery = "" } = {}) {
 
   const categoryFilter = getSelectedProjectKey();
   if (categoryFilter) {
+    const filterProjectRecord = hooks.getProjectRecordByName?.(categoryFilter);
+    const filterProjectId = filterProjectRecord?.id
+      ? String(filterProjectRecord.id)
+      : null;
     filtered = filtered.filter((todo) => {
+      // Check by canonical projectId first
+      if (
+        filterProjectId &&
+        todo.projectId &&
+        String(todo.projectId) === filterProjectId
+      ) {
+        return true;
+      }
       const todoProject = hooks.normalizeProjectPath(todo.category);
       if (!todoProject) return false;
       return (
@@ -309,6 +323,11 @@ function filterTodosList(todosList, { searchQuery = "" } = {}) {
   }
 
   filtered = filtered.filter((todo) => matchesDateView(todo));
+
+  // Exclude archived todos by default (unless viewing completed)
+  if (state.currentDateView !== "completed") {
+    filtered = filtered.filter((todo) => !todo.archived);
+  }
 
   if (hasHomeListDrilldown()) {
     const drilldownIds = new Set(
