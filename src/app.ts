@@ -140,8 +140,6 @@ export function createApp(
         credentials: true,
       }),
     );
-  } else {
-    app.use(cors());
   }
 
   app.use(express.json({ limit: config.requestBodyLimit }));
