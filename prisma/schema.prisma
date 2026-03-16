@@ -119,6 +119,7 @@ model User {
   mcpRefreshTokens  McpRefreshToken[]
   agentIdempotencyRecords AgentIdempotencyRecord[]
   agentActionAudits AgentActionAudit[]
+  agentEnrollment   AgentEnrollment?
   aiSuggestions     AiSuggestion[]
   captureItems      CaptureItem[]
   areas             Area[]
@@ -466,6 +467,27 @@ model Goal {
 
   @@map("goals")
   @@index([userId])
+}
+
+model AgentEnrollment {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @unique @map("user_id")
+  refreshToken   String    @db.VarChar(128) @map("refresh_token")
+  dailyEnabled   Boolean   @default(true) @map("daily_enabled")
+  weeklyEnabled  Boolean   @default(true) @map("weekly_enabled")
+  timezone       String    @default("America/New_York") @db.VarChar(50)
+  active         Boolean   @default(true)
+  enrolledAt     DateTime  @default(now()) @map("enrolled_at")
+  lastRunAt      DateTime? @map("last_run_at")
+  lastRunStatus  String?   @db.VarChar(20) @map("last_run_status")
+  lastRunError   String?   @db.VarChar(500) @map("last_run_error")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("agent_enrollments")
+  @@index([active])
 }
 
 model UserPlanningPreferences {
