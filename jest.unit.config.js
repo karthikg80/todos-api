@@ -18,5 +18,6 @@ module.exports = {
     "**/src/mcpPublicRouter.test.ts",
     "**/src/mcpOAuthService.test.ts",
     "**/src/agentIdempotencyService.test.ts",
+    "**/src/ai/recommendationSchema.test.ts",
   ],
 };

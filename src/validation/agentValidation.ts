@@ -118,8 +118,8 @@ const LIST_TASK_KEYS = [
   "limit",
   "search",
 ];
-const CREATE_TASK_KEYS = TASK_FIELD_KEYS;
-const UPDATE_TASK_KEYS = ["id", ...TASK_FIELD_KEYS, "order"];
+const CREATE_TASK_KEYS = [...TASK_FIELD_KEYS, "dryRun"];
+const UPDATE_TASK_KEYS = ["id", ...TASK_FIELD_KEYS, "order", "dryRun"];
 const COMPLETE_TASK_KEYS = ["id", "completed"];
 const ARCHIVE_TASK_KEYS = ["id", "archived"];
 const DELETE_TASK_KEYS = ["id", "hardDelete"];
@@ -637,21 +637,34 @@ export function validateAgentGetTaskInput(data: unknown): { id: string } {
   return { id: parseId(body) };
 }
 
-export function validateAgentCreateTaskInput(data: unknown): CreateTodoDto {
+export function validateAgentCreateTaskInput(data: unknown): CreateTodoDto & {
+  dryRun?: boolean;
+} {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, CREATE_TASK_KEYS, "Agent action input");
-  return validateCreateTodo(body);
+  const dryRun = parseOptionalBoolean(body.dryRun, "dryRun");
+  const { dryRun: _dryRun, ...rest } = body;
+  return {
+    ...validateCreateTodo(rest),
+    ...(dryRun !== undefined ? { dryRun } : {}),
+  };
 }
 
 export function validateAgentUpdateTaskInput(data: unknown): {
   id: string;
   changes: UpdateTodoDto;
+  dryRun?: boolean;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, UPDATE_TASK_KEYS, "Agent action input");
   const id = parseId(body);
-  const { id: _id, ...changes } = body;
-  return { id, changes: validateUpdateTodo(changes) };
+  const dryRun = parseOptionalBoolean(body.dryRun, "dryRun");
+  const { id: _id, dryRun: _dryRun, ...changes } = body;
+  return {
+    id,
+    changes: validateUpdateTodo(changes),
+    ...(dryRun !== undefined ? { dryRun } : {}),
+  };
 }
 
 export function validateAgentCompleteTaskInput(data: unknown): {

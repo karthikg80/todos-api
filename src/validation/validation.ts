@@ -1007,6 +1007,52 @@ export function validateCreateTodo(data: unknown): CreateTodoDto {
     normalizedCompleted = true;
   }
 
+  const effortScore = normalizeOptionalInteger(
+    body.effortScore,
+    "effortScore",
+    true,
+  );
+  if (effortScore !== undefined && effortScore !== null) {
+    if (effortScore < 1 || effortScore > 5) {
+      throw new ValidationError(
+        "effortScore must be an integer between 1 and 5",
+      );
+    }
+  }
+  const confidenceScore = normalizeOptionalInteger(
+    body.confidenceScore,
+    "confidenceScore",
+    true,
+  );
+  if (confidenceScore !== undefined && confidenceScore !== null) {
+    if (confidenceScore < 1 || confidenceScore > 5) {
+      throw new ValidationError(
+        "confidenceScore must be an integer between 1 and 5",
+      );
+    }
+  }
+
+  const areaId =
+    body.areaId === undefined || body.areaId === null
+      ? body.areaId === null
+        ? null
+        : undefined
+      : typeof body.areaId === "string"
+        ? (validateId(body.areaId), body.areaId.trim())
+        : (() => {
+            throw new ValidationError("areaId must be a string");
+          })();
+  const goalId =
+    body.goalId === undefined || body.goalId === null
+      ? body.goalId === null
+        ? null
+        : undefined
+      : typeof body.goalId === "string"
+        ? (validateId(body.goalId), body.goalId.trim())
+        : (() => {
+            throw new ValidationError("goalId must be a string");
+          })();
+
   return {
     title: body.title.trim(),
     description: normalizeNullableString(body.description, "Description", 1000),
@@ -1043,6 +1089,17 @@ export function validateCreateTodo(data: unknown): CreateTodoDto {
             })(),
     recurrence: normalizeRecurrenceInput(body.recurrence, true) ?? undefined,
     source: normalizeTaskSourceValue(body.source, "source", true),
+    doDate: normalizeDateValue(body.doDate, "doDate", true),
+    blockedReason: normalizeNullableString(
+      body.blockedReason,
+      "blockedReason",
+      500,
+    ),
+    effortScore,
+    confidenceScore,
+    sourceText: normalizeNullableString(body.sourceText, "sourceText", 100000),
+    areaId,
+    goalId,
     createdByPrompt: normalizeNullableString(
       body.createdByPrompt,
       "createdByPrompt",
@@ -1213,6 +1270,82 @@ export function validateUpdateTodo(data: unknown): UpdateTodoDto {
 
   if (body.source !== undefined) {
     update.source = normalizeTaskSourceValue(body.source, "source", true);
+  }
+
+  if (body.doDate !== undefined) {
+    update.doDate = normalizeDateValue(body.doDate, "doDate", true);
+  }
+
+  if (body.blockedReason !== undefined) {
+    update.blockedReason = normalizeNullableString(
+      body.blockedReason,
+      "blockedReason",
+      500,
+    );
+  }
+
+  if (body.effortScore !== undefined) {
+    const effortScore = normalizeOptionalInteger(
+      body.effortScore,
+      "effortScore",
+      true,
+    );
+    if (effortScore !== undefined && effortScore !== null) {
+      if (effortScore < 1 || effortScore > 5) {
+        throw new ValidationError(
+          "effortScore must be an integer between 1 and 5",
+        );
+      }
+    }
+    update.effortScore = effortScore;
+  }
+
+  if (body.confidenceScore !== undefined) {
+    const confidenceScore = normalizeOptionalInteger(
+      body.confidenceScore,
+      "confidenceScore",
+      true,
+    );
+    if (confidenceScore !== undefined && confidenceScore !== null) {
+      if (confidenceScore < 1 || confidenceScore > 5) {
+        throw new ValidationError(
+          "confidenceScore must be an integer between 1 and 5",
+        );
+      }
+    }
+    update.confidenceScore = confidenceScore;
+  }
+
+  if (body.sourceText !== undefined) {
+    update.sourceText = normalizeNullableString(
+      body.sourceText,
+      "sourceText",
+      100000,
+    );
+  }
+
+  if (body.areaId !== undefined) {
+    if (body.areaId === null) {
+      update.areaId = null;
+    } else {
+      if (typeof body.areaId !== "string") {
+        throw new ValidationError("areaId must be a string");
+      }
+      validateId(body.areaId);
+      update.areaId = body.areaId.trim();
+    }
+  }
+
+  if (body.goalId !== undefined) {
+    if (body.goalId === null) {
+      update.goalId = null;
+    } else {
+      if (typeof body.goalId !== "string") {
+        throw new ValidationError("goalId must be a string");
+      }
+      validateId(body.goalId);
+      update.goalId = body.goalId.trim();
+    }
   }
 
   if (body.createdByPrompt !== undefined) {

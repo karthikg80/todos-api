@@ -28,6 +28,9 @@ import { AgentExecutor } from "./agent/agentExecutor";
 import { McpOAuthService } from "./services/mcpOAuthService";
 import { McpClientService } from "./services/mcpClientService";
 import { createMcpPublicRouter } from "./routes/mcpPublicRouter";
+import { CaptureService } from "./services/captureService";
+import { createCaptureRouter } from "./routes/captureRouter";
+import { createPreferencesRouter } from "./routes/preferencesRouter";
 import {
   authLimiter,
   emailActionLimiter,
@@ -58,6 +61,9 @@ export function createApp(
   });
   const mcpOAuthService = new McpOAuthService(persistencePrisma);
   const mcpClientService = new McpClientService();
+  const captureService = persistencePrisma
+    ? new CaptureService(persistencePrisma)
+    : null;
 
   const resolveTodoUserId = (req: Request, res: Response): string | null => {
     if (authService) {
@@ -180,6 +186,8 @@ export function createApp(
   app.use("/projects", apiLimiter);
   app.use("/agent", apiLimiter);
   app.use("/mcp", apiLimiter);
+  app.use("/capture", apiLimiter);
+  app.use("/preferences", apiLimiter);
   app.use("/oauth", mcpPublicLimiter);
   app.use("/.well-known", mcpPublicLimiter);
 
@@ -207,6 +215,8 @@ export function createApp(
     app.use("/users", authMiddleware(authService));
     app.use("/ai", authMiddleware(authService));
     app.use("/projects", authMiddleware(authService));
+    app.use("/capture", authMiddleware(authService));
+    app.use("/preferences", authMiddleware(authService));
     app.use(
       "/admin",
       authMiddleware(authService),
@@ -261,6 +271,14 @@ export function createApp(
       mcpOAuthService,
     }),
   );
+
+  if (captureService) {
+    app.use("/capture", createCaptureRouter(captureService));
+  }
+
+  if (persistencePrisma) {
+    app.use("/preferences", createPreferencesRouter(persistencePrisma));
+  }
 
   app.use(errorHandler);
 
