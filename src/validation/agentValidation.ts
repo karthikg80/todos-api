@@ -1100,3 +1100,184 @@ export function validateAgentAnalyzeWorkGraphInput(data: unknown): {
     projectId: parseRequiredId(body, "projectId"),
   };
 }
+
+// ─── Anti-entropy ────────────────────────────────────────────────────────────
+
+const ANALYZE_TASK_QUALITY_KEYS = ["taskIds", "projectId"];
+const FIND_DUPLICATE_TASKS_KEYS = ["projectId", "scope"];
+const FIND_STALE_ITEMS_KEYS = ["staleDays"];
+const TAXONOMY_CLEANUP_KEYS: string[] = [];
+
+export function validateAgentAnalyzeTaskQualityInput(data: unknown): {
+  taskIds?: string[];
+  projectId?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, ANALYZE_TASK_QUALITY_KEYS, "Agent action input");
+  if (body.taskIds !== undefined) {
+    if (!Array.isArray(body.taskIds)) {
+      throw new ValidationError("taskIds must be an array of strings");
+    }
+    for (const id of body.taskIds) {
+      if (typeof id !== "string") {
+        throw new ValidationError("taskIds must be an array of strings");
+      }
+    }
+  }
+  return {
+    taskIds: body.taskIds as string[] | undefined,
+    projectId: body.projectId ? parseRequiredId(body, "projectId") : undefined,
+  };
+}
+
+export function validateAgentFindDuplicateTasksInput(data: unknown): {
+  projectId?: string;
+  scope?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, FIND_DUPLICATE_TASKS_KEYS, "Agent action input");
+  return {
+    projectId: body.projectId ? parseRequiredId(body, "projectId") : undefined,
+    scope: parseOptionalString(body.scope, "scope", 20),
+  };
+}
+
+export function validateAgentFindStaleItemsInput(data: unknown): {
+  staleDays: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, FIND_STALE_ITEMS_KEYS, "Agent action input");
+  return {
+    staleDays: parseOptionalPositiveInt(body.staleDays, "staleDays", 365) ?? 30,
+  };
+}
+
+export function validateAgentTaxonomyCleanupInput(data: unknown): void {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, TAXONOMY_CLEANUP_KEYS, "Agent action input");
+}
+
+// ─── Planning ─────────────────────────────────────────────────────────────────
+
+const PLAN_TODAY_KEYS = ["availableMinutes", "energy", "date"];
+const BREAK_DOWN_TASK_KEYS = ["taskId", "maxSubtasks"];
+const SUGGEST_NEXT_ACTIONS_KEYS = ["projectId", "limit"];
+const WEEKLY_REVIEW_SUMMARY_KEYS = ["weekStart"];
+
+export function validateAgentPlanTodayInput(data: unknown): {
+  availableMinutes?: number;
+  energy?: Energy;
+  date?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, PLAN_TODAY_KEYS, "Agent action input");
+  return {
+    availableMinutes:
+      parseOptionalPositiveInt(
+        body.availableMinutes,
+        "availableMinutes",
+        1440,
+      ) ?? undefined,
+    energy: parseOptionalEnergy(body.energy) ?? undefined,
+    date: parseOptionalString(body.date, "date", 10),
+  };
+}
+
+export function validateAgentBreakDownTaskInput(data: unknown): {
+  taskId: string;
+  maxSubtasks?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, BREAK_DOWN_TASK_KEYS, "Agent action input");
+  return {
+    taskId: parseRequiredId(body, "taskId"),
+    maxSubtasks:
+      parseOptionalPositiveInt(body.maxSubtasks, "maxSubtasks", 10) ??
+      undefined,
+  };
+}
+
+export function validateAgentSuggestNextActionsInput(data: unknown): {
+  projectId: string;
+  limit?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, SUGGEST_NEXT_ACTIONS_KEYS, "Agent action input");
+  return {
+    projectId: parseRequiredId(body, "projectId"),
+    limit: parseOptionalPositiveInt(body.limit, "limit", 50) ?? undefined,
+  };
+}
+
+export function validateAgentWeeklyReviewSummaryInput(data: unknown): {
+  weekStart?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, WEEKLY_REVIEW_SUMMARY_KEYS, "Agent action input");
+  return {
+    weekStart: parseOptionalString(body.weekStart, "weekStart", 10),
+  };
+}
+
+// ─── Triage / audit / availability ───────────────────────────────────────────
+
+const TRIAGE_CAPTURE_ITEM_KEYS = ["captureItemId", "mode"];
+const TRIAGE_INBOX_KEYS = ["limit", "mode"];
+const LIST_AUDIT_LOG_KEYS = ["limit", "since", "action"];
+const GET_AVAILABILITY_WINDOWS_KEYS = ["date"];
+
+export function validateAgentTriageCaptureItemInput(data: unknown): {
+  captureItemId: string;
+  mode?: "suggest" | "apply";
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, TRIAGE_CAPTURE_ITEM_KEYS, "Agent action input");
+  const modeVal = parseOptionalString(body.mode, "mode", 10);
+  if (modeVal !== undefined && modeVal !== "suggest" && modeVal !== "apply") {
+    throw new ValidationError('mode must be "suggest" or "apply"');
+  }
+  return {
+    captureItemId: parseRequiredId(body, "captureItemId"),
+    mode: modeVal as "suggest" | "apply" | undefined,
+  };
+}
+
+export function validateAgentTriageInboxInput(data: unknown): {
+  limit?: number;
+  mode?: "suggest" | "apply";
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, TRIAGE_INBOX_KEYS, "Agent action input");
+  const modeVal = parseOptionalString(body.mode, "mode", 10);
+  if (modeVal !== undefined && modeVal !== "suggest" && modeVal !== "apply") {
+    throw new ValidationError('mode must be "suggest" or "apply"');
+  }
+  return {
+    limit: parseOptionalPositiveInt(body.limit, "limit", 100) ?? undefined,
+    mode: modeVal as "suggest" | "apply" | undefined,
+  };
+}
+
+export function validateAgentListAuditLogInput(data: unknown): {
+  limit?: number;
+  since?: string;
+  actionFilter?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_AUDIT_LOG_KEYS, "Agent action input");
+  return {
+    limit: parseOptionalPositiveInt(body.limit, "limit", 200) ?? undefined,
+    since: parseOptionalString(body.since, "since", 30),
+    actionFilter: parseOptionalString(body.action, "action", 60),
+  };
+}
+
+export function validateAgentGetAvailabilityWindowsInput(data: unknown): {
+  date?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, GET_AVAILABILITY_WINDOWS_KEYS, "Agent action input");
+  return {
+    date: parseOptionalString(body.date, "date", 10),
+  };
+}
