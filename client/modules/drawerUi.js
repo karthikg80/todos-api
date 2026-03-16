@@ -766,7 +766,14 @@ export function onDrawerProjectChange(event) {
   const normalizeProjectPath = hooks.normalizeProjectPath || ((v) => v);
   const project = normalizeProjectPath(String(event?.target?.value || ""));
   updateDrawerDraftField("project", project || "");
-  saveDrawerPatch({ category: project || null });
+  const patch = { category: project || null, projectId: null };
+  if (project) {
+    const projectRecord = hooks.getProjectRecordByName?.(project);
+    if (projectRecord?.id) {
+      patch.projectId = projectRecord.id;
+    }
+  }
+  saveDrawerPatch(patch);
 }
 
 export function onDrawerPriorityChange(event) {
@@ -905,7 +912,14 @@ export function onDrawerCategoryBlur() {
   );
   updateDrawerDraftField("project", normalized || "");
   updateDrawerDraftField("categoryDetail", normalized || "");
-  saveDrawerPatch({ category: normalized || null });
+  const patch = { category: normalized || null, projectId: null };
+  if (normalized) {
+    const projectRecord = hooks.getProjectRecordByName?.(normalized);
+    if (projectRecord?.id) {
+      patch.projectId = projectRecord.id;
+    }
+  }
+  saveDrawerPatch(patch);
 }
 
 // ---------------------------------------------------------------------------

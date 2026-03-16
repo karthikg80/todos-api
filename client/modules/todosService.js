@@ -102,6 +102,10 @@ function buildVisibleTodosQueryParams() {
     params.dueDateBefore = monthAfterNextStart.toISOString();
   } else if (state.currentDateView === "someday") {
     params.dueDateIsNull = true;
+  } else if (state.currentDateView === "waiting") {
+    params.status = "waiting";
+  } else if (state.currentDateView === "scheduled") {
+    params.scheduledDateIsNotNull = true;
   }
 
   return params;
