@@ -2,6 +2,7 @@ const base = require("./jest.config");
 
 module.exports = {
   ...base,
+  roots: ["<rootDir>/src", "<rootDir>/tests/eval"],
   testMatch: [
     "**/src/app.test.ts",
     "**/src/authValidation.test.ts",
@@ -19,5 +20,6 @@ module.exports = {
     "**/src/mcpOAuthService.test.ts",
     "**/src/agentIdempotencyService.test.ts",
     "**/src/ai/recommendationSchema.test.ts",
+    "**/tests/eval/recommendation-quality.test.ts",
   ],
 };

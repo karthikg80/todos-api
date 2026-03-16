@@ -106,6 +106,21 @@ function minimumRequiredScopesForAction(
     case "delete_project":
     case "archive_project":
       return [PROJECT_WRITE_SCOPE];
+    case "analyze_task_quality":
+    case "find_duplicate_tasks":
+    case "find_stale_items":
+    case "taxonomy_cleanup_suggestions":
+    case "weekly_review_summary":
+    case "list_audit_log":
+    case "get_availability_windows":
+      return [TASK_READ_SCOPE];
+    case "plan_today":
+    case "break_down_task":
+    case "suggest_next_actions":
+      return [TASK_READ_SCOPE, PROJECT_READ_SCOPE];
+    case "triage_capture_item":
+    case "triage_inbox":
+      return [TASK_WRITE_SCOPE];
   }
 }
 

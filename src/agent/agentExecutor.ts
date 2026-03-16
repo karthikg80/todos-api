@@ -7,6 +7,8 @@ import { AgentAuditService } from "../services/agentAuditService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
+import { analyzeTaskQuality } from "../ai/taskQualityAnalyzer";
+import { findDuplicates } from "../ai/duplicateDetector";
 import {
   validateAgentAddSubtaskInput,
   validateAgentAnalyzeProjectHealthInput,
@@ -40,6 +42,18 @@ import {
   validateAgentUpdateProjectInput,
   validateAgentUpdateTaskInput,
   validateAgentWeeklyReviewInput,
+  validateAgentAnalyzeTaskQualityInput,
+  validateAgentFindDuplicateTasksInput,
+  validateAgentFindStaleItemsInput,
+  validateAgentTaxonomyCleanupInput,
+  validateAgentPlanTodayInput,
+  validateAgentBreakDownTaskInput,
+  validateAgentSuggestNextActionsInput,
+  validateAgentWeeklyReviewSummaryInput,
+  validateAgentTriageCaptureItemInput,
+  validateAgentTriageInboxInput,
+  validateAgentListAuditLogInput,
+  validateAgentGetAvailabilityWindowsInput,
 } from "../validation/agentValidation";
 
 export type AgentActionName =
@@ -74,7 +88,19 @@ export type AgentActionName =
   | "weekly_review"
   | "decide_next_work"
   | "analyze_project_health"
-  | "analyze_work_graph";
+  | "analyze_work_graph"
+  | "analyze_task_quality"
+  | "find_duplicate_tasks"
+  | "find_stale_items"
+  | "taxonomy_cleanup_suggestions"
+  | "plan_today"
+  | "break_down_task"
+  | "suggest_next_actions"
+  | "weekly_review_summary"
+  | "triage_capture_item"
+  | "triage_inbox"
+  | "list_audit_log"
+  | "get_availability_windows";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -147,6 +173,16 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "decide_next_work",
   "analyze_project_health",
   "analyze_work_graph",
+  "analyze_task_quality",
+  "find_duplicate_tasks",
+  "find_stale_items",
+  "taxonomy_cleanup_suggestions",
+  "plan_today",
+  "break_down_task",
+  "suggest_next_actions",
+  "weekly_review_summary",
+  "list_audit_log",
+  "get_availability_windows",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -352,6 +388,56 @@ function toAgentError(error: unknown): {
       retryable: true,
       hint: "Retry the action. If the error persists, inspect server logs for the request ID.",
     },
+  };
+}
+
+const ACTION_VERB_RE =
+  /^(buy|call|send|write|read|review|schedule|book|fix|update|check|draft|prepare|submit|complete|finish|create|build|test|deploy|refactor|add|remove|delete|merge|close|open|contact|email|research|investigate|plan|organize|clean|sort|discuss|confirm|follow|set|get|make|find|move|copy|install|configure|document|upload|download|publish|cancel|archive|approve|reject|invite|register|verify|report|analyze|design|implement|request|order|pay|sign|file|print|record|backup|restore|monitor|notify|present|remind|track|coordinate|attend|join)\b/i;
+
+function triageCaptureText(text: string): {
+  kind: "create_task" | "discard" | "convert_to_note";
+  confidence: number;
+  why: string;
+  proposedAction: { title: string; status: string } | null;
+} {
+  const trimmed = text.trim();
+  // URL / reference — check before word count
+  if (/^https?:\/\//.test(trimmed)) {
+    return {
+      kind: "convert_to_note",
+      confidence: 0.8,
+      why: "Looks like a URL reference, better stored as a note",
+      proposedAction: {
+        title: `Review: ${trimmed.slice(0, 60)}`,
+        status: "inbox",
+      },
+    };
+  }
+  // Very short, no verb → discard candidate
+  const wordCount = trimmed.split(/\s+/).length;
+  if (wordCount < 3 && !ACTION_VERB_RE.test(trimmed)) {
+    return {
+      kind: "discard",
+      confidence: 0.6,
+      why: "Very short text with no action verb — likely noise or incomplete thought",
+      proposedAction: null,
+    };
+  }
+  // Starts with action verb → create task
+  if (ACTION_VERB_RE.test(trimmed)) {
+    return {
+      kind: "create_task",
+      confidence: 0.85,
+      why: "Starts with a clear action verb — actionable task",
+      proposedAction: { title: trimmed, status: "inbox" },
+    };
+  }
+  // Ambiguous — suggest as task but lower confidence
+  return {
+    kind: "create_task",
+    confidence: 0.5,
+    why: "No clear action verb but text may be actionable — review before adding",
+    proposedAction: { title: trimmed, status: "inbox" },
   };
 }
 
@@ -1015,6 +1101,628 @@ export class AgentExecutor {
             );
           }
           return this.success(action, readOnly, context, 200, { graph });
+        }
+        case "analyze_task_quality": {
+          const { taskIds, projectId } =
+            validateAgentAnalyzeTaskQualityInput(input);
+          const tasks = await this.agentService.listTasks(context.userId, {
+            ...(projectId ? { projectId } : {}),
+            archived: false,
+            limit: 200,
+          });
+          const filtered = taskIds
+            ? tasks.filter((t) => taskIds.includes(t.id))
+            : tasks;
+          const results = filtered.map((t) =>
+            analyzeTaskQuality(t.id, t.title),
+          );
+          return this.success(action, readOnly, context, 200, {
+            results,
+            totalAnalyzed: filtered.length,
+          });
+        }
+        case "find_duplicate_tasks": {
+          const { projectId } = validateAgentFindDuplicateTasksInput(input);
+          const tasks = await this.agentService.listTasks(context.userId, {
+            ...(projectId ? { projectId } : {}),
+            archived: false,
+            limit: 500,
+          });
+          const groups = findDuplicates(
+            tasks.map((t) => ({
+              id: t.id,
+              title: t.title,
+              status: t.status ?? "inbox",
+              projectId: t.projectId ?? null,
+            })),
+          );
+          return this.success(action, readOnly, context, 200, {
+            groups,
+            totalTasks: tasks.length,
+          });
+        }
+        case "find_stale_items": {
+          const { staleDays } = validateAgentFindStaleItemsInput(input);
+          const threshold = new Date(
+            Date.now() - staleDays * 24 * 60 * 60 * 1000,
+          );
+          const staleTasks = await this.agentService.listTasks(context.userId, {
+            statuses: ["inbox", "next", "someday"],
+            updatedBefore: threshold,
+            archived: false,
+            limit: 200,
+          });
+          const staleTaskDtos = staleTasks.map((t) => ({
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            lastUpdated: t.updatedAt,
+            projectId: t.projectId ?? null,
+          }));
+          let staleProjects: Array<{
+            id: string;
+            name: string;
+            lastUpdated: Date;
+          }> = [];
+          if (this.deps.projectService) {
+            const allProjects = await this.deps.projectService.findAll(
+              context.userId,
+            );
+            staleProjects = allProjects
+              .filter(
+                (p) =>
+                  !p.archived &&
+                  p.status === "active" &&
+                  new Date(p.updatedAt) < threshold,
+              )
+              .map((p) => ({
+                id: p.id,
+                name: p.name,
+                lastUpdated: p.updatedAt,
+              }));
+          }
+          return this.success(action, readOnly, context, 200, {
+            staleTasks: staleTaskDtos,
+            staleProjects,
+            staleDays,
+            threshold: threshold.toISOString(),
+          });
+        }
+        case "taxonomy_cleanup_suggestions": {
+          validateAgentTaxonomyCleanupInput(input);
+          if (!this.deps.projectService) {
+            return this.success(action, readOnly, context, 200, {
+              similarProjects: [],
+              smallProjects: [],
+            });
+          }
+          const allProjects = await this.deps.projectService.findAll(
+            context.userId,
+          );
+          const activeProjects = allProjects.filter((p) => !p.archived);
+          // Find projects with 0–1 open tasks
+          const smallProjects = activeProjects
+            .filter((p) => (p.openTaskCount ?? p.openTodoCount ?? 0) <= 1)
+            .map((p) => ({
+              id: p.id,
+              name: p.name,
+              taskCount: p.openTaskCount ?? p.openTodoCount ?? 0,
+            }));
+          // Find pairs with similar names via Levenshtein
+          const similarProjects: Array<{
+            projectAId: string;
+            projectAName: string;
+            projectBId: string;
+            projectBName: string;
+            editDistance: number;
+          }> = [];
+          for (let i = 0; i < activeProjects.length; i++) {
+            for (let j = i + 1; j < activeProjects.length; j++) {
+              const a = activeProjects[i].name.toLowerCase();
+              const b = activeProjects[j].name.toLowerCase();
+              if (Math.abs(a.length - b.length) > 5) continue;
+              const m = a.length,
+                n = b.length;
+              const dp = Array.from({ length: m + 1 }, (_, r) =>
+                Array.from({ length: n + 1 }, (_, c) =>
+                  r === 0 ? c : c === 0 ? r : 0,
+                ),
+              );
+              for (let r = 1; r <= m; r++) {
+                for (let c = 1; c <= n; c++) {
+                  dp[r][c] =
+                    a[r - 1] === b[c - 1]
+                      ? dp[r - 1][c - 1]
+                      : 1 +
+                        Math.min(dp[r - 1][c], dp[r][c - 1], dp[r - 1][c - 1]);
+                }
+              }
+              const dist = dp[m][n];
+              if (dist <= 3 && Math.max(m, n) >= 4) {
+                similarProjects.push({
+                  projectAId: activeProjects[i].id,
+                  projectAName: activeProjects[i].name,
+                  projectBId: activeProjects[j].id,
+                  projectBName: activeProjects[j].name,
+                  editDistance: dist,
+                });
+              }
+            }
+          }
+          return this.success(action, readOnly, context, 200, {
+            similarProjects,
+            smallProjects,
+            totalProjects: activeProjects.length,
+          });
+        }
+        case "plan_today": {
+          const { availableMinutes, energy, date } =
+            validateAgentPlanTodayInput(input);
+          const today = date ?? new Date().toISOString().slice(0, 10);
+          const allTasks = await this.agentService.listTasks(context.userId, {
+            statuses: ["inbox", "next", "in_progress", "scheduled"],
+            archived: false,
+            limit: 200,
+          });
+          const PRIORITY_SCORE: Record<string, number> = {
+            urgent: 40,
+            high: 20,
+            medium: 10,
+            low: 0,
+          };
+          const scored = allTasks.map((t) => {
+            let score = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
+            if (t.doDate) {
+              const d =
+                t.doDate instanceof Date
+                  ? t.doDate.toISOString().slice(0, 10)
+                  : String(t.doDate).slice(0, 10);
+              if (d < today) score += 50;
+              else if (d === today) score += 30;
+            }
+            if (t.dueDate) {
+              const d =
+                t.dueDate instanceof Date
+                  ? t.dueDate.toISOString().slice(0, 10)
+                  : String(t.dueDate).slice(0, 10);
+              if (d < today) score += 40;
+              else if (d === today) score += 20;
+            }
+            const effort = t.effortScore ?? 30;
+            if (energy === "low" && effort > 60) score -= 20;
+            if (energy === "high" && effort < 15) score -= 5;
+            return { task: t, score, effort };
+          });
+          scored.sort((a, b) => b.score - a.score);
+          const selected: typeof scored = [];
+          let usedMinutes = 0;
+          const budget = availableMinutes ?? 480;
+          for (const item of scored) {
+            if (usedMinutes + item.effort <= budget) {
+              selected.push(item);
+              usedMinutes += item.effort;
+            }
+          }
+          return this.success(action, readOnly, context, 200, {
+            date: today,
+            availableMinutes: budget,
+            energy: energy ?? null,
+            selectedTasks: selected.map((s) => ({
+              ...s.task,
+              estimatedMinutes: s.effort,
+              score: s.score,
+            })),
+            totalMinutes: usedMinutes,
+            remainingMinutes: budget - usedMinutes,
+          });
+        }
+        case "break_down_task": {
+          const { taskId, maxSubtasks } =
+            validateAgentBreakDownTaskInput(input);
+          const task = await this.agentService.getTask(context.userId, taskId);
+          if (!task) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Task not found",
+              false,
+              "Verify the task ID belongs to the authenticated user.",
+            );
+          }
+          const title = task.title;
+          const lower = title.toLowerCase();
+          const limit = maxSubtasks ?? 5;
+          let suggestedSubtasks: Array<{ title: string; order: number }> = [];
+          let decompositionBasis = "generic";
+          if (/\bwrite\b/.test(lower)) {
+            suggestedSubtasks = [
+              { title: `Draft outline for: ${title}`, order: 1 },
+              { title: `Write first draft: ${title}`, order: 2 },
+              { title: `Review and edit: ${title}`, order: 3 },
+            ];
+            decompositionBasis = "write-workflow";
+          } else if (/\breview\b/.test(lower)) {
+            suggestedSubtasks = [
+              { title: `Read through: ${title}`, order: 1 },
+              { title: `Note issues in: ${title}`, order: 2 },
+              { title: `Write review summary: ${title}`, order: 3 },
+            ];
+            decompositionBasis = "review-workflow";
+          } else if (/\bsetup|configure|install\b/.test(lower)) {
+            suggestedSubtasks = [
+              { title: `Research options for: ${title}`, order: 1 },
+              { title: `Install and configure: ${title}`, order: 2 },
+              { title: `Test setup: ${title}`, order: 3 },
+              { title: `Document configuration: ${title}`, order: 4 },
+            ];
+            decompositionBasis = "setup-workflow";
+          } else if (/\bfix\b/.test(lower)) {
+            suggestedSubtasks = [
+              { title: `Reproduce issue: ${title}`, order: 1 },
+              { title: `Identify root cause: ${title}`, order: 2 },
+              { title: `Implement fix: ${title}`, order: 3 },
+              { title: `Add test for: ${title}`, order: 4 },
+            ];
+            decompositionBasis = "bugfix-workflow";
+          } else if (/ and /.test(lower) || title.includes(",")) {
+            const parts = title.split(/, | and /i).filter(Boolean);
+            suggestedSubtasks = parts
+              .slice(0, limit)
+              .map((p, i) => ({ title: p.trim(), order: i + 1 }));
+            decompositionBasis = "split-compound";
+          } else {
+            suggestedSubtasks = [
+              { title: `Plan: ${title}`, order: 1 },
+              { title: `Execute: ${title}`, order: 2 },
+              { title: `Review and complete: ${title}`, order: 3 },
+            ];
+            decompositionBasis = "generic";
+          }
+          return this.success(action, readOnly, context, 200, {
+            taskId,
+            taskTitle: title,
+            suggestedSubtasks: suggestedSubtasks.slice(0, limit),
+            decompositionBasis,
+          });
+        }
+        case "suggest_next_actions": {
+          const { projectId, limit } =
+            validateAgentSuggestNextActionsInput(input);
+          if (!this.deps.projectService) {
+            throw new AgentExecutionError(
+              501,
+              "PROJECTS_NOT_CONFIGURED",
+              "Projects not configured",
+              false,
+              "Configure the project service before calling project actions.",
+            );
+          }
+          const project = await this.deps.projectService.findById(
+            context.userId,
+            projectId,
+          );
+          if (!project) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Project not found",
+              false,
+              "Verify the project ID belongs to the authenticated user.",
+            );
+          }
+          const tasks = await this.agentService.listTasks(context.userId, {
+            projectId,
+            statuses: ["in_progress", "next", "inbox"],
+            archived: false,
+            limit: 100,
+          });
+          const STATUS_ORDER: Record<string, number> = {
+            in_progress: 0,
+            next: 1,
+            inbox: 2,
+          };
+          const PRIORITY_ORDER: Record<string, number> = {
+            urgent: 0,
+            high: 1,
+            medium: 2,
+            low: 3,
+          };
+          tasks.sort((a, b) => {
+            const sA = STATUS_ORDER[a.status ?? "inbox"] ?? 2;
+            const sB = STATUS_ORDER[b.status ?? "inbox"] ?? 2;
+            if (sA !== sB) return sA - sB;
+            const pA = PRIORITY_ORDER[a.priority ?? "medium"] ?? 2;
+            const pB = PRIORITY_ORDER[b.priority ?? "medium"] ?? 2;
+            return pA - pB;
+          });
+          return this.success(action, readOnly, context, 200, {
+            projectId,
+            projectName: project.name,
+            suggestedActions: tasks.slice(0, limit ?? 5),
+            total: tasks.length,
+          });
+        }
+        case "weekly_review_summary": {
+          const { weekStart } = validateAgentWeeklyReviewSummaryInput(input);
+          const now = new Date();
+          let weekStartDate: Date;
+          if (weekStart) {
+            weekStartDate = new Date(weekStart);
+          } else {
+            // Start of current week (Monday)
+            weekStartDate = new Date(now);
+            const day = weekStartDate.getDay();
+            const diff = day === 0 ? -6 : 1 - day;
+            weekStartDate.setDate(weekStartDate.getDate() + diff);
+            weekStartDate.setHours(0, 0, 0, 0);
+          }
+          const weekEndDate = new Date(weekStartDate);
+          weekEndDate.setDate(weekEndDate.getDate() + 7);
+          const completedTasks = await this.agentService.listTasks(
+            context.userId,
+            {
+              statuses: ["done"],
+              updatedAfter: weekStartDate,
+              updatedBefore: weekEndDate,
+              limit: 200,
+            },
+          );
+          const createdTasks = await this.agentService.listTasks(
+            context.userId,
+            {
+              archived: false,
+              limit: 200,
+            },
+          );
+          const createdThisWeek = createdTasks.filter((t) => {
+            const created =
+              t.createdAt instanceof Date
+                ? t.createdAt
+                : new Date(t.createdAt as unknown as string);
+            return created >= weekStartDate && created < weekEndDate;
+          });
+          const staleCutoff = new Date(
+            now.getTime() - 14 * 24 * 60 * 60 * 1000,
+          );
+          const staleTasks = await this.agentService.listTasks(context.userId, {
+            statuses: ["inbox", "next"],
+            updatedBefore: staleCutoff,
+            archived: false,
+            limit: 200,
+          });
+          const waitingTasks = await this.agentService.listTasks(
+            context.userId,
+            {
+              statuses: ["waiting"],
+              archived: false,
+              limit: 200,
+            },
+          );
+          const inboxTasks = await this.agentService.listTasks(context.userId, {
+            statuses: ["inbox"],
+            archived: false,
+            limit: 200,
+          });
+          let projectsWithNoActive: Array<{ id: string; name: string }> = [];
+          if (this.deps.projectService) {
+            const allProjects = await this.deps.projectService.findAll(
+              context.userId,
+            );
+            projectsWithNoActive = allProjects
+              .filter(
+                (p) =>
+                  !p.archived &&
+                  p.status === "active" &&
+                  (p.openTaskCount ?? p.openTodoCount ?? 0) === 0,
+              )
+              .map((p) => ({ id: p.id, name: p.name }));
+          }
+          return this.success(action, readOnly, context, 200, {
+            weekStart: weekStartDate.toISOString(),
+            weekEnd: weekEndDate.toISOString(),
+            completed: completedTasks.length,
+            created: createdThisWeek.length,
+            stale: staleTasks.length,
+            waiting: waitingTasks.length,
+            inboxCount: inboxTasks.length,
+            projectsWithNoActive,
+          });
+        }
+        case "triage_capture_item": {
+          const { captureItemId, mode } =
+            validateAgentTriageCaptureItemInput(input);
+          if (!this.deps.persistencePrisma) {
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Persistence layer not available",
+              false,
+            );
+          }
+          const item = await this.deps.persistencePrisma.captureItem.findFirst({
+            where: { id: captureItemId, userId: context.userId },
+          });
+          if (!item) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Capture item not found",
+              false,
+              "Verify the capture item ID belongs to the authenticated user.",
+            );
+          }
+          const recommendation = triageCaptureText(item.text);
+          let applied = false;
+          if (mode === "apply") {
+            await this.deps.persistencePrisma.captureItem.updateMany({
+              where: { id: captureItemId, userId: context.userId },
+              data: {
+                lifecycle: "triaged",
+                triageResult:
+                  recommendation as unknown as import("@prisma/client").Prisma.JsonObject,
+              },
+            });
+            applied = true;
+          }
+          return this.success(action, readOnly, context, 200, {
+            captureItemId,
+            recommendation,
+            applied,
+          });
+        }
+        case "triage_inbox": {
+          const { limit, mode } = validateAgentTriageInboxInput(input);
+          if (!this.deps.persistencePrisma) {
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Persistence layer not available",
+              false,
+            );
+          }
+          const items = await this.deps.persistencePrisma.captureItem.findMany({
+            where: { userId: context.userId, lifecycle: "new" },
+            orderBy: { capturedAt: "asc" },
+            take: limit ?? 20,
+          });
+          const triaged = items.map((item) => ({
+            captureItemId: item.id,
+            recommendation: triageCaptureText(item.text),
+          }));
+          if (mode === "apply" && items.length > 0) {
+            for (const item of items) {
+              const rec = triaged.find((t) => t.captureItemId === item.id);
+              await this.deps.persistencePrisma.captureItem.updateMany({
+                where: { id: item.id, userId: context.userId },
+                data: {
+                  lifecycle: "triaged",
+                  triageResult:
+                    rec?.recommendation as unknown as import("@prisma/client").Prisma.JsonObject,
+                },
+              });
+            }
+          }
+          return this.success(
+            action,
+            readOnly,
+            context,
+            mode === "apply" ? 200 : 200,
+            {
+              triaged,
+              totalProcessed: items.length,
+              mode: mode ?? "suggest",
+            },
+          );
+        }
+        case "list_audit_log": {
+          const { limit, since, actionFilter } =
+            validateAgentListAuditLogInput(input);
+          if (!this.deps.persistencePrisma) {
+            return this.success(action, readOnly, context, 200, {
+              entries: [],
+              total: 0,
+            });
+          }
+          const where: import("@prisma/client").Prisma.AgentActionAuditWhereInput =
+            {
+              userId: context.userId,
+              ...(actionFilter ? { action: actionFilter } : {}),
+              ...(since ? { createdAt: { gte: new Date(since) } } : {}),
+            };
+          const entries =
+            await this.deps.persistencePrisma.agentActionAudit.findMany({
+              where,
+              orderBy: { createdAt: "desc" },
+              take: limit ?? 50,
+              select: {
+                id: true,
+                action: true,
+                outcome: true,
+                readOnly: true,
+                status: true,
+                createdAt: true,
+                surface: true,
+              },
+            });
+          const total =
+            await this.deps.persistencePrisma.agentActionAudit.count({ where });
+          return this.success(action, readOnly, context, 200, {
+            entries,
+            total,
+          });
+        }
+        case "get_availability_windows": {
+          const { date } = validateAgentGetAvailabilityWindowsInput(input);
+          const today = date ?? new Date().toISOString().slice(0, 10);
+          let windows: Array<{ start: string; end: string; minutes: number }> =
+            [
+              { start: "09:00", end: "12:00", minutes: 180 },
+              { start: "14:00", end: "17:00", minutes: 180 },
+            ];
+          if (this.deps.persistencePrisma) {
+            const prefs =
+              await this.deps.persistencePrisma.userPlanningPreferences.findUnique(
+                { where: { userId: context.userId } },
+              );
+            if (prefs) {
+              const startH =
+                (
+                  prefs as unknown as {
+                    workStartTime?: string | null;
+                  }
+                ).workStartTime ?? "09:00";
+              const endH =
+                (
+                  prefs as unknown as {
+                    workEndTime?: string | null;
+                  }
+                ).workEndTime ?? "17:00";
+              const [sh, sm] = startH.split(":").map(Number);
+              const [eh, em] = endH.split(":").map(Number);
+              const totalMin = eh * 60 + em - (sh * 60 + sm);
+              const midMin = Math.floor(totalMin / 2);
+              const midH = sh * 60 + sm + midMin;
+              const midHH = String(Math.floor(midH / 60)).padStart(2, "0");
+              const midMM = String(midH % 60).padStart(2, "0");
+              windows = [
+                {
+                  start: startH,
+                  end: `${midHH}:${midMM}`,
+                  minutes: midMin,
+                },
+                {
+                  start: `${midHH}:${midMM}`,
+                  end: endH,
+                  minutes: totalMin - midMin,
+                },
+              ];
+            }
+          }
+          const scheduledTasks = await this.agentService.listTasks(
+            context.userId,
+            {
+              archived: false,
+              limit: 100,
+            },
+          );
+          const tasksForDate = scheduledTasks.filter((t) => {
+            if (!t.doDate) return false;
+            const d =
+              t.doDate instanceof Date
+                ? t.doDate.toISOString().slice(0, 10)
+                : String(t.doDate).slice(0, 10);
+            return d === today;
+          });
+          const totalAvailableMinutes = windows.reduce(
+            (sum, w) => sum + w.minutes,
+            0,
+          );
+          return this.success(action, readOnly, context, 200, {
+            date: today,
+            windows,
+            scheduledTasks: tasksForDate,
+            totalAvailableMinutes,
+          });
         }
       }
     } catch (error) {

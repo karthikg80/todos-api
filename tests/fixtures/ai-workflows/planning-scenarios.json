@@ -1,0 +1,63 @@
+[
+  {
+    "description": "High energy, 4 hours — prefers urgent/high priority tasks",
+    "input": {
+      "availableMinutes": 240,
+      "energy": "high",
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "Fix critical login bug",
+          "priority": "urgent",
+          "effortScore": 60,
+          "status": "next"
+        },
+        {
+          "id": "t2",
+          "title": "Update documentation",
+          "priority": "low",
+          "effortScore": 30,
+          "status": "inbox"
+        },
+        {
+          "id": "t3",
+          "title": "Review PR",
+          "priority": "high",
+          "effortScore": 30,
+          "status": "next"
+        }
+      ]
+    },
+    "expected": {
+      "firstTaskId": "t1",
+      "selectedMinMaxCount": [2, 3]
+    }
+  },
+  {
+    "description": "Low energy, 1 hour — avoids high-effort tasks",
+    "input": {
+      "availableMinutes": 60,
+      "energy": "low",
+      "tasks": [
+        {
+          "id": "t1",
+          "title": "Refactor authentication module",
+          "priority": "high",
+          "effortScore": 120,
+          "status": "next"
+        },
+        {
+          "id": "t2",
+          "title": "Reply to emails",
+          "priority": "medium",
+          "effortScore": 15,
+          "status": "inbox"
+        }
+      ]
+    },
+    "expected": {
+      "selectedContainsId": "t2",
+      "selectedDoesNotContainId": "t1"
+    }
+  }
+]

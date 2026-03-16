@@ -200,5 +200,59 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "weekly_review"),
   );
 
+  // Anti-entropy
+  router.post(
+    "/read/analyze_task_quality",
+    createAgentActionHandler(agentExecutor, "analyze_task_quality"),
+  );
+  router.post(
+    "/read/find_duplicate_tasks",
+    createAgentActionHandler(agentExecutor, "find_duplicate_tasks"),
+  );
+  router.post(
+    "/read/find_stale_items",
+    createAgentActionHandler(agentExecutor, "find_stale_items"),
+  );
+  router.post(
+    "/read/taxonomy_cleanup_suggestions",
+    createAgentActionHandler(agentExecutor, "taxonomy_cleanup_suggestions"),
+  );
+
+  // Planning
+  router.post(
+    "/read/plan_today",
+    createAgentActionHandler(agentExecutor, "plan_today"),
+  );
+  router.post(
+    "/read/break_down_task",
+    createAgentActionHandler(agentExecutor, "break_down_task"),
+  );
+  router.post(
+    "/read/suggest_next_actions",
+    createAgentActionHandler(agentExecutor, "suggest_next_actions"),
+  );
+  router.post(
+    "/read/weekly_review_summary",
+    createAgentActionHandler(agentExecutor, "weekly_review_summary"),
+  );
+
+  // Triage / audit / availability
+  router.post(
+    "/write/triage_capture_item",
+    createAgentActionHandler(agentExecutor, "triage_capture_item"),
+  );
+  router.post(
+    "/write/triage_inbox",
+    createAgentActionHandler(agentExecutor, "triage_inbox"),
+  );
+  router.post(
+    "/read/list_audit_log",
+    createAgentActionHandler(agentExecutor, "list_audit_log"),
+  );
+  router.post(
+    "/read/get_availability_windows",
+    createAgentActionHandler(agentExecutor, "get_availability_windows"),
+  );
+
   return router;
 }
