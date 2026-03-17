@@ -14,7 +14,10 @@ export interface DailyEvaluationResult {
   recommendedCount: number;
   completedRecommended: number;
   completedNotRecommended: number;
+  acceptedRecommended: number;
+  ignoredRecommended: number;
   excludedCompletedWithin24h: number;
+  excludedCompletedWithin7d: number;
   plannedMinutes: number;
   completedMinutes: number;
   acceptanceRate: number;
@@ -51,7 +54,10 @@ export class EvaluationService {
       recommendedCount: 0,
       completedRecommended: 0,
       completedNotRecommended: 0,
+      acceptedRecommended: 0,
+      ignoredRecommended: 0,
       excludedCompletedWithin24h: 0,
+      excludedCompletedWithin7d: 0,
       plannedMinutes: 0,
       completedMinutes: 0,
       acceptanceRate: 0,
@@ -65,40 +71,51 @@ export class EvaluationService {
     const dayStart = new Date(`${date}T00:00:00Z`);
     const dayEnd = new Date(`${date}T23:59:59Z`);
     const next24h = new Date(dayStart.getTime() + 86400000);
+    const next7d = new Date(dayStart.getTime() + 7 * 86400000);
 
-    // Load recommendation and exclusion events for this date
-    const [recEvents, excEvents, budgetEvents, completedTasks, config] =
-      await Promise.all([
-        this.prisma.agentMetricEvent.findMany({
-          where: {
-            userId,
-            metricType: "planner.recommend_task",
-            periodKey: date,
-          },
-          select: { entityId: true, value: true, metadata: true },
-        }),
-        this.prisma.agentMetricEvent.findMany({
-          where: {
-            userId,
-            metricType: "planner.exclude_task",
-            periodKey: date,
-          },
-          select: { entityId: true, value: true },
-        }),
-        this.prisma.agentMetricEvent.findMany({
-          where: {
-            userId,
-            metricType: "planner.plan.budget_minutes",
-            periodKey: date,
-          },
-          select: { value: true },
-        }),
-        this.prisma.todo.findMany({
-          where: { userId, completedAt: { gte: dayStart, lte: dayEnd } },
-          select: { id: true, estimateMinutes: true },
-        }),
-        this.prisma.agentConfig.findFirst({ where: { userId } }),
-      ]);
+    // Load recommendation/exclusion events, feedback signals, and completions
+    const [
+      recEvents,
+      excEvents,
+      budgetEvents,
+      completedTasks,
+      config,
+      feedbackRows,
+    ] = await Promise.all([
+      this.prisma.agentMetricEvent.findMany({
+        where: {
+          userId,
+          metricType: "planner.recommend_task",
+          periodKey: date,
+        },
+        select: { entityId: true, value: true, metadata: true },
+      }),
+      this.prisma.agentMetricEvent.findMany({
+        where: {
+          userId,
+          metricType: "planner.exclude_task",
+          periodKey: date,
+        },
+        select: { entityId: true, value: true },
+      }),
+      this.prisma.agentMetricEvent.findMany({
+        where: {
+          userId,
+          metricType: "planner.plan.budget_minutes",
+          periodKey: date,
+        },
+        select: { value: true },
+      }),
+      this.prisma.todo.findMany({
+        where: { userId, completedAt: { gte: dayStart, lte: dayEnd } },
+        select: { id: true, estimateMinutes: true },
+      }),
+      this.prisma.agentConfig.findFirst({ where: { userId } }),
+      this.prisma.taskRecommendationFeedback.findMany({
+        where: { userId, planDate: date },
+        select: { taskId: true, signal: true },
+      }),
+    ]);
 
     const recommendedIds = new Set(
       recEvents.map((e) => e.entityId).filter(Boolean) as string[],
@@ -106,7 +123,6 @@ export class EvaluationService {
     const excludedIds = new Set(
       excEvents.map((e) => e.entityId).filter(Boolean) as string[],
     );
-    const completedIds = new Set(completedTasks.map((t) => t.id));
 
     const completedRecommended = completedTasks.filter((t) =>
       recommendedIds.has(t.id),
@@ -115,26 +131,55 @@ export class EvaluationService {
       (t) => !recommendedIds.has(t.id),
     ).length;
 
-    // Excluded tasks completed within 24h of the plan date
-    const excludedCompleted = await this.prisma.todo.findMany({
-      where: {
-        userId,
-        id: { in: [...excludedIds] },
-        completedAt: { gte: dayStart, lte: next24h },
-      },
-      select: { id: true },
-    });
-    const excludedCompletedWithin24h = excludedCompleted.length;
+    // Explicit feedback signals from recommendation_feedback table
+    const acceptedRecommended = feedbackRows.filter(
+      (f) =>
+        (f.signal === "accepted" || f.signal === "completed") &&
+        recommendedIds.has(f.taskId),
+    ).length;
+    const ignoredRecommended = feedbackRows.filter(
+      (f) => f.signal === "ignored" && recommendedIds.has(f.taskId),
+    ).length;
+
+    // Excluded tasks completed within 24h and 7d (regret windows)
+    const [excludedCompleted24h, excludedCompleted7d] = await Promise.all([
+      this.prisma.todo.findMany({
+        where: {
+          userId,
+          id: { in: [...excludedIds] },
+          completedAt: { gte: dayStart, lte: next24h },
+        },
+        select: { id: true },
+      }),
+      this.prisma.todo.findMany({
+        where: {
+          userId,
+          id: { in: [...excludedIds] },
+          completedAt: { gte: dayStart, lte: next7d },
+        },
+        select: { id: true },
+      }),
+    ]);
+    const excludedCompletedWithin24h = excludedCompleted24h.length;
+    const excludedCompletedWithin7d = excludedCompleted7d.length;
 
     const plannedMinutes = budgetEvents.reduce((s, e) => s + e.value, 0);
     const completedMinutes = completedTasks
       .filter((t) => recommendedIds.has(t.id))
       .reduce((s, t) => s + (t.estimateMinutes ?? 0), 0);
 
+    // Prefer feedback-based acceptance rate when explicit signals exist
+    const feedbackTotal = acceptedRecommended + ignoredRecommended;
     const acceptanceRate =
-      recommendedIds.size > 0 ? completedRecommended / recommendedIds.size : 0;
+      feedbackTotal > 0
+        ? acceptedRecommended / feedbackTotal
+        : recommendedIds.size > 0
+          ? completedRecommended / recommendedIds.size
+          : 0;
+
+    // Use 7-day window for exclusion regret (stronger signal than 24h)
     const exclusionRegret =
-      excludedIds.size > 0 ? excludedCompletedWithin24h / excludedIds.size : 0;
+      excludedIds.size > 0 ? excludedCompletedWithin7d / excludedIds.size : 0;
     const budgetFitScore =
       plannedMinutes > 0 ? Math.abs(plannedMinutes - completedMinutes) : 0;
 
@@ -145,6 +190,7 @@ export class EvaluationService {
         plannedMinutes,
         completedMinutes,
         recommendedCount: recommendedIds.size,
+        budgetFitScore,
       },
       config,
     );
@@ -154,7 +200,10 @@ export class EvaluationService {
       recommendedCount: recommendedIds.size,
       completedRecommended,
       completedNotRecommended,
+      acceptedRecommended,
+      ignoredRecommended,
       excludedCompletedWithin24h,
+      excludedCompletedWithin7d,
       plannedMinutes,
       completedMinutes,
       acceptanceRate: Math.round(acceptanceRate * 100) / 100,
@@ -328,6 +377,7 @@ export class EvaluationService {
       plannedMinutes: number;
       completedMinutes: number;
       recommendedCount: number;
+      budgetFitScore: number;
     },
     config: {
       maxWriteActionsPerRun: number;
@@ -359,17 +409,39 @@ export class EvaluationService {
       });
     }
 
-    // High exclusion regret → planner is being too selective
+    // High exclusion regret (7d window) → planner is being too selective
     if (metrics.exclusionRegret > 0.3 && metrics.recommendedCount >= 3) {
       recs.push({
         target: "plannerBudgetBuffer",
         currentValue: 0,
         suggestedValue: 15,
         confidence: 0.7,
-        why: `${Math.round(metrics.exclusionRegret * 100)}% of excluded tasks were completed anyway. The planner may be cutting too aggressively.`,
+        why: `${Math.round(metrics.exclusionRegret * 100)}% of excluded tasks were completed within 7 days. The planner may be cutting too aggressively.`,
         evidence: {
           exclusionRegret: metrics.exclusionRegret,
           recommendedCount: metrics.recommendedCount,
+        },
+      });
+    }
+
+    // Poor budget fit → estimate accuracy needs boosting
+    if (
+      metrics.plannedMinutes > 0 &&
+      metrics.budgetFitScore > metrics.plannedMinutes * 0.4 &&
+      metrics.recommendedCount >= 3
+    ) {
+      recs.push({
+        target: "plannerWeightEstimateFit",
+        currentValue: 1.0,
+        suggestedValue: 1.3,
+        confidence: 0.72,
+        why: `Budget deviation was ${Math.round((metrics.budgetFitScore / metrics.plannedMinutes) * 100)}% of planned minutes. Boosting estimate-fit weight will favour tasks whose estimates are more reliable.`,
+        evidence: {
+          budgetFitScore: metrics.budgetFitScore,
+          plannedMinutes: metrics.plannedMinutes,
+          deviationRate: Math.round(
+            (metrics.budgetFitScore / metrics.plannedMinutes) * 100,
+          ),
         },
       });
     }

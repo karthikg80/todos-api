@@ -74,9 +74,11 @@ def run_evaluator_daily_for_user(
         )
 
         # 3. Emit derived metrics so the weekly evaluator can aggregate them
+        rec_count = evaluation.get("recommendedCount", 0)
         for metric_type, value in [
             ("planner.acceptance_rate", evaluation.get("acceptanceRate", 0)),
             ("planner.exclusion_regret", evaluation.get("exclusionRegret", 0)),
+            ("planner.budget_fit", evaluation.get("budgetFitScore", 0)),
         ]:
             try:
                 client.call(
@@ -88,9 +90,7 @@ def run_evaluator_daily_for_user(
                         "value": value,
                         "metadata": {
                             "date": yesterday,
-                            "recommendedCount": evaluation.get(
-                                "recommendedCount", 0
-                            ),
+                            "recommendedCount": rec_count,
                         },
                     },
                 )
@@ -101,7 +101,41 @@ def run_evaluator_daily_for_user(
                     metric_err,
                 )
 
-        # 4. Complete
+        # 4. Generate learning recommendations from evaluator config suggestions
+        config_recs = evaluation.get("configRecommendations", [])
+        learning_rec_ids: list[str] = []
+        for rec in config_recs:
+            try:
+                lr_resp = client.call(
+                    "record_learning_recommendation",
+                    {
+                        "type": "score_weight"
+                        if rec.get("target", "").startswith("plannerWeight")
+                        else "config_change",
+                        "target": rec["target"],
+                        "currentValue": rec["currentValue"],
+                        "suggestedValue": rec["suggestedValue"],
+                        "confidence": rec["confidence"],
+                        "why": rec["why"],
+                        "evidence": rec.get("evidence"),
+                    },
+                )
+                rec_id = lr_resp["data"]["recommendation"]["id"]
+                learning_rec_ids.append(rec_id)
+                logger.info(
+                    "evaluator_daily: recorded learning rec %s for target=%s confidence=%.2f",
+                    rec_id,
+                    rec["target"],
+                    rec["confidence"],
+                )
+            except AgentApiError as lr_err:
+                logger.warning(
+                    "evaluator_daily: failed to record learning rec for %s: %s",
+                    rec.get("target"),
+                    lr_err,
+                )
+
+        # 5. Complete the run
         client.call(
             "complete_job_run",
             {
@@ -111,13 +145,18 @@ def run_evaluator_daily_for_user(
                     "date": yesterday,
                     "acceptanceRate": evaluation.get("acceptanceRate"),
                     "exclusionRegret": evaluation.get("exclusionRegret"),
-                    "configRecommendationCount": len(
-                        evaluation.get("configRecommendations", [])
-                    ),
+                    "budgetFitScore": evaluation.get("budgetFitScore"),
+                    "configRecommendationCount": len(config_recs),
+                    "learningRecordingCount": len(learning_rec_ids),
                 },
             },
         )
-        return {"ok": True, "date": yesterday, "evaluation": evaluation}
+        return {
+            "ok": True,
+            "date": yesterday,
+            "evaluation": evaluation,
+            "learningRecIds": learning_rec_ids,
+        }
 
     except Exception as exc:
         logger.exception("evaluator_daily failed for %s: %s", yesterday, exc)
