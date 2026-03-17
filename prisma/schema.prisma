@@ -124,7 +124,8 @@ model User {
   agentConfig       AgentConfig?
   agentMetricEvents AgentMetricEvent[]
   recommendationFeedback TaskRecommendationFeedback[]
-  dayContexts       UserDayContext[]
+  dayContexts            UserDayContext[]
+  learningRecommendations LearningRecommendation[]
   failedAutomationActions FailedAutomationAction[]
   aiSuggestions     AiSuggestion[]
   captureItems      CaptureItem[]
@@ -562,6 +563,11 @@ model AgentConfig {
   inboxConfidenceThreshold Float    @default(0.9) @map("inbox_confidence_threshold")
   staleThresholdDays       Int      @default(14) @map("stale_threshold_days")
   waitingFollowUpDays      Int      @default(7) @map("waiting_follow_up_days")
+  plannerWeightPriority    Float    @default(1.0) @map("planner_weight_priority")
+  plannerWeightDueDate     Float    @default(1.0) @map("planner_weight_due_date")
+  plannerWeightEnergyMatch Float    @default(1.0) @map("planner_weight_energy_match")
+  plannerWeightEstimateFit Float    @default(1.0) @map("planner_weight_estimate_fit")
+  plannerWeightFreshness   Float    @default(1.0) @map("planner_weight_freshness")
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
@@ -641,4 +647,27 @@ model UserDayContext {
   @@map("user_day_contexts")
   @@unique([userId, contextDate])
   @@index([userId, contextDate])
+}
+
+model LearningRecommendation {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @map("user_id")
+  type           String    @db.VarChar(30)
+  target         String    @db.VarChar(100)
+  currentValue   Json      @map("current_value")
+  suggestedValue Json      @map("suggested_value")
+  confidence     Float
+  why            String
+  evidence       Json?
+  status         String    @default("pending") @db.VarChar(20)
+  appliedAt      DateTime? @map("applied_at")
+  dismissedAt    DateTime? @map("dismissed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("learning_recommendations")
+  @@index([userId, status])
+  @@index([userId, createdAt])
 }

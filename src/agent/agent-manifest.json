@@ -1,5 +1,5 @@
 {
-  "version": "1.5.1",
+  "version": "1.5.4",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -2504,7 +2504,7 @@
     },
     {
       "name": "plan_today",
-      "description": "Build a deterministic day plan by selecting tasks that fit within available time, weighted by priority, due dates, and energy.",
+      "description": "Build a deterministic day plan by selecting tasks that fit within available time, weighted by priority, due dates, and energy. Each recommended and excluded task includes an attribution block with decisionRunId, rank, score, and timestamp.",
       "method": "POST",
       "path": "/read/plan_today",
       "readOnly": true,
@@ -2526,6 +2526,11 @@
           "date": {
             "type": "string",
             "description": "ISO date (YYYY-MM-DD). Defaults to today."
+          },
+          "decisionRunId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional job run ID from the caller (agent runner). Attached to all attribution blocks in the response so the evaluator can correlate outcomes to this run."
           }
         }
       },
@@ -3222,7 +3227,7 @@
     },
     {
       "name": "simulate_plan",
-      "description": "Simulate the daily plan for a given date and budget without writing anything. Optionally diff against a compareToDate to see which tasks would be added or removed.",
+      "description": "Simulate the daily plan for a given date and budget without writing anything. Optionally diff against a compareToDate to see which tasks would be added or removed. Each recommended and excluded task includes an attribution block with decisionRunId, rank, score, and timestamp.",
       "method": "GET",
       "path": "/read/simulate_plan",
       "readOnly": true,
@@ -3250,6 +3255,11 @@
             "type": "string",
             "format": "date",
             "description": "Optional second date to diff against."
+          },
+          "decisionRunId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional job run ID from the caller (agent runner). Attached to all attribution blocks in the response so the evaluator can correlate outcomes to this run."
           }
         }
       },
@@ -3761,6 +3771,204 @@
           }
         }
       }
+    },
+    {
+      "name": "evaluate_daily_plan",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "derived_read",
+      "audience": "operator",
+      "description": "Evaluate yesterday's planner output against actual task completions. Returns acceptance rate, exclusion regret, budget fit score, and config recommendations.",
+      "method": "POST",
+      "path": "/agent/read/evaluate_daily_plan",
+      "inputSchema": {
+        "type": "object",
+        "required": ["date"],
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date to evaluate (YYYY-MM-DD)."
+          },
+          "decisionRunId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional job run ID to scope evaluation to a specific run."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "evaluation": {
+            "type": "object",
+            "description": "DailyEvaluationResult with acceptance rate, exclusion regret, budget fit, and config recommendations."
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "evaluate_weekly_system",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "derived_read",
+      "audience": "operator",
+      "description": "Evaluate weekly automation quality and system health. Returns automation success rate, follow-up usefulness, stale task trends, and config recommendations.",
+      "method": "POST",
+      "path": "/agent/read/evaluate_weekly_system",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weekOffset": {
+            "type": "integer",
+            "minimum": -52,
+            "maximum": 0,
+            "description": "0 = current week, -1 = last week."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "evaluation": {
+            "type": "object",
+            "description": "WeeklyEvaluationResult with automation metrics, stale trends, and config recommendations."
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "record_learning_recommendation",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "operator",
+      "description": "Record a learning recommendation for a config or score-weight change, produced by an evaluator job.",
+      "method": "POST",
+      "path": "/agent/write/record_learning_recommendation",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "type",
+          "target",
+          "currentValue",
+          "suggestedValue",
+          "confidence",
+          "why"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["config_change", "score_weight"],
+            "description": "Category of the recommendation."
+          },
+          "target": {
+            "type": "string",
+            "description": "AgentConfig field name to change."
+          },
+          "currentValue": {
+            "description": "Current value of the target field."
+          },
+          "suggestedValue": {
+            "description": "Proposed new value."
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence score 0–1."
+          },
+          "why": {
+            "type": "string",
+            "description": "Human-readable rationale."
+          },
+          "evidence": {
+            "description": "Optional structured evidence backing the recommendation."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "recommendation": {
+            "type": "object",
+            "description": "The created LearningRecommendation record."
+          }
+        }
+      },
+      "readOnly": false
+    },
+    {
+      "name": "list_learning_recommendations",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "operator",
+      "description": "List learning recommendations for the user, optionally filtered by status.",
+      "method": "POST",
+      "path": "/agent/read/list_learning_recommendations",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "applied", "dismissed"],
+            "description": "Filter by recommendation status. Omit for all."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Max records to return (default 50)."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "recommendations": {
+            "type": "array",
+            "description": "Array of LearningRecommendation records."
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "apply_learning_recommendation",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "operator",
+      "description": "Apply a pending learning recommendation to AgentConfig. Only targets in the safe-apply allowlist are eligible.",
+      "method": "POST",
+      "path": "/agent/write/apply_learning_recommendation",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of the LearningRecommendation to apply."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "recommendation": {
+            "type": "object",
+            "description": "Updated recommendation record with status=applied."
+          },
+          "configUpdated": {
+            "type": "boolean",
+            "description": "Whether AgentConfig was modified."
+          }
+        }
+      },
+      "readOnly": false
     }
   ],
   "notes": [

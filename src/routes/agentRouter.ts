@@ -369,5 +369,29 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "weekly_executive_summary"),
   );
 
+  // Evaluation endpoints (#349, #350)
+  router.post(
+    "/read/evaluate_daily_plan",
+    createAgentActionHandler(agentExecutor, "evaluate_daily_plan"),
+  );
+  router.post(
+    "/read/evaluate_weekly_system",
+    createAgentActionHandler(agentExecutor, "evaluate_weekly_system"),
+  );
+
+  // Learning recommendation endpoints (#351)
+  router.post(
+    "/write/record_learning_recommendation",
+    createAgentActionHandler(agentExecutor, "record_learning_recommendation"),
+  );
+  router.post(
+    "/read/list_learning_recommendations",
+    createAgentActionHandler(agentExecutor, "list_learning_recommendations"),
+  );
+  router.post(
+    "/write/apply_learning_recommendation",
+    createAgentActionHandler(agentExecutor, "apply_learning_recommendation"),
+  );
+
   return router;
 }

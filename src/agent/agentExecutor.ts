@@ -17,6 +17,8 @@ import {
   MODE_MODIFIERS,
 } from "../services/dayContextService";
 import { WeeklyExecutiveSummaryService } from "../services/weeklyExecutiveSummaryService";
+import { EvaluationService } from "../services/evaluationService";
+import { LearningRecommendationService } from "../services/learningRecommendationService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
@@ -94,6 +96,11 @@ import {
   validateAgentCaptureInboxItemInput,
   validateAgentListInboxItemsInput,
   validateAgentPromoteInboxItemInput,
+  validateAgentEvaluateDailyInput,
+  validateAgentEvaluateWeeklyInput,
+  validateAgentRecordLearningRecInput,
+  validateAgentListLearningRecsInput,
+  validateAgentApplyLearningRecInput,
 } from "../validation/agentValidation";
 import { CaptureService } from "../services/captureService";
 
@@ -166,7 +173,12 @@ export type AgentActionName =
   | "weekly_executive_summary"
   | "capture_inbox_item"
   | "list_inbox_items"
-  | "promote_inbox_item";
+  | "promote_inbox_item"
+  | "evaluate_daily_plan"
+  | "evaluate_weekly_system"
+  | "record_learning_recommendation"
+  | "list_learning_recommendations"
+  | "apply_learning_recommendation";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -261,6 +273,9 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "get_day_context",
   "weekly_executive_summary",
   "list_inbox_items",
+  "evaluate_daily_plan",
+  "evaluate_weekly_system",
+  "list_learning_recommendations",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -536,6 +551,8 @@ export class AgentExecutor {
   private readonly dayContextService: DayContextService;
   private readonly executiveSummaryService: WeeklyExecutiveSummaryService;
   private readonly captureService: CaptureService | null;
+  private readonly learningRecommendationService: LearningRecommendationService;
+  private readonly evaluationService: EvaluationService;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -558,6 +575,10 @@ export class AgentExecutor {
     this.captureService = deps.persistencePrisma
       ? new CaptureService(deps.persistencePrisma)
       : null;
+    this.evaluationService = new EvaluationService(deps.persistencePrisma);
+    this.learningRecommendationService = new LearningRecommendationService(
+      deps.persistencePrisma,
+    );
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
@@ -1523,8 +1544,10 @@ export class AgentExecutor {
             availableMinutes,
             energy: energyParam,
             date,
+            decisionRunId,
           } = validateAgentPlanTodayInput(input);
           const today = date ?? new Date().toISOString().slice(0, 10);
+          const decidedAt = new Date().toISOString();
 
           // #336: load day context and derive effective energy + mode modifiers
           const dayCtx = await this.dayContextService.getContext(
@@ -1537,22 +1560,27 @@ export class AgentExecutor {
             : MODE_MODIFIERS.normal;
 
           // Fetch all data in parallel (Issue #318: delivery-ready payload)
-          const [allTasks, waitingTasks, missingNextActionProjects] =
-            await Promise.all([
-              this.agentService.listTasks(context.userId, {
-                statuses: ["inbox", "next", "in_progress", "scheduled"],
-                archived: false,
-                limit: 200,
-              }),
-              this.agentService.listWaitingOn(context.userId, {}),
-              this.deps.projectService
-                ? this.agentService
-                    .listProjectsWithoutNextAction(context.userId, {
-                      includeOnHold: false,
-                    })
-                    .catch(() => [] as import("../types").Project[])
-                : Promise.resolve([] as import("../types").Project[]),
-            ]);
+          const [
+            allTasks,
+            waitingTasks,
+            missingNextActionProjects,
+            planConfig,
+          ] = await Promise.all([
+            this.agentService.listTasks(context.userId, {
+              statuses: ["inbox", "next", "in_progress", "scheduled"],
+              archived: false,
+              limit: 200,
+            }),
+            this.agentService.listWaitingOn(context.userId, {}),
+            this.deps.projectService
+              ? this.agentService
+                  .listProjectsWithoutNextAction(context.userId, {
+                    includeOnHold: false,
+                  })
+                  .catch(() => [] as import("../types").Project[])
+              : Promise.resolve([] as import("../types").Project[]),
+            this.agentConfigService.getConfig(context.userId),
+          ]);
 
           const baseBudget = availableMinutes ?? 480;
           const budget = Math.round(
@@ -1560,7 +1588,13 @@ export class AgentExecutor {
           );
 
           const { selected, excluded, usedMinutes, budgetBreakdown } =
-            this.scorePlan(allTasks, today, budget, energy, modeModifiers);
+            this.scorePlan(allTasks, today, budget, energy, modeModifiers, {
+              plannerWeightPriority: planConfig.plannerWeightPriority,
+              plannerWeightDueDate: planConfig.plannerWeightDueDate,
+              plannerWeightEnergyMatch: planConfig.plannerWeightEnergyMatch,
+              plannerWeightEstimateFit: planConfig.plannerWeightEstimateFit,
+              plannerWeightFreshness: planConfig.plannerWeightFreshness,
+            });
 
           const maxTasks = modeModifiers.maxTaskCount ?? selected.length;
           const cappedSelected = selected.slice(0, maxTasks);
@@ -1587,6 +1621,15 @@ export class AgentExecutor {
               whyIncluded: s.whyIncluded,
               rank: i + 1,
             },
+            attribution: {
+              decisionRunId: decisionRunId ?? null,
+              decisionJobName: "planner",
+              decisionPeriodKey: today,
+              recommendedAt: decidedAt,
+              recommendedRank: i + 1,
+              recommendedScore: s.score,
+              autoCreated: false,
+            },
           }));
 
           return this.success(action, readOnly, context, 200, {
@@ -1600,7 +1643,15 @@ export class AgentExecutor {
                 projectsNeedingAttention: missingNextActionProjects.length,
               },
               recommendedTasks,
-              excluded,
+              excluded: excluded.map((e) => ({
+                ...e,
+                attribution: {
+                  decisionRunId: decisionRunId ?? null,
+                  decisionPeriodKey: today,
+                  excludedAt: decidedAt,
+                  excludedScore: e.score,
+                },
+              })),
               budgetBreakdown: cappedBudgetBreakdown,
               waitingTasks: waitingTasks.slice(0, 10).map((t) => ({
                 id: t.id,
@@ -2346,11 +2397,17 @@ export class AgentExecutor {
 
         // ── Issue #331: simulate_plan ──────────────────────────────────────────
         case "simulate_plan": {
-          const { availableMinutes, energy, date, compareToDate } =
-            validateAgentSimulatePlanInput(input);
+          const {
+            availableMinutes,
+            energy,
+            date,
+            compareToDate,
+            decisionRunId: simRunId,
+          } = validateAgentSimulatePlanInput(input);
           const today = date ?? new Date().toISOString().slice(0, 10);
+          const simDecidedAt = new Date().toISOString();
 
-          const [allTasks, waitingTasks, missingNextActionProjects] =
+          const [allTasks, waitingTasks, missingNextActionProjects, simConfig] =
             await Promise.all([
               this.agentService.listTasks(context.userId, {
                 statuses: ["inbox", "next", "in_progress", "scheduled"],
@@ -2365,20 +2422,45 @@ export class AgentExecutor {
                     })
                     .catch(() => [] as import("../types").Project[])
                 : Promise.resolve([] as import("../types").Project[]),
+              this.agentConfigService.getConfig(context.userId),
             ]);
+
+          const simWeights = {
+            plannerWeightPriority: simConfig.plannerWeightPriority,
+            plannerWeightDueDate: simConfig.plannerWeightDueDate,
+            plannerWeightEnergyMatch: simConfig.plannerWeightEnergyMatch,
+            plannerWeightEstimateFit: simConfig.plannerWeightEstimateFit,
+            plannerWeightFreshness: simConfig.plannerWeightFreshness,
+          };
 
           const budget = availableMinutes ?? 480;
           const { selected, excluded, usedMinutes, budgetBreakdown } =
-            this.scorePlan(allTasks, today, budget, energy);
+            this.scorePlan(
+              allTasks,
+              today,
+              budget,
+              energy,
+              undefined,
+              simWeights,
+            );
 
-          const recommendedTasks = selected.map((s) => ({
+          const recommendedTasks = selected.map((s, i) => ({
             ...s.task,
             estimatedMinutes: s.effort,
             score: s.score,
             explanation: {
               scoreBreakdown: s.scoreBreakdown,
               whyIncluded: s.whyIncluded,
-              rank: selected.indexOf(s) + 1,
+              rank: i + 1,
+            },
+            attribution: {
+              decisionRunId: simRunId ?? null,
+              decisionJobName: "simulate",
+              decisionPeriodKey: today,
+              recommendedAt: simDecidedAt,
+              recommendedRank: i + 1,
+              recommendedScore: s.score,
+              autoCreated: false,
             },
           }));
 
@@ -2390,7 +2472,15 @@ export class AgentExecutor {
             remainingMinutes: budget - usedMinutes,
             recommendedTaskCount: recommendedTasks.length,
             recommendedTasks,
-            excluded,
+            excluded: excluded.map((e) => ({
+              ...e,
+              attribution: {
+                decisionRunId: simRunId ?? null,
+                decisionPeriodKey: today,
+                excludedAt: simDecidedAt,
+                excludedScore: e.score,
+              },
+            })),
             budgetBreakdown,
             waitingCount: waitingTasks.length,
             projectsNeedingAttention: missingNextActionProjects.length,
@@ -2404,6 +2494,8 @@ export class AgentExecutor {
               compareToDate,
               budget,
               energy,
+              undefined,
+              simWeights,
             );
             const cIds = new Set(cSelected.map((s) => s.task.id));
             const bIds = new Set(selected.map((s) => s.task.id));
@@ -2518,6 +2610,123 @@ export class AgentExecutor {
           );
           return this.success(action, readOnly, context, 200, {
             summary: execSummary,
+          });
+        }
+
+        case "record_learning_recommendation": {
+          const recInput = validateAgentRecordLearningRecInput(input);
+          const rec = await this.learningRecommendationService.record(
+            context.userId,
+            recInput,
+          );
+          return this.success(action, readOnly, context, 201, {
+            recommendation: rec,
+          });
+        }
+
+        case "list_learning_recommendations": {
+          const { status, limit } = validateAgentListLearningRecsInput(input);
+          const recs = await this.learningRecommendationService.list(
+            context.userId,
+            { status, limit },
+          );
+          return this.success(action, readOnly, context, 200, {
+            recommendations: recs,
+            total: recs.length,
+          });
+        }
+
+        case "apply_learning_recommendation": {
+          const { id } = validateAgentApplyLearningRecInput(input);
+          try {
+            const { recommendation, configUpdated } =
+              await this.learningRecommendationService.apply(
+                context.userId,
+                id,
+              );
+            return this.success(action, readOnly, context, 200, {
+              recommendation,
+              configUpdated,
+            });
+          } catch (err) {
+            if (err instanceof Error) {
+              throw new AgentExecutionError(
+                err.message.includes("not found") ? 404 : 400,
+                err.message.includes("not found")
+                  ? "RESOURCE_NOT_FOUND_OR_FORBIDDEN"
+                  : "INVALID_OPERATION",
+                err.message,
+                false,
+              );
+            }
+            throw err;
+          }
+        }
+
+        case "evaluate_daily_plan": {
+          const { date, decisionRunId: evalRunId } =
+            validateAgentEvaluateDailyInput(input);
+          const result = await this.evaluationService.evaluateDaily(
+            context.userId,
+            date,
+          );
+          return this.success(action, readOnly, context, 200, {
+            evaluation: result,
+            ...(evalRunId ? { decisionRunId: evalRunId } : {}),
+          });
+        }
+
+        case "evaluate_weekly_system": {
+          const { weekOffset } = validateAgentEvaluateWeeklyInput(input);
+          // Compute ISO week bounds (same logic as weeklyExecutiveSummaryService)
+          const now = new Date();
+          const dayOfWeek = now.getUTCDay();
+          const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+          const monday = new Date(now);
+          monday.setUTCDate(
+            now.getUTCDate() + mondayOffset + (weekOffset ?? 0) * 7,
+          );
+          monday.setUTCHours(0, 0, 0, 0);
+          const sunday = new Date(monday);
+          sunday.setUTCDate(monday.getUTCDate() + 6);
+          sunday.setUTCHours(23, 59, 59, 999);
+          const thursday = new Date(monday);
+          thursday.setUTCDate(monday.getUTCDate() + 3);
+          const isoYear = thursday.getUTCFullYear();
+          const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+          const jan4Day = jan4.getUTCDay();
+          const week1Monday = new Date(jan4);
+          week1Monday.setUTCDate(
+            jan4.getUTCDate() - (jan4Day === 0 ? 6 : jan4Day - 1),
+          );
+          const wn =
+            Math.floor(
+              (monday.getTime() - week1Monday.getTime()) / (7 * 86400000),
+            ) + 1;
+          const weekLabel = `${isoYear}-W${String(wn).padStart(2, "0")}`;
+          const weekStart = monday.toISOString().slice(0, 10);
+          const weekEnd = sunday.toISOString().slice(0, 10);
+
+          const result = await this.evaluationService.evaluateWeekly(
+            context.userId,
+            weekStart,
+            weekEnd,
+            weekLabel,
+          );
+
+          // Fill projectsWithoutNextAction if projectService available
+          let projectsWithoutNextAction = 0;
+          if (this.deps.projectService) {
+            const missing = await this.agentService
+              .listProjectsWithoutNextAction(context.userId, {
+                includeOnHold: false,
+              })
+              .catch(() => []);
+            projectsWithoutNextAction = missing.length;
+          }
+
+          return this.success(action, readOnly, context, 200, {
+            evaluation: { ...result, projectsWithoutNextAction },
           });
         }
 
@@ -2899,6 +3108,13 @@ export class AgentExecutor {
     budgetMin: number,
     energy?: string,
     modeModifiers?: import("../services/dayContextService").ModeModifiers,
+    weights?: {
+      plannerWeightPriority?: number;
+      plannerWeightDueDate?: number;
+      plannerWeightEnergyMatch?: number;
+      plannerWeightEstimateFit?: number;
+      plannerWeightFreshness?: number;
+    },
   ): {
     selected: Array<{
       task: import("../types").Todo;
@@ -2928,10 +3144,16 @@ export class AgentExecutor {
       low: 0,
     };
 
+    const wPriority = weights?.plannerWeightPriority ?? 1.0;
+    const wDueDate = weights?.plannerWeightDueDate ?? 1.0;
+    const wEnergyMatch = weights?.plannerWeightEnergyMatch ?? 1.0;
+
     const scored = allTasks.map((t) => {
       const breakdown: Record<string, number> = {};
-      let score = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
-      breakdown.priority = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
+      const rawPriority = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
+      const weightedPriority = Math.round(rawPriority * wPriority);
+      let score = weightedPriority;
+      breakdown.priority = weightedPriority;
 
       if (t.doDate) {
         const d =
@@ -2951,22 +3173,23 @@ export class AgentExecutor {
           t.dueDate instanceof Date
             ? t.dueDate.toISOString().slice(0, 10)
             : String(t.dueDate).slice(0, 10);
-        if (d < forDate) {
-          score += 40;
-          breakdown.dueDateBoost = 40;
-        } else if (d === forDate) {
-          score += 20;
-          breakdown.dueDateBoost = 20;
+        const rawDueDateBoost = d < forDate ? 40 : d === forDate ? 20 : 0;
+        if (rawDueDateBoost > 0) {
+          const weightedDueDateBoost = Math.round(rawDueDateBoost * wDueDate);
+          score += weightedDueDateBoost;
+          breakdown.dueDateBoost = weightedDueDateBoost;
         }
       }
       const effort = t.effortScore ?? 30;
       if (energy === "low" && effort > 60) {
-        score -= 20;
-        breakdown.energyPenalty = -20;
+        const penalty = Math.round(20 * wEnergyMatch);
+        score -= penalty;
+        breakdown.energyPenalty = -penalty;
       }
       if (energy === "high" && effort < 15) {
-        score -= 5;
-        breakdown.energyPenalty = -5;
+        const penalty = Math.round(5 * wEnergyMatch);
+        score -= penalty;
+        breakdown.energyPenalty = -penalty;
       }
 
       // Mode-based boosts (#336)

@@ -40,7 +40,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-COMMANDS = ("daily", "weekly", "inbox", "watchdog", "decomposer")
+COMMANDS = ("daily", "weekly", "inbox", "watchdog", "decomposer", "evaluator_daily", "evaluator_weekly")
 USAGE = f"Usage: python main.py <{'|'.join(COMMANDS)}>"
 
 
@@ -89,9 +89,15 @@ def main() -> None:
     elif command == "watchdog":
         from jobs.watchdog import run_watchdog_for_user as run_for_user
         eligible = [e for e in enrollments if e.daily_enabled]
-    else:  # decomposer
+    elif command == "decomposer":
         from jobs.decomposer import run_decomposer_for_user as run_for_user
         eligible = [e for e in enrollments if e.weekly_enabled]  # same gate as weekly
+    elif command == "evaluator_daily":
+        from jobs.evaluator_daily import run_evaluator_daily_for_user as run_for_user
+        eligible = [e for e in enrollments if e.daily_enabled]
+    else:  # evaluator_weekly
+        from jobs.evaluator_weekly import run_evaluator_weekly_for_user as run_for_user
+        eligible = [e for e in enrollments if e.weekly_enabled]
 
     logger.info("%d user(s) eligible for %s", len(eligible), command)
 

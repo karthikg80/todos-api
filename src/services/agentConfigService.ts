@@ -13,6 +13,11 @@ export interface AgentConfigRecord {
   inboxConfidenceThreshold: number;
   staleThresholdDays: number;
   waitingFollowUpDays: number;
+  plannerWeightPriority: number;
+  plannerWeightDueDate: number;
+  plannerWeightEnergyMatch: number;
+  plannerWeightEstimateFit: number;
+  plannerWeightFreshness: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,6 +77,11 @@ export class AgentConfigService {
       inboxConfidenceThreshold: 0.9,
       staleThresholdDays: 14,
       waitingFollowUpDays: 7,
+      plannerWeightPriority: 1.0,
+      plannerWeightDueDate: 1.0,
+      plannerWeightEnergyMatch: 1.0,
+      plannerWeightEstimateFit: 1.0,
+      plannerWeightFreshness: 1.0,
       createdAt: now,
       updatedAt: now,
     };
@@ -91,6 +101,11 @@ export class AgentConfigService {
       inboxConfidenceThreshold: r.inboxConfidenceThreshold,
       staleThresholdDays: r.staleThresholdDays,
       waitingFollowUpDays: r.waitingFollowUpDays,
+      plannerWeightPriority: r.plannerWeightPriority,
+      plannerWeightDueDate: r.plannerWeightDueDate,
+      plannerWeightEnergyMatch: r.plannerWeightEnergyMatch,
+      plannerWeightEstimateFit: r.plannerWeightEstimateFit,
+      plannerWeightFreshness: r.plannerWeightFreshness,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
     };

@@ -15,6 +15,7 @@ import {
   UpdateTodoDto,
 } from "../types";
 import { PlannerMode } from "../types/plannerTypes";
+import { isCanonicalMetricType } from "../services/metricRegistry";
 import {
   ValidationError,
   validateCreateProject,
@@ -1138,7 +1139,7 @@ export function validateAgentTaxonomyCleanupInput(data: unknown): void {
 
 // ─── Planning ─────────────────────────────────────────────────────────────────
 
-const PLAN_TODAY_KEYS = ["availableMinutes", "energy", "date"];
+const PLAN_TODAY_KEYS = ["availableMinutes", "energy", "date", "decisionRunId"];
 const BREAK_DOWN_TASK_KEYS = ["taskId", "maxSubtasks"];
 const SUGGEST_NEXT_ACTIONS_KEYS = ["projectId", "limit"];
 const WEEKLY_REVIEW_SUMMARY_KEYS = ["weekStart"];
@@ -1147,6 +1148,7 @@ export function validateAgentPlanTodayInput(data: unknown): {
   availableMinutes?: number;
   energy?: Energy;
   date?: string;
+  decisionRunId?: string;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, PLAN_TODAY_KEYS, "Agent action input");
@@ -1159,6 +1161,7 @@ export function validateAgentPlanTodayInput(data: unknown): {
       ) ?? undefined,
     energy: parseOptionalEnergy(body.energy) ?? undefined,
     date: parseOptionalString(body.date, "date", 10),
+    decisionRunId: parseOptionalString(body.decisionRunId, "decisionRunId", 36),
   };
 }
 
@@ -1533,6 +1536,11 @@ const UPDATE_AGENT_CONFIG_KEYS = [
   "inboxConfidenceThreshold",
   "staleThresholdDays",
   "waitingFollowUpDays",
+  "plannerWeightPriority",
+  "plannerWeightDueDate",
+  "plannerWeightEnergyMatch",
+  "plannerWeightEstimateFit",
+  "plannerWeightFreshness",
 ];
 
 export function validateAgentGetAgentConfigInput(
@@ -1552,6 +1560,11 @@ export function validateAgentUpdateAgentConfigInput(data: unknown): {
   inboxConfidenceThreshold?: number;
   staleThresholdDays?: number;
   waitingFollowUpDays?: number;
+  plannerWeightPriority?: number;
+  plannerWeightDueDate?: number;
+  plannerWeightEnergyMatch?: number;
+  plannerWeightEstimateFit?: number;
+  plannerWeightFreshness?: number;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, UPDATE_AGENT_CONFIG_KEYS, "Agent action input");
@@ -1615,6 +1628,20 @@ export function validateAgentUpdateAgentConfigInput(data: unknown): {
     );
     if (v !== undefined) result.waitingFollowUpDays = v;
   }
+  for (const field of [
+    "plannerWeightPriority",
+    "plannerWeightDueDate",
+    "plannerWeightEnergyMatch",
+    "plannerWeightEstimateFit",
+    "plannerWeightFreshness",
+  ] as const) {
+    if (body[field] !== undefined) {
+      const raw = Number(body[field]);
+      if (isNaN(raw) || raw < 0 || raw > 10)
+        throw new ValidationError(`${field} must be a number between 0 and 10`);
+      result[field] = raw;
+    }
+  }
   return result;
 }
 
@@ -1642,6 +1669,7 @@ const SIMULATE_PLAN_KEYS = [
   "energy",
   "date",
   "compareToDate",
+  "decisionRunId",
 ];
 
 export function validateAgentSimulatePlanInput(data: unknown): {
@@ -1649,6 +1677,7 @@ export function validateAgentSimulatePlanInput(data: unknown): {
   energy?: string;
   date?: string;
   compareToDate?: string;
+  decisionRunId?: string;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, SIMULATE_PLAN_KEYS, "Agent action input");
@@ -1664,10 +1693,15 @@ export function validateAgentSimulatePlanInput(data: unknown): {
     "compareToDate",
     10,
   );
-  return { availableMinutes, energy, date, compareToDate };
+  const decisionRunId = parseOptionalString(
+    body.decisionRunId,
+    "decisionRunId",
+    36,
+  );
+  return { availableMinutes, energy, date, compareToDate, decisionRunId };
 }
 
-// ── Issue #332: automation metrics ────────────────────────────────────────────
+// ── Issue #332: automation metrics ── Issue #348: canonical metric registry ───
 
 const RECORD_METRIC_KEYS = [
   "jobName",
@@ -1698,6 +1732,17 @@ export function validateAgentRecordMetricInput(data: unknown): {
   if (!periodKey) throw new ValidationError("periodKey is required");
   const metricType = parseOptionalString(body.metricType, "metricType", 100);
   if (!metricType) throw new ValidationError("metricType is required");
+  // Lenient: allow unknown types but log a warning so callers can audit drift
+  if (!isCanonicalMetricType(metricType)) {
+    console.warn(
+      JSON.stringify({
+        type: "metric:unknown_type",
+        metricType,
+        jobName,
+        periodKey,
+      }),
+    );
+  }
   let value: number | undefined;
   if (body.value !== undefined) {
     const raw = Number(body.value);
@@ -1879,6 +1924,124 @@ export function validateAgentGetDayContextInput(data: unknown): {
   return {
     contextDate: parseOptionalString(body.contextDate, "contextDate", 10),
   };
+}
+
+// ── Issue #351: learning recommendations ──────────────────────────────────────
+
+const RECORD_LEARNING_REC_KEYS = [
+  "type",
+  "target",
+  "currentValue",
+  "suggestedValue",
+  "confidence",
+  "why",
+  "evidence",
+];
+const LIST_LEARNING_REC_KEYS = ["status", "limit"];
+const APPLY_LEARNING_REC_KEYS = ["id"];
+
+export function validateAgentRecordLearningRecInput(data: unknown): {
+  type: "config_change" | "score_weight";
+  target: string;
+  currentValue: unknown;
+  suggestedValue: unknown;
+  confidence: number;
+  why: string;
+  evidence?: unknown;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, RECORD_LEARNING_REC_KEYS, "Agent action input");
+  const typeVal = parseOptionalString(body.type, "type", 20);
+  if (typeVal !== "config_change" && typeVal !== "score_weight") {
+    throw new ValidationError('type must be "config_change" or "score_weight"');
+  }
+  const target = parseOptionalString(body.target, "target", 100);
+  if (!target) throw new ValidationError("target is required");
+  if (body.currentValue === undefined)
+    throw new ValidationError("currentValue is required");
+  if (body.suggestedValue === undefined)
+    throw new ValidationError("suggestedValue is required");
+  const confidence = Number(body.confidence);
+  if (isNaN(confidence) || confidence < 0 || confidence > 1) {
+    throw new ValidationError("confidence must be a number between 0 and 1");
+  }
+  const why = parseOptionalString(body.why, "why", 500);
+  if (!why) throw new ValidationError("why is required");
+  return {
+    type: typeVal,
+    target,
+    currentValue: body.currentValue,
+    suggestedValue: body.suggestedValue,
+    confidence,
+    why,
+    evidence: body.evidence,
+  };
+}
+
+export function validateAgentListLearningRecsInput(data: unknown): {
+  status?: "pending" | "applied" | "dismissed";
+  limit?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_LEARNING_REC_KEYS, "Agent action input");
+  const statusVal = parseOptionalString(body.status, "status", 20);
+  if (
+    statusVal !== undefined &&
+    statusVal !== "pending" &&
+    statusVal !== "applied" &&
+    statusVal !== "dismissed"
+  ) {
+    throw new ValidationError(
+      "status must be one of: pending, applied, dismissed",
+    );
+  }
+  return {
+    status: statusVal as "pending" | "applied" | "dismissed" | undefined,
+    limit: parseOptionalPositiveInt(body.limit, "limit", 100) ?? undefined,
+  };
+}
+
+export function validateAgentApplyLearningRecInput(data: unknown): {
+  id: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, APPLY_LEARNING_REC_KEYS, "Agent action input");
+  return { id: parseRequiredId(body, "id") };
+}
+
+// ── Issues #349/#350: evaluation endpoints ────────────────────────────────────
+
+const EVALUATE_DAILY_KEYS = ["date", "decisionRunId"];
+const EVALUATE_WEEKLY_KEYS = ["weekOffset"];
+
+export function validateAgentEvaluateDailyInput(data: unknown): {
+  date: string;
+  decisionRunId?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, EVALUATE_DAILY_KEYS, "Agent action input");
+  const date = parseOptionalString(body.date, "date", 10);
+  if (!date) throw new ValidationError("date is required (YYYY-MM-DD)");
+  return {
+    date,
+    decisionRunId: parseOptionalString(body.decisionRunId, "decisionRunId", 36),
+  };
+}
+
+export function validateAgentEvaluateWeeklyInput(data: unknown): {
+  weekOffset?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, EVALUATE_WEEKLY_KEYS, "Agent action input");
+  let weekOffset: number | undefined;
+  if (body.weekOffset !== undefined) {
+    weekOffset = Number(body.weekOffset);
+    if (!Number.isInteger(weekOffset) || weekOffset < -52 || weekOffset > 0)
+      throw new ValidationError(
+        "weekOffset must be an integer between -52 and 0",
+      );
+  }
+  return { weekOffset };
 }
 
 // ── Issue #343: inbox namespace expansion ─────────────────────────────────────
