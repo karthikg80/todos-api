@@ -1902,6 +1902,41 @@ export function validateAgentGetDayContextInput(data: unknown): {
   };
 }
 
+// ── Issues #349/#350: evaluation endpoints ────────────────────────────────────
+
+const EVALUATE_DAILY_KEYS = ["date", "decisionRunId"];
+const EVALUATE_WEEKLY_KEYS = ["weekOffset"];
+
+export function validateAgentEvaluateDailyInput(data: unknown): {
+  date: string;
+  decisionRunId?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, EVALUATE_DAILY_KEYS, "Agent action input");
+  const date = parseOptionalString(body.date, "date", 10);
+  if (!date) throw new ValidationError("date is required (YYYY-MM-DD)");
+  return {
+    date,
+    decisionRunId: parseOptionalString(body.decisionRunId, "decisionRunId", 36),
+  };
+}
+
+export function validateAgentEvaluateWeeklyInput(data: unknown): {
+  weekOffset?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, EVALUATE_WEEKLY_KEYS, "Agent action input");
+  let weekOffset: number | undefined;
+  if (body.weekOffset !== undefined) {
+    weekOffset = Number(body.weekOffset);
+    if (!Number.isInteger(weekOffset) || weekOffset < -52 || weekOffset > 0)
+      throw new ValidationError(
+        "weekOffset must be an integer between -52 and 0",
+      );
+  }
+  return { weekOffset };
+}
+
 // ── Issue #343: inbox namespace expansion ─────────────────────────────────────
 
 const CAPTURE_INBOX_ITEM_KEYS = ["text", "source"];

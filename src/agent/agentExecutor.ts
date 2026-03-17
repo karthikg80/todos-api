@@ -17,6 +17,7 @@ import {
   MODE_MODIFIERS,
 } from "../services/dayContextService";
 import { WeeklyExecutiveSummaryService } from "../services/weeklyExecutiveSummaryService";
+import { EvaluationService } from "../services/evaluationService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
@@ -94,6 +95,8 @@ import {
   validateAgentCaptureInboxItemInput,
   validateAgentListInboxItemsInput,
   validateAgentPromoteInboxItemInput,
+  validateAgentEvaluateDailyInput,
+  validateAgentEvaluateWeeklyInput,
 } from "../validation/agentValidation";
 import { CaptureService } from "../services/captureService";
 
@@ -166,7 +169,9 @@ export type AgentActionName =
   | "weekly_executive_summary"
   | "capture_inbox_item"
   | "list_inbox_items"
-  | "promote_inbox_item";
+  | "promote_inbox_item"
+  | "evaluate_daily_plan"
+  | "evaluate_weekly_system";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -261,6 +266,8 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "get_day_context",
   "weekly_executive_summary",
   "list_inbox_items",
+  "evaluate_daily_plan",
+  "evaluate_weekly_system",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -536,6 +543,7 @@ export class AgentExecutor {
   private readonly dayContextService: DayContextService;
   private readonly executiveSummaryService: WeeklyExecutiveSummaryService;
   private readonly captureService: CaptureService | null;
+  private readonly evaluationService: EvaluationService;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -558,6 +566,7 @@ export class AgentExecutor {
     this.captureService = deps.persistencePrisma
       ? new CaptureService(deps.persistencePrisma)
       : null;
+    this.evaluationService = new EvaluationService(deps.persistencePrisma);
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
@@ -2560,6 +2569,73 @@ export class AgentExecutor {
           );
           return this.success(action, readOnly, context, 200, {
             summary: execSummary,
+          });
+        }
+
+        case "evaluate_daily_plan": {
+          const { date, decisionRunId: evalRunId } =
+            validateAgentEvaluateDailyInput(input);
+          const result = await this.evaluationService.evaluateDaily(
+            context.userId,
+            date,
+          );
+          return this.success(action, readOnly, context, 200, {
+            evaluation: result,
+            ...(evalRunId ? { decisionRunId: evalRunId } : {}),
+          });
+        }
+
+        case "evaluate_weekly_system": {
+          const { weekOffset } = validateAgentEvaluateWeeklyInput(input);
+          // Compute ISO week bounds (same logic as weeklyExecutiveSummaryService)
+          const now = new Date();
+          const dayOfWeek = now.getUTCDay();
+          const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+          const monday = new Date(now);
+          monday.setUTCDate(
+            now.getUTCDate() + mondayOffset + (weekOffset ?? 0) * 7,
+          );
+          monday.setUTCHours(0, 0, 0, 0);
+          const sunday = new Date(monday);
+          sunday.setUTCDate(monday.getUTCDate() + 6);
+          sunday.setUTCHours(23, 59, 59, 999);
+          const thursday = new Date(monday);
+          thursday.setUTCDate(monday.getUTCDate() + 3);
+          const isoYear = thursday.getUTCFullYear();
+          const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+          const jan4Day = jan4.getUTCDay();
+          const week1Monday = new Date(jan4);
+          week1Monday.setUTCDate(
+            jan4.getUTCDate() - (jan4Day === 0 ? 6 : jan4Day - 1),
+          );
+          const wn =
+            Math.floor(
+              (monday.getTime() - week1Monday.getTime()) / (7 * 86400000),
+            ) + 1;
+          const weekLabel = `${isoYear}-W${String(wn).padStart(2, "0")}`;
+          const weekStart = monday.toISOString().slice(0, 10);
+          const weekEnd = sunday.toISOString().slice(0, 10);
+
+          const result = await this.evaluationService.evaluateWeekly(
+            context.userId,
+            weekStart,
+            weekEnd,
+            weekLabel,
+          );
+
+          // Fill projectsWithoutNextAction if projectService available
+          let projectsWithoutNextAction = 0;
+          if (this.deps.projectService) {
+            const missing = await this.agentService
+              .listProjectsWithoutNextAction(context.userId, {
+                includeOnHold: false,
+              })
+              .catch(() => []);
+            projectsWithoutNextAction = missing.length;
+          }
+
+          return this.success(action, readOnly, context, 200, {
+            evaluation: { ...result, projectsWithoutNextAction },
           });
         }
 

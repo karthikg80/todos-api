@@ -1,5 +1,5 @@
 {
-  "version": "1.5.2",
+  "version": "1.5.3",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -3771,6 +3771,73 @@
           }
         }
       }
+    },
+    {
+      "name": "evaluate_daily_plan",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "derived_read",
+      "audience": "operator",
+      "description": "Evaluate yesterday's planner output against actual task completions. Returns acceptance rate, exclusion regret, budget fit score, and config recommendations.",
+      "method": "POST",
+      "path": "/agent/read/evaluate_daily_plan",
+      "inputSchema": {
+        "type": "object",
+        "required": ["date"],
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date to evaluate (YYYY-MM-DD)."
+          },
+          "decisionRunId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional job run ID to scope evaluation to a specific run."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "evaluation": {
+            "type": "object",
+            "description": "DailyEvaluationResult with acceptance rate, exclusion regret, budget fit, and config recommendations."
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "evaluate_weekly_system",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "derived_read",
+      "audience": "operator",
+      "description": "Evaluate weekly automation quality and system health. Returns automation success rate, follow-up usefulness, stale task trends, and config recommendations.",
+      "method": "POST",
+      "path": "/agent/read/evaluate_weekly_system",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weekOffset": {
+            "type": "integer",
+            "minimum": -52,
+            "maximum": 0,
+            "description": "0 = current week, -1 = last week."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "evaluation": {
+            "type": "object",
+            "description": "WeeklyEvaluationResult with automation metrics, stale trends, and config recommendations."
+          }
+        }
+      },
+      "readOnly": true
     }
   ],
   "notes": [

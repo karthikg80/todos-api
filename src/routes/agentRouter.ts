@@ -369,5 +369,15 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "weekly_executive_summary"),
   );
 
+  // Evaluation endpoints (#349, #350)
+  router.post(
+    "/read/evaluate_daily_plan",
+    createAgentActionHandler(agentExecutor, "evaluate_daily_plan"),
+  );
+  router.post(
+    "/read/evaluate_weekly_system",
+    createAgentActionHandler(agentExecutor, "evaluate_weekly_system"),
+  );
+
   return router;
 }
