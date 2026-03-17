@@ -9,7 +9,28 @@ import {
 } from "./mcpScopes";
 import { hasMcpScope } from "../validation/mcpValidation";
 
-export const MCP_PROTOCOL_VERSION = "2025-11-25";
+// Versions this server understands, in ascending order.
+export const MCP_SUPPORTED_VERSIONS = ["2024-11-05", "2025-03-26"] as const;
+// Preferred version advertised when the client doesn't specify one.
+export const MCP_PROTOCOL_VERSION = "2025-03-26";
+
+/**
+ * Pick the best protocol version to use for a given session.
+ * - If the client's requested version is in the supported list, echo it back
+ *   (ensures Claude Code and other clients get the version they expect).
+ * - Otherwise fall back to our latest supported version.
+ */
+export function negotiateMcpProtocolVersion(
+  clientVersion: string | undefined,
+): string {
+  if (
+    clientVersion &&
+    (MCP_SUPPORTED_VERSIONS as readonly string[]).includes(clientVersion)
+  ) {
+    return clientVersion;
+  }
+  return MCP_PROTOCOL_VERSION;
+}
 
 type ToolCatalogEntry = {
   name: AgentActionName;
