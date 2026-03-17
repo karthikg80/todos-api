@@ -36,15 +36,17 @@ function isoWeekBounds(weekOffset: number): {
   sunday.setUTCDate(monday.getUTCDate() + 6);
   sunday.setUTCHours(23, 59, 59, 999);
 
-  const iso = monday.toISOString();
-  const cal = monday.toISOString().slice(0, 10);
-  const d = new Date(iso);
-  const dayOfYear =
-    (Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) -
-      Date.UTC(d.getUTCFullYear(), 0, 0)) /
-    86400000;
-  const wn = Math.ceil(dayOfYear / 7);
-  const week = `${monday.getUTCFullYear()}-W${String(wn).padStart(2, "0")}`;
+  // ISO 8601: the week belongs to the year that contains its Thursday.
+  const thursday = new Date(monday);
+  thursday.setUTCDate(monday.getUTCDate() + 3);
+  const isoYear = thursday.getUTCFullYear();
+  // Week 1 is the week containing Jan 4th of the ISO year; find that week's Monday.
+  const jan4 = new Date(Date.UTC(isoYear, 0, 4));
+  const jan4Day = jan4.getUTCDay(); // 0 = Sun
+  const week1Monday = new Date(jan4);
+  week1Monday.setUTCDate(jan4.getUTCDate() - (jan4Day === 0 ? 6 : jan4Day - 1));
+  const wn = Math.floor((monday.getTime() - week1Monday.getTime()) / (7 * 86400000)) + 1;
+  const week = `${isoYear}-W${String(wn).padStart(2, "0")}`;
 
   return { week, start: monday, end: sunday };
 }
