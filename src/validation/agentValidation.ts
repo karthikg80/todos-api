@@ -25,42 +25,17 @@ import {
   validateUpdateSubtask,
   validateUpdateTodo,
 } from "./validation";
-
-const VALID_SORT_FIELDS: TodoSortBy[] = [
-  "order",
-  "createdAt",
-  "updatedAt",
-  "dueDate",
-  "priority",
-  "title",
-];
-const VALID_SORT_ORDERS: SortOrder[] = ["asc", "desc"];
-const VALID_PRIORITIES: Priority[] = ["low", "medium", "high", "urgent"];
-const VALID_TASK_STATUSES: TaskStatus[] = [
-  "inbox",
-  "next",
-  "in_progress",
-  "waiting",
-  "scheduled",
-  "someday",
-  "done",
-  "cancelled",
-];
-const VALID_PROJECT_STATUSES: ProjectStatus[] = [
-  "active",
-  "on_hold",
-  "completed",
-  "archived",
-];
-const VALID_ENERGIES: Energy[] = ["low", "medium", "high"];
-const VALID_REVIEW_CADENCES: ReviewCadence[] = [
-  "weekly",
-  "biweekly",
-  "monthly",
-  "quarterly",
-];
-const MAX_PAGE_SIZE = 100;
-const MAX_SEARCH_QUERY_LENGTH = 200;
+import {
+  MAX_PAGE_SIZE,
+  MAX_SEARCH_QUERY_LENGTH,
+  VALID_ENERGIES,
+  VALID_PRIORITIES,
+  VALID_PROJECT_STATUSES,
+  VALID_REVIEW_CADENCES,
+  VALID_SORT_FIELDS,
+  VALID_SORT_ORDERS,
+  VALID_TASK_STATUSES,
+} from "./constants";
 
 const TASK_FIELD_KEYS = [
   "title",
