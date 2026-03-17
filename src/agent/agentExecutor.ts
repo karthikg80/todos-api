@@ -1560,22 +1560,27 @@ export class AgentExecutor {
             : MODE_MODIFIERS.normal;
 
           // Fetch all data in parallel (Issue #318: delivery-ready payload)
-          const [allTasks, waitingTasks, missingNextActionProjects] =
-            await Promise.all([
-              this.agentService.listTasks(context.userId, {
-                statuses: ["inbox", "next", "in_progress", "scheduled"],
-                archived: false,
-                limit: 200,
-              }),
-              this.agentService.listWaitingOn(context.userId, {}),
-              this.deps.projectService
-                ? this.agentService
-                    .listProjectsWithoutNextAction(context.userId, {
-                      includeOnHold: false,
-                    })
-                    .catch(() => [] as import("../types").Project[])
-                : Promise.resolve([] as import("../types").Project[]),
-            ]);
+          const [
+            allTasks,
+            waitingTasks,
+            missingNextActionProjects,
+            planConfig,
+          ] = await Promise.all([
+            this.agentService.listTasks(context.userId, {
+              statuses: ["inbox", "next", "in_progress", "scheduled"],
+              archived: false,
+              limit: 200,
+            }),
+            this.agentService.listWaitingOn(context.userId, {}),
+            this.deps.projectService
+              ? this.agentService
+                  .listProjectsWithoutNextAction(context.userId, {
+                    includeOnHold: false,
+                  })
+                  .catch(() => [] as import("../types").Project[])
+              : Promise.resolve([] as import("../types").Project[]),
+            this.agentConfigService.getConfig(context.userId),
+          ]);
 
           const baseBudget = availableMinutes ?? 480;
           const budget = Math.round(
@@ -1583,7 +1588,13 @@ export class AgentExecutor {
           );
 
           const { selected, excluded, usedMinutes, budgetBreakdown } =
-            this.scorePlan(allTasks, today, budget, energy, modeModifiers);
+            this.scorePlan(allTasks, today, budget, energy, modeModifiers, {
+              plannerWeightPriority: planConfig.plannerWeightPriority,
+              plannerWeightDueDate: planConfig.plannerWeightDueDate,
+              plannerWeightEnergyMatch: planConfig.plannerWeightEnergyMatch,
+              plannerWeightEstimateFit: planConfig.plannerWeightEstimateFit,
+              plannerWeightFreshness: planConfig.plannerWeightFreshness,
+            });
 
           const maxTasks = modeModifiers.maxTaskCount ?? selected.length;
           const cappedSelected = selected.slice(0, maxTasks);
@@ -2396,7 +2407,7 @@ export class AgentExecutor {
           const today = date ?? new Date().toISOString().slice(0, 10);
           const simDecidedAt = new Date().toISOString();
 
-          const [allTasks, waitingTasks, missingNextActionProjects] =
+          const [allTasks, waitingTasks, missingNextActionProjects, simConfig] =
             await Promise.all([
               this.agentService.listTasks(context.userId, {
                 statuses: ["inbox", "next", "in_progress", "scheduled"],
@@ -2411,11 +2422,27 @@ export class AgentExecutor {
                     })
                     .catch(() => [] as import("../types").Project[])
                 : Promise.resolve([] as import("../types").Project[]),
+              this.agentConfigService.getConfig(context.userId),
             ]);
+
+          const simWeights = {
+            plannerWeightPriority: simConfig.plannerWeightPriority,
+            plannerWeightDueDate: simConfig.plannerWeightDueDate,
+            plannerWeightEnergyMatch: simConfig.plannerWeightEnergyMatch,
+            plannerWeightEstimateFit: simConfig.plannerWeightEstimateFit,
+            plannerWeightFreshness: simConfig.plannerWeightFreshness,
+          };
 
           const budget = availableMinutes ?? 480;
           const { selected, excluded, usedMinutes, budgetBreakdown } =
-            this.scorePlan(allTasks, today, budget, energy);
+            this.scorePlan(
+              allTasks,
+              today,
+              budget,
+              energy,
+              undefined,
+              simWeights,
+            );
 
           const recommendedTasks = selected.map((s, i) => ({
             ...s.task,
@@ -2467,6 +2494,8 @@ export class AgentExecutor {
               compareToDate,
               budget,
               energy,
+              undefined,
+              simWeights,
             );
             const cIds = new Set(cSelected.map((s) => s.task.id));
             const bIds = new Set(selected.map((s) => s.task.id));
@@ -3079,6 +3108,13 @@ export class AgentExecutor {
     budgetMin: number,
     energy?: string,
     modeModifiers?: import("../services/dayContextService").ModeModifiers,
+    weights?: {
+      plannerWeightPriority?: number;
+      plannerWeightDueDate?: number;
+      plannerWeightEnergyMatch?: number;
+      plannerWeightEstimateFit?: number;
+      plannerWeightFreshness?: number;
+    },
   ): {
     selected: Array<{
       task: import("../types").Todo;
@@ -3108,10 +3144,16 @@ export class AgentExecutor {
       low: 0,
     };
 
+    const wPriority = weights?.plannerWeightPriority ?? 1.0;
+    const wDueDate = weights?.plannerWeightDueDate ?? 1.0;
+    const wEnergyMatch = weights?.plannerWeightEnergyMatch ?? 1.0;
+
     const scored = allTasks.map((t) => {
       const breakdown: Record<string, number> = {};
-      let score = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
-      breakdown.priority = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
+      const rawPriority = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
+      const weightedPriority = Math.round(rawPriority * wPriority);
+      let score = weightedPriority;
+      breakdown.priority = weightedPriority;
 
       if (t.doDate) {
         const d =
@@ -3131,22 +3173,23 @@ export class AgentExecutor {
           t.dueDate instanceof Date
             ? t.dueDate.toISOString().slice(0, 10)
             : String(t.dueDate).slice(0, 10);
-        if (d < forDate) {
-          score += 40;
-          breakdown.dueDateBoost = 40;
-        } else if (d === forDate) {
-          score += 20;
-          breakdown.dueDateBoost = 20;
+        const rawDueDateBoost = d < forDate ? 40 : d === forDate ? 20 : 0;
+        if (rawDueDateBoost > 0) {
+          const weightedDueDateBoost = Math.round(rawDueDateBoost * wDueDate);
+          score += weightedDueDateBoost;
+          breakdown.dueDateBoost = weightedDueDateBoost;
         }
       }
       const effort = t.effortScore ?? 30;
       if (energy === "low" && effort > 60) {
-        score -= 20;
-        breakdown.energyPenalty = -20;
+        const penalty = Math.round(20 * wEnergyMatch);
+        score -= penalty;
+        breakdown.energyPenalty = -penalty;
       }
       if (energy === "high" && effort < 15) {
-        score -= 5;
-        breakdown.energyPenalty = -5;
+        const penalty = Math.round(5 * wEnergyMatch);
+        score -= penalty;
+        breakdown.energyPenalty = -penalty;
       }
 
       // Mode-based boosts (#336)

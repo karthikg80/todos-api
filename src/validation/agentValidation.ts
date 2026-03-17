@@ -1536,6 +1536,11 @@ const UPDATE_AGENT_CONFIG_KEYS = [
   "inboxConfidenceThreshold",
   "staleThresholdDays",
   "waitingFollowUpDays",
+  "plannerWeightPriority",
+  "plannerWeightDueDate",
+  "plannerWeightEnergyMatch",
+  "plannerWeightEstimateFit",
+  "plannerWeightFreshness",
 ];
 
 export function validateAgentGetAgentConfigInput(
@@ -1555,6 +1560,11 @@ export function validateAgentUpdateAgentConfigInput(data: unknown): {
   inboxConfidenceThreshold?: number;
   staleThresholdDays?: number;
   waitingFollowUpDays?: number;
+  plannerWeightPriority?: number;
+  plannerWeightDueDate?: number;
+  plannerWeightEnergyMatch?: number;
+  plannerWeightEstimateFit?: number;
+  plannerWeightFreshness?: number;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, UPDATE_AGENT_CONFIG_KEYS, "Agent action input");
@@ -1617,6 +1627,20 @@ export function validateAgentUpdateAgentConfigInput(data: unknown): {
       90,
     );
     if (v !== undefined) result.waitingFollowUpDays = v;
+  }
+  for (const field of [
+    "plannerWeightPriority",
+    "plannerWeightDueDate",
+    "plannerWeightEnergyMatch",
+    "plannerWeightEstimateFit",
+    "plannerWeightFreshness",
+  ] as const) {
+    if (body[field] !== undefined) {
+      const raw = Number(body[field]);
+      if (isNaN(raw) || raw < 0 || raw > 10)
+        throw new ValidationError(`${field} must be a number between 0 and 10`);
+      result[field] = raw;
+    }
   }
   return result;
 }

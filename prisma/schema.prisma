@@ -563,6 +563,11 @@ model AgentConfig {
   inboxConfidenceThreshold Float    @default(0.9) @map("inbox_confidence_threshold")
   staleThresholdDays       Int      @default(14) @map("stale_threshold_days")
   waitingFollowUpDays      Int      @default(7) @map("waiting_follow_up_days")
+  plannerWeightPriority    Float    @default(1.0) @map("planner_weight_priority")
+  plannerWeightDueDate     Float    @default(1.0) @map("planner_weight_due_date")
+  plannerWeightEnergyMatch Float    @default(1.0) @map("planner_weight_energy_match")
+  plannerWeightEstimateFit Float    @default(1.0) @map("planner_weight_estimate_fit")
+  plannerWeightFreshness   Float    @default(1.0) @map("planner_weight_freshness")
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
