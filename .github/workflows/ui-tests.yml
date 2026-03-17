@@ -20,32 +20,27 @@ jobs:
         uses: dorny/paths-filter@v3
         with:
           filters: |
-            docs_only:
-              - '**/*.md'
-              - 'docs/**'
-              - 'LICENSE'
-              - '.gitignore'
-              - '.editorconfig'
-            needs_ui:
+            ui:
+              - 'client/**'
+              - 'tests/ui/**'
               - 'public/**'
-              - 'src/**'
-              - 'tests/**'
               - 'package.json'
               - 'package-lock.json'
-              - '.github/workflows/**'
+              - '.github/workflows/ui-tests.yml'
+              - '.github/workflows/ui-visual.yml'
 
       - name: Decide whether to run UI quality checks
         id: run
         run: |
           run_ui=true
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ steps.changes.outputs.docs_only }}" = "true" ] && [ "${{ steps.changes.outputs.needs_ui }}" != "true" ]; then
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ steps.changes.outputs.ui }}" != "true" ]; then
             run_ui=false
           fi
           echo "run_ui=${run_ui}" >> "$GITHUB_OUTPUT"
 
-      - name: Docs-only change detected; skipping UI-quality heavy steps
+      - name: No UI changes detected; skipping UI quality checks
         if: steps.run.outputs.run_ui != 'true'
-        run: echo "Docs/minor-only PR detected. Skipping UI-quality heavy steps."
+        run: echo "No client/tests/ui changes detected. Skipping UI quality checks."
 
       - name: Setup Node
         if: steps.run.outputs.run_ui == 'true'
