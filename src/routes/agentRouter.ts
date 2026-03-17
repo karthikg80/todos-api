@@ -393,5 +393,21 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "apply_learning_recommendation"),
   );
 
+  // Friction patterns (#338)
+  router.post(
+    "/read/list_friction_patterns",
+    createAgentActionHandler(agentExecutor, "list_friction_patterns"),
+  );
+
+  // Action policies (#339)
+  router.get(
+    "/read/get_action_policies",
+    createAgentActionHandler(agentExecutor, "get_action_policies"),
+  );
+  router.post(
+    "/write/update_action_policy",
+    createAgentActionHandler(agentExecutor, "update_action_policy"),
+  );
+
   return router;
 }

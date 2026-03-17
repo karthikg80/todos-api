@@ -136,6 +136,7 @@ function minimumRequiredScopesForAction(
     case "set_day_context":
     case "record_learning_recommendation":
     case "apply_learning_recommendation":
+    case "update_action_policy":
       return [TASK_WRITE_SCOPE];
     case "get_job_run_status":
     case "list_job_runs":
@@ -152,6 +153,8 @@ function minimumRequiredScopesForAction(
     case "evaluate_daily_plan":
     case "evaluate_weekly_system":
     case "list_learning_recommendations":
+    case "list_friction_patterns":
+    case "get_action_policies":
       return [TASK_READ_SCOPE];
   }
 }
