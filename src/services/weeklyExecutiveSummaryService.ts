@@ -45,7 +45,8 @@ function isoWeekBounds(weekOffset: number): {
   const jan4Day = jan4.getUTCDay(); // 0 = Sun
   const week1Monday = new Date(jan4);
   week1Monday.setUTCDate(jan4.getUTCDate() - (jan4Day === 0 ? 6 : jan4Day - 1));
-  const wn = Math.floor((monday.getTime() - week1Monday.getTime()) / (7 * 86400000)) + 1;
+  const wn =
+    Math.floor((monday.getTime() - week1Monday.getTime()) / (7 * 86400000)) + 1;
   const week = `${isoYear}-W${String(wn).padStart(2, "0")}`;
 
   return { week, start: monday, end: sunday };
