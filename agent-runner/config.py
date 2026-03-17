@@ -73,3 +73,13 @@ LOG_LEVEL: str = _optional("LOG_LEVEL", "INFO").upper()
 
 # Maximum number of write actions applied per job run (circuit-breaker).
 MAX_WRITE_ACTIONS_PER_RUN: int = _int("MAX_WRITE_ACTIONS_PER_RUN", 20)
+
+# Inbox agent: minimum confidence (0–1) required to auto-apply a triage suggestion.
+# Items below this threshold are marked needs_review and never auto-applied.
+MAX_AUTO_TRIAGE_CONFIDENCE: float = float(_optional("MAX_AUTO_TRIAGE_CONFIDENCE", "0.9"))
+
+# Watchdog: tasks untouched for this many days are flagged as stale.
+STALE_THRESHOLD_DAYS: int = _int("STALE_THRESHOLD_DAYS", 14)
+
+# Watchdog: waiting tasks older than this many days without a follow-up trigger one.
+WAITING_FOLLOW_UP_DAYS: int = _int("WAITING_FOLLOW_UP_DAYS", 7)

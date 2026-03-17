@@ -1,5 +1,5 @@
 {
-  "version": "1.2.1",
+  "version": "1.3.0",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -124,50 +124,97 @@
     "subtask": {
       "type": "object",
       "properties": {
-        "id": { "type": "string", "format": "uuid" },
-        "title": { "type": "string" },
-        "completed": { "type": "boolean" },
-        "order": { "type": ["integer", "null"] },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "order": {
+          "type": ["integer", "null"]
+        },
         "completedAt": {
           "type": ["string", "null"],
           "format": "date-time"
         },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
     "todo": {
       "type": "object",
       "notes": "Canonical task shape returned by the server. category remains supported for compatibility while projectId is the canonical project link.",
       "properties": {
-        "id": { "type": "string", "format": "uuid" },
-        "title": { "type": "string" },
-        "description": { "type": ["string", "null"] },
-        "status": { "$ref": "#/definitions/taskStatus" },
-        "completed": { "type": "boolean" },
-        "projectId": { "type": ["string", "null"], "format": "uuid" },
-        "category": { "type": ["string", "null"] },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "status": {
+          "$ref": "#/definitions/taskStatus"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "projectId": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        },
+        "category": {
+          "type": ["string", "null"]
+        },
         "priority": {
           "type": ["string", "null"],
           "enum": ["low", "medium", "high", "urgent", null]
         },
         "tags": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
-        "context": { "type": ["string", "null"] },
+        "context": {
+          "type": ["string", "null"]
+        },
         "energy": {
           "type": ["string", "null"],
           "enum": ["low", "medium", "high", null]
         },
-        "headingId": { "type": ["string", "null"], "format": "uuid" },
-        "dueDate": { "type": ["string", "null"], "format": "date-time" },
-        "startDate": { "type": ["string", "null"], "format": "date-time" },
+        "headingId": {
+          "type": ["string", "null"],
+          "format": "uuid"
+        },
+        "dueDate": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "startDate": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
         "scheduledDate": {
           "type": ["string", "null"],
           "format": "date-time"
         },
-        "reviewDate": { "type": ["string", "null"], "format": "date-time" },
+        "reviewDate": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
         "completedAt": {
           "type": ["string", "null"],
           "format": "date-time"
@@ -176,42 +223,81 @@
           "type": ["integer", "null"],
           "minimum": 0
         },
-        "waitingOn": { "type": ["string", "null"] },
+        "waitingOn": {
+          "type": ["string", "null"]
+        },
         "dependsOnTaskIds": {
           "type": "array",
-          "items": { "type": "string", "format": "uuid" }
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
         },
-        "order": { "type": "integer" },
-        "archived": { "type": "boolean" },
-        "recurrence": { "$ref": "#/definitions/todoRecurrence" },
+        "order": {
+          "type": "integer"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "recurrence": {
+          "$ref": "#/definitions/todoRecurrence"
+        },
         "source": {
           "type": ["string", "null"],
           "enum": ["manual", "chat", "email", "import", "automation", null]
         },
-        "createdByPrompt": { "type": ["string", "null"] },
-        "notes": { "type": ["string", "null"] },
+        "createdByPrompt": {
+          "type": ["string", "null"]
+        },
+        "notes": {
+          "type": ["string", "null"]
+        },
         "subtasks": {
           "type": "array",
-          "items": { "$ref": "#/definitions/subtask" }
+          "items": {
+            "$ref": "#/definitions/subtask"
+          }
         },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
     "project": {
       "type": "object",
       "properties": {
-        "id": { "type": "string", "format": "uuid" },
-        "name": { "type": "string" },
-        "description": { "type": ["string", "null"] },
-        "status": { "$ref": "#/definitions/projectStatus" },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
+        "status": {
+          "$ref": "#/definitions/projectStatus"
+        },
         "priority": {
           "type": ["string", "null"],
           "enum": ["low", "medium", "high", "urgent", null]
         },
-        "area": { "type": ["string", "null"] },
-        "goal": { "type": ["string", "null"] },
-        "targetDate": { "type": ["string", "null"], "format": "date-time" },
+        "area": {
+          "type": ["string", "null"]
+        },
+        "goal": {
+          "type": ["string", "null"]
+        },
+        "targetDate": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
         "reviewCadence": {
           "type": ["string", "null"],
           "enum": ["weekly", "biweekly", "monthly", "quarterly", null]
@@ -220,18 +306,36 @@
           "type": ["string", "null"],
           "format": "date-time"
         },
-        "archived": { "type": "boolean" },
+        "archived": {
+          "type": "boolean"
+        },
         "archivedAt": {
           "type": ["string", "null"],
           "format": "date-time"
         },
-        "taskCount": { "type": ["integer", "null"] },
-        "openTaskCount": { "type": ["integer", "null"] },
-        "completedTaskCount": { "type": ["integer", "null"] },
-        "todoCount": { "type": ["integer", "null"] },
-        "openTodoCount": { "type": ["integer", "null"] },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "taskCount": {
+          "type": ["integer", "null"]
+        },
+        "openTaskCount": {
+          "type": ["integer", "null"]
+        },
+        "completedTaskCount": {
+          "type": ["integer", "null"]
+        },
+        "todoCount": {
+          "type": ["integer", "null"]
+        },
+        "openTodoCount": {
+          "type": ["integer", "null"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
       }
     },
     "plannerMode": {
@@ -242,8 +346,12 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "title": { "type": "string" },
-        "description": { "type": ["string", "null"] },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": ["string", "null"]
+        },
         "priority": {
           "type": ["string", "null"],
           "enum": ["low", "medium", "high", "urgent", null]
@@ -252,7 +360,9 @@
           "type": "string",
           "enum": ["next", "in_progress", "waiting", "scheduled", "someday"]
         },
-        "reason": { "type": "string" }
+        "reason": {
+          "type": "string"
+        }
       }
     },
     "plannerFindingType": {
@@ -289,13 +399,23 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "taskId": { "type": "string", "format": "uuid" },
-        "title": { "type": "string" },
+        "taskId": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string"
+        },
         "dependsOnTaskIds": {
           "type": "array",
-          "items": { "type": "string", "format": "uuid" }
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
         },
-        "reason": { "type": "string" }
+        "reason": {
+          "type": "string"
+        }
       }
     }
   },
@@ -310,49 +430,117 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "completed": { "type": "boolean" },
-          "priority": { "$ref": "#/definitions/priority" },
+          "completed": {
+            "type": "boolean"
+          },
+          "priority": {
+            "$ref": "#/definitions/priority"
+          },
           "status": {
             "oneOf": [
-              { "$ref": "#/definitions/taskStatus" },
+              {
+                "$ref": "#/definitions/taskStatus"
+              },
               {
                 "type": "array",
-                "items": { "$ref": "#/definitions/taskStatus" }
+                "items": {
+                  "$ref": "#/definitions/taskStatus"
+                }
               }
             ]
           },
-          "category": { "type": "string" },
-          "project": { "type": "string" },
-          "projectId": { "type": "string", "format": "uuid" },
-          "unsorted": { "type": "boolean" },
-          "archived": { "type": "boolean" },
-          "tags": { "type": "array", "items": { "type": "string" } },
+          "category": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unsorted": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "context": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
           "energy": {
             "oneOf": [
-              { "$ref": "#/definitions/energy" },
+              {
+                "$ref": "#/definitions/energy"
+              },
               {
                 "type": "array",
-                "items": { "$ref": "#/definitions/energy" }
+                "items": {
+                  "$ref": "#/definitions/energy"
+                }
               }
             ]
           },
-          "dueDateFrom": { "type": "string", "format": "date-time" },
-          "dueDateTo": { "type": "string", "format": "date-time" },
-          "dueDateAfter": { "type": "string", "format": "date-time" },
-          "dueDateBefore": { "type": "string", "format": "date-time" },
-          "dueDateIsNull": { "type": "boolean" },
-          "startDateFrom": { "type": "string", "format": "date-time" },
-          "startDateTo": { "type": "string", "format": "date-time" },
-          "scheduledDateFrom": { "type": "string", "format": "date-time" },
-          "scheduledDateTo": { "type": "string", "format": "date-time" },
-          "reviewDateFrom": { "type": "string", "format": "date-time" },
-          "reviewDateTo": { "type": "string", "format": "date-time" },
-          "updatedBefore": { "type": "string", "format": "date-time" },
-          "updatedAfter": { "type": "string", "format": "date-time" },
+          "dueDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateIsNull": {
+            "type": "boolean"
+          },
+          "startDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scheduledDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scheduledDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
           "sortBy": {
             "type": "string",
             "enum": [
@@ -368,14 +556,23 @@
             "type": "string",
             "enum": ["asc", "desc"]
           },
-          "page": { "type": "integer", "minimum": 1 },
-          "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
         }
       },
       "output": {
         "dataKey": "tasks",
         "type": "array",
-        "items": { "$ref": "#/definitions/todo" }
+        "items": {
+          "$ref": "#/definitions/todo"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -391,47 +588,121 @@
         "additionalProperties": false,
         "required": ["search"],
         "properties": {
-          "search": { "type": "string", "maxLength": 200 },
-          "completed": { "type": "boolean" },
-          "priority": { "$ref": "#/definitions/priority" },
+          "search": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "priority": {
+            "$ref": "#/definitions/priority"
+          },
           "status": {
             "oneOf": [
-              { "$ref": "#/definitions/taskStatus" },
+              {
+                "$ref": "#/definitions/taskStatus"
+              },
               {
                 "type": "array",
-                "items": { "$ref": "#/definitions/taskStatus" }
+                "items": {
+                  "$ref": "#/definitions/taskStatus"
+                }
               }
             ]
           },
-          "category": { "type": "string" },
-          "project": { "type": "string" },
-          "projectId": { "type": "string", "format": "uuid" },
-          "unsorted": { "type": "boolean" },
-          "archived": { "type": "boolean" },
-          "tags": { "type": "array", "items": { "type": "string" } },
-          "context": { "type": "array", "items": { "type": "string" } },
+          "category": {
+            "type": "string"
+          },
+          "project": {
+            "type": "string"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unsorted": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "context": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "energy": {
             "oneOf": [
-              { "$ref": "#/definitions/energy" },
+              {
+                "$ref": "#/definitions/energy"
+              },
               {
                 "type": "array",
-                "items": { "$ref": "#/definitions/energy" }
+                "items": {
+                  "$ref": "#/definitions/energy"
+                }
               }
             ]
           },
-          "dueDateFrom": { "type": "string", "format": "date-time" },
-          "dueDateTo": { "type": "string", "format": "date-time" },
-          "dueDateAfter": { "type": "string", "format": "date-time" },
-          "dueDateBefore": { "type": "string", "format": "date-time" },
-          "dueDateIsNull": { "type": "boolean" },
-          "startDateFrom": { "type": "string", "format": "date-time" },
-          "startDateTo": { "type": "string", "format": "date-time" },
-          "scheduledDateFrom": { "type": "string", "format": "date-time" },
-          "scheduledDateTo": { "type": "string", "format": "date-time" },
-          "reviewDateFrom": { "type": "string", "format": "date-time" },
-          "reviewDateTo": { "type": "string", "format": "date-time" },
-          "updatedBefore": { "type": "string", "format": "date-time" },
-          "updatedAfter": { "type": "string", "format": "date-time" },
+          "dueDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "dueDateIsNull": {
+            "type": "boolean"
+          },
+          "startDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scheduledDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "scheduledDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewDateFrom": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "reviewDateTo": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedBefore": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAfter": {
+            "type": "string",
+            "format": "date-time"
+          },
           "sortBy": {
             "type": "string",
             "enum": [
@@ -447,14 +718,23 @@
             "type": "string",
             "enum": ["asc", "desc"]
           },
-          "page": { "type": "integer", "minimum": 1 },
-          "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+          "page": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
         }
       },
       "output": {
         "dataKey": "tasks",
         "type": "array",
-        "items": { "$ref": "#/definitions/todo" }
+        "items": {
+          "$ref": "#/definitions/todo"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -470,10 +750,16 @@
         "additionalProperties": false,
         "required": ["id"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
-      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -491,10 +777,16 @@
         "additionalProperties": false,
         "required": ["id"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
-      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
+      "output": {
+        "dataKey": "project",
+        "$ref": "#/definitions/project"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -509,52 +801,111 @@
         "additionalProperties": false,
         "required": ["title"],
         "properties": {
-          "title": { "type": "string", "maxLength": 200 },
-          "description": { "type": ["string", "null"], "maxLength": 1000 },
-          "status": { "$ref": "#/definitions/taskStatus" },
-          "completed": { "type": "boolean" },
-          "projectId": { "type": ["string", "null"], "format": "uuid" },
-          "category": { "type": ["string", "null"], "maxLength": 50 },
-          "headingId": { "type": ["string", "null"], "format": "uuid" },
-          "dueDate": { "type": ["string", "null"], "format": "date-time" },
-          "startDate": { "type": ["string", "null"], "format": "date-time" },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": ["string", "null"],
+            "maxLength": 1000
+          },
+          "status": {
+            "$ref": "#/definitions/taskStatus"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "projectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "category": {
+            "type": ["string", "null"],
+            "maxLength": 50
+          },
+          "headingId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "dueDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "startDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
           "scheduledDate": {
             "type": ["string", "null"],
             "format": "date-time"
           },
-          "reviewDate": { "type": ["string", "null"], "format": "date-time" },
+          "reviewDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
           "priority": {
             "type": ["string", "null"],
             "enum": ["low", "medium", "high", "urgent", null]
           },
-          "tags": { "type": "array", "items": { "type": "string" } },
-          "context": { "type": ["string", "null"] },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "context": {
+            "type": ["string", "null"]
+          },
           "energy": {
             "type": ["string", "null"],
             "enum": ["low", "medium", "high", null]
           },
-          "estimateMinutes": { "type": ["integer", "null"], "minimum": 0 },
-          "waitingOn": { "type": ["string", "null"], "maxLength": 255 },
+          "estimateMinutes": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "waitingOn": {
+            "type": ["string", "null"],
+            "maxLength": 255
+          },
           "dependsOnTaskIds": {
             "type": "array",
-            "items": { "type": "string", "format": "uuid" }
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
-          "archived": { "type": "boolean" },
+          "archived": {
+            "type": "boolean"
+          },
           "recurrence": {
             "oneOf": [
-              { "$ref": "#/definitions/todoRecurrence" },
-              { "type": "null" }
+              {
+                "$ref": "#/definitions/todoRecurrence"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "source": {
             "type": ["string", "null"],
             "enum": ["manual", "chat", "email", "import", "automation", null]
           },
-          "createdByPrompt": { "type": ["string", "null"], "maxLength": 4000 },
-          "notes": { "type": ["string", "null"], "maxLength": 10000 }
+          "createdByPrompt": {
+            "type": ["string", "null"],
+            "maxLength": 4000
+          },
+          "notes": {
+            "type": ["string", "null"],
+            "maxLength": 10000
+          }
         }
       },
-      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "optional_header_for_create_flow"
     },
@@ -569,54 +920,119 @@
         "additionalProperties": false,
         "required": ["id"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "title": { "type": "string", "maxLength": 200 },
-          "description": { "type": ["string", "null"], "maxLength": 1000 },
-          "status": { "$ref": "#/definitions/taskStatus" },
-          "completed": { "type": "boolean" },
-          "projectId": { "type": ["string", "null"], "format": "uuid" },
-          "category": { "type": ["string", "null"], "maxLength": 50 },
-          "headingId": { "type": ["string", "null"], "format": "uuid" },
-          "dueDate": { "type": ["string", "null"], "format": "date-time" },
-          "startDate": { "type": ["string", "null"], "format": "date-time" },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "description": {
+            "type": ["string", "null"],
+            "maxLength": 1000
+          },
+          "status": {
+            "$ref": "#/definitions/taskStatus"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "projectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "category": {
+            "type": ["string", "null"],
+            "maxLength": 50
+          },
+          "headingId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "dueDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "startDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
           "scheduledDate": {
             "type": ["string", "null"],
             "format": "date-time"
           },
-          "reviewDate": { "type": ["string", "null"], "format": "date-time" },
-          "order": { "type": "integer", "minimum": 0 },
+          "reviewDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          },
           "priority": {
             "type": ["string", "null"],
             "enum": ["low", "medium", "high", "urgent", null]
           },
-          "tags": { "type": "array", "items": { "type": "string" } },
-          "context": { "type": ["string", "null"] },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "context": {
+            "type": ["string", "null"]
+          },
           "energy": {
             "type": ["string", "null"],
             "enum": ["low", "medium", "high", null]
           },
-          "estimateMinutes": { "type": ["integer", "null"], "minimum": 0 },
-          "waitingOn": { "type": ["string", "null"], "maxLength": 255 },
+          "estimateMinutes": {
+            "type": ["integer", "null"],
+            "minimum": 0
+          },
+          "waitingOn": {
+            "type": ["string", "null"],
+            "maxLength": 255
+          },
           "dependsOnTaskIds": {
             "type": "array",
-            "items": { "type": "string", "format": "uuid" }
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           },
-          "archived": { "type": "boolean" },
+          "archived": {
+            "type": "boolean"
+          },
           "recurrence": {
             "oneOf": [
-              { "$ref": "#/definitions/todoRecurrence" },
-              { "type": "null" }
+              {
+                "$ref": "#/definitions/todoRecurrence"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
           "source": {
             "type": ["string", "null"],
             "enum": ["manual", "chat", "email", "import", "automation", null]
           },
-          "createdByPrompt": { "type": ["string", "null"], "maxLength": 4000 },
-          "notes": { "type": ["string", "null"], "maxLength": 10000 }
+          "createdByPrompt": {
+            "type": ["string", "null"],
+            "maxLength": 4000
+          },
+          "notes": {
+            "type": ["string", "null"],
+            "maxLength": 10000
+          }
         }
       },
-      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_implemented_yet"
     },
@@ -631,11 +1047,19 @@
         "additionalProperties": false,
         "required": ["id"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "completed": { "type": "boolean" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "completed": {
+            "type": "boolean"
+          }
         }
       },
-      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -650,11 +1074,19 @@
         "additionalProperties": false,
         "required": ["id", "archived"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "archived": { "type": "boolean" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "archived": {
+            "type": "boolean"
+          }
         }
       },
-      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -669,20 +1101,39 @@
         "additionalProperties": false,
         "required": ["id"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "hardDelete": { "type": "boolean" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hardDelete": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
         "dataKey": "result",
         "type": "object",
         "properties": {
-          "deleted": { "type": "boolean" },
-          "archived": { "type": "boolean" },
-          "task": {
-            "oneOf": [{ "$ref": "#/definitions/todo" }, { "type": "null" }]
+          "deleted": {
+            "type": "boolean"
           },
-          "taskId": { "type": "string", "format": "uuid" }
+          "archived": {
+            "type": "boolean"
+          },
+          "task": {
+            "oneOf": [
+              {
+                "$ref": "#/definitions/todo"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
       "errorModel": "structured_agent_error",
@@ -699,11 +1150,20 @@
         "additionalProperties": false,
         "required": ["taskId", "title"],
         "properties": {
-          "taskId": { "type": "string", "format": "uuid" },
-          "title": { "type": "string", "maxLength": 200 }
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          }
         }
       },
-      "output": { "dataKey": "subtask", "$ref": "#/definitions/subtask" },
+      "output": {
+        "dataKey": "subtask",
+        "$ref": "#/definitions/subtask"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -718,14 +1178,31 @@
         "additionalProperties": false,
         "required": ["taskId", "subtaskId"],
         "properties": {
-          "taskId": { "type": "string", "format": "uuid" },
-          "subtaskId": { "type": "string", "format": "uuid" },
-          "title": { "type": "string", "maxLength": 200 },
-          "completed": { "type": "boolean" },
-          "order": { "type": "integer", "minimum": 0 }
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subtaskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "order": {
+            "type": "integer",
+            "minimum": 0
+          }
         }
       },
-      "output": { "dataKey": "subtask", "$ref": "#/definitions/subtask" },
+      "output": {
+        "dataKey": "subtask",
+        "$ref": "#/definitions/subtask"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -740,17 +1217,31 @@
         "additionalProperties": false,
         "required": ["taskId", "subtaskId"],
         "properties": {
-          "taskId": { "type": "string", "format": "uuid" },
-          "subtaskId": { "type": "string", "format": "uuid" }
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subtaskId": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
       "output": {
         "dataKey": "result",
         "type": "object",
         "properties": {
-          "deleted": { "type": "boolean" },
-          "taskId": { "type": "string", "format": "uuid" },
-          "subtaskId": { "type": "string", "format": "uuid" }
+          "deleted": {
+            "type": "boolean"
+          },
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "subtaskId": {
+            "type": "string",
+            "format": "uuid"
+          }
         }
       },
       "errorModel": "structured_agent_error",
@@ -771,20 +1262,30 @@
         "properties": {
           "status": {
             "oneOf": [
-              { "$ref": "#/definitions/projectStatus" },
+              {
+                "$ref": "#/definitions/projectStatus"
+              },
               {
                 "type": "array",
-                "items": { "$ref": "#/definitions/projectStatus" }
+                "items": {
+                  "$ref": "#/definitions/projectStatus"
+                }
               }
             ]
           },
-          "archived": { "type": "boolean" },
+          "archived": {
+            "type": "boolean"
+          },
           "reviewCadence": {
             "oneOf": [
-              { "$ref": "#/definitions/reviewCadence" },
+              {
+                "$ref": "#/definitions/reviewCadence"
+              },
               {
                 "type": "array",
-                "items": { "$ref": "#/definitions/reviewCadence" }
+                "items": {
+                  "$ref": "#/definitions/reviewCadence"
+                }
               }
             ]
           }
@@ -793,7 +1294,9 @@
       "output": {
         "dataKey": "projects",
         "type": "array",
-        "items": { "$ref": "#/definitions/project" }
+        "items": {
+          "$ref": "#/definitions/project"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -812,8 +1315,14 @@
         "additionalProperties": false,
         "required": ["name"],
         "properties": {
-          "name": { "type": "string", "maxLength": 50 },
-          "description": { "type": ["string", "null"], "maxLength": 4000 },
+          "name": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "description": {
+            "type": ["string", "null"],
+            "maxLength": 4000
+          },
           "status": {
             "type": ["string", "null"],
             "enum": ["active", "on_hold", "completed", "archived", null]
@@ -822,9 +1331,18 @@
             "type": ["string", "null"],
             "enum": ["low", "medium", "high", "urgent", null]
           },
-          "area": { "type": ["string", "null"], "maxLength": 100 },
-          "goal": { "type": ["string", "null"], "maxLength": 4000 },
-          "targetDate": { "type": ["string", "null"], "format": "date-time" },
+          "area": {
+            "type": ["string", "null"],
+            "maxLength": 100
+          },
+          "goal": {
+            "type": ["string", "null"],
+            "maxLength": 4000
+          },
+          "targetDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
           "reviewCadence": {
             "type": ["string", "null"],
             "enum": ["weekly", "biweekly", "monthly", "quarterly", null]
@@ -833,10 +1351,15 @@
             "type": ["string", "null"],
             "format": "date-time"
           },
-          "archived": { "type": "boolean" }
+          "archived": {
+            "type": "boolean"
+          }
         }
       },
-      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
+      "output": {
+        "dataKey": "project",
+        "$ref": "#/definitions/project"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "optional_header_for_create_flow"
     },
@@ -854,9 +1377,18 @@
         "additionalProperties": false,
         "required": ["id"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string", "maxLength": 50 },
-          "description": { "type": ["string", "null"], "maxLength": 4000 },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "description": {
+            "type": ["string", "null"],
+            "maxLength": 4000
+          },
           "status": {
             "type": ["string", "null"],
             "enum": ["active", "on_hold", "completed", "archived", null]
@@ -865,9 +1397,18 @@
             "type": ["string", "null"],
             "enum": ["low", "medium", "high", "urgent", null]
           },
-          "area": { "type": ["string", "null"], "maxLength": 100 },
-          "goal": { "type": ["string", "null"], "maxLength": 4000 },
-          "targetDate": { "type": ["string", "null"], "format": "date-time" },
+          "area": {
+            "type": ["string", "null"],
+            "maxLength": 100
+          },
+          "goal": {
+            "type": ["string", "null"],
+            "maxLength": 4000
+          },
+          "targetDate": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
           "reviewCadence": {
             "type": ["string", "null"],
             "enum": ["weekly", "biweekly", "monthly", "quarterly", null]
@@ -876,10 +1417,15 @@
             "type": ["string", "null"],
             "format": "date-time"
           },
-          "archived": { "type": "boolean" }
+          "archived": {
+            "type": "boolean"
+          }
         }
       },
-      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
+      "output": {
+        "dataKey": "project",
+        "$ref": "#/definitions/project"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -897,11 +1443,20 @@
         "additionalProperties": false,
         "required": ["id", "name"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "name": { "type": "string", "maxLength": 50 }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 50
+          }
         }
       },
-      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
+      "output": {
+        "dataKey": "project",
+        "$ref": "#/definitions/project"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -919,27 +1474,46 @@
         "additionalProperties": false,
         "required": ["id"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
           "moveTasksToProjectId": {
             "type": ["string", "null"],
             "format": "uuid"
           },
-          "archiveInstead": { "type": "boolean" }
+          "archiveInstead": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
         "dataKey": "result",
         "type": "object",
         "properties": {
-          "deleted": { "type": "boolean" },
-          "archived": { "type": "boolean" },
-          "projectId": { "type": "string", "format": "uuid" },
+          "deleted": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "movedTasksToProjectId": {
             "type": ["string", "null"],
             "format": "uuid"
           },
           "project": {
-            "oneOf": [{ "$ref": "#/definitions/project" }, { "type": "null" }]
+            "oneOf": [
+              {
+                "$ref": "#/definitions/project"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "taskDisposition": {
             "type": ["string", "null"],
@@ -964,11 +1538,20 @@
         "additionalProperties": false,
         "required": ["taskId"],
         "properties": {
-          "taskId": { "type": "string", "format": "uuid" },
-          "projectId": { "type": ["string", "null"], "format": "uuid" }
+          "taskId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          }
         }
       },
-      "output": { "dataKey": "task", "$ref": "#/definitions/todo" },
+      "output": {
+        "dataKey": "task",
+        "$ref": "#/definitions/todo"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -986,11 +1569,19 @@
         "additionalProperties": false,
         "required": ["id", "archived"],
         "properties": {
-          "id": { "type": "string", "format": "uuid" },
-          "archived": { "type": "boolean" }
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "archived": {
+            "type": "boolean"
+          }
         }
       },
-      "output": { "dataKey": "project", "$ref": "#/definitions/project" },
+      "output": {
+        "dataKey": "project",
+        "$ref": "#/definitions/project"
+      },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
     },
@@ -1004,14 +1595,20 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "includeOverdue": { "type": "boolean" },
-          "includeCompleted": { "type": "boolean" }
+          "includeOverdue": {
+            "type": "boolean"
+          },
+          "includeCompleted": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
         "dataKey": "tasks",
         "type": "array",
-        "items": { "$ref": "#/definitions/todo" }
+        "items": {
+          "$ref": "#/definitions/todo"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -1026,19 +1623,35 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "projectId": { "type": ["string", "null"], "format": "uuid" },
-          "context": { "type": "array", "items": { "type": "string" } },
+          "projectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          },
+          "context": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "energy": {
             "type": "array",
-            "items": { "$ref": "#/definitions/energy" }
+            "items": {
+              "$ref": "#/definitions/energy"
+            }
           },
-          "limit": { "type": "integer", "minimum": 1, "maximum": 100 }
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100
+          }
         }
       },
       "output": {
         "dataKey": "tasks",
         "type": "array",
-        "items": { "$ref": "#/definitions/todo" }
+        "items": {
+          "$ref": "#/definitions/todo"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -1053,13 +1666,18 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "projectId": { "type": ["string", "null"], "format": "uuid" }
+          "projectId": {
+            "type": ["string", "null"],
+            "format": "uuid"
+          }
         }
       },
       "output": {
         "dataKey": "tasks",
         "type": "array",
-        "items": { "$ref": "#/definitions/todo" }
+        "items": {
+          "$ref": "#/definitions/todo"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -1074,15 +1692,25 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "days": { "type": "integer", "minimum": 1, "maximum": 365 },
-          "includeScheduled": { "type": "boolean" },
-          "includeDue": { "type": "boolean" }
+          "days": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365
+          },
+          "includeScheduled": {
+            "type": "boolean"
+          },
+          "includeDue": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
         "dataKey": "tasks",
         "type": "array",
-        "items": { "$ref": "#/definitions/todo" }
+        "items": {
+          "$ref": "#/definitions/todo"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -1102,13 +1730,17 @@
             "minimum": 1,
             "maximum": 3650
           },
-          "completed": { "type": "boolean" }
+          "completed": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
         "dataKey": "tasks",
         "type": "array",
-        "items": { "$ref": "#/definitions/todo" }
+        "items": {
+          "$ref": "#/definitions/todo"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -1126,13 +1758,17 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "includeOnHold": { "type": "boolean" }
+          "includeOnHold": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
         "dataKey": "projects",
         "type": "array",
-        "items": { "$ref": "#/definitions/project" }
+        "items": {
+          "$ref": "#/definitions/project"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -1150,13 +1786,17 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "dueForReviewOnly": { "type": "boolean" }
+          "dueForReviewOnly": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
         "dataKey": "projects",
         "type": "array",
-        "items": { "$ref": "#/definitions/project" }
+        "items": {
+          "$ref": "#/definitions/project"
+        }
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
@@ -1174,14 +1814,25 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "projectId": { "type": "string", "format": "uuid" },
-          "goal": { "type": ["string", "null"], "maxLength": 200 },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "goal": {
+            "type": ["string", "null"],
+            "maxLength": 200
+          },
           "constraints": {
             "type": "array",
-            "items": { "type": "string", "maxLength": 200 },
+            "items": {
+              "type": "string",
+              "maxLength": 200
+            },
             "maxItems": 20
           },
-          "mode": { "$ref": "#/definitions/plannerMode" }
+          "mode": {
+            "$ref": "#/definitions/plannerMode"
+          }
         },
         "required": ["projectId"]
       },
@@ -1192,18 +1843,30 @@
           "project": {
             "type": "object",
             "properties": {
-              "id": { "type": "string", "format": "uuid" },
-              "name": { "type": "string" }
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              }
             }
           },
-          "summary": { "type": "string" },
+          "summary": {
+            "type": "string"
+          },
           "suggestedTasks": {
             "type": "array",
-            "items": { "$ref": "#/definitions/plannerTaskSuggestion" }
+            "items": {
+              "$ref": "#/definitions/plannerTaskSuggestion"
+            }
           },
           "createdTaskIds": {
             "type": "array",
-            "items": { "type": "string", "format": "uuid" }
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -1223,8 +1886,13 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "projectId": { "type": "string", "format": "uuid" },
-          "mode": { "$ref": "#/definitions/plannerMode" }
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mode": {
+            "$ref": "#/definitions/plannerMode"
+          }
         },
         "required": ["projectId"]
       },
@@ -1232,21 +1900,35 @@
         "dataKey": "result",
         "type": "object",
         "properties": {
-          "projectId": { "type": "string", "format": "uuid" },
-          "hasNextAction": { "type": "boolean" },
-          "created": { "type": "boolean" },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hasNextAction": {
+            "type": "boolean"
+          },
+          "created": {
+            "type": "boolean"
+          },
           "task": {
             "type": ["object", "null"],
             "properties": {
-              "id": { "type": ["string", "null"], "format": "uuid" },
-              "title": { "type": "string" },
+              "id": {
+                "type": ["string", "null"],
+                "format": "uuid"
+              },
+              "title": {
+                "type": "string"
+              },
               "status": {
                 "type": "string",
                 "enum": ["next", "in_progress"]
               }
             }
           },
-          "reason": { "type": "string" }
+          "reason": {
+            "type": "string"
+          }
         }
       },
       "errorModel": "structured_agent_error",
@@ -1265,8 +1947,12 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "mode": { "$ref": "#/definitions/plannerMode" },
-          "includeArchived": { "type": "boolean" }
+          "mode": {
+            "$ref": "#/definitions/plannerMode"
+          },
+          "includeArchived": {
+            "type": "boolean"
+          }
         }
       },
       "output": {
@@ -1276,10 +1962,18 @@
           "summary": {
             "type": "object",
             "properties": {
-              "projectsWithoutNextAction": { "type": "integer" },
-              "staleTasks": { "type": "integer" },
-              "waitingTasks": { "type": "integer" },
-              "upcomingTasks": { "type": "integer" }
+              "projectsWithoutNextAction": {
+                "type": "integer"
+              },
+              "staleTasks": {
+                "type": "integer"
+              },
+              "waitingTasks": {
+                "type": "integer"
+              },
+              "upcomingTasks": {
+                "type": "integer"
+              }
             }
           },
           "findings": {
@@ -1287,12 +1981,26 @@
             "items": {
               "type": "object",
               "properties": {
-                "type": { "$ref": "#/definitions/plannerFindingType" },
-                "projectId": { "type": "string", "format": "uuid" },
-                "projectName": { "type": "string" },
-                "taskId": { "type": "string", "format": "uuid" },
-                "taskTitle": { "type": "string" },
-                "reason": { "type": "string" }
+                "type": {
+                  "$ref": "#/definitions/plannerFindingType"
+                },
+                "projectId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "projectName": {
+                  "type": "string"
+                },
+                "taskId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "taskTitle": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -1301,12 +2009,27 @@
             "items": {
               "type": "object",
               "properties": {
-                "type": { "$ref": "#/definitions/plannerRecommendationType" },
-                "projectId": { "type": "string", "format": "uuid" },
-                "taskId": { "type": "string", "format": "uuid" },
-                "title": { "type": "string" },
-                "reason": { "type": "string" },
-                "createdTaskId": { "type": "string", "format": "uuid" }
+                "type": {
+                  "$ref": "#/definitions/plannerRecommendationType"
+                },
+                "projectId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "taskId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "createdTaskId": {
+                  "type": "string",
+                  "format": "uuid"
+                }
               }
             }
           },
@@ -1315,12 +2038,27 @@
             "items": {
               "type": "object",
               "properties": {
-                "type": { "$ref": "#/definitions/plannerRecommendationType" },
-                "projectId": { "type": "string", "format": "uuid" },
-                "taskId": { "type": "string", "format": "uuid" },
-                "title": { "type": "string" },
-                "reason": { "type": "string" },
-                "createdTaskId": { "type": "string", "format": "uuid" }
+                "type": {
+                  "$ref": "#/definitions/plannerRecommendationType"
+                },
+                "projectId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "taskId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "createdTaskId": {
+                  "type": "string",
+                  "format": "uuid"
+                }
               }
             }
           }
@@ -1347,13 +2085,20 @@
             "minimum": 0,
             "maximum": 1440
           },
-          "energy": { "$ref": "#/definitions/energy" },
+          "energy": {
+            "$ref": "#/definitions/energy"
+          },
           "context": {
             "type": "array",
-            "items": { "type": "string", "maxLength": 100 },
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
             "maxItems": 10
           },
-          "mode": { "$ref": "#/definitions/plannerMode" }
+          "mode": {
+            "$ref": "#/definitions/plannerMode"
+          }
         }
       },
       "output": {
@@ -1365,12 +2110,26 @@
             "items": {
               "type": "object",
               "properties": {
-                "taskId": { "type": "string", "format": "uuid" },
-                "projectId": { "type": ["string", "null"], "format": "uuid" },
-                "title": { "type": "string" },
-                "reason": { "type": "string" },
-                "impact": { "$ref": "#/definitions/plannerImpact" },
-                "effort": { "$ref": "#/definitions/plannerEffort" }
+                "taskId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "projectId": {
+                  "type": ["string", "null"],
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "impact": {
+                  "$ref": "#/definitions/plannerImpact"
+                },
+                "effort": {
+                  "$ref": "#/definitions/plannerEffort"
+                }
               }
             }
           }
@@ -1392,7 +2151,10 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "projectId": { "type": "string", "format": "uuid" }
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          }
         },
         "required": ["projectId"]
       },
@@ -1400,22 +2162,41 @@
         "dataKey": "health",
         "type": "object",
         "properties": {
-          "projectId": { "type": "string", "format": "uuid" },
-          "healthScore": { "type": "integer" },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "healthScore": {
+            "type": "integer"
+          },
           "risks": {
             "type": "array",
-            "items": { "type": "string" }
+            "items": {
+              "type": "string"
+            }
           },
           "recommendedInterventions": {
             "type": "array",
             "items": {
               "type": "object",
               "properties": {
-                "type": { "$ref": "#/definitions/plannerRecommendationType" },
-                "projectId": { "type": "string", "format": "uuid" },
-                "taskId": { "type": "string", "format": "uuid" },
-                "title": { "type": "string" },
-                "reason": { "type": "string" }
+                "type": {
+                  "$ref": "#/definitions/plannerRecommendationType"
+                },
+                "projectId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "taskId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
               }
             }
           }
@@ -1437,7 +2218,10 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "projectId": { "type": "string", "format": "uuid" }
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          }
         },
         "required": ["projectId"]
       },
@@ -1447,19 +2231,27 @@
         "properties": {
           "blockedTasks": {
             "type": "array",
-            "items": { "$ref": "#/definitions/workGraphTaskNode" }
+            "items": {
+              "$ref": "#/definitions/workGraphTaskNode"
+            }
           },
           "unblockedTasks": {
             "type": "array",
-            "items": { "$ref": "#/definitions/workGraphTaskNode" }
+            "items": {
+              "$ref": "#/definitions/workGraphTaskNode"
+            }
           },
           "criticalPath": {
             "type": "array",
-            "items": { "$ref": "#/definitions/workGraphTaskNode" }
+            "items": {
+              "$ref": "#/definitions/workGraphTaskNode"
+            }
           },
           "parallelWork": {
             "type": "array",
-            "items": { "$ref": "#/definitions/workGraphTaskNode" }
+            "items": {
+              "$ref": "#/definitions/workGraphTaskNode"
+            }
           }
         }
       },
@@ -1478,7 +2270,9 @@
         "properties": {
           "taskIds": {
             "type": "array",
-            "items": { "type": "string" },
+            "items": {
+              "type": "string"
+            },
             "description": "Optional list of task IDs to analyze. Defaults to all open tasks."
           },
           "projectId": {
@@ -1633,14 +2427,23 @@
       "method": "POST",
       "path": "/read/suggest_next_actions",
       "readOnly": true,
-      "availability": { "requires": ["project_service"] },
+      "availability": {
+        "requires": ["project_service"]
+      },
       "inputSchema": {
         "type": "object",
         "additionalProperties": false,
         "required": ["projectId"],
         "properties": {
-          "projectId": { "type": "string", "format": "uuid" },
-          "limit": { "type": "integer", "minimum": 1, "maximum": 50 }
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
         }
       },
       "output": {
@@ -1682,7 +2485,10 @@
         "additionalProperties": false,
         "required": ["captureItemId"],
         "properties": {
-          "captureItemId": { "type": "string", "format": "uuid" },
+          "captureItemId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "mode": {
             "type": "string",
             "enum": ["suggest", "apply"],
@@ -1735,10 +2541,14 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "limit": { "type": "integer", "minimum": 1, "maximum": 200 },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200
+          },
           "since": {
             "type": "string",
-            "description": "ISO timestamp — return only entries after this date."
+            "description": "ISO timestamp \u2014 return only entries after this date."
           },
           "action": {
             "type": "string",
@@ -1855,8 +2665,12 @@
         "additionalProperties": false,
         "required": ["jobName", "periodKey"],
         "properties": {
-          "jobName": { "type": "string" },
-          "periodKey": { "type": "string" },
+          "jobName": {
+            "type": "string"
+          },
+          "periodKey": {
+            "type": "string"
+          },
           "metadata": {
             "type": "object",
             "description": "Optional JSON metadata to store with the completed run."
@@ -1880,8 +2694,12 @@
         "additionalProperties": false,
         "required": ["jobName", "periodKey", "errorMessage"],
         "properties": {
-          "jobName": { "type": "string" },
-          "periodKey": { "type": "string" },
+          "jobName": {
+            "type": "string"
+          },
+          "periodKey": {
+            "type": "string"
+          },
           "errorMessage": {
             "type": "string",
             "description": "Error message describing why the job failed. Truncated to 500 characters."
@@ -1905,8 +2723,12 @@
         "additionalProperties": false,
         "required": ["jobName", "periodKey"],
         "properties": {
-          "jobName": { "type": "string" },
-          "periodKey": { "type": "string" }
+          "jobName": {
+            "type": "string"
+          },
+          "periodKey": {
+            "type": "string"
+          }
         }
       },
       "output": {
@@ -1959,8 +2781,12 @@
         "additionalProperties": false,
         "required": ["jobName", "periodKey", "actionType"],
         "properties": {
-          "jobName": { "type": "string" },
-          "periodKey": { "type": "string" },
+          "jobName": {
+            "type": "string"
+          },
+          "periodKey": {
+            "type": "string"
+          },
           "actionType": {
             "type": "string",
             "description": "Logical action type that failed (e.g. 'create_follow_up')."
@@ -1973,7 +2799,9 @@
             "type": "string",
             "description": "Optional entity ID the action targeted."
           },
-          "errorCode": { "type": "string" },
+          "errorCode": {
+            "type": "string"
+          },
           "errorMessage": {
             "type": "string",
             "description": "Error message. Truncated to 1000 characters."
@@ -2004,8 +2832,12 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "jobName": { "type": "string" },
-          "periodKey": { "type": "string" },
+          "jobName": {
+            "type": "string"
+          },
+          "periodKey": {
+            "type": "string"
+          },
           "includeResolved": {
             "type": "boolean",
             "description": "Include already-resolved entries. Defaults to false."
@@ -2048,6 +2880,276 @@
       },
       "output": {
         "description": "resolved boolean indicating whether the record was found and updated."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "get_agent_config",
+      "description": "Get the current agent automation configuration for the authenticated user. Returns enabled/disabled flags for each job and tuning parameters.",
+      "method": "GET",
+      "path": "/read/get_agent_config",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "description": "config object with job-enabled flags and threshold parameters."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "update_agent_config",
+      "description": "Update the agent automation configuration. Only the supplied fields are changed; unspecified fields keep their current values.",
+      "method": "POST",
+      "path": "/write/update_agent_config",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "dailyEnabled": {
+            "type": "boolean",
+            "description": "Enable or disable the daily planning job."
+          },
+          "weeklyEnabled": {
+            "type": "boolean",
+            "description": "Enable or disable the weekly review job."
+          },
+          "inboxEnabled": {
+            "type": "boolean",
+            "description": "Enable or disable the inbox triage job."
+          },
+          "watchdogEnabled": {
+            "type": "boolean",
+            "description": "Enable or disable the aging watchdog job."
+          },
+          "decomposerEnabled": {
+            "type": "boolean",
+            "description": "Enable or disable the project decomposer job."
+          },
+          "autoApply": {
+            "type": "boolean",
+            "description": "When true, safe allowlisted actions are applied automatically."
+          },
+          "maxWriteActionsPerRun": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "description": "Circuit-breaker: maximum write actions per job run."
+          },
+          "inboxConfidenceThreshold": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Minimum confidence required to auto-apply an inbox triage suggestion (0\u20131)."
+          },
+          "staleThresholdDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 365,
+            "description": "Tasks untouched for this many days are flagged as stale."
+          },
+          "waitingFollowUpDays": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 90,
+            "description": "Waiting tasks older than this many days without a follow-up trigger one."
+          }
+        }
+      },
+      "output": {
+        "description": "Updated config object."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "replay_job_run",
+      "description": "Replay (re-open for re-execution) a previously completed or failed job run. Increments retryCount and resets status to 'running'. The agent runner is responsible for re-executing the job.",
+      "method": "POST",
+      "path": "/write/replay_job_run",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey"],
+        "properties": {
+          "jobName": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Name of the job to replay (e.g. 'daily', 'inbox_triage')."
+          },
+          "periodKey": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Period key of the run to replay (e.g. '2026-03-16')."
+          }
+        }
+      },
+      "output": {
+        "description": "replayed boolean and the updated run record."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "simulate_plan",
+      "description": "Simulate the daily plan for a given date and budget without writing anything. Optionally diff against a compareToDate to see which tasks would be added or removed.",
+      "method": "GET",
+      "path": "/read/simulate_plan",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "availableMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440,
+            "description": "Time budget in minutes (default 480)."
+          },
+          "energy": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Energy level for effort-based filtering."
+          },
+          "date": {
+            "type": "string",
+            "format": "date",
+            "description": "Date to simulate (default today)."
+          },
+          "compareToDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Optional second date to diff against."
+          }
+        }
+      },
+      "output": {
+        "description": "plan object and optional diff."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "record_metric",
+      "description": "Record an automation metric event. Used by agent runner jobs to emit counters and measurements.",
+      "method": "POST",
+      "path": "/write/record_metric",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["jobName", "periodKey", "metricType"],
+        "properties": {
+          "jobName": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Name of the job emitting the metric."
+          },
+          "periodKey": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Period key of the job run."
+          },
+          "metricType": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Metric identifier (e.g. 'tasks_applied', 'errors')."
+          },
+          "entityType": {
+            "type": "string",
+            "maxLength": 50,
+            "description": "Optional entity type the metric relates to."
+          },
+          "entityId": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Optional entity ID."
+          },
+          "value": {
+            "type": "number",
+            "description": "Metric value (default 1)."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional extra context."
+          }
+        }
+      },
+      "output": {
+        "description": "Created metric event record."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_metrics",
+      "description": "List raw metric events for the authenticated user, optionally filtered by job name, metric type, or period key.",
+      "method": "GET",
+      "path": "/read/list_metrics",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "jobName": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Filter by job name."
+          },
+          "metricType": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Filter by metric type."
+          },
+          "periodKey": {
+            "type": "string",
+            "maxLength": 20,
+            "description": "Filter by period key."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000,
+            "description": "Maximum events to return (default 100)."
+          }
+        }
+      },
+      "output": {
+        "description": "Array of metric event records and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "metrics_summary",
+      "description": "Return aggregated metric statistics grouped by metric type: count, total, avg, min, max.",
+      "method": "GET",
+      "path": "/read/metrics_summary",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "jobName": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Restrict summary to a single job."
+          },
+          "since": {
+            "type": "string",
+            "maxLength": 30,
+            "description": "ISO datetime lower bound for recordedAt filter."
+          }
+        }
+      },
+      "output": {
+        "description": "Array of summary entries, one per metricType."
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"

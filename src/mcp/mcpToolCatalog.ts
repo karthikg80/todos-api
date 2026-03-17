@@ -127,10 +127,17 @@ function minimumRequiredScopesForAction(
     case "fail_job_run":
     case "record_failed_action":
     case "resolve_failed_action":
+    case "update_agent_config":
+    case "replay_job_run":
+    case "record_metric":
       return [TASK_WRITE_SCOPE];
     case "get_job_run_status":
     case "list_job_runs":
     case "list_failed_actions":
+    case "get_agent_config":
+    case "simulate_plan":
+    case "list_metrics":
+    case "metrics_summary":
       return [TASK_READ_SCOPE];
   }
 }

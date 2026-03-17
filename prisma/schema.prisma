@@ -121,6 +121,8 @@ model User {
   agentActionAudits AgentActionAudit[]
   agentEnrollment   AgentEnrollment?
   agentJobRuns      AgentJobRun[]
+  agentConfig       AgentConfig?
+  agentMetricEvents AgentMetricEvent[]
   failedAutomationActions FailedAutomationAction[]
   aiSuggestions     AiSuggestion[]
   captureItems      CaptureItem[]
@@ -502,6 +504,7 @@ model AgentJobRun {
   jobName      String    @db.VarChar(100) @map("job_name")
   periodKey    String    @db.VarChar(20) @map("period_key")
   status       String    @db.VarChar(20)
+  retryCount   Int       @default(0) @map("retry_count")
   claimedAt    DateTime  @default(now()) @map("claimed_at")
   completedAt  DateTime? @map("completed_at")
   failedAt     DateTime? @map("failed_at")
@@ -542,6 +545,47 @@ model FailedAutomationAction {
   @@index([userId, createdAt])
   @@index([userId, jobName, periodKey])
   @@index([resolvedAt])
+}
+
+model AgentConfig {
+  id                       String   @id @default(uuid()) @db.Uuid
+  userId                   String   @unique @map("user_id")
+  dailyEnabled             Boolean  @default(true) @map("daily_enabled")
+  weeklyEnabled            Boolean  @default(true) @map("weekly_enabled")
+  inboxEnabled             Boolean  @default(true) @map("inbox_enabled")
+  watchdogEnabled          Boolean  @default(true) @map("watchdog_enabled")
+  decomposerEnabled        Boolean  @default(true) @map("decomposer_enabled")
+  autoApply                Boolean  @default(false) @map("auto_apply")
+  maxWriteActionsPerRun    Int      @default(20) @map("max_write_actions_per_run")
+  inboxConfidenceThreshold Float    @default(0.9) @map("inbox_confidence_threshold")
+  staleThresholdDays       Int      @default(14) @map("stale_threshold_days")
+  waitingFollowUpDays      Int      @default(7) @map("waiting_follow_up_days")
+  createdAt                DateTime @default(now()) @map("created_at")
+  updatedAt                DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("agent_configs")
+}
+
+model AgentMetricEvent {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id")
+  jobName    String   @db.VarChar(100) @map("job_name")
+  periodKey  String   @db.VarChar(20) @map("period_key")
+  metricType String   @db.VarChar(100) @map("metric_type")
+  entityType String?  @db.VarChar(50) @map("entity_type")
+  entityId   String?  @db.VarChar(100) @map("entity_id")
+  value      Float    @default(1)
+  metadata   Json?
+  recordedAt DateTime @default(now()) @map("recorded_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("agent_metric_events")
+  @@index([userId, recordedAt])
+  @@index([userId, jobName, periodKey])
+  @@index([userId, metricType])
 }
 
 model UserPlanningPreferences {
