@@ -15,6 +15,7 @@ import {
   UpdateTodoDto,
 } from "../types";
 import { PlannerMode } from "../types/plannerTypes";
+import { isCanonicalMetricType } from "../services/metricRegistry";
 import {
   ValidationError,
   validateCreateProject,
@@ -1676,7 +1677,7 @@ export function validateAgentSimulatePlanInput(data: unknown): {
   return { availableMinutes, energy, date, compareToDate, decisionRunId };
 }
 
-// ── Issue #332: automation metrics ────────────────────────────────────────────
+// ── Issue #332: automation metrics ── Issue #348: canonical metric registry ───
 
 const RECORD_METRIC_KEYS = [
   "jobName",
@@ -1707,6 +1708,17 @@ export function validateAgentRecordMetricInput(data: unknown): {
   if (!periodKey) throw new ValidationError("periodKey is required");
   const metricType = parseOptionalString(body.metricType, "metricType", 100);
   if (!metricType) throw new ValidationError("metricType is required");
+  // Lenient: allow unknown types but log a warning so callers can audit drift
+  if (!isCanonicalMetricType(metricType)) {
+    console.warn(
+      JSON.stringify({
+        type: "metric:unknown_type",
+        metricType,
+        jobName,
+        periodKey,
+      }),
+    );
+  }
   let value: number | undefined;
   if (body.value !== undefined) {
     const raw = Number(body.value);
