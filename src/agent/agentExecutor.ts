@@ -6,6 +6,8 @@ import { AgentIdempotencyService } from "../services/agentIdempotencyService";
 import { AgentAuditService } from "../services/agentAuditService";
 import { AgentJobRunService } from "../services/agentJobRunService";
 import { FailedAutomationActionService } from "../services/failedAutomationActionService";
+import { AgentConfigService } from "../services/agentConfigService";
+import { AgentMetricsService } from "../services/agentMetricsService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
@@ -67,6 +69,13 @@ import {
   validateAgentListFailedActionsInput,
   validateAgentResolveFailedActionInput,
   validateAgentRecordFailedActionInput,
+  validateAgentGetAgentConfigInput,
+  validateAgentUpdateAgentConfigInput,
+  validateAgentReplayJobRunInput,
+  validateAgentSimulatePlanInput,
+  validateAgentRecordMetricInput,
+  validateAgentListMetricsInput,
+  validateAgentMetricsSummaryInput,
 } from "../validation/agentValidation";
 
 export type AgentActionName =
@@ -122,7 +131,14 @@ export type AgentActionName =
   | "list_job_runs"
   | "list_failed_actions"
   | "record_failed_action"
-  | "resolve_failed_action";
+  | "resolve_failed_action"
+  | "get_agent_config"
+  | "update_agent_config"
+  | "replay_job_run"
+  | "simulate_plan"
+  | "record_metric"
+  | "list_metrics"
+  | "metrics_summary";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -208,6 +224,10 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "get_job_run_status",
   "list_job_runs",
   "list_failed_actions",
+  "get_agent_config",
+  "simulate_plan",
+  "list_metrics",
+  "metrics_summary",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -477,6 +497,8 @@ export class AgentExecutor {
   private readonly auditService: AgentAuditService;
   private readonly jobRunService: AgentJobRunService;
   private readonly failedActionService: FailedAutomationActionService;
+  private readonly agentConfigService: AgentConfigService;
+  private readonly metricsService: AgentMetricsService;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -487,6 +509,8 @@ export class AgentExecutor {
     this.failedActionService = new FailedAutomationActionService(
       deps.persistencePrisma,
     );
+    this.agentConfigService = new AgentConfigService(deps.persistencePrisma);
+    this.metricsService = new AgentMetricsService(deps.persistencePrisma);
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
@@ -2120,6 +2144,188 @@ export class AgentExecutor {
             resolution,
           });
         }
+
+        // ── Issue #329: agent control plane ───────────────────────────────────
+        case "get_agent_config": {
+          validateAgentGetAgentConfigInput(input);
+          const config = await this.agentConfigService.getConfig(
+            context.userId,
+          );
+          return this.success(action, readOnly, context, 200, { config });
+        }
+        case "update_agent_config": {
+          const update = validateAgentUpdateAgentConfigInput(input);
+          const config = await this.agentConfigService.updateConfig(
+            context.userId,
+            update,
+          );
+          return this.success(action, readOnly, context, 200, { config });
+        }
+
+        // ── Issue #330: replay_job_run ─────────────────────────────────────────
+        case "replay_job_run": {
+          const { jobName, periodKey } = validateAgentReplayJobRunInput(input);
+          const result = await this.jobRunService.replayRun(
+            context.userId,
+            jobName,
+            periodKey,
+          );
+          if (!result.replayed) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND",
+              `No job run found for jobName=${jobName} periodKey=${periodKey}`,
+              false,
+              "Verify the job name and period key are correct.",
+            );
+          }
+          return this.success(action, readOnly, context, 200, {
+            replayed: true,
+            run: result.run,
+          });
+        }
+
+        // ── Issue #331: simulate_plan ──────────────────────────────────────────
+        case "simulate_plan": {
+          const { availableMinutes, energy, date, compareToDate } =
+            validateAgentSimulatePlanInput(input);
+          const today = date ?? new Date().toISOString().slice(0, 10);
+
+          const [allTasks, waitingTasks, missingNextActionProjects] =
+            await Promise.all([
+              this.agentService.listTasks(context.userId, {
+                statuses: ["inbox", "next", "in_progress", "scheduled"],
+                archived: false,
+                limit: 200,
+              }),
+              this.agentService.listWaitingOn(context.userId, {}),
+              this.deps.projectService
+                ? this.agentService
+                    .listProjectsWithoutNextAction(context.userId, {
+                      includeOnHold: false,
+                    })
+                    .catch(() => [] as import("../types").Project[])
+                : Promise.resolve([] as import("../types").Project[]),
+            ]);
+
+          const PRIORITY_SCORE: Record<string, number> = {
+            urgent: 40,
+            high: 20,
+            medium: 10,
+            low: 0,
+          };
+          const scoreTasks = (forDate: string, budgetMin: number) => {
+            const scored = allTasks.map((t) => {
+              let score = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
+              if (t.doDate) {
+                const d =
+                  t.doDate instanceof Date
+                    ? t.doDate.toISOString().slice(0, 10)
+                    : String(t.doDate).slice(0, 10);
+                if (d < forDate) score += 50;
+                else if (d === forDate) score += 30;
+              }
+              if (t.dueDate) {
+                const d =
+                  t.dueDate instanceof Date
+                    ? t.dueDate.toISOString().slice(0, 10)
+                    : String(t.dueDate).slice(0, 10);
+                if (d < forDate) score += 40;
+                else if (d === forDate) score += 20;
+              }
+              const effort = t.effortScore ?? 30;
+              if (energy === "low" && effort > 60) score -= 20;
+              if (energy === "high" && effort < 15) score -= 5;
+              return { task: t, score, effort };
+            });
+            scored.sort((a, b) => b.score - a.score);
+            const selected: typeof scored = [];
+            let usedMinutes = 0;
+            for (const item of scored) {
+              if (usedMinutes + item.effort <= budgetMin) {
+                selected.push(item);
+                usedMinutes += item.effort;
+              }
+            }
+            return { selected, usedMinutes };
+          };
+
+          const budget = availableMinutes ?? 480;
+          const { selected, usedMinutes } = scoreTasks(today, budget);
+          const recommendedTasks = selected.map((s) => ({
+            ...s.task,
+            estimatedMinutes: s.effort,
+            score: s.score,
+          }));
+
+          const plan = {
+            date: today,
+            availableMinutes: budget,
+            energy: energy ?? null,
+            totalMinutes: usedMinutes,
+            remainingMinutes: budget - usedMinutes,
+            recommendedTaskCount: recommendedTasks.length,
+            recommendedTasks,
+            waitingCount: waitingTasks.length,
+            projectsNeedingAttention: missingNextActionProjects.length,
+          };
+
+          // Optional diff vs compareToDate
+          let diff: Record<string, unknown> | null = null;
+          if (compareToDate) {
+            const { selected: cSelected, usedMinutes: cUsed } = scoreTasks(
+              compareToDate,
+              budget,
+            );
+            const cIds = new Set(cSelected.map((s) => s.task.id));
+            const bIds = new Set(selected.map((s) => s.task.id));
+            diff = {
+              compareToDate,
+              addedTasks: selected
+                .filter((s) => !cIds.has(s.task.id))
+                .map((s) => ({ id: s.task.id, title: s.task.title })),
+              removedTasks: cSelected
+                .filter((s) => !bIds.has(s.task.id))
+                .map((s) => ({ id: s.task.id, title: s.task.title })),
+              minutesDelta: usedMinutes - cUsed,
+            };
+          }
+
+          return this.success(action, readOnly, context, 200, {
+            plan,
+            ...(diff ? { diff } : {}),
+          });
+        }
+
+        // ── Issue #332: automation metrics ────────────────────────────────────
+        case "record_metric": {
+          const metricInput = validateAgentRecordMetricInput(input);
+          const event = await this.metricsService.record(
+            context.userId,
+            metricInput,
+          );
+          return this.success(action, readOnly, context, 201, { event });
+        }
+        case "list_metrics": {
+          const filters = validateAgentListMetricsInput(input);
+          const events = await this.metricsService.list(
+            context.userId,
+            filters,
+          );
+          return this.success(action, readOnly, context, 200, {
+            events,
+            total: events.length,
+          });
+        }
+        case "metrics_summary": {
+          const summaryFilters = validateAgentMetricsSummaryInput(input);
+          const summary = await this.metricsService.summary(
+            context.userId,
+            summaryFilters,
+          );
+          return this.success(action, readOnly, context, 200, { summary });
+        }
+
         case "get_availability_windows": {
           const { date } = validateAgentGetAvailabilityWindowsInput(input);
           const today = date ?? new Date().toISOString().slice(0, 10);

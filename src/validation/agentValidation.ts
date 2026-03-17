@@ -1519,3 +1519,226 @@ export function validateAgentRecordFailedActionInput(data: unknown): {
     retryable: parseOptionalBoolean(body.retryable, "retryable"),
   };
 }
+
+// ── Issue #329: agent control plane ───────────────────────────────────────────
+
+const UPDATE_AGENT_CONFIG_KEYS = [
+  "dailyEnabled",
+  "weeklyEnabled",
+  "inboxEnabled",
+  "watchdogEnabled",
+  "decomposerEnabled",
+  "autoApply",
+  "maxWriteActionsPerRun",
+  "inboxConfidenceThreshold",
+  "staleThresholdDays",
+  "waitingFollowUpDays",
+];
+
+export function validateAgentGetAgentConfigInput(
+  _data: unknown,
+): Record<string, never> {
+  return {};
+}
+
+export function validateAgentUpdateAgentConfigInput(data: unknown): {
+  dailyEnabled?: boolean;
+  weeklyEnabled?: boolean;
+  inboxEnabled?: boolean;
+  watchdogEnabled?: boolean;
+  decomposerEnabled?: boolean;
+  autoApply?: boolean;
+  maxWriteActionsPerRun?: number;
+  inboxConfidenceThreshold?: number;
+  staleThresholdDays?: number;
+  waitingFollowUpDays?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, UPDATE_AGENT_CONFIG_KEYS, "Agent action input");
+  const result: ReturnType<typeof validateAgentUpdateAgentConfigInput> = {};
+  if (body.dailyEnabled !== undefined)
+    result.dailyEnabled = parseOptionalBoolean(
+      body.dailyEnabled,
+      "dailyEnabled",
+    );
+  if (body.weeklyEnabled !== undefined)
+    result.weeklyEnabled = parseOptionalBoolean(
+      body.weeklyEnabled,
+      "weeklyEnabled",
+    );
+  if (body.inboxEnabled !== undefined)
+    result.inboxEnabled = parseOptionalBoolean(
+      body.inboxEnabled,
+      "inboxEnabled",
+    );
+  if (body.watchdogEnabled !== undefined)
+    result.watchdogEnabled = parseOptionalBoolean(
+      body.watchdogEnabled,
+      "watchdogEnabled",
+    );
+  if (body.decomposerEnabled !== undefined)
+    result.decomposerEnabled = parseOptionalBoolean(
+      body.decomposerEnabled,
+      "decomposerEnabled",
+    );
+  if (body.autoApply !== undefined)
+    result.autoApply = parseOptionalBoolean(body.autoApply, "autoApply");
+  if (body.maxWriteActionsPerRun !== undefined) {
+    const v = parseOptionalPositiveInt(
+      body.maxWriteActionsPerRun,
+      "maxWriteActionsPerRun",
+      500,
+    );
+    if (v !== undefined) result.maxWriteActionsPerRun = v;
+  }
+  if (body.inboxConfidenceThreshold !== undefined) {
+    const raw = Number(body.inboxConfidenceThreshold);
+    if (isNaN(raw) || raw < 0 || raw > 1)
+      throw new ValidationError(
+        "inboxConfidenceThreshold must be between 0 and 1",
+      );
+    result.inboxConfidenceThreshold = raw;
+  }
+  if (body.staleThresholdDays !== undefined) {
+    const v = parseOptionalPositiveInt(
+      body.staleThresholdDays,
+      "staleThresholdDays",
+      365,
+    );
+    if (v !== undefined) result.staleThresholdDays = v;
+  }
+  if (body.waitingFollowUpDays !== undefined) {
+    const v = parseOptionalPositiveInt(
+      body.waitingFollowUpDays,
+      "waitingFollowUpDays",
+      90,
+    );
+    if (v !== undefined) result.waitingFollowUpDays = v;
+  }
+  return result;
+}
+
+// ── Issue #330: replay_job_run ─────────────────────────────────────────────────
+
+const REPLAY_JOB_RUN_KEYS = ["jobName", "periodKey"];
+
+export function validateAgentReplayJobRunInput(data: unknown): {
+  jobName: string;
+  periodKey: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, REPLAY_JOB_RUN_KEYS, "Agent action input");
+  const jobName = parseOptionalString(body.jobName, "jobName", 100);
+  if (!jobName) throw new ValidationError("jobName is required");
+  const periodKey = parseOptionalString(body.periodKey, "periodKey", 20);
+  if (!periodKey) throw new ValidationError("periodKey is required");
+  return { jobName, periodKey };
+}
+
+// ── Issue #331: simulate_plan ──────────────────────────────────────────────────
+
+const SIMULATE_PLAN_KEYS = [
+  "availableMinutes",
+  "energy",
+  "date",
+  "compareToDate",
+];
+
+export function validateAgentSimulatePlanInput(data: unknown): {
+  availableMinutes?: number;
+  energy?: string;
+  date?: string;
+  compareToDate?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, SIMULATE_PLAN_KEYS, "Agent action input");
+  const availableMinutes = parseOptionalPositiveInt(
+    body.availableMinutes,
+    "availableMinutes",
+    1440,
+  );
+  const energy = parseOptionalString(body.energy, "energy", 20);
+  const date = parseOptionalString(body.date, "date", 10);
+  const compareToDate = parseOptionalString(
+    body.compareToDate,
+    "compareToDate",
+    10,
+  );
+  return { availableMinutes, energy, date, compareToDate };
+}
+
+// ── Issue #332: automation metrics ────────────────────────────────────────────
+
+const RECORD_METRIC_KEYS = [
+  "jobName",
+  "periodKey",
+  "metricType",
+  "entityType",
+  "entityId",
+  "value",
+  "metadata",
+];
+const LIST_METRICS_KEYS = ["jobName", "metricType", "periodKey", "limit"];
+const METRICS_SUMMARY_KEYS = ["jobName", "since"];
+
+export function validateAgentRecordMetricInput(data: unknown): {
+  jobName: string;
+  periodKey: string;
+  metricType: string;
+  entityType?: string;
+  entityId?: string;
+  value?: number;
+  metadata?: unknown;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, RECORD_METRIC_KEYS, "Agent action input");
+  const jobName = parseOptionalString(body.jobName, "jobName", 100);
+  if (!jobName) throw new ValidationError("jobName is required");
+  const periodKey = parseOptionalString(body.periodKey, "periodKey", 20);
+  if (!periodKey) throw new ValidationError("periodKey is required");
+  const metricType = parseOptionalString(body.metricType, "metricType", 100);
+  if (!metricType) throw new ValidationError("metricType is required");
+  let value: number | undefined;
+  if (body.value !== undefined) {
+    const raw = Number(body.value);
+    if (isNaN(raw)) throw new ValidationError("value must be a number");
+    value = raw;
+  }
+  return {
+    jobName,
+    periodKey,
+    metricType,
+    entityType: parseOptionalString(body.entityType, "entityType", 50),
+    entityId: parseOptionalString(body.entityId, "entityId", 100),
+    value,
+    metadata: body.metadata,
+  };
+}
+
+export function validateAgentListMetricsInput(data: unknown): {
+  jobName?: string;
+  metricType?: string;
+  periodKey?: string;
+  limit?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_METRICS_KEYS, "Agent action input");
+  return {
+    jobName: parseOptionalString(body.jobName, "jobName", 100),
+    metricType: parseOptionalString(body.metricType, "metricType", 100),
+    periodKey: parseOptionalString(body.periodKey, "periodKey", 20),
+    limit: parseOptionalPositiveInt(body.limit, "limit", 1000),
+  };
+}
+
+export function validateAgentMetricsSummaryInput(data: unknown): {
+  jobName?: string;
+  since?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, METRICS_SUMMARY_KEYS, "Agent action input");
+  return {
+    jobName: parseOptionalString(body.jobName, "jobName", 100),
+    since: parseOptionalString(body.since, "since", 30),
+  };
+}

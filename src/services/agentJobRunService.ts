@@ -5,6 +5,7 @@ export interface JobRunRecord {
   jobName: string;
   periodKey: string;
   status: string;
+  retryCount: number;
   claimedAt: Date;
   completedAt: Date | null;
   failedAt: Date | null;
@@ -91,6 +92,33 @@ export class AgentJobRunService {
     return run ? this.toRecord(run) : null;
   }
 
+  async replayRun(
+    userId: string,
+    jobName: string,
+    periodKey: string,
+  ): Promise<{ replayed: boolean; run: JobRunRecord | null }> {
+    if (!this.prisma) {
+      return { replayed: true, run: null };
+    }
+    const existing = await this.prisma.agentJobRun.findUnique({
+      where: { userId_jobName_periodKey: { userId, jobName, periodKey } },
+    });
+    if (!existing) {
+      return { replayed: false, run: null };
+    }
+    const updated = await this.prisma.agentJobRun.update({
+      where: { userId_jobName_periodKey: { userId, jobName, periodKey } },
+      data: {
+        status: "running",
+        completedAt: null,
+        failedAt: null,
+        errorMessage: null,
+        retryCount: { increment: 1 },
+      },
+    });
+    return { replayed: true, run: this.toRecord(updated) };
+  }
+
   async listRuns(
     userId: string,
     filters: { jobName?: string; status?: string; limit?: number },
@@ -114,6 +142,7 @@ export class AgentJobRunService {
       jobName: run.jobName,
       periodKey: run.periodKey,
       status: run.status,
+      retryCount: run.retryCount,
       claimedAt: run.claimedAt,
       completedAt: run.completedAt,
       failedAt: run.failedAt,

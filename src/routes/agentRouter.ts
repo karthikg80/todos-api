@@ -299,5 +299,35 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "resolve_failed_action"),
   );
 
+  // Issues #329–#332: control plane, replay, simulate, metrics
+  router.get(
+    "/read/get_agent_config",
+    createAgentActionHandler(agentExecutor, "get_agent_config"),
+  );
+  router.post(
+    "/write/update_agent_config",
+    createAgentActionHandler(agentExecutor, "update_agent_config"),
+  );
+  router.post(
+    "/write/replay_job_run",
+    createAgentActionHandler(agentExecutor, "replay_job_run"),
+  );
+  router.get(
+    "/read/simulate_plan",
+    createAgentActionHandler(agentExecutor, "simulate_plan"),
+  );
+  router.post(
+    "/write/record_metric",
+    createAgentActionHandler(agentExecutor, "record_metric"),
+  );
+  router.get(
+    "/read/list_metrics",
+    createAgentActionHandler(agentExecutor, "list_metrics"),
+  );
+  router.get(
+    "/read/metrics_summary",
+    createAgentActionHandler(agentExecutor, "metrics_summary"),
+  );
+
   return router;
 }
