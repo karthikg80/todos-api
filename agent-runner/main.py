@@ -3,8 +3,11 @@
 Todo Agent Runner — Railway worker service for autonomous productivity routines.
 
 Usage:
-    python main.py daily    # Run the daily planning routine for all enrolled users
-    python main.py weekly   # Run the weekly review routine for all enrolled users
+    python main.py daily       # Daily planning: plan_today + ensure_next_action
+    python main.py weekly      # Weekly review: weekly_review + safe apply
+    python main.py inbox       # Inbox triage: classify + apply capture items
+    python main.py watchdog    # Aging watchdog: stale tasks + waiting follow-ups
+    python main.py decomposer  # Project decomposer: stuck projects + next actions
 
 For each enrolled user the runner:
   1. Reads their enrollment row (refresh token + settings) from Postgres.
@@ -14,11 +17,14 @@ For each enrolled user the runner:
   4. Records the outcome back to agent_enrollments.last_run_*.
 
 Environment variables:
-    AGENT_BASE_URL   — Base URL of the todos-api service (required)
-    DATABASE_URL     — Shared Postgres URL (required; reads enrollments + writes state/audit)
-    AUTO_APPLY       — true to apply safe allowlisted actions (default false)
-    DRY_RUN          — true to skip all writes (default false)
-    DELIVERY_MODE    — log | email | slack (default log)
+    AGENT_BASE_URL              — Base URL of the todos-api service (required)
+    DATABASE_URL                — Shared Postgres URL (required)
+    AUTO_APPLY                  — true to apply safe allowlisted actions (default false)
+    DRY_RUN                     — true to skip all writes (default false)
+    DELIVERY_MODE               — log | email | slack (default log)
+    MAX_AUTO_TRIAGE_CONFIDENCE  — inbox auto-apply confidence threshold (default 0.9)
+    STALE_THRESHOLD_DAYS        — watchdog stale task threshold in days (default 14)
+    WAITING_FOLLOW_UP_DAYS      — watchdog follow-up cooldown in days (default 7)
 """
 import logging
 import os
@@ -34,11 +40,12 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-USAGE = "Usage: python main.py <daily|weekly>"
+COMMANDS = ("daily", "weekly", "inbox", "watchdog", "decomposer")
+USAGE = f"Usage: python main.py <{'|'.join(COMMANDS)}>"
 
 
 def main() -> None:
-    if len(sys.argv) < 2 or sys.argv[1].lower() not in ("daily", "weekly"):
+    if len(sys.argv) < 2 or sys.argv[1].lower() not in COMMANDS:
         print(USAGE)
         sys.exit(1)
 
@@ -69,12 +76,22 @@ def main() -> None:
         logger.info("no enrolled users — nothing to do")
         return
 
+    # Import the runner and filter eligible enrollments per command.
     if command == "daily":
-        from jobs.daily import run_daily_for_user
+        from jobs.daily import run_daily_for_user as run_for_user
         eligible = [e for e in enrollments if e.daily_enabled]
-    else:
-        from jobs.weekly import run_weekly_for_user
+    elif command == "weekly":
+        from jobs.weekly import run_weekly_for_user as run_for_user
         eligible = [e for e in enrollments if e.weekly_enabled]
+    elif command == "inbox":
+        from jobs.inbox import run_inbox_for_user as run_for_user
+        eligible = [e for e in enrollments if e.daily_enabled]  # same gate as daily
+    elif command == "watchdog":
+        from jobs.watchdog import run_watchdog_for_user as run_for_user
+        eligible = [e for e in enrollments if e.daily_enabled]
+    else:  # decomposer
+        from jobs.decomposer import run_decomposer_for_user as run_for_user
+        eligible = [e for e in enrollments if e.weekly_enabled]  # same gate as weekly
 
     logger.info("%d user(s) eligible for %s", len(eligible), command)
 
@@ -98,11 +115,7 @@ def main() -> None:
             total_err += 1
             continue
 
-        # Run the job and record the outcome.
-        if command == "daily":
-            outcome = run_daily_for_user(client, user_id, timezone, state_store, audit_store)
-        else:
-            outcome = run_weekly_for_user(client, user_id, timezone, state_store, audit_store)
+        outcome = run_for_user(client, user_id, timezone, state_store, audit_store)
 
         enrollment_store.record_run_outcome(
             user_id,
