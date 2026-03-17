@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.5.0",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -575,7 +575,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "search_tasks",
@@ -737,7 +741,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "get_task",
@@ -761,7 +769,11 @@
         "$ref": "#/definitions/todo"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "get_project",
@@ -788,7 +800,11 @@
         "$ref": "#/definitions/project"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "create_task",
@@ -907,7 +923,11 @@
         "$ref": "#/definitions/todo"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "optional_header_for_create_flow"
+      "idempotency": "optional_header_for_create_flow",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "update_task",
@@ -1034,7 +1054,11 @@
         "$ref": "#/definitions/todo"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_implemented_yet"
+      "idempotency": "not_implemented_yet",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "complete_task",
@@ -1061,7 +1085,11 @@
         "$ref": "#/definitions/todo"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "archive_task",
@@ -1088,7 +1116,11 @@
         "$ref": "#/definitions/todo"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "delete_task",
@@ -1137,7 +1169,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "add_subtask",
@@ -1165,7 +1201,11 @@
         "$ref": "#/definitions/subtask"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "update_subtask",
@@ -1204,7 +1244,11 @@
         "$ref": "#/definitions/subtask"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "delete_subtask",
@@ -1245,7 +1289,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "list_projects",
@@ -1299,7 +1347,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "create_project",
@@ -1361,7 +1413,11 @@
         "$ref": "#/definitions/project"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "optional_header_for_create_flow"
+      "idempotency": "optional_header_for_create_flow",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "update_project",
@@ -1427,7 +1483,11 @@
         "$ref": "#/definitions/project"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "rename_project",
@@ -1458,7 +1518,11 @@
         "$ref": "#/definitions/project"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "delete_project",
@@ -1522,7 +1586,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "move_task_to_project",
@@ -1553,7 +1621,11 @@
         "$ref": "#/definitions/todo"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "archive_project",
@@ -1583,7 +1655,11 @@
         "$ref": "#/definitions/project"
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "core",
+      "category": "Work Management",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "list_today",
@@ -1611,7 +1687,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "list_next_actions",
@@ -1654,7 +1734,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "list_waiting_on",
@@ -1680,7 +1764,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "list_upcoming",
@@ -1713,7 +1801,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "list_stale_tasks",
@@ -1743,7 +1835,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "list_projects_without_next_action",
@@ -1771,7 +1867,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "review_projects",
@@ -1799,7 +1899,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "plan_project",
@@ -1871,7 +1975,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "optional_header_for_apply_flow"
+      "idempotency": "optional_header_for_apply_flow",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "ensure_next_action",
@@ -1932,7 +2040,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "optional_header_for_apply_flow"
+      "idempotency": "optional_header_for_apply_flow",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "weekly_review",
@@ -2065,7 +2177,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "optional_header_for_apply_flow"
+      "idempotency": "optional_header_for_apply_flow",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "decide_next_work",
@@ -2136,7 +2252,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "analyze_project_health",
@@ -2203,7 +2323,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "analyze_work_graph",
@@ -2256,7 +2380,11 @@
         }
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "analyze_task_quality",
@@ -2287,7 +2415,11 @@
         "description": "Quality analysis result for each task."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "find_duplicate_tasks",
@@ -2315,7 +2447,11 @@
         "description": "Groups of potentially duplicate tasks with confidence and suggested action."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "find_stale_items",
@@ -2339,7 +2475,11 @@
         "description": "staleTasks and staleProjects arrays, plus the effective staleDays and threshold date."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "taxonomy_cleanup_suggestions",
@@ -2356,7 +2496,11 @@
         "description": "similarProjects pairs and smallProjects list."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "suggestive",
+      "audience": "user"
     },
     {
       "name": "plan_today",
@@ -2389,7 +2533,11 @@
         "description": "selectedTasks array with estimatedMinutes, plus totalMinutes and remainingMinutes."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "break_down_task",
@@ -2419,7 +2567,11 @@
         "description": "suggestedSubtasks array with title and order, plus decompositionBasis."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "suggest_next_actions",
@@ -2450,7 +2602,11 @@
         "description": "suggestedActions task array with projectName and total count."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "suggestive",
+      "audience": "user"
     },
     {
       "name": "weekly_review_summary",
@@ -2472,7 +2628,11 @@
         "description": "weekStart, weekEnd, completed, created, stale, waiting, inboxCount, projectsWithNoActive."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "triage_capture_item",
@@ -2500,7 +2660,11 @@
         "description": "recommendation object with kind, confidence, why, proposedAction, and applied boolean."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "inbox",
+      "category": "Inbox and Triage",
+      "lifecycle": "suggestive",
+      "audience": "user"
     },
     {
       "name": "triage_inbox",
@@ -2529,7 +2693,11 @@
         "description": "triaged array, totalProcessed, and mode."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "inbox",
+      "category": "Inbox and Triage",
+      "lifecycle": "suggestive",
+      "audience": "user"
     },
     {
       "name": "list_audit_log",
@@ -2548,7 +2716,7 @@
           },
           "since": {
             "type": "string",
-            "description": "ISO timestamp \u2014 return only entries after this date."
+            "description": "ISO timestamp — return only entries after this date."
           },
           "action": {
             "type": "string",
@@ -2560,7 +2728,11 @@
         "description": "entries array and total count."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "operator"
     },
     {
       "name": "get_availability_windows",
@@ -2582,7 +2754,11 @@
         "description": "windows array with start/end/minutes, scheduledTasks, and totalAvailableMinutes."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "create_follow_up_for_waiting_task",
@@ -2625,7 +2801,11 @@
         "description": "created boolean, task (when created), skipped/reason (when cooldown active), and waitingTaskId."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "supported"
+      "idempotency": "supported",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "claim_job_run",
@@ -2652,7 +2832,11 @@
         "description": "claimed boolean and run record when claimed."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "agent"
     },
     {
       "name": "complete_job_run",
@@ -2681,7 +2865,11 @@
         "description": "completed boolean, jobName, and periodKey."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "agent"
     },
     {
       "name": "fail_job_run",
@@ -2710,7 +2898,11 @@
         "description": "failed boolean, jobName, and periodKey."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "agent"
     },
     {
       "name": "get_job_run_status",
@@ -2735,7 +2927,11 @@
         "description": "run record or null if not found."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "agent"
     },
     {
       "name": "list_job_runs",
@@ -2768,7 +2964,11 @@
         "description": "runs array and total count."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "agent"
     },
     {
       "name": "record_failed_action",
@@ -2820,7 +3020,11 @@
         "description": "record object with the created failed-action entry."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "operator"
     },
     {
       "name": "list_failed_actions",
@@ -2853,7 +3057,11 @@
         "description": "records array and total count."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "operator"
     },
     {
       "name": "resolve_failed_action",
@@ -2882,7 +3090,11 @@
         "description": "resolved boolean indicating whether the record was found and updated."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "operator"
     },
     {
       "name": "get_agent_config",
@@ -2899,7 +3111,11 @@
         "description": "config object with job-enabled flags and threshold parameters."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "agent"
     },
     {
       "name": "update_agent_config",
@@ -2945,7 +3161,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "description": "Minimum confidence required to auto-apply an inbox triage suggestion (0\u20131)."
+            "description": "Minimum confidence required to auto-apply an inbox triage suggestion (0–1)."
           },
           "staleThresholdDays": {
             "type": "integer",
@@ -2965,7 +3181,11 @@
         "description": "Updated config object."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "agent"
     },
     {
       "name": "replay_job_run",
@@ -2994,7 +3214,11 @@
         "description": "replayed boolean and the updated run record."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "operator"
     },
     {
       "name": "simulate_plan",
@@ -3033,7 +3257,11 @@
         "description": "plan object and optional diff."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "suggestive",
+      "audience": "user"
     },
     {
       "name": "record_metric",
@@ -3085,7 +3313,11 @@
         "description": "Created metric event record."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "agent"
     },
     {
       "name": "list_metrics",
@@ -3124,7 +3356,11 @@
         "description": "Array of metric event records and total count."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "operator"
     },
     {
       "name": "metrics_summary",
@@ -3152,7 +3388,11 @@
         "description": "Array of summary entries, one per metricType."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "derived_read",
+      "audience": "operator"
     },
     {
       "name": "record_recommendation_feedback",
@@ -3201,7 +3441,11 @@
         "description": "Created feedback record."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "list_recommendation_feedback",
@@ -3240,7 +3484,11 @@
         "description": "Array of feedback records and total count."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "feedback_summary",
@@ -3263,7 +3511,11 @@
         "description": "Array of per-task summary entries and total count."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     },
     {
       "name": "set_day_context",
@@ -3310,7 +3562,11 @@
         "description": "Upserted day context record."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "mutating",
+      "audience": "user"
     },
     {
       "name": "get_day_context",
@@ -3333,7 +3589,11 @@
         "description": "Day context record or null if not set."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "plan",
+      "category": "Planning",
+      "lifecycle": "primitive_read",
+      "audience": "user"
     },
     {
       "name": "weekly_executive_summary",
@@ -3357,7 +3617,11 @@
         "description": "WeeklyExecutiveSummary object with completedCount, blockedProjects, attentionDiffusion, agentStats, topInsights."
       },
       "errorModel": "structured_agent_error",
-      "idempotency": "not_applicable"
+      "idempotency": "not_applicable",
+      "namespace": "review",
+      "category": "Review and Cleanup",
+      "lifecycle": "derived_read",
+      "audience": "user"
     }
   ],
   "notes": [
@@ -3365,5 +3629,198 @@
     "completed=true maps to status=done. Non-completed tasks default to a workflow status such as next or the explicitly provided status.",
     "Archived tasks are excluded from task list queries by default unless archived=true is requested.",
     "delete_project unassigns tasks by default unless moveTasksToProjectId is supplied."
+  ],
+  "_namespaces": {
+    "core": "System of record — tasks, projects, subtasks",
+    "plan": "Choosing work and shaping execution",
+    "review": "Hygiene, diagnostics, and analysis",
+    "inbox": "Capture triage and classification",
+    "automation": "Runtime and ops control plane"
+  },
+  "_audiences": {
+    "user": "General product actions invoked by or on behalf of a user",
+    "agent": "Actions called by automated agents during job runs",
+    "operator": "Admin/debug tools for operators and developers"
+  },
+  "_lifecycles": {
+    "primitive_read": "Returns raw state with no interpretation",
+    "derived_read": "Returns computed or interpreted state",
+    "suggestive": "Returns proposals; does not write by default",
+    "mutating": "Changes persistent state"
+  },
+  "golden_paths": [
+    {
+      "id": "daily_planner",
+      "label": "Daily Planner",
+      "description": "Produce a realistic daily plan for the user.",
+      "audience": "agent",
+      "steps": [
+        {
+          "action": "claim_job_run",
+          "namespace": "automation",
+          "note": "claim daily slot"
+        },
+        {
+          "action": "plan_today",
+          "namespace": "plan",
+          "note": "build today's plan"
+        },
+        {
+          "action": "record_metric",
+          "namespace": "automation",
+          "note": "log outcomes"
+        },
+        {
+          "action": "complete_job_run",
+          "namespace": "automation",
+          "note": "close the run"
+        }
+      ]
+    },
+    {
+      "id": "weekly_maintenance",
+      "label": "Weekly Maintenance",
+      "description": "Keep the task system clean and surfaces stale or broken items.",
+      "audience": "agent",
+      "steps": [
+        {
+          "action": "claim_job_run",
+          "namespace": "automation",
+          "note": "claim weekly slot"
+        },
+        {
+          "action": "weekly_review",
+          "namespace": "review",
+          "note": "main composite review"
+        },
+        {
+          "action": "analyze_project_health",
+          "namespace": "review",
+          "note": "optional deep diagnostics"
+        },
+        {
+          "action": "taxonomy_cleanup_suggestions",
+          "namespace": "review",
+          "note": "optional tag/label hygiene"
+        },
+        {
+          "action": "record_metric",
+          "namespace": "automation",
+          "note": "log outcomes"
+        },
+        {
+          "action": "complete_job_run",
+          "namespace": "automation",
+          "note": "close the run"
+        }
+      ]
+    },
+    {
+      "id": "waiting_follow_up",
+      "label": "Waiting-Item Follow-Up",
+      "description": "Move external dependencies forward by creating follow-up tasks.",
+      "audience": "agent",
+      "steps": [
+        {
+          "action": "list_waiting_on",
+          "namespace": "plan",
+          "note": "find waiting tasks"
+        },
+        {
+          "action": "create_follow_up_for_waiting_task",
+          "namespace": "review",
+          "note": "generate follow-up"
+        },
+        {
+          "action": "record_metric",
+          "namespace": "automation",
+          "note": "log outcomes"
+        }
+      ]
+    },
+    {
+      "id": "project_rescue",
+      "label": "Project Rescue",
+      "description": "Restore motion to a stuck or drifting project.",
+      "audience": "user",
+      "steps": [
+        {
+          "action": "analyze_project_health",
+          "namespace": "review",
+          "note": "identify stuck projects"
+        },
+        {
+          "action": "suggest_next_actions",
+          "namespace": "plan",
+          "note": "generate candidates"
+        },
+        {
+          "action": "ensure_next_action",
+          "namespace": "plan",
+          "note": "confirm or create starter action"
+        },
+        {
+          "action": "plan_project",
+          "namespace": "plan",
+          "note": "optional broader project shaping"
+        }
+      ]
+    },
+    {
+      "id": "inbox_processing",
+      "label": "Inbox Processing",
+      "description": "Convert raw captures into structured work.",
+      "audience": "agent",
+      "steps": [
+        {
+          "action": "triage_inbox",
+          "namespace": "inbox",
+          "note": "batch triage all captures"
+        },
+        {
+          "action": "triage_capture_item",
+          "namespace": "inbox",
+          "note": "inspect medium-confidence items individually"
+        },
+        {
+          "action": "record_metric",
+          "namespace": "automation",
+          "note": "log triage outcomes"
+        }
+      ]
+    },
+    {
+      "id": "failure_recovery",
+      "label": "Failed Automation Recovery",
+      "description": "Recover cleanly from broken agent runs.",
+      "audience": "operator",
+      "steps": [
+        {
+          "action": "list_failed_actions",
+          "namespace": "automation",
+          "note": "surface failures"
+        },
+        {
+          "action": "list_audit_log",
+          "namespace": "automation",
+          "note": "inspect run history"
+        },
+        {
+          "action": "replay_job_run",
+          "namespace": "automation",
+          "note": "retry the failed run"
+        },
+        {
+          "action": "resolve_failed_action",
+          "namespace": "automation",
+          "note": "mark resolved"
+        },
+        {
+          "action": "record_metric",
+          "namespace": "automation",
+          "note": "log recovery outcome"
+        }
+      ]
+    }
   ]
 }
