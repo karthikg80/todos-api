@@ -452,22 +452,9 @@ export function validateRegisterMcpClientInput(
   data: unknown,
 ): RegisterMcpClientDto {
   const body = ensureObject(data);
-  const allowedKeys = [
-    "redirect_uris",
-    "client_name",
-    "grant_types",
-    "response_types",
-    "token_endpoint_auth_method",
-  ];
-  const unknownKeys = Object.keys(body).filter(
-    (key) => !allowedKeys.includes(key),
-  );
-  if (unknownKeys.length > 0) {
-    throw new ValidationError(
-      `Request body contains unsupported field(s): ${unknownKeys.join(", ")}`,
-    );
-  }
-
+  // Per RFC 7591 §3.1, servers MUST ignore unrecognized registration fields.
+  // Do not reject unknown keys — clients like Claude Code send extra fields
+  // (e.g. code_challenge_method, scope, client_uri) that we don't need to store.
   return {
     redirectUris: normalizeRedirectUris(body.redirect_uris),
     clientName: normalizeClientName(body.client_name),
