@@ -41,20 +41,28 @@ export class AgentAuditService {
       rationale: rationaleMetadata as unknown as Prisma.InputJsonObject,
     };
 
-    await this.prisma.agentActionAudit.create({
-      data: {
-        surface: ctx.surface as "agent" | "mcp",
-        action,
-        readOnly: false,
-        outcome,
-        status: outcome === "success" ? 200 : 500,
-        userId: ctx.userId,
-        requestId: ctx.requestId,
-        actor: ctx.actor,
-        replayed: false,
-        metadata,
-      },
-    });
+    // Fire and forget to avoid blocking or crashing on high concurrency
+    this.prisma.agentActionAudit
+      .create({
+        data: {
+          surface: ctx.surface as "agent" | "mcp",
+          action,
+          readOnly: false,
+          outcome,
+          status: outcome === "success" ? 200 : 500,
+          userId: ctx.userId,
+          requestId: ctx.requestId,
+          actor: ctx.actor,
+          replayed: false,
+          metadata,
+        },
+      })
+      .catch((err) => {
+        console.error(
+          "Non-fatal error auditing agent action with rationale:",
+          err,
+        );
+      });
   }
 
   async record(input: AgentAuditRecordInput): Promise<void> {
@@ -66,24 +74,29 @@ export class AgentAuditService {
       ts: new Date().toISOString(),
     };
 
-    await this.prisma.agentActionAudit.create({
-      data: {
-        surface: input.surface,
-        action: input.action,
-        readOnly: input.readOnly,
-        outcome: input.outcome,
-        status: input.status,
-        userId: input.userId,
-        requestId: input.requestId,
-        actor: input.actor,
-        idempotencyKey: input.idempotencyKey,
-        replayed: input.replayed || false,
-        errorCode: input.errorCode,
-        jobName: input.jobName,
-        jobPeriodKey: input.jobPeriodKey,
-        triggeredBy: input.triggeredBy,
-        metadata,
-      },
-    });
+    // Fire and forget to avoid blocking or crashing on high concurrency
+    this.prisma.agentActionAudit
+      .create({
+        data: {
+          surface: input.surface,
+          action: input.action,
+          readOnly: input.readOnly,
+          outcome: input.outcome,
+          status: input.status,
+          userId: input.userId,
+          requestId: input.requestId,
+          actor: input.actor,
+          idempotencyKey: input.idempotencyKey,
+          replayed: input.replayed || false,
+          errorCode: input.errorCode,
+          jobName: input.jobName,
+          jobPeriodKey: input.jobPeriodKey,
+          triggeredBy: input.triggeredBy,
+          metadata,
+        },
+      })
+      .catch((err) => {
+        console.error("Non-fatal error auditing agent action:", err);
+      });
   }
 }
