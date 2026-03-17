@@ -123,6 +123,8 @@ model User {
   agentJobRuns      AgentJobRun[]
   agentConfig       AgentConfig?
   agentMetricEvents AgentMetricEvent[]
+  recommendationFeedback TaskRecommendationFeedback[]
+  dayContexts       UserDayContext[]
   failedAutomationActions FailedAutomationAction[]
   aiSuggestions     AiSuggestion[]
   captureItems      CaptureItem[]
@@ -604,4 +606,39 @@ model UserPlanningPreferences {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_planning_preferences")
+}
+
+model TaskRecommendationFeedback {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @map("user_id")
+  planDate         String   @db.VarChar(10) @map("plan_date")
+  taskId           String   @db.VarChar(100) @map("task_id")
+  signal           String   @db.VarChar(20)
+  energy           String?  @db.VarChar(20)
+  availableMinutes Int?     @map("available_minutes")
+  score            Float?
+  recordedAt       DateTime @default(now()) @map("recorded_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("task_recommendation_feedback")
+  @@index([userId, planDate])
+  @@index([userId, taskId])
+}
+
+model UserDayContext {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id")
+  contextDate String   @db.VarChar(10) @map("context_date")
+  mode        String   @db.VarChar(20) @default("normal")
+  energy      String?  @db.VarChar(20)
+  notes       String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_day_contexts")
+  @@unique([userId, contextDate])
+  @@index([userId, contextDate])
 }

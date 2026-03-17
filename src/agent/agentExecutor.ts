@@ -8,6 +8,15 @@ import { AgentJobRunService } from "../services/agentJobRunService";
 import { FailedAutomationActionService } from "../services/failedAutomationActionService";
 import { AgentConfigService } from "../services/agentConfigService";
 import { AgentMetricsService } from "../services/agentMetricsService";
+import {
+  RecommendationFeedbackService,
+  type FeedbackSignal,
+} from "../services/recommendationFeedbackService";
+import {
+  DayContextService,
+  MODE_MODIFIERS,
+} from "../services/dayContextService";
+import { WeeklyExecutiveSummaryService } from "../services/weeklyExecutiveSummaryService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
@@ -76,6 +85,12 @@ import {
   validateAgentRecordMetricInput,
   validateAgentListMetricsInput,
   validateAgentMetricsSummaryInput,
+  validateAgentRecordFeedbackInput,
+  validateAgentListFeedbackInput,
+  validateAgentFeedbackSummaryInput,
+  validateAgentSetDayContextInput,
+  validateAgentGetDayContextInput,
+  validateAgentWeeklyExecSummaryInput,
 } from "../validation/agentValidation";
 
 export type AgentActionName =
@@ -138,7 +153,13 @@ export type AgentActionName =
   | "simulate_plan"
   | "record_metric"
   | "list_metrics"
-  | "metrics_summary";
+  | "metrics_summary"
+  | "record_recommendation_feedback"
+  | "list_recommendation_feedback"
+  | "feedback_summary"
+  | "set_day_context"
+  | "get_day_context"
+  | "weekly_executive_summary";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -228,6 +249,10 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "simulate_plan",
   "list_metrics",
   "metrics_summary",
+  "list_recommendation_feedback",
+  "feedback_summary",
+  "get_day_context",
+  "weekly_executive_summary",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -499,6 +524,9 @@ export class AgentExecutor {
   private readonly failedActionService: FailedAutomationActionService;
   private readonly agentConfigService: AgentConfigService;
   private readonly metricsService: AgentMetricsService;
+  private readonly feedbackService: RecommendationFeedbackService;
+  private readonly dayContextService: DayContextService;
+  private readonly executiveSummaryService: WeeklyExecutiveSummaryService;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -511,6 +539,13 @@ export class AgentExecutor {
     );
     this.agentConfigService = new AgentConfigService(deps.persistencePrisma);
     this.metricsService = new AgentMetricsService(deps.persistencePrisma);
+    this.feedbackService = new RecommendationFeedbackService(
+      deps.persistencePrisma,
+    );
+    this.dayContextService = new DayContextService(deps.persistencePrisma);
+    this.executiveSummaryService = new WeeklyExecutiveSummaryService(
+      deps.persistencePrisma,
+    );
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
@@ -1472,9 +1507,22 @@ export class AgentExecutor {
           });
         }
         case "plan_today": {
-          const { availableMinutes, energy, date } =
-            validateAgentPlanTodayInput(input);
+          const {
+            availableMinutes,
+            energy: energyParam,
+            date,
+          } = validateAgentPlanTodayInput(input);
           const today = date ?? new Date().toISOString().slice(0, 10);
+
+          // #336: load day context and derive effective energy + mode modifiers
+          const dayCtx = await this.dayContextService.getContext(
+            context.userId,
+            today,
+          );
+          const energy = energyParam ?? dayCtx?.energy ?? undefined;
+          const modeModifiers = dayCtx
+            ? MODE_MODIFIERS[dayCtx.mode]
+            : MODE_MODIFIERS.normal;
 
           // Fetch all data in parallel (Issue #318: delivery-ready payload)
           const [allTasks, waitingTasks, missingNextActionProjects] =
@@ -1494,62 +1542,41 @@ export class AgentExecutor {
                 : Promise.resolve([] as import("../types").Project[]),
             ]);
 
-          const PRIORITY_SCORE: Record<string, number> = {
-            urgent: 40,
-            high: 20,
-            medium: 10,
-            low: 0,
-          };
-          const scored = allTasks.map((t) => {
-            let score = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
-            if (t.doDate) {
-              const d =
-                t.doDate instanceof Date
-                  ? t.doDate.toISOString().slice(0, 10)
-                  : String(t.doDate).slice(0, 10);
-              if (d < today) score += 50;
-              else if (d === today) score += 30;
-            }
-            if (t.dueDate) {
-              const d =
-                t.dueDate instanceof Date
-                  ? t.dueDate.toISOString().slice(0, 10)
-                  : String(t.dueDate).slice(0, 10);
-              if (d < today) score += 40;
-              else if (d === today) score += 20;
-            }
-            const effort = t.effortScore ?? 30;
-            if (energy === "low" && effort > 60) score -= 20;
-            if (energy === "high" && effort < 15) score -= 5;
-            return { task: t, score, effort };
-          });
-          scored.sort((a, b) => b.score - a.score);
-          const selected: typeof scored = [];
-          let usedMinutes = 0;
-          const budget = availableMinutes ?? 480;
-          for (const item of scored) {
-            if (usedMinutes + item.effort <= budget) {
-              selected.push(item);
-              usedMinutes += item.effort;
-            }
-          }
+          const baseBudget = availableMinutes ?? 480;
+          const budget = Math.round(
+            baseBudget * (modeModifiers.budgetMultiplier ?? 1),
+          );
 
-          const recommendedTasks = selected.map((s) => ({
+          const { selected, excluded, usedMinutes, budgetBreakdown } =
+            this.scorePlan(allTasks, today, budget, energy, modeModifiers);
+
+          const maxTasks = modeModifiers.maxTaskCount ?? selected.length;
+          const cappedSelected = selected.slice(0, maxTasks);
+
+          const recommendedTasks = cappedSelected.map((s) => ({
             ...s.task,
             estimatedMinutes: s.effort,
             score: s.score,
+            explanation: {
+              scoreBreakdown: s.scoreBreakdown,
+              whyIncluded: s.whyIncluded,
+              rank: cappedSelected.indexOf(s) + 1,
+            },
           }));
 
           return this.success(action, readOnly, context, 200, {
             plan: {
               date: today,
               timezone: null,
+              mode: dayCtx?.mode ?? "normal",
               headline: {
                 recommendedTaskCount: recommendedTasks.length,
                 waitingCount: waitingTasks.length,
                 projectsNeedingAttention: missingNextActionProjects.length,
               },
               recommendedTasks,
+              excluded,
+              budgetBreakdown,
               waitingTasks: waitingTasks.slice(0, 10).map((t) => ({
                 id: t.id,
                 title: t.title,
@@ -2208,54 +2235,19 @@ export class AgentExecutor {
                 : Promise.resolve([] as import("../types").Project[]),
             ]);
 
-          const PRIORITY_SCORE: Record<string, number> = {
-            urgent: 40,
-            high: 20,
-            medium: 10,
-            low: 0,
-          };
-          const scoreTasks = (forDate: string, budgetMin: number) => {
-            const scored = allTasks.map((t) => {
-              let score = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
-              if (t.doDate) {
-                const d =
-                  t.doDate instanceof Date
-                    ? t.doDate.toISOString().slice(0, 10)
-                    : String(t.doDate).slice(0, 10);
-                if (d < forDate) score += 50;
-                else if (d === forDate) score += 30;
-              }
-              if (t.dueDate) {
-                const d =
-                  t.dueDate instanceof Date
-                    ? t.dueDate.toISOString().slice(0, 10)
-                    : String(t.dueDate).slice(0, 10);
-                if (d < forDate) score += 40;
-                else if (d === forDate) score += 20;
-              }
-              const effort = t.effortScore ?? 30;
-              if (energy === "low" && effort > 60) score -= 20;
-              if (energy === "high" && effort < 15) score -= 5;
-              return { task: t, score, effort };
-            });
-            scored.sort((a, b) => b.score - a.score);
-            const selected: typeof scored = [];
-            let usedMinutes = 0;
-            for (const item of scored) {
-              if (usedMinutes + item.effort <= budgetMin) {
-                selected.push(item);
-                usedMinutes += item.effort;
-              }
-            }
-            return { selected, usedMinutes };
-          };
-
           const budget = availableMinutes ?? 480;
-          const { selected, usedMinutes } = scoreTasks(today, budget);
+          const { selected, excluded, usedMinutes, budgetBreakdown } =
+            this.scorePlan(allTasks, today, budget, energy);
+
           const recommendedTasks = selected.map((s) => ({
             ...s.task,
             estimatedMinutes: s.effort,
             score: s.score,
+            explanation: {
+              scoreBreakdown: s.scoreBreakdown,
+              whyIncluded: s.whyIncluded,
+              rank: selected.indexOf(s) + 1,
+            },
           }));
 
           const plan = {
@@ -2266,6 +2258,8 @@ export class AgentExecutor {
             remainingMinutes: budget - usedMinutes,
             recommendedTaskCount: recommendedTasks.length,
             recommendedTasks,
+            excluded,
+            budgetBreakdown,
             waitingCount: waitingTasks.length,
             projectsNeedingAttention: missingNextActionProjects.length,
           };
@@ -2273,9 +2267,11 @@ export class AgentExecutor {
           // Optional diff vs compareToDate
           let diff: Record<string, unknown> | null = null;
           if (compareToDate) {
-            const { selected: cSelected, usedMinutes: cUsed } = scoreTasks(
+            const { selected: cSelected, usedMinutes: cUsed } = this.scorePlan(
+              allTasks,
               compareToDate,
               budget,
+              energy,
             );
             const cIds = new Set(cSelected.map((s) => s.task.id));
             const bIds = new Set(selected.map((s) => s.task.id));
@@ -2324,6 +2320,73 @@ export class AgentExecutor {
             summaryFilters,
           );
           return this.success(action, readOnly, context, 200, { summary });
+        }
+
+        // ── Issue #334: recommendation feedback ────────────────────────────────
+        case "record_recommendation_feedback": {
+          const fbInput = validateAgentRecordFeedbackInput(input);
+          const feedback = await this.feedbackService.record(
+            context.userId,
+            fbInput,
+          );
+          return this.success(action, readOnly, context, 201, { feedback });
+        }
+        case "list_recommendation_feedback": {
+          const fbFilters = validateAgentListFeedbackInput(input);
+          const items = await this.feedbackService.list(
+            context.userId,
+            fbFilters,
+          );
+          return this.success(action, readOnly, context, 200, {
+            items,
+            total: items.length,
+          });
+        }
+        case "feedback_summary": {
+          const fbSummaryFilters = validateAgentFeedbackSummaryInput(input);
+          const summaries = await this.feedbackService.summary(
+            context.userId,
+            fbSummaryFilters,
+          );
+          return this.success(action, readOnly, context, 200, {
+            summaries,
+            total: summaries.length,
+          });
+        }
+
+        // ── Issue #336: life state / day context ───────────────────────────────
+        case "set_day_context": {
+          const ctxInput = validateAgentSetDayContextInput(input);
+          const dayCtxResult = await this.dayContextService.setContext(
+            context.userId,
+            ctxInput,
+          );
+          return this.success(action, readOnly, context, 200, {
+            context: dayCtxResult,
+          });
+        }
+        case "get_day_context": {
+          const { contextDate } = validateAgentGetDayContextInput(input);
+          const today = contextDate ?? new Date().toISOString().slice(0, 10);
+          const dayCtxResult = await this.dayContextService.getContext(
+            context.userId,
+            today,
+          );
+          return this.success(action, readOnly, context, 200, {
+            context: dayCtxResult,
+          });
+        }
+
+        // ── Issue #337: weekly executive summary ───────────────────────────────
+        case "weekly_executive_summary": {
+          const { weekOffset } = validateAgentWeeklyExecSummaryInput(input);
+          const execSummary = await this.executiveSummaryService.getSummary(
+            context.userId,
+            weekOffset ?? 0,
+          );
+          return this.success(action, readOnly, context, 200, {
+            summary: execSummary,
+          });
         }
 
         case "get_availability_windows": {
@@ -2695,5 +2758,174 @@ export class AgentExecutor {
         trace: buildTrace(context),
       },
     };
+  }
+
+  // ── Shared plan scoring helper (#335) ───────────────────────────────────────
+  private scorePlan(
+    allTasks: import("../types").Todo[],
+    forDate: string,
+    budgetMin: number,
+    energy?: string,
+    modeModifiers?: import("../services/dayContextService").ModeModifiers,
+  ): {
+    selected: Array<{
+      task: import("../types").Todo;
+      score: number;
+      effort: number;
+      scoreBreakdown: Record<string, number>;
+      whyIncluded: string;
+    }>;
+    excluded: Array<{
+      task: import("../types").Todo;
+      score: number;
+      effort: number;
+      whyExcluded: string;
+    }>;
+    usedMinutes: number;
+    budgetBreakdown: {
+      totalBudget: number;
+      scheduled: number;
+      remaining: number;
+      taskCount: number;
+    };
+  } {
+    const PRIORITY_SCORE: Record<string, number> = {
+      urgent: 40,
+      high: 20,
+      medium: 10,
+      low: 0,
+    };
+
+    const scored = allTasks.map((t) => {
+      const breakdown: Record<string, number> = {};
+      let score = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
+      breakdown.priority = PRIORITY_SCORE[t.priority ?? "medium"] ?? 10;
+
+      if (t.doDate) {
+        const d =
+          t.doDate instanceof Date
+            ? t.doDate.toISOString().slice(0, 10)
+            : String(t.doDate).slice(0, 10);
+        if (d < forDate) {
+          score += 50;
+          breakdown.doDateBoost = 50;
+        } else if (d === forDate) {
+          score += 30;
+          breakdown.doDateBoost = 30;
+        }
+      }
+      if (t.dueDate) {
+        const d =
+          t.dueDate instanceof Date
+            ? t.dueDate.toISOString().slice(0, 10)
+            : String(t.dueDate).slice(0, 10);
+        if (d < forDate) {
+          score += 40;
+          breakdown.dueDateBoost = 40;
+        } else if (d === forDate) {
+          score += 20;
+          breakdown.dueDateBoost = 20;
+        }
+      }
+      const effort = t.effortScore ?? 30;
+      if (energy === "low" && effort > 60) {
+        score -= 20;
+        breakdown.energyPenalty = -20;
+      }
+      if (energy === "high" && effort < 15) {
+        score -= 5;
+        breakdown.energyPenalty = -5;
+      }
+
+      // Mode-based boosts (#336)
+      if (modeModifiers) {
+        const { scoreBoosts } = modeModifiers;
+        if (scoreBoosts.shortTask && effort <= 20) {
+          score += scoreBoosts.shortTask;
+          breakdown.modeBoost =
+            (breakdown.modeBoost ?? 0) + scoreBoosts.shortTask;
+        }
+        if (scoreBoosts.adminTask && !t.projectId) {
+          score += scoreBoosts.adminTask;
+          breakdown.modeBoost =
+            (breakdown.modeBoost ?? 0) + scoreBoosts.adminTask;
+        }
+        if (scoreBoosts.projectTask && t.projectId) {
+          score += scoreBoosts.projectTask;
+          breakdown.modeBoost =
+            (breakdown.modeBoost ?? 0) + scoreBoosts.projectTask;
+        }
+        if (scoreBoosts.waitingTask && t.status === "waiting") {
+          score += scoreBoosts.waitingTask;
+          breakdown.modeBoost =
+            (breakdown.modeBoost ?? 0) + scoreBoosts.waitingTask;
+        }
+      }
+
+      return { task: t, score, effort, scoreBreakdown: breakdown };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+
+    const selected: (typeof scored)[number][] = [];
+    const excludedBudget: (typeof scored)[number][] = [];
+    let usedMinutes = 0;
+
+    for (const item of scored) {
+      if (usedMinutes + item.effort <= budgetMin) {
+        selected.push(item);
+        usedMinutes += item.effort;
+      } else {
+        excludedBudget.push(item);
+      }
+    }
+
+    const selectedIds = new Set(selected.map((s) => s.task.id));
+
+    return {
+      selected: selected.map((s) => ({
+        ...s,
+        whyIncluded: this.buildInclusionReason(
+          s.scoreBreakdown,
+          s.effort,
+          s.task.priority,
+        ),
+      })),
+      excluded: excludedBudget.slice(0, 5).map((s) => ({
+        task: s.task,
+        score: s.score,
+        effort: s.effort,
+        whyExcluded: selectedIds.has(s.task.id)
+          ? "low_score"
+          : energy && s.scoreBreakdown.energyPenalty !== undefined
+            ? "energy_mismatch"
+            : "budget_exceeded",
+      })),
+      usedMinutes,
+      budgetBreakdown: {
+        totalBudget: budgetMin,
+        scheduled: usedMinutes,
+        remaining: budgetMin - usedMinutes,
+        taskCount: selected.length,
+      },
+    };
+  }
+
+  private buildInclusionReason(
+    breakdown: Record<string, number>,
+    effort: number,
+    priority?: string | null,
+  ): string {
+    const parts: string[] = [];
+    if (priority === "urgent") parts.push("urgent priority");
+    else if (priority === "high") parts.push("high priority");
+    if (breakdown.doDateBoost === 50) parts.push("scheduled date is overdue");
+    else if (breakdown.doDateBoost === 30) parts.push("scheduled for today");
+    if (breakdown.dueDateBoost === 40) parts.push("due date is overdue");
+    else if (breakdown.dueDateBoost === 20) parts.push("due today");
+    if (effort <= 15) parts.push(`quick win (${effort} min)`);
+    else if (effort <= 30) parts.push(`fits ${effort}-min slot`);
+    if (parts.length === 0) parts.push("ranked within time budget");
+    return parts.join(", ");
   }
 }
