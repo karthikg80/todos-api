@@ -1,5 +1,5 @@
 {
-  "version": "1.5.1",
+  "version": "1.5.2",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -2504,7 +2504,7 @@
     },
     {
       "name": "plan_today",
-      "description": "Build a deterministic day plan by selecting tasks that fit within available time, weighted by priority, due dates, and energy.",
+      "description": "Build a deterministic day plan by selecting tasks that fit within available time, weighted by priority, due dates, and energy. Each recommended and excluded task includes an attribution block with decisionRunId, rank, score, and timestamp.",
       "method": "POST",
       "path": "/read/plan_today",
       "readOnly": true,
@@ -2526,6 +2526,11 @@
           "date": {
             "type": "string",
             "description": "ISO date (YYYY-MM-DD). Defaults to today."
+          },
+          "decisionRunId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional job run ID from the caller (agent runner). Attached to all attribution blocks in the response so the evaluator can correlate outcomes to this run."
           }
         }
       },
@@ -3222,7 +3227,7 @@
     },
     {
       "name": "simulate_plan",
-      "description": "Simulate the daily plan for a given date and budget without writing anything. Optionally diff against a compareToDate to see which tasks would be added or removed.",
+      "description": "Simulate the daily plan for a given date and budget without writing anything. Optionally diff against a compareToDate to see which tasks would be added or removed. Each recommended and excluded task includes an attribution block with decisionRunId, rank, score, and timestamp.",
       "method": "GET",
       "path": "/read/simulate_plan",
       "readOnly": true,
@@ -3250,6 +3255,11 @@
             "type": "string",
             "format": "date",
             "description": "Optional second date to diff against."
+          },
+          "decisionRunId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Optional job run ID from the caller (agent runner). Attached to all attribution blocks in the response so the evaluator can correlate outcomes to this run."
           }
         }
       },

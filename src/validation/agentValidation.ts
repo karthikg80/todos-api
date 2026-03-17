@@ -1138,7 +1138,7 @@ export function validateAgentTaxonomyCleanupInput(data: unknown): void {
 
 // ─── Planning ─────────────────────────────────────────────────────────────────
 
-const PLAN_TODAY_KEYS = ["availableMinutes", "energy", "date"];
+const PLAN_TODAY_KEYS = ["availableMinutes", "energy", "date", "decisionRunId"];
 const BREAK_DOWN_TASK_KEYS = ["taskId", "maxSubtasks"];
 const SUGGEST_NEXT_ACTIONS_KEYS = ["projectId", "limit"];
 const WEEKLY_REVIEW_SUMMARY_KEYS = ["weekStart"];
@@ -1147,6 +1147,7 @@ export function validateAgentPlanTodayInput(data: unknown): {
   availableMinutes?: number;
   energy?: Energy;
   date?: string;
+  decisionRunId?: string;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, PLAN_TODAY_KEYS, "Agent action input");
@@ -1159,6 +1160,7 @@ export function validateAgentPlanTodayInput(data: unknown): {
       ) ?? undefined,
     energy: parseOptionalEnergy(body.energy) ?? undefined,
     date: parseOptionalString(body.date, "date", 10),
+    decisionRunId: parseOptionalString(body.decisionRunId, "decisionRunId", 36),
   };
 }
 
@@ -1642,6 +1644,7 @@ const SIMULATE_PLAN_KEYS = [
   "energy",
   "date",
   "compareToDate",
+  "decisionRunId",
 ];
 
 export function validateAgentSimulatePlanInput(data: unknown): {
@@ -1649,6 +1652,7 @@ export function validateAgentSimulatePlanInput(data: unknown): {
   energy?: string;
   date?: string;
   compareToDate?: string;
+  decisionRunId?: string;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, SIMULATE_PLAN_KEYS, "Agent action input");
@@ -1664,7 +1668,12 @@ export function validateAgentSimulatePlanInput(data: unknown): {
     "compareToDate",
     10,
   );
-  return { availableMinutes, energy, date, compareToDate };
+  const decisionRunId = parseOptionalString(
+    body.decisionRunId,
+    "decisionRunId",
+    36,
+  );
+  return { availableMinutes, energy, date, compareToDate, decisionRunId };
 }
 
 // ── Issue #332: automation metrics ────────────────────────────────────────────

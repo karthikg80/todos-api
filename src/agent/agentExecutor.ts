@@ -1523,8 +1523,10 @@ export class AgentExecutor {
             availableMinutes,
             energy: energyParam,
             date,
+            decisionRunId,
           } = validateAgentPlanTodayInput(input);
           const today = date ?? new Date().toISOString().slice(0, 10);
+          const decidedAt = new Date().toISOString();
 
           // #336: load day context and derive effective energy + mode modifiers
           const dayCtx = await this.dayContextService.getContext(
@@ -1587,6 +1589,15 @@ export class AgentExecutor {
               whyIncluded: s.whyIncluded,
               rank: i + 1,
             },
+            attribution: {
+              decisionRunId: decisionRunId ?? null,
+              decisionJobName: "planner",
+              decisionPeriodKey: today,
+              recommendedAt: decidedAt,
+              recommendedRank: i + 1,
+              recommendedScore: s.score,
+              autoCreated: false,
+            },
           }));
 
           return this.success(action, readOnly, context, 200, {
@@ -1600,7 +1611,15 @@ export class AgentExecutor {
                 projectsNeedingAttention: missingNextActionProjects.length,
               },
               recommendedTasks,
-              excluded,
+              excluded: excluded.map((e) => ({
+                ...e,
+                attribution: {
+                  decisionRunId: decisionRunId ?? null,
+                  decisionPeriodKey: today,
+                  excludedAt: decidedAt,
+                  excludedScore: e.score,
+                },
+              })),
               budgetBreakdown: cappedBudgetBreakdown,
               waitingTasks: waitingTasks.slice(0, 10).map((t) => ({
                 id: t.id,
@@ -2346,9 +2365,15 @@ export class AgentExecutor {
 
         // ── Issue #331: simulate_plan ──────────────────────────────────────────
         case "simulate_plan": {
-          const { availableMinutes, energy, date, compareToDate } =
-            validateAgentSimulatePlanInput(input);
+          const {
+            availableMinutes,
+            energy,
+            date,
+            compareToDate,
+            decisionRunId: simRunId,
+          } = validateAgentSimulatePlanInput(input);
           const today = date ?? new Date().toISOString().slice(0, 10);
+          const simDecidedAt = new Date().toISOString();
 
           const [allTasks, waitingTasks, missingNextActionProjects] =
             await Promise.all([
@@ -2371,14 +2396,23 @@ export class AgentExecutor {
           const { selected, excluded, usedMinutes, budgetBreakdown } =
             this.scorePlan(allTasks, today, budget, energy);
 
-          const recommendedTasks = selected.map((s) => ({
+          const recommendedTasks = selected.map((s, i) => ({
             ...s.task,
             estimatedMinutes: s.effort,
             score: s.score,
             explanation: {
               scoreBreakdown: s.scoreBreakdown,
               whyIncluded: s.whyIncluded,
-              rank: selected.indexOf(s) + 1,
+              rank: i + 1,
+            },
+            attribution: {
+              decisionRunId: simRunId ?? null,
+              decisionJobName: "simulate",
+              decisionPeriodKey: today,
+              recommendedAt: simDecidedAt,
+              recommendedRank: i + 1,
+              recommendedScore: s.score,
+              autoCreated: false,
             },
           }));
 
@@ -2390,7 +2424,15 @@ export class AgentExecutor {
             remainingMinutes: budget - usedMinutes,
             recommendedTaskCount: recommendedTasks.length,
             recommendedTasks,
-            excluded,
+            excluded: excluded.map((e) => ({
+              ...e,
+              attribution: {
+                decisionRunId: simRunId ?? null,
+                decisionPeriodKey: today,
+                excludedAt: simDecidedAt,
+                excludedScore: e.score,
+              },
+            })),
             budgetBreakdown,
             waitingCount: waitingTasks.length,
             projectsNeedingAttention: missingNextActionProjects.length,
