@@ -2124,6 +2124,57 @@ export function validateAgentPromoteInboxItemInput(data: unknown): {
   };
 }
 
+// ── Issue #338: friction patterns ─────────────────────────────────────────────
+
+const LIST_FRICTION_PATTERNS_KEYS = ["since", "limit"];
+
+export function validateAgentListFrictionPatternsInput(data: unknown): {
+  since?: string;
+  limit?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_FRICTION_PATTERNS_KEYS, "Agent action input");
+  return {
+    since: parseOptionalString(body.since, "since", 10),
+    limit: parseOptionalPositiveInt(body.limit, "limit", 200) ?? undefined,
+  };
+}
+
+// ── Issue #339: action policies ───────────────────────────────────────────────
+
+const UPDATE_ACTION_POLICY_KEYS = ["actionName", "autoApply", "minConfidence"];
+
+export function validateAgentGetActionPoliciesInput(
+  _data: unknown,
+): Record<string, never> {
+  return {};
+}
+
+export function validateAgentUpdateActionPolicyInput(data: unknown): {
+  actionName: string;
+  autoApply?: boolean;
+  minConfidence?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, UPDATE_ACTION_POLICY_KEYS, "Agent action input");
+  const actionName = parseOptionalString(body.actionName, "actionName", 100);
+  if (!actionName) throw new ValidationError("actionName is required");
+  const result: {
+    actionName: string;
+    autoApply?: boolean;
+    minConfidence?: number;
+  } = { actionName };
+  if (body.autoApply !== undefined)
+    result.autoApply = parseOptionalBoolean(body.autoApply, "autoApply");
+  if (body.minConfidence !== undefined) {
+    const raw = Number(body.minConfidence);
+    if (isNaN(raw) || raw < 0 || raw > 1)
+      throw new ValidationError("minConfidence must be between 0 and 1");
+    result.minConfidence = raw;
+  }
+  return result;
+}
+
 // ── Issue #337: weekly executive summary ──────────────────────────────────────
 
 const WEEKLY_EXEC_SUMMARY_KEYS = ["weekOffset"];
