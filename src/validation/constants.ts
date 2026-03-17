@@ -60,6 +60,7 @@ export const VALID_TASK_SOURCES: TaskSource[] = [
   "email",
   "import",
   "automation",
+  "api",
 ];
 
 export const VALID_RECURRENCE_TYPES: RecurrenceType[] = [

@@ -906,7 +906,15 @@
           },
           "source": {
             "type": ["string", "null"],
-            "enum": ["manual", "chat", "email", "import", "automation", null]
+            "enum": [
+              "manual",
+              "chat",
+              "email",
+              "import",
+              "automation",
+              null,
+              "api"
+            ]
           },
           "createdByPrompt": {
             "type": ["string", "null"],
@@ -1037,7 +1045,15 @@
           },
           "source": {
             "type": ["string", "null"],
-            "enum": ["manual", "chat", "email", "import", "automation", null]
+            "enum": [
+              "manual",
+              "chat",
+              "email",
+              "import",
+              "automation",
+              null,
+              "api"
+            ]
           },
           "createdByPrompt": {
             "type": ["string", "null"],
@@ -2721,7 +2737,7 @@
           },
           "since": {
             "type": "string",
-            "description": "ISO timestamp — return only entries after this date."
+            "description": "ISO timestamp \u2014 return only entries after this date."
           },
           "action": {
             "type": "string",
@@ -3166,7 +3182,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "description": "Minimum confidence required to auto-apply an inbox triage suggestion (0–1)."
+            "description": "Minimum confidence required to auto-apply an inbox triage suggestion (0\u20131)."
           },
           "staleThresholdDays": {
             "type": "integer",
@@ -3879,7 +3895,7 @@
             "type": "number",
             "minimum": 0,
             "maximum": 1,
-            "description": "Confidence score 0–1."
+            "description": "Confidence score 0\u20131."
           },
           "why": {
             "type": "string",
@@ -4026,7 +4042,7 @@
         "properties": {
           "policies": {
             "type": "object",
-            "description": "Map of actionName → { autoApply, minConfidence }."
+            "description": "Map of actionName \u2192 { autoApply, minConfidence }."
           }
         }
       },
@@ -4080,7 +4096,7 @@
     "delete_project unassigns tasks by default unless moveTasksToProjectId is supplied."
   ],
   "_namespaces": {
-    "core": "System of record — tasks, projects, subtasks",
+    "core": "System of record \u2014 tasks, projects, subtasks",
     "plan": "Choosing work and shaping execution",
     "review": "Hygiene, diagnostics, and analysis",
     "inbox": "Capture triage and classification",
