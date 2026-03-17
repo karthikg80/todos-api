@@ -121,6 +121,8 @@ function minimumRequiredScopesForAction(
     case "triage_capture_item":
     case "triage_inbox":
     case "create_follow_up_for_waiting_task":
+    case "capture_inbox_item":
+    case "promote_inbox_item":
       return [TASK_WRITE_SCOPE];
     case "claim_job_run":
     case "complete_job_run":
@@ -144,6 +146,7 @@ function minimumRequiredScopesForAction(
     case "feedback_summary":
     case "get_day_context":
     case "weekly_executive_summary":
+    case "list_inbox_items":
       return [TASK_READ_SCOPE];
   }
 }
