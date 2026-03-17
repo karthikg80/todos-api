@@ -18,6 +18,7 @@ import {
 } from "../services/dayContextService";
 import { WeeklyExecutiveSummaryService } from "../services/weeklyExecutiveSummaryService";
 import { EvaluationService } from "../services/evaluationService";
+import { LearningRecommendationService } from "../services/learningRecommendationService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
@@ -97,6 +98,9 @@ import {
   validateAgentPromoteInboxItemInput,
   validateAgentEvaluateDailyInput,
   validateAgentEvaluateWeeklyInput,
+  validateAgentRecordLearningRecInput,
+  validateAgentListLearningRecsInput,
+  validateAgentApplyLearningRecInput,
 } from "../validation/agentValidation";
 import { CaptureService } from "../services/captureService";
 
@@ -171,7 +175,10 @@ export type AgentActionName =
   | "list_inbox_items"
   | "promote_inbox_item"
   | "evaluate_daily_plan"
-  | "evaluate_weekly_system";
+  | "evaluate_weekly_system"
+  | "record_learning_recommendation"
+  | "list_learning_recommendations"
+  | "apply_learning_recommendation";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -268,6 +275,7 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "list_inbox_items",
   "evaluate_daily_plan",
   "evaluate_weekly_system",
+  "list_learning_recommendations",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -543,6 +551,7 @@ export class AgentExecutor {
   private readonly dayContextService: DayContextService;
   private readonly executiveSummaryService: WeeklyExecutiveSummaryService;
   private readonly captureService: CaptureService | null;
+  private readonly learningRecommendationService: LearningRecommendationService;
   private readonly evaluationService: EvaluationService;
 
   constructor(private readonly deps: AgentExecutorDeps) {
@@ -567,6 +576,9 @@ export class AgentExecutor {
       ? new CaptureService(deps.persistencePrisma)
       : null;
     this.evaluationService = new EvaluationService(deps.persistencePrisma);
+    this.learningRecommendationService = new LearningRecommendationService(
+      deps.persistencePrisma,
+    );
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
@@ -2570,6 +2582,56 @@ export class AgentExecutor {
           return this.success(action, readOnly, context, 200, {
             summary: execSummary,
           });
+        }
+
+        case "record_learning_recommendation": {
+          const recInput = validateAgentRecordLearningRecInput(input);
+          const rec = await this.learningRecommendationService.record(
+            context.userId,
+            recInput,
+          );
+          return this.success(action, readOnly, context, 201, {
+            recommendation: rec,
+          });
+        }
+
+        case "list_learning_recommendations": {
+          const { status, limit } = validateAgentListLearningRecsInput(input);
+          const recs = await this.learningRecommendationService.list(
+            context.userId,
+            { status, limit },
+          );
+          return this.success(action, readOnly, context, 200, {
+            recommendations: recs,
+            total: recs.length,
+          });
+        }
+
+        case "apply_learning_recommendation": {
+          const { id } = validateAgentApplyLearningRecInput(input);
+          try {
+            const { recommendation, configUpdated } =
+              await this.learningRecommendationService.apply(
+                context.userId,
+                id,
+              );
+            return this.success(action, readOnly, context, 200, {
+              recommendation,
+              configUpdated,
+            });
+          } catch (err) {
+            if (err instanceof Error) {
+              throw new AgentExecutionError(
+                err.message.includes("not found") ? 404 : 400,
+                err.message.includes("not found")
+                  ? "RESOURCE_NOT_FOUND_OR_FORBIDDEN"
+                  : "INVALID_OPERATION",
+                err.message,
+                false,
+              );
+            }
+            throw err;
+          }
         }
 
         case "evaluate_daily_plan": {

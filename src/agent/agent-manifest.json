@@ -1,5 +1,5 @@
 {
-  "version": "1.5.3",
+  "version": "1.5.4",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -3838,6 +3838,137 @@
         }
       },
       "readOnly": true
+    },
+    {
+      "name": "record_learning_recommendation",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "operator",
+      "description": "Record a learning recommendation for a config or score-weight change, produced by an evaluator job.",
+      "method": "POST",
+      "path": "/agent/write/record_learning_recommendation",
+      "inputSchema": {
+        "type": "object",
+        "required": [
+          "type",
+          "target",
+          "currentValue",
+          "suggestedValue",
+          "confidence",
+          "why"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["config_change", "score_weight"],
+            "description": "Category of the recommendation."
+          },
+          "target": {
+            "type": "string",
+            "description": "AgentConfig field name to change."
+          },
+          "currentValue": {
+            "description": "Current value of the target field."
+          },
+          "suggestedValue": {
+            "description": "Proposed new value."
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence score 0–1."
+          },
+          "why": {
+            "type": "string",
+            "description": "Human-readable rationale."
+          },
+          "evidence": {
+            "description": "Optional structured evidence backing the recommendation."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "recommendation": {
+            "type": "object",
+            "description": "The created LearningRecommendation record."
+          }
+        }
+      },
+      "readOnly": false
+    },
+    {
+      "name": "list_learning_recommendations",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "operator",
+      "description": "List learning recommendations for the user, optionally filtered by status.",
+      "method": "POST",
+      "path": "/agent/read/list_learning_recommendations",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["pending", "applied", "dismissed"],
+            "description": "Filter by recommendation status. Omit for all."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Max records to return (default 50)."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "recommendations": {
+            "type": "array",
+            "description": "Array of LearningRecommendation records."
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "apply_learning_recommendation",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "operator",
+      "description": "Apply a pending learning recommendation to AgentConfig. Only targets in the safe-apply allowlist are eligible.",
+      "method": "POST",
+      "path": "/agent/write/apply_learning_recommendation",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "ID of the LearningRecommendation to apply."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "recommendation": {
+            "type": "object",
+            "description": "Updated recommendation record with status=applied."
+          },
+          "configUpdated": {
+            "type": "boolean",
+            "description": "Whether AgentConfig was modified."
+          }
+        }
+      },
+      "readOnly": false
     }
   ],
   "notes": [

@@ -379,5 +379,19 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "evaluate_weekly_system"),
   );
 
+  // Learning recommendation endpoints (#351)
+  router.post(
+    "/write/record_learning_recommendation",
+    createAgentActionHandler(agentExecutor, "record_learning_recommendation"),
+  );
+  router.post(
+    "/read/list_learning_recommendations",
+    createAgentActionHandler(agentExecutor, "list_learning_recommendations"),
+  );
+  router.post(
+    "/write/apply_learning_recommendation",
+    createAgentActionHandler(agentExecutor, "apply_learning_recommendation"),
+  );
+
   return router;
 }

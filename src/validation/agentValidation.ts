@@ -1902,6 +1902,89 @@ export function validateAgentGetDayContextInput(data: unknown): {
   };
 }
 
+// ── Issue #351: learning recommendations ──────────────────────────────────────
+
+const RECORD_LEARNING_REC_KEYS = [
+  "type",
+  "target",
+  "currentValue",
+  "suggestedValue",
+  "confidence",
+  "why",
+  "evidence",
+];
+const LIST_LEARNING_REC_KEYS = ["status", "limit"];
+const APPLY_LEARNING_REC_KEYS = ["id"];
+
+export function validateAgentRecordLearningRecInput(data: unknown): {
+  type: "config_change" | "score_weight";
+  target: string;
+  currentValue: unknown;
+  suggestedValue: unknown;
+  confidence: number;
+  why: string;
+  evidence?: unknown;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, RECORD_LEARNING_REC_KEYS, "Agent action input");
+  const typeVal = parseOptionalString(body.type, "type", 20);
+  if (typeVal !== "config_change" && typeVal !== "score_weight") {
+    throw new ValidationError('type must be "config_change" or "score_weight"');
+  }
+  const target = parseOptionalString(body.target, "target", 100);
+  if (!target) throw new ValidationError("target is required");
+  if (body.currentValue === undefined)
+    throw new ValidationError("currentValue is required");
+  if (body.suggestedValue === undefined)
+    throw new ValidationError("suggestedValue is required");
+  const confidence = Number(body.confidence);
+  if (isNaN(confidence) || confidence < 0 || confidence > 1) {
+    throw new ValidationError("confidence must be a number between 0 and 1");
+  }
+  const why = parseOptionalString(body.why, "why", 500);
+  if (!why) throw new ValidationError("why is required");
+  return {
+    type: typeVal,
+    target,
+    currentValue: body.currentValue,
+    suggestedValue: body.suggestedValue,
+    confidence,
+    why,
+    evidence: body.evidence,
+  };
+}
+
+export function validateAgentListLearningRecsInput(data: unknown): {
+  status?: "pending" | "applied" | "dismissed";
+  limit?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_LEARNING_REC_KEYS, "Agent action input");
+  const statusVal = parseOptionalString(body.status, "status", 20);
+  if (
+    statusVal !== undefined &&
+    statusVal !== "pending" &&
+    statusVal !== "applied" &&
+    statusVal !== "dismissed"
+  ) {
+    throw new ValidationError(
+      "status must be one of: pending, applied, dismissed",
+    );
+  }
+  return {
+    status: statusVal as "pending" | "applied" | "dismissed" | undefined,
+    limit: parseOptionalPositiveInt(body.limit, "limit", 100) ?? undefined,
+  };
+}
+
+export function validateAgentApplyLearningRecInput(data: unknown): {
+  id: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, APPLY_LEARNING_REC_KEYS, "Agent action input");
+  return { id: parseRequiredId(body, "id") };
+}
+
 // ── Issues #349/#350: evaluation endpoints ────────────────────────────────────
 
 const EVALUATE_DAILY_KEYS = ["date", "decisionRunId"];
