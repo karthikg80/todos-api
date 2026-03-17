@@ -14,6 +14,7 @@ import {
   getMcpToolDefinition,
   listMcpTools,
   MCP_PROTOCOL_VERSION,
+  negotiateMcpProtocolVersion,
   requiredScopesForToolCall,
   supportsMcpIdempotencyKey,
 } from "../mcp/mcpToolCatalog";
@@ -398,6 +399,15 @@ export function createMcpRouter({
 
     switch (parsedRequest.method) {
       case "initialize": {
+        const clientVersion =
+          parsedRequest.params &&
+          typeof parsedRequest.params === "object" &&
+          !Array.isArray(parsedRequest.params)
+            ? (parsedRequest.params as Record<string, unknown>).protocolVersion
+            : undefined;
+        const agreedVersion = negotiateMcpProtocolVersion(
+          typeof clientVersion === "string" ? clientVersion : undefined,
+        );
         logMcpRequest({
           requestId,
           method: parsedRequest.method,
@@ -411,7 +421,7 @@ export function createMcpRouter({
         });
         res.status(200).json(
           jsonRpcSuccess(parsedRequest.id ?? null, {
-            protocolVersion: MCP_PROTOCOL_VERSION,
+            protocolVersion: agreedVersion,
             capabilities: {
               tools: {
                 listChanged: false,
