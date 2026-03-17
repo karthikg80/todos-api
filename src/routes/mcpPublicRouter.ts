@@ -7,6 +7,7 @@ import {
   renderOAuthConsentPage,
   renderOAuthErrorPage,
   renderOAuthLoginPage,
+  renderOAuthRedirectPage,
 } from "../mcp/mcpOAuthPages";
 import {
   describeMcpScopes,
@@ -733,13 +734,18 @@ export function createMcpPublicRouter({
         scopes: authorize.scopes,
       });
 
-      res.redirect(
-        303,
-        appendQuery(authorize.redirectUri, {
-          code: authCode.code,
-          state: authorize.state,
-        }),
-      );
+      const finalRedirectUri = appendQuery(authorize.redirectUri, {
+        code: authCode.code,
+        state: authorize.state,
+      });
+      // Use 303 + Location for server-side OAuth clients, but also send a
+      // rich HTML body so embedded webviews / in-app browsers (e.g. ChatGPT)
+      // can redirect via meta-refresh or JS when the Location header is not
+      // automatically followed.
+      res
+        .status(303)
+        .setHeader("Location", finalRedirectUri)
+        .send(renderOAuthRedirectPage({ redirectUri: finalRedirectUri }));
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       const mapped = mapAuthorizeError(message);
