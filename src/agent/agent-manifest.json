@@ -3632,7 +3632,16 @@
       "description": "Record a raw thought or item for later triage without any AI processing. Returns the created capture item.",
       "method": "POST",
       "path": "/agent/write/capture_inbox_item",
-      "input": {
+      "output": {
+        "properties": {
+          "item": {
+            "type": "object",
+            "description": "The created capture item with id, text, source, lifecycle, capturedAt."
+          }
+        }
+      },
+      "readOnly": false,
+      "inputSchema": {
         "type": "object",
         "required": ["text"],
         "additionalProperties": false,
@@ -3648,16 +3657,7 @@
             "description": "Origin of the capture."
           }
         }
-      },
-      "output": {
-        "properties": {
-          "item": {
-            "type": "object",
-            "description": "The created capture item with id, text, source, lifecycle, capturedAt."
-          }
-        }
-      },
-      "readOnly": false
+      }
     },
     {
       "name": "list_inbox_items",
@@ -3668,7 +3668,20 @@
       "description": "Return capture items with optional filters. Defaults to all lifecycles. Use lifecycle=new to see unprocessed items.",
       "method": "POST",
       "path": "/agent/read/list_inbox_items",
-      "input": {
+      "output": {
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Array of capture items."
+          },
+          "total": {
+            "type": "integer",
+            "description": "Count of returned items."
+          }
+        }
+      },
+      "readOnly": true,
+      "inputSchema": {
         "type": "object",
         "additionalProperties": false,
         "properties": {
@@ -3693,20 +3706,7 @@
             "description": "Return items captured on or after this timestamp."
           }
         }
-      },
-      "output": {
-        "properties": {
-          "items": {
-            "type": "array",
-            "description": "Array of capture items."
-          },
-          "total": {
-            "type": "integer",
-            "description": "Count of returned items."
-          }
-        }
-      },
-      "readOnly": true
+      }
     },
     {
       "name": "promote_inbox_item",
@@ -3717,7 +3717,24 @@
       "description": "Convert a capture item directly into a task or project without re-running full triage. Marks the capture as triaged.",
       "method": "POST",
       "path": "/agent/write/promote_inbox_item",
-      "input": {
+      "output": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "task or project"
+          },
+          "task": {
+            "type": "object",
+            "description": "Created task (when type=task)."
+          },
+          "project": {
+            "type": "object",
+            "description": "Created project (when type=project)."
+          }
+        }
+      },
+      "readOnly": false,
+      "inputSchema": {
         "type": "object",
         "required": ["captureItemId", "type"],
         "additionalProperties": false,
@@ -3743,24 +3760,7 @@
             "description": "Override title. Defaults to the capture text."
           }
         }
-      },
-      "output": {
-        "properties": {
-          "type": {
-            "type": "string",
-            "description": "task or project"
-          },
-          "task": {
-            "type": "object",
-            "description": "Created task (when type=task)."
-          },
-          "project": {
-            "type": "object",
-            "description": "Created project (when type=project)."
-          }
-        }
-      },
-      "readOnly": false
+      }
     }
   ],
   "notes": [
