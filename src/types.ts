@@ -16,7 +16,13 @@ export type TaskStatus =
 export type ProjectStatus = "active" | "on_hold" | "completed" | "archived";
 export type Energy = "low" | "medium" | "high";
 export type ReviewCadence = "weekly" | "biweekly" | "monthly" | "quarterly";
-export type TaskSource = "manual" | "chat" | "email" | "import" | "automation";
+export type TaskSource =
+  | "manual"
+  | "chat"
+  | "email"
+  | "import"
+  | "automation"
+  | "api";
 export type RecurrenceType =
   | "none"
   | "daily"

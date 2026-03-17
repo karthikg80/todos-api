@@ -643,7 +643,7 @@ export function createMcpRouter({
               content: [
                 {
                   type: "text",
-                  text: `${tool.name} completed successfully`,
+                  text: JSON.stringify(result.body),
                 },
               ],
               structuredContent: result.body,

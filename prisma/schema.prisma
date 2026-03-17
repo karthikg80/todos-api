@@ -68,6 +68,7 @@ enum TodoSource {
   email
   import
   automation
+  api
 }
 
 enum TodoRecurrenceType {
