@@ -329,5 +329,31 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "metrics_summary"),
   );
 
+  // Issues #334, #336, #337: feedback, day context, executive summary
+  router.post(
+    "/write/record_recommendation_feedback",
+    createAgentActionHandler(agentExecutor, "record_recommendation_feedback"),
+  );
+  router.get(
+    "/read/list_recommendation_feedback",
+    createAgentActionHandler(agentExecutor, "list_recommendation_feedback"),
+  );
+  router.get(
+    "/read/feedback_summary",
+    createAgentActionHandler(agentExecutor, "feedback_summary"),
+  );
+  router.post(
+    "/write/set_day_context",
+    createAgentActionHandler(agentExecutor, "set_day_context"),
+  );
+  router.get(
+    "/read/get_day_context",
+    createAgentActionHandler(agentExecutor, "get_day_context"),
+  );
+  router.get(
+    "/read/weekly_executive_summary",
+    createAgentActionHandler(agentExecutor, "weekly_executive_summary"),
+  );
+
   return router;
 }

@@ -130,6 +130,8 @@ function minimumRequiredScopesForAction(
     case "update_agent_config":
     case "replay_job_run":
     case "record_metric":
+    case "record_recommendation_feedback":
+    case "set_day_context":
       return [TASK_WRITE_SCOPE];
     case "get_job_run_status":
     case "list_job_runs":
@@ -138,6 +140,10 @@ function minimumRequiredScopesForAction(
     case "simulate_plan":
     case "list_metrics":
     case "metrics_summary":
+    case "list_recommendation_feedback":
+    case "feedback_summary":
+    case "get_day_context":
+    case "weekly_executive_summary":
       return [TASK_READ_SCOPE];
   }
 }

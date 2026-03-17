@@ -1742,3 +1742,161 @@ export function validateAgentMetricsSummaryInput(data: unknown): {
     since: parseOptionalString(body.since, "since", 30),
   };
 }
+
+// ── Issue #334: recommendation feedback ───────────────────────────────────────
+
+const VALID_FEEDBACK_SIGNALS = ["accepted", "ignored", "snoozed", "reordered"];
+
+const RECORD_FEEDBACK_KEYS = [
+  "planDate",
+  "taskId",
+  "signal",
+  "energy",
+  "availableMinutes",
+  "score",
+];
+const LIST_FEEDBACK_KEYS = ["taskId", "signal", "since", "limit"];
+const FEEDBACK_SUMMARY_KEYS = ["since"];
+
+export function validateAgentRecordFeedbackInput(data: unknown): {
+  planDate: string;
+  taskId: string;
+  signal: "accepted" | "ignored" | "snoozed" | "reordered";
+  energy?: string;
+  availableMinutes?: number;
+  score?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, RECORD_FEEDBACK_KEYS, "Agent action input");
+  const planDate = parseOptionalString(body.planDate, "planDate", 10);
+  if (!planDate) throw new ValidationError("planDate is required");
+  const taskId = parseOptionalString(body.taskId, "taskId", 100);
+  if (!taskId) throw new ValidationError("taskId is required");
+  const signal = parseOptionalString(body.signal, "signal", 20);
+  if (!signal || !VALID_FEEDBACK_SIGNALS.includes(signal))
+    throw new ValidationError(
+      `signal must be one of: ${VALID_FEEDBACK_SIGNALS.join(", ")}`,
+    );
+  let score: number | undefined;
+  if (body.score !== undefined) {
+    score = Number(body.score);
+    if (isNaN(score)) throw new ValidationError("score must be a number");
+  }
+  return {
+    planDate,
+    taskId,
+    signal: signal as "accepted" | "ignored" | "snoozed" | "reordered",
+    energy: parseOptionalString(body.energy, "energy", 20),
+    availableMinutes: parseOptionalPositiveInt(
+      body.availableMinutes,
+      "availableMinutes",
+      1440,
+    ),
+    score,
+  };
+}
+
+export function validateAgentListFeedbackInput(data: unknown): {
+  taskId?: string;
+  signal?: "accepted" | "ignored" | "snoozed" | "reordered";
+  since?: string;
+  limit?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_FEEDBACK_KEYS, "Agent action input");
+  const signal = parseOptionalString(body.signal, "signal", 20);
+  if (signal && !VALID_FEEDBACK_SIGNALS.includes(signal))
+    throw new ValidationError(
+      `signal must be one of: ${VALID_FEEDBACK_SIGNALS.join(", ")}`,
+    );
+  return {
+    taskId: parseOptionalString(body.taskId, "taskId", 100),
+    signal: signal as
+      | "accepted"
+      | "ignored"
+      | "snoozed"
+      | "reordered"
+      | undefined,
+    since: parseOptionalString(body.since, "since", 30),
+    limit: parseOptionalPositiveInt(body.limit, "limit", 500),
+  };
+}
+
+export function validateAgentFeedbackSummaryInput(data: unknown): {
+  since?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, FEEDBACK_SUMMARY_KEYS, "Agent action input");
+  return {
+    since: parseOptionalString(body.since, "since", 30),
+  };
+}
+
+// ── Issue #336: life state / day context ──────────────────────────────────────
+
+const VALID_DAY_MODES = [
+  "normal",
+  "travel",
+  "office",
+  "home",
+  "overloaded",
+  "sprint",
+  "catch_up",
+];
+
+const SET_DAY_CONTEXT_KEYS = ["contextDate", "mode", "energy", "notes"];
+const GET_DAY_CONTEXT_KEYS = ["contextDate"];
+
+export function validateAgentSetDayContextInput(data: unknown): {
+  contextDate: string;
+  mode: import("../services/dayContextService").DayMode;
+  energy?: string;
+  notes?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, SET_DAY_CONTEXT_KEYS, "Agent action input");
+  const contextDate =
+    parseOptionalString(body.contextDate, "contextDate", 10) ??
+    new Date().toISOString().slice(0, 10);
+  const mode = parseOptionalString(body.mode, "mode", 20);
+  if (!mode || !VALID_DAY_MODES.includes(mode))
+    throw new ValidationError(
+      `mode must be one of: ${VALID_DAY_MODES.join(", ")}`,
+    );
+  return {
+    contextDate,
+    mode: mode as import("../services/dayContextService").DayMode,
+    energy: parseOptionalString(body.energy, "energy", 20),
+    notes: parseOptionalString(body.notes, "notes", 500),
+  };
+}
+
+export function validateAgentGetDayContextInput(data: unknown): {
+  contextDate?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, GET_DAY_CONTEXT_KEYS, "Agent action input");
+  return {
+    contextDate: parseOptionalString(body.contextDate, "contextDate", 10),
+  };
+}
+
+// ── Issue #337: weekly executive summary ──────────────────────────────────────
+
+const WEEKLY_EXEC_SUMMARY_KEYS = ["weekOffset"];
+
+export function validateAgentWeeklyExecSummaryInput(data: unknown): {
+  weekOffset?: number;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, WEEKLY_EXEC_SUMMARY_KEYS, "Agent action input");
+  let weekOffset: number | undefined;
+  if (body.weekOffset !== undefined) {
+    weekOffset = Number(body.weekOffset);
+    if (!Number.isInteger(weekOffset) || weekOffset < -52 || weekOffset > 0)
+      throw new ValidationError(
+        "weekOffset must be an integer between -52 and 0",
+      );
+  }
+  return { weekOffset };
+}

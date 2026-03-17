@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -3150,6 +3150,211 @@
       },
       "output": {
         "description": "Array of summary entries, one per metricType."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "record_recommendation_feedback",
+      "description": "Record a feedback signal on a plan_today recommendation: accepted, ignored, snoozed, or reordered. Used to close the feedback loop and improve future plan scoring.",
+      "method": "POST",
+      "path": "/write/record_recommendation_feedback",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["planDate", "taskId", "signal"],
+        "properties": {
+          "planDate": {
+            "type": "string",
+            "format": "date",
+            "description": "The plan date the recommendation was made for."
+          },
+          "taskId": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "ID of the recommended task."
+          },
+          "signal": {
+            "type": "string",
+            "enum": ["accepted", "ignored", "snoozed", "reordered"],
+            "description": "How the user responded to the recommendation."
+          },
+          "energy": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Energy level at time of feedback."
+          },
+          "availableMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1440,
+            "description": "Time budget at time of feedback."
+          },
+          "score": {
+            "type": "number",
+            "description": "Score the task had when recommended."
+          }
+        }
+      },
+      "output": {
+        "description": "Created feedback record."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "list_recommendation_feedback",
+      "description": "List raw recommendation feedback events, optionally filtered by taskId, signal type, or date range.",
+      "method": "GET",
+      "path": "/read/list_recommendation_feedback",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "taskId": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Filter by task ID."
+          },
+          "signal": {
+            "type": "string",
+            "enum": ["accepted", "ignored", "snoozed", "reordered"],
+            "description": "Filter by signal type."
+          },
+          "since": {
+            "type": "string",
+            "maxLength": 30,
+            "description": "ISO datetime lower bound."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "description": "Maximum events to return (default 100)."
+          }
+        }
+      },
+      "output": {
+        "description": "Array of feedback records and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "feedback_summary",
+      "description": "Return per-task feedback aggregates: acceptance rate, count per signal type, and last signal.",
+      "method": "GET",
+      "path": "/read/feedback_summary",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "since": {
+            "type": "string",
+            "maxLength": 30,
+            "description": "ISO datetime lower bound for feedback window."
+          }
+        }
+      },
+      "output": {
+        "description": "Array of per-task summary entries and total count."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "set_day_context",
+      "description": "Set the life state / mode context for a given day. Affects plan_today scoring: overloaded caps task count, travel reduces budget, sprint boosts project tasks, catch_up prioritizes waiting items.",
+      "method": "POST",
+      "path": "/write/set_day_context",
+      "readOnly": false,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["mode"],
+        "properties": {
+          "contextDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Date to set context for (default today)."
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "travel",
+              "office",
+              "home",
+              "overloaded",
+              "sprint",
+              "catch_up"
+            ],
+            "description": "Day mode that modifies planner behavior."
+          },
+          "energy": {
+            "type": "string",
+            "enum": ["low", "medium", "high"],
+            "description": "Override energy level for plan_today scoring."
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Optional free-text context note."
+          }
+        }
+      },
+      "output": {
+        "description": "Upserted day context record."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "get_day_context",
+      "description": "Get the life state / mode context for a given day.",
+      "method": "GET",
+      "path": "/read/get_day_context",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "contextDate": {
+            "type": "string",
+            "format": "date",
+            "description": "Date to retrieve context for (default today)."
+          }
+        }
+      },
+      "output": {
+        "description": "Day context record or null if not set."
+      },
+      "errorModel": "structured_agent_error",
+      "idempotency": "not_applicable"
+    },
+    {
+      "name": "weekly_executive_summary",
+      "description": "Return a strategic weekly digest: tasks completed, reactive vs proactive ratio, blocked projects, attention diffusion, automation stats, and plain-English insights.",
+      "method": "GET",
+      "path": "/read/weekly_executive_summary",
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "weekOffset": {
+            "type": "integer",
+            "minimum": -52,
+            "maximum": 0,
+            "description": "0 = current week, -1 = last week, etc."
+          }
+        }
+      },
+      "output": {
+        "description": "WeeklyExecutiveSummary object with completedCount, blockedProjects, attentionDiffusion, agentStats, topInsights."
       },
       "errorModel": "structured_agent_error",
       "idempotency": "not_applicable"
