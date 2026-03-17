@@ -19,6 +19,8 @@ import {
 import { WeeklyExecutiveSummaryService } from "../services/weeklyExecutiveSummaryService";
 import { EvaluationService } from "../services/evaluationService";
 import { LearningRecommendationService } from "../services/learningRecommendationService";
+import { FrictionService } from "../services/frictionService";
+import { ActionPolicyService } from "../services/actionPolicyService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
@@ -101,6 +103,9 @@ import {
   validateAgentRecordLearningRecInput,
   validateAgentListLearningRecsInput,
   validateAgentApplyLearningRecInput,
+  validateAgentListFrictionPatternsInput,
+  validateAgentGetActionPoliciesInput,
+  validateAgentUpdateActionPolicyInput,
 } from "../validation/agentValidation";
 import { CaptureService } from "../services/captureService";
 
@@ -178,7 +183,10 @@ export type AgentActionName =
   | "evaluate_weekly_system"
   | "record_learning_recommendation"
   | "list_learning_recommendations"
-  | "apply_learning_recommendation";
+  | "apply_learning_recommendation"
+  | "list_friction_patterns"
+  | "get_action_policies"
+  | "update_action_policy";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -276,6 +284,8 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "evaluate_daily_plan",
   "evaluate_weekly_system",
   "list_learning_recommendations",
+  "list_friction_patterns",
+  "get_action_policies",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -553,6 +563,8 @@ export class AgentExecutor {
   private readonly captureService: CaptureService | null;
   private readonly learningRecommendationService: LearningRecommendationService;
   private readonly evaluationService: EvaluationService;
+  private readonly frictionService: FrictionService;
+  private readonly actionPolicyService: ActionPolicyService;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -579,6 +591,8 @@ export class AgentExecutor {
     this.learningRecommendationService = new LearningRecommendationService(
       deps.persistencePrisma,
     );
+    this.frictionService = new FrictionService(deps.persistencePrisma);
+    this.actionPolicyService = new ActionPolicyService(deps.persistencePrisma);
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
@@ -1204,6 +1218,13 @@ export class AgentExecutor {
         }
         case "ensure_next_action": {
           const plannerInput = validateAgentEnsureNextActionInput(input);
+          const enaPolicies = await this.actionPolicyService.getPolicies(
+            context.userId,
+          );
+          const enaActionMeta = this.actionPolicyService.buildActionMeta(
+            "ensure_next_action",
+            enaPolicies,
+          );
           const executeEnsureNextAction = async () => {
             const result = await this.agentService.ensureNextActionForUser(
               context.userId,
@@ -1218,7 +1239,7 @@ export class AgentExecutor {
                 "Verify the project ID belongs to the authenticated user.",
               );
             }
-            return { result };
+            return { result, actionMeta: enaActionMeta };
           };
           if (
             IDEMPOTENT_PLANNER_APPLY_ACTIONS.has(action) &&
@@ -1918,10 +1939,17 @@ export class AgentExecutor {
             });
             applied = true;
           }
+          const triagePolicies = await this.actionPolicyService.getPolicies(
+            context.userId,
+          );
           return this.success(action, readOnly, context, 200, {
             captureItemId,
             recommendation,
             applied,
+            actionMeta: this.actionPolicyService.buildActionMeta(
+              "triage_capture_item",
+              triagePolicies,
+            ),
           });
         }
         case "triage_inbox": {
@@ -2164,12 +2192,21 @@ export class AgentExecutor {
             createdByPrompt: `follow_up:${taskId}`,
           };
 
+          const followUpPolicies = await this.actionPolicyService.getPolicies(
+            context.userId,
+          );
+          const followUpActionMeta = this.actionPolicyService.buildActionMeta(
+            "create_follow_up_for_waiting_task",
+            followUpPolicies,
+          );
+
           if (mode !== "apply") {
             return this.success(action, readOnly, context, 200, {
               created: false,
               mode: "suggest",
               waitingTask: { id: waitingTask.id, title: waitingTask.title },
               followUp,
+              actionMeta: followUpActionMeta,
             });
           }
 
@@ -2211,6 +2248,7 @@ export class AgentExecutor {
                   cooldownDays: cooldown,
                   waitingTask: { id: waitingTask.id, title: waitingTask.title },
                   followUp,
+                  actionMeta: followUpActionMeta,
                 };
               }
               const task = await this.agentService.createTask(
@@ -2221,6 +2259,7 @@ export class AgentExecutor {
                 created: true,
                 task,
                 waitingTaskId: taskId,
+                actionMeta: followUpActionMeta,
               };
             },
             201,
@@ -2802,6 +2841,43 @@ export class AgentExecutor {
             scheduledTasks: tasksForDate,
             totalAvailableMinutes,
           });
+        }
+
+        // ── Issue #338: list_friction_patterns ────────────────────────────────
+        case "list_friction_patterns": {
+          const { since, limit } =
+            validateAgentListFrictionPatternsInput(input);
+          const result = await this.frictionService.listPatterns(
+            context.userId,
+            { since, limit },
+          );
+          return this.success(
+            action,
+            readOnly,
+            context,
+            200,
+            result as unknown as Record<string, unknown>,
+          );
+        }
+
+        // ── Issue #339: action policies ───────────────────────────────────────
+        case "get_action_policies": {
+          validateAgentGetActionPoliciesInput(input);
+          const policies = await this.actionPolicyService.getPolicies(
+            context.userId,
+          );
+          return this.success(action, readOnly, context, 200, { policies });
+        }
+
+        case "update_action_policy": {
+          const { actionName, autoApply, minConfidence } =
+            validateAgentUpdateActionPolicyInput(input);
+          const policies = await this.actionPolicyService.updatePolicy(
+            context.userId,
+            actionName,
+            { autoApply, minConfidence },
+          );
+          return this.success(action, readOnly, context, 200, { policies });
         }
       }
     } catch (error) {

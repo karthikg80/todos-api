@@ -1,5 +1,5 @@
 {
-  "version": "1.5.4",
+  "version": "1.6.0",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -3965,6 +3965,108 @@
           "configUpdated": {
             "type": "boolean",
             "description": "Whether AgentConfig was modified."
+          }
+        }
+      },
+      "readOnly": false
+    },
+    {
+      "name": "list_friction_patterns",
+      "namespace": "review",
+      "category": "Diagnostics",
+      "lifecycle": "derived_read",
+      "audience": "agent",
+      "description": "Surface recurring friction signals: tasks deferred repeatedly, recommendations ignored, follow-up churn, and stalled projects. Defaults to the last 30 days.",
+      "method": "POST",
+      "path": "/agent/read/list_friction_patterns",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "since": {
+            "type": "string",
+            "description": "ISO date (YYYY-MM-DD). Defaults to 30 days ago."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Max patterns to return (default 20)."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "patterns": {
+            "type": "array",
+            "description": "Array of FrictionPattern objects (repeated_deferral, ignored_recommendation, follow_up_churn, project_stall)."
+          },
+          "totalPatterns": {
+            "type": "integer"
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "get_action_policies",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "primitive_read",
+      "audience": "operator",
+      "description": "Return per-action auto-apply policies and confidence thresholds for the current user.",
+      "method": "GET",
+      "path": "/agent/read/get_action_policies",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "properties": {
+          "policies": {
+            "type": "object",
+            "description": "Map of actionName → { autoApply, minConfidence }."
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "update_action_policy",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "operator",
+      "description": "Update the auto-apply policy and confidence threshold for a specific action.",
+      "method": "POST",
+      "path": "/agent/write/update_action_policy",
+      "inputSchema": {
+        "type": "object",
+        "required": ["actionName"],
+        "additionalProperties": false,
+        "properties": {
+          "actionName": {
+            "type": "string",
+            "description": "The agent action name to update policy for."
+          },
+          "autoApply": {
+            "type": "boolean",
+            "description": "Whether this action may be auto-applied."
+          },
+          "minConfidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Minimum confidence score required for auto-apply."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "policies": {
+            "type": "object",
+            "description": "Updated full policies map."
           }
         }
       },

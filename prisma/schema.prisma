@@ -568,6 +568,7 @@ model AgentConfig {
   plannerWeightEnergyMatch Float    @default(1.0) @map("planner_weight_energy_match")
   plannerWeightEstimateFit Float    @default(1.0) @map("planner_weight_estimate_fit")
   plannerWeightFreshness   Float    @default(1.0) @map("planner_weight_freshness")
+  actionPoliciesJson       Json?    @map("action_policies_json")
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @updatedAt @map("updated_at")
 
