@@ -1,5 +1,5 @@
 {
-  "version": "1.5.0",
+  "version": "1.5.1",
   "surface": "agent_accessibility_v2",
   "basePath": "/agent",
   "description": "Expanded machine-usable task and project contract for the Todos app. This surface stays thin over the existing server-side todo and project services.",
@@ -3622,6 +3622,145 @@
       "category": "Review and Cleanup",
       "lifecycle": "derived_read",
       "audience": "user"
+    },
+    {
+      "name": "capture_inbox_item",
+      "namespace": "inbox",
+      "category": "Inbox and Triage",
+      "lifecycle": "mutating",
+      "audience": "user",
+      "description": "Record a raw thought or item for later triage without any AI processing. Returns the created capture item.",
+      "method": "POST",
+      "path": "/agent/write/capture_inbox_item",
+      "input": {
+        "type": "object",
+        "required": ["text"],
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "The raw capture text."
+          },
+          "source": {
+            "type": "string",
+            "enum": ["voice", "email", "manual", "api"],
+            "description": "Origin of the capture."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "item": {
+            "type": "object",
+            "description": "The created capture item with id, text, source, lifecycle, capturedAt."
+          }
+        }
+      },
+      "readOnly": false
+    },
+    {
+      "name": "list_inbox_items",
+      "namespace": "inbox",
+      "category": "Inbox and Triage",
+      "lifecycle": "primitive_read",
+      "audience": "user",
+      "description": "Return capture items with optional filters. Defaults to all lifecycles. Use lifecycle=new to see unprocessed items.",
+      "method": "POST",
+      "path": "/agent/read/list_inbox_items",
+      "input": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "lifecycle": {
+            "type": "string",
+            "enum": ["new", "triaged", "discarded"],
+            "description": "Filter by lifecycle state."
+          },
+          "source": {
+            "type": "string",
+            "description": "Filter by capture source."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 200,
+            "description": "Maximum number of items to return."
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Return items captured on or after this timestamp."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "items": {
+            "type": "array",
+            "description": "Array of capture items."
+          },
+          "total": {
+            "type": "integer",
+            "description": "Count of returned items."
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "promote_inbox_item",
+      "namespace": "inbox",
+      "category": "Inbox and Triage",
+      "lifecycle": "mutating",
+      "audience": "user",
+      "description": "Convert a capture item directly into a task or project without re-running full triage. Marks the capture as triaged.",
+      "method": "POST",
+      "path": "/agent/write/promote_inbox_item",
+      "input": {
+        "type": "object",
+        "required": ["captureItemId", "type"],
+        "additionalProperties": false,
+        "properties": {
+          "captureItemId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "ID of the capture item to promote."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["task", "project"],
+            "description": "Whether to create a task or a project."
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Assign the new task to this project (task only)."
+          },
+          "title": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "Override title. Defaults to the capture text."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "task or project"
+          },
+          "task": {
+            "type": "object",
+            "description": "Created task (when type=task)."
+          },
+          "project": {
+            "type": "object",
+            "description": "Created project (when type=project)."
+          }
+        }
+      },
+      "readOnly": false
     }
   ],
   "notes": [

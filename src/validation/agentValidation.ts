@@ -1881,6 +1881,86 @@ export function validateAgentGetDayContextInput(data: unknown): {
   };
 }
 
+// ── Issue #343: inbox namespace expansion ─────────────────────────────────────
+
+const CAPTURE_INBOX_ITEM_KEYS = ["text", "source"];
+const LIST_INBOX_ITEMS_KEYS = ["lifecycle", "source", "limit", "since"];
+const PROMOTE_INBOX_ITEM_KEYS = ["captureItemId", "type", "projectId", "title"];
+
+export function validateAgentCaptureInboxItemInput(data: unknown): {
+  text: string;
+  source?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, CAPTURE_INBOX_ITEM_KEYS, "Agent action input");
+  if (typeof body.text !== "string" || body.text.trim().length === 0) {
+    throw new ValidationError(
+      "text is required and must be a non-empty string",
+    );
+  }
+  if (body.text.length > 2000) {
+    throw new ValidationError("text must be at most 2000 characters");
+  }
+  const text = body.text.trim();
+  const source = parseOptionalString(body.source, "source", 50);
+  if (
+    source !== undefined &&
+    !["voice", "email", "manual", "api"].includes(source)
+  ) {
+    throw new ValidationError(
+      "source must be one of: voice, email, manual, api",
+    );
+  }
+  return { text, source };
+}
+
+export function validateAgentListInboxItemsInput(data: unknown): {
+  lifecycle?: "new" | "triaged" | "discarded";
+  source?: string;
+  limit?: number;
+  since?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, LIST_INBOX_ITEMS_KEYS, "Agent action input");
+  const lifecycleVal = parseOptionalString(body.lifecycle, "lifecycle", 20);
+  if (
+    lifecycleVal !== undefined &&
+    lifecycleVal !== "new" &&
+    lifecycleVal !== "triaged" &&
+    lifecycleVal !== "discarded"
+  ) {
+    throw new ValidationError(
+      "lifecycle must be one of: new, triaged, discarded",
+    );
+  }
+  return {
+    lifecycle: lifecycleVal as "new" | "triaged" | "discarded" | undefined,
+    source: parseOptionalString(body.source, "source", 50),
+    limit: parseOptionalPositiveInt(body.limit, "limit", 200) ?? undefined,
+    since: parseOptionalString(body.since, "since", 30),
+  };
+}
+
+export function validateAgentPromoteInboxItemInput(data: unknown): {
+  captureItemId: string;
+  type: "task" | "project";
+  projectId?: string;
+  title?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, PROMOTE_INBOX_ITEM_KEYS, "Agent action input");
+  const typeVal = parseOptionalString(body.type, "type", 10);
+  if (typeVal !== "task" && typeVal !== "project") {
+    throw new ValidationError('type must be "task" or "project"');
+  }
+  return {
+    captureItemId: parseRequiredId(body, "captureItemId"),
+    type: typeVal,
+    projectId: parseOptionalString(body.projectId, "projectId", 36),
+    title: parseOptionalString(body.title, "title", 500),
+  };
+}
+
 // ── Issue #337: weekly executive summary ──────────────────────────────────────
 
 const WEEKLY_EXEC_SUMMARY_KEYS = ["weekOffset"];

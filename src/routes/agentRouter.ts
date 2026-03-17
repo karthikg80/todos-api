@@ -236,6 +236,20 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "weekly_review_summary"),
   );
 
+  // Inbox namespace: capture, list, promote
+  router.post(
+    "/write/capture_inbox_item",
+    createAgentActionHandler(agentExecutor, "capture_inbox_item"),
+  );
+  router.post(
+    "/read/list_inbox_items",
+    createAgentActionHandler(agentExecutor, "list_inbox_items"),
+  );
+  router.post(
+    "/write/promote_inbox_item",
+    createAgentActionHandler(agentExecutor, "promote_inbox_item"),
+  );
+
   // Triage / audit / availability
   router.post(
     "/write/triage_capture_item",

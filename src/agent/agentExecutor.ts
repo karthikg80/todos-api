@@ -91,7 +91,11 @@ import {
   validateAgentSetDayContextInput,
   validateAgentGetDayContextInput,
   validateAgentWeeklyExecSummaryInput,
+  validateAgentCaptureInboxItemInput,
+  validateAgentListInboxItemsInput,
+  validateAgentPromoteInboxItemInput,
 } from "../validation/agentValidation";
+import { CaptureService } from "../services/captureService";
 
 export type AgentActionName =
   | "list_tasks"
@@ -159,7 +163,10 @@ export type AgentActionName =
   | "feedback_summary"
   | "set_day_context"
   | "get_day_context"
-  | "weekly_executive_summary";
+  | "weekly_executive_summary"
+  | "capture_inbox_item"
+  | "list_inbox_items"
+  | "promote_inbox_item";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -253,6 +260,7 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "feedback_summary",
   "get_day_context",
   "weekly_executive_summary",
+  "list_inbox_items",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -527,6 +535,7 @@ export class AgentExecutor {
   private readonly feedbackService: RecommendationFeedbackService;
   private readonly dayContextService: DayContextService;
   private readonly executiveSummaryService: WeeklyExecutiveSummaryService;
+  private readonly captureService: CaptureService | null;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -546,6 +555,9 @@ export class AgentExecutor {
     this.executiveSummaryService = new WeeklyExecutiveSummaryService(
       deps.persistencePrisma,
     );
+    this.captureService = deps.persistencePrisma
+      ? new CaptureService(deps.persistencePrisma)
+      : null;
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
@@ -1553,14 +1565,27 @@ export class AgentExecutor {
           const maxTasks = modeModifiers.maxTaskCount ?? selected.length;
           const cappedSelected = selected.slice(0, maxTasks);
 
-          const recommendedTasks = cappedSelected.map((s) => ({
+          // Recompute totals from the capped list so budget metadata stays
+          // consistent with recommendedTasks (Codex P1 fix).
+          const cappedMinutes = cappedSelected.reduce(
+            (sum, s) => sum + s.effort,
+            0,
+          );
+          const cappedBudgetBreakdown = {
+            ...budgetBreakdown,
+            scheduled: cappedMinutes,
+            remaining: budget - cappedMinutes,
+            taskCount: cappedSelected.length,
+          };
+
+          const recommendedTasks = cappedSelected.map((s, i) => ({
             ...s.task,
             estimatedMinutes: s.effort,
             score: s.score,
             explanation: {
               scoreBreakdown: s.scoreBreakdown,
               whyIncluded: s.whyIncluded,
-              rank: cappedSelected.indexOf(s) + 1,
+              rank: i + 1,
             },
           }));
 
@@ -1576,7 +1601,7 @@ export class AgentExecutor {
               },
               recommendedTasks,
               excluded,
-              budgetBreakdown,
+              budgetBreakdown: cappedBudgetBreakdown,
               waitingTasks: waitingTasks.slice(0, 10).map((t) => ({
                 id: t.id,
                 title: t.title,
@@ -1589,8 +1614,8 @@ export class AgentExecutor {
                 .map((p) => ({ id: p.id, name: p.name })),
               availableMinutes: budget,
               energy: energy ?? null,
-              totalMinutes: usedMinutes,
-              remainingMinutes: budget - usedMinutes,
+              totalMinutes: cappedMinutes,
+              remainingMinutes: budget - cappedMinutes,
             },
           });
         }
@@ -1891,6 +1916,113 @@ export class AgentExecutor {
               mode: mode ?? "suggest",
             },
           );
+        }
+        case "capture_inbox_item": {
+          const { text, source } = validateAgentCaptureInboxItemInput(input);
+          if (!this.captureService) {
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Persistence layer not available",
+              false,
+            );
+          }
+          const captured = await this.captureService.create(
+            context.userId,
+            text,
+            source,
+          );
+          return this.success(action, readOnly, context, 201, {
+            item: captured,
+          });
+        }
+        case "list_inbox_items": {
+          const { lifecycle, source, limit, since } =
+            validateAgentListInboxItemsInput(input);
+          if (!this.captureService) {
+            return this.success(action, readOnly, context, 200, { items: [] });
+          }
+          let items = await this.captureService.findAll(
+            context.userId,
+            lifecycle,
+          );
+          if (source) {
+            items = items.filter((i) => i.source === source);
+          }
+          if (since) {
+            const sinceDate = new Date(since);
+            items = items.filter((i) => new Date(i.capturedAt) >= sinceDate);
+          }
+          if (limit) {
+            items = items.slice(0, limit);
+          }
+          return this.success(action, readOnly, context, 200, {
+            items,
+            total: items.length,
+          });
+        }
+        case "promote_inbox_item": {
+          const {
+            captureItemId,
+            type,
+            projectId,
+            title: titleOverride,
+          } = validateAgentPromoteInboxItemInput(input);
+          if (!this.captureService || !this.deps.persistencePrisma) {
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Persistence layer not available",
+              false,
+            );
+          }
+          const captureItem = await this.captureService.findById(
+            context.userId,
+            captureItemId,
+          );
+          if (!captureItem) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Capture item not found",
+              false,
+              "Verify the capture item ID belongs to the authenticated user.",
+            );
+          }
+          const derivedTitle = titleOverride ?? captureItem.text.slice(0, 200);
+          let promoted: Record<string, unknown>;
+          if (type === "task") {
+            const task = await this.agentService.createTask(context.userId, {
+              title: derivedTitle,
+              status: "inbox",
+              ...(projectId ? { projectId } : {}),
+            });
+            promoted = { type: "task", task };
+          } else {
+            if (!this.deps.projectService) {
+              throw new AgentExecutionError(
+                501,
+                "NOT_CONFIGURED",
+                "Project service not available",
+                false,
+              );
+            }
+            const project = await this.agentService.createProject(
+              context.userId,
+              { name: derivedTitle },
+            );
+            promoted = { type: "project", project };
+          }
+          await this.captureService.updateLifecycle(
+            context.userId,
+            captureItemId,
+            "triaged",
+            {
+              promotedAs: type,
+              promotedId: (promoted[type] as { id: string }).id,
+            },
+          );
+          return this.success(action, readOnly, context, 201, promoted);
         }
         case "list_audit_log": {
           const {
