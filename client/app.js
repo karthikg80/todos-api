@@ -285,6 +285,15 @@ import {
   bindInboxHandlers,
 } from "./modules/inboxUi.js";
 import {
+  renderDayPlanAgentPanel,
+  bindDayPlanAgentHandlers,
+} from "./modules/planTodayAgent.js";
+import { renderCleanupView, bindCleanupHandlers } from "./modules/cleanupUi.js";
+import {
+  renderWeeklyReviewView,
+  bindWeeklyReviewHandlers,
+} from "./modules/weeklyReviewUi.js";
+import {
   getAiWorkspaceElements,
   getAiWorkspaceStatusLabel,
   updateAiWorkspaceStatusChip,
@@ -1536,6 +1545,8 @@ function bindDeclarativeHandlers() {
   hooks.renderHomeDashboard = renderHomeDashboard;
   hooks.renderInboxView = renderInboxView;
   hooks.loadInboxItems = loadInboxItems;
+  hooks.renderWeeklyReviewView = renderWeeklyReviewView;
+  hooks.renderCleanupView = renderCleanupView;
   hooks.updateBulkActionsVisibility = updateBulkActionsVisibility;
   hooks.updateAiWorkspaceStatusChip = updateAiWorkspaceStatusChip;
   // projectsState → rail
@@ -1724,6 +1735,9 @@ function init() {
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
   bindInboxHandlers();
+  bindDayPlanAgentHandlers();
+  bindWeeklyReviewHandlers();
+  bindCleanupHandlers();
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
   bindTaskComposerHandlers();

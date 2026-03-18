@@ -158,6 +158,8 @@ function normalizeWorkspaceView(view) {
     "someday",
     "completed",
     "inbox",
+    "weekly-review",
+    "cleanup",
     "project",
     "settings",
     "admin",
@@ -849,6 +851,26 @@ function renderTodos() {
     if (!state.inboxState.hasLoaded && !state.inboxState.loading) {
       hooks.loadInboxItems?.();
     }
+    hooks.syncTodoDrawerStateWithRender?.();
+    hooks.updateBulkActionsVisibility?.();
+    updateIcsExportButtonState();
+    assertNoHorizontalOverflow(scrollRegion);
+    return;
+  }
+
+  if (state.currentWorkspaceView === "weekly-review") {
+    updateHeaderFromVisibleTodos([]);
+    hooks.renderWeeklyReviewView?.();
+    hooks.syncTodoDrawerStateWithRender?.();
+    hooks.updateBulkActionsVisibility?.();
+    updateIcsExportButtonState();
+    assertNoHorizontalOverflow(scrollRegion);
+    return;
+  }
+
+  if (state.currentWorkspaceView === "cleanup") {
+    updateHeaderFromVisibleTodos([]);
+    hooks.renderCleanupView?.();
     hooks.syncTodoDrawerStateWithRender?.();
     hooks.updateBulkActionsVisibility?.();
     updateIcsExportButtonState();
