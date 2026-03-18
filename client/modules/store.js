@@ -94,6 +94,63 @@ export function createInitialHomeAiState() {
   };
 }
 
+export function createInitialBreakDownState() {
+  return {
+    todoId: "",
+    loading: false,
+    suggestions: [], // [{ title, order }]
+    checkedIndexes: new Set(),
+    applying: false,
+    error: "",
+    isOpen: false,
+  };
+}
+
+export function createInitialFollowUpState() {
+  return {
+    todoId: "",
+    loading: false,
+    suggestion: null, // { title, ... } from mode=suggest
+    applying: false,
+    applied: false,
+    error: "",
+    isOpen: false,
+  };
+}
+
+export function createInitialInboxState() {
+  return {
+    items: [],
+    loading: false,
+    error: "",
+    hasLoaded: false,
+    triagingIds: new Set(),
+  };
+}
+
+export function createInitialWeeklyReviewState() {
+  return {
+    loading: false,
+    error: "",
+    hasRun: false,
+    summary: null,
+    findings: [],
+    actions: [],
+    mode: "suggest",
+  };
+}
+
+export function createInitialCleanupState() {
+  return {
+    loading: false,
+    error: "",
+    duplicates: [],
+    staleItems: [],
+    qualityResults: [],
+    taxonomySuggestions: [],
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Shared mutable state — all modules import this object and access
 // state.propertyName directly (reads + writes).
@@ -258,6 +315,11 @@ state.taskDrawerAssistState = createInitialTaskDrawerAssistState();
 state.onCreateAssistState = createInitialOnCreateAssistState();
 state.todayPlanState = createInitialTodayPlanState();
 state.homeAi = createInitialHomeAiState();
+state.breakDownState = createInitialBreakDownState();
+state.followUpState = createInitialFollowUpState();
+state.inboxState = createInitialInboxState();
+state.weeklyReviewState = createInitialWeeklyReviewState();
+state.cleanupState = createInitialCleanupState();
 
 // ---------------------------------------------------------------------------
 // Cross-module hooks — app.js wires all hooks after all modules are loaded.

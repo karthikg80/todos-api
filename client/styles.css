@@ -4371,6 +4371,92 @@ body.is-todos-view .floating-new-task-cta {
   border-color: rgba(220, 38, 38, 0.35);
 }
 
+/* ── Agent action sections (Break Down / Follow Up) ── */
+.todo-drawer__agent-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.todo-drawer__agent-btn:hover:not(:disabled) {
+  background: var(--hover-bg);
+}
+
+.todo-drawer__agent-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.todo-drawer__agent-btn--primary {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+.todo-drawer__agent-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  background: var(--primary-color);
+}
+
+.todo-drawer__agent-loading {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  padding: 4px 0;
+}
+
+.todo-drawer__agent-error {
+  font-size: 0.85rem;
+  color: var(--danger-color, #dc2626);
+  margin-bottom: 6px;
+}
+
+.todo-drawer__agent-success {
+  font-size: 0.85rem;
+  color: var(--success-color, #16a34a);
+  padding: 4px 0;
+}
+
+.todo-drawer__break-down-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.todo-drawer__break-down-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.todo-drawer__break-down-item input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.todo-drawer__agent-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.todo-drawer__follow-up-preview {
+  font-size: 0.875rem;
+  padding: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  margin-bottom: 10px;
+  color: var(--text-primary);
+}
+
 .todo-drawer__delete-btn {
   width: 100%;
   justify-self: stretch;

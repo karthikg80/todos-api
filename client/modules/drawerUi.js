@@ -8,6 +8,7 @@ import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
 import { runAsyncLifecycle } from "./asyncLifecycle.js";
 import { applyAsyncAction, applyUiAction } from "./stateActions.js";
+import { callAgentAction } from "./agentApiClient.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
 import {
   hasTodoRow,
@@ -948,6 +949,211 @@ function renderDrawerSubtasks(todo) {
   `;
 }
 
+// ---------------------------------------------------------------------------
+// Agent action sections: Break Down + Follow Up
+// ---------------------------------------------------------------------------
+
+function renderBreakDownSection(todo) {
+  // Don't show if the task already has subtasks — they're visible in Details.
+  if (todo.subtasks && todo.subtasks.length > 0) return "";
+
+  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+  const s = state.breakDownState;
+  const isForThisTodo = s.todoId === todo.id;
+
+  let bodyHtml;
+  if (s.applying && isForThisTodo) {
+    bodyHtml = `<div class="todo-drawer__agent-loading">Adding subtasks…</div>`;
+  } else if (s.loading && isForThisTodo) {
+    bodyHtml = `<div class="todo-drawer__agent-loading">Thinking…</div>`;
+  } else if (s.error && isForThisTodo) {
+    bodyHtml = `
+      <div class="todo-drawer__agent-error">${escapeHtml(s.error)}</div>
+      <button type="button" class="todo-drawer__agent-btn"
+        data-break-down-action="generate">Try again</button>`;
+  } else if (isForThisTodo && s.suggestions.length > 0) {
+    const items = s.suggestions
+      .map(
+        (sub, i) => `
+        <label class="todo-drawer__break-down-item">
+          <input type="checkbox" data-break-down-index="${i}"
+            ${s.checkedIndexes.has(i) ? "checked" : ""} />
+          <span>${escapeHtml(sub.title)}</span>
+        </label>`,
+      )
+      .join("");
+    bodyHtml = `
+      <div class="todo-drawer__break-down-list">${items}</div>
+      <div class="todo-drawer__agent-actions">
+        <button type="button" class="todo-drawer__agent-btn todo-drawer__agent-btn--primary"
+          data-break-down-action="apply"
+          ${s.checkedIndexes.size === 0 ? "disabled" : ""}>
+          Add selected (${s.checkedIndexes.size})
+        </button>
+        <button type="button" class="todo-drawer__agent-btn"
+          data-break-down-action="clear">Clear</button>
+      </div>`;
+  } else {
+    bodyHtml = `
+      <button type="button" class="todo-drawer__agent-btn"
+        data-break-down-action="generate">Suggest subtasks</button>`;
+  }
+
+  return renderDrawerAccordionSection({
+    toggleId: "drawerBreakDownToggle",
+    panelId: "drawerBreakDownPanel",
+    title: "Break down",
+    expanded:
+      isForThisTodo &&
+      (s.loading || s.applying || s.suggestions.length > 0 || !!s.error),
+    bodyHtml,
+  });
+}
+
+function renderFollowUpSection(todo) {
+  if (todo.status !== "waiting") return "";
+
+  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+  const s = state.followUpState;
+  const isForThisTodo = s.todoId === todo.id;
+
+  let bodyHtml;
+  if (isForThisTodo && s.applied) {
+    bodyHtml = `<div class="todo-drawer__agent-success">Follow-up task created.</div>`;
+  } else if (s.applying && isForThisTodo) {
+    bodyHtml = `<div class="todo-drawer__agent-loading">Creating…</div>`;
+  } else if (s.loading && isForThisTodo) {
+    bodyHtml = `<div class="todo-drawer__agent-loading">Thinking…</div>`;
+  } else if (s.error && isForThisTodo) {
+    bodyHtml = `
+      <div class="todo-drawer__agent-error">${escapeHtml(s.error)}</div>
+      <button type="button" class="todo-drawer__agent-btn"
+        data-follow-up-action="generate">Try again</button>`;
+  } else if (isForThisTodo && s.suggestion) {
+    bodyHtml = `
+      <div class="todo-drawer__follow-up-preview">${escapeHtml(s.suggestion.title)}</div>
+      <div class="todo-drawer__agent-actions">
+        <button type="button" class="todo-drawer__agent-btn todo-drawer__agent-btn--primary"
+          data-follow-up-action="apply">Create follow-up</button>
+        <button type="button" class="todo-drawer__agent-btn"
+          data-follow-up-action="clear">Dismiss</button>
+      </div>`;
+  } else {
+    bodyHtml = `
+      <button type="button" class="todo-drawer__agent-btn"
+        data-follow-up-action="generate">Suggest follow-up</button>`;
+  }
+
+  return renderDrawerAccordionSection({
+    toggleId: "drawerFollowUpToggle",
+    panelId: "drawerFollowUpPanel",
+    title: "Follow-up",
+    expanded:
+      isForThisTodo &&
+      (s.loading || s.applying || !!s.suggestion || s.applied || !!s.error),
+    bodyHtml,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Agent action handlers: Break Down + Follow Up
+// ---------------------------------------------------------------------------
+
+async function handleBreakDownAction(action, todoId) {
+  if (action === "generate") {
+    applyAsyncAction("breakDown/start", { todoId });
+    renderTodoDrawerContent();
+    try {
+      const data = await callAgentAction("/agent/read/break_down_task", {
+        taskId: todoId,
+      });
+      const suggestions = Array.isArray(data?.suggestedSubtasks)
+        ? data.suggestedSubtasks
+        : [];
+      applyAsyncAction("breakDown/success", { todoId, suggestions });
+    } catch (err) {
+      applyAsyncAction("breakDown/failure", {
+        todoId,
+        error: err.message || "Could not suggest subtasks.",
+      });
+    }
+    renderTodoDrawerContent();
+  } else if (action === "clear") {
+    applyAsyncAction("breakDown/reset", { todoId });
+    renderTodoDrawerContent();
+  } else if (action === "apply") {
+    const s = state.breakDownState;
+    const toAdd = s.suggestions.filter((_, i) => s.checkedIndexes.has(i));
+    if (toAdd.length === 0) return;
+    applyAsyncAction("breakDown/apply:start", { todoId });
+    renderTodoDrawerContent();
+    try {
+      for (const sub of toAdd) {
+        await callAgentAction("/agent/write/add_subtask", {
+          taskId: todoId,
+          title: sub.title,
+        });
+      }
+      applyAsyncAction("breakDown/apply:complete", { todoId });
+      // Reload todos so the new subtasks appear in the drawer Details section.
+      if (typeof hooks.applyFiltersAndRender === "function") {
+        hooks.applyFiltersAndRender();
+      }
+    } catch (err) {
+      applyAsyncAction("breakDown/failure", {
+        todoId,
+        error: err.message || "Could not add subtasks.",
+      });
+    }
+    renderTodoDrawerContent();
+  }
+}
+
+async function handleFollowUpAction(action, todoId) {
+  if (action === "generate") {
+    applyAsyncAction("followUp/start", { todoId });
+    renderTodoDrawerContent();
+    try {
+      const data = await callAgentAction(
+        "/agent/write/create_follow_up_for_waiting_task",
+        { taskId: todoId, mode: "suggest" },
+      );
+      applyAsyncAction("followUp/suggest:success", {
+        todoId,
+        suggestion: data?.suggestion || data?.task || null,
+      });
+    } catch (err) {
+      applyAsyncAction("followUp/failure", {
+        todoId,
+        error: err.message || "Could not suggest follow-up.",
+      });
+    }
+    renderTodoDrawerContent();
+  } else if (action === "clear") {
+    applyAsyncAction("followUp/reset", { todoId });
+    renderTodoDrawerContent();
+  } else if (action === "apply") {
+    applyAsyncAction("followUp/apply:start", { todoId });
+    renderTodoDrawerContent();
+    try {
+      await callAgentAction("/agent/write/create_follow_up_for_waiting_task", {
+        taskId: todoId,
+        mode: "apply",
+      });
+      applyAsyncAction("followUp/apply:complete", { todoId });
+      if (typeof hooks.applyFiltersAndRender === "function") {
+        hooks.applyFiltersAndRender();
+      }
+    } catch (err) {
+      applyAsyncAction("followUp/failure", {
+        todoId,
+        error: err.message || "Could not create follow-up.",
+      });
+    }
+    renderTodoDrawerContent();
+  }
+}
+
 function buildDrawerProjectOptions(selectedProject = "") {
   const getAllProjects = hooks.getAllProjects || (() => []);
   const renderProjectOptionEntry =
@@ -1085,6 +1291,8 @@ export function renderTodoDrawerContent() {
     `,
     })}
     ${renderTaskDrawerAssistSection(todo.id)}
+    ${renderBreakDownSection(todo)}
+    ${renderFollowUpSection(todo)}
     ${renderDrawerAccordionSection({
       toggleId: "drawerDetailsToggle",
       panelId: "drawerDetailsPanel",
@@ -1685,6 +1893,24 @@ export function bindTodoDrawerHandlers() {
       return;
     }
 
+    const breakDownEl = target.closest("[data-break-down-action]");
+    if (breakDownEl instanceof HTMLElement && state.selectedTodoId) {
+      handleBreakDownAction(
+        breakDownEl.getAttribute("data-break-down-action"),
+        state.selectedTodoId,
+      );
+      return;
+    }
+
+    const followUpEl = target.closest("[data-follow-up-action]");
+    if (followUpEl instanceof HTMLElement && state.selectedTodoId) {
+      handleFollowUpAction(
+        followUpEl.getAttribute("data-follow-up-action"),
+        state.selectedTodoId,
+      );
+      return;
+    }
+
     const drawerDeleteBtn = target.closest("#drawerDeleteTodoButton");
     if (drawerDeleteBtn) {
       deleteTodoFromDrawer();
@@ -1821,6 +2047,17 @@ export function bindTodoDrawerHandlers() {
     }
     if (target.id === "drawerDescriptionTextarea") {
       onDrawerDescriptionBlur();
+      return;
+    }
+    if (target.hasAttribute("data-break-down-index")) {
+      const idx = parseInt(target.getAttribute("data-break-down-index"), 10);
+      if (!isNaN(idx)) {
+        applyAsyncAction("breakDown/toggle:checked", {
+          index: idx,
+          checked: target.checked,
+        });
+        renderTodoDrawerContent();
+      }
       return;
     }
   });
