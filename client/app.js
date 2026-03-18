@@ -293,6 +293,10 @@ import {
   bindInboxHandlers,
 } from "./modules/inboxUi.js";
 import {
+  renderDayPlanAgentPanel,
+  bindDayPlanAgentHandlers,
+} from "./modules/planTodayAgent.js";
+import {
   getAiWorkspaceElements,
   getAiWorkspaceStatusLabel,
   updateAiWorkspaceStatusChip,
@@ -1544,6 +1548,7 @@ function bindDeclarativeHandlers() {
   hooks.renderProjectsRail = renderProjectsRail;
   hooks.patchProjectsRailView = patchProjectsRailView;
   hooks.renderTodayPlanPanel = TodayPlan.renderTodayPlanPanel;
+  hooks.renderDayPlanAgentPanel = renderDayPlanAgentPanel;
   hooks.clearHomeFocusDashboard = clearHomeFocusDashboard;
   hooks.renderHomeDashboard = renderHomeDashboard;
   hooks.renderInboxView = renderInboxView;
@@ -1737,6 +1742,7 @@ function init() {
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
   bindInboxHandlers();
+  bindDayPlanAgentHandlers();
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
   bindTaskComposerHandlers();

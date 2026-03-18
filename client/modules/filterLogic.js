@@ -766,6 +766,7 @@ function renderTodos() {
 
   hooks.patchProjectsRailView?.();
   hooks.renderTodayPlanPanel?.();
+  hooks.renderDayPlanAgentPanel?.();
   const scrollRegion = document.getElementById("todosScrollRegion");
 
   if (state.todosLoadState !== "loading" && state.todos.length > 0) {
