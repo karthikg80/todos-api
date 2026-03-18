@@ -281,7 +281,7 @@ function parseOptionalPriority(value: unknown): Priority | undefined {
 }
 
 function parseOptionalStatusList(value: unknown): TaskStatus[] | undefined {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
   const values = Array.isArray(value) ? value : [value];
@@ -300,7 +300,7 @@ function parseOptionalStatusList(value: unknown): TaskStatus[] | undefined {
 function parseOptionalProjectStatusList(
   value: unknown,
 ): ProjectStatus[] | undefined {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
   const values = Array.isArray(value) ? value : [value];
@@ -317,7 +317,7 @@ function parseOptionalProjectStatusList(
 }
 
 function parseOptionalEnergyList(value: unknown): Energy[] | undefined {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
   const values = Array.isArray(value) ? value : [value];
@@ -334,7 +334,7 @@ function parseOptionalEnergyList(value: unknown): Energy[] | undefined {
 }
 
 function parseOptionalEnergy(value: unknown): Energy | undefined {
-  if (value === undefined) {
+  if (value === undefined || value === null) {
     return undefined;
   }
   if (typeof value !== "string") {

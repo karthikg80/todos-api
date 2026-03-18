@@ -47,6 +47,35 @@ function cloneJson<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/**
+ * Inline all `{ "$ref": "#/definitions/<name>" }` pointers so the tool's
+ * inputSchema is self-contained when sent to MCP clients (who never see the
+ * top-level manifest `definitions` section).
+ */
+function resolveRefs(
+  schema: unknown,
+  defs: Record<string, unknown>,
+  depth = 0,
+): unknown {
+  if (depth > 10 || schema === null || typeof schema !== "object")
+    return schema;
+  const obj = schema as Record<string, unknown>;
+  if (typeof obj["$ref"] === "string") {
+    const ref = obj["$ref"] as string;
+    const defName = ref.startsWith("#/definitions/")
+      ? ref.slice("#/definitions/".length)
+      : null;
+    if (defName && defName in defs) {
+      return resolveRefs(cloneJson(defs[defName]), defs, depth + 1);
+    }
+    return schema;
+  }
+  for (const key of Object.keys(obj)) {
+    obj[key] = resolveRefs(obj[key], defs, depth + 1);
+  }
+  return obj;
+}
+
 const PLANNER_MODE_SCOPED_ACTIONS = new Set<AgentActionName>([
   "plan_project",
   "ensure_next_action",
@@ -211,10 +240,15 @@ export function requiredScopesForToolCall(
 }
 
 function buildCatalog(): ToolCatalogEntry[] {
+  const defs =
+    (agentManifest as unknown as { definitions?: Record<string, unknown> })
+      .definitions ?? {};
+
   return agentManifest.actions.map((action) => {
-    const inputSchema = cloneJson(
-      action.inputSchema as Record<string, unknown>,
-    );
+    const inputSchema = resolveRefs(
+      cloneJson(action.inputSchema as Record<string, unknown>),
+      defs,
+    ) as Record<string, unknown>;
 
     if (supportsMcpIdempotencyKey(action.name as AgentActionName)) {
       const properties =

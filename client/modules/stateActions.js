@@ -9,6 +9,11 @@ import {
   createInitialOnCreateAssistState,
   createInitialTodayPlanState,
   createInitialHomeAiState,
+  createInitialBreakDownState,
+  createInitialFollowUpState,
+  createInitialInboxState,
+  createInitialWeeklyReviewState,
+  createInitialCleanupState,
 } from "./store.js";
 
 function getNormalizedProjectKey(value) {
@@ -504,6 +509,179 @@ export function applyAsyncAction(type, payload = {}) {
     case "homeAi/dismiss:complete":
       state.homeAi.dismissingSuggestionId = "";
       return state.homeAi;
+
+    // ── Break down task ────────────────────────────────────────────────────
+    case "breakDown/reset":
+      state.breakDownState = {
+        ...createInitialBreakDownState(),
+        todoId: String(payload.todoId || ""),
+      };
+      return state.breakDownState;
+    case "breakDown/start":
+      state.breakDownState = {
+        ...createInitialBreakDownState(),
+        todoId: String(payload.todoId || ""),
+        loading: true,
+        isOpen: true,
+      };
+      return state.breakDownState;
+    case "breakDown/success":
+      state.breakDownState.loading = false;
+      state.breakDownState.error = "";
+      state.breakDownState.suggestions = Array.isArray(payload.suggestions)
+        ? payload.suggestions
+        : [];
+      state.breakDownState.checkedIndexes = new Set(
+        state.breakDownState.suggestions.map((_, i) => i),
+      );
+      return state.breakDownState;
+    case "breakDown/failure":
+      state.breakDownState.loading = false;
+      state.breakDownState.applying = false;
+      state.breakDownState.error = String(
+        payload.error || "Could not suggest subtasks.",
+      );
+      return state.breakDownState;
+    case "breakDown/toggle:checked": {
+      const idx = payload.index;
+      if (state.breakDownState.checkedIndexes.has(idx)) {
+        state.breakDownState.checkedIndexes.delete(idx);
+      } else {
+        state.breakDownState.checkedIndexes.add(idx);
+      }
+      return state.breakDownState;
+    }
+    case "breakDown/apply:start":
+      state.breakDownState.applying = true;
+      state.breakDownState.error = "";
+      return state.breakDownState;
+    case "breakDown/apply:complete":
+      state.breakDownState = createInitialBreakDownState();
+      return state.breakDownState;
+
+    // ── Follow-up for waiting task ─────────────────────────────────────────
+    case "followUp/reset":
+      state.followUpState = {
+        ...createInitialFollowUpState(),
+        todoId: String(payload.todoId || ""),
+      };
+      return state.followUpState;
+    case "followUp/start":
+      state.followUpState = {
+        ...createInitialFollowUpState(),
+        todoId: String(payload.todoId || ""),
+        loading: true,
+        isOpen: true,
+      };
+      return state.followUpState;
+    case "followUp/suggest:success":
+      state.followUpState.loading = false;
+      state.followUpState.error = "";
+      state.followUpState.suggestion = payload.suggestion || null;
+      return state.followUpState;
+    case "followUp/failure":
+      state.followUpState.loading = false;
+      state.followUpState.applying = false;
+      state.followUpState.error = String(
+        payload.error || "Could not create follow-up.",
+      );
+      return state.followUpState;
+    case "followUp/apply:start":
+      state.followUpState.applying = true;
+      state.followUpState.error = "";
+      return state.followUpState;
+    case "followUp/apply:complete":
+      state.followUpState.applying = false;
+      state.followUpState.applied = true;
+      state.followUpState.suggestion = null;
+      return state.followUpState;
+
+    // ── Inbox (Phase 3) ────────────────────────────────────────────────────
+    case "inbox/reset":
+      state.inboxState = createInitialInboxState();
+      return state.inboxState;
+    case "inbox/start":
+      state.inboxState.loading = true;
+      state.inboxState.error = "";
+      return state.inboxState;
+    case "inbox/success":
+      state.inboxState.loading = false;
+      state.inboxState.error = "";
+      state.inboxState.hasLoaded = true;
+      state.inboxState.items = Array.isArray(payload.items)
+        ? payload.items
+        : [];
+      return state.inboxState;
+    case "inbox/failure":
+      state.inboxState.loading = false;
+      state.inboxState.error = String(payload.error || "Could not load inbox.");
+      state.inboxState.hasLoaded = true;
+      return state.inboxState;
+
+    // ── Weekly review (Phase 5) ────────────────────────────────────────────
+    case "weeklyReview/reset":
+      state.weeklyReviewState = createInitialWeeklyReviewState();
+      return state.weeklyReviewState;
+    case "weeklyReview/start":
+      state.weeklyReviewState.loading = true;
+      state.weeklyReviewState.error = "";
+      return state.weeklyReviewState;
+    case "weeklyReview/success":
+      state.weeklyReviewState.loading = false;
+      state.weeklyReviewState.error = "";
+      state.weeklyReviewState.hasRun = true;
+      state.weeklyReviewState.summary = payload.summary || null;
+      state.weeklyReviewState.findings = Array.isArray(payload.findings)
+        ? payload.findings
+        : [];
+      state.weeklyReviewState.actions = Array.isArray(payload.actions)
+        ? payload.actions
+        : [];
+      return state.weeklyReviewState;
+    case "weeklyReview/failure":
+      state.weeklyReviewState.loading = false;
+      state.weeklyReviewState.error = String(
+        payload.error || "Could not run weekly review.",
+      );
+      return state.weeklyReviewState;
+    case "weeklyReview/mode:set":
+      state.weeklyReviewState.mode =
+        payload.mode === "apply" ? "apply" : "suggest";
+      return state.weeklyReviewState;
+
+    // ── Cleanup / anti-entropy (Phase 6) ──────────────────────────────────
+    case "cleanup/reset":
+      state.cleanupState = createInitialCleanupState();
+      return state.cleanupState;
+    case "cleanup/start":
+      state.cleanupState.loading = true;
+      state.cleanupState.error = "";
+      return state.cleanupState;
+    case "cleanup/success":
+      state.cleanupState.loading = false;
+      state.cleanupState.error = "";
+      state.cleanupState.duplicates = Array.isArray(payload.duplicates)
+        ? payload.duplicates
+        : [];
+      state.cleanupState.staleItems = Array.isArray(payload.staleItems)
+        ? payload.staleItems
+        : [];
+      state.cleanupState.qualityResults = Array.isArray(payload.qualityResults)
+        ? payload.qualityResults
+        : [];
+      state.cleanupState.taxonomySuggestions = Array.isArray(
+        payload.taxonomySuggestions,
+      )
+        ? payload.taxonomySuggestions
+        : [];
+      return state.cleanupState;
+    case "cleanup/failure":
+      state.cleanupState.loading = false;
+      state.cleanupState.error = String(
+        payload.error || "Could not run cleanup analysis.",
+      );
+      return state.cleanupState;
+
     default:
       return undefined;
   }
