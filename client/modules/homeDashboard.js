@@ -13,6 +13,10 @@ import {
 } from "./filterLogic.js";
 import { selectProjectFromRail } from "./railUi.js";
 import { openTodoDrawer } from "./drawerUi.js";
+import {
+  renderPrioritiesTileShell,
+  loadPrioritiesBrief,
+} from "./homePrioritiesTile.js";
 import { loadHomeFocusSuggestions } from "./homeAiService.js";
 
 const { escapeHtml } = window.Utils || {};
@@ -739,9 +743,11 @@ export function renderHomeDashboard() {
     aiTopFocusItems.length > 0 ? aiTopFocusItems : fallbackTopFocus;
   const model = getHomeDashboardModel({ topFocusItems });
   void hydrateHomeTopFocusIfNeeded();
+  void loadPrioritiesBrief();
 
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
+      ${renderPrioritiesTileShell()}
       <div class="home-dashboard__header">
         <h2 class="home-dashboard__title">Home</h2>
       </div>
