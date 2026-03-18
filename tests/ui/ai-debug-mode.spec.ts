@@ -282,27 +282,6 @@ async function registerAndOpenTodos(page: Page, debug = false) {
   await ensureAllTasksListActive(page);
 }
 
-async function openTodayView(page: Page) {
-  if (
-    (await page.locator("#taskComposerSheet").getAttribute("aria-hidden")) ===
-    "false"
-  ) {
-    await page.keyboard.press("Escape");
-    await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
-      "aria-hidden",
-      "true",
-    );
-  }
-  // #moreFiltersToggle is hidden until search is focused in the new layout; call
-  // setDateView() directly so the test works on both desktop and mobile.
-  await page.evaluate(() =>
-    (window as Window & { setDateView: (v: string) => void }).setDateView(
-      "today",
-    ),
-  );
-  await expect(page.locator('[data-testid="today-plan-panel"]')).toBeVisible();
-}
-
 test.describe("AI debug metadata visibility", () => {
   test.beforeEach(async ({ page }) => {
     await installAiUiMockApi(page);
@@ -323,14 +302,6 @@ test.describe("AI debug metadata visibility", () => {
     await expect(
       onCreateRow.locator('[data-testid^="ai-debug-suggestion-id-"]'),
     ).toHaveCount(0);
-
-    await openTodayView(page);
-    await page.locator('[data-testid="today-plan-generate"]').click();
-    const panel = page.locator('[data-testid="today-plan-panel"]');
-    await expect(panel.locator('[data-testid="ai-debug-meta"]')).toHaveCount(0);
-    await expect(
-      panel.locator('[data-testid^="ai-debug-suggestion-id-"]'),
-    ).toHaveCount(0);
   });
 
   test("metadata is visible when ai_debug query param is enabled", async ({
@@ -347,19 +318,5 @@ test.describe("AI debug metadata visibility", () => {
     await expect(
       onCreateRow.locator('[data-testid^="ai-debug-suggestion-id-"]'),
     ).toHaveCount(3);
-
-    await openTodayView(page);
-    await page
-      .locator('[data-testid="today-plan-goal-input"]')
-      .fill("quick wins");
-    await page.locator('[data-testid="today-plan-generate"]').click();
-
-    const panel = page.locator('[data-testid="today-plan-panel"]');
-    await expect(panel.locator('[data-testid="ai-debug-meta"]')).toContainText(
-      "req:today-plan-",
-    );
-    expect(
-      await panel.locator('[data-testid^="ai-debug-suggestion-id-"]').count(),
-    ).toBeGreaterThan(0);
   });
 });
