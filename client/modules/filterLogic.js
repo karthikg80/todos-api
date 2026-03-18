@@ -774,7 +774,6 @@ function renderTodos() {
   }
 
   if (state.todosLoadState === "loading") {
-    hooks.clearHomeFocusDashboard?.();
     updateHeaderFromVisibleTodos([]);
     const skeletonRows = Array.from({ length: 6 })
       .map(
@@ -816,7 +815,6 @@ function renderTodos() {
   }
 
   if (state.todosLoadState === "error" && state.todos.length === 0) {
-    hooks.clearHomeFocusDashboard?.();
     updateHeaderFromVisibleTodos([]);
     state.isTodoDrawerOpen = false;
     state.selectedTodoId = null;
@@ -860,7 +858,6 @@ function renderTodos() {
   }
 
   if (state.todos.length === 0 && !getSelectedProjectKey()) {
-    hooks.clearHomeFocusDashboard?.();
     updateHeaderFromVisibleTodos([]);
     state.isTodoDrawerOpen = false;
     state.selectedTodoId = null;
@@ -881,7 +878,6 @@ function renderTodos() {
   }
 
   const filteredTodos = getVisibleTodos();
-  hooks.renderHomeFocusDashboard?.([]);
   updateHeaderFromVisibleTodos(filteredTodos);
   if (
     state.openTodoKebabId &&

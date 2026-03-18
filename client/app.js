@@ -278,14 +278,7 @@ import {
   openHomeProject,
   openTodoFromHomeTile,
   getHomeDrilldownLabel,
-  clearHomeFocusDashboard,
   startOfLocalDay,
-  getTodoDueSummary,
-  formatDashboardDueChip,
-  getDashboardReasonLine,
-  getTodoRecencyDays,
-  renderTopFocusRow,
-  renderHomeFocusDashboard,
 } from "./modules/homeDashboard.js";
 import {
   renderInboxView,
@@ -1544,7 +1537,6 @@ function bindDeclarativeHandlers() {
   hooks.renderProjectsRail = renderProjectsRail;
   hooks.patchProjectsRailView = patchProjectsRailView;
   hooks.renderTodayPlanPanel = TodayPlan.renderTodayPlanPanel;
-  hooks.clearHomeFocusDashboard = clearHomeFocusDashboard;
   hooks.renderHomeDashboard = renderHomeDashboard;
   hooks.renderInboxView = renderInboxView;
   hooks.loadInboxItems = loadInboxItems;
@@ -1589,7 +1581,6 @@ function bindDeclarativeHandlers() {
   hooks.loadOnCreateDecisionAssist = OnCreateAssist.loadOnCreateDecisionAssist;
   hooks.openTaskComposer = openTaskComposer;
   hooks.processQuickEntryNaturalDate = processQuickEntryNaturalDate;
-  hooks.renderHomeFocusDashboard = renderHomeFocusDashboard;
   hooks.renderOnCreateAssistRow = OnCreateAssist.renderOnCreateAssistRow;
   hooks.renderProjectOptions = renderProjectOptions;
   hooks.renderSubtasks = renderSubtasks;
