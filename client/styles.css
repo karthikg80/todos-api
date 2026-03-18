@@ -7653,3 +7653,236 @@ body.is-admin-user .projects-rail__footer--admin-only {
   color: var(--danger-color, #dc2626);
   margin-bottom: 8px;
 }
+
+/* ── Cleanup / Anti-entropy view ────────────────────────────────────────── */
+.cleanup-view {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.cleanup-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.cleanup-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cleanup-btn {
+  padding: 7px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cleanup-btn:hover:not(:disabled) {
+  background: var(--hover-bg);
+}
+
+.cleanup-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cleanup-btn--primary {
+  background: var(--primary-color);
+  color: #fff;
+  border-color: var(--primary-color);
+}
+
+.cleanup-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+  background: var(--primary-color);
+}
+
+.cleanup-section {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+.cleanup-section__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface-bg, var(--input-bg));
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cleanup-section__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.cleanup-section__count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.cleanup-section__body {
+  padding: 10px 14px;
+}
+
+.cleanup-loading,
+.cleanup-intro,
+.cleanup-empty {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  padding: 24px 0;
+  text-align: center;
+}
+
+.cleanup-error {
+  font-size: 0.875rem;
+  color: var(--danger-color, #dc2626);
+  margin-bottom: 8px;
+}
+
+/* Duplicates */
+.cleanup-dup-group {
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.cleanup-dup-group:last-child {
+  margin-bottom: 0;
+}
+
+.cleanup-dup-task {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cleanup-dup-task:last-child {
+  border-bottom: none;
+}
+
+/* Stale items */
+.cleanup-stale-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cleanup-stale-item:last-child {
+  border-bottom: none;
+}
+
+.cleanup-stale-name {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cleanup-stale-meta {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Quality issues */
+.cleanup-quality-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cleanup-quality-item:last-child {
+  border-bottom: none;
+}
+
+.cleanup-quality-title {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.cleanup-quality-issues {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.cleanup-quality-suggestions {
+  margin: 4px 0 0 16px;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.cleanup-quality-suggestions li {
+  margin-bottom: 2px;
+}
+
+/* Taxonomy */
+.cleanup-tax-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.cleanup-tax-item:last-child {
+  border-bottom: none;
+}
+
+.cleanup-tax-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 2px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cleanup-tax-names {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.cleanup-tax-count {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
