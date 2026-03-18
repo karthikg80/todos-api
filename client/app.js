@@ -6,7 +6,6 @@ import {
   hooks,
   createInitialTaskDrawerAssistState,
   createInitialOnCreateAssistState,
-  createInitialTodayPlanState,
 } from "./modules/store.js";
 import {
   buildTodosQueryParams,
@@ -278,24 +277,13 @@ import {
   openHomeProject,
   openTodoFromHomeTile,
   getHomeDrilldownLabel,
-  clearHomeFocusDashboard,
   startOfLocalDay,
-  getTodoDueSummary,
-  formatDashboardDueChip,
-  getDashboardReasonLine,
-  getTodoRecencyDays,
-  renderTopFocusRow,
-  renderHomeFocusDashboard,
 } from "./modules/homeDashboard.js";
 import {
   renderInboxView,
   loadInboxItems,
   bindInboxHandlers,
 } from "./modules/inboxUi.js";
-import {
-  renderDayPlanAgentPanel,
-  bindDayPlanAgentHandlers,
-} from "./modules/planTodayAgent.js";
 import { renderCleanupView, bindCleanupHandlers } from "./modules/cleanupUi.js";
 import {
   renderWeeklyReviewView,
@@ -428,7 +416,6 @@ import {
 } from "./modules/commandPalette.js";
 import * as TaskDrawerAssist from "./modules/taskDrawerAssist.js";
 import * as OnCreateAssist from "./modules/onCreateAssist.js";
-import * as TodayPlan from "./modules/todayPlan.js";
 import {
   applyHomeFocusSuggestion,
   dismissHomeFocusSuggestion,
@@ -1521,7 +1508,6 @@ function bindDeclarativeHandlers() {
   hooks.switchView = switchView;
   hooks.closeCommandPalette = closeCommandPalette;
   hooks.resetOnCreateAssistState = OnCreateAssist.resetOnCreateAssistState;
-  hooks.resetTodayPlanState = TodayPlan.resetTodayPlanState;
   hooks.clearPlanDraftState = clearPlanDraftState;
   hooks.setTodosViewBodyState = setTodosViewBodyState;
   hooks.setSettingsPaneVisible = setSettingsPaneVisible;
@@ -1552,9 +1538,6 @@ function bindDeclarativeHandlers() {
   // filterLogic → render sub-hooks
   hooks.renderProjectsRail = renderProjectsRail;
   hooks.patchProjectsRailView = patchProjectsRailView;
-  hooks.renderTodayPlanPanel = TodayPlan.renderTodayPlanPanel;
-  hooks.renderDayPlanAgentPanel = renderDayPlanAgentPanel;
-  hooks.clearHomeFocusDashboard = clearHomeFocusDashboard;
   hooks.renderHomeDashboard = renderHomeDashboard;
   hooks.renderInboxView = renderInboxView;
   hooks.loadInboxItems = loadInboxItems;
@@ -1601,7 +1584,6 @@ function bindDeclarativeHandlers() {
   hooks.loadOnCreateDecisionAssist = OnCreateAssist.loadOnCreateDecisionAssist;
   hooks.openTaskComposer = openTaskComposer;
   hooks.processQuickEntryNaturalDate = processQuickEntryNaturalDate;
-  hooks.renderHomeFocusDashboard = renderHomeFocusDashboard;
   hooks.renderOnCreateAssistRow = OnCreateAssist.renderOnCreateAssistRow;
   hooks.renderProjectOptions = renderProjectOptions;
   hooks.renderSubtasks = renderSubtasks;
@@ -1749,7 +1731,6 @@ function init() {
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
   bindInboxHandlers();
-  bindDayPlanAgentHandlers();
   bindWeeklyReviewHandlers();
   bindCleanupHandlers();
   bindProjectsRailHandlers();
@@ -1757,7 +1738,6 @@ function init() {
   bindTaskComposerHandlers();
   bindDockHandlers();
   OnCreateAssist.bindOnCreateAssistHandlers();
-  TodayPlan.bindTodayPlanHandlers();
   bindQuickEntryNaturalDateHandlers();
 
   // Check for reset token in URL

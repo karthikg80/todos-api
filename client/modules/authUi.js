@@ -425,12 +425,13 @@ export function updateUserDisplay() {
   document.getElementById("updateName").value = state.currentUser.name || "";
   document.getElementById("updateEmail").value = state.currentUser.email;
 
-  // Show/hide verification banner
+  // Show/hide verification banner — only show when explicitly not verified.
+  // Using === false guards against isVerified being undefined (e.g. when the
+  // login response omits the field before loadUserProfile() resolves).
   const verificationBanner = document.getElementById("verificationBanner");
   if (verificationBanner) {
-    verificationBanner.style.display = state.currentUser.isVerified
-      ? "none"
-      : "block";
+    verificationBanner.style.display =
+      state.currentUser.isVerified === false ? "block" : "none";
   }
 
   const adminBootstrapSection = document.getElementById(

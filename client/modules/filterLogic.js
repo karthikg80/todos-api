@@ -335,6 +335,16 @@ function filterTodosList(todosList, { searchQuery = "" } = {}) {
 
   filtered = filtered.filter((todo) => matchesDateView(todo));
 
+  // TODO(plan-filter): inject plan task IDs into filter pipeline
+  // When state.currentDateView === "today" and planTodayTaskIds.length > 0,
+  // filter filtered to only tasks whose id is in planTodayTaskIds, preserving
+  // the plan's rank order. Import planTodayTaskIds from planTodayAgent.js and
+  // add: if (state.currentDateView === "today" && planTodayTaskIds.length > 0) {
+  //   const idSet = new Set(planTodayTaskIds);
+  //   const byId = new Map(filtered.map(t => [String(t.id), t]));
+  //   filtered = planTodayTaskIds.map(id => byId.get(id)).filter(Boolean);
+  // }
+
   // Exclude archived todos by default (unless viewing completed)
   if (state.currentDateView !== "completed") {
     filtered = filtered.filter((todo) => !todo.archived);
@@ -767,8 +777,6 @@ function renderTodos() {
   if (!container) return;
 
   hooks.patchProjectsRailView?.();
-  hooks.renderTodayPlanPanel?.();
-  hooks.renderDayPlanAgentPanel?.();
   const scrollRegion = document.getElementById("todosScrollRegion");
 
   if (state.todosLoadState !== "loading" && state.todos.length > 0) {
@@ -777,7 +785,6 @@ function renderTodos() {
   }
 
   if (state.todosLoadState === "loading") {
-    hooks.clearHomeFocusDashboard?.();
     updateHeaderFromVisibleTodos([]);
     const skeletonRows = Array.from({ length: 6 })
       .map(
@@ -819,7 +826,6 @@ function renderTodos() {
   }
 
   if (state.todosLoadState === "error" && state.todos.length === 0) {
-    hooks.clearHomeFocusDashboard?.();
     updateHeaderFromVisibleTodos([]);
     state.isTodoDrawerOpen = false;
     state.selectedTodoId = null;
@@ -883,7 +889,6 @@ function renderTodos() {
   }
 
   if (state.todos.length === 0 && !getSelectedProjectKey()) {
-    hooks.clearHomeFocusDashboard?.();
     updateHeaderFromVisibleTodos([]);
     state.isTodoDrawerOpen = false;
     state.selectedTodoId = null;
@@ -904,7 +909,6 @@ function renderTodos() {
   }
 
   const filteredTodos = getVisibleTodos();
-  hooks.renderHomeFocusDashboard?.([]);
   updateHeaderFromVisibleTodos(filteredTodos);
   if (
     state.openTodoKebabId &&
