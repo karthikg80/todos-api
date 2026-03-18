@@ -284,10 +284,6 @@ import {
   loadInboxItems,
   bindInboxHandlers,
 } from "./modules/inboxUi.js";
-import {
-  renderDayPlanAgentPanel,
-  bindDayPlanAgentHandlers,
-} from "./modules/planTodayAgent.js";
 import { renderCleanupView, bindCleanupHandlers } from "./modules/cleanupUi.js";
 import {
   renderWeeklyReviewView,
@@ -1735,7 +1731,6 @@ function init() {
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
   bindInboxHandlers();
-  bindDayPlanAgentHandlers();
   bindWeeklyReviewHandlers();
   bindCleanupHandlers();
   bindProjectsRailHandlers();
