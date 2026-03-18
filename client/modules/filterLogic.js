@@ -157,6 +157,7 @@ function normalizeWorkspaceView(view) {
     "next_month",
     "someday",
     "completed",
+    "inbox",
     "project",
     "settings",
     "admin",
@@ -828,6 +829,19 @@ function renderTodos() {
         <button id="todosRetryLoadButton" class="mini-btn" data-onclick="retryLoadTodos()">Retry</button>
       </div>
     `;
+    hooks.syncTodoDrawerStateWithRender?.();
+    hooks.updateBulkActionsVisibility?.();
+    updateIcsExportButtonState();
+    assertNoHorizontalOverflow(scrollRegion);
+    return;
+  }
+
+  if (state.currentWorkspaceView === "inbox") {
+    updateHeaderFromVisibleTodos([]);
+    hooks.renderInboxView?.();
+    if (!state.inboxState.hasLoaded && !state.inboxState.loading) {
+      hooks.loadInboxItems?.();
+    }
     hooks.syncTodoDrawerStateWithRender?.();
     hooks.updateBulkActionsVisibility?.();
     updateIcsExportButtonState();

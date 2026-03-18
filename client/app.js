@@ -288,6 +288,11 @@ import {
   renderHomeFocusDashboard,
 } from "./modules/homeDashboard.js";
 import {
+  renderInboxView,
+  loadInboxItems,
+  bindInboxHandlers,
+} from "./modules/inboxUi.js";
+import {
   getAiWorkspaceElements,
   getAiWorkspaceStatusLabel,
   updateAiWorkspaceStatusChip,
@@ -1541,6 +1546,8 @@ function bindDeclarativeHandlers() {
   hooks.renderTodayPlanPanel = TodayPlan.renderTodayPlanPanel;
   hooks.clearHomeFocusDashboard = clearHomeFocusDashboard;
   hooks.renderHomeDashboard = renderHomeDashboard;
+  hooks.renderInboxView = renderInboxView;
+  hooks.loadInboxItems = loadInboxItems;
   hooks.updateBulkActionsVisibility = updateBulkActionsVisibility;
   hooks.updateAiWorkspaceStatusChip = updateAiWorkspaceStatusChip;
   // projectsState → rail
@@ -1729,6 +1736,7 @@ function init() {
   renderSidebarNavigation();
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
+  bindInboxHandlers();
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
   bindTaskComposerHandlers();
