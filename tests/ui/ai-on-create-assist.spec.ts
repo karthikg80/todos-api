@@ -216,9 +216,11 @@ test.describe("AI on-create assist chips", () => {
     const expandMoreChip = page.locator('[data-testid="ai-chip-expand-more"]');
     await expect(expandMoreChip).toBeVisible();
     await expandMoreChip.click({ force: true });
+    await expect
+      .poll(async () => page.locator(".ai-create-chip").count())
+      .toBeGreaterThan(4);
     const expandedChipCount = await page.locator(".ai-create-chip").count();
     expect(expandedChipCount).toBeLessThanOrEqual(6);
-    expect(expandedChipCount).toBeGreaterThan(4);
   });
 
   test("apply rewrite_title updates input and undo restores", async ({
