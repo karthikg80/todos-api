@@ -43,6 +43,93 @@ function escapeSelectorValue(value) {
   return raw.replace(/["\\]/g, "\\$&");
 }
 
+const AREA_LABELS = {
+  home: "Home",
+  family: "Family",
+  work: "Work",
+  finance: "Finance",
+  "side-projects": "Side projects",
+};
+
+function getAreaLabel(area) {
+  if (!area) return null;
+  const key = String(area).toLowerCase().trim();
+  return AREA_LABELS[key] || key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+function groupProjectsByArea(projects) {
+  const AREA_ORDER = ["home", "family", "work", "finance", "side-projects"];
+
+  // Build a lookup: normalised project name → area
+  const areaByProject = new Map();
+  for (const record of Array.isArray(state.projectRecords)
+    ? state.projectRecords
+    : []) {
+    const name = hooks.normalizeProjectPath?.(record?.name) || "";
+    if (name) areaByProject.set(name, record.area || null);
+  }
+
+  // Bucket projects into areas
+  const buckets = new Map(); // area (string | null) → string[]
+  for (const projectName of projects) {
+    const area = areaByProject.get(projectName) ?? null;
+    if (!buckets.has(area)) buckets.set(area, []);
+    buckets.get(area).push(projectName);
+  }
+
+  // Build result: known areas first (in AREA_ORDER), then unknown areas
+  // alphabetically, then null area last
+  const result = [];
+  for (const area of AREA_ORDER) {
+    if (buckets.has(area)) {
+      result.push({
+        area,
+        label: getAreaLabel(area),
+        projects: buckets.get(area),
+      });
+      buckets.delete(area);
+    }
+  }
+  const unknownAreas = Array.from(buckets.keys())
+    .filter((a) => a !== null)
+    .sort();
+  for (const area of unknownAreas) {
+    result.push({
+      area,
+      label: getAreaLabel(area),
+      projects: buckets.get(area),
+    });
+    buckets.delete(area);
+  }
+  if (buckets.has(null) && buckets.get(null).length > 0) {
+    result.push({ area: null, label: null, projects: buckets.get(null) });
+  }
+  return result;
+}
+
+function renderGroupedProjectsRailHtml({
+  groups,
+  selectedProject,
+  openTodoCountMap = null,
+}) {
+  return groups
+    .map((group) => {
+      const rowsHtml = renderProjectsRailListHtml({
+        projects: group.projects,
+        selectedProject,
+        openTodoCountMap,
+      });
+      if (!group.label) return rowsHtml; // no-area group — no header
+      return (
+        `<div class="projects-rail-area-group" data-area="${escapeHtml(group.area || "")}">` +
+        `<div class="projects-rail-area-header" aria-hidden="true">${escapeHtml(group.label)}</div>` +
+        rowsHtml +
+        `</div>`
+      );
+    })
+    .join("");
+}
+
 // =============================================================================
 // Rail host layout
 // =============================================================================
@@ -513,11 +600,26 @@ function syncDesktopProjectsRailList(
     return;
   }
 
-  reconcileProjectsRailList(root, {
-    projects,
-    selectedProject,
-    openTodoCountMap,
-  });
+  const groups = groupProjectsByArea(projects);
+  const hasMultipleAreas = groups.filter((g) => g.label !== null).length > 1;
+
+  if (hasMultipleAreas) {
+    // All user content in nextHtml is escaped via escapeHtml — safe assignment.
+    const nextHtml = renderGroupedProjectsRailHtml({
+      groups,
+      selectedProject,
+      openTodoCountMap,
+    });
+    if (root.innerHTML !== nextHtml) {
+      root.innerHTML = nextHtml; // eslint-disable-line no-unsanitized/property
+    }
+  } else {
+    reconcileProjectsRailList(root, {
+      projects,
+      selectedProject,
+      openTodoCountMap,
+    });
+  }
 }
 
 export function getRailOptionElements(root) {
@@ -674,11 +776,26 @@ export function renderProjectsRail() {
     selectedProject,
     openTodoCountMap,
   });
-  reconcileProjectsRailList(refs.sheetList, {
-    projects,
-    selectedProject,
-    openTodoCountMap,
-  });
+  const sheetGroups = groupProjectsByArea(projects);
+  const sheetHasMultipleAreas =
+    sheetGroups.filter((g) => g.label !== null).length > 1;
+  if (sheetHasMultipleAreas) {
+    // All user content in nextHtml is escaped via escapeHtml — safe assignment.
+    const nextHtml = renderGroupedProjectsRailHtml({
+      groups: sheetGroups,
+      selectedProject,
+      openTodoCountMap,
+    });
+    if (refs.sheetList.innerHTML !== nextHtml) {
+      refs.sheetList.innerHTML = nextHtml; // eslint-disable-line no-unsanitized/property
+    }
+  } else {
+    reconcileProjectsRailList(refs.sheetList, {
+      projects,
+      selectedProject,
+      openTodoCountMap,
+    });
+  }
 
   const desktopAllCount = refs.allTasksButton.querySelector(
     ".projects-rail-item__count",

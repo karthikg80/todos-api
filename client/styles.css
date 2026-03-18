@@ -2122,6 +2122,25 @@ body.is-admin-user button.admin-rail-btn {
   font-weight: var(--fw-medium);
 }
 
+.projects-rail-area-group {
+  margin-bottom: 4px;
+}
+
+.projects-rail-area-header {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-tertiary, #888);
+  padding: 10px 12px 2px;
+  user-select: none;
+  pointer-events: none;
+}
+
+.projects-rail--collapsed .projects-rail-area-header {
+  display: none;
+}
+
 .projects-rail-row {
   position: relative;
   min-width: 0;
