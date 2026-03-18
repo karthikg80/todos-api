@@ -39,7 +39,8 @@ export async function generateDayPlan() {
   try {
     const data = await callAgentAction("/agent/read/plan_today", {});
 
-    const recommended = data?.plan?.recommendedTasks ?? data?.selectedTasks ?? [];
+    const recommended =
+      data?.plan?.recommendedTasks ?? data?.selectedTasks ?? [];
     planState.tasks = Array.isArray(recommended)
       ? recommended.map((t) => ({
           taskId: t.id || t.taskId || "",
@@ -48,7 +49,8 @@ export async function generateDayPlan() {
           reason: t.explanation?.whyIncluded || t.reason || "",
         }))
       : [];
-    planState.totalMinutes = data?.plan?.totalMinutes ?? data?.totalMinutes ?? 0;
+    planState.totalMinutes =
+      data?.plan?.totalMinutes ?? data?.totalMinutes ?? 0;
     planState.remainingMinutes =
       data?.plan?.remainingMinutes ?? data?.remainingMinutes ?? 0;
 
