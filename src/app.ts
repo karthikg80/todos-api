@@ -16,6 +16,7 @@ import { createAuthRouter } from "./routes/authRouter";
 import { createAdminRouter } from "./routes/adminRouter";
 import { createUsersRouter } from "./routes/usersRouter";
 import { createAiRouter } from "./routes/aiRouter";
+import { createPrioritiesBriefRouter } from "./routes/prioritiesBriefRouter";
 import { createAgentRouter } from "./routes/agentRouter";
 import { createMcpRouter } from "./routes/mcpRouter";
 import { IAiSuggestionStore } from "./services/aiSuggestionStore";
@@ -254,6 +255,14 @@ export function createApp(
       resolveAiUserPlan,
       projectService,
       decisionAssistEnabled: aiDecisionAssistEnabled,
+    }),
+  );
+  app.use(
+    "/ai",
+    createPrioritiesBriefRouter({
+      todoService,
+      projectService,
+      resolveUserId: resolveAiUserId,
     }),
   );
   app.use(

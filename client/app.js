@@ -279,6 +279,7 @@ import {
   getHomeDrilldownLabel,
   startOfLocalDay,
 } from "./modules/homeDashboard.js";
+import { refreshPrioritiesTile } from "./modules/homePrioritiesTile.js";
 import {
   renderInboxView,
   loadInboxItems,
@@ -1716,6 +1717,7 @@ window.unarchiveProject = unarchiveProject;
 // Home workspace
 window.openHomeProject = openHomeProject;
 window.openHomeTileList = openHomeTileList;
+window.refreshPrioritiesTile = refreshPrioritiesTile;
 window.applyHomeFocusSuggestion = applyHomeFocusSuggestion;
 window.dismissHomeFocusSuggestion = dismissHomeFocusSuggestion;
 // Admin
