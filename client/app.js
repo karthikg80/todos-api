@@ -6,7 +6,6 @@ import {
   hooks,
   createInitialTaskDrawerAssistState,
   createInitialOnCreateAssistState,
-  createInitialTodayPlanState,
 } from "./modules/store.js";
 import {
   buildTodosQueryParams,
@@ -412,7 +411,6 @@ import {
 } from "./modules/commandPalette.js";
 import * as TaskDrawerAssist from "./modules/taskDrawerAssist.js";
 import * as OnCreateAssist from "./modules/onCreateAssist.js";
-import * as TodayPlan from "./modules/todayPlan.js";
 import {
   applyHomeFocusSuggestion,
   dismissHomeFocusSuggestion,
@@ -1505,7 +1503,6 @@ function bindDeclarativeHandlers() {
   hooks.switchView = switchView;
   hooks.closeCommandPalette = closeCommandPalette;
   hooks.resetOnCreateAssistState = OnCreateAssist.resetOnCreateAssistState;
-  hooks.resetTodayPlanState = TodayPlan.resetTodayPlanState;
   hooks.clearPlanDraftState = clearPlanDraftState;
   hooks.setTodosViewBodyState = setTodosViewBodyState;
   hooks.setSettingsPaneVisible = setSettingsPaneVisible;
@@ -1536,7 +1533,6 @@ function bindDeclarativeHandlers() {
   // filterLogic → render sub-hooks
   hooks.renderProjectsRail = renderProjectsRail;
   hooks.patchProjectsRailView = patchProjectsRailView;
-  hooks.renderTodayPlanPanel = TodayPlan.renderTodayPlanPanel;
   hooks.renderHomeDashboard = renderHomeDashboard;
   hooks.renderInboxView = renderInboxView;
   hooks.loadInboxItems = loadInboxItems;
@@ -1733,7 +1729,6 @@ function init() {
   bindTaskComposerHandlers();
   bindDockHandlers();
   OnCreateAssist.bindOnCreateAssistHandlers();
-  TodayPlan.bindTodayPlanHandlers();
   bindQuickEntryNaturalDateHandlers();
 
   // Check for reset token in URL
