@@ -7388,3 +7388,118 @@ body.is-admin-user .projects-rail__footer--admin-only {
 .inbox-view__error {
   color: var(--danger-color, #dc2626);
 }
+
+/* ── Day Plan Agent panel ───────────────────────────────────────────────── */
+.day-plan-agent-panel {
+  margin-bottom: 12px;
+}
+
+.day-plan-agent__header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-bg, var(--input-bg));
+}
+
+.day-plan-agent__title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.day-plan-agent__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.day-plan-agent__input {
+  width: 72px;
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.day-plan-agent__select {
+  padding: 4px 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.day-plan-agent__body {
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  padding: 10px 12px;
+  background: var(--surface-bg, var(--input-bg));
+}
+
+.day-plan-agent__loading,
+.day-plan-agent__error {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.day-plan-agent__error {
+  color: var(--danger-color, #dc2626);
+}
+
+.day-plan-agent__totals {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.day-plan-agent__task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.day-plan-agent__task {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 2px 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.day-plan-agent__task:last-child {
+  border-bottom: none;
+}
+
+.day-plan-agent__task-title {
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  grid-column: 1;
+}
+
+.day-plan-agent__task-mins {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  grid-column: 2;
+  grid-row: 1;
+  white-space: nowrap;
+}
+
+.day-plan-agent__task-reason {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  grid-column: 1 / -1;
+}
