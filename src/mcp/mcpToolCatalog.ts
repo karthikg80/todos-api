@@ -125,6 +125,7 @@ function minimumRequiredScopesForAction(
     case "list_waiting_on":
     case "list_upcoming":
     case "list_stale_tasks":
+    case "prewarm_home_focus":
       return [TASK_READ_SCOPE];
     case "create_task":
     case "update_task":
@@ -280,7 +281,9 @@ function buildCatalog(): ToolCatalogEntry[] {
         ? "suggest"
         : undefined,
       requiresProjectService: Boolean(
-        action.availability?.requires?.includes("project_service"),
+        (
+          (action.availability?.requires as readonly string[] | undefined) || []
+        ).includes("project_service"),
       ),
     };
   });

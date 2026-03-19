@@ -8,11 +8,17 @@ import { Router, Request, Response } from "express";
 import { callLlm, LlmProviderNotConfiguredError } from "../services/llmService";
 import { ITodoService } from "../interfaces/ITodoService";
 import { IProjectService } from "../interfaces/IProjectService";
+import type { IAiSuggestionStore } from "../services/aiSuggestionStore";
+import {
+  findLatestPendingHomeFocusSuggestion,
+  normalizeHomeFocusEnvelope,
+} from "../services/aiNormalizationService";
 
 interface PrioritiesBriefRouterDeps {
   todoService: ITodoService;
   projectService?: IProjectService;
   resolveUserId: (req: Request, res: Response) => string | null;
+  suggestionStore?: IAiSuggestionStore;
 }
 
 interface CacheEntry {
@@ -23,11 +29,62 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+const HOME_FOCUS_FALLBACK_FRESHNESS_MS = 18 * 60 * 60 * 1000;
+
+function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function renderHomeFocusFallbackHtml(output: Record<string, unknown>): string {
+  const envelope = normalizeHomeFocusEnvelope(output);
+  const suggestions = envelope.suggestions
+    .slice(0, 3)
+    .map((item) => ({
+      title: String((item as { title?: unknown }).title || "").trim(),
+      summary: String((item as { summary?: unknown }).summary || "").trim(),
+    }))
+    .filter((item) => item.title && item.summary);
+  if (!suggestions.length) {
+    return `
+      <div class="lbl">Next priorities</div>
+      <div class="card">
+        <div class="row">
+          <span class="rn">&#8594;</span>
+          <div>
+            <div class="rt">No priorities yet</div>
+            <div class="rb">Add or schedule tasks to generate a Home focus snapshot.</div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  return [
+    `<div class="lbl">Next priorities</div>`,
+    ...suggestions.map(
+      (item) => `
+        <div class="card">
+          <div class="row">
+            <span class="rn">&#8594;</span>
+            <div>
+              <div class="rt">${escapeHtml(item.title)}</div>
+              <div class="rb">${escapeHtml(item.summary)}</div>
+            </div>
+          </div>
+        </div>`,
+    ),
+  ].join("");
+}
 
 export function createPrioritiesBriefRouter({
   todoService,
   projectService,
   resolveUserId,
+  suggestionStore,
 }: PrioritiesBriefRouterDeps): Router {
   const router = Router();
 
@@ -44,6 +101,39 @@ export function createPrioritiesBriefRouter({
           generatedAt: cached.generatedAt,
           cached: true,
         });
+      }
+
+      if (suggestionStore) {
+        const latestHomeFocus = await findLatestPendingHomeFocusSuggestion(
+          suggestionStore,
+          userId,
+        );
+        if (
+          latestHomeFocus &&
+          Date.now() - latestHomeFocus.createdAt.getTime() <=
+            HOME_FOCUS_FALLBACK_FRESHNESS_MS
+        ) {
+          try {
+            const html = renderHomeFocusFallbackHtml(latestHomeFocus.output);
+            const generatedAt = latestHomeFocus.createdAt.toISOString();
+            cache.set(userId, {
+              html,
+              generatedAt,
+              expiresAt: Date.now() + CACHE_TTL_MS,
+            });
+            return res.json({
+              html,
+              generatedAt,
+              cached: true,
+              prewarmed: true,
+            });
+          } catch (error) {
+            console.warn(
+              "priorities-brief home_focus fallback normalization failed:",
+              error,
+            );
+          }
+        }
       }
 
       // Fetch tasks and projects in parallel; tolerate individual failures

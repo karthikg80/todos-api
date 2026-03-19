@@ -8,6 +8,7 @@ Usage:
     python main.py inbox       # Inbox triage: classify + apply capture items
     python main.py watchdog    # Aging watchdog: stale tasks + waiting follow-ups
     python main.py decomposer  # Project decomposer: stuck projects + next actions
+    python main.py prewarm     # Home AI prewarm: generate/reuse Home focus snapshot
 
 For each enrolled user the runner:
   1. Reads their enrollment row (refresh token + settings) from Postgres.
@@ -40,7 +41,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-COMMANDS = ("daily", "weekly", "inbox", "watchdog", "decomposer", "evaluator_daily", "evaluator_weekly")
+COMMANDS = ("daily", "weekly", "inbox", "watchdog", "decomposer", "prewarm", "evaluator_daily", "evaluator_weekly")
 USAGE = f"Usage: python main.py <{'|'.join(COMMANDS)}>"
 
 
@@ -92,6 +93,9 @@ def main() -> None:
     elif command == "decomposer":
         from jobs.decomposer import run_decomposer_for_user as run_for_user
         eligible = [e for e in enrollments if e.weekly_enabled]  # same gate as weekly
+    elif command == "prewarm":
+        from jobs.prewarm import run_prewarm_for_user as run_for_user
+        eligible = [e for e in enrollments if e.daily_enabled]
     elif command == "evaluator_daily":
         from jobs.evaluator_daily import run_evaluator_daily_for_user as run_for_user
         eligible = [e for e in enrollments if e.daily_enabled]

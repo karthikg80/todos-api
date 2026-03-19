@@ -24,6 +24,8 @@ import { ActionPolicyService } from "../services/actionPolicyService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
 import { DryRunResult } from "../types";
+import { AiPlannerService } from "../services/aiService";
+import type { IAiSuggestionStore } from "../services/aiSuggestionStore";
 import { analyzeTaskQuality } from "../ai/taskQualityAnalyzer";
 import { findDuplicates } from "../ai/duplicateDetector";
 import {
@@ -106,8 +108,10 @@ import {
   validateAgentListFrictionPatternsInput,
   validateAgentGetActionPoliciesInput,
   validateAgentUpdateActionPolicyInput,
+  validateAgentPrewarmHomeFocusInput,
 } from "../validation/agentValidation";
 import { CaptureService } from "../services/captureService";
+import { HomeFocusPrewarmService } from "../services/homeFocusPrewarmService";
 
 export type AgentActionName =
   | "list_tasks"
@@ -186,12 +190,15 @@ export type AgentActionName =
   | "apply_learning_recommendation"
   | "list_friction_patterns"
   | "get_action_policies"
-  | "update_action_policy";
+  | "update_action_policy"
+  | "prewarm_home_focus";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
   projectService?: IProjectService;
   persistencePrisma?: PrismaClient;
+  aiPlannerService?: AiPlannerService;
+  suggestionStore?: IAiSuggestionStore;
 }
 
 export interface AgentExecutionContext {
@@ -565,6 +572,7 @@ export class AgentExecutor {
   private readonly evaluationService: EvaluationService;
   private readonly frictionService: FrictionService;
   private readonly actionPolicyService: ActionPolicyService;
+  private readonly homeFocusPrewarmService: HomeFocusPrewarmService | null;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -593,6 +601,13 @@ export class AgentExecutor {
     );
     this.frictionService = new FrictionService(deps.persistencePrisma);
     this.actionPolicyService = new ActionPolicyService(deps.persistencePrisma);
+    this.homeFocusPrewarmService =
+      deps.aiPlannerService && deps.suggestionStore
+        ? new HomeFocusPrewarmService(
+            deps.aiPlannerService,
+            deps.suggestionStore,
+          )
+        : null;
     this.agentService = new AgentService({
       todoService: deps.todoService,
       projectService: deps.projectService,
@@ -675,9 +690,12 @@ export class AgentExecutor {
       },
       actions: agentManifest.actions.map((action) => ({
         ...action,
+        availability: action.availability,
         enabled:
-          !action.availability?.requires?.includes("project_service") ||
-          this.hasProjectService(),
+          !(
+            (action.availability?.requires as readonly string[] | undefined) ||
+            []
+          ).includes("project_service") || this.hasProjectService(),
       })),
     };
   }
@@ -2264,6 +2282,54 @@ export class AgentExecutor {
             },
             201,
           );
+        }
+
+        case "prewarm_home_focus": {
+          if (!this.homeFocusPrewarmService) {
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Home focus prewarm not configured",
+              false,
+              "Provide AI planner and suggestion store dependencies before calling this action.",
+            );
+          }
+          const prewarmInput = validateAgentPrewarmHomeFocusInput(input);
+          const periodKey =
+            prewarmInput.periodKey ?? new Date().toISOString().slice(0, 10);
+          const prewarm = await this.homeFocusPrewarmService.prewarmForUser(
+            context.userId,
+            prewarmInput,
+          );
+          await this.metricsService.record(context.userId, {
+            jobName: "home_focus_prewarm",
+            periodKey,
+            metricType:
+              prewarm.status === "generated"
+                ? "automation.home_focus.generated"
+                : "automation.home_focus.reused",
+            value: 1,
+            metadata: {
+              suggestionId: prewarm.suggestionId,
+              createdAt: prewarm.createdAt,
+              freshUntil: prewarm.freshUntil,
+              ageHours: prewarm.ageHours,
+              suggestionCount: prewarm.suggestionCount,
+              mustAbstain: prewarm.mustAbstain,
+              timezone: prewarmInput.timezone ?? null,
+            },
+          });
+          await this.metricsService.record(context.userId, {
+            jobName: "home_focus_prewarm",
+            periodKey,
+            metricType: "automation.home_focus.snapshot_age_hours",
+            value: prewarm.ageHours,
+            metadata: {
+              suggestionId: prewarm.suggestionId,
+              status: prewarm.status,
+            },
+          });
+          return this.success(action, readOnly, context, 200, { prewarm });
         }
 
         // ── Issue #314: job-run locking ────────────────────────────────────────

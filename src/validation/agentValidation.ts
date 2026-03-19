@@ -2143,11 +2143,55 @@ export function validateAgentListFrictionPatternsInput(data: unknown): {
 // ── Issue #339: action policies ───────────────────────────────────────────────
 
 const UPDATE_ACTION_POLICY_KEYS = ["actionName", "autoApply", "minConfidence"];
+const PREWARM_HOME_FOCUS_KEYS = [
+  "topN",
+  "freshnessHours",
+  "force",
+  "timezone",
+  "periodKey",
+];
 
 export function validateAgentGetActionPoliciesInput(
   _data: unknown,
 ): Record<string, never> {
   return {};
+}
+
+export function validateAgentPrewarmHomeFocusInput(data: unknown): {
+  topN?: 3 | 5;
+  freshnessHours?: number;
+  force?: boolean;
+  timezone?: string;
+  periodKey?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, PREWARM_HOME_FOCUS_KEYS, "Agent action input");
+
+  let topN: 3 | 5 | undefined;
+  if (body.topN !== undefined) {
+    const parsedTopN = Number(body.topN);
+    if (parsedTopN !== 3 && parsedTopN !== 5) {
+      throw new ValidationError("topN must be 3 or 5");
+    }
+    topN = parsedTopN;
+  }
+
+  let freshnessHours: number | undefined;
+  if (body.freshnessHours !== undefined) {
+    const parsedHours = Number(body.freshnessHours);
+    if (!Number.isFinite(parsedHours) || parsedHours <= 0 || parsedHours > 48) {
+      throw new ValidationError("freshnessHours must be between 1 and 48");
+    }
+    freshnessHours = Math.round(parsedHours);
+  }
+
+  return {
+    topN,
+    freshnessHours,
+    force: parseOptionalBoolean(body.force, "force"),
+    timezone: parseOptionalString(body.timezone, "timezone", 50),
+    periodKey: parseOptionalString(body.periodKey, "periodKey", 20),
+  };
 }
 
 export function validateAgentUpdateActionPolicyInput(data: unknown): {
