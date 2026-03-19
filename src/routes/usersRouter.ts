@@ -82,5 +82,54 @@ export function createUsersRouter({ authService }: UsersRouterDeps): Router {
     }
   });
 
+  // PATCH /users/me/onboarding/step — save mid-flow progress
+  router.patch(
+    "/me/onboarding/step",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!authService)
+        return res.status(501).json({ error: "Auth not configured" });
+      try {
+        const userId = req.user?.userId;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+        const step = Number(req.body?.step);
+        if (!Number.isInteger(step) || step < 0 || step > 10) {
+          return res
+            .status(400)
+            .json({ error: "step must be an integer 0-10" });
+        }
+
+        await authService.updateOnboarding(userId, { step });
+        return res.json({ ok: true, step });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  // POST /users/me/onboarding/complete — mark onboarding done, return updated user
+  router.post(
+    "/me/onboarding/complete",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!authService)
+        return res.status(501).json({ error: "Auth not configured" });
+      try {
+        const userId = req.user?.userId;
+        if (!userId) return res.status(401).json({ error: "Unauthorized" });
+
+        await authService.updateOnboarding(userId, {
+          step: 4,
+          completedAt: new Date(),
+        });
+
+        const user = await authService.getUserById(userId);
+        if (!user) return res.status(404).json({ error: "User not found" });
+        return res.json(user);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   return router;
 }

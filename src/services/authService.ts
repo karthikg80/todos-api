@@ -441,6 +441,8 @@ export class AuthService {
         isVerified: true,
         role: true,
         plan: true,
+        onboardingStep: true,
+        onboardingCompletedAt: true,
         createdAt: true,
         updatedAt: true,
       },
@@ -530,6 +532,18 @@ export class AuthService {
     }
 
     return updatedUser;
+  }
+
+  async updateOnboarding(
+    userId: string,
+    patch: { step?: number; completedAt?: Date | null },
+  ): Promise<void> {
+    const data: Record<string, unknown> = {};
+    if (patch.step !== undefined) data["onboardingStep"] = patch.step;
+    if ("completedAt" in patch)
+      data["onboardingCompletedAt"] = patch.completedAt;
+    if (Object.keys(data).length === 0) return;
+    await this.prisma.user.update({ where: { id: userId }, data });
   }
 
   /**

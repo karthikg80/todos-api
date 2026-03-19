@@ -108,6 +108,8 @@ model User {
   resetTokenExpiry  DateTime?      @map("reset_token_expiry")
   role              UserRole       @default(user)
   plan              UserPlan       @default(free)
+  onboardingStep        Int       @default(0) @map("onboarding_step")
+  onboardingCompletedAt DateTime? @map("onboarding_completed_at")
   mcpRevokedAfter   DateTime?      @map("mcp_revoked_after")
   createdAt         DateTime       @default(now()) @map("created_at")
   updatedAt         DateTime       @updatedAt @map("updated_at")
