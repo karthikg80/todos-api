@@ -1,0 +1,182 @@
+// =============================================================================
+// weeklyReviewUi.js — Weekly Review view: suggest mode → show findings &
+// recommended actions → apply mode with confirmation.
+// Renders into #todosContent when currentWorkspaceView === "weekly-review".
+// All user-provided content is passed through hooks.escapeHtml before
+// being assigned to innerHTML, consistent with the existing codebase pattern.
+// =============================================================================
+
+import { state, hooks } from "./store.js";
+import { applyAsyncAction } from "./stateActions.js";
+import { callAgentAction } from "./agentApiClient.js";
+
+// ---------------------------------------------------------------------------
+// Render
+// ---------------------------------------------------------------------------
+
+function renderFindingRow(f) {
+  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+  const label = f.type ? f.type.replace(/_/g, " ") : "finding";
+  const subject = f.taskTitle || f.projectName || "";
+  return `
+    <div class="wr-finding">
+      <span class="wr-finding__type">${escapeHtml(label)}</span>
+      ${subject ? `<span class="wr-finding__subject">${escapeHtml(subject)}</span>` : ""}
+      ${f.reason ? `<p class="wr-finding__reason">${escapeHtml(f.reason)}</p>` : ""}
+    </div>`;
+}
+
+function renderActionRow(a) {
+  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+  const label = a.type ? a.type.replace(/_/g, " ") : "action";
+  return `
+    <div class="wr-action">
+      <span class="wr-action__type">${escapeHtml(label)}</span>
+      ${a.title ? `<span class="wr-action__title">${escapeHtml(a.title)}</span>` : ""}
+      ${a.reason ? `<p class="wr-action__reason">${escapeHtml(a.reason)}</p>` : ""}
+    </div>`;
+}
+
+function renderSummaryBadges(summary) {
+  if (!summary) return "";
+  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+  const badges = [
+    {
+      label: "projects without next action",
+      value: summary.projectsWithoutNextAction,
+    },
+    { label: "stale tasks", value: summary.staleTasks },
+    { label: "waiting", value: summary.waitingTasks },
+    { label: "upcoming", value: summary.upcomingTasks },
+  ]
+    .filter((b) => b.value !== undefined && b.value !== null)
+    .map(
+      (b) =>
+        `<span class="wr-badge"><strong>${escapeHtml(String(b.value))}</strong> ${escapeHtml(b.label)}</span>`,
+    )
+    .join("");
+  return badges ? `<div class="wr-summary">${badges}</div>` : "";
+}
+
+export function renderWeeklyReviewView() {
+  const container = document.getElementById("todosContent");
+  if (!container) return;
+  if (state.currentWorkspaceView !== "weekly-review") return;
+
+  const s = state.weeklyReviewState;
+  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+
+  let bodyHtml;
+
+  if (s.loading) {
+    bodyHtml = `<div class="wr-loading" role="status" aria-live="polite">Running weekly review…</div>`;
+  } else if (s.error) {
+    bodyHtml = `
+      <div class="wr-error">${escapeHtml(s.error)}</div>
+      <button type="button" class="wr-btn" data-wr-action="suggest">Retry</button>`;
+  } else if (s.hasRun) {
+    const findingsHtml =
+      s.findings.length > 0
+        ? `<section class="wr-section">
+            <h3 class="wr-section__title">Findings (${s.findings.length})</h3>
+            ${s.findings.map(renderFindingRow).join("")}
+          </section>`
+        : "";
+
+    const actionsHtml =
+      s.actions.length > 0
+        ? `<section class="wr-section">
+            <h3 class="wr-section__title">Recommended actions (${s.actions.length})</h3>
+            ${s.actions.map(renderActionRow).join("")}
+            ${
+              s.mode === "suggest"
+                ? `<div class="wr-apply-row">
+                    <button type="button" class="wr-btn wr-btn--primary" data-wr-action="apply">
+                      Apply all actions
+                    </button>
+                  </div>`
+                : `<p class="wr-applied-msg">Actions applied.</p>`
+            }
+          </section>`
+        : `<p class="wr-empty">No recommended actions this week.</p>`;
+
+    bodyHtml = `${renderSummaryBadges(s.summary)}${findingsHtml}${actionsHtml}`;
+  } else {
+    bodyHtml = `<p class="wr-intro">Run the weekly review to surface stale tasks, projects without a next action, and get recommendations.</p>`;
+  }
+
+  // All dynamic values are passed through escapeHtml before innerHTML assignment.
+  container.innerHTML = `
+    <div class="wr-view">
+      <div class="wr-toolbar">
+        <h2 class="wr-title">Weekly review</h2>
+        <button
+          type="button"
+          class="wr-btn wr-btn--primary"
+          data-wr-action="suggest"
+          ${s.loading ? "disabled" : ""}
+        >
+          ${s.loading ? "Running…" : s.hasRun ? "Re-run" : "Run review"}
+        </button>
+      </div>
+      <div class="wr-body">${bodyHtml}</div>
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// Actions
+// ---------------------------------------------------------------------------
+
+async function runWeeklyReview(mode = "suggest") {
+  applyAsyncAction("weeklyReview/start");
+  if (mode === "apply") {
+    applyAsyncAction("weeklyReview/mode:set", { mode: "apply" });
+  }
+  renderWeeklyReviewView();
+
+  try {
+    const data = await callAgentAction("/agent/write/weekly_review", { mode });
+    const review = data?.review || data;
+    applyAsyncAction("weeklyReview/success", {
+      summary: review?.summary || null,
+      findings: Array.isArray(review?.findings) ? review.findings : [],
+      actions: Array.isArray(review?.recommendedActions)
+        ? review.recommendedActions
+        : Array.isArray(review?.appliedActions)
+          ? review.appliedActions
+          : [],
+    });
+    if (mode === "apply") {
+      applyAsyncAction("weeklyReview/mode:set", { mode: "apply" });
+      if (typeof hooks.applyFiltersAndRender === "function") {
+        hooks.applyFiltersAndRender();
+      }
+    }
+  } catch (err) {
+    applyAsyncAction("weeklyReview/failure", {
+      error: err.message || "Could not run weekly review.",
+    });
+  }
+  renderWeeklyReviewView();
+}
+
+// ---------------------------------------------------------------------------
+// Event binding (delegated, called once from app.js)
+// ---------------------------------------------------------------------------
+
+export function bindWeeklyReviewHandlers() {
+  document.addEventListener("click", (event) => {
+    if (state.currentWorkspaceView !== "weekly-review") return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const actionEl = target.closest("[data-wr-action]");
+    if (!(actionEl instanceof HTMLElement)) return;
+    const action = actionEl.getAttribute("data-wr-action");
+    if (action === "suggest") {
+      runWeeklyReview("suggest");
+    } else if (action === "apply") {
+      runWeeklyReview("apply");
+    }
+  });
+}

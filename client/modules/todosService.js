@@ -3,6 +3,7 @@
 // Imports state from store.js. Cross-module calls go through hooks.
 // =============================================================================
 import { state, hooks, createInitialHomeAiState } from "./store.js";
+import { planTodayTaskIds } from "./planTodayAgent.js";
 import {
   hasTodoRow,
   patchBulkToolbar,
@@ -84,8 +85,13 @@ function buildVisibleTodosQueryParams() {
   if (state.currentDateView === "completed") {
     params.completed = true;
   } else if (state.currentDateView === "today") {
-    params.dueDateFrom = startOfLocalDay(now).toISOString();
-    params.dueDateTo = endOfLocalDay(now).toISOString();
+    // When the day plan has recommended tasks, skip the date-range filter so
+    // all todos are fetched server-side and the plan ID filter can be applied
+    // client-side in filterLogic.js.
+    if (!planTodayTaskIds.length) {
+      params.dueDateFrom = startOfLocalDay(now).toISOString();
+      params.dueDateTo = endOfLocalDay(now).toISOString();
+    }
   } else if (state.currentDateView === "upcoming") {
     params.dueDateAfter = endOfLocalDay(now).toISOString();
     params.dueDateTo = new Date(
