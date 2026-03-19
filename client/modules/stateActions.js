@@ -7,7 +7,6 @@ import {
   hooks,
   createInitialTaskDrawerAssistState,
   createInitialOnCreateAssistState,
-  createInitialTodayPlanState,
   createInitialHomeAiState,
   createInitialBreakDownState,
   createInitialFollowUpState,
@@ -206,24 +205,6 @@ export function applyDomainAction(type, payload = {}) {
       state.railRovingFocusKey = nextValue || "";
       return nextValue;
     }
-    case "todayPlan/goal:set":
-      state.todayPlanState.goalText = String(payload.goalText || "");
-      return state.todayPlanState.goalText;
-    case "todayPlan/selection:set": {
-      const todoId = String(payload.todoId || "");
-      if (!todoId) return state.todayPlanState.selectedTodoIds;
-      if (payload.selected) {
-        state.todayPlanState.selectedTodoIds.add(todoId);
-      } else {
-        state.todayPlanState.selectedTodoIds.delete(todoId);
-      }
-      return state.todayPlanState.selectedTodoIds;
-    }
-    case "todayPlan/selections:replace":
-      state.todayPlanState.selectedTodoIds = new Set(
-        Array.isArray(payload.todoIds) ? payload.todoIds.map(String) : [],
-      );
-      return state.todayPlanState.selectedTodoIds;
     default:
       return undefined;
   }
@@ -351,74 +332,6 @@ export function applyAsyncAction(type, payload = {}) {
       );
       state.onCreateAssistState.unavailable = false;
       return state.onCreateAssistState;
-    case "todayPlan/reset":
-      state.todayPlanState = createInitialTodayPlanState();
-      return state.todayPlanState;
-    case "todayPlan/start":
-      state.todayPlanState.loading = true;
-      state.todayPlanState.error = "";
-      state.todayPlanState.unavailable = false;
-      state.todayPlanState.generating = !!payload.generating;
-      if (typeof payload.loadingMessage === "string") {
-        state.todayPlanState.loadingMessage = payload.loadingMessage;
-      }
-      return state.todayPlanState;
-    case "todayPlan/unavailable":
-      state.todayPlanState.loading = false;
-      state.todayPlanState.generating = false;
-      state.todayPlanState.unavailable = true;
-      state.todayPlanState.error = "";
-      state.todayPlanState.hasLoaded = true;
-      state.todayPlanState.loadingMessage = "";
-      return state.todayPlanState;
-    case "todayPlan/empty":
-      state.todayPlanState.loading = false;
-      state.todayPlanState.generating = false;
-      state.todayPlanState.error = "";
-      state.todayPlanState.unavailable = false;
-      state.todayPlanState.hasLoaded = true;
-      state.todayPlanState.aiSuggestionId = "";
-      state.todayPlanState.envelope = payload.envelope || null;
-      state.todayPlanState.selectedTodoIds = new Set(
-        Array.isArray(payload.selectedTodoIds)
-          ? payload.selectedTodoIds.map(String)
-          : [],
-      );
-      state.todayPlanState.dismissedSuggestionIds = new Set();
-      state.todayPlanState.loadingMessage = "";
-      return state.todayPlanState;
-    case "todayPlan/success":
-      state.todayPlanState.loading = false;
-      state.todayPlanState.generating = false;
-      state.todayPlanState.error = "";
-      state.todayPlanState.unavailable = false;
-      state.todayPlanState.hasLoaded = true;
-      state.todayPlanState.aiSuggestionId = String(
-        payload.aiSuggestionId || "",
-      );
-      state.todayPlanState.envelope = payload.envelope || null;
-      state.todayPlanState.dismissedSuggestionIds = new Set();
-      state.todayPlanState.selectedTodoIds = new Set(
-        Array.isArray(payload.selectedTodoIds)
-          ? payload.selectedTodoIds.map(String)
-          : [],
-      );
-      state.todayPlanState.loadingMessage = "";
-      return state.todayPlanState;
-    case "todayPlan/failure":
-      state.todayPlanState.loading = false;
-      state.todayPlanState.generating = false;
-      state.todayPlanState.unavailable = false;
-      state.todayPlanState.error = String(
-        payload.error || "Could not load suggestions.",
-      );
-      state.todayPlanState.hasLoaded = true;
-      state.todayPlanState.loadingMessage = "";
-      return state.todayPlanState;
-    case "todayPlan/generate:complete":
-      state.todayPlanState.loadingMessage = "";
-      state.todayPlanState.lastApplyBatch = null;
-      return state.todayPlanState;
     case "homeAi/reset":
       state.homeAi = createHomeAiState(payload.requestKey);
       return state.homeAi;

@@ -276,6 +276,8 @@ import {
   openHomeTileList,
   openHomeProject,
   openTodoFromHomeTile,
+  retryTodaysPlan,
+  setUpcomingTab,
   getHomeDrilldownLabel,
   startOfLocalDay,
 } from "./modules/homeDashboard.js";
@@ -1727,6 +1729,8 @@ window.unarchiveProject = unarchiveProject;
 // Home workspace
 window.openHomeProject = openHomeProject;
 window.openHomeTileList = openHomeTileList;
+window.retryTodaysPlan = retryTodaysPlan;
+window.setUpcomingTab = setUpcomingTab;
 window.refreshPrioritiesTile = refreshPrioritiesTile;
 window.applyHomeFocusSuggestion = applyHomeFocusSuggestion;
 window.dismissHomeFocusSuggestion = dismissHomeFocusSuggestion;

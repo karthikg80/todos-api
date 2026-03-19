@@ -717,9 +717,7 @@ export async function logout() {
   clearFilters();
   hooks.clearPlanDraftState?.();
   hooks.resetOnCreateAssistState?.();
-  hooks.resetTodayPlanState?.();
   hooks.renderOnCreateAssistRow?.();
-  hooks.renderTodayPlanPanel?.();
   hooks.closeCommandPalette?.({ restoreFocus: false });
   closeProjectCrudModal({ restoreFocus: false });
   closeProjectEditDrawer({ restoreFocus: false });
@@ -782,9 +780,7 @@ export function showAppView() {
   hooks.loadAiInsights?.();
   hooks.loadAiFeedbackSummary?.();
   hooks.resetOnCreateAssistState?.();
-  hooks.resetTodayPlanState?.();
   hooks.renderOnCreateAssistRow?.();
-  hooks.renderTodayPlanPanel?.();
   hooks.setQuickEntryPropertiesOpen?.(
     hooks.readStoredQuickEntryPropertiesOpenState?.(),
     {
@@ -821,8 +817,6 @@ export function showAuthView() {
   state.critiqueRequestsInFlight = 0;
   hooks.updateCritiqueDraftButtonState?.();
   hooks.resetOnCreateAssistState?.();
-  hooks.resetTodayPlanState?.();
   hooks.renderOnCreateAssistRow?.();
-  hooks.renderTodayPlanPanel?.();
   showLogin();
 }
