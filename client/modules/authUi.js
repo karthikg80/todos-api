@@ -16,6 +16,7 @@ import {
 } from "./projectsState.js";
 import { loadTodos } from "./todosService.js";
 import { closeTodoDrawer } from "./drawerUi.js";
+import { initOnboarding } from "./onboardingFlow.js";
 
 const { showMessage, hideMessage } = window.Utils || {};
 
@@ -168,7 +169,9 @@ export async function handleLogin(event) {
         });
       }
       showAppView();
-      loadUserProfile();
+      loadUserProfile().then(() => {
+        initOnboarding();
+      });
     } else {
       showMessage("authMessage", data.error || "Login failed", "error");
     }
@@ -216,7 +219,9 @@ export async function handleRegister(event) {
       showMessage("authMessage", "Account created successfully!", "success");
       setTimeout(() => {
         showAppView();
-        loadUserProfile();
+        loadUserProfile().then(() => {
+          initOnboarding();
+        });
       }, 1000);
     } else {
       if (data.errors) {
@@ -425,12 +430,13 @@ export function updateUserDisplay() {
   document.getElementById("updateName").value = state.currentUser.name || "";
   document.getElementById("updateEmail").value = state.currentUser.email;
 
-  // Show/hide verification banner
+  // Show/hide verification banner — only show when explicitly not verified.
+  // Using === false guards against isVerified being undefined (e.g. when the
+  // login response omits the field before loadUserProfile() resolves).
   const verificationBanner = document.getElementById("verificationBanner");
   if (verificationBanner) {
-    verificationBanner.style.display = state.currentUser.isVerified
-      ? "none"
-      : "block";
+    verificationBanner.style.display =
+      state.currentUser.isVerified === false ? "block" : "none";
   }
 
   const adminBootstrapSection = document.getElementById(

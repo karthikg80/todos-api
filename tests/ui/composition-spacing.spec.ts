@@ -128,6 +128,7 @@ async function installMockApi(
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 

@@ -100,6 +100,7 @@ async function installMockApi(page: Page) {
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
     if (pathname === "/projects" && method === "GET") {

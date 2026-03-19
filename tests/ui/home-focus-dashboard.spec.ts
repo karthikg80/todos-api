@@ -226,6 +226,7 @@ async function installHomeFocusMockApi(
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 

@@ -212,6 +212,7 @@ async function installProjectHeadingsMockApi(page: Page) {
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 

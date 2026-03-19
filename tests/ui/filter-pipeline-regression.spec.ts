@@ -231,6 +231,7 @@ async function installFilterPipelineMockApi(page: Page, todosSeed: TodoSeed[]) {
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 

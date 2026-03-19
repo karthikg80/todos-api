@@ -130,6 +130,7 @@ async function installCommandPaletteTaskSearchMockApi(
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 

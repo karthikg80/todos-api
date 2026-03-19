@@ -279,20 +279,19 @@ import {
   retryTodaysPlan,
   setUpcomingTab,
   getHomeDrilldownLabel,
-  clearHomeFocusDashboard,
   startOfLocalDay,
-  getTodoDueSummary,
-  formatDashboardDueChip,
-  getDashboardReasonLine,
-  getTodoRecencyDays,
-  renderTopFocusRow,
-  renderHomeFocusDashboard,
 } from "./modules/homeDashboard.js";
+import { refreshPrioritiesTile } from "./modules/homePrioritiesTile.js";
 import {
   renderInboxView,
   loadInboxItems,
   bindInboxHandlers,
 } from "./modules/inboxUi.js";
+import { renderCleanupView, bindCleanupHandlers } from "./modules/cleanupUi.js";
+import {
+  renderWeeklyReviewView,
+  bindWeeklyReviewHandlers,
+} from "./modules/weeklyReviewUi.js";
 import {
   getAiWorkspaceElements,
   getAiWorkspaceStatusLabel,
@@ -425,6 +424,16 @@ import {
   dismissHomeFocusSuggestion,
 } from "./modules/homeAiService.js";
 import { EventBus } from "./modules/eventBus.js";
+import {
+  initOnboarding,
+  isOnboardingActive,
+  advanceOnboarding,
+  dismissOnboarding,
+  toggleOnboardingArea,
+  onboardingStep1Next,
+  onboardingAddTask,
+  onboardingSetDueDate,
+} from "./modules/onboardingFlow.js";
 
 // Configuration
 const API_URL =
@@ -1542,10 +1551,11 @@ function bindDeclarativeHandlers() {
   // filterLogic → render sub-hooks
   hooks.renderProjectsRail = renderProjectsRail;
   hooks.patchProjectsRailView = patchProjectsRailView;
-  hooks.clearHomeFocusDashboard = clearHomeFocusDashboard;
   hooks.renderHomeDashboard = renderHomeDashboard;
   hooks.renderInboxView = renderInboxView;
   hooks.loadInboxItems = loadInboxItems;
+  hooks.renderWeeklyReviewView = renderWeeklyReviewView;
+  hooks.renderCleanupView = renderCleanupView;
   hooks.updateBulkActionsVisibility = updateBulkActionsVisibility;
   hooks.updateAiWorkspaceStatusChip = updateAiWorkspaceStatusChip;
   // projectsState → rail
@@ -1587,7 +1597,6 @@ function bindDeclarativeHandlers() {
   hooks.loadOnCreateDecisionAssist = OnCreateAssist.loadOnCreateDecisionAssist;
   hooks.openTaskComposer = openTaskComposer;
   hooks.processQuickEntryNaturalDate = processQuickEntryNaturalDate;
-  hooks.renderHomeFocusDashboard = renderHomeFocusDashboard;
   hooks.renderOnCreateAssistRow = OnCreateAssist.renderOnCreateAssistRow;
   hooks.renderProjectOptions = renderProjectOptions;
   hooks.renderSubtasks = renderSubtasks;
@@ -1722,8 +1731,18 @@ window.openHomeProject = openHomeProject;
 window.openHomeTileList = openHomeTileList;
 window.retryTodaysPlan = retryTodaysPlan;
 window.setUpcomingTab = setUpcomingTab;
+window.refreshPrioritiesTile = refreshPrioritiesTile;
 window.applyHomeFocusSuggestion = applyHomeFocusSuggestion;
 window.dismissHomeFocusSuggestion = dismissHomeFocusSuggestion;
+// Onboarding flow
+window.initOnboarding = initOnboarding;
+window.isOnboardingActive = isOnboardingActive;
+window.advanceOnboarding = advanceOnboarding;
+window.dismissOnboarding = dismissOnboarding;
+window.toggleOnboardingArea = toggleOnboardingArea;
+window.onboardingStep1Next = onboardingStep1Next;
+window.onboardingAddTask = onboardingAddTask;
+window.onboardingSetDueDate = onboardingSetDueDate;
 // Admin
 window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;
@@ -1737,6 +1756,8 @@ function init() {
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
   bindInboxHandlers();
+  bindWeeklyReviewHandlers();
+  bindCleanupHandlers();
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
   bindTaskComposerHandlers();
