@@ -35,7 +35,6 @@ const { getProjectLeafName, normalizeProjectPath } =
 
 const HOME_STALE_RISK_DAYS = 14;
 
-
 // ---------------------------------------------------------------------------
 // Date helpers
 // ---------------------------------------------------------------------------
@@ -591,6 +590,8 @@ export function renderHomeTaskRow(todo, { reason = "" } = {}) {
     !!aiSuggestion &&
     state.homeAi?.dismissingSuggestionId === aiSuggestion.suggestionId;
   const dueBadge = formatHomeDueBadge(todo);
+  const projectName = normalizeProjectPath(todo?.category || todo?.projectName);
+  const projectLabel = projectName ? getProjectLeafName(projectName) : "";
   const badgeIcon =
     HOME_BADGE_ICONS[dueBadge] ??
     (dueBadge
@@ -614,6 +615,17 @@ export function renderHomeTaskRow(todo, { reason = "" } = {}) {
         ${escapeHtml(String(todo.title || "Untitled task"))}
       </button>
       ${dueBadge ? `<span class="home-task-row__badge ${dueBadge === "Overdue" ? "home-task-row__badge--overdue" : ""}">${badgeIcon}${escapeHtml(dueBadge)}</span>` : ""}
+      ${
+        projectName
+          ? `<button
+              type="button"
+              class="home-task-row__project"
+              data-onclick="openHomeProject('${escapeHtml(projectName)}')"
+            >
+              ${escapeHtml(projectLabel)}
+            </button>`
+          : ""
+      }
       ${reason ? `<div class="home-task-row__reason">${escapeHtml(reason)}</div>` : ""}
       ${
         aiSuggestion
@@ -974,9 +986,6 @@ export function renderHomeDashboard() {
   if (isOnboardingActive() && (onboardingStep === 2 || onboardingStep === 3)) {
     return `<section class="home-dashboard" data-testid="home-dashboard"></section>`;
   }
-
-  void hydrateHomeTopFocusIfNeeded();
-  void hydrateTodaysPlanIfNeeded();
   void loadPrioritiesBrief();
 
   return `
@@ -985,8 +994,6 @@ export function renderHomeDashboard() {
       <div class="home-dashboard__header">
         <h2 class="home-dashboard__title">Home</h2>
       </div>
-      ${renderTodaysPlanZone()}
-      ${renderUpcomingZone()}
     </section>`;
 }
 
