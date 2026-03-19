@@ -35,7 +35,6 @@ const { getProjectLeafName, normalizeProjectPath } =
 
 const HOME_STALE_RISK_DAYS = 14;
 
-
 // ---------------------------------------------------------------------------
 // Date helpers
 // ---------------------------------------------------------------------------
@@ -964,6 +963,30 @@ export function renderUpcomingZone() {
     </section>`;
 }
 
+function renderHomeTopFocusTile() {
+  const aiItems = buildHomeAiTopFocusItems();
+  const items = aiItems.length > 0 ? aiItems : getTopFocusFallbackTodos(3);
+
+  return renderHomeTaskTile({
+    key: "top_focus",
+    title: "Focus",
+    items,
+    emptyText: "Nothing urgent right now.",
+    showReasons: true,
+    showSeeAll: false,
+  });
+}
+
+function renderHomeDueSoonTile(model) {
+  return renderHomeTaskTile({
+    key: "due_soon",
+    title: "Up Next",
+    items: model.dueSoon,
+    groupedItems: model.dueSoonGroups,
+    emptyText: "No tasks due soon.",
+  });
+}
+
 export function renderHomeDashboard() {
   // Show onboarding modal (steps 1 & 4) as a side effect of rendering the home
   // view — guarantees the overlay only appears when home workspace is active.
@@ -978,6 +1001,7 @@ export function renderHomeDashboard() {
   void hydrateHomeTopFocusIfNeeded();
   void hydrateTodaysPlanIfNeeded();
   void loadPrioritiesBrief();
+  const model = getHomeDashboardModel();
 
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
@@ -985,6 +1009,8 @@ export function renderHomeDashboard() {
       <div class="home-dashboard__header">
         <h2 class="home-dashboard__title">Home</h2>
       </div>
+      ${renderHomeTopFocusTile()}
+      ${renderHomeDueSoonTile(model)}
       ${renderTodaysPlanZone()}
       ${renderUpcomingZone()}
     </section>`;
