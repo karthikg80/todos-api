@@ -92,6 +92,7 @@ async function setupAuthRoutes(page: Page) {
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 

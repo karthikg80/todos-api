@@ -188,6 +188,7 @@ async function installTodayPlanLiveMockApi(page: Page) {
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 
