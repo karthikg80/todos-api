@@ -107,6 +107,7 @@ async function installProjectsRailMockApi(page: Page, todosSeed: TodoSeed[]) {
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 

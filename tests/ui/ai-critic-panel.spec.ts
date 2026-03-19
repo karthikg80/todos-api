@@ -102,6 +102,7 @@ async function installCriticMockApi(
         isVerified: true,
         createdAt: nowIso(),
         updatedAt: nowIso(),
+        onboardingCompletedAt: nowIso(),
       });
     }
 

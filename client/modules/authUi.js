@@ -16,6 +16,7 @@ import {
 } from "./projectsState.js";
 import { loadTodos } from "./todosService.js";
 import { closeTodoDrawer } from "./drawerUi.js";
+import { initOnboarding } from "./onboardingFlow.js";
 
 const { showMessage, hideMessage } = window.Utils || {};
 
@@ -168,7 +169,9 @@ export async function handleLogin(event) {
         });
       }
       showAppView();
-      loadUserProfile();
+      loadUserProfile().then(() => {
+        initOnboarding();
+      });
     } else {
       showMessage("authMessage", data.error || "Login failed", "error");
     }
@@ -216,7 +219,9 @@ export async function handleRegister(event) {
       showMessage("authMessage", "Account created successfully!", "success");
       setTimeout(() => {
         showAppView();
-        loadUserProfile();
+        loadUserProfile().then(() => {
+          initOnboarding();
+        });
       }, 1000);
     } else {
       if (data.errors) {

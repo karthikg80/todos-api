@@ -18,6 +18,11 @@ import {
   loadPrioritiesBrief,
 } from "./homePrioritiesTile.js";
 import { loadHomeFocusSuggestions } from "./homeAiService.js";
+import {
+  isOnboardingActive,
+  onboardingStep,
+  maybeRenderOnboardingModal,
+} from "./onboardingFlow.js";
 
 const { escapeHtml } = window.Utils || {};
 const { getProjectLeafName, normalizeProjectPath } =
@@ -737,6 +742,16 @@ export function renderProjectsToNudgeTile(items = []) {
 }
 
 export function renderHomeDashboard() {
+  // Show onboarding modal (steps 1 & 4) as a side effect of rendering the home
+  // view — guarantees the overlay only appears when home workspace is active.
+  maybeRenderOnboardingModal();
+
+  // During inline onboarding steps (2 = add tasks, 3 = set due dates), suppress
+  // the normal dashboard tiles so the onboarding banner has visual focus.
+  if (isOnboardingActive() && (onboardingStep === 2 || onboardingStep === 3)) {
+    return `<section class="home-dashboard" data-testid="home-dashboard"></section>`;
+  }
+
   const aiTopFocusItems = buildHomeAiTopFocusItems();
   const fallbackTopFocus = getTopFocusFallbackTodos(3);
   const topFocusItems =

@@ -92,6 +92,7 @@ async function installMockApi(page: Page) {
     role: user.role,
     createdAt: user.createdAt,
     updatedAt: user.updatedAt,
+    onboardingCompletedAt: user.createdAt,
   });
 
   await page.route("**/*", async (route) => {

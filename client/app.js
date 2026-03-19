@@ -422,6 +422,16 @@ import {
   dismissHomeFocusSuggestion,
 } from "./modules/homeAiService.js";
 import { EventBus } from "./modules/eventBus.js";
+import {
+  initOnboarding,
+  isOnboardingActive,
+  advanceOnboarding,
+  dismissOnboarding,
+  toggleOnboardingArea,
+  onboardingStep1Next,
+  onboardingAddTask,
+  onboardingSetDueDate,
+} from "./modules/onboardingFlow.js";
 
 // Configuration
 const API_URL =
@@ -1720,6 +1730,15 @@ window.openHomeTileList = openHomeTileList;
 window.refreshPrioritiesTile = refreshPrioritiesTile;
 window.applyHomeFocusSuggestion = applyHomeFocusSuggestion;
 window.dismissHomeFocusSuggestion = dismissHomeFocusSuggestion;
+// Onboarding flow
+window.initOnboarding = initOnboarding;
+window.isOnboardingActive = isOnboardingActive;
+window.advanceOnboarding = advanceOnboarding;
+window.dismissOnboarding = dismissOnboarding;
+window.toggleOnboardingArea = toggleOnboardingArea;
+window.onboardingStep1Next = onboardingStep1Next;
+window.onboardingAddTask = onboardingAddTask;
+window.onboardingSetDueDate = onboardingSetDueDate;
 // Admin
 window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;
