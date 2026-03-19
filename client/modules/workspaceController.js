@@ -149,24 +149,6 @@ export function createWorkspaceController({
 
     ensureTodosShellActive();
 
-    if (normalizedView === "today") {
-      state.currentWorkspaceView = "home";
-      clearHomeListDrilldown();
-      setSelectedProjectKey("", { reason: "workspace-view", skipApply: true });
-      setDateView("all", { skipApply: true });
-      dispatchTodosChanged({ reason: "workspace-view" });
-      window.requestAnimationFrame(() => {
-        const planZone = document.getElementById("homeTodaysPlan");
-        planZone?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-      if (state.isRailSheetOpen) {
-        closeProjectsRailSheet({
-          restoreFocus: !(triggerEl instanceof HTMLElement),
-        });
-      }
-      return;
-    }
-
     state.currentWorkspaceView = normalizedView;
     clearHomeListDrilldown();
     setSelectedProjectKey("", { reason: "workspace-view", skipApply: true });

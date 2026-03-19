@@ -6031,6 +6031,21 @@ body.is-todos-view .projects-rail-item__count {
   border-color: color-mix(in oklab, #ef4444 30%, var(--border-color));
 }
 
+.home-task-row__project {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.home-task-row__project:hover {
+  color: var(--accent);
+}
+
 .home-task-row__reason {
   grid-column: 2 / -1;
   margin-top: -2px;

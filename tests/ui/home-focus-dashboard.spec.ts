@@ -179,6 +179,19 @@ async function installHomeFocusMockApi(
     };
   };
 
+  const buildPrioritiesBriefHtml = () => {
+    const primaryTodo =
+      seedTodos.find((todo) => !todo.completed) || seedTodos[0];
+    const title = String(primaryTodo?.title || "Nothing urgent right now.");
+    return `
+      <div class="home-priorities-brief">
+        <div class="home-priorities-brief__item">
+          <strong>${title}</strong>
+        </div>
+      </div>
+    `;
+  };
+
   await page.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     const pathname = url.pathname;
@@ -309,6 +322,18 @@ async function installHomeFocusMockApi(
 
     if (pathname === "/ai/suggestions" && method === "GET") {
       return json(route, 200, []);
+    }
+    if (pathname === "/ai/priorities-brief" && method === "GET") {
+      return json(route, 200, {
+        html: buildPrioritiesBriefHtml(),
+        generatedAt: nowIso(),
+      });
+    }
+    if (pathname === "/ai/priorities-brief/refresh" && method === "POST") {
+      return json(route, 200, {
+        html: buildPrioritiesBriefHtml(),
+        generatedAt: nowIso(),
+      });
     }
     if (pathname === "/ai/suggestions/latest" && method === "GET") {
       if (url.searchParams.get("surface") !== "home_focus") {
@@ -635,8 +660,19 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator('[data-testid="home-dashboard"]')).toBeVisible();
     await expectWorkspaceViewActive(page, "home");
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
-    await expect(page.locator('[data-home-tile="todays_plan"]')).toBeVisible();
-    await expect(page.locator('[data-home-tile="upcoming"]')).toBeVisible();
+    await expect(
+      page.locator('[data-testid="home-priorities-tile"]'),
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="home-priorities-tile"]'),
+    ).toContainText("Next priorities");
+    await expect(
+      page.locator('[data-testid="home-priorities-tile"]'),
+    ).toContainText(
+      /Prepare launch checklist|Send overdue invoice|Nothing urgent right now/,
+    );
+    await expect(page.locator('[data-home-tile="todays_plan"]')).toHaveCount(0);
+    await expect(page.locator('[data-home-tile="upcoming"]')).toHaveCount(0);
   });
 
   test("New Task opens bottom sheet; Enter creates task and closes sheet", async ({
@@ -681,5 +717,22 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(
       page.locator(".todo-item").filter({ hasText: "Project scoped task" }),
     ).toBeVisible();
+  });
+  test("Today and Upcoming still navigate on the planner surface", async ({
+    page,
+  }) => {
+    await clickWorkspaceView(page, "today");
+    await expectWorkspaceViewActive(page, "today");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("All tasks");
+    await expect(page.locator("#todosListHeaderDateBadge")).toHaveText("Today");
+    await expectListOrEmptyState(page);
+
+    await clickWorkspaceView(page, "upcoming");
+    await expectWorkspaceViewActive(page, "upcoming");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("All tasks");
+    await expect(page.locator("#todosListHeaderDateBadge")).toHaveText(
+      "Upcoming",
+    );
+    await expectListOrEmptyState(page);
   });
 });
