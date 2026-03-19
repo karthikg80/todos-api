@@ -42,6 +42,7 @@ async function installHomeFocusMockApi(
     aiDecisionAssistStatus = 500,
     aiTopFocus = null,
     homeFocusSequences = null,
+    prioritiesBriefResponses = null,
     seedTodos,
   }: {
     aiDecisionAssistStatus?: number;
@@ -49,6 +50,17 @@ async function installHomeFocusMockApi(
     homeFocusSequences?: Array<
       Array<{ todoId: string; summary?: string; reason?: string }>
     > | null;
+    prioritiesBriefResponses?: Array<{
+      status?: number;
+      html?: string;
+      generatedAt?: string;
+      staleAt?: string;
+      expiresAt?: string;
+      isStale?: boolean;
+      refreshInFlight?: boolean;
+      cached?: boolean;
+      delayMs?: number;
+    }> | null;
     seedTodos: SeedTodo[];
   },
 ) {
@@ -68,6 +80,7 @@ async function installHomeFocusMockApi(
   let todoSeq = 1000;
   let homeFocusSeq = 1;
   let homeFocusGenerateSeq = 0;
+  let prioritiesBriefSeq = 0;
 
   const nowIso = () => new Date().toISOString();
   const json = (route: Route, status: number, body: unknown) =>
@@ -190,6 +203,21 @@ async function installHomeFocusMockApi(
         </div>
       </div>
     `;
+  };
+
+  const nextPrioritiesBriefResponse = () => {
+    if (
+      Array.isArray(prioritiesBriefResponses) &&
+      prioritiesBriefResponses.length > 0
+    ) {
+      const index = Math.min(
+        prioritiesBriefSeq,
+        prioritiesBriefResponses.length - 1,
+      );
+      prioritiesBriefSeq += 1;
+      return prioritiesBriefResponses[index] || {};
+    }
+    return {};
   };
 
   await page.route("**/*", async (route) => {
@@ -324,9 +352,21 @@ async function installHomeFocusMockApi(
       return json(route, 200, []);
     }
     if (pathname === "/ai/priorities-brief" && method === "GET") {
+      const brief = nextPrioritiesBriefResponse();
+      if ((brief.delayMs || 0) > 0) {
+        await new Promise((resolve) => setTimeout(resolve, brief.delayMs || 0));
+      }
+      if ((brief.status || 200) >= 400) {
+        return json(route, brief.status || 500, { error: "Brief unavailable" });
+      }
       return json(route, 200, {
-        html: buildPrioritiesBriefHtml(),
-        generatedAt: nowIso(),
+        html: brief.html || buildPrioritiesBriefHtml(),
+        generatedAt: brief.generatedAt || nowIso(),
+        staleAt: brief.staleAt || nowIso(),
+        expiresAt: brief.expiresAt || nowIso(),
+        isStale: !!brief.isStale,
+        refreshInFlight: !!brief.refreshInFlight,
+        cached: !!brief.cached,
       });
     }
     if (pathname === "/ai/priorities-brief/refresh" && method === "POST") {
@@ -734,5 +774,94 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "Upcoming",
     );
     await expectListOrEmptyState(page);
+  });
+});
+
+test.describe("Home priorities cache lifecycle", () => {
+  test("Home priorities keep stale content visible while a fresher brief loads", async ({
+    page,
+  }) => {
+    const serverCachedBrief = `
+      <div class="home-priorities-brief">
+        <div class="home-priorities-brief__item">
+          <strong>Server cached brief</strong>
+        </div>
+      </div>`;
+    const freshBrief = `
+      <div class="home-priorities-brief">
+        <div class="home-priorities-brief__item">
+          <strong>Fresh in-session brief</strong>
+        </div>
+      </div>`;
+
+    await installHomeFocusMockApi(page, {
+      aiDecisionAssistStatus: 500,
+      prioritiesBriefResponses: [
+        {
+          html: serverCachedBrief,
+          generatedAt: isoDaysAgo(1),
+          staleAt: isoDaysAgo(1),
+          expiresAt: isoDaysAgo(1),
+          isStale: true,
+          refreshInFlight: true,
+          cached: true,
+          delayMs: 700,
+        },
+        {
+          html: freshBrief,
+          generatedAt: new Date().toISOString(),
+          staleAt: isoDaysFromNow(1),
+          expiresAt: isoDaysFromNow(1),
+          isStale: false,
+          refreshInFlight: false,
+          cached: false,
+        },
+      ],
+      seedTodos: buildSeedTodos(),
+    });
+    await openHomeApp(page);
+
+    const tile = page.locator('[data-testid="home-priorities-tile"]');
+    await expect(tile).toContainText("Server cached brief");
+    await expect(tile).toContainText("Fresh in-session brief");
+  });
+
+  test("Failed priorities refresh preserves the last visible brief", async ({
+    page,
+  }) => {
+    const serverCachedBrief = `
+      <div class="home-priorities-brief">
+        <div class="home-priorities-brief__item">
+          <strong>Server cached brief</strong>
+        </div>
+      </div>`;
+
+    await installHomeFocusMockApi(page, {
+      aiDecisionAssistStatus: 500,
+      prioritiesBriefResponses: [
+        {
+          html: serverCachedBrief,
+          generatedAt: isoDaysAgo(1),
+          staleAt: isoDaysAgo(1),
+          expiresAt: isoDaysAgo(1),
+          isStale: false,
+          refreshInFlight: false,
+          cached: false,
+        },
+        {
+          status: 500,
+          delayMs: 700,
+        },
+      ],
+      seedTodos: buildSeedTodos(),
+    });
+    await openHomeApp(page);
+
+    const tile = page.locator('[data-testid="home-priorities-tile"]');
+    await expect(tile).toContainText("Server cached brief");
+    await tile.getByRole("button", { name: "Refresh priorities" }).click();
+    await expect(tile).toContainText("Server cached brief");
+    await expect(tile).toContainText("Refresh failed");
+    await expect(tile).not.toContainText("Could not load priorities.");
   });
 });
