@@ -61,25 +61,6 @@ export function createInitialOnCreateAssistState() {
   };
 }
 
-export function createInitialTodayPlanState() {
-  return {
-    goalText: "",
-    generating: false,
-    loading: false,
-    unavailable: false,
-    error: "",
-    hasLoaded: false,
-    mode: "live",
-    aiSuggestionId: "",
-    envelope: null,
-    selectedTodoIds: new Set(),
-    dismissedSuggestionIds: new Set(),
-    notesDraftByTodoId: {},
-    lastApplyBatch: null,
-    loadingMessage: "",
-  };
-}
-
 export function createInitialHomeAiState() {
   return {
     status: "idle",
@@ -268,10 +249,6 @@ export const state = {
   onCreateAssistState: null, // initialized below
   suppressOnCreateAssistInput: false,
 
-  // Today plan
-  todayPlanState: null, // initialized below
-  todayPlanGenerationSeq: 0,
-
   // Quick entry
   isQuickEntryPropertiesOpen: false,
   isTaskComposerOpen: false,
@@ -313,7 +290,6 @@ export const state = {
 // Initialize sub-states that depend on factory functions
 state.taskDrawerAssistState = createInitialTaskDrawerAssistState();
 state.onCreateAssistState = createInitialOnCreateAssistState();
-state.todayPlanState = createInitialTodayPlanState();
 state.homeAi = createInitialHomeAiState();
 state.breakDownState = createInitialBreakDownState();
 state.followUpState = createInitialFollowUpState();

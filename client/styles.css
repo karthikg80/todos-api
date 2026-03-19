@@ -1052,155 +1052,6 @@ textarea:focus-visible,
   opacity: 0.65;
 }
 
-.today-plan-panel {
-  margin-top: 0;
-  margin-bottom: var(--s-3);
-  border: 1px solid color-mix(in oklab, var(--border-color) 62%, transparent);
-  border-radius: 14px;
-  background: color-mix(in oklab, var(--surface) 95%, var(--surface-2));
-  padding: 12px 14px;
-}
-
-.today-plan-panel__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.today-plan-panel__title {
-  font-size: 0.84rem;
-  font-weight: 600;
-  color: var(--text-primary);
-}
-
-.today-plan-panel__controls {
-  display: flex;
-  gap: var(--s-2);
-  margin-bottom: var(--s-2);
-}
-
-.today-plan-panel__controls input {
-  flex: 1;
-  min-width: 220px;
-  padding: 10px;
-  border: 1px solid var(--border-color);
-  border-radius: var(--r-sm);
-  background: var(--input-bg);
-  color: var(--text-primary);
-}
-
-.today-plan-panel__loading,
-.today-plan-panel__empty {
-  margin: var(--s-2) 0;
-}
-
-.today-plan-preview {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-  margin-top: var(--s-2);
-}
-
-.today-plan-preview__item {
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  gap: var(--s-2);
-  align-items: center;
-  border: 1px solid var(--border-color);
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
-  padding: 8px 10px;
-}
-
-.today-plan-preview__rank {
-  width: 24px;
-  height: 24px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--card-hover);
-  color: var(--text-secondary);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-}
-
-.today-plan-preview__title {
-  font-size: var(--fs-sm);
-  color: var(--text-primary);
-  font-weight: var(--fw-semibold);
-}
-
-.today-plan-preview__meta {
-  font-size: var(--fs-xs);
-  color: var(--text-secondary);
-}
-
-.today-plan-suggestions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--s-2);
-  margin-top: var(--s-3);
-}
-
-.today-plan-suggestion {
-  padding: 10px;
-}
-
-.today-plan-suggestion__title {
-  font-size: var(--fs-sm);
-  color: var(--text-primary);
-  font-weight: var(--fw-semibold);
-  margin-bottom: 4px;
-}
-
-.today-plan-suggestion__summary {
-  font-size: var(--fs-xs);
-  color: var(--text-primary);
-  margin-bottom: 4px;
-}
-
-.today-plan-suggestion__rationale {
-  font-size: var(--fs-xs);
-  color: var(--text-secondary);
-  margin-bottom: var(--s-2);
-}
-
-.today-plan-suggestion__footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--s-2);
-}
-
-.today-plan-suggestion__confidence {
-  color: var(--text-secondary);
-}
-
-.today-plan-suggestion__dismiss,
-.today-plan-panel__undo {
-  border: 1px solid var(--border-color);
-  border-radius: var(--r-sm);
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-size: 11px;
-  padding: 4px 8px;
-  cursor: pointer;
-}
-
-.today-plan-panel__undo {
-  border: 0;
-  background: transparent;
-  color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.today-plan-panel__actions {
-  margin-top: var(--s-3);
-}
-
 .ai-workspace {
   margin-top: var(--s-3);
   padding: var(--s-3);
@@ -2484,8 +2335,7 @@ button.projects-rail-item {
 }
 
 #todosView[data-surface-mode="home"] #todosListHeader,
-#todosView[data-surface-mode="list"] #homeFocusDashboard,
-#todosView[data-surface-mode="project"] #todayPlanPanel {
+#todosView[data-surface-mode="list"] #homeFocusDashboard {
   display: none;
 }
 
@@ -5884,6 +5734,56 @@ body.is-todos-view .projects-rail-item__count {
   color: var(--text-secondary);
   font-size: 0.85rem;
   padding: 8px 4px;
+}
+
+.home-tile__date-label {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.home-tile__empty--error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.home-upcoming-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.home-upcoming-tab {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border: 0.5px solid var(--color-border-tertiary);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    background 0.1s,
+    color 0.1s;
+  white-space: nowrap;
+}
+
+.home-upcoming-tab:hover {
+  background: var(--color-background-secondary);
+}
+
+.home-upcoming-tab--active {
+  background: var(--color-background-secondary);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-secondary);
+}
+
+.home-tile--plan .home-tile__body {
+  min-height: 48px;
+}
+
+.home-tile--upcoming .home-tile__body {
+  min-height: 40px;
 }
 
 .home-task-row {

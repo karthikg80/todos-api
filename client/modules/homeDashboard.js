@@ -14,12 +14,44 @@ import {
 import { selectProjectFromRail } from "./railUi.js";
 import { openTodoDrawer } from "./drawerUi.js";
 import { loadHomeFocusSuggestions } from "./homeAiService.js";
+import {
+  getDayPlanState,
+  generateDayPlan,
+  planTodayTaskIds,
+} from "./planTodayAgent.js";
 
 const { escapeHtml } = window.Utils || {};
 const { getProjectLeafName, normalizeProjectPath } =
   window.ProjectPathUtils || {};
 
 const HOME_STALE_RISK_DAYS = 14;
+
+let renderPrioritiesTileShell = null;
+let loadPrioritiesBrief = null;
+let _prioritiesTileLoadState = "idle";
+let _prioritiesBriefRequested = false;
+
+async function hydratePrioritiesTileModuleIfNeeded() {
+  if (_prioritiesTileLoadState !== "idle") return;
+
+  _prioritiesTileLoadState = "loading";
+  try {
+    const mod = await import("./homePrioritiesTile.js");
+    renderPrioritiesTileShell = mod.renderPrioritiesTileShell;
+    loadPrioritiesBrief = mod.loadPrioritiesBrief;
+    _prioritiesTileLoadState = "ready";
+    if (
+      typeof loadPrioritiesBrief === "function" &&
+      !_prioritiesBriefRequested
+    ) {
+      _prioritiesBriefRequested = true;
+      void loadPrioritiesBrief();
+    }
+    hooks.applyFiltersAndRender?.({ reason: "priorities-tile-module-loaded" });
+  } catch {
+    _prioritiesTileLoadState = "unavailable";
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Date helpers
@@ -423,39 +455,48 @@ export function getTopFocusFallbackTodos(limit = 3) {
 }
 
 export function getHomeDashboardModel({ topFocusItems = [] } = {}) {
-  const usedTodoIds = createHomeTodoIdSet(topFocusItems);
-  const dueSoon = takeExclusiveTodos(getDueSoonTodos(24), 6, usedTodoIds);
-  const staleRisks = takeExclusiveTodos(getStaleRiskTodos(24), 6, usedTodoIds);
-  const quickWins = takeExclusiveTodos(getQuickWinTodos(24), 6, usedTodoIds);
-  const waitingTodos = takeExclusiveTodos(getWaitingTodos(12), 6, usedTodoIds);
+  createHomeTodoIdSet(topFocusItems);
+  const allDueSoon = getDueSoonTodos(24);
+
+  const now = new Date();
+  const todayStart = getStartOfToday(now);
+  const dueSoonFuture = allDueSoon.filter((todo) => {
+    const dueDate = getTodoDueDate(todo);
+    return dueDate && dueDate >= todayStart && !isSameLocalDay(dueDate, now);
+  });
+
+  const usedDueSoonIds = createHomeTodoIdSet(allDueSoon);
+  const waitingTodos = takeExclusiveTodos(
+    getWaitingTodos(12),
+    6,
+    new Set(usedDueSoonIds),
+  );
   const scheduledTodos = takeExclusiveTodos(
     getScheduledTodos(12),
     6,
-    usedTodoIds,
+    new Set(usedDueSoonIds),
   );
   const nextActionTodos = takeExclusiveTodos(
     getNextActionTodos(12),
     6,
-    usedTodoIds,
+    new Set(usedDueSoonIds),
   );
+
   return {
-    dueSoon,
-    dueSoonGroups: buildHomeDueSoonGroups(dueSoon),
-    staleRisks,
-    quickWins,
+    dueSoon: allDueSoon,
+    dueSoonGroups: buildHomeDueSoonGroups(allDueSoon),
+    dueSoonFuture,
     waitingTodos,
     scheduledTodos,
     nextActionTodos,
-    projectsToNudge: getProjectsToNudge(4),
-    topFocusFallback: getTopFocusFallbackTodos(3),
   };
 }
 
 export function buildHomeTileListByKey(key) {
   const model = getHomeDashboardModel();
   if (key === "due_soon") return model.dueSoon;
-  if (key === "stale_risks") return model.staleRisks;
-  if (key === "quick_wins") return model.quickWins;
+  if (key === "stale_risks") return getStaleRiskTodos(6);
+  if (key === "quick_wins") return getQuickWinTodos(6);
   if (key === "waiting") return model.waitingTodos;
   if (key === "scheduled") return model.scheduledTodos;
   if (key === "next_actions") return model.nextActionTodos;
@@ -720,7 +761,7 @@ export function renderProjectsToNudgeTile(items = []) {
                     data-onclick="openHomeProject('${escapeHtml(project.projectName)}')"
                   >
                     <span class="home-project-row__header">${folderIcon}<span class="home-project-row__name">${escapeHtml(getProjectLeafName(project.projectName))}</span></span>
-                    <span class="home-project-row__meta">${project.openCount} open${project.overdueCount ? ` \u00b7 ${project.overdueCount} overdue` : ""}${project.dueSoonCount ? ` \u00b7 ${project.dueSoonCount} due soon` : ""}</span>
+                    <span class="home-project-row__meta">${project.openCount} open${project.overdueCount ? ` · ${project.overdueCount} overdue` : ""}${project.dueSoonCount ? ` · ${project.dueSoonCount} due soon` : ""}</span>
                   </button>
                 `,
                 )
@@ -732,70 +773,233 @@ export function renderProjectsToNudgeTile(items = []) {
   `;
 }
 
+let _planLoadedForToday = false;
+let _planLoadingInFlight = false;
+let _upcomingTab = "due";
+
+function getUpcomingDueItems(model) {
+  return takeExclusiveTodos(
+    [...model.dueSoonFuture, ...model.nextActionTodos],
+    6,
+    new Set(),
+  );
+}
+
+function getUpcomingTabItems(model, tab = _upcomingTab) {
+  const plannedTaskIds = new Set(planTodayTaskIds.map(String));
+  let items = [];
+
+  if (tab === "due") {
+    items = getUpcomingDueItems(model);
+  } else if (tab === "scheduled") {
+    items = model.scheduledTodos;
+  } else if (tab === "waiting") {
+    items = model.waitingTodos;
+  }
+
+  return items.filter((todo) => !plannedTaskIds.has(String(todo?.id || "")));
+}
+
+export async function hydrateTodaysPlanIfNeeded() {
+  if (_planLoadedForToday || _planLoadingInFlight) return;
+  const pd = getDayPlanState();
+  if (pd.tasks.length > 0 || pd.loading) return;
+
+  _planLoadingInFlight = true;
+  try {
+    await generateDayPlan();
+    _planLoadedForToday = true;
+  } finally {
+    _planLoadingInFlight = false;
+  }
+
+  hooks.applyFiltersAndRender?.({ reason: "plan-today-loaded" });
+}
+
+export function renderTodaysPlanZone() {
+  const pd = getDayPlanState();
+  const todayLabel = new Date().toLocaleDateString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+
+  const bodyHtml = pd.loading
+    ? `<div class="home-tile__empty" aria-live="polite">Building today's plan…</div>`
+    : pd.error
+      ? `<div class="home-tile__empty home-tile__empty--error">
+           Could not load plan.
+           <button type="button" class="mini-btn"
+                   data-onclick="retryTodaysPlan()">Retry</button>
+         </div>`
+      : pd.tasks.length === 0
+        ? `<div class="home-tile__empty">No plan yet — add tasks with due dates to get started.</div>`
+        : pd.tasks
+            .map((task) => {
+              const taskId = escapeHtml(String(task.taskId || ""));
+              const minsLabel =
+                task.estimatedMinutes > 0 ? `${task.estimatedMinutes}m` : "";
+              return `
+                <div class="home-task-row" data-home-todo-id="${taskId}">
+                  <input type="checkbox"
+                         class="todo-checkbox home-task-row__checkbox"
+                         aria-label="Mark ${escapeHtml(String(task.title || "task"))} complete"
+                         data-onchange="toggleTodo('${taskId}')">
+                  <button type="button"
+                          class="home-task-row__title"
+                          data-onclick="openTodoFromHomeTile('${taskId}')">
+                    ${escapeHtml(String(task.title || "Untitled task"))}
+                  </button>
+                  ${minsLabel ? `<span class="home-task-row__badge">${escapeHtml(minsLabel)}</span>` : ""}
+                  ${task.reason ? `<div class="home-task-row__reason">${escapeHtml(String(task.reason))}</div>` : ""}
+                </div>`;
+            })
+            .join("");
+
+  return `
+    <section class="home-tile home-tile--plan" data-home-tile="todays_plan"
+             id="homeTodaysPlan">
+      <div class="home-tile__header">
+        <div class="home-tile__title-row">
+          <svg class="home-tile__icon" xmlns="http://www.w3.org/2000/svg"
+               width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round"
+               stroke-linejoin="round" aria-hidden="true">
+            <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+            <line x1="16" x2="16" y1="2" y2="6"/>
+            <line x1="8" x2="8" y1="2" y2="6"/>
+            <line x1="3" x2="21" y1="10" y2="10"/>
+            <path d="M8 14h.01"/><path d="M12 14h.01"/>
+          </svg>
+          <h3 class="home-tile__title">Today's plan</h3>
+        </div>
+        <span class="home-tile__date-label">${escapeHtml(todayLabel)}</span>
+      </div>
+      <div class="home-tile__body" id="homeTodaysPlanBody">
+        ${bodyHtml}
+      </div>
+    </section>`;
+}
+
+export function retryTodaysPlan() {
+  _planLoadedForToday = false;
+  _planLoadingInFlight = false;
+  void hydrateTodaysPlanIfNeeded();
+}
+
+function _renderUpcomingTabBody() {
+  const model = getHomeDashboardModel();
+  const items = getUpcomingTabItems(model);
+  let emptyText = "";
+
+  if (_upcomingTab === "due") {
+    emptyText = "Nothing due soon or marked next.";
+  } else if (_upcomingTab === "scheduled") {
+    emptyText = "Nothing scheduled.";
+  } else {
+    emptyText = "Nothing waiting.";
+  }
+
+  if (items.length === 0) {
+    return `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`;
+  }
+
+  return items.map((todo) => renderHomeTaskRow(todo, { reason: "" })).join("");
+}
+
+export function setUpcomingTab(tab) {
+  if (tab === "due" || tab === "scheduled" || tab === "waiting") {
+    _upcomingTab = tab;
+  }
+  const body = document.getElementById("upcomingZoneBody");
+  if (!body) return;
+  body.innerHTML = _renderUpcomingTabBody();
+  body.parentElement?.querySelectorAll(".home-upcoming-tab").forEach((btn) => {
+    btn.classList.toggle(
+      "home-upcoming-tab--active",
+      btn.getAttribute("data-tab") === _upcomingTab,
+    );
+  });
+}
+
+export function renderUpcomingZone() {
+  const model = getHomeDashboardModel();
+  const dueItems = getUpcomingTabItems(model, "due");
+  const scheduledItems = getUpcomingTabItems(model, "scheduled");
+  const waitingItems = getUpcomingTabItems(model, "waiting");
+  const hasDue = dueItems.length > 0;
+  const hasScheduled = scheduledItems.length > 0;
+  const hasWaiting = waitingItems.length > 0;
+  const hasNext = model.nextActionTodos.length > 0;
+
+  if (!hasDue && !hasScheduled && !hasWaiting && !hasNext) return "";
+
+  const tabs = [
+    { key: "due", label: `Due soon${hasDue ? ` (${dueItems.length})` : ""}` },
+    {
+      key: "scheduled",
+      label: `Scheduled${hasScheduled ? ` (${scheduledItems.length})` : ""}`,
+    },
+    {
+      key: "waiting",
+      label: `Waiting${hasWaiting ? ` (${waitingItems.length})` : ""}`,
+    },
+  ].filter(
+    (tab) =>
+      (tab.key === "due" && hasDue) ||
+      (tab.key === "scheduled" && hasScheduled) ||
+      (tab.key === "waiting" && hasWaiting),
+  );
+
+  if (!tabs.find((tab) => tab.key === _upcomingTab)) {
+    _upcomingTab = tabs[0]?.key ?? "due";
+  }
+
+  const tabsHtml = tabs
+    .map(
+      (tab) => `
+        <button type="button"
+                class="home-upcoming-tab${_upcomingTab === tab.key ? " home-upcoming-tab--active" : ""}"
+                data-tab="${escapeHtml(tab.key)}"
+                data-onclick="setUpcomingTab('${escapeHtml(tab.key)}')">
+          ${escapeHtml(tab.label)}
+        </button>`,
+    )
+    .join("");
+
+  return `
+    <section class="home-tile home-tile--upcoming" data-home-tile="upcoming">
+      <div class="home-tile__header">
+        <div class="home-tile__title-row">
+          <h3 class="home-tile__title">Upcoming</h3>
+        </div>
+        <div class="home-upcoming-tabs">${tabsHtml}</div>
+      </div>
+      <div class="home-tile__body" id="upcomingZoneBody">
+        ${_renderUpcomingTabBody()}
+      </div>
+    </section>`;
+}
+
 export function renderHomeDashboard() {
-  const aiTopFocusItems = buildHomeAiTopFocusItems();
-  const fallbackTopFocus = getTopFocusFallbackTodos(3);
-  const topFocusItems =
-    aiTopFocusItems.length > 0 ? aiTopFocusItems : fallbackTopFocus;
-  const model = getHomeDashboardModel({ topFocusItems });
   void hydrateHomeTopFocusIfNeeded();
+  void hydrateTodaysPlanIfNeeded();
+  void hydratePrioritiesTileModuleIfNeeded();
+
+  const zone1Html =
+    typeof renderPrioritiesTileShell === "function"
+      ? renderPrioritiesTileShell()
+      : "";
 
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
       <div class="home-dashboard__header">
         <h2 class="home-dashboard__title">Home</h2>
       </div>
-      ${renderHomeTaskTile({
-        key: "top_focus",
-        title: "Focus",
-        items: topFocusItems,
-        emptyText: "Nothing urgent right now.",
-        showReasons: true,
-        showSeeAll: false,
-      })}
-      ${renderHomeTaskTile({
-        key: "due_soon",
-        title: "Up Next",
-        items: model.dueSoon,
-        groupedItems: model.dueSoonGroups,
-        emptyText: "Nothing coming up.",
-      })}
-      ${
-        model.waitingTodos.length > 0
-          ? renderHomeTaskTile({
-              key: "waiting",
-              title: "Waiting",
-              items: model.waitingTodos,
-              emptyText: "Nothing waiting.",
-              showSeeAll: false,
-            })
-          : ""
-      }
-      ${
-        model.scheduledTodos.length > 0
-          ? renderHomeTaskTile({
-              key: "scheduled",
-              title: "Scheduled",
-              items: model.scheduledTodos,
-              emptyText: "Nothing scheduled.",
-              showSeeAll: false,
-            })
-          : ""
-      }
-      ${
-        model.nextActionTodos.length > 0
-          ? renderHomeTaskTile({
-              key: "next_actions",
-              title: "Next Actions",
-              items: model.nextActionTodos,
-              emptyText: "No next actions.",
-              showSeeAll: false,
-            })
-          : ""
-      }
-      ${renderProjectsToNudgeTile(model.projectsToNudge)}
-    </section>
-  `;
+      ${zone1Html}
+      ${renderTodaysPlanZone()}
+      ${renderUpcomingZone()}
+    </section>`;
 }
 
 export function openHomeTileList(tileKey) {
