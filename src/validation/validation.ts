@@ -16,11 +16,15 @@ import {
   FindTodosQuery,
   CreateFeedbackRequestDto,
   FeedbackAttachmentMetadataDto,
+  FeedbackRequestStatus,
+  FeedbackRequestType,
+  ListAdminFeedbackRequestsQuery,
   Priority,
   TaskSource,
   TaskStatus,
   TodoSortBy,
   SortOrder,
+  UpdateAdminFeedbackRequestDto,
 } from "../types";
 import {
   MAX_PAGE_SIZE,
@@ -1667,5 +1671,71 @@ export function validateCreateFeedbackRequest(
       normalizeOptionalAbsoluteUrl(body.pageUrl, "pageUrl", 2000) ?? undefined,
     userAgent: normalizeOptionalString(body.userAgent, "userAgent", 2000),
     appVersion: normalizeOptionalString(body.appVersion, "appVersion", 50),
+  };
+}
+
+export function validateListAdminFeedbackRequestsQuery(
+  query: unknown,
+): ListAdminFeedbackRequestsQuery {
+  if (!query || typeof query !== "object" || Array.isArray(query)) {
+    return {};
+  }
+
+  const params = query as Record<string, unknown>;
+  const status = normalizeOptionalString(params.status, "status", 20);
+  const type = normalizeOptionalString(params.type, "type", 20);
+
+  if (status && !["new", "triaged", "promoted", "rejected"].includes(status)) {
+    throw new ValidationError(
+      'status must be "new", "triaged", "promoted", or "rejected"',
+    );
+  }
+
+  if (type && !["bug", "feature", "general"].includes(type)) {
+    throw new ValidationError('type must be "bug", "feature", or "general"');
+  }
+
+  return {
+    status: status as FeedbackRequestStatus | undefined,
+    type: type as FeedbackRequestType | undefined,
+  };
+}
+
+export function validateUpdateAdminFeedbackRequest(
+  data: unknown,
+): UpdateAdminFeedbackRequestDto {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  const body = data as Record<string, unknown>;
+  const status = body.status;
+  if (typeof status !== "string") {
+    throw new ValidationError("status is required");
+  }
+  if (!["triaged", "promoted", "rejected"].includes(status)) {
+    throw new ValidationError(
+      'status must be "triaged", "promoted", or "rejected"',
+    );
+  }
+
+  const rejectionReason = normalizeNullableString(
+    body.rejectionReason,
+    "rejectionReason",
+    4000,
+  );
+
+  if (status === "rejected" && !rejectionReason) {
+    throw new ValidationError(
+      "rejectionReason is required when status is rejected",
+    );
+  }
+
+  return {
+    status: status as UpdateAdminFeedbackRequestDto["status"],
+    rejectionReason:
+      status === "rejected"
+        ? (rejectionReason ?? null)
+        : (rejectionReason ?? null),
   };
 }

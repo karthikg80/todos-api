@@ -405,10 +405,15 @@ import {
 } from "./modules/drawerUi.js";
 import {
   loadAdminUsers,
-  renderAdminUsers,
   changeUserRole,
   deleteUser,
 } from "./modules/adminUsers.js";
+import {
+  loadAdminFeedbackQueue,
+  selectAdminFeedback,
+  setAdminFeedbackFilter,
+  updateAdminFeedbackStatus,
+} from "./modules/adminFeedback.js";
 import * as DragDrop from "./modules/dragDrop.js";
 import { toggleShortcuts, closeShortcutsOverlay } from "./modules/shortcuts.js";
 import {
@@ -653,7 +658,10 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
     loadAiUsage,
     loadAiInsights,
     loadAiFeedbackSummary,
-    loadAdminUsers,
+    loadAdminUsers: () => {
+      void loadAdminFeedbackQueue();
+      void loadAdminUsers();
+    },
     prepareFeedbackView,
   });
 
@@ -1761,6 +1769,9 @@ window.onboardingSetDueDate = onboardingSetDueDate;
 // Admin
 window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;
+window.selectAdminFeedback = selectAdminFeedback;
+window.setAdminFeedbackFilter = setAdminFeedbackFilter;
+window.updateAdminFeedbackStatus = updateAdminFeedbackStatus;
 
 // ---------------------------------------------------------------------------
 // App bootstrap

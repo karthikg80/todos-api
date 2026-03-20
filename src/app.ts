@@ -249,7 +249,13 @@ export function createApp(
     );
   }
 
-  app.use("/admin", createAdminRouter({ authService }));
+  app.use(
+    "/admin",
+    createAdminRouter({
+      authService,
+      feedbackService: feedbackService ?? undefined,
+    }),
+  );
   app.use("/users", createUsersRouter({ authService }));
   app.use(
     "/todos",

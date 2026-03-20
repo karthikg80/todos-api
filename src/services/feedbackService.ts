@@ -1,8 +1,12 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import {
   CreateFeedbackRequestDto,
+  FeedbackRequestAdminDetailDto,
+  FeedbackRequestAdminListItemDto,
   FeedbackRequestDto,
   FeedbackAttachmentMetadataDto,
+  ListAdminFeedbackRequestsQuery,
+  UpdateAdminFeedbackRequestDto,
 } from "../types";
 
 export class FeedbackService {
@@ -34,6 +38,94 @@ export class FeedbackService {
     return this.toDto(record);
   }
 
+  async listForAdmin(
+    filters: ListAdminFeedbackRequestsQuery,
+  ): Promise<FeedbackRequestAdminListItemDto[]> {
+    const records = await this.prisma.feedbackRequest.findMany({
+      where: {
+        ...(filters.status ? { status: filters.status } : {}),
+        ...(filters.type ? { type: filters.type } : {}),
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: [{ createdAt: "desc" }, { updatedAt: "desc" }],
+    });
+
+    return records.map((record) => this.toAdminDto(record));
+  }
+
+  async getForAdmin(id: string): Promise<FeedbackRequestAdminDetailDto | null> {
+    const record = await this.prisma.feedbackRequest.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return record ? this.toAdminDto(record) : null;
+  }
+
+  async updateReviewStatus(
+    id: string,
+    reviewerUserId: string,
+    dto: UpdateAdminFeedbackRequestDto,
+  ): Promise<FeedbackRequestAdminDetailDto> {
+    const record = await this.prisma.feedbackRequest.update({
+      where: { id },
+      data: {
+        status: dto.status,
+        reviewedByUserId: reviewerUserId,
+        reviewedAt: new Date(),
+        rejectionReason: dto.status === "rejected" ? dto.rejectionReason : null,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return this.toAdminDto(record);
+  }
+
   private toDto(record: {
     id: string;
     userId: string;
@@ -45,12 +137,15 @@ export class FeedbackService {
     pageUrl: string | null;
     userAgent: string | null;
     appVersion: string | null;
-    status: "new" | "triaged" | "closed";
+    status: "new" | "triaged" | "promoted" | "rejected";
     triageSummary: string | null;
     severity: string | null;
     dedupeKey: string | null;
     githubIssueNumber: number | null;
     githubIssueUrl: string | null;
+    reviewedByUserId: string | null;
+    reviewedAt: Date | null;
+    rejectionReason: string | null;
     createdAt: Date;
     updatedAt: Date;
   }): FeedbackRequestDto {
@@ -73,8 +168,51 @@ export class FeedbackService {
       dedupeKey: record.dedupeKey,
       githubIssueNumber: record.githubIssueNumber,
       githubIssueUrl: record.githubIssueUrl,
+      reviewedByUserId: record.reviewedByUserId,
+      reviewedAt: record.reviewedAt?.toISOString() ?? null,
+      rejectionReason: record.rejectionReason,
       createdAt: record.createdAt.toISOString(),
       updatedAt: record.updatedAt.toISOString(),
+    };
+  }
+
+  private toAdminDto(record: {
+    id: string;
+    userId: string;
+    reviewedByUserId: string | null;
+    type: "bug" | "feature" | "general";
+    title: string;
+    body: string;
+    screenshotUrl: string | null;
+    attachmentMetadata: unknown;
+    pageUrl: string | null;
+    userAgent: string | null;
+    appVersion: string | null;
+    status: "new" | "triaged" | "promoted" | "rejected";
+    triageSummary: string | null;
+    severity: string | null;
+    dedupeKey: string | null;
+    githubIssueNumber: number | null;
+    githubIssueUrl: string | null;
+    reviewedAt: Date | null;
+    rejectionReason: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+    user: {
+      id: string;
+      email: string;
+      name: string | null;
+    };
+    reviewer: {
+      id: string;
+      email: string;
+      name: string | null;
+    } | null;
+  }): FeedbackRequestAdminDetailDto {
+    return {
+      ...this.toDto(record),
+      user: record.user,
+      reviewer: record.reviewer,
     };
   }
 }

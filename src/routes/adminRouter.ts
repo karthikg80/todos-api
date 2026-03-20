@@ -1,12 +1,21 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService";
 import { HttpError, hasPrismaCode } from "../errorHandling";
+import { FeedbackService } from "../services/feedbackService";
+import {
+  validateListAdminFeedbackRequestsQuery,
+  validateUpdateAdminFeedbackRequest,
+} from "../validation/validation";
 
 interface AdminRouterDeps {
   authService?: AuthService;
+  feedbackService?: FeedbackService;
 }
 
-export function createAdminRouter({ authService }: AdminRouterDeps): Router {
+export function createAdminRouter({
+  authService,
+  feedbackService,
+}: AdminRouterDeps): Router {
   const router = Router();
 
   router.get(
@@ -102,6 +111,86 @@ export function createAdminRouter({ authService }: AdminRouterDeps): Router {
           return next(new HttpError(400, "Invalid user ID format"));
         }
         return next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/feedback",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback persistence not configured" });
+      }
+
+      try {
+        const query = validateListAdminFeedbackRequestsQuery(req.query);
+        const feedbackRequests = await feedbackService.listForAdmin(query);
+        res.json(feedbackRequests);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/feedback/:id",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback persistence not configured" });
+      }
+
+      try {
+        const feedbackId = String(req.params.id);
+        const feedbackRequest = await feedbackService.getForAdmin(feedbackId);
+        if (!feedbackRequest) {
+          return next(new HttpError(404, "Feedback request not found"));
+        }
+
+        res.json(feedbackRequest);
+      } catch (error) {
+        if (hasPrismaCode(error, ["P2023"])) {
+          return next(new HttpError(400, "Invalid feedback request ID format"));
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.patch(
+    "/feedback/:id",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback persistence not configured" });
+      }
+
+      try {
+        const reviewerUserId = req.user?.userId;
+        const feedbackId = String(req.params.id);
+        if (!reviewerUserId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const dto = validateUpdateAdminFeedbackRequest(req.body);
+        const feedbackRequest = await feedbackService.updateReviewStatus(
+          feedbackId,
+          reviewerUserId,
+          dto,
+        );
+        res.json(feedbackRequest);
+      } catch (error) {
+        if (hasPrismaCode(error, ["P2025"])) {
+          return next(new HttpError(404, "Feedback request not found"));
+        }
+        if (hasPrismaCode(error, ["P2023"])) {
+          return next(new HttpError(400, "Invalid feedback request ID format"));
+        }
+        next(error);
       }
     },
   );

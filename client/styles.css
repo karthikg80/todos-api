@@ -3696,6 +3696,217 @@ body.is-todos-view .floating-new-task-cta {
   color: var(--text-primary);
 }
 
+.admin-layout {
+  display: grid;
+  gap: 24px;
+}
+
+.admin-section {
+  background: var(--surface-elevated, var(--card-bg));
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-lg);
+  padding: 20px;
+}
+
+.admin-section__header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.admin-section__title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.admin-section__subtitle {
+  margin: 6px 0 0;
+  color: var(--text-secondary);
+}
+
+.admin-filter-groups {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.admin-filter-group {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-filter-label {
+  font-size: 0.85rem;
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+}
+
+.admin-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-filter-chip {
+  border: 1px solid var(--border-color);
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.admin-filter-chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.admin-feedback-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.admin-feedback-list,
+.admin-feedback-detail {
+  min-height: 220px;
+}
+
+.admin-feedback-row {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  border-radius: var(--r-md);
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.admin-feedback-row.is-selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.admin-feedback-row__top,
+.admin-feedback-row__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  align-items: center;
+}
+
+.admin-feedback-row__meta {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.admin-feedback-row__title {
+  color: var(--text-primary);
+}
+
+.admin-feedback-pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-weight: var(--fw-semibold);
+  background: var(--card-bg);
+  color: var(--text-secondary);
+}
+
+.admin-feedback-pill--bug {
+  background: rgb(203 72 57 / 12%);
+  color: #9c2f20;
+}
+
+.admin-feedback-pill--feature {
+  background: rgb(44 136 104 / 12%);
+  color: #15654b;
+}
+
+.admin-feedback-pill--general,
+.admin-feedback-pill--status {
+  background: rgb(79 110 247 / 13%);
+  color: var(--accent);
+}
+
+.admin-detail-card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-md);
+  padding: 18px;
+  display: grid;
+  gap: 18px;
+}
+
+.admin-detail-card__header h3,
+.admin-detail-block h4 {
+  margin: 0;
+}
+
+.admin-detail-block {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-detail-pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  padding: 14px;
+  border-radius: var(--r-md);
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  font: inherit;
+}
+
+.admin-detail-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-detail-meta__row {
+  display: grid;
+  gap: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.admin-detail-meta__label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.admin-detail-meta__value {
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.admin-feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.admin-feedback-empty {
+  border: 1px dashed var(--border-color);
+  border-radius: var(--r-md);
+  padding: 24px;
+  color: var(--text-secondary);
+}
+
+.admin-feedback-rejection {
+  min-height: 100px;
+}
+
 .users-table {
   width: 100%;
   border-collapse: collapse;
@@ -3806,6 +4017,10 @@ body.is-todos-view .floating-new-task-cta {
   .action-btn {
     padding: 4px 8px;
     font-size: 0.75em;
+  }
+
+  .admin-feedback-grid {
+    grid-template-columns: 1fr;
   }
 }
 

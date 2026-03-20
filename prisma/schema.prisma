@@ -100,7 +100,8 @@ enum FeedbackType {
 enum FeedbackStatus {
   new
   triaged
-  closed
+  promoted
+  rejected
 }
 
 enum AiSuggestionStatus {
@@ -110,44 +111,45 @@ enum AiSuggestionStatus {
 }
 
 model User {
-  id                String         @id @default(uuid())
-  email             String         @unique @db.VarChar(255)
-  password          String         @db.VarChar(255)
-  name              String?        @db.VarChar(100)
-  isVerified        Boolean        @default(false) @map("is_verified")
-  verificationToken String?        @unique @db.VarChar(255) @map("verification_token")
-  resetToken        String?        @unique @db.VarChar(255) @map("reset_token")
-  resetTokenExpiry  DateTime?      @map("reset_token_expiry")
-  role              UserRole       @default(user)
-  plan              UserPlan       @default(free)
+  id                    String    @id @default(uuid())
+  email                 String    @unique @db.VarChar(255)
+  password              String    @db.VarChar(255)
+  name                  String?   @db.VarChar(100)
+  isVerified            Boolean   @default(false) @map("is_verified")
+  verificationToken     String?   @unique @map("verification_token") @db.VarChar(255)
+  resetToken            String?   @unique @map("reset_token") @db.VarChar(255)
+  resetTokenExpiry      DateTime? @map("reset_token_expiry")
+  role                  UserRole  @default(user)
+  plan                  UserPlan  @default(free)
   onboardingStep        Int       @default(0) @map("onboarding_step")
   onboardingCompletedAt DateTime? @map("onboarding_completed_at")
-  mcpRevokedAfter   DateTime?      @map("mcp_revoked_after")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
+  mcpRevokedAfter       DateTime? @map("mcp_revoked_after")
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
 
-  todos             Todo[]
-  projects          Project[]
-  refreshTokens     RefreshToken[]
-  mcpAuthorizationCodes McpAuthorizationCode[]
-  mcpAssistantSessions McpAssistantSession[]
-  mcpRefreshTokens  McpRefreshToken[]
-  agentIdempotencyRecords AgentIdempotencyRecord[]
-  agentActionAudits AgentActionAudit[]
-  agentEnrollment   AgentEnrollment?
-  agentJobRuns      AgentJobRun[]
-  agentConfig       AgentConfig?
-  agentMetricEvents AgentMetricEvent[]
-  recommendationFeedback TaskRecommendationFeedback[]
-  dayContexts            UserDayContext[]
-  learningRecommendations LearningRecommendation[]
-  failedAutomationActions FailedAutomationAction[]
-  aiSuggestions     AiSuggestion[]
-  captureItems      CaptureItem[]
-  feedbackRequests  FeedbackRequest[]
-  areas             Area[]
-  goals             Goal[]
-  planningPreferences UserPlanningPreferences?
+  todos                    Todo[]
+  projects                 Project[]
+  refreshTokens            RefreshToken[]
+  mcpAuthorizationCodes    McpAuthorizationCode[]
+  mcpAssistantSessions     McpAssistantSession[]
+  mcpRefreshTokens         McpRefreshToken[]
+  agentIdempotencyRecords  AgentIdempotencyRecord[]
+  agentActionAudits        AgentActionAudit[]
+  agentEnrollment          AgentEnrollment?
+  agentJobRuns             AgentJobRun[]
+  agentConfig              AgentConfig?
+  agentMetricEvents        AgentMetricEvent[]
+  recommendationFeedback   TaskRecommendationFeedback[]
+  dayContexts              UserDayContext[]
+  learningRecommendations  LearningRecommendation[]
+  failedAutomationActions  FailedAutomationAction[]
+  aiSuggestions            AiSuggestion[]
+  captureItems             CaptureItem[]
+  feedbackRequests         FeedbackRequest[]
+  reviewedFeedbackRequests FeedbackRequest[]            @relation("FeedbackReviewer")
+  areas                    Area[]
+  goals                    Goal[]
+  planningPreferences      UserPlanningPreferences?
 
   @@map("users")
 }
@@ -161,83 +163,83 @@ model RefreshToken {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("refresh_tokens")
   @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model McpAssistantSession {
-  id                    String    @id @default(uuid()) @db.Uuid
-  userId                String    @map("user_id")
-  clientId              String?   @db.VarChar(5000) @map("client_id")
-  assistantName         String?   @db.VarChar(100) @map("assistant_name")
-  scopes                String[]  @default([])
-  source                String    @db.VarChar(20)
-  revokedAt             DateTime? @map("revoked_at")
+  id                      String    @id @default(uuid()) @db.Uuid
+  userId                  String    @map("user_id")
+  clientId                String?   @map("client_id") @db.VarChar(5000)
+  assistantName           String?   @map("assistant_name") @db.VarChar(100)
+  scopes                  String[]  @default([])
+  source                  String    @db.VarChar(20)
+  revokedAt               DateTime? @map("revoked_at")
   lastAccessTokenIssuedAt DateTime? @map("last_access_token_issued_at")
-  lastUsedAt            DateTime? @map("last_used_at")
-  createdAt             DateTime  @default(now()) @map("created_at")
-  updatedAt             DateTime  @updatedAt @map("updated_at")
+  lastUsedAt              DateTime? @map("last_used_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   refreshTokens McpRefreshToken[]
 
-  @@map("mcp_assistant_sessions")
   @@index([userId, revokedAt])
   @@index([clientId])
+  @@map("mcp_assistant_sessions")
 }
 
 model McpAuthorizationCode {
-  code               String   @id @db.Uuid
-  userId             String   @map("user_id")
-  email              String   @db.VarChar(255)
-  clientId           String   @db.VarChar(5000) @map("client_id")
-  redirectUri        String   @db.VarChar(1000) @map("redirect_uri")
-  scopes             String[] @default([])
-  assistantName      String?  @db.VarChar(100) @map("assistant_name")
-  state              String?  @db.VarChar(200)
-  codeChallenge      String   @db.VarChar(128) @map("code_challenge")
-  codeChallengeMethod String  @db.VarChar(10) @map("code_challenge_method")
-  expiresAt          DateTime @map("expires_at")
-  usedAt             DateTime? @map("used_at")
-  createdAt          DateTime @default(now()) @map("created_at")
+  code                String    @id @db.Uuid
+  userId              String    @map("user_id")
+  email               String    @db.VarChar(255)
+  clientId            String    @map("client_id") @db.VarChar(5000)
+  redirectUri         String    @map("redirect_uri") @db.VarChar(1000)
+  scopes              String[]  @default([])
+  assistantName       String?   @map("assistant_name") @db.VarChar(100)
+  state               String?   @db.VarChar(200)
+  codeChallenge       String    @map("code_challenge") @db.VarChar(128)
+  codeChallengeMethod String    @map("code_challenge_method") @db.VarChar(10)
+  expiresAt           DateTime  @map("expires_at")
+  usedAt              DateTime? @map("used_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("mcp_authorization_codes")
   @@index([userId])
   @@index([expiresAt])
+  @@map("mcp_authorization_codes")
 }
 
 model McpRefreshToken {
-  id            String   @id @default(uuid()) @db.Uuid
-  tokenHash     String   @unique @db.VarChar(128) @map("token_hash")
-  userId        String   @map("user_id")
-  sessionId     String?  @map("session_id") @db.Uuid
-  email         String   @db.VarChar(255)
-  scopes        String[] @default([])
-  assistantName String?  @db.VarChar(100) @map("assistant_name")
-  clientId      String?  @db.VarChar(5000) @map("client_id")
-  expiresAt     DateTime @map("expires_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  tokenHash     String    @unique @map("token_hash") @db.VarChar(128)
+  userId        String    @map("user_id")
+  sessionId     String?   @map("session_id") @db.Uuid
+  email         String    @db.VarChar(255)
+  scopes        String[]  @default([])
+  assistantName String?   @map("assistant_name") @db.VarChar(100)
+  clientId      String?   @map("client_id") @db.VarChar(5000)
+  expiresAt     DateTime  @map("expires_at")
   revokedAt     DateTime? @map("revoked_at")
   rotatedAt     DateTime? @map("rotated_at")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   session McpAssistantSession? @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
-  @@map("mcp_refresh_tokens")
   @@index([userId])
   @@index([sessionId])
   @@index([expiresAt])
+  @@map("mcp_refresh_tokens")
 }
 
 model AgentIdempotencyRecord {
   id             String   @id @default(uuid()) @db.Uuid
   action         String   @db.VarChar(100)
   userId         String   @map("user_id")
-  idempotencyKey String   @db.VarChar(255) @map("idempotency_key")
-  inputHash      String   @db.VarChar(64) @map("input_hash")
+  idempotencyKey String   @map("idempotency_key") @db.VarChar(255)
+  inputHash      String   @map("input_hash") @db.VarChar(64)
   status         Int
   response       Json
   expiresAt      DateTime @map("expires_at")
@@ -246,10 +248,10 @@ model AgentIdempotencyRecord {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("agent_idempotency_records")
   @@unique([action, userId, idempotencyKey])
   @@index([expiresAt])
   @@index([userId])
+  @@map("agent_idempotency_records")
 }
 
 model AgentActionAudit {
@@ -260,24 +262,24 @@ model AgentActionAudit {
   outcome        String   @db.VarChar(20)
   status         Int
   userId         String   @map("user_id")
-  requestId      String   @db.VarChar(255) @map("request_id")
+  requestId      String   @map("request_id") @db.VarChar(255)
   actor          String   @db.VarChar(255)
-  idempotencyKey String?  @db.VarChar(255) @map("idempotency_key")
+  idempotencyKey String?  @map("idempotency_key") @db.VarChar(255)
   replayed       Boolean  @default(false)
-  errorCode      String?  @db.VarChar(100) @map("error_code")
-  jobName        String?  @db.VarChar(100) @map("job_name")
-  jobPeriodKey   String?  @db.VarChar(20) @map("job_period_key")
-  triggeredBy    String?  @db.VarChar(20) @map("triggered_by")
+  errorCode      String?  @map("error_code") @db.VarChar(100)
+  jobName        String?  @map("job_name") @db.VarChar(100)
+  jobPeriodKey   String?  @map("job_period_key") @db.VarChar(20)
+  triggeredBy    String?  @map("triggered_by") @db.VarChar(20)
   metadata       Json?
   createdAt      DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("agent_action_audits")
   @@index([userId, createdAt])
   @@index([requestId])
   @@index([action, createdAt])
   @@index([jobName, jobPeriodKey])
+  @@map("agent_action_audits")
 }
 
 model Project {
@@ -297,23 +299,23 @@ model Project {
   createdAt      DateTime              @default(now()) @map("created_at")
   updatedAt      DateTime              @updatedAt @map("updated_at")
 
-  areaId        String?               @db.Uuid @map("area_id")
-  goalId        String?               @db.Uuid @map("goal_id")
+  areaId String? @map("area_id") @db.Uuid
+  goalId String? @map("goal_id") @db.Uuid
 
-  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   todos    Todo[]
   headings Heading[]
-  areaRef  Area?   @relation(fields: [areaId], references: [id], onDelete: SetNull)
-  goalRef  Goal?   @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  areaRef  Area?     @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  goalRef  Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
 
-  @@map("projects")
   @@unique([userId, name])
   @@index([userId])
+  @@map("projects")
 }
 
 model Heading {
   id        String   @id @default(uuid()) @db.Uuid
-  projectId String   @db.Uuid @map("project_id")
+  projectId String   @map("project_id") @db.Uuid
   name      String   @db.VarChar(100)
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
@@ -322,61 +324,60 @@ model Heading {
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   todos   Todo[]
 
-  @@map("headings")
   @@index([projectId])
   @@index([projectId, sortOrder])
+  @@map("headings")
 }
 
 model Todo {
-  id                    String             @id @default(uuid()) @db.Uuid
-  title                 String             @db.VarChar(200)
-  description           String?            @db.VarChar(1000)
-  status                TodoStatus         @default(next)
-  completed             Boolean            @default(false)
-  category              String?            @db.VarChar(50)
-  projectId             String?            @db.Uuid @map("project_id")
-  headingId             String?            @db.Uuid @map("heading_id")
-  context               String?            @db.VarChar(100)
-  energy                TodoEnergy?
-  dueDate               DateTime?          @map("due_date")
-  startDate             DateTime?          @map("start_date")
-  scheduledDate         DateTime?          @map("scheduled_date")
-  reviewDate            DateTime?          @map("review_date")
-  completedAt           DateTime?          @map("completed_at")
-  estimateMinutes       Int?               @map("estimate_minutes")
-  waitingOn             String?            @map("waiting_on") @db.VarChar(255)
-  dependsOnTaskIds      String[]           @default([]) @map("depends_on_task_ids")
-  tags                  String[]           @default([])
-  order                 Int                @default(0)
-  priority              TodoPriority       @default(medium)
-  archived              Boolean            @default(false)
-  recurrenceType        TodoRecurrenceType @default(none) @map("recurrence_type")
-  recurrenceInterval    Int?               @map("recurrence_interval")
-  recurrenceRrule       String?            @map("recurrence_rrule") @db.Text
-  recurrenceNextOccurrence DateTime?       @map("recurrence_next_occurrence")
-  source                TodoSource?
-  doDate                DateTime?          @map("do_date")
-  blockedReason         String?            @map("blocked_reason") @db.VarChar(500)
-  effortScore           Int?               @map("effort_score")
-  confidenceScore       Int?               @map("confidence_score")
-  sourceText            String?            @map("source_text") @db.Text
-  createdByPrompt       String?            @map("created_by_prompt") @db.Text
-  notes                 String?            @db.Text
-  areaId                String?            @db.Uuid @map("area_id")
-  goalId                String?            @db.Uuid @map("goal_id")
-  userId                String             @map("user_id")
-  createdAt             DateTime           @default(now()) @map("created_at")
-  updatedAt             DateTime           @updatedAt @map("updated_at")
+  id                       String             @id @default(uuid()) @db.Uuid
+  title                    String             @db.VarChar(200)
+  description              String?            @db.VarChar(1000)
+  status                   TodoStatus         @default(next)
+  completed                Boolean            @default(false)
+  category                 String?            @db.VarChar(50)
+  projectId                String?            @map("project_id") @db.Uuid
+  headingId                String?            @map("heading_id") @db.Uuid
+  context                  String?            @db.VarChar(100)
+  energy                   TodoEnergy?
+  dueDate                  DateTime?          @map("due_date")
+  startDate                DateTime?          @map("start_date")
+  scheduledDate            DateTime?          @map("scheduled_date")
+  reviewDate               DateTime?          @map("review_date")
+  completedAt              DateTime?          @map("completed_at")
+  estimateMinutes          Int?               @map("estimate_minutes")
+  waitingOn                String?            @map("waiting_on") @db.VarChar(255)
+  dependsOnTaskIds         String[]           @default([]) @map("depends_on_task_ids")
+  tags                     String[]           @default([])
+  order                    Int                @default(0)
+  priority                 TodoPriority       @default(medium)
+  archived                 Boolean            @default(false)
+  recurrenceType           TodoRecurrenceType @default(none) @map("recurrence_type")
+  recurrenceInterval       Int?               @map("recurrence_interval")
+  recurrenceRrule          String?            @map("recurrence_rrule") @db.Text
+  recurrenceNextOccurrence DateTime?          @map("recurrence_next_occurrence")
+  source                   TodoSource?
+  doDate                   DateTime?          @map("do_date")
+  blockedReason            String?            @map("blocked_reason") @db.VarChar(500)
+  effortScore              Int?               @map("effort_score")
+  confidenceScore          Int?               @map("confidence_score")
+  sourceText               String?            @map("source_text") @db.Text
+  createdByPrompt          String?            @map("created_by_prompt") @db.Text
+  notes                    String?            @db.Text
+  areaId                   String?            @map("area_id") @db.Uuid
+  goalId                   String?            @map("goal_id") @db.Uuid
+  userId                   String             @map("user_id")
+  createdAt                DateTime           @default(now()) @map("created_at")
+  updatedAt                DateTime           @updatedAt @map("updated_at")
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  project  Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  heading  Heading?  @relation(fields: [headingId], references: [id], onDelete: SetNull)
-  area     Area?     @relation(fields: [areaId], references: [id], onDelete: SetNull)
-  goal     Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
-  subtasks Subtask[]
+  user                     User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project                  Project?                  @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  heading                  Heading?                  @relation(fields: [headingId], references: [id], onDelete: SetNull)
+  area                     Area?                     @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  goal                     Goal?                     @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  subtasks                 Subtask[]
   aiSuggestionAppliedTodos AiSuggestionAppliedTodo[]
 
-  @@map("todos")
   @@index([userId, category])
   @@index([userId, projectId])
   @@index([userId, headingId])
@@ -388,58 +389,59 @@ model Todo {
   @@index([userId, scheduledDate])
   @@index([userId, order])
   @@index([userId, priority])
+  @@map("todos")
 }
 
 model Subtask {
-  id          String   @id @default(uuid()) @db.Uuid
-  title       String   @db.VarChar(200)
-  completed   Boolean  @default(false)
-  order       Int      @default(0)
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String    @db.VarChar(200)
+  completed   Boolean   @default(false)
+  order       Int       @default(0)
   completedAt DateTime? @map("completed_at")
-  todoId      String   @db.Uuid @map("todo_id")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  todoId      String    @map("todo_id") @db.Uuid
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
 
   todo Todo @relation(fields: [todoId], references: [id], onDelete: Cascade)
 
-  @@map("subtasks")
-  @@index([todoId, order])
   @@unique([todoId, order])
+  @@index([todoId, order])
+  @@map("subtasks")
 }
 
 model AiSuggestion {
-  id        String            @id @default(uuid())
-  userId    String            @map("user_id")
-  type      AiSuggestionType
-  input     Json
-  output    Json
-  feedback  Json?
-  appliedAt DateTime?          @map("applied_at")
-  appliedTodoIds Json?         @map("applied_todo_ids")
-  status    AiSuggestionStatus @default(pending)
-  createdAt DateTime          @default(now()) @map("created_at")
-  updatedAt DateTime          @updatedAt @map("updated_at")
+  id             String             @id @default(uuid())
+  userId         String             @map("user_id")
+  type           AiSuggestionType
+  input          Json
+  output         Json
+  feedback       Json?
+  appliedAt      DateTime?          @map("applied_at")
+  appliedTodoIds Json?              @map("applied_todo_ids")
+  status         AiSuggestionStatus @default(pending)
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   appliedTodos AiSuggestionAppliedTodo[]
 
-  @@map("ai_suggestions")
   @@index([userId, createdAt])
   @@index([userId, status])
+  @@map("ai_suggestions")
 }
 
 model AiSuggestionAppliedTodo {
   id           String   @id @default(uuid())
   suggestionId String   @map("suggestion_id")
-  todoId       String   @db.Uuid @map("todo_id")
+  todoId       String   @map("todo_id") @db.Uuid
   createdAt    DateTime @default(now()) @map("created_at")
 
   suggestion AiSuggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
   todo       Todo         @relation(fields: [todoId], references: [id], onDelete: Cascade)
 
-  @@map("ai_suggestion_applied_todos")
   @@unique([suggestionId, todoId])
   @@index([todoId])
+  @@map("ai_suggestion_applied_todos")
 }
 
 model CaptureItem {
@@ -455,55 +457,61 @@ model CaptureItem {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("capture_items")
   @@index([userId, lifecycle])
   @@index([userId, capturedAt])
+  @@map("capture_items")
 }
 
 model FeedbackRequest {
-  id                String         @id @default(uuid()) @db.Uuid
-  userId            String         @map("user_id")
-  type              FeedbackType
-  title             String         @db.VarChar(200)
-  body              String         @db.Text
-  screenshotUrl     String?        @db.VarChar(2000) @map("screenshot_url")
-  attachmentMetadata Json?         @map("attachment_metadata")
-  pageUrl           String?        @db.VarChar(2000) @map("page_url")
-  userAgent         String?        @db.VarChar(2000) @map("user_agent")
-  appVersion        String?        @db.VarChar(50) @map("app_version")
-  status            FeedbackStatus @default(new)
-  triageSummary     String?        @db.Text @map("triage_summary")
-  severity          String?        @db.VarChar(20)
-  dedupeKey         String?        @db.VarChar(255) @map("dedupe_key")
-  githubIssueNumber Int?           @map("github_issue_number")
-  githubIssueUrl    String?        @db.VarChar(2000) @map("github_issue_url")
-  createdAt         DateTime       @default(now()) @map("created_at")
-  updatedAt         DateTime       @updatedAt @map("updated_at")
+  id                 String         @id @default(uuid()) @db.Uuid
+  userId             String         @map("user_id")
+  reviewedByUserId   String?        @map("reviewed_by_user_id")
+  type               FeedbackType
+  title              String         @db.VarChar(200)
+  body               String         @db.Text
+  screenshotUrl      String?        @map("screenshot_url") @db.VarChar(2000)
+  attachmentMetadata Json?          @map("attachment_metadata")
+  pageUrl            String?        @map("page_url") @db.VarChar(2000)
+  userAgent          String?        @map("user_agent") @db.VarChar(2000)
+  appVersion         String?        @map("app_version") @db.VarChar(50)
+  status             FeedbackStatus @default(new)
+  triageSummary      String?        @map("triage_summary") @db.Text
+  severity           String?        @db.VarChar(20)
+  dedupeKey          String?        @map("dedupe_key") @db.VarChar(255)
+  githubIssueNumber  Int?           @map("github_issue_number")
+  githubIssueUrl     String?        @map("github_issue_url") @db.VarChar(2000)
+  reviewedAt         DateTime?      @map("reviewed_at")
+  rejectionReason    String?        @map("rejection_reason") @db.Text
+  createdAt          DateTime       @default(now()) @map("created_at")
+  updatedAt          DateTime       @updatedAt @map("updated_at")
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewer User? @relation("FeedbackReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
 
-  @@map("feedback_requests")
   @@index([userId, status, createdAt])
   @@index([userId, type, createdAt])
+  @@index([status, type, createdAt])
+  @@index([reviewedByUserId, reviewedAt])
   @@index([dedupeKey])
+  @@map("feedback_requests")
 }
 
 model Area {
-  id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @map("user_id")
-  name        String    @db.VarChar(100)
-  description String?   @db.Text
-  archived    Boolean   @default(false)
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id")
+  name        String   @db.VarChar(100)
+  description String?  @db.Text
+  archived    Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   projects Project[]
   todos    Todo[]
 
-  @@map("areas")
   @@unique([userId, name])
   @@index([userId])
+  @@map("areas")
 }
 
 model Goal {
@@ -520,64 +528,64 @@ model Goal {
   projects Project[]
   todos    Todo[]
 
-  @@map("goals")
   @@index([userId])
+  @@map("goals")
 }
 
 model AgentEnrollment {
-  id             String    @id @default(uuid()) @db.Uuid
-  userId         String    @unique @map("user_id")
-  refreshToken   String    @db.VarChar(128) @map("refresh_token")
-  dailyEnabled   Boolean   @default(true) @map("daily_enabled")
-  weeklyEnabled  Boolean   @default(true) @map("weekly_enabled")
-  timezone       String    @default("America/New_York") @db.VarChar(50)
-  active         Boolean   @default(true)
-  enrolledAt     DateTime  @default(now()) @map("enrolled_at")
-  lastRunAt      DateTime? @map("last_run_at")
-  lastRunStatus  String?   @db.VarChar(20) @map("last_run_status")
-  lastRunError   String?   @db.VarChar(500) @map("last_run_error")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @updatedAt @map("updated_at")
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @unique @map("user_id")
+  refreshToken  String    @map("refresh_token") @db.VarChar(128)
+  dailyEnabled  Boolean   @default(true) @map("daily_enabled")
+  weeklyEnabled Boolean   @default(true) @map("weekly_enabled")
+  timezone      String    @default("America/New_York") @db.VarChar(50)
+  active        Boolean   @default(true)
+  enrolledAt    DateTime  @default(now()) @map("enrolled_at")
+  lastRunAt     DateTime? @map("last_run_at")
+  lastRunStatus String?   @map("last_run_status") @db.VarChar(20)
+  lastRunError  String?   @map("last_run_error") @db.VarChar(500)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("agent_enrollments")
   @@index([active])
+  @@map("agent_enrollments")
 }
 
 model AgentJobRun {
   id           String    @id @default(uuid()) @db.Uuid
   userId       String    @map("user_id")
-  jobName      String    @db.VarChar(100) @map("job_name")
-  periodKey    String    @db.VarChar(20) @map("period_key")
+  jobName      String    @map("job_name") @db.VarChar(100)
+  periodKey    String    @map("period_key") @db.VarChar(20)
   status       String    @db.VarChar(20)
   retryCount   Int       @default(0) @map("retry_count")
   claimedAt    DateTime  @default(now()) @map("claimed_at")
   completedAt  DateTime? @map("completed_at")
   failedAt     DateTime? @map("failed_at")
-  errorMessage String?   @db.VarChar(500) @map("error_message")
+  errorMessage String?   @map("error_message") @db.VarChar(500)
   metadata     Json?
   createdAt    DateTime  @default(now()) @map("created_at")
   updatedAt    DateTime  @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("agent_job_runs")
   @@unique([userId, jobName, periodKey])
   @@index([userId])
   @@index([status])
+  @@map("agent_job_runs")
 }
 
 model FailedAutomationAction {
   id           String    @id @default(uuid()) @db.Uuid
   userId       String    @map("user_id")
-  jobName      String    @db.VarChar(100) @map("job_name")
-  periodKey    String    @db.VarChar(20) @map("period_key")
-  actionType   String    @db.VarChar(100) @map("action_type")
-  entityType   String?   @db.VarChar(50) @map("entity_type")
-  entityId     String?   @db.VarChar(100) @map("entity_id")
-  errorCode    String?   @db.VarChar(100) @map("error_code")
-  errorMessage String?   @db.VarChar(1000) @map("error_message")
+  jobName      String    @map("job_name") @db.VarChar(100)
+  periodKey    String    @map("period_key") @db.VarChar(20)
+  actionType   String    @map("action_type") @db.VarChar(100)
+  entityType   String?   @map("entity_type") @db.VarChar(50)
+  entityId     String?   @map("entity_id") @db.VarChar(100)
+  errorCode    String?   @map("error_code") @db.VarChar(100)
+  errorMessage String?   @map("error_message") @db.VarChar(1000)
   payload      Json?
   retryable    Boolean   @default(false)
   retryCount   Int       @default(0) @map("retry_count")
@@ -588,10 +596,10 @@ model FailedAutomationAction {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("failed_automation_actions")
   @@index([userId, createdAt])
   @@index([userId, jobName, periodKey])
   @@index([resolvedAt])
+  @@map("failed_automation_actions")
 }
 
 model AgentConfig {
@@ -624,21 +632,21 @@ model AgentConfig {
 model AgentMetricEvent {
   id         String   @id @default(uuid()) @db.Uuid
   userId     String   @map("user_id")
-  jobName    String   @db.VarChar(100) @map("job_name")
-  periodKey  String   @db.VarChar(20) @map("period_key")
-  metricType String   @db.VarChar(100) @map("metric_type")
-  entityType String?  @db.VarChar(50) @map("entity_type")
-  entityId   String?  @db.VarChar(100) @map("entity_id")
+  jobName    String   @map("job_name") @db.VarChar(100)
+  periodKey  String   @map("period_key") @db.VarChar(20)
+  metricType String   @map("metric_type") @db.VarChar(100)
+  entityType String?  @map("entity_type") @db.VarChar(50)
+  entityId   String?  @map("entity_id") @db.VarChar(100)
   value      Float    @default(1)
   metadata   Json?
   recordedAt DateTime @default(now()) @map("recorded_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("agent_metric_events")
   @@index([userId, recordedAt])
   @@index([userId, jobName, periodKey])
   @@index([userId, metricType])
+  @@map("agent_metric_events")
 }
 
 model UserPlanningPreferences {
@@ -646,7 +654,7 @@ model UserPlanningPreferences {
   userId                String   @unique @map("user_id")
   maxDailyTasks         Int?     @map("max_daily_tasks")
   preferredChunkMinutes Int?     @map("preferred_chunk_minutes")
-  deepWorkPreference    String?  @db.VarChar(20) @map("deep_work_preference")
+  deepWorkPreference    String?  @map("deep_work_preference") @db.VarChar(20)
   weekendsActive        Boolean  @default(true) @map("weekends_active")
   preferredContexts     String[] @default([]) @map("preferred_contexts")
   waitingFollowUpDays   Int      @default(7) @map("waiting_follow_up_days")
@@ -662,8 +670,8 @@ model UserPlanningPreferences {
 model TaskRecommendationFeedback {
   id               String   @id @default(uuid()) @db.Uuid
   userId           String   @map("user_id")
-  planDate         String   @db.VarChar(10) @map("plan_date")
-  taskId           String   @db.VarChar(100) @map("task_id")
+  planDate         String   @map("plan_date") @db.VarChar(10)
+  taskId           String   @map("task_id") @db.VarChar(100)
   signal           String   @db.VarChar(20)
   energy           String?  @db.VarChar(20)
   availableMinutes Int?     @map("available_minutes")
@@ -672,16 +680,16 @@ model TaskRecommendationFeedback {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("task_recommendation_feedback")
   @@index([userId, planDate])
   @@index([userId, taskId])
+  @@map("task_recommendation_feedback")
 }
 
 model UserDayContext {
   id          String   @id @default(uuid()) @db.Uuid
   userId      String   @map("user_id")
-  contextDate String   @db.VarChar(10) @map("context_date")
-  mode        String   @db.VarChar(20) @default("normal")
+  contextDate String   @map("context_date") @db.VarChar(10)
+  mode        String   @default("normal") @db.VarChar(20)
   energy      String?  @db.VarChar(20)
   notes       String?  @db.VarChar(500)
   createdAt   DateTime @default(now()) @map("created_at")
@@ -689,9 +697,9 @@ model UserDayContext {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("user_day_contexts")
   @@unique([userId, contextDate])
   @@index([userId, contextDate])
+  @@map("user_day_contexts")
 }
 
 model LearningRecommendation {
@@ -712,7 +720,7 @@ model LearningRecommendation {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("learning_recommendations")
   @@index([userId, status])
   @@index([userId, createdAt])
+  @@map("learning_recommendations")
 }
