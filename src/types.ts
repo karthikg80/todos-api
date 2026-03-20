@@ -340,3 +340,45 @@ export interface CreateCaptureItemDto {
   source?: string;
   capturedAt?: string;
 }
+
+export type FeedbackRequestType = "bug" | "feature" | "general";
+export type FeedbackRequestStatus = "new" | "triaged" | "closed";
+
+export interface FeedbackAttachmentMetadataDto {
+  name?: string | null;
+  type?: string | null;
+  size?: number | null;
+  lastModified?: number | null;
+}
+
+export interface CreateFeedbackRequestDto {
+  type: FeedbackRequestType;
+  title: string;
+  body: string;
+  screenshotUrl?: string | null;
+  attachmentMetadata?: FeedbackAttachmentMetadataDto | null;
+  pageUrl?: string | null;
+  userAgent?: string | null;
+  appVersion?: string | null;
+}
+
+export interface FeedbackRequestDto {
+  id: string;
+  userId: string;
+  type: FeedbackRequestType;
+  title: string;
+  body: string;
+  screenshotUrl?: string | null;
+  attachmentMetadata?: FeedbackAttachmentMetadataDto | null;
+  pageUrl?: string | null;
+  userAgent?: string | null;
+  appVersion?: string | null;
+  status: FeedbackRequestStatus;
+  triageSummary?: string | null;
+  severity?: string | null;
+  dedupeKey?: string | null;
+  githubIssueNumber?: number | null;
+  githubIssueUrl?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

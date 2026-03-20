@@ -14,6 +14,8 @@ import {
   ReorderTodoItemDto,
   ReorderHeadingItemDto,
   FindTodosQuery,
+  CreateFeedbackRequestDto,
+  FeedbackAttachmentMetadataDto,
   Priority,
   TaskSource,
   TaskStatus,
@@ -1532,4 +1534,138 @@ export function validateUpdateSubtask(data: unknown): UpdateSubtaskDto {
   }
 
   return update;
+}
+
+function normalizeOptionalAbsoluteUrl(
+  value: unknown,
+  field: string,
+  maxLength: number,
+): string | null | undefined {
+  const normalized = normalizeNullableString(value, field, maxLength);
+  if (normalized == null) {
+    return normalized;
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    throw new ValidationError(`${field} must be a valid absolute URL`);
+  }
+  if (!parsed.protocol || !parsed.host) {
+    throw new ValidationError(`${field} must be a valid absolute URL`);
+  }
+  return normalized;
+}
+
+function normalizeFeedbackAttachmentMetadata(
+  value: unknown,
+): FeedbackAttachmentMetadataDto | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new ValidationError("attachmentMetadata must be an object");
+  }
+
+  const body = value as Record<string, unknown>;
+  const metadata: FeedbackAttachmentMetadataDto = {};
+
+  const name = normalizeNullableString(
+    body.name,
+    "attachmentMetadata.name",
+    255,
+  );
+  if (name !== undefined) {
+    metadata.name = name;
+  }
+
+  const type = normalizeNullableString(
+    body.type,
+    "attachmentMetadata.type",
+    100,
+  );
+  if (type !== undefined) {
+    metadata.type = type;
+  }
+
+  const size = body.size;
+  if (size !== undefined) {
+    if (size === null) {
+      metadata.size = null;
+    } else if (
+      typeof size === "number" &&
+      Number.isInteger(size) &&
+      size >= 0
+    ) {
+      metadata.size = size;
+    } else {
+      throw new ValidationError(
+        "attachmentMetadata.size must be a non-negative integer",
+      );
+    }
+  }
+
+  const lastModified = body.lastModified;
+  if (lastModified !== undefined) {
+    if (lastModified === null) {
+      metadata.lastModified = null;
+    } else if (
+      typeof lastModified === "number" &&
+      Number.isInteger(lastModified) &&
+      lastModified >= 0
+    ) {
+      metadata.lastModified = lastModified;
+    } else {
+      throw new ValidationError(
+        "attachmentMetadata.lastModified must be a non-negative integer",
+      );
+    }
+  }
+
+  return Object.keys(metadata).length > 0 ? metadata : null;
+}
+
+export function validateCreateFeedbackRequest(
+  data: unknown,
+): CreateFeedbackRequestDto {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  const body = data as Record<string, unknown>;
+  const type = body.type;
+  if (typeof type !== "string") {
+    throw new ValidationError("type is required");
+  }
+  if (!["bug", "feature", "general"].includes(type)) {
+    throw new ValidationError('type must be "bug", "feature", or "general"');
+  }
+
+  const title = normalizeOptionalString(body.title, "title", 200);
+  if (!title) {
+    throw new ValidationError("title is required");
+  }
+
+  const feedbackBody = normalizeOptionalString(body.body, "body", 8000);
+  if (!feedbackBody) {
+    throw new ValidationError("body is required");
+  }
+
+  return {
+    type: type as CreateFeedbackRequestDto["type"],
+    title,
+    body: feedbackBody,
+    screenshotUrl:
+      normalizeOptionalAbsoluteUrl(body.screenshotUrl, "screenshotUrl", 2000) ??
+      undefined,
+    attachmentMetadata:
+      normalizeFeedbackAttachmentMetadata(body.attachmentMetadata) ?? undefined,
+    pageUrl:
+      normalizeOptionalAbsoluteUrl(body.pageUrl, "pageUrl", 2000) ?? undefined,
+    userAgent: normalizeOptionalString(body.userAgent, "userAgent", 2000),
+    appVersion: normalizeOptionalString(body.appVersion, "appVersion", 50),
+  };
 }

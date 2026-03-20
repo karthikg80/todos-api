@@ -37,6 +37,8 @@ import { CaptureService } from "./services/captureService";
 import { createCaptureRouter } from "./routes/captureRouter";
 import { createPreferencesRouter } from "./routes/preferencesRouter";
 import { createAgentEnrollmentRouter } from "./routes/agentEnrollmentRouter";
+import { FeedbackService } from "./services/feedbackService";
+import { createFeedbackRouter } from "./routes/feedbackRouter";
 import { AgentEnrollmentService } from "./services/agentEnrollmentService";
 import {
   authLimiter,
@@ -83,6 +85,9 @@ export function createApp(
   const mcpClientService = new McpClientService();
   const captureService = persistencePrisma
     ? new CaptureService(persistencePrisma)
+    : null;
+  const feedbackService = persistencePrisma
+    ? new FeedbackService(persistencePrisma)
     : null;
 
   const resolveTodoUserId = (req: Request, res: Response): string | null => {
@@ -205,6 +210,7 @@ export function createApp(
   app.use("/agent", apiLimiter);
   app.use("/mcp", apiLimiter);
   app.use("/capture", apiLimiter);
+  app.use("/feedback", apiLimiter);
   app.use("/preferences", apiLimiter);
   app.use("/oauth", mcpPublicLimiter);
   app.use("/.well-known", mcpPublicLimiter);
@@ -234,6 +240,7 @@ export function createApp(
     app.use("/ai", authMiddleware(authService));
     app.use("/projects", authMiddleware(authService));
     app.use("/capture", authMiddleware(authService));
+    app.use("/feedback", authMiddleware(authService));
     app.use("/preferences", authMiddleware(authService));
     app.use(
       "/admin",
@@ -300,6 +307,10 @@ export function createApp(
 
   if (captureService) {
     app.use("/capture", createCaptureRouter(captureService));
+  }
+
+  if (feedbackService) {
+    app.use("/feedback", createFeedbackRouter({ feedbackService }));
   }
 
   if (persistencePrisma) {
