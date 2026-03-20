@@ -19,7 +19,11 @@ import { createAiRouter } from "./routes/aiRouter";
 import { createPrioritiesBriefRouter } from "./routes/prioritiesBriefRouter";
 import { createAgentRouter } from "./routes/agentRouter";
 import { createMcpRouter } from "./routes/mcpRouter";
-import { IAiSuggestionStore } from "./services/aiSuggestionStore";
+import {
+  IAiSuggestionStore,
+  InMemoryAiSuggestionStore,
+  PrismaAiSuggestionStore,
+} from "./services/aiSuggestionStore";
 import { AiPlannerService } from "./services/aiService";
 import { UserPlan } from "./routes/aiRouter";
 import { createProjectsRouter } from "./routes/projectsRouter";
@@ -57,10 +61,23 @@ export function createApp(
     authService instanceof AuthService
       ? authService.getPrismaClient()
       : undefined;
+  const runtimeAiSuggestionStore =
+    aiSuggestionStore ||
+    (persistencePrisma
+      ? new PrismaAiSuggestionStore(persistencePrisma)
+      : new InMemoryAiSuggestionStore());
+  const runtimeAiPlannerService =
+    aiPlannerService ||
+    new AiPlannerService({
+      todoService,
+      projectService,
+    });
   const agentExecutor = new AgentExecutor({
     todoService,
     projectService,
     persistencePrisma,
+    aiPlannerService: runtimeAiPlannerService,
+    suggestionStore: runtimeAiSuggestionStore,
   });
   const mcpOAuthService = new McpOAuthService(persistencePrisma);
   const mcpClientService = new McpClientService();
@@ -248,8 +265,8 @@ export function createApp(
     createAiRouter({
       todoService,
       resolveAiUserId,
-      suggestionStore: aiSuggestionStore,
-      aiPlannerService,
+      suggestionStore: runtimeAiSuggestionStore,
+      aiPlannerService: runtimeAiPlannerService,
       aiDailySuggestionLimit,
       aiDailySuggestionLimitByPlan,
       resolveAiUserPlan,
@@ -263,6 +280,7 @@ export function createApp(
       todoService,
       projectService,
       resolveUserId: resolveAiUserId,
+      suggestionStore: runtimeAiSuggestionStore,
     }),
   );
   app.use(

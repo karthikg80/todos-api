@@ -16,6 +16,9 @@ export const CANONICAL_METRIC_TYPES = [
   "review.action.rejected",
   "automation.followup.created",
   "automation.next_action.created",
+  "automation.home_focus.generated",
+  "automation.home_focus.reused",
+  "automation.home_focus.snapshot_age_hours",
 
   // ── Outcome events ─────────────────────────────────────────────────────────
   "task.completed_after_recommendation",

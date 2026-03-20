@@ -258,6 +258,89 @@ describe("AI API Integration", () => {
     );
   });
 
+  it("prewarms home_focus and serves the stored snapshot from latest", async () => {
+    await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        title: "Finalize travel dates",
+        priority: "high",
+        dueDate: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+      })
+      .expect(201);
+    await request(app)
+      .post("/todos")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        title: "Book ferry tickets",
+        priority: "medium",
+        dueDate: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      })
+      .expect(201);
+
+    const prewarm = await request(app)
+      .post("/agent/write/prewarm_home_focus")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        topN: 3,
+        freshnessHours: 18,
+        timezone: "America/New_York",
+        periodKey: "2026-03-19",
+      })
+      .expect(200);
+
+    expect(prewarm.body.data.prewarm.status).toBe("generated");
+    expect(prewarm.body.data.prewarm.suggestionId).toBeDefined();
+
+    const latest = await request(app)
+      .get("/ai/suggestions/latest?surface=home_focus")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(latest.body.aiSuggestionId).toBe(
+      prewarm.body.data.prewarm.suggestionId,
+    );
+    expect(latest.body.outputEnvelope.surface).toBe("home_focus");
+    expect(Array.isArray(latest.body.outputEnvelope.suggestions)).toBe(true);
+    expect(latest.body.outputEnvelope.suggestions.length).toBeGreaterThan(0);
+
+    const brief = await request(app)
+      .get("/ai/priorities-brief")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(brief.body.prewarmed).toBe(true);
+    expect(String(brief.body.html || "")).toContain("Next priorities");
+
+    const reused = await request(app)
+      .post("/agent/write/prewarm_home_focus")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        topN: 3,
+        freshnessHours: 18,
+        timezone: "America/New_York",
+        periodKey: "2026-03-19",
+      })
+      .expect(200);
+
+    expect(reused.body.data.prewarm.status).toBe("reused");
+    expect(reused.body.data.prewarm.suggestionId).toBe(
+      prewarm.body.data.prewarm.suggestionId,
+    );
+
+    const suggestions = await request(app)
+      .get("/ai/suggestions")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(
+      suggestions.body.filter(
+        (record: { input?: { surface?: string } }) =>
+          record.input?.surface === "home_focus",
+      ),
+    ).toHaveLength(1);
+  });
+
   it("throttles decision-assist generation after repeated rejects", async () => {
     const todoId = await createTaskDrawerTodo("reject burst throttle");
     for (let i = 0; i < 3; i += 1) {

@@ -199,6 +199,10 @@ export function createAgentRouter({
     "/write/weekly_review",
     createAgentActionHandler(agentExecutor, "weekly_review"),
   );
+  router.post(
+    "/write/prewarm_home_focus",
+    createAgentActionHandler(agentExecutor, "prewarm_home_focus"),
+  );
 
   // Anti-entropy
   router.post(

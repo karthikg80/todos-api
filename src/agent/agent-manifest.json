@@ -2200,6 +2200,72 @@
       "audience": "user"
     },
     {
+      "name": "prewarm_home_focus",
+      "description": "Generate or reuse a fresh Home AI focus snapshot so Home can render a recent suggestion set before the user opens the app.",
+      "readOnly": false,
+      "method": "POST",
+      "path": "/agent/write/prewarm_home_focus",
+      "availability": {
+        "requires": []
+      },
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "topN": {
+            "type": "integer",
+            "enum": [3, 5]
+          },
+          "freshnessHours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 48
+          },
+          "force": {
+            "type": "boolean"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "periodKey": {
+            "type": "string"
+          }
+        }
+      },
+      "output": {
+        "dataKey": "prewarm",
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["generated", "reused"]
+          },
+          "suggestionId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "freshUntil": {
+            "type": "string"
+          },
+          "ageHours": {
+            "type": "number"
+          },
+          "suggestionCount": {
+            "type": "integer"
+          },
+          "mustAbstain": {
+            "type": "boolean"
+          }
+        }
+      },
+      "namespace": "automation",
+      "category": "Automation",
+      "lifecycle": "mutating",
+      "audience": "automation"
+    },
+    {
       "name": "decide_next_work",
       "description": "Rank the best next tasks for the current user based on urgency, effort, energy, and dependencies.",
       "readOnly": true,
