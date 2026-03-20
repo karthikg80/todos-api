@@ -1,7 +1,7 @@
 // =============================================================================
 // prioritiesBriefRouter.ts — GET /ai/priorities-brief
 // Generates an opinionated HTML priorities digest using the configured LLM.
-// Response is cached per-user for 4 hours. POST /refresh busts the cache.
+// Response is cached per-user for 4 hours and served stale-while-refresh.
 // =============================================================================
 
 import { Router, Request, Response } from "express";
@@ -19,10 +19,33 @@ interface CacheEntry {
   html: string;
   generatedAt: string;
   expiresAt: number;
+  refreshPromise: Promise<void> | null;
 }
 
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+function getCacheResponse(
+  entry: CacheEntry,
+  {
+    cached,
+    isStale,
+    refreshInFlight,
+  }: {
+    cached: boolean;
+    isStale: boolean;
+    refreshInFlight: boolean;
+  },
+) {
+  return {
+    html: entry.html,
+    generatedAt: entry.generatedAt,
+    expiresAt: new Date(entry.expiresAt).toISOString(),
+    cached,
+    isStale,
+    refreshInFlight,
+  };
+}
 
 export function createPrioritiesBriefRouter({
   todoService,
@@ -31,66 +54,50 @@ export function createPrioritiesBriefRouter({
 }: PrioritiesBriefRouterDeps): Router {
   const router = Router();
 
-  router.get("/priorities-brief", async (req: Request, res: Response) => {
-    try {
-      const userId = resolveUserId(req, res);
-      if (!userId) return;
+  async function generateBriefEntry(userId: string): Promise<CacheEntry> {
+    const [todosResult, projectsResult] = await Promise.allSettled([
+      todoService.findAll(userId, { completed: false }),
+      projectService ? projectService.findAll(userId) : Promise.resolve([]),
+    ]);
 
-      // Serve from cache if still fresh
-      const cached = cache.get(userId);
-      if (cached && cached.expiresAt > Date.now()) {
-        return res.json({
-          html: cached.html,
-          generatedAt: cached.generatedAt,
-          cached: true,
-        });
-      }
+    const todos = todosResult.status === "fulfilled" ? todosResult.value : [];
+    const projects =
+      projectsResult.status === "fulfilled" ? projectsResult.value : [];
 
-      // Fetch tasks and projects in parallel; tolerate individual failures
-      const [todosResult, projectsResult] = await Promise.allSettled([
-        todoService.findAll(userId, { completed: false }),
-        projectService ? projectService.findAll(userId) : Promise.resolve([]),
-      ]);
+    const todayISO = new Date().toISOString().split("T")[0];
 
-      const todos = todosResult.status === "fulfilled" ? todosResult.value : [];
-      const projects =
-        projectsResult.status === "fulfilled" ? projectsResult.value : [];
+    const taskLines = (Array.isArray(todos) ? todos : [])
+      .slice(0, 40)
+      .map((t: any) => {
+        const parts: string[] = [
+          `"${String(t.title || "").replace(/"/g, "'")}"`,
+        ];
+        if (t.priority) parts.push(`priority:${t.priority}`);
+        if (t.dueDate) parts.push(`due:${String(t.dueDate).split("T")[0]}`);
+        if (t.estimateMinutes) parts.push(`est:${t.estimateMinutes}m`);
+        if (t.waitingOn)
+          parts.push(`waiting_on:${String(t.waitingOn).slice(0, 60)}`);
+        if (t.status) parts.push(`status:${t.status}`);
+        if (t.category)
+          parts.push(`project:${String(t.category).slice(0, 40)}`);
+        return `- ${parts.join(" ")}`;
+      })
+      .join("\n");
 
-      const todayISO = new Date().toISOString().split("T")[0];
+    const projectLines = (Array.isArray(projects) ? projects : [])
+      .map((p: any) => {
+        const open = Number(p.openTaskCount ?? p.taskCount ?? 0);
+        const parts: string[] = [
+          `"${String(p.name || "").replace(/"/g, "'")}"`,
+        ];
+        parts.push(`area:${p.area ?? "none"}`);
+        parts.push(`open_tasks:${open}`);
+        if (p.goal) parts.push(`goal:${String(p.goal).slice(0, 80)}`);
+        return `- ${parts.join(" ")}`;
+      })
+      .join("\n");
 
-      // Build compact task context (<=40 tasks to keep token count low)
-      const taskLines = (Array.isArray(todos) ? todos : [])
-        .slice(0, 40)
-        .map((t: any) => {
-          const parts: string[] = [
-            `"${String(t.title || "").replace(/"/g, "'")}"`,
-          ];
-          if (t.priority) parts.push(`priority:${t.priority}`);
-          if (t.dueDate) parts.push(`due:${String(t.dueDate).split("T")[0]}`);
-          if (t.estimateMinutes) parts.push(`est:${t.estimateMinutes}m`);
-          if (t.waitingOn)
-            parts.push(`waiting_on:${String(t.waitingOn).slice(0, 60)}`);
-          if (t.status) parts.push(`status:${t.status}`);
-          if (t.category)
-            parts.push(`project:${String(t.category).slice(0, 40)}`);
-          return `- ${parts.join(" ")}`;
-        })
-        .join("\n");
-
-      const projectLines = (Array.isArray(projects) ? projects : [])
-        .map((p: any) => {
-          const open = Number(p.openTaskCount ?? p.taskCount ?? 0);
-          const parts: string[] = [
-            `"${String(p.name || "").replace(/"/g, "'")}"`,
-          ];
-          parts.push(`area:${p.area ?? "none"}`);
-          parts.push(`open_tasks:${open}`);
-          if (p.goal) parts.push(`goal:${String(p.goal).slice(0, 80)}`);
-          return `- ${parts.join(" ")}`;
-        })
-        .join("\n");
-
-      const systemPrompt = `You are a personal productivity assistant generating an HTML priorities digest.
+    const systemPrompt = `You are a personal productivity assistant generating an HTML priorities digest.
 Output ONLY the inner HTML — no outer wrapper, no markdown fences, no explanation.
 Use only these CSS classes (already defined in the app's stylesheet):
 
@@ -124,22 +131,87 @@ Rules:
 - Estimate labels in .item rows: format (30m) or (1h).
 - Today is ${todayISO}.`;
 
-      const userPrompt = `Open tasks:\n${taskLines || "(none)"}\n\nProjects:\n${projectLines || "(none)"}`;
+    const userPrompt = `Open tasks:\n${taskLines || "(none)"}\n\nProjects:\n${projectLines || "(none)"}`;
 
-      const html = await callLlm({
-        systemPrompt,
-        userPrompt,
-        maxTokens: 1500,
-        temperature: 0.3,
-      });
-      const generatedAt = new Date().toISOString();
+    const html = await callLlm({
+      systemPrompt,
+      userPrompt,
+      maxTokens: 1500,
+      temperature: 0.3,
+    });
+    const generatedAt = new Date().toISOString();
 
-      cache.set(userId, {
-        html,
-        generatedAt,
-        expiresAt: Date.now() + CACHE_TTL_MS,
-      });
-      return res.json({ html, generatedAt, cached: false });
+    return {
+      html,
+      generatedAt,
+      expiresAt: Date.now() + CACHE_TTL_MS,
+      refreshPromise: null,
+    };
+  }
+
+  function startBackgroundRefresh(userId: string, existingEntry: CacheEntry) {
+    if (existingEntry.refreshPromise) return existingEntry.refreshPromise;
+
+    const refreshPromise = (async () => {
+      try {
+        const nextEntry = await generateBriefEntry(userId);
+        cache.set(userId, nextEntry);
+      } catch (err) {
+        const current = cache.get(userId);
+        if (current) {
+          cache.set(userId, {
+            ...current,
+            refreshPromise: null,
+          });
+        }
+        console.error("priorities-brief background refresh error:", err);
+      }
+    })();
+
+    cache.set(userId, {
+      ...existingEntry,
+      refreshPromise,
+    });
+
+    return refreshPromise;
+  }
+
+  router.get("/priorities-brief", async (req: Request, res: Response) => {
+    try {
+      const userId = resolveUserId(req, res);
+      if (!userId) return;
+
+      const cached = cache.get(userId);
+      if (cached && cached.expiresAt > Date.now()) {
+        return res.json(
+          getCacheResponse(cached, {
+            cached: true,
+            isStale: false,
+            refreshInFlight: !!cached.refreshPromise,
+          }),
+        );
+      }
+
+      if (cached) {
+        startBackgroundRefresh(userId, cached);
+        return res.json(
+          getCacheResponse(cached, {
+            cached: true,
+            isStale: true,
+            refreshInFlight: true,
+          }),
+        );
+      }
+
+      const freshEntry = await generateBriefEntry(userId);
+      cache.set(userId, freshEntry);
+      return res.json(
+        getCacheResponse(freshEntry, {
+          cached: false,
+          isStale: false,
+          refreshInFlight: false,
+        }),
+      );
     } catch (err) {
       if (err instanceof LlmProviderNotConfiguredError) {
         return res.status(503).json({ error: err.message });
@@ -151,12 +223,22 @@ Rules:
     }
   });
 
-  // Cache-bust endpoint
   router.post("/priorities-brief/refresh", (req: Request, res: Response) => {
     const userId = resolveUserId(req, res);
     if (!userId) return;
-    cache.delete(userId);
-    return res.json({ ok: true });
+
+    const cached = cache.get(userId);
+    if (!cached) {
+      return res.json({ ok: true, refreshInFlight: false });
+    }
+
+    const staleEntry = {
+      ...cached,
+      expiresAt: 0,
+    };
+    cache.set(userId, staleEntry);
+    startBackgroundRefresh(userId, staleEntry);
+    return res.json({ ok: true, refreshInFlight: true });
   });
 
   return router;

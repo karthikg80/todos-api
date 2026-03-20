@@ -5719,6 +5719,19 @@ body.is-todos-view .projects-rail-item__count {
   align-items: center;
   gap: 8px;
 }
+.home-priorities-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--color-border-tertiary);
+}
+.home-priorities-status--warning {
+  color: var(--color-warning-strong, #8a5a00);
+}
 .home-priorities-refresh-btn {
   font-size: 14px;
   padding: 2px 8px;
@@ -5728,8 +5741,9 @@ body.is-todos-view .projects-rail-item__count {
   font-size: 11px;
   color: var(--color-text-tertiary);
   margin-top: 12px;
-  padding-top: 8px;
-  border-top: 0.5px solid var(--color-border-tertiary);
+}
+.home-priorities-status + .home-priorities-timestamp {
+  margin-top: 6px;
 }
 
 .lbl {
