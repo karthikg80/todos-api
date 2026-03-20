@@ -280,7 +280,6 @@ export function createApp(
       todoService,
       projectService,
       resolveUserId: resolveAiUserId,
-      suggestionStore: runtimeAiSuggestionStore,
     }),
   );
   app.use(

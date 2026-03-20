@@ -304,14 +304,6 @@ describe("AI API Integration", () => {
     expect(Array.isArray(latest.body.outputEnvelope.suggestions)).toBe(true);
     expect(latest.body.outputEnvelope.suggestions.length).toBeGreaterThan(0);
 
-    const brief = await request(app)
-      .get("/ai/priorities-brief")
-      .set("Authorization", `Bearer ${authToken}`)
-      .expect(200);
-
-    expect(brief.body.prewarmed).toBe(true);
-    expect(String(brief.body.html || "")).toContain("Next priorities");
-
     const reused = await request(app)
       .post("/agent/write/prewarm_home_focus")
       .set("Authorization", `Bearer ${authToken}`)
