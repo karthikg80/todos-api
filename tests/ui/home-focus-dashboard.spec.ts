@@ -22,6 +22,16 @@ type SeedTodo = {
   }>;
 };
 
+type PrioritiesBriefMockResponse = {
+  html?: string;
+  generatedAt?: string;
+  isStale?: boolean;
+  refreshInFlight?: boolean;
+  delayMs?: number;
+  status?: number;
+  error?: string;
+};
+
 function isoDaysFromNow(days: number, hour = 10) {
   const dt = new Date();
   dt.setDate(dt.getDate() + days);
@@ -42,6 +52,7 @@ async function installHomeFocusMockApi(
     aiDecisionAssistStatus = 500,
     aiTopFocus = null,
     homeFocusSequences = null,
+    prioritiesBriefResponses = null,
     seedTodos,
   }: {
     aiDecisionAssistStatus?: number;
@@ -49,6 +60,7 @@ async function installHomeFocusMockApi(
     homeFocusSequences?: Array<
       Array<{ todoId: string; summary?: string; reason?: string }>
     > | null;
+    prioritiesBriefResponses?: PrioritiesBriefMockResponse[] | null;
     seedTodos: SeedTodo[];
   },
 ) {
@@ -68,6 +80,7 @@ async function installHomeFocusMockApi(
   let todoSeq = 1000;
   let homeFocusSeq = 1;
   let homeFocusGenerateSeq = 0;
+  let prioritiesBriefGetSeq = 0;
 
   const nowIso = () => new Date().toISOString();
   const json = (route: Route, status: number, body: unknown) =>
@@ -190,6 +203,22 @@ async function installHomeFocusMockApi(
         </div>
       </div>
     `;
+  };
+
+  const getPrioritiesBriefResponse = () => {
+    if (
+      Array.isArray(prioritiesBriefResponses) &&
+      prioritiesBriefResponses.length > 0
+    ) {
+      const index = Math.min(
+        prioritiesBriefGetSeq,
+        prioritiesBriefResponses.length - 1,
+      );
+      prioritiesBriefGetSeq += 1;
+      return prioritiesBriefResponses[index] || {};
+    }
+    prioritiesBriefGetSeq += 1;
+    return {};
   };
 
   await page.route("**/*", async (route) => {
@@ -324,15 +353,28 @@ async function installHomeFocusMockApi(
       return json(route, 200, []);
     }
     if (pathname === "/ai/priorities-brief" && method === "GET") {
-      return json(route, 200, {
-        html: buildPrioritiesBriefHtml(),
-        generatedAt: nowIso(),
+      const mock = getPrioritiesBriefResponse();
+      if (mock.delayMs && mock.delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, mock.delayMs));
+      }
+      if ((mock.status || 200) >= 400) {
+        return json(route, mock.status || 500, {
+          error: mock.error || "Priorities brief failed",
+        });
+      }
+      return json(route, mock.status || 200, {
+        html: mock.html || buildPrioritiesBriefHtml(),
+        generatedAt: mock.generatedAt || nowIso(),
+        expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
+        cached: prioritiesBriefGetSeq > 1,
+        isStale: !!mock.isStale,
+        refreshInFlight: !!mock.refreshInFlight,
       });
     }
     if (pathname === "/ai/priorities-brief/refresh" && method === "POST") {
       return json(route, 200, {
-        html: buildPrioritiesBriefHtml(),
-        generatedAt: nowIso(),
+        ok: true,
+        refreshInFlight: true,
       });
     }
     if (pathname === "/ai/suggestions/latest" && method === "GET") {
@@ -645,6 +687,16 @@ function buildSeedTodos(): SeedTodo[] {
   ];
 }
 
+function buildPrioritiesBriefMarkup(title: string) {
+  return `
+    <div class="home-priorities-brief">
+      <div class="home-priorities-brief__item">
+        <strong>${title}</strong>
+      </div>
+    </div>
+  `;
+}
+
 test.describe("Home focus dashboard + sheet composer", () => {
   test.beforeEach(async ({ page }) => {
     await installHomeFocusMockApi(page, {
@@ -734,5 +786,87 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "Upcoming",
     );
     await expectListOrEmptyState(page);
+  });
+});
+
+test.describe("Home priorities stale refresh", () => {
+  test("Home renders cached priorities immediately and swaps in the refreshed tile", async ({
+    page,
+  }) => {
+    await installHomeFocusMockApi(page, {
+      seedTodos: buildSeedTodos(),
+      prioritiesBriefResponses: [
+        {
+          html: buildPrioritiesBriefMarkup("Initial priorities"),
+          generatedAt: "2026-03-20T10:55:00.000Z",
+          isStale: false,
+          refreshInFlight: false,
+        },
+        {
+          html: buildPrioritiesBriefMarkup("Cached priorities"),
+          generatedAt: "2026-03-20T11:00:00.000Z",
+          isStale: true,
+          refreshInFlight: true,
+          delayMs: 300,
+        },
+        {
+          html: buildPrioritiesBriefMarkup("Fresh priorities"),
+          generatedAt: "2026-03-20T11:05:00.000Z",
+          isStale: false,
+          refreshInFlight: false,
+        },
+      ],
+    });
+
+    await openHomeApp(page);
+    await page.evaluate(
+      (payload) => {
+        window.localStorage.setItem(
+          "todos:home-priorities-brief-cache",
+          JSON.stringify(payload),
+        );
+      },
+      {
+        html: buildPrioritiesBriefMarkup("Cached priorities"),
+        generatedAt: "2026-03-20T11:00:00.000Z",
+        expiresAt: "2026-03-20T15:00:00.000Z",
+      },
+    );
+    await page.reload();
+
+    const tile = page.locator('[data-testid="home-priorities-tile"]');
+    await expect(tile).toContainText("Cached priorities");
+    await expect(tile).toContainText(
+      /Updating priorities|Refreshing priorities/,
+    );
+    await expect(tile).toContainText("Fresh priorities");
+  });
+
+  test("Failed refresh keeps the previous priorities tile visible", async ({
+    page,
+  }) => {
+    await installHomeFocusMockApi(page, {
+      seedTodos: buildSeedTodos(),
+      prioritiesBriefResponses: [
+        {
+          html: buildPrioritiesBriefMarkup("Visible priorities"),
+          generatedAt: "2026-03-20T12:00:00.000Z",
+        },
+        {
+          status: 500,
+          error: "Refresh failed",
+        },
+      ],
+    });
+
+    await openHomeApp(page);
+
+    const tile = page.locator('[data-testid="home-priorities-tile"]');
+    await expect(tile).toContainText("Visible priorities");
+
+    await page.locator(".home-priorities-refresh-btn").click();
+
+    await expect(tile).toContainText("Visible priorities");
+    await expect(tile).toContainText("Showing the last update.");
   });
 });
