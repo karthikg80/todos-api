@@ -31,6 +31,7 @@ export function createWorkspaceController({
   loadAiInsights,
   loadAiFeedbackSummary,
   loadAdminUsers,
+  prepareFeedbackView,
 }) {
   function switchView(view, triggerEl = null) {
     const requestedView = view === "profile" ? "settings" : view;
@@ -110,6 +111,18 @@ export function createWorkspaceController({
       closeProjectsRailSheet({ restoreFocus: false });
       closeTodoDrawer({ restoreFocus: false });
       loadAdminUsers();
+      return;
+    }
+
+    if (requestedView === "feedback") {
+      closeCommandPalette({ restoreFocus: false });
+      closeProjectCrudModal({ restoreFocus: false });
+      closeProjectEditDrawer({ restoreFocus: false });
+      closeProjectDeleteDialog();
+      closeMoreFilters();
+      closeProjectsRailSheet({ restoreFocus: false });
+      closeTodoDrawer({ restoreFocus: false });
+      prepareFeedbackView?.();
     }
   }
 

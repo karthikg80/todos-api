@@ -737,6 +737,9 @@ export function showAppView() {
   hooks.setSettingsPaneVisible?.(false);
   document.getElementById("authView").classList.remove("active");
   document.getElementById("todosView").classList.add("active");
+  document.getElementById("feedbackView")?.classList.remove("active");
+  document.getElementById("profileView")?.classList.remove("active");
+  document.getElementById("adminView")?.classList.remove("active");
   document.getElementById("navTabs").style.display = "flex";
   document.getElementById("userBar").style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
@@ -798,6 +801,7 @@ export function showAuthView() {
   hooks.setSettingsPaneVisible?.(false);
   document.getElementById("authView").classList.add("active");
   document.getElementById("todosView").classList.remove("active");
+  document.getElementById("feedbackView")?.classList.remove("active");
   document.getElementById("profileView").classList.remove("active");
   document.getElementById("adminView").classList.remove("active");
   document.getElementById("navTabs").style.display = "none";

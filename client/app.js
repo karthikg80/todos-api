@@ -186,6 +186,14 @@ import {
 } from "./modules/responsiveLayout.js";
 import { createWorkspaceController } from "./modules/workspaceController.js";
 import {
+  prepareFeedbackView,
+  syncFeedbackFormCopy,
+  handleFeedbackTypeChange,
+  handleFeedbackAttachmentChange,
+  handleFeedbackSubmit,
+  resetFeedbackFormView,
+} from "./modules/feedbackUi.js";
+import {
   setAuthState,
   handleAuthFailure,
   handleAuthTokens,
@@ -646,6 +654,7 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
     loadAiInsights,
     loadAiFeedbackSummary,
     loadAdminUsers,
+    prepareFeedbackView,
   });
 
 function moveProjectHeading(headingId, direction) {
@@ -1611,6 +1620,8 @@ function bindDeclarativeHandlers() {
   hooks.showInputDialog = showInputDialog;
   hooks.syncProjectHeaderActions = syncProjectHeaderActions;
   hooks.syncQuickEntryProjectActions = syncQuickEntryProjectActions;
+  hooks.prepareFeedbackView = prepareFeedbackView;
+  hooks.syncFeedbackFormCopy = syncFeedbackFormCopy;
   hooks.updateHeaderFromVisibleTodos = updateHeaderFromVisibleTodos;
   hooks.updateQuickEntryPropertiesSummary = updateQuickEntryPropertiesSummary;
   hooks.updateTaskComposerDueClearButton = updateTaskComposerDueClearButton;
@@ -1665,6 +1676,10 @@ window.setSelectedProjectKey = setSelectedProjectKey;
 window.switchView = switchView;
 window.toggleProfilePanel = toggleProfilePanel;
 window.logout = logout;
+window.handleFeedbackTypeChange = handleFeedbackTypeChange;
+window.handleFeedbackAttachmentChange = handleFeedbackAttachmentChange;
+window.handleFeedbackSubmit = handleFeedbackSubmit;
+window.resetFeedbackFormView = resetFeedbackFormView;
 // Shortcuts / UI toggles
 window.toggleShortcuts = toggleShortcuts;
 window.closeShortcutsOverlay = closeShortcutsOverlay;

@@ -540,6 +540,7 @@ body.is-todos-view #todosView.view.active {
 }
 
 .form-group input,
+.form-group select,
 .form-group textarea {
   width: 100%;
   padding: var(--s-3);
@@ -553,6 +554,7 @@ body.is-todos-view #todosView.view.active {
 }
 
 .form-group input:focus,
+.form-group select:focus,
 .form-group textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -3572,9 +3574,108 @@ body.is-todos-view .floating-new-task-cta {
   margin-bottom: 30px;
 }
 
+.feedback-view {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: var(--s-3) 0 var(--s-6);
+}
+
+.feedback-view__header {
+  margin-bottom: var(--s-5);
+}
+
+.feedback-view__eyebrow {
+  margin: 0 0 var(--s-2);
+  color: var(--accent);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.feedback-view__lede {
+  max-width: 56ch;
+  color: var(--text-secondary);
+}
+
+.feedback-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+  gap: var(--s-4);
+  align-items: start;
+}
+
+.feedback-card {
+  padding: var(--s-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-lg);
+  background: var(--card-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.feedback-card--context {
+  position: sticky;
+  top: var(--s-4);
+}
+
+.feedback-helper {
+  margin: var(--s-2) 0 0;
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.feedback-context-list {
+  margin: 0 0 var(--s-5);
+}
+
+.feedback-context-row {
+  display: grid;
+  grid-template-columns: minmax(0, 110px) minmax(0, 1fr);
+  gap: var(--s-2);
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.feedback-context-row dt {
+  color: var(--text-secondary);
+  font-weight: var(--fw-medium);
+}
+
+.feedback-context-row dd {
+  margin: 0;
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.feedback-submit-btn {
+  margin-top: var(--s-4);
+}
+
+.feedback-confirmation {
+  margin-bottom: var(--s-4);
+  padding: var(--s-4);
+  border: 1px solid color-mix(in oklab, var(--accent) 28%, var(--border-color));
+  border-radius: var(--r-lg);
+  background: color-mix(in oklab, var(--accent) 8%, var(--card-bg));
+}
+
+.feedback-confirmation__meta {
+  color: var(--text-secondary);
+}
+
 .profile-section h3 {
   margin-bottom: 15px;
   color: var(--text-primary);
+}
+
+@media (max-width: 960px) {
+  .feedback-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .feedback-card--context {
+    position: static;
+  }
 }
 
 .info-row {

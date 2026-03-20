@@ -91,6 +91,18 @@ enum CaptureLifecycle {
   discarded
 }
 
+enum FeedbackType {
+  bug
+  feature
+  general
+}
+
+enum FeedbackStatus {
+  new
+  triaged
+  closed
+}
+
 enum AiSuggestionStatus {
   pending
   accepted
@@ -132,6 +144,7 @@ model User {
   failedAutomationActions FailedAutomationAction[]
   aiSuggestions     AiSuggestion[]
   captureItems      CaptureItem[]
+  feedbackRequests  FeedbackRequest[]
   areas             Area[]
   goals             Goal[]
   planningPreferences UserPlanningPreferences?
@@ -445,6 +458,34 @@ model CaptureItem {
   @@map("capture_items")
   @@index([userId, lifecycle])
   @@index([userId, capturedAt])
+}
+
+model FeedbackRequest {
+  id                String         @id @default(uuid()) @db.Uuid
+  userId            String         @map("user_id")
+  type              FeedbackType
+  title             String         @db.VarChar(200)
+  body              String         @db.Text
+  screenshotUrl     String?        @db.VarChar(2000) @map("screenshot_url")
+  attachmentMetadata Json?         @map("attachment_metadata")
+  pageUrl           String?        @db.VarChar(2000) @map("page_url")
+  userAgent         String?        @db.VarChar(2000) @map("user_agent")
+  appVersion        String?        @db.VarChar(50) @map("app_version")
+  status            FeedbackStatus @default(new)
+  triageSummary     String?        @db.Text @map("triage_summary")
+  severity          String?        @db.VarChar(20)
+  dedupeKey         String?        @db.VarChar(255) @map("dedupe_key")
+  githubIssueNumber Int?           @map("github_issue_number")
+  githubIssueUrl    String?        @db.VarChar(2000) @map("github_issue_url")
+  createdAt         DateTime       @default(now()) @map("created_at")
+  updatedAt         DateTime       @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("feedback_requests")
+  @@index([userId, status, createdAt])
+  @@index([userId, type, createdAt])
+  @@index([dedupeKey])
 }
 
 model Area {
