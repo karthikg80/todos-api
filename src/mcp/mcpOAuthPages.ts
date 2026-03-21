@@ -171,7 +171,10 @@ export function renderOAuthLoginPage(input: {
   );
 }
 
-export function renderOAuthRedirectPage(input: { redirectUri: string }) {
+export function renderOAuthRedirectPage(input: {
+  redirectUri: string;
+  nonce: string;
+}) {
   const safe = escapeHtml(input.redirectUri);
   return renderPageShell(
     "Redirecting…",
@@ -179,7 +182,7 @@ export function renderOAuthRedirectPage(input: { redirectUri: string }) {
      <p>Redirecting you back to the assistant…</p>
      <p><a class="primary" href="${safe}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#111827;color:white;text-decoration:none;font-weight:600;">Return to assistant</a></p>
      <meta http-equiv="refresh" content="0; url=${safe}">
-     <script>
+     <script nonce="${escapeHtml(input.nonce)}">
        try { window.location.replace(${JSON.stringify(input.redirectUri)}); } catch(_){}
      </script>`,
   );
