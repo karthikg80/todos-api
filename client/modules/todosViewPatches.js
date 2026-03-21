@@ -376,3 +376,76 @@ export function patchBulkToolbar() {
     refs.selectAll.checked = allSelected;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Focus preservation — save/restore focus across DOM updates.
+// ---------------------------------------------------------------------------
+
+/**
+ * Capture the currently focused element's identity so it can be restored
+ * after a DOM rewrite. Returns a restore function.
+ *
+ * Usage:
+ *   const restoreFocus = saveFocusState();
+ *   // ... perform DOM update ...
+ *   restoreFocus();
+ *
+ * @returns {() => void}
+ */
+export function saveFocusState() {
+  const active = document.activeElement;
+  if (!active || active === document.body) {
+    return () => {};
+  }
+
+  const todoId =
+    active.closest("[data-todo-id]")?.getAttribute("data-todo-id") || null;
+  const tagName = active.tagName;
+  const inputName =
+    active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+      ? active.name || active.id
+      : null;
+  const selectionStart =
+    active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+      ? active.selectionStart
+      : null;
+  const selectionEnd =
+    active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+      ? active.selectionEnd
+      : null;
+
+  return () => {
+    if (!todoId && !inputName) return;
+
+    let target = null;
+    if (todoId && inputName) {
+      const row = getTodoRow(todoId);
+      target = row?.querySelector(
+        `${tagName}[name="${inputName}"], ${tagName}#${inputName}`,
+      );
+    } else if (inputName) {
+      target =
+        document.querySelector(
+          `${tagName}[name="${inputName}"], ${tagName}#${inputName}`,
+        ) || null;
+    } else if (todoId) {
+      const row = getTodoRow(todoId);
+      target = row?.querySelector(tagName) || row;
+    }
+
+    if (target instanceof HTMLElement) {
+      target.focus();
+      if (
+        selectionStart !== null &&
+        (target instanceof HTMLInputElement ||
+          target instanceof HTMLTextAreaElement)
+      ) {
+        try {
+          target.setSelectionRange(selectionStart, selectionEnd);
+        } catch {
+          // setSelectionRange not supported for some input types
+        }
+      }
+    }
+  };
+}
