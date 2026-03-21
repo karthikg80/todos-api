@@ -151,6 +151,15 @@ export const state = {
   // Users / admin
   users: [],
   adminBootstrapAvailable: false,
+  adminFeedbackItems: [],
+  adminFeedbackSelectedId: "",
+  adminFeedbackDetail: null,
+  adminFeedbackFilters: {
+    status: "",
+    type: "",
+  },
+  adminFeedbackListLoading: false,
+  adminFeedbackDetailLoading: false,
 
   // AI
   aiSuggestions: [],

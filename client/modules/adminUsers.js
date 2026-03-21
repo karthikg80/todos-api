@@ -34,9 +34,21 @@ async function loadAdminUsers() {
 
 // Render admin users
 function renderAdminUsers() {
-  const container = document.getElementById("adminContent");
+  const container =
+    document.getElementById("adminUsersContent") ||
+    document.getElementById("adminContent");
+
+  if (!(container instanceof HTMLElement)) {
+    return;
+  }
 
   container.innerHTML = `
+                <div class="admin-section__header">
+                    <div>
+                        <h3 class="admin-section__title">User Management</h3>
+                        <p class="admin-section__subtitle">Manage admin access and account cleanup.</p>
+                    </div>
+                </div>
                 <table class="users-table">
                     <thead>
                         <tr>

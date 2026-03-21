@@ -342,7 +342,8 @@ export interface CreateCaptureItemDto {
 }
 
 export type FeedbackRequestType = "bug" | "feature" | "general";
-export type FeedbackRequestStatus = "new" | "triaged" | "closed";
+export type FeedbackRequestStatus = "new" | "triaged" | "promoted" | "rejected";
+export type FeedbackReviewAction = "triaged" | "promoted" | "rejected";
 
 export interface FeedbackAttachmentMetadataDto {
   name?: string | null;
@@ -379,6 +380,32 @@ export interface FeedbackRequestDto {
   dedupeKey?: string | null;
   githubIssueNumber?: number | null;
   githubIssueUrl?: string | null;
+  reviewedByUserId?: string | null;
+  reviewedAt?: string | null;
+  rejectionReason?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface FeedbackRequestAdminUserDto {
+  id: string;
+  email: string;
+  name?: string | null;
+}
+
+export interface FeedbackRequestAdminListItemDto extends FeedbackRequestDto {
+  user: FeedbackRequestAdminUserDto;
+  reviewer?: FeedbackRequestAdminUserDto | null;
+}
+
+export interface FeedbackRequestAdminDetailDto extends FeedbackRequestAdminListItemDto {}
+
+export interface ListAdminFeedbackRequestsQuery {
+  status?: FeedbackRequestStatus;
+  type?: FeedbackRequestType;
+}
+
+export interface UpdateAdminFeedbackRequestDto {
+  status: FeedbackReviewAction;
+  rejectionReason?: string | null;
 }
