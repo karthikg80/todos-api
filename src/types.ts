@@ -372,6 +372,14 @@ export interface FeedbackTriageResultDto {
   missingInfo: string[];
 }
 
+export interface FeedbackDuplicateMatchDto {
+  duplicateCandidate: boolean;
+  matchedFeedbackIds: string[];
+  matchedGithubIssueNumber?: number | null;
+  matchedGithubIssueUrl?: string | null;
+  duplicateReason?: string | null;
+}
+
 export interface CreateFeedbackRequestDto {
   type: FeedbackRequestType;
   title: string;
@@ -409,6 +417,14 @@ export interface FeedbackRequestDto {
   triageSummary?: string | null;
   severity?: string | null;
   dedupeKey?: string | null;
+  duplicateCandidate?: boolean;
+  matchedFeedbackIds?: string[];
+  matchedGithubIssueNumber?: number | null;
+  matchedGithubIssueUrl?: string | null;
+  duplicateOfFeedbackId?: string | null;
+  duplicateOfGithubIssueNumber?: number | null;
+  duplicateOfGithubIssueUrl?: string | null;
+  duplicateReason?: string | null;
   githubIssueNumber?: number | null;
   githubIssueUrl?: string | null;
   reviewedByUserId?: string | null;
@@ -439,4 +455,8 @@ export interface ListAdminFeedbackRequestsQuery {
 export interface UpdateAdminFeedbackRequestDto {
   status: FeedbackReviewAction;
   rejectionReason?: string | null;
+  ignoreDuplicateSuggestion?: boolean;
+  duplicateOfFeedbackId?: string | null;
+  duplicateOfGithubIssueNumber?: number | null;
+  duplicateReason?: string | null;
 }

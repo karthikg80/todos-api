@@ -33,6 +33,14 @@ function buildFeedback(overrides: Record<string, unknown> = {}) {
     triageSummary: "Likely reproducible",
     severity: "medium",
     dedupeKey: null,
+    duplicateCandidate: false,
+    matchedFeedbackIds: [],
+    matchedGithubIssueNumber: null,
+    matchedGithubIssueUrl: null,
+    duplicateOfFeedbackId: null,
+    duplicateOfGithubIssueNumber: null,
+    duplicateOfGithubIssueUrl: null,
+    duplicateReason: null,
     githubIssueNumber: null,
     githubIssueUrl: null,
     reviewedByUserId: null,
@@ -56,6 +64,7 @@ test.describe("Admin feedback queue", () => {
   }) => {
     let patchPayload: Record<string, unknown> | null = null;
     let triageCalled = false;
+    let linkDuplicatePayload: Record<string, unknown> | null = null;
     const bugFeedback = buildFeedback();
     const featureFeedback = buildFeedback({
       id: "feedback-2",
@@ -130,13 +139,48 @@ test.describe("Admin feedback queue", () => {
 
     await page.route("**/admin/feedback/feedback-1", async (route) => {
       if (route.request().method() === "PATCH") {
-        patchPayload = JSON.parse(route.request().postData() || "{}") as Record<
-          string,
-          unknown
-        >;
+        const payload = JSON.parse(
+          route.request().postData() || "{}",
+        ) as Record<string, unknown>;
+        if (payload.status === "promoted") {
+          Object.assign(bugFeedback, {
+            duplicateCandidate: true,
+            matchedFeedbackIds: ["feedback-2"],
+            matchedGithubIssueNumber: 405,
+            matchedGithubIssueUrl:
+              "https://github.com/karthikg80/todos-api/issues/405",
+            duplicateReason: "Matching dedupe key with normalized feedback",
+          });
+          await route.fulfill({
+            status: 409,
+            contentType: "application/json",
+            body: JSON.stringify({
+              error: "Duplicate candidate found",
+              feedbackRequest: bugFeedback,
+            }),
+          });
+          return;
+        }
+
+        if (payload.duplicateOfFeedbackId) {
+          linkDuplicatePayload = payload;
+          Object.assign(bugFeedback, {
+            status: payload.status,
+            duplicateCandidate: false,
+            duplicateOfFeedbackId: payload.duplicateOfFeedbackId,
+            duplicateReason: payload.duplicateReason,
+            matchedFeedbackIds: [],
+            matchedGithubIssueNumber: null,
+            matchedGithubIssueUrl: null,
+          });
+        } else {
+          patchPayload = payload;
+          Object.assign(bugFeedback, {
+            status: patchPayload.status,
+            rejectionReason: patchPayload.rejectionReason,
+          });
+        }
         Object.assign(bugFeedback, {
-          status: patchPayload.status,
-          rejectionReason: patchPayload.rejectionReason,
           reviewedByUserId: "admin-1",
           reviewedAt: "2026-03-20T20:00:00.000Z",
           reviewer: {
@@ -220,6 +264,35 @@ test.describe("Admin feedback queue", () => {
     );
     await expect(page.locator("#adminFeedbackDetail")).toContainText(
       "feedback:bug",
+    );
+
+    await page
+      .locator("#adminFeedbackDetail")
+      .getByRole("button", { name: "Ready for promotion", exact: true })
+      .click();
+    await expect(page.locator("#adminMessage")).toContainText(
+      "Duplicate candidate found",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "feedback-2",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText("#405");
+
+    await page
+      .locator("#adminFeedbackDetail")
+      .getByRole("button", { name: "Link matched feedback", exact: true })
+      .click();
+
+    expect(linkDuplicatePayload).toEqual({
+      status: "triaged",
+      duplicateOfFeedbackId: "feedback-2",
+      duplicateReason: "Matching dedupe key with normalized feedback",
+    });
+    await expect(page.locator("#adminMessage")).toContainText(
+      "Feedback linked as duplicate",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "Confirmed feedback duplicate",
     );
 
     await page

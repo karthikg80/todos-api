@@ -2,6 +2,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService";
 import { HttpError, hasPrismaCode } from "../errorHandling";
 import { FeedbackService } from "../services/feedbackService";
+import {
+  DuplicatePromotionConflictError,
+  FeedbackDuplicateService,
+} from "../services/feedbackDuplicateService";
 import { FeedbackTriageService } from "../services/feedbackTriageService";
 import {
   validateListAdminFeedbackRequestsQuery,
@@ -12,12 +16,14 @@ interface AdminRouterDeps {
   authService?: AuthService;
   feedbackService?: FeedbackService;
   feedbackTriageService?: FeedbackTriageService;
+  feedbackDuplicateService?: FeedbackDuplicateService;
 }
 
 export function createAdminRouter({
   authService,
   feedbackService,
   feedbackTriageService,
+  feedbackDuplicateService,
 }: AdminRouterDeps): Router {
   const router = Router();
 
@@ -180,6 +186,21 @@ export function createAdminRouter({
         }
 
         const dto = validateUpdateAdminFeedbackRequest(req.body);
+        if (
+          dto.status === "promoted" &&
+          !dto.ignoreDuplicateSuggestion &&
+          !dto.duplicateOfFeedbackId &&
+          !dto.duplicateOfGithubIssueNumber
+        ) {
+          if (!feedbackDuplicateService) {
+            return res
+              .status(501)
+              .json({ error: "Feedback duplicate detection not configured" });
+          }
+
+          await feedbackDuplicateService.assertPromotionIsSafe(feedbackId);
+        }
+
         const feedbackRequest = await feedbackService.updateReviewStatus(
           feedbackId,
           reviewerUserId,
@@ -187,8 +208,50 @@ export function createAdminRouter({
         );
         res.json(feedbackRequest);
       } catch (error) {
+        if (error instanceof DuplicatePromotionConflictError) {
+          const feedbackRequest = await feedbackService.getForAdmin(
+            String(req.params.id),
+          );
+          return res.status(409).json({
+            error: error.message,
+            duplicateDetection: error.assessment,
+            feedbackRequest,
+          });
+        }
         if (hasPrismaCode(error, ["P2025"])) {
           return next(new HttpError(404, "Feedback request not found"));
+        }
+        if (hasPrismaCode(error, ["P2023"])) {
+          return next(new HttpError(400, "Invalid feedback request ID format"));
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/feedback/:id/duplicate-check",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackService || !feedbackDuplicateService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback duplicate detection not configured" });
+      }
+
+      try {
+        const feedbackId = String(req.params.id);
+        await feedbackDuplicateService.detectAndPersist(feedbackId);
+        const feedbackRequest = await feedbackService.getForAdmin(feedbackId);
+        if (!feedbackRequest) {
+          return next(new HttpError(404, "Feedback request not found"));
+        }
+        res.json(feedbackRequest);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "Feedback request not found"
+        ) {
+          return next(new HttpError(404, error.message));
         }
         if (hasPrismaCode(error, ["P2023"])) {
           return next(new HttpError(400, "Invalid feedback request ID format"));

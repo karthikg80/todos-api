@@ -1,9 +1,9 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { config } from "../config";
 import {
   CreateFeedbackRequestDto,
   FeedbackRequestAdminDetailDto,
   FeedbackRequestAdminListItemDto,
-  FeedbackTriageResultDto,
   FeedbackRequestDto,
   FeedbackAttachmentMetadataDto,
   ListAdminFeedbackRequestsQuery,
@@ -12,6 +12,13 @@ import {
 
 export class FeedbackService {
   constructor(private readonly prisma: PrismaClient) {}
+
+  private buildGitHubIssueUrl(issueNumber: number | null): string | null {
+    if (!issueNumber) {
+      return null;
+    }
+    return `https://github.com/${config.githubRepo}/issues/${issueNumber}`;
+  }
 
   async create(
     userId: string,
@@ -98,6 +105,11 @@ export class FeedbackService {
     reviewerUserId: string,
     dto: UpdateAdminFeedbackRequestDto,
   ): Promise<FeedbackRequestAdminDetailDto> {
+    const shouldResolveDuplicate = Boolean(
+      dto.ignoreDuplicateSuggestion ||
+      dto.duplicateOfFeedbackId ||
+      dto.duplicateOfGithubIssueNumber,
+    );
     const record = await this.prisma.feedbackRequest.update({
       where: { id },
       data: {
@@ -105,6 +117,21 @@ export class FeedbackService {
         reviewedByUserId: reviewerUserId,
         reviewedAt: new Date(),
         rejectionReason: dto.status === "rejected" ? dto.rejectionReason : null,
+        duplicateCandidate: shouldResolveDuplicate ? false : undefined,
+        matchedFeedbackIds: shouldResolveDuplicate
+          ? Prisma.JsonNull
+          : undefined,
+        matchedGithubIssueNumber: shouldResolveDuplicate ? null : undefined,
+        matchedGithubIssueUrl: shouldResolveDuplicate ? null : undefined,
+        duplicateOfFeedbackId: shouldResolveDuplicate
+          ? (dto.duplicateOfFeedbackId ?? null)
+          : undefined,
+        duplicateOfGithubIssueNumber: shouldResolveDuplicate
+          ? (dto.duplicateOfGithubIssueNumber ?? null)
+          : undefined,
+        duplicateReason: shouldResolveDuplicate
+          ? (dto.duplicateReason ?? null)
+          : undefined,
       },
       include: {
         user: {
@@ -159,6 +186,13 @@ export class FeedbackService {
     triageSummary: string | null;
     severity: string | null;
     dedupeKey: string | null;
+    duplicateCandidate: boolean;
+    matchedFeedbackIds: unknown;
+    matchedGithubIssueNumber: number | null;
+    matchedGithubIssueUrl: string | null;
+    duplicateOfFeedbackId: string | null;
+    duplicateOfGithubIssueNumber: number | null;
+    duplicateReason: string | null;
     githubIssueNumber: number | null;
     githubIssueUrl: string | null;
     reviewedByUserId: string | null;
@@ -174,6 +208,11 @@ export class FeedbackService {
       : [];
     const agentLabels = Array.isArray(record.agentLabelsJson)
       ? record.agentLabelsJson.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
+    const matchedFeedbackIds = Array.isArray(record.matchedFeedbackIds)
+      ? record.matchedFeedbackIds.filter(
           (value): value is string => typeof value === "string",
         )
       : [];
@@ -211,6 +250,16 @@ export class FeedbackService {
       triageSummary: record.triageSummary,
       severity: record.severity,
       dedupeKey: record.dedupeKey,
+      duplicateCandidate: record.duplicateCandidate,
+      matchedFeedbackIds,
+      matchedGithubIssueNumber: record.matchedGithubIssueNumber,
+      matchedGithubIssueUrl: record.matchedGithubIssueUrl,
+      duplicateOfFeedbackId: record.duplicateOfFeedbackId,
+      duplicateOfGithubIssueNumber: record.duplicateOfGithubIssueNumber,
+      duplicateOfGithubIssueUrl: this.buildGitHubIssueUrl(
+        record.duplicateOfGithubIssueNumber,
+      ),
+      duplicateReason: record.duplicateReason,
       githubIssueNumber: record.githubIssueNumber,
       githubIssueUrl: record.githubIssueUrl,
       reviewedByUserId: record.reviewedByUserId,
@@ -254,6 +303,13 @@ export class FeedbackService {
     triageSummary: string | null;
     severity: string | null;
     dedupeKey: string | null;
+    duplicateCandidate: boolean;
+    matchedFeedbackIds: unknown;
+    matchedGithubIssueNumber: number | null;
+    matchedGithubIssueUrl: string | null;
+    duplicateOfFeedbackId: string | null;
+    duplicateOfGithubIssueNumber: number | null;
+    duplicateReason: string | null;
     githubIssueNumber: number | null;
     githubIssueUrl: string | null;
     reviewedAt: Date | null;

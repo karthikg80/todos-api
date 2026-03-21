@@ -497,6 +497,13 @@ model FeedbackRequest {
   triageSummary      String?        @map("triage_summary") @db.Text
   severity           String?        @db.VarChar(20)
   dedupeKey          String?        @map("dedupe_key") @db.VarChar(255)
+  duplicateCandidate Boolean        @default(false) @map("duplicate_candidate")
+  matchedFeedbackIds Json?          @map("matched_feedback_ids")
+  matchedGithubIssueNumber Int?     @map("matched_github_issue_number")
+  matchedGithubIssueUrl String?     @map("matched_github_issue_url") @db.VarChar(2000)
+  duplicateOfFeedbackId String?     @map("duplicate_of_feedback_id")
+  duplicateOfGithubIssueNumber Int? @map("duplicate_of_github_issue_number")
+  duplicateReason    String?        @map("duplicate_reason") @db.Text
   githubIssueNumber  Int?           @map("github_issue_number")
   githubIssueUrl     String?        @map("github_issue_url") @db.VarChar(2000)
   reviewedAt         DateTime?      @map("reviewed_at")
@@ -513,6 +520,9 @@ model FeedbackRequest {
   @@index([classification, triageConfidence])
   @@index([reviewedByUserId, reviewedAt])
   @@index([dedupeKey])
+  @@index([duplicateCandidate, createdAt])
+  @@index([duplicateOfFeedbackId])
+  @@index([duplicateOfGithubIssueNumber])
   @@map("feedback_requests")
 }
 

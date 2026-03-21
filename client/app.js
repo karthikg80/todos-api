@@ -409,7 +409,10 @@ import {
   deleteUser,
 } from "./modules/adminUsers.js";
 import {
+  confirmAdminFeedbackDuplicate,
+  ignoreDuplicateAndPromote,
   loadAdminFeedbackQueue,
+  runAdminFeedbackDuplicateCheck,
   selectAdminFeedback,
   setAdminFeedbackFilter,
   runAdminFeedbackTriage,
@@ -1772,6 +1775,9 @@ window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;
 window.selectAdminFeedback = selectAdminFeedback;
 window.setAdminFeedbackFilter = setAdminFeedbackFilter;
+window.runAdminFeedbackDuplicateCheck = runAdminFeedbackDuplicateCheck;
+window.confirmAdminFeedbackDuplicate = confirmAdminFeedbackDuplicate;
+window.ignoreDuplicateAndPromote = ignoreDuplicateAndPromote;
 window.runAdminFeedbackTriage = runAdminFeedbackTriage;
 window.updateAdminFeedbackStatus = updateAdminFeedbackStatus;
 

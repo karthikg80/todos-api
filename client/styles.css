@@ -3922,6 +3922,21 @@ body.is-todos-view .floating-new-task-cta {
   color: var(--text-secondary);
 }
 
+.admin-detail-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.admin-detail-link:hover {
+  text-decoration: underline;
+}
+
+.admin-detail-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
 .admin-feedback-actions {
   display: flex;
   flex-wrap: wrap;
