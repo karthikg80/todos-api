@@ -2,6 +2,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { config } from "../config";
 import {
   CreateFeedbackRequestDto,
+  FeedbackAutomationDecision,
   FeedbackRequestAdminDetailDto,
   FeedbackRequestAdminListItemDto,
   FeedbackRequestDto,
@@ -162,6 +163,10 @@ export class FeedbackService {
       githubIssueNumber: number;
       githubIssueUrl: string;
       promotedAt: Date;
+      promotionDecision?: FeedbackAutomationDecision;
+      promotionReason?: string | null;
+      promotionRunId?: string | null;
+      promotionDecidedAt?: Date;
     },
   ): Promise<FeedbackRequestAdminDetailDto> {
     const record = await this.prisma.feedbackRequest.update({
@@ -173,6 +178,49 @@ export class FeedbackService {
         promotedAt: promotion.promotedAt,
         githubIssueNumber: promotion.githubIssueNumber,
         githubIssueUrl: promotion.githubIssueUrl,
+        promotionDecision: promotion.promotionDecision ?? "promoted",
+        promotionReason: promotion.promotionReason ?? "Promoted to GitHub",
+        promotionRunId: promotion.promotionRunId ?? null,
+        promotionDecidedAt:
+          promotion.promotionDecidedAt ?? promotion.promotedAt,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return this.toAdminDto(record);
+  }
+
+  async recordPromotionDecision(
+    id: string,
+    decision: {
+      promotionDecision: FeedbackAutomationDecision;
+      promotionReason: string;
+      promotionRunId?: string | null;
+      promotionDecidedAt: Date;
+    },
+  ): Promise<FeedbackRequestAdminDetailDto> {
+    const record = await this.prisma.feedbackRequest.update({
+      where: { id },
+      data: {
+        promotionDecision: decision.promotionDecision,
+        promotionReason: decision.promotionReason,
+        promotionRunId: decision.promotionRunId ?? null,
+        promotionDecidedAt: decision.promotionDecidedAt,
       },
       include: {
         user: {
@@ -237,6 +285,10 @@ export class FeedbackService {
     githubIssueNumber: number | null;
     githubIssueUrl: string | null;
     promotedAt: Date | null;
+    promotionDecision: string | null;
+    promotionReason: string | null;
+    promotionRunId: string | null;
+    promotionDecidedAt: Date | null;
     reviewedByUserId: string | null;
     reviewedAt: Date | null;
     rejectionReason: string | null;
@@ -305,6 +357,11 @@ export class FeedbackService {
       githubIssueNumber: record.githubIssueNumber,
       githubIssueUrl: record.githubIssueUrl,
       promotedAt: record.promotedAt?.toISOString() ?? null,
+      promotionDecision:
+        (record.promotionDecision as FeedbackAutomationDecision | null) ?? null,
+      promotionReason: record.promotionReason,
+      promotionRunId: record.promotionRunId,
+      promotionDecidedAt: record.promotionDecidedAt?.toISOString() ?? null,
       reviewedByUserId: record.reviewedByUserId,
       reviewedAt: record.reviewedAt?.toISOString() ?? null,
       rejectionReason: record.rejectionReason,
@@ -356,6 +413,10 @@ export class FeedbackService {
     githubIssueNumber: number | null;
     githubIssueUrl: string | null;
     promotedAt: Date | null;
+    promotionDecision: string | null;
+    promotionReason: string | null;
+    promotionRunId: string | null;
+    promotionDecidedAt: Date | null;
     reviewedAt: Date | null;
     rejectionReason: string | null;
     createdAt: Date;

@@ -8,6 +8,9 @@ export interface AgentConfigRecord {
   inboxEnabled: boolean;
   watchdogEnabled: boolean;
   decomposerEnabled: boolean;
+  feedbackAutomationEnabled: boolean;
+  feedbackAutoPromoteEnabled: boolean;
+  feedbackAutoPromoteMinConfidence: number;
   autoApply: boolean;
   maxWriteActionsPerRun: number;
   inboxConfidenceThreshold: number;
@@ -72,6 +75,9 @@ export class AgentConfigService {
       inboxEnabled: true,
       watchdogEnabled: true,
       decomposerEnabled: true,
+      feedbackAutomationEnabled: false,
+      feedbackAutoPromoteEnabled: false,
+      feedbackAutoPromoteMinConfidence: 0.9,
       autoApply: false,
       maxWriteActionsPerRun: 20,
       inboxConfidenceThreshold: 0.9,
@@ -96,6 +102,9 @@ export class AgentConfigService {
       inboxEnabled: r.inboxEnabled,
       watchdogEnabled: r.watchdogEnabled,
       decomposerEnabled: r.decomposerEnabled,
+      feedbackAutomationEnabled: r.feedbackAutomationEnabled,
+      feedbackAutoPromoteEnabled: r.feedbackAutoPromoteEnabled,
+      feedbackAutoPromoteMinConfidence: r.feedbackAutoPromoteMinConfidence,
       autoApply: r.autoApply,
       maxWriteActionsPerRun: r.maxWriteActionsPerRun,
       inboxConfidenceThreshold: r.inboxConfidenceThreshold,

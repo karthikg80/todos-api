@@ -344,6 +344,7 @@ export interface CreateCaptureItemDto {
 export type FeedbackRequestType = "bug" | "feature" | "general";
 export type FeedbackRequestStatus = "new" | "triaged" | "promoted" | "rejected";
 export type FeedbackReviewAction = "triaged" | "promoted" | "rejected";
+export type FeedbackAutomationDecision = "review" | "promoted";
 export type FeedbackTriageClassification =
   | "bug"
   | "feature"
@@ -406,6 +407,51 @@ export interface PromoteFeedbackRequestDto {
   ignoreDuplicateSuggestion?: boolean;
 }
 
+export interface FeedbackAutomationConfigDto {
+  feedbackAutomationEnabled: boolean;
+  feedbackAutoPromoteEnabled: boolean;
+  feedbackAutoPromoteMinConfidence: number;
+  allowlistedClassifications: Array<"bug" | "feature">;
+}
+
+export interface UpdateFeedbackAutomationConfigDto {
+  feedbackAutomationEnabled?: boolean;
+  feedbackAutoPromoteEnabled?: boolean;
+  feedbackAutoPromoteMinConfidence?: number;
+}
+
+export interface FeedbackAutomationDecisionDto {
+  id: string;
+  title: string;
+  type: FeedbackRequestType;
+  status: FeedbackRequestStatus;
+  classification?: FeedbackTriageClassification | null;
+  triageConfidence?: number | null;
+  promotionDecision: FeedbackAutomationDecision;
+  promotionReason?: string | null;
+  promotionRunId?: string | null;
+  promotionDecidedAt: string;
+  githubIssueNumber?: number | null;
+  githubIssueUrl?: string | null;
+}
+
+export interface RunFeedbackAutomationRequestDto {
+  limit?: number;
+}
+
+export interface FeedbackAutomationRunResultDto {
+  jobName: string;
+  periodKey: string;
+  runId?: string | null;
+  claimed: boolean;
+  skipped: boolean;
+  reason?: string | null;
+  processedCount: number;
+  promotedCount: number;
+  reviewCount: number;
+  decisions: FeedbackAutomationDecisionDto[];
+}
+
 export interface CreateFeedbackRequestDto {
   type: FeedbackRequestType;
   title: string;
@@ -454,6 +500,10 @@ export interface FeedbackRequestDto {
   githubIssueNumber?: number | null;
   githubIssueUrl?: string | null;
   promotedAt?: string | null;
+  promotionDecision?: FeedbackAutomationDecision | null;
+  promotionReason?: string | null;
+  promotionRunId?: string | null;
+  promotionDecidedAt?: string | null;
   reviewedByUserId?: string | null;
   reviewedAt?: string | null;
   rejectionReason?: string | null;

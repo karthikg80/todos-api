@@ -44,6 +44,10 @@ function buildFeedback(overrides: Record<string, unknown> = {}) {
     githubIssueNumber: null,
     githubIssueUrl: null,
     promotedAt: null,
+    promotionDecision: null,
+    promotionReason: null,
+    promotionRunId: null,
+    promotionDecidedAt: null,
     reviewedByUserId: null,
     reviewedAt: null,
     rejectionReason: null,
@@ -67,6 +71,8 @@ test.describe("Admin feedback queue", () => {
     let triageCalled = false;
     let linkDuplicatePayload: Record<string, unknown> | null = null;
     let promotePayload: Record<string, unknown> | null = null;
+    let savedAutomationPayload: Record<string, unknown> | null = null;
+    let automationRunPayload: Record<string, unknown> | null = null;
     const bugFeedback = buildFeedback();
     const featureFeedback = buildFeedback({
       id: "feedback-2",
@@ -77,12 +83,103 @@ test.describe("Admin feedback queue", () => {
       createdAt: "2026-03-20T19:00:00.000Z",
       updatedAt: "2026-03-20T19:00:00.000Z",
     });
+    const automationConfig = {
+      feedbackAutomationEnabled: false,
+      feedbackAutoPromoteEnabled: false,
+      feedbackAutoPromoteMinConfidence: 0.9,
+      allowlistedClassifications: ["bug", "feature"],
+    };
+    const automationDecisions = [
+      {
+        id: "feedback-2",
+        title: "Add planning bundles",
+        type: "feature",
+        status: "triaged",
+        classification: "feature",
+        triageConfidence: 0.88,
+        promotionDecision: "review",
+        promotionReason:
+          "Triage confidence 0.88 is below the auto-promotion threshold",
+        promotionRunId: "run-1",
+        promotionDecidedAt: "2026-03-20T20:30:00.000Z",
+        githubIssueNumber: null,
+        githubIssueUrl: null,
+      },
+    ];
 
     await page.route("**/admin/users", async (route) => {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
         body: JSON.stringify([]),
+      });
+    });
+
+    await page.route("**/admin/feedback/automation/config", async (route) => {
+      if (route.request().method() === "PATCH") {
+        savedAutomationPayload = JSON.parse(
+          route.request().postData() || "{}",
+        ) as Record<string, unknown>;
+        Object.assign(automationConfig, savedAutomationPayload);
+      }
+
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(automationConfig),
+      });
+    });
+
+    await page.route(
+      "**/admin/feedback/automation/decisions",
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(automationDecisions),
+        });
+      },
+    );
+
+    await page.route("**/admin/feedback/automation/run", async (route) => {
+      automationRunPayload = JSON.parse(
+        route.request().postData() || "{}",
+      ) as Record<string, unknown>;
+      automationDecisions.unshift({
+        id: "feedback-1",
+        title: "Task drawer crashes",
+        type: "bug",
+        status: "triaged",
+        classification: "bug",
+        triageConfidence: 0.93,
+        promotionDecision: "review",
+        promotionReason: "Auto-promote is disabled; kept in the review queue",
+        promotionRunId: "run-2",
+        promotionDecidedAt: "2026-03-20T21:00:00.000Z",
+        githubIssueNumber: null,
+        githubIssueUrl: null,
+      });
+      Object.assign(bugFeedback, {
+        promotionDecision: "review",
+        promotionReason: "Auto-promote is disabled; kept in the review queue",
+        promotionRunId: "run-2",
+        promotionDecidedAt: "2026-03-20T21:00:00.000Z",
+      });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          jobName: "feedback_auto_promotion",
+          periodKey: "2026-03-20T21:00",
+          runId: "run-2",
+          claimed: true,
+          skipped: false,
+          reason: null,
+          processedCount: 1,
+          promotedCount: 0,
+          reviewCount: 1,
+          decisions: [automationDecisions[0]],
+        }),
       });
     });
 
@@ -287,6 +384,35 @@ test.describe("Admin feedback queue", () => {
     });
 
     await expect(page.locator("#adminView")).toHaveClass(/active/);
+    await expect(page.locator("#adminContent")).toContainText(
+      "Feedback Automation",
+    );
+    await expect(page.locator("#adminContent")).toContainText(
+      "below the auto-promotion threshold",
+    );
+    await page.locator("#adminFeedbackAutomationEnabled").check();
+    await page.locator("#adminFeedbackAutoPromoteEnabled").check();
+    await page.locator("#adminFeedbackAutoPromoteMinConfidence").fill("0.94");
+    await page
+      .getByRole("button", { name: "Save settings", exact: true })
+      .click();
+    expect(savedAutomationPayload).toEqual({
+      feedbackAutomationEnabled: true,
+      feedbackAutoPromoteEnabled: true,
+      feedbackAutoPromoteMinConfidence: 0.94,
+    });
+    await expect(page.locator("#adminMessage")).toContainText(
+      "Feedback automation settings updated",
+    );
+
+    await page.getByRole("button", { name: "Run now", exact: true }).click();
+    expect(automationRunPayload).toEqual({ limit: 20 });
+    await expect(page.locator("#adminMessage")).toContainText(
+      "Automation processed 1 items",
+    );
+    await expect(page.locator("#adminContent")).toContainText(
+      "Auto-promote is disabled; kept in the review queue",
+    );
     await expect(page.locator("#adminFeedbackList")).toContainText(
       "Add planning bundles",
     );
@@ -385,6 +511,9 @@ test.describe("Admin feedback queue", () => {
     );
     await expect(page.locator("#adminFeedbackDetail")).toContainText(
       "Missing enough detail to act on this safely",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "Automation decision",
     );
   });
 });

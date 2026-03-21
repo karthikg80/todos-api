@@ -507,6 +507,10 @@ model FeedbackRequest {
   githubIssueNumber  Int?           @map("github_issue_number")
   githubIssueUrl     String?        @map("github_issue_url") @db.VarChar(2000)
   promotedAt         DateTime?      @map("promoted_at")
+  promotionDecision  String?        @map("promotion_decision") @db.VarChar(20)
+  promotionReason    String?        @map("promotion_reason") @db.Text
+  promotionRunId     String?        @map("promotion_run_id") @db.VarChar(120)
+  promotionDecidedAt DateTime?      @map("promotion_decided_at")
   reviewedAt         DateTime?      @map("reviewed_at")
   rejectionReason    String?        @map("rejection_reason") @db.Text
   createdAt          DateTime       @default(now()) @map("created_at")
@@ -525,6 +529,8 @@ model FeedbackRequest {
   @@index([duplicateOfFeedbackId])
   @@index([duplicateOfGithubIssueNumber])
   @@index([promotedAt])
+  @@index([promotionDecision, promotionDecidedAt])
+  @@index([promotionRunId])
   @@map("feedback_requests")
 }
 
@@ -642,6 +648,9 @@ model AgentConfig {
   inboxEnabled             Boolean  @default(true) @map("inbox_enabled")
   watchdogEnabled          Boolean  @default(true) @map("watchdog_enabled")
   decomposerEnabled        Boolean  @default(true) @map("decomposer_enabled")
+  feedbackAutomationEnabled Boolean @default(false) @map("feedback_automation_enabled")
+  feedbackAutoPromoteEnabled Boolean @default(false) @map("feedback_auto_promote_enabled")
+  feedbackAutoPromoteMinConfidence Float @default(0.9) @map("feedback_auto_promote_min_confidence")
   autoApply                Boolean  @default(false) @map("auto_apply")
   maxWriteActionsPerRun    Int      @default(20) @map("max_write_actions_per_run")
   inboxConfidenceThreshold Float    @default(0.9) @map("inbox_confidence_threshold")

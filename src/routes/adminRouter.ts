@@ -8,9 +8,13 @@ import {
 } from "../services/feedbackDuplicateService";
 import { FeedbackPromotionService } from "../services/feedbackPromotionService";
 import { FeedbackTriageService } from "../services/feedbackTriageService";
+import { FeedbackAutomationService } from "../services/feedbackAutomationService";
 import {
+  validateFeedbackAutomationDecisionLimit,
   validateListAdminFeedbackRequestsQuery,
   validatePromoteFeedbackRequest,
+  validateRunFeedbackAutomationRequest,
+  validateUpdateFeedbackAutomationConfig,
   validateUpdateAdminFeedbackRequest,
 } from "../validation/validation";
 
@@ -20,6 +24,7 @@ interface AdminRouterDeps {
   feedbackTriageService?: FeedbackTriageService;
   feedbackDuplicateService?: FeedbackDuplicateService;
   feedbackPromotionService?: FeedbackPromotionService;
+  feedbackAutomationService?: FeedbackAutomationService;
 }
 
 export function createAdminRouter({
@@ -28,6 +33,7 @@ export function createAdminRouter({
   feedbackTriageService,
   feedbackDuplicateService,
   feedbackPromotionService,
+  feedbackAutomationService,
 }: AdminRouterDeps): Router {
   const router = Router();
 
@@ -124,6 +130,101 @@ export function createAdminRouter({
           return next(new HttpError(400, "Invalid user ID format"));
         }
         return next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/feedback/automation/config",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackAutomationService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback automation not configured" });
+      }
+
+      try {
+        const userId = req.user?.userId;
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+        const automationConfig =
+          await feedbackAutomationService.getConfig(userId);
+        res.json(automationConfig);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.patch(
+    "/feedback/automation/config",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackAutomationService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback automation not configured" });
+      }
+
+      try {
+        const userId = req.user?.userId;
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+        const update = validateUpdateFeedbackAutomationConfig(req.body);
+        const automationConfig = await feedbackAutomationService.updateConfig(
+          userId,
+          update,
+        );
+        res.json(automationConfig);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/feedback/automation/decisions",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackAutomationService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback automation not configured" });
+      }
+
+      try {
+        const limit = validateFeedbackAutomationDecisionLimit(req.query.limit);
+        const decisions =
+          await feedbackAutomationService.listRecentDecisions(limit);
+        res.json(decisions);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/feedback/automation/run",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackAutomationService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback automation not configured" });
+      }
+
+      try {
+        const userId = req.user?.userId;
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+        const input = validateRunFeedbackAutomationRequest(req.body);
+        const result = await feedbackAutomationService.runAutoPromotion(
+          userId,
+          input,
+        );
+        res.json(result);
+      } catch (error) {
+        next(error);
       }
     },
   );
