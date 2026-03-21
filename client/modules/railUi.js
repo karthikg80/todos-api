@@ -197,6 +197,17 @@ export function setFeedbackPaneVisible(isVisible) {
   }
 }
 
+export function setAdminPaneVisible(isVisible) {
+  const adminPane = document.getElementById("adminPane");
+  const todosView = document.getElementById("todosView");
+  if (!(adminPane instanceof HTMLElement)) return;
+
+  adminPane.hidden = !isVisible;
+  if (todosView instanceof HTMLElement) {
+    todosView.classList.toggle("todos-view--admin-active", isVisible);
+  }
+}
+
 export function setTodosViewBodyState(isTodosView) {
   document.body.classList.toggle("is-todos-view", isTodosView);
   syncProjectsRailHost();
