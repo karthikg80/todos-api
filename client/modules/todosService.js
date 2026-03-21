@@ -14,6 +14,19 @@ import {
   patchVisibleCategoryGroupStats,
 } from "./todosViewPatches.js";
 import { EventBus } from "./eventBus.js";
+import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
+import {
+  TODO_ADDED,
+  TODO_TOGGLED,
+  TODO_DELETED,
+  TODO_UPDATED,
+  TODOS_LOADING,
+  TODOS_LOADED,
+  TODOS_LOAD_ERROR,
+  TODOS_REORDERED,
+  BULK_ACTION,
+  UNDO_APPLIED,
+} from "../platform/events/eventReasons.js";
 
 // ---------------------------------------------------------------------------
 // Helpers — apiCall, API_URL, normalizeProjectPath, parseApiBody are injected
@@ -181,7 +194,7 @@ async function loadVisibleTodos({ force = false } = {}) {
   visibleTodosState.requestSeq = requestSeq;
   visibleTodosState.loading = true;
   visibleTodosState.pendingQueryKey = queryKey;
-  EventBus.dispatch("todos:changed", { reason: "todos-loading" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: TODOS_LOADING });
 
   try {
     const todosUrl = hooks.buildUrl(`${hooks.API_URL}/todos`, queryParams);
@@ -193,7 +206,7 @@ async function loadVisibleTodos({ force = false } = {}) {
       visibleTodosState.items = await response.json();
       visibleTodosState.queryKey = queryKey;
       visibleTodosState.loading = false;
-      EventBus.dispatch("todos:changed", { reason: "todos-loaded" });
+      EventBus.dispatch(TODOS_CHANGED, { reason: TODOS_LOADED });
       return true;
     }
   } catch (error) {
@@ -202,7 +215,7 @@ async function loadVisibleTodos({ force = false } = {}) {
 
   if (requestSeq === visibleTodosState.requestSeq) {
     clearVisibleTodosState();
-    EventBus.dispatch("todos:changed", { reason: "todos-load-error" });
+    EventBus.dispatch(TODOS_CHANGED, { reason: TODOS_LOAD_ERROR });
   }
   return false;
 }
@@ -218,7 +231,7 @@ async function refreshVisibleTodosIfNeeded() {
 async function loadTodos() {
   state.todosLoadState = "loading";
   state.todosLoadErrorMessage = "";
-  EventBus.dispatch("todos:changed", { reason: "todos-loading" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: TODOS_LOADING });
 
   try {
     const queryParams = buildTodosQueryParams();
@@ -230,7 +243,7 @@ async function loadTodos() {
       state.todosLoadErrorMessage = "";
       state.homeAi = createInitialHomeAiState();
       await refreshVisibleTodosIfNeeded();
-      EventBus.dispatch("todos:changed", { reason: "todos-loaded" });
+      EventBus.dispatch(TODOS_CHANGED, { reason: TODOS_LOADED });
       hooks.refreshProjectCatalog?.();
     } else {
       state.todos = [];
@@ -239,7 +252,7 @@ async function loadTodos() {
       clearVisibleTodosState();
       state.todosLoadState = "error";
       state.todosLoadErrorMessage = "Couldn't load tasks";
-      EventBus.dispatch("todos:changed", { reason: "todos-load-error" });
+      EventBus.dispatch(TODOS_CHANGED, { reason: TODOS_LOAD_ERROR });
       hooks.refreshProjectCatalog?.();
       hooks.showMessage?.("todosMessage", "Failed to load todos", "error");
     }
@@ -250,7 +263,7 @@ async function loadTodos() {
     clearVisibleTodosState();
     state.todosLoadState = "error";
     state.todosLoadErrorMessage = "Couldn't load tasks";
-    EventBus.dispatch("todos:changed", { reason: "todos-load-error" });
+    EventBus.dispatch(TODOS_CHANGED, { reason: TODOS_LOAD_ERROR });
     hooks.refreshProjectCatalog?.();
     console.error("Load todos error:", error);
   }
@@ -376,7 +389,7 @@ async function addTodo() {
       const newTodo = await response.json();
       state.todos.unshift(newTodo);
       await refreshVisibleTodosIfNeeded();
-      EventBus.dispatch("todos:changed", { reason: "todo-added" });
+      EventBus.dispatch(TODOS_CHANGED, { reason: TODO_ADDED });
       hooks.updateCategoryFilter?.();
       hooks.clearOnCreateDismissed?.(newTodo.id);
 
@@ -485,7 +498,7 @@ async function toggleTodo(id, forceValue = null) {
         hooks.syncTodoDrawerStateWithRender?.();
       } else {
         await refreshVisibleTodosIfNeeded();
-        EventBus.dispatch("todos:changed", { reason: "todo-toggled" });
+        EventBus.dispatch(TODOS_CHANGED, { reason: TODO_TOGGLED });
       }
 
       if (forceValue === null && newCompletedValue) {
@@ -513,7 +526,7 @@ async function deleteTodo(id) {
     if (response && response.ok) {
       state.todos = state.todos.filter((t) => t.id !== id);
       state.selectedTodos.delete(id);
-      EventBus.dispatch("todos:changed", { reason: "todo-deleted" });
+      EventBus.dispatch(TODOS_CHANGED, { reason: TODO_DELETED });
       hooks.updateCategoryFilter?.();
 
       addUndoAction("delete", todoData, "Todo deleted");
@@ -573,7 +586,7 @@ async function moveTodoToProject(todoId, projectValue) {
     hooks.refreshProjectCatalog?.();
     await hooks.loadProjects?.();
     await refreshVisibleTodosIfNeeded();
-    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
+    EventBus.dispatch(TODOS_CHANGED, { reason: TODO_UPDATED });
   } catch (error) {
     console.error("Move todo project failed:", error);
     hooks.showMessage?.(
@@ -678,7 +691,7 @@ async function reorderTodos(draggedId, targetId, options = {}) {
     todo.order = index;
   });
 
-  EventBus.dispatch("todos:changed", { reason: "todos-reordered" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: TODOS_REORDERED });
 
   try {
     const response = await hooks.apiCall(`${hooks.API_URL}/todos/reorder`, {
@@ -786,7 +799,7 @@ async function completeSelected() {
 
   state.selectedTodos.clear();
   await refreshVisibleTodosIfNeeded();
-  EventBus.dispatch("todos:changed", { reason: "bulk-action" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: BULK_ACTION });
 }
 
 async function deleteSelected() {
@@ -840,7 +853,7 @@ async function deleteSelected() {
   }
 
   state.selectedTodos.clear();
-  EventBus.dispatch("todos:changed", { reason: "bulk-action" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: BULK_ACTION });
   hooks.updateCategoryFilter?.();
   if (deletedCount > 0) {
     await loadTodos();
@@ -949,7 +962,7 @@ async function restoreTodo(todoData) {
         return aOrder - bOrder;
       });
       await refreshVisibleTodosIfNeeded();
-      EventBus.dispatch("todos:changed", { reason: "undo-applied" });
+      EventBus.dispatch(TODOS_CHANGED, { reason: UNDO_APPLIED });
       hooks.updateCategoryFilter?.();
     }
   } catch (error) {
