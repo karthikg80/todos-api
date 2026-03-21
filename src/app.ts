@@ -38,6 +38,7 @@ import { createCaptureRouter } from "./routes/captureRouter";
 import { createPreferencesRouter } from "./routes/preferencesRouter";
 import { createAgentEnrollmentRouter } from "./routes/agentEnrollmentRouter";
 import { FeedbackService } from "./services/feedbackService";
+import { FeedbackDuplicateService } from "./services/feedbackDuplicateService";
 import { FeedbackTriageService } from "./services/feedbackTriageService";
 import { createFeedbackRouter } from "./routes/feedbackRouter";
 import { AgentEnrollmentService } from "./services/agentEnrollmentService";
@@ -92,6 +93,9 @@ export function createApp(
     : null;
   const feedbackTriageService = persistencePrisma
     ? new FeedbackTriageService(persistencePrisma)
+    : null;
+  const feedbackDuplicateService = persistencePrisma
+    ? new FeedbackDuplicateService(persistencePrisma)
     : null;
 
   const resolveTodoUserId = (req: Request, res: Response): string | null => {
@@ -259,6 +263,7 @@ export function createApp(
       authService,
       feedbackService: feedbackService ?? undefined,
       feedbackTriageService: feedbackTriageService ?? undefined,
+      feedbackDuplicateService: feedbackDuplicateService ?? undefined,
     }),
   );
   app.use("/users", createUsersRouter({ authService }));

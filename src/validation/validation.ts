@@ -1724,10 +1724,75 @@ export function validateUpdateAdminFeedbackRequest(
     "rejectionReason",
     4000,
   );
+  const duplicateReason = normalizeNullableString(
+    body.duplicateReason,
+    "duplicateReason",
+    4000,
+  );
+  const ignoreDuplicateSuggestion =
+    body.ignoreDuplicateSuggestion === undefined
+      ? undefined
+      : typeof body.ignoreDuplicateSuggestion === "boolean"
+        ? body.ignoreDuplicateSuggestion
+        : (() => {
+            throw new ValidationError(
+              "ignoreDuplicateSuggestion must be a boolean",
+            );
+          })();
+  const duplicateOfFeedbackIdRaw = normalizeNullableString(
+    body.duplicateOfFeedbackId,
+    "duplicateOfFeedbackId",
+    120,
+  );
+  const duplicateOfGithubIssueNumber =
+    body.duplicateOfGithubIssueNumber === undefined
+      ? undefined
+      : body.duplicateOfGithubIssueNumber === null
+        ? null
+        : typeof body.duplicateOfGithubIssueNumber === "number" &&
+            Number.isInteger(body.duplicateOfGithubIssueNumber) &&
+            body.duplicateOfGithubIssueNumber > 0
+          ? body.duplicateOfGithubIssueNumber
+          : (() => {
+              throw new ValidationError(
+                "duplicateOfGithubIssueNumber must be a positive integer",
+              );
+            })();
+
+  if (duplicateOfFeedbackIdRaw) {
+    validateId(duplicateOfFeedbackIdRaw);
+  }
 
   if (status === "rejected" && !rejectionReason) {
     throw new ValidationError(
       "rejectionReason is required when status is rejected",
+    );
+  }
+
+  if (duplicateOfFeedbackIdRaw && duplicateOfGithubIssueNumber) {
+    throw new ValidationError(
+      "Provide either duplicateOfFeedbackId or duplicateOfGithubIssueNumber, not both",
+    );
+  }
+
+  const hasDuplicateResolution = Boolean(
+    duplicateOfFeedbackIdRaw || duplicateOfGithubIssueNumber,
+  );
+  if (hasDuplicateResolution && status !== "triaged") {
+    throw new ValidationError(
+      "status must be triaged when linking a confirmed duplicate",
+    );
+  }
+
+  if (hasDuplicateResolution && !duplicateReason) {
+    throw new ValidationError(
+      "duplicateReason is required when linking a confirmed duplicate",
+    );
+  }
+
+  if (ignoreDuplicateSuggestion && status !== "promoted") {
+    throw new ValidationError(
+      "ignoreDuplicateSuggestion can only be used when status is promoted",
     );
   }
 
@@ -1737,5 +1802,9 @@ export function validateUpdateAdminFeedbackRequest(
       status === "rejected"
         ? (rejectionReason ?? null)
         : (rejectionReason ?? null),
+    ignoreDuplicateSuggestion,
+    duplicateOfFeedbackId: duplicateOfFeedbackIdRaw ?? null,
+    duplicateOfGithubIssueNumber: duplicateOfGithubIssueNumber ?? null,
+    duplicateReason: duplicateReason ?? null,
   };
 }

@@ -223,6 +223,72 @@ function renderTriagePanel(item) {
   `;
 }
 
+function renderDuplicatePanel(item) {
+  const hasConfirmedDuplicate =
+    item.duplicateOfFeedbackId || item.duplicateOfGithubIssueNumber;
+  const hasCandidate =
+    item.duplicateCandidate ||
+    (Array.isArray(item.matchedFeedbackIds) &&
+      item.matchedFeedbackIds.length > 0) ||
+    item.matchedGithubIssueNumber;
+
+  if (!hasConfirmedDuplicate && !hasCandidate) {
+    return "";
+  }
+
+  return `
+    <div class="admin-detail-block">
+      <div class="admin-detail-block__header">
+        <h4>Duplicate Review</h4>
+        <button type="button" class="action-btn" data-onclick="runAdminFeedbackDuplicateCheck()">
+          Check duplicates
+        </button>
+      </div>
+      <div class="admin-detail-meta">
+        ${renderMetadataRow("Suggested duplicate", item.duplicateCandidate ? "Yes" : "No")}
+        ${renderMetadataRow("Suggested feedback IDs", (item.matchedFeedbackIds || []).join(", "))}
+        ${renderMetadataRow("Suggested GitHub issue", item.matchedGithubIssueNumber ? `#${item.matchedGithubIssueNumber}` : "")}
+        ${renderMetadataRow("Confirmed feedback duplicate", item.duplicateOfFeedbackId || "")}
+        ${renderMetadataRow("Confirmed GitHub duplicate", item.duplicateOfGithubIssueNumber ? `#${item.duplicateOfGithubIssueNumber}` : "")}
+        ${renderMetadataRow("Duplicate reason", item.duplicateReason || "")}
+      </div>
+      ${
+        item.matchedGithubIssueUrl || item.duplicateOfGithubIssueUrl
+          ? `<div class="admin-detail-links">
+              ${
+                item.matchedGithubIssueUrl
+                  ? `<a class="admin-detail-link" href="${escape(item.matchedGithubIssueUrl)}" target="_blank" rel="noreferrer">Suggested GitHub issue</a>`
+                  : ""
+              }
+              ${
+                item.duplicateOfGithubIssueUrl
+                  ? `<a class="admin-detail-link" href="${escape(item.duplicateOfGithubIssueUrl)}" target="_blank" rel="noreferrer">Confirmed GitHub issue</a>`
+                  : ""
+              }
+            </div>`
+          : ""
+      }
+      ${
+        item.duplicateCandidate
+          ? `<div class="admin-feedback-actions">
+              ${
+                item.matchedFeedbackIds?.[0]
+                  ? `<button type="button" class="action-btn demote" data-onclick="confirmAdminFeedbackDuplicate('feedback')">Link matched feedback</button>`
+                  : ""
+              }
+              ${
+                item.matchedGithubIssueNumber
+                  ? `<button type="button" class="action-btn demote" data-onclick="confirmAdminFeedbackDuplicate('github')">Link GitHub issue</button>`
+                  : ""
+              }
+              <button type="button" class="action-btn promote" data-onclick="ignoreDuplicateAndPromote()">Ignore and promote</button>
+            </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+
 function renderAdminFeedbackDetail() {
   const { detail } = getAdminFeedbackElements();
   if (!(detail instanceof HTMLElement)) {
@@ -291,6 +357,8 @@ function renderAdminFeedbackDetail() {
 
         ${renderTriagePanel(item)}
       </div>
+
+      ${renderDuplicatePanel(item)}
 
       <div class="admin-detail-block">
         <h4>Review Actions</h4>
@@ -461,6 +529,17 @@ export async function updateAdminFeedbackStatus(status) {
     const data = response ? await hooks.parseApiBody(response) : {};
 
     if (!response?.ok) {
+      if (response?.status === 409 && data.feedbackRequest) {
+        hooks.showMessage?.(
+          "adminMessage",
+          data.error || "Duplicate candidate found. Review suggestions below.",
+          "error",
+        );
+        state.adminFeedbackDetail = data.feedbackRequest;
+        renderAdminFeedbackWorkspace();
+        return;
+      }
+
       hooks.showMessage?.(
         "adminMessage",
         data.error || "Failed to update feedback status",
@@ -514,6 +593,125 @@ export async function runAdminFeedbackTriage() {
         ...data,
       };
     }
+    renderAdminFeedbackWorkspace();
+  } catch (error) {
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+  }
+}
+
+async function patchAdminFeedback(payload, successMessage) {
+  if (!state.adminFeedbackSelectedId) {
+    return;
+  }
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/${encodeURIComponent(state.adminFeedbackSelectedId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      hooks.showMessage?.(
+        "adminMessage",
+        data.error || "Failed to update duplicate resolution",
+        "error",
+      );
+      return;
+    }
+
+    hooks.showMessage?.("adminMessage", successMessage, "success");
+    await loadAdminFeedbackQueue();
+  } catch (error) {
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+  }
+}
+
+export async function confirmAdminFeedbackDuplicate(kind) {
+  const item = state.adminFeedbackDetail;
+  if (!item) {
+    return;
+  }
+
+  if (kind === "feedback" && item.matchedFeedbackIds?.[0]) {
+    await patchAdminFeedback(
+      {
+        status: "triaged",
+        duplicateOfFeedbackId: item.matchedFeedbackIds[0],
+        duplicateReason:
+          item.duplicateReason || "Confirmed duplicate of existing feedback",
+      },
+      "Feedback linked as duplicate",
+    );
+  }
+
+  if (kind === "github" && item.matchedGithubIssueNumber) {
+    await patchAdminFeedback(
+      {
+        status: "triaged",
+        duplicateOfGithubIssueNumber: item.matchedGithubIssueNumber,
+        duplicateReason:
+          item.duplicateReason ||
+          "Confirmed duplicate of existing GitHub issue",
+      },
+      "Feedback linked to existing GitHub issue",
+    );
+  }
+}
+
+export async function ignoreDuplicateAndPromote() {
+  await patchAdminFeedback(
+    {
+      status: "promoted",
+      ignoreDuplicateSuggestion: true,
+    },
+    "Feedback promoted after ignoring duplicate suggestion",
+  );
+}
+
+export async function runAdminFeedbackDuplicateCheck() {
+  if (!state.adminFeedbackSelectedId) {
+    return;
+  }
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/${encodeURIComponent(state.adminFeedbackSelectedId)}/duplicate-check`,
+      {
+        method: "POST",
+      },
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      hooks.showMessage?.(
+        "adminMessage",
+        data.error || "Failed to check duplicates",
+        "error",
+      );
+      return;
+    }
+
+    hooks.showMessage?.(
+      "adminMessage",
+      data.duplicateCandidate
+        ? "Duplicate candidates found"
+        : "No duplicate candidates found",
+      "success",
+    );
+    state.adminFeedbackDetail = data;
     renderAdminFeedbackWorkspace();
   } catch (error) {
     hooks.showMessage?.(

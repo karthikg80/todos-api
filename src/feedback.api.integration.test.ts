@@ -10,6 +10,9 @@ describe("Feedback API Integration", () => {
   let userId: string;
   let adminToken: string;
   let adminUserId: string;
+  let userEmail: string;
+  let adminEmail: string;
+  let testRunId = 0;
 
   beforeAll(() => {
     process.env.JWT_SECRET = "test-secret-for-feedback-api-tests";
@@ -19,27 +22,34 @@ describe("Feedback API Integration", () => {
   });
 
   beforeEach(async () => {
+    testRunId += 1;
     await prisma.feedbackRequest.deleteMany();
     await prisma.captureItem.deleteMany();
     await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
 
-    const registerResponse = await request(app).post("/auth/register").send({
-      email: "feedback-test@example.com",
-      password: "password123",
-      name: "Feedback Tester",
-    });
+    userEmail = `feedback-test-${testRunId}@example.com`;
+    const registerResponse = await request(app)
+      .post("/auth/register")
+      .send({
+        email: userEmail,
+        password: "password123",
+        name: "Feedback Tester",
+      })
+      .expect(201);
 
     authToken = registerResponse.body.token;
     userId = registerResponse.body.user.id;
 
+    adminEmail = `feedback-admin-${testRunId}@example.com`;
     const adminRegisterResponse = await request(app)
       .post("/auth/register")
       .send({
-        email: "feedback-admin@example.com",
+        email: adminEmail,
         password: "password123",
         name: "Feedback Admin",
-      });
+      })
+      .expect(201);
 
     adminToken = adminRegisterResponse.body.token;
     adminUserId = adminRegisterResponse.body.user.id;
@@ -178,7 +188,7 @@ describe("Feedback API Integration", () => {
       type: "feature",
       user: {
         id: userId,
-        email: "feedback-test@example.com",
+        email: userEmail,
       },
     });
     expect(response.body[0].id).not.toBe(older.id);
@@ -213,7 +223,7 @@ describe("Feedback API Integration", () => {
       triageSummary: "Likely duplicate of filter bug",
       user: {
         id: userId,
-        email: "feedback-test@example.com",
+        email: userEmail,
       },
     });
   });
@@ -245,7 +255,7 @@ describe("Feedback API Integration", () => {
       rejectionReason: "Not actionable enough yet",
       reviewer: {
         id: adminUserId,
-        email: "feedback-admin@example.com",
+        email: adminEmail,
       },
     });
     expect(response.body.reviewedAt).toEqual(expect.any(String));
@@ -311,6 +321,146 @@ describe("Feedback API Integration", () => {
     expect(persisted?.expectedBehavior).toBe("The task should save.");
   });
 
+  it("POST /admin/feedback/:id/duplicate-check stores internal duplicate suggestions", async () => {
+    const existing = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Task drawer crashes on save",
+        body: "Existing crash report",
+        status: "triaged",
+        classification: "bug",
+        normalizedTitle: "Task drawer crashes on save",
+        normalizedBody: "Existing crash report",
+        dedupeKey: "shared-feedback-key",
+      },
+    });
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Task drawer crashes on save",
+        body: "Fresh crash report",
+        status: "new",
+        classification: "bug",
+        normalizedTitle: "Task drawer crashes on save",
+        normalizedBody: "Fresh crash report",
+        dedupeKey: "shared-feedback-key",
+      },
+    });
+
+    const response = await request(app)
+      .post(`/admin/feedback/${feedback.id}/duplicate-check`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      id: feedback.id,
+      duplicateCandidate: true,
+      matchedFeedbackIds: [existing.id],
+      duplicateReason: "Matching dedupe key with normalized feedback",
+    });
+
+    const persisted = await prisma.feedbackRequest.findUnique({
+      where: { id: feedback.id },
+    });
+
+    expect(persisted?.duplicateCandidate).toBe(true);
+    expect(persisted?.duplicateReason).toBe(
+      "Matching dedupe key with normalized feedback",
+    );
+  });
+
+  it("PATCH /admin/feedback/:id blocks promotion when duplicate candidates are found", async () => {
+    await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Add planning bundles",
+        body: "Existing feature report",
+        status: "triaged",
+        classification: "feature",
+        normalizedTitle: "Add planning bundles",
+        normalizedBody: "Existing feature report",
+        dedupeKey: "shared-feature-key",
+      },
+    });
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Add planning bundles",
+        body: "Fresh feature report",
+        status: "triaged",
+        classification: "feature",
+        normalizedTitle: "Add planning bundles",
+        normalizedBody: "Fresh feature report",
+        dedupeKey: "shared-feature-key",
+      },
+    });
+
+    const response = await request(app)
+      .patch(`/admin/feedback/${feedback.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        status: "promoted",
+      })
+      .expect(409);
+
+    expect(response.body.error).toBe("Duplicate candidate found");
+    expect(response.body.feedbackRequest).toMatchObject({
+      id: feedback.id,
+      duplicateCandidate: true,
+    });
+
+    const persisted = await prisma.feedbackRequest.findUnique({
+      where: { id: feedback.id },
+    });
+
+    expect(persisted?.status).toBe("triaged");
+    expect(persisted?.duplicateCandidate).toBe(true);
+  });
+
+  it("PATCH /admin/feedback/:id links a confirmed duplicate instead of promoting", async () => {
+    const existing = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Drawer crash",
+        body: "Existing report",
+        status: "triaged",
+      },
+    });
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Drawer crash again",
+        body: "Fresh report",
+        status: "new",
+        duplicateCandidate: true,
+      },
+    });
+
+    const response = await request(app)
+      .patch(`/admin/feedback/${feedback.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        status: "triaged",
+        duplicateOfFeedbackId: existing.id,
+        duplicateReason: "Confirmed duplicate of existing feedback",
+      })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      id: feedback.id,
+      status: "triaged",
+      duplicateOfFeedbackId: existing.id,
+      duplicateReason: "Confirmed duplicate of existing feedback",
+      duplicateCandidate: false,
+    });
+  });
+
   it("GET /admin/feedback returns 403 for non-admin users", async () => {
     await request(app)
       .get("/admin/feedback")
@@ -333,6 +483,25 @@ describe("Feedback API Integration", () => {
 
     await request(app)
       .post(`/admin/feedback/${feedback.id}/triage`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(403)
+      .expect({
+        error: "Forbidden: Admin access required",
+      });
+  });
+
+  it("POST /admin/feedback/:id/duplicate-check returns 403 for non-admin users", async () => {
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Add a planning helper",
+        body: "What are you trying to do?\nPlan my week.",
+      },
+    });
+
+    await request(app)
+      .post(`/admin/feedback/${feedback.id}/duplicate-check`)
       .set("Authorization", `Bearer ${authToken}`)
       .expect(403)
       .expect({

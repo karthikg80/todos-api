@@ -58,6 +58,16 @@ const aiProviderBaseUrl = (
 ).trim();
 const aiProviderApiKey = (process.env.AI_PROVIDER_API_KEY || "").trim();
 const aiProviderModel = (process.env.AI_PROVIDER_MODEL || "gpt-4o-mini").trim();
+const githubRepo = (process.env.GITHUB_REPO || "karthikg80/todos-api").trim();
+const githubApiBaseUrl = (
+  process.env.GITHUB_API_BASE_URL || "https://api.github.com"
+).trim();
+const githubToken = (
+  process.env.GITHUB_TOKEN ||
+  process.env.GITHUB_API_TOKEN ||
+  process.env.GH_TOKEN ||
+  ""
+).trim();
 const aiDailySuggestionLimitRaw = (
   process.env.AI_DAILY_SUGGESTION_LIMIT || "50"
 ).trim();
@@ -200,6 +210,9 @@ export const config = {
   aiProviderBaseUrl,
   aiProviderApiKey,
   aiProviderModel,
+  githubRepo,
+  githubApiBaseUrl,
+  githubToken,
   aiDailySuggestionLimit:
     Number.isInteger(aiDailySuggestionLimit) && aiDailySuggestionLimit > 0
       ? aiDailySuggestionLimit
