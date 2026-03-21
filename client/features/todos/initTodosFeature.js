@@ -7,6 +7,12 @@
 // =============================================================================
 
 import { state, hooks } from "../../modules/store.js";
+import {
+  getTodoById,
+  getSelectedTodo,
+  getAllTodos,
+  getOpenTodos,
+} from "./todoSelectors.js";
 
 const { escapeHtml, showMessage } = window.Utils || {};
 
@@ -202,6 +208,10 @@ function registerWindowBridge() {
 function wireHooks() {
   hooks.renderSubtasks = renderSubtasks;
   hooks.setPriority = setPriority;
+  hooks.getTodoById = getTodoById;
+  hooks.getSelectedTodo = getSelectedTodo;
+  hooks.getAllTodos = getAllTodos;
+  hooks.getOpenTodos = getOpenTodos;
 }
 
 // ---------------------------------------------------------------------------
