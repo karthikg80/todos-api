@@ -140,6 +140,7 @@ import {
   renderSidebarNavigation,
   setSettingsPaneVisible,
   setFeedbackPaneVisible,
+  setAdminPaneVisible,
   setTodosViewBodyState,
   readStoredRailCollapsedState,
   persistRailCollapsedState,
@@ -649,6 +650,7 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
     setTodosViewBodyState,
     setSettingsPaneVisible,
     setFeedbackPaneVisible,
+    setAdminPaneVisible,
     syncSidebarNavState,
     readStoredAiWorkspaceCollapsedState,
     setAiWorkspaceCollapsed,
@@ -1131,6 +1133,7 @@ function bindDockHandlers() {
   hooks.setTodosViewBodyState = setTodosViewBodyState;
   hooks.setSettingsPaneVisible = setSettingsPaneVisible;
   hooks.setFeedbackPaneVisible = setFeedbackPaneVisible;
+  hooks.setAdminPaneVisible = setAdminPaneVisible;
   hooks.setProjectsRailCollapsed = setProjectsRailCollapsed;
   hooks.readStoredRailCollapsedState = readStoredRailCollapsedState;
   hooks.readStoredAiWorkspaceVisibleState = readStoredAiWorkspaceVisibleState;

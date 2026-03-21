@@ -399,7 +399,7 @@ test.describe("Admin feedback queue", () => {
       );
     });
 
-    await expect(page.locator("#adminView")).toHaveClass(/active/);
+    await expect(page.locator("#adminPane")).not.toHaveAttribute("hidden");
     await expect(page.locator("#adminContent")).toContainText(
       "Feedback Automation",
     );

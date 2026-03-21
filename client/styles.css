@@ -1667,11 +1667,42 @@ textarea:focus-visible,
   display: block;
 }
 
+.admin-pane {
+  display: none;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--s-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  background: var(--card-bg);
+}
+
+.admin-pane__shell {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.admin-pane__header {
+  margin-bottom: var(--s-4);
+}
+
+.admin-pane__actions {
+  margin-bottom: var(--s-2);
+}
+
+#todosView.todos-view--admin-active .admin-pane {
+  display: block;
+}
+
 #todosView.todos-view--settings-active .todos-top-bar,
 #todosView.todos-view--settings-active #todosScrollRegion,
 #todosView.todos-view--feedback-active .todos-top-bar,
 #todosView.todos-view--feedback-active #todosScrollRegion,
-#todosView.todos-view--feedback-active #aiWorkspace {
+#todosView.todos-view--feedback-active #aiWorkspace,
+#todosView.todos-view--admin-active .todos-top-bar,
+#todosView.todos-view--admin-active #todosScrollRegion,
+#todosView.todos-view--admin-active #aiWorkspace {
   display: none;
 }
 

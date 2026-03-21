@@ -1482,6 +1482,35 @@
                         </form>
                       </div>
                     </section>
+                    <section id="adminPane" class="admin-pane" hidden>
+                      <div class="admin-pane__shell">
+                        <div class="admin-pane__header">
+                          <div class="admin-pane__actions">
+                            <button
+                              type="button"
+                              class="btn btn-secondary admin-back-btn"
+                              data-onclick="switchView('todos', this)"
+                            >
+                              Back to Todos
+                            </button>
+                          </div>
+                          <h2>Admin</h2>
+                        </div>
+                        <div
+                          class="message"
+                          id="adminMessage"
+                          role="status"
+                          aria-live="polite"
+                          aria-atomic="true"
+                        ></div>
+                        <div id="adminContent">
+                          <div class="loading">
+                            <div class="spinner"></div>
+                            Loading admin tools...
+                          </div>
+                        </div>
+                      </div>
+                    </section>
                     <div class="todos-mobile-top-bar">
                       <button
                         class="todos-mobile-hamburger"
@@ -2500,22 +2529,7 @@
                 </div>
               </div>
 
-              <!-- Admin View -->
-              <div id="adminView" class="view">
-                <div
-                  class="message"
-                  id="adminMessage"
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
-                ></div>
-                <div id="adminContent">
-                  <div class="loading">
-                    <div class="spinner"></div>
-                    Loading admin tools...
-                  </div>
-                </div>
-              </div>
+              <!-- Admin View — moved to adminPane inside todosView -->
             </div>
           </div>
         </div>

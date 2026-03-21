@@ -23,6 +23,7 @@ export function createWorkspaceController({
   setTodosViewBodyState,
   setSettingsPaneVisible,
   setFeedbackPaneVisible,
+  setAdminPaneVisible,
   syncSidebarNavState,
   readStoredAiWorkspaceCollapsedState,
   setAiWorkspaceCollapsed,
@@ -38,8 +39,9 @@ export function createWorkspaceController({
     const requestedView = view === "profile" ? "settings" : view;
     const isSettingsView = requestedView === "settings";
     const isFeedbackView = requestedView === "feedback";
+    const isAdminView = requestedView === "admin";
     const primaryView =
-      isSettingsView || isFeedbackView ? "todos" : requestedView;
+      isSettingsView || isFeedbackView || isAdminView ? "todos" : requestedView;
 
     document
       .querySelectorAll(".view")
@@ -73,6 +75,7 @@ export function createWorkspaceController({
     setTodosViewBodyState(primaryView === "todos");
     setSettingsPaneVisible(isSettingsView);
     setFeedbackPaneVisible(isFeedbackView);
+    setAdminPaneVisible(isAdminView);
     syncSidebarNavState(requestedView);
 
     if (isSettingsView) {
@@ -105,7 +108,7 @@ export function createWorkspaceController({
       return;
     }
 
-    if (requestedView === "admin") {
+    if (isAdminView) {
       closeCommandPalette({ restoreFocus: false });
       closeProjectCrudModal({ restoreFocus: false });
       closeProjectEditDrawer({ restoreFocus: false });
