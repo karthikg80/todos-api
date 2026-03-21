@@ -186,6 +186,17 @@ export function setSettingsPaneVisible(isVisible) {
   }
 }
 
+export function setFeedbackPaneVisible(isVisible) {
+  const feedbackPane = document.getElementById("feedbackPane");
+  const todosView = document.getElementById("todosView");
+  if (!(feedbackPane instanceof HTMLElement)) return;
+
+  feedbackPane.hidden = !isVisible;
+  if (todosView instanceof HTMLElement) {
+    todosView.classList.toggle("todos-view--feedback-active", isVisible);
+  }
+}
+
 export function setTodosViewBodyState(isTodosView) {
   document.body.classList.toggle("is-todos-view", isTodosView);
   syncProjectsRailHost();
