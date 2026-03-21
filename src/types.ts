@@ -452,6 +452,26 @@ export interface FeedbackAutomationRunResultDto {
   decisions: FeedbackAutomationDecisionDto[];
 }
 
+export type FeedbackRetryAction = "triage" | "duplicate_check" | "promotion";
+
+export interface FeedbackFailureDto {
+  id: string;
+  actionType: string;
+  errorCode?: string | null;
+  errorMessage?: string | null;
+  retryable: boolean;
+  retryCount: number;
+  resolvedAt?: string | null;
+  resolution?: string | null;
+  createdAt: string;
+  payload?: unknown;
+}
+
+export interface RetryAdminFeedbackRequestDto {
+  action: FeedbackRetryAction;
+  ignoreDuplicateSuggestion?: boolean;
+}
+
 export interface CreateFeedbackRequestDto {
   type: FeedbackRequestType;
   title: string;

@@ -2,6 +2,10 @@ import {
   FeedbackPromotionIssueType,
   FeedbackPromotionPreviewDto,
 } from "../types";
+import {
+  redactSensitiveText,
+  sanitizeContextForGitHubExport,
+} from "./feedbackPrivacyService";
 
 type PromotionRenderRecord = {
   id: string;
@@ -58,7 +62,7 @@ function cleanText(
   value: string | null | undefined,
   fallback = "Not provided",
 ): string {
-  const normalized = (value || "").trim();
+  const normalized = redactSensitiveText(value).trim();
   return normalized || fallback;
 }
 
@@ -125,14 +129,20 @@ function buildLabels(
 
 function buildContextSection(record: PromotionRenderRecord): string {
   const missingInfo = coerceStringArray(record.missingInfoJson);
+  const context = sanitizeContextForGitHubExport({
+    pageUrl: record.pageUrl,
+    appVersion: record.appVersion,
+    userAgent: record.userAgent,
+    screenshotUrl: record.screenshotUrl,
+  });
   return [
     "## Context",
     `- Source feedback IDs: \`${record.id}\``,
     `- Feedback status: ${record.status}`,
-    `- Page URL: ${cleanText(record.pageUrl)}`,
-    `- App version: ${cleanText(record.appVersion)}`,
-    `- Browser user agent: ${cleanText(record.userAgent)}`,
-    `- Screenshot URL: ${cleanText(record.screenshotUrl)}`,
+    `- Page URL: ${cleanText(context.pageUrl)}`,
+    `- App version: ${cleanText(context.appVersion)}`,
+    `- Browser: ${cleanText(context.userAgent)}`,
+    `- Screenshot: ${context.screenshotNotice}`,
     `- Missing information flags: ${
       missingInfo.length ? missingInfo.join(", ") : "none"
     }`,
@@ -205,7 +215,7 @@ export function renderFeedbackIssuePreview(
     throw new Error("Confirmed duplicates cannot be promoted");
   }
 
-  const title = record.normalizedTitle.trim();
+  const title = cleanText(record.normalizedTitle, "Feedback issue");
   const body =
     issueType === "bug" ? buildBugBody(record) : buildFeatureBody(record);
 

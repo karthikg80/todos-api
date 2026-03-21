@@ -414,6 +414,7 @@ import {
   loadAdminFeedbackAutomationPanel,
   loadAdminFeedbackQueue,
   promoteAdminFeedback,
+  retryAdminFeedbackAction,
   runAdminFeedbackPromotionPreview,
   runAdminFeedbackAutomation,
   runAdminFeedbackDuplicateCheck,
@@ -1786,6 +1787,7 @@ window.confirmAdminFeedbackDuplicate = confirmAdminFeedbackDuplicate;
 window.ignoreDuplicateAndPromote = ignoreDuplicateAndPromote;
 window.runAdminFeedbackPromotionPreview = runAdminFeedbackPromotionPreview;
 window.promoteAdminFeedback = promoteAdminFeedback;
+window.retryAdminFeedbackAction = retryAdminFeedbackAction;
 window.runAdminFeedbackTriage = runAdminFeedbackTriage;
 window.updateAdminFeedbackStatus = updateAdminFeedbackStatus;
 window.saveAdminFeedbackAutomationConfig = saveAdminFeedbackAutomationConfig;

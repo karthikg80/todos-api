@@ -47,6 +47,7 @@ describe("FeedbackTriageService", () => {
       feedbackRequest: {
         findUnique: jest.fn().mockResolvedValue({
           id: "feedback-2",
+          userId: "user-1",
           type: "feature",
           title: "Make weekly planning easier",
           body: [
@@ -72,7 +73,14 @@ describe("FeedbackTriageService", () => {
     const provider = {
       generateJson: jest.fn().mockResolvedValue({ classification: "oops" }),
     };
-    const service = new FeedbackTriageService(prisma, { provider });
+    const feedbackFailureService = {
+      record: jest.fn().mockResolvedValue({}),
+      resolveOpenForFeedback: jest.fn().mockResolvedValue(undefined),
+    };
+    const service = new FeedbackTriageService(prisma, {
+      provider,
+      feedbackFailureService: feedbackFailureService as never,
+    });
 
     const result = await service.triageFeedback("feedback-2");
 
@@ -82,6 +90,12 @@ describe("FeedbackTriageService", () => {
       "Auto-group related tasks into bundles.",
     );
     expect(result.missingInfo).toEqual([]);
+    expect(feedbackFailureService.record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        feedbackId: "feedback-2",
+        actionType: "feedback.triage",
+      }),
+    );
     expect(prisma.feedbackRequest.update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "feedback-2" },
@@ -91,5 +105,8 @@ describe("FeedbackTriageService", () => {
         }),
       }),
     );
+    expect(
+      feedbackFailureService.resolveOpenForFeedback,
+    ).not.toHaveBeenCalled();
   });
 });
