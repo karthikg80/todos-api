@@ -2004,6 +2004,14 @@ body.is-admin-user button.admin-rail-btn {
   display: flex;
 }
 
+.dock-admin-btn {
+  display: none;
+}
+
+body.is-admin-user .dock-admin-btn {
+  display: inline-flex;
+}
+
 .rail-search-container {
   padding: 4px 8px 6px;
   display: flex;
