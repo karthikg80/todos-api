@@ -160,6 +160,9 @@ export const state = {
   },
   adminFeedbackListLoading: false,
   adminFeedbackDetailLoading: false,
+  adminFeedbackPromotionPreview: null,
+  adminFeedbackPromotionPreviewLoading: false,
+  adminFeedbackPromotionPreviewError: "",
 
   // AI
   aiSuggestions: [],

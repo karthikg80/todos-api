@@ -17,6 +17,7 @@ import {
   CreateFeedbackRequestDto,
   FeedbackAttachmentMetadataDto,
   FeedbackRequestStatus,
+  PromoteFeedbackRequestDto,
   FeedbackRequestType,
   ListAdminFeedbackRequestsQuery,
   Priority,
@@ -1806,5 +1807,28 @@ export function validateUpdateAdminFeedbackRequest(
     duplicateOfFeedbackId: duplicateOfFeedbackIdRaw ?? null,
     duplicateOfGithubIssueNumber: duplicateOfGithubIssueNumber ?? null,
     duplicateReason: duplicateReason ?? null,
+  };
+}
+
+export function validatePromoteFeedbackRequest(
+  data: unknown,
+): PromoteFeedbackRequestDto {
+  if (data === undefined) {
+    return {};
+  }
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  const body = data as Record<string, unknown>;
+  if (body.ignoreDuplicateSuggestion === undefined) {
+    return {};
+  }
+  if (typeof body.ignoreDuplicateSuggestion !== "boolean") {
+    throw new ValidationError("ignoreDuplicateSuggestion must be a boolean");
+  }
+
+  return {
+    ignoreDuplicateSuggestion: body.ignoreDuplicateSuggestion,
   };
 }

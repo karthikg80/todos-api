@@ -289,6 +289,84 @@ function renderDuplicatePanel(item) {
   `;
 }
 
+function renderPromotionPanel(item) {
+  if (state.adminFeedbackPromotionPreviewLoading) {
+    return `
+      <div class="admin-detail-block">
+        <div class="loading">
+          <div class="spinner"></div>
+          Building issue preview...
+        </div>
+      </div>
+    `;
+  }
+
+  if (state.adminFeedbackPromotionPreviewError) {
+    return `
+      <div class="admin-detail-block">
+        <div class="admin-detail-block__header">
+          <h4>Promotion Preview</h4>
+          <button type="button" class="action-btn" data-onclick="runAdminFeedbackPromotionPreview()">
+            Refresh preview
+          </button>
+        </div>
+        <p class="admin-detail-empty-copy">${escape(state.adminFeedbackPromotionPreviewError)}</p>
+      </div>
+    `;
+  }
+
+  const preview = state.adminFeedbackPromotionPreview;
+  if (!preview) {
+    return "";
+  }
+
+  const promoteButtonLabel = item.duplicateCandidate
+    ? "Ignore duplicate and create issue"
+    : item.githubIssueNumber
+      ? "Issue already created"
+      : "Create GitHub issue";
+
+  return `
+    <div class="admin-detail-block">
+      <div class="admin-detail-block__header">
+        <h4>Promotion Preview</h4>
+        <button type="button" class="action-btn" data-onclick="runAdminFeedbackPromotionPreview()">
+          Refresh preview
+        </button>
+      </div>
+      <div class="admin-detail-meta">
+        ${renderMetadataRow("Issue type", preview.issueType)}
+        ${renderMetadataRow("Issue title", preview.title)}
+        ${renderMetadataRow("Labels", (preview.labels || []).join(", "))}
+        ${renderMetadataRow("Source feedback IDs", (preview.sourceFeedbackIds || []).join(", "))}
+        ${renderMetadataRow("Promotion status", item.githubIssueNumber ? `Created as #${item.githubIssueNumber}` : preview.canPromote ? "Ready" : "Blocked")}
+      </div>
+      ${
+        item.githubIssueUrl
+          ? `<div class="admin-detail-links">
+              <a class="admin-detail-link" href="${escape(item.githubIssueUrl)}" target="_blank" rel="noreferrer">Open created GitHub issue</a>
+            </div>`
+          : ""
+      }
+      ${renderListBlock("Labels to apply", preview.labels, "No labels suggested")}
+      <div class="admin-detail-block">
+        <h4>Issue body</h4>
+        <pre class="admin-detail-pre">${escape(preview.body)}</pre>
+      </div>
+      <div class="admin-feedback-actions">
+        <button
+          type="button"
+          class="action-btn promote"
+          data-onclick="${item.duplicateCandidate ? "ignoreDuplicateAndPromote()" : "promoteAdminFeedback()"}"
+          ${item.githubIssueNumber ? "disabled" : ""}
+        >
+          ${escape(promoteButtonLabel)}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
 function renderAdminFeedbackDetail() {
   const { detail } = getAdminFeedbackElements();
   if (!(detail instanceof HTMLElement)) {
@@ -345,6 +423,7 @@ function renderAdminFeedbackDetail() {
               ${renderMetadataRow("User", item.user?.email || item.userId)}
               ${renderMetadataRow("Reviewer", item.reviewer?.email || "")}
               ${renderMetadataRow("Reviewed at", item.reviewedAt ? formatDateTime(item.reviewedAt) : "")}
+              ${renderMetadataRow("Promoted at", item.promotedAt ? formatDateTime(item.promotedAt) : "")}
               ${renderMetadataRow("Page URL", item.pageUrl || "")}
               ${renderMetadataRow("App version", item.appVersion || "")}
               ${renderMetadataRow("Browser", item.userAgent || "")}
@@ -359,12 +438,12 @@ function renderAdminFeedbackDetail() {
       </div>
 
       ${renderDuplicatePanel(item)}
+      ${renderPromotionPanel(item)}
 
       <div class="admin-detail-block">
         <h4>Review Actions</h4>
         <div class="admin-feedback-actions">
           <button type="button" class="action-btn demote" data-onclick="updateAdminFeedbackStatus('triaged')">Mark reviewed</button>
-          <button type="button" class="action-btn promote" data-onclick="updateAdminFeedbackStatus('promoted')">Ready for promotion</button>
           <button type="button" class="action-btn delete" data-onclick="updateAdminFeedbackStatus('rejected')">Reject</button>
         </div>
         <label class="feedback-form__label" for="adminFeedbackRejectionReason">Rejection reason</label>
@@ -398,12 +477,16 @@ export async function selectAdminFeedback(feedbackId) {
   if (!feedbackId) {
     state.adminFeedbackSelectedId = "";
     state.adminFeedbackDetail = null;
+    state.adminFeedbackPromotionPreview = null;
+    state.adminFeedbackPromotionPreviewError = "";
     renderAdminFeedbackDetail();
     return;
   }
 
   state.adminFeedbackSelectedId = feedbackId;
   state.adminFeedbackDetailLoading = true;
+  state.adminFeedbackPromotionPreview = null;
+  state.adminFeedbackPromotionPreviewError = "";
   renderAdminFeedbackWorkspace();
 
   try {
@@ -435,6 +518,8 @@ export async function selectAdminFeedback(feedbackId) {
     state.adminFeedbackDetailLoading = false;
     renderAdminFeedbackWorkspace();
   }
+
+  await loadAdminFeedbackPromotionPreview();
 }
 
 export async function loadAdminFeedbackQueue() {
@@ -457,6 +542,8 @@ export async function loadAdminFeedbackQueue() {
       state.adminFeedbackItems = [];
       state.adminFeedbackSelectedId = "";
       state.adminFeedbackDetail = null;
+      state.adminFeedbackPromotionPreview = null;
+      state.adminFeedbackPromotionPreviewError = "";
       return;
     }
 
@@ -482,6 +569,8 @@ export async function loadAdminFeedbackQueue() {
     state.adminFeedbackItems = [];
     state.adminFeedbackSelectedId = "";
     state.adminFeedbackDetail = null;
+    state.adminFeedbackPromotionPreview = null;
+    state.adminFeedbackPromotionPreviewError = "";
   } finally {
     state.adminFeedbackListLoading = false;
     renderAdminFeedbackWorkspace();
@@ -594,6 +683,7 @@ export async function runAdminFeedbackTriage() {
       };
     }
     renderAdminFeedbackWorkspace();
+    await loadAdminFeedbackPromotionPreview();
   } catch (error) {
     hooks.showMessage?.(
       "adminMessage",
@@ -672,13 +762,7 @@ export async function confirmAdminFeedbackDuplicate(kind) {
 }
 
 export async function ignoreDuplicateAndPromote() {
-  await patchAdminFeedback(
-    {
-      status: "promoted",
-      ignoreDuplicateSuggestion: true,
-    },
-    "Feedback promoted after ignoring duplicate suggestion",
-  );
+  await promoteAdminFeedback(true);
 }
 
 export async function runAdminFeedbackDuplicateCheck() {
@@ -713,6 +797,105 @@ export async function runAdminFeedbackDuplicateCheck() {
     );
     state.adminFeedbackDetail = data;
     renderAdminFeedbackWorkspace();
+    await loadAdminFeedbackPromotionPreview();
+  } catch (error) {
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+  }
+}
+
+export async function loadAdminFeedbackPromotionPreview() {
+  if (!state.adminFeedbackSelectedId) {
+    state.adminFeedbackPromotionPreview = null;
+    state.adminFeedbackPromotionPreviewError = "";
+    return;
+  }
+
+  state.adminFeedbackPromotionPreviewLoading = true;
+  state.adminFeedbackPromotionPreviewError = "";
+  renderAdminFeedbackWorkspace();
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/${encodeURIComponent(state.adminFeedbackSelectedId)}/promotion-preview`,
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      state.adminFeedbackPromotionPreview = null;
+      state.adminFeedbackPromotionPreviewError =
+        data.error || "Promotion preview unavailable";
+      renderAdminFeedbackWorkspace();
+      return;
+    }
+
+    state.adminFeedbackPromotionPreview = data;
+    renderAdminFeedbackWorkspace();
+  } catch (error) {
+    state.adminFeedbackPromotionPreview = null;
+    state.adminFeedbackPromotionPreviewError =
+      "Network error while building promotion preview";
+    renderAdminFeedbackWorkspace();
+  } finally {
+    state.adminFeedbackPromotionPreviewLoading = false;
+    renderAdminFeedbackWorkspace();
+  }
+}
+
+export async function runAdminFeedbackPromotionPreview() {
+  await loadAdminFeedbackPromotionPreview();
+}
+
+export async function promoteAdminFeedback(ignoreDuplicateSuggestion = false) {
+  if (!state.adminFeedbackSelectedId) {
+    return;
+  }
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/${encodeURIComponent(state.adminFeedbackSelectedId)}/promote`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ignoreDuplicateSuggestion }),
+      },
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      if (response?.status === 409 && data.feedbackRequest) {
+        hooks.showMessage?.(
+          "adminMessage",
+          data.error || "Duplicate candidate found. Review suggestions below.",
+          "error",
+        );
+        state.adminFeedbackDetail = data.feedbackRequest;
+        renderAdminFeedbackWorkspace();
+        await loadAdminFeedbackPromotionPreview();
+        return;
+      }
+
+      hooks.showMessage?.(
+        "adminMessage",
+        data.error || "Failed to promote feedback to GitHub",
+        "error",
+      );
+      return;
+    }
+
+    state.adminFeedbackDetail =
+      data.feedbackRequest || state.adminFeedbackDetail;
+    hooks.showMessage?.(
+      "adminMessage",
+      data.promotion?.issueNumber
+        ? `Created GitHub issue #${data.promotion.issueNumber}`
+        : "Feedback promoted",
+      "success",
+    );
+    await loadAdminFeedbackQueue();
   } catch (error) {
     hooks.showMessage?.(
       "adminMessage",

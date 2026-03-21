@@ -13,6 +13,7 @@ describe("Feedback API Integration", () => {
   let userEmail: string;
   let adminEmail: string;
   let testRunId = 0;
+  const originalFetch = global.fetch;
 
   beforeAll(() => {
     process.env.JWT_SECRET = "test-secret-for-feedback-api-tests";
@@ -58,6 +59,10 @@ describe("Feedback API Integration", () => {
       where: { id: adminUserId },
       data: { role: "admin" },
     });
+  });
+
+  afterEach(() => {
+    global.fetch = originalFetch;
   });
 
   it("POST /feedback creates a bug report with captured context", async () => {
@@ -461,6 +466,176 @@ describe("Feedback API Integration", () => {
     });
   });
 
+  it("GET /admin/feedback/:id/promotion-preview renders a canonical bug issue preview", async () => {
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Task drawer crashes",
+        body: "raw input that should not be rendered directly",
+        status: "triaged",
+        classification: "bug",
+        normalizedTitle: "Task drawer crashes on save",
+        normalizedBody:
+          "Saving from the task drawer crashes the current editing session.",
+        impactSummary: "Users cannot save task edits from the drawer.",
+        expectedBehavior: "The task should save normally.",
+        actualBehavior: "The task drawer crashes and loses the draft.",
+        reproStepsJson: ["Open the task drawer", "Edit notes", "Press save"],
+        agentLabelsJson: ["ui"],
+        pageUrl: "https://app.example.com/?view=todos",
+        appVersion: "1.6.0",
+        userAgent: "Integration Test Browser",
+        screenshotUrl: "https://example.com/bug.png",
+      },
+    });
+
+    const response = await request(app)
+      .get(`/admin/feedback/${feedback.id}/promotion-preview`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual({
+      issueType: "bug",
+      title: "Task drawer crashes on save",
+      body: expect.stringContaining("## Steps To Reproduce"),
+      labels: ["bug", "triaged-by-agent", "ui"],
+      sourceFeedbackIds: [feedback.id],
+      canPromote: true,
+      duplicateCandidate: false,
+      duplicateReason: null,
+      existingGithubIssueNumber: null,
+      existingGithubIssueUrl: null,
+    });
+    expect(response.body.body).toContain("Source feedback IDs");
+    expect(response.body.body).not.toContain(
+      "raw input that should not be rendered directly",
+    );
+  });
+
+  it("POST /admin/feedback/:id/promote creates a GitHub issue and stores promotion metadata", async () => {
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Planning bundles",
+        body: "raw feature request",
+        status: "triaged",
+        classification: "feature",
+        normalizedTitle: "Add planning bundles",
+        normalizedBody:
+          "Users need a bundled planning flow to reduce manual setup.",
+        impactSummary: "Weekly planning takes too many manual steps.",
+        proposedOutcome: "Offer suggested planning bundles.",
+        triageSummary: "Feature feedback from planning bundles.",
+        agentLabelsJson: ["ui"],
+      },
+    });
+
+    global.fetch = jest.fn(async (input, init) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/repos/karthikg80/todos-api/issues")) {
+        expect(init?.method).toBe("POST");
+        return {
+          ok: true,
+          json: async () => ({
+            number: 512,
+            html_url: "https://github.com/karthikg80/todos-api/issues/512",
+          }),
+        } as Response;
+      }
+      if (url.endsWith("/repos/karthikg80/todos-api/issues/512/labels")) {
+        expect(init?.method).toBe("POST");
+        return {
+          ok: true,
+          json: async () => [
+            { name: "feature" },
+            { name: "triaged-by-agent" },
+            { name: "ui" },
+          ],
+        } as Response;
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    }) as typeof fetch;
+
+    const response = await request(app)
+      .post(`/admin/feedback/${feedback.id}/promote`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({})
+      .expect(200);
+
+    expect(response.body.promotion).toMatchObject({
+      issueNumber: 512,
+      issueUrl: "https://github.com/karthikg80/todos-api/issues/512",
+      preview: {
+        issueType: "feature",
+        title: "Add planning bundles",
+        labels: ["feature", "triaged-by-agent", "ui"],
+      },
+    });
+    expect(response.body.feedbackRequest).toMatchObject({
+      id: feedback.id,
+      status: "promoted",
+      githubIssueNumber: 512,
+      githubIssueUrl: "https://github.com/karthikg80/todos-api/issues/512",
+      reviewedByUserId: adminUserId,
+    });
+    expect(response.body.feedbackRequest.promotedAt).toEqual(
+      expect.any(String),
+    );
+
+    const persisted = await prisma.feedbackRequest.findUnique({
+      where: { id: feedback.id },
+    });
+    expect(persisted?.status).toBe("promoted");
+    expect(persisted?.githubIssueNumber).toBe(512);
+    expect(persisted?.githubIssueUrl).toBe(
+      "https://github.com/karthikg80/todos-api/issues/512",
+    );
+    expect(persisted?.promotedAt).not.toBeNull();
+  });
+
+  it("POST /admin/feedback/:id/promote blocks issue creation when duplicate candidates are found", async () => {
+    await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Drawer crash",
+        body: "Existing report",
+        status: "triaged",
+        classification: "bug",
+        normalizedTitle: "Task drawer crashes on save",
+        normalizedBody: "Existing report",
+        dedupeKey: "shared-promotion-key",
+      },
+    });
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Drawer crash again",
+        body: "Fresh report",
+        status: "triaged",
+        classification: "bug",
+        normalizedTitle: "Task drawer crashes on save",
+        normalizedBody: "Fresh report",
+        dedupeKey: "shared-promotion-key",
+      },
+    });
+
+    const response = await request(app)
+      .post(`/admin/feedback/${feedback.id}/promote`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({})
+      .expect(409);
+
+    expect(response.body.error).toBe("Duplicate candidate found");
+    expect(response.body.feedbackRequest).toMatchObject({
+      id: feedback.id,
+      duplicateCandidate: true,
+    });
+  });
+
   it("GET /admin/feedback returns 403 for non-admin users", async () => {
     await request(app)
       .get("/admin/feedback")
@@ -503,6 +678,30 @@ describe("Feedback API Integration", () => {
     await request(app)
       .post(`/admin/feedback/${feedback.id}/duplicate-check`)
       .set("Authorization", `Bearer ${authToken}`)
+      .expect(403)
+      .expect({
+        error: "Forbidden: Admin access required",
+      });
+  });
+
+  it("POST /admin/feedback/:id/promote returns 403 for non-admin users", async () => {
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Add planning helper",
+        body: "What are you trying to do?\nPlan my week.",
+        status: "triaged",
+        classification: "feature",
+        normalizedTitle: "Add planning helper",
+        normalizedBody: "Users need guided planning help.",
+      },
+    });
+
+    await request(app)
+      .post(`/admin/feedback/${feedback.id}/promote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({})
       .expect(403)
       .expect({
         error: "Forbidden: Admin access required",
