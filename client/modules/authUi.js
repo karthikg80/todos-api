@@ -5,6 +5,8 @@
 // =============================================================================
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
+import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
+import { STATE_CHANGED } from "../platform/events/eventReasons.js";
 import { clearHomeListDrilldown, clearFilters } from "./filterLogic.js";
 import {
   closeProjectCrudModal,
@@ -774,7 +776,7 @@ export function showAppView() {
   loadCustomProjects();
   state.currentWorkspaceView = "home";
   clearHomeListDrilldown();
-  EventBus.dispatch("todos:changed", { reason: "state-changed" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: STATE_CHANGED });
   updateCategoryFilter();
   loadProjects();
   loadTodos();

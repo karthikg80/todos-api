@@ -5,6 +5,8 @@
 
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
+import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
+import { TODO_UPDATED } from "../platform/events/eventReasons.js";
 import { runAsyncLifecycle } from "./asyncLifecycle.js";
 import { getAllProjects } from "./projectsState.js";
 import { applyFiltersAndRender } from "./filterLogic.js";
@@ -1015,7 +1017,7 @@ async function applyLiveOnCreateSuggestion(suggestion, confirmed = false) {
     if (index >= 0) {
       state.todos[index] = data.todo;
     }
-    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
+    EventBus.dispatch(TODOS_CHANGED, { reason: TODO_UPDATED });
   }
   clearOnCreateDismissed(state.onCreateAssistState.liveTodoId);
   const refreshedTodo =

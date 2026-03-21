@@ -6,6 +6,8 @@
 
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
+import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
+import { TODO_UPDATED, UNDO_APPLIED } from "../platform/events/eventReasons.js";
 import { runAsyncLifecycle } from "./asyncLifecycle.js";
 import { applyAsyncAction, applyUiAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
@@ -668,7 +670,7 @@ export async function saveDrawerPatch(patch, { validateTitle = false } = {}) {
         patchHeaderCountsFromVisibleTodos();
       }
     } else {
-      EventBus.dispatch("todos:changed", { reason: "todo-updated" });
+      EventBus.dispatch(TODOS_CHANGED, { reason: TODO_UPDATED });
     }
     syncTodoDrawerStateWithRender();
     restoreDrawerFocusState(focusState);
@@ -1532,7 +1534,7 @@ export async function applyTaskDrawerSuggestion(
     clearTaskDrawerDismissed(state.selectedTodoId);
     state.taskDrawerAssistState.lastUndoSuggestionId = "";
     await loadTaskDrawerDecisionAssist(state.selectedTodoId, false);
-    EventBus.dispatch("todos:changed", { reason: "todo-updated" });
+    EventBus.dispatch(TODOS_CHANGED, { reason: TODO_UPDATED });
   } catch (error) {
     console.error("Task drawer AI apply failed:", error);
     state.taskDrawerAssistState.error = "Could not apply suggestion.";
@@ -1587,7 +1589,7 @@ export function undoTaskDrawerSuggestion(suggestionId) {
       selectedTodoIdsCount: 1,
     });
   }
-  EventBus.dispatch("todos:changed", { reason: "undo-applied" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: UNDO_APPLIED });
   syncTodoDrawerStateWithRender();
 }
 
