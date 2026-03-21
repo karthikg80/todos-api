@@ -1,4 +1,5 @@
 import { mapError } from "../errorHandling";
+import { getActionHandler } from "../domains/agent/actions/actionRegistry";
 import { IProjectService } from "../interfaces/IProjectService";
 import { ITodoService } from "../interfaces/ITodoService";
 import agentManifest from "./agent-manifest.json";
@@ -706,6 +707,21 @@ export class AgentExecutor {
     context: AgentExecutionContext,
   ): Promise<AgentExecutionResult> {
     const readOnly = READ_ONLY_ACTIONS.has(action);
+
+    // Check the action registry first — registered handlers take priority
+    // over the inline switch/case. This enables incremental extraction.
+    const registeredHandler = getActionHandler(action);
+    if (registeredHandler) {
+      try {
+        const result = await registeredHandler(
+          (input as Record<string, unknown>) ?? {},
+          context,
+        );
+        return result as AgentExecutionResult;
+      } catch (error) {
+        return this.failure(action, readOnly, context, error);
+      }
+    }
 
     try {
       switch (action) {
