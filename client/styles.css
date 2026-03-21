@@ -3954,6 +3954,50 @@ body.is-todos-view .floating-new-task-cta {
   min-height: 100px;
 }
 
+.admin-automation-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+  gap: 18px;
+}
+
+.admin-automation-form {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-automation-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+}
+
+.admin-automation-toggle input {
+  inline-size: 16px;
+  block-size: 16px;
+}
+
+.admin-automation-decision-list {
+  display: grid;
+  gap: 10px;
+}
+
+.admin-automation-decision {
+  width: 100%;
+  border: 1px solid var(--border-color);
+  background: transparent;
+  border-radius: var(--r-md);
+  padding: 14px;
+  text-align: left;
+  cursor: pointer;
+  display: grid;
+  gap: 10px;
+}
+
+.admin-automation-decision:hover {
+  border-color: var(--accent);
+}
+
 .users-table {
   width: 100%;
   border-collapse: collapse;
@@ -4067,6 +4111,10 @@ body.is-todos-view .floating-new-task-cta {
   }
 
   .admin-feedback-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-automation-grid {
     grid-template-columns: 1fr;
   }
 

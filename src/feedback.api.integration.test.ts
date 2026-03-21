@@ -636,6 +636,217 @@ describe("Feedback API Integration", () => {
     });
   });
 
+  it("GET and PATCH /admin/feedback/automation/config manage auto-promotion settings", async () => {
+    const initial = await request(app)
+      .get("/admin/feedback/automation/config")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(initial.body).toEqual({
+      feedbackAutomationEnabled: false,
+      feedbackAutoPromoteEnabled: false,
+      feedbackAutoPromoteMinConfidence: 0.9,
+      allowlistedClassifications: ["bug", "feature"],
+    });
+
+    const updated = await request(app)
+      .patch("/admin/feedback/automation/config")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        feedbackAutomationEnabled: true,
+        feedbackAutoPromoteEnabled: true,
+        feedbackAutoPromoteMinConfidence: 0.94,
+      })
+      .expect(200);
+
+    expect(updated.body).toEqual({
+      feedbackAutomationEnabled: true,
+      feedbackAutoPromoteEnabled: true,
+      feedbackAutoPromoteMinConfidence: 0.94,
+      allowlistedClassifications: ["bug", "feature"],
+    });
+  });
+
+  it("POST /admin/feedback/automation/run auto-promotes high-confidence non-duplicate feedback and exposes the decision feed", async () => {
+    await prisma.agentConfig.upsert({
+      where: { userId: adminUserId },
+      create: {
+        userId: adminUserId,
+        feedbackAutomationEnabled: true,
+        feedbackAutoPromoteEnabled: true,
+        feedbackAutoPromoteMinConfidence: 0.9,
+      },
+      update: {
+        feedbackAutomationEnabled: true,
+        feedbackAutoPromoteEnabled: true,
+        feedbackAutoPromoteMinConfidence: 0.9,
+      },
+    });
+
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Task drawer crashes",
+        body: "raw bug report",
+        status: "triaged",
+        classification: "bug",
+        triageConfidence: 0.96,
+        normalizedTitle: "Task drawer crashes on save",
+        normalizedBody:
+          "Saving from the task drawer crashes the current editing session.",
+        impactSummary: "Users cannot save edits from the task drawer.",
+        expectedBehavior: "The task should save normally.",
+        actualBehavior: "The task drawer crashes and loses the draft.",
+        reproStepsJson: ["Open the task drawer", "Edit notes", "Press save"],
+        agentLabelsJson: ["ui"],
+      },
+    });
+
+    global.fetch = jest.fn(async (input, init) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.includes("/search/issues")) {
+        return {
+          ok: true,
+          json: async () => ({
+            items: [],
+          }),
+        } as Response;
+      }
+      if (url.endsWith("/repos/karthikg80/todos-api/issues")) {
+        expect(init?.method).toBe("POST");
+        return {
+          ok: true,
+          json: async () => ({
+            number: 700,
+            html_url: "https://github.com/karthikg80/todos-api/issues/700",
+          }),
+        } as Response;
+      }
+      if (url.endsWith("/repos/karthikg80/todos-api/issues/700/labels")) {
+        return {
+          ok: true,
+          json: async () => [
+            { name: "bug" },
+            { name: "triaged-by-agent" },
+            { name: "ui" },
+          ],
+        } as Response;
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    }) as typeof fetch;
+
+    const response = await request(app)
+      .post("/admin/feedback/automation/run")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ limit: 10 })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      jobName: "feedback_auto_promotion",
+      claimed: true,
+      skipped: false,
+      processedCount: 1,
+      promotedCount: 1,
+      reviewCount: 0,
+      decisions: [
+        {
+          id: feedback.id,
+          promotionDecision: "promoted",
+          githubIssueNumber: 700,
+        },
+      ],
+    });
+
+    const persisted = await prisma.feedbackRequest.findUnique({
+      where: { id: feedback.id },
+    });
+
+    expect(persisted).toMatchObject({
+      status: "promoted",
+      githubIssueNumber: 700,
+      promotionDecision: "promoted",
+      promotionRunId: response.body.runId,
+    });
+    expect(persisted?.promotionReason).toContain("Auto-promoted");
+    expect(persisted?.promotionDecidedAt).not.toBeNull();
+
+    const decisionsResponse = await request(app)
+      .get("/admin/feedback/automation/decisions")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(decisionsResponse.body[0]).toMatchObject({
+      id: feedback.id,
+      promotionDecision: "promoted",
+      githubIssueNumber: 700,
+    });
+  });
+
+  it("POST /admin/feedback/automation/run keeps low-confidence feedback in review", async () => {
+    await prisma.agentConfig.upsert({
+      where: { userId: adminUserId },
+      create: {
+        userId: adminUserId,
+        feedbackAutomationEnabled: true,
+        feedbackAutoPromoteEnabled: true,
+        feedbackAutoPromoteMinConfidence: 0.95,
+      },
+      update: {
+        feedbackAutomationEnabled: true,
+        feedbackAutoPromoteEnabled: true,
+        feedbackAutoPromoteMinConfidence: 0.95,
+      },
+    });
+
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Add planning bundles",
+        body: "raw feature request",
+        status: "triaged",
+        classification: "feature",
+        triageConfidence: 0.78,
+        normalizedTitle: "Add planning bundles",
+        normalizedBody:
+          "Users need a bundled planning flow to reduce manual setup.",
+        impactSummary: "Weekly planning takes too many manual steps.",
+        proposedOutcome: "Offer suggested planning bundles.",
+      },
+    });
+
+    const response = await request(app)
+      .post("/admin/feedback/automation/run")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ limit: 10 })
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      processedCount: 1,
+      promotedCount: 0,
+      reviewCount: 1,
+      decisions: [
+        {
+          id: feedback.id,
+          promotionDecision: "review",
+        },
+      ],
+    });
+
+    const persisted = await prisma.feedbackRequest.findUnique({
+      where: { id: feedback.id },
+    });
+    expect(persisted).toMatchObject({
+      status: "triaged",
+      promotionDecision: "review",
+      githubIssueNumber: null,
+    });
+    expect(persisted?.promotionReason).toContain(
+      "below the auto-promotion threshold",
+    );
+  });
+
   it("GET /admin/feedback returns 403 for non-admin users", async () => {
     await request(app)
       .get("/admin/feedback")
@@ -700,6 +911,17 @@ describe("Feedback API Integration", () => {
 
     await request(app)
       .post(`/admin/feedback/${feedback.id}/promote`)
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({})
+      .expect(403)
+      .expect({
+        error: "Forbidden: Admin access required",
+      });
+  });
+
+  it("POST /admin/feedback/automation/run returns 403 for non-admin users", async () => {
+    await request(app)
+      .post("/admin/feedback/automation/run")
       .set("Authorization", `Bearer ${authToken}`)
       .send({})
       .expect(403)

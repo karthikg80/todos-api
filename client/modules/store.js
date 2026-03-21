@@ -163,6 +163,12 @@ export const state = {
   adminFeedbackPromotionPreview: null,
   adminFeedbackPromotionPreviewLoading: false,
   adminFeedbackPromotionPreviewError: "",
+  adminFeedbackAutomationConfig: null,
+  adminFeedbackAutomationConfigLoading: false,
+  adminFeedbackAutomationSaving: false,
+  adminFeedbackAutomationRunLoading: false,
+  adminFeedbackAutomationDecisions: [],
+  adminFeedbackAutomationDecisionsLoading: false,
 
   // AI
   aiSuggestions: [],

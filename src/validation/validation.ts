@@ -16,15 +16,18 @@ import {
   FindTodosQuery,
   CreateFeedbackRequestDto,
   FeedbackAttachmentMetadataDto,
+  FeedbackAutomationConfigDto,
   FeedbackRequestStatus,
   PromoteFeedbackRequestDto,
   FeedbackRequestType,
   ListAdminFeedbackRequestsQuery,
   Priority,
+  RunFeedbackAutomationRequestDto,
   TaskSource,
   TaskStatus,
   TodoSortBy,
   SortOrder,
+  UpdateFeedbackAutomationConfigDto,
   UpdateAdminFeedbackRequestDto,
 } from "../types";
 import {
@@ -1830,5 +1833,112 @@ export function validatePromoteFeedbackRequest(
 
   return {
     ignoreDuplicateSuggestion: body.ignoreDuplicateSuggestion,
+  };
+}
+
+export function validateUpdateFeedbackAutomationConfig(
+  data: unknown,
+): UpdateFeedbackAutomationConfigDto {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  const body = data as Record<string, unknown>;
+  const result: UpdateFeedbackAutomationConfigDto = {};
+
+  if (body.feedbackAutomationEnabled !== undefined) {
+    if (typeof body.feedbackAutomationEnabled !== "boolean") {
+      throw new ValidationError("feedbackAutomationEnabled must be a boolean");
+    }
+    result.feedbackAutomationEnabled = body.feedbackAutomationEnabled;
+  }
+
+  if (body.feedbackAutoPromoteEnabled !== undefined) {
+    if (typeof body.feedbackAutoPromoteEnabled !== "boolean") {
+      throw new ValidationError("feedbackAutoPromoteEnabled must be a boolean");
+    }
+    result.feedbackAutoPromoteEnabled = body.feedbackAutoPromoteEnabled;
+  }
+
+  if (body.feedbackAutoPromoteMinConfidence !== undefined) {
+    if (
+      typeof body.feedbackAutoPromoteMinConfidence !== "number" ||
+      Number.isNaN(body.feedbackAutoPromoteMinConfidence) ||
+      body.feedbackAutoPromoteMinConfidence < 0 ||
+      body.feedbackAutoPromoteMinConfidence > 1
+    ) {
+      throw new ValidationError(
+        "feedbackAutoPromoteMinConfidence must be a number between 0 and 1",
+      );
+    }
+    result.feedbackAutoPromoteMinConfidence =
+      body.feedbackAutoPromoteMinConfidence;
+  }
+
+  if (Object.keys(result).length === 0) {
+    throw new ValidationError(
+      "At least one automation config field is required",
+    );
+  }
+
+  return result;
+}
+
+export function validateRunFeedbackAutomationRequest(
+  data: unknown,
+): RunFeedbackAutomationRequestDto {
+  if (data === undefined || data === null || data === "") {
+    return {};
+  }
+  if (typeof data !== "object" || Array.isArray(data)) {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  const body = data as Record<string, unknown>;
+  if (body.limit === undefined) {
+    return {};
+  }
+
+  if (
+    typeof body.limit !== "number" ||
+    !Number.isInteger(body.limit) ||
+    body.limit < 1 ||
+    body.limit > 100
+  ) {
+    throw new ValidationError("limit must be an integer between 1 and 100");
+  }
+
+  return {
+    limit: body.limit,
+  };
+}
+
+export function validateFeedbackAutomationDecisionLimit(
+  value: unknown,
+): number {
+  if (value === undefined) {
+    return 10;
+  }
+
+  if (typeof value !== "string" || !/^\d+$/.test(value)) {
+    throw new ValidationError("limit must be an integer between 1 and 50");
+  }
+
+  const limit = Number.parseInt(value, 10);
+  if (limit < 1 || limit > 50) {
+    throw new ValidationError("limit must be an integer between 1 and 50");
+  }
+
+  return limit;
+}
+
+export function toFeedbackAutomationConfigDto(
+  config: FeedbackAutomationConfigDto,
+): FeedbackAutomationConfigDto {
+  return {
+    feedbackAutomationEnabled: config.feedbackAutomationEnabled,
+    feedbackAutoPromoteEnabled: config.feedbackAutoPromoteEnabled,
+    feedbackAutoPromoteMinConfidence: config.feedbackAutoPromoteMinConfidence,
+    allowlistedClassifications: config.allowlistedClassifications,
   };
 }

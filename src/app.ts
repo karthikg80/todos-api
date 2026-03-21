@@ -41,6 +41,7 @@ import { FeedbackService } from "./services/feedbackService";
 import { FeedbackDuplicateService } from "./services/feedbackDuplicateService";
 import { FeedbackPromotionService } from "./services/feedbackPromotionService";
 import { FeedbackTriageService } from "./services/feedbackTriageService";
+import { FeedbackAutomationService } from "./services/feedbackAutomationService";
 import { createFeedbackRouter } from "./routes/feedbackRouter";
 import { AgentEnrollmentService } from "./services/agentEnrollmentService";
 import {
@@ -102,6 +103,13 @@ export function createApp(
     ? new FeedbackPromotionService(persistencePrisma, {
         feedbackService: feedbackService ?? undefined,
         feedbackDuplicateService: feedbackDuplicateService ?? undefined,
+      })
+    : null;
+  const feedbackAutomationService = persistencePrisma
+    ? new FeedbackAutomationService(persistencePrisma, {
+        feedbackService: feedbackService ?? undefined,
+        feedbackDuplicateService: feedbackDuplicateService ?? undefined,
+        feedbackPromotionService: feedbackPromotionService ?? undefined,
       })
     : null;
 
@@ -272,6 +280,7 @@ export function createApp(
       feedbackTriageService: feedbackTriageService ?? undefined,
       feedbackDuplicateService: feedbackDuplicateService ?? undefined,
       feedbackPromotionService: feedbackPromotionService ?? undefined,
+      feedbackAutomationService: feedbackAutomationService ?? undefined,
     }),
   );
   app.use("/users", createUsersRouter({ authService }));

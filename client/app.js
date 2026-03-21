@@ -411,10 +411,13 @@ import {
 import {
   confirmAdminFeedbackDuplicate,
   ignoreDuplicateAndPromote,
+  loadAdminFeedbackAutomationPanel,
   loadAdminFeedbackQueue,
   promoteAdminFeedback,
   runAdminFeedbackPromotionPreview,
+  runAdminFeedbackAutomation,
   runAdminFeedbackDuplicateCheck,
+  saveAdminFeedbackAutomationConfig,
   selectAdminFeedback,
   setAdminFeedbackFilter,
   runAdminFeedbackTriage,
@@ -665,6 +668,7 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
     loadAiInsights,
     loadAiFeedbackSummary,
     loadAdminUsers: () => {
+      void loadAdminFeedbackAutomationPanel();
       void loadAdminFeedbackQueue();
       void loadAdminUsers();
     },
@@ -1784,6 +1788,8 @@ window.runAdminFeedbackPromotionPreview = runAdminFeedbackPromotionPreview;
 window.promoteAdminFeedback = promoteAdminFeedback;
 window.runAdminFeedbackTriage = runAdminFeedbackTriage;
 window.updateAdminFeedbackStatus = updateAdminFeedbackStatus;
+window.saveAdminFeedbackAutomationConfig = saveAdminFeedbackAutomationConfig;
+window.runAdminFeedbackAutomation = runAdminFeedbackAutomation;
 
 // ---------------------------------------------------------------------------
 // App bootstrap

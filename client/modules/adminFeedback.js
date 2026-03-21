@@ -16,9 +16,14 @@ function formatDateTime(value) {
   return date.toLocaleString();
 }
 
+function formatConfidence(value) {
+  return typeof value === "number" ? `${Math.round(value * 100)}%` : "Unknown";
+}
+
 function getAdminFeedbackElements() {
   return {
     container: document.getElementById("adminContent"),
+    automation: document.getElementById("adminFeedbackAutomationPanel"),
     list: document.getElementById("adminFeedbackList"),
     detail: document.getElementById("adminFeedbackDetail"),
   };
@@ -36,6 +41,15 @@ function ensureAdminWorkspaceShell() {
 
   container.innerHTML = `
     <div class="admin-layout">
+      <section class="admin-section admin-feedback-automation-section">
+        <div class="admin-section__header">
+          <div>
+            <h2 class="admin-section__title">Feedback Automation</h2>
+            <p class="admin-section__subtitle">Keep auto-promotion off by default, then graduate only high-confidence, non-duplicate feedback into GitHub.</p>
+          </div>
+        </div>
+        <div id="adminFeedbackAutomationPanel"></div>
+      </section>
       <section class="admin-section admin-feedback-section">
         <div class="admin-section__header">
           <div>
@@ -108,6 +122,154 @@ function renderFilterChips() {
   });
 }
 
+function renderMetadataRow(label, value) {
+  return `
+    <div class="admin-detail-meta__row">
+      <span class="admin-detail-meta__label">${escape(label)}</span>
+      <span class="admin-detail-meta__value">${escape(value || "—")}</span>
+    </div>
+  `;
+}
+
+function renderListBlock(title, items, emptyLabel = "None") {
+  const listItems = Array.isArray(items) ? items.filter(Boolean) : [];
+  return `
+    <div class="admin-detail-block">
+      <h4>${escape(title)}</h4>
+      ${
+        listItems.length
+          ? `<ul class="admin-detail-list">${listItems
+              .map((item) => `<li>${escape(item)}</li>`)
+              .join("")}</ul>`
+          : `<p class="admin-detail-empty-copy">${escape(emptyLabel)}</p>`
+      }
+    </div>
+  `;
+}
+
+function renderAutomationPanel() {
+  const { automation } = getAdminFeedbackElements();
+  if (!(automation instanceof HTMLElement)) {
+    return;
+  }
+
+  if (
+    state.adminFeedbackAutomationConfigLoading ||
+    state.adminFeedbackAutomationDecisionsLoading
+  ) {
+    automation.innerHTML = `
+      <div class="loading">
+        <div class="spinner"></div>
+        Loading automation controls...
+      </div>
+    `;
+    return;
+  }
+
+  const config = state.adminFeedbackAutomationConfig;
+  if (!config) {
+    automation.innerHTML = `
+      <p class="admin-detail-empty-copy">Automation settings are unavailable right now.</p>
+    `;
+    return;
+  }
+
+  const decisions = state.adminFeedbackAutomationDecisions || [];
+  automation.innerHTML = `
+    <div class="admin-automation-grid">
+      <div class="admin-detail-block">
+        <h4>Controls</h4>
+        <div class="admin-automation-form">
+          <label class="admin-automation-toggle">
+            <input
+              id="adminFeedbackAutomationEnabled"
+              type="checkbox"
+              ${config.feedbackAutomationEnabled ? "checked" : ""}
+            />
+            <span>Enable feedback automation</span>
+          </label>
+          <label class="admin-automation-toggle">
+            <input
+              id="adminFeedbackAutoPromoteEnabled"
+              type="checkbox"
+              ${config.feedbackAutoPromoteEnabled ? "checked" : ""}
+            />
+            <span>Enable auto-promotion after checks pass</span>
+          </label>
+          <label class="feedback-form__label" for="adminFeedbackAutoPromoteMinConfidence">Minimum confidence threshold</label>
+          <input
+            id="adminFeedbackAutoPromoteMinConfidence"
+            class="feedback-form__input"
+            type="number"
+            min="0"
+            max="1"
+            step="0.01"
+            value="${escape(config.feedbackAutoPromoteMinConfidence)}"
+          />
+          <p class="admin-detail-empty-copy">
+            Allowlisted classifications: ${escape(
+              (config.allowlistedClassifications || []).join(", "),
+            )}
+          </p>
+          <div class="admin-feedback-actions">
+            <button
+              type="button"
+              class="action-btn"
+              data-onclick="saveAdminFeedbackAutomationConfig()"
+              ${state.adminFeedbackAutomationSaving ? "disabled" : ""}
+            >
+              ${state.adminFeedbackAutomationSaving ? "Saving..." : "Save settings"}
+            </button>
+            <button
+              type="button"
+              class="action-btn promote"
+              data-onclick="runAdminFeedbackAutomation()"
+              ${state.adminFeedbackAutomationRunLoading ? "disabled" : ""}
+            >
+              ${state.adminFeedbackAutomationRunLoading ? "Running..." : "Run now"}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="admin-detail-block">
+        <h4>Recent Decisions</h4>
+        ${
+          decisions.length
+            ? `<div class="admin-automation-decision-list">${decisions
+                .map(
+                  (decision) => `
+                    <button
+                      type="button"
+                      class="admin-automation-decision"
+                      data-onclick="selectAdminFeedback('${decision.id}')"
+                    >
+                      <div class="admin-feedback-row__top">
+                        <span class="admin-feedback-pill admin-feedback-pill--${escape(decision.type)}">${escape(decision.type)}</span>
+                        <span class="admin-feedback-pill admin-feedback-pill--status">${escape(decision.promotionDecision)}</span>
+                      </div>
+                      <strong class="admin-feedback-row__title">${escape(decision.title)}</strong>
+                      <div class="admin-feedback-row__meta">
+                        <span>${escape(decision.promotionReason || "No reason captured")}</span>
+                      </div>
+                      <div class="admin-feedback-row__meta">
+                        <span>${escape(formatDateTime(decision.promotionDecidedAt))}</span>
+                        <span>${escape(
+                          decision.githubIssueNumber
+                            ? `#${decision.githubIssueNumber}`
+                            : formatConfidence(decision.triageConfidence),
+                        )}</span>
+                      </div>
+                    </button>
+                  `,
+                )
+                .join("")}</div>`
+            : `<p class="admin-detail-empty-copy">No automation decisions yet.</p>`
+        }
+      </div>
+    </div>
+  `;
+}
+
 function renderAdminFeedbackList() {
   const { list } = getAdminFeedbackElements();
   if (!(list instanceof HTMLElement)) {
@@ -159,37 +321,7 @@ function renderAdminFeedbackList() {
     .join("");
 }
 
-function renderMetadataRow(label, value) {
-  return `
-    <div class="admin-detail-meta__row">
-      <span class="admin-detail-meta__label">${escape(label)}</span>
-      <span class="admin-detail-meta__value">${escape(value || "—")}</span>
-    </div>
-  `;
-}
-
-function renderListBlock(title, items, emptyLabel = "None") {
-  const listItems = Array.isArray(items) ? items.filter(Boolean) : [];
-  return `
-    <div class="admin-detail-block">
-      <h4>${escape(title)}</h4>
-      ${
-        listItems.length
-          ? `<ul class="admin-detail-list">${listItems
-              .map((item) => `<li>${escape(item)}</li>`)
-              .join("")}</ul>`
-          : `<p class="admin-detail-empty-copy">${escape(emptyLabel)}</p>`
-      }
-    </div>
-  `;
-}
-
 function renderTriagePanel(item) {
-  const confidence =
-    typeof item.triageConfidence === "number"
-      ? `${Math.round(item.triageConfidence * 100)}%`
-      : "Not triaged yet";
-
   return `
     <div class="admin-detail-panel">
       <div class="admin-detail-block">
@@ -201,7 +333,7 @@ function renderTriagePanel(item) {
         </div>
         <div class="admin-detail-meta">
           ${renderMetadataRow("Classification", item.classification || "")}
-          ${renderMetadataRow("Confidence", confidence)}
+          ${renderMetadataRow("Confidence", formatConfidence(item.triageConfidence))}
           ${renderMetadataRow("Normalized title", item.normalizedTitle || "")}
           ${renderMetadataRow("Summary", item.triageSummary || "")}
           ${renderMetadataRow("Impact", item.impactSummary || "")}
@@ -424,6 +556,10 @@ function renderAdminFeedbackDetail() {
               ${renderMetadataRow("Reviewer", item.reviewer?.email || "")}
               ${renderMetadataRow("Reviewed at", item.reviewedAt ? formatDateTime(item.reviewedAt) : "")}
               ${renderMetadataRow("Promoted at", item.promotedAt ? formatDateTime(item.promotedAt) : "")}
+              ${renderMetadataRow("Automation decision", item.promotionDecision || "")}
+              ${renderMetadataRow("Decision reason", item.promotionReason || "")}
+              ${renderMetadataRow("Decision run", item.promotionRunId || "")}
+              ${renderMetadataRow("Decision time", item.promotionDecidedAt ? formatDateTime(item.promotionDecidedAt) : "")}
               ${renderMetadataRow("Page URL", item.pageUrl || "")}
               ${renderMetadataRow("App version", item.appVersion || "")}
               ${renderMetadataRow("Browser", item.userAgent || "")}
@@ -457,8 +593,21 @@ function renderAdminFeedbackWorkspace() {
   if (!ensureAdminWorkspaceShell()) {
     return;
   }
+  renderAutomationPanel();
   renderAdminFeedbackList();
   renderAdminFeedbackDetail();
+}
+
+function updateFeedbackItemInList(nextItem) {
+  const itemIndex = state.adminFeedbackItems.findIndex(
+    (item) => item.id === nextItem.id,
+  );
+  if (itemIndex >= 0) {
+    state.adminFeedbackItems[itemIndex] = {
+      ...state.adminFeedbackItems[itemIndex],
+      ...nextItem,
+    };
+  }
 }
 
 function buildQueryString() {
@@ -473,13 +622,69 @@ function buildQueryString() {
   return query ? `?${query}` : "";
 }
 
+export async function loadAdminFeedbackAutomationPanel() {
+  ensureAdminWorkspaceShell();
+  state.adminFeedbackAutomationConfigLoading = true;
+  state.adminFeedbackAutomationDecisionsLoading = true;
+  renderAdminFeedbackWorkspace();
+
+  try {
+    const [configResponse, decisionsResponse] = await Promise.all([
+      hooks.apiCall(`${hooks.API_URL}/admin/feedback/automation/config`),
+      hooks.apiCall(`${hooks.API_URL}/admin/feedback/automation/decisions`),
+    ]);
+    const configData = configResponse
+      ? await hooks.parseApiBody(configResponse)
+      : {};
+    const decisionsData = decisionsResponse
+      ? await hooks.parseApiBody(decisionsResponse)
+      : {};
+
+    if (!configResponse?.ok) {
+      hooks.showMessage?.(
+        "adminMessage",
+        configData.error || "Failed to load feedback automation settings",
+        "error",
+      );
+      state.adminFeedbackAutomationConfig = null;
+    } else {
+      state.adminFeedbackAutomationConfig = configData;
+    }
+
+    if (!decisionsResponse?.ok) {
+      hooks.showMessage?.(
+        "adminMessage",
+        decisionsData.error || "Failed to load automation decisions",
+        "error",
+      );
+      state.adminFeedbackAutomationDecisions = [];
+    } else {
+      state.adminFeedbackAutomationDecisions = Array.isArray(decisionsData)
+        ? decisionsData
+        : [];
+    }
+  } catch (error) {
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+    state.adminFeedbackAutomationConfig = null;
+    state.adminFeedbackAutomationDecisions = [];
+  } finally {
+    state.adminFeedbackAutomationConfigLoading = false;
+    state.adminFeedbackAutomationDecisionsLoading = false;
+    renderAdminFeedbackWorkspace();
+  }
+}
+
 export async function selectAdminFeedback(feedbackId) {
   if (!feedbackId) {
     state.adminFeedbackSelectedId = "";
     state.adminFeedbackDetail = null;
     state.adminFeedbackPromotionPreview = null;
     state.adminFeedbackPromotionPreviewError = "";
-    renderAdminFeedbackDetail();
+    renderAdminFeedbackWorkspace();
     return;
   }
 
@@ -553,12 +758,10 @@ export async function loadAdminFeedbackQueue() {
     const selectedStillExists = state.adminFeedbackItems.some(
       (item) => item.id === state.adminFeedbackSelectedId,
     );
-    const nextSelectedId =
+    state.adminFeedbackSelectedId =
       (selectedStillExists && state.adminFeedbackSelectedId) ||
       state.adminFeedbackItems[0]?.id ||
       "";
-
-    state.adminFeedbackSelectedId = nextSelectedId;
     state.adminFeedbackDetail = null;
   } catch (error) {
     hooks.showMessage?.(
@@ -588,6 +791,120 @@ export function setAdminFeedbackFilter(kind, value) {
 
   state.adminFeedbackFilters[kind] = value || "";
   void loadAdminFeedbackQueue();
+}
+
+export async function saveAdminFeedbackAutomationConfig() {
+  const enabledField = document.getElementById(
+    "adminFeedbackAutomationEnabled",
+  );
+  const autoPromoteField = document.getElementById(
+    "adminFeedbackAutoPromoteEnabled",
+  );
+  const thresholdField = document.getElementById(
+    "adminFeedbackAutoPromoteMinConfidence",
+  );
+
+  if (
+    !(enabledField instanceof HTMLInputElement) ||
+    !(autoPromoteField instanceof HTMLInputElement) ||
+    !(thresholdField instanceof HTMLInputElement)
+  ) {
+    return;
+  }
+
+  state.adminFeedbackAutomationSaving = true;
+  renderAdminFeedbackWorkspace();
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/automation/config`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          feedbackAutomationEnabled: enabledField.checked,
+          feedbackAutoPromoteEnabled: autoPromoteField.checked,
+          feedbackAutoPromoteMinConfidence: Number.parseFloat(
+            thresholdField.value,
+          ),
+        }),
+      },
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      hooks.showMessage?.(
+        "adminMessage",
+        data.error || "Failed to save feedback automation settings",
+        "error",
+      );
+      return;
+    }
+
+    state.adminFeedbackAutomationConfig = data;
+    hooks.showMessage?.(
+      "adminMessage",
+      "Feedback automation settings updated",
+      "success",
+    );
+    renderAdminFeedbackWorkspace();
+  } catch (error) {
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+  } finally {
+    state.adminFeedbackAutomationSaving = false;
+    renderAdminFeedbackWorkspace();
+  }
+}
+
+export async function runAdminFeedbackAutomation() {
+  state.adminFeedbackAutomationRunLoading = true;
+  renderAdminFeedbackWorkspace();
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/automation/run`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ limit: 20 }),
+      },
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      hooks.showMessage?.(
+        "adminMessage",
+        data.error || "Failed to run feedback automation",
+        "error",
+      );
+      return;
+    }
+
+    hooks.showMessage?.(
+      "adminMessage",
+      data.skipped
+        ? data.reason || "Feedback automation skipped"
+        : `Automation processed ${data.processedCount} items`,
+      "success",
+    );
+    await Promise.all([
+      loadAdminFeedbackAutomationPanel(),
+      loadAdminFeedbackQueue(),
+    ]);
+  } catch (error) {
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+  } finally {
+    state.adminFeedbackAutomationRunLoading = false;
+    renderAdminFeedbackWorkspace();
+  }
 }
 
 export async function updateAdminFeedbackStatus(status) {
@@ -638,7 +955,10 @@ export async function updateAdminFeedbackStatus(status) {
     }
 
     hooks.showMessage?.("adminMessage", `Feedback marked ${status}`, "success");
-    await loadAdminFeedbackQueue();
+    await Promise.all([
+      loadAdminFeedbackAutomationPanel(),
+      loadAdminFeedbackQueue(),
+    ]);
   } catch (error) {
     hooks.showMessage?.(
       "adminMessage",
@@ -673,17 +993,12 @@ export async function runAdminFeedbackTriage() {
 
     hooks.showMessage?.("adminMessage", "Feedback triage updated", "success");
     state.adminFeedbackDetail = data;
-    const itemIndex = state.adminFeedbackItems.findIndex(
-      (item) => item.id === data.id,
-    );
-    if (itemIndex >= 0) {
-      state.adminFeedbackItems[itemIndex] = {
-        ...state.adminFeedbackItems[itemIndex],
-        ...data,
-      };
-    }
+    updateFeedbackItemInList(data);
     renderAdminFeedbackWorkspace();
-    await loadAdminFeedbackPromotionPreview();
+    await Promise.all([
+      loadAdminFeedbackPromotionPreview(),
+      loadAdminFeedbackAutomationPanel(),
+    ]);
   } catch (error) {
     hooks.showMessage?.(
       "adminMessage",
@@ -719,7 +1034,10 @@ async function patchAdminFeedback(payload, successMessage) {
     }
 
     hooks.showMessage?.("adminMessage", successMessage, "success");
-    await loadAdminFeedbackQueue();
+    await Promise.all([
+      loadAdminFeedbackAutomationPanel(),
+      loadAdminFeedbackQueue(),
+    ]);
   } catch (error) {
     hooks.showMessage?.(
       "adminMessage",
@@ -796,8 +1114,12 @@ export async function runAdminFeedbackDuplicateCheck() {
       "success",
     );
     state.adminFeedbackDetail = data;
+    updateFeedbackItemInList(data);
     renderAdminFeedbackWorkspace();
-    await loadAdminFeedbackPromotionPreview();
+    await Promise.all([
+      loadAdminFeedbackPromotionPreview(),
+      loadAdminFeedbackAutomationPanel(),
+    ]);
   } catch (error) {
     hooks.showMessage?.(
       "adminMessage",
@@ -833,12 +1155,10 @@ export async function loadAdminFeedbackPromotionPreview() {
     }
 
     state.adminFeedbackPromotionPreview = data;
-    renderAdminFeedbackWorkspace();
   } catch (error) {
     state.adminFeedbackPromotionPreview = null;
     state.adminFeedbackPromotionPreviewError =
       "Network error while building promotion preview";
-    renderAdminFeedbackWorkspace();
   } finally {
     state.adminFeedbackPromotionPreviewLoading = false;
     renderAdminFeedbackWorkspace();
@@ -895,7 +1215,10 @@ export async function promoteAdminFeedback(ignoreDuplicateSuggestion = false) {
         : "Feedback promoted",
       "success",
     );
-    await loadAdminFeedbackQueue();
+    await Promise.all([
+      loadAdminFeedbackAutomationPanel(),
+      loadAdminFeedbackQueue(),
+    ]);
   } catch (error) {
     hooks.showMessage?.(
       "adminMessage",
