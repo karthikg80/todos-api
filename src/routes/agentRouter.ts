@@ -1,12 +1,16 @@
+import { randomUUID } from "crypto";
 import { Request, Response, Router } from "express";
 import { AuthService } from "../services/authService";
 import { agentAuthMiddleware } from "../middleware/agentAuthMiddleware";
 import { getAgentRequestContext } from "../agent/agentContext";
 import { AgentActionName, AgentExecutor } from "../agent/agentExecutor";
+import { AgentJobRunService } from "../services/agentJobRunService";
+import { createAgentRunQueue } from "../domains/agent/runs/agentRunQueue";
 
 interface AgentRouterDeps {
   agentExecutor: AgentExecutor;
   authService?: AuthService;
+  jobRunService?: AgentJobRunService;
 }
 
 function getAgentUserId(req: Request): string {
@@ -41,6 +45,7 @@ function createAgentActionHandler(
 export function createAgentRouter({
   agentExecutor,
   authService,
+  jobRunService,
 }: AgentRouterDeps): Router {
   const router = Router();
 
@@ -412,6 +417,85 @@ export function createAgentRouter({
     "/write/update_action_policy",
     createAgentActionHandler(agentExecutor, "update_action_policy"),
   );
+
+  // -------------------------------------------------------------------------
+  // Async run endpoints — enqueue agent actions and return 202 Accepted.
+  // The run executes outside the HTTP request cycle.
+  // -------------------------------------------------------------------------
+  if (jobRunService) {
+    const runQueue = createAgentRunQueue({ agentExecutor, jobRunService });
+
+    router.post("/runs", async (req: Request, res: Response) => {
+      const { action, params } = req.body;
+      if (!action || typeof action !== "string") {
+        return res
+          .status(400)
+          .json({ error: "Missing required field: action" });
+      }
+
+      const userId = getAgentUserId(req);
+      const requestContext = getAgentRequestContext(req);
+      const runId = randomUUID();
+
+      const { claimed, run } = await jobRunService.claimRun(
+        userId,
+        action,
+        runId,
+      );
+      if (!claimed) {
+        return res.status(409).json({ error: "Run already claimed" });
+      }
+
+      runQueue.enqueue({
+        runId,
+        userId,
+        action,
+        params: params || {},
+        requestId: requestContext.requestId,
+        actor: requestContext.actor,
+      });
+
+      res.status(202).json({
+        ok: true,
+        runId,
+        status: "running",
+        action,
+        trace: {
+          requestId: requestContext.requestId,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    });
+
+    router.get("/runs/:runId", async (req: Request, res: Response) => {
+      const userId = getAgentUserId(req);
+      const { runId } = req.params;
+
+      // Find run by checking all runs for the user with this runId as periodKey
+      const runs = await jobRunService.listRuns(userId, { limit: 100 });
+      const run = runs.find((r) => r.periodKey === runId);
+
+      if (!run) {
+        return res.status(404).json({ error: "Run not found" });
+      }
+
+      res.json({
+        ok: true,
+        run: {
+          id: run.id,
+          runId: run.periodKey,
+          action: run.jobName,
+          status: run.status,
+          retryCount: run.retryCount,
+          startedAt: run.claimedAt?.toISOString(),
+          completedAt: run.completedAt?.toISOString() || null,
+          failedAt: run.failedAt?.toISOString() || null,
+          errorMessage: run.errorMessage || null,
+          result: run.metadata || null,
+        },
+      });
+    });
+  }
 
   return router;
 }
