@@ -293,6 +293,22 @@ test.describe("Admin feedback queue", () => {
       },
     );
 
+    await page.route("**/admin/feedback/feedback-1/failures", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([]),
+      });
+    });
+
+    await page.route("**/admin/feedback/feedback-2/failures", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([]),
+      });
+    });
+
     await page.route("**/admin/feedback/feedback-1/promote", async (route) => {
       const payload = JSON.parse(route.request().postData() || "{}") as Record<
         string,
@@ -515,5 +531,184 @@ test.describe("Admin feedback queue", () => {
     await expect(page.locator("#adminFeedbackDetail")).toContainText(
       "Automation decision",
     );
+  });
+});
+
+test.describe("Admin feedback failures", () => {
+  test("shows feedback pipeline failures and retries promotion safely", async ({
+    page,
+  }) => {
+    let retryPayload: Record<string, unknown> | null = null;
+    const bugFeedback = buildFeedback({
+      status: "triaged",
+      classification: "bug",
+      triageConfidence: 0.94,
+      normalizedTitle: "Task drawer crashes on save",
+      normalizedBody: "Saving from the task drawer crashes the session.",
+      impactSummary: "Users cannot save task edits from the drawer.",
+      reproSteps: ["Open the task drawer", "Edit notes", "Press save"],
+      expectedBehavior: "Task saves successfully.",
+      actualBehavior: "Drawer crashes on save.",
+      agentLabels: ["feedback:bug", "source:bug"],
+    });
+    const failures = [
+      {
+        id: "failure-1",
+        actionType: "feedback.promotion",
+        errorCode: "PROMOTION_FAILED",
+        errorMessage: "Simulated recordPromotion failure",
+        retryable: true,
+        retryCount: 0,
+        resolvedAt: null,
+        resolution: null,
+        createdAt: "2026-03-20T20:40:00.000Z",
+        payload: {
+          createdIssue: {
+            number: 712,
+            url: "https://github.com/karthikg80/todos-api/issues/712",
+          },
+        },
+      },
+    ];
+
+    await page.route("**/admin/users", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([]),
+      });
+    });
+    await page.route("**/admin/feedback/automation/config", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          feedbackAutomationEnabled: false,
+          feedbackAutoPromoteEnabled: false,
+          feedbackAutoPromoteMinConfidence: 0.9,
+          allowlistedClassifications: ["bug", "feature"],
+        }),
+      });
+    });
+    await page.route(
+      "**/admin/feedback/automation/decisions",
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify([]),
+        });
+      },
+    );
+    await page.route("**/admin/feedback?*", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([bugFeedback]),
+      });
+    });
+    await page.route("**/admin/feedback", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([bugFeedback]),
+      });
+    });
+    await page.route("**/admin/feedback/feedback-1", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(bugFeedback),
+      });
+    });
+    await page.route("**/admin/feedback/feedback-1/failures", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(failures),
+      });
+    });
+    await page.route(
+      "**/admin/feedback/feedback-1/promotion-preview",
+      async (route) => {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            issueType: "bug",
+            title: bugFeedback.normalizedTitle,
+            body: "## Summary\nSanitized preview",
+            labels: ["bug", "triaged-by-agent", "ui"],
+            sourceFeedbackIds: ["feedback-1"],
+            canPromote: true,
+            duplicateCandidate: false,
+            duplicateReason: null,
+            existingGithubIssueNumber: null,
+            existingGithubIssueUrl: null,
+          }),
+        });
+      },
+    );
+    await page.route("**/admin/feedback/feedback-1/retry", async (route) => {
+      retryPayload = JSON.parse(route.request().postData() || "{}") as Record<
+        string,
+        unknown
+      >;
+      failures[0] = {
+        ...failures[0],
+        resolvedAt: "2026-03-20T20:45:00.000Z",
+        resolution: "retried",
+      };
+      Object.assign(bugFeedback, {
+        status: "promoted",
+        githubIssueNumber: 712,
+        githubIssueUrl: "https://github.com/karthikg80/todos-api/issues/712",
+        promotedAt: "2026-03-20T20:45:00.000Z",
+      });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          feedbackRequest: bugFeedback,
+          failures,
+        }),
+      });
+    });
+
+    await openTodosViewWithStorageState(page, {
+      name: "Admin Reviewer",
+      email: "admin@example.com",
+    });
+
+    await page.evaluate(() => {
+      const adminTab = document.getElementById("adminNavTab");
+      if (adminTab instanceof HTMLElement) {
+        adminTab.style.display = "block";
+      }
+      document.body.classList.add("is-admin-user");
+      (window as Window & { switchView: (view: string) => void }).switchView(
+        "admin",
+      );
+    });
+
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "Pipeline Failures",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "Simulated recordPromotion failure",
+    );
+    await page
+      .locator("#adminFeedbackDetail")
+      .getByRole("button", { name: "Retry promotion", exact: true })
+      .click();
+
+    expect(retryPayload).toEqual({ action: "promotion" });
+    await expect(page.locator("#adminMessage")).toContainText(
+      "Feedback retry completed",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "Created as #712",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText("retried");
   });
 });

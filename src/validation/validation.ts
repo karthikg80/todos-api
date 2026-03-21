@@ -19,6 +19,7 @@ import {
   FeedbackAutomationConfigDto,
   FeedbackRequestStatus,
   PromoteFeedbackRequestDto,
+  RetryAdminFeedbackRequestDto,
   FeedbackRequestType,
   ListAdminFeedbackRequestsQuery,
   Priority,
@@ -1833,6 +1834,40 @@ export function validatePromoteFeedbackRequest(
 
   return {
     ignoreDuplicateSuggestion: body.ignoreDuplicateSuggestion,
+  };
+}
+
+export function validateRetryAdminFeedbackRequest(
+  data: unknown,
+): RetryAdminFeedbackRequestDto {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new ValidationError("Request body must be an object");
+  }
+
+  const body = data as Record<string, unknown>;
+  if (
+    body.action !== "triage" &&
+    body.action !== "duplicate_check" &&
+    body.action !== "promotion"
+  ) {
+    throw new ValidationError(
+      'action must be "triage", "duplicate_check", or "promotion"',
+    );
+  }
+
+  if (
+    body.ignoreDuplicateSuggestion !== undefined &&
+    typeof body.ignoreDuplicateSuggestion !== "boolean"
+  ) {
+    throw new ValidationError("ignoreDuplicateSuggestion must be a boolean");
+  }
+
+  return {
+    action: body.action,
+    ignoreDuplicateSuggestion:
+      typeof body.ignoreDuplicateSuggestion === "boolean"
+        ? body.ignoreDuplicateSuggestion
+        : undefined,
   };
 }
 

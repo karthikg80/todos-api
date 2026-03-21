@@ -1,5 +1,8 @@
 import {
+  validateCreateFeedbackRequest,
   validateCreateTodo,
+  validatePromoteFeedbackRequest,
+  validateRetryAdminFeedbackRequest,
   validateUpdateTodo,
   validateId,
   validateReorderTodos,
@@ -11,6 +14,7 @@ import {
   validateReorderHeadings,
   ValidationError,
 } from "./validation/validation";
+import { validateFeedbackTriageOutput } from "./validation/feedbackTriageContracts";
 
 describe("Validation", () => {
   describe("validateCreateTodo", () => {
@@ -554,6 +558,73 @@ describe("Validation", () => {
 
     it("should throw for non-object input", () => {
       expect(() => validateFindTodosQuery(null)).toThrow(ValidationError);
+    });
+  });
+
+  describe("feedback validation", () => {
+    it("validates structured feedback submission input", () => {
+      const result = validateCreateFeedbackRequest({
+        type: "bug",
+        title: " Task drawer crashes ",
+        body: " What happened?\nCrash ",
+        screenshotUrl: "https://example.com/file.png",
+      });
+
+      expect(result).toMatchObject({
+        type: "bug",
+        title: "Task drawer crashes",
+        body: "What happened?\nCrash",
+        screenshotUrl: "https://example.com/file.png",
+      });
+    });
+
+    it("rejects invalid retry actions", () => {
+      expect(() =>
+        validateRetryAdminFeedbackRequest({ action: "ship-it" }),
+      ).toThrow('action must be "triage", "duplicate_check", or "promotion"');
+    });
+
+    it("validates promote request booleans", () => {
+      expect(
+        validatePromoteFeedbackRequest({ ignoreDuplicateSuggestion: true }),
+      ).toEqual({
+        ignoreDuplicateSuggestion: true,
+      });
+      expect(() =>
+        validatePromoteFeedbackRequest({ ignoreDuplicateSuggestion: "yes" }),
+      ).toThrow("ignoreDuplicateSuggestion must be a boolean");
+    });
+
+    it("validates triage output contract strictly", () => {
+      expect(
+        validateFeedbackTriageOutput({
+          classification: "bug",
+          triageConfidence: 0.9231,
+          normalizedTitle: "Task drawer crashes on save",
+          normalizedBody: "Saving from the drawer crashes the session.",
+          impactSummary: "Users lose edits.",
+          reproSteps: ["Open drawer", "Edit notes", "Press save"],
+          expectedBehavior: "Save succeeds.",
+          actualBehavior: "Drawer crashes.",
+          proposedOutcome: null,
+          labels: ["bug", "ui"],
+          missingInfo: [],
+        }),
+      ).toMatchObject({
+        classification: "bug",
+        triageConfidence: 0.923,
+      });
+
+      expect(() =>
+        validateFeedbackTriageOutput({
+          classification: "bug",
+          triageConfidence: 1.5,
+          normalizedTitle: "x",
+          normalizedBody: "y",
+          labels: [],
+          missingInfo: [],
+        }),
+      ).toThrow("triageConfidence must be between 0 and 1");
     });
   });
 });

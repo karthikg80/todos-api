@@ -42,6 +42,8 @@ import { FeedbackDuplicateService } from "./services/feedbackDuplicateService";
 import { FeedbackPromotionService } from "./services/feedbackPromotionService";
 import { FeedbackTriageService } from "./services/feedbackTriageService";
 import { FeedbackAutomationService } from "./services/feedbackAutomationService";
+import { FailedAutomationActionService } from "./services/failedAutomationActionService";
+import { FeedbackFailureService } from "./services/feedbackFailureService";
 import { createFeedbackRouter } from "./routes/feedbackRouter";
 import { AgentEnrollmentService } from "./services/agentEnrollmentService";
 import {
@@ -93,16 +95,26 @@ export function createApp(
   const feedbackService = persistencePrisma
     ? new FeedbackService(persistencePrisma)
     : null;
+  const feedbackFailureService = persistencePrisma
+    ? new FeedbackFailureService(
+        new FailedAutomationActionService(persistencePrisma),
+      )
+    : null;
   const feedbackTriageService = persistencePrisma
-    ? new FeedbackTriageService(persistencePrisma)
+    ? new FeedbackTriageService(persistencePrisma, {
+        feedbackFailureService: feedbackFailureService ?? undefined,
+      })
     : null;
   const feedbackDuplicateService = persistencePrisma
-    ? new FeedbackDuplicateService(persistencePrisma)
+    ? new FeedbackDuplicateService(persistencePrisma, {
+        feedbackFailureService: feedbackFailureService ?? undefined,
+      })
     : null;
   const feedbackPromotionService = persistencePrisma
     ? new FeedbackPromotionService(persistencePrisma, {
         feedbackService: feedbackService ?? undefined,
         feedbackDuplicateService: feedbackDuplicateService ?? undefined,
+        feedbackFailureService: feedbackFailureService ?? undefined,
       })
     : null;
   const feedbackAutomationService = persistencePrisma
@@ -281,6 +293,7 @@ export function createApp(
       feedbackDuplicateService: feedbackDuplicateService ?? undefined,
       feedbackPromotionService: feedbackPromotionService ?? undefined,
       feedbackAutomationService: feedbackAutomationService ?? undefined,
+      feedbackFailureService: feedbackFailureService ?? undefined,
     }),
   );
   app.use("/users", createUsersRouter({ authService }));

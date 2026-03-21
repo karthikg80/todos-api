@@ -7,6 +7,8 @@ import {
   FeedbackTriageResultDto,
 } from "../types";
 import { validateFeedbackTriageOutput } from "../validation/feedbackTriageContracts";
+import { FailedAutomationActionService } from "./failedAutomationActionService";
+import { FeedbackFailureService } from "./feedbackFailureService";
 
 interface AiProvider {
   generateJson<T>(systemPrompt: string, userPrompt: string): Promise<T>;
@@ -14,6 +16,7 @@ interface AiProvider {
 
 export interface FeedbackTriageServiceDeps {
   provider?: AiProvider;
+  feedbackFailureService?: FeedbackFailureService;
 }
 
 type FeedbackRecord = {
@@ -279,6 +282,7 @@ function buildUserPrompt(record: FeedbackRecord): string {
 
 export class FeedbackTriageService {
   private readonly provider?: AiProvider;
+  private readonly feedbackFailureService: FeedbackFailureService;
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -287,6 +291,9 @@ export class FeedbackTriageService {
     this.provider =
       deps.provider ??
       (config.aiProviderEnabled ? new OpenAiCompatibleProvider() : undefined);
+    this.feedbackFailureService =
+      deps.feedbackFailureService ??
+      new FeedbackFailureService(new FailedAutomationActionService(prisma));
   }
 
   async triageFeedback(feedbackId: string): Promise<FeedbackTriageResultDto> {
@@ -294,6 +301,7 @@ export class FeedbackTriageService {
       where: { id: feedbackId },
       select: {
         id: true,
+        userId: true,
         type: true,
         title: true,
         body: true,
@@ -312,6 +320,7 @@ export class FeedbackTriageService {
 
     const fallback = triageFeedbackDeterministic(record);
     let normalized = fallback;
+    let providerFailed = false;
 
     if (this.provider) {
       try {
@@ -325,7 +334,21 @@ export class FeedbackTriageService {
           triageSummary: buildSummary(record, validated.classification),
           dedupeKey: buildDedupeKey(record, validated.classification),
         };
-      } catch {
+      } catch (error) {
+        providerFailed = true;
+        await this.feedbackFailureService.record({
+          userId: record.userId,
+          feedbackId,
+          actionType: "feedback.triage",
+          errorCode: "TRIAGE_PROVIDER_FAILED",
+          errorMessage:
+            error instanceof Error ? error.message : "Triage provider failed",
+          payload: {
+            feedbackId,
+            providerEnabled: true,
+          },
+          retryable: true,
+        });
         normalized = fallback;
       }
     }
@@ -357,6 +380,12 @@ export class FeedbackTriageService {
         dedupeKey: normalized.dedupeKey,
       },
     });
+    if (!providerFailed) {
+      await this.feedbackFailureService.resolveOpenForFeedback(
+        feedbackId,
+        "feedback.triage",
+      );
+    }
 
     return normalized;
   }

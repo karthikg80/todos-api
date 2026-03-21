@@ -79,6 +79,30 @@ export class FailedAutomationActionService {
     return rows.map((r) => this.toRecord(r));
   }
 
+  async listByEntity(
+    entityType: string,
+    entityId: string,
+    filters: {
+      actionType?: string;
+      includeResolved?: boolean;
+      limit?: number;
+    } = {},
+  ): Promise<FailedActionRecord[]> {
+    if (!this.prisma) return [];
+
+    const rows = await this.prisma.failedAutomationAction.findMany({
+      where: {
+        entityType,
+        entityId,
+        ...(filters.actionType ? { actionType: filters.actionType } : {}),
+        ...(filters.includeResolved ? {} : { resolvedAt: null }),
+      },
+      orderBy: { createdAt: "desc" },
+      take: filters.limit ?? 50,
+    });
+    return rows.map((row) => this.toRecord(row));
+  }
+
   async resolve(
     userId: string,
     id: string,
@@ -88,6 +112,19 @@ export class FailedAutomationActionService {
 
     const result = await this.prisma.failedAutomationAction.updateMany({
       where: { id, userId, resolvedAt: null },
+      data: { resolvedAt: new Date(), resolution },
+    });
+    return result.count > 0;
+  }
+
+  async resolveById(
+    id: string,
+    resolution: "retried" | "dismissed",
+  ): Promise<boolean> {
+    if (!this.prisma) return false;
+
+    const result = await this.prisma.failedAutomationAction.updateMany({
+      where: { id, resolvedAt: null },
       data: { resolvedAt: new Date(), resolution },
     });
     return result.count > 0;

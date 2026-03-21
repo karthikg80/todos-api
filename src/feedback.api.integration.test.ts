@@ -483,9 +483,11 @@ describe("Feedback API Integration", () => {
         actualBehavior: "The task drawer crashes and loses the draft.",
         reproStepsJson: ["Open the task drawer", "Edit notes", "Press save"],
         agentLabelsJson: ["ui"],
-        pageUrl: "https://app.example.com/?view=todos",
+        pageUrl:
+          "https://app.example.com/?view=todos&email=reporter@example.com",
         appVersion: "1.6.0",
-        userAgent: "Integration Test Browser",
+        userAgent:
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/537.36 Chrome/124.0 Safari/537.36",
         screenshotUrl: "https://example.com/bug.png",
       },
     });
@@ -511,6 +513,11 @@ describe("Feedback API Integration", () => {
     expect(response.body.body).not.toContain(
       "raw input that should not be rendered directly",
     );
+    expect(response.body.body).toContain(
+      "Screenshot captured privately in app review queue and intentionally omitted from GitHub export.",
+    );
+    expect(response.body.body).not.toContain("reporter@example.com");
+    expect(response.body.body).not.toContain("?view=todos");
   });
 
   it("POST /admin/feedback/:id/promote creates a GitHub issue and stores promotion metadata", async () => {
@@ -634,6 +641,112 @@ describe("Feedback API Integration", () => {
       id: feedback.id,
       duplicateCandidate: true,
     });
+  });
+
+  it("records promotion failures and retries safely without creating duplicate GitHub issues", async () => {
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Planning bundles",
+        body: "raw feature request",
+        status: "triaged",
+        classification: "feature",
+        normalizedTitle: "Add planning bundles",
+        normalizedBody:
+          "Users need a bundled planning flow to reduce manual setup.",
+        impactSummary: "Weekly planning takes too many manual steps.",
+        proposedOutcome: "Offer suggested planning bundles.",
+        triageSummary: "Feature feedback from planning bundles.",
+        agentLabelsJson: ["ui"],
+      },
+    });
+
+    const originalUpdate = prisma.feedbackRequest.update.bind(
+      prisma.feedbackRequest,
+    ) as any;
+    let shouldFailPromotionPersist = true;
+    const updateSpy = jest.spyOn(prisma.feedbackRequest, "update") as any;
+    updateSpy.mockImplementation(async (...args: any[]) => {
+      const [input] = args;
+      if (
+        shouldFailPromotionPersist &&
+        input?.where?.id === feedback.id &&
+        typeof input?.data === "object" &&
+        input.data &&
+        "githubIssueNumber" in input.data
+      ) {
+        shouldFailPromotionPersist = false;
+        throw new Error("Simulated recordPromotion failure");
+      }
+      return originalUpdate(...args);
+    });
+
+    let issueCreateCalls = 0;
+    global.fetch = jest.fn(async (input) => {
+      const url = typeof input === "string" ? input : input.toString();
+      if (url.endsWith("/repos/karthikg80/todos-api/issues")) {
+        issueCreateCalls += 1;
+        return {
+          ok: true,
+          json: async () => ({
+            number: 712,
+            html_url: "https://github.com/karthikg80/todos-api/issues/712",
+          }),
+        } as Response;
+      }
+      if (url.endsWith("/repos/karthikg80/todos-api/issues/712/labels")) {
+        return {
+          ok: true,
+          json: async () => [{ name: "feature" }, { name: "triaged-by-agent" }],
+        } as Response;
+      }
+      throw new Error(`Unexpected fetch URL: ${url}`);
+    }) as typeof fetch;
+
+    await request(app)
+      .post(`/admin/feedback/${feedback.id}/promote`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({})
+      .expect(500);
+
+    const failuresResponse = await request(app)
+      .get(`/admin/feedback/${feedback.id}/failures`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(failuresResponse.body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actionType: "feedback.promotion",
+          retryable: true,
+          resolvedAt: null,
+        }),
+      ]),
+    );
+
+    const retryResponse = await request(app)
+      .post(`/admin/feedback/${feedback.id}/retry`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ action: "promotion" })
+      .expect(200);
+
+    expect(issueCreateCalls).toBe(1);
+    expect(retryResponse.body.feedbackRequest).toMatchObject({
+      id: feedback.id,
+      status: "promoted",
+      githubIssueNumber: 712,
+    });
+    expect(retryResponse.body.failures).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          actionType: "feedback.promotion",
+          resolution: "retried",
+        }),
+      ]),
+    );
+
+    updateSpy.mockRestore();
   });
 
   it("GET and PATCH /admin/feedback/automation/config manage auto-promotion settings", async () => {

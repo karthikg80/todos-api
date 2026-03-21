@@ -499,6 +499,81 @@ function renderPromotionPanel(item) {
   `;
 }
 
+function mapFailureActionLabel(actionType) {
+  if (actionType === "feedback.triage") {
+    return "Retry triage";
+  }
+  if (actionType === "feedback.duplicate_search") {
+    return "Retry duplicate check";
+  }
+  if (actionType === "feedback.promotion") {
+    return "Retry promotion";
+  }
+  return "Retry";
+}
+
+function mapFailureRetryAction(actionType) {
+  if (actionType === "feedback.triage") {
+    return "triage";
+  }
+  if (actionType === "feedback.duplicate_search") {
+    return "duplicate_check";
+  }
+  if (actionType === "feedback.promotion") {
+    return "promotion";
+  }
+  return "";
+}
+
+function renderFailuresPanel() {
+  if (state.adminFeedbackFailuresLoading) {
+    return `
+      <div class="admin-detail-block">
+        <div class="loading">
+          <div class="spinner"></div>
+          Loading feedback failures...
+        </div>
+      </div>
+    `;
+  }
+
+  if (!state.adminFeedbackFailures.length) {
+    return "";
+  }
+
+  return `
+    <div class="admin-detail-block">
+      <div class="admin-detail-block__header">
+        <h4>Pipeline Failures</h4>
+      </div>
+      <div class="admin-detail-stack">
+        ${state.adminFeedbackFailures
+          .map((failure) => {
+            const retryAction = mapFailureRetryAction(failure.actionType);
+            return `
+              <div class="admin-detail-meta admin-detail-meta--card">
+                ${renderMetadataRow("Action", failure.actionType)}
+                ${renderMetadataRow("Error", failure.errorMessage || failure.errorCode || "")}
+                ${renderMetadataRow("Created", formatDateTime(failure.createdAt))}
+                ${renderMetadataRow("Retry count", String(failure.retryCount ?? 0))}
+                ${renderMetadataRow("Resolved", failure.resolvedAt ? formatDateTime(failure.resolvedAt) : "Open")}
+                ${renderMetadataRow("Resolution", failure.resolution || "")}
+                ${
+                  retryAction && failure.retryable && !failure.resolvedAt
+                    ? `<div class="admin-feedback-actions">
+                        <button type="button" class="action-btn" data-onclick="retryAdminFeedbackAction('${retryAction}')">${escape(mapFailureActionLabel(failure.actionType))}</button>
+                      </div>`
+                    : ""
+                }
+              </div>
+            `;
+          })
+          .join("")}
+      </div>
+    </div>
+  `;
+}
+
 function renderAdminFeedbackDetail() {
   const { detail } = getAdminFeedbackElements();
   if (!(detail instanceof HTMLElement)) {
@@ -575,6 +650,7 @@ function renderAdminFeedbackDetail() {
 
       ${renderDuplicatePanel(item)}
       ${renderPromotionPanel(item)}
+      ${renderFailuresPanel()}
 
       <div class="admin-detail-block">
         <h4>Review Actions</h4>
@@ -682,6 +758,7 @@ export async function selectAdminFeedback(feedbackId) {
   if (!feedbackId) {
     state.adminFeedbackSelectedId = "";
     state.adminFeedbackDetail = null;
+    state.adminFeedbackFailures = [];
     state.adminFeedbackPromotionPreview = null;
     state.adminFeedbackPromotionPreviewError = "";
     renderAdminFeedbackWorkspace();
@@ -690,6 +767,8 @@ export async function selectAdminFeedback(feedbackId) {
 
   state.adminFeedbackSelectedId = feedbackId;
   state.adminFeedbackDetailLoading = true;
+  state.adminFeedbackFailures = [];
+  state.adminFeedbackFailuresLoading = true;
   state.adminFeedbackPromotionPreview = null;
   state.adminFeedbackPromotionPreviewError = "";
   renderAdminFeedbackWorkspace();
@@ -724,7 +803,10 @@ export async function selectAdminFeedback(feedbackId) {
     renderAdminFeedbackWorkspace();
   }
 
-  await loadAdminFeedbackPromotionPreview();
+  await Promise.all([
+    loadAdminFeedbackPromotionPreview(),
+    loadAdminFeedbackFailures(),
+  ]);
 }
 
 export async function loadAdminFeedbackQueue() {
@@ -747,6 +829,7 @@ export async function loadAdminFeedbackQueue() {
       state.adminFeedbackItems = [];
       state.adminFeedbackSelectedId = "";
       state.adminFeedbackDetail = null;
+      state.adminFeedbackFailures = [];
       state.adminFeedbackPromotionPreview = null;
       state.adminFeedbackPromotionPreviewError = "";
       return;
@@ -772,6 +855,7 @@ export async function loadAdminFeedbackQueue() {
     state.adminFeedbackItems = [];
     state.adminFeedbackSelectedId = "";
     state.adminFeedbackDetail = null;
+    state.adminFeedbackFailures = [];
     state.adminFeedbackPromotionPreview = null;
     state.adminFeedbackPromotionPreviewError = "";
   } finally {
@@ -996,6 +1080,7 @@ export async function runAdminFeedbackTriage() {
     updateFeedbackItemInList(data);
     renderAdminFeedbackWorkspace();
     await Promise.all([
+      loadAdminFeedbackFailures(),
       loadAdminFeedbackPromotionPreview(),
       loadAdminFeedbackAutomationPanel(),
     ]);
@@ -1117,6 +1202,7 @@ export async function runAdminFeedbackDuplicateCheck() {
     updateFeedbackItemInList(data);
     renderAdminFeedbackWorkspace();
     await Promise.all([
+      loadAdminFeedbackFailures(),
       loadAdminFeedbackPromotionPreview(),
       loadAdminFeedbackAutomationPanel(),
     ]);
@@ -1194,7 +1280,10 @@ export async function promoteAdminFeedback(ignoreDuplicateSuggestion = false) {
         );
         state.adminFeedbackDetail = data.feedbackRequest;
         renderAdminFeedbackWorkspace();
-        await loadAdminFeedbackPromotionPreview();
+        await Promise.all([
+          loadAdminFeedbackFailures(),
+          loadAdminFeedbackPromotionPreview(),
+        ]);
         return;
       }
 
@@ -1216,7 +1305,103 @@ export async function promoteAdminFeedback(ignoreDuplicateSuggestion = false) {
       "success",
     );
     await Promise.all([
+      loadAdminFeedbackFailures(),
       loadAdminFeedbackAutomationPanel(),
+      loadAdminFeedbackQueue(),
+    ]);
+  } catch (error) {
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+  }
+}
+
+export async function loadAdminFeedbackFailures() {
+  if (!state.adminFeedbackSelectedId) {
+    state.adminFeedbackFailures = [];
+    state.adminFeedbackFailuresLoading = false;
+    renderAdminFeedbackWorkspace();
+    return;
+  }
+
+  state.adminFeedbackFailuresLoading = true;
+  renderAdminFeedbackWorkspace();
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/${encodeURIComponent(state.adminFeedbackSelectedId)}/failures`,
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      state.adminFeedbackFailures = [];
+      hooks.showMessage?.(
+        "adminMessage",
+        data.error || "Failed to load feedback failures",
+        "error",
+      );
+      return;
+    }
+
+    state.adminFeedbackFailures = Array.isArray(data) ? data : [];
+  } catch (error) {
+    state.adminFeedbackFailures = [];
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+  } finally {
+    state.adminFeedbackFailuresLoading = false;
+    renderAdminFeedbackWorkspace();
+  }
+}
+
+export async function retryAdminFeedbackAction(action) {
+  if (!state.adminFeedbackSelectedId) {
+    return;
+  }
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/${encodeURIComponent(state.adminFeedbackSelectedId)}/retry`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      },
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      if (response?.status === 409 && data.feedbackRequest) {
+        state.adminFeedbackDetail = data.feedbackRequest;
+        state.adminFeedbackFailures = Array.isArray(data.failures)
+          ? data.failures
+          : state.adminFeedbackFailures;
+        renderAdminFeedbackWorkspace();
+      }
+      hooks.showMessage?.(
+        "adminMessage",
+        data.error || "Failed to retry feedback action",
+        "error",
+      );
+      return;
+    }
+
+    state.adminFeedbackDetail =
+      data.feedbackRequest || state.adminFeedbackDetail;
+    state.adminFeedbackFailures = Array.isArray(data.failures)
+      ? data.failures
+      : [];
+    updateFeedbackItemInList(state.adminFeedbackDetail);
+    hooks.showMessage?.("adminMessage", "Feedback retry completed", "success");
+    renderAdminFeedbackWorkspace();
+    await Promise.all([
+      loadAdminFeedbackAutomationPanel(),
+      loadAdminFeedbackPromotionPreview(),
       loadAdminFeedbackQueue(),
     ]);
   } catch (error) {

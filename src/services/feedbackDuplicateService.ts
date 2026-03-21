@@ -5,9 +5,12 @@ import {
   GitHubIssueSearchAdapter,
   GitHubIssueSearchService,
 } from "./githubIssueSearchService";
+import { FailedAutomationActionService } from "./failedAutomationActionService";
+import { FeedbackFailureService } from "./feedbackFailureService";
 
 type FeedbackDuplicateRecord = {
   id: string;
+  userId: string;
   type: "bug" | "feature" | "general";
   status: "new" | "triaged" | "promoted" | "rejected";
   title: string;
@@ -35,6 +38,7 @@ export interface FeedbackDuplicateAssessment {
 
 export interface FeedbackDuplicateServiceDeps {
   gitHubSearchAdapter?: GitHubIssueSearchAdapter;
+  feedbackFailureService?: FeedbackFailureService;
 }
 
 function normalizeText(value: string): string {
@@ -155,6 +159,7 @@ export class DuplicatePromotionConflictError extends Error {
 
 export class FeedbackDuplicateService {
   private readonly gitHubSearchAdapter: GitHubIssueSearchAdapter;
+  private readonly feedbackFailureService: FeedbackFailureService;
 
   constructor(
     private readonly prisma: PrismaClient,
@@ -162,6 +167,9 @@ export class FeedbackDuplicateService {
   ) {
     this.gitHubSearchAdapter =
       deps.gitHubSearchAdapter ?? new GitHubIssueSearchService();
+    this.feedbackFailureService =
+      deps.feedbackFailureService ??
+      new FeedbackFailureService(new FailedAutomationActionService(prisma));
   }
 
   async detectAndPersist(
@@ -171,6 +179,7 @@ export class FeedbackDuplicateService {
       where: { id: feedbackId },
       select: {
         id: true,
+        userId: true,
         type: true,
         status: true,
         title: true,
@@ -188,11 +197,12 @@ export class FeedbackDuplicateService {
     }
 
     const internalMatches = await this.findInternalMatches(record);
-    const githubMatch =
+    const githubSearchResult =
       internalMatches.matchedFeedbackIds.length > 0 ||
       record.classification === "noise"
-        ? null
+        ? { match: null, failed: false }
         : await this.findGitHubIssueMatch(record);
+    const githubMatch = githubSearchResult.match;
 
     const assessment: FeedbackDuplicateAssessment =
       internalMatches.matchedFeedbackIds.length > 0 || githubMatch
@@ -213,6 +223,12 @@ export class FeedbackDuplicateService {
       where: { id: feedbackId },
       data: buildAssessmentUpdate(assessment),
     });
+    if (!githubSearchResult.failed) {
+      await this.feedbackFailureService.resolveOpenForFeedback(
+        feedbackId,
+        "feedback.duplicate_search",
+      );
+    }
 
     return assessment;
   }
@@ -294,7 +310,7 @@ export class FeedbackDuplicateService {
 
   private async findGitHubIssueMatch(
     record: FeedbackDuplicateRecord,
-  ): Promise<GitHubIssueMatch | null> {
+  ): Promise<{ match: GitHubIssueMatch | null; failed: boolean }> {
     try {
       const issues = await this.gitHubSearchAdapter.searchIssues(
         buildSearchQuery(record),
@@ -308,9 +324,22 @@ export class FeedbackDuplicateService {
           bestMatch = issue;
         }
       }
-      return bestScore >= 0.94 ? bestMatch : null;
-    } catch {
-      return null;
+      return { match: bestScore >= 0.94 ? bestMatch : null, failed: false };
+    } catch (error) {
+      await this.feedbackFailureService.record({
+        userId: record.userId,
+        feedbackId: record.id,
+        actionType: "feedback.duplicate_search",
+        errorCode: "DUPLICATE_SEARCH_FAILED",
+        errorMessage:
+          error instanceof Error ? error.message : "Duplicate search failed",
+        payload: {
+          feedbackId: record.id,
+          query: buildSearchQuery(record),
+        },
+        retryable: true,
+      });
+      return { match: null, failed: true };
     }
   }
 }

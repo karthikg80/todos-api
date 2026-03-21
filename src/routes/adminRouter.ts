@@ -9,10 +9,12 @@ import {
 import { FeedbackPromotionService } from "../services/feedbackPromotionService";
 import { FeedbackTriageService } from "../services/feedbackTriageService";
 import { FeedbackAutomationService } from "../services/feedbackAutomationService";
+import { FeedbackFailureService } from "../services/feedbackFailureService";
 import {
   validateFeedbackAutomationDecisionLimit,
   validateListAdminFeedbackRequestsQuery,
   validatePromoteFeedbackRequest,
+  validateRetryAdminFeedbackRequest,
   validateRunFeedbackAutomationRequest,
   validateUpdateFeedbackAutomationConfig,
   validateUpdateAdminFeedbackRequest,
@@ -25,6 +27,7 @@ interface AdminRouterDeps {
   feedbackDuplicateService?: FeedbackDuplicateService;
   feedbackPromotionService?: FeedbackPromotionService;
   feedbackAutomationService?: FeedbackAutomationService;
+  feedbackFailureService?: FeedbackFailureService;
 }
 
 export function createAdminRouter({
@@ -34,6 +37,7 @@ export function createAdminRouter({
   feedbackDuplicateService,
   feedbackPromotionService,
   feedbackAutomationService,
+  feedbackFailureService,
 }: AdminRouterDeps): Router {
   const router = Router();
 
@@ -326,6 +330,118 @@ export function createAdminRouter({
         if (hasPrismaCode(error, ["P2025"])) {
           return next(new HttpError(404, "Feedback request not found"));
         }
+        if (hasPrismaCode(error, ["P2023"])) {
+          return next(new HttpError(400, "Invalid feedback request ID format"));
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/feedback/:id/retry",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (
+        !feedbackService ||
+        !feedbackFailureService ||
+        !feedbackTriageService ||
+        !feedbackDuplicateService ||
+        !feedbackPromotionService
+      ) {
+        return res
+          .status(501)
+          .json({ error: "Feedback retry handling not configured" });
+      }
+
+      try {
+        const reviewerUserId = req.user?.userId;
+        const feedbackId = String(req.params.id);
+        if (!reviewerUserId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const dto = validateRetryAdminFeedbackRequest(req.body);
+        if (dto.action === "triage") {
+          await feedbackTriageService.triageFeedback(feedbackId);
+        } else if (dto.action === "duplicate_check") {
+          await feedbackDuplicateService.detectAndPersist(feedbackId);
+        } else {
+          await feedbackPromotionService.promoteFeedback(
+            feedbackId,
+            reviewerUserId,
+            {
+              ignoreDuplicateSuggestion: dto.ignoreDuplicateSuggestion,
+            },
+          );
+        }
+
+        const feedbackRequest = await feedbackService.getForAdmin(feedbackId);
+        if (!feedbackRequest) {
+          return next(new HttpError(404, "Feedback request not found"));
+        }
+        const failures =
+          await feedbackFailureService.listForFeedback(feedbackId);
+        res.json({ feedbackRequest, failures });
+      } catch (error) {
+        if (error instanceof DuplicatePromotionConflictError) {
+          const feedbackRequest = await feedbackService.getForAdmin(
+            String(req.params.id),
+          );
+          const failures = await feedbackFailureService.listForFeedback(
+            String(req.params.id),
+          );
+          return res.status(409).json({
+            error: error.message,
+            duplicateDetection: error.assessment,
+            feedbackRequest,
+            failures,
+          });
+        }
+        if (
+          error instanceof Error &&
+          [
+            "Feedback request not found",
+            "Feedback must be triaged before promotion",
+            "Feedback must be triaged as bug or feature before promotion",
+            "Confirmed duplicates cannot be promoted",
+            "Feedback has already been promoted",
+          ].includes(error.message)
+        ) {
+          return next(
+            new HttpError(
+              error.message === "Feedback request not found" ? 404 : 400,
+              error.message,
+            ),
+          );
+        }
+        if (hasPrismaCode(error, ["P2023"])) {
+          return next(new HttpError(400, "Invalid feedback request ID format"));
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/feedback/:id/failures",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackService || !feedbackFailureService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback failure history not configured" });
+      }
+
+      try {
+        const feedbackId = String(req.params.id);
+        const feedbackRequest = await feedbackService.getForAdmin(feedbackId);
+        if (!feedbackRequest) {
+          return next(new HttpError(404, "Feedback request not found"));
+        }
+
+        const failures =
+          await feedbackFailureService.listForFeedback(feedbackId);
+        res.json(failures);
+      } catch (error) {
         if (hasPrismaCode(error, ["P2023"])) {
           return next(new HttpError(400, "Invalid feedback request ID format"));
         }

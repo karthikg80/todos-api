@@ -3890,6 +3890,13 @@ body.is-todos-view .floating-new-task-cta {
   gap: 10px;
 }
 
+.admin-detail-meta--card {
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-md);
+  background: var(--card-bg);
+}
+
 .admin-detail-meta__row {
   display: grid;
   gap: 4px;
@@ -3934,6 +3941,11 @@ body.is-todos-view .floating-new-task-cta {
 .admin-detail-links {
   display: flex;
   flex-wrap: wrap;
+  gap: 12px;
+}
+
+.admin-detail-stack {
+  display: grid;
   gap: 12px;
 }
 
