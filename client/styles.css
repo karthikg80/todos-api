@@ -3850,9 +3850,28 @@ body.is-todos-view .floating-new-task-cta {
   margin: 0;
 }
 
+.admin-detail-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.admin-detail-panel {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
 .admin-detail-block {
   display: grid;
   gap: 10px;
+}
+
+.admin-detail-block__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .admin-detail-pre {
@@ -3888,6 +3907,19 @@ body.is-todos-view .floating-new-task-cta {
 .admin-detail-meta__value {
   color: var(--text-primary);
   word-break: break-word;
+}
+
+.admin-detail-list {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  color: var(--text-primary);
+}
+
+.admin-detail-empty-copy {
+  margin: 0;
+  color: var(--text-secondary);
 }
 
 .admin-feedback-actions {
@@ -4020,6 +4052,10 @@ body.is-todos-view .floating-new-task-cta {
   }
 
   .admin-feedback-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-detail-columns {
     grid-template-columns: 1fr;
   }
 }

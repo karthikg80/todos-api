@@ -2,6 +2,7 @@ import { Router, Request, Response, NextFunction } from "express";
 import { AuthService } from "../services/authService";
 import { HttpError, hasPrismaCode } from "../errorHandling";
 import { FeedbackService } from "../services/feedbackService";
+import { FeedbackTriageService } from "../services/feedbackTriageService";
 import {
   validateListAdminFeedbackRequestsQuery,
   validateUpdateAdminFeedbackRequest,
@@ -10,11 +11,13 @@ import {
 interface AdminRouterDeps {
   authService?: AuthService;
   feedbackService?: FeedbackService;
+  feedbackTriageService?: FeedbackTriageService;
 }
 
 export function createAdminRouter({
   authService,
   feedbackService,
+  feedbackTriageService,
 }: AdminRouterDeps): Router {
   const router = Router();
 
@@ -186,6 +189,38 @@ export function createAdminRouter({
       } catch (error) {
         if (hasPrismaCode(error, ["P2025"])) {
           return next(new HttpError(404, "Feedback request not found"));
+        }
+        if (hasPrismaCode(error, ["P2023"])) {
+          return next(new HttpError(400, "Invalid feedback request ID format"));
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/feedback/:id/triage",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackService || !feedbackTriageService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback triage not configured" });
+      }
+
+      try {
+        const feedbackId = String(req.params.id);
+        await feedbackTriageService.triageFeedback(feedbackId);
+        const feedbackRequest = await feedbackService.getForAdmin(feedbackId);
+        if (!feedbackRequest) {
+          return next(new HttpError(404, "Feedback request not found"));
+        }
+        res.json(feedbackRequest);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "Feedback request not found"
+        ) {
+          return next(new HttpError(404, error.message));
         }
         if (hasPrismaCode(error, ["P2023"])) {
           return next(new HttpError(400, "Invalid feedback request ID format"));

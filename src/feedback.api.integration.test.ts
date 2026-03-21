@@ -260,9 +260,79 @@ describe("Feedback API Integration", () => {
     expect(persisted?.reviewedAt).not.toBeNull();
   });
 
+  it("POST /admin/feedback/:id/triage stores structured triage output", async () => {
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Task drawer crashes on save",
+        body: [
+          "What happened?",
+          "The drawer crashed after pressing save.",
+          "",
+          "What did you expect?",
+          "The task should save.",
+          "",
+          "What were you doing right before it happened?",
+          "Editing notes in the task drawer.",
+        ].join("\n"),
+        status: "new",
+        pageUrl: "https://app.example.com/?view=todos",
+      },
+    });
+
+    const response = await request(app)
+      .post(`/admin/feedback/${feedback.id}/triage`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      id: feedback.id,
+      classification: "bug",
+      normalizedTitle: "Task drawer crashes on save",
+      triageSummary: expect.any(String),
+      actualBehavior: "The drawer crashed after pressing save.",
+      expectedBehavior: "The task should save.",
+      reproSteps: [
+        "Editing notes in the task drawer.",
+        "The drawer crashed after pressing save.",
+      ],
+    });
+    expect(response.body.triageConfidence).toBeGreaterThan(0.8);
+    expect(response.body.agentLabels).toContain("feedback:bug");
+
+    const persisted = await prisma.feedbackRequest.findUnique({
+      where: { id: feedback.id },
+    });
+
+    expect(persisted?.classification).toBe("bug");
+    expect(persisted?.normalizedTitle).toBe("Task drawer crashes on save");
+    expect(persisted?.triageConfidence).toBeGreaterThan(0.8);
+    expect(persisted?.expectedBehavior).toBe("The task should save.");
+  });
+
   it("GET /admin/feedback returns 403 for non-admin users", async () => {
     await request(app)
       .get("/admin/feedback")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(403)
+      .expect({
+        error: "Forbidden: Admin access required",
+      });
+  });
+
+  it("POST /admin/feedback/:id/triage returns 403 for non-admin users", async () => {
+    const feedback = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Add a planning helper",
+        body: "What are you trying to do?\nPlan my week.",
+      },
+    });
+
+    await request(app)
+      .post(`/admin/feedback/${feedback.id}/triage`)
       .set("Authorization", `Bearer ${authToken}`)
       .expect(403)
       .expect({

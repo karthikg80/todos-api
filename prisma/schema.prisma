@@ -104,6 +104,14 @@ enum FeedbackStatus {
   rejected
 }
 
+enum FeedbackClassification {
+  bug
+  feature
+  support
+  duplicate_candidate
+  noise
+}
+
 enum AiSuggestionStatus {
   pending
   accepted
@@ -475,6 +483,17 @@ model FeedbackRequest {
   userAgent          String?        @map("user_agent") @db.VarChar(2000)
   appVersion         String?        @map("app_version") @db.VarChar(50)
   status             FeedbackStatus @default(new)
+  classification     FeedbackClassification?
+  triageConfidence   Float?         @map("triage_confidence")
+  normalizedTitle    String?        @map("normalized_title") @db.VarChar(200)
+  normalizedBody     String?        @map("normalized_body") @db.Text
+  impactSummary      String?        @map("impact_summary") @db.Text
+  reproStepsJson     Json?          @map("repro_steps_json")
+  expectedBehavior   String?        @map("expected_behavior") @db.Text
+  actualBehavior     String?        @map("actual_behavior") @db.Text
+  proposedOutcome    String?        @map("proposed_outcome") @db.Text
+  agentLabelsJson    Json?          @map("agent_labels_json")
+  missingInfoJson    Json?          @map("missing_info_json")
   triageSummary      String?        @map("triage_summary") @db.Text
   severity           String?        @db.VarChar(20)
   dedupeKey          String?        @map("dedupe_key") @db.VarChar(255)
@@ -491,6 +510,7 @@ model FeedbackRequest {
   @@index([userId, status, createdAt])
   @@index([userId, type, createdAt])
   @@index([status, type, createdAt])
+  @@index([classification, triageConfidence])
   @@index([reviewedByUserId, reviewedAt])
   @@index([dedupeKey])
   @@map("feedback_requests")
