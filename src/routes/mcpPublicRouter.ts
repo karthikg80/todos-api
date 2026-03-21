@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import { Request, Response, Router } from "express";
 import { AuthService } from "../services/authService";
 import { McpOAuthService } from "../services/mcpOAuthService";
@@ -742,10 +742,19 @@ export function createMcpPublicRouter({
       // rich HTML body so embedded webviews / in-app browsers (e.g. ChatGPT)
       // can redirect via meta-refresh or JS when the Location header is not
       // automatically followed.
+      // A per-response CSP nonce allows the inline redirect script through
+      // the global Helmet CSP (which blocks inline scripts by default).
+      const nonce = randomBytes(16).toString("base64");
       res
         .status(303)
         .setHeader("Location", finalRedirectUri)
-        .send(renderOAuthRedirectPage({ redirectUri: finalRedirectUri }));
+        .setHeader(
+          "Content-Security-Policy",
+          `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'`,
+        )
+        .send(
+          renderOAuthRedirectPage({ redirectUri: finalRedirectUri, nonce }),
+        );
     } catch (error) {
       const message = error instanceof Error ? error.message : "";
       const mapped = mapAuthorizeError(message);
