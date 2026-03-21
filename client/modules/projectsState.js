@@ -4,6 +4,11 @@
 // =============================================================================
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
+import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
+import {
+  PROJECT_SELECTED,
+  STATE_CHANGED,
+} from "../platform/events/eventReasons.js";
 import { applyUiAction } from "./stateActions.js";
 import { toDateInputValue, toIsoFromDateInput } from "./todosService.js";
 
@@ -159,7 +164,7 @@ async function loadHeadingsForProject(projectName = getSelectedProjectKey()) {
 function scheduleLoadSelectedProjectHeadings() {
   window.requestAnimationFrame(() => {
     loadHeadingsForProject(getSelectedProjectKey()).then(() => {
-      EventBus.dispatch("todos:changed", { reason: "project-selected" });
+      EventBus.dispatch(TODOS_CHANGED, { reason: PROJECT_SELECTED });
     });
   });
 }
@@ -205,7 +210,7 @@ async function createHeadingForSelectedProject() {
       return;
     }
     await loadHeadingsForProject(selectedProject);
-    EventBus.dispatch("todos:changed", { reason: "state-changed" });
+    EventBus.dispatch(TODOS_CHANGED, { reason: STATE_CHANGED });
     hooks.showMessage?.(
       "todosMessage",
       `Heading "${headingName}" created`,
@@ -877,7 +882,7 @@ async function renameProjectByName(fromProjectName, toProjectName) {
   if (activeProject === selectedPath) {
     hooks.selectProjectFromRail?.(renamedPath);
   } else {
-    EventBus.dispatch("todos:changed", { reason: "project-selected" });
+    EventBus.dispatch(TODOS_CHANGED, { reason: PROJECT_SELECTED });
     hooks.updateHeaderFromVisibleTodos?.(hooks.getVisibleTodos?.() ?? []);
   }
 
@@ -924,7 +929,7 @@ async function deleteProjectByName(
   }
 
   removeProjectLocally(normalized, { taskDisposition });
-  EventBus.dispatch("todos:changed", { reason: "project-selected" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: PROJECT_SELECTED });
   hooks.updateHeaderFromVisibleTodos?.(hooks.getVisibleTodos?.() ?? []);
 
   hooks.showMessage?.(
@@ -1019,7 +1024,7 @@ async function submitProjectEditDrawer() {
         if (activeProject === selectedPath) {
           hooks.selectProjectFromRail?.(renamedPath);
         } else {
-          EventBus.dispatch("todos:changed", { reason: "project-selected" });
+          EventBus.dispatch(TODOS_CHANGED, { reason: PROJECT_SELECTED });
           hooks.updateHeaderFromVisibleTodos?.(hooks.getVisibleTodos?.() ?? []);
         }
       }

@@ -8,6 +8,8 @@
 
 import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
+import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
+import { ONBOARDING_COMPLETE } from "../platform/events/eventReasons.js";
 
 const { escapeHtml } = window.Utils || {};
 
@@ -123,7 +125,7 @@ async function _markComplete() {
   }
 
   // Refresh the home dashboard now that onboarding is done
-  EventBus.dispatch("todos:changed", { reason: "onboarding-complete" });
+  EventBus.dispatch(TODOS_CHANGED, { reason: ONBOARDING_COMPLETE });
 }
 
 // ---------------------------------------------------------------------------
