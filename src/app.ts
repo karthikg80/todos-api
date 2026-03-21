@@ -52,6 +52,8 @@ import {
   apiLimiter,
   mcpPublicLimiter,
 } from "./middleware/rateLimitMiddleware";
+import { requestIdMiddleware } from "./infra/logging/requestId";
+import { routeLatencyMiddleware } from "./infra/metrics/routeLatency";
 
 export function createApp(
   todoService: ITodoService = new TodoService(),
@@ -185,6 +187,8 @@ export function createApp(
       };
 
   app.set("trust proxy", 1);
+  app.use(requestIdMiddleware);
+  app.use(routeLatencyMiddleware);
 
   if (config.corsOrigins.length > 0) {
     app.use(
