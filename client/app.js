@@ -412,6 +412,7 @@ import {
   loadAdminFeedbackQueue,
   selectAdminFeedback,
   setAdminFeedbackFilter,
+  runAdminFeedbackTriage,
   updateAdminFeedbackStatus,
 } from "./modules/adminFeedback.js";
 import * as DragDrop from "./modules/dragDrop.js";
@@ -1771,6 +1772,7 @@ window.changeUserRole = changeUserRole;
 window.deleteUser = deleteUser;
 window.selectAdminFeedback = selectAdminFeedback;
 window.setAdminFeedbackFilter = setAdminFeedbackFilter;
+window.runAdminFeedbackTriage = runAdminFeedbackTriage;
 window.updateAdminFeedbackStatus = updateAdminFeedbackStatus;
 
 // ---------------------------------------------------------------------------

@@ -344,12 +344,32 @@ export interface CreateCaptureItemDto {
 export type FeedbackRequestType = "bug" | "feature" | "general";
 export type FeedbackRequestStatus = "new" | "triaged" | "promoted" | "rejected";
 export type FeedbackReviewAction = "triaged" | "promoted" | "rejected";
+export type FeedbackTriageClassification =
+  | "bug"
+  | "feature"
+  | "support"
+  | "duplicate_candidate"
+  | "noise";
 
 export interface FeedbackAttachmentMetadataDto {
   name?: string | null;
   type?: string | null;
   size?: number | null;
   lastModified?: number | null;
+}
+
+export interface FeedbackTriageResultDto {
+  classification: FeedbackTriageClassification;
+  triageConfidence: number;
+  normalizedTitle: string;
+  normalizedBody: string;
+  impactSummary?: string | null;
+  reproSteps?: string[];
+  expectedBehavior?: string | null;
+  actualBehavior?: string | null;
+  proposedOutcome?: string | null;
+  labels: string[];
+  missingInfo: string[];
 }
 
 export interface CreateFeedbackRequestDto {
@@ -375,6 +395,17 @@ export interface FeedbackRequestDto {
   userAgent?: string | null;
   appVersion?: string | null;
   status: FeedbackRequestStatus;
+  classification?: FeedbackTriageClassification | null;
+  triageConfidence?: number | null;
+  normalizedTitle?: string | null;
+  normalizedBody?: string | null;
+  impactSummary?: string | null;
+  reproSteps?: string[];
+  expectedBehavior?: string | null;
+  actualBehavior?: string | null;
+  proposedOutcome?: string | null;
+  agentLabels?: string[];
+  missingInfo?: string[];
   triageSummary?: string | null;
   severity?: string | null;
   dedupeKey?: string | null;

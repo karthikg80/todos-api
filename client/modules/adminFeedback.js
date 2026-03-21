@@ -168,6 +168,61 @@ function renderMetadataRow(label, value) {
   `;
 }
 
+function renderListBlock(title, items, emptyLabel = "None") {
+  const listItems = Array.isArray(items) ? items.filter(Boolean) : [];
+  return `
+    <div class="admin-detail-block">
+      <h4>${escape(title)}</h4>
+      ${
+        listItems.length
+          ? `<ul class="admin-detail-list">${listItems
+              .map((item) => `<li>${escape(item)}</li>`)
+              .join("")}</ul>`
+          : `<p class="admin-detail-empty-copy">${escape(emptyLabel)}</p>`
+      }
+    </div>
+  `;
+}
+
+function renderTriagePanel(item) {
+  const confidence =
+    typeof item.triageConfidence === "number"
+      ? `${Math.round(item.triageConfidence * 100)}%`
+      : "Not triaged yet";
+
+  return `
+    <div class="admin-detail-panel">
+      <div class="admin-detail-block">
+        <div class="admin-detail-block__header">
+          <h4>AI Triage</h4>
+          <button type="button" class="action-btn" data-onclick="runAdminFeedbackTriage()">
+            ${item.classification ? "Re-run triage" : "Run triage"}
+          </button>
+        </div>
+        <div class="admin-detail-meta">
+          ${renderMetadataRow("Classification", item.classification || "")}
+          ${renderMetadataRow("Confidence", confidence)}
+          ${renderMetadataRow("Normalized title", item.normalizedTitle || "")}
+          ${renderMetadataRow("Summary", item.triageSummary || "")}
+          ${renderMetadataRow("Impact", item.impactSummary || "")}
+          ${renderMetadataRow("Expected behavior", item.expectedBehavior || "")}
+          ${renderMetadataRow("Actual behavior", item.actualBehavior || "")}
+          ${renderMetadataRow("Proposed outcome", item.proposedOutcome || "")}
+          ${renderMetadataRow("Dedupe key", item.dedupeKey || "")}
+          ${renderMetadataRow("Severity", item.severity || "")}
+        </div>
+      </div>
+      <div class="admin-detail-block">
+        <h4>Normalized body</h4>
+        <pre class="admin-detail-pre">${escape(item.normalizedBody || "No triage output yet.")}</pre>
+      </div>
+      ${renderListBlock("Repro steps", item.reproSteps, "No repro steps extracted")}
+      ${renderListBlock("Labels", item.agentLabels, "No labels assigned")}
+      ${renderListBlock("Missing info flags", item.missingInfo, "No missing info flags")}
+    </div>
+  `;
+}
+
 function renderAdminFeedbackDetail() {
   const { detail } = getAdminFeedbackElements();
   if (!(detail instanceof HTMLElement)) {
@@ -211,26 +266,30 @@ function renderAdminFeedbackDetail() {
         </div>
       </div>
 
-      <div class="admin-detail-block">
-        <h4>Submission</h4>
-        <pre class="admin-detail-pre">${escape(item.body)}</pre>
-      </div>
+      <div class="admin-detail-columns">
+        <div class="admin-detail-panel">
+          <div class="admin-detail-block">
+            <h4>Raw submission</h4>
+            <pre class="admin-detail-pre">${escape(item.body)}</pre>
+          </div>
 
-      <div class="admin-detail-block">
-        <h4>Captured Metadata</h4>
-        <div class="admin-detail-meta">
-          ${renderMetadataRow("User", item.user?.email || item.userId)}
-          ${renderMetadataRow("Reviewer", item.reviewer?.email || "")}
-          ${renderMetadataRow("Reviewed at", item.reviewedAt ? formatDateTime(item.reviewedAt) : "")}
-          ${renderMetadataRow("Page URL", item.pageUrl || "")}
-          ${renderMetadataRow("App version", item.appVersion || "")}
-          ${renderMetadataRow("Browser", item.userAgent || "")}
-          ${renderMetadataRow("Screenshot URL", item.screenshotUrl || "")}
-          ${renderMetadataRow("Attachment", attachmentSummary)}
-          ${renderMetadataRow("Triage summary", item.triageSummary || "")}
-          ${renderMetadataRow("Severity", item.severity || "")}
-          ${renderMetadataRow("Rejection reason", item.rejectionReason || "")}
+          <div class="admin-detail-block">
+            <h4>Captured metadata</h4>
+            <div class="admin-detail-meta">
+              ${renderMetadataRow("User", item.user?.email || item.userId)}
+              ${renderMetadataRow("Reviewer", item.reviewer?.email || "")}
+              ${renderMetadataRow("Reviewed at", item.reviewedAt ? formatDateTime(item.reviewedAt) : "")}
+              ${renderMetadataRow("Page URL", item.pageUrl || "")}
+              ${renderMetadataRow("App version", item.appVersion || "")}
+              ${renderMetadataRow("Browser", item.userAgent || "")}
+              ${renderMetadataRow("Screenshot URL", item.screenshotUrl || "")}
+              ${renderMetadataRow("Attachment", attachmentSummary)}
+              ${renderMetadataRow("Rejection reason", item.rejectionReason || "")}
+            </div>
+          </div>
         </div>
+
+        ${renderTriagePanel(item)}
       </div>
 
       <div class="admin-detail-block">
@@ -412,6 +471,50 @@ export async function updateAdminFeedbackStatus(status) {
 
     hooks.showMessage?.("adminMessage", `Feedback marked ${status}`, "success");
     await loadAdminFeedbackQueue();
+  } catch (error) {
+    hooks.showMessage?.(
+      "adminMessage",
+      "Network error. Please try again.",
+      "error",
+    );
+  }
+}
+
+export async function runAdminFeedbackTriage() {
+  if (!state.adminFeedbackSelectedId) {
+    return;
+  }
+
+  try {
+    const response = await hooks.apiCall(
+      `${hooks.API_URL}/admin/feedback/${encodeURIComponent(state.adminFeedbackSelectedId)}/triage`,
+      {
+        method: "POST",
+      },
+    );
+    const data = response ? await hooks.parseApiBody(response) : {};
+
+    if (!response?.ok) {
+      hooks.showMessage?.(
+        "adminMessage",
+        data.error || "Failed to triage feedback",
+        "error",
+      );
+      return;
+    }
+
+    hooks.showMessage?.("adminMessage", "Feedback triage updated", "success");
+    state.adminFeedbackDetail = data;
+    const itemIndex = state.adminFeedbackItems.findIndex(
+      (item) => item.id === data.id,
+    );
+    if (itemIndex >= 0) {
+      state.adminFeedbackItems[itemIndex] = {
+        ...state.adminFeedbackItems[itemIndex],
+        ...data,
+      };
+    }
+    renderAdminFeedbackWorkspace();
   } catch (error) {
     hooks.showMessage?.(
       "adminMessage",

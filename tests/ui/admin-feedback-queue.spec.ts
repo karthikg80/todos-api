@@ -19,6 +19,17 @@ function buildFeedback(overrides: Record<string, unknown> = {}) {
     userAgent: "Playwright Browser",
     appVersion: "1.6.0",
     status: "new",
+    classification: null,
+    triageConfidence: null,
+    normalizedTitle: null,
+    normalizedBody: null,
+    impactSummary: null,
+    reproSteps: [],
+    expectedBehavior: null,
+    actualBehavior: null,
+    proposedOutcome: null,
+    agentLabels: [],
+    missingInfo: [],
     triageSummary: "Likely reproducible",
     severity: "medium",
     dedupeKey: null,
@@ -44,6 +55,7 @@ test.describe("Admin feedback queue", () => {
     page,
   }) => {
     let patchPayload: Record<string, unknown> | null = null;
+    let triageCalled = false;
     const bugFeedback = buildFeedback();
     const featureFeedback = buildFeedback({
       id: "feedback-2",
@@ -86,6 +98,33 @@ test.describe("Admin feedback queue", () => {
         status: 200,
         contentType: "application/json",
         body: JSON.stringify([featureFeedback, bugFeedback]),
+      });
+    });
+
+    await page.route("**/admin/feedback/feedback-1/triage", async (route) => {
+      triageCalled = true;
+      Object.assign(bugFeedback, {
+        classification: "bug",
+        triageConfidence: 0.93,
+        normalizedTitle: "Task drawer crashes on save",
+        normalizedBody:
+          "Bug report describing a task drawer save crash while editing notes.",
+        impactSummary: "Users cannot save task edits from the drawer.",
+        reproSteps: ["Edit notes in the task drawer.", "Press save."],
+        expectedBehavior: "The task should save successfully.",
+        actualBehavior: "The task drawer crashes on save.",
+        proposedOutcome:
+          "Stabilize drawer save handling and preserve note edits.",
+        agentLabels: ["feedback:bug", "source:bug", "has:screenshot"],
+        missingInfo: [],
+        triageSummary:
+          'Bug feedback from "Task drawer crashes" on https://app.example.com/?view=todos.',
+        dedupeKey: "abc123dedupekeyxyz789012",
+      });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(bugFeedback),
       });
     });
 
@@ -163,6 +202,24 @@ test.describe("Admin feedback queue", () => {
     );
     await expect(page.locator("#adminFeedbackDetail")).toContainText(
       "https://app.example.com/?view=todos",
+    );
+
+    await page
+      .locator("#adminFeedbackDetail")
+      .getByRole("button", { name: "Run triage", exact: true })
+      .click();
+    expect(triageCalled).toBe(true);
+    await expect(page.locator("#adminMessage")).toContainText(
+      "Feedback triage updated",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "Task drawer crashes on save",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "Users cannot save task edits from the drawer.",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "feedback:bug",
     );
 
     await page

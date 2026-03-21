@@ -3,6 +3,7 @@ import {
   CreateFeedbackRequestDto,
   FeedbackRequestAdminDetailDto,
   FeedbackRequestAdminListItemDto,
+  FeedbackTriageResultDto,
   FeedbackRequestDto,
   FeedbackAttachmentMetadataDto,
   ListAdminFeedbackRequestsQuery,
@@ -138,6 +139,23 @@ export class FeedbackService {
     userAgent: string | null;
     appVersion: string | null;
     status: "new" | "triaged" | "promoted" | "rejected";
+    classification:
+      | "bug"
+      | "feature"
+      | "support"
+      | "duplicate_candidate"
+      | "noise"
+      | null;
+    triageConfidence: number | null;
+    normalizedTitle: string | null;
+    normalizedBody: string | null;
+    impactSummary: string | null;
+    reproStepsJson: unknown;
+    expectedBehavior: string | null;
+    actualBehavior: string | null;
+    proposedOutcome: string | null;
+    agentLabelsJson: unknown;
+    missingInfoJson: unknown;
     triageSummary: string | null;
     severity: string | null;
     dedupeKey: string | null;
@@ -149,6 +167,22 @@ export class FeedbackService {
     createdAt: Date;
     updatedAt: Date;
   }): FeedbackRequestDto {
+    const reproSteps = Array.isArray(record.reproStepsJson)
+      ? record.reproStepsJson.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
+    const agentLabels = Array.isArray(record.agentLabelsJson)
+      ? record.agentLabelsJson.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
+    const missingInfo = Array.isArray(record.missingInfoJson)
+      ? record.missingInfoJson.filter(
+          (value): value is string => typeof value === "string",
+        )
+      : [];
+
     return {
       id: record.id,
       userId: record.userId,
@@ -163,6 +197,17 @@ export class FeedbackService {
       userAgent: record.userAgent,
       appVersion: record.appVersion,
       status: record.status,
+      classification: record.classification,
+      triageConfidence: record.triageConfidence,
+      normalizedTitle: record.normalizedTitle,
+      normalizedBody: record.normalizedBody,
+      impactSummary: record.impactSummary,
+      reproSteps,
+      expectedBehavior: record.expectedBehavior,
+      actualBehavior: record.actualBehavior,
+      proposedOutcome: record.proposedOutcome,
+      agentLabels,
+      missingInfo,
       triageSummary: record.triageSummary,
       severity: record.severity,
       dedupeKey: record.dedupeKey,
@@ -189,6 +234,23 @@ export class FeedbackService {
     userAgent: string | null;
     appVersion: string | null;
     status: "new" | "triaged" | "promoted" | "rejected";
+    classification:
+      | "bug"
+      | "feature"
+      | "support"
+      | "duplicate_candidate"
+      | "noise"
+      | null;
+    triageConfidence: number | null;
+    normalizedTitle: string | null;
+    normalizedBody: string | null;
+    impactSummary: string | null;
+    reproStepsJson: unknown;
+    expectedBehavior: string | null;
+    actualBehavior: string | null;
+    proposedOutcome: string | null;
+    agentLabelsJson: unknown;
+    missingInfoJson: unknown;
     triageSummary: string | null;
     severity: string | null;
     dedupeKey: string | null;
