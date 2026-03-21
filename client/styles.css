@@ -1641,6 +1641,36 @@ textarea:focus-visible,
   display: block;
 }
 
+/* --- Shared pane shell (settings, feedback, admin) --- */
+
+.pane-shell {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.pane-shell__header {
+  margin-bottom: var(--s-4);
+}
+
+.pane-shell__header h2 {
+  margin: 0;
+}
+
+.pane-shell__actions {
+  margin-bottom: var(--s-2);
+}
+
+.pane-shell__lede {
+  margin-top: var(--s-1);
+  color: var(--text-secondary);
+}
+
+.pane-back-btn {
+  font-size: 0.85rem;
+}
+
+/* --- Per-pane base styles (consistent layout, flat background) --- */
+
 .feedback-pane {
   display: none;
   flex: 1 1 auto;
@@ -1649,18 +1679,7 @@ textarea:focus-visible,
   padding: var(--s-4);
   border: 1px solid var(--border-color);
   border-radius: var(--r-sm);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--accent) 5%, var(--card-bg)) 0%,
-      var(--card-bg) 180px
-    ),
-    var(--card-bg);
-}
-
-.feedback-pane__shell {
-  max-width: 1120px;
-  margin: 0 auto;
+  background: var(--card-bg);
 }
 
 #todosView.todos-view--feedback-active .feedback-pane {
@@ -1676,19 +1695,6 @@ textarea:focus-visible,
   border: 1px solid var(--border-color);
   border-radius: var(--r-sm);
   background: var(--card-bg);
-}
-
-.admin-pane__shell {
-  max-width: 1120px;
-  margin: 0 auto;
-}
-
-.admin-pane__header {
-  margin-bottom: var(--s-4);
-}
-
-.admin-pane__actions {
-  margin-bottom: var(--s-2);
 }
 
 #todosView.todos-view--admin-active .admin-pane {
