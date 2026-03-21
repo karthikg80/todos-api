@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed — decision needed before implementing #397, #398, #399
+Accepted (2026-03-21)
 
 ## Context
 
@@ -57,4 +57,4 @@ The on-demand sync path blocks Express during LLM calls, contending with CRUD tr
 
 ## Decision
 
-Pending team review. This ADR must be accepted before #397, #398, #399 proceed.
+Option A accepted. Keep Python worker for scheduled jobs; add BullMQ for on-demand user-triggered agent execution. Issues #397, #398, #399 are now unblocked.
