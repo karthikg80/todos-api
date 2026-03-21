@@ -447,6 +447,7 @@ import {
   dismissHomeFocusSuggestion,
 } from "./modules/homeAiService.js";
 import { EventBus } from "./modules/eventBus.js";
+import { TODOS_CHANGED, TODOS_RENDER } from "./platform/events/eventTypes.js";
 import {
   initOnboarding,
   isOnboardingActive,
@@ -649,7 +650,7 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
     setSelectedProjectKey,
     setDateView,
     dispatchTodosChanged: (payload) =>
-      EventBus.dispatch("todos:changed", payload),
+      EventBus.dispatch(TODOS_CHANGED, payload),
     closeProjectEditDrawer,
     closeProjectDeleteDialog,
     closeProjectsRailSheet,
@@ -1106,7 +1107,7 @@ document.addEventListener("keydown", function (e) {
     // Allow Esc to clear search
     if (e.key === "Escape" && e.target.id === "searchInput") {
       e.target.value = "";
-      EventBus.dispatch("todos:changed");
+      EventBus.dispatch(TODOS_CHANGED);
       e.target.blur();
     }
     return;
@@ -1476,11 +1477,11 @@ function bindDeclarativeHandlers() {
   // todosService / projectsState / drawerUi → filterLogic
   // domain modules dispatch directly via EventBus; EventBus delivers to subscribers
   hooks.applyFiltersAndRender = (payload) =>
-    EventBus.dispatch("todos:changed", payload);
+    EventBus.dispatch(TODOS_CHANGED, payload);
 
   // Subscribe renderers
-  EventBus.subscribe("todos:changed", applyFiltersAndRender);
-  EventBus.subscribe("todos:render", renderTodos);
+  EventBus.subscribe(TODOS_CHANGED, applyFiltersAndRender);
+  EventBus.subscribe(TODOS_RENDER, renderTodos);
   hooks.updateCategoryFilter = updateCategoryFilter;
   hooks.shouldUseServerVisibleTodos = shouldUseServerVisibleTodos;
   // todosService / filterLogic → projectsState
