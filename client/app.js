@@ -412,6 +412,8 @@ import {
   confirmAdminFeedbackDuplicate,
   ignoreDuplicateAndPromote,
   loadAdminFeedbackQueue,
+  promoteAdminFeedback,
+  runAdminFeedbackPromotionPreview,
   runAdminFeedbackDuplicateCheck,
   selectAdminFeedback,
   setAdminFeedbackFilter,
@@ -1778,6 +1780,8 @@ window.setAdminFeedbackFilter = setAdminFeedbackFilter;
 window.runAdminFeedbackDuplicateCheck = runAdminFeedbackDuplicateCheck;
 window.confirmAdminFeedbackDuplicate = confirmAdminFeedbackDuplicate;
 window.ignoreDuplicateAndPromote = ignoreDuplicateAndPromote;
+window.runAdminFeedbackPromotionPreview = runAdminFeedbackPromotionPreview;
+window.promoteAdminFeedback = promoteAdminFeedback;
 window.runAdminFeedbackTriage = runAdminFeedbackTriage;
 window.updateAdminFeedbackStatus = updateAdminFeedbackStatus;
 

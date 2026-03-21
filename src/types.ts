@@ -380,6 +380,32 @@ export interface FeedbackDuplicateMatchDto {
   duplicateReason?: string | null;
 }
 
+export type FeedbackPromotionIssueType = "bug" | "feature";
+
+export interface FeedbackPromotionPreviewDto {
+  issueType: FeedbackPromotionIssueType;
+  title: string;
+  body: string;
+  labels: string[];
+  sourceFeedbackIds: string[];
+  canPromote: boolean;
+  duplicateCandidate: boolean;
+  duplicateReason?: string | null;
+  existingGithubIssueNumber?: number | null;
+  existingGithubIssueUrl?: string | null;
+}
+
+export interface FeedbackPromotionResultDto {
+  issueNumber: number;
+  issueUrl: string;
+  promotedAt: string;
+  preview: FeedbackPromotionPreviewDto;
+}
+
+export interface PromoteFeedbackRequestDto {
+  ignoreDuplicateSuggestion?: boolean;
+}
+
 export interface CreateFeedbackRequestDto {
   type: FeedbackRequestType;
   title: string;
@@ -427,6 +453,7 @@ export interface FeedbackRequestDto {
   duplicateReason?: string | null;
   githubIssueNumber?: number | null;
   githubIssueUrl?: string | null;
+  promotedAt?: string | null;
   reviewedByUserId?: string | null;
   reviewedAt?: string | null;
   rejectionReason?: string | null;

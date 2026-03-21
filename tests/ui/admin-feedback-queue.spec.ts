@@ -43,6 +43,7 @@ function buildFeedback(overrides: Record<string, unknown> = {}) {
     duplicateReason: null,
     githubIssueNumber: null,
     githubIssueUrl: null,
+    promotedAt: null,
     reviewedByUserId: null,
     reviewedAt: null,
     rejectionReason: null,
@@ -65,6 +66,7 @@ test.describe("Admin feedback queue", () => {
     let patchPayload: Record<string, unknown> | null = null;
     let triageCalled = false;
     let linkDuplicatePayload: Record<string, unknown> | null = null;
+    let promotePayload: Record<string, unknown> | null = null;
     const bugFeedback = buildFeedback();
     const featureFeedback = buildFeedback({
       id: "feedback-2",
@@ -137,31 +139,93 @@ test.describe("Admin feedback queue", () => {
       });
     });
 
-    await page.route("**/admin/feedback/feedback-1", async (route) => {
-      if (route.request().method() === "PATCH") {
-        const payload = JSON.parse(
-          route.request().postData() || "{}",
-        ) as Record<string, unknown>;
-        if (payload.status === "promoted") {
-          Object.assign(bugFeedback, {
-            duplicateCandidate: true,
-            matchedFeedbackIds: ["feedback-2"],
-            matchedGithubIssueNumber: 405,
-            matchedGithubIssueUrl:
-              "https://github.com/karthikg80/todos-api/issues/405",
-            duplicateReason: "Matching dedupe key with normalized feedback",
-          });
+    await page.route(
+      "**/admin/feedback/feedback-1/promotion-preview",
+      async (route) => {
+        if (!bugFeedback.normalizedTitle) {
           await route.fulfill({
-            status: 409,
+            status: 400,
             contentType: "application/json",
             body: JSON.stringify({
-              error: "Duplicate candidate found",
-              feedbackRequest: bugFeedback,
+              error: "Feedback must be triaged before promotion",
             }),
           });
           return;
         }
 
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            issueType: "bug",
+            title: bugFeedback.normalizedTitle,
+            body: [
+              "## Summary",
+              "Bug feedback from task drawer crash.",
+              "",
+              "## Steps To Reproduce",
+              "- Open the task drawer",
+              "- Edit notes",
+              "- Press save",
+              "",
+              "## Context",
+              "- Source feedback IDs: `feedback-1`",
+            ].join("\n"),
+            labels: ["bug", "triaged-by-agent", "ui"],
+            sourceFeedbackIds: ["feedback-1"],
+            canPromote: !bugFeedback.duplicateCandidate,
+            duplicateCandidate: bugFeedback.duplicateCandidate,
+            duplicateReason: bugFeedback.duplicateReason,
+            existingGithubIssueNumber: bugFeedback.githubIssueNumber,
+            existingGithubIssueUrl: bugFeedback.githubIssueUrl,
+          }),
+        });
+      },
+    );
+
+    await page.route(
+      "**/admin/feedback/feedback-2/promotion-preview",
+      async (route) => {
+        await route.fulfill({
+          status: 400,
+          contentType: "application/json",
+          body: JSON.stringify({
+            error: "Feedback must be triaged before promotion",
+          }),
+        });
+      },
+    );
+
+    await page.route("**/admin/feedback/feedback-1/promote", async (route) => {
+      const payload = JSON.parse(route.request().postData() || "{}") as Record<
+        string,
+        unknown
+      >;
+      promotePayload = payload;
+
+      Object.assign(bugFeedback, {
+        duplicateCandidate: true,
+        matchedFeedbackIds: ["feedback-2"],
+        matchedGithubIssueNumber: 405,
+        matchedGithubIssueUrl:
+          "https://github.com/karthikg80/todos-api/issues/405",
+        duplicateReason: "Matching dedupe key with normalized feedback",
+      });
+      await route.fulfill({
+        status: 409,
+        contentType: "application/json",
+        body: JSON.stringify({
+          error: "Duplicate candidate found",
+          feedbackRequest: bugFeedback,
+        }),
+      });
+    });
+
+    await page.route("**/admin/feedback/feedback-1", async (route) => {
+      if (route.request().method() === "PATCH") {
+        const payload = JSON.parse(
+          route.request().postData() || "{}",
+        ) as Record<string, unknown>;
         if (payload.duplicateOfFeedbackId) {
           linkDuplicatePayload = payload;
           Object.assign(bugFeedback, {
@@ -265,11 +329,20 @@ test.describe("Admin feedback queue", () => {
     await expect(page.locator("#adminFeedbackDetail")).toContainText(
       "feedback:bug",
     );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "Create GitHub issue",
+    );
+    await expect(page.locator("#adminFeedbackDetail")).toContainText(
+      "triaged-by-agent",
+    );
 
     await page
       .locator("#adminFeedbackDetail")
-      .getByRole("button", { name: "Ready for promotion", exact: true })
+      .getByRole("button", { name: "Create GitHub issue", exact: true })
       .click();
+    expect(promotePayload).toEqual({
+      ignoreDuplicateSuggestion: false,
+    });
     await expect(page.locator("#adminMessage")).toContainText(
       "Duplicate candidate found",
     );

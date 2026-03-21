@@ -117,6 +117,7 @@ export class FeedbackService {
         reviewedByUserId: reviewerUserId,
         reviewedAt: new Date(),
         rejectionReason: dto.status === "rejected" ? dto.rejectionReason : null,
+        promotedAt: dto.status === "promoted" ? new Date() : undefined,
         duplicateCandidate: shouldResolveDuplicate ? false : undefined,
         matchedFeedbackIds: shouldResolveDuplicate
           ? Prisma.JsonNull
@@ -132,6 +133,46 @@ export class FeedbackService {
         duplicateReason: shouldResolveDuplicate
           ? (dto.duplicateReason ?? null)
           : undefined,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+        reviewer: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+          },
+        },
+      },
+    });
+
+    return this.toAdminDto(record);
+  }
+
+  async recordPromotion(
+    id: string,
+    reviewerUserId: string,
+    promotion: {
+      githubIssueNumber: number;
+      githubIssueUrl: string;
+      promotedAt: Date;
+    },
+  ): Promise<FeedbackRequestAdminDetailDto> {
+    const record = await this.prisma.feedbackRequest.update({
+      where: { id },
+      data: {
+        status: "promoted",
+        reviewedByUserId: reviewerUserId,
+        reviewedAt: promotion.promotedAt,
+        promotedAt: promotion.promotedAt,
+        githubIssueNumber: promotion.githubIssueNumber,
+        githubIssueUrl: promotion.githubIssueUrl,
       },
       include: {
         user: {
@@ -195,6 +236,7 @@ export class FeedbackService {
     duplicateReason: string | null;
     githubIssueNumber: number | null;
     githubIssueUrl: string | null;
+    promotedAt: Date | null;
     reviewedByUserId: string | null;
     reviewedAt: Date | null;
     rejectionReason: string | null;
@@ -262,6 +304,7 @@ export class FeedbackService {
       duplicateReason: record.duplicateReason,
       githubIssueNumber: record.githubIssueNumber,
       githubIssueUrl: record.githubIssueUrl,
+      promotedAt: record.promotedAt?.toISOString() ?? null,
       reviewedByUserId: record.reviewedByUserId,
       reviewedAt: record.reviewedAt?.toISOString() ?? null,
       rejectionReason: record.rejectionReason,
@@ -312,6 +355,7 @@ export class FeedbackService {
     duplicateReason: string | null;
     githubIssueNumber: number | null;
     githubIssueUrl: string | null;
+    promotedAt: Date | null;
     reviewedAt: Date | null;
     rejectionReason: string | null;
     createdAt: Date;

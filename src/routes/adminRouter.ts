@@ -6,9 +6,11 @@ import {
   DuplicatePromotionConflictError,
   FeedbackDuplicateService,
 } from "../services/feedbackDuplicateService";
+import { FeedbackPromotionService } from "../services/feedbackPromotionService";
 import { FeedbackTriageService } from "../services/feedbackTriageService";
 import {
   validateListAdminFeedbackRequestsQuery,
+  validatePromoteFeedbackRequest,
   validateUpdateAdminFeedbackRequest,
 } from "../validation/validation";
 
@@ -17,6 +19,7 @@ interface AdminRouterDeps {
   feedbackService?: FeedbackService;
   feedbackTriageService?: FeedbackTriageService;
   feedbackDuplicateService?: FeedbackDuplicateService;
+  feedbackPromotionService?: FeedbackPromotionService;
 }
 
 export function createAdminRouter({
@@ -24,6 +27,7 @@ export function createAdminRouter({
   feedbackService,
   feedbackTriageService,
   feedbackDuplicateService,
+  feedbackPromotionService,
 }: AdminRouterDeps): Router {
   const router = Router();
 
@@ -220,6 +224,112 @@ export function createAdminRouter({
         }
         if (hasPrismaCode(error, ["P2025"])) {
           return next(new HttpError(404, "Feedback request not found"));
+        }
+        if (hasPrismaCode(error, ["P2023"])) {
+          return next(new HttpError(400, "Invalid feedback request ID format"));
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/feedback/:id/promote",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackService || !feedbackPromotionService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback promotion not configured" });
+      }
+
+      try {
+        const reviewerUserId = req.user?.userId;
+        const feedbackId = String(req.params.id);
+        if (!reviewerUserId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const dto = validatePromoteFeedbackRequest(req.body);
+        const promotion = await feedbackPromotionService.promoteFeedback(
+          feedbackId,
+          reviewerUserId,
+          dto,
+        );
+        const feedbackRequest = await feedbackService.getForAdmin(feedbackId);
+        if (!feedbackRequest) {
+          return next(new HttpError(404, "Feedback request not found"));
+        }
+
+        res.json({
+          feedbackRequest,
+          promotion,
+        });
+      } catch (error) {
+        if (error instanceof DuplicatePromotionConflictError) {
+          const feedbackRequest = await feedbackService.getForAdmin(
+            String(req.params.id),
+          );
+          return res.status(409).json({
+            error: error.message,
+            duplicateDetection: error.assessment,
+            feedbackRequest,
+          });
+        }
+        if (
+          error instanceof Error &&
+          [
+            "Feedback request not found",
+            "Feedback must be triaged before promotion",
+            "Feedback must be triaged as bug or feature before promotion",
+            "Confirmed duplicates cannot be promoted",
+            "Feedback has already been promoted",
+          ].includes(error.message)
+        ) {
+          return next(
+            new HttpError(
+              error.message === "Feedback request not found" ? 404 : 400,
+              error.message,
+            ),
+          );
+        }
+        if (hasPrismaCode(error, ["P2023"])) {
+          return next(new HttpError(400, "Invalid feedback request ID format"));
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.get(
+    "/feedback/:id/promotion-preview",
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!feedbackPromotionService) {
+        return res
+          .status(501)
+          .json({ error: "Feedback promotion not configured" });
+      }
+
+      try {
+        const feedbackId = String(req.params.id);
+        const preview = await feedbackPromotionService.buildPreview(feedbackId);
+        res.json(preview);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          [
+            "Feedback request not found",
+            "Feedback must be triaged before promotion",
+            "Feedback must be triaged as bug or feature before promotion",
+            "Confirmed duplicates cannot be promoted",
+            "Feedback has already been promoted",
+          ].includes(error.message)
+        ) {
+          return next(
+            new HttpError(
+              error.message === "Feedback request not found" ? 404 : 400,
+              error.message,
+            ),
+          );
         }
         if (hasPrismaCode(error, ["P2023"])) {
           return next(new HttpError(400, "Invalid feedback request ID format"));

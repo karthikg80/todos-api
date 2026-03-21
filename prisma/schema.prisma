@@ -506,6 +506,7 @@ model FeedbackRequest {
   duplicateReason    String?        @map("duplicate_reason") @db.Text
   githubIssueNumber  Int?           @map("github_issue_number")
   githubIssueUrl     String?        @map("github_issue_url") @db.VarChar(2000)
+  promotedAt         DateTime?      @map("promoted_at")
   reviewedAt         DateTime?      @map("reviewed_at")
   rejectionReason    String?        @map("rejection_reason") @db.Text
   createdAt          DateTime       @default(now()) @map("created_at")
@@ -523,6 +524,7 @@ model FeedbackRequest {
   @@index([duplicateCandidate, createdAt])
   @@index([duplicateOfFeedbackId])
   @@index([duplicateOfGithubIssueNumber])
+  @@index([promotedAt])
   @@map("feedback_requests")
 }
 
