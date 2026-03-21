@@ -22,6 +22,7 @@ export function createWorkspaceController({
   updateUserDisplay,
   setTodosViewBodyState,
   setSettingsPaneVisible,
+  setFeedbackPaneVisible,
   syncSidebarNavState,
   readStoredAiWorkspaceCollapsedState,
   setAiWorkspaceCollapsed,
@@ -36,7 +37,9 @@ export function createWorkspaceController({
   function switchView(view, triggerEl = null) {
     const requestedView = view === "profile" ? "settings" : view;
     const isSettingsView = requestedView === "settings";
-    const primaryView = isSettingsView ? "todos" : requestedView;
+    const isFeedbackView = requestedView === "feedback";
+    const primaryView =
+      isSettingsView || isFeedbackView ? "todos" : requestedView;
 
     document
       .querySelectorAll(".view")
@@ -56,12 +59,11 @@ export function createWorkspaceController({
     }
 
     if (
-      !isSettingsView &&
-      (!(triggerEl instanceof HTMLElement) ||
-        !triggerEl.classList.contains("nav-tab"))
+      !(triggerEl instanceof HTMLElement) ||
+      !triggerEl.classList.contains("nav-tab")
     ) {
       const matchingTab = document.querySelector(
-        `.nav-tab[data-onclick*="switchView('${primaryView}'"]`,
+        `.nav-tab[data-onclick*="switchView('${requestedView}'"]`,
       );
       if (matchingTab instanceof HTMLElement) {
         matchingTab.classList.add("active");
@@ -70,6 +72,7 @@ export function createWorkspaceController({
 
     setTodosViewBodyState(primaryView === "todos");
     setSettingsPaneVisible(isSettingsView);
+    setFeedbackPaneVisible(isFeedbackView);
     syncSidebarNavState(requestedView);
 
     if (isSettingsView) {

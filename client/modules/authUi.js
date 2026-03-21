@@ -735,9 +735,9 @@ export async function logout() {
 export function showAppView() {
   hooks.setTodosViewBodyState?.(true);
   hooks.setSettingsPaneVisible?.(false);
+  hooks.setFeedbackPaneVisible?.(false);
   document.getElementById("authView").classList.remove("active");
   document.getElementById("todosView").classList.add("active");
-  document.getElementById("feedbackView")?.classList.remove("active");
   document.getElementById("profileView")?.classList.remove("active");
   document.getElementById("adminView")?.classList.remove("active");
   document.getElementById("navTabs").style.display = "flex";
@@ -799,9 +799,9 @@ export function showAppView() {
 export function showAuthView() {
   hooks.setTodosViewBodyState?.(false);
   hooks.setSettingsPaneVisible?.(false);
+  hooks.setFeedbackPaneVisible?.(false);
   document.getElementById("authView").classList.add("active");
   document.getElementById("todosView").classList.remove("active");
-  document.getElementById("feedbackView")?.classList.remove("active");
   document.getElementById("profileView").classList.remove("active");
   document.getElementById("adminView").classList.remove("active");
   document.getElementById("navTabs").style.display = "none";

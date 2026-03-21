@@ -43,12 +43,25 @@ test.describe("Feedback flow", () => {
       email: "user@example.com",
     });
 
+    await page.waitForFunction(() => {
+      const switchView = (
+        window as Window & {
+          switchView?: (view: string) => void;
+        }
+      ).switchView;
+      return (
+        typeof switchView === "function" &&
+        document.getElementById("todosView")?.classList.contains("active")
+      );
+    });
     await page.evaluate(() =>
       (window as Window & { switchView: (view: string) => void }).switchView(
         "feedback",
       ),
     );
-    await expect(page.locator("#feedbackView")).toHaveClass(/active/);
+    await expect(page.locator("#todosView")).toHaveClass(/active/);
+    await expect(page.locator("#feedbackPane")).toBeVisible();
+    await expect(page.locator("#todosScrollRegion")).toBeHidden();
 
     await page.locator("#feedbackType").selectOption("feature");
     await page.locator("#feedbackTitle").fill("Make planning easier");
@@ -94,5 +107,12 @@ test.describe("Feedback flow", () => {
       type: "image/png",
       size: 10,
     });
+
+    await page
+      .locator("#feedbackConfirmation")
+      .getByRole("button", { name: "Back to Todos" })
+      .click();
+    await expect(page.locator("#feedbackPane")).toBeHidden();
+    await expect(page.locator("#todosScrollRegion")).toBeVisible();
   });
 });

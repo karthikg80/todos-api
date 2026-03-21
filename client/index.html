@@ -1296,6 +1296,192 @@
                         </form>
                       </div>
                     </section>
+                    <section id="feedbackPane" class="feedback-pane" hidden>
+                      <div class="feedback-pane__shell">
+                        <div class="feedback-view__header">
+                          <div class="feedback-view__actions">
+                            <button
+                              type="button"
+                              class="btn btn-secondary feedback-back-btn"
+                              data-onclick="switchView('todos', this)"
+                            >
+                              Back to Todos
+                            </button>
+                          </div>
+                          <p class="feedback-view__eyebrow">
+                            Friends-and-family beta
+                          </p>
+                          <h2>Feedback</h2>
+                          <p class="feedback-view__lede">
+                            Share bugs, rough edges, or ideas without needing
+                            GitHub.
+                          </p>
+                        </div>
+
+                        <div
+                          class="message"
+                          id="feedbackMessage"
+                          role="status"
+                          aria-live="polite"
+                          aria-atomic="true"
+                        ></div>
+
+                        <div
+                          id="feedbackConfirmation"
+                          class="feedback-confirmation"
+                          hidden
+                        >
+                          <h3 id="feedbackConfirmationTitle">Feedback sent</h3>
+                          <p id="feedbackConfirmationBody"></p>
+                          <p
+                            id="feedbackConfirmationMeta"
+                            class="feedback-confirmation__meta"
+                          ></p>
+                          <div class="feedback-confirmation__actions">
+                            <button
+                              type="button"
+                              class="btn btn-secondary"
+                              data-onclick="switchView('todos', this)"
+                            >
+                              Back to Todos
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn-secondary"
+                              data-onclick="resetFeedbackFormView()"
+                            >
+                              Send another
+                            </button>
+                          </div>
+                        </div>
+
+                        <form
+                          id="feedbackForm"
+                          data-onsubmit="handleFeedbackSubmit(event)"
+                        >
+                          <div class="feedback-grid">
+                            <div class="feedback-card">
+                              <div class="form-group">
+                                <label for="feedbackType"
+                                  >Submission type</label
+                                >
+                                <select
+                                  id="feedbackType"
+                                  data-onchange="handleFeedbackTypeChange(event)"
+                                >
+                                  <option value="bug">Bug report</option>
+                                  <option value="feature">
+                                    Feature request
+                                  </option>
+                                </select>
+                              </div>
+                              <div class="form-group">
+                                <label for="feedbackTitle">Title</label>
+                                <input
+                                  id="feedbackTitle"
+                                  type="text"
+                                  maxlength="200"
+                                  required
+                                  placeholder="Short summary"
+                                />
+                              </div>
+                              <div class="form-group">
+                                <label
+                                  id="feedbackQuestionOneLabel"
+                                  for="feedbackQuestionOne"
+                                  >What happened?</label
+                                >
+                                <textarea
+                                  id="feedbackQuestionOne"
+                                  rows="4"
+                                  required
+                                ></textarea>
+                              </div>
+                              <div class="form-group">
+                                <label
+                                  id="feedbackQuestionTwoLabel"
+                                  for="feedbackQuestionTwo"
+                                  >What did you expect?</label
+                                >
+                                <textarea
+                                  id="feedbackQuestionTwo"
+                                  rows="4"
+                                  required
+                                ></textarea>
+                              </div>
+                              <div class="form-group">
+                                <label
+                                  id="feedbackQuestionThreeLabel"
+                                  for="feedbackQuestionThree"
+                                  >What were you doing right before it
+                                  happened?</label
+                                >
+                                <textarea
+                                  id="feedbackQuestionThree"
+                                  rows="4"
+                                  required
+                                ></textarea>
+                              </div>
+                            </div>
+
+                            <aside class="feedback-card feedback-card--context">
+                              <h3>Optional screenshot</h3>
+                              <div class="form-group">
+                                <label for="feedbackScreenshotUrl"
+                                  >Screenshot URL</label
+                                >
+                                <input
+                                  id="feedbackScreenshotUrl"
+                                  type="url"
+                                  inputmode="url"
+                                  placeholder="https://example.com/screenshot.png"
+                                />
+                              </div>
+                              <div class="form-group">
+                                <label for="feedbackAttachment"
+                                  >Screenshot file metadata</label
+                                >
+                                <input
+                                  id="feedbackAttachment"
+                                  type="file"
+                                  accept="image/*"
+                                  data-onchange="handleFeedbackAttachmentChange(event)"
+                                />
+                                <p
+                                  id="feedbackAttachmentSummary"
+                                  class="feedback-helper"
+                                >
+                                  No screenshot file selected.
+                                </p>
+                              </div>
+
+                              <h3>Captured context</h3>
+                              <dl class="feedback-context-list">
+                                <div class="feedback-context-row">
+                                  <dt>Current page</dt>
+                                  <dd id="feedbackContextPage"></dd>
+                                </div>
+                                <div class="feedback-context-row">
+                                  <dt>App version</dt>
+                                  <dd id="feedbackContextVersion"></dd>
+                                </div>
+                                <div class="feedback-context-row">
+                                  <dt>User</dt>
+                                  <dd id="feedbackContextUser"></dd>
+                                </div>
+                              </dl>
+
+                              <button
+                                type="submit"
+                                class="btn feedback-submit-btn"
+                              >
+                                Send feedback
+                              </button>
+                            </aside>
+                          </div>
+                        </form>
+                      </div>
+                    </section>
                     <div class="todos-mobile-top-bar">
                       <button
                         class="todos-mobile-hamburger"
@@ -2296,168 +2482,6 @@
                 >
                   + New Task
                 </button>
-              </div>
-
-              <!-- Feedback View -->
-              <div id="feedbackView" class="view">
-                <section class="feedback-view">
-                  <div class="feedback-view__header">
-                    <p class="feedback-view__eyebrow">
-                      Friends-and-family beta
-                    </p>
-                    <h2>Feedback</h2>
-                    <p class="feedback-view__lede">
-                      Share bugs, rough edges, or ideas without needing GitHub.
-                    </p>
-                  </div>
-
-                  <div
-                    class="message"
-                    id="feedbackMessage"
-                    role="status"
-                    aria-live="polite"
-                    aria-atomic="true"
-                  ></div>
-
-                  <div
-                    id="feedbackConfirmation"
-                    class="feedback-confirmation"
-                    hidden
-                  >
-                    <h3 id="feedbackConfirmationTitle">Feedback sent</h3>
-                    <p id="feedbackConfirmationBody"></p>
-                    <p
-                      id="feedbackConfirmationMeta"
-                      class="feedback-confirmation__meta"
-                    ></p>
-                    <button
-                      type="button"
-                      class="btn btn-secondary"
-                      data-onclick="resetFeedbackFormView()"
-                    >
-                      Send another
-                    </button>
-                  </div>
-
-                  <form
-                    id="feedbackForm"
-                    data-onsubmit="handleFeedbackSubmit(event)"
-                  >
-                    <div class="feedback-grid">
-                      <div class="feedback-card">
-                        <div class="form-group">
-                          <label for="feedbackType">Submission type</label>
-                          <select
-                            id="feedbackType"
-                            data-onchange="handleFeedbackTypeChange(event)"
-                          >
-                            <option value="bug">Bug report</option>
-                            <option value="feature">Feature request</option>
-                          </select>
-                        </div>
-                        <div class="form-group">
-                          <label for="feedbackTitle">Title</label>
-                          <input
-                            id="feedbackTitle"
-                            type="text"
-                            maxlength="200"
-                            required
-                            placeholder="Short summary"
-                          />
-                        </div>
-                        <div class="form-group">
-                          <label
-                            id="feedbackQuestionOneLabel"
-                            for="feedbackQuestionOne"
-                            >What happened?</label
-                          >
-                          <textarea
-                            id="feedbackQuestionOne"
-                            rows="4"
-                            required
-                          ></textarea>
-                        </div>
-                        <div class="form-group">
-                          <label
-                            id="feedbackQuestionTwoLabel"
-                            for="feedbackQuestionTwo"
-                            >What did you expect?</label
-                          >
-                          <textarea
-                            id="feedbackQuestionTwo"
-                            rows="4"
-                            required
-                          ></textarea>
-                        </div>
-                        <div class="form-group">
-                          <label
-                            id="feedbackQuestionThreeLabel"
-                            for="feedbackQuestionThree"
-                            >What were you doing right before it
-                            happened?</label
-                          >
-                          <textarea
-                            id="feedbackQuestionThree"
-                            rows="4"
-                            required
-                          ></textarea>
-                        </div>
-                      </div>
-
-                      <aside class="feedback-card feedback-card--context">
-                        <h3>Optional screenshot</h3>
-                        <div class="form-group">
-                          <label for="feedbackScreenshotUrl"
-                            >Screenshot URL</label
-                          >
-                          <input
-                            id="feedbackScreenshotUrl"
-                            type="url"
-                            inputmode="url"
-                            placeholder="https://example.com/screenshot.png"
-                          />
-                        </div>
-                        <div class="form-group">
-                          <label for="feedbackAttachment"
-                            >Screenshot file metadata</label
-                          >
-                          <input
-                            id="feedbackAttachment"
-                            type="file"
-                            accept="image/*"
-                            data-onchange="handleFeedbackAttachmentChange(event)"
-                          />
-                          <p
-                            id="feedbackAttachmentSummary"
-                            class="feedback-helper"
-                          >
-                            No screenshot file selected.
-                          </p>
-                        </div>
-
-                        <h3>Captured context</h3>
-                        <dl class="feedback-context-list">
-                          <div class="feedback-context-row">
-                            <dt>Current page</dt>
-                            <dd id="feedbackContextPage"></dd>
-                          </div>
-                          <div class="feedback-context-row">
-                            <dt>App version</dt>
-                            <dd id="feedbackContextVersion"></dd>
-                          </div>
-                          <div class="feedback-context-row">
-                            <dt>User</dt>
-                            <dd id="feedbackContextUser"></dd>
-                          </div>
-                        </dl>
-
-                        <button type="submit" class="btn feedback-submit-btn">
-                          Send feedback
-                        </button>
-                      </aside>
-                    </div>
-                  </form>
-                </section>
               </div>
 
               <!-- Profile View -->
