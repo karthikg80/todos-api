@@ -225,6 +225,9 @@ import {
   handleSendOtp,
   handleVerifyOtp,
   handleResendOtp,
+  loadLinkedProviders,
+  handleUnlinkProvider,
+  handleSetPassword,
 } from "./modules/authUi.js";
 import {
   readStoredQuickEntryPropertiesOpenState,
@@ -1259,6 +1262,9 @@ window.showPhoneLogin = showPhoneLogin;
 window.handleSendOtp = handleSendOtp;
 window.handleVerifyOtp = handleVerifyOtp;
 window.handleResendOtp = handleResendOtp;
+// Account management
+window.handleUnlinkProvider = handleUnlinkProvider;
+window.handleSetPassword = handleSetPassword;
 // Todo CRUD
 window.addTodo = addTodo;
 window.filterTodos = filterTodos;

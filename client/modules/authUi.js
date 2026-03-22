@@ -383,6 +383,8 @@ export async function loadUserProfile() {
       if (user.role === "admin") {
         document.getElementById("adminNavTab").style.display = "block";
       }
+
+      loadLinkedProviders();
     }
   } catch (error) {
     console.error("Load profile error:", error);
@@ -997,6 +999,162 @@ export async function handleSendOtp() {
 
 export async function handleResendOtp() {
   await handleSendOtp();
+}
+
+// =============================================================================
+// Account management — linked providers, unlink, set password
+// =============================================================================
+
+export async function loadLinkedProviders() {
+  const apiCall = hooks.apiCall;
+  const API_URL = hooks.API_URL;
+  const section = document.getElementById("linkedProvidersSection");
+  if (!section) return;
+
+  try {
+    const resp = await apiCall(`${API_URL}/auth/linked-providers`);
+    if (!resp || !resp.ok) {
+      section.style.display = "none";
+      return;
+    }
+
+    const data = await resp.json();
+    section.style.display = "block";
+
+    const list = document.getElementById("linkedProvidersList");
+    if (!list) return;
+
+    const methods = [];
+
+    if (data.hasPassword) {
+      methods.push(
+        '<div class="linked-provider-row">' +
+          '<span class="linked-provider-name">Email + Password</span>' +
+          "</div>",
+      );
+    }
+
+    if (data.phoneE164) {
+      methods.push(
+        '<div class="linked-provider-row">' +
+          '<span class="linked-provider-name">Phone: ' +
+          escapeHtml(maskPhone(data.phoneE164)) +
+          "</span>" +
+          "</div>",
+      );
+    }
+
+    for (const p of data.providers) {
+      const label = p.provider.charAt(0).toUpperCase() + p.provider.slice(1);
+      const email = p.emailAtProvider
+        ? " (" + escapeHtml(p.emailAtProvider) + ")"
+        : "";
+      methods.push(
+        '<div class="linked-provider-row">' +
+          '<span class="linked-provider-name">' +
+          escapeHtml(label) +
+          email +
+          "</span>" +
+          '<button type="button" class="link-btn linked-provider-unlink" ' +
+          "data-onclick=\"handleUnlinkProvider('" +
+          escapeHtml(p.provider) +
+          "', '" +
+          escapeHtml(p.providerSubject) +
+          "')\">Unlink</button>" +
+          "</div>",
+      );
+    }
+
+    if (methods.length === 0) {
+      list.innerHTML =
+        '<p style="color: var(--text-secondary)">No linked sign-in methods.</p>';
+    } else {
+      list.innerHTML = methods.join("");
+    }
+
+    // Show set-password form if user doesn't have a password
+    const setPwSection = document.getElementById("setPasswordSection");
+    if (setPwSection) {
+      setPwSection.style.display = data.hasPassword ? "none" : "block";
+    }
+  } catch {
+    section.style.display = "none";
+  }
+}
+
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+export async function handleUnlinkProvider(provider, providerSubject) {
+  const apiCall = hooks.apiCall;
+  const API_URL = hooks.API_URL;
+
+  try {
+    const resp = await apiCall(`${API_URL}/auth/unlink-provider`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider, providerSubject }),
+    });
+
+    const data = resp ? await resp.json() : {};
+    if (resp && resp.ok) {
+      showMessage("profileMessage", "Provider unlinked", "success");
+      loadLinkedProviders();
+    } else {
+      showMessage(
+        "profileMessage",
+        data.error || "Failed to unlink provider",
+        "error",
+      );
+    }
+  } catch {
+    showMessage("profileMessage", "Network error. Please try again.", "error");
+  }
+}
+
+export async function handleSetPassword(event) {
+  event.preventDefault();
+  hideMessage("profileMessage");
+
+  const apiCall = hooks.apiCall;
+  const API_URL = hooks.API_URL;
+
+  const input = document.getElementById("setPasswordInput");
+  const password = input?.value;
+  if (!password || password.length < 8) {
+    showMessage(
+      "profileMessage",
+      "Password must be at least 8 characters",
+      "error",
+    );
+    return;
+  }
+
+  try {
+    const resp = await apiCall(`${API_URL}/auth/set-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password }),
+    });
+
+    const data = resp ? await resp.json() : {};
+    if (resp && resp.ok) {
+      showMessage("profileMessage", "Password set successfully!", "success");
+      if (input) input.value = "";
+      loadLinkedProviders();
+    } else {
+      showMessage(
+        "profileMessage",
+        data.error || "Failed to set password",
+        "error",
+      );
+    }
+  } catch {
+    showMessage("profileMessage", "Network error. Please try again.", "error");
+  }
 }
 
 export async function handleVerifyOtp() {

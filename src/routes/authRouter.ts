@@ -1266,5 +1266,145 @@ export function createAuthRouter({
     },
   );
 
+  // ── Account management ───────────────────────────────────────────
+
+  router.get(
+    "/linked-providers",
+    requireAuthIfConfigured,
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!socialAuthService || !authService) {
+        return res.status(501).json({ error: "Not configured" });
+      }
+
+      try {
+        const userId = req.user?.userId;
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const providers = await socialAuthService.getLinkedProviders(userId);
+        const user = await authService.getUserById(userId);
+        const userWithPw = await authService.getPrismaClient().user.findUnique({
+          where: { id: userId },
+          select: { password: true },
+        });
+        res.json({
+          providers,
+          hasPassword: !!userWithPw?.password,
+          phoneE164: user?.phoneE164 || null,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.delete(
+    "/unlink-provider",
+    authLimiter,
+    requireAuthIfConfigured,
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!socialAuthService) {
+        return res.status(501).json({ error: "Not configured" });
+      }
+
+      try {
+        const userId = req.user?.userId;
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const { provider, providerSubject } = req.body;
+        if (
+          !provider ||
+          typeof provider !== "string" ||
+          !providerSubject ||
+          typeof providerSubject !== "string"
+        ) {
+          return res
+            .status(400)
+            .json({ error: "provider and providerSubject are required" });
+        }
+
+        await socialAuthService.unlinkProvider(
+          userId,
+          provider,
+          providerSubject,
+        );
+        res.json({ message: "Provider unlinked" });
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "Cannot remove your only sign-in method"
+        ) {
+          return res.status(400).json({ error: error.message });
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/set-password",
+    authLimiter,
+    requireAuthIfConfigured,
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!authService) {
+        return res.status(501).json({ error: "Not configured" });
+      }
+
+      try {
+        const userId = req.user?.userId;
+        if (!userId) {
+          return res.status(401).json({ error: "Unauthorized" });
+        }
+
+        const { password } = req.body;
+        if (!password || typeof password !== "string") {
+          return res.status(400).json({ error: "Password is required" });
+        }
+        if (password.length < 8) {
+          return res
+            .status(400)
+            .json({ error: "Password must be at least 8 characters" });
+        }
+        if (password.length > 72) {
+          return res
+            .status(400)
+            .json({ error: "Password cannot exceed 72 characters" });
+        }
+
+        // Only allow setting password when user doesn't have one
+        const user = await authService.getUserById(userId);
+        if (!user) {
+          return res.status(404).json({ error: "User not found" });
+        }
+
+        // Check if user already has a password via a raw query
+        const fullUser = await authService.getPrismaClient().user.findUnique({
+          where: { id: userId },
+          select: { password: true },
+        });
+        if (fullUser?.password) {
+          return res.status(400).json({
+            error:
+              "Password already set. Use change-password or reset-password instead.",
+          });
+        }
+
+        const bcrypt = await import("bcrypt");
+        const hashedPassword = await bcrypt.hash(password, 10);
+        await authService.getPrismaClient().user.update({
+          where: { id: userId },
+          data: { password: hashedPassword },
+        });
+
+        res.json({ message: "Password set successfully" });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   return router;
 }

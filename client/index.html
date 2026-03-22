@@ -1456,6 +1456,47 @@
                           </div>
                         </div>
 
+                        <div
+                          class="profile-section"
+                          id="linkedProvidersSection"
+                          style="display: none"
+                        >
+                          <h3>Linked Sign-In Methods</h3>
+                          <div id="linkedProvidersList"></div>
+                          <div id="setPasswordSection" style="display: none">
+                            <h4>Set Password</h4>
+                            <p
+                              style="
+                                margin-bottom: 8px;
+                                color: var(--text-secondary);
+                                font-size: 0.9em;
+                              "
+                            >
+                              Add a password so you can also sign in with email
+                              + password.
+                            </p>
+                            <form data-onsubmit="handleSetPassword(event)">
+                              <div class="form-group">
+                                <label for="setPasswordInput"
+                                  >New Password</label
+                                >
+                                <input
+                                  type="password"
+                                  id="setPasswordInput"
+                                  minlength="8"
+                                  maxlength="72"
+                                  required
+                                  placeholder="At least 8 characters"
+                                  autocomplete="new-password"
+                                />
+                              </div>
+                              <button type="submit" class="btn">
+                                Set Password
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+
                         <div class="profile-section">
                           <h3>Update Profile</h3>
                           <form data-onsubmit="handleUpdateProfile(event)">

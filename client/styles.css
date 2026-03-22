@@ -634,6 +634,30 @@ body.is-todos-view #todosView.view.active {
   background: #e8e8e8;
 }
 
+/* Linked providers (account settings) */
+.linked-provider-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.linked-provider-row:last-child {
+  border-bottom: none;
+}
+
+.linked-provider-name {
+  font-size: var(--fs-sm);
+  color: var(--text-primary);
+}
+
+.linked-provider-unlink {
+  font-size: var(--fs-xs);
+  color: var(--danger, #dc3545);
+  cursor: pointer;
+}
+
 .form-group {
   margin-bottom: var(--s-5);
   text-align: left;
