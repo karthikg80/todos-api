@@ -1993,11 +1993,11 @@ textarea:focus-visible,
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 20px 0 8px;
-  padding: 8px 10px;
-  font-size: 0.85em;
-  font-weight: 700;
-  color: var(--text-secondary);
+  margin: 16px 0 6px;
+  padding: 6px 10px;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--text-muted);
   border-top: 1px solid var(--border-color);
 }
 
@@ -2347,17 +2347,18 @@ textarea:focus-visible,
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin: 20px 0 8px;
-  padding: 0 2px;
+  margin: 24px 0 8px;
+  padding: 4px 2px 4px 10px;
   border: 0;
+  border-left: 3px solid var(--accent, #667eea);
   background: transparent;
   cursor: grab;
 }
 
 .todo-heading-divider__title {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-primary);
 }
@@ -9282,4 +9283,21 @@ body.is-admin-user .projects-rail__footer--admin-only {
 
 .onboarding-progress__dot.is-active {
   background: var(--primary-color);
+}
+
+/* ── Simple mode — hides advanced features for a clean task list ── */
+body.simple-mode #projectsRailHost,
+body.simple-mode .todo-heading-divider,
+body.simple-mode .todo-group-header,
+body.simple-mode .ai-on-create-assist,
+body.simple-mode .home-tile--priorities,
+body.simple-mode .project-filter-label,
+body.simple-mode #categoryFilter,
+body.simple-mode .bulk-checkbox,
+body.simple-mode .drag-handle {
+  display: none !important;
+}
+
+body.simple-mode .todo-item {
+  grid-template-columns: auto minmax(0, 1fr) auto;
 }

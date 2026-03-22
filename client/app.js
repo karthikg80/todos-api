@@ -1308,6 +1308,16 @@ window.closeShortcutsOverlay = closeShortcutsOverlay;
 window.handleAdminBootstrap = handleAdminBootstrap;
 // Profile
 window.handleUpdateProfile = handleUpdateProfile;
+// UI Mode
+window.setUiMode = function setUiMode(mode) {
+  const isSimple = mode === "simple";
+  document.body.classList.toggle("simple-mode", isSimple);
+  try {
+    localStorage.setItem("todos:ui-mode", mode);
+  } catch {}
+  const select = document.getElementById("uiModeSelect");
+  if (select instanceof HTMLSelectElement) select.value = mode;
+};
 // AI workspace
 window.openAiWorkspaceForBrainDump = openAiWorkspaceForBrainDump;
 window.openAiWorkspaceForGoalPlan = openAiWorkspaceForGoalPlan;
@@ -1461,6 +1471,17 @@ function init() {
 
 // Initialize theme immediately
 initTheme();
+// Initialize UI mode from localStorage
+(function initUiMode() {
+  try {
+    const mode = localStorage.getItem("todos:ui-mode") || "advanced";
+    if (mode === "simple") {
+      document.body.classList.add("simple-mode");
+    }
+    const select = document.getElementById("uiModeSelect");
+    if (select instanceof HTMLSelectElement) select.value = mode;
+  } catch {}
+})();
 
 // Initialize on load
 registerServiceWorker();

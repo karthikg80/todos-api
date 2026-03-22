@@ -11,4 +11,5 @@ export const STORAGE_KEYS = {
   FEATURE_ENHANCED_TASK_CRITIC: "feature.enhancedTaskCritic",
   FEATURE_TASK_DRAWER_ASSIST: "feature.taskDrawerDecisionAssist",
   TASK_DRAWER_DISMISSED_PREFIX: "taskDrawerAssist:dismissed:",
+  UI_MODE: "todos:ui-mode",
 };
