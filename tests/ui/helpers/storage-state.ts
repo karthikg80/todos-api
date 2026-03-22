@@ -139,15 +139,48 @@ async function createContextAndRegister(outPath: string) {
     const page = await context.newPage();
     await setupAuthRoutes(page);
 
-    await page.goto("/");
-    await page.getByRole("button", { name: "Register" }).click();
-    await page.locator("#registerName").fill("Cached UI User");
-    await page.locator("#registerEmail").fill(randomEmail());
-    await page.locator("#registerPassword").fill("Password123!");
-    await page.getByRole("button", { name: "Create Account" }).click();
+    const email = randomEmail();
+    const userId = `user_${Date.now()}`;
 
-    await page.waitForSelector("#todosView.active");
-    await page.waitForSelector("#todoInput");
+    // Register via the mocked API to populate the access token map,
+    // then set localStorage and reload to skip the landing page UI.
+    await page.goto("/");
+    await page.evaluate(
+      async ({ url, email: e, name: n }) => {
+        await fetch(`${url}/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: e, password: "Password123!", name: n }),
+        });
+      },
+      {
+        url: process.env.PLAYWRIGHT_BASE_URL || DEFAULT_BASE_URL,
+        email,
+        name: "Cached UI User",
+      },
+    );
+    await page.evaluate(
+      ({ token, refresh, user }) => {
+        localStorage.setItem("authToken", token);
+        localStorage.setItem("refreshToken", refresh);
+        localStorage.setItem("user", JSON.stringify(user));
+      },
+      {
+        token: AUTH_TOKEN,
+        refresh: REFRESH_TOKEN,
+        user: {
+          id: userId,
+          email,
+          name: "Cached UI User",
+          role: "user",
+          isVerified: true,
+          plan: "free",
+        },
+      },
+    );
+    await page.reload();
+    await page.waitForSelector("#todosView.active", { timeout: 10000 });
+    await page.waitForSelector("#todoInput", { timeout: 5000 });
 
     await fs.mkdir(path.dirname(outPath), { recursive: true });
     await context.storageState({ path: outPath });

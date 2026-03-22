@@ -52,17 +52,33 @@ export function handleAuthTokens(nextToken, nextRefreshToken) {
 // =============================================================================
 
 export function switchAuthTab(tab, triggerEl) {
-  document
-    .querySelectorAll(".auth-tab")
-    .forEach((t) => t.classList.remove("active"));
+  const validTabs = [
+    "login",
+    "register",
+    "phoneLogin",
+    "forgotPassword",
+    "resetPassword",
+  ];
+  if (!validTabs.includes(tab)) return;
+
+  document.querySelectorAll(".auth-tab").forEach((t) => {
+    t.classList.remove("active");
+    t.setAttribute("aria-selected", "false");
+  });
   document
     .querySelectorAll(".auth-form")
     .forEach((f) => (f.style.display = "none"));
 
   if (triggerEl) {
     triggerEl.classList.add("active");
+    triggerEl.setAttribute("aria-selected", "true");
   }
-  document.getElementById(tab + "Form").style.display = "block";
+  const targetForm = document.getElementById(tab + "Form");
+  if (targetForm) {
+    targetForm.style.display = "block";
+    const firstInput = targetForm.querySelector("input");
+    if (firstInput) firstInput.focus();
+  }
   hideMessage("authMessage");
 }
 
@@ -149,6 +165,13 @@ export async function handleLogin(event) {
   const email = document.getElementById("loginEmail").value;
   const password = document.getElementById("loginPassword").value;
 
+  const submitBtn = document.querySelector("#loginForm button[type='submit']");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn._origText = submitBtn.textContent;
+    submitBtn.textContent = "Signing in…";
+  }
+
   try {
     const response = await fetch(`${API_URL}/auth/login`, {
       method: "POST",
@@ -180,6 +203,11 @@ export async function handleLogin(event) {
   } catch (error) {
     showMessage("authMessage", "Network error. Please try again.", "error");
     console.error("Login error:", error);
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = submitBtn._origText || "Sign In";
+    }
   }
 }
 
@@ -196,6 +224,13 @@ export async function handleRegister(event) {
 
   const payload = { email, password };
   if (name) payload.name = name;
+
+  const regBtn = document.querySelector("#registerForm button[type='submit']");
+  if (regBtn) {
+    regBtn.disabled = true;
+    regBtn._origText = regBtn.textContent;
+    regBtn.textContent = "Creating account…";
+  }
 
   try {
     const response = await fetch(`${API_URL}/auth/register`, {
@@ -240,6 +275,11 @@ export async function handleRegister(event) {
   } catch (error) {
     showMessage("authMessage", "Network error. Please try again.", "error");
     console.error("Registration error:", error);
+  } finally {
+    if (regBtn) {
+      regBtn.disabled = false;
+      regBtn.textContent = regBtn._origText || "Create Account";
+    }
   }
 }
 
@@ -392,27 +432,34 @@ export async function loadUserProfile() {
 }
 
 export function updateUserDisplay() {
-  document.getElementById("userEmail").textContent = state.currentUser.email;
+  if (!state.currentUser) return;
+
+  const userEmail = document.getElementById("userEmail");
+  if (userEmail) userEmail.textContent = state.currentUser.email || "";
 
   const verifiedBadge = document.getElementById("verifiedBadge");
-  if (state.currentUser.isVerified) {
-    verifiedBadge.className = "verified-badge";
-    verifiedBadge.textContent = "✓ Verified";
-    verifiedBadge.style.display = "inline-flex";
-  } else {
-    verifiedBadge.className = "unverified-badge";
-    verifiedBadge.textContent = "";
-    verifiedBadge.style.display = "none";
+  if (verifiedBadge) {
+    if (state.currentUser.isVerified) {
+      verifiedBadge.className = "verified-badge";
+      verifiedBadge.textContent = "✓ Verified";
+      verifiedBadge.style.display = "inline-flex";
+    } else {
+      verifiedBadge.className = "unverified-badge";
+      verifiedBadge.textContent = "";
+      verifiedBadge.style.display = "none";
+    }
   }
 
   const adminBadge = document.getElementById("adminBadge");
   const isAdmin = state.currentUser.role === "admin";
-  if (isAdmin) {
-    adminBadge.className = "admin-badge";
-    adminBadge.textContent = "⭐ Admin";
-    adminBadge.style.display = "inline-block";
-  } else {
-    adminBadge.style.display = "none";
+  if (adminBadge) {
+    if (isAdmin) {
+      adminBadge.className = "admin-badge";
+      adminBadge.textContent = "⭐ Admin";
+      adminBadge.style.display = "inline-block";
+    } else {
+      adminBadge.style.display = "none";
+    }
   }
   const adminNavTab = document.getElementById("adminNavTab");
   if (adminNavTab instanceof HTMLElement) {
@@ -421,18 +468,25 @@ export function updateUserDisplay() {
   document.body.classList.toggle("is-admin-user", isAdmin);
 
   // Update profile view
-  document.getElementById("profileEmail").textContent = state.currentUser.email;
-  document.getElementById("profileName").textContent =
-    state.currentUser.name || "Not set";
-  document.getElementById("profileStatus").textContent = state.currentUser
-    .isVerified
-    ? "Verified ✓"
-    : "Not Verified";
-  document.getElementById("profileCreated").textContent = new Date(
-    state.currentUser.createdAt,
-  ).toLocaleDateString();
-  document.getElementById("updateName").value = state.currentUser.name || "";
-  document.getElementById("updateEmail").value = state.currentUser.email;
+  const profileEmail = document.getElementById("profileEmail");
+  if (profileEmail) profileEmail.textContent = state.currentUser.email || "";
+  const profileName = document.getElementById("profileName");
+  if (profileName)
+    profileName.textContent = state.currentUser.name || "Not set";
+  const profileStatus = document.getElementById("profileStatus");
+  if (profileStatus)
+    profileStatus.textContent = state.currentUser.isVerified
+      ? "Verified ✓"
+      : "Not Verified";
+  const profileCreated = document.getElementById("profileCreated");
+  if (profileCreated)
+    profileCreated.textContent = new Date(
+      state.currentUser.createdAt,
+    ).toLocaleDateString();
+  const updateNameInput = document.getElementById("updateName");
+  if (updateNameInput) updateNameInput.value = state.currentUser.name || "";
+  const updateEmailInput = document.getElementById("updateEmail");
+  if (updateEmailInput) updateEmailInput.value = state.currentUser.email || "";
 
   // Show/hide verification banner — only show when explicitly not verified.
   // Using === false guards against isVerified being undefined (e.g. when the
@@ -895,10 +949,11 @@ export function handleSocialCallback() {
     const refreshToken = params.get("refreshToken");
 
     if (token && refreshToken) {
+      const { AUTH_STATE, persistSession } = window.AppState || {};
       state.authToken = token;
       state.refreshToken = refreshToken;
+      setAuthState(AUTH_STATE.AUTHENTICATED);
 
-      const { persistSession } = window.AppState || {};
       if (persistSession) {
         persistSession({
           authToken: token,
@@ -968,6 +1023,13 @@ export async function handleSendOtp() {
     return;
   }
 
+  const sendBtn = document.getElementById("sendOtpBtn");
+  if (sendBtn) {
+    sendBtn.disabled = true;
+    sendBtn._origText = sendBtn._origText || sendBtn.textContent;
+    sendBtn.textContent = "Sending…";
+  }
+
   try {
     const resp = await fetch("/auth/phone/send-otp", {
       method: "POST",
@@ -994,6 +1056,11 @@ export async function handleSendOtp() {
     showMessage("authMessage", "Verification code sent", "success");
   } catch {
     showMessage("authMessage", "Failed to send code", "error");
+  } finally {
+    if (sendBtn) {
+      sendBtn.disabled = false;
+      sendBtn.textContent = sendBtn._origText || "Send Code";
+    }
   }
 }
 
@@ -1057,9 +1124,9 @@ export async function loadLinkedProviders() {
           "</span>" +
           '<button type="button" class="link-btn linked-provider-unlink" ' +
           "data-onclick=\"handleUnlinkProvider('" +
-          escapeHtml(p.provider) +
+          escapeHtmlAttr(p.provider) +
           "', '" +
-          escapeHtml(p.providerSubject) +
+          escapeHtmlAttr(p.providerSubject) +
           "')\">Unlink</button>" +
           "</div>",
       );
@@ -1082,10 +1149,12 @@ export async function loadLinkedProviders() {
   }
 }
 
-function escapeHtml(str) {
-  const div = document.createElement("div");
-  div.textContent = str;
-  return div.innerHTML;
+// Use escapeHtml from window.Utils (imported at top). This wrapper also escapes
+// single quotes for safe use inside data-onclick='...' attribute values.
+function escapeHtmlAttr(str) {
+  const { escapeHtml: escape } = window.Utils || {};
+  const base = escape ? escape(str) : str;
+  return base.replace(/'/g, "&#39;");
 }
 
 export async function handleUnlinkProvider(provider, providerSubject) {
@@ -1168,6 +1237,13 @@ export async function handleVerifyOtp() {
     return;
   }
 
+  const verifyBtn = document.getElementById("verifyOtpBtn");
+  if (verifyBtn) {
+    verifyBtn.disabled = true;
+    verifyBtn._origText = verifyBtn._origText || verifyBtn.textContent;
+    verifyBtn.textContent = "Verifying…";
+  }
+
   try {
     const resp = await fetch("/auth/phone/verify-otp", {
       method: "POST",
@@ -1183,11 +1259,12 @@ export async function handleVerifyOtp() {
     }
 
     // Store tokens and show app
+    const { AUTH_STATE, persistSession } = window.AppState || {};
     state.authToken = data.token;
     state.refreshToken = data.refreshToken;
     state.currentUser = data.user;
+    setAuthState(AUTH_STATE.AUTHENTICATED);
 
-    const { persistSession } = window.AppState || {};
     if (persistSession) {
       persistSession({
         authToken: data.token,
@@ -1197,8 +1274,15 @@ export async function handleVerifyOtp() {
     }
 
     showAppView();
-    initOnboarding();
+    loadUserProfile().then(() => {
+      initOnboarding();
+    });
   } catch {
     showMessage("authMessage", "Verification failed", "error");
+  } finally {
+    if (verifyBtn) {
+      verifyBtn.disabled = false;
+      verifyBtn.textContent = verifyBtn._origText || "Verify";
+    }
   }
 }
