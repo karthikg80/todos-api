@@ -19,13 +19,13 @@ function renderHiddenFields(fields: Record<string, string | undefined>) {
     .join("");
 }
 
-function renderPageShell(title: string, body: string) {
+function renderPageShell(title: string, body: string, headExtra?: string) {
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>${escapeHtml(title)}</title>
+    <title>${escapeHtml(title)}</title>${headExtra ? "\n    " + headExtra : ""}
     <style>
       :root {
         color-scheme: light;
@@ -181,10 +181,10 @@ export function renderOAuthRedirectPage(input: {
     `<h1>Authorization complete</h1>
      <p>Redirecting you back to the assistant…</p>
      <p><a class="primary" href="${safe}" style="display:inline-block;padding:12px 18px;border-radius:999px;background:#111827;color:white;text-decoration:none;font-weight:600;">Return to assistant</a></p>
-     <meta http-equiv="refresh" content="0; url=${safe}">
      <script nonce="${escapeHtml(input.nonce)}">
        try { window.location.replace(${JSON.stringify(input.redirectUri)}); } catch(_){}
      </script>`,
+    `<meta http-equiv="refresh" content="0; url=${safe}">`,
   );
 }
 
