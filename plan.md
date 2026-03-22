@@ -6,6 +6,127 @@ Add social login (Google, Apple) and phone number (SMS OTP) authentication to th
 
 ---
 
+## Pre-Flight Decisions (locked down before coding)
+
+### D1: User-matching and linking decision tree
+
+```
+On social login callback (Google/Apple) with verified provider claims:
+
+1. Lookup SocialAccount by (provider, providerSubject)
+   → FOUND: sign in as that user. Done.
+
+2. Provider email_verified == true
+   AND email is NOT an Apple private relay (*@privaterelay.appleid.com)
+   AND a User with that exact email exists:
+   → AUTO-LINK: create SocialAccount for existing user, sign in. Log event.
+
+3. All other cases (unverified email, Apple relay, no matching user):
+   → CREATE new User + SocialAccount. Sign in as new user.
+
+On phone login with verified OTP:
+
+1. Lookup User by phoneE164
+   → FOUND: sign in as that user. Done.
+
+2. No matching user:
+   → CREATE new User (email=null, password=null). Sign in.
+```
+
+No ambiguity: the decision tree is evaluated top-to-bottom, first match wins.
+
+### D2: Uniqueness and index constraints
+
+| Table | Constraint | Type |
+|-------|-----------|------|
+| `User.email` | Unique where not null | Partial unique index (Prisma: `@unique` on nullable field) |
+| `User.phoneE164` | Unique where not null | Partial unique index |
+| `SocialAccount(provider, providerSubject)` | Unique composite | `@@unique([provider, providerSubject])` |
+| `SocialAccount(userId, provider)` | Not unique | One user can have multiple Apple accounts (edge case) — but practically one per provider |
+
+**Collision behavior:**
+- If a phone number already belongs to another user → reject with generic error "Unable to complete sign-in" (anti-enumeration)
+- If a social `providerSubject` already linked to a different user → sign in as that user (the link is authoritative)
+
+### D3: Nullability rules
+
+| Field | Nullable? | When null? |
+|-------|-----------|------------|
+| `User.email` | Yes | Phone-only users; Apple relay users who haven't added a real email |
+| `User.password` | Yes | Social-only and phone-only users |
+| `User.phoneE164` | Yes | Email-only and social-only users |
+| `User.name` | Yes (already) | Unchanged |
+
+**Product rule:** Users can use the app with any single auth method. Email is NOT required for basic usage. Future features (e.g., email notifications, team invites) may prompt users to add an email, but it's never blocking.
+
+### D4: Authenticated user invoking provider auth (session behavior)
+
+**Hard rule:**
+- **From anonymous/logged-out state:** provider auth signs the user in (or creates account). This is the normal login/register flow.
+- **From authenticated state via account settings:** provider auth **links** the identity to the current account. The user is NOT signed into a different account.
+- **From authenticated state via the login page** (shouldn't happen, but defensive): redirect to app home. Do not allow re-auth while already authenticated.
+
+**Implementation:** The `/auth/{provider}/start` endpoint checks for an existing session. If present, it sets a `link_to_user=<userId>` flag in the state cookie. The callback handler reads this flag to decide link vs. login behavior.
+
+### D5: Apple relay email policy
+
+- Apple private relay emails (`*@privaterelay.appleid.com`) are **never** used for auto-linking.
+- They are stored in `SocialAccount.emailAtProvider` for record-keeping.
+- The `(provider, providerSubject)` pair is the durable identity key for Apple users.
+- On subsequent Apple logins, the user is matched by `providerSubject`, not email.
+- Users can add a real email later via profile settings if they want email features.
+
+### D6: "Email verified" definition per provider
+
+| Provider | "Email verified" means |
+|----------|----------------------|
+| **Google** | `email_verified: true` claim in the ID token (Google verifies the email) |
+| **Apple** | `email_verified: true` claim in the ID token AND email is NOT `*@privaterelay.appleid.com` |
+| **Phone** | N/A — phone auth doesn't provide an email |
+| **Email+password** | User clicked the verification link (existing `isVerified` field) |
+
+### D7: Last-login-method unlink protection
+
+- A user must always retain **at least one usable sign-in method**.
+- Before unlinking a provider or removing a phone number, the backend checks:
+  - Does the user have a password set? (counts as 1 method)
+  - How many SocialAccounts does the user have? (each counts as 1 method)
+  - Does the user have a phoneE164? (counts as 1 method)
+  - Total methods after removal must be >= 1
+- If removal would leave 0 methods → reject with `400 Cannot remove your only sign-in method`
+
+### D8: Password recovery / upgrade path
+
+- **Social-only or phone-only user wants to add a password:**
+  - Available via profile settings "Set Password" flow
+  - Requires active session (user must already be signed in)
+  - No additional re-auth needed in v1 (they just proved identity via their current method)
+  - Sets `User.password` from null → hashed value
+
+- **"Forgot password" for social/phone-only users:**
+  - If user has no password and no email → "Forgot password" is irrelevant (they use social/phone)
+  - If user has email but no password → send reset email, which effectively creates a password
+  - If user has password → existing flow unchanged
+  - In all cases, response is generic: "If an account exists with that email, we sent a reset link" (anti-enumeration)
+
+### D9: Phone auth rate-limit and error response contract
+
+| Scenario | Response | HTTP Status |
+|----------|----------|-------------|
+| Send OTP success | `{ message: "Verification code sent" }` | 200 |
+| Send OTP rate-limited (>3/10min per phone) | `{ error: "Too many requests. Try again later." }` | 429 |
+| Send OTP rate-limited (per-IP) | `{ error: "Too many requests. Try again later." }` | 429 |
+| Verify OTP success | `{ user, token, refreshToken }` | 200 |
+| Verify OTP wrong code | `{ error: "Invalid or expired code" }` | 401 |
+| Verify OTP expired | `{ error: "Invalid or expired code" }` | 401 |
+| Verify OTP max attempts | `{ error: "Too many attempts. Request a new code." }` | 429 |
+| Invalid phone format | `{ error: "Invalid phone number format" }` | 400 |
+| Phone belongs to another user (edge case) | `{ error: "Unable to complete sign-in" }` | 400 |
+
+**Resend cooldown:** 60 seconds client-side (timer), enforced server-side via Twilio Verify's built-in cooldown.
+
+---
+
 ## Phase 1: Database Schema Changes
 
 ### File: `prisma/schema.prisma`
@@ -418,16 +539,19 @@ Add styles for:
 
 ## Implementation Order (risk-reducing)
 
+Linking/session semantics are finalized early (step 3) so all provider implementations build on the same rules.
+
 1. **Schema + migrations** (Phase 1) — foundation for everything
 2. **Config + env vars** (Phase 2) — per-provider feature flags
-3. **Google OAuth end-to-end** (Phase 3, 4, 7) — most common provider, good proof of concept
-4. **Apple Sign-In end-to-end** (Phase 3, 4, 7) — builds on Google patterns, adds nonce
-5. **Phone auth end-to-end** (Phase 3, 4, 7) — independent of OAuth flows
-6. **Account linking rules** (Phase 8) — enforce across all providers
+3. **Session issuance + linking rules** (Phase 3 shared logic, D1-D9) — `findOrCreateSocialUser`, `findOrCreatePhoneUser`, audit logging, unlink protection
+4. **Google OAuth end-to-end** (Phase 3, 4, 7) — most common provider, proves the linking logic works
+5. **Apple Sign-In end-to-end** (Phase 3, 4, 7) — builds on Google patterns, adds nonce + relay handling
+6. **Phone auth end-to-end** (Phase 3, 4, 7) — independent of OAuth, uses Twilio Verify
 7. **Frontend integration** (Phase 6) — connect UI to working backend
-8. **Security hardening** (Phase 9) — audit checklist pass
-9. **Tests** (Phase 10) — unit, integration, UI
-10. **Run all verification checks** from CLAUDE.md
+8. **Account settings: link/unlink/add password** (Phase 8) — profile management for linked identities
+9. **Security hardening + audit** (Phase 9) — checklist pass, rate limits, metrics
+10. **Tests** (Phase 10) — unit, integration, UI
+11. **Run all verification checks** from CLAUDE.md
 
 ---
 
