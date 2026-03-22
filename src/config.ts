@@ -96,6 +96,32 @@ const aiDailySuggestionLimitTeam = Number.parseInt(
 const aiDecisionAssistEnabled = ["1", "true"].includes(
   (process.env.AI_DECISION_ASSIST || "false").toLowerCase(),
 );
+
+// Social / phone auth feature flags
+const googleLoginEnabled =
+  (process.env.GOOGLE_LOGIN_ENABLED || "false").toLowerCase() === "true";
+const appleLoginEnabled =
+  (process.env.APPLE_LOGIN_ENABLED || "false").toLowerCase() === "true";
+const phoneLoginEnabled =
+  (process.env.PHONE_LOGIN_ENABLED || "false").toLowerCase() === "true";
+
+// Google OAuth
+const googleClientId = (process.env.GOOGLE_CLIENT_ID || "").trim();
+const googleClientSecret = (process.env.GOOGLE_CLIENT_SECRET || "").trim();
+const googleRedirectUri = (process.env.GOOGLE_REDIRECT_URI || "").trim();
+
+// Apple Sign-In
+const appleClientId = (process.env.APPLE_CLIENT_ID || "").trim();
+const appleTeamId = (process.env.APPLE_TEAM_ID || "").trim();
+const appleKeyId = (process.env.APPLE_KEY_ID || "").trim();
+const applePrivateKey = (process.env.APPLE_PRIVATE_KEY || "").trim();
+
+// Twilio Verify
+const twilioAccountSid = (process.env.TWILIO_ACCOUNT_SID || "").trim();
+const twilioAuthToken = (process.env.TWILIO_AUTH_TOKEN || "").trim();
+const twilioVerifyServiceSid = (
+  process.env.TWILIO_VERIFY_SERVICE_SID || ""
+).trim();
 const requestTimeoutMs = Number.parseInt(requestTimeoutMsRaw, 10);
 const headersTimeoutMs = Number.parseInt(headersTimeoutMsRaw, 10);
 const keepAliveTimeoutMs = Number.parseInt(keepAliveTimeoutMsRaw, 10);
@@ -237,4 +263,21 @@ export const config = {
         : 1000,
   },
   aiDecisionAssistEnabled,
+
+  // Social / phone auth
+  googleLoginEnabled,
+  googleClientId,
+  googleClientSecret,
+  googleRedirectUri:
+    googleRedirectUri ||
+    `${baseUrl || "http://localhost:3000"}/auth/google/callback`,
+  appleLoginEnabled,
+  appleClientId,
+  appleTeamId,
+  appleKeyId,
+  applePrivateKey,
+  phoneLoginEnabled,
+  twilioAccountSid,
+  twilioAuthToken,
+  twilioVerifyServiceSid,
 };

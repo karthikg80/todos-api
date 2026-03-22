@@ -346,6 +346,76 @@
                       />
                     </div>
                     <button type="submit" class="btn">Login</button>
+                    <div
+                      class="social-login-section"
+                      id="loginSocialSection"
+                      style="display: none"
+                    >
+                      <div class="auth-divider"><span>or</span></div>
+                      <div class="social-login-buttons">
+                        <button
+                          type="button"
+                          class="btn social-btn google-btn"
+                          id="loginGoogleBtn"
+                          style="display: none"
+                          data-onclick="handleGoogleLogin()"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="#4285F4"
+                              d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"
+                            />
+                          </svg>
+                          Continue with Google
+                        </button>
+                        <button
+                          type="button"
+                          class="btn social-btn apple-btn"
+                          id="loginAppleBtn"
+                          style="display: none"
+                          data-onclick="handleAppleLogin()"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="currentColor"
+                              d="M13.545 8.32c-.022-2.276 1.88-3.388 1.966-3.44-1.076-1.56-2.746-1.773-3.332-1.79-1.4-.147-2.77.84-3.488.84-.734 0-1.835-.826-3.024-.802C3.93 3.156 2.3 4.193 1.4 5.79c-1.846 3.172-.47 7.847 1.303 10.414.89 1.26 1.93 2.67 3.295 2.62 1.334-.054 1.833-.847 3.442-.847 1.593 0 2.06.847 3.44.816 1.428-.023 2.326-1.266 3.18-2.536 1.025-1.443 1.44-2.872 1.458-2.944-.032-.012-2.79-1.058-2.818-4.218l-.155.225Z"
+                            />
+                          </svg>
+                          Sign in with Apple
+                        </button>
+                        <button
+                          type="button"
+                          class="btn social-btn phone-btn"
+                          id="loginPhoneBtn"
+                          style="display: none"
+                          data-onclick="showPhoneLogin()"
+                        >
+                          Continue with Phone
+                        </button>
+                      </div>
+                    </div>
                     <button
                       type="button"
                       id="forgotPasswordLink"
@@ -391,6 +461,144 @@
                       />
                     </div>
                     <button type="submit" class="btn">Create Account</button>
+                    <div
+                      class="social-login-section"
+                      id="registerSocialSection"
+                      style="display: none"
+                    >
+                      <div class="auth-divider"><span>or</span></div>
+                      <div class="social-login-buttons">
+                        <button
+                          type="button"
+                          class="btn social-btn google-btn"
+                          id="registerGoogleBtn"
+                          style="display: none"
+                          data-onclick="handleGoogleLogin()"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="#4285F4"
+                              d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"
+                            />
+                          </svg>
+                          Continue with Google
+                        </button>
+                        <button
+                          type="button"
+                          class="btn social-btn apple-btn"
+                          id="registerAppleBtn"
+                          style="display: none"
+                          data-onclick="handleAppleLogin()"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="currentColor"
+                              d="M13.545 8.32c-.022-2.276 1.88-3.388 1.966-3.44-1.076-1.56-2.746-1.773-3.332-1.79-1.4-.147-2.77.84-3.488.84-.734 0-1.835-.826-3.024-.802C3.93 3.156 2.3 4.193 1.4 5.79c-1.846 3.172-.47 7.847 1.303 10.414.89 1.26 1.93 2.67 3.295 2.62 1.334-.054 1.833-.847 3.442-.847 1.593 0 2.06.847 3.44.816 1.428-.023 2.326-1.266 3.18-2.536 1.025-1.443 1.44-2.872 1.458-2.944-.032-.012-2.79-1.058-2.818-4.218l-.155.225Z"
+                            />
+                          </svg>
+                          Sign in with Apple
+                        </button>
+                        <button
+                          type="button"
+                          class="btn social-btn phone-btn"
+                          id="registerPhoneBtn"
+                          style="display: none"
+                          data-onclick="showPhoneLogin()"
+                        >
+                          Continue with Phone
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+
+                  <!-- Phone Login Form -->
+                  <form
+                    id="phoneLoginForm"
+                    class="auth-form"
+                    style="display: none"
+                  >
+                    <h2 style="margin-bottom: 20px">Phone Login</h2>
+                    <div class="form-group">
+                      <label for="phoneNumber">Phone Number</label>
+                      <input
+                        type="tel"
+                        id="phoneNumber"
+                        required
+                        placeholder="+1 555 123 4567"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      class="btn"
+                      id="sendOtpBtn"
+                      data-onclick="handleSendOtp()"
+                    >
+                      Send Code
+                    </button>
+                    <div id="otpSection" style="display: none">
+                      <p class="otp-hint">
+                        Code sent to
+                        <span id="otpPhoneMasked"></span>
+                      </p>
+                      <div class="form-group">
+                        <label for="otpCode">Verification Code</label>
+                        <input
+                          type="text"
+                          id="otpCode"
+                          required
+                          placeholder="123456"
+                          maxlength="6"
+                          pattern="[0-9]{6}"
+                          inputmode="numeric"
+                          autocomplete="one-time-code"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        class="btn"
+                        data-onclick="handleVerifyOtp()"
+                      >
+                        Verify &amp; Login
+                      </button>
+                      <button
+                        type="button"
+                        class="link-btn"
+                        id="resendOtpBtn"
+                        disabled
+                        data-onclick="handleResendOtp()"
+                      >
+                        Resend code (<span id="resendTimer">60</span>s)
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      class="link-btn"
+                      data-onclick="showLogin()"
+                    >
+                      Back to Login
+                    </button>
                   </form>
 
                   <!-- Forgot Password Form -->
@@ -1459,6 +1667,47 @@
                           <div class="info-row">
                             <span class="info-label">Member Since:</span>
                             <span class="info-value" id="profileCreated"></span>
+                          </div>
+                        </div>
+
+                        <div
+                          class="profile-section"
+                          id="linkedProvidersSection"
+                          style="display: none"
+                        >
+                          <h3>Linked Sign-In Methods</h3>
+                          <div id="linkedProvidersList"></div>
+                          <div id="setPasswordSection" style="display: none">
+                            <h4>Set Password</h4>
+                            <p
+                              style="
+                                margin-bottom: 8px;
+                                color: var(--text-secondary);
+                                font-size: 0.9em;
+                              "
+                            >
+                              Add a password so you can also sign in with email
+                              + password.
+                            </p>
+                            <form data-onsubmit="handleSetPassword(event)">
+                              <div class="form-group">
+                                <label for="setPasswordInput"
+                                  >New Password</label
+                                >
+                                <input
+                                  type="password"
+                                  id="setPasswordInput"
+                                  minlength="8"
+                                  maxlength="72"
+                                  required
+                                  placeholder="At least 8 characters"
+                                  autocomplete="new-password"
+                                />
+                              </div>
+                              <button type="submit" class="btn">
+                                Set Password
+                              </button>
+                            </form>
                           </div>
                         </div>
 

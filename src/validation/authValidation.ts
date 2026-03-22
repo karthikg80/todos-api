@@ -147,6 +147,69 @@ export function validateRegister(data: any): {
 }
 
 /**
+ * Validate phone number in E.164 format
+ */
+export function validatePhoneE164(phone: unknown): {
+  valid: boolean;
+  errors: ValidationError[];
+  phoneE164?: string;
+} {
+  const errors: ValidationError[] = [];
+
+  if (!phone || typeof phone !== "string") {
+    errors.push({ field: "phone", message: "Phone number is required" });
+    return { valid: false, errors };
+  }
+
+  const cleaned = phone.replace(/(?!^\+)[^\d]/g, "");
+  if (!cleaned.startsWith("+")) {
+    errors.push({
+      field: "phone",
+      message: "Phone number must include country code (e.g. +1...)",
+    });
+    return { valid: false, errors };
+  }
+
+  const digits = cleaned.slice(1);
+  if (digits.length < 7 || digits.length > 15) {
+    errors.push({
+      field: "phone",
+      message: "Invalid phone number format",
+    });
+    return { valid: false, errors };
+  }
+
+  return { valid: true, errors: [], phoneE164: cleaned };
+}
+
+/**
+ * Validate OTP code (6-digit numeric string)
+ */
+export function validateOtpCode(code: unknown): {
+  valid: boolean;
+  errors: ValidationError[];
+  code?: string;
+} {
+  const errors: ValidationError[] = [];
+
+  if (!code || typeof code !== "string") {
+    errors.push({ field: "code", message: "Verification code is required" });
+    return { valid: false, errors };
+  }
+
+  const trimmed = code.trim();
+  if (!/^\d{6}$/.test(trimmed)) {
+    errors.push({
+      field: "code",
+      message: "Verification code must be 6 digits",
+    });
+    return { valid: false, errors };
+  }
+
+  return { valid: true, errors: [], code: trimmed };
+}
+
+/**
  * Validate login data
  */
 export function validateLogin(data: any): {

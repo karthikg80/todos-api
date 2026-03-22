@@ -21,7 +21,7 @@ export interface LoginDto {
 export interface AuthResponse {
   user: {
     id: string;
-    email: string;
+    email: string | null;
     name: string | null;
   };
   token: string;
@@ -137,10 +137,10 @@ export class AuthService {
 
     this.dispatchVerificationEmail(user.id);
 
-    // Generate JWT token and refresh token
+    // Generate JWT token and refresh token (email always present for register)
     const token = this.generateToken({
       userId: user.id,
-      email: user.email,
+      email: user.email!,
     });
     const refreshToken = await this.createRefreshToken(user.id);
 
@@ -153,6 +153,22 @@ export class AuthService {
       token,
       refreshToken,
     };
+  }
+
+  /**
+   * Issue JWT access token + refresh token for any authenticated user.
+   * Used by social and phone auth flows.
+   */
+  async issueTokens(
+    userId: string,
+    email: string | null,
+  ): Promise<{ token: string; refreshToken: string }> {
+    const token = this.generateToken({
+      userId,
+      email: email || "",
+    });
+    const refreshToken = await this.createRefreshToken(userId);
+    return { token, refreshToken };
   }
 
   /**
@@ -181,6 +197,11 @@ export class AuthService {
       throw new Error("Invalid credentials");
     }
 
+    // Social/phone-only users have no password — return generic error
+    if (!user.password) {
+      throw new Error("Invalid credentials");
+    }
+
     // Verify password
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);
 
@@ -188,10 +209,10 @@ export class AuthService {
       throw new Error("Invalid credentials");
     }
 
-    // Generate JWT token and refresh token
+    // Generate JWT token and refresh token (email always present for login)
     const token = this.generateToken({
       userId: user.id,
-      email: user.email,
+      email: user.email!,
     });
     const refreshToken = await this.createRefreshToken(user.id);
 
@@ -438,6 +459,7 @@ export class AuthService {
         id: true,
         email: true,
         name: true,
+        phoneE164: true,
         isVerified: true,
         role: true,
         plan: true,
@@ -608,7 +630,7 @@ export class AuthService {
 
     const newAccessToken = this.generateToken({
       userId: storedToken.user.id,
-      email: storedToken.user.email,
+      email: storedToken.user.email || "",
     });
 
     // Rotate refresh token atomically: delete old + create new in one transaction
@@ -665,6 +687,7 @@ export class AuthService {
       data: { verificationToken: token },
     });
 
+    if (!user.email) throw new Error("User has no email to verify");
     await this.emailService.sendVerificationEmail(user.email, token);
   }
 
@@ -708,7 +731,9 @@ export class AuthService {
       },
     });
 
-    this.dispatchPasswordResetEmail(user.email, token);
+    if (user.email) {
+      this.dispatchPasswordResetEmail(user.email, token);
+    }
   }
 
   /**

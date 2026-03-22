@@ -423,12 +423,12 @@ export class FeedbackService {
     updatedAt: Date;
     user: {
       id: string;
-      email: string;
+      email: string | null;
       name: string | null;
     };
     reviewer: {
       id: string;
-      email: string;
+      email: string | null;
       name: string | null;
     } | null;
   }): FeedbackRequestAdminDetailDto {

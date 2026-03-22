@@ -1,12 +1,17 @@
 import express, { Request, Response, RequestHandler } from "express";
 import path from "path";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./swagger";
 import { ITodoService } from "./interfaces/ITodoService";
 import { TodoService } from "./services/todoService";
 import { AuthService } from "./services/authService";
+import { SocialAuthService } from "./services/socialAuthService";
+import { GoogleAuthService } from "./services/googleAuthService";
+import { AppleAuthService } from "./services/appleAuthService";
+import { PhoneAuthService } from "./services/phoneAuthService";
 import { authMiddleware } from "./middleware/authMiddleware";
 import { adminMiddleware } from "./middleware/adminMiddleware";
 import { config } from "./config";
@@ -206,6 +211,7 @@ export function createApp(
 
   app.use(express.json({ limit: config.requestBodyLimit }));
   app.use(express.urlencoded({ extended: false, limit: config.formBodyLimit }));
+  app.use(cookieParser());
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -254,11 +260,30 @@ export function createApp(
   app.use("/oauth", mcpPublicLimiter);
   app.use("/.well-known", mcpPublicLimiter);
 
+  // Social / phone auth services (only instantiated when configured)
+  const socialAuthService = persistencePrisma
+    ? new SocialAuthService(persistencePrisma)
+    : undefined;
+  const googleAuthService = config.googleLoginEnabled
+    ? new GoogleAuthService()
+    : undefined;
+  const appleAuthService = config.appleLoginEnabled
+    ? new AppleAuthService()
+    : undefined;
+  const phoneAuthService =
+    config.phoneLoginEnabled && persistencePrisma
+      ? new PhoneAuthService(persistencePrisma)
+      : undefined;
+
   app.use(
     "/auth",
     createAuthRouter({
       authService,
       mcpOAuthService,
+      socialAuthService,
+      googleAuthService,
+      appleAuthService,
+      phoneAuthService,
       authLimiter,
       emailActionLimiter,
       requireAuthIfConfigured,

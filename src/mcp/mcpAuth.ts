@@ -13,7 +13,7 @@ export interface ResolvedMcpAuthContext {
   session: McpTokenPayload;
   user: {
     id: string;
-    email: string;
+    email: string | null;
     name: string | null;
     isVerified: boolean;
     role: string;

@@ -120,9 +120,10 @@ enum AiSuggestionStatus {
 
 model User {
   id                    String    @id @default(uuid())
-  email                 String    @unique @db.VarChar(255)
-  password              String    @db.VarChar(255)
+  email                 String?   @unique @db.VarChar(255)
+  password              String?   @db.VarChar(255)
   name                  String?   @db.VarChar(100)
+  phoneE164             String?   @unique @map("phone_e164") @db.VarChar(20)
   isVerified            Boolean   @default(false) @map("is_verified")
   verificationToken     String?   @unique @map("verification_token") @db.VarChar(255)
   resetToken            String?   @unique @map("reset_token") @db.VarChar(255)
@@ -158,8 +159,25 @@ model User {
   areas                    Area[]
   goals                    Goal[]
   planningPreferences      UserPlanningPreferences?
+  socialAccounts           SocialAccount[]
 
   @@map("users")
+}
+
+model SocialAccount {
+  id                      String   @id @default(uuid())
+  userId                  String   @map("user_id")
+  provider                String   @db.VarChar(20)
+  providerSubject         String   @map("provider_subject") @db.VarChar(255)
+  emailAtProvider         String?  @map("email_at_provider") @db.VarChar(255)
+  emailVerifiedAtProvider Boolean  @default(false) @map("email_verified_at_provider")
+  createdAt               DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerSubject])
+  @@index([userId])
+  @@map("social_accounts")
 }
 
 model RefreshToken {
