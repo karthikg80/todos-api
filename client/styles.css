@@ -676,6 +676,33 @@ body:not(.is-todos-view) .container {
   margin: 0 auto;
 }
 
+.landing-hero__img {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 20px 60px
+    color-mix(in oklab, var(--text-primary) 10%, transparent);
+}
+
+.landing-card__img {
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin-top: var(--s-2);
+  border: 1px solid var(--border-color);
+}
+
+.landing-card--wide {
+  grid-column: span 2;
+}
+
+@media (max-width: 768px) {
+  .landing-card--wide {
+    grid-column: span 1;
+  }
+}
+
 .landing-screenshot-placeholder {
   background: linear-gradient(
     135deg,
