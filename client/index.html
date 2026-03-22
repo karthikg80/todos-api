@@ -80,6 +80,220 @@
             <div class="content">
               <!-- Authentication View -->
               <div id="authView" class="view active">
+                <!-- Landing page — visible when unauthenticated -->
+                <div id="landingPage" class="landing">
+                  <!-- Nav -->
+                  <nav class="landing-nav" id="landingNav">
+                    <div class="landing-nav__inner">
+                      <a href="#" class="landing-nav__logo">📝 Todo App</a>
+                      <div class="landing-nav__links">
+                        <a href="#landing-features" class="landing-nav__link"
+                          >Features</a
+                        >
+                        <a
+                          href="#authFormSection"
+                          class="landing-nav__link"
+                          data-onclick="switchAuthTab('login')"
+                          >Log in</a
+                        >
+                        <a href="#authFormSection" class="landing-nav__cta"
+                          >Get started free</a
+                        >
+                      </div>
+                    </div>
+                  </nav>
+
+                  <!-- Hero -->
+                  <section class="landing-hero">
+                    <div class="landing-section__inner">
+                      <h1 class="landing-hero__title">
+                        Your tasks,&nbsp;your&nbsp;way.
+                      </h1>
+                      <p class="landing-hero__sub">
+                        The AI-powered task manager that connects to Claude and
+                        ChatGPT. Plan your day, critique your tasks, and let
+                        autonomous agents keep your projects on track.
+                      </p>
+                      <div class="landing-hero__ctas">
+                        <a
+                          href="#authFormSection"
+                          class="landing-btn landing-btn--primary"
+                          >Get started free</a
+                        >
+                        <a
+                          href="#landing-features"
+                          class="landing-btn landing-btn--secondary"
+                          >See features</a
+                        >
+                      </div>
+                      <div class="landing-hero__screenshot">
+                        <div class="landing-screenshot-placeholder">
+                          <span class="landing-screenshot-placeholder__label"
+                            >Task list with AI workspace</span
+                          >
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Features -->
+                  <section id="landing-features" class="landing-features">
+                    <div class="landing-section__inner">
+                      <h2 class="landing-section__heading">
+                        Everything you need to stay on top of it
+                      </h2>
+
+                      <div class="landing-feature">
+                        <div class="landing-feature__text">
+                          <h3>Smart Task Management</h3>
+                          <p>
+                            Quick entry with natural language dates, priorities,
+                            projects, and headings. Drag-and-drop reordering,
+                            bulk actions, and keyboard shortcuts for power
+                            users.
+                          </p>
+                        </div>
+                        <div class="landing-feature__visual">
+                          <div class="landing-screenshot-placeholder">
+                            <span class="landing-screenshot-placeholder__label"
+                              >Quick entry + natural dates</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="landing-feature landing-feature--reverse">
+                        <div class="landing-feature__text">
+                          <h3>AI-Powered Planning</h3>
+                          <p>
+                            Get AI critiques on task quality, generate plans
+                            from goals, break down complex projects, and receive
+                            on-create suggestions as you type.
+                          </p>
+                        </div>
+                        <div class="landing-feature__visual">
+                          <div class="landing-screenshot-placeholder">
+                            <span class="landing-screenshot-placeholder__label"
+                              >AI critique panel</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="landing-feature">
+                        <div class="landing-feature__text">
+                          <h3>MCP Assistant Integration</h3>
+                          <p>
+                            Connect Claude, ChatGPT, or any MCP-compatible
+                            assistant via OAuth. Manage tasks and projects
+                            through natural conversation with full read/write
+                            access.
+                          </p>
+                        </div>
+                        <div class="landing-feature__visual">
+                          <div class="landing-screenshot-placeholder">
+                            <span class="landing-screenshot-placeholder__label"
+                              >MCP OAuth + assistant</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="landing-feature landing-feature--reverse">
+                        <div class="landing-feature__text">
+                          <h3>Autonomous Agent Runner</h3>
+                          <p>
+                            Automated daily planning, weekly reviews, inbox
+                            triage, stale task detection, and project
+                            decomposition — running on schedule without you
+                            lifting a finger.
+                          </p>
+                        </div>
+                        <div class="landing-feature__visual">
+                          <div class="landing-screenshot-placeholder">
+                            <span class="landing-screenshot-placeholder__label"
+                              >Agent run dashboard</span
+                            >
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Capabilities grid -->
+                  <section class="landing-capabilities">
+                    <div class="landing-section__inner">
+                      <h2 class="landing-section__heading">And so much more</h2>
+                      <div class="landing-grid">
+                        <div class="landing-card">
+                          <div class="landing-card__icon">📂</div>
+                          <h4>Projects &amp; Areas</h4>
+                          <p>
+                            Organize tasks into projects with headings. Group
+                            projects by area for life/work balance.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">🔍</div>
+                          <h4>Filters &amp; Views</h4>
+                          <p>
+                            Today, Upcoming, Completed views. Filter by project,
+                            priority, and status. Command palette for instant
+                            navigation.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">🏠</div>
+                          <h4>Home Dashboard</h4>
+                          <p>
+                            AI-powered focus suggestions, due soon alerts, quick
+                            wins, and projects that need attention.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">📥</div>
+                          <h4>Inbox Capture</h4>
+                          <p>
+                            Capture ideas fast. AI triages and classifies inbox
+                            items into tasks with the right project and
+                            priority.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">⌨️</div>
+                          <h4>Keyboard First</h4>
+                          <p>
+                            Command palette (Ctrl+K), keyboard shortcuts for
+                            every action, and quick entry without touching the
+                            mouse.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">🌙</div>
+                          <h4>Dark Mode</h4>
+                          <p>
+                            Full dark mode support. Automatic theme detection or
+                            manual toggle. Easy on the eyes, day or night.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Final CTA -->
+                  <section id="authFormSection" class="landing-cta-section">
+                    <div class="landing-section__inner">
+                      <h2 class="landing-section__heading">
+                        Get started — it's&nbsp;free
+                      </h2>
+                      <p class="landing-cta-section__sub">
+                        No credit card required. Start organizing your tasks in
+                        seconds.
+                      </p>
+                    </div>
+                  </section>
+                </div>
+
                 <div class="auth-container">
                   <div class="auth-tabs">
                     <button
