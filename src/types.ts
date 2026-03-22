@@ -533,7 +533,7 @@ export interface FeedbackRequestDto {
 
 export interface FeedbackRequestAdminUserDto {
   id: string;
-  email: string;
+  email: string | null;
   name?: string | null;
 }
 

@@ -826,3 +826,221 @@ export function showAuthView() {
   hooks.renderOnCreateAssistRow?.();
   showLogin();
 }
+
+// =============================================================================
+// Social / Phone login
+// =============================================================================
+
+let _resendTimerId = null;
+
+export async function initSocialLogin() {
+  try {
+    const resp = await fetch("/auth/providers");
+    if (!resp.ok) return;
+    const providers = await resp.json();
+
+    const hasAny = providers.google || providers.apple || providers.phone;
+
+    // Login form social section
+    const loginSection = document.getElementById("loginSocialSection");
+    if (loginSection) loginSection.style.display = hasAny ? "block" : "none";
+
+    // Register form social section
+    const registerSection = document.getElementById("registerSocialSection");
+    if (registerSection)
+      registerSection.style.display = hasAny ? "block" : "none";
+
+    // Individual buttons (login)
+    const loginGoogle = document.getElementById("loginGoogleBtn");
+    if (loginGoogle)
+      loginGoogle.style.display = providers.google ? "flex" : "none";
+    const loginApple = document.getElementById("loginAppleBtn");
+    if (loginApple)
+      loginApple.style.display = providers.apple ? "flex" : "none";
+    const loginPhone = document.getElementById("loginPhoneBtn");
+    if (loginPhone)
+      loginPhone.style.display = providers.phone ? "flex" : "none";
+
+    // Individual buttons (register)
+    const registerGoogle = document.getElementById("registerGoogleBtn");
+    if (registerGoogle)
+      registerGoogle.style.display = providers.google ? "flex" : "none";
+    const registerApple = document.getElementById("registerAppleBtn");
+    if (registerApple)
+      registerApple.style.display = providers.apple ? "flex" : "none";
+    const registerPhone = document.getElementById("registerPhoneBtn");
+    if (registerPhone)
+      registerPhone.style.display = providers.phone ? "flex" : "none";
+  } catch {
+    // Silently fail — social buttons stay hidden
+  }
+}
+
+export function handleGoogleLogin() {
+  window.location.href = "/auth/google/start";
+}
+
+export function handleAppleLogin() {
+  window.location.href = "/auth/apple/start";
+}
+
+export function handleSocialCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const auth = params.get("auth");
+
+  if (auth === "success") {
+    const token = params.get("token");
+    const refreshToken = params.get("refreshToken");
+
+    if (token && refreshToken) {
+      state.authToken = token;
+      state.refreshToken = refreshToken;
+
+      const { persistSession } = window.AppState || {};
+      if (persistSession) {
+        persistSession({
+          authToken: token,
+          refreshToken: refreshToken,
+          currentUser: state.currentUser,
+        });
+      }
+
+      // Clean URL
+      window.history.replaceState({}, document.title, "/");
+
+      // Load profile and show app
+      loadUserProfile().then(() => {
+        showAppView();
+        initOnboarding();
+      });
+    }
+  } else if (auth === "error") {
+    const message = params.get("message") || "Login failed";
+    window.history.replaceState({}, document.title, "/");
+    showMessage("authMessage", message, "error");
+  }
+}
+
+export function showPhoneLogin() {
+  document
+    .querySelectorAll(".auth-form")
+    .forEach((f) => (f.style.display = "none"));
+  document.getElementById("phoneLoginForm").style.display = "block";
+  document
+    .querySelectorAll(".auth-tab")
+    .forEach((t) => t.classList.remove("active"));
+  hideMessage("authMessage");
+}
+
+function maskPhone(phone) {
+  if (!phone || phone.length < 6) return phone;
+  return phone.slice(0, 3) + " *** " + phone.slice(-4);
+}
+
+function startResendTimer() {
+  const timerEl = document.getElementById("resendTimer");
+  const btn = document.getElementById("resendOtpBtn");
+  if (!timerEl || !btn) return;
+
+  let remaining = 60;
+  btn.disabled = true;
+  timerEl.textContent = remaining;
+
+  if (_resendTimerId) clearInterval(_resendTimerId);
+  _resendTimerId = setInterval(() => {
+    remaining -= 1;
+    timerEl.textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(_resendTimerId);
+      _resendTimerId = null;
+      btn.disabled = false;
+    }
+  }, 1000);
+}
+
+export async function handleSendOtp() {
+  const phoneInput = document.getElementById("phoneNumber");
+  const phone = phoneInput?.value?.trim();
+  if (!phone) {
+    showMessage("authMessage", "Please enter a phone number", "error");
+    return;
+  }
+
+  try {
+    const resp = await fetch("/auth/phone/send-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      const msg =
+        data.error || data.errors?.[0]?.message || "Failed to send code";
+      showMessage("authMessage", msg, "error");
+      return;
+    }
+
+    // Show OTP section
+    const otpSection = document.getElementById("otpSection");
+    if (otpSection) otpSection.style.display = "block";
+
+    const maskedEl = document.getElementById("otpPhoneMasked");
+    if (maskedEl) maskedEl.textContent = maskPhone(phone);
+
+    startResendTimer();
+    showMessage("authMessage", "Verification code sent", "success");
+  } catch {
+    showMessage("authMessage", "Failed to send code", "error");
+  }
+}
+
+export async function handleResendOtp() {
+  await handleSendOtp();
+}
+
+export async function handleVerifyOtp() {
+  const phoneInput = document.getElementById("phoneNumber");
+  const codeInput = document.getElementById("otpCode");
+  const phone = phoneInput?.value?.trim();
+  const code = codeInput?.value?.trim();
+
+  if (!phone || !code) {
+    showMessage("authMessage", "Please enter phone and code", "error");
+    return;
+  }
+
+  try {
+    const resp = await fetch("/auth/phone/verify-otp", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone, code }),
+    });
+
+    const data = await resp.json();
+    if (!resp.ok) {
+      const msg = data.error || "Invalid or expired code";
+      showMessage("authMessage", msg, "error");
+      return;
+    }
+
+    // Store tokens and show app
+    state.authToken = data.token;
+    state.refreshToken = data.refreshToken;
+    state.currentUser = data.user;
+
+    const { persistSession } = window.AppState || {};
+    if (persistSession) {
+      persistSession({
+        authToken: data.token,
+        refreshToken: data.refreshToken,
+        currentUser: data.user,
+      });
+    }
+
+    showAppView();
+    initOnboarding();
+  } catch {
+    showMessage("authMessage", "Verification failed", "error");
+  }
+}

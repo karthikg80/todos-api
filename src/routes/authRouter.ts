@@ -8,7 +8,17 @@ import {
 import { randomUUID } from "crypto";
 import { AuthService } from "../services/authService";
 import { McpOAuthService } from "../services/mcpOAuthService";
-import { validateRegister, validateLogin } from "../validation/authValidation";
+import { SocialAuthService } from "../services/socialAuthService";
+import { GoogleAuthService } from "../services/googleAuthService";
+import { AppleAuthService } from "../services/appleAuthService";
+import { PhoneAuthService } from "../services/phoneAuthService";
+import {
+  validateRegister,
+  validateLogin,
+  validatePhoneE164,
+  validateOtpCode,
+} from "../validation/authValidation";
+import { config } from "../config";
 import { HttpError } from "../errorHandling";
 import { buildStructuredMcpError, mapAgentFacingError } from "../mcp/mcpErrors";
 import {
@@ -21,6 +31,10 @@ import {
 interface AuthRouterDeps {
   authService?: AuthService;
   mcpOAuthService: McpOAuthService;
+  socialAuthService?: SocialAuthService;
+  googleAuthService?: GoogleAuthService;
+  appleAuthService?: AppleAuthService;
+  phoneAuthService?: PhoneAuthService;
   authLimiter: RequestHandler;
   emailActionLimiter: RequestHandler;
   requireAuthIfConfigured: RequestHandler;
@@ -83,7 +97,7 @@ async function resolveAppUserForMcpLink(
   | {
       user: {
         id: string;
-        email: string;
+        email: string | null;
         name: string | null;
         isVerified: boolean;
       };
@@ -285,6 +299,10 @@ function mapAuthorizationCodeError(error: unknown) {
 export function createAuthRouter({
   authService,
   mcpOAuthService,
+  socialAuthService,
+  googleAuthService,
+  appleAuthService,
+  phoneAuthService,
   authLimiter,
   emailActionLimiter,
   requireAuthIfConfigured,
@@ -485,7 +503,7 @@ export function createAuthRouter({
         });
         const token = authService!.createMcpToken({
           userId: resolvedUser.user.id,
-          email: resolvedUser.user.email,
+          email: resolvedUser.user.email || "",
           scopes: input.scopes,
           assistantName: input.assistantName,
           clientId: input.clientId,
@@ -542,7 +560,7 @@ export function createAuthRouter({
         const input = validateCreateMcpAuthorizationCodeInput(req.body);
         const authCode = await mcpOAuthService.createAuthorizationCode({
           userId: resolvedUser.user.id,
-          email: resolvedUser.user.email,
+          email: resolvedUser.user.email || "",
           clientId: input.clientId,
           redirectUri: input.redirectUri,
           scopes: input.scopes,
@@ -950,6 +968,299 @@ export function createAuthRouter({
         const user = await authService.bootstrapAdmin(userId, secret);
         res.json({ message: "Admin access granted", user });
       } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  // ── Provider discovery ────────────────────────────────────────────
+
+  router.get("/providers", (_req: Request, res: Response) => {
+    const providers = socialAuthService
+      ? socialAuthService.getEnabledProviders()
+      : { google: false, apple: false, phone: false };
+    res.json(providers);
+  });
+
+  // ── Google OAuth ─────────────────────────────────────────────────
+
+  router.get("/google/start", authLimiter, (req: Request, res: Response) => {
+    if (!googleAuthService || !config.googleLoginEnabled) {
+      return res.status(404).json({ error: "Google login not enabled" });
+    }
+
+    const { url, state } = googleAuthService.generateAuthUrl();
+
+    // Store state in httpOnly cookie for CSRF validation
+    res.cookie("oauth_state", state, {
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "lax",
+      maxAge: 10 * 60 * 1000, // 10 minutes
+      path: "/auth/google",
+    });
+
+    // If user is authenticated, store userId for linking
+    const authHeader = req.header("authorization");
+    if (authHeader && authService) {
+      try {
+        const parts = authHeader.split(" ");
+        if (parts.length === 2 && parts[0] === "Bearer") {
+          const payload = authService.verifyToken(parts[1]);
+          res.cookie("link_to_user", payload.userId, {
+            httpOnly: true,
+            secure: config.nodeEnv === "production",
+            sameSite: "lax",
+            maxAge: 10 * 60 * 1000,
+            path: "/auth/google",
+          });
+        }
+      } catch {
+        // Not authenticated — proceed with normal login flow
+      }
+    }
+
+    res.redirect(url);
+  });
+
+  router.get(
+    "/google/callback",
+    authLimiter,
+    async (req: Request, res: Response) => {
+      if (!googleAuthService || !socialAuthService || !authService) {
+        return res.status(404).json({ error: "Google login not enabled" });
+      }
+
+      try {
+        // Validate state
+        const state = req.query.state as string;
+        const storedState = req.cookies?.oauth_state;
+        if (!state || !storedState || state !== storedState) {
+          return res.redirect(
+            `/?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
+          );
+        }
+
+        // Clear state cookie
+        res.clearCookie("oauth_state", { path: "/auth/google" });
+
+        const code = req.query.code as string;
+        if (!code) {
+          return res.redirect(
+            `/?auth=error&message=${encodeURIComponent("Missing authorization code")}`,
+          );
+        }
+
+        const profile = await googleAuthService.handleCallback(code);
+        const result = await socialAuthService.findOrCreateSocialUser(
+          profile,
+          (userId, email) => authService!.issueTokens(userId, email),
+        );
+
+        // Clear link cookie
+        res.clearCookie("link_to_user", { path: "/auth/google" });
+
+        // Redirect to app with tokens
+        const params = new URLSearchParams({
+          auth: "success",
+          token: result.token,
+          refreshToken: result.refreshToken,
+        });
+        res.redirect(`/?${params.toString()}`);
+      } catch (error) {
+        console.error("Google OAuth callback error:", error);
+        res.redirect(
+          `/?auth=error&message=${encodeURIComponent("Google login failed")}`,
+        );
+      }
+    },
+  );
+
+  // ── Apple Sign-In ────────────────────────────────────────────────
+
+  router.get("/apple/start", authLimiter, (req: Request, res: Response) => {
+    if (!appleAuthService || !config.appleLoginEnabled) {
+      return res.status(404).json({ error: "Apple login not enabled" });
+    }
+
+    const { url, state, nonce } = appleAuthService.generateAuthUrl();
+
+    // Store state + nonce in httpOnly cookie
+    res.cookie("apple_oauth", JSON.stringify({ state, nonce }), {
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "lax",
+      maxAge: 10 * 60 * 1000,
+      path: "/auth/apple",
+    });
+
+    res.redirect(url);
+  });
+
+  router.post(
+    "/apple/callback",
+    authLimiter,
+    async (req: Request, res: Response) => {
+      if (!appleAuthService || !socialAuthService || !authService) {
+        return res.status(404).json({ error: "Apple login not enabled" });
+      }
+
+      try {
+        // Validate state
+        const state = req.body.state as string;
+        const cookieRaw = req.cookies?.apple_oauth;
+        let storedState: string | undefined;
+        let storedNonce: string | undefined;
+
+        try {
+          const parsed = JSON.parse(cookieRaw || "{}");
+          storedState = parsed.state;
+          storedNonce = parsed.nonce;
+        } catch {
+          // Invalid cookie
+        }
+
+        if (!state || !storedState || state !== storedState) {
+          return res.redirect(
+            `/?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
+          );
+        }
+
+        res.clearCookie("apple_oauth", { path: "/auth/apple" });
+
+        const idToken = req.body.id_token as string;
+        if (!idToken) {
+          return res.redirect(
+            `/?auth=error&message=${encodeURIComponent("Missing ID token")}`,
+          );
+        }
+
+        // Apple sends user info only on first auth
+        let userName: string | null = null;
+        if (req.body.user) {
+          try {
+            const userInfo =
+              typeof req.body.user === "string"
+                ? JSON.parse(req.body.user)
+                : req.body.user;
+            if (userInfo.name) {
+              const parts = [
+                userInfo.name.firstName,
+                userInfo.name.lastName,
+              ].filter(Boolean);
+              userName = parts.join(" ") || null;
+            }
+          } catch {
+            // Ignore parse errors for user info
+          }
+        }
+
+        const profile = await appleAuthService.verifyIdToken(
+          idToken,
+          storedNonce,
+        );
+
+        // Override name from the form_post body (only available on first auth)
+        if (userName) {
+          profile.name = userName;
+        }
+
+        const result = await socialAuthService.findOrCreateSocialUser(
+          profile,
+          (userId, email) => authService!.issueTokens(userId, email),
+        );
+
+        const params = new URLSearchParams({
+          auth: "success",
+          token: result.token,
+          refreshToken: result.refreshToken,
+        });
+        res.redirect(`/?${params.toString()}`);
+      } catch (error) {
+        console.error("Apple Sign-In callback error:", error);
+        res.redirect(
+          `/?auth=error&message=${encodeURIComponent("Apple login failed")}`,
+        );
+      }
+    },
+  );
+
+  // ── Phone / SMS OTP ──────────────────────────────────────────────
+
+  router.post(
+    "/phone/send-otp",
+    authLimiter,
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!phoneAuthService || !config.phoneLoginEnabled) {
+        return res.status(404).json({ error: "Phone login not enabled" });
+      }
+
+      try {
+        const phoneValidation = validatePhoneE164(req.body.phone);
+        if (!phoneValidation.valid) {
+          return res.status(400).json({
+            error: "Validation failed",
+            errors: phoneValidation.errors,
+          });
+        }
+
+        const result = await phoneAuthService.sendVerification(
+          phoneValidation.phoneE164!,
+        );
+        res.json(result);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          (error.message.includes("Premium-rate") ||
+            error.message.includes("Phone number must") ||
+            error.message.includes("Invalid phone"))
+        ) {
+          return res.status(400).json({ error: error.message });
+        }
+        next(error);
+      }
+    },
+  );
+
+  router.post(
+    "/phone/verify-otp",
+    authLimiter,
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!phoneAuthService || !authService || !config.phoneLoginEnabled) {
+        return res.status(404).json({ error: "Phone login not enabled" });
+      }
+
+      try {
+        const phoneValidation = validatePhoneE164(req.body.phone);
+        if (!phoneValidation.valid) {
+          return res.status(400).json({
+            error: "Validation failed",
+            errors: phoneValidation.errors,
+          });
+        }
+
+        const codeValidation = validateOtpCode(req.body.code);
+        if (!codeValidation.valid) {
+          return res.status(400).json({
+            error: "Validation failed",
+            errors: codeValidation.errors,
+          });
+        }
+
+        const result = await phoneAuthService.checkVerification(
+          phoneValidation.phoneE164!,
+          codeValidation.code!,
+          (userId, email) => authService!.issueTokens(userId, email),
+        );
+
+        res.json(result);
+      } catch (error) {
+        if (
+          error instanceof Error &&
+          error.message === "Invalid or expired code"
+        ) {
+          return res.status(401).json({ error: "Invalid or expired code" });
+        }
         next(error);
       }
     },

@@ -217,6 +217,14 @@ import {
   logout,
   showAppView,
   showAuthView,
+  initSocialLogin,
+  handleSocialCallback,
+  handleGoogleLogin,
+  handleAppleLogin,
+  showPhoneLogin,
+  handleSendOtp,
+  handleVerifyOtp,
+  handleResendOtp,
 } from "./modules/authUi.js";
 import {
   readStoredQuickEntryPropertiesOpenState,
@@ -1244,6 +1252,13 @@ window.handleRegister = handleRegister;
 window.handleForgotPassword = handleForgotPassword;
 window.handleResetPassword = handleResetPassword;
 window.resendVerification = resendVerification;
+// Social / phone auth
+window.handleGoogleLogin = handleGoogleLogin;
+window.handleAppleLogin = handleAppleLogin;
+window.showPhoneLogin = showPhoneLogin;
+window.handleSendOtp = handleSendOtp;
+window.handleVerifyOtp = handleVerifyOtp;
+window.handleResendOtp = handleResendOtp;
 // Todo CRUD
 window.addTodo = addTodo;
 window.filterTodos = filterTodos;
@@ -1433,6 +1448,8 @@ function init() {
   renderProjectHeadingCreateButton();
   renderQuickEntryNaturalDueChip();
   handleVerificationStatusFromUrl();
+  handleSocialCallback();
+  initSocialLogin();
   bindRailSearchFocusBehavior();
 }
 

@@ -37,31 +37,33 @@ No ambiguity: the decision tree is evaluated top-to-bottom, first match wins.
 
 ### D2: Uniqueness and index constraints
 
-| Table | Constraint | Type |
-|-------|-----------|------|
-| `User.email` | Unique where not null | Partial unique index (Prisma: `@unique` on nullable field) |
-| `User.phoneE164` | Unique where not null | Partial unique index |
-| `SocialAccount(provider, providerSubject)` | Unique composite | `@@unique([provider, providerSubject])` |
-| `SocialAccount(userId, provider)` | Not unique | One user can have multiple Apple accounts (edge case) — but practically one per provider |
+| Table                                      | Constraint            | Type                                                                                     |
+| ------------------------------------------ | --------------------- | ---------------------------------------------------------------------------------------- |
+| `User.email`                               | Unique where not null | Partial unique index (Prisma: `@unique` on nullable field)                               |
+| `User.phoneE164`                           | Unique where not null | Partial unique index                                                                     |
+| `SocialAccount(provider, providerSubject)` | Unique composite      | `@@unique([provider, providerSubject])`                                                  |
+| `SocialAccount(userId, provider)`          | Not unique            | One user can have multiple Apple accounts (edge case) — but practically one per provider |
 
 **Collision behavior:**
+
 - If a phone number already belongs to another user → reject with generic error "Unable to complete sign-in" (anti-enumeration)
 - If a social `providerSubject` already linked to a different user → sign in as that user (the link is authoritative)
 
 ### D3: Nullability rules
 
-| Field | Nullable? | When null? |
-|-------|-----------|------------|
-| `User.email` | Yes | Phone-only users; Apple relay users who haven't added a real email |
-| `User.password` | Yes | Social-only and phone-only users |
-| `User.phoneE164` | Yes | Email-only and social-only users |
-| `User.name` | Yes (already) | Unchanged |
+| Field            | Nullable?     | When null?                                                         |
+| ---------------- | ------------- | ------------------------------------------------------------------ |
+| `User.email`     | Yes           | Phone-only users; Apple relay users who haven't added a real email |
+| `User.password`  | Yes           | Social-only and phone-only users                                   |
+| `User.phoneE164` | Yes           | Email-only and social-only users                                   |
+| `User.name`      | Yes (already) | Unchanged                                                          |
 
 **Product rule:** Users can use the app with any single auth method. Email is NOT required for basic usage. Future features (e.g., email notifications, team invites) may prompt users to add an email, but it's never blocking.
 
 ### D4: Authenticated user invoking provider auth (session behavior)
 
 **Hard rule:**
+
 - **From anonymous/logged-out state:** provider auth signs the user in (or creates account). This is the normal login/register flow.
 - **From authenticated state via account settings:** provider auth **links** the identity to the current account. The user is NOT signed into a different account.
 - **From authenticated state via the login page** (shouldn't happen, but defensive): redirect to app home. Do not allow re-auth while already authenticated.
@@ -78,12 +80,12 @@ No ambiguity: the decision tree is evaluated top-to-bottom, first match wins.
 
 ### D6: "Email verified" definition per provider
 
-| Provider | "Email verified" means |
-|----------|----------------------|
-| **Google** | `email_verified: true` claim in the ID token (Google verifies the email) |
-| **Apple** | `email_verified: true` claim in the ID token AND email is NOT `*@privaterelay.appleid.com` |
-| **Phone** | N/A — phone auth doesn't provide an email |
-| **Email+password** | User clicked the verification link (existing `isVerified` field) |
+| Provider           | "Email verified" means                                                                     |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| **Google**         | `email_verified: true` claim in the ID token (Google verifies the email)                   |
+| **Apple**          | `email_verified: true` claim in the ID token AND email is NOT `*@privaterelay.appleid.com` |
+| **Phone**          | N/A — phone auth doesn't provide an email                                                  |
+| **Email+password** | User clicked the verification link (existing `isVerified` field)                           |
 
 ### D7: Last-login-method unlink protection
 
@@ -111,17 +113,17 @@ No ambiguity: the decision tree is evaluated top-to-bottom, first match wins.
 
 ### D9: Phone auth rate-limit and error response contract
 
-| Scenario | Response | HTTP Status |
-|----------|----------|-------------|
-| Send OTP success | `{ message: "Verification code sent" }` | 200 |
-| Send OTP rate-limited (>3/10min per phone) | `{ error: "Too many requests. Try again later." }` | 429 |
-| Send OTP rate-limited (per-IP) | `{ error: "Too many requests. Try again later." }` | 429 |
-| Verify OTP success | `{ user, token, refreshToken }` | 200 |
-| Verify OTP wrong code | `{ error: "Invalid or expired code" }` | 401 |
-| Verify OTP expired | `{ error: "Invalid or expired code" }` | 401 |
-| Verify OTP max attempts | `{ error: "Too many attempts. Request a new code." }` | 429 |
-| Invalid phone format | `{ error: "Invalid phone number format" }` | 400 |
-| Phone belongs to another user (edge case) | `{ error: "Unable to complete sign-in" }` | 400 |
+| Scenario                                   | Response                                              | HTTP Status |
+| ------------------------------------------ | ----------------------------------------------------- | ----------- |
+| Send OTP success                           | `{ message: "Verification code sent" }`               | 200         |
+| Send OTP rate-limited (>3/10min per phone) | `{ error: "Too many requests. Try again later." }`    | 429         |
+| Send OTP rate-limited (per-IP)             | `{ error: "Too many requests. Try again later." }`    | 429         |
+| Verify OTP success                         | `{ user, token, refreshToken }`                       | 200         |
+| Verify OTP wrong code                      | `{ error: "Invalid or expired code" }`                | 401         |
+| Verify OTP expired                         | `{ error: "Invalid or expired code" }`                | 401         |
+| Verify OTP max attempts                    | `{ error: "Too many attempts. Request a new code." }` | 429         |
+| Invalid phone format                       | `{ error: "Invalid phone number format" }`            | 400         |
+| Phone belongs to another user (edge case)  | `{ error: "Unable to complete sign-in" }`             | 400         |
 
 **Resend cooldown:** 60 seconds client-side (timer), enforced server-side via Twilio Verify's built-in cooldown.
 
@@ -132,16 +134,19 @@ No ambiguity: the decision tree is evaluated top-to-bottom, first match wins.
 ### File: `prisma/schema.prisma`
 
 1. **Make `password` optional** — social/phone users won't have a password:
+
    ```prisma
    password  String?  @db.VarChar(255)  // nullable; null for social/phone-only users
    ```
 
 2. **Add `phoneE164` field to User model** — always stored in E.164 format:
+
    ```prisma
    phoneE164  String?  @unique @db.VarChar(20)
    ```
 
 3. **Add `SocialAccount` model** — source of truth for linked provider identities:
+
    ```prisma
    model SocialAccount {
      id                     String   @id @default(uuid())
@@ -164,6 +169,7 @@ No ambiguity: the decision tree is evaluated top-to-bottom, first match wins.
    If using Twilio Verify: no `PhoneVerification` model needed — Twilio manages OTP state.
 
    If self-managed fallback:
+
    ```prisma
    model PhoneVerification {
      id          String    @id @default(uuid())
@@ -182,6 +188,7 @@ No ambiguity: the decision tree is evaluated top-to-bottom, first match wins.
 5. **Create migration**: `npx prisma migrate dev --name add-social-phone-auth`
 
 ### Data model notes
+
 - `authProvider` is intentionally **not** on User. The SocialAccount table (one user → many linked identities) is the source of truth for how a user authenticates.
 - All phone numbers normalized to E.164 before storage.
 - `email` on User remains the canonical contact email; `emailAtProvider` on SocialAccount tracks what the provider reported (may differ for Apple relay addresses).
@@ -224,16 +231,19 @@ PHONE_LOGIN_ENABLED: process.env.PHONE_LOGIN_ENABLED || 'false',
 ### File: `src/services/socialAuthService.ts` (new)
 
 **Google OAuth (backend-driven web flow only for v1):**
+
 1. `getGoogleAuthUrl(state)` — Generate OAuth consent URL with scopes (email, profile), include cryptographic `state` param for CSRF
 2. `handleGoogleCallback(code, state)` — Validate state, exchange auth code for tokens via Google API, verify ID token server-side using `google-auth-library`
 3. `findOrCreateSocialUser(provider, providerSubject, email, emailVerified, name)` — see linking rules below
 
 **Apple Sign-In (backend-driven web flow only for v1):**
+
 1. `getAppleAuthUrl(state, nonce)` — Generate Apple Sign-In URL with state + nonce
 2. `handleAppleCallback(code, idToken, state)` — Validate state, verify Apple ID token JWT against Apple JWKS (issuer: `https://appleid.apple.com`, audience: our client ID), extract sub/email claims
 3. Uses same `findOrCreateSocialUser()` as Google
 
 **Account linking rules (critical security policy):**
+
 - `findOrCreateSocialUser(provider, providerSubject, email, emailVerified, name)`:
   1. Check if SocialAccount with `(provider, providerSubject)` already exists → if so, log in that user directly
   2. If `emailVerified === true` AND a User with matching email exists → auto-link: create SocialAccount for existing user
@@ -297,6 +307,7 @@ POST /auth/phone/verify-otp       → Check code, issue tokens
 ```
 
 **OAuth security requirements (explicit):**
+
 - **`state` parameter**: cryptographically random, stored server-side (short-lived cookie or in-memory store), validated on callback — prevents CSRF
 - **`nonce`** (Apple): included in auth request, validated in ID token claims
 - **Strict redirect URI allowlist**: only configured callback URLs accepted
@@ -306,6 +317,7 @@ POST /auth/phone/verify-otp       → Check code, issue tokens
 ### File: `src/validation/authValidation.ts` (modify)
 
 Add validation schemas:
+
 - `phoneE164Schema` — E.164 format validation (e.g., `+1234567890`), reject premium-rate prefixes
 - `otpSchema` — 6-digit numeric string
 - `oauthStateSchema` — non-empty string matching expected format
@@ -333,19 +345,31 @@ Add social login buttons to **both login and register forms**, plus phone form:
 <!-- After login/register form submit button -->
 <div class="auth-divider"><span>or</span></div>
 <div class="social-login-buttons" id="socialLoginButtons" style="display: none">
-  <button type="button" class="btn social-btn google-btn"
-          id="googleLoginBtn" style="display: none"
-          data-onclick="handleGoogleLogin()">
+  <button
+    type="button"
+    class="btn social-btn google-btn"
+    id="googleLoginBtn"
+    style="display: none"
+    data-onclick="handleGoogleLogin()"
+  >
     <svg><!-- Google "G" logo --></svg> Continue with Google
   </button>
-  <button type="button" class="btn social-btn apple-btn"
-          id="appleLoginBtn" style="display: none"
-          data-onclick="handleAppleLogin()">
+  <button
+    type="button"
+    class="btn social-btn apple-btn"
+    id="appleLoginBtn"
+    style="display: none"
+    data-onclick="handleAppleLogin()"
+  >
     <svg><!-- Apple logo --></svg> Sign in with Apple
   </button>
-  <button type="button" class="btn social-btn phone-btn"
-          id="phoneLoginBtn" style="display: none"
-          data-onclick="showPhoneLogin()">
+  <button
+    type="button"
+    class="btn social-btn phone-btn"
+    id="phoneLoginBtn"
+    style="display: none"
+    data-onclick="showPhoneLogin()"
+  >
     Continue with Phone
   </button>
 </div>
@@ -357,7 +381,12 @@ Add social login buttons to **both login and register forms**, plus phone form:
     <label for="phoneNumber">Phone Number</label>
     <input type="tel" id="phoneNumber" required placeholder="+1 555 123 4567" />
   </div>
-  <button type="button" class="btn" id="sendOtpBtn" data-onclick="handleSendOtp()">
+  <button
+    type="button"
+    class="btn"
+    id="sendOtpBtn"
+    data-onclick="handleSendOtp()"
+  >
     Send Code
   </button>
 
@@ -365,18 +394,34 @@ Add social login buttons to **both login and register forms**, plus phone form:
     <p class="otp-hint">Code sent to <span id="otpPhoneMasked"></span></p>
     <div class="form-group">
       <label for="otpCode">Verification Code</label>
-      <input type="text" id="otpCode" required placeholder="123456"
-             maxlength="6" pattern="[0-9]{6}" inputmode="numeric"
-             autocomplete="one-time-code" />
+      <input
+        type="text"
+        id="otpCode"
+        required
+        placeholder="123456"
+        maxlength="6"
+        pattern="[0-9]{6}"
+        inputmode="numeric"
+        autocomplete="one-time-code"
+      />
     </div>
-    <button type="button" class="btn" data-onclick="handleVerifyOtp()">Verify & Login</button>
-    <button type="button" class="link-btn" id="resendOtpBtn" disabled
-            data-onclick="handleResendOtp()">
+    <button type="button" class="btn" data-onclick="handleVerifyOtp()">
+      Verify & Login
+    </button>
+    <button
+      type="button"
+      class="link-btn"
+      id="resendOtpBtn"
+      disabled
+      data-onclick="handleResendOtp()"
+    >
       Resend code (<span id="resendTimer">60</span>s)
     </button>
   </div>
 
-  <button type="button" class="link-btn" data-onclick="showLogin()">Back to Login</button>
+  <button type="button" class="link-btn" data-onclick="showLogin()">
+    Back to Login
+  </button>
 </form>
 ```
 
@@ -397,6 +442,7 @@ Add handler functions:
 ### File: `client/styles.css` (modify)
 
 Add styles for:
+
 - `.auth-divider` — "or" separator line with horizontal rules
 - `.social-btn` — base social button style (full-width, icon + text)
 - `.google-btn` — white bg, dark text, Google brand compliance
@@ -417,6 +463,7 @@ Add styles for:
 ## Phase 7: Auth Flow Details
 
 ### Google Login Flow (backend redirect only in v1)
+
 1. User clicks "Continue with Google"
 2. Frontend navigates to `/auth/google/start`
 3. Backend generates cryptographic `state`, stores in short-lived httpOnly cookie, redirects to Google consent screen
@@ -427,6 +474,7 @@ Add styles for:
 8. Frontend `handleSocialCallback()` extracts tokens, stores them, shows app
 
 ### Apple Login Flow (backend redirect only in v1)
+
 1. User clicks "Sign in with Apple"
 2. Frontend navigates to `/auth/apple/start`
 3. Backend generates `state` + `nonce`, stores both in httpOnly cookie, redirects to Apple
@@ -436,6 +484,7 @@ Add styles for:
 7. Backend calls `findOrCreateSocialUser()`, issues tokens, redirects to app
 
 ### Phone Login Flow
+
 1. User enters phone number, clicks "Send Code"
 2. Frontend validates basic format, POST to `/auth/phone/send-otp`
 3. Backend normalizes to E.164, calls Twilio Verify to send SMS
@@ -450,12 +499,14 @@ Add styles for:
 ## Phase 8: Account Management & Edge Cases
 
 ### Account linking policy
+
 - **Auto-link only when safe**: provider reports `email_verified: true` AND email matches an existing user → link SocialAccount
 - **No auto-link when risky**: unverified email or Apple private relay → create separate account
 - **Manual linking**: future feature — authenticated user can link additional providers from settings (requires re-auth to existing account first)
 - **Log all linking events** for audit trail
 
 ### Edge cases
+
 - **Apple private relay emails** (`privaterelay.appleid.com`): store as `emailAtProvider`, do NOT use for auto-linking. User can optionally add a real email later via profile settings
 - **Apple first-auth-only data**: Apple may only send user name on the first authorization. Persist name in SocialAccount on initial link; don't expect it on subsequent logins
 - **Phone-only users**: have `email=null`. Can add email later via profile settings
@@ -463,11 +514,13 @@ Add styles for:
 - **Unlinking last provider**: prevent removing the last login method (must always have at least one way to sign in). Enforce in backend
 
 ### Session lifecycle
+
 - Social/phone login issues the same JWT + refresh token as email login — no special session handling needed
 - Logout behavior identical: revoke refresh token, clear localStorage
 - Refresh token rotation works the same regardless of auth method
 
 ### Recovery UX (future)
+
 - Social user wants to add password → profile settings "Set Password" flow
 - Phone user wants to add email → profile settings "Add Email" flow
 - These are account management features, not v1 auth features
@@ -477,6 +530,7 @@ Add styles for:
 ## Phase 9: Security Checklist
 
 ### OAuth security (explicit requirements)
+
 - [ ] `state` parameter: crypto-random, stored in httpOnly cookie (not localStorage), validated on callback
 - [ ] `nonce` (Apple): included in auth URL, validated in ID token `nonce` claim
 - [ ] PKCE: not required for v1 backend flow (confidential client), but recommended for future mobile/SPA flows
@@ -485,6 +539,7 @@ Add styles for:
 - [ ] Never trust client-supplied email/name — always use verified claims from provider tokens
 
 ### Phone/OTP security
+
 - [ ] Twilio Verify handles OTP generation, delivery, attempt limits, and expiry
 - [ ] Server-side rate limits: max 3 sends per phone per 10 min, per-IP throttle
 - [ ] E.164 normalization before all operations
@@ -493,6 +548,7 @@ Add styles for:
 - [ ] Resend cooldown enforced both client-side (60s timer) and server-side
 
 ### General
+
 - [ ] All new endpoints behind rate limiter
 - [ ] Audit log entries for: social login, social account link, phone login, failed attempts
 - [ ] Tokens in redirect URLs use URL fragment (`#`) not query params where possible, or use short-lived intermediary codes
@@ -502,6 +558,7 @@ Add styles for:
 ## Phase 10: Tests
 
 ### Unit Tests: `src/socialAuthService.test.ts` (new)
+
 - Google ID token verification (mock `google-auth-library`)
 - Apple JWT verification (mock JWKS fetch)
 - `findOrCreateSocialUser` — new user creation
@@ -513,6 +570,7 @@ Add styles for:
 - Error handling for invalid/expired tokens
 
 ### Unit Tests: `src/phoneAuthService.test.ts` (new)
+
 - E.164 normalization
 - Twilio Verify send (mock Twilio SDK)
 - Twilio Verify check — approved, denied, expired (mock)
@@ -520,6 +578,7 @@ Add styles for:
 - Rate limiting enforcement
 
 ### Integration Tests: `src/social-auth.api.test.ts` (new)
+
 - GET `/auth/providers` — returns correct flags per config
 - GET `/auth/google/start` — redirects with state cookie
 - GET `/auth/google/callback` — rejects invalid state
@@ -528,6 +587,7 @@ Add styles for:
 - Account linking: social login with matching verified email
 
 ### UI Tests: `tests/ui/social-auth.spec.ts` (new)
+
 - Social login buttons visible/hidden per `/auth/providers` response
 - Individual provider buttons respect per-provider flags
 - Phone login form toggle and back navigation
@@ -557,22 +617,22 @@ Linking/session semantics are finalized early (step 3) so all provider implement
 
 ## Files Changed (Summary)
 
-| File | Action |
-|------|--------|
-| `prisma/schema.prisma` | Modify — add fields + models |
-| `prisma/migrations/...` | New — migration file |
-| `src/config.ts` | Modify — add env vars + per-provider flags |
-| `src/services/socialAuthService.ts` | New — Google/Apple auth + linking logic |
-| `src/services/phoneAuthService.ts` | New — Twilio Verify integration |
-| `src/services/twilioService.ts` | New — Twilio Verify SDK wrapper |
-| `src/routes/authRouter.ts` | Modify — add OAuth + phone routes |
-| `src/validation/authValidation.ts` | Modify — add phone/OTP schemas |
-| `client/index.html` | Modify — add social buttons + phone form |
-| `client/modules/authUi.js` | Modify — add handlers + callback processing |
-| `client/styles.css` | Modify — add social/phone styles + dark theme |
-| `client/app.js` | Modify — register handlers + init social login |
-| `src/socialAuthService.test.ts` | New — unit tests |
-| `src/phoneAuthService.test.ts` | New — unit tests |
-| `src/social-auth.api.test.ts` | New — integration tests |
-| `tests/ui/social-auth.spec.ts` | New — UI tests |
-| `package.json` | Modify — add `google-auth-library`, `twilio` |
+| File                                | Action                                         |
+| ----------------------------------- | ---------------------------------------------- |
+| `prisma/schema.prisma`              | Modify — add fields + models                   |
+| `prisma/migrations/...`             | New — migration file                           |
+| `src/config.ts`                     | Modify — add env vars + per-provider flags     |
+| `src/services/socialAuthService.ts` | New — Google/Apple auth + linking logic        |
+| `src/services/phoneAuthService.ts`  | New — Twilio Verify integration                |
+| `src/services/twilioService.ts`     | New — Twilio Verify SDK wrapper                |
+| `src/routes/authRouter.ts`          | Modify — add OAuth + phone routes              |
+| `src/validation/authValidation.ts`  | Modify — add phone/OTP schemas                 |
+| `client/index.html`                 | Modify — add social buttons + phone form       |
+| `client/modules/authUi.js`          | Modify — add handlers + callback processing    |
+| `client/styles.css`                 | Modify — add social/phone styles + dark theme  |
+| `client/app.js`                     | Modify — register handlers + init social login |
+| `src/socialAuthService.test.ts`     | New — unit tests                               |
+| `src/phoneAuthService.test.ts`      | New — unit tests                               |
+| `src/social-auth.api.test.ts`       | New — integration tests                        |
+| `tests/ui/social-auth.spec.ts`      | New — UI tests                                 |
+| `package.json`                      | Modify — add `google-auth-library`, `twilio`   |
