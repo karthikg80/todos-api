@@ -321,8 +321,9 @@ export function patchProjectsRailCounts() {
       };
 
   const openTodoCountMap = getOpenTodoCountMapByProject();
-  const allCount = state.todos.length;
-  const unsortedCount = state.todos.filter((todo) =>
+  const pendingTodos = state.todos.filter((todo) => !todo?.completed);
+  const allCount = pendingTodos.length;
+  const unsortedCount = pendingTodos.filter((todo) =>
     isTodoUnsorted(todo),
   ).length;
 

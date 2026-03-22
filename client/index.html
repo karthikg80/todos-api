@@ -127,11 +127,12 @@
                         >
                       </div>
                       <div class="landing-hero__screenshot">
-                        <div class="landing-screenshot-placeholder">
-                          <span class="landing-screenshot-placeholder__label"
-                            >Task list with AI workspace</span
-                          >
-                        </div>
+                        <img
+                          src="/images/landing/hero-desktop.png"
+                          alt="Todo App — task list with projects, priorities, and due dates"
+                          class="landing-hero__img"
+                          loading="eager"
+                        />
                       </div>
                     </div>
                   </section>
@@ -268,13 +269,19 @@
                             mouse.
                           </p>
                         </div>
-                        <div class="landing-card">
+                        <div class="landing-card landing-card--wide">
                           <div class="landing-card__icon">🌙</div>
                           <h4>Dark Mode</h4>
                           <p>
                             Full dark mode support. Automatic theme detection or
                             manual toggle. Easy on the eyes, day or night.
                           </p>
+                          <img
+                            src="/images/landing/dark-mode.png"
+                            alt="Todo App in dark mode"
+                            class="landing-card__img"
+                            loading="lazy"
+                          />
                         </div>
                       </div>
                     </div>
@@ -2280,8 +2287,19 @@
                               <label class="task-composer-inline-field">
                                 <span>Status</span>
                                 <select id="todoStatusSelect">
-                                  <option value="next" selected>Next</option>
-                                  <option value="inbox">Inbox</option>
+                                  <option
+                                    value="next"
+                                    selected
+                                    title="Ready to work on soon"
+                                  >
+                                    Up Next
+                                  </option>
+                                  <option
+                                    value="inbox"
+                                    title="Captured, not yet organized"
+                                  >
+                                    Inbox
+                                  </option>
                                   <option value="in_progress">
                                     In progress
                                   </option>
@@ -2292,32 +2310,36 @@
                                   <option value="cancelled">Cancelled</option>
                                 </select>
                               </label>
-                              <label class="action-label">Priority:</label>
-                              <div class="priority-selector">
-                                <button
-                                  class="priority-btn low"
-                                  data-onclick="setPriority('low')"
-                                  id="priorityLow"
-                                  type="button"
-                                >
-                                  Low
-                                </button>
-                                <button
-                                  class="priority-btn medium active"
-                                  data-onclick="setPriority('medium')"
-                                  id="priorityMedium"
-                                  type="button"
-                                >
-                                  Medium
-                                </button>
-                                <button
-                                  class="priority-btn high"
-                                  data-onclick="setPriority('high')"
-                                  id="priorityHigh"
-                                  type="button"
-                                >
-                                  High
-                                </button>
+                              <div
+                                class="task-composer-inline-field task-composer-priority-field"
+                              >
+                                <span>Priority</span>
+                                <div class="priority-selector">
+                                  <button
+                                    class="priority-btn low"
+                                    data-onclick="setPriority('low')"
+                                    id="priorityLow"
+                                    type="button"
+                                  >
+                                    Low
+                                  </button>
+                                  <button
+                                    class="priority-btn medium active"
+                                    data-onclick="setPriority('medium')"
+                                    id="priorityMedium"
+                                    type="button"
+                                  >
+                                    Medium
+                                  </button>
+                                  <button
+                                    class="priority-btn high"
+                                    data-onclick="setPriority('high')"
+                                    id="priorityHigh"
+                                    type="button"
+                                  >
+                                    High
+                                  </button>
+                                </div>
                               </div>
                               <button
                                 id="critiqueDraftButton"

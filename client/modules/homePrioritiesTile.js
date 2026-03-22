@@ -83,7 +83,13 @@ function _clearStaleRefreshTimer() {
 }
 
 function _scheduleFollowUpRefresh() {
-  if (_staleRefreshPolls >= MAX_STALE_REFRESH_POLLS) return;
+  if (_staleRefreshPolls >= MAX_STALE_REFRESH_POLLS) {
+    // Polls exhausted — clear stale indicators so the message doesn't persist.
+    _isStale = false;
+    _refreshInFlight = false;
+    _patchBody();
+    return;
+  }
   _clearStaleRefreshTimer();
   _staleRefreshPolls += 1;
   _staleRefreshTimer = window.setTimeout(() => {
@@ -125,7 +131,7 @@ function _buildMetaHtml() {
       ${stampHtml}`;
   }
 
-  if (_isStale) {
+  if (_isStale && _refreshInFlight) {
     return `
       <div class="home-priorities-status" aria-live="polite">
         Updating priorities in the background…

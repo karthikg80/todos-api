@@ -9,8 +9,18 @@
       el.setAttribute("aria-live", "polite");
       el.setAttribute("aria-atomic", "true");
     }
-    el.textContent = message;
-    el.className = `message ${type} show`;
+    el.textContent = "";
+    const textNode = document.createTextNode(message);
+    el.appendChild(textNode);
+    var dismissBtn = document.createElement("button");
+    dismissBtn.className = "message-dismiss";
+    dismissBtn.setAttribute("aria-label", "Close alert");
+    dismissBtn.textContent = "\u00d7";
+    dismissBtn.onclick = function () {
+      el.classList.remove("show");
+    };
+    el.appendChild(dismissBtn);
+    el.className = "message " + type + " show";
   }
 
   function hideMessage(id) {

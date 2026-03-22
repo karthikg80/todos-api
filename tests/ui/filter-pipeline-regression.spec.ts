@@ -671,7 +671,8 @@ test.describe("Filter pipeline regression", () => {
 
     expect(filteredRequest).toBeDefined();
     expect(filteredRequest!.searchParams.get("search")).toBe("report");
-    expect(filteredRequest!.searchParams.get("dueDateFrom")).toBeTruthy();
+    // "Today" view now includes overdue tasks, so no dueDateFrom lower bound
+    expect(filteredRequest!.searchParams.has("dueDateFrom")).toBe(false);
     expect(filteredRequest!.searchParams.get("dueDateTo")).toBeTruthy();
   });
 });
