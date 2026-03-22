@@ -84,14 +84,40 @@ export function createPrioritiesBriefRouter({
       })
       .join("\n");
 
-    const projectLines = (Array.isArray(projects) ? projects : [])
+    // Build a map of descendant open-task counts so parent projects
+    // that contain only child-project tasks aren't flagged as empty.
+    const projectList = Array.isArray(projects) ? projects : [];
+    const PATH_SEP = " / ";
+    const descendantOpenCounts = new Map<string, number>();
+    for (const p of projectList) {
+      const name = String(p.name || "");
+      const open = Number(p.openTaskCount ?? p.taskCount ?? 0);
+      if (!name) continue;
+      // Walk up the path segments and accumulate counts on ancestors.
+      const segments = name.split(PATH_SEP);
+      for (let i = 1; i < segments.length; i++) {
+        const ancestor = segments.slice(0, i).join(PATH_SEP);
+        descendantOpenCounts.set(
+          ancestor,
+          (descendantOpenCounts.get(ancestor) || 0) + open,
+        );
+      }
+    }
+
+    const projectLines = projectList
       .map((p: any) => {
         const open = Number(p.openTaskCount ?? p.taskCount ?? 0);
+        const descendantOpen =
+          descendantOpenCounts.get(String(p.name || "")) || 0;
+        const totalOpen = open + descendantOpen;
         const parts: string[] = [
           `"${String(p.name || "").replace(/"/g, "'")}"`,
         ];
         parts.push(`area:${p.area ?? "none"}`);
-        parts.push(`open_tasks:${open}`);
+        parts.push(`open_tasks:${totalOpen}`);
+        if (descendantOpen > 0) {
+          parts.push(`(includes ${descendantOpen} in child projects)`);
+        }
         if (p.goal) parts.push(`goal:${String(p.goal).slice(0, 80)}`);
         return `- ${parts.join(" ")}`;
       })
@@ -108,7 +134,7 @@ Use only these CSS classes (already defined in the app's stylesheet):
                      <div class="warn"><div class="dot-lg a"></div><div><strong>Project has 0 tasks.</strong> One sentence.</div></div>
   .track           — 3-column grid: <div class="track"><div>col1</div><div>col2</div><div>col3</div></div>
   .col-head.now    — amber header:  <div class="col-head now">This week</div>
-  .col-head.soon   — blue header:   <div class="col-head soon">Next 2 weeks</div>
+  .col-head.soon   — blue header:   <div class="col-head soon">Next 14 days</div>
   .col-head.after  — gray header:   <div class="col-head after">After [month]</div>
   .col-body        — column body:   <div class="col-body">...</div>
   .item            — row in column: <div class="item"><div class="dot r"></div>Task title (Xm)</div>
@@ -117,11 +143,12 @@ Use only these CSS classes (already defined in the app's stylesheet):
                      <div class="rt">Task title</div><div class="rb">2-3 sentences reasoning.</div></div></div></div>
 
 Output structure (omit a section if nothing to show):
-1. Urgent banners — .urgent per task with priority=urgent or overdue dueDate. Max 3.
+1. Urgent banners — .urgent per task that is overdue OR has priority=urgent AND is due within 7 days of today. Max 3.
+   Never show a task as urgent if its due date is more than 7 days from today, even if it has priority=urgent.
    Include the due date and one concrete reason why it matters.
 2. Three-column track with label "What to do across three tracks" —
-   put ALL open tasks in This week / Next 2 weeks / After [next month name].
-3. Warn card — only for projects with open_tasks:0. Max 2.
+   put ALL open tasks in This week / Next 14 days / After [next month name].
+3. Warn card — only for projects with open_tasks:0 that do NOT have child projects with tasks. Max 2.
 4. Single most impactful card — pick ONE task, write opinionated 2-3 sentence reasoning.
    Name the actual dependency or risk. Be direct. Do not hedge.
 

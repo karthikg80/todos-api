@@ -102,13 +102,13 @@ function buildVisibleTodosQueryParams() {
     // all todos are fetched server-side and the plan ID filter can be applied
     // client-side in filterLogic.js.
     if (!planTodayTaskIds.length) {
-      params.dueDateFrom = startOfLocalDay(now).toISOString();
+      // Include overdue tasks (due before today) alongside today's tasks
       params.dueDateTo = endOfLocalDay(now).toISOString();
     }
   } else if (state.currentDateView === "upcoming") {
     params.dueDateAfter = endOfLocalDay(now).toISOString();
     params.dueDateTo = new Date(
-      endOfLocalDay(now).getTime() + 7 * 24 * 60 * 60 * 1000,
+      endOfLocalDay(now).getTime() + 14 * 24 * 60 * 60 * 1000,
     ).toISOString();
   } else if (state.currentDateView === "next_month") {
     const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
@@ -455,10 +455,15 @@ async function addTodo() {
       await hooks.loadOnCreateDecisionAssist?.(newTodo);
 
       if (
-        state.onCreateAssistState.suggestions.length > 0 &&
+        (state.onCreateAssistState.suggestions.length > 0 ||
+          state.onCreateAssistState.loading) &&
         !state.isTaskComposerOpen
       ) {
         hooks.openTaskComposer?.();
+        // Re-render now that the composer DOM is available — the earlier
+        // renderOnCreateAssistRow call may have been a no-op because the
+        // composer was closed and #aiOnCreateAssistRow wasn't in the DOM.
+        hooks.renderOnCreateAssistRow?.();
       }
 
       hooks.refreshProjectCatalog?.();

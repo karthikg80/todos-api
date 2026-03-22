@@ -1126,7 +1126,26 @@ textarea:focus-visible,
 }
 
 .message.show {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.message-dismiss {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1.2em;
+  cursor: pointer;
+  padding: 0 4px;
+  opacity: 0.6;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.message-dismiss:hover {
+  opacity: 1;
 }
 
 .message.error {
@@ -1388,6 +1407,19 @@ textarea:focus-visible,
   border-radius: var(--r-sm);
   background: var(--card-bg);
   padding: var(--s-2) var(--s-3);
+}
+
+@media (max-width: 768px) {
+  .ai-on-create-assist {
+    padding: var(--s-1) var(--s-2);
+    font-size: 0.9em;
+  }
+
+  .ai-create-chip {
+    min-width: 140px;
+    max-width: 100%;
+    padding: 6px 8px;
+  }
 }
 
 .ai-create-assist__header {
@@ -2035,28 +2067,44 @@ textarea:focus-visible,
 }
 
 .bulk-checkbox {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   cursor: pointer;
   margin-right: 4px;
+  accent-color: var(--accent, #667eea);
+  border-radius: 3px;
+  opacity: 0.7;
+}
+
+.bulk-checkbox:checked {
+  opacity: 1;
 }
 
 .todo-checkbox {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   cursor: pointer;
+  accent-color: var(--success, #27ae60);
+  border-radius: 50%;
 }
 
 .todo-content {
   min-width: 0;
   display: grid;
   gap: 8px;
+  cursor: pointer;
 }
 
 .todo-title {
   font-weight: 600;
   color: var(--text-primary);
   line-height: 1.35;
+}
+
+.todo-title:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--text-muted);
+  text-underline-offset: 2px;
 }
 
 .todo-description {
@@ -4951,6 +4999,8 @@ body.is-todos-view .floating-new-task-cta {
 
 .modal-card {
   width: min(760px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   background: var(--container-bg);
   border-radius: var(--r-md);
   padding: 18px;

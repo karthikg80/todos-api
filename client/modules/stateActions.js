@@ -187,6 +187,8 @@ export function applyDomainAction(type, payload = {}) {
   switch (type) {
     case "workspace/view:set":
       state.currentWorkspaceView = String(payload.view || "all");
+      // Clear bulk selection when switching views so toolbar doesn't persist.
+      state.selectedTodos.clear();
       return state.currentWorkspaceView;
     case "homeDrilldown:set":
       state.homeListDrilldownKey = String(payload.tileKey || "");

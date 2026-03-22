@@ -2287,8 +2287,19 @@
                               <label class="task-composer-inline-field">
                                 <span>Status</span>
                                 <select id="todoStatusSelect">
-                                  <option value="next" selected>Next</option>
-                                  <option value="inbox">Inbox</option>
+                                  <option
+                                    value="next"
+                                    selected
+                                    title="Ready to work on soon"
+                                  >
+                                    Up Next
+                                  </option>
+                                  <option
+                                    value="inbox"
+                                    title="Captured, not yet organized"
+                                  >
+                                    Inbox
+                                  </option>
                                   <option value="in_progress">
                                     In progress
                                   </option>
@@ -2299,32 +2310,36 @@
                                   <option value="cancelled">Cancelled</option>
                                 </select>
                               </label>
-                              <label class="action-label">Priority:</label>
-                              <div class="priority-selector">
-                                <button
-                                  class="priority-btn low"
-                                  data-onclick="setPriority('low')"
-                                  id="priorityLow"
-                                  type="button"
-                                >
-                                  Low
-                                </button>
-                                <button
-                                  class="priority-btn medium active"
-                                  data-onclick="setPriority('medium')"
-                                  id="priorityMedium"
-                                  type="button"
-                                >
-                                  Medium
-                                </button>
-                                <button
-                                  class="priority-btn high"
-                                  data-onclick="setPriority('high')"
-                                  id="priorityHigh"
-                                  type="button"
-                                >
-                                  High
-                                </button>
+                              <div
+                                class="task-composer-inline-field task-composer-priority-field"
+                              >
+                                <span>Priority</span>
+                                <div class="priority-selector">
+                                  <button
+                                    class="priority-btn low"
+                                    data-onclick="setPriority('low')"
+                                    id="priorityLow"
+                                    type="button"
+                                  >
+                                    Low
+                                  </button>
+                                  <button
+                                    class="priority-btn medium active"
+                                    data-onclick="setPriority('medium')"
+                                    id="priorityMedium"
+                                    type="button"
+                                  >
+                                    Medium
+                                  </button>
+                                  <button
+                                    class="priority-btn high"
+                                    data-onclick="setPriority('high')"
+                                    id="priorityHigh"
+                                    type="button"
+                                  >
+                                    High
+                                  </button>
+                                </div>
                               </div>
                               <button
                                 id="critiqueDraftButton"
