@@ -148,6 +148,8 @@ Output structure (omit a section if nothing to show):
    Include the due date and one concrete reason why it matters.
 2. Three-column track with label "What to do across three tracks" —
    put ALL open tasks in This week / Next 14 days / After [next month name].
+   Tasks with no due date: place in "This week" if priority is high/urgent, otherwise "After [month]".
+   Append "(no due date)" after the task title for dateless tasks.
 3. Warn card — only for projects with open_tasks:0 that do NOT have child projects with tasks. Max 2.
 4. Single most impactful card — pick ONE task, write opinionated 2-3 sentence reasoning.
    Name the actual dependency or risk. Be direct. Do not hedge.
@@ -155,7 +157,7 @@ Output structure (omit a section if nothing to show):
 Rules:
 - Use actual task titles. Use actual due dates. Name who is blocking it.
 - Do not fabricate tasks or projects. Only use the data provided.
-- Estimate labels in .item rows: format (30m) or (1h).
+- Estimate labels in .item rows: use the est value from the task data if provided, formatted as (30m) or (1h). Do not invent estimates.
 - Today is ${todayISO}.`;
 
     const userPrompt = `Open tasks:\n${taskLines || "(none)"}\n\nProjects:\n${projectLines || "(none)"}`;

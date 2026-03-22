@@ -1744,6 +1744,34 @@
                           </form>
                         </div>
 
+                        <div class="profile-section">
+                          <h3>Interface</h3>
+                          <div class="info-row">
+                            <span class="info-label">UI Mode</span>
+                            <select
+                              id="uiModeSelect"
+                              data-onchange="setUiMode(this.value)"
+                            >
+                              <option value="advanced">
+                                Full — projects, headings, AI, tracks
+                              </option>
+                              <option value="simple">
+                                Simple — clean task list only
+                              </option>
+                            </select>
+                          </div>
+                          <p
+                            style="
+                              margin-top: 6px;
+                              color: var(--text-muted);
+                              font-size: 0.82em;
+                            "
+                          >
+                            Simple mode hides projects, headings, AI panels, and
+                            tracks for a focused task list experience.
+                          </p>
+                        </div>
+
                         <div
                           class="profile-section"
                           id="adminBootstrapSection"
