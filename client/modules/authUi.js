@@ -965,9 +965,9 @@ export function handleSocialCallback() {
       // Clean URL
       window.history.replaceState({}, document.title, "/");
 
-      // Load profile and show app
+      // Show app immediately, then load profile in background
+      showAppView();
       loadUserProfile().then(() => {
-        showAppView();
         initOnboarding();
       });
     }
