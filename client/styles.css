@@ -2372,6 +2372,16 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 
+.done-today-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--success);
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--success) 10%, transparent);
+}
+
 .todos-list-header__actions {
   display: flex;
   align-items: center;

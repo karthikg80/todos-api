@@ -1764,6 +1764,23 @@
                             Simple mode hides projects, headings, AI panels, and
                             tracks for a focused task list experience.
                           </p>
+                          <div style="margin-top: 12px">
+                            <button
+                              type="button"
+                              class="mini-btn"
+                              data-onclick="restartOnboarding()"
+                            >
+                              Restart setup tour
+                            </button>
+                            <span
+                              style="
+                                margin-left: 8px;
+                                font-size: 0.82em;
+                                color: var(--text-muted);
+                              "
+                              >Re-run the 4-step onboarding guide</span
+                            >
+                          </div>
                         </div>
 
                         <div
@@ -2682,6 +2699,11 @@
                           ></span>
                         </div>
                         <div class="todos-list-header__actions">
+                          <span
+                            id="doneTodayBadge"
+                            class="done-today-badge"
+                            hidden
+                          ></span>
                           <div
                             id="todosListHeaderCount"
                             class="todos-list-header__count"

@@ -1394,6 +1394,23 @@ window.applyHomeFocusSuggestion = applyHomeFocusSuggestion;
 window.dismissHomeFocusSuggestion = dismissHomeFocusSuggestion;
 // Onboarding flow
 window.initOnboarding = initOnboarding;
+window.restartOnboarding = async function () {
+  try {
+    await hooks.apiCall(`${hooks.API_URL}/users/me/onboarding/restart`, {
+      method: "POST",
+    });
+    // Reset client state and re-init
+    if (state.currentUser) {
+      state.currentUser.onboardingCompletedAt = null;
+      state.currentUser.onboardingStep = 0;
+    }
+    hooks.selectWorkspaceView?.("home");
+    window.location.reload();
+  } catch (e) {
+    console.error("Restart onboarding failed:", e);
+    hooks.showMessage?.("profileMessage", "Could not restart tour", "error");
+  }
+};
 window.isOnboardingActive = isOnboardingActive;
 window.advanceOnboarding = advanceOnboarding;
 window.dismissOnboarding = dismissOnboarding;
