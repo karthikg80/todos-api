@@ -21,6 +21,13 @@
     };
     el.appendChild(dismissBtn);
     el.className = "message " + type + " show";
+    // Auto-dismiss success messages after 5 seconds
+    if (type === "success") {
+      clearTimeout(el._autoDismissTimer);
+      el._autoDismissTimer = setTimeout(function () {
+        el.classList.remove("show");
+      }, 5000);
+    }
   }
 
   function hideMessage(id) {
