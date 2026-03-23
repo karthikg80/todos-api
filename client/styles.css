@@ -9438,6 +9438,78 @@ body.simple-mode .todo-item {
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
+/* Sidebar: hide project tree sections, Home, Inbox, Unsorted, Projects button */
+body.simple-mode
+  .projects-rail__section:not(.projects-rail__section--workspace):not(
+    .projects-rail__section--utilities
+  ),
+body.simple-mode .projects-rail__spacer,
+body.simple-mode [data-workspace-view="home"],
+body.simple-mode [data-workspace-view="inbox"],
+body.simple-mode [data-workspace-view="unsorted"],
+body.simple-mode .projects-rail-projects-access,
+body.simple-mode .projects-rail-mobile-open {
+  display: none !important;
+}
+
+/* Task composer & inline quick-add: hide properties toggle, summary, and panel */
+body.simple-mode .quick-entry-properties-toggle,
+body.simple-mode .quick-entry-properties-summary,
+body.simple-mode #quickEntryPropertiesPanel,
+body.simple-mode .task-composer-sheet .expand-section,
+body.simple-mode .task-composer-sheet .notes-textarea {
+  display: none !important;
+}
+
+/* Todo row chips: keep only due date */
+body.simple-mode .todo-chip--status,
+body.simple-mode .todo-chip--context,
+body.simple-mode .todo-chip--project,
+body.simple-mode .todo-chip--priority {
+  display: none !important;
+}
+
+/* Edit modal: hide project and priority fields */
+body.simple-mode #editTodoModal .form-group:has(#editTodoProjectSelect),
+body.simple-mode #editTodoModal .form-group:has(#editTodoPriority) {
+  display: none !important;
+}
+
+/* Todo drawer Essentials: hide advanced fields, keep title + completed + due date */
+body.simple-mode .todo-drawer__field:has(#drawerStatusSelect),
+body.simple-mode .todo-drawer__field:has(#drawerStartDateInput),
+body.simple-mode .todo-drawer__field:has(#drawerScheduledDateInput),
+body.simple-mode .todo-drawer__field:has(#drawerReviewDateInput),
+body.simple-mode .todo-drawer__field:has(#drawerProjectSelect),
+body.simple-mode .todo-drawer__field:has(#drawerPrioritySelect),
+body.simple-mode .todo-drawer__field:has(#drawerContextInput),
+body.simple-mode .todo-drawer__field:has(#drawerEnergySelect),
+body.simple-mode .todo-drawer__field:has(#drawerEstimateInput) {
+  display: none !important;
+}
+
+/* Todo drawer Details: hide tags, waitingOn, depends, category, archived, meta */
+body.simple-mode .todo-drawer__field:has(#drawerTagsInput),
+body.simple-mode .todo-drawer__field:has(#drawerWaitingOnInput),
+body.simple-mode .todo-drawer__field:has(#drawerDependsOnInput),
+body.simple-mode .todo-drawer__field:has(#drawerCategoryInput),
+body.simple-mode .todo-drawer__field:has(#drawerArchivedToggle),
+body.simple-mode .todo-drawer__meta {
+  display: none !important;
+}
+
+/* Hide project-edit drawer and AI task-drawer assist */
+body.simple-mode .project-edit-drawer,
+body.simple-mode .todo-drawer-ai-list {
+  display: none !important;
+}
+
+/* Kebab menu: hide move-to-project, move-to-heading, AI breakdown */
+body.simple-mode .todo-kebab-project-label,
+body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
+  display: none !important;
+}
+
 /* ==========================================================================
    Wireframe UX — Inline Quick Add, cleaner rows, hover states, mobile input
    ========================================================================== */

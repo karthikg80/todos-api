@@ -1328,8 +1328,24 @@ window.setUiMode = function setUiMode(mode) {
     localStorage.setItem("todos:ui-mode", mode);
     localStorage.removeItem("simpleMode"); // clean up legacy key
   } catch {}
+  // Sync both UI controls (both are <select> elements now)
   const select = document.getElementById("uiModeSelect");
   if (select instanceof HTMLSelectElement) select.value = mode;
+  const toggle = document.getElementById("simpleModeToggle");
+  if (toggle instanceof HTMLSelectElement) toggle.value = mode;
+  // Redirect away from hidden workspace views by clicking the "All" button
+  if (isSimple) {
+    const active = document.querySelector(
+      ".workspace-view-item.projects-rail-item--active",
+    );
+    const view = active?.getAttribute("data-workspace-view");
+    if (view && ["home", "inbox", "unsorted"].includes(view)) {
+      const allBtn = document.querySelector(
+        '[data-workspace-view="all"].workspace-view-item',
+      );
+      if (allBtn instanceof HTMLElement) allBtn.click();
+    }
+  }
 };
 // AI workspace
 window.openAiWorkspaceForBrainDump = openAiWorkspaceForBrainDump;
@@ -1541,3 +1557,17 @@ initTheme();
 registerServiceWorker();
 bindDeclarativeHandlers();
 init();
+
+// After init, redirect simple-mode users away from hidden workspace views
+if (document.body.classList.contains("simple-mode")) {
+  const active = document.querySelector(
+    ".workspace-view-item.projects-rail-item--active",
+  );
+  const view = active?.getAttribute("data-workspace-view");
+  if (view && ["home", "inbox", "unsorted"].includes(view)) {
+    const allBtn = document.querySelector(
+      '[data-workspace-view="all"].workspace-view-item',
+    );
+    if (allBtn instanceof HTMLElement) allBtn.click();
+  }
+}

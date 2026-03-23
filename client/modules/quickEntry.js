@@ -625,6 +625,17 @@ export function inferTaskComposerDefaultProject() {
 
 export function openTaskComposer(triggerEl = null) {
   hooks.ensureTodosShellActive?.();
+  // In simple mode, focus the inline quick-add instead of the full composer
+  if (document.body.classList.contains("simple-mode")) {
+    const inlineInput =
+      document.getElementById("inlineQuickAddInput") ||
+      document.getElementById("todoInput");
+    if (inlineInput instanceof HTMLInputElement) {
+      inlineInput.focus();
+      inlineInput.scrollIntoView({ block: "center" });
+      return;
+    }
+  }
   const refs = getTaskComposerElements();
   if (!refs) return;
   const defaultProject = inferTaskComposerDefaultProject();
