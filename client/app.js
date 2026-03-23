@@ -12,6 +12,7 @@ import {
   loadTodos,
   retryLoadTodos,
   addTodo,
+  addTodoFromInlineInput,
   toggleTodo,
   deleteTodo,
   moveTodoToProject,
@@ -1087,6 +1088,7 @@ function bindDockHandlers() {
   hooks.deleteTodo = deleteTodo;
   hooks.loadTodos = loadTodos;
   hooks.addTodo = addTodo;
+  hooks.addTodoFromInlineInput = addTodoFromInlineInput;
   hooks.renderTodos = renderTodos;
   hooks.validateTodoTitle = validateTodoTitle;
   hooks.toDateInputValue = toDateInputValue;
@@ -1216,6 +1218,8 @@ function bindDockHandlers() {
   hooks.isInternalCategoryPath = isInternalCategoryPath;
   hooks.loadOnCreateDecisionAssist = OnCreateAssist.loadOnCreateDecisionAssist;
   hooks.openTaskComposer = openTaskComposer;
+  hooks.parseQuickEntryNaturalDue = parseQuickEntryNaturalDue;
+  hooks.removeMatchedDatePhraseFromTitle = removeMatchedDatePhraseFromTitle;
   hooks.processQuickEntryNaturalDate = processQuickEntryNaturalDate;
   hooks.renderOnCreateAssistRow = OnCreateAssist.renderOnCreateAssistRow;
   hooks.renderProjectOptions = renderProjectOptions;
@@ -1280,6 +1284,8 @@ window.toggleSelectAll = toggleSelectAll;
 window.completeSelected = completeSelected;
 window.deleteSelected = deleteSelected;
 window.performUndo = performUndo;
+// Todo drawer — opened by clicking todo-content via data-onclick
+window.openTodoDrawer = openTodoDrawer;
 // Task composer
 window.openTaskComposer = openTaskComposer;
 window.closeTaskComposer = closeTaskComposer;
@@ -1408,6 +1414,7 @@ window.runAdminFeedbackAutomation = runAdminFeedbackAutomation;
 // App bootstrap
 // ---------------------------------------------------------------------------
 function init() {
+  console.warn("[init] START");
   initTodosFeature();
   initProjectsFeature();
   bindResponsiveLayoutState();
@@ -1423,6 +1430,18 @@ function init() {
   bindDockHandlers();
   OnCreateAssist.bindOnCreateAssistHandlers();
   bindQuickEntryNaturalDateHandlers();
+
+  // Eagerly load chrono when inline quick-add input is focused
+  const inlineQuickAddInput = document.getElementById("inlineQuickAddInput");
+  if (inlineQuickAddInput instanceof HTMLInputElement) {
+    inlineQuickAddInput.addEventListener(
+      "focus",
+      () => {
+        loadChronoNaturalDateModule();
+      },
+      { once: true },
+    );
+  }
 
   // Check for reset token in URL
   const urlParams = new URLSearchParams(window.location.search);
