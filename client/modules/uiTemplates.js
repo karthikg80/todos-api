@@ -117,6 +117,7 @@ export function renderTodoRowTemplate({
   const notesLabel = hasSubtasks
     ? "AI Subtasks Generated"
     : "AI Break Down Into Subtasks";
+  const hasMetaContent = !!(metaHtml || descriptionHtml);
 
   return `
     <li
@@ -150,12 +151,10 @@ export function renderTodoRowTemplate({
         ${todo?.completed ? "checked" : ""}
         data-onchange="toggleTodo('${escapeHtml(todo?.id || "")}')"
       >
-      <div class="todo-content">
+      <div class="todo-content" data-onclick="openTodoDrawer('${escapeHtml(todo?.id || "")}')">
         <div class="todo-title" title="${title}">${title}</div>
         ${descriptionHtml}
-        <div class="todo-meta">
-          ${metaHtml}
-        </div>
+        ${hasMetaContent ? `<div class="todo-meta">${metaHtml}</div>` : ""}
         ${subtasksHtml}
         ${notesHtml}
       </div>
