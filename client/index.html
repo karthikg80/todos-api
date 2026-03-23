@@ -1593,6 +1593,22 @@
                           </div>
                           <h2>Settings</h2>
                         </div>
+                        <div class="settings-pane__section">
+                          <h3>Display</h3>
+                          <label class="settings-toggle">
+                            <input
+                              type="checkbox"
+                              id="simpleModeToggle"
+                              data-onchange="toggleSimpleMode(this.checked)"
+                            />
+                            <span>Simple mode</span>
+                            <span class="settings-toggle__hint"
+                              >Hide projects sidebar, AI suggestions, drag
+                              handles, and bulk selection for a cleaner
+                              experience.</span
+                            >
+                          </label>
+                        </div>
                         <div
                           class="message"
                           id="profileMessage"
@@ -2328,14 +2344,39 @@
                                   >
                                     Inbox
                                   </option>
-                                  <option value="in_progress">
+                                  <option
+                                    value="in_progress"
+                                    title="Currently being worked on"
+                                  >
                                     In progress
                                   </option>
-                                  <option value="waiting">Waiting</option>
-                                  <option value="scheduled">Scheduled</option>
-                                  <option value="someday">Someday</option>
-                                  <option value="done">Done</option>
-                                  <option value="cancelled">Cancelled</option>
+                                  <option
+                                    value="waiting"
+                                    title="Blocked on someone or something else"
+                                  >
+                                    Waiting
+                                  </option>
+                                  <option
+                                    value="scheduled"
+                                    title="Planned for a specific date"
+                                  >
+                                    Scheduled
+                                  </option>
+                                  <option
+                                    value="someday"
+                                    title="Want to do eventually, not urgent"
+                                  >
+                                    Someday
+                                  </option>
+                                  <option value="done" title="Completed">
+                                    Done
+                                  </option>
+                                  <option
+                                    value="cancelled"
+                                    title="No longer needed"
+                                  >
+                                    Cancelled
+                                  </option>
                                 </select>
                               </label>
                               <div

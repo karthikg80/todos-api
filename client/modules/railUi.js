@@ -780,7 +780,7 @@ export function renderProjectsRail() {
   }
 
   const selectedProject = getSelectedProjectKey();
-  const allCount = state.todos.length;
+  const allCount = state.todos.filter((t) => !t.completed).length;
   const unsortedCount = state.todos.filter((todo) =>
     isTodoUnsorted(todo),
   ).length;

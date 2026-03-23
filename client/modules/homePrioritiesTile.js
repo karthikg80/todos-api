@@ -87,6 +87,8 @@ function _scheduleFollowUpRefresh() {
     // Polls exhausted — clear stale indicators so the message doesn't persist.
     _isStale = false;
     _refreshInFlight = false;
+    _status = "loaded";
+    _error = "";
     _patchBody();
     return;
   }
