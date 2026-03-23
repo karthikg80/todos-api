@@ -37,10 +37,10 @@ describe("AuthService", () => {
       });
       expect(dbUser).toBeDefined();
       expect(dbUser!.password).not.toBe("password123");
-      expect(dbUser!.password.length).toBeGreaterThan(50); // Bcrypt hash length
+      expect(dbUser!.password!.length).toBeGreaterThan(50); // Bcrypt hash length
 
       // Verify password can be compared
-      const isValid = await bcrypt.compare("password123", dbUser!.password);
+      const isValid = await bcrypt.compare("password123", dbUser!.password!);
       expect(isValid).toBe(true);
     });
 
@@ -89,7 +89,7 @@ describe("AuthService", () => {
 
       // The email should be stored in lowercase (if validation does this)
       const dbUser = await prisma.user.findUnique({
-        where: { email: result.user.email },
+        where: { email: result.user.email ?? undefined },
       });
       expect(dbUser).toBeDefined();
     });
