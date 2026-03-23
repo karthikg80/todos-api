@@ -1443,9 +1443,14 @@ function init() {
     );
   }
 
-  // Check for reset token in URL
+  // Handle social login callback before anything else — the URL contains
+  // ?auth=success&token=...&refreshToken=... after Google/Apple OAuth redirect.
+  handleSocialCallback();
+
+  // Check for password-reset token in URL (only when NOT a social auth callback)
   const urlParams = new URLSearchParams(window.location.search);
-  const resetToken = urlParams.get("token");
+  const isSocialCallback = urlParams.has("auth");
+  const resetToken = !isSocialCallback ? urlParams.get("token") : null;
 
   if (resetToken) {
     showResetPassword(resetToken);
@@ -1483,7 +1488,7 @@ function init() {
   renderProjectHeadingCreateButton();
   renderQuickEntryNaturalDueChip();
   handleVerificationStatusFromUrl();
-  handleSocialCallback();
+  // handleSocialCallback() moved earlier in init() — before resetToken check
   initSocialLogin();
   bindRailSearchFocusBehavior();
 }
