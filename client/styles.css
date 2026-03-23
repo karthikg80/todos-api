@@ -5501,6 +5501,14 @@ body.is-drawer-open {
   font-size: 1.1rem;
 }
 
+@media (max-width: 768px) {
+  .btn-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 1.2rem;
+  }
+}
+
 .btn-icon:hover {
   background: var(--card-bg);
 }
@@ -7655,6 +7663,35 @@ body.is-todos-view .projects-rail__header {
   letter-spacing: -0.02em;
   margin: 0;
   color: var(--text-primary);
+}
+
+.home-empty-cta {
+  text-align: center;
+  padding: var(--s-6) var(--s-4);
+  max-width: 440px;
+  margin: var(--s-4) auto;
+}
+
+.home-empty-cta__heading {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 var(--s-2);
+}
+
+.home-empty-cta__sub {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 var(--s-4);
+}
+
+.home-empty-cta__sub kbd {
+  background: var(--surface-2);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: inherit;
+  font-size: 0.9em;
 }
 
 .home-dashboard__new-task {
