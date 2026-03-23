@@ -17,6 +17,7 @@ html {
   --danger-2: #c94855;
   --success: #2f9e6a;
   --overlay: rgb(15 23 42 / 55%);
+  --scrim: rgb(15 23 42 / 35%);
 
   --r-sm: 8px;
   --r-md: 12px;
@@ -81,6 +82,7 @@ body.dark-mode {
   --danger-2: #ef6f7b;
   --success: #5ecf9f;
   --overlay: rgb(2 6 23 / 72%);
+  --scrim: rgb(2 6 23 / 50%);
   --focus-ring: 0 0 0 3px rgb(137 164 255 / 35%);
 
   --bg-gradient-start: #111827;
@@ -1006,24 +1008,24 @@ body:not(.is-todos-view) .container {
 }
 
 /* Dark theme overrides for social buttons */
-[data-theme="dark"] .google-btn {
+body.dark-mode .google-btn {
   background: #303134;
   color: #e8eaed;
   border-color: #5f6368;
 }
 
-[data-theme="dark"] .google-btn:hover {
+body.dark-mode .google-btn:hover {
   background: #3c4043;
   box-shadow: 0 1px 3px rgb(0 0 0 / 50%);
 }
 
-[data-theme="dark"] .apple-btn {
+body.dark-mode .apple-btn {
   background: #fff;
   color: #000;
   border-color: #fff;
 }
 
-[data-theme="dark"] .apple-btn:hover {
+body.dark-mode .apple-btn:hover {
   background: #e8e8e8;
 }
 
@@ -2176,7 +2178,7 @@ textarea:focus-visible,
 .delete-btn {
   padding: 8px 16px;
   background: rgba(255, 71, 87, 0.12);
-  color: #b42318;
+  color: var(--danger);
   border: 1px solid rgba(255, 71, 87, 0.32);
   border-radius: 10px;
   cursor: pointer;
@@ -2192,6 +2194,11 @@ textarea:focus-visible,
 .delete-btn:hover {
   background: rgba(255, 71, 87, 0.2);
   border-color: rgba(255, 71, 87, 0.45);
+}
+
+body.dark-mode .delete-btn {
+  background: rgb(255 71 87 / 18%);
+  border-color: rgb(255 71 87 / 40%);
 }
 
 .todos-layout {
@@ -2793,7 +2800,7 @@ button.projects-rail-item {
 }
 
 .projects-rail-menu-item--danger {
-  color: #b42318;
+  color: var(--danger);
 }
 
 .projects-rail-item:hover {
@@ -2843,7 +2850,7 @@ button.projects-rail-item {
 .project-edit-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--scrim);
   display: none;
   z-index: 2440;
 }
@@ -3720,7 +3727,7 @@ body.is-todos-view .floating-new-task-cta {
 }
 
 .todo-kebab-item--danger {
-  color: #b42318;
+  color: var(--danger);
 }
 
 .todo-kebab-project-label {
@@ -3743,7 +3750,7 @@ body.is-todos-view .floating-new-task-cta {
 .todo-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--scrim);
   z-index: 2390;
   display: none;
 }
@@ -5120,7 +5127,7 @@ body.is-todos-view .floating-new-task-cta {
 .todo-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.35);
+  background: var(--scrim);
   display: none;
   z-index: 2390;
 }
@@ -5203,7 +5210,7 @@ body.is-todos-view .floating-new-task-cta {
 }
 
 .todo-drawer__save-status[data-state="error"] {
-  color: #b42318;
+  color: var(--danger);
 }
 
 .todo-drawer__field {
