@@ -1115,9 +1115,7 @@ textarea:focus-visible,
   transform: translateY(0);
 }
 
-.btn-secondary {
-  background: var(--muted);
-}
+/* .btn-secondary old definition removed — superseded by line ~5842 */
 
 .btn-danger {
   background: var(--danger);
@@ -2268,6 +2266,10 @@ textarea:focus-visible,
 
 .pane-back-btn {
   font-size: 0.85rem;
+}
+
+.pane-back-btn::before {
+  content: "\2190\00a0";
 }
 
 /* --- Per-pane base styles (consistent layout, flat background) --- */
