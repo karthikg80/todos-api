@@ -988,12 +988,19 @@ export function renderHomeDashboard() {
   }
   void loadPrioritiesBrief();
 
+  const hasTasks = state.todos && state.todos.length > 0;
+  const emptyStateCta = hasTasks
+    ? ""
+    : `<div class="home-empty-cta">
+        <p class="home-empty-cta__heading">Welcome to your workspace</p>
+        <p class="home-empty-cta__sub">Add your first task to get started. Use the <strong>+ New Task</strong> button below, or press <kbd>/</kbd> to quick-add.</p>
+        <button type="button" class="btn" data-onclick="openTaskComposer()">+ Add your first task</button>
+      </div>`;
+
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
       ${renderPrioritiesTileShell()}
-      <div class="home-dashboard__header">
-        <h2 class="home-dashboard__title">Home</h2>
-      </div>
+      ${emptyStateCta}
     </section>`;
 }
 
