@@ -677,6 +677,11 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
       void loadAdminUsers();
     },
     prepareFeedbackView,
+    clearBulkSelection: () => {
+      state.selectedTodos.clear();
+      updateBulkActionsVisibility();
+      updateSelectAllCheckbox();
+    },
   });
 
 // moveProjectHeading, reorderProjectHeadings, moveTodoToHeading
@@ -1249,6 +1254,12 @@ function bindDockHandlers() {
 // (modules do not expose top-level declarations to global scope).
 // ---------------------------------------------------------------------------
 window.toggleTheme = toggleTheme;
+window.toggleSimpleMode = function (enabled) {
+  document.body.classList.toggle("simple-mode", enabled);
+  try {
+    localStorage.setItem("simpleMode", enabled ? "1" : "0");
+  } catch {}
+};
 window.openProjectsFromTopbar = openProjectsFromTopbar;
 // Auth forms
 window.switchAuthTab = switchAuthTab;
@@ -1495,6 +1506,13 @@ function init() {
 
 // Initialize theme immediately
 initTheme();
+// Initialize simple mode from localStorage
+(function initSimpleMode() {
+  const enabled = localStorage.getItem("simpleMode") === "1";
+  if (enabled) document.body.classList.add("simple-mode");
+  const toggle = document.getElementById("simpleModeToggle");
+  if (toggle instanceof HTMLInputElement) toggle.checked = enabled;
+})();
 // Initialize UI mode from localStorage
 (function initUiMode() {
   try {

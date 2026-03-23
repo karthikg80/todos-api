@@ -867,6 +867,27 @@ body:not(.is-todos-view) .container {
   }
 }
 
+.settings-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.settings-toggle input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+
+.settings-toggle__hint {
+  width: 100%;
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  padding-left: 26px;
+}
+
 /* ========== END LANDING PAGE ========== */
 
 .auth-container {
@@ -9087,12 +9108,15 @@ body.is-admin-user .projects-rail__footer--admin-only {
   justify-content: center;
 }
 
-.onboarding-modal {
+.onboarding-modal,
+.onb-modal {
   background: var(--modal-bg, var(--sidebar-bg));
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 28px 32px;
   width: min(480px, 92vw);
+  max-height: min(85vh, 600px);
+  overflow-y: auto;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.28);
 }
 

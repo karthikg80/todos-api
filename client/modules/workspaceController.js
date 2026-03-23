@@ -34,8 +34,10 @@ export function createWorkspaceController({
   loadAiFeedbackSummary,
   loadAdminUsers,
   prepareFeedbackView,
+  clearBulkSelection,
 }) {
   function switchView(view, triggerEl = null) {
+    clearBulkSelection?.();
     const requestedView = view === "profile" ? "settings" : view;
     const isSettingsView = requestedView === "settings";
     const isFeedbackView = requestedView === "feedback";

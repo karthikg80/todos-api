@@ -208,9 +208,9 @@ function matchesDateView(todo) {
 
   if (state.currentDateView === "someday") return !dueDate;
   if (!dueDate) return false;
-  if (state.currentDateView === "today") return isSameLocalDay(dueDate, now);
+  if (state.currentDateView === "today") return dueDate <= todayEnd;
   if (state.currentDateView === "upcoming") {
-    const upcomingEnd = new Date(todayEnd.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const upcomingEnd = new Date(todayEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
     return dueDate > todayEnd && dueDate <= upcomingEnd;
   }
   if (state.currentDateView === "next_month") {
