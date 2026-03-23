@@ -1254,12 +1254,7 @@ function bindDockHandlers() {
 // (modules do not expose top-level declarations to global scope).
 // ---------------------------------------------------------------------------
 window.toggleTheme = toggleTheme;
-window.toggleSimpleMode = function (enabled) {
-  document.body.classList.toggle("simple-mode", enabled);
-  try {
-    localStorage.setItem("simpleMode", enabled ? "1" : "0");
-  } catch {}
-};
+// toggleSimpleMode removed — single control is #uiModeSelect via setUiMode()
 window.openProjectsFromTopbar = openProjectsFromTopbar;
 // Auth forms
 window.switchAuthTab = switchAuthTab;
@@ -1331,6 +1326,7 @@ window.setUiMode = function setUiMode(mode) {
   document.body.classList.toggle("simple-mode", isSimple);
   try {
     localStorage.setItem("todos:ui-mode", mode);
+    localStorage.removeItem("simpleMode"); // clean up legacy key
   } catch {}
   const select = document.getElementById("uiModeSelect");
   if (select instanceof HTMLSelectElement) select.value = mode;
@@ -1506,20 +1502,19 @@ function init() {
 
 // Initialize theme immediately
 initTheme();
-// Initialize simple mode from localStorage
-(function initSimpleMode() {
-  const enabled = localStorage.getItem("simpleMode") === "1";
-  if (enabled) document.body.classList.add("simple-mode");
-  const toggle = document.getElementById("simpleModeToggle");
-  if (toggle instanceof HTMLInputElement) toggle.checked = enabled;
-})();
-// Initialize UI mode from localStorage
+// Initialize UI mode from localStorage (canonical key: todos:ui-mode)
 (function initUiMode() {
   try {
-    const mode = localStorage.getItem("todos:ui-mode") || "advanced";
-    if (mode === "simple") {
-      document.body.classList.add("simple-mode");
+    let mode = localStorage.getItem("todos:ui-mode");
+    // One-time migration from legacy key
+    if (!mode) {
+      const legacy = localStorage.getItem("simpleMode");
+      if (legacy === "1") mode = "simple";
+      if (legacy !== null) localStorage.removeItem("simpleMode");
     }
+    mode = mode || "advanced";
+    localStorage.setItem("todos:ui-mode", mode);
+    if (mode === "simple") document.body.classList.add("simple-mode");
     const select = document.getElementById("uiModeSelect");
     if (select instanceof HTMLSelectElement) select.value = mode;
   } catch {}
