@@ -2436,11 +2436,96 @@ body.dark-mode .delete-btn {
   display: none;
   flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
   padding: var(--s-4);
   border: 1px solid var(--border-color);
   border-radius: var(--r-sm);
+  background: var(--bg);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.settings-pane::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-pane::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+.settings-pane::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+/* --- Settings cards --- */
+
+.settings-card {
   background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-sm);
+  padding: var(--s-5);
+  margin-bottom: var(--s-4);
+}
+
+.settings-card__title {
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--s-3);
+}
+
+.settings-card__subtitle {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+  margin: 0 0 var(--s-2);
+}
+
+.settings-card__divider {
+  border-top: 1px solid var(--border-color);
+  margin: var(--s-4) 0;
+}
+
+.settings-card__group {
+  margin-bottom: var(--s-2);
+}
+
+.settings-card__inline-action {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-3);
+}
+
+/* --- Settings banner (verification, etc.) --- */
+
+.settings-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  border-radius: var(--r-sm);
+  margin-bottom: var(--s-4);
+}
+
+.settings-banner--warning {
+  background: color-mix(in oklab, var(--warning) 14%, var(--surface));
+  border: 1px solid var(--warning);
+  color: var(--warning);
+}
+
+.settings-banner__body strong {
+  font-weight: var(--fw-semibold);
+}
+
+/* --- Settings hint (secondary text) --- */
+
+.settings-hint {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  margin-top: var(--s-1);
 }
 
 .settings-pane__section {
@@ -4497,7 +4582,7 @@ body.is-todos-view .floating-new-task-cta {
 }
 
 .profile-section {
-  margin-bottom: 30px;
+  margin-bottom: var(--s-5);
 }
 
 .feedback-view__header {
@@ -4597,7 +4682,7 @@ body.is-todos-view .floating-new-task-cta {
 }
 
 .profile-section h3 {
-  margin-bottom: 15px;
+  margin-bottom: var(--s-3);
   color: var(--text-primary);
 }
 
@@ -4614,19 +4699,23 @@ body.is-todos-view .floating-new-task-cta {
 .info-row {
   display: flex;
   justify-content: space-between;
-  padding: 12px;
-  background: var(--card-bg);
+  align-items: center;
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface-2);
   border-radius: var(--r-sm);
-  margin-bottom: 10px;
+  margin-bottom: var(--s-1);
+  font-size: var(--fs-body);
 }
 
 .info-label {
-  font-weight: 500;
+  font-weight: var(--fw-medium);
   color: var(--text-secondary);
+  font-size: var(--fs-meta);
 }
 
 .info-value {
   color: var(--text-primary);
+  font-size: var(--fs-body);
 }
 
 .admin-layout {
@@ -9888,7 +9977,7 @@ body.is-admin-user .projects-rail__footer--admin-only {
 .settings-check-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 10px;
+  gap: var(--s-2);
 }
 
 .onb-choice-btn,
@@ -9932,7 +10021,7 @@ body.is-admin-user .projects-rail__footer--admin-only {
 .settings-support-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+  gap: var(--s-3);
 }
 
 .onb-card-btn__label {
@@ -10046,20 +10135,33 @@ body.is-admin-user .projects-rail__footer--admin-only {
   flex: 1 1 260px;
 }
 
-.settings-support-copy,
-.settings-support-preview {
+.settings-support-copy {
   color: var(--text-secondary);
   font-size: var(--fs-body);
 }
 
+.settings-support-preview {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  font-style: italic;
+  margin-top: var(--s-2);
+}
+
 .settings-check-grid label {
   display: flex;
-  gap: 8px;
+  gap: var(--s-2);
   align-items: center;
-  padding: 10px 12px;
+  padding: var(--s-2) var(--s-3);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: var(--r-sm);
   background: var(--input-bg);
+  font-size: var(--fs-body);
+  cursor: pointer;
+  transition: border-color var(--dur-fast) var(--ease-out);
+}
+
+.settings-check-grid label:hover {
+  border-color: var(--accent);
 }
 
 .home-rescue-panel {
