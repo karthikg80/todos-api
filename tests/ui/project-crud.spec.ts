@@ -534,7 +534,7 @@ test.describe("Project actions drawer", () => {
       .click();
 
     await selectWorkspaceView(page, "all", isMobile);
-    await expect(page.locator(".todo-item")).not.toContainText("Home task");
+    await expect(page.getByText("Home task")).toHaveCount(0);
   });
 
   test("mobile uses the same project edit surface as a bottom sheet", async ({

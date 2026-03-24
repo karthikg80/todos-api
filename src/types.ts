@@ -18,11 +18,39 @@ export type Energy = "low" | "medium" | "high";
 export type ReviewCadence = "weekly" | "biweekly" | "monthly" | "quarterly";
 export type TaskSource =
   | "manual"
+  | "system_seed"
   | "chat"
   | "email"
   | "import"
   | "automation"
   | "api";
+export type TodoEmotionalState =
+  | "avoiding"
+  | "unclear"
+  | "heavy"
+  | "exciting"
+  | "draining";
+export type SoulPlanningStyle = "structure" | "flexibility" | "both";
+export type SoulEnergyPattern =
+  | "morning"
+  | "afternoon"
+  | "evening"
+  | "variable";
+export type SoulTone = "calm" | "focused" | "encouraging" | "direct";
+export type SoulDailyRitual =
+  | "morning_plan"
+  | "evening_reset"
+  | "both"
+  | "neither";
+export interface SoulProfileDto {
+  lifeAreas: string[];
+  failureModes: string[];
+  planningStyle: SoulPlanningStyle;
+  energyPattern: SoulEnergyPattern;
+  goodDayThemes: string[];
+  tone: SoulTone;
+  dailyRitual: SoulDailyRitual;
+}
 export type RecurrenceType =
   | "none"
   | "daily"
@@ -120,6 +148,8 @@ export interface Todo {
   blockedReason?: string | null;
   effortScore?: number | null;
   confidenceScore?: number | null;
+  firstStep?: string | null;
+  emotionalState?: TodoEmotionalState | null;
   sourceText?: string | null;
   areaId?: string | null;
   goalId?: string | null;
@@ -189,6 +219,8 @@ export interface CreateTodoDto {
   blockedReason?: string | null;
   effortScore?: number | null;
   confidenceScore?: number | null;
+  firstStep?: string | null;
+  emotionalState?: TodoEmotionalState | null;
   sourceText?: string | null;
   areaId?: string | null;
   goalId?: string | null;
@@ -223,6 +255,8 @@ export interface UpdateTodoDto {
   blockedReason?: string | null;
   effortScore?: number | null;
   confidenceScore?: number | null;
+  firstStep?: string | null;
+  emotionalState?: TodoEmotionalState | null;
   sourceText?: string | null;
   areaId?: string | null;
   goalId?: string | null;
@@ -333,6 +367,7 @@ export interface UserPlanningPreferencesDto {
   preferredContexts: string[];
   waitingFollowUpDays: number;
   workWindowsJson?: unknown;
+  soulProfile?: SoulProfileDto;
 }
 
 export interface CreateCaptureItemDto {

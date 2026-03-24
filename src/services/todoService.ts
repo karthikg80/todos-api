@@ -186,6 +186,14 @@ export class TodoService implements ITodoService {
         nextOccurrence: dto.recurrence?.nextOccurrence ?? undefined,
       },
       source: dto.source ?? undefined,
+      blockedReason: dto.blockedReason ?? undefined,
+      effortScore: dto.effortScore ?? undefined,
+      confidenceScore: dto.confidenceScore ?? undefined,
+      firstStep: dto.firstStep ?? undefined,
+      emotionalState: dto.emotionalState ?? undefined,
+      sourceText: dto.sourceText ?? undefined,
+      areaId: dto.areaId ?? undefined,
+      goalId: dto.goalId ?? undefined,
       createdByPrompt: dto.createdByPrompt ?? undefined,
       notes: dto.notes ?? undefined,
       userId,
@@ -425,6 +433,33 @@ export class TodoService implements ITodoService {
       }),
       ...(dto.source !== undefined && {
         source: dto.source === null ? undefined : dto.source,
+      }),
+      ...(dto.blockedReason !== undefined && {
+        blockedReason:
+          dto.blockedReason === null ? undefined : dto.blockedReason,
+      }),
+      ...(dto.effortScore !== undefined && {
+        effortScore: dto.effortScore === null ? undefined : dto.effortScore,
+      }),
+      ...(dto.confidenceScore !== undefined && {
+        confidenceScore:
+          dto.confidenceScore === null ? undefined : dto.confidenceScore,
+      }),
+      ...(dto.firstStep !== undefined && {
+        firstStep: dto.firstStep === null ? undefined : dto.firstStep,
+      }),
+      ...(dto.emotionalState !== undefined && {
+        emotionalState:
+          dto.emotionalState === null ? undefined : dto.emotionalState,
+      }),
+      ...(dto.sourceText !== undefined && {
+        sourceText: dto.sourceText === null ? undefined : dto.sourceText,
+      }),
+      ...(dto.areaId !== undefined && {
+        areaId: dto.areaId === null ? undefined : dto.areaId,
+      }),
+      ...(dto.goalId !== undefined && {
+        goalId: dto.goalId === null ? undefined : dto.goalId,
       }),
       ...(dto.createdByPrompt !== undefined && {
         createdByPrompt:

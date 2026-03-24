@@ -66,6 +66,8 @@ const TASK_FIELD_KEYS = [
   "blockedReason",
   "effortScore",
   "confidenceScore",
+  "firstStep",
+  "emotionalState",
 ];
 const LIST_TASK_KEYS = [
   "completed",
@@ -1885,6 +1887,7 @@ const VALID_DAY_MODES = [
   "office",
   "home",
   "overloaded",
+  "rescue",
   "sprint",
   "catch_up",
 ];

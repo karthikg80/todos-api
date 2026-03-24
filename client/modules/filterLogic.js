@@ -15,6 +15,7 @@
 import { state, hooks } from "./store.js";
 import { applyDomainAction } from "./stateActions.js";
 import { renderTodoRowTemplate } from "./uiTemplates.js";
+import { SOUL_COPY } from "./soulConfig.js";
 import {
   buildVisibleTodosQueryParams,
   clearVisibleTodosState,
@@ -935,6 +936,22 @@ function renderTodos() {
 
   const filteredTodos = getVisibleTodos();
   updateHeaderFromVisibleTodos(filteredTodos);
+  const rolledOverTodos =
+    state.currentDateView === "today"
+      ? filteredTodos.filter((todo) => {
+          if (!todo.dueDate) return false;
+          const dueDate = new Date(todo.dueDate);
+          if (Number.isNaN(dueDate.getTime())) return false;
+          const now = new Date();
+          const todayStart = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+          );
+          return dueDate < todayStart;
+        })
+      : [];
+  const firstRolledOverTodo = rolledOverTodos[0] || null;
   if (
     state.openTodoKebabId &&
     !filteredTodos.some(
@@ -1053,14 +1070,15 @@ function renderTodos() {
             if (isOverdue && !todaySectionState.injectedOverdue) {
               todaySectionState.injectedOverdue = true;
               sectionLabel =
-                '<li class="todo-section-label todo-section-label--overdue">Overdue</li>';
+                '<li class="todo-section-label todo-section-label--overdue">Still waiting</li>';
             } else if (
               !isOverdue &&
               !todaySectionState.injectedToday &&
               todaySectionState.hasBoth
             ) {
               todaySectionState.injectedToday = true;
-              sectionLabel = '<li class="todo-section-label">Due today</li>';
+              sectionLabel =
+                '<li class="todo-section-label">Worth your energy today</li>';
             }
           }
           return `${dateHeader}${sectionLabel}${categoryHeader}${renderTodoRowHtml(todo)}`;
@@ -1072,8 +1090,8 @@ function renderTodos() {
   if (filteredTodos.length === 0 && state.todos.length > 0) {
     const viewMessages = {
       today: {
-        heading: "All clear for today",
-        sub: "No tasks due today or overdue. Enjoy the moment.",
+        heading: SOUL_COPY.todayEmptyHeading,
+        sub: SOUL_COPY.todayEmptySubheading,
       },
       upcoming: {
         heading: "Nothing coming up",
@@ -1099,7 +1117,23 @@ function renderTodos() {
       msg.sub +
       "</p></div>";
   } else {
-    container.innerHTML = '<ul class="todos-list">' + rows + "</ul>";
+    const recoveryBanner =
+      state.currentDateView === "today" && firstRolledOverTodo
+        ? `
+          <div class="today-recovery-banner" data-testid="today-recovery-banner">
+            <div class="today-recovery-banner__copy">
+              <h3>${hooks.escapeHtml?.(SOUL_COPY.rolledOverHeading) || SOUL_COPY.rolledOverHeading}</h3>
+              <p>${hooks.escapeHtml?.(SOUL_COPY.rolledOverSubheading) || SOUL_COPY.rolledOverSubheading}</p>
+            </div>
+            <div class="today-recovery-banner__actions">
+              <button type="button" class="mini-btn" data-onclick="startSmallerForTodo('${hooks.escapeHtml?.(String(firstRolledOverTodo.id)) || firstRolledOverTodo.id}')">Start smaller</button>
+              <button type="button" class="mini-btn" data-onclick="moveTodoLater('${hooks.escapeHtml?.(String(firstRolledOverTodo.id)) || firstRolledOverTodo.id}')">Move later</button>
+              <button type="button" class="mini-btn" data-onclick="markTodoNotNow('${hooks.escapeHtml?.(String(firstRolledOverTodo.id)) || firstRolledOverTodo.id}')">Not now</button>
+              <button type="button" class="mini-btn" data-onclick="dropTodoFromList('${hooks.escapeHtml?.(String(firstRolledOverTodo.id)) || firstRolledOverTodo.id}')">Drop from list</button>
+            </div>
+          </div>`
+        : "";
+    container.innerHTML = `${recoveryBanner}<ul class="todos-list">${rows}</ul>`;
   }
 
   if (state.selectedTodoId && !hooks.getTodoById?.(state.selectedTodoId)) {

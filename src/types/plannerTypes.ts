@@ -105,6 +105,22 @@ export interface WeeklyReviewAction extends PlannerRecommendation {
   createdTaskId?: string;
 }
 
+export interface WeeklyReviewRolloverGroup {
+  key: "do" | "defer" | "shrink" | "drop";
+  title: string;
+  items: Array<{
+    taskId: string;
+    title: string;
+    reason: string;
+  }>;
+}
+
+export interface WeeklyReviewAnchorSuggestion {
+  taskId: string;
+  title: string;
+  reason: string;
+}
+
 export type WeeklyReviewFinding = PlannerFinding;
 
 export interface WeeklyReviewResult {
@@ -112,6 +128,10 @@ export interface WeeklyReviewResult {
   findings: WeeklyReviewFinding[];
   recommendedActions: WeeklyReviewAction[];
   appliedActions: WeeklyReviewAction[];
+  rolloverGroups: WeeklyReviewRolloverGroup[];
+  anchorSuggestions: WeeklyReviewAnchorSuggestion[];
+  behaviorAdjustment: string;
+  reflectionSummary?: string | null;
 }
 
 export interface DecideNextWorkInput {

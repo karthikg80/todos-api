@@ -1915,6 +1915,226 @@
                         </div>
 
                         <div class="profile-section">
+                          <h3>How this app supports you</h3>
+                          <p class="settings-support-copy">
+                            Tune the planning style, energy assumptions, and
+                            tone so the workspace feels more like support than
+                            supervision.
+                          </p>
+                          <form
+                            data-onsubmit="handleSaveSoulPreferences(event)"
+                          >
+                            <div class="form-group">
+                              <label>What kind of life are you managing?</label>
+                              <div class="settings-check-grid">
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="work"
+                                  />
+                                  Work</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="personal"
+                                  />
+                                  Personal</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="family"
+                                  />
+                                  Family / caregiving</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="health"
+                                  />
+                                  Health</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="side_projects"
+                                  />
+                                  Side projects</label
+                                >
+                              </div>
+                            </div>
+                            <div class="form-group">
+                              <label
+                                >When systems fail, what usually goes
+                                wrong?</label
+                              >
+                              <div class="settings-check-grid">
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="overwhelmed"
+                                  />
+                                  Overwhelmed</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="forgetful"
+                                  />
+                                  Forgetful</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="perfectionist"
+                                  />
+                                  Perfectionist</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="overcommitted"
+                                  />
+                                  Overcommitted</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="inconsistent"
+                                  />
+                                  Inconsistent</label
+                                >
+                              </div>
+                            </div>
+                            <div class="settings-support-grid">
+                              <div class="form-group">
+                                <label for="soulPlanningStyle"
+                                  >Planning style</label
+                                >
+                                <select id="soulPlanningStyle">
+                                  <option value="structure">
+                                    I like structure
+                                  </option>
+                                  <option value="flexibility">
+                                    I like flexibility
+                                  </option>
+                                  <option value="both">I need both</option>
+                                </select>
+                              </div>
+                              <div class="form-group">
+                                <label for="soulEnergyPattern"
+                                  >Energy pattern</label
+                                >
+                                <select id="soulEnergyPattern">
+                                  <option value="morning">
+                                    Best in mornings
+                                  </option>
+                                  <option value="afternoon">
+                                    Best in afternoons
+                                  </option>
+                                  <option value="evening">
+                                    Best in evenings
+                                  </option>
+                                  <option value="variable">Varies a lot</option>
+                                </select>
+                              </div>
+                              <div class="form-group">
+                                <label for="soulTone">Tone</label>
+                                <select id="soulTone">
+                                  <option value="calm">Calm</option>
+                                  <option value="focused">Focused</option>
+                                  <option value="encouraging">
+                                    Encouraging
+                                  </option>
+                                  <option value="direct">Direct</option>
+                                </select>
+                              </div>
+                              <div class="form-group">
+                                <label for="soulDailyRitual"
+                                  >Daily ritual</label
+                                >
+                                <select id="soulDailyRitual">
+                                  <option value="morning_plan">
+                                    Morning plan
+                                  </option>
+                                  <option value="evening_reset">
+                                    Evening reset
+                                  </option>
+                                  <option value="both">Both</option>
+                                  <option value="neither">Neither</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div class="form-group">
+                              <label>What makes a good day feel good?</label>
+                              <div class="settings-check-grid">
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="important_work"
+                                  />
+                                  Finish important work</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="life_admin"
+                                  />
+                                  Stay on top of life admin</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="avoid_overload"
+                                  />
+                                  Avoid overload</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="visible_progress"
+                                  />
+                                  Make visible progress</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="protect_rest"
+                                  />
+                                  Protect time for family / rest</label
+                                >
+                              </div>
+                            </div>
+                            <p
+                              id="soulSupportPreview"
+                              class="settings-support-preview"
+                            >
+                              You’ll get calmer copy and gentler recovery
+                              language.
+                            </p>
+                            <button type="submit" class="btn">
+                              Save support preferences
+                            </button>
+                          </form>
+                        </div>
+
+                        <div class="profile-section">
                           <h3>Interface</h3>
                           <div class="info-row">
                             <span class="info-label">UI Mode</span>
@@ -1946,7 +2166,7 @@
                               class="mini-btn"
                               data-onclick="restartOnboarding()"
                             >
-                              Restart setup tour
+                              Restart soul setup
                             </button>
                             <span
                               style="
@@ -1954,7 +2174,7 @@
                                 font-size: 0.82em;
                                 color: var(--text-muted);
                               "
-                              >Re-run the 4-step onboarding guide</span
+                              >Re-run the 4-step guided setup</span
                             >
                           </div>
                         </div>
@@ -2415,7 +2635,7 @@
                           <input
                             type="text"
                             id="todoInput"
-                            placeholder="What needs to be done?"
+                            placeholder="What needs your attention?"
                             data-onkeypress="handleTodoKeyPress(event)"
                           />
                           <div
@@ -2645,6 +2865,19 @@
                                 </label>
                                 <label
                                   class="task-composer-inline-field"
+                                  for="todoEffortSelect"
+                                >
+                                  <span>Effort</span>
+                                  <select id="todoEffortSelect">
+                                    <option value="" selected>None</option>
+                                    <option value="1">Tiny</option>
+                                    <option value="2">Small</option>
+                                    <option value="3">Medium</option>
+                                    <option value="4">Deep</option>
+                                  </select>
+                                </label>
+                                <label
+                                  class="task-composer-inline-field"
                                   for="todoEnergySelect"
                                 >
                                   <span>Energy</span>
@@ -2666,6 +2899,34 @@
                                     min="0"
                                     step="1"
                                     placeholder="Minutes"
+                                  />
+                                </label>
+                              </div>
+                              <div class="field-row task-composer-fields">
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoEmotionalStateSelect"
+                                >
+                                  <span>Emotional state</span>
+                                  <select id="todoEmotionalStateSelect">
+                                    <option value="" selected>None</option>
+                                    <option value="avoiding">Avoiding</option>
+                                    <option value="unclear">Unclear</option>
+                                    <option value="heavy">Heavy</option>
+                                    <option value="exciting">Exciting</option>
+                                    <option value="draining">Draining</option>
+                                  </select>
+                                </label>
+                                <label
+                                  class="task-composer-inline-field task-composer-inline-field--wide"
+                                  for="todoFirstStepInput"
+                                >
+                                  <span>First step</span>
+                                  <input
+                                    type="text"
+                                    id="todoFirstStepInput"
+                                    maxlength="255"
+                                    placeholder="Open the doc. Text Raj. Find last year's form."
                                   />
                                 </label>
                               </div>

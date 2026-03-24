@@ -215,6 +215,9 @@ import {
   handleAdminBootstrap,
   resendVerification,
   handleUpdateProfile,
+  handleSaveSoulPreferences,
+  loadUserPlanningPreferences,
+  populateSoulPreferencesForm,
   logout,
   showAppView,
   showAuthView,
@@ -298,6 +301,12 @@ import {
   openHomeTileList,
   openHomeProject,
   openTodoFromHomeTile,
+  startSmallerForTodo,
+  moveTodoLater,
+  markTodoNotNow,
+  dropTodoFromList,
+  startRescueMode,
+  setNormalDayMode,
   retryTodaysPlan,
   setUpcomingTab,
   getHomeDrilldownLabel,
@@ -474,8 +483,18 @@ import {
   advanceOnboarding,
   dismissOnboarding,
   toggleOnboardingArea,
+  setOnboardingTone,
   onboardingStep1Next,
+  toggleOnboardingFailureMode,
+  toggleOnboardingGoodDayTheme,
+  setOnboardingPlanningStyle,
+  setOnboardingEnergyPattern,
+  setOnboardingDailyRitual,
+  backOnboardingStep,
+  finishOnboardingStep2,
   onboardingAddTask,
+  finishOnboardingExamples,
+  skipOnboardingExamples,
   onboardingSetDueDate,
 } from "./modules/onboardingFlow.js";
 
@@ -1094,6 +1113,7 @@ function bindDockHandlers() {
   hooks.loadTodos = loadTodos;
   hooks.addTodo = addTodo;
   hooks.addTodoFromInlineInput = addTodoFromInlineInput;
+  hooks.addUndoAction = addUndoAction;
   hooks.renderTodos = renderTodos;
   hooks.validateTodoTitle = validateTodoTitle;
   hooks.toDateInputValue = toDateInputValue;
@@ -1167,6 +1187,8 @@ function bindDockHandlers() {
   hooks.loadAiFeedbackSummary = loadAiFeedbackSummary;
   hooks.readStoredQuickEntryPropertiesOpenState =
     readStoredQuickEntryPropertiesOpenState;
+  hooks.loadUserPlanningPreferences = loadUserPlanningPreferences;
+  hooks.populateSoulPreferencesForm = populateSoulPreferencesForm;
   hooks.updateCritiqueDraftButtonState = updateCritiqueDraftButtonState;
   // railUi cross-module hooks
   hooks.DialogManager = DialogManager;
@@ -1320,6 +1342,7 @@ window.closeShortcutsOverlay = closeShortcutsOverlay;
 window.handleAdminBootstrap = handleAdminBootstrap;
 // Profile
 window.handleUpdateProfile = handleUpdateProfile;
+window.handleSaveSoulPreferences = handleSaveSoulPreferences;
 // UI Mode
 window.setUiMode = function setUiMode(mode) {
   const isSimple = mode === "simple";
@@ -1403,6 +1426,12 @@ window.unarchiveProject = unarchiveProject;
 // Home workspace
 window.openHomeProject = openHomeProject;
 window.openHomeTileList = openHomeTileList;
+window.startSmallerForTodo = startSmallerForTodo;
+window.moveTodoLater = moveTodoLater;
+window.markTodoNotNow = markTodoNotNow;
+window.dropTodoFromList = dropTodoFromList;
+window.startRescueMode = startRescueMode;
+window.setNormalDayMode = setNormalDayMode;
 window.retryTodaysPlan = retryTodaysPlan;
 window.setUpcomingTab = setUpcomingTab;
 window.refreshPrioritiesTile = refreshPrioritiesTile;
@@ -1431,8 +1460,18 @@ window.isOnboardingActive = isOnboardingActive;
 window.advanceOnboarding = advanceOnboarding;
 window.dismissOnboarding = dismissOnboarding;
 window.toggleOnboardingArea = toggleOnboardingArea;
+window.setOnboardingTone = setOnboardingTone;
 window.onboardingStep1Next = onboardingStep1Next;
+window.toggleOnboardingFailureMode = toggleOnboardingFailureMode;
+window.toggleOnboardingGoodDayTheme = toggleOnboardingGoodDayTheme;
+window.setOnboardingPlanningStyle = setOnboardingPlanningStyle;
+window.setOnboardingEnergyPattern = setOnboardingEnergyPattern;
+window.setOnboardingDailyRitual = setOnboardingDailyRitual;
+window.backOnboardingStep = backOnboardingStep;
+window.finishOnboardingStep2 = finishOnboardingStep2;
 window.onboardingAddTask = onboardingAddTask;
+window.finishOnboardingExamples = finishOnboardingExamples;
+window.skipOnboardingExamples = skipOnboardingExamples;
 window.onboardingSetDueDate = onboardingSetDueDate;
 // Admin
 window.changeUserRole = changeUserRole;

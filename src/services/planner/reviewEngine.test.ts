@@ -84,6 +84,9 @@ describe("ReviewEngine", () => {
         "upcoming_deadline",
       ]),
     );
+    expect(result.rolloverGroups).toHaveLength(4);
+    expect(result.anchorSuggestions.length).toBeLessThanOrEqual(5);
+    expect(result.behaviorAdjustment).toBeTruthy();
   });
 
   it("calculates project health risks and interventions", () => {

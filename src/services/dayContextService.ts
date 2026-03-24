@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 export type DayMode =
   | "normal"
+  | "rescue"
   | "travel"
   | "office"
   | "home"
@@ -33,6 +34,11 @@ export interface ModeModifiers {
 
 export const MODE_MODIFIERS: Record<DayMode, ModeModifiers> = {
   normal: { scoreBoosts: {} },
+  rescue: {
+    maxTaskCount: 3,
+    budgetMultiplier: 0.6,
+    scoreBoosts: { shortTask: 20, adminTask: 5, projectTask: -10 },
+  },
   travel: {
     budgetMultiplier: 0.7,
     scoreBoosts: { shortTask: 10, adminTask: -10 },

@@ -3,7 +3,9 @@ import type {
   AnalyzeProjectHealthIntervention,
   AnalyzeProjectHealthResult,
   PlannerFinding,
+  WeeklyReviewAnchorSuggestion,
   WeeklyReviewAction,
+  WeeklyReviewRolloverGroup,
   WeeklyReviewResult,
 } from "../../types/plannerTypes";
 import { ProjectPlanningEngine } from "./projectPlanningEngine";
@@ -163,6 +165,19 @@ export class ReviewEngine {
       });
     });
 
+    const rolloverGroups = this.buildRolloverGroups(openTasks, input.now);
+    const anchorSuggestions = this.buildAnchorSuggestions(openTasks, input.now);
+    const behaviorAdjustment = this.buildBehaviorAdjustment(
+      rolloverGroups,
+      openTasks,
+    );
+    const reflectionSummary = this.buildReflectionSummary(
+      openTasks,
+      waitingTasks.length,
+      staleTasks.length,
+      anchorSuggestions,
+    );
+
     return {
       summary: {
         projectsWithoutNextAction,
@@ -172,7 +187,149 @@ export class ReviewEngine {
       },
       findings,
       recommendedActions,
+      rolloverGroups,
+      anchorSuggestions,
+      behaviorAdjustment,
+      reflectionSummary,
     };
+  }
+
+  private buildRolloverGroups(
+    openTasks: Todo[],
+    now: Date,
+  ): WeeklyReviewRolloverGroup[] {
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const staleCutoff = new Date(now);
+    staleCutoff.setDate(staleCutoff.getDate() - 30);
+    const overdueTasks = openTasks.filter(
+      (task) => task.dueDate && task.dueDate < today,
+    );
+    const staleTasks = openTasks.filter(
+      (task) => task.updatedAt <= staleCutoff,
+    );
+
+    return [
+      {
+        key: "do",
+        title: "Do this week",
+        items: overdueTasks
+          .filter((task) => (task.priority ?? "medium") !== "low")
+          .slice(0, 4)
+          .map((task) => ({
+            taskId: task.id,
+            title: task.title,
+            reason: "It is still waiting and may need a clear restart.",
+          })),
+      },
+      {
+        key: "defer",
+        title: "Move later",
+        items: openTasks
+          .filter(
+            (task) => task.status === "waiting" || task.status === "scheduled",
+          )
+          .slice(0, 4)
+          .map((task) => ({
+            taskId: task.id,
+            title: task.title,
+            reason: "It looks like a candidate to move with intention.",
+          })),
+      },
+      {
+        key: "shrink",
+        title: "Make smaller",
+        items: openTasks
+          .filter(
+            (task) =>
+              (task.effortScore ?? 0) >= 3 ||
+              Boolean(String(task.blockedReason || "").trim()),
+          )
+          .slice(0, 4)
+          .map((task) => ({
+            taskId: task.id,
+            title: task.title,
+            reason: "This may move faster with a smaller first step.",
+          })),
+      },
+      {
+        key: "drop",
+        title: "Let go",
+        items: staleTasks
+          .filter((task) => (task.priority ?? "medium") === "low")
+          .slice(0, 4)
+          .map((task) => ({
+            taskId: task.id,
+            title: task.title,
+            reason:
+              "If it no longer matters, it may be okay to let this leave the list.",
+          })),
+      },
+    ];
+  }
+
+  private buildAnchorSuggestions(
+    openTasks: Todo[],
+    now: Date,
+  ): WeeklyReviewAnchorSuggestion[] {
+    return [...openTasks]
+      .sort((a, b) => {
+        const aDue = a.dueDate?.getTime() ?? Number.POSITIVE_INFINITY;
+        const bDue = b.dueDate?.getTime() ?? Number.POSITIVE_INFINITY;
+        if (aDue !== bDue) return aDue - bDue;
+        const aPriority =
+          a.priority === "high" || a.priority === "urgent" ? 1 : 0;
+        const bPriority =
+          b.priority === "high" || b.priority === "urgent" ? 1 : 0;
+        return bPriority - aPriority;
+      })
+      .slice(0, 5)
+      .map((task) => ({
+        taskId: task.id,
+        title: task.title,
+        reason:
+          task.dueDate && task.dueDate < now
+            ? "A rolled-over item that needs a clean decision."
+            : task.status === "in_progress"
+              ? "Already moving, so it can anchor momentum."
+              : "A good candidate for a smaller focus list next week.",
+      }));
+  }
+
+  private buildBehaviorAdjustment(
+    rolloverGroups: WeeklyReviewRolloverGroup[],
+    openTasks: Todo[],
+  ): string {
+    const shrinkCount =
+      rolloverGroups.find((group) => group.key === "shrink")?.items.length ?? 0;
+    const waitingCount = openTasks.filter(
+      (task) =>
+        task.status === "waiting" || String(task.waitingOn || "").trim(),
+    ).length;
+    if (shrinkCount >= 3) {
+      return "Keep next week’s focus list smaller and start the heavier work with a tiny first step.";
+    }
+    if (waitingCount >= 3) {
+      return "Clear the waiting items early so they stop dragging across the week.";
+    }
+    return "A smaller focus list will probably feel steadier than trying to carry everything forward.";
+  }
+
+  private buildReflectionSummary(
+    openTasks: Todo[],
+    waitingCount: number,
+    staleCount: number,
+    anchorSuggestions: WeeklyReviewAnchorSuggestion[],
+  ): string | null {
+    if (openTasks.length === 0) {
+      return "Your list looks light right now. Keep next week simple.";
+    }
+    if (staleCount > 0 && waitingCount > 0) {
+      return "The week carried some drag, but you still have a clear chance to reset by shrinking stale work and following up on what is blocked.";
+    }
+    if (anchorSuggestions.length > 0) {
+      return "You kept enough signal in the system to choose a smaller, steadier focus for next week.";
+    }
+    return null;
   }
 
   analyzeProjectHealth(input: {
