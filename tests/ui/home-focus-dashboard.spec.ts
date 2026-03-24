@@ -857,17 +857,31 @@ test.describe("Home focus dashboard + sheet composer", () => {
   }) => {
     await clickWorkspaceView(page, "today");
     await expectWorkspaceViewActive(page, "today");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("All tasks");
-    await expect(page.locator("#todosListHeaderDateBadge")).toHaveText("Today");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Today");
+    await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
     await expectListOrEmptyState(page);
 
     await clickWorkspaceView(page, "upcoming");
     await expectWorkspaceViewActive(page, "upcoming");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("All tasks");
-    await expect(page.locator("#todosListHeaderDateBadge")).toHaveText(
-      "Upcoming",
-    );
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Upcoming");
+    await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
     await expectListOrEmptyState(page);
+  });
+
+  test("Inbox shows an explicit header title", async ({ page }) => {
+    await clickWorkspaceView(page, "inbox");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Inbox");
+    await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
+  });
+
+  test("Desktop dock shows visible utility labels", async ({ page }) => {
+    test.skip(isMobileViewport(page), "Dock labels are desktop-only.");
+
+    const dock = page.locator("#bottomActionDock .dock__group--left");
+    await expect(dock).toContainText("Settings");
+    await expect(dock).toContainText("Feedback");
+    await expect(dock).toContainText("Theme");
+    await expect(dock).toContainText("Profile");
   });
 });
 

@@ -1001,14 +1001,19 @@ function renderBreakDownSection(todo) {
   const escapeHtml = hooks.escapeHtml || ((s) => String(s));
   const s = state.breakDownState;
   const isForThisTodo = s.todoId === todo.id;
+  const helperHtml = `
+    <p class="todo-drawer__agent-hint">
+      Use this when a task feels vague or too big. We'll suggest smaller steps you can act on.
+    </p>`;
 
   let bodyHtml;
   if (s.applying && isForThisTodo) {
-    bodyHtml = `<div class="todo-drawer__agent-loading">Adding subtasks…</div>`;
+    bodyHtml = `${helperHtml}<div class="todo-drawer__agent-loading">Adding subtasks…</div>`;
   } else if (s.loading && isForThisTodo) {
-    bodyHtml = `<div class="todo-drawer__agent-loading">Thinking…</div>`;
+    bodyHtml = `${helperHtml}<div class="todo-drawer__agent-loading">Thinking…</div>`;
   } else if (s.error && isForThisTodo) {
     bodyHtml = `
+      ${helperHtml}
       <div class="todo-drawer__agent-error">${escapeHtml(s.error)}</div>
       <button type="button" class="todo-drawer__agent-btn"
         data-break-down-action="generate">Try again</button>`;
@@ -1024,6 +1029,7 @@ function renderBreakDownSection(todo) {
       )
       .join("");
     bodyHtml = `
+      ${helperHtml}
       <div class="todo-drawer__break-down-list">${items}</div>
       <div class="todo-drawer__agent-actions">
         <button type="button" class="todo-drawer__agent-btn todo-drawer__agent-btn--primary"
@@ -1036,6 +1042,7 @@ function renderBreakDownSection(todo) {
       </div>`;
   } else {
     bodyHtml = `
+      ${helperHtml}
       <button type="button" class="todo-drawer__agent-btn"
         data-break-down-action="generate">Suggest subtasks</button>`;
   }
@@ -1314,7 +1321,7 @@ export function renderTodoDrawerContent() {
       </label>
       <label class="todo-drawer__field" for="drawerContextInput">
         <span>Context</span>
-        <input id="drawerContextInput" type="text" maxlength="100" value="${escapeHtml(draft.context)}" />
+        <input id="drawerContextInput" type="text" maxlength="100" value="${escapeHtml(draft.context)}" placeholder="computer, home, calls" />
       </label>
       <label class="todo-drawer__field" for="drawerEffortSelect">
         <span>Effort</span>
@@ -1375,15 +1382,16 @@ export function renderTodoDrawerContent() {
         </label>
         <label class="todo-drawer__field" for="drawerTagsInput">
           <span>Tags</span>
-          <input id="drawerTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="comma, separated, tags" />
+          <input id="drawerTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="travel, planning, admin" />
         </label>
         <label class="todo-drawer__field" for="drawerWaitingOnInput">
           <span>Waiting on</span>
-          <input id="drawerWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" />
+          <input id="drawerWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" placeholder="Budget approval, vendor reply, callback" />
         </label>
         <label class="todo-drawer__field" for="drawerDependsOnInput">
-          <span>Depends on task IDs</span>
-          <textarea id="drawerDependsOnInput" maxlength="4000" placeholder="comma-separated task UUIDs">${escapeHtml(draft.dependsOnTaskIdsText)}</textarea>
+          <span>Depends on</span>
+          <textarea id="drawerDependsOnInput" maxlength="4000" placeholder="Paste task IDs, separated by commas">${escapeHtml(draft.dependsOnTaskIdsText)}</textarea>
+          <small class="todo-drawer__field-hint">Use task IDs for now. A task picker is still on the way.</small>
         </label>
         <label class="todo-drawer__field" for="drawerCategoryInput">
           <span>Category</span>

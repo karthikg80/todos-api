@@ -2860,7 +2860,7 @@
                                     type="text"
                                     id="todoContextInput"
                                     maxlength="100"
-                                    placeholder="@computer"
+                                    placeholder="computer, home, calls"
                                   />
                                 </label>
                                 <label
@@ -2940,7 +2940,7 @@
                                     type="text"
                                     id="todoTagsInput"
                                     maxlength="512"
-                                    placeholder="comma, separated, tags"
+                                    placeholder="travel, planning, admin"
                                   />
                                 </label>
                                 <label
@@ -2952,7 +2952,7 @@
                                     type="text"
                                     id="todoWaitingOnInput"
                                     maxlength="255"
-                                    placeholder="Person, vendor, approval..."
+                                    placeholder="Budget approval, vendor reply, callback"
                                   />
                                 </label>
                               </div>
@@ -2961,12 +2961,16 @@
                                   class="task-composer-inline-field task-composer-inline-field--wide"
                                   for="todoDependsOnInput"
                                 >
-                                  <span>Depends on task IDs</span>
+                                  <span>Depends on</span>
                                   <textarea
                                     id="todoDependsOnInput"
                                     rows="2"
-                                    placeholder="comma-separated task UUIDs"
+                                    placeholder="Paste task IDs, separated by commas"
                                   ></textarea>
+                                  <span class="task-composer-inline-field__hint"
+                                    >Use task IDs for now. A task picker is
+                                    still on the way.</span
+                                  >
                                 </label>
                               </div>
                             </details>
@@ -3646,6 +3650,7 @@
             />
             <circle cx="12" cy="12" r="3" />
           </svg>
+          <span class="dock-icon-btn__label">Settings</span>
         </button>
         <button
           type="button"
@@ -3671,6 +3676,7 @@
               d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
             />
           </svg>
+          <span class="dock-icon-btn__label">Feedback</span>
         </button>
         <button
           type="button"
@@ -3694,6 +3700,7 @@
           >
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
+          <span class="dock-icon-btn__label">Admin</span>
         </button>
         <button
           type="button"
@@ -3735,6 +3742,7 @@
               d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
             />
           </svg>
+          <span class="dock-icon-btn__label">Theme</span>
         </button>
         <button
           id="dockProfileBtn"
@@ -3762,6 +3770,7 @@
             <circle cx="12" cy="10" r="3" />
             <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
           </svg>
+          <span class="dock-icon-btn__label">Profile</span>
         </button>
       </div>
       <div class="dock__group dock__group--right">

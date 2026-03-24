@@ -497,6 +497,27 @@ function getCurrentDateViewLabel() {
   return labels[state.currentDateView] || "";
 }
 
+function getCurrentWorkspaceHeaderConfig() {
+  const workspaceTitleMap = {
+    inbox: "Inbox",
+    today: "Today",
+    upcoming: "Upcoming",
+    completed: "Completed",
+  };
+  const explicitTitle = workspaceTitleMap[state.currentWorkspaceView];
+  if (explicitTitle) {
+    return {
+      projectName: explicitTitle,
+      dateLabel: "",
+    };
+  }
+
+  return {
+    projectName: getSelectedProjectName(),
+    dateLabel: getCurrentDateViewLabel(),
+  };
+}
+
 function getSelectedProjectLabel(selectedProject) {
   if (!selectedProject && state.currentWorkspaceView === "home") return "Home";
   if (!selectedProject && state.currentWorkspaceView === "unsorted")
@@ -616,10 +637,12 @@ function updateHeaderFromVisibleTodos(visibleTodos = []) {
     return;
   }
 
+  const headerConfig = getCurrentWorkspaceHeaderConfig();
+
   updateHeaderAndContextUI({
-    projectName: getSelectedProjectName(),
+    projectName: headerConfig.projectName,
     visibleCount: getVisibleTodosCount(visibleTodos),
-    dateLabel: getCurrentDateViewLabel(),
+    dateLabel: headerConfig.dateLabel,
   });
 }
 

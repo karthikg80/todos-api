@@ -5492,6 +5492,12 @@ body.is-todos-view .floating-new-task-cta {
   font-weight: 600;
 }
 
+.todo-drawer__field-hint {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
 .todo-drawer__field input[type="text"],
 .todo-drawer__field input[type="date"],
 .todo-drawer__field textarea,
@@ -7743,6 +7749,12 @@ body.is-todos-view .projects-rail-item__count {
   width: 100%;
 }
 
+.task-composer-inline-field__hint {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
 .task-composer-inline-field--wide {
   flex-basis: 260px;
 }
@@ -8569,7 +8581,7 @@ body.is-todos-view .home-tile[data-home-tile="top_focus"] .home-tile__icon {
   left: 0;
   right: 0;
   z-index: 50;
-  height: 56px;
+  height: 68px;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--s-5);
@@ -8623,11 +8635,12 @@ body.is-todos-view.is-projects-rail-collapsed
 
 .dock-icon-btn {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
+  min-width: 58px;
+  height: 48px;
+  padding: 6px 8px;
   border: none;
   border-radius: var(--r-sm);
   background: transparent;
@@ -8636,6 +8649,13 @@ body.is-todos-view.is-projects-rail-collapsed
   transition:
     background 0.15s ease,
     color 0.15s ease;
+}
+
+.dock-icon-btn__label {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  line-height: 1;
 }
 
 .dock-icon-btn:hover {
@@ -8701,7 +8721,7 @@ body.dark-mode .dock-icon--sun {
 }
 
 #todosScrollRegion {
-  padding-bottom: 72px;
+  padding-bottom: 88px;
 }
 
 body:has(.todo-kebab-menu--open) .floating-new-task-cta,
@@ -8710,7 +8730,7 @@ body:has(.todo-kebab-menu--open) .bottom-action-dock {
 }
 
 #projectsRail {
-  padding-bottom: 72px;
+  padding-bottom: 88px;
 }
 
 .projects-rail__footer--admin-only {
@@ -8725,7 +8745,7 @@ body.is-admin-user .projects-rail__footer--admin-only {
 
 .dock-profile-panel {
   position: fixed;
-  bottom: 64px;
+  bottom: 76px;
   left: var(--s-5);
   z-index: 55;
   width: 220px;
@@ -8779,6 +8799,13 @@ body.is-admin-user .projects-rail__footer--admin-only {
 .dock-profile-panel__logout:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+.todo-drawer__agent-hint {
+  margin: 0 0 var(--s-3);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
 }
 
 @media (max-width: 768px) {
