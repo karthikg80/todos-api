@@ -145,6 +145,7 @@ export function renderOAuthLoginPage(input: {
   formAction: string;
   hiddenFields: Record<string, string | undefined>;
   clientName?: string;
+  registerUrl?: string;
 }) {
   const clientCopy = input.clientName
     ? `Sign in to connect <strong>${escapeHtml(input.clientName)}</strong> to your Todos account.`
@@ -167,7 +168,45 @@ export function renderOAuthLoginPage(input: {
        <div class="actions">
          <button class="primary" type="submit">Sign In</button>
        </div>
-     </form>`,
+     </form>
+     ${input.registerUrl ? `<p style="margin-top:16px;text-align:center"><a href="${escapeHtml(input.registerUrl)}">Create account</a></p>` : ""}`,
+  );
+}
+
+export function renderOAuthRegisterPage(input: {
+  error?: string;
+  formAction: string;
+  hiddenFields: Record<string, string | undefined>;
+  clientName?: string;
+  loginUrl?: string;
+}) {
+  const clientCopy = input.clientName
+    ? `Create an account to connect <strong>${escapeHtml(input.clientName)}</strong> to Todos.`
+    : "Create an account to connect your assistant to Todos.";
+  return renderPageShell(
+    "Create Account",
+    `<h1>Create Account</h1>
+     <p>${clientCopy}</p>
+     ${input.error ? `<div class="error">${escapeHtml(input.error)}</div>` : ""}
+     <form method="post" action="${escapeHtml(input.formAction)}">
+       ${renderHiddenFields(input.hiddenFields)}
+       <label>
+         Name
+         <input type="text" name="name" autocomplete="name" required>
+       </label>
+       <label>
+         Email
+         <input type="email" name="email" autocomplete="email" required>
+       </label>
+       <label>
+         Password
+         <input type="password" name="password" autocomplete="new-password" required minlength="8">
+       </label>
+       <div class="actions">
+         <button class="primary" type="submit">Create Account</button>
+       </div>
+     </form>
+     ${input.loginUrl ? `<p style="margin-top:16px;text-align:center"><a href="${escapeHtml(input.loginUrl)}">Already have an account? Sign in</a></p>` : ""}`,
   );
 }
 
