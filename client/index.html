@@ -145,8 +145,9 @@
                         Everything you need to stay on top of it
                       </h2>
 
-                      <div class="landing-feature">
-                        <div class="landing-feature__text">
+                      <div class="landing-features-grid">
+                        <div class="landing-feature-card">
+                          <div class="landing-feature-card__icon">⚡</div>
                           <h3>Get tasks out of your head, fast</h3>
                           <p>
                             Type naturally — "Call dentist tomorrow 2pm" — and
@@ -155,18 +156,9 @@
                             drag-and-drop.
                           </p>
                         </div>
-                        <div class="landing-feature__visual">
-                          <img
-                            src="/images/landing/hero-desktop.png"
-                            alt="Task list with quick entry, natural dates, and projects"
-                            class="landing-hero__img"
-                            loading="lazy"
-                          />
-                        </div>
-                      </div>
 
-                      <div class="landing-feature landing-feature--reverse">
-                        <div class="landing-feature__text">
+                        <div class="landing-feature-card">
+                          <div class="landing-feature-card__icon">🧠</div>
                           <h3>AI that helps you plan, not just list</h3>
                           <p>
                             Get instant feedback on vague tasks, turn goals into
@@ -174,18 +166,8 @@
                             actionable pieces — all powered by AI.
                           </p>
                         </div>
-                        <div class="landing-feature__visual">
-                          <img
-                            src="/images/landing/hero-desktop.png"
-                            alt="AI-powered task planning and critique"
-                            class="landing-hero__img"
-                            loading="lazy"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="landing-feature">
-                        <div class="landing-feature__text">
+                        <div class="landing-feature-card">
+                          <div class="landing-feature-card__icon">💬</div>
                           <h3>Chat with AI to manage your tasks</h3>
                           <p>
                             Connect Claude or ChatGPT and manage your tasks
@@ -193,32 +175,14 @@
                             "Add a task to buy groceries" — just ask.
                           </p>
                         </div>
-                        <div class="landing-feature__visual">
-                          <img
-                            src="/images/landing/dark-mode.png"
-                            alt="Manage tasks through AI assistant conversation"
-                            class="landing-hero__img"
-                            loading="lazy"
-                          />
-                        </div>
-                      </div>
-
-                      <div class="landing-feature landing-feature--reverse">
-                        <div class="landing-feature__text">
+                        <div class="landing-feature-card">
+                          <div class="landing-feature-card__icon">🤖</div>
                           <h3>Autopilot for your productivity</h3>
                           <p>
                             Daily planning, weekly reviews, and stale task
                             cleanup run automatically in the background. Wake up
                             to a prioritized day, every day.
                           </p>
-                        </div>
-                        <div class="landing-feature__visual">
-                          <img
-                            src="/images/landing/dark-mode.png"
-                            alt="Automated daily planning and weekly reviews"
-                            class="landing-hero__img"
-                            loading="lazy"
-                          />
                         </div>
                       </div>
                     </div>
@@ -738,7 +702,7 @@
                           type="text"
                           id="searchInput"
                           class="search-input"
-                          placeholder="Search… (/) · ⌘K commands"
+                          placeholder="Search… (/)"
                           autocomplete="off"
                           data-oninput="filterTodos()"
                         />
@@ -917,7 +881,9 @@
                             />
                           </svg>
                           <span class="nav-label">Unsorted</span>
-                          <span class="projects-rail-item__count">0</span>
+                          <span class="projects-rail-item__count" hidden
+                            >0</span
+                          >
                         </button>
                         <button
                           type="button"
@@ -945,7 +911,9 @@
                             <path d="M13 18h8" />
                           </svg>
                           <span class="nav-label">All tasks</span>
-                          <span class="projects-rail-item__count">0</span>
+                          <span class="projects-rail-item__count" hidden
+                            >0</span
+                          >
                         </button>
                         <button
                           type="button"
@@ -1311,7 +1279,9 @@
                             />
                           </svg>
                           <span class="nav-label">Unsorted</span>
-                          <span class="projects-rail-item__count">0</span>
+                          <span class="projects-rail-item__count" hidden
+                            >0</span
+                          >
                         </button>
                         <button
                           type="button"
@@ -1339,7 +1309,9 @@
                             <path d="M13 18h8" />
                           </svg>
                           <span class="nav-label">All tasks</span>
-                          <span class="projects-rail-item__count">0</span>
+                          <span class="projects-rail-item__count" hidden
+                            >0</span
+                          >
                         </button>
                         <button
                           type="button"
@@ -1457,7 +1429,7 @@
                           type="text"
                           id="searchInputSheet"
                           class="search-input"
-                          placeholder="Search… (/) · ⌘K commands"
+                          placeholder="Search… (/)"
                           autocomplete="off"
                           data-oninput="syncSheetSearch()"
                         />
@@ -2491,7 +2463,7 @@
                                     id="todoEstimateInput"
                                     min="0"
                                     step="1"
-                                    placeholder="Min"
+                                    placeholder="Minutes"
                                   />
                                 </label>
                               </div>

@@ -21,12 +21,26 @@
     };
     el.appendChild(dismissBtn);
     el.className = "message " + type + " show";
-    // Auto-dismiss success messages after 5 seconds
+    // Auto-dismiss success messages after 8 seconds; pause on hover
     if (type === "success") {
       clearTimeout(el._autoDismissTimer);
-      el._autoDismissTimer = setTimeout(function () {
-        el.classList.remove("show");
-      }, 5000);
+      var remaining = 8000;
+      var startTime = Date.now();
+      function startDismissTimer() {
+        el._autoDismissTimer = setTimeout(function () {
+          el.classList.remove("show");
+        }, remaining);
+        startTime = Date.now();
+      }
+      el.onmouseenter = function () {
+        clearTimeout(el._autoDismissTimer);
+        remaining -= Date.now() - startTime;
+        if (remaining < 1000) remaining = 1000;
+      };
+      el.onmouseleave = function () {
+        startDismissTimer();
+      };
+      startDismissTimer();
     }
   }
 
