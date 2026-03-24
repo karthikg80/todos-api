@@ -761,7 +761,7 @@ function closeProjectCrudModal({ restoreFocus = true } = {}) {
     if (lastProjectCrudOpener?.isConnected) {
       lastProjectCrudOpener.focus({ preventScroll: true });
     } else {
-      const fallback = document.getElementById("dockNewProjectBtn");
+      const fallback = document.getElementById("railNewProjectBtn");
       if (fallback instanceof HTMLElement) {
         fallback.focus({ preventScroll: true });
       }

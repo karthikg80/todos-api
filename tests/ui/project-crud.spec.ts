@@ -445,7 +445,7 @@ test.describe("Project actions drawer", () => {
   }) => {
     test.skip(isMobile, "Desktop-focused CRUD rail interactions");
 
-    await page.locator("#dockNewProjectBtn").click();
+    await page.locator("#railNewProjectBtn").click();
     await expect(page.locator("#projectCrudModal")).toBeVisible();
     await page.locator("#projectCrudNameInput").fill("Errands");
     await page.locator("#projectCrudSubmitButton").click();
@@ -565,12 +565,12 @@ test.describe("Project actions drawer", () => {
   }) => {
     test.skip(isMobile, "Desktop-focused CRUD rail interactions");
 
-    await page.locator("#dockNewProjectBtn").click();
+    await page.locator("#railNewProjectBtn").click();
     await page.locator("#projectCrudNameInput").fill("Chores");
     await page.locator("#projectCrudSubmitButton").click();
     await expect(page.locator("#projectCrudModal")).toBeHidden();
 
-    await page.locator("#dockNewProjectBtn").click();
+    await page.locator("#railNewProjectBtn").click();
     await page.locator("#projectCrudNameInput").fill("Chores");
     await page.locator("#projectCrudSubmitButton").click();
 

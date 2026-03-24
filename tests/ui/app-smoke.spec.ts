@@ -11,14 +11,15 @@ import {
  */
 async function clickLogout(page: Page) {
   const profileBtn = page.locator("#dockProfileBtn");
-  if (await profileBtn.isVisible()) {
+  if (await profileBtn.isVisible({ timeout: 500 }).catch(() => false)) {
+    await profileBtn.scrollIntoViewIfNeeded();
     await profileBtn.click();
+    // Logout is a menuitem in the profile hub dropdown.
+    await page.getByRole("menuitem", { name: "Logout" }).click();
+  } else {
+    // Mobile: direct logout button in header bar.
+    await page.getByRole("button", { name: "Logout" }).click();
   }
-  // Logout is a menuitem in the profile hub on desktop, a button on mobile.
-  await page
-    .getByRole("menuitem", { name: "Logout" })
-    .or(page.getByRole("button", { name: "Logout" }))
-    .click();
 }
 
 type UserRecord = {
