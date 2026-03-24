@@ -436,6 +436,24 @@ test.describe("Todo drawer essentials editing", () => {
         dependsOnTaskIds: [],
         archived: false,
       },
+      {
+        id: "dep-task-1",
+        title: "Dependency alpha",
+        description: null,
+        notes: null,
+        category: null,
+        dueDate: null,
+        priority: "low",
+      },
+      {
+        id: "dep-task-2",
+        title: "Dependency beta",
+        description: null,
+        notes: null,
+        category: null,
+        dueDate: null,
+        priority: "low",
+      },
     ]);
 
     await registerAndOpenTodos(page);
@@ -459,12 +477,16 @@ test.describe("Todo drawer essentials editing", () => {
     await page.locator("#drawerTagsInput").blur();
     await page.locator("#drawerWaitingOnInput").fill("Vendor quote");
     await page.locator("#drawerWaitingOnInput").blur();
-    await page
-      .locator("#drawerDependsOnInput")
-      .fill(
-        "00000000-0000-1000-8000-000000000001, 00000000-0000-1000-8000-000000000002",
-      );
-    await page.locator("#drawerDependsOnInput").blur();
+    // Use task picker to add dependencies by searching
+    const depPicker = page.locator("#drawerDependsOnPicker");
+    await depPicker.locator(".task-picker__search").fill("Dependency alpha");
+    await depPicker
+      .locator(".task-picker__option", { hasText: "Dependency alpha" })
+      .click();
+    await depPicker.locator(".task-picker__search").fill("Dependency beta");
+    await depPicker
+      .locator(".task-picker__option", { hasText: "Dependency beta" })
+      .click();
     await page.locator("#drawerArchivedToggle").check();
 
     await expect
@@ -561,7 +583,17 @@ test.describe("Todo drawer essentials editing", () => {
   test("creates a task with richer metadata from quick entry", async ({
     page,
   }) => {
-    await installDrawerEditMockApi(page, []);
+    await installDrawerEditMockApi(page, [
+      {
+        id: "dep-qe-1",
+        title: "Prerequisite task",
+        description: null,
+        notes: null,
+        category: null,
+        dueDate: null,
+        priority: "low",
+      },
+    ]);
 
     await registerAndOpenTodos(page);
     await page.evaluate(() =>
@@ -591,9 +623,12 @@ test.describe("Todo drawer essentials editing", () => {
     await page.locator("#todoEstimateInput").fill("30");
     await page.locator("#todoTagsInput").fill("travel, planning");
     await page.locator("#todoWaitingOnInput").fill("Budget approval");
-    await page
-      .locator("#todoDependsOnInput")
-      .fill("00000000-0000-1000-8000-000000000011");
+    // Use task picker to add a dependency by searching
+    const qePicker = page.locator("#todoDependsOnPicker");
+    await qePicker.locator(".task-picker__search").fill("Prerequisite");
+    await qePicker
+      .locator(".task-picker__option", { hasText: "Prerequisite task" })
+      .click();
     await page.getByRole("button", { name: /Add notes/ }).click();
     await page.locator("#todoNotesInput").fill("Need options ready");
 
@@ -619,9 +654,7 @@ test.describe("Todo drawer essentials editing", () => {
       notes: "Need options ready",
     });
     expect(payload.tags).toEqual(["travel", "planning"]);
-    expect(payload.dependsOnTaskIds).toEqual([
-      "00000000-0000-1000-8000-000000000011",
-    ]);
+    expect(payload.dependsOnTaskIds).toEqual(["dep-qe-1"]);
     expect(payload.startDate).toBe(toIsoFromLocalDateTime("2026-05-30T09:00"));
     expect(payload.scheduledDate).toBe(
       toIsoFromLocalDateTime("2026-05-31T10:00"),

@@ -2735,15 +2735,6 @@
                                   >
                                     Someday
                                   </option>
-                                  <option value="done" title="Completed">
-                                    Done
-                                  </option>
-                                  <option
-                                    value="cancelled"
-                                    title="No longer needed"
-                                  >
-                                    Cancelled
-                                  </option>
                                 </select>
                               </label>
                               <div
@@ -2957,21 +2948,12 @@
                                 </label>
                               </div>
                               <div class="field-row task-composer-fields">
-                                <label
+                                <div
                                   class="task-composer-inline-field task-composer-inline-field--wide"
-                                  for="todoDependsOnInput"
                                 >
                                   <span>Depends on</span>
-                                  <textarea
-                                    id="todoDependsOnInput"
-                                    rows="2"
-                                    placeholder="Paste task IDs, separated by commas"
-                                  ></textarea>
-                                  <span class="task-composer-inline-field__hint"
-                                    >Use task IDs for now. A task picker is
-                                    still on the way.</span
-                                  >
-                                </label>
+                                  <div id="todoDependsOnPicker"></div>
+                                </div>
                               </div>
                             </details>
                           </div>

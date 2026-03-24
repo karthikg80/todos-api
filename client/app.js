@@ -268,6 +268,7 @@ import {
   resetTaskComposerFields,
   clearTaskComposerDueDate,
   bindTaskComposerHandlers,
+  getComposerDependsOnIds,
 } from "./modules/quickEntry.js";
 import {
   getTodoDueDate,
@@ -1129,6 +1130,8 @@ function bindDockHandlers() {
   hooks.updateProjectSelectOptions = updateProjectSelectOptions;
   // overlayManager → filterLogic
   hooks.syncTodoDrawerStateWithRender = syncTodoDrawerStateWithRender;
+  // quickEntry → todosService
+  hooks.getComposerDependsOnIds = getComposerDependsOnIds;
   // Utility hooks (from window.Utils / aiSuggestionUtils)
   hooks.escapeHtml = escapeHtml;
   hooks.showMessage = showMessage;

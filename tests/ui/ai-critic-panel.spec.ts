@@ -290,7 +290,10 @@ test.describe("Task Critic feature flag", () => {
 
     await expect(page.locator(".critic-panel-enhanced")).toBeVisible();
     await page.locator(".critic-future-insights summary").click();
-    await page.getByRole("button", { name: "Dismiss" }).click();
+    await page
+      .locator("#aiCritiquePanel")
+      .getByRole("button", { name: "Dismiss" })
+      .click();
     await expect(page.locator("#aiCritiquePanel")).toBeHidden();
 
     expect(state.suggestionStatusPayloads).toHaveLength(2);

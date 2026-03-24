@@ -13,6 +13,7 @@ import { applyAsyncAction, applyUiAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { getEffortScoreLabel, getEffortScoreValue } from "./soulConfig.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import { mountTaskPicker } from "../utils/taskPicker.js";
 import {
   hasTodoRow,
   patchHeaderCountsFromVisibleTodos,
@@ -27,6 +28,10 @@ import {
   renderDrawerSection,
   renderStatusMessage,
 } from "./uiTemplates.js";
+
+// Active task-picker instance for the depends-on field. Destroyed and
+// re-created each time the drawer content is fully re-rendered.
+let activeDepPicker = null;
 
 // ---------------------------------------------------------------------------
 // Utilities (local, not cross-module)
@@ -1284,8 +1289,8 @@ export function renderTodoDrawerContent() {
           <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Waiting</option>
           <option value="scheduled" ${draft.status === "scheduled" ? "selected" : ""}>Scheduled</option>
           <option value="someday" ${draft.status === "someday" ? "selected" : ""}>Someday</option>
-          <option value="done" ${draft.status === "done" ? "selected" : ""}>Done</option>
-          <option value="cancelled" ${draft.status === "cancelled" ? "selected" : ""}>Cancelled</option>
+          ${draft.status === "done" ? `<option value="done" selected>Done</option>` : ""}
+          ${draft.status === "cancelled" ? `<option value="cancelled" selected>Cancelled</option>` : ""}
         </select>
       </label>
       <label class="todo-drawer__field" for="drawerDueDateInput">
@@ -1388,11 +1393,10 @@ export function renderTodoDrawerContent() {
           <span>Waiting on</span>
           <input id="drawerWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" placeholder="Budget approval, vendor reply, callback" />
         </label>
-        <label class="todo-drawer__field" for="drawerDependsOnInput">
+        <div class="todo-drawer__field">
           <span>Depends on</span>
-          <textarea id="drawerDependsOnInput" maxlength="4000" placeholder="Paste task IDs, separated by commas">${escapeHtml(draft.dependsOnTaskIdsText)}</textarea>
-          <small class="todo-drawer__field-hint">Use task IDs for now. A task picker is still on the way.</small>
-        </label>
+          <div id="drawerDependsOnPicker"></div>
+        </div>
         <label class="todo-drawer__field" for="drawerCategoryInput">
           <span>Category</span>
           <input id="drawerCategoryInput" type="text" maxlength="50" value="${escapeHtml(draft.categoryDetail)}" />
@@ -1431,6 +1435,26 @@ export function renderTodoDrawerContent() {
     })}
   `;
   setDrawerSaveState(state.drawerSaveState, state.drawerSaveMessage);
+
+  // Mount the task dependency picker into the placeholder div
+  if (activeDepPicker) {
+    activeDepPicker.destroy();
+    activeDepPicker = null;
+  }
+  const pickerRoot = contentEl.querySelector("#drawerDependsOnPicker");
+  if (pickerRoot && draft) {
+    const initialIds = parseCommaSeparatedList(draft.dependsOnTaskIdsText);
+    activeDepPicker = mountTaskPicker(pickerRoot, {
+      selectedIds: initialIds,
+      getTodos: () => state.todos,
+      excludeId: draft.id,
+      escapeHtml: escapeHtml,
+      onChange(ids) {
+        updateDrawerDraftField("dependsOnTaskIdsText", ids.join(", "));
+        saveDrawerPatch({ dependsOnTaskIds: ids });
+      },
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2073,10 +2097,7 @@ export function bindTodoDrawerHandlers() {
       onDrawerTagsInput(event);
       return;
     }
-    if (target.id === "drawerDependsOnInput") {
-      onDrawerDependsOnInput(event);
-      return;
-    }
+    // drawerDependsOnInput replaced by task picker — no delegated handler
     if (target.id === "drawerCategoryInput") {
       onDrawerCategoryInput(event);
     }
@@ -2187,10 +2208,7 @@ export function bindTodoDrawerHandlers() {
         onDrawerTagsBlur();
         return;
       }
-      if (target.id === "drawerDependsOnInput") {
-        onDrawerDependsOnBlur();
-        return;
-      }
+      // drawerDependsOnInput replaced by task picker — no delegated handler
       if (target.id === "drawerCategoryInput") {
         onDrawerCategoryBlur();
       }
