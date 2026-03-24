@@ -1202,14 +1202,25 @@ body.dark-mode .apple-btn:hover {
 .form-group select,
 .form-group textarea {
   width: 100%;
-  padding: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  min-height: var(--control-md);
   border: 1px solid var(--border-color);
-  border-radius: var(--r-sm);
-  font-size: var(--fs-md);
-  transition: border-color 0.3s;
+  border-radius: var(--r-md);
+  font-size: var(--fs-body);
+  transition: border-color var(--dur-base) var(--ease-out);
   font-family: var(--font-sans);
   background: var(--input-bg);
   color: var(--text-primary);
+}
+
+.form-group select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right var(--s-3) center;
+  background-size: var(--icon-sm);
+  padding-right: var(--s-7);
 }
 
 .form-group input:focus,
@@ -2276,11 +2287,58 @@ textarea:focus-visible,
 }
 
 .todo-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
   width: 22px;
   height: 22px;
+  border: 2px solid var(--border-color);
+  border-radius: var(--r-circle);
   cursor: pointer;
-  accent-color: var(--success, #27ae60);
-  border-radius: 50%;
+  flex-shrink: 0;
+  position: relative;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
+}
+
+.todo-checkbox:hover {
+  border-color: var(--success);
+}
+
+.todo-checkbox:checked {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.todo-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 6px;
+  width: 5px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.todo-checkbox:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+/* Mobile sheet drag handle — visible affordance for dismissal */
+.sheet-drag-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border-color);
+  margin: var(--s-2) auto var(--s-3);
+}
+
+@media (min-width: 769px) {
+  .sheet-drag-handle {
+    display: none;
+  }
 }
 
 .todo-content {
