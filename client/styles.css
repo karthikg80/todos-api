@@ -837,8 +837,14 @@ body:not(.is-todos-view) .container {
 }
 
 .landing-feature-card__icon {
-  font-size: 2rem;
-  margin-bottom: var(--s-2);
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface-2));
+  color: var(--accent);
+  margin-bottom: var(--s-3);
 }
 
 .landing-feature-card h3 {
@@ -908,7 +914,13 @@ body:not(.is-todos-view) .container {
 }
 
 .landing-card__icon {
-  font-size: 1.6rem;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--r-sm);
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface-2));
+  color: var(--accent);
   margin-bottom: var(--s-2);
 }
 
@@ -5404,7 +5416,11 @@ body.is-todos-view .floating-new-task-cta {
 
 .todo-drawer__accordion-chevron {
   color: var(--text-secondary);
-  font-size: 0.9rem;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.todo-drawer__accordion-chevron--open {
+  transform: rotate(90deg);
 }
 
 .todo-drawer__accordion-panel {
