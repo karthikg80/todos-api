@@ -503,7 +503,7 @@ function renderProjectsRailRowHtml(
     `<button type="button" class="projects-rail-item${isActive ? " projects-rail-item--active" : ""}" data-project-key="${escapeHtml(projectName)}"${isActive ? ' aria-current="page"' : ""}>` +
     svgIcon +
     `<span class="projects-rail-item__label" title="${escapeHtml(leafName)}">${escapeHtml(leafName)}</span>` +
-    `<span class="projects-rail-item__count">${count}</span>` +
+    `<span class="projects-rail-item__count"${count === 0 ? " hidden" : ""}>${count}</span>` +
     `</button></div>`
   );
 }
@@ -551,6 +551,7 @@ function patchProjectsRailRowElement(
   }
   if (countEl instanceof HTMLElement) {
     countEl.textContent = String(count);
+    countEl.hidden = count === 0;
   }
 }
 
@@ -827,9 +828,11 @@ export function renderProjectsRail() {
   );
   if (desktopAllCount instanceof HTMLElement) {
     desktopAllCount.textContent = String(allCount);
+    desktopAllCount.hidden = allCount === 0;
   }
   if (desktopUnsortedCount instanceof HTMLElement) {
     desktopUnsortedCount.textContent = String(unsortedCount);
+    desktopUnsortedCount.hidden = unsortedCount === 0;
   }
   const sheetAllCount = refs.sheetAllTasksButton.querySelector(
     ".projects-rail-item__count",
@@ -839,9 +842,11 @@ export function renderProjectsRail() {
   );
   if (sheetAllCount instanceof HTMLElement) {
     sheetAllCount.textContent = String(allCount);
+    sheetAllCount.hidden = allCount === 0;
   }
   if (sheetUnsortedCount instanceof HTMLElement) {
     sheetUnsortedCount.textContent = String(unsortedCount);
+    sheetUnsortedCount.hidden = unsortedCount === 0;
   }
 
   refs.allTasksButton.setAttribute("data-project-key", "");

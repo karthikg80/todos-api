@@ -120,8 +120,7 @@ function _buildMetaHtml() {
     return `
       <div class="home-priorities-status" aria-live="polite">
         Refreshing priorities…
-      </div>
-      ${stampHtml}`;
+      </div>`;
   }
 
   if (_error && _html) {
@@ -265,7 +264,7 @@ export function renderPrioritiesTileShell() {
                 class="mini-btn home-priorities-refresh-btn"
                 data-onclick="refreshPrioritiesTile()"
                 aria-label="Refresh priorities"
-                title="Refresh">&#8635;</button>
+                title="Recalculate priorities">&#8635;</button>
       </div>
       <div class="home-tile__body home-priorities-body" id="${TILE_BODY_ID}">
         ${_buildBodyHtml()}
