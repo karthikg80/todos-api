@@ -2883,8 +2883,37 @@ body.dark-mode .delete-btn {
 .projects-rail__header {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--s-2);
+}
+
+.rail-profile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.rail-profile-btn:hover {
+  background: var(--card-hover);
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.rail-profile-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .projects-rail__primary,
@@ -2945,6 +2974,33 @@ body.is-admin-user .dock-admin-btn {
   color: var(--text-secondary);
   font-size: var(--fs-sm);
   font-weight: var(--fw-medium);
+}
+
+.projects-rail__add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.projects-rail__add-btn:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.projects-rail__add-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
 }
 
 .projects-rail-create-btn {
@@ -3336,10 +3392,11 @@ button.projects-rail-item {
   }
 }
 
-/* Floating New Task CTA hidden on desktop — the dashboard hero button serves that role */
+/* Floating New Task CTA — visible on all viewports in todos view */
 @media (min-width: 769px) {
   .floating-new-task-cta {
-    display: none !important;
+    right: 24px;
+    bottom: 24px;
   }
 }
 
@@ -6721,9 +6778,8 @@ textarea:disabled {
   }
 
   .floating-new-task-cta {
-    left: 12px;
-    right: auto;
-    bottom: 12px;
+    right: 16px;
+    bottom: 72px;
   }
 
   .todos-top-bar {
@@ -8888,16 +8944,15 @@ body.dark-mode .dock-icon--sun {
 }
 
 #todosScrollRegion {
-  padding-bottom: 88px;
+  padding-bottom: 72px;
 }
 
-body:has(.todo-kebab-menu--open) .floating-new-task-cta,
-body:has(.todo-kebab-menu--open) .bottom-action-dock {
+body:has(.todo-kebab-menu--open) .floating-new-task-cta {
   pointer-events: none;
 }
 
 #projectsRail {
-  padding-bottom: 88px;
+  padding-bottom: var(--s-5);
 }
 
 .projects-rail__footer--admin-only {
@@ -8912,8 +8967,8 @@ body.is-admin-user .projects-rail__footer--admin-only {
 
 .dock-profile-panel {
   position: fixed;
-  bottom: 76px;
-  left: var(--s-5);
+  top: 48px;
+  left: var(--s-3);
   z-index: 55;
   width: 220px;
   background: var(--surface);
@@ -9093,11 +9148,10 @@ body.is-admin-user .projects-rail__footer--admin-only {
     padding-top: 16px;
   }
 
-  /* 9. Fix floating CTA — anchor to bottom-right of viewport */
+  /* 9. Floating CTA — bottom-right on mobile */
   .floating-new-task-cta {
-    left: 20px;
-    right: auto;
-    bottom: 24px;
+    right: 16px;
+    bottom: 72px;
   }
 
   /* 10. Reduce card padding on mobile */

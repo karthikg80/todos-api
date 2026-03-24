@@ -874,11 +874,12 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
   });
 
-  test("Desktop dock profile hub contains nav items", async ({ page }) => {
-    test.skip(isMobileViewport(page), "Dock is desktop-only.");
+  test("Sidebar profile hub contains nav items", async ({ page }) => {
+    test.skip(isMobileViewport(page), "Sidebar is desktop-only.");
 
-    // Open profile hub dropdown
+    // Profile button is in the sidebar utility section — scroll into view
     const profileBtn = page.locator("#dockProfileBtn");
+    await profileBtn.scrollIntoViewIfNeeded();
     await expect(profileBtn).toBeVisible();
     await profileBtn.click();
 
