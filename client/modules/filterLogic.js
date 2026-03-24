@@ -558,6 +558,27 @@ function updateHeaderAndContextUI({
 
   hooks.syncProjectHeaderActions?.();
   hooks.updateTopbarProjectsButton?.(projectName);
+
+  // Done-today badge
+  const doneBadge = document.getElementById("doneTodayBadge");
+  if (doneBadge instanceof HTMLElement) {
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const doneToday = state.todos.filter((t) => {
+      if (!t.completed || !t.updatedAt) return false;
+      return new Date(t.updatedAt) >= todayStart;
+    }).length;
+    if (doneToday > 0) {
+      doneBadge.textContent = `✓ ${doneToday} done today`;
+      doneBadge.hidden = false;
+    } else {
+      doneBadge.hidden = true;
+    }
+  }
 }
 
 function getOpenTodos() {
