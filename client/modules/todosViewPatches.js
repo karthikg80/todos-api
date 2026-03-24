@@ -93,8 +93,8 @@ function buildNotesSectionHtml(todo) {
   return `
     <div class="notes-section">
       <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
-        <span class="expand-icon" id="notes-icon-${todo.id}">▶</span>
-        <span>📝 Notes</span>
+        <span class="expand-icon" id="notes-icon-${todo.id}"><svg class="app-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+        <span>Notes</span>
       </button>
       <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
         ${escapeHtml(notes)}

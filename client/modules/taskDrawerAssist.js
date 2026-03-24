@@ -422,12 +422,12 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
   // Workflow status chip (show non-default statuses)
   const status = String(todo.status || "").toLowerCase();
   const STATUS_LABELS = {
-    waiting: "⏳ Waiting",
-    scheduled: "🗓 Scheduled",
-    someday: "☁️ Someday",
-    in_progress: "▶ In Progress",
+    waiting: "Waiting",
+    scheduled: "Scheduled",
+    someday: "Someday",
+    in_progress: "In Progress",
     next: "Up Next",
-    cancelled: "✗ Cancelled",
+    cancelled: "Cancelled",
   };
   if (STATUS_LABELS[status]) {
     chips.push(

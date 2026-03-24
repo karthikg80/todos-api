@@ -767,7 +767,7 @@ function renderProjectHeadingGroupedRows(projectTodos, projectName) {
       >
         <span class="todo-heading-divider__title">${hooks.escapeHtml?.(String(heading.name))}</span>
         <span class="todo-heading-divider__meta">
-          <span class="todo-heading-divider__drag-handle" aria-hidden="true">⋮⋮</span>
+          <span class="todo-heading-divider__drag-handle" aria-hidden="true"><svg class="app-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg></span>
           <span class="todo-heading-divider__count">${items.length}</span>
           <button
             type="button"

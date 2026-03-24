@@ -86,7 +86,7 @@ export function renderDrawerAccordionSection({
         aria-controls="${escapeHtml(panelId)}"
       >
         <span>${escapeHtml(title)}</span>
-        <span class="todo-drawer__accordion-chevron" aria-hidden="true">${expanded ? "▾" : "▸"}</span>
+        <span class="todo-drawer__accordion-chevron${expanded ? " todo-drawer__accordion-chevron--open" : ""}" aria-hidden="true"><svg class="app-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
       </button>
       <div
         id="${escapeHtml(panelId)}"
@@ -143,7 +143,7 @@ export function renderTodoRowTemplate({
         data-onchange="toggleSelectTodo('${escapeHtml(todo?.id || "")}')"
         data-onclick="event.stopPropagation()"
       >
-      <span class="drag-handle" title="Drag to reorder" aria-hidden="true">⋮⋮</span>
+      <span class="drag-handle" title="Drag to reorder" aria-hidden="true"><svg class="app-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg></span>
       <input
         type="checkbox"
         class="todo-checkbox"
@@ -166,7 +166,7 @@ export function renderTodoRowTemplate({
           aria-expanded="${kebabExpanded ? "true" : "false"}"
           data-onclick="toggleTodoKebab('${escapeHtml(todo?.id || "")}', event)"
         >
-          ⋯
+          <svg class="app-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
         </button>
         <div
           class="todo-kebab-menu ${kebabExpanded ? "todo-kebab-menu--open" : ""}"
