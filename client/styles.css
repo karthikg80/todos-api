@@ -2294,6 +2294,7 @@ textarea:focus-visible,
 .todo-checkbox:checked {
   background: var(--success);
   border-color: var(--success);
+  animation: check-pulse 300ms var(--ease-spring);
 }
 
 .todo-checkbox:checked::after {
@@ -2305,7 +2306,30 @@ textarea:focus-visible,
   height: 10px;
   border: solid #fff;
   border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
+  animation: checkmark-in 200ms var(--ease-spring) both;
+}
+
+@keyframes checkmark-in {
+  from {
+    opacity: 0;
+    transform: rotate(45deg) scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: rotate(45deg) scale(1);
+  }
+}
+
+@keyframes check-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .todo-checkbox:focus-visible {
@@ -3641,16 +3665,27 @@ body.is-todos-view .floating-new-task-cta {
 .command-palette-overlay {
   position: fixed;
   inset: 0;
-  display: none;
+  display: flex;
   align-items: flex-start;
   justify-content: center;
   padding-top: 12vh;
   background: var(--overlay);
   z-index: 2550;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    visibility 0s var(--dur-fast);
 }
 
 .command-palette-overlay--open {
-  display: flex;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    visibility 0s 0s;
 }
 
 .command-palette-panel {
@@ -3658,11 +3693,17 @@ body.is-todos-view .floating-new-task-cta {
   max-height: 72vh;
   border: 1px solid var(--border-color);
   border-radius: var(--r-lg);
+  transform: scale(0.96) translateY(-8px);
+  transition: transform var(--dur-base) var(--ease-spring);
   background: var(--container-bg);
   box-shadow: var(--shadow-2);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+.command-palette-overlay--open .command-palette-panel {
+  transform: scale(1) translateY(0);
 }
 
 .command-palette-input {
@@ -5357,15 +5398,26 @@ body.is-todos-view .floating-new-task-cta {
   right: 0;
   width: min(420px, 100%);
   height: 100vh;
-  display: none;
+  display: flex;
   flex-direction: column;
   background: var(--container-bg);
   border-left: 1px solid var(--border-color);
   z-index: 2400;
+  transform: translateX(100%);
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    transform var(--dur-slow) var(--ease-spring),
+    visibility 0s var(--dur-slow);
 }
 
 .todo-drawer--open {
-  display: flex;
+  transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
+  transition:
+    transform var(--dur-slow) var(--ease-spring),
+    visibility 0s 0s;
 }
 
 .todo-drawer__header {
