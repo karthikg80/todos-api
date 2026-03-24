@@ -26,6 +26,7 @@ html {
   --shadow-1: 0 8px 24px rgb(15 23 42 / 8%);
   --shadow-2: 0 20px 60px rgb(15 23 42 / 16%);
 
+  --s-0: 2px;
   --s-1: 4px;
   --s-2: 8px;
   --s-3: 12px;
@@ -33,17 +34,29 @@ html {
   --s-5: 24px;
   --s-6: 32px;
   --s-7: 40px;
+  --s-8: 48px;
+  --s-9: 64px;
+  --s-10: 80px;
 
   --font-sans:
     "Inter", "Avenir Next", "Segoe UI", -apple-system, BlinkMacSystemFont,
     "Helvetica Neue", Arial, sans-serif;
-  --fs-xs: 0.75rem;
-  --fs-sm: 0.875rem;
-  --fs-md: 1rem;
+  /* Typography — explicit scale, fewer sizes */
+  --fs-display: 3rem;
+  --fs-page-title: 2rem;
+  --fs-section: 1.25rem;
+  --fs-body: 1rem;
+  --fs-meta: 0.8125rem;
+  --fs-label: 0.75rem;
+  /* Backward-compat aliases */
+  --fs-xs: var(--fs-label);
+  --fs-sm: var(--fs-meta);
+  --fs-md: var(--fs-body);
   --fs-lg: 1.125rem;
   --fs-xl: 1.5rem;
-  --fs-2xl: 2rem;
+  --fs-2xl: var(--fs-page-title);
   --lh-tight: 1.25;
+  --lh-snug: 1.35;
   --lh-base: 1.5;
   --lh-loose: 1.7;
   --fw-regular: 400;
@@ -51,7 +64,42 @@ html {
   --fw-semibold: 600;
   --fw-bold: 700;
 
-  --focus-ring: 0 0 0 3px rgb(79 110 247 / 28%);
+  /* Control heights */
+  --control-sm: 32px;
+  --control-md: 40px;
+  --control-lg: 44px;
+  --row-height: 48px;
+
+  /* Additional radii */
+  --r-full: 999px;
+  --r-circle: 50%;
+
+  /* Elevation shadows */
+  --shadow-0: none;
+  --shadow-hover: 0 2px 8px rgb(15 23 42 / 6%), 0 1px 2px rgb(15 23 42 / 4%);
+  --shadow-card: 0 4px 16px rgb(15 23 42 / 8%);
+  --shadow-elevated: 0 8px 30px rgb(15 23 42 / 12%);
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 280ms;
+
+  /* Icon sizes */
+  --icon-sm: 14px;
+  --icon-md: 16px;
+  --icon-lg: 20px;
+  --icon-xl: 24px;
+
+  /* Focus ring (double-ring: surface gap + accent ring) */
+  --ring-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  --ring-width: 2px;
+  --ring-gap: 2px;
+  --focus-ring:
+    0 0 0 var(--ring-gap) var(--surface),
+    0 0 0 calc(var(--ring-gap) + var(--ring-width)) var(--ring-color);
 
   /* Backward-compat aliases to keep selectors stable in M0 */
   --bg-gradient-start: var(--accent);
@@ -83,7 +131,15 @@ body.dark-mode {
   --success: #5ecf9f;
   --overlay: rgb(2 6 23 / 72%);
   --scrim: rgb(2 6 23 / 50%);
-  --focus-ring: 0 0 0 3px rgb(137 164 255 / 35%);
+  --ring-color: color-mix(in oklab, var(--accent) 50%, transparent);
+  --focus-ring:
+    0 0 0 var(--ring-gap) var(--surface),
+    0 0 0 calc(var(--ring-gap) + var(--ring-width)) var(--ring-color);
+
+  /* Dark mode shadows */
+  --shadow-hover: 0 2px 8px rgb(2 6 23 / 20%), 0 1px 2px rgb(2 6 23 / 14%);
+  --shadow-card: 0 4px 16px rgb(2 6 23 / 22%);
+  --shadow-elevated: 0 8px 30px rgb(2 6 23 / 30%);
 
   --bg-gradient-start: #111827;
   --bg-gradient-end: #182233;
@@ -102,6 +158,12 @@ body.dark-mode {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+}
+
+.app-icon {
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 html,
