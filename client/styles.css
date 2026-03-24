@@ -2202,22 +2202,8 @@ textarea:focus-visible,
   color: var(--danger);
 }
 
-.todo-item {
-  background: var(--card-bg);
-  padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  border: 1px solid var(--border-color);
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
-  gap: 12px;
-  transition:
-    background var(--dur-base) var(--ease-out),
-    color var(--dur-base) var(--ease-out),
-    border-color var(--dur-base) var(--ease-out);
-  cursor: move;
-}
+/* Legacy .todo-item block removed — superseded by M7 normalized
+   definition at line ~5843 with design tokens and 3-column grid */
 
 .todo-item:hover {
   background: var(--card-hover);
