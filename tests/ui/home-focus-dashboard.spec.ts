@@ -712,19 +712,20 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator('[data-testid="home-dashboard"]')).toBeVisible();
     await expectWorkspaceViewActive(page, "home");
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
+    await expect(page.locator('[data-testid="home-brief-card"]')).toBeVisible();
     await expect(
       page.locator('[data-testid="home-priorities-tile"]'),
     ).toBeVisible();
     await expect(
       page.locator('[data-testid="home-priorities-tile"]'),
-    ).toContainText("Next priorities");
+    ).toContainText("Today's focus");
     await expect(
       page.locator('[data-testid="home-priorities-tile"]'),
     ).toContainText(
       /Prepare launch checklist|Send overdue invoice|Nothing urgent right now/,
     );
-    await expect(page.locator('[data-home-tile="todays_plan"]')).toHaveCount(0);
-    await expect(page.locator('[data-home-tile="upcoming"]')).toHaveCount(0);
+    await expect(page.locator('[data-home-tile="due_soon"]')).toBeVisible();
+    await expect(page.locator('[data-home-tile="stale_risks"]')).toBeVisible();
   });
 
   test("New Task opens bottom sheet; Enter creates task and closes sheet", async ({
@@ -754,6 +755,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await clickWorkspaceView(page, "unsorted");
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("Project scoped task");
+    await page.locator("#quickEntryPropertiesToggle").click();
     await page.locator("#todoProjectSelect").selectOption({ label: "Work" });
     await page.locator("#taskComposerAddButton").click();
 
@@ -770,6 +772,24 @@ test.describe("Home focus dashboard + sheet composer", () => {
       page.locator(".todo-item").filter({ hasText: "Project scoped task" }),
     ).toBeVisible();
   });
+
+  test("Task composer opens in a compact default state", async ({ page }) => {
+    await openTaskComposerSheet(page);
+    await expect(page.locator("#quickEntryPropertiesPanel")).toBeHidden();
+    await expect(
+      page.locator(".task-composer-project-actions"),
+    ).not.toHaveAttribute("open", "");
+    await expect(page.locator("#todoInput")).toBeVisible();
+  });
+
+  test("All tasks keeps the list surface primary", async ({ page }) => {
+    await clickWorkspaceView(page, "all");
+    await expect(page.locator("#todosListHeader")).toBeVisible();
+    await expect(page.locator("#inlineQuickAdd")).toBeVisible();
+    await expect(page.locator('[data-testid="home-dashboard"]')).toHaveCount(0);
+    await expect(page.locator("#aiWorkspace")).toBeHidden();
+  });
+
   test("Today and Upcoming still navigate on the planner surface", async ({
     page,
   }) => {

@@ -734,6 +734,79 @@ export function renderHomeTaskTile({
   `;
 }
 
+function getHomeBriefHeadline(model, focusTask) {
+  const dueSoonCount = model.dueSoon.length;
+  const staleCount = getStaleRiskTodos(6).length;
+  if (!focusTask && dueSoonCount === 0 && staleCount === 0) {
+    return "Your list looks settled. Use Home to keep the day intentionally small.";
+  }
+  if (!focusTask) {
+    return `There ${dueSoonCount === 1 ? "is" : "are"} ${dueSoonCount} task${dueSoonCount === 1 ? "" : "s"} coming up soon${staleCount ? ` and ${staleCount} backlog item${staleCount === 1 ? "" : "s"} worth a quick cleanup` : ""}.`;
+  }
+  const reason = getHomeTopFocusReason(focusTask);
+  const reasonText = reason ? `${reason.toLowerCase()} and ` : "";
+  return `Start with ${escapeHtml(String(focusTask.title || "your next task"))}. It's ${reasonText}a good anchor for the rest of the day.`;
+}
+
+function buildHomeFocusItems(model) {
+  const aiFocusItems = buildHomeAiTopFocusItems();
+  if (aiFocusItems.length > 0) return aiFocusItems.slice(0, 3);
+  return takeExclusiveTodos(
+    [...model.dueSoon, ...model.nextActionTodos, ...getStaleRiskTodos(6)],
+    3,
+    new Set(),
+  );
+}
+
+function renderHomeBriefCard(model) {
+  const focusItems = buildHomeFocusItems(model);
+  const focusTask = focusItems[0] || null;
+  const dueSoonCount = model.dueSoon.length;
+  const staleCount = getStaleRiskTodos(6).length;
+
+  return `
+    <section class="home-brief-card" data-testid="home-brief-card">
+      <div class="home-brief-card__eyebrow">Daily brief</div>
+      <div class="home-brief-card__header">
+        <div class="home-brief-card__copy">
+          <h2 class="home-brief-card__title">Today's focus</h2>
+          <p class="home-brief-card__summary">${getHomeBriefHeadline(
+            model,
+            focusTask,
+          )}</p>
+        </div>
+        <div class="home-brief-card__stats" aria-label="Daily summary">
+          <div class="home-brief-card__stat">
+            <span class="home-brief-card__stat-value">${dueSoonCount}</span>
+            <span class="home-brief-card__stat-label">Due soon</span>
+          </div>
+          <div class="home-brief-card__stat">
+            <span class="home-brief-card__stat-value">${staleCount}</span>
+            <span class="home-brief-card__stat-label">Needs cleanup</span>
+          </div>
+        </div>
+      </div>
+      ${
+        focusTask
+          ? `<button
+              type="button"
+              class="home-brief-card__primary"
+              data-onclick="openTodoFromHomeTile('${escapeHtml(String(focusTask.id))}')"
+            >
+              <span class="home-brief-card__primary-label">Strongest next action</span>
+              <span class="home-brief-card__primary-title">${escapeHtml(String(focusTask.title || "Untitled task"))}</span>
+              <span class="home-brief-card__primary-meta">${escapeHtml(
+                getHomeTopFocusReason(focusTask) ||
+                  "Open the task and keep momentum.",
+              )}</span>
+            </button>`
+          : ""
+      }
+      ${renderPrioritiesTileShell()}
+    </section>
+  `;
+}
+
 export function renderProjectsToNudgeTile(items = []) {
   const folderIcon = `<svg class="home-project-row__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
   return `
@@ -987,6 +1060,8 @@ export function renderHomeDashboard() {
     return `<section class="home-dashboard" data-testid="home-dashboard"></section>`;
   }
   void loadPrioritiesBrief();
+  const model = getHomeDashboardModel();
+  const staleRiskTodos = getStaleRiskTodos(3);
 
   const hasTasks = state.todos && state.todos.length > 0;
   const emptyStateCta = hasTasks
@@ -999,7 +1074,31 @@ export function renderHomeDashboard() {
 
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
-      ${renderPrioritiesTileShell()}
+      ${hasTasks ? renderHomeBriefCard(model) : ""}
+      ${
+        hasTasks
+          ? `<div class="home-dashboard__support-grid">
+              ${renderHomeTaskTile({
+                key: "due_soon",
+                title: "Due soon",
+                subtitle:
+                  "Keep the horizon visible without turning it into a dashboard.",
+                items: model.dueSoon,
+                groupedItems: model.dueSoonGroups,
+                seeAllLabel: "See all",
+                emptyText: "Nothing urgent is coming up.",
+              })}
+              ${renderHomeTaskTile({
+                key: "stale_risks",
+                title: "Backlog hygiene",
+                subtitle: "A short list to keep the system feeling clean.",
+                items: staleRiskTodos,
+                seeAllLabel: "Review list",
+                emptyText: "Backlog looks calm right now.",
+              })}
+            </div>`
+          : ""
+      }
       ${emptyStateCta}
     </section>`;
 }
