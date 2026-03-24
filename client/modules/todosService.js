@@ -293,7 +293,7 @@ async function addTodo() {
   const estimateInput = document.getElementById("todoEstimateInput");
   const tagsInput = document.getElementById("todoTagsInput");
   const waitingOnInput = document.getElementById("todoWaitingOnInput");
-  const dependsOnInput = document.getElementById("todoDependsOnInput");
+  // dependsOnInput replaced by task picker — read via hooks
 
   if (state.quickEntryNaturalDateState.parseTimer) {
     clearTimeout(state.quickEntryNaturalDateState.parseTimer);
@@ -392,11 +392,9 @@ async function addTodo() {
   ) {
     payload.waitingOn = waitingOnInput.value.trim();
   }
-  if (
-    dependsOnInput instanceof HTMLTextAreaElement &&
-    dependsOnInput.value.trim()
-  ) {
-    payload.dependsOnTaskIds = parseCommaSeparatedList(dependsOnInput.value);
+  const composerDepIds = hooks.getComposerDependsOnIds?.() || [];
+  if (composerDepIds.length > 0) {
+    payload.dependsOnTaskIds = composerDepIds;
   }
   if (notesInput.value.trim()) {
     payload.notes = notesInput.value.trim();
@@ -457,9 +455,7 @@ async function addTodo() {
       if (waitingOnInput instanceof HTMLInputElement) {
         waitingOnInput.value = "";
       }
-      if (dependsOnInput instanceof HTMLTextAreaElement) {
-        dependsOnInput.value = "";
-      }
+      // dependsOnInput reset handled by resetTaskComposerFields via picker
       notesInput.value = "";
       hooks.resetQuickEntryNaturalDueState?.();
       hooks.setQuickEntryPropertiesOpen?.(false, { persist: false });

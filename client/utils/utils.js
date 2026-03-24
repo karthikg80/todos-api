@@ -14,8 +14,8 @@
     el.appendChild(textNode);
     var dismissBtn = document.createElement("button");
     dismissBtn.className = "message-dismiss";
-    dismissBtn.setAttribute("aria-label", "Close alert");
-    dismissBtn.textContent = "\u00d7";
+    dismissBtn.setAttribute("aria-label", "Dismiss");
+    dismissBtn.textContent = "Dismiss";
     dismissBtn.onclick = function () {
       el.classList.remove("show");
     };

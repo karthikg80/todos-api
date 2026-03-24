@@ -13,6 +13,7 @@ import { applyAsyncAction, applyUiAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { getEffortScoreLabel, getEffortScoreValue } from "./soulConfig.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import { mountTaskPicker } from "../utils/taskPicker.js";
 import {
   hasTodoRow,
   patchHeaderCountsFromVisibleTodos,
@@ -27,6 +28,10 @@ import {
   renderDrawerSection,
   renderStatusMessage,
 } from "./uiTemplates.js";
+
+// Active task-picker instance for the depends-on field. Destroyed and
+// re-created each time the drawer content is fully re-rendered.
+let activeDepPicker = null;
 
 // ---------------------------------------------------------------------------
 // Utilities (local, not cross-module)
@@ -1001,14 +1006,19 @@ function renderBreakDownSection(todo) {
   const escapeHtml = hooks.escapeHtml || ((s) => String(s));
   const s = state.breakDownState;
   const isForThisTodo = s.todoId === todo.id;
+  const helperHtml = `
+    <p class="todo-drawer__agent-hint">
+      Use this when a task feels vague or too big. We'll suggest smaller steps you can act on.
+    </p>`;
 
   let bodyHtml;
   if (s.applying && isForThisTodo) {
-    bodyHtml = `<div class="todo-drawer__agent-loading">Adding subtasks…</div>`;
+    bodyHtml = `${helperHtml}<div class="todo-drawer__agent-loading">Adding subtasks…</div>`;
   } else if (s.loading && isForThisTodo) {
-    bodyHtml = `<div class="todo-drawer__agent-loading">Thinking…</div>`;
+    bodyHtml = `${helperHtml}<div class="todo-drawer__agent-loading">Thinking…</div>`;
   } else if (s.error && isForThisTodo) {
     bodyHtml = `
+      ${helperHtml}
       <div class="todo-drawer__agent-error">${escapeHtml(s.error)}</div>
       <button type="button" class="todo-drawer__agent-btn"
         data-break-down-action="generate">Try again</button>`;
@@ -1024,6 +1034,7 @@ function renderBreakDownSection(todo) {
       )
       .join("");
     bodyHtml = `
+      ${helperHtml}
       <div class="todo-drawer__break-down-list">${items}</div>
       <div class="todo-drawer__agent-actions">
         <button type="button" class="todo-drawer__agent-btn todo-drawer__agent-btn--primary"
@@ -1036,6 +1047,7 @@ function renderBreakDownSection(todo) {
       </div>`;
   } else {
     bodyHtml = `
+      ${helperHtml}
       <button type="button" class="todo-drawer__agent-btn"
         data-break-down-action="generate">Suggest subtasks</button>`;
   }
@@ -1277,8 +1289,8 @@ export function renderTodoDrawerContent() {
           <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Waiting</option>
           <option value="scheduled" ${draft.status === "scheduled" ? "selected" : ""}>Scheduled</option>
           <option value="someday" ${draft.status === "someday" ? "selected" : ""}>Someday</option>
-          <option value="done" ${draft.status === "done" ? "selected" : ""}>Done</option>
-          <option value="cancelled" ${draft.status === "cancelled" ? "selected" : ""}>Cancelled</option>
+          ${draft.status === "done" ? `<option value="done" selected>Done</option>` : ""}
+          ${draft.status === "cancelled" ? `<option value="cancelled" selected>Cancelled</option>` : ""}
         </select>
       </label>
       <label class="todo-drawer__field" for="drawerDueDateInput">
@@ -1314,7 +1326,7 @@ export function renderTodoDrawerContent() {
       </label>
       <label class="todo-drawer__field" for="drawerContextInput">
         <span>Context</span>
-        <input id="drawerContextInput" type="text" maxlength="100" value="${escapeHtml(draft.context)}" />
+        <input id="drawerContextInput" type="text" maxlength="100" value="${escapeHtml(draft.context)}" placeholder="computer, home, calls" />
       </label>
       <label class="todo-drawer__field" for="drawerEffortSelect">
         <span>Effort</span>
@@ -1375,16 +1387,16 @@ export function renderTodoDrawerContent() {
         </label>
         <label class="todo-drawer__field" for="drawerTagsInput">
           <span>Tags</span>
-          <input id="drawerTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="comma, separated, tags" />
+          <input id="drawerTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="travel, planning, admin" />
         </label>
         <label class="todo-drawer__field" for="drawerWaitingOnInput">
           <span>Waiting on</span>
-          <input id="drawerWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" />
+          <input id="drawerWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" placeholder="Budget approval, vendor reply, callback" />
         </label>
-        <label class="todo-drawer__field" for="drawerDependsOnInput">
-          <span>Depends on task IDs</span>
-          <textarea id="drawerDependsOnInput" maxlength="4000" placeholder="comma-separated task UUIDs">${escapeHtml(draft.dependsOnTaskIdsText)}</textarea>
-        </label>
+        <div class="todo-drawer__field">
+          <span>Depends on</span>
+          <div id="drawerDependsOnPicker"></div>
+        </div>
         <label class="todo-drawer__field" for="drawerCategoryInput">
           <span>Category</span>
           <input id="drawerCategoryInput" type="text" maxlength="50" value="${escapeHtml(draft.categoryDetail)}" />
@@ -1423,6 +1435,26 @@ export function renderTodoDrawerContent() {
     })}
   `;
   setDrawerSaveState(state.drawerSaveState, state.drawerSaveMessage);
+
+  // Mount the task dependency picker into the placeholder div
+  if (activeDepPicker) {
+    activeDepPicker.destroy();
+    activeDepPicker = null;
+  }
+  const pickerRoot = contentEl.querySelector("#drawerDependsOnPicker");
+  if (pickerRoot && draft) {
+    const initialIds = parseCommaSeparatedList(draft.dependsOnTaskIdsText);
+    activeDepPicker = mountTaskPicker(pickerRoot, {
+      selectedIds: initialIds,
+      getTodos: () => state.todos,
+      excludeId: draft.id,
+      escapeHtml: escapeHtml,
+      onChange(ids) {
+        updateDrawerDraftField("dependsOnTaskIdsText", ids.join(", "));
+        saveDrawerPatch({ dependsOnTaskIds: ids });
+      },
+    });
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2065,10 +2097,7 @@ export function bindTodoDrawerHandlers() {
       onDrawerTagsInput(event);
       return;
     }
-    if (target.id === "drawerDependsOnInput") {
-      onDrawerDependsOnInput(event);
-      return;
-    }
+    // drawerDependsOnInput replaced by task picker — no delegated handler
     if (target.id === "drawerCategoryInput") {
       onDrawerCategoryInput(event);
     }
@@ -2179,10 +2208,7 @@ export function bindTodoDrawerHandlers() {
         onDrawerTagsBlur();
         return;
       }
-      if (target.id === "drawerDependsOnInput") {
-        onDrawerDependsOnBlur();
-        return;
-      }
+      // drawerDependsOnInput replaced by task picker — no delegated handler
       if (target.id === "drawerCategoryInput") {
         onDrawerCategoryBlur();
       }

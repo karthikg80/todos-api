@@ -10,6 +10,10 @@ import {
 } from "./filterLogic.js";
 import { applyUiAction } from "./stateActions.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import { mountTaskPicker } from "../utils/taskPicker.js";
+
+// Active task-picker instance for the composer depends-on field
+let composerDepPicker = null;
 
 const { escapeHtml, getProjectLeafName } = (() => ({
   escapeHtml: (window.Utils || {}).escapeHtml,
@@ -712,7 +716,7 @@ export function resetTaskComposerFields() {
   const estimateInput = document.getElementById("todoEstimateInput");
   const tagsInput = document.getElementById("todoTagsInput");
   const waitingOnInput = document.getElementById("todoWaitingOnInput");
-  const dependsOnInput = document.getElementById("todoDependsOnInput");
+  // dependsOnInput replaced by task picker — reset via composerDepPicker below
   if (input instanceof HTMLInputElement) input.value = "";
   if (projectSelect instanceof HTMLSelectElement) {
     projectSelect.value = state.taskComposerDefaultProject || "";
@@ -732,7 +736,20 @@ export function resetTaskComposerFields() {
   if (estimateInput instanceof HTMLInputElement) estimateInput.value = "";
   if (tagsInput instanceof HTMLInputElement) tagsInput.value = "";
   if (waitingOnInput instanceof HTMLInputElement) waitingOnInput.value = "";
-  if (dependsOnInput instanceof HTMLTextAreaElement) dependsOnInput.value = "";
+  // Reset the composer task picker; destroy and remount to clear selections
+  const composerPickerRoot = document.getElementById("todoDependsOnPicker");
+  if (composerDepPicker) {
+    composerDepPicker.destroy();
+    composerDepPicker = null;
+  }
+  if (composerPickerRoot) {
+    composerDepPicker = mountTaskPicker(composerPickerRoot, {
+      selectedIds: [],
+      getTodos: () => state.todos,
+      escapeHtml: escapeHtml || ((s) => String(s)),
+      onChange() {},
+    });
+  }
   if (notesInput instanceof HTMLTextAreaElement) {
     notesInput.value = "";
     notesInput.style.display = "none";
@@ -743,6 +760,10 @@ export function resetTaskComposerFields() {
   setQuickEntryPropertiesOpen(false, { persist: false });
   hooks.setPriority?.("medium");
   updateTaskComposerDueClearButton();
+}
+
+export function getComposerDependsOnIds() {
+  return composerDepPicker ? composerDepPicker.getSelectedIds() : [];
 }
 
 export function clearTaskComposerDueDate() {
@@ -782,4 +803,17 @@ export function bindTaskComposerHandlers() {
       updateTaskComposerDueClearButton();
     }
   });
+
+  // Mount the task dependency picker for the composer
+  const composerPickerRoot = document.getElementById("todoDependsOnPicker");
+  if (composerPickerRoot && !composerDepPicker) {
+    composerDepPicker = mountTaskPicker(composerPickerRoot, {
+      selectedIds: [],
+      getTodos: () => state.todos,
+      escapeHtml: escapeHtml || ((s) => String(s)),
+      onChange() {
+        // Selection state lives in the picker instance; read on submit.
+      },
+    });
+  }
 }

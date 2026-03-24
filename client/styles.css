@@ -1288,19 +1288,23 @@ textarea:focus-visible,
 
 .message-dismiss {
   margin-left: auto;
-  background: none;
-  border: none;
+  background: rgb(0 0 0 / 8%);
+  border: 1px solid rgb(0 0 0 / 12%);
+  border-radius: var(--r-sm);
   color: inherit;
-  font-size: 1.2em;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
   cursor: pointer;
-  padding: 0 4px;
-  opacity: 0.6;
-  line-height: 1;
+  padding: 4px 12px;
+  opacity: 0.8;
+  line-height: 1.4;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .message-dismiss:hover {
   opacity: 1;
+  background: rgb(0 0 0 / 14%);
 }
 
 .message.error {
@@ -5466,6 +5470,118 @@ body.is-todos-view .floating-new-task-cta {
   font-weight: 600;
 }
 
+.todo-drawer__field-hint {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
+/* ── Task picker (depends-on) ─────────────────────────────── */
+
+.task-picker {
+  position: relative;
+}
+
+.task-picker__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.task-picker__chips:empty {
+  margin-bottom: 0;
+}
+
+.task-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  background: var(--card-hover);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-picker__chip-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.task-picker__chip-remove:hover {
+  color: var(--danger);
+}
+
+.task-picker__search {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--card-bg);
+  color: var(--text);
+  font-size: var(--fs-sm);
+}
+
+.task-picker__search::placeholder {
+  color: var(--muted);
+}
+
+.task-picker__dropdown {
+  display: none;
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--card-bg);
+  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+  margin-top: 2px;
+}
+
+.task-picker__dropdown--open {
+  display: block;
+}
+
+.task-picker__option {
+  padding: 6px 10px;
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-picker__option:hover,
+.task-picker__option--active {
+  background: var(--card-hover);
+}
+
+.task-picker__option--done {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.task-picker__empty {
+  padding: 8px 10px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
 .todo-drawer__field input[type="text"],
 .todo-drawer__field input[type="date"],
 .todo-drawer__field textarea,
@@ -7711,6 +7827,12 @@ body.is-todos-view .projects-rail-item__count {
   width: 100%;
 }
 
+.task-composer-inline-field__hint {
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.4;
+}
+
 .task-composer-inline-field--wide {
   flex-basis: 260px;
 }
@@ -8537,7 +8659,7 @@ body.is-todos-view .home-tile[data-home-tile="top_focus"] .home-tile__icon {
   left: 0;
   right: 0;
   z-index: 50;
-  height: 56px;
+  height: 68px;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--s-5);
@@ -8591,11 +8713,12 @@ body.is-todos-view.is-projects-rail-collapsed
 
 .dock-icon-btn {
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
+  min-width: 58px;
+  height: 48px;
+  padding: 6px 8px;
   border: none;
   border-radius: var(--r-sm);
   background: transparent;
@@ -8604,6 +8727,13 @@ body.is-todos-view.is-projects-rail-collapsed
   transition:
     background 0.15s ease,
     color 0.15s ease;
+}
+
+.dock-icon-btn__label {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: var(--fw-medium);
+  line-height: 1;
 }
 
 .dock-icon-btn:hover {
@@ -8669,7 +8799,7 @@ body.dark-mode .dock-icon--sun {
 }
 
 #todosScrollRegion {
-  padding-bottom: 72px;
+  padding-bottom: 88px;
 }
 
 body:has(.todo-kebab-menu--open) .floating-new-task-cta,
@@ -8678,7 +8808,7 @@ body:has(.todo-kebab-menu--open) .bottom-action-dock {
 }
 
 #projectsRail {
-  padding-bottom: 72px;
+  padding-bottom: 88px;
 }
 
 .projects-rail__footer--admin-only {
@@ -8693,7 +8823,7 @@ body.is-admin-user .projects-rail__footer--admin-only {
 
 .dock-profile-panel {
   position: fixed;
-  bottom: 64px;
+  bottom: 76px;
   left: var(--s-5);
   z-index: 55;
   width: 220px;
@@ -8747,6 +8877,13 @@ body.is-admin-user .projects-rail__footer--admin-only {
 .dock-profile-panel__logout:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+.todo-drawer__agent-hint {
+  margin: 0 0 var(--s-3);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  line-height: 1.5;
 }
 
 @media (max-width: 768px) {
@@ -10072,7 +10209,7 @@ body.simple-mode .todo-drawer__field:has(#drawerEstimateInput) {
 /* Todo drawer Details: hide tags, waitingOn, depends, category, archived, meta */
 body.simple-mode .todo-drawer__field:has(#drawerTagsInput),
 body.simple-mode .todo-drawer__field:has(#drawerWaitingOnInput),
-body.simple-mode .todo-drawer__field:has(#drawerDependsOnInput),
+body.simple-mode .todo-drawer__field:has(#drawerDependsOnPicker),
 body.simple-mode .todo-drawer__field:has(#drawerCategoryInput),
 body.simple-mode .todo-drawer__field:has(#drawerArchivedToggle),
 body.simple-mode .todo-drawer__meta {
