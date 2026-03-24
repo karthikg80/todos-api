@@ -934,6 +934,17 @@ function renderTodos() {
     categoryStats.set(key, stats);
   }
 
+  // Upcoming view: sort by due date and prepare day group headers
+  const isUpcomingView = state.currentDateView === "upcoming";
+  let upcomingLastDate = "";
+  if (isUpcomingView) {
+    categorizedTodos.sort((a, b) => {
+      const da = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const db = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      return da - db;
+    });
+  }
+
   let activeCategory = "";
   const selectedProjectKey = getSelectedProjectKey();
   const shouldGroupByHeading = !!selectedProjectKey;
@@ -956,7 +967,22 @@ function renderTodos() {
           </li>
         `
             : "";
-          return `${categoryHeader}${renderTodoRowHtml(todo)}`;
+          // Upcoming view: inject date group headers
+          let dateHeader = "";
+          if (isUpcomingView && todo.dueDate) {
+            const d = new Date(todo.dueDate);
+            const dateKey = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+            if (dateKey !== upcomingLastDate) {
+              upcomingLastDate = dateKey;
+              const dayLabel = d.toLocaleDateString(undefined, {
+                weekday: "long",
+                month: "short",
+                day: "numeric",
+              });
+              dateHeader = `<li class="todo-section-label">${hooks.escapeHtml?.(dayLabel) || dayLabel}</li>`;
+            }
+          }
+          return `${dateHeader}${categoryHeader}${renderTodoRowHtml(todo)}`;
         })
         .join("");
 
