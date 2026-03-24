@@ -19,6 +19,17 @@ function renderHiddenFields(fields: Record<string, string | undefined>) {
     .join("");
 }
 
+function renderGoogleButton(url: string, label: string) {
+  return `<a href="${escapeHtml(url)}" style="display:flex;align-items:center;justify-content:center;gap:10px;padding:12px 18px;border:1px solid #cbd5e1;border-radius:999px;text-decoration:none;color:#111827;font-weight:600;background:white;">
+  <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 0 1 0-9.18l-7.98-6.19a24.0 24.0 0 0 0 0 21.56l7.98-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+  ${escapeHtml(label)}
+</a>`;
+}
+
+function renderDivider() {
+  return `<div style="display:flex;align-items:center;gap:12px;margin:16px 0;"><hr style="flex:1;border:none;border-top:1px solid #e5e7eb;"><span style="color:#6b7280;font-size:0.875rem;">or</span><hr style="flex:1;border:none;border-top:1px solid #e5e7eb;"></div>`;
+}
+
 function renderPageShell(title: string, body: string, headExtra?: string) {
   return `<!doctype html>
 <html lang="en">
@@ -146,6 +157,7 @@ export function renderOAuthLoginPage(input: {
   hiddenFields: Record<string, string | undefined>;
   clientName?: string;
   registerUrl?: string;
+  googleUrl?: string;
 }) {
   const clientCopy = input.clientName
     ? `Sign in to connect <strong>${escapeHtml(input.clientName)}</strong> to your Todos account.`
@@ -155,6 +167,8 @@ export function renderOAuthLoginPage(input: {
     `<h1>Connect Assistant</h1>
      <p>${clientCopy}</p>
      ${input.error ? `<div class="error">${escapeHtml(input.error)}</div>` : ""}
+     ${input.googleUrl ? renderGoogleButton(input.googleUrl, "Sign in with Google") : ""}
+     ${input.googleUrl ? renderDivider() : ""}
      <form method="post" action="${escapeHtml(input.formAction)}">
        ${renderHiddenFields(input.hiddenFields)}
        <label>
@@ -179,6 +193,7 @@ export function renderOAuthRegisterPage(input: {
   hiddenFields: Record<string, string | undefined>;
   clientName?: string;
   loginUrl?: string;
+  googleUrl?: string;
 }) {
   const clientCopy = input.clientName
     ? `Create an account to connect <strong>${escapeHtml(input.clientName)}</strong> to Todos.`
@@ -188,6 +203,8 @@ export function renderOAuthRegisterPage(input: {
     `<h1>Create Account</h1>
      <p>${clientCopy}</p>
      ${input.error ? `<div class="error">${escapeHtml(input.error)}</div>` : ""}
+     ${input.googleUrl ? renderGoogleButton(input.googleUrl, "Sign up with Google") : ""}
+     ${input.googleUrl ? renderDivider() : ""}
      <form method="post" action="${escapeHtml(input.formAction)}">
        ${renderHiddenFields(input.hiddenFields)}
        <label>

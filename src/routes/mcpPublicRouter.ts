@@ -19,11 +19,15 @@ import {
 } from "../validation/mcpValidation";
 import { config } from "../config";
 import { validateRegister } from "../validation/authValidation";
+import { GoogleAuthService } from "../services/googleAuthService";
+import { SocialAuthService } from "../services/socialAuthService";
 
 interface McpPublicRouterDeps {
   authService?: AuthService;
   mcpOAuthService: McpOAuthService;
   mcpClientService: McpClientService;
+  googleAuthService?: GoogleAuthService;
+  socialAuthService?: SocialAuthService;
 }
 
 interface LinkSession {
@@ -184,6 +188,9 @@ function logMcpOauthEvent(input: {
     | "signup_view"
     | "signup_success"
     | "signup_error"
+    | "google_start"
+    | "google_callback_success"
+    | "google_callback_error"
     | "approve_success"
     | "approve_error"
     | "deny"
@@ -416,10 +423,19 @@ function mapAuthorizeError(message: string): {
   }
 }
 
+const MCP_GOOGLE_STATE_COOKIE = "mcp_google_state";
+const MCP_GOOGLE_PARAMS_COOKIE = "mcp_google_params";
+
+function buildMcpGoogleRedirectUri(): string {
+  return `${config.baseUrl}/oauth/authorize/google/callback`;
+}
+
 export function createMcpPublicRouter({
   authService,
   mcpOAuthService,
   mcpClientService,
+  googleAuthService,
+  socialAuthService,
 }: McpPublicRouterDeps): Router {
   const router = Router();
 
@@ -557,23 +573,26 @@ export function createMcpPublicRouter({
           clientName: client.clientName,
           scopes: authorize.scopes,
         });
-        const registerUrl = `/oauth/authorize/register?${buildAuthorizeSearchParams(
-          {
-            clientId: authorize.clientId,
-            redirectUri: authorize.redirectUri,
-            responseType: authorize.responseType,
-            scope: describeMcpScopes(authorize.scopes),
-            state: authorize.state,
-            codeChallenge: authorize.codeChallenge,
-            codeChallengeMethod: authorize.codeChallengeMethod,
-          },
-        )}`;
+        const authorizeSearchParams = buildAuthorizeSearchParams({
+          clientId: authorize.clientId,
+          redirectUri: authorize.redirectUri,
+          responseType: authorize.responseType,
+          scope: describeMcpScopes(authorize.scopes),
+          state: authorize.state,
+          codeChallenge: authorize.codeChallenge,
+          codeChallengeMethod: authorize.codeChallengeMethod,
+        });
+        const registerUrl = `/oauth/authorize/register?${authorizeSearchParams}`;
+        const googleUrl = googleAuthService
+          ? `/oauth/authorize/google/start?${authorizeSearchParams}`
+          : undefined;
         return res.status(200).send(
           renderOAuthLoginPage({
             formAction: "/oauth/authorize/login",
             hiddenFields,
             clientName: client.clientName,
             registerUrl,
+            googleUrl,
           }),
         );
       }
@@ -760,7 +779,7 @@ export function createMcpPublicRouter({
         code_challenge_method: authorize.codeChallengeMethod,
       };
 
-      const loginUrl = `/oauth/authorize?${buildAuthorizeSearchParams({
+      const regAuthorizeSearchParams = buildAuthorizeSearchParams({
         clientId: authorize.clientId,
         redirectUri: authorize.redirectUri,
         responseType: authorize.responseType,
@@ -768,7 +787,11 @@ export function createMcpPublicRouter({
         state: authorize.state,
         codeChallenge: authorize.codeChallenge,
         codeChallengeMethod: authorize.codeChallengeMethod,
-      })}`;
+      });
+      const loginUrl = `/oauth/authorize?${regAuthorizeSearchParams}`;
+      const googleRegUrl = googleAuthService
+        ? `/oauth/authorize/google/start?${regAuthorizeSearchParams}`
+        : undefined;
 
       logMcpOauthEvent({
         requestId,
@@ -784,6 +807,7 @@ export function createMcpPublicRouter({
           hiddenFields,
           clientName: client.clientName,
           loginUrl,
+          googleUrl: googleRegUrl,
         }),
       );
     } catch (error) {
@@ -900,6 +924,262 @@ export function createMcpPublicRouter({
       logMcpOauthEvent({
         requestId,
         event: "signup_error",
+        errorCode: mapped.code,
+      });
+      res.status(400).send(
+        renderOAuthErrorPage({
+          title: mapped.title,
+          message: mapped.description,
+        }),
+      );
+    }
+  });
+
+  // ── Google OAuth flow for MCP authorize ─────────────────────────────
+
+  router.get("/oauth/authorize/google/start", async (req, res) => {
+    const requestId = buildRequestId(req);
+    setRequestId(res, requestId);
+    setNoStoreHeaders(res);
+
+    try {
+      if (!googleAuthService || !authService) {
+        return res.status(501).send(
+          renderOAuthErrorPage({
+            title: "Google Login Not Available",
+            message: "Google login is not configured on this server.",
+          }),
+        );
+      }
+
+      const authorize = validateOAuthAuthorizeRequest(req.query);
+      mcpClientService.assertRedirectUri(
+        authorize.clientId,
+        authorize.redirectUri,
+      );
+
+      const mcpGoogleRedirectUri = buildMcpGoogleRedirectUri();
+      const { url, state } =
+        googleAuthService.generateAuthUrl(mcpGoogleRedirectUri);
+
+      // Store the Google CSRF state in a cookie
+      const cookies: string[] = [];
+      cookies.push(
+        serializeCookie(MCP_GOOGLE_STATE_COOKIE, state, {
+          maxAgeSeconds: 600,
+        }),
+      );
+
+      // Store the MCP OAuth params so we can resume after Google callback
+      const oauthParams = JSON.stringify({
+        client_id: authorize.clientId,
+        redirect_uri: authorize.redirectUri,
+        response_type: authorize.responseType,
+        scope: describeMcpScopes(authorize.scopes),
+        state: authorize.state,
+        code_challenge: authorize.codeChallenge,
+        code_challenge_method: authorize.codeChallengeMethod,
+      });
+      cookies.push(
+        serializeCookie(MCP_GOOGLE_PARAMS_COOKIE, oauthParams, {
+          maxAgeSeconds: 600,
+        }),
+      );
+
+      res.setHeader("Set-Cookie", cookies);
+
+      logMcpOauthEvent({
+        requestId,
+        event: "google_start",
+        clientId: authorize.clientId,
+      });
+
+      res.redirect(url);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const mapped = mapAuthorizeError(message);
+      logMcpOauthEvent({
+        requestId,
+        event: "google_callback_error",
+        errorCode: mapped.code,
+      });
+      res.status(400).send(
+        renderOAuthErrorPage({
+          title: mapped.title,
+          message: mapped.description,
+        }),
+      );
+    }
+  });
+
+  router.get("/oauth/authorize/google/callback", async (req, res) => {
+    const requestId = buildRequestId(req);
+    setRequestId(res, requestId);
+    setNoStoreHeaders(res);
+
+    try {
+      if (!googleAuthService || !socialAuthService || !authService) {
+        return res.status(501).send(
+          renderOAuthErrorPage({
+            title: "Google Login Not Available",
+            message: "Google login is not configured on this server.",
+          }),
+        );
+      }
+
+      const cookies = readCookies(req);
+
+      // Validate CSRF state
+      const queryState = req.query.state as string | undefined;
+      const storedState = cookies[MCP_GOOGLE_STATE_COOKIE];
+      if (!queryState || !storedState || queryState !== storedState) {
+        return res.status(400).send(
+          renderOAuthErrorPage({
+            title: "Invalid State",
+            message: "OAuth state mismatch. Please try again.",
+            hint: "Return to the assistant and restart the connection flow.",
+          }),
+        );
+      }
+
+      // Recover MCP OAuth params
+      const rawParams = cookies[MCP_GOOGLE_PARAMS_COOKIE];
+      if (!rawParams) {
+        return res.status(400).send(
+          renderOAuthErrorPage({
+            title: "Session Expired",
+            message:
+              "The authorization session could not be recovered. Please try again.",
+            hint: "Return to the assistant and restart the connection flow.",
+          }),
+        );
+      }
+
+      let oauthParams: Record<string, string>;
+      try {
+        oauthParams = JSON.parse(rawParams);
+      } catch {
+        return res.status(400).send(
+          renderOAuthErrorPage({
+            title: "Invalid Session",
+            message: "The authorization session data is corrupted.",
+            hint: "Return to the assistant and restart the connection flow.",
+          }),
+        );
+      }
+
+      // Clear Google cookies
+      const clearCookies: string[] = [
+        serializeCookie(MCP_GOOGLE_STATE_COOKIE, "", {
+          expires: new Date(0).toUTCString(),
+          maxAgeSeconds: 0,
+        }),
+        serializeCookie(MCP_GOOGLE_PARAMS_COOKIE, "", {
+          expires: new Date(0).toUTCString(),
+          maxAgeSeconds: 0,
+        }),
+      ];
+
+      // Check for Google error
+      if (req.query.error) {
+        res.setHeader("Set-Cookie", clearCookies);
+        return res.status(400).send(
+          renderOAuthErrorPage({
+            title: "Google Login Failed",
+            message: "Google sign-in was cancelled or failed.",
+            hint: "Return to the assistant and try again.",
+          }),
+        );
+      }
+
+      const code = req.query.code as string | undefined;
+      if (!code) {
+        res.setHeader("Set-Cookie", clearCookies);
+        return res.status(400).send(
+          renderOAuthErrorPage({
+            title: "Missing Code",
+            message: "Google did not return an authorization code.",
+            hint: "Return to the assistant and try again.",
+          }),
+        );
+      }
+
+      // Validate MCP OAuth params
+      const authorize = validateOAuthAuthorizeRequest(oauthParams);
+      const client = mcpClientService.assertRedirectUri(
+        authorize.clientId,
+        authorize.redirectUri,
+      );
+
+      // Exchange Google code for user profile
+      const mcpGoogleRedirectUri = buildMcpGoogleRedirectUri();
+      const profile = await googleAuthService.handleCallback(
+        code,
+        mcpGoogleRedirectUri,
+      );
+
+      // Find or create user via social auth service
+      const socialResult = await socialAuthService.findOrCreateSocialUser(
+        profile,
+        (userId, email) => authService!.issueTokens(userId, email),
+      );
+
+      // Issue MCP authorization code directly (implicit consent for Google sign-in)
+      const authCode = await mcpOAuthService.createAuthorizationCode({
+        userId: socialResult.user.id,
+        email: socialResult.user.email || profile.email || "",
+        clientId: authorize.clientId,
+        redirectUri: authorize.redirectUri,
+        scopes: authorize.scopes,
+        assistantName: client.clientName,
+        state: authorize.state,
+        codeChallenge: authorize.codeChallenge,
+        codeChallengeMethod: authorize.codeChallengeMethod,
+      });
+
+      logMcpOauthEvent({
+        requestId,
+        event: "google_callback_success",
+        userId: socialResult.user.id,
+        clientId: authorize.clientId,
+        clientName: client.clientName,
+        scopes: authorize.scopes,
+      });
+
+      const finalRedirectUri = appendQuery(authorize.redirectUri, {
+        code: authCode.code,
+        state: authorize.state,
+      });
+      const nonce = randomBytes(16).toString("base64");
+      res
+        .status(303)
+        .setHeader("Location", finalRedirectUri)
+        .setHeader(
+          "Content-Security-Policy",
+          `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'`,
+        );
+
+      // Append clear cookies to any existing Set-Cookie headers
+      const existingCookies = res.getHeader("Set-Cookie");
+      const allCookies = [
+        ...(Array.isArray(existingCookies)
+          ? existingCookies
+          : existingCookies
+            ? [String(existingCookies)]
+            : []),
+        ...clearCookies,
+      ];
+      res.setHeader("Set-Cookie", allCookies);
+
+      res.send(
+        renderOAuthRedirectPage({ redirectUri: finalRedirectUri, nonce }),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const mapped = mapAuthorizeError(message);
+      logMcpOauthEvent({
+        requestId,
+        event: "google_callback_error",
         errorCode: mapped.code,
       });
       res.status(400).send(
