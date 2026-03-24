@@ -536,16 +536,15 @@ test.describe("Todo drawer essentials editing", () => {
     );
 
     await page.locator("#todoInput").fill("Plan travel");
+    await page.locator("#quickEntryPropertiesToggle").click();
     await page.locator("#todoStatusSelect").selectOption("scheduled");
     await page.locator("#todoProjectSelect").selectOption("Work");
     await page.locator("#todoDueDateInput").fill("2026-06-01T12:00");
-
     // Open the advanced fields section (collapsed by default after #506)
     const advancedDetails = page.locator("details.task-composer-advanced");
     if (await advancedDetails.count()) {
       await advancedDetails.locator("summary").click();
     }
-
     await page.locator("#todoStartDateInput").fill("2026-05-30T09:00");
     await page.locator("#todoScheduledDateInput").fill("2026-05-31T10:00");
     await page.locator("#todoReviewDateInput").fill("2026-06-02T08:30");

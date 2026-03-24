@@ -643,6 +643,9 @@ export function openTaskComposer(triggerEl = null) {
     triggerEl,
     defaultProject,
   });
+  if (!String(refs.titleInput?.value || "").trim()) {
+    setQuickEntryPropertiesOpen(false, { persist: false });
+  }
   if (refs.projectSelect && !String(refs.titleInput?.value || "").trim()) {
     refs.projectSelect.value = state.taskComposerDefaultProject || "";
   }
@@ -728,7 +731,7 @@ export function resetTaskComposerFields() {
   if (notesIcon instanceof HTMLElement) {
     notesIcon.classList.remove("expanded");
   }
-  setQuickEntryPropertiesOpen(true, { persist: false });
+  setQuickEntryPropertiesOpen(false, { persist: false });
   hooks.setPriority?.("medium");
   updateTaskComposerDueClearButton();
 }

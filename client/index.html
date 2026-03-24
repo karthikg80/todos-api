@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="app-version" content="1.6.0" />
-    <title>Todo App - Complete</title>
+    <title>Todo App</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
@@ -26,7 +26,7 @@
                   align-items: center;
                 "
               >
-                <h1>📝 Todo App</h1>
+                <h1>Todo App</h1>
                 <button
                   class="theme-toggle"
                   data-onclick="toggleTheme()"
@@ -86,7 +86,7 @@
                   <!-- Nav -->
                   <nav class="landing-nav" id="landingNav">
                     <div class="landing-nav__inner">
-                      <a href="#" class="landing-nav__logo">📝 Todo App</a>
+                      <a href="#" class="landing-nav__logo">Todo App</a>
                       <div class="landing-nav__links">
                         <a href="#landing-features" class="landing-nav__link"
                           >Features</a
@@ -111,9 +111,10 @@
                         Your tasks,&nbsp;your&nbsp;way.
                       </h1>
                       <p class="landing-hero__sub">
-                        The AI-powered task manager that connects to Claude and
-                        ChatGPT. Plan your day, critique your tasks, and let
-                        autonomous agents keep your projects on track.
+                        A calm workspace for planning your day, organizing
+                        projects, and getting clear on what matters next. AI is
+                        there when you need a second brain, not another
+                        dashboard to manage.
                       </p>
                       <div class="landing-hero__ctas">
                         <a
@@ -130,7 +131,7 @@
                       <div class="landing-hero__screenshot">
                         <img
                           src="/images/landing/hero-desktop.png"
-                          alt="Todo App — task list with projects, priorities, and due dates"
+                          alt="Todo App task list with projects, priorities, and due dates"
                           class="landing-hero__img"
                           loading="eager"
                         />
@@ -150,7 +151,7 @@
                           <div class="landing-feature-card__icon">⚡</div>
                           <h3>Get tasks out of your head, fast</h3>
                           <p>
-                            Type naturally — "Call dentist tomorrow 2pm" — and
+                            Type naturally - "Call dentist tomorrow 2pm" - and
                             the app figures out the date. Organize into
                             projects, set priorities, and reorder with
                             drag-and-drop.
@@ -163,7 +164,8 @@
                           <p>
                             Get instant feedback on vague tasks, turn goals into
                             step-by-step plans, and break big projects into
-                            actionable pieces — all powered by AI.
+                            actionable pieces, without pulling focus away from
+                            your list.
                           </p>
                         </div>
                         <div class="landing-feature-card">
@@ -2227,6 +2229,17 @@
                             data-testid="ai-on-create-row"
                             hidden
                           ></div>
+                          <div class="task-composer-inline-actions">
+                            <button
+                              id="critiqueDraftButton"
+                              class="mini-btn task-composer-ai-trigger"
+                              data-onclick="critiqueDraftWithAi()"
+                              type="button"
+                              hidden
+                            >
+                              Critique Draft (AI)
+                            </button>
+                          </div>
                           <div
                             id="quickEntryPropertiesPanel"
                             class="quick-entry-properties-panel task-composer-properties"
@@ -2239,41 +2252,6 @@
                               <select id="todoProjectSelect">
                                 <option value="">No project</option>
                               </select>
-                              <button
-                                id="quickEntryCreateProjectButton"
-                                class="add-btn"
-                                data-onclick="createProject()"
-                                style="width: auto; padding: 10px 14px"
-                                type="button"
-                              >
-                                + Project
-                              </button>
-                              <button
-                                id="quickEntryCreateSubprojectButton"
-                                class="add-btn"
-                                data-onclick="createSubproject()"
-                                style="
-                                  width: auto;
-                                  padding: 10px 14px;
-                                  background: #0f766e;
-                                "
-                                type="button"
-                              >
-                                + Subproject
-                              </button>
-                              <button
-                                id="quickEntryRenameProjectButton"
-                                class="add-btn"
-                                data-onclick="renameProjectTree()"
-                                style="
-                                  width: auto;
-                                  padding: 10px 14px;
-                                  background: #334155;
-                                "
-                                type="button"
-                              >
-                                Rename Project
-                              </button>
                               <div class="task-composer-due-wrap">
                                 <label for="todoDueDateInput" class="sr-only"
                                   >Todo due date</label
@@ -2378,17 +2356,40 @@
                                   </button>
                                 </div>
                               </div>
-                              <button
-                                id="critiqueDraftButton"
-                                class="add-btn"
-                                data-onclick="critiqueDraftWithAi()"
-                                type="button"
-                                hidden
-                                style="background: #334155; width: auto"
-                              >
-                                Critique Draft (AI)
-                              </button>
                             </div>
+                            <details class="task-composer-project-actions">
+                              <summary
+                                class="task-composer-project-actions__toggle"
+                              >
+                                Project actions
+                              </summary>
+                              <div class="task-composer-project-actions__body">
+                                <button
+                                  id="quickEntryCreateProjectButton"
+                                  class="mini-btn task-composer-project-action"
+                                  data-onclick="createProject()"
+                                  type="button"
+                                >
+                                  New project
+                                </button>
+                                <button
+                                  id="quickEntryCreateSubprojectButton"
+                                  class="mini-btn task-composer-project-action"
+                                  data-onclick="createSubproject()"
+                                  type="button"
+                                >
+                                  New subproject
+                                </button>
+                                <button
+                                  id="quickEntryRenameProjectButton"
+                                  class="mini-btn task-composer-project-action"
+                                  data-onclick="renameProjectTree()"
+                                  type="button"
+                                >
+                                  Rename selected project
+                                </button>
+                              </div>
+                            </details>
                             <details class="task-composer-advanced">
                               <summary class="task-composer-advanced__toggle">
                                 More options
@@ -2564,7 +2565,7 @@
                             aria-controls="aiWorkspaceBody"
                           >
                             <span class="ai-workspace-toggle__title"
-                              >AI Assistant</span
+                              >Planning assistant</span
                             >
                             <span
                               id="aiWorkspaceToggleChevron"
@@ -2575,7 +2576,7 @@
                           <span
                             id="aiWorkspaceStatus"
                             class="ai-workspace-status-chip"
-                            >Ready</span
+                            >Available</span
                           >
                           <div class="ai-workspace-header-actions">
                             <button
@@ -2584,7 +2585,7 @@
                               type="button"
                               data-onclick="openAiWorkspaceForBrainDump()"
                             >
-                              Draft tasks
+                              Draft ideas
                             </button>
                             <button
                               id="aiWorkspacePlanButton"
@@ -2592,7 +2593,7 @@
                               type="button"
                               data-onclick="openAiWorkspaceForGoalPlan()"
                             >
-                              Plan from goal
+                              Plan a goal
                             </button>
                           </div>
                         </div>
@@ -2644,7 +2645,7 @@
                               </button>
                             </div>
                             <div class="ai-brain-dump-helper">
-                              We'll draft tasks - you can edit before applying.
+                              Draft a first pass, then edit before applying.
                             </div>
                           </div>
                           <div

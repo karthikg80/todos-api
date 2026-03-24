@@ -9776,3 +9776,277 @@ body.dark-mode .undo-toast {
   background: var(--surface-2);
   color: var(--text-primary);
 }
+
+/* Calm restoration overrides */
+
+body.is-todos-view .home-dashboard {
+  max-width: 980px;
+  gap: 18px;
+  padding: 24px 28px 40px;
+}
+
+body.is-todos-view .home-dashboard__support-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+body.is-todos-view .home-brief-card {
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid color-mix(in oklab, var(--border-color) 72%, transparent);
+  border-radius: 24px;
+  background:
+    radial-gradient(
+      circle at top right,
+      color-mix(in oklab, var(--accent) 10%, transparent),
+      transparent 34%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface) 98%, var(--surface-2)) 0%,
+      color-mix(in oklab, var(--surface) 92%, var(--surface-2)) 100%
+    );
+  box-shadow: 0 18px 36px rgb(15 23 42 / 6%);
+}
+
+.home-brief-card__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--text-secondary) 88%, var(--surface));
+}
+
+.home-brief-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.home-brief-card__copy {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.home-brief-card__title {
+  margin: 0;
+  font-size: clamp(1.5rem, 2vw, 2rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.home-brief-card__summary {
+  margin: 0;
+  max-width: 54ch;
+  color: var(--text-secondary);
+  line-height: 1.55;
+}
+
+.home-brief-card__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(92px, 1fr));
+  gap: 10px;
+  min-width: 220px;
+}
+
+.home-brief-card__stat {
+  display: grid;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in oklab, var(--border-color) 68%, transparent);
+  background: color-mix(in oklab, var(--surface) 88%, var(--surface-2));
+}
+
+.home-brief-card__stat-value {
+  font-size: 1.25rem;
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.02em;
+}
+
+.home-brief-card__stat-label {
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+}
+
+.home-brief-card__primary {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border-color));
+  background: color-mix(in oklab, var(--surface) 92%, white 8%);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.home-brief-card__primary:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--accent) 40%, var(--border-color));
+  box-shadow: 0 10px 22px rgb(15 23 42 / 7%);
+}
+
+.home-brief-card__primary-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--text-secondary) 88%, var(--surface));
+}
+
+.home-brief-card__primary-title {
+  font-size: 1.05rem;
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+}
+
+.home-brief-card__primary-meta {
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+}
+
+body.is-todos-view .home-brief-card .home-tile--priorities {
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: color-mix(in oklab, var(--surface) 88%, var(--surface-2));
+  box-shadow: none;
+}
+
+body.is-todos-view .home-brief-card .home-tile__title {
+  font-size: 1rem;
+}
+
+body.is-todos-view .home-priorities-body {
+  min-height: 0;
+}
+
+body.is-todos-view .home-tile[data-home-tile="due_soon"],
+body.is-todos-view .home-tile[data-home-tile="stale_risks"] {
+  min-height: 100%;
+}
+
+body.is-todos-view .home-tile__subtitle {
+  max-width: 40ch;
+}
+
+body.is-todos-view .home-task-row {
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 14px;
+}
+
+body.is-todos-view .task-composer-sheet__header {
+  align-items: flex-start;
+}
+
+body.is-todos-view .task-composer-properties {
+  gap: 12px;
+}
+
+body.is-todos-view .task-composer-properties[hidden],
+body.is-todos-view .quick-entry-properties-panel[hidden] {
+  display: none !important;
+}
+
+body.is-todos-view .task-composer-inline-actions {
+  display: flex;
+  justify-content: flex-start;
+}
+
+body.is-todos-view .task-composer-ai-trigger {
+  background: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
+  color: var(--text-secondary);
+  border-color: color-mix(in oklab, var(--border-color) 85%, transparent);
+}
+
+body.is-todos-view .task-composer-project-actions {
+  border-top: 1px solid
+    color-mix(in oklab, var(--border-color) 68%, transparent);
+  padding-top: 10px;
+}
+
+body.is-todos-view .task-composer-project-actions__toggle {
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+}
+
+body.is-todos-view
+  .task-composer-project-actions__toggle::-webkit-details-marker {
+  display: none;
+}
+
+body.is-todos-view .task-composer-project-actions__toggle::before {
+  content: "▸ ";
+}
+
+body.is-todos-view
+  .task-composer-project-actions[open]
+  > .task-composer-project-actions__toggle::before {
+  content: "▾ ";
+}
+
+body.is-todos-view .task-composer-project-actions__body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+}
+
+body.is-todos-view .task-composer-project-action {
+  width: auto;
+}
+
+body.is-todos-view .ai-workspace {
+  padding: 12px 14px;
+  border-radius: 18px;
+  border-color: color-mix(in oklab, var(--border-color) 70%, transparent);
+  background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
+  box-shadow: none;
+}
+
+body.is-todos-view .ai-workspace-header {
+  gap: 10px;
+}
+
+body.is-todos-view .ai-workspace-toggle {
+  background: color-mix(in oklab, var(--surface) 96%, var(--surface-2));
+}
+
+body.is-todos-view .ai-workspace-status-chip {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+body.is-todos-view .ai-workspace-header-actions .mini-btn {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: color-mix(in oklab, var(--border-color) 80%, transparent);
+}
+
+@media (max-width: 900px) {
+  body.is-todos-view .home-dashboard__support-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .home-brief-card__header {
+    flex-direction: column;
+  }
+
+  .home-brief-card__stats {
+    width: 100%;
+    min-width: 0;
+  }
+}

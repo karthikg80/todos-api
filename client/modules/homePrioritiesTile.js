@@ -258,7 +258,7 @@ export function renderPrioritiesTileShell() {
     <section class="home-tile home-tile--priorities" data-testid="home-priorities-tile">
       <div class="home-tile__header">
         <div class="home-tile__title-row">
-          <h3 class="home-tile__title">Next priorities</h3>
+          <h3 class="home-tile__title">Today's focus</h3>
         </div>
         <button type="button"
                 class="mini-btn home-priorities-refresh-btn"
