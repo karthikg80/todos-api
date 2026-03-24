@@ -3575,138 +3575,19 @@
     >
       <div class="dock__group dock__group--left">
         <button
-          type="button"
-          class="dock-icon-btn"
-          data-onclick="switchView('settings', this)"
-          aria-label="Settings"
-          title="Settings"
-        >
-          <svg
-            class="dock-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path
-              d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
-            />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-          <span class="dock-icon-btn__label">Settings</span>
-        </button>
-        <button
-          type="button"
-          class="dock-icon-btn"
-          data-onclick="switchView('feedback', this)"
-          aria-label="Feedback"
-          title="Feedback"
-        >
-          <svg
-            class="dock-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path
-              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-            />
-          </svg>
-          <span class="dock-icon-btn__label">Feedback</span>
-        </button>
-        <button
-          type="button"
-          class="dock-icon-btn dock-admin-btn"
-          data-onclick="switchView('admin', this)"
-          aria-label="Admin"
-          title="Admin"
-        >
-          <svg
-            class="dock-icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
-          <span class="dock-icon-btn__label">Admin</span>
-        </button>
-        <button
-          type="button"
-          class="dock-icon-btn"
-          data-onclick="toggleTheme()"
-          aria-label="Toggle dark mode"
-          title="Toggle dark mode"
-        >
-          <svg
-            class="dock-icon dock-icon--moon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
-          </svg>
-          <svg
-            class="dock-icon dock-icon--sun"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="4" />
-            <path
-              d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
-            />
-          </svg>
-          <span class="dock-icon-btn__label">Theme</span>
-        </button>
-        <button
           id="dockProfileBtn"
           type="button"
           class="dock-icon-btn"
           data-onclick="toggleProfilePanel()"
-          aria-label="Profile"
+          aria-label="Profile menu"
           aria-haspopup="true"
-          title="Profile"
+          title="Profile menu"
         >
           <svg
             class="dock-icon"
             xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
+            width="18"
+            height="18"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -3719,7 +3600,6 @@
             <circle cx="12" cy="10" r="3" />
             <path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662" />
           </svg>
-          <span class="dock-icon-btn__label">Profile</span>
         </button>
       </div>
       <div class="dock__group dock__group--right">
@@ -3779,21 +3659,150 @@
       </div>
     </div>
 
-    <!-- Profile panel (anchored above dock Profile button) -->
+    <!-- Profile hub menu (anchored above dock Profile button) -->
     <div
       id="dockProfilePanel"
       class="dock-profile-panel"
       hidden
-      role="dialog"
-      aria-label="Profile"
+      role="menu"
+      aria-label="Profile menu"
     >
       <span id="dockProfileEmail" class="dock-profile-panel__email"></span>
+      <div class="dock-profile-panel__divider"></div>
       <button
         type="button"
-        class="dock-profile-panel__logout"
-        data-onclick="logout()"
-        aria-label="Logout"
+        class="dock-profile-panel__item"
+        role="menuitem"
+        data-onclick="profileNavTo('settings')"
       >
+        <svg
+          class="app-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+          />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        Settings
+      </button>
+      <button
+        type="button"
+        class="dock-profile-panel__item"
+        role="menuitem"
+        data-onclick="profileNavTo('feedback')"
+      >
+        <svg
+          class="app-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+          />
+        </svg>
+        Feedback
+      </button>
+      <button
+        type="button"
+        class="dock-profile-panel__item dock-admin-btn"
+        role="menuitem"
+        data-onclick="profileNavTo('admin')"
+      >
+        <svg
+          class="app-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Admin
+      </button>
+      <div class="dock-profile-panel__divider"></div>
+      <button
+        type="button"
+        class="dock-profile-panel__item"
+        role="menuitem"
+        data-onclick="profileToggleTheme()"
+      >
+        <svg
+          class="app-icon dock-icon--moon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+        </svg>
+        <svg
+          class="app-icon dock-icon--sun"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+          />
+        </svg>
+        <span class="dock-theme-label">Dark mode</span>
+      </button>
+      <div class="dock-profile-panel__divider"></div>
+      <button
+        type="button"
+        class="dock-profile-panel__item dock-profile-panel__item--danger"
+        role="menuitem"
+        data-onclick="logout()"
+      >
+        <svg
+          class="app-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
         Logout
       </button>
     </div>

@@ -14,7 +14,11 @@ async function clickLogout(page: Page) {
   if (await profileBtn.isVisible()) {
     await profileBtn.click();
   }
-  await page.getByRole("button", { name: "Logout" }).click();
+  // Logout is a menuitem in the profile hub on desktop, a button on mobile.
+  await page
+    .getByRole("menuitem", { name: "Logout" })
+    .or(page.getByRole("button", { name: "Logout" }))
+    .click();
 }
 
 type UserRecord = {
