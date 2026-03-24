@@ -8919,53 +8919,69 @@ body.is-admin-user .projects-rail__footer--admin-only {
   background: var(--surface);
   border: 1px solid var(--border-color);
   border-radius: var(--r-md);
-  box-shadow:
-    0 4px 12px rgb(0 0 0 / 8%),
-    0 1px 4px rgb(0 0 0 / 5%);
-  padding: var(--s-3);
+  box-shadow: var(--shadow-elevated);
+  padding: var(--s-2);
   display: flex;
   flex-direction: column;
-  gap: var(--s-2);
+  gap: 0;
 }
 
-/* Author CSS overrides UA [hidden]{display:none} — restore it explicitly. */
 .dock-profile-panel[hidden] {
   display: none;
 }
 
 .dock-profile-panel__email {
   display: block;
-  padding: 2px var(--s-2);
-  font-size: var(--fs-sm);
-  color: var(--muted);
+  padding: var(--s-2) var(--s-2);
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  color: var(--text-primary);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.dock-profile-panel__logout {
+.dock-profile-panel__divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: var(--s-1) 0;
+}
+
+.dock-profile-panel__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
   width: 100%;
-  padding: 6px var(--s-2);
+  padding: var(--s-2);
   text-align: left;
   background: transparent;
   border: none;
   border-radius: var(--r-sm);
   color: var(--text-secondary);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-body);
   cursor: pointer;
   transition:
-    background 0.12s ease,
-    color 0.12s ease;
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
 
-.dock-profile-panel__logout:hover {
+.dock-profile-panel__item:hover {
   background: var(--card-hover);
   color: var(--text);
 }
 
-.dock-profile-panel__logout:focus-visible {
+.dock-profile-panel__item:focus-visible {
   outline: none;
   box-shadow: var(--focus-ring);
+}
+
+.dock-profile-panel__item--danger {
+  color: var(--danger);
+}
+
+.dock-profile-panel__item--danger:hover {
+  background: color-mix(in oklab, var(--danger) 8%, var(--surface));
+  color: var(--danger);
 }
 
 .todo-drawer__agent-hint {

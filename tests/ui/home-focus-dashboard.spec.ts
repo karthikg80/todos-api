@@ -874,14 +874,19 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
   });
 
-  test("Desktop dock shows visible utility labels", async ({ page }) => {
-    test.skip(isMobileViewport(page), "Dock labels are desktop-only.");
+  test("Desktop dock profile hub contains nav items", async ({ page }) => {
+    test.skip(isMobileViewport(page), "Dock is desktop-only.");
 
-    const dock = page.locator("#bottomActionDock .dock__group--left");
-    await expect(dock).toContainText("Settings");
-    await expect(dock).toContainText("Feedback");
-    await expect(dock).toContainText("Theme");
-    await expect(dock).toContainText("Profile");
+    // Open profile hub dropdown
+    const profileBtn = page.locator("#dockProfileBtn");
+    await expect(profileBtn).toBeVisible();
+    await profileBtn.click();
+
+    const panel = page.locator("#dockProfilePanel");
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("Settings");
+    await expect(panel).toContainText("Feedback");
+    await expect(panel).toContainText("Logout");
   });
 });
 

@@ -1032,6 +1032,11 @@ function toggleProfilePanel() {
     if (emailEl instanceof HTMLElement) {
       emailEl.textContent = state.currentUser?.email ?? "";
     }
+    // Sync theme label
+    var isDark = document.body.classList.contains("dark-mode");
+    var themeLabel = panel.querySelector(".dock-theme-label");
+    if (themeLabel)
+      themeLabel.textContent = isDark ? "Light mode" : "Dark mode";
     panel.hidden = false;
     state.isProfilePanelOpen = true;
     DialogManager.open("profilePanel", panel, {
@@ -1333,6 +1338,17 @@ window.setSelectedProjectKey = setSelectedProjectKey;
 // Views / navigation
 window.switchView = switchView;
 window.toggleProfilePanel = toggleProfilePanel;
+window.profileNavTo = function profileNavTo(view) {
+  closeProfilePanel({ restoreFocus: false });
+  switchView(view);
+};
+window.profileToggleTheme = function profileToggleTheme() {
+  ThemeModule.toggleTheme();
+  // Update the label inside the panel
+  var isDark = document.body.classList.contains("dark-mode");
+  var label = document.querySelector(".dock-theme-label");
+  if (label) label.textContent = isDark ? "Light mode" : "Dark mode";
+};
 window.logout = logout;
 window.handleFeedbackTypeChange = handleFeedbackTypeChange;
 window.handleFeedbackAttachmentChange = handleFeedbackAttachmentChange;
