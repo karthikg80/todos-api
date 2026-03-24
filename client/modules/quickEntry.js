@@ -393,8 +393,27 @@ export async function processQuickEntryNaturalDate({
   const detection = parseQuickEntryNaturalDue(startingTitle, chronoModule);
   state.quickEntryNaturalDateState.lastDetected = detection;
 
-  if (!detection || detection.isPast) {
+  if (!detection) {
     clearQuickEntryNaturalSuggestionPreview();
+    renderQuickEntryNaturalDueChip();
+    return detection;
+  }
+  if (detection.isPast) {
+    clearQuickEntryNaturalSuggestionPreview();
+    // Show a brief "past date ignored" hint instead of silent rejection
+    const chipRow =
+      document.getElementById("inlineQuickAddChipRow") ||
+      document.getElementById("quickEntryNaturalDateChipRow");
+    if (chipRow instanceof HTMLElement) {
+      chipRow.textContent = "";
+      const hint = document.createElement("span");
+      hint.className = "natural-date-chip natural-date-chip--muted";
+      hint.textContent = "Past date ignored";
+      chipRow.appendChild(hint);
+      setTimeout(() => {
+        if (hint.isConnected) hint.remove();
+      }, 3000);
+    }
     renderQuickEntryNaturalDueChip();
     return detection;
   }

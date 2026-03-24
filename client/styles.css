@@ -1258,6 +1258,16 @@ textarea:focus-visible,
   background: rgb(59 130 246 / 10%);
 }
 
+.natural-date-chip--muted {
+  display: inline-block;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in oklab, var(--border-color) 40%, transparent);
+  opacity: 0.8;
+}
+
 .quick-entry-natural-due-chip__action {
   border: none;
   background: transparent;
@@ -2026,6 +2036,25 @@ textarea:focus-visible,
   margin-top: 0;
   border-top: none;
   padding-top: 0;
+}
+
+.todo-section-label {
+  list-style: none;
+  padding: var(--s-1) var(--s-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: var(--s-2);
+}
+
+.todo-section-label:first-child {
+  margin-top: 0;
+}
+
+.todo-section-label--overdue {
+  color: var(--danger);
 }
 
 .todo-item {
