@@ -8,6 +8,7 @@ import {
   renderOAuthErrorPage,
   renderOAuthLoginPage,
   renderOAuthRedirectPage,
+  renderOAuthRegisterPage,
 } from "../mcp/mcpOAuthPages";
 import {
   describeMcpScopes,
@@ -17,6 +18,7 @@ import {
   validateRevokeMcpOAuthTokenInput,
 } from "../validation/mcpValidation";
 import { config } from "../config";
+import { validateRegister } from "../validation/authValidation";
 
 interface McpPublicRouterDeps {
   authService?: AuthService;
@@ -179,6 +181,9 @@ function logMcpOauthEvent(input: {
     | "authorize_error"
     | "login_success"
     | "login_error"
+    | "signup_view"
+    | "signup_success"
+    | "signup_error"
     | "approve_success"
     | "approve_error"
     | "deny"
@@ -203,6 +208,44 @@ function logMcpOauthEvent(input: {
       scopes: input.scopes,
       errorCode: input.errorCode,
       ts: new Date().toISOString(),
+    }),
+  );
+}
+
+function renderRegistrationError(
+  res: Response,
+  req: Request,
+  errorMessage: string,
+  clientName?: string,
+) {
+  const hiddenFields = {
+    client_id:
+      typeof req.body.client_id === "string" ? req.body.client_id : undefined,
+    redirect_uri:
+      typeof req.body.redirect_uri === "string"
+        ? req.body.redirect_uri
+        : undefined,
+    response_type:
+      typeof req.body.response_type === "string"
+        ? req.body.response_type
+        : undefined,
+    scope: typeof req.body.scope === "string" ? req.body.scope : undefined,
+    state: typeof req.body.state === "string" ? req.body.state : undefined,
+    code_challenge:
+      typeof req.body.code_challenge === "string"
+        ? req.body.code_challenge
+        : undefined,
+    code_challenge_method:
+      typeof req.body.code_challenge_method === "string"
+        ? req.body.code_challenge_method
+        : undefined,
+  };
+  return res.status(200).send(
+    renderOAuthRegisterPage({
+      error: errorMessage,
+      formAction: "/oauth/authorize/register",
+      hiddenFields,
+      clientName,
     }),
   );
 }
@@ -514,11 +557,23 @@ export function createMcpPublicRouter({
           clientName: client.clientName,
           scopes: authorize.scopes,
         });
+        const registerUrl = `/oauth/authorize/register?${buildAuthorizeSearchParams(
+          {
+            clientId: authorize.clientId,
+            redirectUri: authorize.redirectUri,
+            responseType: authorize.responseType,
+            scope: describeMcpScopes(authorize.scopes),
+            state: authorize.state,
+            codeChallenge: authorize.codeChallenge,
+            codeChallengeMethod: authorize.codeChallengeMethod,
+          },
+        )}`;
         return res.status(200).send(
           renderOAuthLoginPage({
             formAction: "/oauth/authorize/login",
             hiddenFields,
             clientName: client.clientName,
+            registerUrl,
           }),
         );
       }
@@ -669,6 +724,188 @@ export function createMcpPublicRouter({
                 : undefined,
           },
           clientName,
+        }),
+      );
+    }
+  });
+
+  router.get("/oauth/authorize/register", async (req, res) => {
+    const requestId = buildRequestId(req);
+    setRequestId(res, requestId);
+    setNoStoreHeaders(res);
+
+    try {
+      if (!authService) {
+        return res.status(501).send(
+          renderOAuthErrorPage({
+            title: "MCP Not Configured",
+            message: "Authentication is not configured on this server.",
+          }),
+        );
+      }
+
+      const authorize = validateOAuthAuthorizeRequest(req.query);
+      const client = mcpClientService.assertRedirectUri(
+        authorize.clientId,
+        authorize.redirectUri,
+      );
+      const scopeString = describeMcpScopes(authorize.scopes);
+      const hiddenFields = {
+        client_id: authorize.clientId,
+        redirect_uri: authorize.redirectUri,
+        response_type: authorize.responseType,
+        scope: scopeString,
+        state: authorize.state,
+        code_challenge: authorize.codeChallenge,
+        code_challenge_method: authorize.codeChallengeMethod,
+      };
+
+      const loginUrl = `/oauth/authorize?${buildAuthorizeSearchParams({
+        clientId: authorize.clientId,
+        redirectUri: authorize.redirectUri,
+        responseType: authorize.responseType,
+        scope: scopeString,
+        state: authorize.state,
+        codeChallenge: authorize.codeChallenge,
+        codeChallengeMethod: authorize.codeChallengeMethod,
+      })}`;
+
+      logMcpOauthEvent({
+        requestId,
+        event: "signup_view",
+        clientId: authorize.clientId,
+        clientName: client.clientName,
+        scopes: authorize.scopes,
+      });
+
+      res.status(200).send(
+        renderOAuthRegisterPage({
+          formAction: "/oauth/authorize/register",
+          hiddenFields,
+          clientName: client.clientName,
+          loginUrl,
+        }),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const mapped = mapAuthorizeError(message);
+      logMcpOauthEvent({
+        requestId,
+        event: "signup_error",
+        errorCode: mapped.code,
+      });
+      res.status(400).send(
+        renderOAuthErrorPage({
+          title: mapped.title,
+          message: mapped.description,
+        }),
+      );
+    }
+  });
+
+  router.post("/oauth/authorize/register", async (req, res) => {
+    const requestId = buildRequestId(req);
+    setRequestId(res, requestId);
+    setNoStoreHeaders(res);
+
+    try {
+      if (!authService) {
+        throw new Error("Authentication not configured");
+      }
+
+      const authorize = validateOAuthAuthorizeRequest(req.body);
+      const client = mcpClientService.assertRedirectUri(
+        authorize.clientId,
+        authorize.redirectUri,
+      );
+      const scopeString = describeMcpScopes(authorize.scopes);
+
+      // Validate registration input
+      const validation = validateRegister({
+        name: req.body.name,
+        email: req.body.email,
+        password: req.body.password,
+      });
+
+      if (!validation.valid || !validation.dto) {
+        const errorMessage = validation.errors.map((e) => e.message).join(". ");
+        return renderRegistrationError(
+          res,
+          req,
+          errorMessage,
+          client.clientName,
+        );
+      }
+
+      // Create the user account (reuses authService.register logic)
+      let registeredUser: { id: string; email: string | null };
+      try {
+        const result = await authService.register(validation.dto);
+        registeredUser = result.user;
+      } catch (regError) {
+        const regMessage =
+          regError instanceof Error ? regError.message : "Registration failed";
+        const displayMessage =
+          regMessage === "Email already registered"
+            ? "An account with this email already exists"
+            : regMessage;
+        return renderRegistrationError(
+          res,
+          req,
+          displayMessage,
+          client.clientName,
+        );
+      }
+
+      // Issue authorization code for the newly registered user
+      const authCode = await mcpOAuthService.createAuthorizationCode({
+        userId: registeredUser.id,
+        email: registeredUser.email || validation.dto.email,
+        clientId: authorize.clientId,
+        redirectUri: authorize.redirectUri,
+        scopes: authorize.scopes,
+        assistantName: client.clientName,
+        state: authorize.state,
+        codeChallenge: authorize.codeChallenge,
+        codeChallengeMethod: authorize.codeChallengeMethod,
+      });
+
+      logMcpOauthEvent({
+        requestId,
+        event: "signup_success",
+        userId: registeredUser.id,
+        clientId: authorize.clientId,
+        clientName: client.clientName,
+        scopes: authorize.scopes,
+      });
+
+      const finalRedirectUri = appendQuery(authorize.redirectUri, {
+        code: authCode.code,
+        state: authorize.state,
+      });
+      const nonce = randomBytes(16).toString("base64");
+      res
+        .status(303)
+        .setHeader("Location", finalRedirectUri)
+        .setHeader(
+          "Content-Security-Policy",
+          `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'`,
+        )
+        .send(
+          renderOAuthRedirectPage({ redirectUri: finalRedirectUri, nonce }),
+        );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const mapped = mapAuthorizeError(message);
+      logMcpOauthEvent({
+        requestId,
+        event: "signup_error",
+        errorCode: mapped.code,
+      });
+      res.status(400).send(
+        renderOAuthErrorPage({
+          title: mapped.title,
+          message: mapped.description,
         }),
       );
     }
