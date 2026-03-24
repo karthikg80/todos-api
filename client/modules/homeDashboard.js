@@ -3,6 +3,9 @@
 // =============================================================================
 import { state, hooks } from "./store.js";
 import { applyDomainAction } from "./stateActions.js";
+import { EventBus } from "./eventBus.js";
+import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
+import { TODO_UPDATED } from "../platform/events/eventReasons.js";
 import {
   isSameLocalDay,
   isTodoUnsorted,
@@ -18,6 +21,7 @@ import {
   loadPrioritiesBrief,
 } from "./homePrioritiesTile.js";
 import { loadHomeFocusSuggestions } from "./homeAiService.js";
+import { callAgentAction } from "./agentApiClient.js";
 import {
   getDayPlanState,
   generateDayPlan,
@@ -28,6 +32,7 @@ import {
   onboardingStep,
   maybeRenderOnboardingModal,
 } from "./onboardingFlow.js";
+import { SOUL_COPY, buildRescueSuggestion } from "./soulConfig.js";
 
 const { escapeHtml } = window.Utils || {};
 const { getProjectLeafName, normalizeProjectPath } =
@@ -73,7 +78,7 @@ export function formatHomeDueBadge(todo) {
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
   const dueDay = getStartOfToday(dueDate);
-  if (dueDay < today && !todo.completed) return "Overdue";
+  if (dueDay < today && !todo.completed) return "Still waiting";
   if (isSameLocalDay(dueDate, now)) return "Today";
   if (isSameLocalDay(dueDate, tomorrow)) return "Tomorrow";
   return dueDate.toLocaleDateString(undefined, {
@@ -119,7 +124,7 @@ export function getHomeTopFocusDeterministicReason(todo) {
   if (dueDate) {
     const now = new Date();
     const today = getStartOfToday(now);
-    if (dueDate < today && !todo.completed) return "Overdue";
+    if (dueDate < today && !todo.completed) return "Still waiting";
     if (isSameLocalDay(dueDate, now)) return "Due today";
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
@@ -177,7 +182,7 @@ export function buildHomeDueSoonGroups(items = []) {
     grouped[key].push(todo);
   }
   return [
-    { key: "overdue", label: "Overdue", items: grouped.overdue },
+    { key: "overdue", label: "Still waiting", items: grouped.overdue },
     { key: "today", label: "Today", items: grouped.today },
     { key: "tomorrow", label: "Tomorrow", items: grouped.tomorrow },
     { key: "next_3_days", label: "Next 3 days", items: grouped.next_3_days },
@@ -474,6 +479,70 @@ export function getHomeDashboardModel({ topFocusItems = [] } = {}) {
   };
 }
 
+function getRolledOverTodos() {
+  const today = getStartOfToday(new Date());
+  return getOpenTodos().filter((todo) => {
+    const dueDate = getTodoDueDate(todo);
+    return !!dueDate && dueDate < today;
+  });
+}
+
+function getPlannedEffortScoreTotal() {
+  return getOpenTodos()
+    .filter((todo) => {
+      const dueDate = getTodoDueDate(todo);
+      return (
+        String(todo.status || "") === "next" ||
+        (dueDate && dueDate <= getEndOfDay(new Date()))
+      );
+    })
+    .reduce((sum, todo) => sum + Number(todo.effortScore || 0), 0);
+}
+
+async function applyRecoveryPatch(todoId, patch, successMessage) {
+  try {
+    await hooks.applyTodoPatch?.(todoId, patch);
+    EventBus.dispatch(TODOS_CHANGED, { reason: TODO_UPDATED });
+    hooks.applyFiltersAndRender?.({ reason: "soul-recovery-action" });
+    hooks.showMessage?.("todosMessage", successMessage, "success");
+  } catch (error) {
+    console.error("Recovery action failed:", error);
+    hooks.showMessage?.(
+      "todosMessage",
+      error.message || "Could not update that task.",
+      "error",
+    );
+  }
+}
+
+async function setDayContextMode(mode) {
+  const contextDate = new Date().toISOString().slice(0, 10);
+  try {
+    await callAgentAction("/agent/write/set_day_context", {
+      contextDate,
+      mode,
+    });
+    state.currentDayContext = {
+      ...state.currentDayContext,
+      contextDate,
+      mode,
+    };
+    hooks.applyFiltersAndRender?.({ reason: `day-context-${mode}` });
+    hooks.showMessage?.(
+      "todosMessage",
+      mode === "rescue" ? SOUL_COPY.gotIt : SOUL_COPY.saved,
+      "success",
+    );
+  } catch (error) {
+    console.error("Set day context failed:", error);
+    hooks.showMessage?.(
+      "todosMessage",
+      error.message || "Could not change day mode.",
+      "error",
+    );
+  }
+}
+
 export function buildHomeTileListByKey(key) {
   const model = getHomeDashboardModel();
   if (key === "due_soon") return model.dueSoon;
@@ -576,7 +645,7 @@ export async function hydrateHomeTopFocusIfNeeded() {
 // ---------------------------------------------------------------------------
 
 const HOME_BADGE_ICONS = {
-  Overdue: `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`,
+  "Still waiting": `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`,
   Today: `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/><path d="M8 14h.01"/><path d="M12 14h.01"/></svg>`,
   Tomorrow: `<svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>`,
 };
@@ -592,6 +661,7 @@ export function renderHomeTaskRow(todo, { reason = "" } = {}) {
   const dueBadge = formatHomeDueBadge(todo);
   const projectName = normalizeProjectPath(todo?.category || todo?.projectName);
   const projectLabel = projectName ? getProjectLeafName(projectName) : "";
+  const isRolledOver = dueBadge === "Still waiting";
   const badgeIcon =
     HOME_BADGE_ICONS[dueBadge] ??
     (dueBadge
@@ -614,7 +684,7 @@ export function renderHomeTaskRow(todo, { reason = "" } = {}) {
       >
         ${escapeHtml(String(todo.title || "Untitled task"))}
       </button>
-      ${dueBadge ? `<span class="home-task-row__badge ${dueBadge === "Overdue" ? "home-task-row__badge--overdue" : ""}">${badgeIcon}${escapeHtml(dueBadge)}</span>` : ""}
+      ${dueBadge ? `<span class="home-task-row__badge ${dueBadge === "Still waiting" ? "home-task-row__badge--overdue" : ""}">${badgeIcon}${escapeHtml(dueBadge)}</span>` : ""}
       ${
         projectName
           ? `<button
@@ -628,8 +698,39 @@ export function renderHomeTaskRow(todo, { reason = "" } = {}) {
       }
       ${reason ? `<div class="home-task-row__reason">${escapeHtml(reason)}</div>` : ""}
       ${
-        aiSuggestion
-          ? `<div class="home-task-row__actions">
+        isRolledOver
+          ? `<div class="home-task-row__actions home-task-row__actions--recovery">
+              <button
+                type="button"
+                class="mini-btn home-task-row__action"
+                data-onclick="startSmallerForTodo('${escapeHtml(String(todo.id))}')"
+              >
+                Start smaller
+              </button>
+              <button
+                type="button"
+                class="mini-btn home-task-row__action home-task-row__action--secondary"
+                data-onclick="moveTodoLater('${escapeHtml(String(todo.id))}')"
+              >
+                Move later
+              </button>
+              <button
+                type="button"
+                class="mini-btn home-task-row__action home-task-row__action--secondary"
+                data-onclick="markTodoNotNow('${escapeHtml(String(todo.id))}')"
+              >
+                Not now
+              </button>
+              <button
+                type="button"
+                class="mini-btn home-task-row__action home-task-row__action--secondary"
+                data-onclick="dropTodoFromList('${escapeHtml(String(todo.id))}')"
+              >
+                Drop from list
+              </button>
+            </div>`
+          : aiSuggestion
+            ? `<div class="home-task-row__actions">
               <button
                 type="button"
                 class="mini-btn home-task-row__action"
@@ -647,7 +748,7 @@ export function renderHomeTaskRow(todo, { reason = "" } = {}) {
                 ${isDismissing ? "Dismissing…" : "Dismiss"}
               </button>
             </div>`
-          : ""
+            : ""
       }
     </div>
   `;
@@ -807,6 +908,42 @@ function renderHomeBriefCard(model) {
   `;
 }
 
+function renderRescuePanel() {
+  const rolledOverCount = getRolledOverTodos().length;
+  const plannedEffortScoreTotal = getPlannedEffortScoreTotal();
+  const suggestion = buildRescueSuggestion({
+    rolledOverCount,
+    plannedEffortScoreTotal,
+    repeatedDeferrals: 0,
+  });
+  const rescueActive = state.currentDayContext?.mode === "rescue";
+
+  return `
+    <section class="home-rescue-panel" data-testid="home-rescue-panel">
+      <div>
+        <p class="home-rescue-panel__eyebrow">Rescue mode</p>
+        <h3 class="home-rescue-panel__title">${
+          rescueActive
+            ? escapeHtml(SOUL_COPY.rescueActive)
+            : "Keep the day workable."
+        }</h3>
+        <p class="home-rescue-panel__summary">${
+          suggestion
+            ? escapeHtml(suggestion)
+            : "Use rescue mode when you need a smaller plan, fewer anchors, and less pressure."
+        }</p>
+      </div>
+      <div class="home-rescue-panel__actions">
+        ${
+          rescueActive
+            ? `<button type="button" class="mini-btn" data-onclick="setNormalDayMode()">Back to normal</button>`
+            : `<button type="button" class="btn" data-onclick="startRescueMode()">Start rescue mode</button>`
+        }
+      </div>
+    </section>
+  `;
+}
+
 export function renderProjectsToNudgeTile(items = []) {
   const folderIcon = `<svg class="home-project-row__icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
   return `
@@ -829,7 +966,7 @@ export function renderProjectsToNudgeTile(items = []) {
                     data-onclick="openHomeProject('${escapeHtml(project.projectName)}')"
                   >
                     <span class="home-project-row__header">${folderIcon}<span class="home-project-row__name">${escapeHtml(getProjectLeafName(project.projectName))}</span></span>
-                    <span class="home-project-row__meta">${project.openCount} open${project.overdueCount ? ` · ${project.overdueCount} overdue` : ""}${project.dueSoonCount ? ` · ${project.dueSoonCount} due soon` : ""}</span>
+                    <span class="home-project-row__meta">${project.openCount} open${project.overdueCount ? ` · ${project.overdueCount} still waiting` : ""}${project.dueSoonCount ? ` · ${project.dueSoonCount} due soon` : ""}</span>
                   </button>
                 `,
                 )
@@ -1054,9 +1191,10 @@ export function renderHomeDashboard() {
   // view — guarantees the overlay only appears when home workspace is active.
   maybeRenderOnboardingModal();
 
-  // During inline onboarding steps (2 = add tasks, 3 = set due dates), suppress
-  // the normal dashboard tiles so the onboarding banner has visual focus.
-  if (isOnboardingActive() && (onboardingStep === 2 || onboardingStep === 3)) {
+  // During the inline example-task step, suppress the normal tiles so the
+  // onboarding banner has visual focus. Modal steps can keep the dashboard
+  // underneath as context.
+  if (isOnboardingActive() && onboardingStep === 3) {
     return `<section class="home-dashboard" data-testid="home-dashboard"></section>`;
   }
   void loadPrioritiesBrief();
@@ -1075,6 +1213,7 @@ export function renderHomeDashboard() {
   return `
     <section class="home-dashboard" data-testid="home-dashboard">
       ${hasTasks ? renderHomeBriefCard(model) : ""}
+      ${hasTasks ? renderRescuePanel() : ""}
       ${
         hasTasks
           ? `<div class="home-dashboard__support-grid">
@@ -1125,6 +1264,58 @@ export function openHomeProject(projectName) {
 
 export function openTodoFromHomeTile(todoId) {
   openTodoDrawer(String(todoId || ""), document.activeElement);
+}
+
+export async function startSmallerForTodo(todoId) {
+  const todo = state.todos.find((item) => String(item.id) === String(todoId));
+  if (!todo) return;
+  const proposed = await hooks.showInputDialog?.(
+    "What is the smallest first step?",
+  );
+  const firstStep = String(proposed || "").trim();
+  if (!firstStep) return;
+  await applyRecoveryPatch(todoId, { firstStep }, SOUL_COPY.saved);
+}
+
+export async function moveTodoLater(todoId) {
+  const todo = state.todos.find((item) => String(item.id) === String(todoId));
+  if (!todo) return;
+  const sourceDate = getTodoDueDate(todo) || new Date();
+  const movedDate = new Date(sourceDate);
+  movedDate.setDate(movedDate.getDate() + 3);
+  movedDate.setHours(12, 0, 0, 0);
+  await applyRecoveryPatch(
+    todoId,
+    { dueDate: movedDate.toISOString() },
+    SOUL_COPY.movedLater,
+  );
+}
+
+export async function markTodoNotNow(todoId) {
+  await applyRecoveryPatch(todoId, { status: "someday" }, SOUL_COPY.movedLater);
+}
+
+export async function dropTodoFromList(todoId) {
+  const todo = state.todos.find((item) => String(item.id) === String(todoId));
+  if (!todo) return;
+  await applyRecoveryPatch(
+    todoId,
+    { archived: true },
+    SOUL_COPY.droppedFromList,
+  );
+  hooks.addUndoAction?.(
+    "archive",
+    { id: todoId },
+    "Task removed from the list",
+  );
+}
+
+export async function startRescueMode() {
+  await setDayContextMode("rescue");
+}
+
+export async function setNormalDayMode() {
+  await setDayContextMode("normal");
 }
 
 export function getHomeDrilldownLabel() {

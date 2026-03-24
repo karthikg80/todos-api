@@ -703,7 +703,12 @@ export function resetTaskComposerFields() {
   const scheduledDateInput = document.getElementById("todoScheduledDateInput");
   const reviewDateInput = document.getElementById("todoReviewDateInput");
   const contextInput = document.getElementById("todoContextInput");
+  const effortSelect = document.getElementById("todoEffortSelect");
   const energySelect = document.getElementById("todoEnergySelect");
+  const emotionalStateSelect = document.getElementById(
+    "todoEmotionalStateSelect",
+  );
+  const firstStepInput = document.getElementById("todoFirstStepInput");
   const estimateInput = document.getElementById("todoEstimateInput");
   const tagsInput = document.getElementById("todoTagsInput");
   const waitingOnInput = document.getElementById("todoWaitingOnInput");
@@ -719,7 +724,11 @@ export function resetTaskComposerFields() {
     scheduledDateInput.value = "";
   if (reviewDateInput instanceof HTMLInputElement) reviewDateInput.value = "";
   if (contextInput instanceof HTMLInputElement) contextInput.value = "";
+  if (effortSelect instanceof HTMLSelectElement) effortSelect.value = "";
   if (energySelect instanceof HTMLSelectElement) energySelect.value = "";
+  if (emotionalStateSelect instanceof HTMLSelectElement)
+    emotionalStateSelect.value = "";
+  if (firstStepInput instanceof HTMLInputElement) firstStepInput.value = "";
   if (estimateInput instanceof HTMLInputElement) estimateInput.value = "";
   if (tagsInput instanceof HTMLInputElement) tagsInput.value = "";
   if (waitingOnInput instanceof HTMLInputElement) waitingOnInput.value = "";

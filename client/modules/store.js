@@ -117,6 +117,10 @@ export function createInitialWeeklyReviewState() {
     summary: null,
     findings: [],
     actions: [],
+    rolloverGroups: [],
+    anchorSuggestions: [],
+    behaviorAdjustment: "",
+    reflectionSummary: "",
     mode: "suggest",
   };
 }
@@ -142,6 +146,13 @@ export const state = {
   authToken: null,
   refreshToken: null,
   authState: null, // set after AUTH_STATE is loaded from AppState
+  userPlanningPreferences: null,
+  currentDayContext: {
+    mode: "normal",
+    energy: "",
+    notes: "",
+    contextDate: "",
+  },
 
   // Todos
   todos: [],

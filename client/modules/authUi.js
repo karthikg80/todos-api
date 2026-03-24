@@ -19,6 +19,11 @@ import {
 import { loadTodos } from "./todosService.js";
 import { closeTodoDrawer } from "./drawerUi.js";
 import { initOnboarding } from "./onboardingFlow.js";
+import {
+  SOUL_PROFILE_DEFAULTS,
+  normalizeSoulProfile,
+  SOUL_COPY,
+} from "./soulConfig.js";
 
 const { showMessage, hideMessage } = window.Utils || {};
 
@@ -417,6 +422,7 @@ export async function loadUserProfile() {
         });
       }
       updateUserDisplay();
+      await loadUserPlanningPreferences();
       await loadAdminBootstrapStatus();
 
       // Check if admin and show admin tab
@@ -428,6 +434,157 @@ export async function loadUserProfile() {
     }
   } catch (error) {
     console.error("Load profile error:", error);
+  }
+}
+
+export function populateSoulPreferencesForm() {
+  const prefs = normalizeSoulProfile(
+    state.userPlanningPreferences?.soulProfile,
+  );
+
+  const toggleCheckboxGroup = (name, selectedValues = []) => {
+    document
+      .querySelectorAll(`input[name="${name}"]`)
+      .forEach((inputElement) => {
+        if (!(inputElement instanceof HTMLInputElement)) return;
+        inputElement.checked = selectedValues.includes(inputElement.value);
+      });
+  };
+
+  toggleCheckboxGroup("soulLifeAreas", prefs.lifeAreas);
+  toggleCheckboxGroup("soulFailureModes", prefs.failureModes);
+  toggleCheckboxGroup("soulGoodDayThemes", prefs.goodDayThemes);
+
+  const planningStyle = document.getElementById("soulPlanningStyle");
+  if (planningStyle instanceof HTMLSelectElement) {
+    planningStyle.value = prefs.planningStyle;
+  }
+
+  const energyPattern = document.getElementById("soulEnergyPattern");
+  if (energyPattern instanceof HTMLSelectElement) {
+    energyPattern.value = prefs.energyPattern;
+  }
+
+  const tone = document.getElementById("soulTone");
+  if (tone instanceof HTMLSelectElement) {
+    tone.value = prefs.tone;
+  }
+
+  const dailyRitual = document.getElementById("soulDailyRitual");
+  if (dailyRitual instanceof HTMLSelectElement) {
+    dailyRitual.value = prefs.dailyRitual;
+  }
+
+  const preview = document.getElementById("soulSupportPreview");
+  if (preview instanceof HTMLElement) {
+    preview.textContent =
+      prefs.tone === "direct"
+        ? "You’ll get short, clear prompts and lighter review copy."
+        : prefs.tone === "encouraging"
+          ? "You’ll get warmer copy when plans drift and when work moves."
+          : prefs.tone === "focused"
+            ? "You’ll get steadier prompts aimed at clearer next actions."
+            : "You’ll get calmer copy and gentler recovery language.";
+  }
+}
+
+export async function loadUserPlanningPreferences() {
+  const apiCall = hooks.apiCall;
+  const API_URL = hooks.API_URL;
+
+  try {
+    const response = await apiCall(`${API_URL}/preferences`);
+    if (!response || !response.ok) return;
+    const preferences = await response.json();
+    state.userPlanningPreferences = {
+      ...(preferences || {}),
+      soulProfile: normalizeSoulProfile(preferences?.soulProfile),
+    };
+    populateSoulPreferencesForm();
+  } catch (error) {
+    console.error("Load planning preferences error:", error);
+    state.userPlanningPreferences = {
+      soulProfile: { ...SOUL_PROFILE_DEFAULTS },
+    };
+    populateSoulPreferencesForm();
+  }
+}
+
+function readSoulCheckboxValues(name) {
+  return Array.from(document.querySelectorAll(`input[name="${name}"]:checked`))
+    .map((inputElement) =>
+      inputElement instanceof HTMLInputElement ? inputElement.value : "",
+    )
+    .filter(Boolean);
+}
+
+function buildSoulProfilePayloadFromForm() {
+  const planningStyle = document.getElementById("soulPlanningStyle");
+  const energyPattern = document.getElementById("soulEnergyPattern");
+  const tone = document.getElementById("soulTone");
+  const dailyRitual = document.getElementById("soulDailyRitual");
+
+  return normalizeSoulProfile({
+    lifeAreas: readSoulCheckboxValues("soulLifeAreas"),
+    failureModes: readSoulCheckboxValues("soulFailureModes"),
+    goodDayThemes: readSoulCheckboxValues("soulGoodDayThemes"),
+    planningStyle:
+      planningStyle instanceof HTMLSelectElement
+        ? planningStyle.value
+        : SOUL_PROFILE_DEFAULTS.planningStyle,
+    energyPattern:
+      energyPattern instanceof HTMLSelectElement
+        ? energyPattern.value
+        : SOUL_PROFILE_DEFAULTS.energyPattern,
+    tone:
+      tone instanceof HTMLSelectElement
+        ? tone.value
+        : SOUL_PROFILE_DEFAULTS.tone,
+    dailyRitual:
+      dailyRitual instanceof HTMLSelectElement
+        ? dailyRitual.value
+        : SOUL_PROFILE_DEFAULTS.dailyRitual,
+  });
+}
+
+export async function handleSaveSoulPreferences(event) {
+  event.preventDefault();
+  hideMessage("profileMessage");
+  const apiCall = hooks.apiCall;
+  const parseApiBody = hooks.parseApiBody;
+  const API_URL = hooks.API_URL;
+
+  const payload = {
+    soulProfile: buildSoulProfilePayloadFromForm(),
+  };
+
+  try {
+    const response = await apiCall(`${API_URL}/preferences`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (response && response.ok) {
+      const updated = await response.json();
+      state.userPlanningPreferences = {
+        ...(updated || {}),
+        soulProfile: normalizeSoulProfile(updated?.soulProfile),
+      };
+      populateSoulPreferencesForm();
+      showMessage("profileMessage", SOUL_COPY.saved, "success");
+      return;
+    }
+
+    const data = response ? await parseApiBody(response) : {};
+    showMessage(
+      "profileMessage",
+      data.error || "Could not save support preferences.",
+      "error",
+    );
+  } catch (error) {
+    console.error("Save planning preferences error:", error);
+    showMessage("profileMessage", "Network error. Please try again.", "error");
   }
 }
 
@@ -690,7 +847,7 @@ export async function handleUpdateProfile(event) {
         });
       }
       updateUserDisplay();
-      showMessage("profileMessage", "Profile updated successfully!", "success");
+      showMessage("profileMessage", SOUL_COPY.saved, "success");
     } else {
       const data = response ? await parseApiBody(response) : {};
       showMessage(
@@ -732,6 +889,13 @@ export async function logout() {
   state.authToken = null;
   state.refreshToken = null;
   state.currentUser = null;
+  state.userPlanningPreferences = null;
+  state.currentDayContext = {
+    mode: "normal",
+    energy: "",
+    notes: "",
+    contextDate: "",
+  };
   setAuthState(AUTH_STATE.UNAUTHENTICATED);
   if (persistSession) {
     persistSession({

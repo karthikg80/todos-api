@@ -249,6 +249,10 @@ export class PlannerService implements IPlannerService {
         findings: base.findings,
         recommendedActions: base.recommendedActions,
         appliedActions: [],
+        rolloverGroups: base.rolloverGroups,
+        anchorSuggestions: base.anchorSuggestions,
+        behaviorAdjustment: base.behaviorAdjustment,
+        reflectionSummary: base.reflectionSummary,
       };
     }
 
@@ -276,6 +280,10 @@ export class PlannerService implements IPlannerService {
       findings: base.findings,
       recommendedActions: base.recommendedActions,
       appliedActions,
+      rolloverGroups: base.rolloverGroups,
+      anchorSuggestions: base.anchorSuggestions,
+      behaviorAdjustment: base.behaviorAdjustment,
+      reflectionSummary: base.reflectionSummary,
     };
   }
 

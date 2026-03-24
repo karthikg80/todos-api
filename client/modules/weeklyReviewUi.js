@@ -9,6 +9,7 @@
 import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
+import { SOUL_COPY } from "./soulConfig.js";
 
 // ---------------------------------------------------------------------------
 // Render
@@ -34,6 +35,44 @@ function renderActionRow(a) {
       <span class="wr-action__type">${escapeHtml(label)}</span>
       ${a.title ? `<span class="wr-action__title">${escapeHtml(a.title)}</span>` : ""}
       ${a.reason ? `<p class="wr-action__reason">${escapeHtml(a.reason)}</p>` : ""}
+    </div>`;
+}
+
+function renderRolloverGroup(group) {
+  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+  const items = Array.isArray(group?.items) ? group.items : [];
+  return `
+    <div class="wr-rollover-group">
+      <div class="wr-rollover-group__header">
+        <span class="wr-finding__type">${escapeHtml(String(group?.label || group?.key || "Group"))}</span>
+        <span class="wr-finding__subject">${escapeHtml(String(items.length))}</span>
+      </div>
+      ${
+        items.length > 0
+          ? `<ul class="wr-rollover-group__list">
+              ${items
+                .map(
+                  (item) =>
+                    `<li>${escapeHtml(String(item?.title || "Untitled task"))}</li>`,
+                )
+                .join("")}
+            </ul>`
+          : `<p class="wr-empty">Nothing here.</p>`
+      }
+    </div>`;
+}
+
+function renderAnchorSuggestion(item) {
+  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+  return `
+    <div class="wr-action">
+      <span class="wr-action__type">anchor</span>
+      <span class="wr-action__title">${escapeHtml(String(item?.title || "Untitled task"))}</span>
+      ${
+        item?.reason
+          ? `<p class="wr-action__reason">${escapeHtml(String(item.reason))}</p>`
+          : ""
+      }
     </div>`;
 }
 
@@ -75,18 +114,48 @@ export function renderWeeklyReviewView() {
       <div class="wr-error">${escapeHtml(s.error)}</div>
       <button type="button" class="wr-btn" data-wr-action="suggest">Retry</button>`;
   } else if (s.hasRun) {
+    const reflectionHtml = s.reflectionSummary
+      ? `<section class="wr-section">
+           <h3 class="wr-section__title">Reflection</h3>
+           <p class="wr-intro">${escapeHtml(s.reflectionSummary)}</p>
+         </section>`
+      : "";
+
     const findingsHtml =
       s.findings.length > 0
         ? `<section class="wr-section">
-            <h3 class="wr-section__title">Findings (${s.findings.length})</h3>
+            <h3 class="wr-section__title">What got stuck (${s.findings.length})</h3>
             ${s.findings.map(renderFindingRow).join("")}
           </section>`
         : "";
 
+    const rolloverHtml =
+      s.rolloverGroups.length > 0
+        ? `<section class="wr-section">
+             <h3 class="wr-section__title">Rollover review</h3>
+             ${s.rolloverGroups.map(renderRolloverGroup).join("")}
+           </section>`
+        : "";
+
+    const anchorsHtml =
+      s.anchorSuggestions.length > 0
+        ? `<section class="wr-section">
+             <h3 class="wr-section__title">Next week focus</h3>
+             ${s.anchorSuggestions.map(renderAnchorSuggestion).join("")}
+           </section>`
+        : "";
+
+    const adjustmentHtml = s.behaviorAdjustment
+      ? `<section class="wr-section">
+           <h3 class="wr-section__title">One adjustment</h3>
+           <p class="wr-intro">${escapeHtml(s.behaviorAdjustment)}</p>
+         </section>`
+      : "";
+
     const actionsHtml =
       s.actions.length > 0
         ? `<section class="wr-section">
-            <h3 class="wr-section__title">Recommended actions (${s.actions.length})</h3>
+            <h3 class="wr-section__title">Suggested cleanup (${s.actions.length})</h3>
             ${s.actions.map(renderActionRow).join("")}
             ${
               s.mode === "suggest"
@@ -98,11 +167,11 @@ export function renderWeeklyReviewView() {
                 : `<p class="wr-applied-msg">Actions applied.</p>`
             }
           </section>`
-        : `<p class="wr-empty">No recommended actions this week.</p>`;
+        : `<p class="wr-empty">Nothing urgent to clean up this week.</p>`;
 
-    bodyHtml = `${renderSummaryBadges(s.summary)}${findingsHtml}${actionsHtml}`;
+    bodyHtml = `${renderSummaryBadges(s.summary)}${reflectionHtml}${rolloverHtml}${findingsHtml}${anchorsHtml}${adjustmentHtml}${actionsHtml}`;
   } else {
-    bodyHtml = `<p class="wr-intro">Run the weekly review to surface stale tasks, projects without a next action, and get recommendations.</p>`;
+    bodyHtml = `<p class="wr-intro">${escapeHtml(SOUL_COPY.reviewIntro)}</p>`;
   }
 
   // All dynamic values are passed through escapeHtml before innerHTML assignment.
@@ -146,6 +215,14 @@ async function runWeeklyReview(mode = "suggest") {
         : Array.isArray(review?.appliedActions)
           ? review.appliedActions
           : [],
+      rolloverGroups: Array.isArray(review?.rolloverGroups)
+        ? review.rolloverGroups
+        : [],
+      anchorSuggestions: Array.isArray(review?.anchorSuggestions)
+        ? review.anchorSuggestions
+        : [],
+      behaviorAdjustment: String(review?.behaviorAdjustment || ""),
+      reflectionSummary: String(review?.reflectionSummary || ""),
     });
     if (mode === "apply") {
       applyAsyncAction("weeklyReview/mode:set", { mode: "apply" });

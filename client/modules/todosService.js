@@ -14,6 +14,7 @@ import {
   patchVisibleCategoryGroupStats,
 } from "./todosViewPatches.js";
 import { EventBus } from "./eventBus.js";
+import { getEffortScoreValue } from "./soulConfig.js";
 import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
 import {
   TODO_ADDED,
@@ -283,7 +284,12 @@ async function addTodo() {
   const scheduledDateInput = document.getElementById("todoScheduledDateInput");
   const reviewDateInput = document.getElementById("todoReviewDateInput");
   const contextInput = document.getElementById("todoContextInput");
+  const effortSelect = document.getElementById("todoEffortSelect");
   const energySelect = document.getElementById("todoEnergySelect");
+  const emotionalStateSelect = document.getElementById(
+    "todoEmotionalStateSelect",
+  );
+  const firstStepInput = document.getElementById("todoFirstStepInput");
   const estimateInput = document.getElementById("todoEstimateInput");
   const tagsInput = document.getElementById("todoTagsInput");
   const waitingOnInput = document.getElementById("todoWaitingOnInput");
@@ -347,11 +353,29 @@ async function addTodo() {
   if (contextInput instanceof HTMLInputElement && contextInput.value.trim()) {
     payload.context = contextInput.value.trim();
   }
+  if (effortSelect instanceof HTMLSelectElement) {
+    const effortScore = getEffortScoreValue(effortSelect.value);
+    if (effortScore !== null) {
+      payload.effortScore = effortScore;
+    }
+  }
   if (
     energySelect instanceof HTMLSelectElement &&
     String(energySelect.value || "").trim()
   ) {
     payload.energy = energySelect.value;
+  }
+  if (
+    emotionalStateSelect instanceof HTMLSelectElement &&
+    String(emotionalStateSelect.value || "").trim()
+  ) {
+    payload.emotionalState = emotionalStateSelect.value;
+  }
+  if (
+    firstStepInput instanceof HTMLInputElement &&
+    firstStepInput.value.trim()
+  ) {
+    payload.firstStep = firstStepInput.value.trim();
   }
   if (
     estimateInput instanceof HTMLInputElement &&
@@ -412,8 +436,17 @@ async function addTodo() {
       if (contextInput instanceof HTMLInputElement) {
         contextInput.value = "";
       }
+      if (effortSelect instanceof HTMLSelectElement) {
+        effortSelect.value = "";
+      }
       if (energySelect instanceof HTMLSelectElement) {
         energySelect.value = "";
+      }
+      if (emotionalStateSelect instanceof HTMLSelectElement) {
+        emotionalStateSelect.value = "";
+      }
+      if (firstStepInput instanceof HTMLInputElement) {
+        firstStepInput.value = "";
       }
       if (estimateInput instanceof HTMLInputElement) {
         estimateInput.value = "";
@@ -914,6 +947,15 @@ function performUndo() {
       break;
     case "bulk-complete":
       lastAction.data.forEach((todoId) => toggleTodo(todoId, false));
+      break;
+    case "archive":
+      applyTodoPatch(lastAction.data.id, { archived: false })
+        .then(() => {
+          EventBus.dispatch(TODOS_CHANGED, { reason: UNDO_APPLIED });
+        })
+        .catch((error) => {
+          console.error("Failed to undo archive:", error);
+        });
       break;
   }
 }

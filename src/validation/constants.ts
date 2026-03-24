@@ -7,6 +7,7 @@ import {
   SortOrder,
   TaskSource,
   TaskStatus,
+  TodoEmotionalState,
   TodoSortBy,
 } from "../types";
 
@@ -56,11 +57,20 @@ export const VALID_REVIEW_CADENCES: ReviewCadence[] = [
 
 export const VALID_TASK_SOURCES: TaskSource[] = [
   "manual",
+  "system_seed",
   "chat",
   "email",
   "import",
   "automation",
   "api",
+];
+
+export const VALID_TODO_EMOTIONAL_STATES: TodoEmotionalState[] = [
+  "avoiding",
+  "unclear",
+  "heavy",
+  "exciting",
+  "draining",
 ];
 
 export const VALID_RECURRENCE_TYPES: RecurrenceType[] = [

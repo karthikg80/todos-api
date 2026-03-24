@@ -18,6 +18,9 @@ type TodoSeed = {
   tags?: string[];
   context?: string | null;
   energy?: string | null;
+  effortScore?: number | null;
+  emotionalState?: string | null;
+  firstStep?: string | null;
   estimateMinutes?: number | null;
   waitingOn?: string | null;
   dependsOnTaskIds?: string[];
@@ -170,6 +173,10 @@ async function installDrawerEditMockApi(
         tags: Array.isArray(body.tags) ? body.tags : [],
         context: body.context ?? null,
         energy: body.energy ?? null,
+        effortScore:
+          typeof body.effortScore === "number" ? body.effortScore : null,
+        emotionalState: body.emotionalState ?? null,
+        firstStep: body.firstStep ?? null,
         estimateMinutes:
           typeof body.estimateMinutes === "number"
             ? body.estimateMinutes
@@ -421,6 +428,9 @@ test.describe("Todo drawer essentials editing", () => {
         tags: [],
         context: null,
         energy: null,
+        effortScore: null,
+        emotionalState: null,
+        firstStep: null,
         estimateMinutes: null,
         waitingOn: null,
         dependsOnTaskIds: [],
@@ -437,10 +447,14 @@ test.describe("Todo drawer essentials editing", () => {
     await page.locator("#drawerReviewDateInput").fill("2026-05-04T08:00");
     await page.locator("#drawerContextInput").fill("@computer");
     await page.locator("#drawerContextInput").blur();
+    await page.locator("#drawerEffortSelect").selectOption("3");
     await page.locator("#drawerEnergySelect").selectOption("medium");
     await page.locator("#drawerEstimateInput").fill("45");
     await page.locator("#drawerDetailsToggle").click();
     await expect(page.locator("#drawerDetailsPanel")).toBeVisible();
+    await page.locator("#drawerFirstStepInput").fill("Email the vendor");
+    await page.locator("#drawerFirstStepInput").blur();
+    await page.locator("#drawerEmotionalStateSelect").selectOption("heavy");
     await page.locator("#drawerTagsInput").fill("travel, planning");
     await page.locator("#drawerTagsInput").blur();
     await page.locator("#drawerWaitingOnInput").fill("Vendor quote");
@@ -464,6 +478,25 @@ test.describe("Todo drawer essentials editing", () => {
           (entry) =>
             entry.patch.startDate ===
             toIsoFromLocalDateTime("2026-05-01T09:00"),
+        ),
+      )
+      .toBeTruthy();
+    await expect
+      .poll(() =>
+        state.updatePatches.some((entry) => entry.patch.effortScore === 3),
+      )
+      .toBeTruthy();
+    await expect
+      .poll(() =>
+        state.updatePatches.some(
+          (entry) => entry.patch.firstStep === "Email the vendor",
+        ),
+      )
+      .toBeTruthy();
+    await expect
+      .poll(() =>
+        state.updatePatches.some(
+          (entry) => entry.patch.emotionalState === "heavy",
         ),
       )
       .toBeTruthy();
@@ -549,7 +582,12 @@ test.describe("Todo drawer essentials editing", () => {
     await page.locator("#todoScheduledDateInput").fill("2026-05-31T10:00");
     await page.locator("#todoReviewDateInput").fill("2026-06-02T08:30");
     await page.locator("#todoContextInput").fill("@computer");
+    await page.locator("#todoEffortSelect").selectOption("2");
     await page.locator("#todoEnergySelect").selectOption("low");
+    await page.locator("#todoEmotionalStateSelect").selectOption("exciting");
+    await page
+      .locator("#todoFirstStepInput")
+      .fill("Price three flight options");
     await page.locator("#todoEstimateInput").fill("30");
     await page.locator("#todoTagsInput").fill("travel, planning");
     await page.locator("#todoWaitingOnInput").fill("Budget approval");
@@ -572,7 +610,10 @@ test.describe("Todo drawer essentials editing", () => {
       status: "scheduled",
       category: "Work",
       context: "@computer",
+      effortScore: 2,
       energy: "low",
+      emotionalState: "exciting",
+      firstStep: "Price three flight options",
       estimateMinutes: 30,
       waitingOn: "Budget approval",
       notes: "Need options ready",

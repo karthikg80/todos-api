@@ -552,6 +552,22 @@ export function applyAsyncAction(type, payload = {}) {
       state.weeklyReviewState.actions = Array.isArray(payload.actions)
         ? payload.actions
         : [];
+      state.weeklyReviewState.rolloverGroups = Array.isArray(
+        payload.rolloverGroups,
+      )
+        ? payload.rolloverGroups
+        : [];
+      state.weeklyReviewState.anchorSuggestions = Array.isArray(
+        payload.anchorSuggestions,
+      )
+        ? payload.anchorSuggestions
+        : [];
+      state.weeklyReviewState.behaviorAdjustment = String(
+        payload.behaviorAdjustment || "",
+      );
+      state.weeklyReviewState.reflectionSummary = String(
+        payload.reflectionSummary || "",
+      );
       return state.weeklyReviewState;
     case "weeklyReview/failure":
       state.weeklyReviewState.loading = false;

@@ -11,6 +11,7 @@ import { TODO_UPDATED, UNDO_APPLIED } from "../platform/events/eventReasons.js";
 import { runAsyncLifecycle } from "./asyncLifecycle.js";
 import { applyAsyncAction, applyUiAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
+import { getEffortScoreLabel, getEffortScoreValue } from "./soulConfig.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
 import {
   hasTodoRow,
@@ -376,7 +377,11 @@ export function initializeDrawerDraft(todo) {
     categoryDetail: String(todo.category || ""),
     tagsText: Array.isArray(todo.tags) ? todo.tags.join(", ") : "",
     context: String(todo.context || ""),
+    effortScore:
+      typeof todo.effortScore === "number" ? String(todo.effortScore) : "",
     energy: String(todo.energy || ""),
+    emotionalState: String(todo.emotionalState || ""),
+    firstStep: String(todo.firstStep || ""),
     estimateMinutes:
       typeof todo.estimateMinutes === "number"
         ? String(todo.estimateMinutes)
@@ -455,8 +460,20 @@ function syncDrawerDraftFromPatch(updatedTodo, patchKeys) {
       case "context":
         d.context = String(updatedTodo.context || "");
         break;
+      case "effortScore":
+        d.effortScore =
+          typeof updatedTodo.effortScore === "number"
+            ? String(updatedTodo.effortScore)
+            : "";
+        break;
       case "energy":
         d.energy = String(updatedTodo.energy || "");
+        break;
+      case "emotionalState":
+        d.emotionalState = String(updatedTodo.emotionalState || "");
+        break;
+      case "firstStep":
+        d.firstStep = String(updatedTodo.firstStep || "");
         break;
       case "estimateMinutes":
         d.estimateMinutes =
@@ -799,6 +816,28 @@ export function onDrawerEnergyChange(event) {
   const energy = String(event?.target?.value || "");
   updateDrawerDraftField("energy", energy);
   saveDrawerPatch({ energy: energy || null });
+}
+
+export function onDrawerEffortChange(event) {
+  const effortScore = String(event?.target?.value || "");
+  updateDrawerDraftField("effortScore", effortScore);
+  saveDrawerPatch({ effortScore: getEffortScoreValue(effortScore) });
+}
+
+export function onDrawerEmotionalStateChange(event) {
+  const emotionalState = String(event?.target?.value || "");
+  updateDrawerDraftField("emotionalState", emotionalState);
+  saveDrawerPatch({ emotionalState: emotionalState || null });
+}
+
+export function onDrawerFirstStepInput(event) {
+  updateDrawerDraftField("firstStep", String(event?.target?.value || ""));
+}
+
+export function onDrawerFirstStepBlur() {
+  if (!state.drawerDraft) return;
+  const firstStep = String(state.drawerDraft.firstStep || "").trim();
+  saveDrawerPatch({ firstStep: firstStep || null });
 }
 
 export function onDrawerEstimateChange(event) {
@@ -1277,6 +1316,16 @@ export function renderTodoDrawerContent() {
         <span>Context</span>
         <input id="drawerContextInput" type="text" maxlength="100" value="${escapeHtml(draft.context)}" />
       </label>
+      <label class="todo-drawer__field" for="drawerEffortSelect">
+        <span>Effort</span>
+        <select id="drawerEffortSelect">
+          <option value="" ${!draft.effortScore ? "selected" : ""}>None</option>
+          <option value="1" ${draft.effortScore === "1" ? "selected" : ""}>Tiny</option>
+          <option value="2" ${draft.effortScore === "2" ? "selected" : ""}>Small</option>
+          <option value="3" ${draft.effortScore === "3" ? "selected" : ""}>Medium</option>
+          <option value="4" ${draft.effortScore === "4" ? "selected" : ""}>Deep</option>
+        </select>
+      </label>
       <label class="todo-drawer__field" for="drawerEnergySelect">
         <span>Energy</span>
         <select id="drawerEnergySelect">
@@ -1309,6 +1358,21 @@ export function renderTodoDrawerContent() {
           <span>Notes</span>
           <textarea id="drawerNotesTextarea" maxlength="2000">${escapeHtml(draft.notes)}</textarea>
         </label>
+        <label class="todo-drawer__field" for="drawerFirstStepInput">
+          <span>First step</span>
+          <input id="drawerFirstStepInput" type="text" maxlength="255" value="${escapeHtml(draft.firstStep)}" placeholder="Open the doc. Text Raj. Find last year's form." />
+        </label>
+        <label class="todo-drawer__field" for="drawerEmotionalStateSelect">
+          <span>Emotional state</span>
+          <select id="drawerEmotionalStateSelect">
+            <option value="" ${!draft.emotionalState ? "selected" : ""}>None</option>
+            <option value="avoiding" ${draft.emotionalState === "avoiding" ? "selected" : ""}>Avoiding</option>
+            <option value="unclear" ${draft.emotionalState === "unclear" ? "selected" : ""}>Unclear</option>
+            <option value="heavy" ${draft.emotionalState === "heavy" ? "selected" : ""}>Heavy</option>
+            <option value="exciting" ${draft.emotionalState === "exciting" ? "selected" : ""}>Exciting</option>
+            <option value="draining" ${draft.emotionalState === "draining" ? "selected" : ""}>Draining</option>
+          </select>
+        </label>
         <label class="todo-drawer__field" for="drawerTagsInput">
           <span>Tags</span>
           <input id="drawerTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="comma, separated, tags" />
@@ -1331,6 +1395,11 @@ export function renderTodoDrawerContent() {
         </label>
         <div class="todo-drawer__meta">
           <div><strong>Source:</strong> ${escapeHtml(draft.source || "manual")}</div>
+          ${
+            draft.effortScore
+              ? `<div><strong>Effort:</strong> ${escapeHtml(getEffortScoreLabel(draft.effortScore) || draft.effortScore)}</div>`
+              : ""
+          }
           ${
             draft.completedAt
               ? `<div><strong>Completed at:</strong> ${escapeHtml(new Date(draft.completedAt).toLocaleString())}</div>`
@@ -1984,6 +2053,10 @@ export function bindTodoDrawerHandlers() {
       onDrawerContextInput(event);
       return;
     }
+    if (target.id === "drawerFirstStepInput") {
+      onDrawerFirstStepInput(event);
+      return;
+    }
     if (target.id === "drawerWaitingOnInput") {
       onDrawerWaitingOnInput(event);
       return;
@@ -2036,8 +2109,16 @@ export function bindTodoDrawerHandlers() {
       onDrawerPriorityChange(event);
       return;
     }
+    if (target.id === "drawerEffortSelect") {
+      onDrawerEffortChange(event);
+      return;
+    }
     if (target.id === "drawerEnergySelect") {
       onDrawerEnergyChange(event);
+      return;
+    }
+    if (target.id === "drawerEmotionalStateSelect") {
+      onDrawerEmotionalStateChange(event);
       return;
     }
     if (target.id === "drawerEstimateInput") {
@@ -2084,6 +2165,10 @@ export function bindTodoDrawerHandlers() {
       }
       if (target.id === "drawerContextInput") {
         onDrawerContextBlur();
+        return;
+      }
+      if (target.id === "drawerFirstStepInput") {
+        onDrawerFirstStepBlur();
         return;
       }
       if (target.id === "drawerWaitingOnInput") {

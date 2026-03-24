@@ -97,7 +97,7 @@
     },
     "taskSource": {
       "type": "string",
-      "enum": ["manual", "chat", "email", "import", "automation"]
+      "enum": ["manual", "system_seed", "chat", "email", "import", "automation"]
     },
     "todoRecurrence": {
       "type": "object",
@@ -244,7 +244,22 @@
         },
         "source": {
           "type": ["string", "null"],
-          "enum": ["manual", "chat", "email", "import", "automation", null]
+          "enum": [
+            "manual",
+            "system_seed",
+            "chat",
+            "email",
+            "import",
+            "automation",
+            null
+          ]
+        },
+        "firstStep": {
+          "type": ["string", "null"]
+        },
+        "emotionalState": {
+          "type": ["string", "null"],
+          "enum": ["avoiding", "unclear", "heavy", "exciting", "draining", null]
         },
         "createdByPrompt": {
           "type": ["string", "null"]
@@ -3633,6 +3648,7 @@
               "office",
               "home",
               "overloaded",
+              "rescue",
               "sprint",
               "catch_up"
             ],

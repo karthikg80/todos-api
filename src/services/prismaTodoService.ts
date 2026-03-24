@@ -437,6 +437,8 @@ export class PrismaTodoService implements ITodoService {
           blockedReason: dto.blockedReason ?? null,
           effortScore: dto.effortScore ?? null,
           confidenceScore: dto.confidenceScore ?? null,
+          firstStep: dto.firstStep ?? null,
+          emotionalState: dto.emotionalState ?? null,
           sourceText: dto.sourceText ?? null,
           areaId: dto.areaId ?? null,
           goalId: dto.goalId ?? null,
@@ -545,6 +547,9 @@ export class PrismaTodoService implements ITodoService {
         updateData.effortScore = dto.effortScore;
       if (dto.confidenceScore !== undefined)
         updateData.confidenceScore = dto.confidenceScore;
+      if (dto.firstStep !== undefined) updateData.firstStep = dto.firstStep;
+      if (dto.emotionalState !== undefined)
+        updateData.emotionalState = dto.emotionalState;
       if (dto.sourceText !== undefined) updateData.sourceText = dto.sourceText;
       if (dto.areaId !== undefined) updateData.areaId = dto.areaId;
       if (dto.goalId !== undefined) updateData.goalId = dto.goalId;
@@ -1064,6 +1069,9 @@ export class PrismaTodoService implements ITodoService {
       blockedReason: prismaTodo.blockedReason ?? null,
       effortScore: prismaTodo.effortScore ?? null,
       confidenceScore: prismaTodo.confidenceScore ?? null,
+      firstStep: prismaTodo.firstStep ?? null,
+      emotionalState:
+        (prismaTodo.emotionalState as Todo["emotionalState"]) ?? null,
       sourceText: prismaTodo.sourceText ?? null,
       areaId: prismaTodo.areaId ?? null,
       goalId: prismaTodo.goalId ?? null,

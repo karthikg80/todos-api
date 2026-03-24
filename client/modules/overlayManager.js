@@ -9,6 +9,7 @@ import { state, hooks } from "./store.js";
 import { EventBus } from "./eventBus.js";
 import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
 import { TODO_UPDATED } from "../platform/events/eventReasons.js";
+import { SOUL_COPY } from "./soulConfig.js";
 
 const DomSelectors = window.DomSelectors || {};
 
@@ -414,7 +415,7 @@ export async function saveEditedTodo() {
     EventBus.dispatch(TODOS_CHANGED, { reason: TODO_UPDATED });
     hooks.syncTodoDrawerStateWithRender?.();
     closeEditTodoModal({ restoreFocus: false });
-    showMessage("todosMessage", "Task updated", "success");
+    showMessage("todosMessage", SOUL_COPY.saved, "success");
   } catch (error) {
     console.error("Save edited todo failed:", error);
     showMessage(

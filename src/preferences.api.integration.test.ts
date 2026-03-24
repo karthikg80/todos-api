@@ -40,6 +40,15 @@ describe("Preferences API Integration", () => {
     expect(response.body.preferredContexts).toEqual([]);
     expect(response.body.maxDailyTasks).toBeNull();
     expect(response.body.preferredChunkMinutes).toBeNull();
+    expect(response.body.soulProfile).toEqual({
+      lifeAreas: [],
+      failureModes: [],
+      planningStyle: "both",
+      energyPattern: "variable",
+      goodDayThemes: [],
+      tone: "calm",
+      dailyRitual: "neither",
+    });
   });
 
   it("PATCH /preferences updates and returns updated prefs", async () => {
@@ -68,5 +77,38 @@ describe("Preferences API Integration", () => {
 
     expect(response.body.maxDailyTasks).toBe(10);
     expect(response.body.preferredContexts).toEqual(["home", "office"]);
+  });
+
+  it("PATCH /preferences merges soul profile updates", async () => {
+    await request(app)
+      .patch("/preferences")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        soulProfile: {
+          tone: "focused",
+          lifeAreas: ["work", "personal"],
+        },
+      })
+      .expect(200);
+
+    const response = await request(app)
+      .patch("/preferences")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        soulProfile: {
+          planningStyle: "structure",
+        },
+      })
+      .expect(200);
+
+    expect(response.body.soulProfile).toEqual({
+      lifeAreas: ["work", "personal"],
+      failureModes: [],
+      planningStyle: "structure",
+      energyPattern: "variable",
+      goodDayThemes: [],
+      tone: "focused",
+      dailyRitual: "neither",
+    });
   });
 });

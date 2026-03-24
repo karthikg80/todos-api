@@ -64,6 +64,7 @@ enum ProjectReviewCadence {
 
 enum TodoSource {
   manual
+  system_seed
   chat
   email
   import
@@ -387,6 +388,8 @@ model Todo {
   blockedReason            String?            @map("blocked_reason") @db.VarChar(500)
   effortScore              Int?               @map("effort_score")
   confidenceScore          Int?               @map("confidence_score")
+  firstStep                String?            @map("first_step") @db.VarChar(255)
+  emotionalState           String?            @map("emotional_state") @db.VarChar(20)
   sourceText               String?            @map("source_text") @db.Text
   createdByPrompt          String?            @map("created_by_prompt") @db.Text
   notes                    String?            @db.Text
@@ -718,6 +721,7 @@ model UserPlanningPreferences {
   preferredContexts     String[] @default([]) @map("preferred_contexts")
   waitingFollowUpDays   Int      @default(7) @map("waiting_follow_up_days")
   workWindowsJson       Json?    @map("work_windows_json")
+  soulProfile           Json?    @map("soul_profile")
   createdAt             DateTime @default(now()) @map("created_at")
   updatedAt             DateTime @updatedAt @map("updated_at")
 

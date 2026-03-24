@@ -272,6 +272,41 @@ async function installHomeFocusMockApi(
       });
     }
 
+    if (pathname === "/preferences" && method === "GET") {
+      return json(route, 200, {
+        maxDailyTasks: null,
+        preferredChunkMinutes: null,
+        deepWorkPreference: null,
+        weekendsActive: true,
+        preferredContexts: [],
+        waitingFollowUpDays: 7,
+        workWindowsJson: null,
+        soulProfile: {
+          lifeAreas: ["work"],
+          failureModes: ["overwhelmed"],
+          planningStyle: "both",
+          energyPattern: "variable",
+          goodDayThemes: ["visible_progress"],
+          tone: "calm",
+          dailyRitual: "neither",
+        },
+      });
+    }
+
+    if (pathname === "/agent/write/set_day_context" && method === "POST") {
+      const body = await parseBody(route);
+      return json(route, 200, {
+        ok: true,
+        action: "set_day_context",
+        dayContext: {
+          contextDate: body.contextDate || nowIso().slice(0, 10),
+          mode: body.mode || "normal",
+          energy: body.energy || null,
+          notes: body.notes || null,
+        },
+      });
+    }
+
     if (pathname === "/projects" && method === "GET") {
       return json(route, 200, []);
     }
@@ -298,6 +333,10 @@ async function installHomeFocusMockApi(
         order: list.length,
         priority: (body.priority as string) || "medium",
         notes: body.notes ?? null,
+        firstStep: body.firstStep ?? null,
+        emotionalState: body.emotionalState ?? null,
+        effortScore:
+          typeof body.effortScore === "number" ? body.effortScore : null,
         userId,
         createdAt: nowIso(),
         updatedAt: nowIso(),
@@ -788,6 +827,29 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator("#inlineQuickAdd")).toBeVisible();
     await expect(page.locator('[data-testid="home-dashboard"]')).toHaveCount(0);
     await expect(page.locator("#aiWorkspace")).toBeHidden();
+  });
+
+  test("Home shows rescue mode affordance and can switch the day into rescue mode", async ({
+    page,
+  }) => {
+    await clickWorkspaceView(page, "home");
+    await expect(
+      page.locator('[data-testid="home-rescue-panel"]'),
+    ).toBeVisible();
+
+    const requestPromise = page.waitForRequest(
+      (request) =>
+        request.url().endsWith("/agent/write/set_day_context") &&
+        request.method() === "POST",
+    );
+    await page.getByRole("button", { name: "Start rescue mode" }).click();
+    const request = await requestPromise;
+    const payload = JSON.parse(request.postData() || "{}");
+
+    expect(payload.mode).toBe("rescue");
+    await expect(
+      page.locator('[data-testid="home-rescue-panel"]'),
+    ).toContainText("Rescue mode is on");
   });
 
   test("Today and Upcoming still navigate on the planner surface", async ({

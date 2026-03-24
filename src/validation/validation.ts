@@ -26,6 +26,7 @@ import {
   RunFeedbackAutomationRequestDto,
   TaskSource,
   TaskStatus,
+  TodoEmotionalState,
   TodoSortBy,
   SortOrder,
   UpdateFeedbackAutomationConfigDto,
@@ -44,6 +45,7 @@ import {
   VALID_SORT_ORDERS,
   VALID_TASK_SOURCES,
   VALID_TASK_STATUSES,
+  VALID_TODO_EMOTIONAL_STATES,
 } from "./constants";
 
 export class ValidationError extends Error {
@@ -251,6 +253,30 @@ function normalizeTaskSourceValue(
     throw new ValidationError(`${field} is invalid`);
   }
   return source;
+}
+
+function normalizeEmotionalStateValue(
+  value: unknown,
+  field: string,
+  allowNull: boolean,
+): TodoEmotionalState | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    if (!allowNull) {
+      throw new ValidationError(`${field} is required`);
+    }
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  const emotionalState = value.toLowerCase() as TodoEmotionalState;
+  if (!VALID_TODO_EMOTIONAL_STATES.includes(emotionalState)) {
+    throw new ValidationError(`${field} is invalid`);
+  }
+  return emotionalState;
 }
 
 function normalizeStringList(
@@ -986,9 +1012,9 @@ export function validateCreateTodo(data: unknown): CreateTodoDto {
     true,
   );
   if (effortScore !== undefined && effortScore !== null) {
-    if (effortScore < 1 || effortScore > 5) {
+    if (effortScore < 1 || effortScore > 4) {
       throw new ValidationError(
-        "effortScore must be an integer between 1 and 5",
+        "effortScore must be an integer between 1 and 4",
       );
     }
   }
@@ -1070,6 +1096,12 @@ export function validateCreateTodo(data: unknown): CreateTodoDto {
     ),
     effortScore,
     confidenceScore,
+    firstStep: normalizeNullableString(body.firstStep, "firstStep", 255),
+    emotionalState: normalizeEmotionalStateValue(
+      body.emotionalState,
+      "emotionalState",
+      true,
+    ),
     sourceText: normalizeNullableString(body.sourceText, "sourceText", 100000),
     areaId,
     goalId,
@@ -1264,9 +1296,9 @@ export function validateUpdateTodo(data: unknown): UpdateTodoDto {
       true,
     );
     if (effortScore !== undefined && effortScore !== null) {
-      if (effortScore < 1 || effortScore > 5) {
+      if (effortScore < 1 || effortScore > 4) {
         throw new ValidationError(
-          "effortScore must be an integer between 1 and 5",
+          "effortScore must be an integer between 1 and 4",
         );
       }
     }
@@ -1294,6 +1326,22 @@ export function validateUpdateTodo(data: unknown): UpdateTodoDto {
       body.sourceText,
       "sourceText",
       100000,
+    );
+  }
+
+  if (body.firstStep !== undefined) {
+    update.firstStep = normalizeNullableString(
+      body.firstStep,
+      "firstStep",
+      255,
+    );
+  }
+
+  if (body.emotionalState !== undefined) {
+    update.emotionalState = normalizeEmotionalStateValue(
+      body.emotionalState,
+      "emotionalState",
+      true,
     );
   }
 
