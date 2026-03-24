@@ -426,7 +426,7 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
     scheduled: "🗓 Scheduled",
     someday: "☁️ Someday",
     in_progress: "▶ In Progress",
-    next: "→ Next",
+    next: "Up Next",
     cancelled: "✗ Cancelled",
   };
   if (STATUS_LABELS[status]) {

@@ -1,8 +1,14 @@
 (function initThemeModule(globalScope) {
   function syncThemeLabel(isDark) {
     var icon = isDark ? "☀️" : "🌙";
-    var toggleBtn = document.querySelector(".theme-toggle");
-    if (toggleBtn) toggleBtn.textContent = icon;
+    var toggleBtns = document.querySelectorAll(
+      '[data-onclick="toggleTheme()"]',
+    );
+    for (var i = 0; i < toggleBtns.length; i++) {
+      var btn = toggleBtns[i];
+      btn.setAttribute("aria-pressed", String(isDark));
+      if (btn.classList.contains("theme-toggle")) btn.textContent = icon;
+    }
     var sidebarLabel = document.querySelector(".app-sidebar__theme-label");
     if (sidebarLabel) sidebarLabel.textContent = icon + " Theme";
   }

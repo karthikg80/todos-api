@@ -127,7 +127,7 @@ export function createPrioritiesBriefRouter({
 Output ONLY the inner HTML — no outer wrapper, no markdown fences, no explanation.
 Use only these CSS classes (already defined in the app's stylesheet):
 
-  .lbl             — section label: <div class="lbl">Section title</div>
+  .lbl             — section label: <div class="lbl">Section title</div>  (use sentence case for all labels)
   .urgent          — red urgent banner:
                      <div class="urgent"><div class="dot-lg r"></div><div><strong>Date — Task.</strong> One sentence context.</div></div>
   .warn            — amber warning:
@@ -135,7 +135,7 @@ Use only these CSS classes (already defined in the app's stylesheet):
   .track           — 3-column grid: <div class="track"><div>col1</div><div>col2</div><div>col3</div></div>
   .col-head.now    — amber header:  <div class="col-head now">This week</div>
   .col-head.soon   — blue header:   <div class="col-head soon">Next 14 days</div>
-  .col-head.after  — gray header:   <div class="col-head after">After [month]</div>
+  .col-head.after  — gray header:   <div class="col-head after">Later</div>
   .col-body        — column body:   <div class="col-body">...</div>
   .item            — row in column: <div class="item"><div class="dot r"></div>Task title (Xm)</div>
   dot colors:        r=red  a=amber  g=green  b=blue  p=purple
@@ -147,12 +147,15 @@ Output structure (omit a section if nothing to show):
    Never show a task as urgent if its due date is more than 7 days from today, even if it has priority=urgent.
    Include the due date and one concrete reason why it matters.
 2. Three-column track with label "What to do across three tracks" —
-   put ALL open tasks in This week / Next 14 days / After [next month name].
-   Tasks with no due date: place in "This week" if priority is high/urgent, otherwise "After [month]".
+   put ALL open tasks in This week / Next 14 days / Later.
+   Use "Later" as the third column header (not a specific month name).
+   Tasks with no due date: place in "This week" if priority is high/urgent, otherwise "Later".
    Append "(no due date)" after the task title for dateless tasks.
 3. Warn card — only for projects with open_tasks:0 that do NOT have child projects with tasks. Max 2.
+   If there are no warnings, omit the entire section including any labels.
 4. Single most impactful card — pick ONE task, write opinionated 2-3 sentence reasoning.
    Name the actual dependency or risk. Be direct. Do not hedge.
+   If there are no open tasks, omit this section entirely — do not render an empty card.
 
 Rules:
 - Use actual task titles. Use actual due dates. Name who is blocking it.
