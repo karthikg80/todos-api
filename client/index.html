@@ -1755,14 +1755,14 @@
                             <button
                               type="button"
                               class="btn btn-secondary pane-back-btn"
-                              data-onclick="switchView('todos', this)"
+                              data-onclick="switchView(‘todos’, this)"
                             >
                               Back to Todos
                             </button>
                           </div>
                           <h2>Settings</h2>
                         </div>
-                        <!-- Display mode control: single #uiModeSelect in Interface section below -->
+
                         <div
                           class="message"
                           id="profileMessage"
@@ -1770,126 +1770,64 @@
                           aria-live="polite"
                           aria-atomic="true"
                         ></div>
+
+                        <!-- Verification banner — above all cards for urgency -->
                         <div
                           id="verificationBanner"
-                          style="
-                            display: none;
-                            background: #fff3cd;
-                            border: 1px solid #ffc107;
-                            padding: 16px;
-                            border-radius: 8px;
-                            margin-bottom: 20px;
-                          "
-                        >
-                          <div
-                            style="
-                              display: flex;
-                              justify-content: space-between;
-                              align-items: center;
-                            "
-                          >
-                            <div>
-                              <strong style="color: #856404"
-                                >⚠️ Email Not Verified</strong
-                              >
-                              <p
-                                style="
-                                  color: #856404;
-                                  margin-top: 4px;
-                                  font-size: 0.9em;
-                                "
-                              >
-                                Please verify your email address to access all
-                                features.
-                              </p>
-                            </div>
-                            <button
-                              id="resendVerificationButton"
-                              data-onclick="resendVerification()"
-                              style="
-                                padding: 8px 16px;
-                                background: #ffc107;
-                                color: #000;
-                                border: none;
-                                border-radius: 6px;
-                                cursor: pointer;
-                                font-weight: 500;
-                              "
-                            >
-                              Resend Email
-                            </button>
-                          </div>
-                        </div>
-                        <div class="settings-pane__section">
-                          <h3>Profile</h3>
-                          <p>
-                            Manage your profile from this panel while keeping
-                            the workspace sidebar visible.
-                          </p>
-                        </div>
-                        <div class="profile-section">
-                          <h3>Account Information</h3>
-                          <div class="info-row">
-                            <span class="info-label">Email:</span>
-                            <span class="info-value" id="profileEmail"></span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">Name:</span>
-                            <span class="info-value" id="profileName"></span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">Status:</span>
-                            <span class="info-value" id="profileStatus"></span>
-                          </div>
-                          <div class="info-row">
-                            <span class="info-label">Member Since:</span>
-                            <span class="info-value" id="profileCreated"></span>
-                          </div>
-                        </div>
-
-                        <div
-                          class="profile-section"
-                          id="linkedProvidersSection"
+                          class="settings-banner settings-banner--warning"
                           style="display: none"
                         >
-                          <h3>Linked Sign-In Methods</h3>
-                          <div id="linkedProvidersList"></div>
-                          <div id="setPasswordSection" style="display: none">
-                            <h4>Set Password</h4>
-                            <p
-                              style="
-                                margin-bottom: 8px;
-                                color: var(--text-secondary);
-                                font-size: 0.9em;
-                              "
-                            >
-                              Add a password so you can also sign in with email
-                              + password.
+                          <div class="settings-banner__body">
+                            <strong>Email Not Verified</strong>
+                            <p class="settings-hint">
+                              Please verify your email address to access all
+                              features.
                             </p>
-                            <form data-onsubmit="handleSetPassword(event)">
-                              <div class="form-group">
-                                <label for="setPasswordInput"
-                                  >New Password</label
-                                >
-                                <input
-                                  type="password"
-                                  id="setPasswordInput"
-                                  minlength="8"
-                                  maxlength="72"
-                                  required
-                                  placeholder="At least 8 characters"
-                                  autocomplete="new-password"
-                                />
-                              </div>
-                              <button type="submit" class="btn">
-                                Set Password
-                              </button>
-                            </form>
                           </div>
+                          <button
+                            id="resendVerificationButton"
+                            type="button"
+                            class="mini-btn"
+                            data-onclick="resendVerification()"
+                          >
+                            Resend Email
+                          </button>
                         </div>
 
-                        <div class="profile-section">
-                          <h3>Update Profile</h3>
+                        <!-- ═══ Card 1: Account ═══ -->
+                        <div class="settings-card">
+                          <h3 class="settings-card__title">Account</h3>
+
+                          <div class="settings-card__group">
+                            <div class="info-row">
+                              <span class="info-label">Email</span>
+                              <span class="info-value" id="profileEmail"></span>
+                            </div>
+                            <div class="info-row">
+                              <span class="info-label">Name</span>
+                              <span class="info-value" id="profileName"></span>
+                            </div>
+                            <div class="info-row">
+                              <span class="info-label">Status</span>
+                              <span
+                                class="info-value"
+                                id="profileStatus"
+                              ></span>
+                            </div>
+                            <div class="info-row">
+                              <span class="info-label">Member Since</span>
+                              <span
+                                class="info-value"
+                                id="profileCreated"
+                              ></span>
+                            </div>
+                          </div>
+
+                          <div class="settings-card__divider"></div>
+
+                          <h4 class="settings-card__subtitle">
+                            Update Profile
+                          </h4>
                           <form data-onsubmit="handleUpdateProfile(event)">
                             <div class="form-group">
                               <label for="updateName">Name</label>
@@ -1912,15 +1850,58 @@
                               Update Profile
                             </button>
                           </form>
+
+                          <div
+                            id="linkedProvidersSection"
+                            style="display: none"
+                          >
+                            <div class="settings-card__divider"></div>
+                            <h4 class="settings-card__subtitle">
+                              Linked Sign-In Methods
+                            </h4>
+                            <div id="linkedProvidersList"></div>
+                            <div id="setPasswordSection" style="display: none">
+                              <h4 class="settings-card__subtitle">
+                                Set Password
+                              </h4>
+                              <p class="settings-hint">
+                                Add a password so you can also sign in with
+                                email + password.
+                              </p>
+                              <form data-onsubmit="handleSetPassword(event)">
+                                <div class="form-group">
+                                  <label for="setPasswordInput"
+                                    >New Password</label
+                                  >
+                                  <input
+                                    type="password"
+                                    id="setPasswordInput"
+                                    minlength="8"
+                                    maxlength="72"
+                                    required
+                                    placeholder="At least 8 characters"
+                                    autocomplete="new-password"
+                                  />
+                                </div>
+                                <button type="submit" class="btn">
+                                  Set Password
+                                </button>
+                              </form>
+                            </div>
+                          </div>
                         </div>
 
-                        <div class="profile-section">
-                          <h3>How this app supports you</h3>
-                          <p class="settings-support-copy">
+                        <!-- ═══ Card 2: Preferences ═══ -->
+                        <div class="settings-card">
+                          <h3 class="settings-card__title">
+                            How this app supports you
+                          </h3>
+                          <p class="settings-hint">
                             Tune the planning style, energy assumptions, and
                             tone so the workspace feels more like support than
                             supervision.
                           </p>
+
                           <form
                             data-onsubmit="handleSaveSoulPreferences(event)"
                           >
@@ -2134,8 +2115,10 @@
                           </form>
                         </div>
 
-                        <div class="profile-section">
-                          <h3>Interface</h3>
+                        <!-- ═══ Card 3: Interface ═══ -->
+                        <div class="settings-card">
+                          <h3 class="settings-card__title">Interface</h3>
+
                           <div class="info-row">
                             <span class="info-label">UI Mode</span>
                             <select
@@ -2150,17 +2133,12 @@
                               </option>
                             </select>
                           </div>
-                          <p
-                            style="
-                              margin-top: 6px;
-                              color: var(--text-muted);
-                              font-size: 0.82em;
-                            "
-                          >
+                          <p class="settings-hint">
                             Simple mode hides projects, headings, AI panels, and
                             tracks for a focused task list experience.
                           </p>
-                          <div style="margin-top: 12px">
+
+                          <div class="settings-card__inline-action">
                             <button
                               type="button"
                               class="mini-btn"
@@ -2168,49 +2146,38 @@
                             >
                               Restart soul setup
                             </button>
-                            <span
-                              style="
-                                margin-left: 8px;
-                                font-size: 0.82em;
-                                color: var(--text-muted);
-                              "
+                            <span class="settings-hint"
                               >Re-run the 4-step guided setup</span
                             >
                           </div>
-                        </div>
 
-                        <div
-                          class="profile-section"
-                          id="adminBootstrapSection"
-                          style="display: none"
-                        >
-                          <h3>Admin Provisioning</h3>
-                          <p
-                            style="
-                              margin-bottom: 12px;
-                              color: var(--text-secondary);
-                            "
-                          >
-                            No admin user exists yet. Enter the bootstrap secret
-                            to grant admin access to this account.
-                          </p>
-                          <form data-onsubmit="handleAdminBootstrap(event)">
-                            <div class="form-group">
-                              <label for="adminBootstrapSecret"
-                                >Bootstrap Secret</label
-                              >
-                              <input
-                                type="password"
-                                id="adminBootstrapSecret"
-                                autocomplete="current-password"
-                                placeholder="Enter admin bootstrap secret"
-                                required
-                              />
-                            </div>
-                            <button type="submit" class="btn">
-                              Grant Admin Access
-                            </button>
-                          </form>
+                          <div id="adminBootstrapSection" style="display: none">
+                            <div class="settings-card__divider"></div>
+                            <h4 class="settings-card__subtitle">
+                              Admin Provisioning
+                            </h4>
+                            <p class="settings-hint">
+                              No admin user exists yet. Enter the bootstrap
+                              secret to grant admin access to this account.
+                            </p>
+                            <form data-onsubmit="handleAdminBootstrap(event)">
+                              <div class="form-group">
+                                <label for="adminBootstrapSecret"
+                                  >Bootstrap Secret</label
+                                >
+                                <input
+                                  type="password"
+                                  id="adminBootstrapSecret"
+                                  autocomplete="current-password"
+                                  placeholder="Enter admin bootstrap secret"
+                                  required
+                                />
+                              </div>
+                              <button type="submit" class="btn">
+                                Grant Admin Access
+                              </button>
+                            </form>
+                          </div>
                         </div>
                       </div>
                     </section>
