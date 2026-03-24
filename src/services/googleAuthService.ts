@@ -17,14 +17,16 @@ export class GoogleAuthService {
   /**
    * Generate the Google OAuth consent URL with a cryptographic state param.
    * Returns { url, state } so the caller can persist state for CSRF validation.
+   * An optional redirectUri overrides the default callback URL (e.g. for MCP OAuth).
    */
-  generateAuthUrl(): { url: string; state: string } {
+  generateAuthUrl(redirectUri?: string): { url: string; state: string } {
     const state = randomBytes(32).toString("hex");
     const url = this.client.generateAuthUrl({
       access_type: "offline",
       scope: ["openid", "email", "profile"],
       state,
       prompt: "select_account",
+      ...(redirectUri ? { redirect_uri: redirectUri } : {}),
     });
     return { url, state };
   }
@@ -32,15 +34,26 @@ export class GoogleAuthService {
   /**
    * Exchange the authorization code for tokens, verify the ID token,
    * and return a normalized SocialUserProfile.
+   * An optional redirectUri must match the one used in generateAuthUrl.
    */
-  async handleCallback(code: string): Promise<SocialUserProfile> {
-    const { tokens } = await this.client.getToken(code);
+  async handleCallback(
+    code: string,
+    redirectUri?: string,
+  ): Promise<SocialUserProfile> {
+    const client = redirectUri
+      ? new OAuth2Client(
+          config.googleClientId,
+          config.googleClientSecret,
+          redirectUri,
+        )
+      : this.client;
+    const { tokens } = await client.getToken(code);
 
     if (!tokens.id_token) {
       throw new Error("Google did not return an ID token");
     }
 
-    const ticket = await this.client.verifyIdToken({
+    const ticket = await client.verifyIdToken({
       idToken: tokens.id_token,
       audience: config.googleClientId,
     });

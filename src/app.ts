@@ -295,6 +295,8 @@ export function createApp(
       authService,
       mcpOAuthService,
       mcpClientService,
+      googleAuthService,
+      socialAuthService,
     }),
   );
 

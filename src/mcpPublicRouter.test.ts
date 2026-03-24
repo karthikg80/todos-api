@@ -589,4 +589,99 @@ describe("Public MCP OAuth and discovery routes", () => {
 
     expect(response.headers["content-type"]).toContain("text/event-stream");
   });
+
+  describe("MCP OAuth Google sign-in", () => {
+    it("returns 501 for google/start when Google login is not configured", async () => {
+      const register = await request(app)
+        .post("/oauth/register")
+        .send({
+          redirect_uris: ["https://chat.openai.com/aip/callback"],
+          client_name: "ChatGPT",
+        })
+        .expect(201);
+
+      const pkce = createPkcePair(
+        "oauth-verifier-google-start-1111111111111111111111111111",
+      );
+      const response = await request(app)
+        .get(
+          `/oauth/authorize/google/start?client_id=${encodeURIComponent(
+            register.body.client_id,
+          )}&redirect_uri=${encodeURIComponent(
+            "https://chat.openai.com/aip/callback",
+          )}&response_type=code&scope=tasks.read&state=s1&code_challenge=${encodeURIComponent(
+            pkce.challenge,
+          )}&code_challenge_method=S256`,
+        )
+        .expect(501);
+
+      expect(response.text).toContain("Google Login Not Available");
+    });
+
+    it("returns 501 for google/callback when Google login is not configured", async () => {
+      const response = await request(app)
+        .get("/oauth/authorize/google/callback?code=abc&state=xyz")
+        .expect(501);
+
+      expect(response.text).toContain("Google Login Not Available");
+    });
+
+    it("does not show Google button on login page when Google is disabled", async () => {
+      const register = await request(app)
+        .post("/oauth/register")
+        .send({
+          redirect_uris: ["https://chat.openai.com/aip/callback"],
+          client_name: "ChatGPT",
+        })
+        .expect(201);
+
+      const pkce = createPkcePair(
+        "oauth-verifier-no-google-btn-1111111111111111111111111111",
+      );
+      const response = await request(app)
+        .get(
+          `/oauth/authorize?client_id=${encodeURIComponent(
+            register.body.client_id,
+          )}&redirect_uri=${encodeURIComponent(
+            "https://chat.openai.com/aip/callback",
+          )}&response_type=code&scope=tasks.read&state=s2&code_challenge=${encodeURIComponent(
+            pkce.challenge,
+          )}&code_challenge_method=S256`,
+        )
+        .expect(200);
+
+      expect(response.text).toContain("Connect Assistant");
+      expect(response.text).not.toContain("Sign in with Google");
+      expect(response.text).not.toContain("google/start");
+    });
+
+    it("does not show Google button on register page when Google is disabled", async () => {
+      const register = await request(app)
+        .post("/oauth/register")
+        .send({
+          redirect_uris: ["https://chat.openai.com/aip/callback"],
+          client_name: "ChatGPT",
+        })
+        .expect(201);
+
+      const pkce = createPkcePair(
+        "oauth-verifier-no-google-reg-1111111111111111111111111111",
+      );
+      const response = await request(app)
+        .get(
+          `/oauth/authorize/register?client_id=${encodeURIComponent(
+            register.body.client_id,
+          )}&redirect_uri=${encodeURIComponent(
+            "https://chat.openai.com/aip/callback",
+          )}&response_type=code&scope=tasks.read&state=s3&code_challenge=${encodeURIComponent(
+            pkce.challenge,
+          )}&code_challenge_method=S256`,
+        )
+        .expect(200);
+
+      expect(response.text).toContain("Create Account");
+      expect(response.text).not.toContain("Sign up with Google");
+      expect(response.text).not.toContain("google/start");
+    });
+  });
 });
