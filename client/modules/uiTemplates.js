@@ -143,7 +143,7 @@ export function renderTodoRowTemplate({
         data-onchange="toggleSelectTodo('${escapeHtml(todo?.id || "")}')"
         data-onclick="event.stopPropagation()"
       >
-      <span class="drag-handle">⋮⋮</span>
+      <span class="drag-handle" title="Drag to reorder" aria-hidden="true">⋮⋮</span>
       <input
         type="checkbox"
         class="todo-checkbox"

@@ -1740,6 +1740,7 @@ export function toggleDrawerDetailsPanel() {
 
 export async function deleteTodoFromDrawer() {
   if (!state.selectedTodoId) return;
+  // Confirmation dialog is inside hooks.deleteTodo() — no double prompt
   const deletedTodoId = state.selectedTodoId;
   const deleted = await hooks.deleteTodo(deletedTodoId);
   if (!deleted) return;

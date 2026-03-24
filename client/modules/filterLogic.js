@@ -966,6 +966,39 @@ function renderTodos() {
     });
   }
 
+  // Today view: build overdue/today section label lookup
+  const isTodayView = state.currentDateView === "today";
+  let todaySectionState = null;
+  if (isTodayView && filteredTodos.length > 0) {
+    const now = new Date();
+    const todayStart = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+    );
+    const hasOverdue = filteredTodos.some(
+      (t) => t.dueDate && new Date(t.dueDate) < todayStart,
+    );
+    const hasDueToday = filteredTodos.some(
+      (t) => !t.dueDate || new Date(t.dueDate) >= todayStart,
+    );
+    if (hasOverdue) {
+      // Sort the rendered array (categorizedTodos) so overdue tasks appear first
+      categorizedTodos.sort((a, b) => {
+        const aOver = a.dueDate && new Date(a.dueDate) < todayStart ? 0 : 1;
+        const bOver = b.dueDate && new Date(b.dueDate) < todayStart ? 0 : 1;
+        return aOver - bOver;
+      });
+      todaySectionState = {
+        todayStart,
+        hasOverdue,
+        hasBoth: hasOverdue && hasDueToday,
+        injectedOverdue: false,
+        injectedToday: false,
+      };
+    }
+  }
+
   let activeCategory = "";
   const selectedProjectKey = getSelectedProjectKey();
   const shouldGroupByHeading = !!selectedProjectKey;
@@ -1003,7 +1036,26 @@ function renderTodos() {
               dateHeader = `<li class="todo-section-label">${hooks.escapeHtml?.(dayLabel) || dayLabel}</li>`;
             }
           }
-          return `${dateHeader}${categoryHeader}${renderTodoRowHtml(todo)}`;
+          // Today view: inject overdue/today section labels
+          let sectionLabel = "";
+          if (todaySectionState) {
+            const isOverdue =
+              todo.dueDate &&
+              new Date(todo.dueDate) < todaySectionState.todayStart;
+            if (isOverdue && !todaySectionState.injectedOverdue) {
+              todaySectionState.injectedOverdue = true;
+              sectionLabel =
+                '<li class="todo-section-label todo-section-label--overdue">Overdue</li>';
+            } else if (
+              !isOverdue &&
+              !todaySectionState.injectedToday &&
+              todaySectionState.hasBoth
+            ) {
+              todaySectionState.injectedToday = true;
+              sectionLabel = '<li class="todo-section-label">Due today</li>';
+            }
+          }
+          return `${dateHeader}${sectionLabel}${categoryHeader}${renderTodoRowHtml(todo)}`;
         })
         .join("");
 
