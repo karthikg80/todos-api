@@ -185,7 +185,7 @@ body {
   min-height: 100dvh;
   padding: 0;
   overflow: hidden;
-  transition: background 0.3s ease;
+  transition: background var(--dur-base) var(--ease-out);
 }
 
 #appShell {
@@ -341,8 +341,8 @@ small {
   margin: 0 auto;
   overflow: hidden;
   transition:
-    background 0.3s ease,
-    box-shadow 0.3s ease;
+    background var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
 }
 
 .header {
@@ -1094,8 +1094,8 @@ body:not(.is-todos-view) .container {
   font-weight: var(--fw-medium);
   cursor: pointer;
   transition:
-    background-color 0.2s,
-    box-shadow 0.2s;
+    background-color var(--dur-fast),
+    box-shadow var(--dur-fast);
   border: 1px solid var(--border-color);
 }
 
@@ -1250,7 +1250,7 @@ textarea:focus-visible,
   font-size: var(--fs-md);
   font-weight: var(--fw-semibold);
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform var(--dur-fast);
 }
 
 .btn:hover {
@@ -2158,7 +2158,7 @@ textarea:focus-visible,
   border-radius: var(--r-sm);
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform var(--dur-fast);
 }
 
 .todos-list {
@@ -2396,8 +2396,8 @@ textarea:focus-visible,
   font-size: 0.9em;
   font-weight: 600;
   transition:
-    background 0.2s,
-    border-color 0.2s;
+    background var(--dur-fast),
+    border-color var(--dur-fast);
   justify-self: end;
   align-self: start;
 }
@@ -3332,7 +3332,7 @@ button.projects-rail-item {
   font-size: 1em;
   background: var(--input-bg);
   color: var(--text-primary);
-  transition: border-color 0.3s;
+  transition: border-color var(--dur-base);
 }
 
 .search-input:focus {
@@ -3596,7 +3596,7 @@ body.is-todos-view .floating-new-task-cta {
   border-radius: var(--r-sm);
   cursor: pointer;
   font-size: 0.9em;
-  transition: background 0.3s;
+  transition: background var(--dur-base);
 }
 
 .bulk-actions-toolbar button:hover {
@@ -3840,11 +3840,11 @@ body.is-todos-view .floating-new-task-cta {
 }
 
 .todo-item {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn var(--dur-base) var(--ease-out)-out;
 }
 
 .todo-item.removing {
-  animation: fadeOut 0.3s ease-out forwards;
+  animation: fadeOut var(--dur-base) var(--ease-out)-out forwards;
 }
 
 .todo-item .bulk-checkbox,
@@ -3919,8 +3919,8 @@ body.is-todos-view .floating-new-task-cta {
   line-height: 1;
   cursor: pointer;
   transition:
-    background 0.2s,
-    opacity 140ms ease;
+    background var(--dur-fast),
+    opacity var(--dur-fast) var(--ease-out);
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
@@ -4092,11 +4092,11 @@ body.is-todos-view .floating-new-task-cta {
 }
 
 .add-btn:active {
-  animation: pulse 0.3s ease-out;
+  animation: pulse var(--dur-base) var(--ease-out)-out;
 }
 
 .delete-btn:active {
-  animation: pulse 0.3s ease-out;
+  animation: pulse var(--dur-base) var(--ease-out)-out;
 }
 
 /* Undo/Redo Toast Notification */
@@ -4113,7 +4113,7 @@ body.is-todos-view .floating-new-task-cta {
   align-items: center;
   gap: 12px;
   z-index: 1500;
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn var(--dur-base) var(--ease-out)-out;
 }
 
 .undo-toast.active {
@@ -5232,7 +5232,7 @@ body.is-todos-view .floating-new-task-cta {
   background: var(--card-bg);
   border-radius: var(--r-sm);
   margin-bottom: 4px;
-  transition: background 0.2s;
+  transition: background var(--dur-fast);
 }
 
 .subtask-item:hover {
@@ -5861,7 +5861,7 @@ body.is-drawer-open {
   color: var(--accent);
   cursor: pointer;
   font-size: 0.85em;
-  transition: color 0.2s;
+  transition: color var(--dur-fast);
   width: fit-content;
 }
 
@@ -5871,7 +5871,7 @@ body.is-drawer-open {
 
 .expand-icon {
   font-size: 0.8em;
-  transition: transform 0.3s;
+  transition: transform var(--dur-base);
 }
 
 .expand-icon.expanded {
@@ -7607,7 +7607,7 @@ body.is-todos-view .projects-rail-item__count {
   background: rgba(15, 23, 42, 0.34);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 160ms ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
   z-index: 1100;
 }
 
@@ -7634,8 +7634,8 @@ body.is-todos-view .projects-rail-item__count {
   opacity: 0;
   pointer-events: none;
   transition:
-    transform 180ms ease,
-    opacity 180ms ease;
+    transform var(--dur-base) var(--ease-out),
+    opacity var(--dur-base) var(--ease-out);
   display: grid;
   grid-template-rows: auto 1fr auto;
 }
@@ -7946,7 +7946,7 @@ body.is-todos-view .priority-btn.active::before {
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 120ms ease;
+    transition: opacity var(--dur-fast) var(--ease-out);
   }
 
   #todosView .todo-item:hover .bulk-checkbox,
@@ -7979,7 +7979,7 @@ body.is-todos-view .priority-btn.active::before {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 140ms ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
 .keyboard-shortcuts-btn:hover::after,
@@ -8007,8 +8007,8 @@ body.is-todos-view #appMainScroll {
   cursor: pointer;
   color: var(--text-secondary);
   transition:
-    background 120ms ease,
-    color 120ms ease;
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
   flex-shrink: 0;
 }
 
@@ -8213,7 +8213,7 @@ body.is-todos-view #todosView .todos-top-bar[hidden] {
   flex-shrink: 0;
   display: block;
   opacity: 0.55;
-  transition: opacity 120ms ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
   color: currentColor;
 }
 
@@ -8453,7 +8453,7 @@ body.is-todos-view .projects-rail-create-btn {
   padding: 0 5px;
   font-size: 0.9rem;
   opacity: 0.55;
-  transition: opacity 120ms ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
 body.is-todos-view .projects-rail-create-btn:hover {
@@ -10139,9 +10139,9 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
   border-radius: var(--r-md);
   background: var(--card-bg);
   transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease,
-    background 160ms ease;
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out);
   cursor: text;
 }
 
@@ -10164,7 +10164,7 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
   font-size: 1.15rem;
   font-weight: 700;
   line-height: 1;
-  transition: background 160ms ease;
+  transition: background var(--dur-fast) var(--ease-out);
 }
 
 .inline-quick-add:focus-within .inline-quick-add__icon {
@@ -10204,7 +10204,7 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
   color: var(--text-muted);
   font-family: inherit;
   opacity: 0;
-  transition: opacity 160ms ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
   pointer-events: none;
 }
 
@@ -10222,7 +10222,7 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
 
 .todo-item .drag-handle {
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
 .todo-item:hover .drag-handle,
@@ -10232,7 +10232,7 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
 
 .todo-item .todo-row-actions {
   opacity: 0;
-  transition: opacity 120ms ease;
+  transition: opacity var(--dur-fast) var(--ease-out);
 }
 
 .todo-item:hover .todo-row-actions,
@@ -10432,9 +10432,9 @@ body.is-todos-view .home-brief-card {
   text-align: left;
   cursor: pointer;
   transition:
-    transform 120ms ease,
-    border-color 120ms ease,
-    box-shadow 120ms ease;
+    transform var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .home-brief-card__primary:hover {
