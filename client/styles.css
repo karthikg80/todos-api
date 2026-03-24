@@ -752,6 +752,53 @@ body:not(.is-todos-view) .container {
   direction: ltr;
 }
 
+.landing-features-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-4);
+}
+
+.landing-feature-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: var(--s-5);
+  transition:
+    transform 0.15s,
+    box-shadow 0.15s;
+}
+
+.landing-feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px
+    color-mix(in oklab, var(--text-primary) 6%, transparent);
+}
+
+.landing-feature-card__icon {
+  font-size: 2rem;
+  margin-bottom: var(--s-2);
+}
+
+.landing-feature-card h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin: 0 0 var(--s-2);
+  color: var(--text-primary);
+}
+
+.landing-feature-card p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .landing-features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .landing-feature__text h3 {
   font-size: 1.4rem;
   font-weight: 700;
@@ -6893,6 +6940,18 @@ body.is-todos-view .projects-rail-item__count {
   margin-top: 6px;
 }
 
+/* Hide empty warn/card sections when LLM returns empty containers */
+.home-priorities-body .lbl:has(+ .warn:empty),
+.home-priorities-body .warn:empty {
+  display: none;
+}
+
+/* Hide zero-count badges in the sidebar / project rail */
+.projects-rail-item__count:empty,
+.projects-rail-item__count[data-count="0"] {
+  display: none;
+}
+
 .lbl {
   font-size: 11px;
   font-weight: 500;
@@ -9452,7 +9511,6 @@ body.simple-mode
     .projects-rail__section--utilities
   ),
 body.simple-mode .projects-rail__spacer,
-body.simple-mode [data-workspace-view="home"],
 body.simple-mode [data-workspace-view="inbox"],
 body.simple-mode [data-workspace-view="unsorted"],
 body.simple-mode .projects-rail-projects-access,

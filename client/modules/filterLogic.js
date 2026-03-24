@@ -568,9 +568,13 @@ function updateHeaderAndContextUI({
       now.getMonth(),
       now.getDate(),
     );
+    // Count tasks completed today. Prefer completedAt if available;
+    // fall back to updatedAt for tasks that don't have it yet.
     const doneToday = state.todos.filter((t) => {
-      if (!t.completed || !t.updatedAt) return false;
-      return new Date(t.updatedAt) >= todayStart;
+      if (!t.completed) return false;
+      const ts = t.completedAt || t.updatedAt;
+      if (!ts) return false;
+      return new Date(ts) >= todayStart;
     }).length;
     if (doneToday > 0) {
       doneBadge.textContent = `✓ ${doneToday} done today`;
@@ -1013,14 +1017,18 @@ function renderTodos() {
             total: 0,
             done: 0,
           };
-          const categoryHeader = categoryChanged
-            ? `
+          // Suppress category headers in Today/Upcoming views — section
+          // labels (Overdue/Due today/date headers) provide sufficient grouping
+          const suppressCategoryHeaders = isTodayView || isUpcomingView;
+          const categoryHeader =
+            !suppressCategoryHeaders && categoryChanged
+              ? `
           <li class="todo-group-header" data-category-group-key="${hooks.escapeHtml?.(categoryLabel)}">
             <span>\u{1F4C1} ${hooks.escapeHtml?.(categoryLabel)}</span>
             <span data-category-group-stats="true">${stats.done}/${stats.total} done</span>
           </li>
         `
-            : "";
+              : "";
           // Upcoming view: inject date group headers
           let dateHeader = "";
           if (isUpcomingView && todo.dueDate) {
