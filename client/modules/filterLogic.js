@@ -1067,11 +1067,40 @@ function renderTodos() {
         })
         .join("");
 
-  container.innerHTML = `
-                <ul class="todos-list">
-                    ${rows}
-                </ul>
-            `;
+  // View-specific empty state when filter yields no results
+  // All content below is hardcoded — no user input, safe for innerHTML
+  if (filteredTodos.length === 0 && state.todos.length > 0) {
+    const viewMessages = {
+      today: {
+        heading: "All clear for today",
+        sub: "No tasks due today or overdue. Enjoy the moment.",
+      },
+      upcoming: {
+        heading: "Nothing coming up",
+        sub: "No tasks due in the next two weeks.",
+      },
+      completed: {
+        heading: "No completed tasks yet",
+        sub: "Completed tasks will appear here.",
+      },
+      someday: {
+        heading: "No someday tasks",
+        sub: "Tasks without a due date appear here.",
+      },
+    };
+    const msg = viewMessages[state.currentDateView] || {
+      heading: "No matching tasks",
+      sub: "Try adjusting your filters.",
+    };
+    container.innerHTML =
+      '<div class="empty-state"><h3>' +
+      msg.heading +
+      "</h3><p>" +
+      msg.sub +
+      "</p></div>";
+  } else {
+    container.innerHTML = '<ul class="todos-list">' + rows + "</ul>";
+  }
 
   if (state.selectedTodoId && !hooks.getTodoById?.(state.selectedTodoId)) {
     state.isTodoDrawerOpen = false;
