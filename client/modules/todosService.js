@@ -732,6 +732,10 @@ function toggleSelectTodo(todoId) {
   } else {
     state.selectedTodos.add(todoId);
   }
+  document.body.classList.toggle(
+    "is-bulk-selecting",
+    state.selectedTodos.size > 0,
+  );
   patchTodoBulkSelected(todoId, state.selectedTodos.has(todoId));
   patchBulkToolbar();
 }
