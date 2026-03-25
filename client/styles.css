@@ -3787,7 +3787,16 @@ body.is-todos-view .floating-new-task-cta {
 
 .shortcuts-content h2 {
   color: var(--text-primary);
-  margin-bottom: 20px;
+  margin-bottom: var(--s-4);
+}
+
+.shortcuts-section-title {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: var(--s-3) 0 var(--s-1);
 }
 
 .shortcut-item {
