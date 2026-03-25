@@ -1105,6 +1105,7 @@ function bindDockHandlers() {
   hooks.shouldUseServerVisibleTodos = shouldUseServerVisibleTodos;
   // todosService / filterLogic → projectsState
   hooks.loadProjects = loadProjects;
+  hooks.createProjectByName = createProjectByName;
   hooks.refreshProjectCatalog = refreshProjectCatalog;
   hooks.scheduleLoadSelectedProjectHeadings =
     scheduleLoadSelectedProjectHeadings;

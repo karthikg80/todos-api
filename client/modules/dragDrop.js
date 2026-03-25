@@ -216,9 +216,24 @@ function handleDrop(e, rowElement = null) {
     const nextHeadingId = selectedProject
       ? String(targetTodo?.headingId || "")
       : null;
-    reorderTodos(state.draggedTodoId, dropTargetId, {
+    const movedId = state.draggedTodoId;
+    reorderTodos(movedId, dropTargetId, {
       nextHeadingId: selectedProject ? nextHeadingId || null : undefined,
       placement,
+    });
+    // Apply settle animation after DOM re-renders
+    requestAnimationFrame(() => {
+      const movedRow = document.querySelector(
+        `.todo-item[data-todo-id="${movedId}"]`,
+      );
+      if (movedRow instanceof HTMLElement) {
+        movedRow.classList.add("todo-item--settling");
+        movedRow.addEventListener(
+          "animationend",
+          () => movedRow.classList.remove("todo-item--settling"),
+          { once: true },
+        );
+      }
     });
   }
 }
