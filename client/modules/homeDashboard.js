@@ -36,6 +36,8 @@ import { SOUL_COPY, buildRescueSuggestion } from "./soulConfig.js";
 import {
   illustrationWelcome,
   illustrationTileEmpty,
+  illustrationDueSoonEmpty,
+  illustrationBacklogCleanEmpty,
 } from "../utils/illustrations.js";
 
 const { escapeHtml } = window.Utils || {};
@@ -779,6 +781,7 @@ export function renderHomeTaskTile({
   groupedItems = null,
   seeAllLabel = "See all",
   emptyText = "No tasks here.",
+  emptyIllustration = null,
   showReasons = false,
   showSeeAll = true,
 } = {}) {
@@ -812,7 +815,7 @@ export function renderHomeTaskTile({
               }),
             )
             .join("")
-      : `<div class="home-tile__empty">${illustrationTileEmpty()}${escapeHtml(emptyText)}</div>`;
+      : `<div class="home-tile__empty">${(emptyIllustration || illustrationTileEmpty)()}${escapeHtml(emptyText)}</div>`;
   const TILE_ICON_SVG = {
     top_focus: `<svg class="home-tile__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
     due_soon: `<svg class="home-tile__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>`,
@@ -1231,6 +1234,7 @@ export function renderHomeDashboard() {
                 groupedItems: model.dueSoonGroups,
                 seeAllLabel: "See all",
                 emptyText: "Nothing urgent is coming up.",
+                emptyIllustration: illustrationDueSoonEmpty,
               })}
               ${renderHomeTaskTile({
                 key: "stale_risks",
@@ -1239,6 +1243,7 @@ export function renderHomeDashboard() {
                 items: staleRiskTodos,
                 seeAllLabel: "Review list",
                 emptyText: "Backlog looks calm right now.",
+                emptyIllustration: illustrationBacklogCleanEmpty,
               })}
             </div>`
           : ""

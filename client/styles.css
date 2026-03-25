@@ -4735,6 +4735,13 @@ body.is-todos-view .floating-new-task-cta {
   margin: 0 auto var(--s-2);
 }
 
+/* Tile illustrations — home dashboard tiles (120×80 viewBox) */
+.empty-state-illustration--tile {
+  width: 88px;
+  height: 58px;
+  margin: 0 auto var(--s-2);
+}
+
 /* Inline illustrations — subtask lists, task pickers (36×28 viewBox) */
 .empty-state-illustration--inline {
   width: 28px;
@@ -7764,6 +7771,10 @@ body.is-todos-view .projects-rail-item__count {
 
 .home-tile__empty .empty-state-illustration--inline {
   margin-bottom: var(--s-1);
+}
+
+.home-tile__empty .empty-state-illustration--tile {
+  margin-bottom: var(--s-2);
 }
 
 .home-tile__date-label {
