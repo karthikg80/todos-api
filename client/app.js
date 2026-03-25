@@ -122,6 +122,8 @@ import {
   renderTodoRowHtml,
   renderProjectHeadingGroupedRows,
   renderTodos,
+  setActiveTagFilter,
+  getUniqueTagsWithCounts,
 } from "./modules/filterLogic.js";
 import {
   DialogManager,
@@ -1336,6 +1338,10 @@ window.createSubproject = createSubproject;
 window.renameProjectTree = renameProjectTree;
 // Project key selection (used directly by UI tests via page.evaluate)
 window.setSelectedProjectKey = setSelectedProjectKey;
+window.toggleTagFilter = function toggleTagFilter(tag) {
+  var current = state.activeTagFilter;
+  setActiveTagFilter(current === tag ? "" : tag);
+};
 // Views / navigation
 window.switchView = switchView;
 window.toggleProfilePanel = toggleProfilePanel;

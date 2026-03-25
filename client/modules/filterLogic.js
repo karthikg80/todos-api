@@ -23,6 +23,11 @@ import {
   loadVisibleTodos,
   shouldUseServerVisibleTodos,
 } from "./todosService.js";
+import {
+  illustrationNoTasks,
+  illustrationNoMatches,
+  illustrationEmptyProject,
+} from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
 // Utility functions injected via hooks by app.js:
@@ -334,6 +339,13 @@ function filterTodosList(todosList, { searchQuery = "" } = {}) {
     );
   }
 
+  if (state.activeTagFilter) {
+    filtered = filtered.filter(
+      (todo) =>
+        Array.isArray(todo.tags) && todo.tags.includes(state.activeTagFilter),
+    );
+  }
+
   filtered = filtered.filter((todo) => matchesDateView(todo));
 
   // TODO(plan-filter): inject plan task IDs into filter pipeline
@@ -389,6 +401,23 @@ function filterTodos({ skipPipeline = false, reason = "manual" } = {}) {
   return getVisibleTodos();
 }
 
+function setActiveTagFilter(tag) {
+  state.activeTagFilter = tag || "";
+  filterTodos({ reason: "tag-filter" });
+}
+
+function getUniqueTagsWithCounts() {
+  const counts = new Map();
+  state.todos.forEach((todo) => {
+    if (!Array.isArray(todo.tags)) return;
+    todo.tags.forEach((t) => {
+      const tag = String(t).trim();
+      if (tag) counts.set(tag, (counts.get(tag) || 0) + 1);
+    });
+  });
+  return counts;
+}
+
 // =============================================================================
 // DOM Boundary Layer — functions below intentionally read/write DOM elements.
 // This is acceptable view-controller glue. Do not add getElementById calls
@@ -421,6 +450,7 @@ function clearFilters() {
   if (searchInput) searchInput.value = "";
   const sheetSearch = document.getElementById("searchInputSheet");
   if (sheetSearch) sheetSearch.value = "";
+  state.activeTagFilter = "";
   setDateView("all", { skipApply: true });
   applyFiltersAndRender({ reason: "clear-filters" });
 }
@@ -580,6 +610,17 @@ function updateHeaderAndContextUI({
 
   hooks.syncProjectHeaderActions?.();
   hooks.updateTopbarProjectsButton?.(projectName);
+
+  const tagIndicator = document.getElementById("tagFilterIndicator");
+  if (tagIndicator instanceof HTMLElement) {
+    if (state.activeTagFilter) {
+      tagIndicator.hidden = false;
+      tagIndicator.textContent = `#${state.activeTagFilter} ✕`;
+    } else {
+      tagIndicator.hidden = true;
+      tagIndicator.textContent = "";
+    }
+  }
 
   // Done-today badge
   const doneBadge = document.getElementById("doneTodayBadge");
@@ -770,7 +811,8 @@ function renderProjectHeadingGroupedRows(projectTodos, projectName) {
   if (!unheaded.length && !headings.length) {
     rows += `
       <li class="project-inline-empty">
-        Start with a task or a heading. The project stays intentionally quiet until you add structure.
+        ${illustrationEmptyProject()}
+        <p>Start with a task or a heading. The project stays intentionally quiet until you add structure.</p>
       </li>
     `;
   }
@@ -942,9 +984,10 @@ function renderTodos() {
     state.isTodoDrawerOpen = false;
     state.selectedTodoId = null;
     state.openTodoKebabId = null;
+    // All content below is hardcoded — no user input, safe for innerHTML
     container.innerHTML = `
                     <div id="todosEmptyState" class="empty-state">
-                        <div class="empty-state-icon">\u2728</div>
+                        ${illustrationNoTasks()}
                         <h3>No tasks yet</h3>
                         <p>Add your first task to get started with a calm, focused list.</p>
                         <p class="empty-state-hint">Tip: press Ctrl/Cmd + N to create a task.</p>
@@ -1134,7 +1177,9 @@ function renderTodos() {
       sub: "Try adjusting your filters.",
     };
     container.innerHTML =
-      '<div class="empty-state"><h3>' +
+      '<div class="empty-state">' +
+      illustrationNoMatches() +
+      "<h3>" +
       msg.heading +
       "</h3><p>" +
       msg.sub +
@@ -1191,6 +1236,8 @@ export {
   filterTodosList,
   applyFiltersAndRender,
   filterTodos,
+  setActiveTagFilter,
+  getUniqueTagsWithCounts,
   clearFilters,
   getSelectedProjectFilterValue,
   getSelectedProjectKey,
