@@ -275,12 +275,6 @@ body.is-todos-view #appSidebar {
   width: 64px;
 }
 
-.app-sidebar__bottom {
-  margin-top: auto;
-  padding-top: var(--s-3);
-  border-top: 1px solid var(--border-color);
-}
-
 .app-sidebar__settings {
   width: 100%;
   display: grid;
@@ -4657,30 +4651,6 @@ body.is-todos-view .floating-new-task-cta {
   margin-bottom: var(--s-5);
 }
 
-.feedback-view__header {
-  margin-bottom: var(--s-5);
-}
-
-.feedback-view__actions {
-  display: flex;
-  justify-content: flex-start;
-  margin-bottom: var(--s-3);
-}
-
-.feedback-view__eyebrow {
-  margin: 0 0 var(--s-2);
-  color: var(--accent);
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.feedback-view__lede {
-  max-width: 56ch;
-  color: var(--text-secondary);
-}
-
 .feedback-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
@@ -6966,17 +6936,6 @@ body.is-todos-view .projects-rail-kebab {
   background: transparent;
 }
 
-body.is-todos-view .app-sidebar__bottom {
-  padding-top: 10px;
-  margin-top: 10px;
-  border-top-color: color-mix(in oklab, var(--border-color) 70%, transparent);
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    color-mix(in oklab, var(--surface-2) 92%, var(--surface)) 22%
-  );
-}
-
 body.is-todos-view .app-sidebar__settings .projects-rail-item {
   justify-content: flex-start;
 }
@@ -7379,12 +7338,6 @@ body.is-todos-view .projects-rail-item__count {
 .home-dashboard {
   display: grid;
   gap: 12px;
-}
-
-.home-dashboard__toolbar {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
 }
 
 .home-dashboard__new-task {
@@ -8046,11 +7999,6 @@ body.is-todos-view .projects-rail-item__count {
     grid-template-columns: 1fr;
   }
 
-  .home-dashboard__toolbar {
-    justify-content: flex-start;
-    margin-left: 0;
-  }
-
   .home-tile {
     grid-column: auto;
   }
@@ -8397,16 +8345,6 @@ body.is-todos-view .home-tile[data-home-tile="due_soon"],
 body.is-todos-view .home-tile[data-home-tile="projects_to_nudge"] {
   background: color-mix(in oklab, var(--surface) 98%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 40%, transparent);
-}
-
-/* Remove old toolbar spacing */
-.home-dashboard__toolbar {
-  display: none;
-}
-
-/* Remove app-sidebar__bottom styles (no longer used) */
-.app-sidebar__bottom {
-  display: none;
 }
 
 /* Override home-dashboard grid on mobile */
@@ -8812,100 +8750,6 @@ body.is-todos-view .home-tile[data-home-tile="top_focus"] .home-tile__icon {
 }
 
 /* ========== BOTTOM ACTION DOCK ========== */
-.bottom-action-dock {
-  display: none;
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 50;
-  height: 68px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--s-5);
-  background: var(--surface-2);
-  border-top: 1px solid var(--border-color);
-  gap: var(--s-3);
-}
-
-body.is-todos-view .bottom-action-dock {
-  display: flex;
-}
-
-body.is-todos-view .bottom-action-dock::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: var(--app-shell-sidebar-width, 272px);
-  border-right: 1px solid var(--border-color);
-  background: var(--surface-2);
-  pointer-events: none;
-}
-
-body.is-todos-view .bottom-action-dock > * {
-  position: relative;
-  z-index: 1;
-}
-
-body.is-todos-view.is-projects-rail-collapsed .bottom-action-dock {
-  justify-content: flex-end;
-}
-
-body.is-todos-view.is-projects-rail-collapsed
-  .bottom-action-dock
-  .dock__group--left {
-  display: none;
-}
-
-@media (max-width: 768px) {
-  .bottom-action-dock {
-    display: none !important;
-  }
-}
-
-.dock__group {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-.dock-icon-btn {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-width: 58px;
-  height: 48px;
-  padding: 6px 8px;
-  border: none;
-  border-radius: var(--r-sm);
-  background: transparent;
-  color: var(--muted);
-  cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
-}
-
-.dock-icon-btn__label {
-  margin-top: 2px;
-  font-size: 11px;
-  font-weight: var(--fw-medium);
-  line-height: 1;
-}
-
-.dock-icon-btn:hover {
-  background: var(--card-hover);
-  color: var(--text);
-}
-
-.dock-icon-btn:focus-visible {
-  box-shadow: var(--focus-ring);
-  outline: none;
-}
-
 .dock-icon--sun {
   display: none;
 }
@@ -8916,46 +8760,6 @@ body.dark-mode .dock-icon--moon {
 
 body.dark-mode .dock-icon--sun {
   display: block;
-}
-
-.dock-action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-1);
-  height: 36px;
-  padding: 0 var(--s-4);
-  border-radius: var(--r-sm);
-  font-size: var(--fs-sm);
-  font-weight: var(--fw-medium);
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-  white-space: nowrap;
-}
-
-.dock-action-btn:hover {
-  opacity: 0.88;
-}
-
-.dock-action-btn:focus-visible {
-  box-shadow: var(--focus-ring);
-  outline: none;
-}
-
-.dock-action-btn--primary {
-  border: none;
-  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
-  color: #fff;
-}
-
-.dock-action-btn--secondary {
-  border: 1px solid var(--border-color);
-  background: transparent;
-  color: var(--muted);
-}
-
-.dock-action-btn--secondary:hover {
-  border-color: var(--accent);
-  color: var(--text);
 }
 
 #todosScrollRegion {
@@ -9322,120 +9126,6 @@ body.is-admin-user .projects-rail__footer--admin-only {
 }
 
 /* ── Day Plan Agent panel ───────────────────────────────────────────────── */
-.day-plan-agent-panel {
-  margin-bottom: 12px;
-}
-
-.day-plan-agent__header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--surface-bg, var(--input-bg));
-}
-
-.day-plan-agent__title {
-  font-size: var(--fs-meta);
-  font-weight: 600;
-  color: var(--text-primary);
-  white-space: nowrap;
-}
-
-.day-plan-agent__controls {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  flex: 1;
-  justify-content: flex-end;
-}
-
-.day-plan-agent__input {
-  width: 72px;
-  padding: 4px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-size: var(--fs-meta);
-}
-
-.day-plan-agent__select {
-  padding: 4px 8px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-size: var(--fs-meta);
-}
-
-.day-plan-agent__body {
-  border: 1px solid var(--border-color);
-  border-top: none;
-  border-radius: 0 0 8px 8px;
-  padding: 10px 12px;
-  background: var(--surface-bg, var(--input-bg));
-}
-
-.day-plan-agent__loading,
-.day-plan-agent__error {
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.day-plan-agent__error {
-  color: var(--danger);
-}
-
-.day-plan-agent__totals {
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
-  margin-bottom: 10px;
-}
-
-.day-plan-agent__task-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.day-plan-agent__task {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
-  gap: 2px 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.day-plan-agent__task:last-child {
-  border-bottom: none;
-}
-
-.day-plan-agent__task-title {
-  font-size: var(--fs-meta);
-  color: var(--text-primary);
-  grid-column: 1;
-}
-
-.day-plan-agent__task-mins {
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
-  grid-column: 2;
-  grid-row: 1;
-  white-space: nowrap;
-}
-
-.day-plan-agent__task-reason {
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
-  grid-column: 1 / -1;
-}
-
 /* ── Weekly Review view ─────────────────────────────────────────────────── */
 .wr-view {
   max-width: 680px;
