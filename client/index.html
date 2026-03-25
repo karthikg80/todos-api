@@ -116,7 +116,10 @@
                           data-onclick="switchAuthTab('login')"
                           >Log in</a
                         >
-                        <a href="#authFormSection" class="landing-nav__cta"
+                        <a
+                          href="#authFormSection"
+                          class="landing-nav__cta"
+                          data-onclick="switchAuthTab('register')"
                           >Get started free</a
                         >
                       </div>
@@ -139,6 +142,7 @@
                         <a
                           href="#authFormSection"
                           class="landing-btn landing-btn--primary"
+                          data-onclick="switchAuthTab('register')"
                           >Get started free</a
                         >
                         <a
@@ -464,7 +468,7 @@
                   </section>
 
                   <!-- Final CTA -->
-                  <section id="authFormSection" class="landing-cta-section">
+                  <section class="landing-cta-section">
                     <div class="landing-section__inner">
                       <h2 class="landing-section__heading">
                         Get started — it's&nbsp;free
@@ -477,7 +481,7 @@
                   </section>
                 </div>
 
-                <div class="auth-container">
+                <div id="authFormSection" class="auth-container">
                   <div class="auth-tabs">
                     <button
                       id="loginTabButton"
