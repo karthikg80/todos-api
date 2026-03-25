@@ -101,7 +101,7 @@
               <!-- Authentication View -->
               <div id="authView" class="view active">
                 <!-- Landing page — visible when unauthenticated -->
-                <div id="landingPage" class="landing">
+                <div id="landingPage" class="landing auth-landing-active">
                   <!-- Nav -->
                   <nav class="landing-nav" id="landingNav">
                     <div class="landing-nav__inner">
@@ -111,15 +111,15 @@
                           >Features</a
                         >
                         <a
-                          href="#authFormSection"
+                          href="#"
                           class="landing-nav__link"
-                          data-onclick="switchAuthTab('login')"
+                          data-onclick="event.preventDefault(); showAuthPage('login')"
                           >Log in</a
                         >
                         <a
-                          href="#authFormSection"
+                          href="#"
                           class="landing-nav__cta"
-                          data-onclick="switchAuthTab('register')"
+                          data-onclick="event.preventDefault(); showAuthPage('register')"
                           >Get started free</a
                         >
                       </div>
@@ -140,9 +140,9 @@
                       </p>
                       <div class="landing-hero__ctas">
                         <a
-                          href="#authFormSection"
+                          href="#"
                           class="landing-btn landing-btn--primary"
-                          data-onclick="switchAuthTab('register')"
+                          data-onclick="event.preventDefault(); showAuthPage('register')"
                           >Get started free</a
                         >
                         <a
@@ -477,11 +477,26 @@
                         No credit card required. Start organizing your tasks in
                         seconds.
                       </p>
+                      <a
+                        href="#"
+                        class="landing-btn landing-btn--primary"
+                        data-onclick="event.preventDefault(); showAuthPage('register')"
+                        >Create free account</a
+                      >
                     </div>
                   </section>
                 </div>
 
-                <div id="authFormSection" class="auth-container">
+                <div id="authFormSection" class="auth-container auth-page">
+                  <div class="auth-page__header">
+                    <a
+                      href="#"
+                      class="auth-page__back"
+                      data-onclick="event.preventDefault(); showLandingPage()"
+                      >← Back</a
+                    >
+                    <span class="auth-page__logo">Todo App</span>
+                  </div>
                   <div class="auth-tabs">
                     <button
                       id="loginTabButton"

@@ -256,7 +256,8 @@ test.describe("App smoke flows", () => {
     await installMockApi(page);
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Register" }).click();
+    // Navigate from landing to auth page (register tab)
+    await page.evaluate(() => (window as any).showAuthPage?.("register"));
     await page.locator("#registerName").fill("User One");
     await page.locator("#registerEmail").fill("user1@example.com");
     await page.locator("#registerPassword").fill("Password123!");
@@ -294,7 +295,7 @@ test.describe("App smoke flows", () => {
     await clickLogout(page);
     await expect(page.locator("#authView")).toHaveClass(/active/);
 
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.evaluate(() => (window as any).showAuthPage?.("register"));
     await page.locator("#registerName").fill("User Two");
     await page.locator("#registerEmail").fill("user2@example.com");
     await page.locator("#registerPassword").fill("Password123!");
@@ -308,7 +309,7 @@ test.describe("App smoke flows", () => {
     await installMockApi(page);
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.evaluate(() => (window as any).showAuthPage?.("register"));
     await page.locator("#registerName").fill("Date View User One");
     await page.locator("#registerEmail").fill("date-view-one@example.com");
     await page.locator("#registerPassword").fill("Password123!");
@@ -327,7 +328,7 @@ test.describe("App smoke flows", () => {
     await clickLogout(page);
     await expect(page.locator("#authView")).toHaveClass(/active/);
 
-    await page.getByRole("button", { name: "Register" }).click();
+    await page.evaluate(() => (window as any).showAuthPage?.("register"));
     await page.locator("#registerName").fill("Date View User Two");
     await page.locator("#registerEmail").fill("date-view-two@example.com");
     await page.locator("#registerPassword").fill("Password123!");
