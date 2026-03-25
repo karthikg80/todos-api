@@ -77,6 +77,13 @@ export function switchAuthTab(tab, triggerEl) {
   if (triggerEl) {
     triggerEl.classList.add("active");
     triggerEl.setAttribute("aria-selected", "true");
+  } else {
+    // Activate the matching tab button when called without a trigger (e.g., from landing page)
+    const tabBtn = document.getElementById(tab + "TabButton");
+    if (tabBtn) {
+      tabBtn.classList.add("active");
+      tabBtn.setAttribute("aria-selected", "true");
+    }
   }
   const targetForm = document.getElementById(tab + "Form");
   if (targetForm) {
