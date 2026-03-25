@@ -372,3 +372,64 @@ export function illustrationTileEmpty() {
   <rect x="4" y="19" width="10" height="3" rx="1.5" fill="var(--border)" opacity="0.1"/>
 </svg>`;
 }
+
+// ─── Home tile-specific illustrations ─────────────────────────────────────
+
+/**
+ * Calm clock face with hands at rest — nothing urgent on the horizon.
+ * Used for the "Due soon" home tile empty state.
+ */
+export function illustrationDueSoonEmpty() {
+  return `<svg viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-state-illustration empty-state-illustration--tile" aria-hidden="true">
+  <!-- Clock face -->
+  <circle cx="60" cy="40" r="28" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <!-- Hour markers -->
+  <circle cx="60" cy="15" r="1.5" fill="var(--border)" opacity="0.4"/>
+  <circle cx="85" cy="40" r="1.5" fill="var(--border)" opacity="0.4"/>
+  <circle cx="60" cy="65" r="1.5" fill="var(--border)" opacity="0.4"/>
+  <circle cx="35" cy="40" r="1.5" fill="var(--border)" opacity="0.4"/>
+  <!-- Subtle minor markers -->
+  <circle cx="74" cy="19" r="1" fill="var(--border)" opacity="0.2"/>
+  <circle cx="81" cy="28" r="1" fill="var(--border)" opacity="0.2"/>
+  <circle cx="81" cy="52" r="1" fill="var(--border)" opacity="0.2"/>
+  <circle cx="74" cy="61" r="1" fill="var(--border)" opacity="0.2"/>
+  <circle cx="46" cy="61" r="1" fill="var(--border)" opacity="0.2"/>
+  <circle cx="39" cy="52" r="1" fill="var(--border)" opacity="0.2"/>
+  <circle cx="39" cy="28" r="1" fill="var(--border)" opacity="0.2"/>
+  <circle cx="46" cy="19" r="1" fill="var(--border)" opacity="0.2"/>
+  <!-- Hour hand (pointing ~10 o'clock — relaxed) -->
+  <line x1="60" y1="40" x2="50" y2="24" stroke="var(--border)" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+  <!-- Minute hand -->
+  <line x1="60" y1="40" x2="60" y2="18" stroke="var(--border)" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+  <!-- Center dot -->
+  <circle cx="60" cy="40" r="2.5" fill="var(--accent)" opacity="0.5"/>
+  <!-- Checkmark accent — all clear -->
+  <circle cx="96" cy="16" r="10" fill="var(--success)" opacity="0.08"/>
+  <circle cx="96" cy="16" r="10" fill="none" stroke="var(--success)" stroke-width="1.2" opacity="0.4"/>
+  <path d="M91 16l3.5 3.5 7-7" stroke="var(--success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+</svg>`;
+}
+
+/**
+ * Tidy stack of cards with a sparkle — backlog is clean.
+ * Used for the "Backlog hygiene" home tile empty state.
+ */
+export function illustrationBacklogCleanEmpty() {
+  return `<svg viewBox="0 0 120 80" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-state-illustration empty-state-illustration--tile" aria-hidden="true">
+  <!-- Bottom card (offset) -->
+  <rect x="28" y="32" width="64" height="40" rx="6" fill="var(--border)" opacity="0.1" stroke="var(--border)" stroke-width="1" opacity="0.2"/>
+  <!-- Middle card (slightly offset) -->
+  <rect x="24" y="26" width="64" height="40" rx="6" fill="var(--border)" opacity="0.06" stroke="var(--border)" stroke-width="1" opacity="0.25"/>
+  <!-- Top card -->
+  <rect x="20" y="20" width="64" height="40" rx="6" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <!-- Tidy check lines on top card -->
+  <path d="M32 34l3 3 6-6" stroke="var(--success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+  <rect x="46" y="33" width="28" height="2.5" rx="1.25" fill="var(--border)" opacity="0.25"/>
+  <path d="M32 46l3 3 6-6" stroke="var(--success)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"/>
+  <rect x="46" y="45" width="22" height="2.5" rx="1.25" fill="var(--border)" opacity="0.18"/>
+  <!-- Sparkle — clean feeling -->
+  <path d="M98 22l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="var(--success)" opacity="0.4"/>
+  <circle cx="104" cy="38" r="1.5" fill="var(--success)" opacity="0.2"/>
+  <circle cx="94" cy="14" r="1.5" fill="var(--success)" opacity="0.15"/>
+</svg>`;
+}
