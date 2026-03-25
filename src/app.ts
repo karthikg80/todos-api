@@ -231,14 +231,13 @@ export function createApp(
       path.join(__dirname, "../node_modules/chrono-node/dist/esm"),
     ),
   );
-  // ── Page-serving routes (3-page split) ──────────────────────────
-  // Registered before express.static so explicit routes take priority
-  // over client/index.html auto-serving.
-  const publicDir = path.join(__dirname, "../client/public");
+  app.use(express.static(path.join(__dirname, "../client")));
 
-  app.get("/", (_req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, "index.html"));
-  });
+  // ── Page-serving routes (3-page split) ──────────────────────────
+  // Registered after express.static. GET / continues to serve the
+  // legacy client/index.html via static middleware until test migration
+  // is complete. /auth and /app are new routes with no static conflict.
+  const publicDir = path.join(__dirname, "../client/public");
 
   app.get("/auth", (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, "auth.html"));
@@ -256,8 +255,6 @@ export function createApp(
 
   app.get("/app", serveAppOrRedirect);
   app.get("/app/{*path}", serveAppOrRedirect);
-
-  app.use(express.static(path.join(__dirname, "../client")));
 
   app.use(
     "/api-docs",
