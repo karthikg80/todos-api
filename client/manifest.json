@@ -1,0 +1,17 @@
+{
+  "name": "Todos — Calm Task Management",
+  "short_name": "Todos",
+  "description": "A calm, AI-native workspace for managing your tasks, projects, and daily focus.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#4F46E5",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
