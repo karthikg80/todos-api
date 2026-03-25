@@ -233,6 +233,25 @@ export function createApp(
   );
   app.use(express.static(path.join(__dirname, "../client")));
 
+  // ── Page-serving routes (3-page split) ──────────────────────────
+  const publicDir = path.join(__dirname, "../client/public");
+
+  app.get("/", (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, "index.html"));
+  });
+
+  app.get("/auth", (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, "auth.html"));
+  });
+
+  app.get("/app", (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, "app.html"));
+  });
+
+  app.get("/app/{*path}", (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, "app.html"));
+  });
+
   app.use(
     "/api-docs",
     swaggerUi.serve,

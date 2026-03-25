@@ -14,6 +14,12 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="stylesheet" href="/styles/base.css" />
     <link rel="stylesheet" href="/styles/auth.css" />
+    <script>
+      // Redirect authenticated users to /app
+      if (localStorage.getItem("token")) {
+        window.location.replace("/app");
+      }
+    </script>
   </head>
   <body>
     <div
