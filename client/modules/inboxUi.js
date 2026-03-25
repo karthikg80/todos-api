@@ -9,6 +9,7 @@
 import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
+import { illustrationInboxClear } from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
 // Load inbox items from the agent API
@@ -100,7 +101,7 @@ export function renderInboxView() {
         <button type="button" class="inbox-btn" data-inbox-action="reload">Retry</button>
       </div>`;
   } else if (!s.loading && s.hasLoaded && s.items.length === 0) {
-    bodyHtml = `<div class="inbox-view__empty"><p>Inbox is clear.</p></div>`;
+    bodyHtml = `<div class="inbox-view__empty">${illustrationInboxClear()}<p>Inbox is clear.</p></div>`;
   } else {
     const itemsHtml = s.items.map(renderInboxItem).join("");
     bodyHtml = `
