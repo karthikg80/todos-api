@@ -1596,6 +1596,11 @@ textarea:focus-visible,
 .ai-empty {
   font-size: var(--fs-sm);
   color: var(--text-muted);
+  text-align: center;
+}
+
+.ai-empty .empty-state-illustration--micro {
+  margin-bottom: var(--s-1);
 }
 
 .ai-tooltip {
@@ -3999,7 +4004,12 @@ body.is-todos-view .floating-new-task-cta {
 .command-palette-inline-empty {
   color: var(--text-secondary);
   font-size: var(--fs-sm);
-  padding: 8px 10px;
+  padding: var(--s-4) var(--s-3);
+  text-align: center;
+}
+
+.command-palette-inline-empty .empty-state-illustration--micro {
+  margin-bottom: var(--s-2);
 }
 
 .command-palette-empty {
@@ -4716,6 +4726,20 @@ body.is-todos-view .floating-new-task-cta {
   height: 96px;
   margin: 0 auto var(--s-4);
   display: block;
+}
+
+/* Micro illustrations — AI suggestions, command palette (48×40 viewBox) */
+.empty-state-illustration--micro {
+  width: 40px;
+  height: 32px;
+  margin: 0 auto var(--s-2);
+}
+
+/* Inline illustrations — subtask lists, task pickers (36×28 viewBox) */
+.empty-state-illustration--inline {
+  width: 28px;
+  height: 22px;
+  margin: 0 auto var(--s-1);
 }
 
 .empty-state-hint {
@@ -5784,9 +5808,14 @@ body.is-todos-view .floating-new-task-cta {
 }
 
 .task-picker__empty {
-  padding: 8px 10px;
+  padding: var(--s-3) var(--s-2);
   font-size: var(--fs-sm);
   color: var(--muted);
+  text-align: center;
+}
+
+.task-picker__empty .empty-state-illustration--inline {
+  margin-bottom: var(--s-1);
 }
 
 .todo-drawer__field input[type="text"],
@@ -5884,6 +5913,12 @@ body.is-todos-view .floating-new-task-cta {
 .todo-drawer__subtasks-empty {
   color: var(--text-secondary);
   font-size: 0.88rem;
+  text-align: center;
+  padding: var(--s-2) 0;
+}
+
+.todo-drawer__subtasks-empty .empty-state-illustration--inline {
+  margin-bottom: var(--s-1);
 }
 
 .todo-drawer-ai-list {
@@ -7723,7 +7758,12 @@ body.is-todos-view .projects-rail-item__count {
 .home-tile__helper {
   color: var(--text-secondary);
   font-size: var(--fs-meta);
-  padding: 8px 4px;
+  padding: var(--s-3) var(--s-1);
+  text-align: center;
+}
+
+.home-tile__empty .empty-state-illustration--inline {
+  margin-bottom: var(--s-1);
 }
 
 .home-tile__date-label {
@@ -9392,6 +9432,17 @@ body.is-admin-user .projects-rail__footer--admin-only {
   color: var(--text-secondary);
 }
 
+.wr-empty {
+  text-align: center;
+  padding: var(--s-4) 0;
+}
+
+.wr-empty .empty-state-illustration {
+  width: 100px;
+  height: 80px;
+  margin-bottom: var(--s-3);
+}
+
 .wr-loading {
   font-size: var(--fs-meta);
   color: var(--text-secondary);
@@ -9500,6 +9551,12 @@ body.is-admin-user .projects-rail__footer--admin-only {
   color: var(--text-secondary);
   padding: 24px 0;
   text-align: center;
+}
+
+.cleanup-empty .empty-state-illustration {
+  width: 100px;
+  height: 80px;
+  margin-bottom: var(--s-3);
 }
 
 .cleanup-error {

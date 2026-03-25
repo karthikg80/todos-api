@@ -6,6 +6,7 @@
 import { state, hooks } from "./store.js";
 import { getAllProjects } from "./projectsState.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import { illustrationAiEmpty } from "../utils/illustrations.js";
 
 function taskDrawerDismissKey(todoId) {
   return `${STORAGE_KEYS.TASK_DRAWER_DISMISSED_PREFIX}${todoId}`;
@@ -150,7 +151,7 @@ function renderTaskDrawerAssistSection(todoId) {
         !assistState.unavailable &&
         !assistState.error &&
         (assistState.mustAbstain || assistState.suggestions.length === 0)
-          ? '<div class="ai-empty" role="status">No suggestions right now.</div>'
+          ? `<div class="ai-empty" role="status">${illustrationAiEmpty()}No suggestions right now.</div>`
           : ""
       }
       ${
