@@ -13,6 +13,7 @@ import { applyAsyncAction, applyUiAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { getEffortScoreLabel, getEffortScoreValue } from "./soulConfig.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import { illustrationSubtasksEmpty } from "../utils/illustrations.js";
 import { mountTaskPicker } from "../utils/taskPicker.js";
 import {
   hasTodoRow,
@@ -1009,7 +1010,7 @@ export function onDrawerCategoryBlur() {
 function renderDrawerSubtasks(todo) {
   const escapeHtml = hooks.escapeHtml || ((s) => String(s));
   if (!Array.isArray(todo.subtasks) || todo.subtasks.length === 0) {
-    return '<p class="todo-drawer__subtasks-empty">No subtasks</p>';
+    return `<p class="todo-drawer__subtasks-empty">${illustrationSubtasksEmpty()}No subtasks</p>`;
   }
   return `
     <ul class="todo-drawer__subtasks-list">

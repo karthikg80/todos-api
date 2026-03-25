@@ -10,6 +10,7 @@ import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { SOUL_COPY } from "./soulConfig.js";
+import { illustrationWeeklyReviewClean } from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
 // Render
@@ -167,7 +168,7 @@ export function renderWeeklyReviewView() {
                 : `<p class="wr-applied-msg">Actions applied.</p>`
             }
           </section>`
-        : `<p class="wr-empty">Nothing urgent to clean up this week.</p>`;
+        : `<div class="wr-empty">${illustrationWeeklyReviewClean()}<p>Nothing urgent to clean up this week.</p></div>`;
 
     bodyHtml = `${renderSummaryBadges(s.summary)}${reflectionHtml}${rolloverHtml}${findingsHtml}${anchorsHtml}${adjustmentHtml}${actionsHtml}`;
   } else {

@@ -27,6 +27,10 @@ import {
   illustrationNoTasks,
   illustrationNoMatches,
   illustrationEmptyProject,
+  illustrationTodayClear,
+  illustrationUpcomingEmpty,
+  illustrationCompletedEmpty,
+  illustrationSomedayEmpty,
 } from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
@@ -1176,9 +1180,17 @@ function renderTodos() {
       heading: "No matching tasks",
       sub: "Try adjusting your filters.",
     };
+    const viewIllustrations = {
+      today: illustrationTodayClear,
+      upcoming: illustrationUpcomingEmpty,
+      completed: illustrationCompletedEmpty,
+      someday: illustrationSomedayEmpty,
+    };
+    const illustrationFn =
+      viewIllustrations[state.currentDateView] || illustrationNoMatches;
     container.innerHTML =
       '<div class="empty-state">' +
-      illustrationNoMatches() +
+      illustrationFn() +
       "<h3>" +
       msg.heading +
       "</h3><p>" +

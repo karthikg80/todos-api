@@ -8,6 +8,7 @@ import { getAllProjects } from "./projectsState.js";
 import { setSelectedProjectKey } from "./filterLogic.js";
 import { applyUiAction } from "./stateActions.js";
 import { toggleShortcuts, closeShortcutsOverlay } from "./shortcuts.js";
+import { illustrationCommandEmpty } from "../utils/illustrations.js";
 
 function getCommandPaletteElements() {
   const overlay = document.getElementById("commandPaletteOverlay");
@@ -197,7 +198,7 @@ function renderCommandPalette() {
         return `<div class="command-palette-section" role="presentation">${hooks.escapeHtml(row.label)}</div>`;
       }
       if (row.kind === "empty") {
-        return `<div class="command-palette-inline-empty" role="status">${hooks.escapeHtml(row.label)}</div>`;
+        return `<div class="command-palette-inline-empty" role="status">${illustrationCommandEmpty()}${hooks.escapeHtml(row.label)}</div>`;
       }
 
       selectableIndex += 1;
