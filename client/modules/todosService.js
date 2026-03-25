@@ -3,6 +3,7 @@
 // Imports state from store.js. Cross-module calls go through hooks.
 // =============================================================================
 import { state, hooks, createInitialHomeAiState } from "./store.js";
+import { computeNextOccurrence } from "../utils/recurrence.js";
 import { planTodayTaskIds } from "./planTodayAgent.js";
 import {
   hasTodoRow,
@@ -508,11 +509,35 @@ async function toggleTodo(id, forceValue = null) {
 
   const newCompletedValue = forceValue !== null ? forceValue : !todo.completed;
 
+  // Recurring task completion: advance to next occurrence instead of marking done
+  const isRecurring =
+    newCompletedValue && todo.recurrenceType && todo.recurrenceType !== "none";
+
+  let body;
+  if (isRecurring) {
+    const nextDate = computeNextOccurrence(
+      todo.recurrenceType,
+      todo.recurrenceInterval || 1,
+      todo.dueDate,
+    );
+    body = {
+      completed: false,
+      dueDate: nextDate ? nextDate.toISOString() : null,
+      recurrence: {
+        type: todo.recurrenceType,
+        interval: todo.recurrenceInterval || 1,
+        nextOccurrence: nextDate ? nextDate.toISOString() : null,
+      },
+    };
+  } else {
+    body = { completed: newCompletedValue };
+  }
+
   try {
     const response = await hooks.apiCall(`${hooks.API_URL}/todos/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: newCompletedValue }),
+      body: JSON.stringify(body),
     });
 
     if (response && response.ok) {
@@ -535,7 +560,12 @@ async function toggleTodo(id, forceValue = null) {
         EventBus.dispatch(TODOS_CHANGED, { reason: TODO_TOGGLED });
       }
 
-      if (forceValue === null && newCompletedValue) {
+      if (isRecurring) {
+        const nextLabel = body.dueDate
+          ? new Date(body.dueDate).toLocaleDateString()
+          : "soon";
+        showUndoToast(`Done — next: ${nextLabel}`);
+      } else if (forceValue === null && newCompletedValue) {
         addUndoAction("complete", { id }, "Todo marked as complete");
       }
     }

@@ -398,6 +398,10 @@ export function initializeDrawerDraft(todo) {
     archived: !!todo.archived,
     source: String(todo.source || ""),
     completedAt: todo.completedAt ? String(todo.completedAt) : "",
+    recurrenceType: String(todo.recurrenceType || "none"),
+    recurrenceInterval: todo.recurrenceInterval
+      ? String(todo.recurrenceInterval)
+      : "1",
   };
 }
 
@@ -496,6 +500,12 @@ function syncDrawerDraftFromPatch(updatedTodo, patchKeys) {
         break;
       case "archived":
         d.archived = !!updatedTodo.archived;
+        break;
+      case "recurrence":
+        d.recurrenceType = String(updatedTodo.recurrenceType || "none");
+        d.recurrenceInterval = updatedTodo.recurrenceInterval
+          ? String(updatedTodo.recurrenceInterval)
+          : "1";
         break;
       default:
         break;
@@ -785,6 +795,29 @@ export function onDrawerReviewDateChange(event) {
   const value = String(event?.target?.value || "");
   updateDrawerDraftField("reviewDate", value);
   saveDrawerPatch({ reviewDate: toIsoFromDateTimeInput(value) });
+}
+
+export function onDrawerRecurrenceTypeChange(event) {
+  const value = String(event?.target?.value || "none");
+  updateDrawerDraftField("recurrenceType", value);
+  const recurrence =
+    value === "none"
+      ? null
+      : {
+          type: value,
+          interval: parseInt(state.drawerDraft?.recurrenceInterval || "1", 10),
+        };
+  saveDrawerPatch({ recurrence });
+}
+
+export function onDrawerRecurrenceIntervalChange(event) {
+  const value = String(event?.target?.value || "1");
+  updateDrawerDraftField("recurrenceInterval", value);
+  const recurrence = {
+    type: state.drawerDraft?.recurrenceType || "daily",
+    interval: parseInt(value, 10) || 1,
+  };
+  saveDrawerPatch({ recurrence });
 }
 
 export function onDrawerProjectChange(event) {
@@ -1309,6 +1342,26 @@ export function renderTodoDrawerContent() {
         <span>Review date</span>
         <input id="drawerReviewDateInput" type="datetime-local" value="${escapeHtml(draft.reviewDate)}" />
       </label>
+      <label class="todo-drawer__field" for="drawerRecurrenceType">
+        <span>Repeat</span>
+        <select id="drawerRecurrenceType">
+          <option value="none" ${draft.recurrenceType === "none" ? "selected" : ""}>None</option>
+          <option value="daily" ${draft.recurrenceType === "daily" ? "selected" : ""}>Daily</option>
+          <option value="weekly" ${draft.recurrenceType === "weekly" ? "selected" : ""}>Weekly</option>
+          <option value="monthly" ${draft.recurrenceType === "monthly" ? "selected" : ""}>Monthly</option>
+          <option value="yearly" ${draft.recurrenceType === "yearly" ? "selected" : ""}>Yearly</option>
+        </select>
+      </label>
+      ${
+        draft.recurrenceType !== "none"
+          ? `
+      <label class="todo-drawer__field" for="drawerRecurrenceInterval">
+        <span>Every</span>
+        <input id="drawerRecurrenceInterval" type="number" min="1" max="365" value="${escapeHtml(draft.recurrenceInterval)}" />
+      </label>
+      `
+          : ""
+      }
       <label class="todo-drawer__field" for="drawerProjectSelect">
         <span>Project</span>
         <select id="drawerProjectSelect">
@@ -2124,6 +2177,14 @@ export function bindTodoDrawerHandlers() {
     }
     if (target.id === "drawerReviewDateInput") {
       onDrawerReviewDateChange(event);
+      return;
+    }
+    if (target.id === "drawerRecurrenceType") {
+      onDrawerRecurrenceTypeChange(event);
+      return;
+    }
+    if (target.id === "drawerRecurrenceInterval") {
+      onDrawerRecurrenceIntervalChange(event);
       return;
     }
     if (target.id === "drawerProjectSelect") {

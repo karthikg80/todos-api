@@ -454,7 +454,26 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
     );
   }
 
-  return chips.slice(0, 2).join("");
+  if (
+    todo.recurrenceType &&
+    todo.recurrenceType !== "none" &&
+    chips.length < 3
+  ) {
+    const units = {
+      daily: "day",
+      weekly: "week",
+      monthly: "month",
+      yearly: "year",
+    };
+    const n = todo.recurrenceInterval || 1;
+    const unit = units[todo.recurrenceType] || todo.recurrenceType;
+    const label = n === 1 ? `Every ${unit}` : `Every ${n} ${unit}s`;
+    chips.push(
+      `<span class="todo-chip todo-chip--recurrence" title="${hooks.escapeHtml(label)}"><svg class="app-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg> ${hooks.escapeHtml(label)}</span>`,
+    );
+  }
+
+  return chips.slice(0, 3).join("");
 }
 
 export {
