@@ -6280,6 +6280,12 @@ body.is-bulk-selecting .todo-item {
   color: var(--danger);
 }
 
+.todo-chip--recurrence {
+  background: color-mix(in oklab, var(--accent) 8%, transparent);
+  border-color: color-mix(in oklab, var(--accent) 24%, transparent);
+  color: var(--accent);
+}
+
 .priority-badge {
   font-size: var(--fs-meta);
   font-weight: var(--fw-medium);
