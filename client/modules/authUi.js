@@ -205,6 +205,11 @@ export async function handleLogin(event) {
           currentUser: state.currentUser,
         });
       }
+      // On multi-page layout (auth.html), redirect; on single-page, toggle view
+      if (!document.getElementById("todosView")) {
+        window.location.href = "/app";
+        return;
+      }
       showAppView();
       loadUserProfile().then(() => {
         initOnboarding();
@@ -266,12 +271,19 @@ export async function handleRegister(event) {
         });
       }
       showMessage("authMessage", "Account created successfully!", "success");
-      setTimeout(() => {
-        showAppView();
-        loadUserProfile().then(() => {
-          initOnboarding();
-        });
-      }, 1000);
+      // On multi-page layout (auth.html), redirect; on single-page, toggle view
+      if (!document.getElementById("todosView")) {
+        setTimeout(() => {
+          window.location.href = "/app";
+        }, 1000);
+      } else {
+        setTimeout(() => {
+          showAppView();
+          loadUserProfile().then(() => {
+            initOnboarding();
+          });
+        }, 1000);
+      }
     } else {
       if (data.errors) {
         const errorMsg = data.errors.map((e) => e.message).join(", ");
@@ -954,7 +966,12 @@ export async function logout() {
   hooks.closeProjectsRailSheet?.({ restoreFocus: false });
   hooks.closeTaskComposer?.({ restoreFocus: false, force: true, reset: true });
   closeTodoDrawer({ restoreFocus: false });
-  showAuthView();
+  // On multi-page layout, redirect to auth page; on single-page, toggle view
+  if (document.getElementById("authView")) {
+    showAuthView();
+  } else {
+    window.location.href = "/auth";
+  }
 }
 
 // =============================================================================
@@ -966,11 +983,13 @@ export function showAppView() {
   hooks.setSettingsPaneVisible?.(false);
   hooks.setFeedbackPaneVisible?.(false);
   hooks.setAdminPaneVisible?.(false);
-  document.getElementById("authView").classList.remove("active");
-  document.getElementById("todosView").classList.add("active");
+  document.getElementById("authView")?.classList.remove("active");
+  document.getElementById("todosView")?.classList.add("active");
   document.getElementById("profileView")?.classList.remove("active");
-  document.getElementById("navTabs").style.display = "flex";
-  document.getElementById("userBar").style.display = "flex";
+  const navTabs = document.getElementById("navTabs");
+  if (navTabs) navTabs.style.display = "flex";
+  const userBar = document.getElementById("userBar");
+  if (userBar) userBar.style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
   hooks.syncSidebarNavState?.("todos");
   hooks.closeCommandPalette?.({ restoreFocus: false });
@@ -1030,12 +1049,15 @@ export function showAuthView() {
   hooks.setSettingsPaneVisible?.(false);
   hooks.setFeedbackPaneVisible?.(false);
   hooks.setAdminPaneVisible?.(false);
-  document.getElementById("authView").classList.add("active");
-  document.getElementById("todosView").classList.remove("active");
-  document.getElementById("profileView").classList.remove("active");
-  document.getElementById("navTabs").style.display = "none";
-  document.getElementById("userBar").style.display = "none";
-  document.getElementById("adminNavTab").style.display = "none";
+  document.getElementById("authView")?.classList.add("active");
+  document.getElementById("todosView")?.classList.remove("active");
+  document.getElementById("profileView")?.classList.remove("active");
+  const navTabsEl = document.getElementById("navTabs");
+  if (navTabsEl) navTabsEl.style.display = "none";
+  const userBarEl = document.getElementById("userBar");
+  if (userBarEl) userBarEl.style.display = "none";
+  const adminNavTabEl = document.getElementById("adminNavTab");
+  if (adminNavTabEl) adminNavTabEl.style.display = "none";
   document.body.classList.remove("is-admin-user");
   hooks.syncSidebarNavState?.("");
   state.adminBootstrapAvailable = false;
@@ -1141,7 +1163,11 @@ export function handleSocialCallback() {
       // Clean URL
       window.history.replaceState({}, document.title, "/");
 
-      // Show app immediately, then load profile in background
+      // On multi-page layout, redirect; on single-page, toggle view
+      if (!document.getElementById("todosView")) {
+        window.location.href = "/app";
+        return;
+      }
       showAppView();
       loadUserProfile().then(() => {
         initOnboarding();
@@ -1449,6 +1475,11 @@ export async function handleVerifyOtp() {
       });
     }
 
+    // On multi-page layout, redirect; on single-page, toggle view
+    if (!document.getElementById("todosView")) {
+      window.location.href = "/app";
+      return;
+    }
     showAppView();
     loadUserProfile().then(() => {
       initOnboarding();
