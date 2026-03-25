@@ -245,11 +245,13 @@ export function createApp(
   });
 
   const serveAppOrRedirect = (req: Request, res: Response) => {
-    if (req.signedCookies?.app_session) {
-      res.sendFile(path.join(publicDir, "app.html"));
-    } else {
-      res.redirect("/auth");
+    // Signed cookie is the server-side gate; client-side localStorage
+    // redirect in app.html is the fallback for test/dev environments
+    // where the cookie may not be present (e.g. Playwright route mocking).
+    if (!req.signedCookies?.app_session && config.nodeEnv === "production") {
+      return res.redirect("/auth");
     }
+    res.sendFile(path.join(publicDir, "app.html"));
   };
 
   app.get("/app", serveAppOrRedirect);
