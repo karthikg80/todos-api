@@ -409,10 +409,57 @@
       });
     </script>
 
-    <!-- URL parameter handling for tab switching -->
+    <!-- URL parameter handling -->
     <script>
       document.addEventListener("DOMContentLoaded", function () {
         var params = new URLSearchParams(window.location.search);
+
+        // Handle OAuth callback: /auth?auth=success&token=...&refreshToken=...
+        var auth = params.get("auth");
+        if (auth === "success") {
+          var token = params.get("token");
+          var refreshToken = params.get("refreshToken");
+          if (token && refreshToken && window.AppState) {
+            window.AppState.persistSession({
+              authToken: token,
+              refreshToken: refreshToken,
+              currentUser: null,
+            });
+            localStorage.setItem("token", token);
+            localStorage.setItem("refreshToken", refreshToken);
+            window.location.replace("/app");
+            return;
+          }
+        } else if (auth === "error") {
+          var msg = params.get("message") || "Login failed";
+          var msgEl = document.getElementById("authMessage");
+          if (msgEl) {
+            msgEl.textContent = msg;
+            msgEl.className = "message error show";
+          }
+          window.history.replaceState({}, document.title, "/auth");
+          return;
+        }
+
+        // Handle email verification status: /auth?verified=1 or /auth?verified=0
+        var verified = params.get("verified");
+        if (verified !== null) {
+          var msgEl = document.getElementById("authMessage");
+          if (msgEl) {
+            if (verified === "1") {
+              msgEl.textContent =
+                "Email verified successfully! You can now log in.";
+              msgEl.className = "message success show";
+            } else {
+              msgEl.textContent = "Email verification failed or link expired.";
+              msgEl.className = "message error show";
+            }
+          }
+          window.history.replaceState({}, document.title, "/auth");
+          return;
+        }
+
+        // Handle tab switching: /auth?tab=register
         var tab = params.get("tab");
         if (tab === "register" && typeof switchAuthTab === "function") {
           switchAuthTab(
@@ -420,7 +467,8 @@
             document.getElementById("registerTabButton"),
           );
         }
-        // Handle resetToken for password reset
+
+        // Handle password reset: /auth?resetToken=...
         var resetToken = params.get("resetToken");
         if (resetToken && typeof showResetPassword === "function") {
           showResetPassword(resetToken);

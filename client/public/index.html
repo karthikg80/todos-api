@@ -23,9 +23,17 @@
           <a href="#" class="landing-nav__logo">Todo App</a>
           <div class="landing-nav__links">
             <a href="#landing-features" class="landing-nav__link">Features</a>
+            <a
+              id="landingGoToApp"
+              href="/app"
+              class="landing-nav__cta"
+              style="display: none"
+              >Go to app</a
+            >
             <button
               type="button"
               class="landing-nav__link"
+              id="landingLoginBtn"
               data-onclick="window.location.href='/auth'"
             >
               Log in
@@ -33,6 +41,7 @@
             <button
               type="button"
               class="landing-nav__cta"
+              id="landingRegisterBtn"
               data-onclick="window.location.href='/auth?tab=register'"
             >
               Get started free
@@ -389,6 +398,15 @@
 
     <script src="/utils/theme.js"></script>
     <script>
+      // Show "Go to app" for authenticated users
+      if (localStorage.getItem("token")) {
+        var goBtn = document.getElementById("landingGoToApp");
+        var loginBtn = document.getElementById("landingLoginBtn");
+        var regBtn = document.getElementById("landingRegisterBtn");
+        if (goBtn) goBtn.style.display = "";
+        if (loginBtn) loginBtn.style.display = "none";
+        if (regBtn) regBtn.style.display = "none";
+      }
       document.addEventListener("click", function (e) {
         var el = e.target.closest("[data-onclick]");
         if (el) {
