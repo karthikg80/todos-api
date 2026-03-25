@@ -1,0 +1,3239 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="app-version" content="1.6.0" />
+    <title>Todo App</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#4F46E5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Todos" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/app.css" />
+  </head>
+  <body>
+    <div id="appShell">
+      <aside id="appSidebar" aria-label="Workspace sidebar">
+        <div class="app-sidebar__top">
+          <div id="projectsRailHost" aria-live="polite"></div>
+        </div>
+      </aside>
+      <main id="appMain">
+        <div id="appMainScroll">
+          <div class="container">
+            <div class="header">
+              <div
+                style="
+                  display: flex;
+                  justify-content: space-between;
+                  align-items: center;
+                "
+              >
+                <h1>Todo App</h1>
+                <button
+                  class="theme-toggle"
+                  data-onclick="toggleTheme()"
+                  title="Toggle dark mode"
+                  aria-label="Toggle dark mode"
+                >
+                  <svg
+                    class="app-icon"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                  </svg>
+                </button>
+              </div>
+              <div class="user-bar" id="userBar" style="display: none">
+                <div class="user-info">
+                  <span id="userEmail"></span>
+                  <span id="verifiedBadge"></span>
+                  <span id="adminBadge"></span>
+                </div>
+                <button class="logout-btn" data-onclick="logout()">
+                  Logout
+                </button>
+              </div>
+            </div>
+
+            <!-- Navigation Tabs (only visible when logged in) -->
+            <div class="nav-tabs" id="navTabs" style="display: none">
+              <button
+                class="nav-tab active"
+                data-onclick="switchView('todos', this)"
+              >
+                Todos
+              </button>
+              <button
+                class="nav-tab"
+                data-onclick="switchView('settings', this)"
+              >
+                Profile
+              </button>
+              <button
+                class="nav-tab"
+                data-onclick="switchView('feedback', this)"
+              >
+                Feedback
+              </button>
+              <button
+                class="nav-tab"
+                id="adminNavTab"
+                style="display: none"
+                data-onclick="switchView('admin', this)"
+              >
+                Admin
+              </button>
+            </div>
+
+            <div class="content">
+              <div id="todosView" class="view active">
+                <div
+                  class="message"
+                  id="todosMessage"
+                  role="status"
+                  aria-live="polite"
+                  aria-atomic="true"
+                ></div>
+
+                <div class="todos-layout">
+                  <aside
+                    id="projectsRail"
+                    class="projects-rail"
+                    aria-label="Projects"
+                  >
+                    <div class="projects-rail__header">
+                      <button
+                        id="projectsRailToggle"
+                        type="button"
+                        class="sidebar-toggle-btn"
+                        aria-label="Collapse sidebar"
+                        aria-expanded="true"
+                      >
+                        <svg
+                          class="sidebar-toggle-btn__icon"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <rect width="18" height="18" x="3" y="3" rx="2" />
+                          <path d="M9 3v18" />
+                        </svg>
+                      </button>
+                      <button
+                        id="dockProfileBtn"
+                        type="button"
+                        class="rail-profile-btn"
+                        data-onclick="toggleProfilePanel()"
+                        aria-label="Profile menu"
+                        aria-haspopup="true"
+                        title="Profile menu"
+                      >
+                        <svg
+                          class="app-icon"
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="8" r="4" />
+                          <path d="M6 20a6 6 0 0 1 12 0" />
+                        </svg>
+                      </button>
+                    </div>
+                    <div class="rail-search-container" id="railSearchContainer">
+                      <div class="search-bar">
+                        <label for="searchInput" class="sr-only"
+                          >Search todos</label
+                        >
+                        <span class="search-icon" aria-hidden="true"
+                          ><svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" /></svg
+                        ></span>
+                        <input
+                          type="text"
+                          id="searchInput"
+                          class="search-input"
+                          placeholder="Search… (/)"
+                          autocomplete="off"
+                          data-oninput="filterTodos()"
+                        />
+                      </div>
+                      <button
+                        id="moreFiltersToggle"
+                        class="mini-btn more-filters-toggle"
+                        aria-expanded="false"
+                        aria-controls="moreFiltersPanel"
+                        hidden
+                      >
+                        Filters
+                      </button>
+                      <div
+                        id="moreFiltersPanel"
+                        class="more-filters-panel"
+                        role="region"
+                        aria-label="More filters"
+                      >
+                        <div class="date-view-tabs">
+                          <button
+                            class="date-view-tab active"
+                            id="dateViewAll"
+                            data-onclick="setDateView('all')"
+                          >
+                            All
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewToday"
+                            data-onclick="setDateView('today')"
+                          >
+                            Today
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewUpcoming"
+                            data-onclick="setDateView('upcoming')"
+                          >
+                            Upcoming
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewNextMonth"
+                            data-onclick="setDateView('next_month')"
+                          >
+                            Next Month
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewSomeday"
+                            data-onclick="setDateView('someday')"
+                          >
+                            Someday
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewWaiting"
+                            data-onclick="setDateView('waiting')"
+                          >
+                            Waiting
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewScheduled"
+                            data-onclick="setDateView('scheduled')"
+                          >
+                            Scheduled
+                          </button>
+                        </div>
+                        <div class="more-filters-actions">
+                          <button
+                            class="clear-filters-btn"
+                            data-onclick="clearFilters()"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            id="exportIcsButton"
+                            class="mini-btn"
+                            data-onclick="exportVisibleTodosToIcs()"
+                            title="Exports currently filtered due-dated tasks"
+                            disabled
+                          >
+                            Export .ics
+                          </button>
+                        </div>
+                        <div class="ics-export-helper">
+                          Exports currently filtered due-dated tasks.
+                        </div>
+                      </div>
+                    </div>
+                    <div
+                      class="projects-rail__section projects-rail__section--workspace"
+                    >
+                      <nav class="projects-rail__primary" aria-label="Views">
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item projects-rail-item--active"
+                          data-workspace-view="home"
+                          aria-current="page"
+                          title="Home"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                            />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
+                          <span class="nav-label">Home</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="inbox"
+                          title="Inbox"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <polyline
+                              points="22 12 16 12 14 15 10 15 8 12 2 12"
+                            />
+                            <path
+                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+                            />
+                          </svg>
+                          <span class="nav-label">Inbox</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="unsorted"
+                          title="Unsorted"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <polyline
+                              points="22 12 16 12 14 15 10 15 8 12 2 12"
+                            />
+                            <path
+                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+                            />
+                          </svg>
+                          <span class="nav-label">Unsorted</span>
+                          <span class="projects-rail-item__count" hidden
+                            >0</span
+                          >
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="all"
+                          title="All tasks"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <rect x="3" y="5" width="6" height="6" rx="1" />
+                            <path d="m3 17 2 2 4-4" />
+                            <path d="M13 6h8" />
+                            <path d="M13 12h8" />
+                            <path d="M13 18h8" />
+                          </svg>
+                          <span class="nav-label">All tasks</span>
+                          <span class="projects-rail-item__count" hidden
+                            >0</span
+                          >
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="today"
+                          title="Today"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <rect
+                              width="18"
+                              height="18"
+                              x="3"
+                              y="4"
+                              rx="2"
+                              ry="2"
+                            />
+                            <line x1="16" x2="16" y1="2" y2="6" />
+                            <line x1="8" x2="8" y1="2" y2="6" />
+                            <line x1="3" x2="21" y1="10" y2="10" />
+                            <path d="M8 14h.01" />
+                            <path d="M12 14h.01" />
+                            <path d="M16 14h.01" />
+                            <path d="M8 18h.01" />
+                            <path d="M12 18h.01" />
+                            <path d="M16 18h.01" />
+                          </svg>
+                          <span class="nav-label">Today</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="upcoming"
+                          title="Upcoming"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16.5 12" />
+                          </svg>
+                          <span class="nav-label">Upcoming</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="completed"
+                          title="Completed"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="m9 12 2 2 4-4" />
+                          </svg>
+                          <span class="nav-label">Completed</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item projects-rail-projects-access"
+                          id="projectsRailCollapsedProjectsButton"
+                          title="Projects"
+                          aria-label="Projects"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M20 7h-9a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2Z"
+                            />
+                            <path
+                              d="M4 15h4a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2Z"
+                            />
+                          </svg>
+                          <span class="nav-label">Projects</span>
+                        </button>
+                      </nav>
+                    </div>
+                    <div class="projects-rail__section">
+                      <div class="projects-rail__section-header">
+                        <span class="projects-rail__section-label"
+                          >Projects</span
+                        >
+                        <button
+                          id="railNewProjectBtn"
+                          type="button"
+                          class="projects-rail__add-btn"
+                          data-onclick="createProject()"
+                          aria-label="New project"
+                          title="New project"
+                        >
+                          <svg
+                            class="app-icon"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <line x1="12" y1="5" x2="12" y2="19" />
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                          </svg>
+                        </button>
+                      </div>
+                      <div id="projectsRailList" class="projects-rail__list">
+                        <!-- Populated by JS — no placeholder needed -->
+                      </div>
+                    </div>
+                    <div class="projects-rail__spacer" aria-hidden="true"></div>
+                    <div
+                      class="projects-rail__section projects-rail__section--utilities"
+                    >
+                      <div class="projects-rail__utility-list">
+                        <button
+                          type="button"
+                          class="projects-rail-item projects-rail-utility-item sidebar-nav-item"
+                          data-sidebar-view="feedback"
+                          data-onclick="switchView('feedback', this)"
+                          title="Feedback"
+                          aria-label="Feedback"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                            />
+                          </svg>
+                          <span class="projects-rail-item__label"
+                            >Feedback</span
+                          >
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item projects-rail-utility-item sidebar-nav-item"
+                          data-sidebar-view="settings"
+                          data-onclick="switchView('settings', this)"
+                          title="Settings"
+                          aria-label="Settings"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+                            />
+                            <circle cx="12" cy="12" r="3" />
+                          </svg>
+                          <span class="projects-rail-item__label"
+                            >Settings</span
+                          >
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item projects-rail-utility-item"
+                          data-onclick="toggleTheme()"
+                          title="Toggle dark mode"
+                          aria-label="Toggle dark mode"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                          </svg>
+                          <span class="projects-rail-item__label">Theme</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item projects-rail-utility-item"
+                          data-onclick="toggleProfilePanel()"
+                          title="Profile"
+                          aria-label="Profile"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="8" r="4" />
+                            <path d="M6 20a6 6 0 0 1 12 0" />
+                          </svg>
+                          <span class="projects-rail-item__label">Profile</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item projects-rail-utility-item"
+                          data-onclick="toggleShortcuts()"
+                          title="Keyboard shortcuts (?)"
+                          aria-label="Keyboard shortcuts"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="M6 8h.001" />
+                            <path d="M10 8h.001" />
+                            <path d="M14 8h.001" />
+                            <path d="M18 8h.001" />
+                            <path d="M8 12h.001" />
+                            <path d="M12 12h.001" />
+                            <path d="M16 12h.001" />
+                            <path d="M7 16h10" />
+                          </svg>
+                          <span class="projects-rail-item__label"
+                            >Shortcuts</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      class="projects-rail__footer projects-rail__footer--admin-only"
+                    >
+                      <button
+                        type="button"
+                        class="projects-rail-item admin-rail-btn"
+                        data-onclick="switchView('admin', this)"
+                      >
+                        <span class="projects-rail-item__label">Admin</span>
+                      </button>
+                    </div>
+                  </aside>
+
+                  <div
+                    id="projectsRailBackdrop"
+                    class="projects-rail-backdrop"
+                    aria-hidden="true"
+                  ></div>
+                  <aside
+                    id="projectsRailSheet"
+                    class="projects-rail-sheet"
+                    role="dialog"
+                    aria-hidden="true"
+                    aria-label="Projects"
+                  >
+                    <div class="projects-rail__header">
+                      <button
+                        id="projectsRailMobileClose"
+                        type="button"
+                        class="btn-icon"
+                        aria-label="Close projects"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div
+                      class="projects-rail__section projects-rail__section--workspace"
+                    >
+                      <nav class="projects-rail__primary" aria-label="Views">
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item projects-rail-item--active"
+                          data-workspace-view="home"
+                          aria-current="page"
+                          title="Home"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <path
+                              d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                            />
+                            <polyline points="9 22 9 12 15 12 15 22" />
+                          </svg>
+                          <span class="nav-label">Home</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="inbox"
+                          title="Inbox"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <polyline
+                              points="22 12 16 12 14 15 10 15 8 12 2 12"
+                            />
+                            <path
+                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+                            />
+                          </svg>
+                          <span class="nav-label">Inbox</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="unsorted"
+                          title="Unsorted"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <polyline
+                              points="22 12 16 12 14 15 10 15 8 12 2 12"
+                            />
+                            <path
+                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+                            />
+                          </svg>
+                          <span class="nav-label">Unsorted</span>
+                          <span class="projects-rail-item__count" hidden
+                            >0</span
+                          >
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="all"
+                          title="All tasks"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <rect x="3" y="5" width="6" height="6" rx="1" />
+                            <path d="m3 17 2 2 4-4" />
+                            <path d="M13 6h8" />
+                            <path d="M13 12h8" />
+                            <path d="M13 18h8" />
+                          </svg>
+                          <span class="nav-label">All tasks</span>
+                          <span class="projects-rail-item__count" hidden
+                            >0</span
+                          >
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="today"
+                          title="Today"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <rect
+                              width="18"
+                              height="18"
+                              x="3"
+                              y="4"
+                              rx="2"
+                              ry="2"
+                            />
+                            <line x1="16" x2="16" y1="2" y2="6" />
+                            <line x1="8" x2="8" y1="2" y2="6" />
+                            <line x1="3" x2="21" y1="10" y2="10" />
+                            <path d="M8 14h.01" />
+                            <path d="M12 14h.01" />
+                            <path d="M16 14h.01" />
+                            <path d="M8 18h.01" />
+                            <path d="M12 18h.01" />
+                            <path d="M16 18h.01" />
+                          </svg>
+                          <span class="nav-label">Today</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="upcoming"
+                          title="Upcoming"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <polyline points="12 6 12 12 16.5 12" />
+                          </svg>
+                          <span class="nav-label">Upcoming</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item workspace-view-item"
+                          data-workspace-view="completed"
+                          title="Completed"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <circle cx="12" cy="12" r="10" />
+                            <path d="m9 12 2 2 4-4" />
+                          </svg>
+                          <span class="nav-label">Completed</span>
+                        </button>
+                      </nav>
+                    </div>
+                    <div
+                      class="rail-search-container"
+                      id="railSearchContainerSheet"
+                    >
+                      <div class="search-bar">
+                        <label for="searchInputSheet" class="sr-only"
+                          >Search todos</label
+                        >
+                        <span class="search-icon" aria-hidden="true"
+                          ><svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          >
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" /></svg
+                        ></span>
+                        <input
+                          type="text"
+                          id="searchInputSheet"
+                          class="search-input"
+                          placeholder="Search… (/)"
+                          autocomplete="off"
+                          data-oninput="syncSheetSearch()"
+                        />
+                      </div>
+                      <div
+                        id="moreFiltersPanelSheet"
+                        class="more-filters-panel"
+                        role="region"
+                        aria-label="Filters"
+                      >
+                        <div class="date-view-tabs">
+                          <button
+                            class="date-view-tab active"
+                            id="dateViewAllSheet"
+                            data-onclick="setDateView('all')"
+                          >
+                            All
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewTodaySheet"
+                            data-onclick="setDateView('today')"
+                          >
+                            Today
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewUpcomingSheet"
+                            data-onclick="setDateView('upcoming')"
+                          >
+                            Upcoming
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewNextMonthSheet"
+                            data-onclick="setDateView('next_month')"
+                          >
+                            Next Month
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewSomedaySheet"
+                            data-onclick="setDateView('someday')"
+                          >
+                            Someday
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewWaitingSheet"
+                            data-onclick="setDateView('waiting')"
+                          >
+                            Waiting
+                          </button>
+                          <button
+                            class="date-view-tab"
+                            id="dateViewScheduledSheet"
+                            data-onclick="setDateView('scheduled')"
+                          >
+                            Scheduled
+                          </button>
+                        </div>
+                        <div class="more-filters-actions">
+                          <button
+                            class="clear-filters-btn"
+                            data-onclick="clearFilters()"
+                          >
+                            Clear
+                          </button>
+                          <button
+                            id="exportIcsButtonSheet"
+                            class="mini-btn"
+                            data-onclick="exportVisibleTodosToIcs()"
+                            title="Exports currently filtered due-dated tasks"
+                            disabled
+                          >
+                            Export .ics
+                          </button>
+                        </div>
+                        <div class="ics-export-helper">
+                          Exports currently filtered due-dated tasks.
+                        </div>
+                      </div>
+                    </div>
+                    <div class="projects-rail__section">
+                      <div class="projects-rail__section-header">
+                        <span class="projects-rail__section-label"
+                          >Projects</span
+                        >
+                        <button
+                          id="projectsRailSheetCreateButton"
+                          type="button"
+                          class="mini-btn projects-rail-create-btn"
+                          aria-label="Create project"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <div class="projects-rail__list">
+                        <!-- Populated by JS -->
+                      </div>
+                    </div>
+                    <div
+                      class="projects-rail__footer projects-rail__footer--admin-only"
+                    >
+                      <button
+                        type="button"
+                        class="projects-rail-item admin-rail-btn"
+                        data-onclick="switchView('admin', this)"
+                      >
+                        <span class="projects-rail-item__label">Admin</span>
+                      </button>
+                    </div>
+                  </aside>
+
+                  <div class="todos-main-zone">
+                    <section id="settingsPane" class="settings-pane" hidden>
+                      <div class="pane-shell">
+                        <div class="pane-shell__header">
+                          <div class="pane-shell__actions">
+                            <button
+                              type="button"
+                              class="btn btn-secondary pane-back-btn"
+                              data-onclick="switchView(‘todos’, this)"
+                            >
+                              Back to Todos
+                            </button>
+                          </div>
+                          <h2>Settings</h2>
+                        </div>
+
+                        <div
+                          class="message"
+                          id="profileMessage"
+                          role="status"
+                          aria-live="polite"
+                          aria-atomic="true"
+                        ></div>
+
+                        <!-- Verification banner — above all cards for urgency -->
+                        <div
+                          id="verificationBanner"
+                          class="settings-banner settings-banner--warning"
+                          style="display: none"
+                        >
+                          <div class="settings-banner__body">
+                            <strong>Email Not Verified</strong>
+                            <p class="settings-hint">
+                              Please verify your email address to access all
+                              features.
+                            </p>
+                          </div>
+                          <button
+                            id="resendVerificationButton"
+                            type="button"
+                            class="mini-btn"
+                            data-onclick="resendVerification()"
+                          >
+                            Resend Email
+                          </button>
+                        </div>
+
+                        <!-- ═══ Card 1: Account ═══ -->
+                        <div class="settings-card">
+                          <h3 class="settings-card__title">Account</h3>
+
+                          <div class="settings-card__group">
+                            <div class="info-row">
+                              <span class="info-label">Email</span>
+                              <span class="info-value" id="profileEmail"></span>
+                            </div>
+                            <div class="info-row">
+                              <span class="info-label">Name</span>
+                              <span class="info-value" id="profileName"></span>
+                            </div>
+                            <div class="info-row">
+                              <span class="info-label">Status</span>
+                              <span
+                                class="info-value"
+                                id="profileStatus"
+                              ></span>
+                            </div>
+                            <div class="info-row">
+                              <span class="info-label">Member Since</span>
+                              <span
+                                class="info-value"
+                                id="profileCreated"
+                              ></span>
+                            </div>
+                          </div>
+
+                          <div class="settings-card__divider"></div>
+
+                          <h4 class="settings-card__subtitle">
+                            Update Profile
+                          </h4>
+                          <form data-onsubmit="handleUpdateProfile(event)">
+                            <div class="form-group">
+                              <label for="updateName">Name</label>
+                              <input
+                                type="text"
+                                id="updateName"
+                                placeholder="Your Name"
+                              />
+                            </div>
+                            <div class="form-group">
+                              <label for="updateEmail">Email</label>
+                              <input
+                                type="email"
+                                id="updateEmail"
+                                required
+                                placeholder="your@email.com"
+                              />
+                            </div>
+                            <button type="submit" class="btn">
+                              Update Profile
+                            </button>
+                          </form>
+
+                          <div
+                            id="linkedProvidersSection"
+                            style="display: none"
+                          >
+                            <div class="settings-card__divider"></div>
+                            <h4 class="settings-card__subtitle">
+                              Linked Sign-In Methods
+                            </h4>
+                            <div id="linkedProvidersList"></div>
+                            <div id="setPasswordSection" style="display: none">
+                              <h4 class="settings-card__subtitle">
+                                Set Password
+                              </h4>
+                              <p class="settings-hint">
+                                Add a password so you can also sign in with
+                                email + password.
+                              </p>
+                              <form data-onsubmit="handleSetPassword(event)">
+                                <div class="form-group">
+                                  <label for="setPasswordInput"
+                                    >New Password</label
+                                  >
+                                  <input
+                                    type="password"
+                                    id="setPasswordInput"
+                                    minlength="8"
+                                    maxlength="72"
+                                    required
+                                    placeholder="At least 8 characters"
+                                    autocomplete="new-password"
+                                  />
+                                </div>
+                                <button type="submit" class="btn">
+                                  Set Password
+                                </button>
+                              </form>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- ═══ Card 2: Preferences ═══ -->
+                        <div class="settings-card">
+                          <h3 class="settings-card__title">
+                            How this app supports you
+                          </h3>
+                          <p class="settings-hint">
+                            Tune the planning style, energy assumptions, and
+                            tone so the workspace feels more like support than
+                            supervision.
+                          </p>
+
+                          <form
+                            data-onsubmit="handleSaveSoulPreferences(event)"
+                          >
+                            <div class="form-group">
+                              <label>What kind of life are you managing?</label>
+                              <div class="settings-check-grid">
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="work"
+                                  />
+                                  Work</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="personal"
+                                  />
+                                  Personal</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="family"
+                                  />
+                                  Family / caregiving</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="health"
+                                  />
+                                  Health</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulLifeAreas"
+                                    value="side_projects"
+                                  />
+                                  Side projects</label
+                                >
+                              </div>
+                            </div>
+                            <div class="form-group">
+                              <label
+                                >When systems fail, what usually goes
+                                wrong?</label
+                              >
+                              <div class="settings-check-grid">
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="overwhelmed"
+                                  />
+                                  Overwhelmed</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="forgetful"
+                                  />
+                                  Forgetful</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="perfectionist"
+                                  />
+                                  Perfectionist</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="overcommitted"
+                                  />
+                                  Overcommitted</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulFailureModes"
+                                    value="inconsistent"
+                                  />
+                                  Inconsistent</label
+                                >
+                              </div>
+                            </div>
+                            <div class="settings-support-grid">
+                              <div class="form-group">
+                                <label for="soulPlanningStyle"
+                                  >Planning style</label
+                                >
+                                <select id="soulPlanningStyle">
+                                  <option value="structure">
+                                    I like structure
+                                  </option>
+                                  <option value="flexibility">
+                                    I like flexibility
+                                  </option>
+                                  <option value="both">I need both</option>
+                                </select>
+                              </div>
+                              <div class="form-group">
+                                <label for="soulEnergyPattern"
+                                  >Energy pattern</label
+                                >
+                                <select id="soulEnergyPattern">
+                                  <option value="morning">
+                                    Best in mornings
+                                  </option>
+                                  <option value="afternoon">
+                                    Best in afternoons
+                                  </option>
+                                  <option value="evening">
+                                    Best in evenings
+                                  </option>
+                                  <option value="variable">Varies a lot</option>
+                                </select>
+                              </div>
+                              <div class="form-group">
+                                <label for="soulTone">Tone</label>
+                                <select id="soulTone">
+                                  <option value="calm">Calm</option>
+                                  <option value="focused">Focused</option>
+                                  <option value="encouraging">
+                                    Encouraging
+                                  </option>
+                                  <option value="direct">Direct</option>
+                                </select>
+                              </div>
+                              <div class="form-group">
+                                <label for="soulDailyRitual"
+                                  >Daily ritual</label
+                                >
+                                <select id="soulDailyRitual">
+                                  <option value="morning_plan">
+                                    Morning plan
+                                  </option>
+                                  <option value="evening_reset">
+                                    Evening reset
+                                  </option>
+                                  <option value="both">Both</option>
+                                  <option value="neither">Neither</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div class="form-group">
+                              <label>What makes a good day feel good?</label>
+                              <div class="settings-check-grid">
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="important_work"
+                                  />
+                                  Finish important work</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="life_admin"
+                                  />
+                                  Stay on top of life admin</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="avoid_overload"
+                                  />
+                                  Avoid overload</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="visible_progress"
+                                  />
+                                  Make visible progress</label
+                                >
+                                <label
+                                  ><input
+                                    type="checkbox"
+                                    name="soulGoodDayThemes"
+                                    value="protect_rest"
+                                  />
+                                  Protect time for family / rest</label
+                                >
+                              </div>
+                            </div>
+                            <p
+                              id="soulSupportPreview"
+                              class="settings-support-preview"
+                            >
+                              You’ll get calmer copy and gentler recovery
+                              language.
+                            </p>
+                            <button type="submit" class="btn">
+                              Save support preferences
+                            </button>
+                          </form>
+                        </div>
+
+                        <!-- ═══ Card 3: Interface ═══ -->
+                        <div class="settings-card">
+                          <h3 class="settings-card__title">Interface</h3>
+
+                          <div class="info-row">
+                            <span class="info-label">UI Mode</span>
+                            <select
+                              id="uiModeSelect"
+                              data-onchange="setUiMode(this.value)"
+                            >
+                              <option value="advanced">
+                                Full — projects, headings, AI, tracks
+                              </option>
+                              <option value="simple">
+                                Simple — clean task list only
+                              </option>
+                            </select>
+                          </div>
+                          <p class="settings-hint">
+                            Simple mode hides projects, headings, AI panels, and
+                            tracks for a focused task list experience.
+                          </p>
+
+                          <div class="settings-card__inline-action">
+                            <button
+                              type="button"
+                              class="mini-btn"
+                              data-onclick="restartOnboarding()"
+                            >
+                              Restart soul setup
+                            </button>
+                            <span class="settings-hint"
+                              >Re-run the 4-step guided setup</span
+                            >
+                          </div>
+
+                          <div id="adminBootstrapSection" style="display: none">
+                            <div class="settings-card__divider"></div>
+                            <h4 class="settings-card__subtitle">
+                              Admin Provisioning
+                            </h4>
+                            <p class="settings-hint">
+                              No admin user exists yet. Enter the bootstrap
+                              secret to grant admin access to this account.
+                            </p>
+                            <form data-onsubmit="handleAdminBootstrap(event)">
+                              <div class="form-group">
+                                <label for="adminBootstrapSecret"
+                                  >Bootstrap Secret</label
+                                >
+                                <input
+                                  type="password"
+                                  id="adminBootstrapSecret"
+                                  autocomplete="current-password"
+                                  placeholder="Enter admin bootstrap secret"
+                                  required
+                                />
+                              </div>
+                              <button type="submit" class="btn">
+                                Grant Admin Access
+                              </button>
+                            </form>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                    <section id="feedbackPane" class="feedback-pane" hidden>
+                      <div class="pane-shell">
+                        <div class="pane-shell__header">
+                          <div class="pane-shell__actions">
+                            <button
+                              type="button"
+                              class="btn btn-secondary pane-back-btn"
+                              data-onclick="switchView('todos', this)"
+                            >
+                              Back to Todos
+                            </button>
+                          </div>
+                          <h2>Feedback</h2>
+                          <p class="pane-shell__lede">
+                            Share bugs, rough edges, or ideas without needing
+                            GitHub.
+                          </p>
+                        </div>
+
+                        <div
+                          class="message"
+                          id="feedbackMessage"
+                          role="status"
+                          aria-live="polite"
+                          aria-atomic="true"
+                        ></div>
+
+                        <div
+                          id="feedbackConfirmation"
+                          class="feedback-confirmation"
+                          hidden
+                        >
+                          <h3 id="feedbackConfirmationTitle">Feedback sent</h3>
+                          <p id="feedbackConfirmationBody"></p>
+                          <p
+                            id="feedbackConfirmationMeta"
+                            class="feedback-confirmation__meta"
+                          ></p>
+                          <div class="feedback-confirmation__actions">
+                            <button
+                              type="button"
+                              class="btn btn-secondary"
+                              data-onclick="switchView('todos', this)"
+                            >
+                              Back to Todos
+                            </button>
+                            <button
+                              type="button"
+                              class="btn btn-secondary"
+                              data-onclick="resetFeedbackFormView()"
+                            >
+                              Send another
+                            </button>
+                          </div>
+                        </div>
+
+                        <form
+                          id="feedbackForm"
+                          data-onsubmit="handleFeedbackSubmit(event)"
+                        >
+                          <div class="feedback-grid">
+                            <div class="feedback-card">
+                              <div class="form-group">
+                                <label for="feedbackType"
+                                  >Submission type</label
+                                >
+                                <select
+                                  id="feedbackType"
+                                  data-onchange="handleFeedbackTypeChange(event)"
+                                >
+                                  <option value="bug">Bug report</option>
+                                  <option value="feature">
+                                    Feature request
+                                  </option>
+                                </select>
+                              </div>
+                              <div class="form-group">
+                                <label for="feedbackTitle">Title</label>
+                                <input
+                                  id="feedbackTitle"
+                                  type="text"
+                                  maxlength="200"
+                                  required
+                                  placeholder="Short summary"
+                                />
+                              </div>
+                              <div class="form-group">
+                                <label
+                                  id="feedbackQuestionOneLabel"
+                                  for="feedbackQuestionOne"
+                                  >What happened?</label
+                                >
+                                <textarea
+                                  id="feedbackQuestionOne"
+                                  rows="4"
+                                  required
+                                ></textarea>
+                              </div>
+                              <div class="form-group">
+                                <label
+                                  id="feedbackQuestionTwoLabel"
+                                  for="feedbackQuestionTwo"
+                                  >What did you expect?</label
+                                >
+                                <textarea
+                                  id="feedbackQuestionTwo"
+                                  rows="4"
+                                  required
+                                ></textarea>
+                              </div>
+                              <div class="form-group">
+                                <label
+                                  id="feedbackQuestionThreeLabel"
+                                  for="feedbackQuestionThree"
+                                  >What were you doing right before it
+                                  happened?</label
+                                >
+                                <textarea
+                                  id="feedbackQuestionThree"
+                                  rows="4"
+                                  required
+                                ></textarea>
+                              </div>
+                            </div>
+
+                            <aside class="feedback-card feedback-card--context">
+                              <h3>Optional screenshot</h3>
+                              <div class="form-group">
+                                <label for="feedbackScreenshotUrl"
+                                  >Screenshot URL</label
+                                >
+                                <input
+                                  id="feedbackScreenshotUrl"
+                                  type="url"
+                                  inputmode="url"
+                                  placeholder="https://example.com/screenshot.png"
+                                />
+                              </div>
+                              <div class="form-group">
+                                <label for="feedbackAttachment"
+                                  >Screenshot file metadata</label
+                                >
+                                <input
+                                  id="feedbackAttachment"
+                                  type="file"
+                                  accept="image/*"
+                                  data-onchange="handleFeedbackAttachmentChange(event)"
+                                />
+                                <p
+                                  id="feedbackAttachmentSummary"
+                                  class="feedback-helper"
+                                >
+                                  No screenshot file selected.
+                                </p>
+                              </div>
+
+                              <h3>Captured context</h3>
+                              <dl class="feedback-context-list">
+                                <div class="feedback-context-row">
+                                  <dt>Current page</dt>
+                                  <dd id="feedbackContextPage"></dd>
+                                </div>
+                                <div class="feedback-context-row">
+                                  <dt>App version</dt>
+                                  <dd id="feedbackContextVersion"></dd>
+                                </div>
+                                <div class="feedback-context-row">
+                                  <dt>User</dt>
+                                  <dd id="feedbackContextUser"></dd>
+                                </div>
+                              </dl>
+
+                              <button
+                                type="submit"
+                                class="btn feedback-submit-btn"
+                              >
+                                Send feedback
+                              </button>
+                            </aside>
+                          </div>
+                        </form>
+                      </div>
+                    </section>
+                    <section id="adminPane" class="admin-pane" hidden>
+                      <div class="pane-shell">
+                        <div class="pane-shell__header">
+                          <div class="pane-shell__actions">
+                            <button
+                              type="button"
+                              class="btn btn-secondary pane-back-btn"
+                              data-onclick="switchView('todos', this)"
+                            >
+                              Back to Todos
+                            </button>
+                          </div>
+                          <h2>Admin</h2>
+                        </div>
+                        <div
+                          class="message"
+                          id="adminMessage"
+                          role="status"
+                          aria-live="polite"
+                          aria-atomic="true"
+                        ></div>
+                        <div id="adminContent">
+                          <div class="loading">
+                            <div class="spinner"></div>
+                            Loading admin tools…
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+                    <div class="todos-mobile-top-bar">
+                      <button
+                        class="todos-mobile-hamburger"
+                        type="button"
+                        aria-label="Open navigation"
+                        data-onclick="openProjectsFromTopbar(this)"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <line x1="4" x2="20" y1="6" y2="6" />
+                          <line x1="4" x2="20" y1="12" y2="12" />
+                          <line x1="4" x2="20" y1="18" y2="18" />
+                        </svg>
+                      </button>
+                      <span
+                        class="todos-mobile-title"
+                        id="todosMobileTitle"
+                        aria-live="polite"
+                        >Home</span
+                      >
+                      <button
+                        class="todos-mobile-theme-btn"
+                        type="button"
+                        aria-label="Toggle dark mode"
+                        title="Toggle dark mode"
+                        data-onclick="toggleTheme()"
+                      >
+                        <svg
+                          class="dock-icon dock-icon--moon"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                        </svg>
+                        <svg
+                          class="dock-icon dock-icon--sun"
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <circle cx="12" cy="12" r="4" />
+                          <path
+                            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+                          />
+                        </svg>
+                      </button>
+                      <button
+                        class="todos-mobile-hamburger todos-mobile-logout-btn"
+                        type="button"
+                        aria-label="Logout"
+                        title="Logout"
+                        data-onclick="logout()"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="18"
+                          height="18"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                        >
+                          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                          <polyline points="16 17 21 12 16 7" />
+                          <line x1="21" x2="9" y1="12" y2="12" />
+                        </svg>
+                      </button>
+                    </div>
+
+                    <div class="todos-top-bar">
+                      <div class="todos-top-bar-left">
+                        <button
+                          id="projectsRailMobileOpen"
+                          class="mini-btn projects-rail-mobile-open"
+                          type="button"
+                          aria-controls="projectsRail projectsRailSheet"
+                          aria-expanded="false"
+                        >
+                          <span id="projectsRailTopbarLabel"
+                            >Projects: All tasks</span
+                          >
+                        </button>
+                      </div>
+                    </div>
+
+                    <div id="todosScrollRegion">
+                      <div
+                        class="todos-minimal-filters todos-minimal-filters--legacy"
+                        hidden
+                      >
+                        <label class="project-filter-label" for="categoryFilter"
+                          >Project</label
+                        >
+                        <select
+                          id="categoryFilter"
+                          data-onchange="filterTodos()"
+                        >
+                          <option value="">All Projects</option>
+                        </select>
+                      </div>
+
+                      <!-- Bulk Actions Toolbar -->
+                      <div
+                        id="bulkActionsToolbar"
+                        class="bulk-actions-toolbar"
+                        style="display: none"
+                      >
+                        <input
+                          type="checkbox"
+                          id="selectAllCheckbox"
+                          class="bulk-checkbox"
+                          data-onchange="toggleSelectAll()"
+                        />
+                        <label
+                          for="selectAllCheckbox"
+                          style="cursor: pointer; user-select: none"
+                          >Select All</label
+                        >
+                        <button data-onclick="completeSelected()">
+                          ✓ Complete Selected
+                        </button>
+                        <button data-onclick="deleteSelected()">
+                          🗑 Delete Selected
+                        </button>
+                        <span class="bulk-count" id="bulkCount"
+                          >0 selected</span
+                        >
+                      </div>
+
+                      <div
+                        id="taskComposerBackdrop"
+                        class="task-composer-backdrop"
+                        aria-hidden="true"
+                      ></div>
+                      <section
+                        id="taskComposerSheet"
+                        class="task-composer-sheet"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="taskComposerTitle"
+                        aria-hidden="true"
+                      >
+                        <div
+                          class="task-composer-sheet__handle"
+                          aria-hidden="true"
+                        ></div>
+                        <div class="task-composer-sheet__header">
+                          <h3 id="taskComposerTitle">New Task</h3>
+                          <button
+                            id="taskComposerCancelIcon"
+                            class="btn-icon"
+                            type="button"
+                            aria-label="Close new task composer"
+                            data-onclick="cancelTaskComposer()"
+                          >
+                            ×
+                          </button>
+                          <div
+                            id="quickEntryPropertiesSummary"
+                            class="quick-entry-properties-summary"
+                            aria-live="polite"
+                          >
+                            No project • No due date • Priority: Medium
+                          </div>
+                          <button
+                            id="quickEntryPropertiesToggle"
+                            class="mini-btn quick-entry-properties-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="quickEntryPropertiesPanel"
+                          >
+                            Properties
+                          </button>
+                        </div>
+                        <div class="task-composer-sheet__body">
+                          <label for="todoInput" class="sr-only"
+                            >Todo title</label
+                          >
+                          <input
+                            type="text"
+                            id="todoInput"
+                            placeholder="What needs your attention?"
+                            data-onkeypress="handleTodoKeyPress(event)"
+                          />
+                          <div
+                            id="quickEntryNaturalDueChipRow"
+                            class="quick-entry-natural-due"
+                            hidden
+                            aria-live="polite"
+                          ></div>
+                          <div
+                            id="aiOnCreateAssistRow"
+                            class="ai-on-create-assist"
+                            data-testid="ai-on-create-row"
+                            hidden
+                          ></div>
+                          <div class="task-composer-inline-actions">
+                            <button
+                              id="critiqueDraftButton"
+                              class="mini-btn task-composer-ai-trigger"
+                              data-onclick="critiqueDraftWithAi()"
+                              type="button"
+                              hidden
+                            >
+                              Critique Draft (AI)
+                            </button>
+                          </div>
+                          <div
+                            id="quickEntryPropertiesPanel"
+                            class="quick-entry-properties-panel task-composer-properties"
+                            hidden
+                          >
+                            <div class="field-row task-composer-fields">
+                              <label for="todoProjectSelect" class="sr-only"
+                                >Project</label
+                              >
+                              <select id="todoProjectSelect">
+                                <option value="">No project</option>
+                              </select>
+                              <div class="task-composer-due-wrap">
+                                <label for="todoDueDateInput" class="sr-only"
+                                  >Todo due date</label
+                                >
+                                <input
+                                  type="datetime-local"
+                                  id="todoDueDateInput"
+                                  title="Due date (optional)"
+                                  aria-label="Due date (optional)"
+                                />
+                                <button
+                                  id="taskComposerDueClearButton"
+                                  class="mini-btn task-composer-due-clear"
+                                  type="button"
+                                  data-onclick="clearTaskComposerDueDate()"
+                                  hidden
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            </div>
+                            <div class="action-row task-composer-actions">
+                              <label class="task-composer-inline-field">
+                                <span>Status</span>
+                                <select id="todoStatusSelect">
+                                  <option
+                                    value="next"
+                                    selected
+                                    title="Ready to work on soon"
+                                  >
+                                    Up Next
+                                  </option>
+                                  <option
+                                    value="inbox"
+                                    title="Captured, not yet organized"
+                                  >
+                                    Inbox
+                                  </option>
+                                  <option
+                                    value="in_progress"
+                                    title="Currently being worked on"
+                                  >
+                                    In progress
+                                  </option>
+                                  <option
+                                    value="waiting"
+                                    title="Blocked on someone or something else"
+                                  >
+                                    Waiting
+                                  </option>
+                                  <option
+                                    value="scheduled"
+                                    title="Planned for a specific date"
+                                  >
+                                    Scheduled
+                                  </option>
+                                  <option
+                                    value="someday"
+                                    title="Want to do eventually, not urgent"
+                                  >
+                                    Someday
+                                  </option>
+                                </select>
+                              </label>
+                              <div
+                                class="task-composer-inline-field task-composer-priority-field"
+                              >
+                                <span>Priority</span>
+                                <div class="priority-selector">
+                                  <button
+                                    class="priority-btn low"
+                                    data-onclick="setPriority('low')"
+                                    id="priorityLow"
+                                    type="button"
+                                  >
+                                    Low
+                                  </button>
+                                  <button
+                                    class="priority-btn medium active"
+                                    data-onclick="setPriority('medium')"
+                                    id="priorityMedium"
+                                    type="button"
+                                  >
+                                    Medium
+                                  </button>
+                                  <button
+                                    class="priority-btn high"
+                                    data-onclick="setPriority('high')"
+                                    id="priorityHigh"
+                                    type="button"
+                                  >
+                                    High
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            <details class="task-composer-project-actions">
+                              <summary
+                                class="task-composer-project-actions__toggle"
+                              >
+                                Project actions
+                              </summary>
+                              <div class="task-composer-project-actions__body">
+                                <button
+                                  id="quickEntryCreateProjectButton"
+                                  class="mini-btn task-composer-project-action"
+                                  data-onclick="createProject()"
+                                  type="button"
+                                >
+                                  New project
+                                </button>
+                                <button
+                                  id="quickEntryCreateSubprojectButton"
+                                  class="mini-btn task-composer-project-action"
+                                  data-onclick="createSubproject()"
+                                  type="button"
+                                >
+                                  New subproject
+                                </button>
+                                <button
+                                  id="quickEntryRenameProjectButton"
+                                  class="mini-btn task-composer-project-action"
+                                  data-onclick="renameProjectTree()"
+                                  type="button"
+                                >
+                                  Rename selected project
+                                </button>
+                              </div>
+                            </details>
+                            <details class="task-composer-advanced">
+                              <summary class="task-composer-advanced__toggle">
+                                More options
+                              </summary>
+                              <div class="field-row task-composer-fields">
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoStartDateInput"
+                                >
+                                  <span>Start</span>
+                                  <input
+                                    type="datetime-local"
+                                    id="todoStartDateInput"
+                                    title="When to begin working on this task"
+                                  />
+                                </label>
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoScheduledDateInput"
+                                >
+                                  <span>Scheduled</span>
+                                  <input
+                                    type="datetime-local"
+                                    id="todoScheduledDateInput"
+                                    title="Date this task is scheduled to appear in your plan"
+                                  />
+                                </label>
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoReviewDateInput"
+                                >
+                                  <span>Review</span>
+                                  <input
+                                    type="datetime-local"
+                                    id="todoReviewDateInput"
+                                    title="When to check progress on this task"
+                                  />
+                                </label>
+                              </div>
+                              <div class="field-row task-composer-fields">
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoContextInput"
+                                >
+                                  <span>Context</span>
+                                  <input
+                                    type="text"
+                                    id="todoContextInput"
+                                    maxlength="100"
+                                    placeholder="computer, home, calls"
+                                  />
+                                </label>
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoEffortSelect"
+                                >
+                                  <span>Effort</span>
+                                  <select id="todoEffortSelect">
+                                    <option value="" selected>None</option>
+                                    <option value="1">Tiny</option>
+                                    <option value="2">Small</option>
+                                    <option value="3">Medium</option>
+                                    <option value="4">Deep</option>
+                                  </select>
+                                </label>
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoEnergySelect"
+                                >
+                                  <span>Energy</span>
+                                  <select id="todoEnergySelect">
+                                    <option value="" selected>None</option>
+                                    <option value="low">Low</option>
+                                    <option value="medium">Medium</option>
+                                    <option value="high">High</option>
+                                  </select>
+                                </label>
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoEstimateInput"
+                                >
+                                  <span>Estimate</span>
+                                  <input
+                                    type="number"
+                                    id="todoEstimateInput"
+                                    min="0"
+                                    step="1"
+                                    placeholder="Minutes"
+                                  />
+                                </label>
+                              </div>
+                              <div class="field-row task-composer-fields">
+                                <label
+                                  class="task-composer-inline-field"
+                                  for="todoEmotionalStateSelect"
+                                >
+                                  <span>Emotional state</span>
+                                  <select id="todoEmotionalStateSelect">
+                                    <option value="" selected>None</option>
+                                    <option value="avoiding">Avoiding</option>
+                                    <option value="unclear">Unclear</option>
+                                    <option value="heavy">Heavy</option>
+                                    <option value="exciting">Exciting</option>
+                                    <option value="draining">Draining</option>
+                                  </select>
+                                </label>
+                                <label
+                                  class="task-composer-inline-field task-composer-inline-field--wide"
+                                  for="todoFirstStepInput"
+                                >
+                                  <span>First step</span>
+                                  <input
+                                    type="text"
+                                    id="todoFirstStepInput"
+                                    maxlength="255"
+                                    placeholder="Open the doc. Text Raj. Find last year's form."
+                                  />
+                                </label>
+                              </div>
+                              <div class="field-row task-composer-fields">
+                                <label
+                                  class="task-composer-inline-field task-composer-inline-field--wide"
+                                  for="todoTagsInput"
+                                >
+                                  <span>Tags</span>
+                                  <input
+                                    type="text"
+                                    id="todoTagsInput"
+                                    maxlength="512"
+                                    placeholder="travel, planning, admin"
+                                  />
+                                </label>
+                                <label
+                                  class="task-composer-inline-field task-composer-inline-field--wide"
+                                  for="todoWaitingOnInput"
+                                >
+                                  <span>Waiting on</span>
+                                  <input
+                                    type="text"
+                                    id="todoWaitingOnInput"
+                                    maxlength="255"
+                                    placeholder="Budget approval, vendor reply, callback"
+                                  />
+                                </label>
+                              </div>
+                              <div class="field-row task-composer-fields">
+                                <div
+                                  class="task-composer-inline-field task-composer-inline-field--wide"
+                                >
+                                  <span>Depends on</span>
+                                  <div id="todoDependsOnPicker"></div>
+                                </div>
+                              </div>
+                            </details>
+                          </div>
+                          <div>
+                            <button
+                              class="expand-section"
+                              type="button"
+                              data-onclick="toggleNotesInput()"
+                            >
+                              <span class="expand-icon" id="notesExpandIcon"
+                                ><svg
+                                  class="app-icon"
+                                  width="12"
+                                  height="12"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  stroke-width="2"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                >
+                                  <path d="m9 18 6-6-6-6" /></svg
+                              ></span>
+                              <span>Add notes (optional)</span>
+                            </button>
+                            <label for="todoNotesInput" class="sr-only"
+                              >Todo notes</label
+                            >
+                            <textarea
+                              id="todoNotesInput"
+                              class="notes-textarea"
+                              placeholder="Add detailed notes here…"
+                              style="display: none; margin-top: 8px"
+                            ></textarea>
+                          </div>
+                        </div>
+                        <div class="task-composer-sheet__footer">
+                          <button
+                            id="taskComposerCancelButton"
+                            class="mini-btn"
+                            type="button"
+                            data-onclick="cancelTaskComposer()"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            id="taskComposerAddButton"
+                            class="add-btn"
+                            type="button"
+                            data-onclick="addTodo()"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </section>
+
+                      <section
+                        id="aiWorkspace"
+                        class="ai-workspace ai-workspace--collapsed"
+                        hidden
+                      >
+                        <div id="aiWorkspaceHeader" class="ai-workspace-header">
+                          <button
+                            id="aiWorkspaceToggle"
+                            class="ai-workspace-toggle"
+                            type="button"
+                            aria-expanded="false"
+                            aria-controls="aiWorkspaceBody"
+                          >
+                            <span class="ai-workspace-toggle__title"
+                              >Planning assistant</span
+                            >
+                            <span
+                              id="aiWorkspaceToggleChevron"
+                              aria-hidden="true"
+                              ><svg
+                                class="app-icon"
+                                width="12"
+                                height="12"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              >
+                                <path d="m9 18 6-6-6-6" /></svg
+                            ></span>
+                          </button>
+                          <span
+                            id="aiWorkspaceStatus"
+                            class="ai-workspace-status-chip"
+                            >Available</span
+                          >
+                          <div class="ai-workspace-header-actions">
+                            <button
+                              id="aiWorkspaceDraftButton"
+                              class="mini-btn"
+                              type="button"
+                              data-onclick="openAiWorkspaceForBrainDump()"
+                            >
+                              Draft ideas
+                            </button>
+                            <button
+                              id="aiWorkspacePlanButton"
+                              class="mini-btn"
+                              type="button"
+                              data-onclick="openAiWorkspaceForGoalPlan()"
+                            >
+                              Plan a goal
+                            </button>
+                          </div>
+                        </div>
+                        <div
+                          id="aiWorkspaceBody"
+                          class="ai-workspace-body"
+                          role="region"
+                          aria-label="AI workspace"
+                        >
+                          <div class="ai-workspace-inputs">
+                            <input
+                              type="text"
+                              id="goalInput"
+                              placeholder="Describe an outcome (e.g., Launch onboarding revamp)"
+                            />
+                            <input
+                              type="datetime-local"
+                              id="goalTargetDateInput"
+                            />
+                            <button
+                              id="generatePlanButton"
+                              class="add-btn"
+                              data-onclick="generatePlanWithAi()"
+                            >
+                              Generate Plan
+                            </button>
+                          </div>
+                          <div class="ai-brain-dump">
+                            <label for="brainDumpInput">Brain dump</label>
+                            <textarea
+                              id="brainDumpInput"
+                              class="ai-brain-dump-input"
+                              maxlength="8000"
+                              placeholder="Paste rough thoughts, constraints, and goals. Example: Launch beta by June, finalize onboarding copy, coordinate QA, prep support docs."
+                            ></textarea>
+                            <div class="ai-brain-dump-actions">
+                              <button
+                                id="brainDumpPlanButton"
+                                class="add-btn"
+                                data-onclick="draftPlanFromBrainDumpWithAi()"
+                              >
+                                Draft tasks from brain dump
+                              </button>
+                              <button
+                                class="mini-btn"
+                                data-onclick="clearBrainDumpInput()"
+                              >
+                                Clear
+                              </button>
+                            </div>
+                            <div class="ai-brain-dump-helper">
+                              Draft a first pass, then edit before applying.
+                            </div>
+                          </div>
+                          <div
+                            id="aiCritiquePanel"
+                            style="display: none; margin-top: 12px"
+                          ></div>
+                          <div
+                            id="aiPlanPanel"
+                            style="display: none; margin-top: 12px"
+                          ></div>
+                          <details class="ai-meta" id="aiMetaDetails">
+                            <summary>Insights and history</summary>
+                            <div id="aiUsageSummary"></div>
+                            <div id="aiPerformanceInsights"></div>
+                            <div id="aiFeedbackInsights"></div>
+                            <div id="aiSuggestionHistory"></div>
+                          </details>
+                        </div>
+                      </section>
+
+                      <div id="todosListHeader" class="todos-list-header">
+                        <div class="todos-list-header__context">
+                          <div
+                            id="todosListHeaderTitle"
+                            class="todos-list-header__title"
+                          >
+                            All tasks
+                          </div>
+                          <span
+                            id="todosListHeaderDateBadge"
+                            class="todos-list-header__date-badge"
+                            hidden
+                          ></span>
+                          <span
+                            id="tagFilterIndicator"
+                            class="tag-filter-indicator"
+                            hidden
+                            data-onclick="toggleTagFilter('')"
+                            title="Clear tag filter"
+                          ></span>
+                        </div>
+                        <div class="todos-list-header__actions">
+                          <span
+                            id="doneTodayBadge"
+                            class="done-today-badge"
+                            hidden
+                          ></span>
+                          <div
+                            id="todosListHeaderCount"
+                            class="todos-list-header__count"
+                          >
+                            0 tasks
+                          </div>
+                          <button
+                            id="projectViewActionsButton"
+                            type="button"
+                            class="btn-icon todos-list-header__project-actions"
+                            aria-label="Edit project"
+                            title="Edit project"
+                            hidden
+                          >
+                            <svg
+                              class="app-icon"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <circle cx="12" cy="12" r="1" />
+                              <circle cx="19" cy="12" r="1" />
+                              <circle cx="5" cy="12" r="1" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                      <div
+                        id="inlineQuickAdd"
+                        class="inline-quick-add"
+                        role="form"
+                        aria-label="Quick add task"
+                      >
+                        <span class="inline-quick-add__icon" aria-hidden="true"
+                          >+</span
+                        >
+                        <label for="inlineQuickAddInput" class="sr-only"
+                          >Quick add task</label
+                        >
+                        <input
+                          type="text"
+                          id="inlineQuickAddInput"
+                          class="inline-quick-add__input"
+                          placeholder="What needs to be done?"
+                          autocomplete="off"
+                          data-onkeypress="handleInlineQuickAddKeyPress(event)"
+                        />
+                        <div
+                          id="inlineQuickAddChipRow"
+                          class="inline-quick-add__chips"
+                          hidden
+                          aria-live="polite"
+                        ></div>
+                        <kbd class="inline-quick-add__hint" aria-hidden="true"
+                          >Enter</kbd
+                        >
+                      </div>
+
+                      <div id="todosContent">
+                        <div class="loading">
+                          <div class="spinner"></div>
+                          Loading todos…
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="editTodoModal"
+                  class="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="editTodoModalTitle"
+                  style="display: none"
+                >
+                  <div class="modal-card">
+                    <h3 id="editTodoModalTitle">Edit Task</h3>
+                    <div class="form-group">
+                      <label for="editTodoTitle">Title</label>
+                      <input type="text" id="editTodoTitle" maxlength="200" />
+                    </div>
+                    <div class="form-group">
+                      <label for="editTodoDescription">Description</label>
+                      <textarea id="editTodoDescription" rows="3"></textarea>
+                    </div>
+                    <div class="field-row">
+                      <div class="form-group" style="flex: 1; margin-bottom: 0">
+                        <label for="editTodoProjectSelect">Project</label>
+                        <select id="editTodoProjectSelect">
+                          <option value="">No project</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="flex: 1; margin-bottom: 0">
+                        <label for="editTodoPriority">Priority</label>
+                        <select id="editTodoPriority">
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </div>
+                      <div class="form-group" style="flex: 1; margin-bottom: 0">
+                        <label for="editTodoDueDate">Due date</label>
+                        <input type="datetime-local" id="editTodoDueDate" />
+                      </div>
+                    </div>
+                    <div class="form-group">
+                      <label for="editTodoNotes">Notes</label>
+                      <textarea id="editTodoNotes" rows="3"></textarea>
+                    </div>
+                    <div class="modal-actions">
+                      <button
+                        class="add-btn"
+                        data-onclick="saveEditedTodo()"
+                        style="width: auto"
+                      >
+                        Save
+                      </button>
+                      <button
+                        class="add-btn"
+                        data-onclick="closeEditTodoModal()"
+                        style="width: auto; background: #64748b"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div
+                  id="projectCrudModal"
+                  class="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="projectCrudModalTitle"
+                  style="display: none"
+                >
+                  <div class="modal-card project-crud-modal-card">
+                    <h3 id="projectCrudModalTitle">New project</h3>
+                    <form id="projectCrudForm">
+                      <div class="form-group">
+                        <label for="projectCrudNameInput">Project name</label>
+                        <input
+                          id="projectCrudNameInput"
+                          type="text"
+                          maxlength="50"
+                          autocomplete="off"
+                          placeholder="e.g. Work / Client A"
+                        />
+                      </div>
+                      <div class="modal-actions">
+                        <button
+                          id="projectCrudSubmitButton"
+                          class="add-btn"
+                          type="submit"
+                          style="width: auto"
+                        >
+                          Create
+                        </button>
+                        <button
+                          id="projectCrudCancelButton"
+                          class="add-btn"
+                          type="button"
+                          style="width: auto; background: #64748b"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+
+                <div
+                  id="projectEditDrawerBackdrop"
+                  class="project-edit-drawer-backdrop"
+                  aria-hidden="true"
+                ></div>
+                <aside
+                  id="projectEditDrawer"
+                  class="project-edit-drawer"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-hidden="true"
+                  aria-labelledby="projectEditDrawerTitle"
+                >
+                  <div
+                    class="project-edit-drawer__handle"
+                    aria-hidden="true"
+                  ></div>
+                  <div class="project-edit-drawer__header">
+                    <h2 id="projectEditDrawerTitle">Edit Project</h2>
+                    <button
+                      id="projectEditDrawerClose"
+                      type="button"
+                      class="btn-icon"
+                      aria-label="Close edit project drawer"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <form
+                    id="projectEditDrawerForm"
+                    class="project-edit-drawer__content"
+                  >
+                    <div class="todo-drawer__section">
+                      <div class="todo-drawer__section-title">Project</div>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditNameInput"
+                      >
+                        <span>Project Name</span>
+                        <input
+                          id="projectEditNameInput"
+                          type="text"
+                          maxlength="50"
+                          autocomplete="off"
+                          required
+                        />
+                      </label>
+                      <p
+                        id="projectEditMeta"
+                        class="project-edit-drawer__meta"
+                      ></p>
+                    </div>
+                    <div class="todo-drawer__section">
+                      <div class="todo-drawer__section-title">Details</div>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditDescriptionInput"
+                      >
+                        <span>Description</span>
+                        <textarea
+                          id="projectEditDescriptionInput"
+                          rows="2"
+                          maxlength="1000"
+                          placeholder="Optional project description"
+                        ></textarea>
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditStatusSelect"
+                      >
+                        <span>Status</span>
+                        <select id="projectEditStatusSelect">
+                          <option value="active">Active</option>
+                          <option value="on_hold">On Hold</option>
+                          <option value="completed">Completed</option>
+                          <option value="archived">Archived</option>
+                        </select>
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditPrioritySelect"
+                      >
+                        <span>Priority</span>
+                        <select id="projectEditPrioritySelect">
+                          <option value="">—</option>
+                          <option value="low">Low</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditAreaInput"
+                      >
+                        <span>Area</span>
+                        <input
+                          id="projectEditAreaInput"
+                          type="text"
+                          maxlength="100"
+                          placeholder="e.g. Work, Personal"
+                        />
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditGoalInput"
+                      >
+                        <span>Goal</span>
+                        <textarea
+                          id="projectEditGoalInput"
+                          rows="2"
+                          maxlength="2000"
+                          placeholder="What does success look like?"
+                        ></textarea>
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditTargetDateInput"
+                      >
+                        <span>Target Date</span>
+                        <input id="projectEditTargetDateInput" type="date" />
+                      </label>
+                      <label
+                        class="todo-drawer__field"
+                        for="projectEditReviewCadenceSelect"
+                      >
+                        <span>Review Cadence</span>
+                        <select id="projectEditReviewCadenceSelect">
+                          <option value="">—</option>
+                          <option value="weekly">Weekly</option>
+                          <option value="biweekly">Biweekly</option>
+                          <option value="monthly">Monthly</option>
+                          <option value="quarterly">Quarterly</option>
+                        </select>
+                      </label>
+                    </div>
+                    <div
+                      class="todo-drawer__section todo-drawer__section--danger"
+                    >
+                      <div class="todo-drawer__section-title">Danger zone</div>
+                      <button
+                        id="projectEditArchiveButton"
+                        class="mini-btn project-edit-drawer__archive-btn"
+                        type="button"
+                      >
+                        Archive Project
+                      </button>
+                      <button
+                        id="projectEditDeleteButton"
+                        class="delete-btn project-edit-drawer__delete-btn"
+                        type="button"
+                      >
+                        Delete Project
+                      </button>
+                    </div>
+                    <div class="project-edit-drawer__footer">
+                      <button
+                        id="projectEditSaveButton"
+                        class="add-btn"
+                        type="submit"
+                      >
+                        Save
+                      </button>
+                      <button
+                        id="projectEditCancelButton"
+                        class="mini-btn"
+                        type="button"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </aside>
+
+                <div
+                  id="projectDeleteDialog"
+                  class="modal-overlay"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="projectDeleteDialogTitle"
+                  style="display: none"
+                >
+                  <div class="modal-card project-delete-dialog">
+                    <h3 id="projectDeleteDialogTitle">Delete project?</h3>
+                    <p id="projectDeleteDialogBody"></p>
+                    <div
+                      id="projectDeleteDialogActions"
+                      class="modal-actions project-delete-dialog__actions"
+                    ></div>
+                  </div>
+                </div>
+
+                <div
+                  id="todoDrawerBackdrop"
+                  class="todo-drawer-backdrop"
+                  aria-hidden="true"
+                ></div>
+                <aside
+                  id="todoDetailsDrawer"
+                  class="todo-drawer"
+                  role="dialog"
+                  aria-labelledby="todoDrawerTitle"
+                  aria-hidden="true"
+                >
+                  <div class="sheet-drag-handle" aria-hidden="true"></div>
+                  <div class="todo-drawer__header">
+                    <h2 id="todoDrawerTitle">Task</h2>
+                    <button
+                      id="todoDrawerClose"
+                      type="button"
+                      class="btn-icon"
+                      aria-label="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div class="todo-drawer__content">
+                    <div class="todo-drawer__section">
+                      <div class="todo-drawer__section-title">Essentials</div>
+                      <div class="skeleton-line"></div>
+                      <div class="skeleton-line skeleton-line--short"></div>
+                      <div class="skeleton-line"></div>
+                    </div>
+                    <div class="todo-drawer__section">
+                      <div class="todo-drawer__section-title">Details</div>
+                      <div class="skeleton-line"></div>
+                      <div class="skeleton-line"></div>
+                      <div class="skeleton-line skeleton-line--short"></div>
+                    </div>
+                  </div>
+                </aside>
+                <button
+                  id="floatingNewTaskCta"
+                  class="floating-new-task-cta"
+                  type="button"
+                  aria-label="New Task"
+                  title="New Task"
+                  data-onclick="openTaskComposer()"
+                >
+                  + New Task
+                </button>
+              </div>
+
+              <!-- Profile View -->
+              <div id="profileView" class="view">
+                <div class="profile-section">
+                  <h3>Profile moved</h3>
+                  <p>
+                    Profile settings now live in the Settings pane inside Todos.
+                  </p>
+                  <button
+                    class="btn"
+                    data-onclick="switchView('settings', this)"
+                  >
+                    Open Settings
+                  </button>
+                </div>
+              </div>
+
+              <!-- Admin View — moved to adminPane inside todosView -->
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Bottom dock removed — profile hub lives in sidebar, New Task is a floating FAB -->
+
+    <!-- Profile hub menu (anchored above dock Profile button) -->
+    <div
+      id="dockProfilePanel"
+      class="dock-profile-panel"
+      hidden
+      role="menu"
+      aria-label="Profile menu"
+    >
+      <span id="dockProfileEmail" class="dock-profile-panel__email"></span>
+      <div class="dock-profile-panel__divider"></div>
+      <button
+        type="button"
+        class="dock-profile-panel__item"
+        role="menuitem"
+        data-onclick="profileNavTo('settings')"
+      >
+        <svg
+          class="app-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+          />
+          <circle cx="12" cy="12" r="3" />
+        </svg>
+        Settings
+      </button>
+      <button
+        type="button"
+        class="dock-profile-panel__item"
+        role="menuitem"
+        data-onclick="profileNavTo('feedback')"
+      >
+        <svg
+          class="app-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path
+            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+          />
+        </svg>
+        Feedback
+      </button>
+      <button
+        type="button"
+        class="dock-profile-panel__item dock-admin-btn"
+        role="menuitem"
+        data-onclick="profileNavTo('admin')"
+      >
+        <svg
+          class="app-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Admin
+      </button>
+      <div class="dock-profile-panel__divider"></div>
+      <button
+        type="button"
+        class="dock-profile-panel__item"
+        role="menuitem"
+        data-onclick="profileToggleTheme()"
+      >
+        <svg
+          class="app-icon dock-icon--moon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+        </svg>
+        <svg
+          class="app-icon dock-icon--sun"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+          />
+        </svg>
+        <span class="dock-theme-label">Dark mode</span>
+      </button>
+      <div class="dock-profile-panel__divider"></div>
+      <button
+        type="button"
+        class="dock-profile-panel__item dock-profile-panel__item--danger"
+        role="menuitem"
+        data-onclick="logout()"
+      >
+        <svg
+          class="app-icon"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+          <polyline points="16 17 21 12 16 7" />
+          <line x1="21" y1="12" x2="9" y2="12" />
+        </svg>
+        Logout
+      </button>
+    </div>
+
+    <script src="/utils/authSession.js" defer></script>
+    <script src="/utils/apiClient.js" defer></script>
+    <script src="/utils/utils.js" defer></script>
+    <script src="/utils/lintHeuristics.js" defer></script>
+    <script src="/utils/projectPathUtils.js" defer></script>
+    <script src="/utils/icsExport.js" defer></script>
+    <script src="/utils/icons.js" defer></script>
+    <script src="/utils/theme.js" defer></script>
+    <script src="/utils/aiSuggestionUtils.js" defer></script>
+    <script src="/utils/domSelectors.js" defer></script>
+    <script type="module" src="/app.js"></script>
+
+    <!-- Undo/Redo Toast -->
+    <div id="undoToast" class="undo-toast">
+      <span id="undoMessage">Action performed</span>
+      <button data-onclick="performUndo()">Undo</button>
+    </div>
+
+    <!-- Command Palette -->
+    <div
+      id="commandPaletteOverlay"
+      class="command-palette-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="commandPaletteTitle"
+      aria-hidden="true"
+    >
+      <div id="commandPalettePanel" class="command-palette-panel">
+        <h2 id="commandPaletteTitle" class="sr-only">Command palette</h2>
+        <label for="commandPaletteInput" class="sr-only">Type a command</label>
+        <input
+          id="commandPaletteInput"
+          class="command-palette-input"
+          type="text"
+          placeholder="Type a command…"
+          autocomplete="off"
+          spellcheck="false"
+          role="combobox"
+          aria-controls="commandPaletteList"
+          aria-expanded="false"
+        />
+        <div
+          id="commandPaletteList"
+          class="command-palette-list"
+          role="listbox"
+        ></div>
+        <div id="commandPaletteEmpty" class="command-palette-empty" hidden>
+          No results
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirm Dialog -->
+    <div
+      id="confirmDialog"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmDialogMessage"
+      style="display: none"
+    >
+      <div class="modal-card confirm-dialog">
+        <p id="confirmDialogMessage"></p>
+        <div class="modal-actions confirm-dialog__actions">
+          <button id="confirmDialogOk" type="button" class="add-btn">
+            Confirm
+          </button>
+          <button id="confirmDialogCancel" type="button" class="mini-btn">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input Dialog -->
+    <div
+      id="inputDialog"
+      class="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="inputDialogLabel"
+      style="display: none"
+    >
+      <div class="modal-card input-dialog">
+        <label
+          id="inputDialogLabel"
+          for="inputDialogField"
+          class="input-dialog__label"
+        ></label>
+        <input
+          id="inputDialogField"
+          type="text"
+          class="input-dialog__field"
+          autocomplete="off"
+        />
+        <div class="modal-actions input-dialog__actions">
+          <button id="inputDialogOk" type="button" class="add-btn">OK</button>
+          <button id="inputDialogCancel" type="button" class="mini-btn">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Overlay -->
+    <div
+      id="shortcutsOverlay"
+      class="shortcuts-overlay"
+      role="dialog"
+      aria-label="Keyboard shortcuts"
+      data-onclick="closeShortcutsOverlay(event)"
+    >
+      <div class="shortcuts-content" data-onclick="event.stopPropagation()">
+        <h2>Keyboard Shortcuts</h2>
+        <h4 class="shortcuts-section-title">Global</h4>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">New task</span>
+          <kbd class="shortcut-key">N</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">New task</span>
+          <kbd class="shortcut-key">Ctrl/Cmd + N</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Command palette</span>
+          <kbd class="shortcut-key">Ctrl/Cmd + K</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Search</span>
+          <kbd class="shortcut-key">/</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Select all</span>
+          <kbd class="shortcut-key">Ctrl/Cmd + A</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Show shortcuts</span>
+          <kbd class="shortcut-key">?</kbd>
+        </div>
+        <h4 class="shortcuts-section-title">Task navigation</h4>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Move between tasks</span>
+          <kbd class="shortcut-key">↑ / ↓</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Open task details</span>
+          <kbd class="shortcut-key">Enter</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Delete task</span>
+          <kbd class="shortcut-key">Delete</kbd>
+        </div>
+        <h4 class="shortcuts-section-title">Quick actions (on focused task)</h4>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Set due today</span>
+          <kbd class="shortcut-key">T</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Move to Someday</span>
+          <kbd class="shortcut-key">S</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Edit dates (open drawer)</span>
+          <kbd class="shortcut-key">D</kbd>
+        </div>
+        <div style="text-align: center; margin-top: var(--s-4)">
+          <button class="btn" data-onclick="toggleShortcuts()">Close</button>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

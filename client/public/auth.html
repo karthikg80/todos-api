@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="app-version" content="1.6.0" />
+    <title>Todo App — Sign In</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#4F46E5" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Todos" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="stylesheet" href="/styles/base.css" />
+    <link rel="stylesheet" href="/styles/auth.css" />
+  </head>
+  <body>
+    <div
+      id="authFormSection"
+      class="auth-container auth-page"
+      style="display: block"
+    >
+      <div class="auth-page__header">
+        <a href="/" class="auth-page__back">← Back</a>
+        <span class="auth-page__logo">Todo App</span>
+      </div>
+      <div class="auth-tabs">
+        <button
+          id="loginTabButton"
+          class="auth-tab active"
+          data-onclick="switchAuthTab('login', this)"
+        >
+          Login
+        </button>
+        <button
+          id="registerTabButton"
+          class="auth-tab"
+          data-onclick="switchAuthTab('register', this)"
+        >
+          Register
+        </button>
+      </div>
+
+      <div
+        class="message"
+        id="authMessage"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      ></div>
+
+      <!-- Login Form -->
+      <form
+        id="loginForm"
+        class="auth-form active"
+        data-onsubmit="handleLogin(event)"
+        style="display: block"
+      >
+        <div class="form-group">
+          <label for="loginEmail">Email</label>
+          <input
+            type="email"
+            id="loginEmail"
+            required
+            placeholder="your@email.com"
+          />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input
+            type="password"
+            id="loginPassword"
+            required
+            placeholder="••••••••"
+          />
+        </div>
+        <button type="submit" class="btn">Login</button>
+        <div
+          class="social-login-section"
+          id="loginSocialSection"
+          style="display: none"
+        >
+          <div class="auth-divider"><span>or</span></div>
+          <div class="social-login-buttons">
+            <button
+              type="button"
+              class="btn social-btn google-btn"
+              id="loginGoogleBtn"
+              style="display: none"
+              data-onclick="handleGoogleLogin()"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                aria-hidden="true"
+              >
+                <path
+                  fill="#4285F4"
+                  d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"
+                />
+              </svg>
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              class="btn social-btn apple-btn"
+              id="loginAppleBtn"
+              style="display: none"
+              data-onclick="handleAppleLogin()"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                aria-hidden="true"
+              >
+                <path
+                  fill="currentColor"
+                  d="M13.545 8.32c-.022-2.276 1.88-3.388 1.966-3.44-1.076-1.56-2.746-1.773-3.332-1.79-1.4-.147-2.77.84-3.488.84-.734 0-1.835-.826-3.024-.802C3.93 3.156 2.3 4.193 1.4 5.79c-1.846 3.172-.47 7.847 1.303 10.414.89 1.26 1.93 2.67 3.295 2.62 1.334-.054 1.833-.847 3.442-.847 1.593 0 2.06.847 3.44.816 1.428-.023 2.326-1.266 3.18-2.536 1.025-1.443 1.44-2.872 1.458-2.944-.032-.012-2.79-1.058-2.818-4.218l-.155.225Z"
+                />
+              </svg>
+              Sign in with Apple
+            </button>
+            <button
+              type="button"
+              class="btn social-btn phone-btn"
+              id="loginPhoneBtn"
+              style="display: none"
+              data-onclick="showPhoneLogin()"
+            >
+              Continue with Phone
+            </button>
+          </div>
+        </div>
+        <button
+          type="button"
+          id="forgotPasswordLink"
+          class="link-btn"
+          data-onclick="showForgotPassword()"
+        >
+          Forgot Password?
+        </button>
+      </form>
+
+      <!-- Register Form -->
+      <form
+        id="registerForm"
+        class="auth-form"
+        data-onsubmit="handleRegister(event)"
+        style="display: none"
+      >
+        <div class="form-group">
+          <label for="registerName">Name</label>
+          <input
+            type="text"
+            id="registerName"
+            placeholder="Your Name (optional)"
+          />
+        </div>
+        <div class="form-group">
+          <label for="registerEmail">Email</label>
+          <input
+            type="email"
+            id="registerEmail"
+            required
+            placeholder="your@email.com"
+          />
+        </div>
+        <div class="form-group">
+          <label for="registerPassword">Password</label>
+          <input
+            type="password"
+            id="registerPassword"
+            required
+            placeholder="••••••••"
+            minlength="8"
+          />
+        </div>
+        <button type="submit" class="btn">Create Account</button>
+        <div
+          class="social-login-section"
+          id="registerSocialSection"
+          style="display: none"
+        >
+          <div class="auth-divider"><span>or</span></div>
+          <div class="social-login-buttons">
+            <button
+              type="button"
+              class="btn social-btn google-btn"
+              id="registerGoogleBtn"
+              style="display: none"
+              data-onclick="handleGoogleLogin()"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                aria-hidden="true"
+              >
+                <path
+                  fill="#4285F4"
+                  d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"
+                />
+              </svg>
+              Continue with Google
+            </button>
+            <button
+              type="button"
+              class="btn social-btn apple-btn"
+              id="registerAppleBtn"
+              style="display: none"
+              data-onclick="handleAppleLogin()"
+            >
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 18 18"
+                aria-hidden="true"
+              >
+                <path
+                  fill="currentColor"
+                  d="M13.545 8.32c-.022-2.276 1.88-3.388 1.966-3.44-1.076-1.56-2.746-1.773-3.332-1.79-1.4-.147-2.77.84-3.488.84-.734 0-1.835-.826-3.024-.802C3.93 3.156 2.3 4.193 1.4 5.79c-1.846 3.172-.47 7.847 1.303 10.414.89 1.26 1.93 2.67 3.295 2.62 1.334-.054 1.833-.847 3.442-.847 1.593 0 2.06.847 3.44.816 1.428-.023 2.326-1.266 3.18-2.536 1.025-1.443 1.44-2.872 1.458-2.944-.032-.012-2.79-1.058-2.818-4.218l-.155.225Z"
+                />
+              </svg>
+              Sign in with Apple
+            </button>
+            <button
+              type="button"
+              class="btn social-btn phone-btn"
+              id="registerPhoneBtn"
+              style="display: none"
+              data-onclick="showPhoneLogin()"
+            >
+              Continue with Phone
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <!-- Phone Login Form -->
+      <form id="phoneLoginForm" class="auth-form" style="display: none">
+        <h2 style="margin-bottom: 20px">Phone Login</h2>
+        <div class="form-group">
+          <label for="phoneNumber">Phone Number</label>
+          <input
+            type="tel"
+            id="phoneNumber"
+            required
+            placeholder="+1 555 123 4567"
+          />
+        </div>
+        <button
+          type="button"
+          class="btn"
+          id="sendOtpBtn"
+          data-onclick="handleSendOtp()"
+        >
+          Send Code
+        </button>
+        <div id="otpSection" style="display: none">
+          <p class="otp-hint">
+            Code sent to
+            <span id="otpPhoneMasked"></span>
+          </p>
+          <div class="form-group">
+            <label for="otpCode">Verification Code</label>
+            <input
+              type="text"
+              id="otpCode"
+              required
+              placeholder="123456"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+            />
+          </div>
+          <button type="button" class="btn" data-onclick="handleVerifyOtp()">
+            Verify &amp; Login
+          </button>
+          <button
+            type="button"
+            class="link-btn"
+            id="resendOtpBtn"
+            disabled
+            data-onclick="handleResendOtp()"
+          >
+            Resend code (<span id="resendTimer">60</span>s)
+          </button>
+        </div>
+        <button type="button" class="link-btn" data-onclick="showLogin()">
+          Back to Login
+        </button>
+      </form>
+
+      <!-- Forgot Password Form -->
+      <form
+        id="forgotPasswordForm"
+        class="auth-form"
+        data-onsubmit="handleForgotPassword(event)"
+        style="display: none"
+      >
+        <h2 style="margin-bottom: 20px">Reset Password</h2>
+        <div class="form-group">
+          <label for="forgotEmail">Email</label>
+          <input
+            type="email"
+            id="forgotEmail"
+            required
+            placeholder="your@email.com"
+          />
+        </div>
+        <button type="submit" class="btn">Send Reset Link</button>
+        <button
+          type="button"
+          id="forgotBackToLoginButton"
+          class="link-btn"
+          data-onclick="showLogin()"
+        >
+          Back to Login
+        </button>
+      </form>
+
+      <!-- Reset Password Form -->
+      <form
+        id="resetPasswordForm"
+        class="auth-form"
+        data-onsubmit="handleResetPassword(event)"
+        style="display: none"
+      >
+        <h2 style="margin-bottom: 20px">Set New Password</h2>
+        <div class="form-group">
+          <label for="newPassword">New Password</label>
+          <input
+            type="password"
+            id="newPassword"
+            required
+            placeholder="••••••••"
+            minlength="8"
+          />
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Confirm Password</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            required
+            placeholder="••••••••"
+            minlength="8"
+          />
+        </div>
+        <button type="submit" class="btn">Reset Password</button>
+      </form>
+    </div>
+
+    <!-- Utility scripts -->
+    <script src="/utils/theme.js"></script>
+    <script src="/utils/authSession.js"></script>
+    <script src="/utils/apiClient.js"></script>
+
+    <!-- Event delegation dispatchers -->
+    <script>
+      document.addEventListener("click", function (e) {
+        var el = e.target.closest("[data-onclick]");
+        if (el) {
+          var handler = new Function(el.dataset.onclick);
+          handler.call(el);
+        }
+      });
+      document.addEventListener("submit", function (e) {
+        var form = e.target.closest("[data-onsubmit]");
+        if (form) {
+          e.preventDefault();
+          var handler = new Function("event", form.dataset.onsubmit);
+          handler.call(form, e);
+        }
+      });
+    </script>
+
+    <!-- URL parameter handling for tab switching -->
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        var params = new URLSearchParams(window.location.search);
+        var tab = params.get("tab");
+        if (tab === "register" && typeof switchAuthTab === "function") {
+          switchAuthTab(
+            "register",
+            document.getElementById("registerTabButton"),
+          );
+        }
+        // Handle resetToken for password reset
+        var resetToken = params.get("resetToken");
+        if (resetToken && typeof showResetPassword === "function") {
+          showResetPassword(resetToken);
+        }
+      });
+    </script>
+  </body>
+</html>
