@@ -1051,6 +1051,11 @@ export function showAuthView() {
   hooks.updateCritiqueDraftButtonState?.();
   hooks.resetOnCreateAssistState?.();
   hooks.renderOnCreateAssistRow?.();
+  // Reset to landing page (not auth form)
+  var landing = document.getElementById("landingPage");
+  var authForm = document.getElementById("authFormSection");
+  if (landing) landing.classList.add("auth-landing-active");
+  if (authForm) authForm.classList.remove("auth-page--active");
   showLogin();
 }
 
