@@ -473,7 +473,18 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
     );
   }
 
-  return chips.slice(0, 3).join("");
+  // Tag chips — clickable to filter
+  if (Array.isArray(todo.tags) && todo.tags.length > 0 && chips.length < 3) {
+    const maxTags = 3 - chips.length;
+    todo.tags.slice(0, maxTags).forEach((tag) => {
+      const safeTag = hooks.escapeHtml(String(tag));
+      chips.push(
+        `<span class="todo-chip todo-chip--tag" title="Filter by #${safeTag}" data-onclick="event.stopPropagation(); toggleTagFilter('${safeTag}')">#${safeTag}</span>`,
+      );
+    });
+  }
+
+  return chips.slice(0, 4).join("");
 }
 
 export {

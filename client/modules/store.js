@@ -213,6 +213,7 @@ export const state = {
   currentDateView: "all",
   currentWorkspaceView: "home",
   homeListDrilldownKey: "",
+  activeTagFilter: "",
   isMoreFiltersOpen: false,
   viewportMode: "desktop",
   railPresentationMode: "sidebar",
