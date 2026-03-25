@@ -33,6 +33,7 @@ import {
   maybeRenderOnboardingModal,
 } from "./onboardingFlow.js";
 import { SOUL_COPY, buildRescueSuggestion } from "./soulConfig.js";
+import { illustrationWelcome } from "../utils/illustrations.js";
 
 const { escapeHtml } = window.Utils || {};
 const { getProjectLeafName, normalizeProjectPath } =
@@ -1205,6 +1206,7 @@ export function renderHomeDashboard() {
   const emptyStateCta = hasTasks
     ? ""
     : `<div class="home-empty-cta">
+        ${illustrationWelcome()}
         <p class="home-empty-cta__heading">Welcome to your workspace</p>
         <p class="home-empty-cta__sub">Add your first task to get started. Use the <strong>+ New Task</strong> button below, or press <kbd>/</kbd> to quick-add.</p>
         <button type="button" class="btn" data-onclick="openTaskComposer()">+ Add your first task</button>
