@@ -28,6 +28,7 @@ import {
   renderDrawerSection,
   renderStatusMessage,
 } from "./uiTemplates.js";
+import { illustrationSubtasksEmpty } from "../utils/illustrations.js";
 
 // Active task-picker instance for the depends-on field. Destroyed and
 // re-created each time the drawer content is fully re-rendered.
@@ -1009,7 +1010,7 @@ export function onDrawerCategoryBlur() {
 function renderDrawerSubtasks(todo) {
   const escapeHtml = hooks.escapeHtml || ((s) => String(s));
   if (!Array.isArray(todo.subtasks) || todo.subtasks.length === 0) {
-    return '<p class="todo-drawer__subtasks-empty">No subtasks</p>';
+    return `<div class="todo-drawer__subtasks-empty">${illustrationSubtasksEmpty()}No subtasks</div>`;
   }
   return `
     <ul class="todo-drawer__subtasks-list">

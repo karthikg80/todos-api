@@ -10,6 +10,10 @@ import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { SOUL_COPY } from "./soulConfig.js";
+import {
+  illustrationWeeklyReviewClean,
+  illustrationWrSectionEmpty,
+} from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
 // Render
@@ -57,7 +61,7 @@ function renderRolloverGroup(group) {
                 )
                 .join("")}
             </ul>`
-          : `<p class="wr-empty">Nothing here.</p>`
+          : `<div class="wr-empty">${illustrationWrSectionEmpty()}Nothing here.</div>`
       }
     </div>`;
 }
@@ -167,7 +171,7 @@ export function renderWeeklyReviewView() {
                 : `<p class="wr-applied-msg">Actions applied.</p>`
             }
           </section>`
-        : `<p class="wr-empty">Nothing urgent to clean up this week.</p>`;
+        : `<div class="wr-empty">${illustrationWeeklyReviewClean()}Nothing urgent to clean up this week.</div>`;
 
     bodyHtml = `${renderSummaryBadges(s.summary)}${reflectionHtml}${rolloverHtml}${findingsHtml}${anchorsHtml}${adjustmentHtml}${actionsHtml}`;
   } else {

@@ -6,6 +6,7 @@
 import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
+import { illustrationCleanupClear } from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
 // Data loading — calls all four endpoints in parallel, merges into one state
@@ -217,7 +218,7 @@ function buildResultsHtml(s, escapeHtml) {
 
   return (
     sections.join("") ||
-    `<div class="cleanup-empty">No issues found — your task list looks clean!</div>`
+    `<div class="cleanup-empty">${illustrationCleanupClear()}No issues found — your task list looks clean!</div>`
   );
 }
 

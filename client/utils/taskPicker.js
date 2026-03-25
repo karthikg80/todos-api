@@ -5,6 +5,7 @@
 // interpolation into markup, matching the sanitisation pattern used by
 // drawerUi.js and the rest of the frontend.
 // =============================================================================
+import { illustrationPickerEmpty } from "./illustrations.js";
 
 /**
  * Mount a task picker inside a container element.
@@ -116,7 +117,7 @@ export function mountTaskPicker(container, opts) {
       if (searchInput.value.trim()) {
         const empty = document.createElement("div");
         empty.className = "task-picker__empty";
-        empty.textContent = "No matching tasks";
+        empty.innerHTML = illustrationPickerEmpty() + "No matching tasks";
         dropdown.appendChild(empty);
         dropdown.classList.add("task-picker__dropdown--open");
       }

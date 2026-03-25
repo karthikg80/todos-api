@@ -4665,6 +4665,24 @@ body.is-todos-view .floating-new-task-cta {
   display: block;
 }
 
+.empty-state-illustration--micro {
+  width: 48px;
+  height: 40px;
+  margin: 0 auto var(--s-2);
+}
+
+.empty-state-illustration--tile {
+  width: 120px;
+  height: 80px;
+  margin: 0 auto var(--s-2);
+}
+
+.empty-state-illustration--inline {
+  width: 36px;
+  height: 28px;
+  margin: 0 auto var(--s-1);
+}
+
 .empty-state-hint {
   margin-top: var(--s-2);
   font-size: var(--fs-sm);

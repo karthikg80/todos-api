@@ -33,7 +33,14 @@ import {
   maybeRenderOnboardingModal,
 } from "./onboardingFlow.js";
 import { SOUL_COPY, buildRescueSuggestion } from "./soulConfig.js";
-import { illustrationWelcome } from "../utils/illustrations.js";
+import {
+  illustrationWelcome,
+  illustrationTileEmpty,
+  illustrationDueSoonEmpty,
+  illustrationBacklogCleanEmpty,
+  illustrationProjectsQuiet,
+  illustrationPlanError,
+} from "../utils/illustrations.js";
 
 const { escapeHtml } = window.Utils || {};
 const { getProjectLeafName, normalizeProjectPath } =
@@ -776,6 +783,7 @@ export function renderHomeTaskTile({
   groupedItems = null,
   seeAllLabel = "See all",
   emptyText = "No tasks here.",
+  emptyIllustration = null,
   showReasons = false,
   showSeeAll = true,
 } = {}) {
@@ -809,7 +817,7 @@ export function renderHomeTaskTile({
               }),
             )
             .join("")
-      : `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`;
+      : `<div class="home-tile__empty">${typeof emptyIllustration === "function" ? emptyIllustration() : illustrationTileEmpty()}${escapeHtml(emptyText)}</div>`;
   const TILE_ICON_SVG = {
     top_focus: `<svg class="home-tile__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
     due_soon: `<svg class="home-tile__icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16.5 12"/></svg>`,
@@ -972,7 +980,7 @@ export function renderProjectsToNudgeTile(items = []) {
                 `,
                 )
                 .join("")
-            : '<div class="home-tile__empty">No project hotspots right now.</div>'
+            : `<div class="home-tile__empty">${illustrationProjectsQuiet()}No project hotspots right now.</div>`
         }
       </div>
     </section>
@@ -1034,6 +1042,7 @@ export function renderTodaysPlanZone() {
     ? `<div class="home-tile__empty" aria-live="polite">Building today's plan…</div>`
     : pd.error
       ? `<div class="home-tile__empty home-tile__empty--error">
+           ${illustrationPlanError()}
            Could not load plan.
            <button type="button" class="mini-btn"
                    data-onclick="retryTodaysPlan()">Retry</button>
@@ -1107,7 +1116,7 @@ function _renderUpcomingTabBody() {
   }
 
   if (items.length === 0) {
-    return `<div class="home-tile__empty">${escapeHtml(emptyText)}</div>`;
+    return `<div class="home-tile__empty">${illustrationTileEmpty()}${escapeHtml(emptyText)}</div>`;
   }
 
   return items.map((todo) => renderHomeTaskRow(todo, { reason: "" })).join("");
@@ -1228,6 +1237,7 @@ export function renderHomeDashboard() {
                 groupedItems: model.dueSoonGroups,
                 seeAllLabel: "See all",
                 emptyText: "Nothing urgent is coming up.",
+                emptyIllustration: illustrationDueSoonEmpty,
               })}
               ${renderHomeTaskTile({
                 key: "stale_risks",
@@ -1236,6 +1246,7 @@ export function renderHomeDashboard() {
                 items: staleRiskTodos,
                 seeAllLabel: "Review list",
                 emptyText: "Backlog looks calm right now.",
+                emptyIllustration: illustrationBacklogCleanEmpty,
               })}
             </div>`
           : ""

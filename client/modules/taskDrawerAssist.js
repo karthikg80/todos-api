@@ -6,6 +6,10 @@
 import { state, hooks } from "./store.js";
 import { getAllProjects } from "./projectsState.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
+import {
+  illustrationAiEmpty,
+  illustrationSubtasksEmpty,
+} from "../utils/illustrations.js";
 
 function taskDrawerDismissKey(todoId) {
   return `${STORAGE_KEYS.TASK_DRAWER_DISMISSED_PREFIX}${todoId}`;
@@ -126,7 +130,7 @@ function renderTaskDrawerAssistSection(todoId) {
     return `
       <div class="todo-drawer__section">
         <div class="todo-drawer__section-title">AI Suggestions</div>
-        <div class="ai-empty" role="status">AI Suggestions unavailable.</div>
+        <div class="ai-empty" role="status">${illustrationAiEmpty()}AI Suggestions unavailable.</div>
       </div>
     `;
   }
@@ -150,7 +154,7 @@ function renderTaskDrawerAssistSection(todoId) {
         !assistState.unavailable &&
         !assistState.error &&
         (assistState.mustAbstain || assistState.suggestions.length === 0)
-          ? '<div class="ai-empty" role="status">No suggestions right now.</div>'
+          ? `<div class="ai-empty" role="status">${illustrationAiEmpty()}No suggestions right now.</div>`
           : ""
       }
       ${
@@ -352,7 +356,7 @@ function updateDrawerDraftField(field, value) {
 
 function renderDrawerSubtasks(todo) {
   if (!Array.isArray(todo.subtasks) || todo.subtasks.length === 0) {
-    return '<p class="todo-drawer__subtasks-empty">No subtasks</p>';
+    return `<div class="todo-drawer__subtasks-empty">${illustrationSubtasksEmpty()}No subtasks</div>`;
   }
 
   return `
