@@ -1408,6 +1408,40 @@
                           </svg>
                           <span class="projects-rail-item__label">Profile</span>
                         </button>
+                        <button
+                          type="button"
+                          class="projects-rail-item projects-rail-utility-item"
+                          data-onclick="toggleShortcuts()"
+                          title="Keyboard shortcuts (?)"
+                          aria-label="Keyboard shortcuts"
+                        >
+                          <svg
+                            class="nav-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="15"
+                            height="15"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            aria-hidden="true"
+                          >
+                            <rect width="20" height="16" x="2" y="4" rx="2" />
+                            <path d="M6 8h.001" />
+                            <path d="M10 8h.001" />
+                            <path d="M14 8h.001" />
+                            <path d="M18 8h.001" />
+                            <path d="M8 12h.001" />
+                            <path d="M12 12h.001" />
+                            <path d="M16 12h.001" />
+                            <path d="M7 16h10" />
+                          </svg>
+                          <span class="projects-rail-item__label"
+                            >Shortcuts</span
+                          >
+                        </button>
                       </div>
                     </div>
                     <div
@@ -3899,20 +3933,16 @@
           <span class="shortcut-desc">Select All Todos</span>
           <kbd class="shortcut-key">Ctrl/Cmd + A</kbd>
         </div>
-        <div style="text-align: center; margin-top: 20px">
-          <button
-            data-onclick="toggleShortcuts()"
-            style="
-              padding: 10px 20px;
-              background: #667eea;
-              color: white;
-              border: none;
-              border-radius: 8px;
-              cursor: pointer;
-            "
-          >
-            Close
-          </button>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">Command Palette</span>
+          <kbd class="shortcut-key">Ctrl/Cmd + K</kbd>
+        </div>
+        <div class="shortcut-item">
+          <span class="shortcut-desc">New Task (no modifier)</span>
+          <kbd class="shortcut-key">N</kbd>
+        </div>
+        <div style="text-align: center; margin-top: var(--s-4)">
+          <button class="btn" data-onclick="toggleShortcuts()">Close</button>
         </div>
       </div>
     </div>

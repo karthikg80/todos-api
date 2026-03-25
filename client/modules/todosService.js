@@ -953,6 +953,16 @@ function performUndo() {
           console.error("Failed to undo archive:", error);
         });
       break;
+    case "delete-project":
+      hooks
+        .createProjectByName?.(lastAction.data.name)
+        .then(() => {
+          EventBus.dispatch(TODOS_CHANGED, { reason: UNDO_APPLIED });
+        })
+        .catch((error) => {
+          console.error("Failed to undo project delete:", error);
+        });
+      break;
   }
 }
 

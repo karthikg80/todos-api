@@ -932,10 +932,10 @@ async function deleteProjectByName(
   EventBus.dispatch(TODOS_CHANGED, { reason: PROJECT_SELECTED });
   hooks.updateHeaderFromVisibleTodos?.(hooks.getVisibleTodos?.() ?? []);
 
-  hooks.showMessage?.(
-    "todosMessage",
+  hooks.addUndoAction?.(
+    "delete-project",
+    { name: normalized },
     `Deleted project "${normalized}"`,
-    "success",
   );
   return true;
 }
