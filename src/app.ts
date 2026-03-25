@@ -211,7 +211,7 @@ export function createApp(
 
   app.use(express.json({ limit: config.requestBodyLimit }));
   app.use(express.urlencoded({ extended: false, limit: config.formBodyLimit }));
-  app.use(cookieParser());
+  app.use(cookieParser(config.accessJwtSecret));
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -244,13 +244,16 @@ export function createApp(
     res.sendFile(path.join(publicDir, "auth.html"));
   });
 
-  app.get("/app", (_req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, "app.html"));
-  });
+  const serveAppOrRedirect = (req: Request, res: Response) => {
+    if (req.signedCookies?.app_session) {
+      res.sendFile(path.join(publicDir, "app.html"));
+    } else {
+      res.redirect("/auth");
+    }
+  };
 
-  app.get("/app/{*path}", (_req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, "app.html"));
-  });
+  app.get("/app", serveAppOrRedirect);
+  app.get("/app/{*path}", serveAppOrRedirect);
 
   app.use(express.static(path.join(__dirname, "../client")));
 

@@ -28,6 +28,23 @@ import {
   validateRevokeMcpSessionInput,
 } from "../validation/mcpValidation";
 
+/** Set a signed HTTP-only cookie so Express can gate /app without relying on localStorage. */
+function setAppSessionCookie(res: Response, userId: string): void {
+  res.cookie("app_session", userId, {
+    httpOnly: true,
+    secure: config.nodeEnv === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days — matches refresh token TTL
+    path: "/",
+    signed: true,
+  });
+}
+
+/** Clear the app session cookie on logout. */
+function clearAppSessionCookie(res: Response): void {
+  res.clearCookie("app_session", { path: "/" });
+}
+
 interface AuthRouterDeps {
   authService?: AuthService;
   mcpOAuthService: McpOAuthService;
@@ -328,6 +345,7 @@ export function createAuthRouter({
         }
 
         const result = await authService.register(validation.dto!);
+        setAppSessionCookie(res, result.user.id);
         res.status(201).json(result);
       } catch (error) {
         next(error);
@@ -354,6 +372,7 @@ export function createAuthRouter({
         }
 
         const result = await authService.login(validation.dto!);
+        setAppSessionCookie(res, result.user.id);
         res.json(result);
       } catch (error) {
         next(error);
@@ -399,6 +418,7 @@ export function createAuthRouter({
           await authService.revokeRefreshToken(refreshToken);
         }
 
+        clearAppSessionCookie(res);
         res.json({ message: "Logged out successfully" });
       } catch (error) {
         next(error);
@@ -1060,7 +1080,9 @@ export function createAuthRouter({
         // Clear link cookie
         res.clearCookie("link_to_user", { path: "/auth/google" });
 
-        // Redirect to app with tokens
+        setAppSessionCookie(res, result.user.id);
+
+        // Redirect to auth page for token persistence, then to /app
         const params = new URLSearchParams({
           auth: "success",
           token: result.token,
@@ -1170,6 +1192,8 @@ export function createAuthRouter({
           (userId, email) => authService!.issueTokens(userId, email),
         );
 
+        setAppSessionCookie(res, result.user.id);
+
         const params = new URLSearchParams({
           auth: "success",
           token: result.token,
@@ -1253,6 +1277,7 @@ export function createAuthRouter({
           (userId, email) => authService!.issueTokens(userId, email),
         );
 
+        setAppSessionCookie(res, result.user.id);
         res.json(result);
       } catch (error) {
         if (
