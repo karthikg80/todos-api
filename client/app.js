@@ -882,15 +882,8 @@ document.addEventListener("keydown", function (e) {
     return;
   }
 
-  // Ctrl/Cmd + N: open task composer
+  // Ctrl/Cmd + N: open task composer (works even in inputs)
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n") {
-    e.preventDefault();
-    openTaskComposer();
-    return;
-  }
-
-  // N: open task composer (when not typing in a field)
-  if (!e.ctrlKey && !e.metaKey && !e.altKey && e.key.toLowerCase() === "n") {
     e.preventDefault();
     openTaskComposer();
     return;
@@ -900,18 +893,7 @@ document.addEventListener("keydown", function (e) {
   if ((e.ctrlKey || e.metaKey) && e.key === "f") {
     e.preventDefault();
     document.getElementById("searchInput")?.focus();
-  }
-
-  if (
-    e.key === "/" &&
-    !e.ctrlKey &&
-    !e.metaKey &&
-    !e.altKey &&
-    !e.shiftKey &&
-    !e.isComposing
-  ) {
-    e.preventDefault();
-    document.getElementById("searchInput")?.focus();
+    return;
   }
 
   // Ctrl/Cmd + A: Select all todos
@@ -922,12 +904,102 @@ document.addEventListener("keydown", function (e) {
       selectAllCheckbox.checked = true;
       toggleSelectAll();
     }
+    return;
+  }
+
+  // --- Below: unmodified key shortcuts, skip when typing in an input ---
+  var isTyping =
+    e.target instanceof HTMLInputElement ||
+    e.target instanceof HTMLTextAreaElement ||
+    e.target instanceof HTMLSelectElement ||
+    (e.target instanceof HTMLElement && e.target.isContentEditable);
+  if (isTyping) return;
+
+  // N: open task composer
+  if (e.key.toLowerCase() === "n" && !e.altKey) {
+    e.preventDefault();
+    openTaskComposer();
+    return;
+  }
+
+  // /: Focus search
+  if (e.key === "/" && !e.isComposing) {
+    e.preventDefault();
+    document.getElementById("searchInput")?.focus();
+    return;
   }
 
   // ?: Show keyboard shortcuts
   if (e.key === "?") {
     e.preventDefault();
     toggleShortcuts();
+    return;
+  }
+
+  // --- Task-level shortcuts (require a focused .todo-item) ---
+  var focusedRow =
+    document.activeElement instanceof HTMLElement
+      ? document.activeElement.closest(".todo-item[data-todo-id]")
+      : null;
+
+  // ↑/↓: Navigate between todo items
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+    var allRows = Array.from(
+      document.querySelectorAll(".todos-list .todo-item[data-todo-id]"),
+    );
+    if (allRows.length === 0) return;
+    var currentIndex = focusedRow ? allRows.indexOf(focusedRow) : -1;
+    var nextIndex =
+      e.key === "ArrowDown"
+        ? Math.min(currentIndex + 1, allRows.length - 1)
+        : Math.max(currentIndex - 1, 0);
+    if (allRows[nextIndex] instanceof HTMLElement) {
+      e.preventDefault();
+      allRows[nextIndex].focus();
+    }
+    return;
+  }
+
+  if (!focusedRow) return;
+  var todoId = focusedRow.getAttribute("data-todo-id");
+  if (!todoId) return;
+
+  // Enter: Open drawer for focused task
+  if (e.key === "Enter") {
+    e.preventDefault();
+    openTodoDrawer(todoId);
+    return;
+  }
+
+  // Delete/Backspace: Delete focused task
+  if (e.key === "Delete" || e.key === "Backspace") {
+    e.preventDefault();
+    deleteTodo(todoId);
+    return;
+  }
+
+  // T: Set due date to today
+  if (e.key.toLowerCase() === "t") {
+    e.preventDefault();
+    var today = new Date();
+    today.setHours(23, 59, 0, 0);
+    applyTodoPatch(todoId, { dueDate: today.toISOString() });
+    return;
+  }
+
+  // S: Set status to someday (clear due date)
+  if (e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    applyTodoPatch(todoId, { status: "someday", dueDate: null });
+    return;
+  }
+
+  // D: Set due date via prompt
+  if (e.key.toLowerCase() === "d") {
+    e.preventDefault();
+    openTodoDrawer(todoId);
+    // Drawer will open with date fields accessible
+    return;
   }
 });
 
