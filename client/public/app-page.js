@@ -36,6 +36,18 @@
   }
 
   // -------------------------------------------------------------------------
+  // 1b. Ensure a user object exists in localStorage.
+  //     app.js init() checks `token && user` before calling showAppView().
+  //     Social OAuth only stores tokens (no user object), so without a
+  //     placeholder app.js treats the session as unauthenticated.
+  //     A stub user lets app.js proceed; loadUserProfile() replaces it
+  //     with real data immediately after boot.
+  // -------------------------------------------------------------------------
+  if (!session.user) {
+    localStorage.setItem("user", JSON.stringify({ _pending: true }));
+  }
+
+  // -------------------------------------------------------------------------
   // 2. Inject stub DOM elements that app.js/authUi.js reference without
   //    null guards. These are invisible and exist solely to prevent
   //    "cannot read property of null" errors.
