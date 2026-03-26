@@ -44,40 +44,97 @@ Detailed auth and scope behavior lives in `docs/remote-mcp-auth.md`.
 
 ## Supported Tools
 
-Initial public tools:
+The public MCP adapter is generated from the current agent manifest and exposes
+the same underlying action catalog, filtered by token scopes. As of `v1.6.0`,
+the runtime manifest advertises 78 actions.
 
-- `list_tasks`
-- `search_tasks`
-- `get_task`
-- `get_project`
-- `create_task`
-- `update_task`
-- `complete_task`
-- `archive_task`
-- `delete_task`
-- `add_subtask`
-- `update_subtask`
-- `delete_subtask`
-- `move_task_to_project`
-- `list_today`
-- `list_next_actions`
-- `list_waiting_on`
-- `list_upcoming`
-- `list_stale_tasks`
-- `list_projects`
-- `list_projects_without_next_action`
-- `review_projects`
-- `plan_project`
-- `ensure_next_action`
-- `weekly_review`
-- `decide_next_work`
-- `analyze_project_health`
-- `analyze_work_graph`
-- `create_project`
-- `update_project`
-- `rename_project`
-- `delete_project`
-- `archive_project`
+Current public tool categories:
+
+- Task reads
+  - `list_tasks`
+  - `search_tasks`
+  - `get_task`
+  - `list_today`
+  - `list_next_actions`
+  - `list_waiting_on`
+  - `list_upcoming`
+  - `list_stale_tasks`
+- Task writes
+  - `create_task`
+  - `update_task`
+  - `complete_task`
+  - `archive_task`
+  - `delete_task`
+  - `move_task_to_project`
+- Subtasks
+  - `add_subtask`
+  - `update_subtask`
+  - `delete_subtask`
+- Project reads and writes
+  - `list_projects`
+  - `get_project`
+  - `create_project`
+  - `update_project`
+  - `rename_project`
+  - `delete_project`
+  - `archive_project`
+  - `list_projects_without_next_action`
+  - `review_projects`
+  - `suggest_next_actions`
+- Planner and review workflows
+  - `plan_project`
+  - `ensure_next_action`
+  - `weekly_review`
+  - `plan_today`
+  - `simulate_plan`
+  - `decide_next_work`
+  - `analyze_project_health`
+  - `analyze_work_graph`
+  - `analyze_task_quality`
+  - `break_down_task`
+  - `find_duplicate_tasks`
+  - `find_stale_items`
+  - `taxonomy_cleanup_suggestions`
+  - `weekly_review_summary`
+  - `weekly_executive_summary`
+  - `evaluate_daily_plan`
+  - `evaluate_weekly_system`
+- Inbox and capture
+  - `capture_inbox_item`
+  - `list_inbox_items`
+  - `promote_inbox_item`
+  - `triage_capture_item`
+  - `triage_inbox`
+  - `create_follow_up_for_waiting_task`
+- Agent control plane and operations
+  - `claim_job_run`
+  - `complete_job_run`
+  - `fail_job_run`
+  - `get_job_run_status`
+  - `list_job_runs`
+  - `record_failed_action`
+  - `list_failed_actions`
+  - `resolve_failed_action`
+  - `get_agent_config`
+  - `update_agent_config`
+  - `replay_job_run`
+  - `record_metric`
+  - `list_metrics`
+  - `metrics_summary`
+  - `record_recommendation_feedback`
+  - `list_recommendation_feedback`
+  - `feedback_summary`
+  - `get_action_policies`
+  - `update_action_policy`
+- Day context and learning loops
+  - `get_availability_windows`
+  - `set_day_context`
+  - `get_day_context`
+  - `prewarm_home_focus`
+  - `record_learning_recommendation`
+  - `list_learning_recommendations`
+  - `apply_learning_recommendation`
+  - `list_friction_patterns`
 
 `tools/list` only returns tools allowed by the current token scopes.
 
@@ -200,3 +257,4 @@ Those docs also record what remains manual from this sandboxed environment.
 - idempotency is implemented for `create_task`, `create_project`, and the planner apply flows that can create duplicate tasks on retry
 - persisted audit records are lightweight operational traces, not a full analytics platform
 - the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access
+- the MCP catalog is broader than the end-user UI today; some control-plane and evaluation tools are intended for trusted agents and automation flows more than for conversational end-user prompting
