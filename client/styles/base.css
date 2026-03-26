@@ -217,25 +217,25 @@ body {
   padding: var(--s-5);
 }
 
-body.is-todos-view {
+body {
   --app-shell-sidebar-width: 272px;
 }
 
-body.is-todos-view.is-projects-rail-collapsed {
+.is-projects-rail-collapsed {
   --app-shell-sidebar-width: 64px;
 }
 
-body.is-todos-view #appShell {
+#appShell {
   grid-template-columns: var(--app-shell-sidebar-width) minmax(0, 1fr);
 }
 
-body.is-todos-view #appMainScroll {
+#appMainScroll {
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-body.is-todos-view #appSidebar {
+#appSidebar {
   display: flex;
   flex-direction: column;
 }
@@ -281,7 +281,7 @@ body.is-todos-view #appSidebar {
   gap: 6px;
 }
 
-body.is-todos-view {
+body {
   padding: 0;
   overflow: hidden;
 }
@@ -460,32 +460,32 @@ small {
   border-bottom-color: var(--accent);
 }
 
-body.is-todos-view .header {
+.header {
   padding: 12px 16px;
 }
 
-body.is-todos-view .header h1 {
+.header h1 {
   font-size: var(--fs-lg);
   margin-bottom: 0;
   line-height: 1.2;
 }
 
-body.is-todos-view .theme-toggle {
+.theme-toggle {
   padding: 6px 10px;
   font-size: var(--fs-body);
 }
 
-body.is-todos-view .user-bar {
+.user-bar {
   margin-top: 8px;
   font-size: var(--fs-xs);
 }
 
-body.is-todos-view .logout-btn {
+.logout-btn {
   padding: 6px 10px;
   font-size: var(--fs-xs);
 }
 
-body.is-todos-view .nav-tabs {
+.nav-tabs {
   display: none !important;
   justify-content: flex-start;
   gap: 8px;
@@ -494,23 +494,23 @@ body.is-todos-view .nav-tabs {
   border-bottom: 1px dashed var(--border-color);
 }
 
-body.is-todos-view.is-admin-user .nav-tabs {
+.is-admin-user .nav-tabs {
   display: flex !important;
 }
 
-body.is-todos-view.is-admin-user .nav-tab {
+.is-admin-user .nav-tab {
   display: none;
 }
 
-body.is-todos-view.is-admin-user #adminNavTab {
+.is-admin-user #adminNavTab {
   display: inline-flex !important;
 }
 
-body.is-todos-view.is-admin-user .nav-tab[data-onclick*="switchView('todos'"] {
+.is-admin-user .nav-tab[data-onclick*="switchView('todos'"] {
   display: inline-flex !important;
 }
 
-body.is-todos-view .nav-tab {
+.nav-tab {
   flex: 0 0 auto;
   border: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
@@ -520,7 +520,7 @@ body.is-todos-view .nav-tab {
   line-height: 1.2;
 }
 
-body.is-todos-view .nav-tab.active {
+.nav-tab.active {
   border-color: color-mix(in oklab, var(--accent) 44%, var(--border-color));
   background: color-mix(in oklab, var(--accent) 9%, var(--surface));
 }
@@ -544,7 +544,7 @@ body.is-todos-view .nav-tab.active {
   min-width: 0;
 }
 
-body.is-todos-view .container {
+.container {
   height: 100%;
   max-height: 100%;
   max-width: none;
@@ -557,7 +557,7 @@ body.is-todos-view .container {
   min-width: 0;
 }
 
-body.is-todos-view .content {
+.content {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -566,7 +566,7 @@ body.is-todos-view .content {
   flex-direction: column;
 }
 
-body.is-todos-view #todosView.view.active {
+#todosView.view.active {
   flex: 1 1 auto;
 }
 
