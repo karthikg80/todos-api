@@ -846,6 +846,7 @@ function renderOnCreateAssistRow() {
                   : ""
               }
               ${suggestion.helperText ? `<div class="ai-create-chip__helper">${hooks.escapeHtml(suggestion.helperText)}</div>` : ""}
+              ${suggestion.continuityHint ? `<div class="ai-create-chip__continuity">${hooks.escapeHtml(suggestion.continuityHint)}</div>` : ""}
               ${renderOnCreateChipChoices(suggestion)}
               <div class="ai-create-chip__actions ai-actions">
                 ${renderOnCreateChipActions(suggestion)}

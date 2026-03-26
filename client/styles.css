@@ -1791,6 +1791,13 @@ textarea:focus-visible,
   color: var(--text-secondary);
 }
 
+.ai-create-chip__continuity {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 .ai-create-chip__choices {
   display: flex;
   flex-wrap: wrap;
