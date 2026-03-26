@@ -210,6 +210,28 @@ function getCommandPaletteTaskMatches(query) {
       if (score === -1) return null;
 
       const dueAt = todo.dueDate ? new Date(todo.dueDate).getTime() : Infinity;
+      const now = new Date();
+      const todayEnd = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        23,
+        59,
+        59,
+      );
+      let dueState = "";
+      if (todo.dueDate) {
+        const due = new Date(todo.dueDate);
+        if (due < now) dueState = "overdue";
+        else if (due <= todayEnd) dueState = "today";
+        else dueState = "upcoming";
+      }
+      const statusLabel = todo.status || "";
+      const projectName = todo.category
+        ? hooks.getProjectLeafName
+          ? hooks.getProjectLeafName(todo.category)
+          : todo.category
+        : "";
       return {
         id: `task-${todo.id}`,
         type: "task",
@@ -218,14 +240,24 @@ function getCommandPaletteTaskMatches(query) {
         score,
         dueAt: Number.isFinite(dueAt) ? dueAt : Infinity,
         completed: !!todo.completed,
+        status: statusLabel,
+        dueState,
+        projectName,
         meta: [
-          todo.category ? `Project: ${todo.category}` : "",
-          todo.dueDate
-            ? `Due: ${new Date(todo.dueDate).toLocaleDateString()}`
+          statusLabel && statusLabel !== "next"
+            ? statusLabel.replace("_", " ")
             : "",
+          projectName || "",
+          dueState === "overdue"
+            ? "Overdue"
+            : dueState === "today"
+              ? "Due today"
+              : todo.dueDate
+                ? `Due ${new Date(todo.dueDate).toLocaleDateString()}`
+                : "",
         ]
           .filter(Boolean)
-          .join(" • "),
+          .join(" \u00b7 "),
       };
     })
     .filter(Boolean)
@@ -329,6 +361,24 @@ function renderCommandPalette() {
       const isActive = selectableIndex === state.commandPaletteIndex;
       const item = row.item;
       if (item.type === "task") {
+        const badges = [];
+        if (item.dueState === "overdue")
+          badges.push(
+            '<span class="command-palette-badge command-palette-badge--overdue">Overdue</span>',
+          );
+        else if (item.dueState === "today")
+          badges.push(
+            '<span class="command-palette-badge command-palette-badge--today">Today</span>',
+          );
+        if (
+          item.status &&
+          item.status !== "next" &&
+          item.status !== "done" &&
+          item.status !== "cancelled"
+        )
+          badges.push(
+            `<span class="command-palette-badge">${hooks.escapeHtml(item.status.replace("_", " "))}</span>`,
+          );
         return `
           <button
             type="button"
@@ -339,8 +389,8 @@ function renderCommandPalette() {
             data-command-index="${selectableIndex}"
             data-command-id="${hooks.escapeHtml(item.id)}"
           >
-            <span class="command-palette-option__title">${hooks.escapeHtml(item.label)}</span>
-            <span class="command-palette-option__meta">${hooks.escapeHtml(item.meta || (item.completed ? "Completed" : ""))}</span>
+            <span class="command-palette-option__title">${hooks.escapeHtml(item.label)}${badges.length ? " " + badges.join("") : ""}</span>
+            <span class="command-palette-option__meta">${hooks.escapeHtml(item.projectName || "")}${item.meta && item.projectName ? " \u00b7 " : ""}${hooks.escapeHtml(item.meta && !item.projectName ? item.meta : item.meta?.replace(item.projectName, "").replace(/^ \u00b7 /, "").replace(/ \u00b7 $/, "") || (item.completed ? "Completed" : ""))}</span>
           </button>
         `;
       }

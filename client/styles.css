@@ -4032,6 +4032,40 @@ body.is-todos-view .floating-new-task-cta {
   color: var(--text-muted);
 }
 
+.command-palette-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: capitalize;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.command-palette-badge--overdue {
+  background: var(--color-error-bg, #fef2f2);
+  color: var(--color-error, #dc2626);
+}
+
+.command-palette-badge--today {
+  background: var(--color-warning-bg, #fffbeb);
+  color: var(--color-warning, #d97706);
+}
+
+:root.dark .command-palette-badge--overdue {
+  background: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+}
+
+:root.dark .command-palette-badge--today {
+  background: rgba(217, 119, 6, 0.15);
+  color: #fcd34d;
+}
+
 .command-palette-inline-empty {
   color: var(--text-secondary);
   font-size: var(--fs-sm);
