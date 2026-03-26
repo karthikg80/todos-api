@@ -67,7 +67,15 @@ const server = http.createServer(async (req, res) => {
         filePath = path.join(filePath, "index.html");
       }
     } catch {
-      filePath = path.join(root, "index.html");
+      // Route-aware fallback for the 3-page split
+      const decoded = decodeURIComponent((req.url || "/").split("?")[0]);
+      if (decoded === "/auth") {
+        filePath = path.join(root, "public", "auth.html");
+      } else if (decoded === "/app" || decoded.startsWith("/app/")) {
+        filePath = path.join(root, "public", "app.html");
+      } else {
+        filePath = path.join(root, "public", "index.html");
+      }
     }
 
     const ext = path.extname(filePath).toLowerCase();
