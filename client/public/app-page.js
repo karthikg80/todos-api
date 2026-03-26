@@ -24,10 +24,13 @@
   }
 
   // -------------------------------------------------------------------------
-  // 1. Auth gate — redirect immediately if not authenticated
+  // 1. Auth gate — redirect immediately if not authenticated.
+  //    Token alone is sufficient: social OAuth callbacks only carry
+  //    token + refreshToken (no user object). The user profile is loaded
+  //    by app.js after boot via loadUserProfile().
   // -------------------------------------------------------------------------
   var session = AppState.loadStoredSession();
-  if (!session.token || !session.user) {
+  if (!session.token) {
     window.location.replace("/auth");
     return; // stop all further execution
   }

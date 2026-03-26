@@ -64,11 +64,10 @@
   function onAuthTokens(nextToken, nextRefreshToken) {
     authToken = nextToken;
     refreshToken = nextRefreshToken;
-    AppState.persistSession({
-      authToken: authToken,
-      refreshToken: refreshToken,
-      currentUser: null,
-    });
+    // Write tokens directly — persistSession() would clear the user key
+    // because we have no user object on the standalone auth page.
+    localStorage.setItem("authToken", nextToken);
+    localStorage.setItem("refreshToken", nextRefreshToken);
   }
 
   var api = ApiClient.createApiClient({
@@ -476,11 +475,12 @@
       authToken = token;
       refreshToken = rt;
       setAuthState(AppState.AUTH_STATE.AUTHENTICATED);
-      AppState.persistSession({
-        authToken: token,
-        refreshToken: rt,
-        currentUser: null,
-      });
+      // Persist tokens only — no user object is available from the OAuth
+      // callback URL. Write directly to localStorage to avoid
+      // persistSession() clearing the user key (it removes keys whose
+      // value is falsy).
+      localStorage.setItem("authToken", token);
+      localStorage.setItem("refreshToken", rt);
       redirectToApp();
     } else if (auth === "error") {
       showMessage(
