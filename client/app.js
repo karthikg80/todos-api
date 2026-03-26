@@ -324,6 +324,7 @@ import {
   getHomeDrilldownLabel,
   startOfLocalDay,
 } from "./modules/homeDashboard.js";
+import { generateDayPlan } from "./modules/planTodayAgent.js";
 import { refreshPrioritiesTile } from "./modules/homePrioritiesTile.js";
 import {
   renderInboxView,
@@ -481,6 +482,7 @@ import * as OnCreateAssist from "./modules/onCreateAssist.js";
 import {
   applyHomeFocusSuggestion,
   dismissHomeFocusSuggestion,
+  refreshHomeFocusSuggestions,
 } from "./modules/homeAiService.js";
 import { EventBus } from "./modules/eventBus.js";
 import { TODOS_CHANGED, TODOS_RENDER } from "./platform/events/eventTypes.js";
@@ -1358,6 +1360,13 @@ function bindDockHandlers() {
   hooks.resetQuickEntryNaturalDueState = resetQuickEntryNaturalDueState;
   hooks.selectProjectFromRail = selectProjectFromRail;
   hooks.selectWorkspaceView = selectWorkspaceView;
+  hooks.triggerPlanToday = generateDayPlan;
+  hooks.toggleAiWorkspace = toggleAiWorkspace;
+  hooks.refreshHomeFocus = refreshHomeFocusSuggestions;
+  hooks.exportCalendar = () => {
+    const btn = document.getElementById("exportIcsButton");
+    if (btn instanceof HTMLElement) btn.click();
+  };
   // hooks.setPriority — set by initTodosFeature
   hooks.setQuickEntryPropertiesOpen = setQuickEntryPropertiesOpen;
   hooks.setSelectedProjectKey = setSelectedProjectKey;
