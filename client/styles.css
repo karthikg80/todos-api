@@ -9505,6 +9505,10 @@ body:has(.todo-kebab-menu--open) .floating-new-task-cta {
   pointer-events: none;
 }
 
+body:has(.todo-inline-editor) .floating-new-task-cta {
+  pointer-events: none;
+}
+
 #projectsRail {
   padding-bottom: var(--s-5);
 }
