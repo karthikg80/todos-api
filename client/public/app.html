@@ -16,7 +16,10 @@
     <link rel="stylesheet" href="/styles/app.css" />
     <script>
       // Redirect unauthenticated users to /auth
-      if (!localStorage.getItem("token")) {
+      if (
+        !localStorage.getItem("authToken") &&
+        !localStorage.getItem("token")
+      ) {
         window.location.replace("/auth");
       }
     </script>

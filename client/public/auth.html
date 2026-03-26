@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="/styles/auth.css" />
     <script>
       // Redirect authenticated users to /app
-      if (localStorage.getItem("token")) {
+      if (localStorage.getItem("authToken") || localStorage.getItem("token")) {
         window.location.replace("/app");
       }
     </script>

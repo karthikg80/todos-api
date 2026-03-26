@@ -2,7 +2,7 @@
 // Depends on: /utils/theme.js (loaded before this script).
 
 // Show "Go to app" CTA for authenticated users, hide login/register buttons.
-if (localStorage.getItem("token")) {
+if (localStorage.getItem("authToken") || localStorage.getItem("token")) {
   var goBtn = document.getElementById("landingGoToApp");
   var loginBtn = document.getElementById("landingLoginBtn");
   var regBtn = document.getElementById("landingRegisterBtn");
