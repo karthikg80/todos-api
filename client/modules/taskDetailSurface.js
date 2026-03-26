@@ -259,6 +259,7 @@ export function renderTaskPageSurface(todo) {
         <div class="task-page__hero-main">
           <button type="button" class="mini-btn task-page__back-btn" data-onclick="closeTaskPage()">Back to list</button>
           <div class="task-page__save-state" data-state="${escapeHtml(state.taskPageSaveState)}">${saveLabel}</div>
+          <label class="sr-only" for="taskPageTitleInput">Task title</label>
           <input
             id="taskPageTitleInput"
             class="task-page__title-input"
@@ -280,6 +281,7 @@ export function renderTaskPageSurface(todo) {
         <div class="task-page__main">
           <section class="task-page__section">
             <div class="task-page__section-title">Description</div>
+            <label class="sr-only" for="taskPageDescriptionTextarea">Task description</label>
             <textarea
               id="taskPageDescriptionTextarea"
               class="task-page__description"
@@ -471,6 +473,10 @@ export function closeInlineDescriptionEditor(todoId = "") {
     clearTimeout(state.inlineTaskEditorSaveTimer);
     state.inlineTaskEditorSaveTimer = null;
   }
+  if (state.inlineTaskEditorResetTimer) {
+    clearTimeout(state.inlineTaskEditorResetTimer);
+    state.inlineTaskEditorResetTimer = null;
+  }
   applyUiAction("taskInline/close");
   hooks.renderTodos?.();
   if (todoId) {
@@ -552,6 +558,10 @@ export function closeTaskPage() {
   if (state.taskPageDescriptionSaveTimer) {
     clearTimeout(state.taskPageDescriptionSaveTimer);
     state.taskPageDescriptionSaveTimer = null;
+  }
+  if (state.taskPageSaveResetTimer) {
+    clearTimeout(state.taskPageSaveResetTimer);
+    state.taskPageSaveResetTimer = null;
   }
   const todoId = state.taskPageTodoId;
   applyUiAction("taskPage/close");
