@@ -2292,6 +2292,39 @@
                             </form>
                           </div>
                         </div>
+
+                        <!-- ═══ Card 4: Assistant Connections ═══ -->
+                        <div class="settings-card">
+                          <h3 class="settings-card__title">
+                            Assistant Connections
+                          </h3>
+                          <p class="settings-hint">
+                            Connect Claude, ChatGPT, or any compatible AI
+                            assistant to manage your tasks conversationally.
+                          </p>
+
+                          <div
+                            id="mcpSessionsList"
+                            class="mcp-sessions-list"
+                            aria-live="polite"
+                          >
+                            <div class="mcp-sessions-empty">
+                              No assistants connected yet.
+                            </div>
+                          </div>
+
+                          <div class="settings-card__inline-action">
+                            <button
+                              type="button"
+                              class="mini-btn mini-btn--danger"
+                              id="revokeAllSessionsBtn"
+                              data-onclick="revokeAllMcpSessions()"
+                              style="display: none"
+                            >
+                              Revoke all sessions
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     </section>
                     <section id="feedbackPane" class="feedback-pane" hidden>
