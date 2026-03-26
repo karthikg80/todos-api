@@ -4,6 +4,25 @@
   width: 100%;
 }
 
+/* Hide landing when authenticated workspace is active */
+body.is-todos-view .landing {
+  display: none;
+}
+
+/* When unauthenticated, strip app chrome so landing page takes over */
+body:not(.is-todos-view) .header {
+  display: none;
+}
+
+body:not(.is-todos-view) #appMainScroll {
+  padding: 0;
+}
+
+body:not(.is-todos-view) .container {
+  max-width: none;
+  border-radius: 0;
+}
+
 /* Nav */
 .landing-nav {
   position: sticky;
