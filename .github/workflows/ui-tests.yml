@@ -6,10 +6,11 @@ on:
     branches: [master]
 
 jobs:
-  ui-quality:
+  # ── Detect whether UI-related files changed ──────────────────────────
+  detect-changes:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-
+    outputs:
+      ui: ${{ steps.run.outputs.run_ui }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -26,6 +27,7 @@ jobs:
               - 'public/**'
               - 'package.json'
               - 'package-lock.json'
+              - 'playwright.config.ts'
               - '.github/workflows/ui-tests.yml'
               - '.github/workflows/ui-visual.yml'
 
@@ -38,43 +40,75 @@ jobs:
           fi
           echo "run_ui=${run_ui}" >> "$GITHUB_OUTPUT"
 
-      - name: No UI changes detected; skipping UI quality checks
+      - name: No UI changes detected
         if: steps.run.outputs.run_ui != 'true'
         run: echo "No client/tests/ui changes detected. Skipping UI quality checks."
 
+  # ── Lint job (CSS, HTML, links) — no browser needed ──────────────────
+  ui-lint:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Setup Node
-        if: steps.run.outputs.run_ui == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
 
       - name: Install dependencies
-        if: steps.run.outputs.run_ui == 'true'
         run: npm ci
 
       - name: Lint CSS
-        if: steps.run.outputs.run_ui == 'true'
         run: npm run lint:css
 
       - name: Validate HTML
-        if: steps.run.outputs.run_ui == 'true'
         run: npm run lint:html
 
       - name: Crawl links
-        if: steps.run.outputs.run_ui == 'true'
         run: npm run test:links
 
+  # ── UI test job (Playwright fast tier) ───────────────────────────────
+  ui-test:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get Playwright version
+        id: pw-version
+        run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.pw-version.outputs.version }}-chromium
+
       - name: Install Playwright browser
-        if: steps.run.outputs.run_ui == 'true'
         run: npx playwright install --with-deps chromium
 
       - name: Run UI tests (fast tier)
-        if: steps.run.outputs.run_ui == 'true'
         run: npm run test:ui:fast
 
       - name: Upload Playwright report
-        if: always() && steps.run.outputs.run_ui == 'true'
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: playwright-report
