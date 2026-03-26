@@ -488,20 +488,38 @@ export function closeInlineDescriptionEditor(todoId = "") {
 }
 
 export async function openDrawerFromInline(todoId) {
+  // Cancel the debounce auto-save timer so it doesn't race with the
+  // explicit save below or fire after the inline editor is closed.
+  if (state.inlineTaskEditorSaveTimer) {
+    clearTimeout(state.inlineTaskEditorSaveTimer);
+    state.inlineTaskEditorSaveTimer = null;
+  }
+  // Snapshot the description before the async save — concurrent render
+  // cycles (debounce auto-save, TODOS_CHANGED) can recreate the textarea
+  // and corrupt the DOM read.  The draft.description is always up-to-date
+  // because onInlineDescriptionInput writes to it synchronously on every
+  // keystroke/fill.
+  const snapshotDescription = String(
+    state.inlineTaskEditorDraft?.description || "",
+  );
   if (state.inlineTaskEditorDraft) {
-    state.inlineTaskEditorDraft.description =
-      readInlineDescriptionValue(todoId);
+    state.inlineTaskEditorDraft.description = snapshotDescription;
   }
   const saved = await saveInlineDescription(todoId);
   if (!saved) return;
 
+  // Build the drawer seed using the pre-save snapshot, not whatever the
+  // draft may have been overwritten to by save-triggered re-renders.
+  const todo = getTodoById(todoId);
   const row = getTodoRow(todoId);
-  const seed = buildDrawerSeedFromInline();
+  const seed = todo ? { ...todo, description: snapshotDescription } : null;
   applyUiAction("taskInline/close");
-  hooks.renderTodos?.();
+  // Seed the drawer draft *before* renderTodos so any sync-triggered
+  // drawer render picks up the inline description, not the stale todo.
   if (seed && typeof hooks.seedDrawerDraft === "function") {
     hooks.seedDrawerDraft(seed);
   }
+  hooks.renderTodos?.();
   hooks.openTodoDrawer?.(todoId, row);
 }
 
