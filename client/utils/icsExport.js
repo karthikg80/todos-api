@@ -79,10 +79,28 @@
       lines.push("BEGIN:VEVENT");
       lines.push("UID:" + escapeIcsText(todo.id + "@todos-api"));
       lines.push("DTSTAMP:" + dtStamp);
-      lines.push("DTSTART;VALUE=DATE:" + eventDate);
+
+      // Use timed event when estimated duration is available
+      var estimatedMins = Number(todo.estimateMinutes || todo.estimatedMinutes || 0);
+      if (estimatedMins > 0 && todo.dueDate) {
+        var startDate = new Date(todo.dueDate);
+        if (!Number.isNaN(startDate.getTime())) {
+          var endDate = new Date(startDate.getTime() + estimatedMins * 60000);
+          lines.push("DTSTART:" + toIcsUtcTimestamp(startDate));
+          lines.push("DTEND:" + toIcsUtcTimestamp(endDate));
+        } else {
+          lines.push("DTSTART;VALUE=DATE:" + eventDate);
+        }
+      } else {
+        lines.push("DTSTART;VALUE=DATE:" + eventDate);
+      }
+
       lines.push("SUMMARY:" + summary);
       if (description) {
         lines.push("DESCRIPTION:" + description);
+      }
+      if (todo.priority === "high" || todo.priority === "urgent") {
+        lines.push("PRIORITY:" + (todo.priority === "urgent" ? "1" : "5"));
       }
       lines.push("END:VEVENT");
     }
