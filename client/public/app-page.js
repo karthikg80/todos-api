@@ -51,8 +51,13 @@
   // 2. Inject stub DOM elements that app.js/authUi.js reference without
   //    null guards. These are invisible and exist solely to prevent
   //    "cannot read property of null" errors.
+  //
+  //    IMPORTANT: these must be injected synchronously (not in a
+  //    DOMContentLoaded listener) because module scripts like app.js
+  //    execute BEFORE DOMContentLoaded fires. If we defer injection,
+  //    showAppView() hits null elements and throws.
   // -------------------------------------------------------------------------
-  document.addEventListener("DOMContentLoaded", function () {
+  function injectStubs() {
     // showAppView() calls: getElementById("authView").classList.remove("active")
     // showAuthView() calls: getElementById("authView").classList.add("active")
     if (!document.getElementById("authView")) {
@@ -83,7 +88,16 @@
         document.body.appendChild(el);
       }
     });
-  });
+  }
+
+  // Inject immediately if <body> is available (defer scripts run after
+  // parsing, so document.body exists). Fall back to DOMContentLoaded
+  // only if body is somehow unavailable.
+  if (document.body) {
+    injectStubs();
+  } else {
+    document.addEventListener("DOMContentLoaded", injectStubs);
+  }
 
   // -------------------------------------------------------------------------
   // 3. Patch showAuthView / logout to redirect instead of toggling DOM.
