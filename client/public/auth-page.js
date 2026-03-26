@@ -1,12 +1,38 @@
 // auth-page.js — Standalone auth page controller.
-// Depends on: window.AppState (authSession.js), window.ApiClient (apiClient.js),
-//             window.Utils (utils.js). No dependency on app.js or store.js.
+// ---------------------------------------------------------------------------
+// Required globals (loaded via <script> tags in auth.html):
+//   window.AppState  — from /utils/authSession.js  (token persistence)
+//   window.ApiClient — from /utils/apiClient.js    (fetch + token refresh)
+//   window.Utils     — from /utils/utils.js        (showMessage / hideMessage)
+// Load order matters: authSession → apiClient → utils → this file.
+// If any global is missing the page shows a clear error instead of breaking
+// silently deep in a callback.
+// ---------------------------------------------------------------------------
 (function () {
   "use strict";
 
   var AppState = window.AppState;
   var ApiClient = window.ApiClient;
   var Utils = window.Utils;
+
+  // -- dependency guard -----------------------------------------------------
+  var missing = [];
+  if (!AppState) missing.push("AppState (authSession.js)");
+  if (!ApiClient) missing.push("ApiClient (apiClient.js)");
+  if (!Utils) missing.push("Utils (utils.js)");
+  if (missing.length) {
+    document.addEventListener("DOMContentLoaded", function () {
+      var el = document.getElementById("authMessage");
+      if (el) {
+        el.textContent =
+          "Auth page failed to load: missing " + missing.join(", ");
+        el.className = "message show error";
+      }
+    });
+    return; // abort — nothing else will work
+  }
+  // -------------------------------------------------------------------------
+
   var showMessage = Utils.showMessage;
   var hideMessage = Utils.hideMessage;
 
@@ -428,31 +454,47 @@
   function handleSocialCallback() {
     var params = new URLSearchParams(window.location.search);
     var auth = params.get("auth");
+    if (!auth) return; // not a callback — nothing to do
+
+    // Always clean the URL first so callback params don't linger on reload
+    window.history.replaceState({}, document.title, window.location.pathname);
 
     if (auth === "success") {
       var token = params.get("token");
       var rt = params.get("refreshToken");
 
-      if (token && rt) {
-        authToken = token;
-        refreshToken = rt;
-        setAuthState(AppState.AUTH_STATE.AUTHENTICATED);
-        AppState.persistSession({
-          authToken: token,
-          refreshToken: rt,
-          currentUser: null,
-        });
-        window.history.replaceState(
-          {},
-          document.title,
-          window.location.pathname,
+      if (!token || !rt) {
+        // Server sent auth=success but omitted credentials — treat as error
+        showMessage(
+          "authMessage",
+          "Login succeeded but credentials were missing. Please try again.",
+          "error",
         );
-        redirectToApp();
+        return;
       }
+
+      authToken = token;
+      refreshToken = rt;
+      setAuthState(AppState.AUTH_STATE.AUTHENTICATED);
+      AppState.persistSession({
+        authToken: token,
+        refreshToken: rt,
+        currentUser: null,
+      });
+      redirectToApp();
     } else if (auth === "error") {
-      var message = params.get("message") || "Login failed";
-      window.history.replaceState({}, document.title, window.location.pathname);
-      showMessage("authMessage", message, "error");
+      showMessage(
+        "authMessage",
+        params.get("message") || "Login failed",
+        "error",
+      );
+    } else {
+      // Unknown auth value — surface it rather than silently ignoring
+      showMessage(
+        "authMessage",
+        "Unexpected login response. Please try again.",
+        "error",
+      );
     }
   }
 
@@ -615,11 +657,14 @@
   }
 
   // ---------------------------------------------------------------------------
-  // URL-driven reset-password token (?reset-token=...)
+  // URL-driven reset-password token (?token=...)
+  // Matches the link format sent by emailService.ts: /?token=TOKEN
+  // Skips when ?auth= is present (social callback also uses ?token=).
   // ---------------------------------------------------------------------------
   function handleResetTokenFromUrl() {
     var params = new URLSearchParams(window.location.search);
-    var token = params.get("reset-token");
+    if (params.has("auth")) return; // social callback owns ?token= in this case
+    var token = params.get("token");
     if (token) {
       showResetPassword(token);
       window.history.replaceState({}, document.title, window.location.pathname);
