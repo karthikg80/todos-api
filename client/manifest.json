@@ -1,7 +1,7 @@
 {
-  "name": "Todos — Calm Task Management",
+  "name": "Todos — Planning Workspace",
   "short_name": "Todos",
-  "description": "A calm, AI-native workspace for managing your tasks, projects, and daily focus.",
+  "description": "A calm workspace for turning scattered tasks into focused days, reviewed weeks, and clear next actions.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f4f7fb",
