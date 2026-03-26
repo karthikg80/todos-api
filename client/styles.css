@@ -8249,6 +8249,18 @@ body.is-todos-view .projects-rail-item__count {
   border-color: color-mix(in oklab, var(--danger) 30%, var(--border-color));
 }
 
+.home-task-row--plan {
+  grid-template-columns: auto auto 1fr auto;
+}
+
+.home-task-row__slot {
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 90px;
+}
+
 .home-task-row__meta-tag {
   font-size: 0.65rem;
   padding: 1px 5px;

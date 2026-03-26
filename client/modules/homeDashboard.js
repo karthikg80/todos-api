@@ -26,6 +26,7 @@ import {
   getDayPlanState,
   generateDayPlan,
   planTodayTaskIds,
+  formatSlotTime,
 } from "./planTodayAgent.js";
 import {
   isOnboardingActive,
@@ -1053,8 +1054,13 @@ export function renderTodaysPlanZone() {
               const taskId = escapeHtml(String(task.taskId || ""));
               const minsLabel =
                 task.estimatedMinutes > 0 ? `${task.estimatedMinutes}m` : "";
+              const slotLabel =
+                task.slotStart != null && task.slotEnd != null
+                  ? `${formatSlotTime(task.slotStart)} \u2013 ${formatSlotTime(task.slotEnd)}`
+                  : "";
               return `
-                <div class="home-task-row" data-home-todo-id="${taskId}">
+                <div class="home-task-row home-task-row--plan" data-home-todo-id="${taskId}">
+                  ${slotLabel ? `<span class="home-task-row__slot">${escapeHtml(slotLabel)}</span>` : ""}
                   <input type="checkbox"
                          class="todo-checkbox home-task-row__checkbox"
                          aria-label="Mark ${escapeHtml(String(task.title || "task"))} complete"
