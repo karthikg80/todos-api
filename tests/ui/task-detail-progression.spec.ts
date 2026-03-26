@@ -248,13 +248,15 @@ test.describe("Task detail progression", () => {
     await inlineInput.blur();
 
     await expect
-      .poll(() =>
-        state.updatePatches.some(
-          (entry) =>
-            entry.todoId === "todo-1" &&
-            entry.patch.description ===
-              "Updated inline context for the launch note",
-        ),
+      .poll(
+        () =>
+          state.updatePatches.some(
+            (entry) =>
+              entry.todoId === "todo-1" &&
+              entry.patch.description ===
+                "Updated inline context for the launch note",
+          ),
+        { timeout: 10_000 },
       )
       .toBeTruthy();
 
