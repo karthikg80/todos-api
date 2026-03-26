@@ -242,7 +242,9 @@ function renderTaskDrawerAssistSection(todoId) {
       !assistState.unavailable &&
       !assistState.error &&
       (assistState.mustAbstain || assistState.suggestions.length === 0)
-        ? renderStatusMessage({ message: "This task looks good. No suggestions right now." })
+        ? renderStatusMessage({
+            message: "This task looks good. No suggestions right now.",
+          })
         : ""
     }
     ${

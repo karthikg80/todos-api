@@ -81,7 +81,9 @@
       lines.push("DTSTAMP:" + dtStamp);
 
       // Use timed event when estimated duration is available
-      var estimatedMins = Number(todo.estimateMinutes || todo.estimatedMinutes || 0);
+      var estimatedMins = Number(
+        todo.estimateMinutes || todo.estimatedMinutes || 0,
+      );
       if (estimatedMins > 0 && todo.dueDate) {
         var startDate = new Date(todo.dueDate);
         if (!Number.isNaN(startDate.getTime())) {

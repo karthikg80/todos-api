@@ -390,7 +390,15 @@ function renderCommandPalette() {
             data-command-id="${hooks.escapeHtml(item.id)}"
           >
             <span class="command-palette-option__title">${hooks.escapeHtml(item.label)}${badges.length ? " " + badges.join("") : ""}</span>
-            <span class="command-palette-option__meta">${hooks.escapeHtml(item.projectName || "")}${item.meta && item.projectName ? " \u00b7 " : ""}${hooks.escapeHtml(item.meta && !item.projectName ? item.meta : item.meta?.replace(item.projectName, "").replace(/^ \u00b7 /, "").replace(/ \u00b7 $/, "") || (item.completed ? "Completed" : ""))}</span>
+            <span class="command-palette-option__meta">${hooks.escapeHtml(item.projectName || "")}${item.meta && item.projectName ? " \u00b7 " : ""}${hooks.escapeHtml(
+              item.meta && !item.projectName
+                ? item.meta
+                : item.meta
+                    ?.replace(item.projectName, "")
+                    .replace(/^ \u00b7 /, "")
+                    .replace(/ \u00b7 $/, "") ||
+                    (item.completed ? "Completed" : ""),
+            )}</span>
           </button>
         `;
       }
