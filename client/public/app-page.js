@@ -28,7 +28,7 @@
   // -------------------------------------------------------------------------
   var session = AppState.loadStoredSession();
   if (!session.token || !session.user) {
-    window.location.replace("/public/auth.html");
+    window.location.replace("/auth");
     return; // stop all further execution
   }
 
@@ -95,7 +95,7 @@
       }
       // Ensure session is cleared then redirect
       AppState.clearSession();
-      window.location.replace("/public/auth.html");
+      window.location.replace("/auth");
     };
   }
 
