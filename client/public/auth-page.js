@@ -174,7 +174,7 @@
   // Post-auth redirect — go to main app
   // ---------------------------------------------------------------------------
   function redirectToApp() {
-    window.location.href = "/";
+    window.location.href = "/app";
   }
 
   // ---------------------------------------------------------------------------

@@ -87,7 +87,7 @@ export class EmailService {
     if (!this.transporter) {
       return;
     }
-    const resetUrl = `${this.baseUrl}/?token=${encodeURIComponent(token)}`;
+    const resetUrl = `${this.baseUrl}/auth?token=${encodeURIComponent(token)}`;
 
     try {
       const info = await this.transporter.sendMail({
