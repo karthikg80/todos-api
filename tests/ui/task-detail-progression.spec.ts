@@ -321,6 +321,7 @@ test.describe("Task detail progression", () => {
     const inlineInput = page.locator(
       '[data-inline-description-input="todo-1"]',
     );
+    await inlineInput.clear();
     await inlineInput.fill("Escalate this into the quick panel");
 
     await page.getByRole("button", { name: "More details" }).click();

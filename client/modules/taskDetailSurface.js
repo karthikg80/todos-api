@@ -900,7 +900,9 @@ export function bindTaskDetailSurfaceHandlers() {
           clearTimeout(state.inlineTaskEditorSaveTimer);
           state.inlineTaskEditorSaveTimer = null;
         }
-        void saveInlineTaskDraft(todoId);
+        if (isInlineDraftDirty(todoId)) {
+          void saveInlineTaskDraft(todoId);
+        }
         return;
       }
       if (
@@ -912,7 +914,9 @@ export function bindTaskDetailSurfaceHandlers() {
           clearTimeout(state.inlineTaskEditorSaveTimer);
           state.inlineTaskEditorSaveTimer = null;
         }
-        void saveInlineTaskDraft(todoId);
+        if (isInlineDraftDirty(todoId)) {
+          void saveInlineTaskDraft(todoId);
+        }
         return;
       }
       if (target.id === "taskPageTitleInput") {
