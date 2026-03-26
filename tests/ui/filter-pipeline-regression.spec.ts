@@ -305,7 +305,7 @@ async function installFilterPipelineMockApi(page: Page, todosSeed: TodoSeed[]) {
 }
 
 async function registerAndOpenTodos(page: Page, email: string) {
-  await page.goto("/?tab=register");
+  await page.goto("/");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Filter Pipeline");
   await page.locator("#registerEmail").fill(email);

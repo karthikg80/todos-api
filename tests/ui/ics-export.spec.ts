@@ -153,7 +153,7 @@ async function installIcsMockApi(page: Page, todosSeed: TodoSeed[]) {
 }
 
 async function registerAndOpenTodos(page: Page) {
-  await page.goto("/?tab=register");
+  await page.goto("/");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("ICS User");
   await page.locator("#registerEmail").fill("ics@example.com");

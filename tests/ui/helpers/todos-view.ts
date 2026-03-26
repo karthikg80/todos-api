@@ -80,7 +80,11 @@ export async function registerAndOpenTodosView(
   { name, email, password = "Password123!" }: RegisterOptions,
   { preserveLandingDefault = false }: TodosViewOpenOptions = {},
 ) {
-  await page.goto("/?tab=register");
+  await page.goto("/");
+  // Navigate from landing to auth page, then switch to Register tab
+  await page.evaluate(() => {
+    (window as any).showAuthPage?.("register");
+  });
   await page.locator("#registerName").fill(name);
   await page.locator("#registerEmail").fill(email);
   await page.locator("#registerPassword").fill(password);
