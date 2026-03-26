@@ -269,7 +269,7 @@ async function installAiUiMockApi(page: Page) {
 }
 
 async function registerAndOpenTodos(page: Page, debug = false) {
-  await page.goto(debug ? "/?tab=register&ai_debug=1" : "/?tab=register");
+  await page.goto("/auth?tab=register");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("AI Debug User");
   await page
@@ -280,6 +280,10 @@ async function registerAndOpenTodos(page: Page, debug = false) {
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
   await expect(page.locator("#todosView")).toHaveClass(/active/);
+  if (debug) {
+    await page.goto("/app?ai_debug=1");
+    await expect(page.locator("#todosView")).toHaveClass(/active/);
+  }
   await ensureAllTasksListActive(page);
 }
 

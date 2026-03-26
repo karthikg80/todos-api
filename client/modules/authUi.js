@@ -954,12 +954,7 @@ export async function logout() {
   hooks.closeProjectsRailSheet?.({ restoreFocus: false });
   hooks.closeTaskComposer?.({ restoreFocus: false, force: true, reset: true });
   closeTodoDrawer({ restoreFocus: false });
-  // On multi-page layout, redirect to auth page; on single-page, toggle view
-  if (document.getElementById("authView")) {
-    showAuthView();
-  } else {
-    window.location.href = "/auth";
-  }
+  window.location.href = "/auth";
 }
 
 // =============================================================================
@@ -1030,43 +1025,6 @@ export function showAppView() {
     hooks.setQuickEntryPropertiesOpen?.(true, { persist: false });
   }
   hooks.syncQuickEntryProjectActions?.();
-}
-
-export function showAuthView() {
-  hooks.setTodosViewBodyState?.(false);
-  hooks.setSettingsPaneVisible?.(false);
-  hooks.setFeedbackPaneVisible?.(false);
-  hooks.setAdminPaneVisible?.(false);
-  document.getElementById("authView")?.classList.add("active");
-  document.getElementById("todosView")?.classList.remove("active");
-  document.getElementById("profileView")?.classList.remove("active");
-  const navTabsEl = document.getElementById("navTabs");
-  if (navTabsEl) navTabsEl.style.display = "none";
-  const userBarEl = document.getElementById("userBar");
-  if (userBarEl) userBarEl.style.display = "none";
-  const adminNavTabEl = document.getElementById("adminNavTab");
-  if (adminNavTabEl) adminNavTabEl.style.display = "none";
-  document.body.classList.remove("is-admin-user");
-  hooks.syncSidebarNavState?.("");
-  state.adminBootstrapAvailable = false;
-  hooks.closeCommandPalette?.({ restoreFocus: false });
-  closeProjectCrudModal({ restoreFocus: false });
-  closeProjectEditDrawer({ restoreFocus: false });
-  closeProjectDeleteDialog();
-  state.openRailProjectMenuKey = null;
-  hooks.closeMoreFilters?.();
-  hooks.closeProjectsRailSheet?.({ restoreFocus: false });
-  closeTodoDrawer({ restoreFocus: false });
-  state.critiqueRequestsInFlight = 0;
-  hooks.updateCritiqueDraftButtonState?.();
-  hooks.resetOnCreateAssistState?.();
-  hooks.renderOnCreateAssistRow?.();
-  // Reset to landing page (not auth form)
-  var landing = document.getElementById("landingPage");
-  var authForm = document.getElementById("authFormSection");
-  if (landing) landing.classList.add("auth-landing-active");
-  if (authForm) authForm.classList.remove("auth-page--active");
-  showLogin();
 }
 
 // =============================================================================

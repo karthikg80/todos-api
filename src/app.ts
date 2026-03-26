@@ -232,16 +232,12 @@ export function createApp(
     ),
   );
   // ── Page-serving routes (3-page split) ──────────────────────────
+  // Registered before express.static so explicit routes take priority.
   const publicDir = path.join(__dirname, "../client/public");
 
-  // In production, GET / serves the standalone landing page.
-  // In dev/test, express.static serves client/index.html (legacy SPA)
-  // because UI tests depend on the single-shell for inline registration.
-  if (config.nodeEnv === "production") {
-    app.get("/", (_req: Request, res: Response) => {
-      res.sendFile(path.join(publicDir, "index.html"));
-    });
-  }
+  app.get("/", (_req: Request, res: Response) => {
+    res.sendFile(path.join(publicDir, "index.html"));
+  });
 
   app.get("/auth", (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, "auth.html"));

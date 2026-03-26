@@ -24,7 +24,7 @@ test.describe("Auth UI", () => {
   });
 
   test("login tab baseline @visual", async ({ page }, testInfo) => {
-    await page.goto("/?tab=login");
+    await page.goto("/auth?tab=login");
     await expect(page.locator("#authView")).toHaveClass(/active/);
     await expect(page.locator("#loginForm")).toBeVisible();
     await expect(page.locator("#registerForm")).toBeHidden();
@@ -38,7 +38,7 @@ test.describe("Auth UI", () => {
   });
 
   test("register tab baseline @visual", async ({ page }, testInfo) => {
-    await page.goto("/?tab=register");
+    await page.goto("/auth?tab=register");
 
     await page.getByRole("button", { name: "Register" }).click();
     await expect(page.locator("#registerForm")).toBeVisible();
@@ -53,7 +53,7 @@ test.describe("Auth UI", () => {
   });
 
   test("forgot password link opens reset form", async ({ page }) => {
-    await page.goto("/?tab=login");
+    await page.goto("/auth?tab=login");
 
     await page.getByRole("button", { name: "Forgot Password?" }).click();
 
@@ -77,7 +77,7 @@ test.describe("Auth UI", () => {
       );
     });
 
-    await page.goto("/");
+    await page.goto("/app");
     // The Settings rail button is visible on desktop; on mobile the sheet is
     // closed so no Settings button is reachable via role. Use evaluate fallback.
     const settingsButton = page.getByRole("button", { name: "Settings" });
@@ -104,7 +104,7 @@ test.describe("Auth UI", () => {
       window.localStorage.setItem("user", "{invalid-json");
     });
 
-    await page.goto("/?tab=login");
+    await page.goto("/auth?tab=login");
     await page.getByRole("button", { name: "Forgot Password?" }).click();
     await expect(page.locator("#forgotPasswordForm")).toBeVisible();
   });

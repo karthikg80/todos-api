@@ -218,12 +218,14 @@ async function installBrainDumpMockApi(
 }
 
 async function registerAndOpenTodos(page: Page) {
-  await page.goto("/?tab=register&ai_debug=1");
+  await page.goto("/auth?tab=register");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Brain Dump User");
   await page.locator("#registerEmail").fill("brain-dump@example.com");
   await page.locator("#registerPassword").fill("Password123!");
   await page.getByRole("button", { name: "Create Account" }).click();
+  await expect(page.locator("#todosView")).toHaveClass(/active/);
+  await page.goto("/app?ai_debug=1");
   await expect(page.locator("#todosView")).toHaveClass(/active/);
   await ensureAllTasksListActive(page);
   const aiToggle = page.locator("#aiWorkspaceToggle");

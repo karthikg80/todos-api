@@ -222,7 +222,6 @@ import {
   populateSoulPreferencesForm,
   logout,
   showAppView,
-  showAuthView,
   initSocialLogin,
   handleSocialCallback,
   handleGoogleLogin,
@@ -1365,23 +1364,6 @@ window.openProjectsFromTopbar = openProjectsFromTopbar;
 window.switchAuthTab = switchAuthTab;
 window.showForgotPassword = showForgotPassword;
 window.showLogin = showLogin;
-window.showAuthPage = function showAuthPage(tab) {
-  var landing = document.getElementById("landingPage");
-  var authForm = document.getElementById("authFormSection");
-  if (landing) landing.classList.remove("auth-landing-active");
-  if (authForm) authForm.classList.add("auth-page--active");
-  switchAuthTab(tab || "login");
-  var scroll = document.getElementById("appMainScroll");
-  if (scroll) scroll.scrollTop = 0;
-};
-window.showLandingPage = function showLandingPage() {
-  var landing = document.getElementById("landingPage");
-  var authForm = document.getElementById("authFormSection");
-  if (landing) landing.classList.add("auth-landing-active");
-  if (authForm) authForm.classList.remove("auth-page--active");
-  var scroll = document.getElementById("appMainScroll");
-  if (scroll) scroll.scrollTop = 0;
-};
 window.handleLogin = handleLogin;
 window.handleRegister = handleRegister;
 window.handleForgotPassword = handleForgotPassword;
@@ -1652,11 +1634,6 @@ function init() {
   }
 
   // Auto-show auth form when ?tab= param is present (bypasses landing page)
-  const tabParam = urlParams.get("tab");
-  if (tabParam && typeof window.showAuthPage === "function") {
-    window.showAuthPage(tabParam);
-  }
-
   const {
     token,
     refreshToken: refresh,

@@ -156,7 +156,7 @@ async function installTopbarProjectsMockApi(page: Page, todosSeed: TodoSeed[]) {
 }
 
 async function registerAndOpenTodos(page: Page) {
-  await page.goto("/?tab=register");
+  await page.goto("/auth?tab=register");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Topbar User");
   await page.locator("#registerEmail").fill("topbar-projects@example.com");

@@ -144,7 +144,7 @@ async function createContextAndRegister(outPath: string) {
 
     // Register via the mocked API to populate the access token map,
     // then set localStorage and reload to skip the landing page UI.
-    await page.goto("/");
+    await page.goto("/auth?tab=register");
     await page.evaluate(
       async ({ url, email: e, name: n }) => {
         await fetch(`${url}/auth/register`, {

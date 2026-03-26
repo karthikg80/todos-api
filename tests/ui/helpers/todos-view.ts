@@ -80,7 +80,7 @@ export async function registerAndOpenTodosView(
   { name, email, password = "Password123!" }: RegisterOptions,
   { preserveLandingDefault = false }: TodosViewOpenOptions = {},
 ) {
-  await page.goto("/?tab=register");
+  await page.goto("/auth?tab=register");
   await page.locator("#registerName").fill(name);
   await page.locator("#registerEmail").fill(email);
   await page.locator("#registerPassword").fill(password);
@@ -96,7 +96,7 @@ export async function bootstrapAndOpenTodosView(
   { name, email, password = "Password123!" }: RegisterOptions,
   { preserveLandingDefault = false }: TodosViewOpenOptions = {},
 ) {
-  await page.goto("/");
+  await page.goto("/app");
   await page.evaluate(
     async ({ name, email, password }) => {
       window.localStorage.clear();
@@ -129,7 +129,7 @@ export async function bootstrapAndOpenTodosView(
     { name, email, password },
   );
 
-  await page.goto("/");
+  await page.goto("/app");
   await waitForTodosViewIdle(page);
   if (!preserveLandingDefault) {
     await ensureAllTasksListActive(page);
@@ -173,7 +173,7 @@ export async function openTodosViewWithStorageState(
 ) {
   const storageStatePath = await ensureTodosStorageState();
   await applyCachedLocalStorage(page, storageStatePath);
-  await page.goto("/");
+  await page.goto("/app");
 
   try {
     await waitForTodosViewIdle(page);
@@ -198,7 +198,7 @@ export async function bootstrapTodosContext(browser: Browser): Promise<{
     storageState: storageStatePath,
   });
   const page = await context.newPage();
-  await page.goto("/");
+  await page.goto("/app");
   await waitForTodosViewIdle(page);
   await ensureAllTasksListActive(page);
   return { context, page, storageStatePath };

@@ -165,7 +165,7 @@ async function openTodos(page: Page, { showWorkspace = false } = {}) {
     email: "ai-workspace-user@example.com",
   });
   if (showWorkspace) {
-    await page.goto("/?ai_debug=1");
+    await page.goto("/app?ai_debug=1");
   }
   await expect(page.locator("#todosView")).toHaveClass(/active/);
 }

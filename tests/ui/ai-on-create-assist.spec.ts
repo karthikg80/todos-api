@@ -168,7 +168,7 @@ async function installOnCreateMockApi(page: Page) {
 }
 
 async function registerAndOpenTodos(page: Page) {
-  await page.goto("/?tab=register");
+  await page.goto("/auth?tab=register");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("On Create User");
   await page.locator("#registerEmail").fill("on-create-user@example.com");
