@@ -263,6 +263,7 @@ async function installDrawerEditMockApi(
 
 async function registerAndOpenTodos(page: Page) {
   await page.goto("/");
+  await page.evaluate(() => (window as any).showAuthPage?.("register"));
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Drawer User");
   await page.locator("#registerEmail").fill("drawer@example.com");
