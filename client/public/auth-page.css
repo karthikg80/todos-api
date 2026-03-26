@@ -1,0 +1,89 @@
+/* auth-page.css — Standalone auth page layout (supplements styles.css classes) */
+
+/* Override styles.css body defaults that assume the full app shell */
+html,
+body {
+  height: 100%;
+  overflow: auto;
+}
+
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: var(--s-4);
+}
+
+/* Card container */
+.auth-standalone {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-lg);
+  padding: var(--s-7) var(--s-6);
+  box-shadow: var(--shadow-card);
+}
+
+/* Header row */
+.auth-standalone__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.auth-standalone__back {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+  text-decoration: none;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+
+.auth-standalone__back:hover {
+  color: var(--text);
+}
+
+.auth-standalone__logo {
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+}
+
+/* Tighten spacing inside the card for the auth forms */
+.auth-standalone .auth-tabs {
+  margin-bottom: var(--s-5);
+}
+
+.auth-standalone .auth-form h2 {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  color: var(--text-primary);
+}
+
+.auth-standalone .btn[type="submit"],
+.auth-standalone .btn#sendOtpBtn,
+.auth-standalone .btn#verifyOtpBtn {
+  width: 100%;
+}
+
+/* Mobile: drop card shadow and fill the screen */
+@media (max-width: 480px) {
+  body {
+    align-items: flex-start;
+    padding: 0;
+  }
+
+  .auth-standalone {
+    max-width: none;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+    min-height: 100dvh;
+    padding: var(--s-6) var(--s-4);
+  }
+}
