@@ -1037,7 +1037,7 @@ export function createAuthRouter({
         const storedState = req.cookies?.oauth_state;
         if (!state || !storedState || state !== storedState) {
           return res.redirect(
-            `/?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
           );
         }
 
@@ -1047,7 +1047,7 @@ export function createAuthRouter({
         const code = req.query.code as string;
         if (!code) {
           return res.redirect(
-            `/?auth=error&message=${encodeURIComponent("Missing authorization code")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Missing authorization code")}`,
           );
         }
 
@@ -1066,11 +1066,11 @@ export function createAuthRouter({
           token: result.token,
           refreshToken: result.refreshToken,
         });
-        res.redirect(`/?${params.toString()}`);
+        res.redirect(`/auth?${params.toString()}`);
       } catch (error) {
         console.error("Google OAuth callback error:", error);
         res.redirect(
-          `/?auth=error&message=${encodeURIComponent("Google login failed")}`,
+          `/auth?auth=error&message=${encodeURIComponent("Google login failed")}`,
         );
       }
     },
@@ -1122,7 +1122,7 @@ export function createAuthRouter({
 
         if (!state || !storedState || state !== storedState) {
           return res.redirect(
-            `/?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
           );
         }
 
@@ -1131,7 +1131,7 @@ export function createAuthRouter({
         const idToken = req.body.id_token as string;
         if (!idToken) {
           return res.redirect(
-            `/?auth=error&message=${encodeURIComponent("Missing ID token")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Missing ID token")}`,
           );
         }
 
@@ -1175,11 +1175,11 @@ export function createAuthRouter({
           token: result.token,
           refreshToken: result.refreshToken,
         });
-        res.redirect(`/?${params.toString()}`);
+        res.redirect(`/auth?${params.toString()}`);
       } catch (error) {
         console.error("Apple Sign-In callback error:", error);
         res.redirect(
-          `/?auth=error&message=${encodeURIComponent("Apple login failed")}`,
+          `/auth?auth=error&message=${encodeURIComponent("Apple login failed")}`,
         );
       }
     },
