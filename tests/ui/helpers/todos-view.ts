@@ -42,10 +42,8 @@ export async function selectWorkspaceView(
 
   const sheet = page.locator("#projectsRailSheet");
   const mobileOpen = page.locator("#projectsRailMobileOpen");
-  if (
-    (await sheet.getAttribute("aria-hidden")) !== "false" &&
-    (await mobileOpen.isVisible())
-  ) {
+  if ((await sheet.getAttribute("aria-hidden")) !== "false") {
+    await expect(mobileOpen).toBeVisible();
     await mobileOpen.click();
     await expect(sheet).toHaveAttribute("aria-hidden", "false");
   }

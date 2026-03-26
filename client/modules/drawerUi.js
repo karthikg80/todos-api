@@ -406,6 +406,11 @@ export function initializeDrawerDraft(todo) {
   };
 }
 
+export function seedDrawerDraft(todoLike) {
+  if (!todoLike || typeof todoLike !== "object") return;
+  initializeDrawerDraft(todoLike);
+}
+
 /**
  * Selectively sync draft fields from a server response, touching only the
  * fields corresponding to `patchKeys`. Fields not in the patch (e.g.
@@ -1300,6 +1305,9 @@ export function renderTodoDrawerContent() {
     ${renderDrawerSection({
       title: "Essentials",
       bodyHtml: `
+      <div class="todo-drawer__top-actions">
+        <button type="button" class="mini-btn todo-drawer__full-task-btn" data-onclick="openTaskPageFromDrawer('${escapeHtml(todo.id)}')">Open full task</button>
+      </div>
       <div class="todo-drawer__save-status" id="drawerSaveStatus" data-state="${escapeHtml(state.drawerSaveState)}">Ready</div>
       <label class="todo-drawer__field" for="drawerTitleInput">
         <span>Title</span>
@@ -1762,7 +1770,9 @@ export function openTodoDrawer(todoId, triggerEl) {
     hooks.closeProjectsRailSheet?.({ restoreFocus: false });
   }
 
-  initializeDrawerDraft(todo);
+  if (!state.drawerDraft || state.drawerDraft.id !== todoId) {
+    initializeDrawerDraft(todo);
+  }
   resetTaskDrawerAssistState(todoId);
   state.drawerSaveSequence = 0;
   setDrawerSaveState("idle");

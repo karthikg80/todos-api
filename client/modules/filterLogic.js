@@ -588,11 +588,13 @@ function updateHeaderAndContextUI({
     return;
   }
 
-  const surfaceMode = isHomeWorkspaceActive()
-    ? "home"
-    : getSelectedProjectKey()
-      ? "project"
-      : "list";
+  const surfaceMode = state.taskPageTodoId
+    ? "task-detail"
+    : isHomeWorkspaceActive()
+      ? "home"
+      : getSelectedProjectKey()
+        ? "project"
+        : "list";
   const shouldShowHeader = surfaceMode === "list" || surfaceMode === "project";
   headerEl.hidden = !shouldShowHeader;
   headerEl.setAttribute("aria-hidden", String(!shouldShowHeader));
@@ -739,9 +741,25 @@ function renderTodoRowHtml(todo) {
     isSelected,
     isActive: state.selectedTodoId === todo.id,
     kebabExpanded: state.openTodoKebabId === todo.id,
-    descriptionHtml: todo.description
-      ? `<div class="todo-description">${hooks.escapeHtml?.(todo.description)}</div>`
-      : "",
+    descriptionHtml: `
+      <div class="todo-description-row">
+        <div class="todo-description ${todo.description ? "" : "todo-description--placeholder"}">
+          ${
+            todo.description
+              ? hooks.escapeHtml?.(todo.description)
+              : "Add context, notes, or acceptance criteria"
+          }
+        </div>
+        <button
+          type="button"
+          class="todo-description-trigger"
+          data-onclick="openInlineDescriptionEditor('${todo.id}')"
+          aria-label="${todo.description ? `Edit note for ${hooks.escapeHtml?.(todo.title)}` : `Add note for ${hooks.escapeHtml?.(todo.title)}`}"
+        >
+          ${todo.description ? "Edit note" : "Add note"}
+        </button>
+      </div>
+    `,
     metaHtml: hooks.renderTodoChips?.(todo, { isOverdue, dueDateStr }) ?? "",
     subtasksHtml:
       todo.subtasks && todo.subtasks.length > 0
@@ -761,6 +779,7 @@ function renderTodoRowHtml(todo) {
           </div>
         `
         : "",
+    inlineEditorHtml: hooks.renderInlineTaskEditor?.(todo) ?? "",
     projectOptionsHtml:
       hooks.renderProjectOptions?.(String(todo.category || "")) ?? "",
     headingMoveOptionsHtml: renderHeadingMoveOptions(todo),
@@ -873,6 +892,22 @@ function renderTodos() {
 
   hooks.patchProjectsRailView?.();
   const scrollRegion = document.getElementById("todosScrollRegion");
+  hooks.syncTaskPageRouteFromLocation?.();
+
+  if (state.taskPageTodoId) {
+    const taskTodo = hooks.getTodoById?.(state.taskPageTodoId) || null;
+    updateHeaderAndContextUI({
+      projectName: taskTodo?.title || "Task",
+      visibleCount: 1,
+      dateLabel: "",
+    });
+    container.innerHTML = hooks.renderTaskPageSurface?.(taskTodo) ?? "";
+    hooks.syncTodoDrawerStateWithRender?.();
+    hooks.updateBulkActionsVisibility?.();
+    updateIcsExportButtonState();
+    assertNoHorizontalOverflow(scrollRegion);
+    return;
+  }
 
   if (state.todosLoadState !== "loading" && state.todos.length > 0) {
     state.todosLoadState = "ready";
