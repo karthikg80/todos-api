@@ -988,15 +988,44 @@ function renderTodos() {
     state.isTodoDrawerOpen = false;
     state.selectedTodoId = null;
     state.openTodoKebabId = null;
+    // View-aware empty states — show contextual illustration even with zero
+    // tasks so each sidebar view hints at its purpose.
+    const zeroTaskMessages = {
+      today: {
+        illus: illustrationTodayClear,
+        heading: "Nothing due today",
+        sub: "Add a task and set it for today to see it here.",
+      },
+      upcoming: {
+        illus: illustrationUpcomingEmpty,
+        heading: "Nothing scheduled ahead",
+        sub: "Plan something for later this week to stay on track.",
+      },
+      completed: {
+        illus: illustrationCompletedEmpty,
+        heading: "No completed tasks yet",
+        sub: "Check one off to see it here.",
+      },
+      someday: {
+        illus: illustrationSomedayEmpty,
+        heading: "No someday tasks",
+        sub: "Park ideas here for when the time is right.",
+      },
+    };
+    const zeroMsg = zeroTaskMessages[state.currentDateView];
     // All content below is hardcoded — no user input, safe for innerHTML
-    container.innerHTML = `
-                    <div id="todosEmptyState" class="empty-state">
-                        ${illustrationNoTasks()}
-                        <h3>No tasks yet</h3>
-                        <p>Add your first task to get started with a calm, focused list.</p>
-                        <p class="empty-state-hint">Tip: press Ctrl/Cmd + N to create a task.</p>
-                    </div>
-                `;
+    container.innerHTML = zeroMsg
+      ? `<div id="todosEmptyState" class="empty-state">
+            ${zeroMsg.illus()}
+            <h3>${zeroMsg.heading}</h3>
+            <p>${zeroMsg.sub}</p>
+          </div>`
+      : `<div id="todosEmptyState" class="empty-state">
+            ${illustrationNoTasks()}
+            <h3>No tasks yet</h3>
+            <p>Add your first task to get started with a calm, focused list.</p>
+            <p class="empty-state-hint">Tip: press Ctrl/Cmd + N to create a task.</p>
+          </div>`;
     hooks.syncTodoDrawerStateWithRender?.();
     hooks.updateBulkActionsVisibility?.();
     updateIcsExportButtonState();
