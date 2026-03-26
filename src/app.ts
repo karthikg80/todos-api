@@ -233,6 +233,14 @@ export function createApp(
   );
   app.use(express.static(path.join(__dirname, "../client")));
 
+  // Standalone page routes — serve proven standalone HTML pages at product URLs.
+  // Must be registered before the /auth API router so GET /auth is intercepted.
+  const authPage = path.join(__dirname, "../client/public/auth.html");
+  const appPage = path.join(__dirname, "../client/public/app.html");
+  app.get("/auth", (_req: Request, res: Response) => res.sendFile(authPage));
+  app.get("/app", (_req: Request, res: Response) => res.sendFile(appPage));
+  app.get("/app/*", (_req: Request, res: Response) => res.sendFile(appPage));
+
   app.use(
     "/api-docs",
     swaggerUi.serve,
