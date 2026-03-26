@@ -4093,6 +4093,11 @@ body.is-todos-view .floating-new-task-cta {
   .view-transition-overlay {
     transition-duration: 0ms !important;
   }
+
+  .todo-inline-editor,
+  .task-page__hero-main {
+    animation-duration: 0ms !important;
+  }
 }
 
 @keyframes fadeIn {
@@ -4205,6 +4210,8 @@ body.is-todos-view .floating-new-task-cta {
   width: 34px;
   min-width: 34px;
   max-width: 34px;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .todo-kebab {
@@ -4220,22 +4227,13 @@ body.is-todos-view .floating-new-task-cta {
   transition:
     background var(--dur-fast),
     opacity var(--dur-fast) var(--ease-out);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
 }
 
 .todo-kebab:hover {
   background: var(--card-bg);
-}
-
-.todo-item:hover .todo-kebab,
-.todo-item:focus-within .todo-kebab,
-.todo-item--active .todo-kebab,
-.todo-kebab[aria-expanded="true"] {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
 }
 
 .todo-kebab-menu {
@@ -4243,6 +4241,7 @@ body.is-todos-view .floating-new-task-cta {
   top: calc(100% + 6px);
   right: 0;
   min-width: 220px;
+  max-width: min(280px, calc(100vw - 24px));
   padding: 8px;
   border: 1px solid var(--border-color);
   border-radius: 10px;
@@ -4252,6 +4251,7 @@ body.is-todos-view .floating-new-task-cta {
   flex-direction: column;
   gap: 6px;
   z-index: 70;
+  overflow-wrap: anywhere;
 }
 
 .todo-kebab-menu--open {
@@ -6639,12 +6639,21 @@ body.dark-mode .todo-chip--due-overdue {
 
 .todo-inline-editor {
   grid-column: 1 / -1;
+  position: relative;
+  z-index: 46;
   display: grid;
   gap: var(--s-3);
   margin-top: var(--s-2);
   padding: var(--s-4);
-  border-top: 1px solid var(--border-color);
-  background: color-mix(in oklab, var(--surface) 92%, var(--card-bg));
+  border: 1px solid color-mix(in oklab, var(--border-color) 72%, var(--accent));
+  border-radius: 16px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent) 4%, var(--card-bg)) 0%,
+    color-mix(in oklab, var(--surface) 94%, var(--card-bg)) 100%
+  );
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  animation: todo-inline-editor-reveal var(--dur-base) var(--ease-out);
 }
 
 .todo-inline-editor__header {
@@ -6668,22 +6677,54 @@ body.dark-mode .todo-chip--due-overdue {
   color: var(--text-primary);
 }
 
+.todo-inline-editor__hint {
+  margin-top: 4px;
+  max-width: 42ch;
+  font-size: var(--fs-meta);
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
 .todo-inline-editor__status {
+  align-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 78%, var(--card-bg));
+  border: 1px solid var(--border-color);
   font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--text-secondary);
+  white-space: nowrap;
+  transition:
+    color var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+  opacity: 0.82;
 }
 
 .todo-inline-editor__status[data-state="saving"] {
   color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 30%, var(--border-color));
+  background: color-mix(in oklab, var(--accent) 9%, var(--surface));
+  opacity: 1;
 }
 
 .todo-inline-editor__status[data-state="saved"] {
   color: var(--success);
+  border-color: color-mix(in oklab, var(--success) 30%, var(--border-color));
+  background: color-mix(in oklab, var(--success) 10%, var(--surface));
+  opacity: 1;
 }
 
 .todo-inline-editor__status[data-state="error"] {
   color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 34%, var(--border-color));
+  background: color-mix(in oklab, var(--danger) 10%, var(--surface));
+  opacity: 1;
 }
 
 .todo-inline-editor__field {
@@ -6702,7 +6743,7 @@ body.dark-mode .todo-chip--due-overdue {
   padding: 12px 14px;
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: var(--input-bg);
+  background: color-mix(in oklab, var(--input-bg) 88%, var(--surface));
   color: var(--text-primary);
   font: inherit;
 }
@@ -6729,11 +6770,37 @@ body.dark-mode .todo-chip--due-overdue {
   display: flex;
   gap: var(--s-2);
   flex-wrap: wrap;
+  align-items: center;
+  padding-top: var(--s-2);
+  border-top: 1px solid
+    color-mix(in oklab, var(--border-color) 78%, transparent);
 }
 
 .todo-inline-editor__actions .mini-btn {
   position: relative;
   z-index: 1;
+}
+
+.todo-inline-editor__actions .mini-btn:first-child {
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 34%, var(--border-color));
+  color: var(--accent);
+}
+
+.todo-inline-editor__actions .mini-btn:last-child {
+  margin-left: auto;
+}
+
+@keyframes todo-inline-editor-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @media (max-width: 768px) {
@@ -8811,6 +8878,16 @@ body.is-todos-view
 .task-page__hero-main {
   display: grid;
   gap: 12px;
+  padding: 22px;
+  border: 1px solid color-mix(in oklab, var(--border-color) 72%, var(--accent));
+  border-radius: 24px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--accent) 5%, var(--card-bg)) 0%,
+    color-mix(in oklab, var(--surface) 96%, var(--card-bg)) 100%
+  );
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  animation: task-page-reveal var(--dur-base) var(--ease-out);
 }
 
 .task-page__back-btn {
@@ -8818,21 +8895,44 @@ body.is-todos-view
 }
 
 .task-page__save-state {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: color-mix(in oklab, var(--surface) 78%, var(--card-bg));
   font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--text-secondary);
+  transition:
+    color var(--dur-base) var(--ease-out),
+    background var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out),
+    opacity var(--dur-fast) var(--ease-out);
+  opacity: 0.82;
 }
 
 .task-page__save-state[data-state="saving"] {
   color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 30%, var(--border-color));
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  opacity: 1;
 }
 
 .task-page__save-state[data-state="saved"] {
   color: var(--success);
+  border-color: color-mix(in oklab, var(--success) 30%, var(--border-color));
+  background: color-mix(in oklab, var(--success) 10%, var(--surface));
+  opacity: 1;
 }
 
 .task-page__save-state[data-state="error"] {
   color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 32%, var(--border-color));
+  background: color-mix(in oklab, var(--danger) 10%, var(--surface));
+  opacity: 1;
 }
 
 .task-page__title-input {
@@ -8895,6 +8995,7 @@ body.is-todos-view
   border: 1px solid var(--border-color);
   border-radius: 18px;
   background: var(--card-bg);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
 }
 
 .task-page__section-title {
@@ -8976,6 +9077,18 @@ body.is-todos-view
   color: var(--text-secondary);
 }
 
+@keyframes task-page-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 900px) {
   .task-page__layout {
     grid-template-columns: 1fr;
@@ -8989,11 +9102,17 @@ body.is-todos-view
 @media (max-width: 768px) {
   .todo-inline-editor {
     padding: var(--s-3);
+    border-radius: 14px;
   }
 
   .task-page {
     gap: 18px;
     padding-bottom: 20px;
+  }
+
+  .task-page__hero-main {
+    padding: 18px;
+    border-radius: 20px;
   }
 
   .task-page__section {
@@ -10851,22 +10970,40 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
   opacity: 1;
 }
 
-.todo-item .todo-row-actions {
-  opacity: 0;
-  transition: opacity var(--dur-fast) var(--ease-out);
-}
+@media (hover: hover) and (pointer: fine) {
+  .todo-item .todo-row-actions {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      visibility 0s linear var(--dur-fast);
+  }
 
-.todo-item:hover .todo-row-actions,
-.todo-item:focus-within .todo-row-actions,
-.todo-item .todo-row-actions:has(.todo-kebab-menu--open) {
-  opacity: 1;
-}
+  .todo-item .todo-kebab {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
 
-/* On touch/mobile, always show actions and drag handle */
-@media (hover: none) {
-  .todo-item .todo-row-actions,
-  .todo-item .drag-handle {
+  .todo-item:hover .todo-row-actions,
+  .todo-item:focus-within .todo-row-actions,
+  .todo-item .todo-row-actions:has(.todo-kebab-menu--open) {
     opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      visibility 0s linear 0s;
+  }
+
+  .todo-item:hover .todo-kebab,
+  .todo-item:focus-within .todo-kebab,
+  .todo-item--active .todo-kebab,
+  .todo-kebab[aria-expanded="true"] {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
   }
 }
 

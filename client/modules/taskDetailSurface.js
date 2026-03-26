@@ -11,6 +11,9 @@ import { state, hooks } from "./store.js";
 import { applyUiAction } from "./stateActions.js";
 
 const TASK_ROUTE_PREFIX = "#task/";
+const SAVE_STATE_RESET_DELAY_MS = 1800;
+const INLINE_AUTOSAVE_DELAY_MS = 650;
+const TASK_PAGE_DESCRIPTION_AUTOSAVE_DELAY_MS = 650;
 
 function escapeHtml(value) {
   if (typeof hooks.escapeHtml === "function") {
@@ -93,7 +96,7 @@ function setInlineSaveState(nextState, message = "") {
       state.inlineTaskEditorSaveState = "idle";
       state.inlineTaskEditorSaveMessage = "";
       hooks.renderTodos?.();
-    }, 1200);
+    }, SAVE_STATE_RESET_DELAY_MS);
   }
 }
 
@@ -109,15 +112,15 @@ function setTaskPageSaveState(nextState, message = "") {
       state.taskPageSaveState = "idle";
       state.taskPageSaveMessage = "";
       hooks.renderTodos?.();
-    }, 1200);
+    }, SAVE_STATE_RESET_DELAY_MS);
   }
 }
 
 function renderSaveStateLabel(saveState, message = "") {
-  if (saveState === "saving") return "Saving...";
-  if (saveState === "saved") return "Saved";
-  if (saveState === "error") return message || "Save failed";
-  return "Ready";
+  if (saveState === "saving") return "Saving";
+  if (saveState === "saved") return "Saved just now";
+  if (saveState === "error") return message || "Could not save";
+  return "Editing";
 }
 
 function buildDrawerSeedFromTaskPage() {
@@ -229,6 +232,7 @@ export function renderInlineTaskEditor(todo) {
         <div>
           <div class="todo-inline-editor__eyebrow">Quick edit</div>
           <div class="todo-inline-editor__title">Task</div>
+          <div class="todo-inline-editor__hint">Quick changes stay in the list until you need more space.</div>
         </div>
         <div class="todo-inline-editor__status" data-state="${escapeHtml(state.inlineTaskEditorSaveState)}">${saveLabel}</div>
       </div>
@@ -721,7 +725,7 @@ function onInlineDescriptionInput(event) {
   state.inlineTaskEditorSaveTimer = setTimeout(() => {
     state.inlineTaskEditorSaveTimer = null;
     void saveInlineTaskDraft(todoId);
-  }, 450);
+  }, INLINE_AUTOSAVE_DELAY_MS);
 }
 
 function onInlineTitleInput(event) {
@@ -743,7 +747,7 @@ function onInlineTitleInput(event) {
   state.inlineTaskEditorSaveTimer = setTimeout(() => {
     state.inlineTaskEditorSaveTimer = null;
     void saveInlineTaskDraft(todoId);
-  }, 450);
+  }, INLINE_AUTOSAVE_DELAY_MS);
 }
 
 function onTaskPageTitleInput(event) {
@@ -766,7 +770,7 @@ function onTaskPageDescriptionInput(event) {
     void flushTaskPageDraft({
       description: String(state.taskPageDraft?.description || "").trim(),
     });
-  }, 450);
+  }, TASK_PAGE_DESCRIPTION_AUTOSAVE_DELAY_MS);
 }
 
 async function flushTaskPageTextField(field) {
