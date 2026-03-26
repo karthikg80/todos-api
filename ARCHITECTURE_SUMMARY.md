@@ -9,17 +9,17 @@
 
 ## Quick Reference
 
-| Aspect | Value |
-|--------|-------|
-| **Frontend** | `client/` — Multi-page vanilla ES6 modules, no build step, no framework |
-| **Backend** | `src/` — TypeScript, Express 5, Prisma ORM |
-| **Database** | PostgreSQL 16 (26 models, 15+ enums) |
-| **Testing** | Jest (unit/integration/MCP), Playwright (UI), Custom (AI evals) |
-| **Auth** | JWT + refresh rotation, Google OAuth, Apple Sign-In, Phone SMS OTP |
-| **AI** | OpenAI-compatible API (planning, critique, suggestions, decision assist) |
-| **MCP** | Remote Model Context Protocol for AI assistant connectors |
-| **Worker** | Python (`agent-runner/`) — scheduled automation jobs on Railway cron |
-| **API Docs** | Swagger/OpenAPI at `/api-docs` |
+| Aspect       | Value                                                                    |
+| ------------ | ------------------------------------------------------------------------ |
+| **Frontend** | `client/` — Multi-page vanilla ES6 modules, no build step, no framework  |
+| **Backend**  | `src/` — TypeScript, Express 5, Prisma ORM                               |
+| **Database** | PostgreSQL 16 (26 models, 15+ enums)                                     |
+| **Testing**  | Jest (unit/integration/MCP), Playwright (UI), Custom (AI evals)          |
+| **Auth**     | JWT + refresh rotation, Google OAuth, Apple Sign-In, Phone SMS OTP       |
+| **AI**       | OpenAI-compatible API (planning, critique, suggestions, decision assist) |
+| **MCP**      | Remote Model Context Protocol for AI assistant connectors                |
+| **Worker**   | Python (`agent-runner/`) — scheduled automation jobs on Railway cron     |
+| **API Docs** | Swagger/OpenAPI at `/api-docs`                                           |
 
 ---
 
@@ -259,37 +259,37 @@ state = {
   currentUser: null,
   accessToken: null,
   refreshToken: null,
-  
+
   // Todos
   todos: [],
   filteredTodos: [],
   selectedTodoIds: new Set(),
-  
+
   // Projects
   projects: [],
   selectedProjectKey: null,
   expandedHeadings: new Set(),
-  
+
   // Workspace
-  currentWorkspaceView: 'home',  // 'home' | 'unsorted' | 'home'
-  currentDateView: 'all',        // 'all' | 'today' | 'upcoming' | ...
-  
+  currentWorkspaceView: "home", // 'home' | 'unsorted' | 'home'
+  currentDateView: "all", // 'all' | 'today' | 'upcoming' | ...
+
   // Drawer
   drawerOpen: false,
-  drawerMode: null,  // 'create' | 'edit' | 'view'
+  drawerMode: null, // 'create' | 'edit' | 'view'
   draftTodo: null,
-  
+
   // AI
   aiWorkspaceOpen: false,
   aiCriticResponse: null,
   aiPlanDraft: null,
-  
+
   // UI
   darkMode: false,
   commandPaletteOpen: false,
   quickEntryOpen: false,
   // ... 80+ more properties
-}
+};
 ```
 
 **Mutation pattern:** Direct mutation within named actions:
@@ -298,21 +298,21 @@ state = {
 // stateActions.js
 function applyDomainAction(actionType, payload) {
   switch (actionType) {
-    case 'TODO_CREATED':
-      state.todos.push(payload.todo)
-      state.filteredTodos = filterTodos()
-      break
-    case 'DRAWER_OPEN':
-      state.drawerOpen = true
-      state.drawerMode = payload.mode
-      state.draftTodo = payload.todo
-      break
-    case 'WORKSPACE/VIEW:SET':
-      state.currentWorkspaceView = payload.view
-      break
+    case "TODO_CREATED":
+      state.todos.push(payload.todo);
+      state.filteredTodos = filterTodos();
+      break;
+    case "DRAWER_OPEN":
+      state.drawerOpen = true;
+      state.drawerMode = payload.mode;
+      state.draftTodo = payload.todo;
+      break;
+    case "WORKSPACE/VIEW:SET":
+      state.currentWorkspaceView = payload.view;
+      break;
     // ... 50+ action types
   }
-  EventBus.dispatch('state:changed', { action: actionType, payload })
+  EventBus.dispatch("state:changed", { action: actionType, payload });
 }
 ```
 
@@ -322,24 +322,24 @@ function applyDomainAction(actionType, payload) {
 
 ```javascript
 // platform/events/eventBus.js
-const listeners = new Map()
+const listeners = new Map();
 
 export function subscribe(event, callback) {
-  if (!listeners.has(event)) listeners.set(event, new Set())
-  listeners.get(event).add(callback)
-  return () => listeners.get(event).delete(callback)
+  if (!listeners.has(event)) listeners.set(event, new Set());
+  listeners.get(event).add(callback);
+  return () => listeners.get(event).delete(callback);
 }
 
 export function dispatch(event, payload) {
   if (listeners.has(event)) {
-    listeners.get(event).forEach(cb => cb(payload))
+    listeners.get(event).forEach((cb) => cb(payload));
   }
 }
 
 // In use:
-EventBus.dispatch('todos:changed')  // Triggers filter + render
-EventBus.dispatch('todos:render')   // Render only
-EventBus.dispatch('state:changed')  // State changed (logging, persistence)
+EventBus.dispatch("todos:changed"); // Triggers filter + render
+EventBus.dispatch("todos:render"); // Render only
+EventBus.dispatch("state:changed"); // State changed (logging, persistence)
 ```
 
 ### DOM Rendering
@@ -349,18 +349,18 @@ EventBus.dispatch('state:changed')  // State changed (logging, persistence)
 ```javascript
 // filterLogic.js
 export function renderTodos() {
-  const container = document.getElementById('todosContent')
-  const html = state.filteredTodos.map(todo => renderTodoRow(todo)).join('')
-  container.innerHTML = html  // Full replacement
+  const container = document.getElementById("todosContent");
+  const html = state.filteredTodos.map((todo) => renderTodoRow(todo)).join("");
+  container.innerHTML = html; // Full replacement
 }
 
 // Micro-patches for single-todo updates:
 // todosViewPatches.js (378 lines)
 export function patchTodoRowCompletion(todoId, completed) {
-  const row = document.querySelector(`[data-todo-id="${todoId}"]`)
-  const checkbox = row.querySelector('.todo-checkbox')
-  checkbox.checked = completed
-  row.classList.toggle('completed', completed)
+  const row = document.querySelector(`[data-todo-id="${todoId}"]`);
+  const checkbox = row.querySelector(".todo-checkbox");
+  checkbox.checked = completed;
+  row.classList.toggle("completed", completed);
 }
 ```
 
@@ -422,50 +422,53 @@ export function patchTodoRowCompletion(todoId, completed) {
 
 ```typescript
 // app.ts
-app.use(requestIdMiddleware)           // Adds X-Request-ID
-app.use(routeLatencyMetrics)           // Prometheus metrics
-app.use(cors({ origin: CORS_ORIGINS }))
-app.use(helmet({                       // Security headers
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'nonce-<random>'"],
-      // ...
-    }
-  }
-}))
-app.use(rateLimiters.authLimiter)      // 5 req / 15 min
-app.use(rateLimiters.apiLimiter)       // 100 req / 15 min
-app.use(rateLimiters.mcpLimiter)       // 60 req / min
-app.use(cookieParser())
-app.use(express.json({ limit: '256kb' }))
-app.use(express.urlencoded({ extended: true, limit: '64kb' }))
+app.use(requestIdMiddleware); // Adds X-Request-ID
+app.use(routeLatencyMetrics); // Prometheus metrics
+app.use(cors({ origin: CORS_ORIGINS }));
+app.use(
+  helmet({
+    // Security headers
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'nonce-<random>'"],
+        // ...
+      },
+    },
+  }),
+);
+app.use(rateLimiters.authLimiter); // 5 req / 15 min
+app.use(rateLimiters.apiLimiter); // 100 req / 15 min
+app.use(rateLimiters.mcpLimiter); // 60 req / min
+app.use(cookieParser());
+app.use(express.json({ limit: "256kb" }));
+app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 
 // Swagger/OpenAPI docs
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
-app.get('/api-docs.json', (req, res) => res.send(swaggerSpec))
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api-docs.json", (req, res) => res.send(swaggerSpec));
 
 // Static files
-app.use(express.static(path.join(__dirname, '../client')))
-app.use(express.static(path.join(__dirname, '../public')))
-app.use(express.static(
-  path.join(__dirname, '../node_modules/chrono-node/dist/esm')
-))
+app.use(express.static(path.join(__dirname, "../client")));
+app.use(express.static(path.join(__dirname, "../public")));
+app.use(
+  express.static(path.join(__dirname, "../node_modules/chrono-node/dist/esm")),
+);
 
 // Standalone page routes — MUST be before /auth API router
-const authPage = path.join(__dirname, '../client/public/auth.html')
-const appPage = path.join(__dirname, '../client/public/app.html')
-app.get('/auth', (_req, res) => res.sendFile(authPage))
-app.get('/app', (_req, res) => res.sendFile(appPage))
-app.get('/app/{*path}', (_req, res) => res.sendFile(appPage))
+const authPage = path.join(__dirname, "../client/public/auth.html");
+const appPage = path.join(__dirname, "../client/public/app.html");
+app.get("/auth", (_req, res) => res.sendFile(authPage));
+app.get("/app", (_req, res) => res.sendFile(appPage));
+app.get("/app/{*path}", (_req, res) => res.sendFile(appPage));
 
 // API rate limit zone
-app.use('/api', apiLimiter)
+app.use("/api", apiLimiter);
 
 // Routes
-app.use('/auth', authRouter)           // POST /auth/login, /auth/register, etc.
-app.use('/todos', todosRouter)
-app.use('/projects', projectsRouter)
+app.use("/auth", authRouter); // POST /auth/login, /auth/register, etc.
+app.use("/todos", todosRouter);
+app.use("/projects", projectsRouter);
 // ...
 ```
 
@@ -476,15 +479,15 @@ app.use('/projects', projectsRouter)
 ```typescript
 // Correct order (DO NOT CHANGE):
 // 1. Static middleware
-app.use(express.static(path.join(__dirname, '../client')))
+app.use(express.static(path.join(__dirname, "../client")));
 
 // 2. Standalone page routes
-app.get('/auth', (_req, res) => res.sendFile(authPage))
-app.get('/app', (_req, res) => res.sendFile(appPage))
-app.get('/app/{*path}', (_req, res) => res.sendFile(appPage))
+app.get("/auth", (_req, res) => res.sendFile(authPage));
+app.get("/app", (_req, res) => res.sendFile(appPage));
+app.get("/app/{*path}", (_req, res) => res.sendFile(appPage));
 
 // 3. API routes (POST /auth/login, etc.)
-app.use('/auth', authRouter)
+app.use("/auth", authRouter);
 ```
 
 If reordered, `GET /auth` would hit the API router and return 404.
@@ -519,35 +522,35 @@ If reordered, `GET /auth` would hit the API router and return 404.
 export async function executeAgentAction(
   action: AgentAction,
   userId: string,
-  input: unknown
+  input: unknown,
 ) {
   // 1. Validate input with Zod
-  const validated = actionValidators[action].parse(input)
-  
+  const validated = actionValidators[action].parse(input);
+
   // 2. Check idempotency (SHA-256 hash of action + input)
-  const idempotencyKey = hashActionInput(action, validated)
-  const existing = await checkIdempotency(idempotencyKey)
-  if (existing) return existing.result
-  
+  const idempotencyKey = hashActionInput(action, validated);
+  const existing = await checkIdempotency(idempotencyKey);
+  if (existing) return existing.result;
+
   // 3. Dispatch to handler (98 actions)
-  let result: unknown
+  let result: unknown;
   switch (action) {
-    case 'plan_today':
-      result = await handlePlanToday(userId, validated)
-      break
-    case 'break_down_project':
-      result = await handleBreakDownProject(userId, validated)
-      break
+    case "plan_today":
+      result = await handlePlanToday(userId, validated);
+      break;
+    case "break_down_project":
+      result = await handleBreakDownProject(userId, validated);
+      break;
     // ... 96 more cases
   }
-  
+
   // 4. Persist audit log
-  await persistAuditLog(userId, action, result)
-  
+  await persistAuditLog(userId, action, result);
+
   // 5. Cache result for idempotency
-  await cacheIdempotencyResult(idempotencyKey, result)
-  
-  return result
+  await cacheIdempotencyResult(idempotencyKey, result);
+
+  return result;
 }
 ```
 
@@ -577,7 +580,7 @@ model SocialAccount {
   emailAtProvider         String?
   emailVerifiedAtProvider Boolean  @default(false)
   user                    User     @relation(fields: [userId], references: [id])
-  
+
   @@unique([provider, providerSubject])
 }
 
@@ -706,17 +709,17 @@ CI=1 npm run test:ui:fast           # Fast UI suite (excludes @visual)
 
 ### Critical Hotspots
 
-| File | Lines | Issue |
-|------|-------|-------|
-| `client/app.js` | 1,733 | Imports 420+ exports, wires 137 hooks, assigns 120 window functions |
-| `client/index.html` | 4,010 | Landing page with embedded auth forms, inline scripts |
-| `client/styles.css` | 10,778 | Monolithic stylesheet (216KB), not split by page |
-| `client/drawerUi.js` | 2,146 | Mixes rendering, draft management, AI assist, kebab menu |
-| `client/projectsState.js` | 1,391 | Handles CRUD, headings, dialogs, rail updates |
-| `client/aiWorkspace.js` | 1,517 | Owns critique, plan, brain-dump in one module |
-| `src/agent/agentExecutor.ts` | 3,362 | Dispatches 98 actions synchronously, blocking event loop |
-| `client/stateActions.js` | 688 | 50+ action types, large switch statements |
-| `client/public/auth-page.js` | 779 | Auth form handlers — could be modularized |
+| File                         | Lines  | Issue                                                               |
+| ---------------------------- | ------ | ------------------------------------------------------------------- |
+| `client/app.js`              | 1,733  | Imports 420+ exports, wires 137 hooks, assigns 120 window functions |
+| `client/index.html`          | 4,010  | Landing page with embedded auth forms, inline scripts               |
+| `client/styles.css`          | 10,778 | Monolithic stylesheet (216KB), not split by page                    |
+| `client/drawerUi.js`         | 2,146  | Mixes rendering, draft management, AI assist, kebab menu            |
+| `client/projectsState.js`    | 1,391  | Handles CRUD, headings, dialogs, rail updates                       |
+| `client/aiWorkspace.js`      | 1,517  | Owns critique, plan, brain-dump in one module                       |
+| `src/agent/agentExecutor.ts` | 3,362  | Dispatches 98 actions synchronously, blocking event loop            |
+| `client/stateActions.js`     | 688    | 50+ action types, large switch statements                           |
+| `client/public/auth-page.js` | 779    | Auth form handlers — could be modularized                           |
 
 ### Open Issues
 
@@ -732,13 +735,13 @@ CI=1 npm run test:ui:fast           # Fast UI suite (excludes @visual)
 
 ## Accepted ADRs
 
-| ADR | Title | Status |
-|-----|-------|--------|
-| 001 | Frontend composition roots | Accepted (not implemented) |
-| 002 | Event bus contract | Accepted |
-| 003 | Agent worker queue | Accepted |
-| 004 | Domain-oriented backend structure | Accepted |
-| 005 | Agent execution architecture | Accepted (BullMQ for on-demand, not implemented) |
+| ADR | Title                             | Status                                           |
+| --- | --------------------------------- | ------------------------------------------------ |
+| 001 | Frontend composition roots        | Accepted (not implemented)                       |
+| 002 | Event bus contract                | Accepted                                         |
+| 003 | Agent worker queue                | Accepted                                         |
+| 004 | Domain-oriented backend structure | Accepted                                         |
+| 005 | Agent execution architecture      | Accepted (BullMQ for on-demand, not implemented) |
 
 ---
 
@@ -894,14 +897,14 @@ npm start
 
 ## File Size Summary
 
-| Category | Files | Total Lines | Notes |
-|----------|-------|-------------|-------|
-| Frontend HTML | 4 | 7,643 | index.html (4,010), app.html (3,241), auth.html (392) |
-| Frontend JS | 40+ | 1.5MB+ | app.js (1,733), modules (38 files) |
-| Frontend CSS | 2 | 10,867 | styles.css (10,778), auth-page.css (89) |
-| Backend TS | 175 | 20K+ | services (62), routes (14), middleware (6) |
-| Tests | 60+ | — | Unit (17), Integration (6), UI (40+) |
-| Docs | 30+ | — | ADRs (5), architecture, ops, harness |
+| Category      | Files | Total Lines | Notes                                                 |
+| ------------- | ----- | ----------- | ----------------------------------------------------- |
+| Frontend HTML | 4     | 7,643       | index.html (4,010), app.html (3,241), auth.html (392) |
+| Frontend JS   | 40+   | 1.5MB+      | app.js (1,733), modules (38 files)                    |
+| Frontend CSS  | 2     | 10,867      | styles.css (10,778), auth-page.css (89)               |
+| Backend TS    | 175   | 20K+        | services (62), routes (14), middleware (6)            |
+| Tests         | 60+   | —           | Unit (17), Integration (6), UI (40+)                  |
+| Docs          | 30+   | —           | ADRs (5), architecture, ops, harness                  |
 
 ---
 
@@ -919,6 +922,7 @@ npm start
 **Next review:** After ADR-001 implementation or CSS split
 
 **Changes since previous summary:**
+
 - Multi-page architecture (landing, auth, app) — Mar 2026 refactor
 - Standalone page bootstrap shims (app-page.js, auth-page.js)
 - Swagger/OpenAPI documentation at `/api-docs`
