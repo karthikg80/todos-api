@@ -1651,6 +1651,12 @@ function init() {
     return;
   }
 
+  // Auto-show auth form when ?tab= param is present (bypasses landing page)
+  const tabParam = urlParams.get("tab");
+  if (tabParam && typeof window.showAuthPage === "function") {
+    window.showAuthPage(tabParam);
+  }
+
   const {
     token,
     refreshToken: refresh,
