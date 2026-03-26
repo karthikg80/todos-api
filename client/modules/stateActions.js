@@ -106,7 +106,9 @@ export function applyUiAction(type, payload = {}) {
       return state.isTodoDrawerOpen;
     case "todoDrawer/close":
       state.isTodoDrawerOpen = false;
-      state.selectedTodoId = null;
+      if (!state.taskPageTodoId && !state.inlineTaskEditorTodoId) {
+        state.selectedTodoId = null;
+      }
       state.isDrawerDetailsOpen = false;
       state.openTodoKebabId = null;
       state.lastFocusedTodoTrigger = null;
@@ -118,6 +120,53 @@ export function applyUiAction(type, payload = {}) {
     case "todoKebab:set":
       state.openTodoKebabId = payload.todoId ? String(payload.todoId) : null;
       return state.openTodoKebabId;
+    case "taskInline/open":
+      state.inlineTaskEditorTodoId = String(payload.todoId || "");
+      state.inlineTaskEditorDraft = payload.draft ? { ...payload.draft } : null;
+      state.inlineTaskEditorSaveState = "idle";
+      state.inlineTaskEditorSaveMessage = "";
+      state.selectedTodoId = state.inlineTaskEditorTodoId || null;
+      if (payload.closeDrawer !== false) {
+        state.isTodoDrawerOpen = false;
+        state.isDrawerDetailsOpen = false;
+      }
+      return state.inlineTaskEditorTodoId;
+    case "taskInline/close":
+      state.inlineTaskEditorTodoId = null;
+      state.inlineTaskEditorDraft = null;
+      state.inlineTaskEditorSaveState = "idle";
+      state.inlineTaskEditorSaveMessage = "";
+      if (!state.isTodoDrawerOpen && !state.taskPageTodoId) {
+        state.selectedTodoId = null;
+      }
+      return state.inlineTaskEditorTodoId;
+    case "taskPage/open":
+      state.taskPageTodoId = String(payload.todoId || "");
+      state.taskPageDraft = payload.draft ? { ...payload.draft } : null;
+      state.taskPageSaveState = "idle";
+      state.taskPageSaveMessage = "";
+      state.selectedTodoId = state.taskPageTodoId || null;
+      if (payload.closeInline !== false) {
+        state.inlineTaskEditorTodoId = null;
+        state.inlineTaskEditorDraft = null;
+        state.inlineTaskEditorSaveState = "idle";
+        state.inlineTaskEditorSaveMessage = "";
+      }
+      if (payload.closeDrawer !== false) {
+        state.isTodoDrawerOpen = false;
+        state.isDrawerDetailsOpen = false;
+      }
+      state.openTodoKebabId = null;
+      return state.taskPageTodoId;
+    case "taskPage/close":
+      state.taskPageTodoId = null;
+      state.taskPageDraft = null;
+      state.taskPageSaveState = "idle";
+      state.taskPageSaveMessage = "";
+      if (!state.isTodoDrawerOpen && !state.inlineTaskEditorTodoId) {
+        state.selectedTodoId = null;
+      }
+      return state.taskPageTodoId;
     case "railSheet/open":
       state.isRailSheetOpen = true;
       state.lastFocusedRailTrigger =

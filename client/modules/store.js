@@ -235,6 +235,20 @@ export const state = {
   taskDrawerAssistState: null, // initialized in init below
   lastFocusedTodoId: null,
 
+  // Progressive task detail surfaces
+  inlineTaskEditorTodoId: null,
+  inlineTaskEditorDraft: null,
+  inlineTaskEditorSaveState: "idle",
+  inlineTaskEditorSaveMessage: "",
+  inlineTaskEditorSaveTimer: null,
+  inlineTaskEditorResetTimer: null,
+  taskPageTodoId: null,
+  taskPageDraft: null,
+  taskPageSaveState: "idle",
+  taskPageSaveMessage: "",
+  taskPageDescriptionSaveTimer: null,
+  taskPageSaveResetTimer: null,
+
   // Rail
   isRailCollapsed: false,
   isRailSheetOpen: false,

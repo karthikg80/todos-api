@@ -109,6 +109,7 @@ export function renderTodoRowTemplate({
   metaHtml = "",
   subtasksHtml = "",
   notesHtml = "",
+  inlineEditorHtml = "",
   projectOptionsHtml = "",
   headingMoveOptionsHtml = "",
 } = {}) {
@@ -200,6 +201,7 @@ export function renderTodoRowTemplate({
           </button>
         </div>
       </div>
+      ${inlineEditorHtml}
     </li>
   `;
 }

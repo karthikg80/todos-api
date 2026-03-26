@@ -134,6 +134,15 @@ import {
   saveEditedTodo,
 } from "./modules/overlayManager.js";
 import {
+  initTaskDetailSurface,
+  bindTaskDetailSurfaceHandlers,
+  renderInlineTaskEditor,
+  renderTaskPageSurface,
+  openTaskPage,
+  closeTaskPage,
+  syncTaskPageRouteFromLocation,
+} from "./modules/taskDetailSurface.js";
+import {
   readBooleanFeatureFlag,
   isEnhancedTaskCriticEnabled,
   isTaskDrawerDecisionAssistEnabled,
@@ -418,6 +427,7 @@ import {
   undoTaskDrawerSuggestion,
   openTodoDrawer,
   closeTodoDrawer,
+  seedDrawerDraft,
   syncTodoDrawerStateWithRender,
   toggleDrawerDetailsPanel,
   deleteTodoFromDrawer,
@@ -1199,10 +1209,19 @@ function bindDockHandlers() {
   hooks.validateTodoTitle = validateTodoTitle;
   hooks.toDateInputValue = toDateInputValue;
   hooks.toIsoFromDateInput = toIsoFromDateInput;
+  hooks.openTodoDrawer = openTodoDrawer;
+  hooks.closeTodoDrawer = closeTodoDrawer;
+  hooks.seedDrawerDraft = seedDrawerDraft;
+  hooks.openTaskPage = openTaskPage;
+  hooks.closeTaskPage = closeTaskPage;
+  hooks.syncTaskPageRouteFromLocation = syncTaskPageRouteFromLocation;
+  hooks.renderInlineTaskEditor = renderInlineTaskEditor;
+  hooks.renderTaskPageSurface = renderTaskPageSurface;
   // drawerUi → projectsState
   hooks.getAllProjects = getAllProjects;
   hooks.normalizeProjectPath = normalizeProjectPath;
   hooks.renderProjectOptionEntry = renderProjectOptionEntry;
+  hooks.getProjectRecordByName = getProjectRecordByName;
   // drawerUi → overlayManager
   hooks.openEditTodoModal = openEditTodoModal;
   // overlayManager → todosService
@@ -1611,10 +1630,12 @@ function init() {
   console.warn("[init] START");
   initTodosFeature();
   initProjectsFeature();
+  initTaskDetailSurface();
   bindResponsiveLayoutState();
   renderSidebarNavigation();
   bindCriticalHandlers();
   bindTodoDrawerHandlers();
+  bindTaskDetailSurfaceHandlers();
   bindInboxHandlers();
   bindWeeklyReviewHandlers();
   bindCleanupHandlers();
