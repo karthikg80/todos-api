@@ -37,6 +37,10 @@ function getCurrentUrlWithoutHash() {
 function buildInlineDraft(todo, override = {}) {
   return {
     id: String(todo?.id || ""),
+    title:
+      typeof override.title === "string"
+        ? override.title
+        : String(todo?.title || ""),
     description:
       typeof override.description === "string"
         ? override.description
@@ -132,6 +136,7 @@ function buildDrawerSeedFromInline() {
   if (!todo) return null;
   return {
     ...todo,
+    title: state.inlineTaskEditorDraft.title,
     description: state.inlineTaskEditorDraft.description,
   };
 }
@@ -145,6 +150,18 @@ function buildProjectOptions(selectedProject = "") {
   return `<option value="">None</option>${projects
     .map((project) => renderEntry(project, selectedProject))
     .join("")}`;
+}
+
+function readInlineTitleValue(todoId) {
+  if (!todoId) {
+    return String(state.inlineTaskEditorDraft?.title || "");
+  }
+  const selector = `[data-inline-title-input="${String(todoId).replace(/["\\]/g, "\\$&")}"]`;
+  const input = document.querySelector(selector);
+  if (input instanceof HTMLInputElement) {
+    return input.value;
+  }
+  return String(state.inlineTaskEditorDraft?.title || "");
 }
 
 function readInlineDescriptionValue(todoId) {
@@ -211,10 +228,21 @@ export function renderInlineTaskEditor(todo) {
       <div class="todo-inline-editor__header">
         <div>
           <div class="todo-inline-editor__eyebrow">Quick edit</div>
-          <div class="todo-inline-editor__title">Description</div>
+          <div class="todo-inline-editor__title">Task</div>
         </div>
         <div class="todo-inline-editor__status" data-state="${escapeHtml(state.inlineTaskEditorSaveState)}">${saveLabel}</div>
       </div>
+      <label class="sr-only" for="todoInlineTitleInput-${todoId}">Task title</label>
+      <input
+        id="todoInlineTitleInput-${todoId}"
+        class="todo-inline-editor__title-input"
+        data-inline-title-input="${todoId}"
+        type="text"
+        maxlength="200"
+        value="${escapeHtml(draft.title)}"
+        placeholder="Task title"
+      />
+      <div class="todo-inline-editor__field-label">Notes</div>
       <label class="todo-inline-editor__field" for="todoInlineDescriptionInput-${todoId}">
         <textarea
           id="todoInlineDescriptionInput-${todoId}"
@@ -338,7 +366,7 @@ export function renderTaskPageSurface(todo) {
   `;
 }
 
-async function saveInlineDescription(todoId) {
+async function saveInlineTaskDraft(todoId) {
   if (
     !todoId ||
     state.inlineTaskEditorTodoId !== todoId ||
@@ -350,6 +378,7 @@ async function saveInlineDescription(todoId) {
   setInlineSaveState("saving");
   try {
     const updatedTodo = await hooks.applyTodoPatch?.(todoId, {
+      title: String(draft.title || "").trim(),
       description: String(draft.description || "").trim(),
     });
     if (updatedTodo?.id) {
@@ -438,7 +467,50 @@ function clearTaskPageRoute() {
   window.history.replaceState({}, document.title, getCurrentUrlWithoutHash());
 }
 
-export function openInlineDescriptionEditor(todoId) {
+function isMobileTaskSurface() {
+  return window.matchMedia("(max-width: 768px)").matches;
+}
+
+function isInlineDraftDirty(todoId) {
+  if (
+    !todoId ||
+    state.inlineTaskEditorTodoId !== todoId ||
+    !state.inlineTaskEditorDraft
+  ) {
+    return false;
+  }
+  const todo = getTodoById(todoId);
+  if (!todo) return false;
+  // Keep this in sync with buildInlineDraft() while inline editing only covers
+  // title + description.
+  return (
+    state.inlineTaskEditorDraft.title !== String(todo.title || "") ||
+    state.inlineTaskEditorDraft.description !== String(todo.description || "")
+  );
+}
+
+export function openTodoFromRow(todoId) {
+  if (!todoId) return;
+  const row = getTodoRow(todoId);
+
+  if (state.taskPageTodoId) {
+    applyUiAction("taskPage/close");
+    clearTaskPageRoute();
+  }
+
+  if (isMobileTaskSurface()) {
+    if (state.inlineTaskEditorTodoId) {
+      applyUiAction("taskInline/close");
+      hooks.renderTodos?.();
+    }
+    hooks.openTodoDrawer?.(todoId, row);
+    return;
+  }
+
+  openInlineTaskEditor(todoId, "title");
+}
+
+export function openInlineTaskEditor(todoId, focusField = "title") {
   const todo = getTodoById(todoId);
   if (!todo) return;
 
@@ -455,7 +527,9 @@ export function openInlineDescriptionEditor(todoId) {
   hooks.renderTodos?.();
   window.requestAnimationFrame(() => {
     const input = document.querySelector(
-      `[data-inline-description-input="${String(todoId).replace(/["\\]/g, "\\$&")}"]`,
+      focusField === "description"
+        ? `[data-inline-description-input="${String(todoId).replace(/["\\]/g, "\\$&")}"]`
+        : `[data-inline-title-input="${String(todoId).replace(/["\\]/g, "\\$&")}"]`,
     );
     if (input instanceof HTMLElement) {
       input.focus({ preventScroll: true });
@@ -465,6 +539,10 @@ export function openInlineDescriptionEditor(todoId) {
       }
     }
   });
+}
+
+export function openInlineDescriptionEditor(todoId) {
+  openInlineTaskEditor(todoId, "description");
 }
 
 export function closeInlineDescriptionEditor(todoId = "") {
@@ -489,10 +567,13 @@ export function closeInlineDescriptionEditor(todoId = "") {
 
 export async function openDrawerFromInline(todoId) {
   if (state.inlineTaskEditorDraft) {
+    state.inlineTaskEditorDraft.title = readInlineTitleValue(todoId);
     state.inlineTaskEditorDraft.description =
       readInlineDescriptionValue(todoId);
   }
-  const saved = await saveInlineDescription(todoId);
+  const saved = isInlineDraftDirty(todoId)
+    ? await saveInlineTaskDraft(todoId)
+    : true;
   if (!saved) return;
 
   const row = getTodoRow(todoId);
@@ -529,14 +610,18 @@ export function openTaskPage(
 
 export async function openTaskPageFromInline(todoId) {
   if (state.inlineTaskEditorDraft) {
+    state.inlineTaskEditorDraft.title = readInlineTitleValue(todoId);
     state.inlineTaskEditorDraft.description =
       readInlineDescriptionValue(todoId);
   }
-  const saved = await saveInlineDescription(todoId);
+  const saved = isInlineDraftDirty(todoId)
+    ? await saveInlineTaskDraft(todoId)
+    : true;
   if (!saved) return;
   const todo = getTodoById(todoId);
   if (!todo) return;
   const draft = buildTaskPageDraft(todo, {
+    title: state.inlineTaskEditorDraft?.title ?? todo.title,
     description: state.inlineTaskEditorDraft?.description ?? todo.description,
   });
   applyUiAction("taskInline/close");
@@ -635,7 +720,29 @@ function onInlineDescriptionInput(event) {
   }
   state.inlineTaskEditorSaveTimer = setTimeout(() => {
     state.inlineTaskEditorSaveTimer = null;
-    void saveInlineDescription(todoId);
+    void saveInlineTaskDraft(todoId);
+  }, 450);
+}
+
+function onInlineTitleInput(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
+  const todoId = String(target.dataset.inlineTitleInput || "");
+  if (
+    !todoId ||
+    state.inlineTaskEditorTodoId !== todoId ||
+    !state.inlineTaskEditorDraft
+  ) {
+    return;
+  }
+  state.inlineTaskEditorDraft.title = target.value;
+  setInlineSaveState("idle");
+  if (state.inlineTaskEditorSaveTimer) {
+    clearTimeout(state.inlineTaskEditorSaveTimer);
+  }
+  state.inlineTaskEditorSaveTimer = setTimeout(() => {
+    state.inlineTaskEditorSaveTimer = null;
+    void saveInlineTaskDraft(todoId);
   }, 450);
 }
 
@@ -753,6 +860,10 @@ export function bindTaskDetailSurfaceHandlers() {
 
   document.addEventListener("input", (event) => {
     const target = event.target;
+    if (target instanceof HTMLInputElement && target.dataset.inlineTitleInput) {
+      onInlineTitleInput(event);
+      return;
+    }
     if (
       target instanceof HTMLTextAreaElement &&
       target.dataset.inlineDescriptionInput
@@ -781,6 +892,18 @@ export function bindTaskDetailSurfaceHandlers() {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
       if (
+        target instanceof HTMLInputElement &&
+        target.dataset.inlineTitleInput
+      ) {
+        const todoId = String(target.dataset.inlineTitleInput || "");
+        if (state.inlineTaskEditorSaveTimer) {
+          clearTimeout(state.inlineTaskEditorSaveTimer);
+          state.inlineTaskEditorSaveTimer = null;
+        }
+        void saveInlineTaskDraft(todoId);
+        return;
+      }
+      if (
         target instanceof HTMLTextAreaElement &&
         target.dataset.inlineDescriptionInput
       ) {
@@ -789,7 +912,7 @@ export function bindTaskDetailSurfaceHandlers() {
           clearTimeout(state.inlineTaskEditorSaveTimer);
           state.inlineTaskEditorSaveTimer = null;
         }
-        void saveInlineDescription(todoId);
+        void saveInlineTaskDraft(todoId);
         return;
       }
       if (target.id === "taskPageTitleInput") {
@@ -811,6 +934,24 @@ export function bindTaskDetailSurfaceHandlers() {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
+    if (target instanceof HTMLInputElement && target.dataset.inlineTitleInput) {
+      const todoId = String(target.dataset.inlineTitleInput || "");
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeInlineDescriptionEditor(todoId);
+        return;
+      }
+      if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        if (state.inlineTaskEditorSaveTimer) {
+          clearTimeout(state.inlineTaskEditorSaveTimer);
+          state.inlineTaskEditorSaveTimer = null;
+        }
+        void saveInlineTaskDraft(todoId);
+      }
+      return;
+    }
+
     if (
       target instanceof HTMLTextAreaElement &&
       target.dataset.inlineDescriptionInput
@@ -827,7 +968,7 @@ export function bindTaskDetailSurfaceHandlers() {
           clearTimeout(state.inlineTaskEditorSaveTimer);
           state.inlineTaskEditorSaveTimer = null;
         }
-        void saveInlineDescription(todoId);
+        void saveInlineTaskDraft(todoId);
       }
       return;
     }
@@ -856,6 +997,8 @@ export function bindTaskDetailSurfaceHandlers() {
 }
 
 function registerWindowBridge() {
+  window.openTodoFromRow = openTodoFromRow;
+  window.openInlineTaskEditor = openInlineTaskEditor;
   window.openInlineDescriptionEditor = openInlineDescriptionEditor;
   window.closeInlineDescriptionEditor = closeInlineDescriptionEditor;
   window.openDrawerFromInline = openDrawerFromInline;

@@ -2,6 +2,7 @@ import {
   expect,
   type Browser,
   type BrowserContext,
+  type Locator,
   type Page,
 } from "@playwright/test";
 import fs from "node:fs/promises";
@@ -71,6 +72,37 @@ export async function openTaskComposerSheet(page: Page) {
     "false",
   );
   await expect(page.locator("#todoInput")).toBeFocused();
+}
+
+export async function openTodoDrawerFromListRow(page: Page, trigger: Locator) {
+  await trigger.click();
+
+  const drawer = page.locator("#todoDetailsDrawer");
+  if ((await drawer.getAttribute("aria-hidden")) === "false") {
+    return;
+  }
+
+  if (isMobileViewport(page)) {
+    await expect(
+      drawer,
+      "Drawer should open immediately from a row click on mobile",
+    ).toHaveAttribute("aria-hidden", "false");
+    return;
+  }
+
+  const moreDetails = page
+    .getByRole("button", { name: "More details" })
+    .first();
+  await expect(
+    moreDetails,
+    "Desktop row clicks should expose a More details action before opening the drawer",
+  ).toBeVisible();
+  await moreDetails.click();
+
+  await expect(
+    drawer,
+    "Drawer should open after clicking More details from the inline task editor",
+  ).toHaveAttribute("aria-hidden", "false");
 }
 
 export async function registerAndOpenTodosView(

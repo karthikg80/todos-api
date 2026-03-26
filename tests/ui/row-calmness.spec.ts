@@ -310,24 +310,30 @@ test.describe("Todo row calmness", () => {
     await expect(row).toHaveCSS("opacity", "0.92");
   });
 
-  test("row click opens drawer and kebab interaction stays isolated", async ({
+  test("row click opens inline editor and kebab interaction stays isolated", async ({
     page,
+    isMobile,
   }) => {
+    test.skip(isMobile, "Mobile keeps row click on the primary detail surface");
+
     const row = page.locator(
       '.todo-item[data-todo-id="todo-due-project-medium"]',
     );
     await row.locator(".todo-title").click();
-    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
+    await expect(
+      page.locator('[data-inline-editor-for="todo-due-project-medium"]'),
+    ).toBeVisible();
 
-    await page.locator("#todoDrawerClose").click();
+    await row.getByRole("button", { name: "Close" }).click();
+    await expect(
+      page.locator('[data-inline-editor-for="todo-due-project-medium"]'),
+    ).toBeHidden();
     await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
       "aria-hidden",
       "true",
     );
 
+    await row.hover();
     await row.locator(".todo-kebab").click();
     await expect(row.locator(".todo-kebab-menu")).toBeVisible();
     await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(

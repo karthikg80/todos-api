@@ -1,6 +1,9 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import { setTimeout as delay } from "node:timers/promises";
-import { ensureAllTasksListActive } from "./helpers/todos-view";
+import {
+  ensureAllTasksListActive,
+  openTodoDrawerFromListRow,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -236,11 +239,9 @@ test.describe("Todo drawer mobile polish", () => {
       window.scrollTo(0, 420);
     });
 
-    await page.locator(".todo-item .todo-title").first().click();
-
-    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-      "aria-hidden",
-      "false",
+    await openTodoDrawerFromListRow(
+      page,
+      page.locator(".todo-item .todo-title").first(),
     );
     await expect(page.locator("body")).toHaveClass(/is-drawer-open/);
     await expect
@@ -292,10 +293,9 @@ test.describe("Todo drawer mobile polish", () => {
     ]);
 
     await registerAndOpenTodos(page, "drawer-accordion@example.com");
-    await page.locator(".todo-item .todo-title").first().click();
-    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-      "aria-hidden",
-      "false",
+    await openTodoDrawerFromListRow(
+      page,
+      page.locator(".todo-item .todo-title").first(),
     );
 
     await page.locator("#drawerDetailsToggle").click();
@@ -334,7 +334,10 @@ test.describe("Todo drawer mobile polish", () => {
     );
 
     await registerAndOpenTodos(page, "drawer-save-status@example.com");
-    await page.locator(".todo-item .todo-title").first().click();
+    await openTodoDrawerFromListRow(
+      page,
+      page.locator(".todo-item .todo-title").first(),
+    );
 
     await page.locator("#drawerPrioritySelect").selectOption("high");
 

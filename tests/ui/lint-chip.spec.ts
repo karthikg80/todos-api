@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import {
   ensureAllTasksListActive,
+  openTodoDrawerFromListRow,
   openTaskComposerSheet,
 } from "./helpers/todos-view";
 
@@ -256,7 +257,7 @@ test.describe("Lint-first task drawer chip", () => {
     // Wait for it to appear in the list
     await expect(page.locator(".todo-item").first()).toBeVisible();
     // Open drawer
-    await page.locator(".todo-item").first().click();
+    await openTodoDrawerFromListRow(page, page.locator(".todo-item").first());
     await expect(page.locator("#todoDetailsDrawer")).toBeVisible();
     // Lint chip should be in the AI section
     await expect(
@@ -274,7 +275,7 @@ test.describe("Lint-first task drawer chip", () => {
     await page.locator("#todoInput").fill("handle things");
     await page.locator("#todoInput").press("Enter");
     await expect(page.locator(".todo-item").first()).toBeVisible();
-    await page.locator(".todo-item").first().click();
+    await openTodoDrawerFromListRow(page, page.locator(".todo-item").first());
     await expect(page.locator("#todoDetailsDrawer")).toBeVisible();
     await expect(
       page.locator("#todoDetailsDrawer .ai-lint-chip"),

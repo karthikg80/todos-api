@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { openTodosViewWithStorageState } from "./helpers/todos-view";
+import {
+  openTodoDrawerFromListRow,
+  openTodosViewWithStorageState,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -244,10 +247,9 @@ async function installDrawerDetailsMockApi(page: Page, todosSeed: TodoSeed[]) {
 }
 
 async function openFirstTodoDrawer(page: Page) {
-  await page.locator(".todo-item .todo-title").first().click();
-  await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-    "aria-hidden",
-    "false",
+  await openTodoDrawerFromListRow(
+    page,
+    page.locator(".todo-item .todo-title").first(),
   );
   await expect(page.locator("#drawerTitleInput")).toBeVisible();
 }
@@ -460,11 +462,7 @@ test.describe("Todo drawer details + kebab actions", () => {
     });
 
     const secondRow = page.locator('.todo-item[data-todo-id="todo-focus-2"]');
-    await secondRow.locator(".todo-title").click();
-    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
+    await openTodoDrawerFromListRow(page, secondRow.locator(".todo-title"));
 
     await page.locator("#todoDrawerClose").click();
     await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(

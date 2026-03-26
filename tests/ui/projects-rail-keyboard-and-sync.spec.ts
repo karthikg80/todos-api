@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { registerAndOpenTodosView } from "./helpers/todos-view";
+import {
+  openTodoDrawerFromListRow,
+  registerAndOpenTodosView,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -416,11 +419,7 @@ test.describe("Projects rail keyboard + sync invariants", () => {
     test.skip(isMobile, "Desktop drawer focus invariant");
 
     const row = page.locator('.todo-item[data-todo-id="todo-a1"]');
-    await row.locator(".todo-title").click();
-    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
+    await openTodoDrawerFromListRow(page, row.locator(".todo-title"));
 
     await page.evaluate(() => {
       const fn = (window as { toggleTodoKebab?: Function }).toggleTodoKebab;

@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { ensureAllTasksListActive } from "./helpers/todos-view";
+import {
+  ensureAllTasksListActive,
+  openTodoDrawerFromListRow,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -406,7 +409,7 @@ test.describe("Project filter regression", () => {
     await registerAndOpenTodos(page, "regression-drawer@example.com");
 
     await selectProjectViaRail(page, "Project A");
-    await page.locator(".todo-item").first().click();
+    await openTodoDrawerFromListRow(page, page.locator(".todo-item").first());
     await expect(page.locator("#todoDetailsDrawer")).toHaveClass(
       /todo-drawer--open/,
     );

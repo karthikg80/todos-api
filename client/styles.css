@@ -6378,6 +6378,12 @@ body.is-bulk-selecting .todo-item {
   box-shadow: var(--shadow-1);
 }
 
+.todo-item:hover,
+.todo-item:focus-within,
+.todo-item:has(.todo-kebab-menu--open) {
+  z-index: 2;
+}
+
 .todo-item .bulk-checkbox,
 .todo-item .drag-handle,
 .todo-item .todo-checkbox {
@@ -6389,6 +6395,7 @@ body.is-bulk-selecting .todo-item {
   min-width: 0;
   display: grid;
   gap: var(--s-2);
+  cursor: pointer;
 }
 
 .todo-title {
@@ -6683,18 +6690,35 @@ body.dark-mode .todo-chip--due-overdue {
   display: grid;
 }
 
+.todo-inline-editor__field-label {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  color: var(--text-secondary);
+}
+
+.todo-inline-editor__title-input,
 .todo-inline-editor__field textarea {
   width: 100%;
-  min-height: 112px;
   padding: 12px 14px;
   border: 1px solid var(--border-color);
   border-radius: 12px;
   background: var(--input-bg);
   color: var(--text-primary);
   font: inherit;
+}
+
+.todo-inline-editor__title-input {
+  min-height: 48px;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+}
+
+.todo-inline-editor__field textarea {
+  min-height: 112px;
   resize: vertical;
 }
 
+.todo-inline-editor__title-input:focus,
 .todo-inline-editor__field textarea:focus {
   outline: none;
   border-color: var(--accent);
@@ -6705,6 +6729,11 @@ body.dark-mode .todo-chip--due-overdue {
   display: flex;
   gap: var(--s-2);
   flex-wrap: wrap;
+}
+
+.todo-inline-editor__actions .mini-btn {
+  position: relative;
+  z-index: 1;
 }
 
 @media (max-width: 768px) {

@@ -152,7 +152,7 @@ export function renderTodoRowTemplate({
         ${todo?.completed ? "checked" : ""}
         data-onchange="toggleTodo('${escapeHtml(todo?.id || "")}')"
       >
-      <div class="todo-content" data-onclick="openTodoDrawer('${escapeHtml(todo?.id || "")}')">
+      <div class="todo-content" data-onclick="openTodoFromRow('${escapeHtml(todo?.id || "")}')">
         <div class="todo-title" title="${title}">${title}</div>
         ${descriptionHtml}
         ${hasMetaContent ? `<div class="todo-meta">${metaHtml}</div>` : ""}

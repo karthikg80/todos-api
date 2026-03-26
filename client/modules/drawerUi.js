@@ -2127,7 +2127,7 @@ export function bindTodoDrawerHandlers() {
 
     const todoId = row.dataset.todoId;
     if (!todoId) return;
-    openTodoDrawer(todoId, row);
+    window.openTodoFromRow?.(todoId);
   });
 
   document.addEventListener("input", (event) => {
@@ -2327,6 +2327,6 @@ export function bindTodoDrawerHandlers() {
     const todoId = target.dataset.todoId;
     if (!todoId) return;
     event.preventDefault();
-    openTodoDrawer(todoId, target);
+    window.openInlineTaskEditor?.(todoId);
   });
 }
