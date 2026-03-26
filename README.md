@@ -1,21 +1,21 @@
-# Todos REST API
+# Todos Planning Workspace + API
 
-A production-ready REST API for managing todos with JWT auth, PostgreSQL persistence, input validation, and automated tests.
+Todos is a planning-focused task workspace with a static frontend, an Express + Prisma backend, AI-assisted planning surfaces, and a remote MCP/agent layer for assistant integrations.
 
 ## Features
 
-- 🔒 Full CRUD operations (Create, Read, Update, Delete)
-- 💾 PostgreSQL database with Prisma ORM for persistence
-- 🐳 Docker Compose for local development
-- ✅ Input validation with detailed error messages
-- 📘 TypeScript for type safety
-- 🧪 Comprehensive unit + integration test suite
-- 🏗️ Clean architecture with dependency injection
-- 🔄 Graceful shutdown handling
-- 🌍 Environment-based configuration (dev/test/prod)
-- 🔐 Refresh token rotation and auth route protection
-- 🤖 AI-assisted task critique and goal-to-plan suggestions
-- 🔌 Remote MCP surface for assistant connectors over the internal agent layer
+- Static single-page frontend in `client/` for day-to-day task management
+- JWT auth plus refresh-token rotation, email verification, password reset, admin bootstrap, and optional Google / Apple / phone login
+- Task and project management with projects, headings, subtasks, tags, priority, status, dates, recurrence, waiting state, dependencies, notes, and richer workflow metadata
+- Home dashboard with focus tiles, today's plan, upcoming work, rescue mode, and AI-backed priorities/focus suggestions
+- Inbox capture and triage flow for quickly capturing items before promoting them into structured tasks
+- Weekly review and planner flows for next-action generation, project planning, stale-task review, and work-graph analysis
+- AI assist surfaces for task critique, on-create guidance, task-drawer suggestions, brain-dump-to-plan drafting, and home priorities
+- Feedback capture plus admin review / promotion workflows
+- Remote MCP surface and internal `/agent` surface for assistant connectors and automation agents
+- PostgreSQL persistence through Prisma ORM
+- TypeScript backend with input validation, structured errors, and automated tests
+- Docker Compose for local PostgreSQL development
 
 ## Prerequisites
 
@@ -90,7 +90,43 @@ This creates the database schema and generates the Prisma client.
 npm run dev
 ```
 
-The API will be available at http://localhost:3000
+The app shell, API, and MCP endpoints will be available at http://localhost:3000
+
+## Product Surfaces
+
+The repo currently ships more than a CRUD API. The main user-facing and machine-facing surfaces are:
+
+- `client/`
+  Static frontend app with Home, Inbox, All tasks, Today, Upcoming, Completed, project rail, task drawer, onboarding, feedback, and admin views.
+- `/todos`, `/projects`, `/users`, `/preferences`
+  Core authenticated task, project, profile, and planning-preference APIs.
+- `/ai`
+  AI decision-assist, plan-drafting, priorities brief, suggestion history, and feedback-summary APIs.
+- `/capture`
+  Capture inbox API for recording and triaging unstructured items.
+- `/feedback` and `/admin`
+  Feedback submission plus admin review, automation, and promotion workflows.
+- `/agent`
+  Internal machine-usable action surface used by the frontend and automation flows.
+- `/mcp`, `/oauth`, `/.well-known/*`
+  Public assistant-connector surface with OAuth, scoped tools, and MCP transport endpoints.
+
+## Current Capability Snapshot
+
+Today the repo supports:
+
+- personal task management with richer metadata than a basic todo app
+- project organization with nested project paths and project headings
+- daily planning and weekly review workflows
+- AI-assisted suggestions across multiple UI surfaces
+- authenticated remote assistant access through MCP
+- agent/automation control-plane capabilities such as job runs, metrics, recommendation feedback, day context, and learning recommendations
+
+Important current limitations:
+
+- the product is stronger on prioritization and planning than on full calendar scheduling/timeboxing
+- the remote MCP layer is capable, but assistant-session management is still more operational than polished in the in-app UI
+- some advanced backend capabilities are exposed more clearly through `/agent` and MCP than through the end-user UI today
 
 ## Available Scripts
 
@@ -137,7 +173,11 @@ Integration test DB behavior:
 
 - `npm run build` - Build TypeScript + generate Prisma client
 
-## API Endpoints
+## Selected Core API Endpoints
+
+The list below is intentionally partial and highlights the classic todo CRUD
+surface. The current repo also exposes project, auth, AI, capture, feedback,
+agent, and MCP endpoints described above.
 
 ### Create a Todo
 

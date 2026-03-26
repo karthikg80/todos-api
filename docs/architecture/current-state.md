@@ -72,9 +72,9 @@ A single `state` object (342 lines, ~100 properties) is imported and mutated dir
 
 ### Agent executor (`agentExecutor.ts` — 3,362 lines)
 
-Dispatches 98 actions (40 read, 53 write, 5 system) in a single file. All MCP tools and agent API routes delegate to this executor. Features: zod validation per action, idempotency (SHA-256 input hashing, 7-day TTL), structured error envelopes, audit logging.
+Dispatches 78 manifest-backed actions through a single executor surface. All MCP tools and agent API routes delegate to this executor. Features: per-action validation, idempotency (SHA-256 input hashing, 7-day TTL), structured error envelopes, and audit logging.
 
-### Data model (Prisma — 26 models)
+### Data model (Prisma — 27 models)
 
 **Core:** User, Todo, Project, Heading, Subtask, Area, Goal
 **AI:** AiSuggestion, AiSuggestionAppliedTodo, CaptureItem

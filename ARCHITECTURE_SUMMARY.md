@@ -1,4 +1,4 @@
-# Architecture Summary for Agents
+# Architecture Summary for Agents (Updated)
 
 **Repository:** `todos-api`  
 **Version:** 1.6.0  
@@ -9,16 +9,17 @@
 
 ## Quick Reference
 
-| Aspect       | Value                                                                |
-| ------------ | -------------------------------------------------------------------- |
-| **Frontend** | `client/` — Vanilla ES6 modules, no build step, no framework         |
-| **Backend**  | `src/` — TypeScript, Express 5, Prisma ORM                           |
-| **Database** | PostgreSQL 16 (14 models, 15+ enums)                                 |
-| **Testing**  | Jest (unit/integration), Playwright (UI), Custom (AI evals)          |
-| **Auth**     | JWT + refresh rotation, Google OAuth, Apple Sign-In, Phone SMS OTP   |
-| **AI**       | OpenAI-compatible API (planning, critique, suggestions)              |
-| **MCP**      | Remote Model Context Protocol for AI assistant connectors            |
-| **Worker**   | Python (`agent-runner/`) — scheduled automation jobs on Railway cron |
+| Aspect | Value |
+|--------|-------|
+| **Frontend** | `client/` — Multi-page vanilla ES6 modules, no build step, no framework |
+| **Backend** | `src/` — TypeScript, Express 5, Prisma ORM |
+| **Database** | PostgreSQL 16 (26 models, 15+ enums) |
+| **Testing** | Jest (unit/integration/MCP), Playwright (UI), Custom (AI evals) |
+| **Auth** | JWT + refresh rotation, Google OAuth, Apple Sign-In, Phone SMS OTP |
+| **AI** | OpenAI-compatible API (planning, critique, suggestions, decision assist) |
+| **MCP** | Remote Model Context Protocol for AI assistant connectors |
+| **Worker** | Python (`agent-runner/`) — scheduled automation jobs on Railway cron |
+| **API Docs** | Swagger/OpenAPI at `/api-docs` |
 
 ---
 
@@ -38,6 +39,8 @@
 
 6. **State Actions** — `stateActions.js` implements named state transitions (`applyUiAction`, `applyAsyncAction`, `applyDomainAction`).
 
+7. **Page Bootstrap Shims** — `app-page.js` and `auth-page.js` run BEFORE `app.js`, inject DOM stubs, and handle auth gating. Do not bypass these shims.
+
 ### Backend
 
 1. **Service Interfaces** — All services implement interfaces (`ITodoService`, `IProjectService`) for testability.
@@ -50,6 +53,8 @@
 
 5. **Structured Errors** — `HttpError` class with MCP-compatible error format.
 
+6. **Standalone Page Routes** — `/auth` and `/app` routes serve standalone HTML pages before API routers. Do not reorder route registration.
+
 ---
 
 ## Directory Structure
@@ -57,43 +62,65 @@
 ```
 todos-api/
 ├── client/                          # Frontend (static, no build step)
-│   ├── app.js                       # Composition root (1,791 lines)
-│   ├── index.html                   # SPA shell + landing + auth forms
-│   ├── styles.css                   # All styles (dark mode support)
+│   ├── app.js                       # Main composition root (1,733 lines)
+│   ├── index.html                   # Landing page with embedded auth (4,010 lines)
+│   ├── styles.css                   # All styles (10,778 lines, 216KB)
+│   ├── manifest.json                # PWA manifest
+│   ├── service-worker.js            # PWA service worker
+│   ├── public/                      # Standalone pages (added Mar 2026)
+│   │   ├── app.html                 # Standalone app workspace (3,241 lines)
+│   │   ├── app-page.js              # App page bootstrap shim (139 lines)
+│   │   ├── auth.html                # Standalone auth page (392 lines)
+│   │   ├── auth-page.js             # Auth page handlers (779 lines)
+│   │   └── auth-page.css            # Auth page styles (89 lines)
 │   ├── bootstrap/                   # App initialization modules
-│   ├── features/                    # Feature-domain modules
-│   ├── modules/                     # Domain JS modules (32 files, 18K+ lines)
-│   ├── utils/                       # Shared utilities (13 files)
-│   ├── platform/                    # Platform abstractions
+│   │   └── initGlobalListeners.js   # Global event listeners (5.5KB)
+│   ├── features/                    # Feature-domain modules (6 dirs)
+│   │   ├── agent/                   # Agent polling, store, actions
+│   │   ├── assistant/               # AI assistant surfaces
+│   │   ├── command-palette/         # Ctrl+K navigation
+│   │   ├── drawer/                  # Todo edit drawer
+│   │   ├── projects/                # Project management
+│   │   └── todos/                   # Todo CRUD, filtering
+│   ├── modules/                     # Domain JS modules (38 files, 1.5MB)
+│   ├── utils/                       # Shared utilities (14 files)
+│   ├── platform/                    # Platform abstractions (events, state)
+│   ├── images/                      # Static assets
+│   ├── illustrations-preview.html   # Illustration preview (dev only)
 │   └── vendor/                      # Synced vendor assets (chrono-node)
 │
-├── src/                             # Backend TypeScript source
+├── src/                             # Backend TypeScript source (175 files)
 │   ├── server.ts                    # Entry point
-│   ├── app.ts                       # Express app composition
+│   ├── app.ts                       # Express app composition (417 lines)
 │   ├── config.ts                    # Environment configuration
-│   ├── routes/                      # Express routers (14 files, 138 routes)
-│   ├── services/                    # Domain services (49 files, 13,882 lines)
-│   ├── middleware/                  # Express middleware (4 files)
+│   ├── swagger.ts                   # OpenAPI/Swagger spec
+│   ├── routes/                      # Express routers (14 files, 138+ routes)
+│   ├── services/                    # Domain services (62 files, 15K+ lines)
+│   ├── middleware/                  # Express middleware (6 files)
 │   ├── interfaces/                  # Service contracts (4 files)
 │   ├── validation/                  # Validation schemas
-│   ├── agent/                       # Agent executor (3,362 lines)
+│   ├── types/                       # TypeScript type definitions
+│   ├── agent/                       # Agent executor (3.3K lines) + context
+│   ├── ai/                          # AI decision logic
 │   ├── mcp/                         # MCP protocol (5 files)
-│   └── infra/                       # Logging, metrics
+│   ├── domains/                     # Domain-oriented structure
+│   └── infra/                       # Infrastructure (logging, metrics)
 │
 ├── prisma/
 │   ├── schema.prisma                # Database schema (26 models, 15+ enums)
 │   └── migrations/                  # Database migrations
 │
 ├── agent-runner/                    # Python worker (scheduled jobs)
-│   └── agent_runner/                # 7 job types: daily, weekly, inbox, watchdog, etc.
+│   └── agent_runner/                # 7 job types: daily, weekly, inbox, etc.
 │
 ├── tests/
-│   └── ui/                          # Playwright specs (40 files)
+│   └── ui/                          # Playwright specs (40+ files)
 │       └── helpers/                 # UI test helpers (auth, DOM waits)
 │
 ├── test/                            # Jest setup/teardown
-│   ├── setup.ts                     # Global test DB setup
-│   └── teardown.ts                  # Prisma disconnect
+│   ├── setup.ts                     # Global test DB setup with safety guards
+│   ├── teardown.ts                  # Prisma disconnect
+│   └── jest.setup.ts                # Test utilities
 │
 ├── evals/                           # AI evaluation suites
 │   ├── agent/                       # Agent evals
@@ -101,35 +128,100 @@ todos-api/
 │   ├── mcp/                         # MCP connector evals
 │   └── planner/                     # Planner evals
 │
-├── docs/                            # Documentation (27+ files)
+├── docs/                            # Documentation (30+ files)
 │   ├── adr/                         # Architecture Decision Records (5 ADRs)
 │   ├── agent-ops/                   # Agent operations
+│   ├── agent-queue/                 # Legacy markdown task protocol
 │   ├── architecture/                # Current/target state
 │   ├── harness/                     # Test harness docs
 │   ├── memory/                      # Context compaction
 │   ├── ops/                         # Deployment runbooks
 │   └── ui-revamp/                   # UI redesign specs
 │
-└── .github/workflows/
-    ├── ci.yml                       # Unit + integration CI
-    ├── mcp.yml                      # MCP protocol tests
-    ├── ui-tests.yml                 # Playwright fast suite
-    └── ui-visual.yml                # Visual snapshot tests
+├── .github/workflows/
+│   ├── ci.yml                       # Unit + integration CI
+│   ├── mcp.yml                      # MCP protocol tests
+│   ├── ui-tests.yml                 # Playwright fast suite
+│   └── ui-visual.yml                # Visual snapshot tests
+│
+└── public/                          # Static public assets (logos, icons)
 ```
 
 ---
 
 ## Frontend Architecture
 
-### Composition Model
+### Multi-Page Architecture (Mar 2026 Refactor)
+
+The app transitioned from a single-page app to a **multi-page architecture** with standalone pages for auth and app views.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ app.js (1,791 lines)                                        │
-│ - Imports 420 named exports from 22+ modules                │
+│ Landing Page (client/index.html @ /)                        │
+│ - Marketing/hero section                                    │
+│ - Feature highlights                                        │
+│ - Login/register CTA buttons                                │
+│ - Embedded auth forms (login, register, phone)              │
+│ - Inline scripts call app.js functions                      │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ Auth Page (client/public/auth.html @ /auth)                 │
+│ - Standalone auth page (392 lines)                          │
+│ - auth-page.js (779 lines) handles form submissions         │
+│ - auth-page.css (89 lines) for page-specific styles         │
+│ - Redirects to /app on successful login                     │
+└─────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────┐
+│ App Page (client/public/app.html @ /app)                    │
+│ - Standalone app workspace (3,241 lines)                    │
+│ - app-page.js (139 lines) bootstrap shim:                   │
+│   1. Auth gate: redirect to /auth if no token               │
+│   2. Inject DOM stubs (#authView, #profileView, etc.)       │
+│   3. Patch window.logout to redirect instead of toggle      │
+│ - Loads app.js (1,733 lines) as ES module                   │
+│ - Full todo/project/AI functionality                        │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Page Bootstrap Flow
+
+```
+App Page Load:
+1. <script src="/utils/authSession.js"> — Load AppState
+2. <script src="/public/app-page.js"> — Run bootstrap shim:
+   - Check for valid token → redirect to /auth if missing
+   - Inject stub user if social OAuth (no user object)
+   - Inject DOM stubs (#authView, #profileView, etc.)
+   - Patch window.logout to redirect to /auth
+3. <script type="module" src="/app.js"> — Load main app:
+   - Import 420+ exports from 22+ modules
+   - Wire 137 hooks entries
+   - Bind delegated DOM events
+   - Call showAppView() if authenticated
+
+Auth Page Load:
+1. <script src="/utils/authSession.js"> — Load AppState
+2. <script src="/public/auth-page.js"> — Run auth handlers:
+   - Login form submission
+   - Register form submission
+   - Phone OTP flow
+   - Password reset
+   - Social OAuth initiation
+3. On success → redirect to /app with tokens
+```
+
+### Composition Model (app.js)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ app.js (1,733 lines, 57KB)                                  │
+│ - Imports 420+ named exports from 22+ modules               │
 │ - Wires 137 hooks entries                                   │
 │ - Binds delegated DOM events via data-onclick               │
 │ - Exposes ~120 functions to window.*                        │
+│ - Calls initGlobalListeners() from bootstrap/               │
 └─────────────────────────────────────────────────────────────┘
                             │
         ┌───────────────────┼───────────────────┐
@@ -142,15 +234,18 @@ todos-api/
         │                   │                   │
         ▼                   ▼                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ Feature Modules (32 total)                                  │
-│ - filterLogic.js (canonical filter pipeline)                │
-│ - authUi.js (social/phone auth handlers)                    │
-│ - aiWorkspace.js (AI plan/critique/brain-dump)              │
-│ - drawerUi.js (todo edit drawer, 2,146 lines)               │
-│ - railUi.js (projects sidebar navigation)                   │
-│ - homeDashboard.js (AI-powered focus dashboard)             │
-│ - commandPalette.js (Ctrl+K navigation)                     │
-│ - quickEntry.js (natural date parsing)                      │
+│ Feature Modules (38 total, 1.5MB)                           │
+│ - filterLogic.js (1,300 lines) — canonical filter pipeline  │
+│ - authUi.js — social/phone auth handlers                    │
+│ - aiWorkspace.js — AI plan/critique/brain-dump              │
+│ - drawerUi.js (2.1K lines) — todo edit drawer               │
+│ - railUi.js — projects sidebar navigation                   │
+│ - homeDashboard.js — AI-powered focus dashboard             │
+│ - commandPalette.js — Ctrl+K navigation                     │
+│ - quickEntry.js — natural date parsing                      │
+│ - stateActions.js (688 lines) — named state transitions     │
+│ - uiTemplates.js — row/drawer templates                     │
+│ - soulConfig.js — workspace configuration                   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -164,53 +259,60 @@ state = {
   currentUser: null,
   accessToken: null,
   refreshToken: null,
-
+  
   // Todos
   todos: [],
   filteredTodos: [],
   selectedTodoIds: new Set(),
-
+  
   // Projects
   projects: [],
   selectedProjectKey: null,
   expandedHeadings: new Set(),
-
+  
+  // Workspace
+  currentWorkspaceView: 'home',  // 'home' | 'unsorted' | 'home'
+  currentDateView: 'all',        // 'all' | 'today' | 'upcoming' | ...
+  
   // Drawer
   drawerOpen: false,
-  drawerMode: null, // 'create' | 'edit' | 'view'
+  drawerMode: null,  // 'create' | 'edit' | 'view'
   draftTodo: null,
-
+  
   // AI
   aiWorkspaceOpen: false,
   aiCriticResponse: null,
   aiPlanDraft: null,
-
+  
   // UI
   darkMode: false,
   commandPaletteOpen: false,
   quickEntryOpen: false,
   // ... 80+ more properties
-};
+}
 ```
 
 **Mutation pattern:** Direct mutation within named actions:
 
 ```javascript
 // stateActions.js
-function applyUiAction(actionType, payload) {
+function applyDomainAction(actionType, payload) {
   switch (actionType) {
-    case "TODO_CREATED":
-      state.todos.push(payload.todo);
-      state.filteredTodos = filterTodos();
-      break;
-    case "DRAWER_OPEN":
-      state.drawerOpen = true;
-      state.drawerMode = payload.mode;
-      state.draftTodo = payload.todo;
-      break;
+    case 'TODO_CREATED':
+      state.todos.push(payload.todo)
+      state.filteredTodos = filterTodos()
+      break
+    case 'DRAWER_OPEN':
+      state.drawerOpen = true
+      state.drawerMode = payload.mode
+      state.draftTodo = payload.todo
+      break
+    case 'WORKSPACE/VIEW:SET':
+      state.currentWorkspaceView = payload.view
+      break
     // ... 50+ action types
   }
-  EventBus.dispatch("state:changed", { action: actionType, payload });
+  EventBus.dispatch('state:changed', { action: actionType, payload })
 }
 ```
 
@@ -220,23 +322,24 @@ function applyUiAction(actionType, payload) {
 
 ```javascript
 // platform/events/eventBus.js
-const listeners = new Map();
+const listeners = new Map()
 
 export function subscribe(event, callback) {
-  if (!listeners.has(event)) listeners.set(event, new Set());
-  listeners.get(event).add(callback);
-  return () => listeners.get(event).delete(callback);
+  if (!listeners.has(event)) listeners.set(event, new Set())
+  listeners.get(event).add(callback)
+  return () => listeners.get(event).delete(callback)
 }
 
 export function dispatch(event, payload) {
   if (listeners.has(event)) {
-    listeners.get(event).forEach((cb) => cb(payload));
+    listeners.get(event).forEach(cb => cb(payload))
   }
 }
 
 // In use:
-EventBus.dispatch("todos:changed"); // Triggers filter + render
-EventBus.dispatch("todos:render"); // Render only
+EventBus.dispatch('todos:changed')  // Triggers filter + render
+EventBus.dispatch('todos:render')   // Render only
+EventBus.dispatch('state:changed')  // State changed (logging, persistence)
 ```
 
 ### DOM Rendering
@@ -246,18 +349,18 @@ EventBus.dispatch("todos:render"); // Render only
 ```javascript
 // filterLogic.js
 export function renderTodos() {
-  const container = document.getElementById("todosContent");
-  const html = state.filteredTodos.map((todo) => renderTodoRow(todo)).join("");
-  container.innerHTML = html; // Full replacement
+  const container = document.getElementById('todosContent')
+  const html = state.filteredTodos.map(todo => renderTodoRow(todo)).join('')
+  container.innerHTML = html  // Full replacement
 }
 
 // Micro-patches for single-todo updates:
 // todosViewPatches.js (378 lines)
 export function patchTodoRowCompletion(todoId, completed) {
-  const row = document.querySelector(`[data-todo-id="${todoId}"]`);
-  const checkbox = row.querySelector(".todo-checkbox");
-  checkbox.checked = completed;
-  row.classList.toggle("completed", completed);
+  const row = document.querySelector(`[data-todo-id="${todoId}"]`)
+  const checkbox = row.querySelector('.todo-checkbox')
+  checkbox.checked = completed
+  row.classList.toggle('completed', completed)
 }
 ```
 
@@ -277,8 +380,10 @@ export function patchTodoRowCompletion(todoId, completed) {
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ app.ts (composition root)                                   │
+│ app.ts (composition root, 417 lines)                        │
 │ - Middleware stack (CORS, helmet, rate limiting, logging)   │
+│ - Swagger/OpenAPI docs at /api-docs                         │
+│ - Standalone page routes (/auth, /app)                      │
 │ - Route registration                                        │
 │ - Service injection                                         │
 └─────────────────────────────────────────────────────────────┘
@@ -294,13 +399,15 @@ export function patchTodoRowCompletion(todoId, completed) {
         │                   │                   │
         ▼                   ▼                   ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ Services Layer (49 files, 13,882 lines)                     │
+│ Services Layer (62 files, 15K+ lines)                       │
 │ - AuthService, SocialAuthService, PhoneAuthService          │
 │ - PrismaTodoService, TodoService (in-memory for tests)      │
 │ - ProjectService, HeadingService                            │
 │ - AiPlannerService, AiSuggestionStore                       │
 │ - AgentExecutor, McpOAuthService                            │
 │ - FeedbackService (triage, duplicate, promotion, automation)│
+│ - CaptureService, PreferencesService                        │
+│ - AgentEnrollmentService, FailedAutomationActionService     │
 └─────────────────────────────────────────────────────────────┘
                             │
                             ▼
@@ -315,34 +422,72 @@ export function patchTodoRowCompletion(todoId, completed) {
 
 ```typescript
 // app.ts
-app.use(requestIdMiddleware); // Adds X-Request-ID
-app.use(routeLatencyMetrics); // Prometheus metrics
-app.use(cors({ origin: CORS_ORIGINS }));
-app.use(
-  helmet({
-    // Security headers
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'nonce-<random>'"],
-        // ...
-      },
-    },
-  }),
-);
-app.use(rateLimiters.authLimiter); // 5 req / 15 min
-app.use(rateLimiters.apiLimiter); // 100 req / 15 min
-app.use(rateLimiters.mcpLimiter); // 60 req / min
-app.use(cookieParser());
-app.use(express.json({ limit: "256kb" }));
-app.use(express.urlencoded({ extended: true, limit: "64kb" }));
+app.use(requestIdMiddleware)           // Adds X-Request-ID
+app.use(routeLatencyMetrics)           // Prometheus metrics
+app.use(cors({ origin: CORS_ORIGINS }))
+app.use(helmet({                       // Security headers
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'nonce-<random>'"],
+      // ...
+    }
+  }
+}))
+app.use(rateLimiters.authLimiter)      // 5 req / 15 min
+app.use(rateLimiters.apiLimiter)       // 100 req / 15 min
+app.use(rateLimiters.mcpLimiter)       // 60 req / min
+app.use(cookieParser())
+app.use(express.json({ limit: '256kb' }))
+app.use(express.urlencoded({ extended: true, limit: '64kb' }))
+
+// Swagger/OpenAPI docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec))
+app.get('/api-docs.json', (req, res) => res.send(swaggerSpec))
+
+// Static files
+app.use(express.static(path.join(__dirname, '../client')))
+app.use(express.static(path.join(__dirname, '../public')))
+app.use(express.static(
+  path.join(__dirname, '../node_modules/chrono-node/dist/esm')
+))
+
+// Standalone page routes — MUST be before /auth API router
+const authPage = path.join(__dirname, '../client/public/auth.html')
+const appPage = path.join(__dirname, '../client/public/app.html')
+app.get('/auth', (_req, res) => res.sendFile(authPage))
+app.get('/app', (_req, res) => res.sendFile(appPage))
+app.get('/app/{*path}', (_req, res) => res.sendFile(appPage))
+
+// API rate limit zone
+app.use('/api', apiLimiter)
 
 // Routes
-app.use("/auth", authRouter);
-app.use("/todos", todosRouter);
-app.use("/projects", projectsRouter);
+app.use('/auth', authRouter)           // POST /auth/login, /auth/register, etc.
+app.use('/todos', todosRouter)
+app.use('/projects', projectsRouter)
 // ...
 ```
+
+### Standalone Page Routes
+
+**Critical:** Page routes must be registered BEFORE the `/auth` API router to intercept GET requests:
+
+```typescript
+// Correct order (DO NOT CHANGE):
+// 1. Static middleware
+app.use(express.static(path.join(__dirname, '../client')))
+
+// 2. Standalone page routes
+app.get('/auth', (_req, res) => res.sendFile(authPage))
+app.get('/app', (_req, res) => res.sendFile(appPage))
+app.get('/app/{*path}', (_req, res) => res.sendFile(appPage))
+
+// 3. API routes (POST /auth/login, etc.)
+app.use('/auth', authRouter)
+```
+
+If reordered, `GET /auth` would hit the API router and return 404.
 
 ### Agent Architecture
 
@@ -374,35 +519,35 @@ app.use("/projects", projectsRouter);
 export async function executeAgentAction(
   action: AgentAction,
   userId: string,
-  input: unknown,
+  input: unknown
 ) {
   // 1. Validate input with Zod
-  const validated = actionValidators[action].parse(input);
-
+  const validated = actionValidators[action].parse(input)
+  
   // 2. Check idempotency (SHA-256 hash of action + input)
-  const idempotencyKey = hashActionInput(action, validated);
-  const existing = await checkIdempotency(idempotencyKey);
-  if (existing) return existing.result;
-
+  const idempotencyKey = hashActionInput(action, validated)
+  const existing = await checkIdempotency(idempotencyKey)
+  if (existing) return existing.result
+  
   // 3. Dispatch to handler (98 actions)
-  let result: unknown;
+  let result: unknown
   switch (action) {
-    case "plan_today":
-      result = await handlePlanToday(userId, validated);
-      break;
-    case "break_down_project":
-      result = await handleBreakDownProject(userId, validated);
-      break;
+    case 'plan_today':
+      result = await handlePlanToday(userId, validated)
+      break
+    case 'break_down_project':
+      result = await handleBreakDownProject(userId, validated)
+      break
     // ... 96 more cases
   }
-
+  
   // 4. Persist audit log
-  await persistAuditLog(userId, action, result);
-
+  await persistAuditLog(userId, action, result)
+  
   // 5. Cache result for idempotency
-  await cacheIdempotencyResult(idempotencyKey, result);
-
-  return result;
+  await cacheIdempotencyResult(idempotencyKey, result)
+  
+  return result
 }
 ```
 
@@ -432,7 +577,7 @@ model SocialAccount {
   emailAtProvider         String?
   emailVerifiedAtProvider Boolean  @default(false)
   user                    User     @relation(fields: [userId], references: [id])
-
+  
   @@unique([provider, providerSubject])
 }
 
@@ -489,6 +634,17 @@ model AgentJobRun {
 model McpAssistantSession { /* ... */ }
 model McpAuthorizationCode { /* ... */ }
 model McpRefreshToken { /* ... */ }
+
+// Feedback models
+model FeedbackRequest {
+  id          String         @id @default(uuid())
+  userId      String
+  type        FeedbackType   // "bug" | "feature" | "improvement"
+  status      FeedbackStatus // "new" | "triaged" | "promoted" | "closed"
+  description String
+  classification FeedbackClassification?
+  // ...
+}
 ```
 
 ---
@@ -499,12 +655,15 @@ model McpRefreshToken { /* ... */ }
 
 ```
                     ┌─────────────────┐
-                    │   UI (40 specs) │  Playwright (fast + visual)
+                    │   UI (40+ specs)│  Playwright (fast + visual)
                    ─├─────────────────┤─
                   │  Integration (6)  │  Jest + supertest + PostgreSQL
                  ──├─────────────────┤──
                 │    Unit (17)        │  Jest (in-memory services)
                ───┴─────────────────┴───
+                      ┌───────────────┐
+                      │  MCP (separate)│  Jest (MCP protocol)
+                     ──┴───────────────┴──
 ```
 
 ### Required CI Checks
@@ -516,6 +675,7 @@ npm run format:check                # Prettier
 npm run lint:html                   # HTML validation
 npm run lint:css                    # CSS linting
 npm run test:unit                   # Unit tests (300+ tests)
+npm run test:mcp                    # MCP protocol tests
 CI=1 npm run test:ui:fast           # Fast UI suite (excludes @visual)
 ```
 
@@ -529,6 +689,7 @@ CI=1 npm run test:ui:fast           # Fast UI suite (excludes @visual)
    - Update snapshots in Docker for consistency
 4. **Auth setup:** Use `openTodosViewWithStorageState()` or `bootstrapTodosContext()` from `tests/ui/helpers/todos-view.ts`
 5. **DOM waits:** Use `waitForTodosViewIdle()` — never `page.waitForTimeout()`
+6. **Multi-page awareness:** Tests must handle `/auth` and `/app` as separate pages
 
 ### Test Database Strategy
 
@@ -545,34 +706,39 @@ CI=1 npm run test:ui:fast           # Fast UI suite (excludes @visual)
 
 ### Critical Hotspots
 
-| File                         | Lines | Issue                                                              |
-| ---------------------------- | ----- | ------------------------------------------------------------------ |
-| `client/app.js`              | 1,791 | Imports 420 exports, wires 137 hooks, assigns 120 window functions |
-| `client/drawerUi.js`         | 2,146 | Mixes rendering, draft management, AI assist, kebab menu           |
-| `client/projectsState.js`    | 1,391 | Handles CRUD, headings, dialogs, rail updates                      |
-| `client/aiWorkspace.js`      | 1,517 | Owns critique, plan, brain-dump in one module                      |
-| `src/agent/agentExecutor.ts` | 3,362 | Dispatches 98 actions synchronously, blocking event loop           |
-| `client/stateActions.js`     | 688   | 50+ action types, large switch statements                          |
+| File | Lines | Issue |
+|------|-------|-------|
+| `client/app.js` | 1,733 | Imports 420+ exports, wires 137 hooks, assigns 120 window functions |
+| `client/index.html` | 4,010 | Landing page with embedded auth forms, inline scripts |
+| `client/styles.css` | 10,778 | Monolithic stylesheet (216KB), not split by page |
+| `client/drawerUi.js` | 2,146 | Mixes rendering, draft management, AI assist, kebab menu |
+| `client/projectsState.js` | 1,391 | Handles CRUD, headings, dialogs, rail updates |
+| `client/aiWorkspace.js` | 1,517 | Owns critique, plan, brain-dump in one module |
+| `src/agent/agentExecutor.ts` | 3,362 | Dispatches 98 actions synchronously, blocking event loop |
+| `client/stateActions.js` | 688 | 50+ action types, large switch statements |
+| `client/public/auth-page.js` | 779 | Auth form handlers — could be modularized |
 
 ### Open Issues
 
-1. **8 pre-existing UI test failures** on master (error-state tests)
-2. **30+ stale git branches** including worktrees
+1. **Pre-existing UI test failures** — Error-state tests failing on master (varies by branch)
+2. **Stale git branches** — 30+ branches including worktrees
 3. **Dual runtime** — Python worker + Node.js backend
 4. **No async agent queue** — ADR-005 accepted but not implemented
 5. **Frontend state coupling** — Direct mutation of shared `state` object
+6. **CSS not split** — styles.css remains monolithic despite multi-page architecture
+7. **No landing-page.js** — Landing page logic embedded in index.html inline scripts
 
 ---
 
 ## Accepted ADRs
 
-| ADR | Title                             | Status                                           |
-| --- | --------------------------------- | ------------------------------------------------ |
-| 001 | Frontend composition roots        | Accepted (not implemented)                       |
-| 002 | Event bus contract                | Accepted                                         |
-| 003 | Agent worker queue                | Accepted                                         |
-| 004 | Domain-oriented backend structure | Accepted                                         |
-| 005 | Agent execution architecture      | Accepted (BullMQ for on-demand, not implemented) |
+| ADR | Title | Status |
+|-----|-------|--------|
+| 001 | Frontend composition roots | Accepted (not implemented) |
+| 002 | Event bus contract | Accepted |
+| 003 | Agent worker queue | Accepted |
+| 004 | Domain-oriented backend structure | Accepted |
+| 005 | Agent execution architecture | Accepted (BullMQ for on-demand, not implemented) |
 
 ---
 
@@ -637,6 +803,9 @@ npm run check:all
 # Unit tests
 npm run test:unit
 
+# MCP tests
+npm run test:mcp
+
 # Integration tests
 npm run test:integration
 
@@ -671,6 +840,16 @@ npm run prisma:studio
 npm run prisma:reset
 ```
 
+### API Documentation
+
+```bash
+# View Swagger UI
+open http://localhost:3000/api-docs
+
+# Download OpenAPI spec
+curl http://localhost:3000/api-docs.json
+```
+
 ---
 
 ## Security Checklist
@@ -683,6 +862,7 @@ npm run prisma:reset
 - [x] Input validation with Zod
 - [x] Anti-enumeration (generic auth errors)
 - [x] Idempotency for agent actions
+- [x] Request ID tracking (X-Request-ID)
 - [ ] Dependency updates (manual)
 - [ ] Security headers audit (periodic)
 
@@ -708,6 +888,20 @@ npm start
 - PostgreSQL via Railway managed database
 - Python worker deployed as separate cron service
 - Remote MCP surface enabled at `/mcp`
+- Static files served from `/client` and `/public`
+
+---
+
+## File Size Summary
+
+| Category | Files | Total Lines | Notes |
+|----------|-------|-------------|-------|
+| Frontend HTML | 4 | 7,643 | index.html (4,010), app.html (3,241), auth.html (392) |
+| Frontend JS | 40+ | 1.5MB+ | app.js (1,733), modules (38 files) |
+| Frontend CSS | 2 | 10,867 | styles.css (10,778), auth-page.css (89) |
+| Backend TS | 175 | 20K+ | services (62), routes (14), middleware (6) |
+| Tests | 60+ | — | Unit (17), Integration (6), UI (40+) |
+| Docs | 30+ | — | ADRs (5), architecture, ops, harness |
 
 ---
 
@@ -717,8 +911,16 @@ npm start
 - **Documentation:** `docs/` directory
 - **ADRs:** `docs/adr/` directory
 - **Architecture:** `docs/architecture/` directory
+- **API Docs:** `/api-docs` (Swagger UI)
 
 ---
 
 **Last reviewed:** 2026-03-25  
-**Next review:** After ADR-001 implementation
+**Next review:** After ADR-001 implementation or CSS split
+
+**Changes since previous summary:**
+- Multi-page architecture (landing, auth, app) — Mar 2026 refactor
+- Standalone page bootstrap shims (app-page.js, auth-page.js)
+- Swagger/OpenAPI documentation at `/api-docs`
+- Updated file counts and line counts
+- Added file size summary table
