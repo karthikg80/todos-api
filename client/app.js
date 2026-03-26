@@ -1677,6 +1677,22 @@ function init() {
     setAuthState(AUTH_STATE.AUTHENTICATED);
     showAppView();
     loadUserProfile();
+  } else if (token && !user) {
+    // Social login (Google/Apple) stores tokens but not the user object.
+    // Fetch the profile before giving up — if it succeeds we're authenticated.
+    state.authToken = token;
+    state.refreshToken = refresh;
+    setAuthState(AUTH_STATE.AUTHENTICATED);
+    showAppView();
+    loadUserProfile().catch(() => {
+      // Token was invalid or expired — fall back to login screen.
+      persistSession({
+        authToken: null,
+        refreshToken: null,
+        currentUser: null,
+      });
+      setAuthState(AUTH_STATE.UNAUTHENTICATED);
+    });
   } else {
     setAuthState(AUTH_STATE.UNAUTHENTICATED);
   }
