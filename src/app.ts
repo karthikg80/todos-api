@@ -239,7 +239,9 @@ export function createApp(
   const appPage = path.join(__dirname, "../client/public/app.html");
   app.get("/auth", (_req: Request, res: Response) => res.sendFile(authPage));
   app.get("/app", (_req: Request, res: Response) => res.sendFile(appPage));
-  app.get("/app/*", (_req: Request, res: Response) => res.sendFile(appPage));
+  app.get("/app/{*path}", (_req: Request, res: Response) =>
+    res.sendFile(appPage),
+  );
 
   app.use(
     "/api-docs",
