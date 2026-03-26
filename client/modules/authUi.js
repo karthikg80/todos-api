@@ -205,11 +205,6 @@ export async function handleLogin(event) {
           currentUser: state.currentUser,
         });
       }
-      // On multi-page layout (auth.html), redirect; on single-page, toggle view
-      if (!document.getElementById("todosView")) {
-        window.location.href = "/app";
-        return;
-      }
       showAppView();
       loadUserProfile().then(() => {
         initOnboarding();
@@ -271,19 +266,12 @@ export async function handleRegister(event) {
         });
       }
       showMessage("authMessage", "Account created successfully!", "success");
-      // On multi-page layout (auth.html), redirect; on single-page, toggle view
-      if (!document.getElementById("todosView")) {
-        setTimeout(() => {
-          window.location.href = "/app";
-        }, 1000);
-      } else {
-        setTimeout(() => {
-          showAppView();
-          loadUserProfile().then(() => {
-            initOnboarding();
-          });
-        }, 1000);
-      }
+      setTimeout(() => {
+        showAppView();
+        loadUserProfile().then(() => {
+          initOnboarding();
+        });
+      }, 1000);
     } else {
       if (data.errors) {
         const errorMsg = data.errors.map((e) => e.message).join(", ");
@@ -1163,11 +1151,6 @@ export function handleSocialCallback() {
       // Clean URL
       window.history.replaceState({}, document.title, window.location.pathname);
 
-      // On multi-page layout, redirect; on single-page, toggle view
-      if (!document.getElementById("todosView")) {
-        window.location.href = "/app";
-        return;
-      }
       showAppView();
       loadUserProfile().then(() => {
         initOnboarding();
@@ -1475,11 +1458,6 @@ export async function handleVerifyOtp() {
       });
     }
 
-    // On multi-page layout, redirect; on single-page, toggle view
-    if (!document.getElementById("todosView")) {
-      window.location.href = "/app";
-      return;
-    }
     showAppView();
     loadUserProfile().then(() => {
       initOnboarding();

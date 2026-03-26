@@ -148,8 +148,7 @@ async function installTopbarLayoutMockApi(page: Page, todosSeed: TodoSeed[]) {
 }
 
 async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.evaluate(() => (window as any).showAuthPage?.("register"));
+  await page.goto("/?tab=register");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Topbar Layout User");
   await page.locator("#registerEmail").fill("topbar-layout@example.com");
