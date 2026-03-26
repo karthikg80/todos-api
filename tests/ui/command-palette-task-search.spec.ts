@@ -241,7 +241,9 @@ test.describe("Command palette task search", () => {
 
   test("keyboard navigation skips section headers", async ({ page }) => {
     await openCommandPalette(page);
-    await page.locator("#commandPaletteInput").fill("o");
+    // "b" matches commands: Go to Inbox (0), Go to Feedback (1),
+    // Show Keyboard Shortcuts (2) — and tasks: Book flights (3).
+    await page.locator("#commandPaletteInput").fill("b");
 
     await expect(page.locator("#commandPaletteList")).toContainText("Commands");
     await expect(page.locator("#commandPaletteList")).toContainText("Tasks");
@@ -251,7 +253,7 @@ test.describe("Command palette task search", () => {
       "true",
     );
     await expect(page.locator("#commandPaletteOption-0")).toContainText(
-      "Go to All tasks",
+      "Go to Inbox",
     );
 
     await page.keyboard.press("ArrowDown");

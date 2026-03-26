@@ -721,6 +721,7 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
       updateBulkActionsVisibility();
       updateSelectAllCheckbox();
     },
+    loadMcpSessions,
   });
 
 // moveProjectHeading, reorderProjectHeadings, moveTodoToHeading

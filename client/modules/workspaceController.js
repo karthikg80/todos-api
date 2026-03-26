@@ -35,6 +35,7 @@ export function createWorkspaceController({
   loadAdminUsers,
   prepareFeedbackView,
   clearBulkSelection,
+  loadMcpSessions,
 }) {
   function switchView(view, triggerEl = null) {
     clearBulkSelection?.();
@@ -81,7 +82,7 @@ export function createWorkspaceController({
     syncSidebarNavState(requestedView);
 
     if (isSettingsView) {
-      hooks.loadMcpSessions?.();
+      loadMcpSessions?.();
       closeCommandPalette({ restoreFocus: false });
       closeProjectCrudModal({ restoreFocus: false });
       closeProjectEditDrawer({ restoreFocus: false });

@@ -289,7 +289,7 @@ test.describe("Lint-first task drawer chip", () => {
     await expect(page.locator("#todoDetailsDrawer .ai-lint-chip")).toBeHidden();
     await expect(
       page.locator("#todoDetailsDrawer .todo-drawer__section-title", {
-        hasText: "AI Suggestions",
+        hasText: "Assistant",
       }),
     ).toBeVisible();
   });
