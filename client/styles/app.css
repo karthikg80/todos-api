@@ -2074,14 +2074,15 @@ button.projects-rail-item {
   display: none !important;
 }
 
-/* Top bar hidden on desktop */
+/* Top bar hidden on desktop (body.is-todos-view raises specificity to 0,2,0
+   so it beats the base .todos-top-bar{display:grid} rule at 0,1,0). */
 @media (min-width: 769px) {
-  .todos-top-bar {
+  body.is-todos-view .todos-top-bar {
     display: none;
   }
   /* Header is redundant on desktop todos view — sidebar handles all navigation
      and account actions. It remains visible on mobile and auth view. */
-  .header {
+  body.is-todos-view .header {
     display: none;
   }
 }
@@ -2217,7 +2218,7 @@ button.projects-rail-item {
   box-shadow: var(--shadow-1);
 }
 
-.floating-new-task-cta {
+body.is-todos-view .floating-new-task-cta {
   display: inline-flex;
   align-items: center;
 }
@@ -3023,11 +3024,11 @@ button.projects-rail-item {
   }
 
   #appSidebar,
-  #appSidebar {
+  body.is-todos-view #appSidebar {
     display: none;
   }
 
-  .nav-tabs {
+  body.is-todos-view .nav-tabs {
     display: flex !important;
   }
 
@@ -3037,7 +3038,7 @@ button.projects-rail-item {
     padding: 10px;
   }
 
-  body {
+  body.is-todos-view {
     padding: 10px;
     overflow: auto;
   }
@@ -3069,7 +3070,7 @@ button.projects-rail-item {
     padding: 15px;
   }
 
-  .container {
+  body.is-todos-view .container {
     height: calc(100dvh - 20px);
     max-height: calc(100dvh - 20px);
     border-radius: var(--r-md);
@@ -5529,9 +5530,9 @@ textarea:disabled {
 }
 
 /* M8: Notion-like calm density (single strong CTA in Todos) */
-.add-btn,
-.btn,
-.mini-btn {
+body.is-todos-view .add-btn,
+body.is-todos-view .btn,
+body.is-todos-view .mini-btn {
   background: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
   color: var(--text-secondary);
   border: 1px solid color-mix(in oklab, var(--border-color) 80%, var(--surface));
@@ -5539,87 +5540,87 @@ textarea:disabled {
   box-shadow: none;
 }
 
-.add-btn:hover,
-.btn:hover,
-.mini-btn:hover {
+body.is-todos-view .add-btn:hover,
+body.is-todos-view .btn:hover,
+body.is-todos-view .mini-btn:hover {
   background: color-mix(in oklab, var(--surface) 78%, var(--surface-2));
   color: var(--text-primary);
   border-color: color-mix(in oklab, var(--border-color) 66%, var(--text-muted));
 }
 
-.top-add-btn {
+body.is-todos-view .top-add-btn {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
   color: #fff;
   border-color: transparent;
   font-weight: var(--fw-semibold);
 }
 
-.top-add-btn:hover {
+body.is-todos-view .top-add-btn:hover {
   filter: saturate(1.05) brightness(1.02);
 }
 
-.todos-top-bar,
-.more-filters-panel,
-.todos-list-header,
-.quick-entry-properties-panel {
+body.is-todos-view .todos-top-bar,
+body.is-todos-view .more-filters-panel,
+body.is-todos-view .todos-list-header,
+body.is-todos-view .quick-entry-properties-panel {
   border-color: color-mix(in oklab, var(--border-color) 72%, var(--surface));
   background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
 }
 
-.todos-top-bar {
+body.is-todos-view .todos-top-bar {
   padding: 14px;
 }
 
-.todos-list-header {
+body.is-todos-view .todos-list-header {
   padding: 14px;
 }
 
-.projects-rail {
+body.is-todos-view .projects-rail {
   background: transparent;
   border-color: color-mix(in oklab, var(--border-color) 72%, transparent);
   box-shadow: none;
 }
 
-.projects-rail-item,
-.todo-item {
+body.is-todos-view .projects-rail-item,
+body.is-todos-view .todo-item {
   border-color: color-mix(in oklab, var(--border-color) 74%, var(--surface));
 }
 
 /* M9: Sidebar hierarchy + density polish */
-#appSidebar {
+body.is-todos-view #appSidebar {
   padding: 12px 10px;
   background: color-mix(in oklab, var(--surface-2) 90%, var(--surface));
 }
 
-.app-sidebar__top {
+body.is-todos-view .app-sidebar__top {
   gap: 10px;
 }
 
-#projectsRailHost > #projectsRail {
+body.is-todos-view #projectsRailHost > #projectsRail {
   padding: 0 2px;
 }
 
-.projects-rail {
+body.is-todos-view .projects-rail {
   gap: 10px;
 }
 
-.projects-rail__header {
+body.is-todos-view .projects-rail__header {
   padding: 0 6px 6px;
   border-bottom: 1px solid
     color-mix(in oklab, var(--border-color) 70%, transparent);
 }
 
-.projects-rail__section {
+body.is-todos-view .projects-rail__section {
   padding-top: 10px;
   margin-top: 2px;
   border-top-color: color-mix(in oklab, var(--border-color) 70%, transparent);
 }
 
-.projects-rail__section--workspace {
+body.is-todos-view .projects-rail__section--workspace {
   margin-top: 0;
 }
 
-.projects-rail__section-header {
+body.is-todos-view .projects-rail__section-header {
   margin-bottom: 6px;
   padding: 0 6px;
   font-size: 12px;
@@ -5627,18 +5628,18 @@ textarea:disabled {
   color: color-mix(in oklab, var(--text-secondary) 84%, var(--text-muted));
 }
 
-.projects-rail__primary,
-.projects-rail__list,
-.app-sidebar__settings {
+body.is-todos-view .projects-rail__primary,
+body.is-todos-view .projects-rail__list,
+body.is-todos-view .app-sidebar__settings {
   gap: 4px;
 }
 
-.projects-rail-row {
+body.is-todos-view .projects-rail-row {
   padding-right: 30px;
 }
 
-.projects-rail-item,
-.sidebar-nav-item {
+body.is-todos-view .projects-rail-item,
+body.is-todos-view .sidebar-nav-item {
   border-radius: 8px;
   padding: 6px 8px;
   min-height: 34px;
@@ -5646,23 +5647,23 @@ textarea:disabled {
   border-color: transparent;
 }
 
-.workspace-view-item,
-.sidebar-nav-item {
+body.is-todos-view .workspace-view-item,
+body.is-todos-view .sidebar-nav-item {
   font-weight: var(--fw-medium);
 }
 
-.projects-rail-item:hover {
+body.is-todos-view .projects-rail-item:hover {
   background: color-mix(in oklab, var(--surface) 86%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 70%, transparent);
 }
 
-.projects-rail-item--active,
-.projects-rail-item[role="option"][aria-selected="true"] {
+body.is-todos-view .projects-rail-item--active,
+body.is-todos-view .projects-rail-item[role="option"][aria-selected="true"] {
   background: color-mix(in oklab, var(--accent) 7%, var(--surface));
   border-color: color-mix(in oklab, var(--accent) 22%, var(--border-color));
 }
 
-.projects-rail-item__count {
+body.is-todos-view .projects-rail-item__count {
   font-size: 11px;
   color: color-mix(in oklab, var(--text-secondary) 82%, var(--text-muted));
   background: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
@@ -5671,317 +5672,323 @@ textarea:disabled {
   min-width: 20px;
 }
 
-.projects-rail-kebab {
+body.is-todos-view .projects-rail-kebab {
   width: 22px;
   height: 22px;
   right: 2px;
   background: transparent;
 }
 
-.app-sidebar__settings .projects-rail-item {
+body.is-todos-view .app-sidebar__settings .projects-rail-item {
   justify-content: flex-start;
 }
 
 /* M9: Main panel compaction (keep behavior unchanged) */
-#appMainScroll {
+body.is-todos-view #appMainScroll {
   padding: 12px;
 }
 
-.content {
+body.is-todos-view .content {
   padding: 0;
 }
 
-.header {
+body.is-todos-view .header {
   padding: 8px 12px;
 }
 
-.user-bar {
+body.is-todos-view .user-bar {
   margin-top: 6px;
 }
 
-.nav-tabs {
+body.is-todos-view .nav-tabs {
   padding: 4px 10px;
   gap: 6px;
 }
 
-.nav-tab {
+body.is-todos-view .nav-tab {
   padding: 4px 9px;
   font-size: 11px;
   color: color-mix(in oklab, var(--text-secondary) 90%, var(--text-muted));
   background: color-mix(in oklab, var(--surface) 96%, transparent);
 }
 
-.nav-tab.active {
+body.is-todos-view .nav-tab.active {
   color: color-mix(in oklab, var(--accent) 70%, var(--text-primary));
   border-color: color-mix(in oklab, var(--accent) 28%, var(--border-color));
   background: color-mix(in oklab, var(--accent) 6%, var(--surface));
 }
 
-.todos-top-bar {
+body.is-todos-view .todos-top-bar {
   gap: 10px;
   margin-bottom: 8px;
   padding: 10px 12px;
 }
 
-.search-input {
+body.is-todos-view .search-input {
   padding: 10px 38px 10px 12px;
 }
 
-#todosScrollRegion {
+body.is-todos-view #todosScrollRegion {
   gap: 8px;
   padding-bottom: 8px;
 }
 
-.more-filters-panel {
+body.is-todos-view .more-filters-panel {
   padding: 10px 12px;
 }
 
-.add-todo.quick-entry {
+body.is-todos-view .add-todo.quick-entry {
   gap: 8px;
 }
 
-.quick-entry > input,
-.field-row input,
-.field-row select {
+body.is-todos-view .quick-entry > input,
+body.is-todos-view .field-row input,
+body.is-todos-view .field-row select {
   padding: 10px 12px;
 }
 
-.quick-entry-toolbar {
+body.is-todos-view .quick-entry-toolbar {
   margin-top: -2px;
 }
 
-.quick-entry-properties-panel {
+body.is-todos-view .quick-entry-properties-panel {
   gap: 10px;
   padding: 10px 12px;
 }
 
-.field-row {
+body.is-todos-view .field-row {
   gap: 10px;
 }
 
-.action-row {
+body.is-todos-view .action-row {
   gap: 10px;
 }
 
-.todos-list-header {
+body.is-todos-view .todos-list-header {
   align-items: center;
   padding: 10px 12px;
 }
 
 /* M9a: keep legacy top tabs available (less dominant) for Todos<->Settings switching */
-.nav-tabs {
+body.is-todos-view .nav-tabs {
   display: flex !important;
 }
 
 /* M9a: preserve topbar/quick-entry/AI goal input height parity for CTA invariants */
-.ai-workspace-inputs input {
+body.is-todos-view .ai-workspace-inputs input {
   padding: 10px 12px;
 }
 
 /* M10: Density tighten follow-up (reduce pre-list vertical stack) */
-#appSidebar {
+body.is-todos-view #appSidebar {
   padding: 10px 8px;
 }
 
-#appMainScroll {
+body.is-todos-view #appMainScroll {
   padding: 10px;
 }
 
-.projects-rail__header {
+body.is-todos-view .projects-rail__header {
   padding: 0 4px 5px;
 }
 
-.projects-rail__section-header {
+body.is-todos-view .projects-rail__section-header {
   margin-bottom: 4px;
   padding: 0 4px;
 }
 
-.projects-rail-item,
-.sidebar-nav-item {
+body.is-todos-view .projects-rail-item,
+body.is-todos-view .sidebar-nav-item {
   padding: 5px 7px;
   min-height: 32px;
 }
 
-.projects-rail-item__count {
+body.is-todos-view .projects-rail-item__count {
   padding: 1px 5px;
 }
 
-.todos-top-bar {
+body.is-todos-view .todos-top-bar {
   gap: 8px;
   margin-bottom: 6px;
   padding: 8px 10px;
 }
 
-.todos-top-bar-actions {
+body.is-todos-view .todos-top-bar-actions {
   gap: 6px;
 }
 
-#todosScrollRegion {
+body.is-todos-view #todosScrollRegion {
   gap: 6px;
   padding-bottom: 6px;
 }
 
-.more-filters-panel,
-.todos-list-header {
+body.is-todos-view .more-filters-panel,
+body.is-todos-view .todos-list-header {
   padding: 8px 10px;
 }
 
-.add-todo.quick-entry {
+body.is-todos-view .add-todo.quick-entry {
   gap: 6px;
 }
 
-.quick-entry > input {
+body.is-todos-view .quick-entry > input {
   padding-top: 9px;
   padding-bottom: 9px;
 }
 
-.quick-entry-toolbar {
+body.is-todos-view .quick-entry-toolbar {
   margin-top: -4px;
 }
 
-.quick-entry-properties-panel {
+body.is-todos-view .quick-entry-properties-panel {
   gap: 8px;
   padding: 8px 10px;
 }
 
-.quick-entry-properties-panel .field-row {
+body.is-todos-view .quick-entry-properties-panel .field-row {
   gap: 8px;
   align-items: center;
 }
 
-.quick-entry-properties-panel .action-row {
+body.is-todos-view .quick-entry-properties-panel .action-row {
   gap: 8px;
   align-items: center;
 }
 
-.quick-entry-properties-panel .field-row select {
+body.is-todos-view .quick-entry-properties-panel .field-row select {
   min-width: 150px;
 }
 
-.quick-entry-properties-panel .field-row input[type="datetime-local"] {
+body.is-todos-view
+  .quick-entry-properties-panel
+  .field-row
+  input[type="datetime-local"] {
   min-width: 170px;
 }
 
-.quick-entry-properties-panel .field-row .add-btn {
+body.is-todos-view .quick-entry-properties-panel .field-row .add-btn {
   padding: 8px 10px !important;
   font-size: 12px;
   min-height: 36px;
 }
 
-.action-label {
+body.is-todos-view .action-label {
   font-size: 12px;
 }
 
-.priority-selector {
+body.is-todos-view .priority-selector {
   gap: 6px;
   flex-wrap: wrap;
 }
 
-.priority-btn {
+body.is-todos-view .priority-btn {
   padding: 6px 10px;
   font-size: 0.8em;
   line-height: 1.1;
 }
 
-.priority-btn:hover {
+body.is-todos-view .priority-btn:hover {
   transform: none;
 }
 
 @media (min-width: 1180px) {
-  .quick-entry-properties-panel {
+  body.is-todos-view .quick-entry-properties-panel {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
   }
 
-  .quick-entry-properties-panel > .field-row {
+  body.is-todos-view .quick-entry-properties-panel > .field-row {
     grid-column: 1;
   }
 
-  .quick-entry-properties-panel > .action-row {
+  body.is-todos-view .quick-entry-properties-panel > .action-row {
     grid-column: 2;
     justify-self: end;
     margin: 0;
   }
 
-  .quick-entry-properties-panel > .action-row #critiqueDraftButton {
+  body.is-todos-view
+    .quick-entry-properties-panel
+    > .action-row
+    #critiqueDraftButton {
     max-width: 170px;
   }
 }
 
 @media (max-width: 1179px) {
-  .quick-entry-properties-panel {
+  body.is-todos-view .quick-entry-properties-panel {
     grid-template-columns: 1fr;
   }
 }
 
 /* M11: Quick-entry accordion density pass (reduce pre-list stack height) */
-.add-todo.quick-entry {
+body.is-todos-view .add-todo.quick-entry {
   gap: 4px;
 }
 
-.quick-entry > input {
+body.is-todos-view .quick-entry > input {
   padding-top: 8px;
   padding-bottom: 8px;
 }
 
-.quick-entry-toolbar {
+body.is-todos-view .quick-entry-toolbar {
   margin-top: -6px;
   min-height: 28px;
 }
 
-.quick-entry-properties-toggle {
+body.is-todos-view .quick-entry-properties-toggle {
   padding: 4px 8px;
   font-size: 12px;
   min-height: 28px;
 }
 
-.quick-entry-properties-panel {
+body.is-todos-view .quick-entry-properties-panel {
   gap: 6px;
   padding: 6px 8px;
   margin-top: 0;
 }
 
-.quick-entry-properties-panel .field-row,
-.quick-entry-properties-panel .action-row {
+body.is-todos-view .quick-entry-properties-panel .field-row,
+body.is-todos-view .quick-entry-properties-panel .action-row {
   gap: 6px;
 }
 
-.quick-entry-properties-panel .field-row input,
-.quick-entry-properties-panel .field-row select,
-.quick-entry-properties-panel .field-row .add-btn {
+body.is-todos-view .quick-entry-properties-panel .field-row input,
+body.is-todos-view .quick-entry-properties-panel .field-row select,
+body.is-todos-view .quick-entry-properties-panel .field-row .add-btn {
   min-height: 34px;
 }
 
-.quick-entry-properties-panel .field-row .add-btn {
+body.is-todos-view .quick-entry-properties-panel .field-row .add-btn {
   padding: 6px 9px !important;
   font-size: 11px;
 }
 
-.action-label {
+body.is-todos-view .action-label {
   font-size: 11px;
 }
 
-.priority-selector {
+body.is-todos-view .priority-selector {
   gap: 4px;
 }
 
-.priority-btn {
+body.is-todos-view .priority-btn {
   padding: 4px 8px;
   font-size: 0.76em;
 }
 
-.expand-section {
+body.is-todos-view .expand-section {
   margin-top: 4px;
   padding: 4px 6px;
   font-size: 0.8em;
 }
 
-.notes-textarea {
+body.is-todos-view .notes-textarea {
   margin-top: 4px !important;
 }
 
 /* M12: secondary top tabs + unified rail row polish */
-.nav-tabs {
+body.is-todos-view .nav-tabs {
   gap: 4px;
   padding: 3px 8px;
   background: color-mix(in oklab, var(--card-bg) 96%, var(--surface));
@@ -5992,7 +5999,7 @@ textarea:disabled {
   );
 }
 
-.nav-tab {
+body.is-todos-view .nav-tab {
   padding: 3px 8px;
   font-size: 10px;
   line-height: 1.15;
@@ -6002,66 +6009,66 @@ textarea:disabled {
   color: color-mix(in oklab, var(--text-secondary) 78%, var(--text-muted));
 }
 
-.nav-tab:hover {
+body.is-todos-view .nav-tab:hover {
   background: color-mix(in oklab, var(--surface) 88%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 68%, transparent);
   color: var(--text-secondary);
 }
 
-.nav-tab.active {
+body.is-todos-view .nav-tab.active {
   color: color-mix(in oklab, var(--accent) 62%, var(--text-primary));
   border-color: color-mix(in oklab, var(--accent) 20%, var(--border-color));
   background: color-mix(in oklab, var(--accent) 4%, var(--surface));
   box-shadow: none;
 }
 
-.projects-rail {
+body.is-todos-view .projects-rail {
   gap: 8px;
 }
 
-.projects-rail__section {
+body.is-todos-view .projects-rail__section {
   padding-top: 8px;
   margin-top: 0;
 }
 
-.projects-rail__section-header {
+body.is-todos-view .projects-rail__section-header {
   margin-bottom: 3px;
   padding: 0 3px;
   font-size: 11px;
   letter-spacing: 0.01em;
 }
 
-.projects-rail__primary,
-.projects-rail__list,
-.app-sidebar__settings {
+body.is-todos-view .projects-rail__primary,
+body.is-todos-view .projects-rail__list,
+body.is-todos-view .app-sidebar__settings {
   gap: 2px;
 }
 
-.projects-rail-row {
+body.is-todos-view .projects-rail-row {
   padding-right: 28px;
 }
 
-.projects-rail-item,
-.sidebar-nav-item {
+body.is-todos-view .projects-rail-item,
+body.is-todos-view .sidebar-nav-item {
   min-height: 30px;
   padding: 4px 7px;
   border-radius: 7px;
   border-color: transparent;
 }
 
-.projects-rail-item:hover,
-.sidebar-nav-item:hover {
+body.is-todos-view .projects-rail-item:hover,
+body.is-todos-view .sidebar-nav-item:hover {
   background: color-mix(in oklab, var(--surface) 84%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 60%, transparent);
 }
 
-.projects-rail-item--active,
-.projects-rail-item[role="option"][aria-selected="true"] {
+body.is-todos-view .projects-rail-item--active,
+body.is-todos-view .projects-rail-item[role="option"][aria-selected="true"] {
   background: color-mix(in oklab, var(--accent) 6%, var(--surface));
   border-color: color-mix(in oklab, var(--accent) 18%, var(--border-color));
 }
 
-.projects-rail-item__count {
+body.is-todos-view .projects-rail-item__count {
   min-width: 18px;
   padding: 0 5px;
   font-size: 10px;
@@ -6784,7 +6791,7 @@ textarea:disabled {
   border-color: color-mix(in oklab, var(--border-color) 100%, transparent);
 }
 
-.add-todo.quick-entry {
+body.is-todos-view .add-todo.quick-entry {
   border: 1px solid color-mix(in oklab, var(--border-color) 88%, transparent);
   border-radius: 12px;
   padding: 10px;
@@ -6792,7 +6799,7 @@ textarea:disabled {
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 20%);
 }
 
-.quick-entry-toolbar {
+body.is-todos-view .quick-entry-toolbar {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -6801,7 +6808,7 @@ textarea:disabled {
   min-height: 0;
 }
 
-.quick-entry-properties-summary {
+body.is-todos-view .quick-entry-properties-summary {
   font-size: 12px;
   color: var(--text-secondary);
   white-space: nowrap;
@@ -6809,59 +6816,66 @@ textarea:disabled {
   text-overflow: ellipsis;
 }
 
-.quick-entry-properties-summary[hidden] {
+body.is-todos-view .quick-entry-properties-summary[hidden] {
   display: none !important;
 }
 
-.quick-entry-properties-panel {
+body.is-todos-view .quick-entry-properties-panel {
   border-color: color-mix(in oklab, var(--border-color) 70%, transparent);
   background: color-mix(in oklab, var(--surface-2) 55%, transparent);
   border-radius: 10px;
 }
 
-.quick-entry-properties-panel .field-row input[type="datetime-local"] {
+body.is-todos-view
+  .quick-entry-properties-panel
+  .field-row
+  input[type="datetime-local"] {
   color: var(--text-secondary);
 }
 
-.quick-entry-properties-panel .field-row input[type="datetime-local"]:focus,
-.quick-entry-properties-panel
+body.is-todos-view
+  .quick-entry-properties-panel
+  .field-row
+  input[type="datetime-local"]:focus,
+body.is-todos-view
+  .quick-entry-properties-panel
   .field-row
   input[type="datetime-local"]:not(:placeholder-shown) {
   color: var(--text-primary);
 }
 
-.priority-selector {
+body.is-todos-view .priority-selector {
   border-radius: 10px;
 }
 
-.priority-btn {
+body.is-todos-view .priority-btn {
   border-width: 1px;
   border-color: color-mix(in oklab, var(--border-color) 80%, transparent);
   color: var(--text-secondary);
   background: color-mix(in oklab, var(--surface) 98%, transparent);
 }
 
-.priority-btn.active {
+body.is-todos-view .priority-btn.active {
   border-width: 2px;
   box-shadow: 0 0 0 1px rgb(255 255 255 / 22%) inset;
 }
 
-.priority-btn.low.active {
+body.is-todos-view .priority-btn.low.active {
   border-color: color-mix(in oklab, var(--accent-2) 82%, white);
   background: color-mix(in oklab, var(--accent-2) 88%, black 8%);
 }
 
-.priority-btn.medium.active {
+body.is-todos-view .priority-btn.medium.active {
   border-color: var(--warning);
   background: color-mix(in oklab, var(--warning) 90%, black 8%);
 }
 
-.priority-btn.high.active {
+body.is-todos-view .priority-btn.high.active {
   border-color: color-mix(in oklab, var(--danger) 86%, white);
   background: color-mix(in oklab, var(--danger) 90%, black 8%);
 }
 
-.priority-btn.active::before {
+body.is-todos-view .priority-btn.active::before {
   content: "●";
   font-size: 0.7em;
   margin-right: 4px;
@@ -6917,7 +6931,7 @@ textarea:disabled {
 /* Spec: calm workspace polish */
 
 /* 1. Remove blue body-gradient bleed around main content in todos view */
-#appMainScroll {
+body.is-todos-view #appMainScroll {
   padding: 0;
 }
 
@@ -6956,7 +6970,7 @@ textarea:disabled {
 }
 
 /* 3. Sidebar header: 48px height, flex row with toggle on left */
-.projects-rail__header {
+body.is-todos-view .projects-rail__header {
   display: flex;
   align-items: center;
   height: 48px;
@@ -7053,31 +7067,31 @@ textarea:disabled {
 }
 
 /* Home tile: section-style for single-column layout */
-.home-tile {
+body.is-todos-view .home-tile {
   border-radius: 16px;
   padding: 16px;
   gap: 12px;
 }
 
-.home-tile__header {
+body.is-todos-view .home-tile__header {
   margin-bottom: 0;
 }
 
-.home-tile__title {
+body.is-todos-view .home-tile__title {
   font-size: 20px;
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 
 /* Focus tile: slightly more prominent surface */
-.home-tile[data-home-tile="top_focus"] {
+body.is-todos-view .home-tile[data-home-tile="top_focus"] {
   background: color-mix(in oklab, var(--surface) 94%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 60%, transparent);
 }
 
 /* Up Next / Due Soon tile: lighter surface */
-.home-tile[data-home-tile="due_soon"],
-.home-tile[data-home-tile="projects_to_nudge"] {
+body.is-todos-view .home-tile[data-home-tile="due_soon"],
+body.is-todos-view .home-tile[data-home-tile="projects_to_nudge"] {
   background: color-mix(in oklab, var(--surface) 98%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 40%, transparent);
 }
@@ -7091,8 +7105,8 @@ textarea:disabled {
 }
 
 /* Things-inspired surface refinement: final override layer */
-#todosView[data-surface-mode="list"] .todos-list-header,
-#todosView[data-surface-mode="project"] .todos-list-header {
+body.is-todos-view #todosView[data-surface-mode="list"] .todos-list-header,
+body.is-todos-view #todosView[data-surface-mode="project"] .todos-list-header {
   padding: 6px 2px 12px;
   border: 0;
   border-radius: 0;
@@ -7104,22 +7118,28 @@ textarea:disabled {
   );
 }
 
-#todosView[data-surface-mode="list"] .todos-list-header__count,
-#todosView[data-surface-mode="list"] .todos-list-header__date-badge {
+body.is-todos-view
+  #todosView[data-surface-mode="list"]
+  .todos-list-header__count,
+body.is-todos-view
+  #todosView[data-surface-mode="list"]
+  .todos-list-header__date-badge {
   border: 0;
   background: transparent;
   padding: 0;
 }
 
-#todosView[data-surface-mode="project"] #todosContent {
+body.is-todos-view #todosView[data-surface-mode="project"] #todosContent {
   padding-top: 2px;
 }
 
-#todosView[data-surface-mode="project"] .todo-heading-divider {
+body.is-todos-view
+  #todosView[data-surface-mode="project"]
+  .todo-heading-divider {
   margin-top: 24px;
 }
 
-#todosView .todos-top-bar[hidden] {
+body.is-todos-view #todosView .todos-top-bar[hidden] {
   display: none !important;
 }
 
@@ -7151,98 +7171,115 @@ textarea:disabled {
 
 /* Sidebar rows: flex-start layout so icon + label are left-aligned,
    count floats right via margin-left:auto */
-.projects-rail-item {
+body.is-todos-view .projects-rail-item {
   justify-content: flex-start;
 }
 
-.projects-rail-item__label {
+body.is-todos-view .projects-rail-item__label {
   flex: 1 1 auto;
 }
 
-.projects-rail-item__count {
+body.is-todos-view .projects-rail-item__count {
   margin-left: auto;
   flex-shrink: 0;
 }
 
 /* Remove the old > span:first-child overflow rule — nav-label handles it */
-.projects-rail-item > span:first-child {
+body.is-todos-view .projects-rail-item > span:first-child {
   overflow: visible;
   text-overflow: unset;
   white-space: normal;
 }
 
 /* ── Collapsed sidebar: strict icon-only rail ─────────────────────────────── */
-.projects-rail.projects-rail--collapsed {
+body.is-todos-view .projects-rail.projects-rail--collapsed {
   width: 64px;
 }
 
-.is-projects-rail-collapsed #appSidebar {
+body.is-todos-view.is-projects-rail-collapsed #appSidebar {
   padding-left: 0;
   padding-right: 0;
   padding-bottom: 64px;
 }
 
-.projects-rail {
+body.is-todos-view .projects-rail {
   display: flex;
   flex-direction: column;
 }
 
-.projects-rail__spacer {
+body.is-todos-view .projects-rail__spacer {
   flex: 1 1 auto;
   min-height: 0;
 }
 
-.projects-rail__utility-list {
+body.is-todos-view .projects-rail__utility-list {
   display: grid;
   gap: 6px;
 }
 
-.projects-rail__section--utilities {
+body.is-todos-view .projects-rail__section--utilities {
   display: none;
 }
 
-.projects-rail-projects-access {
+body.is-todos-view .projects-rail-projects-access {
   display: none;
 }
 
-.projects-rail.projects-rail--collapsed .nav-label,
-.projects-rail.projects-rail--collapsed .projects-rail-item__label,
-.projects-rail.projects-rail--collapsed .projects-rail-item__count {
+body.is-todos-view .projects-rail.projects-rail--collapsed .nav-label,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-item__label,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-item__count {
   display: none;
 }
 
-.projects-rail.projects-rail--collapsed
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
   .projects-rail__section:not(.projects-rail__section--workspace):not(
     .projects-rail__section--utilities
   ),
-.projects-rail.projects-rail--collapsed #projectsRailList {
+body.is-todos-view .projects-rail.projects-rail--collapsed #projectsRailList {
   display: none;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail__footer--admin-only {
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__footer--admin-only {
   display: none;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail__header {
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__header {
   justify-content: center;
   padding-bottom: 8px;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail__section--workspace {
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__section--workspace {
   margin-top: 0;
   padding-top: 8px;
   border-top: 0;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail__primary {
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__primary {
   display: grid;
   justify-items: center;
   gap: 8px;
 }
 
-.projects-rail.projects-rail--collapsed .workspace-view-item,
-.projects-rail.projects-rail--collapsed .projects-rail-projects-access,
-.projects-rail.projects-rail--collapsed .projects-rail-utility-item {
+body.is-todos-view .projects-rail.projects-rail--collapsed .workspace-view-item,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-projects-access,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-utility-item {
   width: 46px;
   min-width: 46px;
   justify-content: center;
@@ -7252,39 +7289,57 @@ textarea:disabled {
   padding: 0;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail-projects-access {
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-projects-access {
   display: flex;
 }
 
-.projects-rail.projects-rail--collapsed .workspace-view-item .nav-icon,
-.projects-rail.projects-rail--collapsed
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .workspace-view-item
+  .nav-icon,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
   .projects-rail-projects-access
   .nav-icon,
-.projects-rail.projects-rail--collapsed .projects-rail-utility-item .nav-icon {
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail-utility-item
+  .nav-icon {
   width: 18px;
   height: 18px;
   opacity: 0.72;
 }
 
-.projects-rail.projects-rail--collapsed .workspace-view-item:hover .nav-icon,
-.projects-rail.projects-rail--collapsed
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .workspace-view-item:hover
+  .nav-icon,
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
   .workspace-view-item.projects-rail-item--active
   .nav-icon,
-.projects-rail.projects-rail--collapsed
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
   .projects-rail-projects-access:hover
   .nav-icon,
-.projects-rail.projects-rail--collapsed
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
   .projects-rail-utility-item:hover
   .nav-icon {
   opacity: 0.92;
 }
 
-.projects-rail.projects-rail--collapsed
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
   .workspace-view-item.projects-rail-item--active {
   border-radius: 10px;
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail__section--utilities {
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__section--utilities {
   display: block;
   margin-top: auto;
   padding-top: 10px;
@@ -7292,7 +7347,9 @@ textarea:disabled {
     color-mix(in oklab, var(--border-color) 70%, transparent);
 }
 
-.projects-rail.projects-rail--collapsed .projects-rail__utility-list {
+body.is-todos-view
+  .projects-rail.projects-rail--collapsed
+  .projects-rail__utility-list {
   justify-items: center;
   gap: 8px;
 }
@@ -7306,7 +7363,7 @@ textarea:disabled {
 
 /* ── Search: leading icon ─────────────────────────────────────────────────── */
 
-.search-bar .search-icon {
+body.is-todos-view .search-bar .search-icon {
   left: 9px;
   right: auto;
   display: flex;
@@ -7314,20 +7371,20 @@ textarea:disabled {
   color: var(--text-muted);
 }
 
-.search-input {
+body.is-todos-view .search-input {
   padding: 8px 12px 8px 30px;
 }
 
 /* ── Projects section header: quieter ────────────────────────────────────── */
 
-.projects-rail__section-label {
+body.is-todos-view .projects-rail__section-label {
   font-size: 11px;
   font-weight: var(--fw-medium);
   letter-spacing: 0.02em;
   color: color-mix(in oklab, var(--text-muted) 75%, transparent);
 }
 
-.projects-rail-create-btn {
+body.is-todos-view .projects-rail-create-btn {
   min-width: 22px;
   min-height: 22px;
   padding: 0 5px;
@@ -7336,14 +7393,14 @@ textarea:disabled {
   transition: opacity var(--dur-fast) var(--ease-out);
 }
 
-.projects-rail-create-btn:hover {
+body.is-todos-view .projects-rail-create-btn:hover {
   opacity: 1;
 }
 
 /* ── Home tile hierarchy ──────────────────────────────────────────────────── */
 
 /* Focus: visual hero — strongest surface, more padding, bolder title */
-.home-tile[data-home-tile="top_focus"] {
+body.is-todos-view .home-tile[data-home-tile="top_focus"] {
   background: var(--surface);
   border-color: color-mix(in oklab, var(--border-color) 75%, transparent);
   box-shadow:
@@ -7352,30 +7409,34 @@ textarea:disabled {
   padding: 20px;
 }
 
-.home-tile[data-home-tile="top_focus"] .home-tile__title {
+body.is-todos-view .home-tile[data-home-tile="top_focus"] .home-tile__title {
   font-size: 22px;
 }
 
 /* Up Next: standard secondary */
-.home-tile[data-home-tile="due_soon"] {
+body.is-todos-view .home-tile[data-home-tile="due_soon"] {
   background: color-mix(in oklab, var(--surface) 97%, var(--surface-2));
   border-color: color-mix(in oklab, var(--border-color) 55%, transparent);
 }
 
 /* Projects to Nudge: lightest — no card frame, just a quiet list */
-.home-tile[data-home-tile="projects_to_nudge"] {
+body.is-todos-view .home-tile[data-home-tile="projects_to_nudge"] {
   background: transparent;
   border: none;
   box-shadow: none;
   padding: 8px 4px 0;
 }
 
-.home-tile[data-home-tile="projects_to_nudge"] .home-tile__body {
+body.is-todos-view
+  .home-tile[data-home-tile="projects_to_nudge"]
+  .home-tile__body {
   display: grid;
   gap: 6px;
 }
 
-.home-tile[data-home-tile="projects_to_nudge"] .home-tile__title {
+body.is-todos-view
+  .home-tile[data-home-tile="projects_to_nudge"]
+  .home-tile__title {
   font-size: 16px;
   font-weight: var(--fw-semibold);
   color: var(--text-secondary);
@@ -7394,7 +7455,7 @@ textarea:disabled {
   color: currentColor;
 }
 
-.home-tile[data-home-tile="top_focus"] .home-tile__icon {
+body.is-todos-view .home-tile[data-home-tile="top_focus"] .home-tile__icon {
   opacity: 0.65;
 }
 
@@ -7603,18 +7664,18 @@ body.is-admin-user .projects-rail__footer--admin-only {
 
 @media (max-width: 768px) {
   /* 1. Fix sidebar column reservation — prevents gradient bleed from empty grid column */
-  #appShell {
+  body.is-todos-view #appShell {
     grid-template-columns: minmax(0, 1fr);
   }
 
   /* 2. Remove body padding that offsets the container */
-  body {
+  body.is-todos-view {
     padding: 0;
     overflow: hidden;
   }
 
   /* 3. Reset main scroll for full-viewport flex layout */
-  #appMainScroll {
+  body.is-todos-view #appMainScroll {
     padding: 0;
     overflow: hidden;
     display: flex;
@@ -7624,7 +7685,7 @@ body.is-admin-user .projects-rail__footer--admin-only {
   }
 
   /* 4. Container fills full viewport — no rounded corners, no offset */
-  .container {
+  body.is-todos-view .container {
     height: 100dvh;
     max-height: 100dvh;
     max-width: 100%;
@@ -7632,12 +7693,12 @@ body.is-admin-user .projects-rail__footer--admin-only {
   }
 
   /* 5. Hide the old header on mobile todos view — replaced by mobile top bar */
-  .header {
+  body.is-todos-view .header {
     display: none;
   }
 
   /* 6. Show mobile top bar */
-  .todos-mobile-top-bar {
+  body.is-todos-view .todos-mobile-top-bar {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -7649,7 +7710,7 @@ body.is-admin-user .projects-rail__footer--admin-only {
   }
 
   /* 8. Apply consistent mobile padding to the scroll region */
-  #todosScrollRegion {
+  body.is-todos-view #todosScrollRegion {
     padding-left: 16px;
     padding-right: 16px;
     padding-top: 16px;
@@ -9002,20 +9063,20 @@ body.dark-mode .undo-toast {
 
 /* Calm restoration overrides */
 
-.home-dashboard {
+body.is-todos-view .home-dashboard {
   max-width: 980px;
   gap: 18px;
   padding: 24px 28px 40px;
 }
 
-.home-dashboard__support-grid {
+body.is-todos-view .home-dashboard__support-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   align-items: start;
 }
 
-.home-brief-card {
+body.is-todos-view .home-brief-card {
   display: grid;
   gap: 16px;
   padding: 22px;
@@ -9138,7 +9199,7 @@ body.dark-mode .undo-toast {
   font-size: var(--fs-meta);
 }
 
-.home-brief-card .home-tile--priorities {
+body.is-todos-view .home-brief-card .home-tile--priorities {
   margin: 0;
   padding: 16px 18px;
   border-radius: 18px;
@@ -9146,91 +9207,93 @@ body.dark-mode .undo-toast {
   box-shadow: none;
 }
 
-.home-brief-card .home-tile__title {
+body.is-todos-view .home-brief-card .home-tile__title {
   font-size: var(--fs-body);
 }
 
-.home-priorities-body {
+body.is-todos-view .home-priorities-body {
   min-height: 0;
 }
 
-.home-tile[data-home-tile="due_soon"],
-.home-tile[data-home-tile="stale_risks"] {
+body.is-todos-view .home-tile[data-home-tile="due_soon"],
+body.is-todos-view .home-tile[data-home-tile="stale_risks"] {
   min-height: 100%;
 }
 
-.home-tile__subtitle {
+body.is-todos-view .home-tile__subtitle {
   max-width: 40ch;
 }
 
-.home-task-row {
+body.is-todos-view .home-task-row {
   gap: 10px;
   padding: 10px 12px;
   border-radius: 14px;
 }
 
-.task-composer-sheet__header {
+body.is-todos-view .task-composer-sheet__header {
   align-items: flex-start;
 }
 
-.task-composer-properties {
+body.is-todos-view .task-composer-properties {
   gap: 12px;
 }
 
-.task-composer-properties[hidden],
-.quick-entry-properties-panel[hidden] {
+body.is-todos-view .task-composer-properties[hidden],
+body.is-todos-view .quick-entry-properties-panel[hidden] {
   display: none !important;
 }
 
-.task-composer-inline-actions {
+body.is-todos-view .task-composer-inline-actions {
   display: flex;
   justify-content: flex-start;
 }
 
-.task-composer-ai-trigger {
+body.is-todos-view .task-composer-ai-trigger {
   background: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
   color: var(--text-secondary);
   border-color: color-mix(in oklab, var(--border-color) 85%, transparent);
 }
 
-.task-composer-project-actions {
+body.is-todos-view .task-composer-project-actions {
   border-top: 1px solid
     color-mix(in oklab, var(--border-color) 68%, transparent);
   padding-top: 10px;
 }
 
-.task-composer-project-actions__toggle {
+body.is-todos-view .task-composer-project-actions__toggle {
   cursor: pointer;
   list-style: none;
   color: var(--text-secondary);
   font-size: var(--fs-sm);
 }
 
-.task-composer-project-actions__toggle::-webkit-details-marker {
+body.is-todos-view
+  .task-composer-project-actions__toggle::-webkit-details-marker {
   display: none;
 }
 
-.task-composer-project-actions__toggle::before {
+body.is-todos-view .task-composer-project-actions__toggle::before {
   content: "▸ ";
 }
 
-.task-composer-project-actions[open]
+body.is-todos-view
+  .task-composer-project-actions[open]
   > .task-composer-project-actions__toggle::before {
   content: "▾ ";
 }
 
-.task-composer-project-actions__body {
+body.is-todos-view .task-composer-project-actions__body {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   padding-top: 10px;
 }
 
-.task-composer-project-action {
+body.is-todos-view .task-composer-project-action {
   width: auto;
 }
 
-.ai-workspace {
+body.is-todos-view .ai-workspace {
   padding: 12px 14px;
   border-radius: 18px;
   border-color: color-mix(in oklab, var(--border-color) 70%, transparent);
@@ -9238,27 +9301,27 @@ body.dark-mode .undo-toast {
   box-shadow: none;
 }
 
-.ai-workspace-header {
+body.is-todos-view .ai-workspace-header {
   gap: 10px;
 }
 
-.ai-workspace-toggle {
+body.is-todos-view .ai-workspace-toggle {
   background: color-mix(in oklab, var(--surface) 96%, var(--surface-2));
 }
 
-.ai-workspace-status-chip {
+body.is-todos-view .ai-workspace-status-chip {
   background: transparent;
   color: var(--text-secondary);
 }
 
-.ai-workspace-header-actions .mini-btn {
+body.is-todos-view .ai-workspace-header-actions .mini-btn {
   background: transparent;
   color: var(--text-secondary);
   border-color: color-mix(in oklab, var(--border-color) 80%, transparent);
 }
 
 @media (max-width: 900px) {
-  .home-dashboard__support-grid {
+  body.is-todos-view .home-dashboard__support-grid {
     grid-template-columns: 1fr;
   }
 
