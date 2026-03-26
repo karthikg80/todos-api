@@ -270,6 +270,7 @@ async function installAiUiMockApi(page: Page) {
 
 async function registerAndOpenTodos(page: Page, debug = false) {
   await page.goto(debug ? "/?ai_debug=1" : "/");
+  await page.evaluate(() => (window as any).showAuthPage?.("register"));
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("AI Debug User");
   await page

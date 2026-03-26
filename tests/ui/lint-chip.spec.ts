@@ -187,6 +187,7 @@ async function installMockApi(page: Page) {
 
 async function registerAndOpen(page: Page) {
   await page.goto("/");
+  await page.evaluate(() => (window as any).showAuthPage?.("register"));
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Lint Test User");
   await page.locator("#registerEmail").fill("lint-test@example.com");

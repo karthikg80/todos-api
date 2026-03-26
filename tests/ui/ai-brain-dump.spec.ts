@@ -219,6 +219,7 @@ async function installBrainDumpMockApi(
 
 async function registerAndOpenTodos(page: Page) {
   await page.goto("/?ai_debug=1");
+  await page.evaluate(() => (window as any).showAuthPage?.("register"));
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Brain Dump User");
   await page.locator("#registerEmail").fill("brain-dump@example.com");

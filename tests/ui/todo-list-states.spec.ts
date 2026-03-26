@@ -179,6 +179,7 @@ async function installMockApi(
 
 async function registerAndOpenTodos(page: Page) {
   await page.goto("/");
+  await page.evaluate(() => (window as any).showAuthPage?.("register"));
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("List States User");
   await page.locator("#registerEmail").fill("list-states@example.com");
