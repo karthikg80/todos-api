@@ -437,7 +437,7 @@
   "actions": [
     {
       "name": "list_tasks",
-      "description": "List tasks for the current user with optional filtering, scheduling, and workflow fields.",
+      "description": "See your tasks — filter by project, status, due date, priority, or search by keyword. Returns task details including scheduling and workflow metadata.",
       "readOnly": true,
       "method": "POST",
       "path": "/agent/read/list_tasks",
@@ -2079,7 +2079,7 @@
     },
     {
       "name": "weekly_review",
-      "description": "Review the user's system, return structured findings, and optionally apply safe next-action creation.",
+      "description": "Run your weekly review — surfaces stale tasks, projects missing next actions, waiting items, and overdue work. In suggest mode returns findings; in apply mode creates action items and marks projects reviewed.",
       "readOnly": false,
       "method": "POST",
       "path": "/agent/write/weekly_review",
@@ -2282,7 +2282,7 @@
     },
     {
       "name": "decide_next_work",
-      "description": "Rank the best next tasks for the current user based on urgency, effort, energy, and dependencies.",
+      "description": "What should you work on next? Ranks your tasks by urgency, effort, energy match, and dependencies to recommend the most impactful next action.",
       "readOnly": true,
       "method": "POST",
       "path": "/agent/read/decide_next_work",
@@ -2601,7 +2601,7 @@
     },
     {
       "name": "plan_today",
-      "description": "Build a deterministic day plan by selecting tasks that fit within available time, weighted by priority, due dates, and energy. Each recommended and excluded task includes an attribution block with decisionRunId, rank, score, and timestamp.",
+      "description": "Plan your day — generates a time-boxed daily plan by selecting tasks that fit your available time and energy level. Returns recommended tasks ranked by priority, due dates, and effort, with explanations for why each was included.",
       "method": "POST",
       "path": "/read/plan_today",
       "readOnly": true,
@@ -2643,7 +2643,7 @@
     },
     {
       "name": "break_down_task",
-      "description": "Suggest subtask decompositions for a task using heuristic patterns based on the task title.",
+      "description": "Break a complex task into actionable steps — suggests subtask decompositions based on the task title and description, with estimated effort for each step.",
       "method": "POST",
       "path": "/read/break_down_task",
       "readOnly": true,
@@ -3737,7 +3737,7 @@
       "category": "Inbox and Triage",
       "lifecycle": "mutating",
       "audience": "user",
-      "description": "Record a raw thought or item for later triage without any AI processing. Returns the created capture item.",
+      "description": "Capture a quick idea or task — drops it into your inbox for later triage. No AI processing happens now; you organize it when you're ready.",
       "method": "POST",
       "path": "/agent/write/capture_inbox_item",
       "output": {

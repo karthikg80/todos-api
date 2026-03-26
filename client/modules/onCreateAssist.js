@@ -753,7 +753,7 @@ function renderOnCreateAssistRow() {
       titleClass: "ai-create-assist__title",
       title: "AI Assist",
       messageClass: "ai-create-assist__empty ai-empty",
-      message: "AI Suggestions unavailable.",
+      message: "Suggestions unavailable right now.",
     });
     return;
   }
@@ -846,6 +846,7 @@ function renderOnCreateAssistRow() {
                   : ""
               }
               ${suggestion.helperText ? `<div class="ai-create-chip__helper">${hooks.escapeHtml(suggestion.helperText)}</div>` : ""}
+              ${suggestion.continuityHint ? `<div class="ai-create-chip__continuity">${hooks.escapeHtml(suggestion.continuityHint)}</div>` : ""}
               ${renderOnCreateChipChoices(suggestion)}
               <div class="ai-create-chip__actions ai-actions">
                 ${renderOnCreateChipActions(suggestion)}

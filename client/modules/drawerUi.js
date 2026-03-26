@@ -196,7 +196,7 @@ function renderTaskDrawerAssistSection(todoId) {
         : null;
     if (issue) {
       return renderDrawerSection({
-        title: "AI Suggestions",
+        title: "Assistant",
         bodyHtml: hooks.renderLintChip ? hooks.renderLintChip(issue) : "",
       });
     }
@@ -205,9 +205,9 @@ function renderTaskDrawerAssistSection(todoId) {
 
   if (!FEATURE_TASK_DRAWER_DECISION_ASSIST) {
     return renderDrawerSection({
-      title: "AI Suggestions",
+      title: "Assistant",
       bodyHtml: renderStatusMessage({
-        message: "AI Suggestions unavailable.",
+        message: "Suggestions unavailable right now.",
       }),
     });
   }
@@ -229,7 +229,7 @@ function renderTaskDrawerAssistSection(todoId) {
     }
     ${
       assistState.unavailable
-        ? renderStatusMessage({ message: "AI Suggestions unavailable." })
+        ? renderStatusMessage({ message: "Suggestions unavailable right now." })
         : ""
     }
     ${
@@ -242,7 +242,9 @@ function renderTaskDrawerAssistSection(todoId) {
       !assistState.unavailable &&
       !assistState.error &&
       (assistState.mustAbstain || assistState.suggestions.length === 0)
-        ? renderStatusMessage({ message: "No suggestions right now." })
+        ? renderStatusMessage({
+            message: "This task looks good. No suggestions right now.",
+          })
         : ""
     }
     ${
@@ -338,7 +340,7 @@ function renderTaskDrawerAssistSection(todoId) {
   });
 
   return renderDrawerSection({
-    title: "AI Suggestions",
+    title: "Assistant",
     bodyHtml,
   });
 }

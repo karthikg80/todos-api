@@ -55,6 +55,15 @@ export async function generateDayPlan() {
       data?.plan?.remainingMinutes ?? data?.remainingMinutes ?? 0;
 
     planTodayTaskIds = planState.tasks.map((t) => t.taskId).filter(Boolean);
+
+    // Compute suggested time slots starting from 9:00 AM
+    let slotMinutes = 9 * 60; // 9:00 AM in minutes from midnight
+    for (const task of planState.tasks) {
+      const duration = task.estimatedMinutes || 30;
+      task.slotStart = slotMinutes;
+      task.slotEnd = slotMinutes + duration;
+      slotMinutes += duration + 15; // 15-min break between tasks
+    }
   } catch (err) {
     planState.error =
       err instanceof Error ? err.message : "Failed to generate day plan";
@@ -69,6 +78,18 @@ export async function generateDayPlan() {
 /**
  * Reset plan state and clear the exported task-ID list.
  */
+export function getPlanState() {
+  return planState;
+}
+
+export function formatSlotTime(minutesFromMidnight) {
+  const h = Math.floor(minutesFromMidnight / 60);
+  const m = minutesFromMidnight % 60;
+  const period = h >= 12 ? "PM" : "AM";
+  const hour12 = h % 12 || 12;
+  return `${hour12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
 export function resetDayPlan() {
   planState.tasks = [];
   planState.totalMinutes = 0;

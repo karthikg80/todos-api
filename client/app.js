@@ -324,6 +324,7 @@ import {
   getHomeDrilldownLabel,
   startOfLocalDay,
 } from "./modules/homeDashboard.js";
+import { generateDayPlan } from "./modules/planTodayAgent.js";
 import { refreshPrioritiesTile } from "./modules/homePrioritiesTile.js";
 import {
   renderInboxView,
@@ -476,11 +477,17 @@ import {
   toggleCommandPalette,
   bindCommandPaletteHandlers,
 } from "./modules/commandPalette.js";
+import {
+  loadMcpSessions,
+  revokeMcpSession,
+  revokeAllMcpSessions,
+} from "./modules/mcpSessionsUi.js";
 import * as TaskDrawerAssist from "./modules/taskDrawerAssist.js";
 import * as OnCreateAssist from "./modules/onCreateAssist.js";
 import {
   applyHomeFocusSuggestion,
   dismissHomeFocusSuggestion,
+  refreshHomeFocusSuggestions,
 } from "./modules/homeAiService.js";
 import { EventBus } from "./modules/eventBus.js";
 import { TODOS_CHANGED, TODOS_RENDER } from "./platform/events/eventTypes.js";
@@ -714,6 +721,7 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
       updateBulkActionsVisibility();
       updateSelectAllCheckbox();
     },
+    loadMcpSessions,
   });
 
 // moveProjectHeading, reorderProjectHeadings, moveTodoToHeading
@@ -1358,6 +1366,14 @@ function bindDockHandlers() {
   hooks.resetQuickEntryNaturalDueState = resetQuickEntryNaturalDueState;
   hooks.selectProjectFromRail = selectProjectFromRail;
   hooks.selectWorkspaceView = selectWorkspaceView;
+  hooks.triggerPlanToday = generateDayPlan;
+  hooks.toggleAiWorkspace = toggleAiWorkspace;
+  hooks.refreshHomeFocus = refreshHomeFocusSuggestions;
+  hooks.loadMcpSessions = loadMcpSessions;
+  hooks.exportCalendar = () => {
+    const btn = document.getElementById("exportIcsButton");
+    if (btn instanceof HTMLElement) btn.click();
+  };
   // hooks.setPriority — set by initTodosFeature
   hooks.setQuickEntryPropertiesOpen = setQuickEntryPropertiesOpen;
   hooks.setSelectedProjectKey = setSelectedProjectKey;
@@ -1378,6 +1394,8 @@ function bindDockHandlers() {
 // (modules do not expose top-level declarations to global scope).
 // ---------------------------------------------------------------------------
 window.toggleTheme = toggleTheme;
+window.revokeMcpSession = revokeMcpSession;
+window.revokeAllMcpSessions = revokeAllMcpSessions;
 // toggleSimpleMode removed — single control is #uiModeSelect via setUiMode()
 window.openProjectsFromTopbar = openProjectsFromTopbar;
 // Auth forms

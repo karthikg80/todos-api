@@ -199,7 +199,7 @@ test.describe("Todo list states", () => {
 
     await expect(page.locator("#todosEmptyState")).toBeVisible();
     await expect(page.locator("#todosEmptyState h3")).toHaveText(
-      "No tasks yet",
+      "Ready when you are",
     );
     await expect(page.locator("#todosEmptyState")).toContainText(
       "Ctrl/Cmd + N",

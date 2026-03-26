@@ -286,7 +286,7 @@ test.describe("Command palette", () => {
 
     await openCommandPalette(page);
     const input = page.locator("#commandPaletteInput");
-    await input.fill("add");
+    await input.fill("create task");
     await page.keyboard.press("Enter");
 
     await expect(page.locator("#todosView")).toHaveClass(/active/);

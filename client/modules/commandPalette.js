@@ -28,17 +28,141 @@ function getCommandPaletteElements() {
 
 function buildCommandPaletteItems() {
   const baseItems = [
+    // --- Task Actions ---
     {
       id: "add-task",
-      label: "Add task",
+      label: "Create task",
       type: "action",
       payload: "add-task",
+    },
+    // --- Navigation ---
+    {
+      id: "nav-home",
+      label: "Go to Home",
+      type: "workspace",
+      payload: "home",
+    },
+    {
+      id: "nav-inbox",
+      label: "Go to Inbox",
+      type: "workspace",
+      payload: "inbox",
+    },
+    {
+      id: "nav-today",
+      label: "Go to Today",
+      type: "workspace",
+      payload: "today",
+    },
+    {
+      id: "nav-upcoming",
+      label: "Go to Upcoming",
+      type: "workspace",
+      payload: "upcoming",
     },
     {
       id: "all-tasks",
       label: "Go to All tasks",
       type: "project",
       payload: "",
+    },
+    {
+      id: "nav-unsorted",
+      label: "Go to Unsorted",
+      type: "workspace",
+      payload: "unsorted",
+    },
+    {
+      id: "nav-waiting",
+      label: "Go to Waiting",
+      type: "workspace",
+      payload: "waiting",
+    },
+    {
+      id: "nav-scheduled",
+      label: "Go to Scheduled",
+      type: "workspace",
+      payload: "scheduled",
+    },
+    {
+      id: "nav-someday",
+      label: "Go to Someday",
+      type: "workspace",
+      payload: "someday",
+    },
+    {
+      id: "nav-completed",
+      label: "Go to Completed",
+      type: "workspace",
+      payload: "completed",
+    },
+    {
+      id: "nav-weekly-review",
+      label: "Go to Weekly Review",
+      type: "workspace",
+      payload: "weekly-review",
+    },
+    {
+      id: "nav-cleanup",
+      label: "Go to Cleanup",
+      type: "workspace",
+      payload: "cleanup",
+    },
+    {
+      id: "nav-feedback",
+      label: "Go to Feedback",
+      type: "view",
+      payload: "feedback",
+    },
+    {
+      id: "nav-settings",
+      label: "Go to Settings",
+      type: "view",
+      payload: "settings",
+    },
+    // --- Workflow Triggers ---
+    {
+      id: "workflow-plan-today",
+      label: "Plan Today",
+      type: "action",
+      payload: "plan-today",
+    },
+    {
+      id: "workflow-weekly-review",
+      label: "Run Weekly Review",
+      type: "action",
+      payload: "run-weekly-review",
+    },
+    {
+      id: "workflow-ai-workspace",
+      label: "Open AI Workspace",
+      type: "action",
+      payload: "open-ai-workspace",
+    },
+    {
+      id: "workflow-refresh-priorities",
+      label: "Refresh Priorities",
+      type: "action",
+      payload: "refresh-priorities",
+    },
+    // --- System ---
+    {
+      id: "sys-dark-mode",
+      label: "Toggle Dark Mode",
+      type: "action",
+      payload: "toggle-theme",
+    },
+    {
+      id: "sys-shortcuts",
+      label: "Show Keyboard Shortcuts",
+      type: "action",
+      payload: "show-shortcuts",
+    },
+    {
+      id: "sys-export-calendar",
+      label: "Export Calendar",
+      type: "action",
+      payload: "export-calendar",
     },
   ];
 
@@ -86,6 +210,28 @@ function getCommandPaletteTaskMatches(query) {
       if (score === -1) return null;
 
       const dueAt = todo.dueDate ? new Date(todo.dueDate).getTime() : Infinity;
+      const now = new Date();
+      const todayEnd = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        23,
+        59,
+        59,
+      );
+      let dueState = "";
+      if (todo.dueDate) {
+        const due = new Date(todo.dueDate);
+        if (due < now) dueState = "overdue";
+        else if (due <= todayEnd) dueState = "today";
+        else dueState = "upcoming";
+      }
+      const statusLabel = todo.status || "";
+      const projectName = todo.category
+        ? hooks.getProjectLeafName
+          ? hooks.getProjectLeafName(todo.category)
+          : todo.category
+        : "";
       return {
         id: `task-${todo.id}`,
         type: "task",
@@ -94,14 +240,24 @@ function getCommandPaletteTaskMatches(query) {
         score,
         dueAt: Number.isFinite(dueAt) ? dueAt : Infinity,
         completed: !!todo.completed,
+        status: statusLabel,
+        dueState,
+        projectName,
         meta: [
-          todo.category ? `Project: ${todo.category}` : "",
-          todo.dueDate
-            ? `Due: ${new Date(todo.dueDate).toLocaleDateString()}`
+          statusLabel && statusLabel !== "next"
+            ? statusLabel.replace("_", " ")
             : "",
+          projectName || "",
+          dueState === "overdue"
+            ? "Overdue"
+            : dueState === "today"
+              ? "Due today"
+              : todo.dueDate
+                ? `Due ${new Date(todo.dueDate).toLocaleDateString()}`
+                : "",
         ]
           .filter(Boolean)
-          .join(" • "),
+          .join(" \u00b7 "),
       };
     })
     .filter(Boolean)
@@ -205,6 +361,24 @@ function renderCommandPalette() {
       const isActive = selectableIndex === state.commandPaletteIndex;
       const item = row.item;
       if (item.type === "task") {
+        const badges = [];
+        if (item.dueState === "overdue")
+          badges.push(
+            '<span class="command-palette-badge command-palette-badge--overdue">Overdue</span>',
+          );
+        else if (item.dueState === "today")
+          badges.push(
+            '<span class="command-palette-badge command-palette-badge--today">Today</span>',
+          );
+        if (
+          item.status &&
+          item.status !== "next" &&
+          item.status !== "done" &&
+          item.status !== "cancelled"
+        )
+          badges.push(
+            `<span class="command-palette-badge">${hooks.escapeHtml(item.status.replace("_", " "))}</span>`,
+          );
         return `
           <button
             type="button"
@@ -215,8 +389,16 @@ function renderCommandPalette() {
             data-command-index="${selectableIndex}"
             data-command-id="${hooks.escapeHtml(item.id)}"
           >
-            <span class="command-palette-option__title">${hooks.escapeHtml(item.label)}</span>
-            <span class="command-palette-option__meta">${hooks.escapeHtml(item.meta || (item.completed ? "Completed" : ""))}</span>
+            <span class="command-palette-option__title">${hooks.escapeHtml(item.label)}${badges.length ? " " + badges.join("") : ""}</span>
+            <span class="command-palette-option__meta">${hooks.escapeHtml(item.projectName || "")}${item.meta && item.projectName ? " \u00b7 " : ""}${hooks.escapeHtml(
+              item.meta && !item.projectName
+                ? item.meta
+                : item.meta
+                    ?.replace(item.projectName, "")
+                    .replace(/^ \u00b7 /, "")
+                    .replace(/ \u00b7 $/, "") ||
+                    (item.completed ? "Completed" : ""),
+            )}</span>
           </button>
         `;
       }
@@ -240,57 +422,99 @@ function renderCommandPalette() {
   refs.empty.hidden = renderModel.hasAnyResults;
 }
 
-function executeCommandPaletteItem(item, triggerEl = null) {
-  if (!item) return;
-
+function ensureTodosViewActive() {
   const todosView = document.getElementById("todosView");
   const shouldSwitchToTodos =
     !(todosView instanceof HTMLElement) ||
     !todosView.classList.contains("active") ||
     todosView.classList.contains("todos-view--settings-active");
 
-  if (item.type === "action" && item.payload === "add-task") {
+  if (shouldSwitchToTodos) {
     const todosTab = document.querySelector(
       ".nav-tab[data-onclick*=\"switchView('todos'\"]",
     );
-    if (shouldSwitchToTodos) {
-      hooks.switchView(
-        "todos",
-        todosTab instanceof HTMLElement ? todosTab : null,
-      );
+    hooks.switchView(
+      "todos",
+      todosTab instanceof HTMLElement ? todosTab : null,
+    );
+  }
+}
+
+function executeCommandPaletteItem(item, triggerEl = null) {
+  if (!item) return;
+
+  if (item.type === "action") {
+    switch (item.payload) {
+      case "add-task":
+        ensureTodosViewActive();
+        closeCommandPalette({ restoreFocus: false });
+        window.requestAnimationFrame(() => {
+          hooks.openTaskComposer(triggerEl);
+        });
+        return;
+      case "plan-today":
+        ensureTodosViewActive();
+        closeCommandPalette({ restoreFocus: false });
+        hooks.selectWorkspaceView?.("home", triggerEl);
+        window.requestAnimationFrame(() => {
+          hooks.triggerPlanToday?.();
+        });
+        return;
+      case "run-weekly-review":
+        ensureTodosViewActive();
+        closeCommandPalette({ restoreFocus: false });
+        hooks.selectWorkspaceView?.("weekly-review", triggerEl);
+        return;
+      case "open-ai-workspace":
+        ensureTodosViewActive();
+        closeCommandPalette({ restoreFocus: false });
+        window.requestAnimationFrame(() => {
+          hooks.toggleAiWorkspace?.();
+        });
+        return;
+      case "refresh-priorities":
+        closeCommandPalette({ restoreFocus: false });
+        hooks.refreshHomeFocus?.();
+        return;
+      case "toggle-theme":
+        closeCommandPalette({ restoreFocus: false });
+        window.toggleTheme?.();
+        return;
+      case "show-shortcuts":
+        closeCommandPalette({ restoreFocus: false });
+        toggleShortcuts();
+        return;
+      case "export-calendar":
+        closeCommandPalette({ restoreFocus: false });
+        hooks.exportCalendar?.();
+        return;
+      default:
+        break;
     }
+  }
+
+  if (item.type === "workspace") {
+    ensureTodosViewActive();
     closeCommandPalette({ restoreFocus: false });
-    window.requestAnimationFrame(() => {
-      hooks.openTaskComposer(triggerEl);
-    });
+    hooks.selectWorkspaceView?.(String(item.payload), triggerEl);
+    return;
+  }
+
+  if (item.type === "view") {
+    closeCommandPalette({ restoreFocus: false });
+    hooks.switchView(String(item.payload), triggerEl);
     return;
   }
 
   if (item.type === "project") {
-    const todosTab = document.querySelector(
-      ".nav-tab[data-onclick*=\"switchView('todos'\"]",
-    );
-    if (shouldSwitchToTodos) {
-      hooks.switchView(
-        "todos",
-        todosTab instanceof HTMLElement ? todosTab : null,
-      );
-    }
+    ensureTodosViewActive();
     setSelectedProjectKey(String(item.payload || ""));
     closeCommandPalette({ restoreFocus: false });
+    return;
   }
 
   if (item.type === "task") {
-    const todosTab = document.querySelector(
-      ".nav-tab[data-onclick*=\"switchView('todos'\"]",
-    );
-    if (shouldSwitchToTodos) {
-      hooks.switchView(
-        "todos",
-        todosTab instanceof HTMLElement ? todosTab : null,
-      );
-    }
-
+    ensureTodosViewActive();
     closeCommandPalette({ restoreFocus: false });
     window.requestAnimationFrame(() => {
       hooks.openTodoDrawer(

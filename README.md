@@ -1,6 +1,18 @@
-# Todos Planning Workspace + API
+# Todos — AI Planning Workspace
 
-Todos is a planning-focused task workspace with a static frontend, an Express + Prisma backend, AI-assisted planning surfaces, and a remote MCP/agent layer for assistant integrations.
+A calm workspace for turning scattered tasks into focused days, reviewed weeks, and clear next actions.
+
+## What Todos Does
+
+**Plan your days** — AI generates time-boxed daily plans based on your priorities, energy level, and deadlines. Review, adjust, and start working.
+
+**Capture anything** — Dump tasks, ideas, and notes into your inbox. Type naturally ("Call dentist tomorrow 2pm") or let AI triage batches into projects.
+
+**Review your weeks** — A structured weekly review surfaces stale tasks, missing next actions, and forgotten commitments. One click to clean up.
+
+**Connect your AI assistant** — Claude, ChatGPT, or any MCP-compatible client can manage your tasks conversationally. 78 tools across capture, planning, review, and automation.
+
+**Automate the routine** — Daily plans, weekly reviews, inbox triage, and stale task cleanup run on schedule in the background.
 
 ## Quick Links
 
@@ -8,19 +20,25 @@ Todos is a planning-focused task workspace with a static frontend, an Express + 
 - [Docs Index](docs/README.md)
 - [Assistant MCP](docs/assistant-mcp.md)
 - [Planner Runtime](docs/planner-runtime.md)
+- [Product Review Specs](docs/specs/)
 
-## Features
+## Product Surfaces
 
-- Static single-page frontend in `client/` for day-to-day task management
-- JWT auth plus refresh-token rotation, email verification, password reset, admin bootstrap, and optional Google / Apple / phone login
-- Task and project management with projects, headings, subtasks, tags, priority, status, dates, recurrence, waiting state, dependencies, notes, and richer workflow metadata
-- Home dashboard with focus tiles, today's plan, upcoming work, rescue mode, and AI-backed priorities/focus suggestions
-- Inbox capture and triage flow for quickly capturing items before promoting them into structured tasks
-- Weekly review and planner flows for next-action generation, project planning, stale-task review, and work-graph analysis
-- AI assist surfaces for task critique, on-create guidance, task-drawer suggestions, brain-dump-to-plan drafting, and home priorities
-- Feedback capture plus admin review / promotion workflows
-- Remote MCP surface and internal `/agent` surface for assistant connectors and automation agents
-- PostgreSQL persistence through Prisma ORM
+- **Home Dashboard** — AI-curated top focus, due-soon groups, daily plan, priorities brief, and stale alerts
+- **Inbox** — Quick capture with AI-powered triage and promotion to tasks/projects
+- **Today / Upcoming / Scheduled** — Time-scoped views with energy-aware planning
+- **Weekly Review** — Structured review with findings and one-click apply
+- **AI Assistant** — On-create critique, drawer suggestions, brain-dump-to-plan, goal decomposition
+- **MCP Connectivity** — Remote tool surface for Claude, ChatGPT, and automation agents
+- **Projects & Organization** — Projects, areas, goals, headings, tags, dependencies, recurrence
+- **Command Palette** — Keyboard-first navigation and task search (Cmd+K)
+
+## Technical Stack
+
+- Static single-page frontend in `client/` (vanilla HTML/CSS/JS, no build step)
+- Express + Prisma + PostgreSQL backend in `src/`
+- JWT auth with refresh-token rotation, email verification, Google/Apple/phone login
+- Remote MCP surface and internal `/agent` surface for assistant connectors
 - TypeScript backend with input validation, structured errors, and automated tests
 - Docker Compose for local PostgreSQL development
 

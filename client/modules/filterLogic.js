@@ -1057,8 +1057,8 @@ function renderTodos() {
           </div>`
       : `<div id="todosEmptyState" class="empty-state">
             ${illustrationNoTasks()}
-            <h3>No tasks yet</h3>
-            <p>Add your first task to get started with a calm, focused list.</p>
+            <h3>Ready when you are</h3>
+            <p>Capture your first task and let the planning begin.</p>
             <p class="empty-state-hint">Tip: press Ctrl/Cmd + N to create a task.</p>
           </div>`;
     hooks.syncTodoDrawerStateWithRender?.();

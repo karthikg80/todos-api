@@ -1791,6 +1791,13 @@ textarea:focus-visible,
   color: var(--text-secondary);
 }
 
+.ai-create-chip__continuity {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
 .ai-create-chip__choices {
   display: flex;
   flex-wrap: wrap;
@@ -2596,6 +2603,58 @@ body.dark-mode .delete-btn {
   margin-top: var(--s-3);
 }
 
+/* --- MCP Sessions --- */
+
+.mcp-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: var(--s-2);
+}
+
+.mcp-sessions-empty {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  padding: var(--s-2) 0;
+}
+
+.mcp-session-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-secondary, var(--surface-2));
+  font-size: var(--fs-sm);
+}
+
+.mcp-session-row__name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mcp-session-row__meta {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.mcp-session-row__revoke {
+  all: unset;
+  font-size: 0.75rem;
+  color: var(--danger, #dc2626);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mcp-session-row__revoke:hover {
+  background: color-mix(in oklab, var(--danger, #dc2626) 10%, transparent);
+}
+
 /* --- Settings banner (verification, etc.) --- */
 
 .settings-banner {
@@ -3127,6 +3186,9 @@ body.is-admin-user .dock-admin-btn {
 }
 
 .projects-rail-area-header {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -3134,7 +3196,24 @@ body.is-admin-user .dock-admin-btn {
   color: var(--color-text-tertiary, #888);
   padding: 10px 12px 2px;
   user-select: none;
-  pointer-events: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.projects-rail-area-header::before {
+  content: "\25BE";
+  font-size: 8px;
+  transition: transform 0.15s ease;
+}
+
+.projects-rail-area-group--collapsed .projects-rail-area-header::before {
+  transform: rotate(-90deg);
+}
+
+.projects-rail-area-group--collapsed .projects-rail-row {
+  display: none;
 }
 
 .projects-rail--collapsed .projects-rail-area-header {
@@ -4030,6 +4109,40 @@ body.is-todos-view .floating-new-task-cta {
 .command-palette-option--completed .command-palette-option__title,
 .command-palette-option--completed .command-palette-option__meta {
   color: var(--text-muted);
+}
+
+.command-palette-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: capitalize;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm, 4px);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.command-palette-badge--overdue {
+  background: var(--color-error-bg, #fef2f2);
+  color: var(--color-error, #dc2626);
+}
+
+.command-palette-badge--today {
+  background: var(--color-warning-bg, #fffbeb);
+  color: var(--color-warning, #d97706);
+}
+
+:root.dark .command-palette-badge--overdue {
+  background: rgba(220, 38, 38, 0.15);
+  color: #fca5a5;
+}
+
+:root.dark .command-palette-badge--today {
+  background: rgba(217, 119, 6, 0.15);
+  color: #fcd34d;
 }
 
 .command-palette-inline-empty {
@@ -6532,6 +6645,26 @@ body.is-bulk-selecting .todo-item {
   color: var(--accent);
 }
 
+.todo-chip--waiting-on {
+  background: color-mix(in oklab, #d97706 10%, transparent);
+  border-color: color-mix(in oklab, #d97706 24%, transparent);
+  color: #b45309;
+}
+
+:root.dark .todo-chip--waiting-on {
+  color: #fbbf24;
+}
+
+.todo-chip--blocked {
+  background: color-mix(in oklab, #dc2626 8%, transparent);
+  border-color: color-mix(in oklab, #dc2626 20%, transparent);
+  color: #dc2626;
+}
+
+:root.dark .todo-chip--blocked {
+  color: #fca5a5;
+}
+
 .todo-chip--tag {
   background: color-mix(in oklab, var(--muted) 10%, transparent);
   border-color: color-mix(in oklab, var(--muted) 24%, transparent);
@@ -8166,6 +8299,35 @@ body.is-todos-view .projects-rail-item__count {
   color: var(--danger);
   background: color-mix(in oklab, var(--danger) 10%, var(--surface));
   border-color: color-mix(in oklab, var(--danger) 30%, var(--border-color));
+}
+
+.home-task-row--plan {
+  grid-template-columns: auto auto 1fr auto;
+}
+
+.home-task-row__slot {
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  white-space: nowrap;
+  min-width: 90px;
+}
+
+.home-task-row__meta-tag {
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: color-mix(in oklab, var(--surface) 85%, var(--surface-2));
+  white-space: nowrap;
+}
+
+.home-task-row__meta-tag--energy-low {
+  color: #6366f1;
+}
+
+.home-task-row__meta-tag--energy-high {
+  color: #f59e0b;
 }
 
 .home-task-row__project {
@@ -11035,7 +11197,8 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
   z-index: 9000;
 }
 
-.undo-toast--visible {
+.undo-toast--visible,
+.undo-toast.active {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
   pointer-events: auto;
