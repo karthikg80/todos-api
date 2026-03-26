@@ -184,10 +184,13 @@ body {
     var(--bg-gradient-start) 0%,
     var(--bg-gradient-end) 100%
   );
+  transition: background var(--dur-base) var(--ease-out);
+}
+
+body.is-todos-view {
   min-height: 100dvh;
   padding: 0;
   overflow: hidden;
-  transition: background var(--dur-base) var(--ease-out);
 }
 
 #appShell {
@@ -217,25 +220,25 @@ body {
   padding: var(--s-5);
 }
 
-body {
+body.is-todos-view {
   --app-shell-sidebar-width: 272px;
 }
 
-.is-projects-rail-collapsed {
+body.is-todos-view.is-projects-rail-collapsed {
   --app-shell-sidebar-width: 64px;
 }
 
-#appShell {
+body.is-todos-view #appShell {
   grid-template-columns: var(--app-shell-sidebar-width) minmax(0, 1fr);
 }
 
-#appMainScroll {
+body.is-todos-view #appMainScroll {
   overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-#appSidebar {
+body.is-todos-view #appSidebar {
   display: flex;
   flex-direction: column;
 }
