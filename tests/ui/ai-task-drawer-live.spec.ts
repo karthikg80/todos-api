@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import {
   ensureAllTasksListActive,
+  openTodoDrawerFromListRow,
   openTaskComposerSheet,
 } from "./helpers/todos-view";
 
@@ -406,7 +407,7 @@ test.describe("AI task drawer decision assist live flow", () => {
     await page.locator("#todoInput").press("Enter");
 
     const row = page.locator(".todo-item").first();
-    await row.click();
+    await openTodoDrawerFromListRow(page, row);
 
     await page
       .locator(
@@ -441,7 +442,7 @@ test.describe("AI task drawer decision assist live flow", () => {
     await page.locator("#todoInput").press("Enter");
 
     const row = page.locator(".todo-item").first();
-    await row.click();
+    await openTodoDrawerFromListRow(page, row);
     await page
       .locator(
         "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",
@@ -461,7 +462,7 @@ test.describe("AI task drawer decision assist live flow", () => {
 
     await page.reload();
     await ensureAllTasksListActive(page);
-    await page.locator(".todo-item").first().click();
+    await openTodoDrawerFromListRow(page, page.locator(".todo-item").first());
     await page
       .locator(
         "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",

@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { ensureAllTasksListActive } from "./helpers/todos-view";
+import {
+  ensureAllTasksListActive,
+  openTodoDrawerFromListRow,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -210,11 +213,7 @@ test.describe("Todos text clipping hardening", () => {
     await page.keyboard.press("Escape");
     await expect(row.locator(".todo-kebab-menu")).toBeHidden();
 
-    await title.click();
-    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
+    await openTodoDrawerFromListRow(page, title);
     await expect(page.locator("#drawerTitleInput")).toHaveValue(longTitle);
   });
 });

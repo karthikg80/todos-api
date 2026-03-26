@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { openTodosViewWithStorageState } from "./helpers/todos-view";
+import {
+  openTodoDrawerFromListRow,
+  openTodosViewWithStorageState,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -265,6 +268,43 @@ test.describe("Task detail progression", () => {
     ).toContainText("Updated inline context for the launch note");
   });
 
+  test("row click opens inline editor with editable title", async ({
+    page,
+    isMobile,
+  }) => {
+    test.skip(isMobile, "Mobile keeps row click on the primary detail surface");
+
+    const state = await openTaskProgressionPage(page);
+
+    await openTodosViewWithStorageState(page, {
+      name: "Task Progression User",
+      email: "task-progression-title@example.com",
+    });
+
+    await page.locator('.todo-item[data-todo-id="todo-1"] .todo-title').click();
+
+    const inlineTitleInput = page.locator('[data-inline-title-input="todo-1"]');
+    await expect(inlineTitleInput).toBeVisible();
+    await inlineTitleInput.fill("Plan calmer launch messaging");
+    await inlineTitleInput.blur();
+
+    await expect
+      .poll(
+        () =>
+          state.updatePatches.some(
+            (entry) =>
+              entry.todoId === "todo-1" &&
+              entry.patch.title === "Plan calmer launch messaging",
+          ),
+        { timeout: 10_000 },
+      )
+      .toBeTruthy();
+
+    await expect(
+      page.locator('.todo-item[data-todo-id="todo-1"] .todo-title'),
+    ).toContainText("Plan calmer launch messaging");
+  });
+
   test("inline editor escalates into the drawer with the draft preserved", async ({
     page,
   }) => {
@@ -281,6 +321,7 @@ test.describe("Task detail progression", () => {
     const inlineInput = page.locator(
       '[data-inline-description-input="todo-1"]',
     );
+    await inlineInput.clear();
     await inlineInput.fill("Escalate this into the quick panel");
 
     await page.getByRole("button", { name: "More details" }).click();
@@ -303,11 +344,9 @@ test.describe("Task detail progression", () => {
       email: "task-progression-page@example.com",
     });
 
-    await page.locator('.todo-item[data-todo-id="todo-1"] .todo-title').click();
-
-    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-      "aria-hidden",
-      "false",
+    await openTodoDrawerFromListRow(
+      page,
+      page.locator('.todo-item[data-todo-id="todo-1"] .todo-title'),
     );
 
     await page.getByRole("button", { name: "Open full task" }).click();

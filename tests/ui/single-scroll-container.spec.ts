@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { ensureAllTasksListActive } from "./helpers/todos-view";
+import {
+  ensureAllTasksListActive,
+  openTodoDrawerFromListRow,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -217,11 +220,7 @@ test.describe("Single scroll container hardening", () => {
     await expect(lastTitle).toBeVisible();
 
     const firstRowTitle = page.locator(".todo-item .todo-title").first();
-    await firstRowTitle.click();
-    await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-      "aria-hidden",
-      "false",
-    );
+    await openTodoDrawerFromListRow(page, firstRowTitle);
 
     await page.locator("#todoDrawerClose").click();
     await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(

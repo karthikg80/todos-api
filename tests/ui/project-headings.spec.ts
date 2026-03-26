@@ -1,5 +1,6 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
 import {
+  openTodoDrawerFromListRow,
   openTaskComposerSheet,
   openTodosViewWithStorageState,
 } from "./helpers/todos-view";
@@ -616,7 +617,7 @@ test.describe("Project headings (sections)", () => {
     });
     await expect(row.locator(".subtask-title")).toContainText("Nested subtask");
 
-    await row.locator(".todo-title").click();
+    await openTodoDrawerFromListRow(page, row.locator(".todo-title"));
     await expect(page.locator("#todoDetailsDrawer")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.locator("#todoDetailsDrawer")).toBeHidden();

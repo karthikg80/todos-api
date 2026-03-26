@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { ensureAllTasksListActive } from "./helpers/todos-view";
+import {
+  ensureAllTasksListActive,
+  openTodoDrawerFromListRow,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -273,10 +276,9 @@ async function registerAndOpenTodos(page: Page) {
 }
 
 async function openFirstTodoDrawer(page: Page) {
-  await page.locator(".todo-item .todo-title").first().click();
-  await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
-    "aria-hidden",
-    "false",
+  await openTodoDrawerFromListRow(
+    page,
+    page.locator(".todo-item .todo-title").first(),
   );
   await expect(page.locator("#drawerTitleInput")).toBeVisible();
 }
