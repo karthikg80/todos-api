@@ -2603,6 +2603,58 @@ body.dark-mode .delete-btn {
   margin-top: var(--s-3);
 }
 
+/* --- MCP Sessions --- */
+
+.mcp-sessions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: var(--s-2);
+}
+
+.mcp-sessions-empty {
+  font-size: var(--fs-sm);
+  color: var(--text-muted);
+  padding: var(--s-2) 0;
+}
+
+.mcp-session-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 8px 12px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--bg-secondary, var(--surface-2));
+  font-size: var(--fs-sm);
+}
+
+.mcp-session-row__name {
+  font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mcp-session-row__meta {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.mcp-session-row__revoke {
+  all: unset;
+  font-size: 0.75rem;
+  color: var(--danger, #dc2626);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.mcp-session-row__revoke:hover {
+  background: color-mix(in oklab, var(--danger, #dc2626) 10%, transparent);
+}
+
 /* --- Settings banner (verification, etc.) --- */
 
 .settings-banner {

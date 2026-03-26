@@ -477,6 +477,11 @@ import {
   toggleCommandPalette,
   bindCommandPaletteHandlers,
 } from "./modules/commandPalette.js";
+import {
+  loadMcpSessions,
+  revokeMcpSession,
+  revokeAllMcpSessions,
+} from "./modules/mcpSessionsUi.js";
 import * as TaskDrawerAssist from "./modules/taskDrawerAssist.js";
 import * as OnCreateAssist from "./modules/onCreateAssist.js";
 import {
@@ -1363,6 +1368,7 @@ function bindDockHandlers() {
   hooks.triggerPlanToday = generateDayPlan;
   hooks.toggleAiWorkspace = toggleAiWorkspace;
   hooks.refreshHomeFocus = refreshHomeFocusSuggestions;
+  hooks.loadMcpSessions = loadMcpSessions;
   hooks.exportCalendar = () => {
     const btn = document.getElementById("exportIcsButton");
     if (btn instanceof HTMLElement) btn.click();
@@ -1387,6 +1393,8 @@ function bindDockHandlers() {
 // (modules do not expose top-level declarations to global scope).
 // ---------------------------------------------------------------------------
 window.toggleTheme = toggleTheme;
+window.revokeMcpSession = revokeMcpSession;
+window.revokeAllMcpSessions = revokeAllMcpSessions;
 // toggleSimpleMode removed — single control is #uiModeSelect via setUiMode()
 window.openProjectsFromTopbar = openProjectsFromTopbar;
 // Auth forms

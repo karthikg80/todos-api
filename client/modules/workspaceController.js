@@ -81,6 +81,7 @@ export function createWorkspaceController({
     syncSidebarNavState(requestedView);
 
     if (isSettingsView) {
+      hooks.loadMcpSessions?.();
       closeCommandPalette({ restoreFocus: false });
       closeProjectCrudModal({ restoreFocus: false });
       closeProjectEditDrawer({ restoreFocus: false });
