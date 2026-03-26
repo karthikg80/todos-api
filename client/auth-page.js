@@ -192,10 +192,7 @@
       var data = await response.json();
 
       if (response.ok) {
-        showMessage("authMessage", "Account created successfully!", "success");
-        setTimeout(function () {
-          persistAndRedirect(data);
-        }, 1000);
+        persistAndRedirect(data);
       } else {
         var msg =
           data.errors && data.errors.length

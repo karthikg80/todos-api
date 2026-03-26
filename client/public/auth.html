@@ -14,12 +14,8 @@
     <link rel="apple-touch-icon" href="/favicon.svg" />
     <link rel="stylesheet" href="/styles/base.css" />
     <link rel="stylesheet" href="/styles/auth.css" />
-    <script>
-      // Redirect authenticated users to /app
-      if (localStorage.getItem("authToken") || localStorage.getItem("token")) {
-        window.location.replace("/app");
-      }
-    </script>
+    <!-- No auth redirect — users may visit /auth with stale tokens,
+         to reset passwords, or to switch accounts. -->
   </head>
   <body>
     <div
