@@ -691,6 +691,8 @@ export function renderHomeTaskRow(todo, { reason = "" } = {}) {
         ${escapeHtml(String(todo.title || "Untitled task"))}
       </button>
       ${dueBadge ? `<span class="home-task-row__badge ${dueBadge === "Still waiting" ? "home-task-row__badge--overdue" : ""}">${badgeIcon}${escapeHtml(dueBadge)}</span>` : ""}
+      ${todo.estimateMinutes ? `<span class="home-task-row__meta-tag" title="Estimated time">${escapeHtml(String(todo.estimateMinutes))}m</span>` : ""}
+      ${todo.energy && todo.energy !== "medium" ? `<span class="home-task-row__meta-tag home-task-row__meta-tag--energy-${escapeHtml(todo.energy)}" title="${escapeHtml(todo.energy)} energy">${escapeHtml(todo.energy === "low" ? "low" : "high")} energy</span>` : ""}
       ${
         projectName
           ? `<button

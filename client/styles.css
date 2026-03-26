@@ -8242,6 +8242,23 @@ body.is-todos-view .projects-rail-item__count {
   border-color: color-mix(in oklab, var(--danger) 30%, var(--border-color));
 }
 
+.home-task-row__meta-tag {
+  font-size: 0.65rem;
+  padding: 1px 5px;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: color-mix(in oklab, var(--surface) 85%, var(--surface-2));
+  white-space: nowrap;
+}
+
+.home-task-row__meta-tag--energy-low {
+  color: #6366f1;
+}
+
+.home-task-row__meta-tag--energy-high {
+  color: #f59e0b;
+}
+
 .home-task-row__project {
   justify-self: start;
   border: 0;
