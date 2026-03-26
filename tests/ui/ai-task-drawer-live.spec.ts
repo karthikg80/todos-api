@@ -382,7 +382,7 @@ async function registerAndOpenTodos(page: Page) {
     window.localStorage.setItem("feature.taskDrawerDecisionAssist", "1");
   });
 
-  await page.goto("/");
+  await page.goto("/?tab=register");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Drawer Live User");
   await page.locator("#registerEmail").fill("drawer-live-user@example.com");

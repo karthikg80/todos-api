@@ -150,7 +150,7 @@ async function installHeaderRailSyncMockApi(page: Page, todosSeed: TodoSeed[]) {
 }
 
 async function registerAndOpenTodos(page: Page, email: string) {
-  await page.goto("/");
+  await page.goto("/?tab=register");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("Header Sync User");
   await page.locator("#registerEmail").fill(email);
