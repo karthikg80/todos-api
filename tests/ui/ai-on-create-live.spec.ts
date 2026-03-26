@@ -329,8 +329,7 @@ async function installOnCreateLiveMockApi(page: Page) {
 }
 
 async function registerAndOpenTodos(page: Page) {
-  await page.goto("/");
-  await page.evaluate(() => (window as any).showAuthPage?.("register"));
+  await page.goto("/?tab=register");
   await page.getByRole("button", { name: "Register" }).click();
   await page.locator("#registerName").fill("On Create User");
   await page.locator("#registerEmail").fill("oncreate-live@example.com");
