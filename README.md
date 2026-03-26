@@ -2,6 +2,13 @@
 
 Todos is a planning-focused task workspace with a static frontend, an Express + Prisma backend, AI-assisted planning surfaces, and a remote MCP/agent layer for assistant integrations.
 
+## Quick Links
+
+- [Product Overview](docs/product-overview.md)
+- [Docs Index](docs/README.md)
+- [Assistant MCP](docs/assistant-mcp.md)
+- [Planner Runtime](docs/planner-runtime.md)
+
 ## Features
 
 - Static single-page frontend in `client/` for day-to-day task management
