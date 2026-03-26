@@ -115,7 +115,7 @@ function renderTaskDrawerAssistSection(todoId) {
       // A lint issue is present — show only the chip (suppress full panel).
       return `
         <div class="todo-drawer__section">
-          <div class="todo-drawer__section-title">AI Suggestions</div>
+          <div class="todo-drawer__section-title">Assistant</div>
           ${hooks.renderLintChip(issue)}
         </div>
       `;
@@ -126,14 +126,14 @@ function renderTaskDrawerAssistSection(todoId) {
   if (!hooks.FEATURE_TASK_DRAWER_DECISION_ASSIST) {
     return `
       <div class="todo-drawer__section">
-        <div class="todo-drawer__section-title">AI Suggestions</div>
-        <div class="ai-empty" role="status">AI Suggestions unavailable.</div>
+        <div class="todo-drawer__section-title">Assistant</div>
+        <div class="ai-empty" role="status">Suggestions unavailable right now.</div>
       </div>
     `;
   }
   const base = `
     <div class="todo-drawer__section">
-      <div class="todo-drawer__section-title">AI Suggestions</div>
+      <div class="todo-drawer__section-title">Assistant</div>
       ${hooks.renderAiDebugMeta({
         requestId: assistState.requestId,
         generatedAt: assistState.generatedAt,
@@ -142,7 +142,7 @@ function renderTaskDrawerAssistSection(todoId) {
       ${assistState.loading ? '<div class="ai-empty" role="status">Loading suggestions...</div>' : ""}
       ${
         assistState.unavailable
-          ? '<div class="ai-empty" role="status">AI Suggestions unavailable.</div>'
+          ? '<div class="ai-empty" role="status">Suggestions unavailable right now.</div>'
           : ""
       }
       ${assistState.error ? `<div class="ai-empty" role="status">${hooks.escapeHtml(assistState.error)}</div>` : ""}
@@ -151,7 +151,7 @@ function renderTaskDrawerAssistSection(todoId) {
         !assistState.unavailable &&
         !assistState.error &&
         (assistState.mustAbstain || assistState.suggestions.length === 0)
-          ? `<div class="ai-empty" role="status">${illustrationAiEmpty()}No suggestions right now.</div>`
+          ? `<div class="ai-empty" role="status">${illustrationAiEmpty()}This task looks good. No suggestions right now.</div>`
           : ""
       }
       ${

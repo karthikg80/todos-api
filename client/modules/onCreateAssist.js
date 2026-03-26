@@ -753,7 +753,7 @@ function renderOnCreateAssistRow() {
       titleClass: "ai-create-assist__title",
       title: "AI Assist",
       messageClass: "ai-create-assist__empty ai-empty",
-      message: "AI Suggestions unavailable.",
+      message: "Suggestions unavailable right now.",
     });
     return;
   }

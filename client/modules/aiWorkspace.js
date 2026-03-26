@@ -339,7 +339,7 @@ export function renderAiSuggestionHistory() {
 
   if (!Array.isArray(state.aiSuggestions) || state.aiSuggestions.length === 0) {
     container.innerHTML =
-      '<div style="color: var(--text-secondary); font-size: 0.85rem;">No AI suggestions yet.</div>';
+      '<div style="color: var(--text-secondary); font-size: 0.85rem;">All clear. No suggestions right now.</div>';
     return;
   }
 
