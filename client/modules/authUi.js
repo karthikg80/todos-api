@@ -954,12 +954,7 @@ export async function logout() {
   hooks.closeProjectsRailSheet?.({ restoreFocus: false });
   hooks.closeTaskComposer?.({ restoreFocus: false, force: true, reset: true });
   closeTodoDrawer({ restoreFocus: false });
-  // On multi-page layout, redirect to auth page; on single-page, toggle view
-  if (document.getElementById("authView")) {
-    showAuthView();
-  } else {
-    window.location.href = "/auth";
-  }
+  showAuthView();
 }
 
 // =============================================================================
@@ -971,13 +966,11 @@ export function showAppView() {
   hooks.setSettingsPaneVisible?.(false);
   hooks.setFeedbackPaneVisible?.(false);
   hooks.setAdminPaneVisible?.(false);
-  document.getElementById("authView")?.classList.remove("active");
-  document.getElementById("todosView")?.classList.add("active");
+  document.getElementById("authView").classList.remove("active");
+  document.getElementById("todosView").classList.add("active");
   document.getElementById("profileView")?.classList.remove("active");
-  const navTabs = document.getElementById("navTabs");
-  if (navTabs) navTabs.style.display = "flex";
-  const userBar = document.getElementById("userBar");
-  if (userBar) userBar.style.display = "flex";
+  document.getElementById("navTabs").style.display = "flex";
+  document.getElementById("userBar").style.display = "flex";
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
   hooks.syncSidebarNavState?.("todos");
   hooks.closeCommandPalette?.({ restoreFocus: false });
@@ -1037,15 +1030,12 @@ export function showAuthView() {
   hooks.setSettingsPaneVisible?.(false);
   hooks.setFeedbackPaneVisible?.(false);
   hooks.setAdminPaneVisible?.(false);
-  document.getElementById("authView")?.classList.add("active");
-  document.getElementById("todosView")?.classList.remove("active");
-  document.getElementById("profileView")?.classList.remove("active");
-  const navTabsEl = document.getElementById("navTabs");
-  if (navTabsEl) navTabsEl.style.display = "none";
-  const userBarEl = document.getElementById("userBar");
-  if (userBarEl) userBarEl.style.display = "none";
-  const adminNavTabEl = document.getElementById("adminNavTab");
-  if (adminNavTabEl) adminNavTabEl.style.display = "none";
+  document.getElementById("authView").classList.add("active");
+  document.getElementById("todosView").classList.remove("active");
+  document.getElementById("profileView").classList.remove("active");
+  document.getElementById("navTabs").style.display = "none";
+  document.getElementById("userBar").style.display = "none";
+  document.getElementById("adminNavTab").style.display = "none";
   document.body.classList.remove("is-admin-user");
   hooks.syncSidebarNavState?.("");
   state.adminBootstrapAvailable = false;
@@ -1149,8 +1139,9 @@ export function handleSocialCallback() {
       }
 
       // Clean URL
-      window.history.replaceState({}, document.title, window.location.pathname);
+      window.history.replaceState({}, document.title, "/");
 
+      // Show app immediately, then load profile in background
       showAppView();
       loadUserProfile().then(() => {
         initOnboarding();
@@ -1158,7 +1149,7 @@ export function handleSocialCallback() {
     }
   } else if (auth === "error") {
     const message = params.get("message") || "Login failed";
-    window.history.replaceState({}, document.title, window.location.pathname);
+    window.history.replaceState({}, document.title, "/");
     showMessage("authMessage", message, "error");
   }
 }

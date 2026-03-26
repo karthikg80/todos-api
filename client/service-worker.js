@@ -1,14 +1,12 @@
 // Service Worker for static asset caching only.
 // Version 3.0.0
 
-const CACHE_NAME = "todos-app-v4";
-const STATIC_URLS = ["/", "/auth", "/app"];
+const CACHE_NAME = "todos-app-v3";
+const STATIC_URLS = ["/", "/index.html"];
 
 function isApiPath(pathname) {
-  // /auth and /app are page routes, not API — only sub-paths are API
-  if (pathname === "/auth" || pathname === "/app") return false;
   return (
-    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/auth") ||
     pathname.startsWith("/todos") ||
     pathname.startsWith("/users") ||
     pathname.startsWith("/admin") ||
