@@ -9,16 +9,16 @@
 
 ## Quick Reference
 
-| Aspect | Value |
-|--------|-------|
-| **Frontend** | `client/` — Vanilla ES6 modules, no build step, no framework |
-| **Backend** | `src/` — TypeScript, Express 5, Prisma ORM |
-| **Database** | PostgreSQL 16 (14 models, 15+ enums) |
-| **Testing** | Jest (unit/integration), Playwright (UI), Custom (AI evals) |
-| **Auth** | JWT + refresh rotation, Google OAuth, Apple Sign-In, Phone SMS OTP |
-| **AI** | OpenAI-compatible API (planning, critique, suggestions) |
-| **MCP** | Remote Model Context Protocol for AI assistant connectors |
-| **Worker** | Python (`agent-runner/`) — scheduled automation jobs on Railway cron |
+| Aspect       | Value                                                                |
+| ------------ | -------------------------------------------------------------------- |
+| **Frontend** | `client/` — Vanilla ES6 modules, no build step, no framework         |
+| **Backend**  | `src/` — TypeScript, Express 5, Prisma ORM                           |
+| **Database** | PostgreSQL 16 (14 models, 15+ enums)                                 |
+| **Testing**  | Jest (unit/integration), Playwright (UI), Custom (AI evals)          |
+| **Auth**     | JWT + refresh rotation, Google OAuth, Apple Sign-In, Phone SMS OTP   |
+| **AI**       | OpenAI-compatible API (planning, critique, suggestions)              |
+| **MCP**      | Remote Model Context Protocol for AI assistant connectors            |
+| **Worker**   | Python (`agent-runner/`) — scheduled automation jobs on Railway cron |
 
 ---
 
@@ -164,33 +164,33 @@ state = {
   currentUser: null,
   accessToken: null,
   refreshToken: null,
-  
+
   // Todos
   todos: [],
   filteredTodos: [],
   selectedTodoIds: new Set(),
-  
+
   // Projects
   projects: [],
   selectedProjectKey: null,
   expandedHeadings: new Set(),
-  
+
   // Drawer
   drawerOpen: false,
-  drawerMode: null,  // 'create' | 'edit' | 'view'
+  drawerMode: null, // 'create' | 'edit' | 'view'
   draftTodo: null,
-  
+
   // AI
   aiWorkspaceOpen: false,
   aiCriticResponse: null,
   aiPlanDraft: null,
-  
+
   // UI
   darkMode: false,
   commandPaletteOpen: false,
   quickEntryOpen: false,
   // ... 80+ more properties
-}
+};
 ```
 
 **Mutation pattern:** Direct mutation within named actions:
@@ -199,18 +199,18 @@ state = {
 // stateActions.js
 function applyUiAction(actionType, payload) {
   switch (actionType) {
-    case 'TODO_CREATED':
-      state.todos.push(payload.todo)
-      state.filteredTodos = filterTodos()
-      break
-    case 'DRAWER_OPEN':
-      state.drawerOpen = true
-      state.drawerMode = payload.mode
-      state.draftTodo = payload.todo
-      break
+    case "TODO_CREATED":
+      state.todos.push(payload.todo);
+      state.filteredTodos = filterTodos();
+      break;
+    case "DRAWER_OPEN":
+      state.drawerOpen = true;
+      state.drawerMode = payload.mode;
+      state.draftTodo = payload.todo;
+      break;
     // ... 50+ action types
   }
-  EventBus.dispatch('state:changed', { action: actionType, payload })
+  EventBus.dispatch("state:changed", { action: actionType, payload });
 }
 ```
 
@@ -220,23 +220,23 @@ function applyUiAction(actionType, payload) {
 
 ```javascript
 // platform/events/eventBus.js
-const listeners = new Map()
+const listeners = new Map();
 
 export function subscribe(event, callback) {
-  if (!listeners.has(event)) listeners.set(event, new Set())
-  listeners.get(event).add(callback)
-  return () => listeners.get(event).delete(callback)
+  if (!listeners.has(event)) listeners.set(event, new Set());
+  listeners.get(event).add(callback);
+  return () => listeners.get(event).delete(callback);
 }
 
 export function dispatch(event, payload) {
   if (listeners.has(event)) {
-    listeners.get(event).forEach(cb => cb(payload))
+    listeners.get(event).forEach((cb) => cb(payload));
   }
 }
 
 // In use:
-EventBus.dispatch('todos:changed')  // Triggers filter + render
-EventBus.dispatch('todos:render')   // Render only
+EventBus.dispatch("todos:changed"); // Triggers filter + render
+EventBus.dispatch("todos:render"); // Render only
 ```
 
 ### DOM Rendering
@@ -246,18 +246,18 @@ EventBus.dispatch('todos:render')   // Render only
 ```javascript
 // filterLogic.js
 export function renderTodos() {
-  const container = document.getElementById('todosContent')
-  const html = state.filteredTodos.map(todo => renderTodoRow(todo)).join('')
-  container.innerHTML = html  // Full replacement
+  const container = document.getElementById("todosContent");
+  const html = state.filteredTodos.map((todo) => renderTodoRow(todo)).join("");
+  container.innerHTML = html; // Full replacement
 }
 
 // Micro-patches for single-todo updates:
 // todosViewPatches.js (378 lines)
 export function patchTodoRowCompletion(todoId, completed) {
-  const row = document.querySelector(`[data-todo-id="${todoId}"]`)
-  const checkbox = row.querySelector('.todo-checkbox')
-  checkbox.checked = completed
-  row.classList.toggle('completed', completed)
+  const row = document.querySelector(`[data-todo-id="${todoId}"]`);
+  const checkbox = row.querySelector(".todo-checkbox");
+  checkbox.checked = completed;
+  row.classList.toggle("completed", completed);
 }
 ```
 
@@ -315,29 +315,32 @@ export function patchTodoRowCompletion(todoId, completed) {
 
 ```typescript
 // app.ts
-app.use(requestIdMiddleware)           // Adds X-Request-ID
-app.use(routeLatencyMetrics)           // Prometheus metrics
-app.use(cors({ origin: CORS_ORIGINS }))
-app.use(helmet({                       // Security headers
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'nonce-<random>'"],
-      // ...
-    }
-  }
-}))
-app.use(rateLimiters.authLimiter)      // 5 req / 15 min
-app.use(rateLimiters.apiLimiter)       // 100 req / 15 min
-app.use(rateLimiters.mcpLimiter)       // 60 req / min
-app.use(cookieParser())
-app.use(express.json({ limit: '256kb' }))
-app.use(express.urlencoded({ extended: true, limit: '64kb' }))
+app.use(requestIdMiddleware); // Adds X-Request-ID
+app.use(routeLatencyMetrics); // Prometheus metrics
+app.use(cors({ origin: CORS_ORIGINS }));
+app.use(
+  helmet({
+    // Security headers
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'nonce-<random>'"],
+        // ...
+      },
+    },
+  }),
+);
+app.use(rateLimiters.authLimiter); // 5 req / 15 min
+app.use(rateLimiters.apiLimiter); // 100 req / 15 min
+app.use(rateLimiters.mcpLimiter); // 60 req / min
+app.use(cookieParser());
+app.use(express.json({ limit: "256kb" }));
+app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 
 // Routes
-app.use('/auth', authRouter)
-app.use('/todos', todosRouter)
-app.use('/projects', projectsRouter)
+app.use("/auth", authRouter);
+app.use("/todos", todosRouter);
+app.use("/projects", projectsRouter);
 // ...
 ```
 
@@ -371,35 +374,35 @@ app.use('/projects', projectsRouter)
 export async function executeAgentAction(
   action: AgentAction,
   userId: string,
-  input: unknown
+  input: unknown,
 ) {
   // 1. Validate input with Zod
-  const validated = actionValidators[action].parse(input)
-  
+  const validated = actionValidators[action].parse(input);
+
   // 2. Check idempotency (SHA-256 hash of action + input)
-  const idempotencyKey = hashActionInput(action, validated)
-  const existing = await checkIdempotency(idempotencyKey)
-  if (existing) return existing.result
-  
+  const idempotencyKey = hashActionInput(action, validated);
+  const existing = await checkIdempotency(idempotencyKey);
+  if (existing) return existing.result;
+
   // 3. Dispatch to handler (98 actions)
-  let result: unknown
+  let result: unknown;
   switch (action) {
-    case 'plan_today':
-      result = await handlePlanToday(userId, validated)
-      break
-    case 'break_down_project':
-      result = await handleBreakDownProject(userId, validated)
-      break
+    case "plan_today":
+      result = await handlePlanToday(userId, validated);
+      break;
+    case "break_down_project":
+      result = await handleBreakDownProject(userId, validated);
+      break;
     // ... 96 more cases
   }
-  
+
   // 4. Persist audit log
-  await persistAuditLog(userId, action, result)
-  
+  await persistAuditLog(userId, action, result);
+
   // 5. Cache result for idempotency
-  await cacheIdempotencyResult(idempotencyKey, result)
-  
-  return result
+  await cacheIdempotencyResult(idempotencyKey, result);
+
+  return result;
 }
 ```
 
@@ -429,7 +432,7 @@ model SocialAccount {
   emailAtProvider         String?
   emailVerifiedAtProvider Boolean  @default(false)
   user                    User     @relation(fields: [userId], references: [id])
-  
+
   @@unique([provider, providerSubject])
 }
 
@@ -542,14 +545,14 @@ CI=1 npm run test:ui:fast           # Fast UI suite (excludes @visual)
 
 ### Critical Hotspots
 
-| File | Lines | Issue |
-|------|-------|-------|
-| `client/app.js` | 1,791 | Imports 420 exports, wires 137 hooks, assigns 120 window functions |
-| `client/drawerUi.js` | 2,146 | Mixes rendering, draft management, AI assist, kebab menu |
-| `client/projectsState.js` | 1,391 | Handles CRUD, headings, dialogs, rail updates |
-| `client/aiWorkspace.js` | 1,517 | Owns critique, plan, brain-dump in one module |
-| `src/agent/agentExecutor.ts` | 3,362 | Dispatches 98 actions synchronously, blocking event loop |
-| `client/stateActions.js` | 688 | 50+ action types, large switch statements |
+| File                         | Lines | Issue                                                              |
+| ---------------------------- | ----- | ------------------------------------------------------------------ |
+| `client/app.js`              | 1,791 | Imports 420 exports, wires 137 hooks, assigns 120 window functions |
+| `client/drawerUi.js`         | 2,146 | Mixes rendering, draft management, AI assist, kebab menu           |
+| `client/projectsState.js`    | 1,391 | Handles CRUD, headings, dialogs, rail updates                      |
+| `client/aiWorkspace.js`      | 1,517 | Owns critique, plan, brain-dump in one module                      |
+| `src/agent/agentExecutor.ts` | 3,362 | Dispatches 98 actions synchronously, blocking event loop           |
+| `client/stateActions.js`     | 688   | 50+ action types, large switch statements                          |
 
 ### Open Issues
 
@@ -563,13 +566,13 @@ CI=1 npm run test:ui:fast           # Fast UI suite (excludes @visual)
 
 ## Accepted ADRs
 
-| ADR | Title | Status |
-|-----|-------|--------|
-| 001 | Frontend composition roots | Accepted (not implemented) |
-| 002 | Event bus contract | Accepted |
-| 003 | Agent worker queue | Accepted |
-| 004 | Domain-oriented backend structure | Accepted |
-| 005 | Agent execution architecture | Accepted (BullMQ for on-demand, not implemented) |
+| ADR | Title                             | Status                                           |
+| --- | --------------------------------- | ------------------------------------------------ |
+| 001 | Frontend composition roots        | Accepted (not implemented)                       |
+| 002 | Event bus contract                | Accepted                                         |
+| 003 | Agent worker queue                | Accepted                                         |
+| 004 | Domain-oriented backend structure | Accepted                                         |
+| 005 | Agent execution architecture      | Accepted (BullMQ for on-demand, not implemented) |
 
 ---
 

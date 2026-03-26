@@ -28,6 +28,23 @@ import {
   validateRevokeMcpSessionInput,
 } from "../validation/mcpValidation";
 
+/** Set a signed HTTP-only cookie so Express can gate /app without relying on localStorage. */
+function setAppSessionCookie(res: Response, userId: string): void {
+  res.cookie("app_session", userId, {
+    httpOnly: true,
+    secure: config.nodeEnv === "production",
+    sameSite: "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days — matches refresh token TTL
+    path: "/",
+    signed: true,
+  });
+}
+
+/** Clear the app session cookie on logout. */
+function clearAppSessionCookie(res: Response): void {
+  res.clearCookie("app_session", { path: "/" });
+}
+
 interface AuthRouterDeps {
   authService?: AuthService;
   mcpOAuthService: McpOAuthService;
@@ -328,6 +345,7 @@ export function createAuthRouter({
         }
 
         const result = await authService.register(validation.dto!);
+        setAppSessionCookie(res, result.user.id);
         res.status(201).json(result);
       } catch (error) {
         next(error);
@@ -354,6 +372,7 @@ export function createAuthRouter({
         }
 
         const result = await authService.login(validation.dto!);
+        setAppSessionCookie(res, result.user.id);
         res.json(result);
       } catch (error) {
         next(error);
@@ -399,6 +418,7 @@ export function createAuthRouter({
           await authService.revokeRefreshToken(refreshToken);
         }
 
+        clearAppSessionCookie(res);
         res.json({ message: "Logged out successfully" });
       } catch (error) {
         next(error);
@@ -425,12 +445,12 @@ export function createAuthRouter({
 
         await authService.verifyEmail(token);
         if (wantsHtml) {
-          return res.redirect(303, "/?verified=1");
+          return res.redirect(303, "/auth?verified=1");
         }
         res.json({ message: "Email verified successfully" });
       } catch (error) {
         if (wantsHtml) {
-          return res.redirect(303, "/?verified=0");
+          return res.redirect(303, "/auth?verified=0");
         }
         next(error);
       }
@@ -1037,7 +1057,7 @@ export function createAuthRouter({
         const storedState = req.cookies?.oauth_state;
         if (!state || !storedState || state !== storedState) {
           return res.redirect(
-            `/?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
           );
         }
 
@@ -1047,7 +1067,7 @@ export function createAuthRouter({
         const code = req.query.code as string;
         if (!code) {
           return res.redirect(
-            `/?auth=error&message=${encodeURIComponent("Missing authorization code")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Missing authorization code")}`,
           );
         }
 
@@ -1060,17 +1080,19 @@ export function createAuthRouter({
         // Clear link cookie
         res.clearCookie("link_to_user", { path: "/auth/google" });
 
-        // Redirect to app with tokens
+        setAppSessionCookie(res, result.user.id);
+
+        // Redirect to auth page for token persistence, then to /app
         const params = new URLSearchParams({
           auth: "success",
           token: result.token,
           refreshToken: result.refreshToken,
         });
-        res.redirect(`/?${params.toString()}`);
+        res.redirect(`/auth?${params.toString()}`);
       } catch (error) {
         console.error("Google OAuth callback error:", error);
         res.redirect(
-          `/?auth=error&message=${encodeURIComponent("Google login failed")}`,
+          `/auth?auth=error&message=${encodeURIComponent("Google login failed")}`,
         );
       }
     },
@@ -1122,7 +1144,7 @@ export function createAuthRouter({
 
         if (!state || !storedState || state !== storedState) {
           return res.redirect(
-            `/?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
           );
         }
 
@@ -1131,7 +1153,7 @@ export function createAuthRouter({
         const idToken = req.body.id_token as string;
         if (!idToken) {
           return res.redirect(
-            `/?auth=error&message=${encodeURIComponent("Missing ID token")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Missing ID token")}`,
           );
         }
 
@@ -1170,16 +1192,18 @@ export function createAuthRouter({
           (userId, email) => authService!.issueTokens(userId, email),
         );
 
+        setAppSessionCookie(res, result.user.id);
+
         const params = new URLSearchParams({
           auth: "success",
           token: result.token,
           refreshToken: result.refreshToken,
         });
-        res.redirect(`/?${params.toString()}`);
+        res.redirect(`/auth?${params.toString()}`);
       } catch (error) {
         console.error("Apple Sign-In callback error:", error);
         res.redirect(
-          `/?auth=error&message=${encodeURIComponent("Apple login failed")}`,
+          `/auth?auth=error&message=${encodeURIComponent("Apple login failed")}`,
         );
       }
     },
@@ -1253,6 +1277,7 @@ export function createAuthRouter({
           (userId, email) => authService!.issueTokens(userId, email),
         );
 
+        setAppSessionCookie(res, result.user.id);
         res.json(result);
       } catch (error) {
         if (

@@ -1161,7 +1161,7 @@ export function handleSocialCallback() {
       }
 
       // Clean URL
-      window.history.replaceState({}, document.title, "/");
+      window.history.replaceState({}, document.title, window.location.pathname);
 
       // On multi-page layout, redirect; on single-page, toggle view
       if (!document.getElementById("todosView")) {
@@ -1175,7 +1175,7 @@ export function handleSocialCallback() {
     }
   } else if (auth === "error") {
     const message = params.get("message") || "Login failed";
-    window.history.replaceState({}, document.title, "/");
+    window.history.replaceState({}, document.title, window.location.pathname);
     showMessage("authMessage", message, "error");
   }
 }

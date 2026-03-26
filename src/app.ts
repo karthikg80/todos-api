@@ -211,7 +211,7 @@ export function createApp(
 
   app.use(express.json({ limit: config.requestBodyLimit }));
   app.use(express.urlencoded({ extended: false, limit: config.formBodyLimit }));
-  app.use(cookieParser());
+  app.use(cookieParser(config.accessJwtSecret));
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -234,23 +234,27 @@ export function createApp(
   app.use(express.static(path.join(__dirname, "../client")));
 
   // ── Page-serving routes (3-page split) ──────────────────────────
+  // Registered after express.static. GET / continues to serve the
+  // legacy client/index.html via static middleware until test migration
+  // is complete. /auth and /app are new routes with no static conflict.
   const publicDir = path.join(__dirname, "../client/public");
-
-  app.get("/", (_req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, "index.html"));
-  });
 
   app.get("/auth", (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, "auth.html"));
   });
 
-  app.get("/app", (_req: Request, res: Response) => {
+  const serveAppOrRedirect = (req: Request, res: Response) => {
+    // Signed cookie is the server-side gate; client-side localStorage
+    // redirect in app.html is the fallback for test/dev environments
+    // where the cookie may not be present (e.g. Playwright route mocking).
+    if (!req.signedCookies?.app_session && config.nodeEnv === "production") {
+      return res.redirect("/auth");
+    }
     res.sendFile(path.join(publicDir, "app.html"));
-  });
+  };
 
-  app.get("/app/{*path}", (_req: Request, res: Response) => {
-    res.sendFile(path.join(publicDir, "app.html"));
-  });
+  app.get("/app", serveAppOrRedirect);
+  app.get("/app/{*path}", serveAppOrRedirect);
 
   app.use(
     "/api-docs",
