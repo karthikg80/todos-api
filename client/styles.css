@@ -6586,6 +6586,26 @@ body.is-bulk-selecting .todo-item {
   color: var(--accent);
 }
 
+.todo-chip--waiting-on {
+  background: color-mix(in oklab, #d97706 10%, transparent);
+  border-color: color-mix(in oklab, #d97706 24%, transparent);
+  color: #b45309;
+}
+
+:root.dark .todo-chip--waiting-on {
+  color: #fbbf24;
+}
+
+.todo-chip--blocked {
+  background: color-mix(in oklab, #dc2626 8%, transparent);
+  border-color: color-mix(in oklab, #dc2626 20%, transparent);
+  color: #dc2626;
+}
+
+:root.dark .todo-chip--blocked {
+  color: #fca5a5;
+}
+
 .todo-chip--tag {
   background: color-mix(in oklab, var(--muted) 10%, transparent);
   border-color: color-mix(in oklab, var(--muted) 24%, transparent);

@@ -436,6 +436,28 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
     );
   }
 
+  // Waiting-on chip (shows who/what)
+  if (todo.waitingOn && status === "waiting" && chips.length < 3) {
+    const waitLabel = `Waiting on: ${String(todo.waitingOn)}`;
+    chips.push(
+      `<span class="todo-chip todo-chip--waiting-on" title="${hooks.escapeHtml(waitLabel)}">${hooks.escapeHtml(waitLabel)}</span>`,
+    );
+  }
+
+  // Blocked chip (has unresolved dependencies)
+  if (
+    Array.isArray(todo.dependsOnTaskIds) &&
+    todo.dependsOnTaskIds.length > 0 &&
+    !todo.completed &&
+    chips.length < 3
+  ) {
+    const depCount = todo.dependsOnTaskIds.length;
+    const blockedLabel = `Blocked by ${depCount} task${depCount > 1 ? "s" : ""}`;
+    chips.push(
+      `<span class="todo-chip todo-chip--blocked" title="${hooks.escapeHtml(blockedLabel)}"><svg class="app-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> ${hooks.escapeHtml(blockedLabel)}</span>`,
+    );
+  }
+
   // Context chip
   if (todo.context && chips.length < 2) {
     chips.push(
