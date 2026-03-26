@@ -116,15 +116,39 @@
 
     var originalLogout = window.logout;
     window.logout = function standaloneLogout() {
-      // Call original to revoke server-side refresh token + clear state
-      try {
-        originalLogout();
-      } catch (_) {
-        // showAuthView() may throw on missing DOM — that's fine, we redirect
+      // 1. Block interaction and fade the screen to prevent stale-content flash.
+      //    The overlay uses the same .view-transition-overlay class from
+      //    styles.css that viewTransitions.js uses.
+      var overlay = document.querySelector(".view-transition-overlay");
+      if (!overlay) {
+        overlay = document.createElement("div");
+        overlay.className = "view-transition-overlay";
+        document.body.appendChild(overlay);
       }
-      // Ensure session is cleared then redirect
-      AppState.clearSession();
-      window.location.replace("/auth");
+      // Force reflow so the browser registers opacity:0 before transition
+      overlay.offsetHeight; // eslint-disable-line no-unused-expressions
+      overlay.classList.add("active");
+
+      // 2. Read --dur-view from CSS so JS and CSS cannot drift.
+      //    Fall back to 280 ms if the property is missing.
+      var reduced = window.matchMedia(
+        "(prefers-reduced-motion: reduce)",
+      ).matches;
+      var raw = getComputedStyle(document.documentElement)
+        .getPropertyValue("--dur-view")
+        .trim();
+      var dur = reduced ? 0 : parseInt(raw, 10) || 280;
+
+      // 3. After fade completes, revoke tokens and redirect.
+      setTimeout(function () {
+        try {
+          originalLogout();
+        } catch (_) {
+          // showAuthView() may throw on missing DOM — that's fine, we redirect
+        }
+        AppState.clearSession();
+        window.location.replace("/auth");
+      }, dur);
     };
   }
 

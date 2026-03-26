@@ -87,6 +87,7 @@ html {
   --dur-fast: 120ms;
   --dur-base: 180ms;
   --dur-slow: 280ms;
+  --dur-view: 280ms;
 
   /* Icon sizes */
   --icon-sm: 14px;
@@ -542,6 +543,36 @@ body.is-todos-view .nav-tab.active {
   flex-direction: column;
   min-height: 0;
   min-width: 0;
+}
+
+/* --- View transition layer (additive on top of .active) --- */
+.view.view-enter {
+  animation: view-scale-in var(--dur-view) var(--ease-out) both;
+}
+
+.view.view-exit {
+  animation: view-fade-out var(--dur-view) var(--ease-out) both;
+  pointer-events: none;
+}
+
+#todosView.view-enter {
+  animation-name: view-slide-up-in;
+}
+
+/* Full-screen overlay for standalone-page logout transition */
+.view-transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--bg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-view) var(--ease-out);
+}
+
+.view-transition-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 body.is-todos-view .container {
@@ -4019,6 +4050,51 @@ body.is-todos-view .floating-new-task-cta {
 }
 
 /* ========== PHASE E: ANIMATIONS & TRANSITIONS ========== */
+
+/* --- View-level transition keyframes --- */
+@keyframes view-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes view-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes view-slide-up-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .view.view-enter,
+  .view.view-exit {
+    animation-duration: 0ms;
+  }
+
+  .view-transition-overlay {
+    transition-duration: 0ms !important;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

@@ -18,6 +18,7 @@ import {
 } from "./projectsState.js";
 import { loadTodos } from "./todosService.js";
 import { closeTodoDrawer } from "./drawerUi.js";
+import { transitionViews } from "../utils/viewTransitions.js";
 import { initOnboarding } from "./onboardingFlow.js";
 import {
   SOUL_PROFILE_DEFAULTS,
@@ -961,16 +962,38 @@ export async function logout() {
 // App view / auth view transitions
 // =============================================================================
 
-export function showAppView() {
+export async function showAppView() {
+  const authView = document.getElementById("authView");
+  const todosView = document.getElementById("todosView");
+  const profileView = document.getElementById("profileView");
+
+  // Body layout must exist before todosView is revealed (grid columns, sidebar)
   hooks.setTodosViewBodyState?.(true);
-  hooks.setSettingsPaneVisible?.(false);
-  hooks.setFeedbackPaneVisible?.(false);
-  hooks.setAdminPaneVisible?.(false);
-  document.getElementById("authView").classList.remove("active");
-  document.getElementById("todosView").classList.add("active");
-  document.getElementById("profileView")?.classList.remove("active");
+
+  // Show nav immediately — sits above the transition
   document.getElementById("navTabs").style.display = "flex";
   document.getElementById("userBar").style.display = "flex";
+
+  // Determine which view is currently active
+  const fromView = authView?.classList.contains("active")
+    ? authView
+    : profileView?.classList.contains("active")
+      ? profileView
+      : null;
+
+  await transitionViews(fromView, todosView, {
+    beforeEnter() {
+      hooks.setSettingsPaneVisible?.(false);
+      hooks.setFeedbackPaneVisible?.(false);
+      hooks.setAdminPaneVisible?.(false);
+      // Deactivate whichever view was not the exit source
+      if (profileView && profileView !== fromView)
+        profileView.classList.remove("active");
+      if (authView && authView !== fromView)
+        authView.classList.remove("active");
+    },
+  });
+
   document.querySelectorAll(".nav-tab")[0].classList.add("active");
   hooks.syncSidebarNavState?.("todos");
   hooks.closeCommandPalette?.({ restoreFocus: false });
@@ -1025,18 +1048,40 @@ export function showAppView() {
   hooks.syncQuickEntryProjectActions?.();
 }
 
-export function showAuthView() {
-  hooks.setTodosViewBodyState?.(false);
-  hooks.setSettingsPaneVisible?.(false);
-  hooks.setFeedbackPaneVisible?.(false);
-  hooks.setAdminPaneVisible?.(false);
-  document.getElementById("authView").classList.add("active");
-  document.getElementById("todosView").classList.remove("active");
-  document.getElementById("profileView").classList.remove("active");
+export async function showAuthView() {
+  const todosView = document.getElementById("todosView");
+  const authView = document.getElementById("authView");
+  const profileView = document.getElementById("profileView");
+
+  // Hide nav elements immediately — they sit above the transition
   document.getElementById("navTabs").style.display = "none";
   document.getElementById("userBar").style.display = "none";
   document.getElementById("adminNavTab").style.display = "none";
   document.body.classList.remove("is-admin-user");
+
+  // Determine which view is currently active
+  const fromView = todosView?.classList.contains("active")
+    ? todosView
+    : profileView?.classList.contains("active")
+      ? profileView
+      : null;
+
+  await transitionViews(fromView, authView, {
+    beforeEnter() {
+      // Set body state BETWEEN exit and enter — avoids layout snap during fade
+      hooks.setTodosViewBodyState?.(false);
+      hooks.setSettingsPaneVisible?.(false);
+      hooks.setFeedbackPaneVisible?.(false);
+      hooks.setAdminPaneVisible?.(false);
+      // Deactivate whichever view was not the exit source
+      if (profileView && profileView !== fromView)
+        profileView.classList.remove("active");
+      if (todosView && todosView !== fromView)
+        todosView.classList.remove("active");
+    },
+  });
+
+  // Post-transition cleanup
   hooks.syncSidebarNavState?.("");
   state.adminBootstrapAvailable = false;
   hooks.closeCommandPalette?.({ restoreFocus: false });
