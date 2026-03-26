@@ -397,22 +397,6 @@
     </div>
 
     <script src="/utils/theme.js"></script>
-    <script>
-      // Show "Go to app" for authenticated users
-      if (localStorage.getItem("token")) {
-        var goBtn = document.getElementById("landingGoToApp");
-        var loginBtn = document.getElementById("landingLoginBtn");
-        var regBtn = document.getElementById("landingRegisterBtn");
-        if (goBtn) goBtn.style.display = "";
-        if (loginBtn) loginBtn.style.display = "none";
-        if (regBtn) regBtn.style.display = "none";
-      }
-      document.addEventListener("click", function (e) {
-        var el = e.target.closest("[data-onclick]");
-        if (el) {
-          new Function(el.dataset.onclick).call(el);
-        }
-      });
-    </script>
+    <script src="/landing.js"></script>
   </body>
 </html>
