@@ -184,13 +184,10 @@ body {
     var(--bg-gradient-start) 0%,
     var(--bg-gradient-end) 100%
   );
-  transition: background var(--dur-base) var(--ease-out);
-}
-
-body.is-todos-view {
   min-height: 100dvh;
   padding: 0;
   overflow: hidden;
+  transition: background var(--dur-base) var(--ease-out);
 }
 
 #appShell {
@@ -284,7 +281,7 @@ body.is-todos-view #appSidebar {
   gap: 6px;
 }
 
-body {
+body.is-todos-view {
   padding: 0;
   overflow: hidden;
 }
@@ -463,32 +460,32 @@ small {
   border-bottom-color: var(--accent);
 }
 
-.header {
+body.is-todos-view .header {
   padding: 12px 16px;
 }
 
-.header h1 {
+body.is-todos-view .header h1 {
   font-size: var(--fs-lg);
   margin-bottom: 0;
   line-height: 1.2;
 }
 
-.theme-toggle {
+body.is-todos-view .theme-toggle {
   padding: 6px 10px;
   font-size: var(--fs-body);
 }
 
-.user-bar {
+body.is-todos-view .user-bar {
   margin-top: 8px;
   font-size: var(--fs-xs);
 }
 
-.logout-btn {
+body.is-todos-view .logout-btn {
   padding: 6px 10px;
   font-size: var(--fs-xs);
 }
 
-.nav-tabs {
+body.is-todos-view .nav-tabs {
   display: none !important;
   justify-content: flex-start;
   gap: 8px;
@@ -497,23 +494,23 @@ small {
   border-bottom: 1px dashed var(--border-color);
 }
 
-.is-admin-user .nav-tabs {
+body.is-todos-view.is-admin-user .nav-tabs {
   display: flex !important;
 }
 
-.is-admin-user .nav-tab {
+body.is-todos-view.is-admin-user .nav-tab {
   display: none;
 }
 
-.is-admin-user #adminNavTab {
+body.is-todos-view.is-admin-user #adminNavTab {
   display: inline-flex !important;
 }
 
-.is-admin-user .nav-tab[data-onclick*="switchView('todos'"] {
+body.is-todos-view.is-admin-user .nav-tab[data-onclick*="switchView('todos'"] {
   display: inline-flex !important;
 }
 
-.nav-tab {
+body.is-todos-view .nav-tab {
   flex: 0 0 auto;
   border: 1px solid var(--border-color);
   border-bottom: 1px solid var(--border-color);
@@ -523,7 +520,7 @@ small {
   line-height: 1.2;
 }
 
-.nav-tab.active {
+body.is-todos-view .nav-tab.active {
   border-color: color-mix(in oklab, var(--accent) 44%, var(--border-color));
   background: color-mix(in oklab, var(--accent) 9%, var(--surface));
 }
@@ -547,7 +544,7 @@ small {
   min-width: 0;
 }
 
-.container {
+body.is-todos-view .container {
   height: 100%;
   max-height: 100%;
   max-width: none;
@@ -560,7 +557,7 @@ small {
   min-width: 0;
 }
 
-.content {
+body.is-todos-view .content {
   flex: 1 1 auto;
   min-height: 0;
   min-width: 0;
@@ -569,7 +566,7 @@ small {
   flex-direction: column;
 }
 
-#todosView.view.active {
+body.is-todos-view #todosView.view.active {
   flex: 1 1 auto;
 }
 
