@@ -962,13 +962,16 @@ export async function logout() {
 // App view / auth view transitions
 // =============================================================================
 
-export async function showAppView() {
+export function showAppView() {
   const authView = document.getElementById("authView");
   const todosView = document.getElementById("todosView");
   const profileView = document.getElementById("profileView");
 
   // Body layout must exist before todosView is revealed (grid columns, sidebar)
   hooks.setTodosViewBodyState?.(true);
+  hooks.setSettingsPaneVisible?.(false);
+  hooks.setFeedbackPaneVisible?.(false);
+  hooks.setAdminPaneVisible?.(false);
 
   // Show nav immediately — sits above the transition
   document.getElementById("navTabs").style.display = "flex";
@@ -981,11 +984,12 @@ export async function showAppView() {
       ? profileView
       : null;
 
-  await transitionViews(fromView, todosView, {
+  // Animated view swap — fire-and-forget so callers stay synchronous.
+  // The .active swap is synchronous in the reduced-motion fast path, and
+  // the animation is cosmetic in the normal path (state init below does
+  // not depend on the animation completing).
+  transitionViews(fromView, todosView, {
     beforeEnter() {
-      hooks.setSettingsPaneVisible?.(false);
-      hooks.setFeedbackPaneVisible?.(false);
-      hooks.setAdminPaneVisible?.(false);
       // Deactivate whichever view was not the exit source
       if (profileView && profileView !== fromView)
         profileView.classList.remove("active");
@@ -1048,7 +1052,7 @@ export async function showAppView() {
   hooks.syncQuickEntryProjectActions?.();
 }
 
-export async function showAuthView() {
+export function showAuthView() {
   const todosView = document.getElementById("todosView");
   const authView = document.getElementById("authView");
   const profileView = document.getElementById("profileView");
@@ -1066,7 +1070,8 @@ export async function showAuthView() {
       ? profileView
       : null;
 
-  await transitionViews(fromView, authView, {
+  // Animated view swap — fire-and-forget so callers stay synchronous.
+  transitionViews(fromView, authView, {
     beforeEnter() {
       // Set body state BETWEEN exit and enter — avoids layout snap during fade
       hooks.setTodosViewBodyState?.(false);
