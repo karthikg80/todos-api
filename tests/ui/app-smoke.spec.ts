@@ -255,6 +255,7 @@ test.describe("App smoke flows", () => {
   }) => {
     await installMockApi(page);
     await page.goto("/?tab=register");
+
     await page.locator("#registerName").fill("User One");
     await page.locator("#registerEmail").fill("user1@example.com");
     await page.locator("#registerPassword").fill("Password123!");
@@ -292,7 +293,7 @@ test.describe("App smoke flows", () => {
     await clickLogout(page);
     await expect(page.locator("#authView")).toHaveClass(/active/);
 
-    await page.goto("/?tab=register");
+    await page.evaluate(() => (window as any).showAuthPage?.("register"));
     await page.locator("#registerName").fill("User Two");
     await page.locator("#registerEmail").fill("user2@example.com");
     await page.locator("#registerPassword").fill("Password123!");
@@ -305,6 +306,7 @@ test.describe("App smoke flows", () => {
   test("logout resets date view filter for next session", async ({ page }) => {
     await installMockApi(page);
     await page.goto("/?tab=register");
+
     await page.locator("#registerName").fill("Date View User One");
     await page.locator("#registerEmail").fill("date-view-one@example.com");
     await page.locator("#registerPassword").fill("Password123!");
@@ -323,7 +325,7 @@ test.describe("App smoke flows", () => {
     await clickLogout(page);
     await expect(page.locator("#authView")).toHaveClass(/active/);
 
-    await page.goto("/?tab=register");
+    await page.evaluate(() => (window as any).showAuthPage?.("register"));
     await page.locator("#registerName").fill("Date View User Two");
     await page.locator("#registerEmail").fill("date-view-two@example.com");
     await page.locator("#registerPassword").fill("Password123!");

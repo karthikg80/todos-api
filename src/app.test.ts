@@ -523,7 +523,7 @@ describe("Todos API", () => {
         .set("Accept", "text/html")
         .query({ token: "verification-token" })
         .expect(303)
-        .expect("Location", "/auth?verified=1");
+        .expect("Location", "/?verified=1");
 
       expect(mockAuthService.verifyEmail).toHaveBeenCalledWith(
         "verification-token",
@@ -542,7 +542,7 @@ describe("Todos API", () => {
         .set("Accept", "text/html")
         .query({ token: "bad-token" })
         .expect(303)
-        .expect("Location", "/auth?verified=0");
+        .expect("Location", "/?verified=0");
     });
 
     it("should keep JSON response for API clients", async () => {
