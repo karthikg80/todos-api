@@ -231,17 +231,23 @@ export function createApp(
       path.join(__dirname, "../node_modules/chrono-node/dist/esm"),
     ),
   );
-  app.use(express.static(path.join(__dirname, "../client")));
-
   // ── Page-serving routes (3-page split) ──────────────────────────
-  // Registered after express.static. GET / continues to serve the
-  // legacy client/index.html via static middleware until test migration
-  // is complete. /auth and /app are new routes with no static conflict.
   const publicDir = path.join(__dirname, "../client/public");
+
+  // In production, GET / serves the standalone landing page.
+  // In dev/test, express.static serves client/index.html (legacy SPA)
+  // because UI tests depend on the single-shell for inline registration.
+  if (config.nodeEnv === "production") {
+    app.get("/", (_req: Request, res: Response) => {
+      res.sendFile(path.join(publicDir, "index.html"));
+    });
+  }
 
   app.get("/auth", (_req: Request, res: Response) => {
     res.sendFile(path.join(publicDir, "auth.html"));
   });
+
+  app.use(express.static(path.join(__dirname, "../client")));
 
   const serveAppOrRedirect = (req: Request, res: Response) => {
     // Signed cookie is the server-side gate; client-side localStorage
