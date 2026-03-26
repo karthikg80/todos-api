@@ -252,6 +252,7 @@ export const state = {
   // Rail
   isRailCollapsed: false,
   isRailSheetOpen: false,
+  collapsedAreas: new Set(),
   railRovingFocusKey: "",
   railScrollLockY: 0,
   isRailBodyLocked: false,

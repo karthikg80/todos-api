@@ -3127,6 +3127,9 @@ body.is-admin-user .dock-admin-btn {
 }
 
 .projects-rail-area-header {
+  all: unset;
+  box-sizing: border-box;
+  width: 100%;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -3134,7 +3137,24 @@ body.is-admin-user .dock-admin-btn {
   color: var(--color-text-tertiary, #888);
   padding: 10px 12px 2px;
   user-select: none;
-  pointer-events: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.projects-rail-area-header::before {
+  content: "\25BE";
+  font-size: 8px;
+  transition: transform 0.15s ease;
+}
+
+.projects-rail-area-group--collapsed .projects-rail-area-header::before {
+  transform: rotate(-90deg);
+}
+
+.projects-rail-area-group--collapsed .projects-rail-row {
+  display: none;
 }
 
 .projects-rail--collapsed .projects-rail-area-header {
@@ -11069,7 +11089,8 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
   z-index: 9000;
 }
 
-.undo-toast--visible {
+.undo-toast--visible,
+.undo-toast.active {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
   pointer-events: auto;

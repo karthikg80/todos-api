@@ -120,9 +120,11 @@ function renderGroupedProjectsRailHtml({
         openTodoCountMap,
       });
       if (!group.label) return rowsHtml; // no-area group — no header
+      const areaKey = group.area || "";
+      const isCollapsed = state.collapsedAreas?.has(areaKey);
       return (
-        `<div class="projects-rail-area-group" data-area="${escapeHtml(group.area || "")}">` +
-        `<div class="projects-rail-area-header" aria-hidden="true">${escapeHtml(group.label)}</div>` +
+        `<div class="projects-rail-area-group${isCollapsed ? " projects-rail-area-group--collapsed" : ""}" data-area="${escapeHtml(areaKey)}">` +
+        `<button type="button" class="projects-rail-area-header" data-area-toggle="${escapeHtml(areaKey)}" aria-expanded="${!isCollapsed}">${escapeHtml(group.label)}</button>` +
         rowsHtml +
         `</div>`
       );
@@ -1222,6 +1224,27 @@ export function bindProjectsRailHandlers() {
       event.preventDefault();
       event.stopPropagation();
       hooks.selectWorkspaceView?.(view, workspaceViewButton);
+      return;
+    }
+
+    const areaToggle = target.closest("[data-area-toggle]");
+    if (areaToggle instanceof HTMLElement) {
+      event.preventDefault();
+      event.stopPropagation();
+      const areaKey = areaToggle.getAttribute("data-area-toggle") || "";
+      if (state.collapsedAreas.has(areaKey)) {
+        state.collapsedAreas.delete(areaKey);
+      } else {
+        state.collapsedAreas.add(areaKey);
+      }
+      const group = areaToggle.closest(".projects-rail-area-group");
+      if (group instanceof HTMLElement) {
+        group.classList.toggle("projects-rail-area-group--collapsed");
+        areaToggle.setAttribute(
+          "aria-expanded",
+          String(!state.collapsedAreas.has(areaKey)),
+        );
+      }
       return;
     }
 
