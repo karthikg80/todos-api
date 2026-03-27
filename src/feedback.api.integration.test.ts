@@ -67,7 +67,7 @@ describe("Feedback API Integration", () => {
 
   it("POST /feedback creates a bug report with captured context", async () => {
     const response = await request(app)
-      .post("/feedback")
+      .post("/api/feedback")
       .set("Authorization", `Bearer ${authToken}`)
       .set("User-Agent", "Feedback Integration Test UA")
       .send({
@@ -117,7 +117,7 @@ describe("Feedback API Integration", () => {
 
   it("POST /feedback creates a feature request without screenshot fields", async () => {
     const response = await request(app)
-      .post("/feedback")
+      .post("/api/feedback")
       .set("Authorization", `Bearer ${authToken}`)
       .send({
         type: "feature",
@@ -133,7 +133,7 @@ describe("Feedback API Integration", () => {
 
   it("POST /feedback returns clear validation errors", async () => {
     const response = await request(app)
-      .post("/feedback")
+      .post("/api/feedback")
       .set("Authorization", `Bearer ${authToken}`)
       .send({
         type: "idea",
@@ -149,7 +149,7 @@ describe("Feedback API Integration", () => {
 
   it("POST /feedback returns 401 without auth", async () => {
     await request(app)
-      .post("/feedback")
+      .post("/api/feedback")
       .send({
         type: "bug",
         title: "Missing auth",
@@ -157,6 +157,130 @@ describe("Feedback API Integration", () => {
       })
       .expect(401);
   });
+
+  // ── User feedback list (GET /api/feedback) ──────────────────────────────
+
+  it("GET /api/feedback returns 401 without auth", async () => {
+    await request(app).get("/api/feedback").expect(401);
+  });
+
+  it("GET /api/feedback returns only the authenticated user's submissions", async () => {
+    // Create feedback for the main user
+    await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "My bug report",
+        body: "Bug details",
+        status: "new",
+      },
+    });
+
+    // Create feedback for the admin user (different user)
+    await prisma.feedbackRequest.create({
+      data: {
+        userId: adminUserId,
+        type: "feature",
+        title: "Admin feature idea",
+        body: "Feature details",
+        status: "triaged",
+      },
+    });
+
+    const response = await request(app)
+      .get("/api/feedback")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].title).toBe("My bug report");
+  });
+
+  it("GET /api/feedback does not leak body, pageUrl, userAgent, or attachmentMetadata", async () => {
+    await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Leak test",
+        body: "Secret body content",
+        pageUrl: "https://secret.page/path",
+        userAgent: "Secret Agent",
+        attachmentMetadata: { name: "secret.png" },
+        status: "promoted",
+        githubIssueUrl: "https://github.com/test/repo/issues/99",
+      },
+    });
+
+    const response = await request(app)
+      .get("/api/feedback")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(response.body).toHaveLength(1);
+    const item = response.body[0];
+
+    // Should include these fields
+    expect(item).toHaveProperty("id");
+    expect(item).toHaveProperty("type", "bug");
+    expect(item).toHaveProperty("title", "Leak test");
+    expect(item).toHaveProperty("status", "promoted");
+    expect(item).toHaveProperty("githubIssueUrl");
+    expect(item).toHaveProperty("createdAt");
+    expect(item).toHaveProperty("updatedAt");
+
+    // Should NOT include these fields
+    expect(item).not.toHaveProperty("body");
+    expect(item).not.toHaveProperty("pageUrl");
+    expect(item).not.toHaveProperty("userAgent");
+    expect(item).not.toHaveProperty("attachmentMetadata");
+    expect(item).not.toHaveProperty("userId");
+    expect(item).not.toHaveProperty("classification");
+    expect(item).not.toHaveProperty("triageConfidence");
+    expect(item).not.toHaveProperty("severity");
+  });
+
+  it("GET /api/feedback returns empty array for user with no submissions", async () => {
+    const response = await request(app)
+      .get("/api/feedback")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(response.body).toEqual([]);
+  });
+
+  it("GET /api/feedback returns items ordered by createdAt DESC", async () => {
+    const older = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "bug",
+        title: "Older bug",
+        body: "details",
+        status: "new",
+        createdAt: new Date("2026-01-01"),
+      },
+    });
+    const newer = await prisma.feedbackRequest.create({
+      data: {
+        userId,
+        type: "feature",
+        title: "Newer feature",
+        body: "details",
+        status: "new",
+        createdAt: new Date("2026-03-01"),
+      },
+    });
+
+    const response = await request(app)
+      .get("/api/feedback")
+      .set("Authorization", `Bearer ${authToken}`)
+      .expect(200);
+
+    expect(response.body).toHaveLength(2);
+    expect(response.body[0].title).toBe("Newer feature");
+    expect(response.body[1].title).toBe("Older bug");
+  });
+
+  // ── Admin feedback ────────────────────────────────────────────────────
 
   it("GET /admin/feedback lists feedback for admins with filters", async () => {
     const older = await prisma.feedbackRequest.create({

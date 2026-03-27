@@ -50,9 +50,31 @@ function safePath(requestPath) {
   return safePathForRoot(decoded, root);
 }
 
+// Standalone page routes — map product URLs to their HTML files
+const standaloneRoutes = {
+  "/auth": path.join(root, "public", "auth.html"),
+  "/app": path.join(root, "public", "app.html"),
+  "/feedback": path.join(root, "public", "feedback.html"),
+  "/feedback/new": path.join(root, "public", "feedback-new.html"),
+};
+
 const server = http.createServer(async (req, res) => {
   try {
     const urlPath = req.url || "/";
+    const pathname = urlPath.split("?")[0];
+
+    // Check standalone page routes first
+    const standaloneFile = standaloneRoutes[pathname];
+    if (standaloneFile) {
+      const body = await fs.readFile(standaloneFile);
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      res.end(body);
+      return;
+    }
+
     let filePath = safePath(urlPath);
 
     if (!filePath) {

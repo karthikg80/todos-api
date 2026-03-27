@@ -9,6 +9,7 @@ import {
   FeedbackAttachmentMetadataDto,
   ListAdminFeedbackRequestsQuery,
   UpdateAdminFeedbackRequestDto,
+  UserFeedbackItemDto,
 } from "../types";
 
 export class FeedbackService {
@@ -45,6 +46,34 @@ export class FeedbackService {
     });
 
     return this.toDto(record);
+  }
+
+  async listForUser(userId: string): Promise<UserFeedbackItemDto[]> {
+    const records = await this.prisma.feedbackRequest.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        type: true,
+        title: true,
+        status: true,
+        githubIssueNumber: true,
+        githubIssueUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return records.map((r) => ({
+      id: r.id,
+      type: r.type,
+      title: r.title,
+      status: r.status,
+      githubIssueUrl:
+        r.githubIssueUrl || this.buildGitHubIssueUrl(r.githubIssueNumber),
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    }));
   }
 
   async listForAdmin(

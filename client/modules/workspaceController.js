@@ -127,14 +127,8 @@ export function createWorkspaceController({
     }
 
     if (requestedView === "feedback") {
-      closeCommandPalette({ restoreFocus: false });
-      closeProjectCrudModal({ restoreFocus: false });
-      closeProjectEditDrawer({ restoreFocus: false });
-      closeProjectDeleteDialog();
-      closeMoreFilters();
-      closeProjectsRailSheet({ restoreFocus: false });
-      closeTodoDrawer({ restoreFocus: false });
-      prepareFeedbackView?.();
+      window.location.href = "/feedback/new";
+      return;
     }
   }
 

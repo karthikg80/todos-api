@@ -567,6 +567,16 @@ export interface FeedbackRequestDto {
   updatedAt: string;
 }
 
+export interface UserFeedbackItemDto {
+  id: string;
+  type: FeedbackRequestType;
+  title: string;
+  status: FeedbackRequestStatus;
+  githubIssueUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface FeedbackRequestAdminUserDto {
   id: string;
   email: string | null;

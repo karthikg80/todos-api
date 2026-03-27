@@ -1,67 +1,66 @@
 import { expect, test } from "@playwright/test";
-import { openTodosViewWithStorageState } from "./helpers/todos-view";
+import { ensureTodosStorageState } from "./helpers/storage-state";
+import fs from "node:fs/promises";
+
+/**
+ * Inject cached auth localStorage entries so standalone feedback pages
+ * pass their auth gate without needing a running API server.
+ */
+async function setupAuthForStandalonePage(
+  page: import("@playwright/test").Page,
+) {
+  const storageStatePath = await ensureTodosStorageState();
+  const raw = await fs.readFile(storageStatePath, "utf8");
+  type StorageState = {
+    origins?: Array<{
+      origin?: string;
+      localStorage?: Array<{ name: string; value: string }>;
+    }>;
+  };
+  const state = JSON.parse(raw) as StorageState;
+  const entries = state.origins?.[0]?.localStorage || [];
+
+  await page.addInitScript((localStorageEntries) => {
+    for (const entry of localStorageEntries) {
+      window.localStorage.setItem(entry.name, entry.value);
+    }
+  }, entries);
+}
 
 test.describe("Feedback flow", () => {
-  test("submits structured feedback and shows confirmation", async ({
+  test("submits structured feedback on standalone page and shows confirmation", async ({
     page,
   }) => {
     let submittedPayload: Record<string, unknown> | null = null;
 
-    await page.route("**/feedback", async (route) => {
-      submittedPayload = JSON.parse(
-        route.request().postData() || "{}",
-      ) as Record<string, unknown>;
+    await page.route("**/api/feedback", async (route) => {
+      if (route.request().method() === "POST") {
+        submittedPayload = JSON.parse(
+          route.request().postData() || "{}",
+        ) as Record<string, unknown>;
 
-      await route.fulfill({
-        status: 201,
-        contentType: "application/json",
-        body: JSON.stringify({
-          id: "feedback-1",
-          userId: "user-1",
-          type: submittedPayload?.type || "feature",
-          title: submittedPayload?.title || "Requested improvement",
-          body: submittedPayload?.body || "",
-          screenshotUrl: submittedPayload?.screenshotUrl || null,
-          attachmentMetadata: submittedPayload?.attachmentMetadata || null,
-          pageUrl: submittedPayload?.pageUrl || null,
-          userAgent: submittedPayload?.userAgent || null,
-          appVersion: submittedPayload?.appVersion || null,
-          status: "new",
-          triageSummary: null,
-          severity: null,
-          dedupeKey: null,
-          githubIssueNumber: null,
-          githubIssueUrl: null,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }),
-      });
+        await route.fulfill({
+          status: 201,
+          contentType: "application/json",
+          body: JSON.stringify({
+            id: "feedback-1",
+            status: "new",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: "[]",
+        });
+      }
     });
 
-    await openTodosViewWithStorageState(page, {
-      name: "Feedback Tester",
-      email: "user@example.com",
-    });
-
-    await page.waitForFunction(() => {
-      const switchView = (
-        window as Window & {
-          switchView?: (view: string) => void;
-        }
-      ).switchView;
-      return (
-        typeof switchView === "function" &&
-        document.getElementById("todosView")?.classList.contains("active")
-      );
-    });
-    await page.evaluate(() =>
-      (window as Window & { switchView: (view: string) => void }).switchView(
-        "feedback",
-      ),
-    );
-    await expect(page.locator("#todosView")).toHaveClass(/active/);
-    await expect(page.locator("#feedbackPane")).toBeVisible();
-    await expect(page.locator("#todosScrollRegion")).toBeHidden();
+    await setupAuthForStandalonePage(page);
+    await page.goto("/feedback/new");
+    await expect(page.locator("#feedbackForm")).toBeVisible();
 
     await page.locator("#feedbackType").selectOption("feature");
     await page.locator("#feedbackTitle").fill("Make planning easier");
@@ -77,11 +76,6 @@ test.describe("Feedback flow", () => {
     await page
       .locator("#feedbackScreenshotUrl")
       .fill("https://example.com/feedback/planning.png");
-    await page.locator("#feedbackAttachment").setInputFiles({
-      name: "planning.png",
-      mimeType: "image/png",
-      buffer: Buffer.from("fake-image"),
-    });
 
     await page.getByRole("button", { name: "Send feedback" }).click();
 
@@ -94,25 +88,56 @@ test.describe("Feedback flow", () => {
       type: "feature",
       title: "Make planning easier",
       screenshotUrl: "https://example.com/feedback/planning.png",
-      appVersion: "1.6.0",
     });
     expect(typeof submittedPayload?.body).toBe("string");
     expect(String(submittedPayload?.body)).toContain(
       "What are you trying to do?",
     );
-    expect(String(submittedPayload?.pageUrl)).toContain("/");
-    expect(typeof submittedPayload?.userAgent).toBe("string");
-    expect(submittedPayload?.attachmentMetadata).toMatchObject({
-      name: "planning.png",
-      type: "image/png",
-      size: 10,
+  });
+
+  test("feedback list page shows user submissions", async ({ page }) => {
+    await page.route("**/api/feedback", async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([
+          {
+            id: "fb-1",
+            type: "bug",
+            title: "Button doesn't work",
+            status: "triaged",
+            githubIssueUrl: null,
+            createdAt: "2026-03-27T10:00:00.000Z",
+            updatedAt: "2026-03-27T10:00:00.000Z",
+          },
+          {
+            id: "fb-2",
+            type: "feature",
+            title: "Add dark mode",
+            status: "promoted",
+            githubIssueUrl: "https://github.com/example/repo/issues/42",
+            createdAt: "2026-03-26T10:00:00.000Z",
+            updatedAt: "2026-03-26T10:00:00.000Z",
+          },
+        ]),
+      });
     });
 
-    await page
-      .locator("#feedbackConfirmation")
-      .getByRole("button", { name: "Back to workspace" })
-      .click();
-    await expect(page.locator("#feedbackPane")).toBeHidden();
-    await expect(page.locator("#todosScrollRegion")).toBeVisible();
+    await setupAuthForStandalonePage(page);
+    await page.goto("/feedback");
+    await expect(page.locator(".feedback-list")).toBeVisible();
+
+    const items = page.locator(".feedback-list__item");
+    await expect(items).toHaveCount(2);
+    await expect(items.first().locator(".feedback-list__title")).toHaveText(
+      "Button doesn't work",
+    );
+    await expect(items.first().locator(".feedback-list__status")).toHaveText(
+      "Under review",
+    );
+    await expect(items.nth(1).locator(".feedback-list__link")).toHaveAttribute(
+      "href",
+      "https://github.com/example/repo/issues/42",
+    );
   });
 });
