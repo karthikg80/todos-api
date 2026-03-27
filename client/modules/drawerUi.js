@@ -1300,12 +1300,16 @@ export function renderTodoDrawerContent() {
   }
 
   const draft = getCurrentDrawerDraft(todo);
-  const detailsExpanded = state.isDrawerDetailsOpen;
 
-  titleEl.textContent = "Task";
+  const descPreview = String(draft.description || "")
+    .slice(0, 120)
+    .replace(/\n/g, " ");
+
+  titleEl.textContent = "Quick panel";
+  // Slimmed drawer: triage fields only. Full editing is on the task page.
   contentEl.innerHTML = `
     ${renderDrawerSection({
-      title: "Essentials",
+      title: "Triage",
       bodyHtml: `
       <div class="todo-drawer__top-actions">
         <button type="button" class="mini-btn todo-drawer__full-task-btn" data-onclick="openTaskPageFromDrawer('${escapeHtml(todo.id)}')">Open full task</button>
@@ -1341,38 +1345,6 @@ export function renderTodoDrawerContent() {
         <span>Due date</span>
         <input id="drawerDueDateInput" type="date" value="${escapeHtml(draft.dueDate)}" />
       </label>
-      <label class="todo-drawer__field" for="drawerStartDateInput">
-        <span>Start date</span>
-        <input id="drawerStartDateInput" type="datetime-local" value="${escapeHtml(draft.startDate)}" />
-      </label>
-      <label class="todo-drawer__field" for="drawerScheduledDateInput">
-        <span>Scheduled date</span>
-        <input id="drawerScheduledDateInput" type="datetime-local" value="${escapeHtml(draft.scheduledDate)}" />
-      </label>
-      <label class="todo-drawer__field" for="drawerReviewDateInput">
-        <span>Review date</span>
-        <input id="drawerReviewDateInput" type="datetime-local" value="${escapeHtml(draft.reviewDate)}" />
-      </label>
-      <label class="todo-drawer__field" for="drawerRecurrenceType">
-        <span>Repeat</span>
-        <select id="drawerRecurrenceType">
-          <option value="none" ${draft.recurrenceType === "none" ? "selected" : ""}>None</option>
-          <option value="daily" ${draft.recurrenceType === "daily" ? "selected" : ""}>Daily</option>
-          <option value="weekly" ${draft.recurrenceType === "weekly" ? "selected" : ""}>Weekly</option>
-          <option value="monthly" ${draft.recurrenceType === "monthly" ? "selected" : ""}>Monthly</option>
-          <option value="yearly" ${draft.recurrenceType === "yearly" ? "selected" : ""}>Yearly</option>
-        </select>
-      </label>
-      ${
-        draft.recurrenceType !== "none"
-          ? `
-      <label class="todo-drawer__field" for="drawerRecurrenceInterval">
-        <span>Every</span>
-        <input id="drawerRecurrenceInterval" type="number" min="1" max="365" value="${escapeHtml(draft.recurrenceInterval)}" />
-      </label>
-      `
-          : ""
-      }
       <label class="todo-drawer__field" for="drawerProjectSelect">
         <span>Project</span>
         <select id="drawerProjectSelect">
@@ -1387,10 +1359,6 @@ export function renderTodoDrawerContent() {
           <option value="high" ${draft.priority === "high" ? "selected" : ""}>High</option>
           <option value="urgent" ${draft.priority === "urgent" ? "selected" : ""}>Urgent</option>
         </select>
-      </label>
-      <label class="todo-drawer__field" for="drawerContextInput">
-        <span>Context</span>
-        <input id="drawerContextInput" type="text" maxlength="100" value="${escapeHtml(draft.context)}" placeholder="computer, home, calls" />
       </label>
       <label class="todo-drawer__field" for="drawerEffortSelect">
         <span>Effort</span>
@@ -1411,90 +1379,10 @@ export function renderTodoDrawerContent() {
           <option value="high" ${draft.energy === "high" ? "selected" : ""}>High</option>
         </select>
       </label>
-      <label class="todo-drawer__field" for="drawerEstimateInput">
-        <span>Estimate (minutes)</span>
-        <input id="drawerEstimateInput" type="number" min="0" step="1" value="${escapeHtml(draft.estimateMinutes)}" />
-      </label>
-    `,
-    })}
-    ${renderTaskDrawerAssistSection(todo.id)}
-    ${renderBreakDownSection(todo)}
-    ${renderFollowUpSection(todo)}
-    ${renderDrawerAccordionSection({
-      toggleId: "drawerDetailsToggle",
-      panelId: "drawerDetailsPanel",
-      title: "Details",
-      expanded: detailsExpanded,
-      bodyHtml: `
-        <label class="todo-drawer__field" for="drawerDescriptionTextarea">
-          <span>Description</span>
-          <textarea id="drawerDescriptionTextarea" maxlength="1000">${escapeHtml(draft.description)}</textarea>
-        </label>
-        <label class="todo-drawer__field" for="drawerNotesTextarea">
-          <span>Notes</span>
-          <textarea id="drawerNotesTextarea" maxlength="2000">${escapeHtml(draft.notes)}</textarea>
-        </label>
-        <label class="todo-drawer__field" for="drawerFirstStepInput">
-          <span>First step</span>
-          <input id="drawerFirstStepInput" type="text" maxlength="255" value="${escapeHtml(draft.firstStep)}" placeholder="Open the doc. Text Raj. Find last year's form." />
-        </label>
-        <label class="todo-drawer__field" for="drawerEmotionalStateSelect">
-          <span>Emotional state</span>
-          <select id="drawerEmotionalStateSelect">
-            <option value="" ${!draft.emotionalState ? "selected" : ""}>None</option>
-            <option value="avoiding" ${draft.emotionalState === "avoiding" ? "selected" : ""}>Avoiding</option>
-            <option value="unclear" ${draft.emotionalState === "unclear" ? "selected" : ""}>Unclear</option>
-            <option value="heavy" ${draft.emotionalState === "heavy" ? "selected" : ""}>Heavy</option>
-            <option value="exciting" ${draft.emotionalState === "exciting" ? "selected" : ""}>Exciting</option>
-            <option value="draining" ${draft.emotionalState === "draining" ? "selected" : ""}>Draining</option>
-          </select>
-        </label>
-        <label class="todo-drawer__field" for="drawerTagsInput">
-          <span>Tags</span>
-          <input id="drawerTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="travel, planning, admin" />
-        </label>
-        <label class="todo-drawer__field" for="drawerWaitingOnInput">
-          <span>Waiting on</span>
-          <input id="drawerWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" placeholder="Budget approval, vendor reply, callback" />
-        </label>
-        <div class="todo-drawer__field">
-          <span>Depends on</span>
-          <div id="drawerDependsOnPicker"></div>
-        </div>
-        <label class="todo-drawer__field" for="drawerCategoryInput">
-          <span>Category</span>
-          <input id="drawerCategoryInput" type="text" maxlength="50" value="${escapeHtml(draft.categoryDetail)}" />
-        </label>
-        <label class="todo-drawer__field todo-drawer__field--inline" for="drawerArchivedToggle">
-          <span>Archived</span>
-          <input id="drawerArchivedToggle" type="checkbox" ${draft.archived ? "checked" : ""} />
-        </label>
-        <div class="todo-drawer__meta">
-          <div><strong>Source:</strong> ${escapeHtml(draft.source || "manual")}</div>
-          ${
-            draft.effortScore
-              ? `<div><strong>Effort:</strong> ${escapeHtml(getEffortScoreLabel(draft.effortScore) || draft.effortScore)}</div>`
-              : ""
-          }
-          ${
-            draft.completedAt
-              ? `<div><strong>Completed at:</strong> ${escapeHtml(new Date(draft.completedAt).toLocaleString())}</div>`
-              : ""
-          }
-        </div>
-        <div class="todo-drawer__subtasks">
-          <div class="todo-drawer__subtasks-title">Subtasks</div>
-          ${renderDrawerSubtasks(todo)}
-        </div>
-      `,
-    })}
-    ${renderDrawerSection({
-      title: "Danger zone",
-      className: "todo-drawer__section todo-drawer__section--danger",
-      bodyHtml: `
-      <button id="drawerDeleteTodoButton" class="delete-btn todo-drawer__delete-btn" type="button">
-        Delete task
-      </button>
+      <div class="todo-drawer__desc-preview">
+        <span class="todo-drawer__desc-preview-text">${escapeHtml(descPreview)}</span>
+        <button type="button" class="mini-link" data-onclick="openTaskPageFromDrawer('${escapeHtml(todo.id)}')">Edit in full task</button>
+      </div>
     `,
     })}
   `;

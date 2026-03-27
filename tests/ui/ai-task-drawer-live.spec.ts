@@ -399,7 +399,7 @@ test.describe("AI task drawer decision assist live flow", () => {
     await registerAndOpenTodos(page);
   });
 
-  test("renders server-backed drawer suggestions, applies rewrite title, and persists after reload", async ({
+  test("slimmed drawer does not render AI suggestions or lint chips", async ({
     page,
   }) => {
     await openTaskComposerSheet(page);
@@ -409,32 +409,20 @@ test.describe("AI task drawer decision assist live flow", () => {
     const row = page.locator(".todo-item").first();
     await openTodoDrawerFromListRow(page, row);
 
-    await page
-      .locator(
-        "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",
-      )
-      .click();
+    // AI section was removed from drawer — no lint chip or AI cards
+    await expect(page.locator("#todoDetailsDrawer .ai-lint-chip")).toHaveCount(
+      0,
+    );
     await expect(
       page.locator('[data-testid^="task-drawer-ai-card-"]'),
-    ).toHaveCount(1);
+    ).toHaveCount(0);
 
-    await page
-      .locator('[data-testid^="task-drawer-ai-apply-"]')
-      .first()
-      .click();
-
-    await expect(page.locator(".todo-item .todo-title").first()).toContainText(
-      "Draft do thing",
-    );
-
-    await page.reload();
-    await ensureAllTasksListActive(page);
-    await expect(page.locator(".todo-item .todo-title").first()).toContainText(
-      "Draft do thing",
-    );
+    // Triage fields should be present
+    await expect(page.locator("#drawerTitleInput")).toBeVisible();
+    await expect(page.locator("#drawerStatusSelect")).toBeVisible();
   });
 
-  test("dismiss hides suggestions and keeps drawer empty after reload", async ({
+  test("slimmed drawer shows triage fields and Open full task button", async ({
     page,
   }) => {
     await openTaskComposerSheet(page);
@@ -443,33 +431,18 @@ test.describe("AI task drawer decision assist live flow", () => {
 
     const row = page.locator(".todo-item").first();
     await openTodoDrawerFromListRow(page, row);
-    await page
-      .locator(
-        "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",
-      )
-      .click();
+
+    // AI section was removed — no lint chip, no suggestions
+    await expect(page.locator("#todoDetailsDrawer .ai-lint-chip")).toHaveCount(
+      0,
+    );
     await expect(
-      page.locator('[data-testid^="task-drawer-ai-card-"]'),
-    ).toHaveCount(1);
+      page.locator("#todoDetailsDrawer .todo-drawer__section-title", {
+        hasText: "Assistant",
+      }),
+    ).toHaveCount(0);
 
-    await page
-      .locator('[data-testid^="task-drawer-ai-dismiss-"]')
-      .first()
-      .click();
-    await expect(page.locator("#todoDetailsDrawer")).toContainText(
-      "No suggestions right now.",
-    );
-
-    await page.reload();
-    await ensureAllTasksListActive(page);
-    await openTodoDrawerFromListRow(page, page.locator(".todo-item").first());
-    await page
-      .locator(
-        "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",
-      )
-      .click();
-    await expect(page.locator("#todoDetailsDrawer")).toContainText(
-      "No suggestions right now.",
-    );
+    // Open full task button should be available
+    await expect(page.locator(".todo-drawer__full-task-btn")).toBeVisible();
   });
 });

@@ -255,7 +255,9 @@ async function openFirstTodoDrawer(page: Page) {
 }
 
 test.describe("Todo drawer details + kebab actions", () => {
-  test("details accordion toggles open/closed", async ({ page }) => {
+  test("slimmed drawer shows triage fields without accordion", async ({
+    page,
+  }) => {
     await installDrawerDetailsMockApi(page, [
       {
         id: "todo-1",
@@ -273,21 +275,16 @@ test.describe("Todo drawer details + kebab actions", () => {
     });
     await openFirstTodoDrawer(page);
 
-    await expect(page.locator("#drawerDetailsToggle")).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-    await expect(page.locator("#drawerDetailsPanel")).toBeHidden();
+    // Accordion was removed — no toggle or details panel
+    await expect(page.locator("#drawerDetailsToggle")).toHaveCount(0);
+    await expect(page.locator("#drawerDetailsPanel")).toHaveCount(0);
 
-    await page.locator("#drawerDetailsToggle").click();
-    await expect(page.locator("#drawerDetailsToggle")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    await expect(page.locator("#drawerDetailsPanel")).toBeVisible();
-
-    await page.locator("#drawerDetailsToggle").click();
-    await expect(page.locator("#drawerDetailsPanel")).toBeHidden();
+    // Triage fields should be visible directly
+    await expect(page.locator("#drawerTitleInput")).toBeVisible();
+    await expect(page.locator("#drawerStatusSelect")).toBeVisible();
+    await expect(page.locator("#drawerPrioritySelect")).toBeVisible();
+    await expect(page.locator("#drawerEffortSelect")).toBeVisible();
+    await expect(page.locator("#drawerEnergySelect")).toBeVisible();
   });
 
   test("description saves on blur via existing update flow", async ({
@@ -472,10 +469,10 @@ test.describe("Todo drawer details + kebab actions", () => {
     await expect(secondRow).toBeFocused();
   });
 
-  test("kebab delete routes through drawer danger zone and removes todo", async ({
+  test("kebab delete opens drawer but danger zone is absent in slimmed drawer", async ({
     page,
   }) => {
-    const state = await installDrawerDetailsMockApi(page, [
+    await installDrawerDetailsMockApi(page, [
       {
         id: "todo-delete-1",
         title: "Delete me",
@@ -508,23 +505,16 @@ test.describe("Todo drawer details + kebab actions", () => {
     await row.locator(".todo-kebab").click();
     await row.locator(".todo-kebab-item--danger").click();
 
+    // Drawer opens but danger zone was removed — no delete button or accordion
     await expect(page.locator("#todoDetailsDrawer")).toHaveAttribute(
       "aria-hidden",
       "false",
     );
-    await expect(page.locator("#drawerDetailsToggle")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    await expect(page.locator("#drawerDeleteTodoButton")).toBeVisible();
+    await expect(page.locator("#drawerDeleteTodoButton")).toHaveCount(0);
+    await expect(page.locator("#drawerDetailsToggle")).toHaveCount(0);
 
-    await page.locator("#drawerDeleteTodoButton").click();
-    await page.locator("#confirmDialog").waitFor({ state: "visible" });
-    await page.locator("#confirmDialogOk").click();
-
-    await expect(page.getByText("Delete me")).toHaveCount(0);
-    await expect
-      .poll(() => state.deleteCalls.includes("todo-delete-1"))
-      .toBeTruthy();
+    // Triage fields and "Open full task" button should be visible
+    await expect(page.locator("#drawerTitleInput")).toBeVisible();
+    await expect(page.locator(".todo-drawer__full-task-btn")).toBeVisible();
   });
 });

@@ -413,7 +413,7 @@ test.describe("Todo drawer essentials editing", () => {
     ).toHaveClass(/todo-item--active/);
   });
 
-  test("saves richer workflow metadata from the drawer", async ({ page }) => {
+  test("saves triage metadata from the slimmed drawer", async ({ page }) => {
     const state = await installDrawerEditMockApi(page, [
       {
         id: "todo-rich-1",
@@ -424,85 +424,22 @@ test.describe("Todo drawer essentials editing", () => {
         dueDate: "2026-05-01T12:00:00.000Z",
         priority: "medium",
         status: "next",
-        startDate: null,
-        scheduledDate: null,
-        reviewDate: null,
-        tags: [],
-        context: null,
         energy: null,
         effortScore: null,
-        emotionalState: null,
-        firstStep: null,
-        estimateMinutes: null,
-        waitingOn: null,
-        dependsOnTaskIds: [],
-        archived: false,
-      },
-      {
-        id: "dep-task-1",
-        title: "Dependency alpha",
-        description: null,
-        notes: null,
-        category: null,
-        dueDate: null,
-        priority: "low",
-      },
-      {
-        id: "dep-task-2",
-        title: "Dependency beta",
-        description: null,
-        notes: null,
-        category: null,
-        dueDate: null,
-        priority: "low",
       },
     ]);
 
     await registerAndOpenTodos(page);
     await openFirstTodoDrawer(page);
 
+    // Only triage fields remain in the slimmed drawer
     await page.locator("#drawerStatusSelect").selectOption("waiting");
-    await page.locator("#drawerStartDateInput").fill("2026-05-01T09:00");
-    await page.locator("#drawerScheduledDateInput").fill("2026-05-01T10:30");
-    await page.locator("#drawerReviewDateInput").fill("2026-05-04T08:00");
-    await page.locator("#drawerContextInput").fill("@computer");
-    await page.locator("#drawerContextInput").blur();
     await page.locator("#drawerEffortSelect").selectOption("3");
     await page.locator("#drawerEnergySelect").selectOption("medium");
-    await page.locator("#drawerEstimateInput").fill("45");
-    await page.locator("#drawerDetailsToggle").click();
-    await expect(page.locator("#drawerDetailsPanel")).toBeVisible();
-    await page.locator("#drawerFirstStepInput").fill("Email the vendor");
-    await page.locator("#drawerFirstStepInput").blur();
-    await page.locator("#drawerEmotionalStateSelect").selectOption("heavy");
-    await page.locator("#drawerTagsInput").fill("travel, planning");
-    await page.locator("#drawerTagsInput").blur();
-    await page.locator("#drawerWaitingOnInput").fill("Vendor quote");
-    await page.locator("#drawerWaitingOnInput").blur();
-    // Use task picker to add dependencies by searching
-    const depPicker = page.locator("#drawerDependsOnPicker");
-    await depPicker.locator(".task-picker__search").fill("Dependency alpha");
-    await depPicker
-      .locator(".task-picker__option", { hasText: "Dependency alpha" })
-      .click();
-    await depPicker.locator(".task-picker__search").fill("Dependency beta");
-    await depPicker
-      .locator(".task-picker__option", { hasText: "Dependency beta" })
-      .click();
-    await page.locator("#drawerArchivedToggle").check();
 
     await expect
       .poll(() =>
         state.updatePatches.some((entry) => entry.patch.status === "waiting"),
-      )
-      .toBeTruthy();
-    await expect
-      .poll(() =>
-        state.updatePatches.some(
-          (entry) =>
-            entry.patch.startDate ===
-            toIsoFromLocalDateTime("2026-05-01T09:00"),
-        ),
       )
       .toBeTruthy();
     await expect
@@ -512,41 +449,17 @@ test.describe("Todo drawer essentials editing", () => {
       .toBeTruthy();
     await expect
       .poll(() =>
-        state.updatePatches.some(
-          (entry) => entry.patch.firstStep === "Email the vendor",
-        ),
+        state.updatePatches.some((entry) => entry.patch.energy === "medium"),
       )
       .toBeTruthy();
-    await expect
-      .poll(() =>
-        state.updatePatches.some(
-          (entry) => entry.patch.emotionalState === "heavy",
-        ),
-      )
-      .toBeTruthy();
-    await expect
-      .poll(() =>
-        state.updatePatches.some(
-          (entry) =>
-            Array.isArray(entry.patch.tags) &&
-            entry.patch.tags.join(",") === "travel,planning",
-        ),
-      )
-      .toBeTruthy();
-    await expect
-      .poll(() =>
-        state.updatePatches.some(
-          (entry) =>
-            Array.isArray(entry.patch.dependsOnTaskIds) &&
-            entry.patch.dependsOnTaskIds.length === 2,
-        ),
-      )
-      .toBeTruthy();
-    await expect
-      .poll(() =>
-        state.updatePatches.some((entry) => entry.patch.archived === true),
-      )
-      .toBeTruthy();
+
+    // Removed fields should not be present in the drawer
+    await expect(page.locator("#drawerStartDateInput")).toHaveCount(0);
+    await expect(page.locator("#drawerScheduledDateInput")).toHaveCount(0);
+    await expect(page.locator("#drawerReviewDateInput")).toHaveCount(0);
+    await expect(page.locator("#drawerContextInput")).toHaveCount(0);
+    await expect(page.locator("#drawerDetailsToggle")).toHaveCount(0);
+    await expect(page.locator("#drawerArchivedToggle")).toHaveCount(0);
   });
 
   test("shows save error and preserves unsaved title on API failure", async ({

@@ -9,11 +9,22 @@
 
 import { state, hooks } from "./store.js";
 import { applyUiAction } from "./stateActions.js";
+import { mountTaskPicker } from "../utils/taskPicker.js";
 
 const TASK_ROUTE_PREFIX = "#task/";
 const SAVE_STATE_RESET_DELAY_MS = 1800;
 const INLINE_AUTOSAVE_DELAY_MS = 650;
 const TASK_PAGE_DESCRIPTION_AUTOSAVE_DELAY_MS = 650;
+const TASK_PAGE_NOTES_AUTOSAVE_DELAY_MS = 650;
+
+let activeTaskPageDepPicker = null;
+
+function toIsoFromDateTimeLocal(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString();
+}
 
 function escapeHtml(value) {
   if (typeof hooks.escapeHtml === "function") {
@@ -52,16 +63,14 @@ function buildInlineDraft(todo, override = {}) {
 }
 
 function buildTaskPageDraft(todo, override = {}) {
+  const toDateInputValue = hooks.toDateInputValue || ((v) => v || "");
+  const toDateTimeLocalValue = hooks.toDateTimeLocalValue || ((v) => v || "");
+  const str = (ov, fallback) =>
+    typeof ov === "string" ? ov : String(fallback || "");
   return {
     id: String(todo?.id || ""),
-    title:
-      typeof override.title === "string"
-        ? override.title
-        : String(todo?.title || ""),
-    description:
-      typeof override.description === "string"
-        ? override.description
-        : String(todo?.description || ""),
+    title: str(override.title, todo?.title),
+    description: str(override.description, todo?.description),
     status: String(
       override.status || todo?.status || (todo?.completed ? "done" : "next"),
     ),
@@ -69,10 +78,7 @@ function buildTaskPageDraft(todo, override = {}) {
       typeof override.completed === "boolean"
         ? override.completed
         : !!todo?.completed,
-    dueDate:
-      typeof hooks.toDateInputValue === "function"
-        ? hooks.toDateInputValue(override.dueDate ?? todo?.dueDate)
-        : String((override.dueDate ?? todo?.dueDate) || ""),
+    dueDate: toDateInputValue(override.dueDate ?? todo?.dueDate),
     project: String(
       override.project ??
         override.category ??
@@ -81,6 +87,53 @@ function buildTaskPageDraft(todo, override = {}) {
         "",
     ),
     priority: String(override.priority || todo?.priority || "medium"),
+    // --- Fields promoted from drawer ---
+    notes: str(override.notes, todo?.notes),
+    firstStep: str(override.firstStep, todo?.firstStep),
+    startDate: toDateTimeLocalValue(override.startDate ?? todo?.startDate),
+    scheduledDate: toDateTimeLocalValue(
+      override.scheduledDate ?? todo?.scheduledDate,
+    ),
+    reviewDate: toDateTimeLocalValue(override.reviewDate ?? todo?.reviewDate),
+    recurrenceType: String(
+      override.recurrenceType || todo?.recurrenceType || "none",
+    ),
+    recurrenceInterval: override.recurrenceInterval
+      ? String(override.recurrenceInterval)
+      : todo?.recurrenceInterval
+        ? String(todo.recurrenceInterval)
+        : "1",
+    energy: str(override.energy, todo?.energy),
+    effortScore:
+      typeof (override.effortScore ?? todo?.effortScore) === "number"
+        ? String(override.effortScore ?? todo?.effortScore)
+        : str(override.effortScore, todo?.effortScore),
+    estimateMinutes:
+      typeof (override.estimateMinutes ?? todo?.estimateMinutes) === "number"
+        ? String(override.estimateMinutes ?? todo?.estimateMinutes)
+        : "",
+    context: str(override.context, todo?.context),
+    tagsText:
+      typeof override.tagsText === "string"
+        ? override.tagsText
+        : Array.isArray(todo?.tags)
+          ? todo.tags.join(", ")
+          : "",
+    waitingOn: str(override.waitingOn, todo?.waitingOn),
+    categoryDetail: String(override.categoryDetail ?? todo?.category ?? ""),
+    emotionalState: str(override.emotionalState, todo?.emotionalState),
+    dependsOnTaskIdsText:
+      typeof override.dependsOnTaskIdsText === "string"
+        ? override.dependsOnTaskIdsText
+        : Array.isArray(todo?.dependsOnTaskIds)
+          ? todo.dependsOnTaskIds.join(", ")
+          : "",
+    archived:
+      typeof override.archived === "boolean"
+        ? override.archived
+        : !!todo?.archived,
+    source: String(override.source ?? todo?.source ?? ""),
+    completedAt: todo?.completedAt ? String(todo.completedAt) : "",
   };
 }
 
@@ -192,15 +245,20 @@ function renderTaskPageSubtasks(todo) {
           const todoId = escapeHtml(String(todo?.id || ""));
           const subtaskId = escapeHtml(String(subtask?.id || ""));
           return `
-            <li class="task-page__subtask ${subtask?.completed ? "task-page__subtask--done" : ""}">
-              <label>
-                <input
-                  type="checkbox"
-                  ${subtask?.completed ? "checked" : ""}
-                  data-onchange="toggleSubtask('${todoId}', '${subtaskId}')"
-                />
-                <span>${title}</span>
-              </label>
+            <li class="task-page__subtask-item">
+              <input
+                type="checkbox"
+                class="task-page__subtask-toggle"
+                ${subtask?.completed ? "checked" : ""}
+                data-onchange="toggleSubtask('${todoId}', '${subtaskId}')"
+              />
+              <span class="${subtask?.completed ? "task-page__subtask-title--done" : ""}">${title}</span>
+              <button
+                type="button"
+                class="task-page__subtask-delete"
+                data-onclick="deleteSubtaskFromTaskPage('${todoId}', '${subtaskId}')"
+                aria-label="Delete subtask"
+              >&times;</button>
             </li>
           `;
         })
@@ -285,6 +343,15 @@ export function renderTaskPageSurface(todo) {
   );
   const todoId = escapeHtml(String(todo.id));
 
+  const recurrenceIntervalHtml =
+    draft.recurrenceType !== "none"
+      ? `
+            <label class="task-page__field" for="taskPageRecurrenceInterval">
+              <span>Every</span>
+              <input id="taskPageRecurrenceInterval" type="number" min="1" max="365" value="${escapeHtml(draft.recurrenceInterval)}" />
+            </label>`
+      : "";
+
   return `
     <section class="task-page" data-task-page-for="${todoId}">
       <div class="task-page__hero">
@@ -322,9 +389,38 @@ export function renderTaskPageSurface(todo) {
             >${escapeHtml(draft.description)}</textarea>
           </section>
           <section class="task-page__section">
-            <div class="task-page__section-header">
-              <div class="task-page__section-title">Subtasks</div>
-              <button type="button" class="mini-btn" data-onclick="openDrawerFromTaskPage('${todoId}')">Manage in quick panel</button>
+            <div class="task-page__section-title">Notes</div>
+            <label class="sr-only" for="taskPageNotesTextarea">Private notes</label>
+            <textarea
+              id="taskPageNotesTextarea"
+              class="task-page__description"
+              maxlength="2000"
+              placeholder="Private notes, reference links, or context for future you"
+            >${escapeHtml(draft.notes)}</textarea>
+          </section>
+          <section class="task-page__section">
+            <div class="task-page__section-title">First step</div>
+            <label class="sr-only" for="taskPageFirstStepInput">First step</label>
+            <input
+              id="taskPageFirstStepInput"
+              type="text"
+              class="task-page__first-step-input"
+              maxlength="255"
+              value="${escapeHtml(draft.firstStep)}"
+              placeholder="What's the very first thing to do?"
+            />
+          </section>
+          <section class="task-page__section">
+            <div class="task-page__section-title">Subtasks</div>
+            <div class="task-page__subtask-add">
+              <input
+                id="taskPageSubtaskInput"
+                type="text"
+                class="task-page__subtask-add-input"
+                maxlength="200"
+                placeholder="Add a subtask\u2026"
+              />
+              <button type="button" class="mini-btn" data-onclick="addSubtaskFromTaskPage('${todoId}')">Add</button>
             </div>
             ${renderTaskPageSubtasks(todo)}
           </section>
@@ -363,6 +459,100 @@ export function renderTaskPageSurface(todo) {
                 <option value="urgent" ${draft.priority === "urgent" ? "selected" : ""}>Urgent</option>
               </select>
             </label>
+          </section>
+          <section class="task-page__section">
+            <div class="task-page__section-title">Planning</div>
+            <label class="task-page__field" for="taskPageEnergySelect">
+              <span>Energy</span>
+              <select id="taskPageEnergySelect">
+                <option value="" ${!draft.energy ? "selected" : ""}>None</option>
+                <option value="low" ${draft.energy === "low" ? "selected" : ""}>Low</option>
+                <option value="medium" ${draft.energy === "medium" ? "selected" : ""}>Medium</option>
+                <option value="high" ${draft.energy === "high" ? "selected" : ""}>High</option>
+              </select>
+            </label>
+            <label class="task-page__field" for="taskPageEffortSelect">
+              <span>Effort</span>
+              <select id="taskPageEffortSelect">
+                <option value="" ${!draft.effortScore ? "selected" : ""}>None</option>
+                <option value="1" ${draft.effortScore === "1" ? "selected" : ""}>Tiny</option>
+                <option value="2" ${draft.effortScore === "2" ? "selected" : ""}>Small</option>
+                <option value="3" ${draft.effortScore === "3" ? "selected" : ""}>Medium</option>
+                <option value="4" ${draft.effortScore === "4" ? "selected" : ""}>Deep</option>
+              </select>
+            </label>
+            <label class="task-page__field" for="taskPageEstimateInput">
+              <span>Estimate (minutes)</span>
+              <input id="taskPageEstimateInput" type="number" min="0" step="1" value="${escapeHtml(draft.estimateMinutes)}" />
+            </label>
+            <label class="task-page__field" for="taskPageContextInput">
+              <span>Context</span>
+              <input id="taskPageContextInput" type="text" maxlength="100" value="${escapeHtml(draft.context)}" placeholder="computer, home, calls" />
+            </label>
+          </section>
+          <section class="task-page__section">
+            <div class="task-page__section-title">Dates</div>
+            <label class="task-page__field" for="taskPageStartDateInput">
+              <span>Start date</span>
+              <input id="taskPageStartDateInput" type="datetime-local" value="${escapeHtml(draft.startDate)}" />
+            </label>
+            <label class="task-page__field" for="taskPageScheduledDateInput">
+              <span>Scheduled date</span>
+              <input id="taskPageScheduledDateInput" type="datetime-local" value="${escapeHtml(draft.scheduledDate)}" />
+            </label>
+            <label class="task-page__field" for="taskPageReviewDateInput">
+              <span>Review date</span>
+              <input id="taskPageReviewDateInput" type="datetime-local" value="${escapeHtml(draft.reviewDate)}" />
+            </label>
+            <label class="task-page__field" for="taskPageRecurrenceType">
+              <span>Repeat</span>
+              <select id="taskPageRecurrenceType">
+                <option value="none" ${draft.recurrenceType === "none" ? "selected" : ""}>None</option>
+                <option value="daily" ${draft.recurrenceType === "daily" ? "selected" : ""}>Daily</option>
+                <option value="weekly" ${draft.recurrenceType === "weekly" ? "selected" : ""}>Weekly</option>
+                <option value="monthly" ${draft.recurrenceType === "monthly" ? "selected" : ""}>Monthly</option>
+                <option value="yearly" ${draft.recurrenceType === "yearly" ? "selected" : ""}>Yearly</option>
+              </select>
+            </label>
+            ${recurrenceIntervalHtml}
+          </section>
+          <section class="task-page__section">
+            <div class="task-page__section-title">Metadata</div>
+            <label class="task-page__field" for="taskPageTagsInput">
+              <span>Tags</span>
+              <input id="taskPageTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="travel, planning, admin" />
+            </label>
+            <label class="task-page__field" for="taskPageWaitingOnInput">
+              <span>Waiting on</span>
+              <input id="taskPageWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" placeholder="Budget approval, vendor reply" />
+            </label>
+            <label class="task-page__field" for="taskPageCategoryInput">
+              <span>Category</span>
+              <input id="taskPageCategoryInput" type="text" maxlength="50" value="${escapeHtml(draft.categoryDetail)}" />
+            </label>
+            <label class="task-page__field" for="taskPageEmotionalStateSelect">
+              <span>Emotional state</span>
+              <select id="taskPageEmotionalStateSelect">
+                <option value="" ${!draft.emotionalState ? "selected" : ""}>None</option>
+                <option value="avoiding" ${draft.emotionalState === "avoiding" ? "selected" : ""}>Avoiding</option>
+                <option value="unclear" ${draft.emotionalState === "unclear" ? "selected" : ""}>Unclear</option>
+                <option value="heavy" ${draft.emotionalState === "heavy" ? "selected" : ""}>Heavy</option>
+                <option value="exciting" ${draft.emotionalState === "exciting" ? "selected" : ""}>Exciting</option>
+                <option value="draining" ${draft.emotionalState === "draining" ? "selected" : ""}>Draining</option>
+              </select>
+            </label>
+          </section>
+          <section class="task-page__section">
+            <div class="task-page__section-title">Dependencies</div>
+            <div id="taskPageDependsOnPicker"></div>
+          </section>
+          <section class="task-page__section task-page__section--danger">
+            <div class="task-page__section-title">Danger zone</div>
+            <label class="task-page__field task-page__field--inline" for="taskPageArchivedToggle">
+              <span>Archived</span>
+              <input id="taskPageArchivedToggle" type="checkbox" ${draft.archived ? "checked" : ""} />
+            </label>
+            <button type="button" class="delete-btn task-page__delete-btn" data-onclick="deleteTaskFromTaskPage('${todoId}')">Delete task</button>
           </section>
         </aside>
       </div>
@@ -773,6 +963,31 @@ function onTaskPageDescriptionInput(event) {
   }, TASK_PAGE_DESCRIPTION_AUTOSAVE_DELAY_MS);
 }
 
+function onTaskPageNotesInput(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLTextAreaElement) || !state.taskPageDraft) return;
+  state.taskPageDraft.notes = target.value;
+  setTaskPageSaveState("idle");
+  if (state.taskPageNotesSaveTimer) {
+    clearTimeout(state.taskPageNotesSaveTimer);
+  }
+  state.taskPageNotesSaveTimer = setTimeout(() => {
+    state.taskPageNotesSaveTimer = null;
+    void flushTaskPageDraft({
+      notes: String(state.taskPageDraft?.notes || "").trim() || null,
+    });
+  }, TASK_PAGE_NOTES_AUTOSAVE_DELAY_MS);
+}
+
+function onTaskPageTextFieldInput(fieldName, draftKey) {
+  return (event) => {
+    const target = event.target;
+    if (!(target instanceof HTMLInputElement) || !state.taskPageDraft) return;
+    state.taskPageDraft[draftKey] = target.value;
+    setTaskPageSaveState("idle");
+  };
+}
+
 async function flushTaskPageTextField(field) {
   if (!state.taskPageDraft) return;
   if (field === "title") {
@@ -789,6 +1004,73 @@ async function flushTaskPageTextField(field) {
     await flushTaskPageDraft({
       description: String(state.taskPageDraft.description || "").trim(),
     });
+    return;
+  }
+  if (field === "notes") {
+    if (state.taskPageNotesSaveTimer) {
+      clearTimeout(state.taskPageNotesSaveTimer);
+      state.taskPageNotesSaveTimer = null;
+    }
+    await flushTaskPageDraft({
+      notes: String(state.taskPageDraft.notes || "").trim() || null,
+    });
+    return;
+  }
+  // Generic blur-save text fields
+  const blurFields = {
+    firstStep: "firstStep",
+    context: "context",
+    waitingOn: "waitingOn",
+    tags: "tagsText",
+    category: "categoryDetail",
+  };
+  if (blurFields[field]) {
+    const timer = state.taskPageTextFieldSaveTimers[field];
+    if (timer) {
+      clearTimeout(timer);
+      delete state.taskPageTextFieldSaveTimers[field];
+    }
+    const draftKey = blurFields[field];
+    const value = String(state.taskPageDraft[draftKey] || "").trim();
+
+    if (field === "tags") {
+      const tags = value
+        ? value
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [];
+      await flushTaskPageDraft({ tags });
+    } else if (field === "category") {
+      const projectId = hooks.getProjectRecordByName?.(value || "")?.id || null;
+      await flushTaskPageDraft({
+        category: value || null,
+        projectId,
+      });
+    } else {
+      await flushTaskPageDraft({ [field]: value || null });
+    }
+    return;
+  }
+  if (field === "estimateMinutes") {
+    const raw = state.taskPageDraft.estimateMinutes;
+    const parsed = Number.parseInt(raw, 10);
+    await flushTaskPageDraft({
+      estimateMinutes: Number.isFinite(parsed) ? parsed : null,
+    });
+    return;
+  }
+  if (field === "recurrenceInterval") {
+    const raw = state.taskPageDraft.recurrenceInterval;
+    const parsed = Number.parseInt(raw, 10);
+    if (state.taskPageDraft.recurrenceType !== "none") {
+      await flushTaskPageDraft({
+        recurrence: {
+          type: state.taskPageDraft.recurrenceType,
+          interval: Number.isFinite(parsed) && parsed > 0 ? parsed : 1,
+        },
+      });
+    }
   }
 }
 
@@ -852,9 +1134,100 @@ async function onTaskPageChange(event) {
     target instanceof HTMLSelectElement
   ) {
     state.taskPageDraft.priority = target.value;
+    await flushTaskPageDraft({ priority: target.value });
+    return;
+  }
+
+  // --- Planning fields ---
+  if (
+    target.id === "taskPageEnergySelect" &&
+    target instanceof HTMLSelectElement
+  ) {
+    state.taskPageDraft.energy = target.value;
+    await flushTaskPageDraft({ energy: target.value || null });
+    return;
+  }
+
+  if (
+    target.id === "taskPageEffortSelect" &&
+    target instanceof HTMLSelectElement
+  ) {
+    state.taskPageDraft.effortScore = target.value;
     await flushTaskPageDraft({
-      priority: target.value,
+      effortScore: target.value ? Number(target.value) : null,
     });
+    return;
+  }
+
+  // --- Date fields ---
+  if (
+    target.id === "taskPageStartDateInput" &&
+    target instanceof HTMLInputElement
+  ) {
+    state.taskPageDraft.startDate = target.value;
+    await flushTaskPageDraft({
+      startDate: toIsoFromDateTimeLocal(target.value) || null,
+    });
+    return;
+  }
+
+  if (
+    target.id === "taskPageScheduledDateInput" &&
+    target instanceof HTMLInputElement
+  ) {
+    state.taskPageDraft.scheduledDate = target.value;
+    await flushTaskPageDraft({
+      scheduledDate: toIsoFromDateTimeLocal(target.value) || null,
+    });
+    return;
+  }
+
+  if (
+    target.id === "taskPageReviewDateInput" &&
+    target instanceof HTMLInputElement
+  ) {
+    state.taskPageDraft.reviewDate = target.value;
+    await flushTaskPageDraft({
+      reviewDate: toIsoFromDateTimeLocal(target.value) || null,
+    });
+    return;
+  }
+
+  if (
+    target.id === "taskPageRecurrenceType" &&
+    target instanceof HTMLSelectElement
+  ) {
+    state.taskPageDraft.recurrenceType = target.value;
+    const patch =
+      target.value === "none"
+        ? { recurrence: null }
+        : {
+            recurrence: {
+              type: target.value,
+              interval: Number(state.taskPageDraft.recurrenceInterval) || 1,
+            },
+          };
+    await flushTaskPageDraft(patch);
+    hooks.renderTodos?.();
+    return;
+  }
+
+  // --- Metadata fields ---
+  if (
+    target.id === "taskPageEmotionalStateSelect" &&
+    target instanceof HTMLSelectElement
+  ) {
+    state.taskPageDraft.emotionalState = target.value;
+    await flushTaskPageDraft({ emotionalState: target.value || null });
+    return;
+  }
+
+  if (
+    target.id === "taskPageArchivedToggle" &&
+    target instanceof HTMLInputElement
+  ) {
+    state.taskPageDraft.archived = !!target.checked;
+    await flushTaskPageDraft({ archived: !!target.checked });
   }
 }
 
@@ -887,6 +1260,32 @@ export function bindTaskDetailSurfaceHandlers() {
       target.id === "taskPageDescriptionTextarea"
     ) {
       onTaskPageDescriptionInput(event);
+      return;
+    }
+    if (
+      target instanceof HTMLTextAreaElement &&
+      target.id === "taskPageNotesTextarea"
+    ) {
+      onTaskPageNotesInput(event);
+      return;
+    }
+    // Track draft changes for blur-save text fields on the task page
+    const taskPageTextFields = {
+      taskPageFirstStepInput: "firstStep",
+      taskPageContextInput: "context",
+      taskPageWaitingOnInput: "waitingOn",
+      taskPageTagsInput: "tagsText",
+      taskPageCategoryInput: "categoryDetail",
+      taskPageEstimateInput: "estimateMinutes",
+      taskPageRecurrenceInterval: "recurrenceInterval",
+    };
+    if (
+      target instanceof HTMLInputElement &&
+      taskPageTextFields[target.id] &&
+      state.taskPageDraft
+    ) {
+      state.taskPageDraft[taskPageTextFields[target.id]] = target.value;
+      setTaskPageSaveState("idle");
     }
   });
 
@@ -929,6 +1328,24 @@ export function bindTaskDetailSurfaceHandlers() {
       }
       if (target.id === "taskPageDescriptionTextarea") {
         void flushTaskPageTextField("description");
+        return;
+      }
+      if (target.id === "taskPageNotesTextarea") {
+        void flushTaskPageTextField("notes");
+        return;
+      }
+      // Blur-save for promoted task page fields
+      const blurSaveMap = {
+        taskPageFirstStepInput: "firstStep",
+        taskPageContextInput: "context",
+        taskPageWaitingOnInput: "waitingOn",
+        taskPageTagsInput: "tags",
+        taskPageCategoryInput: "category",
+        taskPageEstimateInput: "estimateMinutes",
+        taskPageRecurrenceInterval: "recurrenceInterval",
+      };
+      if (blurSaveMap[target.id]) {
+        void flushTaskPageTextField(blurSaveMap[target.id]);
       }
     },
     true,
@@ -983,7 +1400,8 @@ export function bindTaskDetailSurfaceHandlers() {
 
     if (
       target.id === "taskPageTitleInput" ||
-      target.id === "taskPageDescriptionTextarea"
+      target.id === "taskPageDescriptionTextarea" ||
+      target.id === "taskPageNotesTextarea"
     ) {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -992,15 +1410,83 @@ export function bindTaskDetailSurfaceHandlers() {
       }
       if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
-        void flushTaskPageTextField(
-          target.id === "taskPageTitleInput" ? "title" : "description",
-        );
+        const fieldMap = {
+          taskPageTitleInput: "title",
+          taskPageDescriptionTextarea: "description",
+          taskPageNotesTextarea: "notes",
+        };
+        void flushTaskPageTextField(fieldMap[target.id] || "title");
       }
     }
   });
 
   window.addEventListener("popstate", () => {
     syncTaskPageRouteFromLocation();
+  });
+}
+
+// --- Delete from task page ---
+
+async function deleteTaskFromTaskPage(todoId) {
+  if (!todoId) return;
+  try {
+    await hooks.deleteTodo?.(todoId);
+    closeTaskPage();
+  } catch (error) {
+    console.error("Failed to delete task:", error);
+  }
+}
+
+// --- Subtask management on task page ---
+
+async function addSubtaskFromTaskPage(todoId) {
+  const input = document.getElementById("taskPageSubtaskInput");
+  if (!(input instanceof HTMLInputElement)) return;
+  const title = input.value.trim();
+  if (!title) return;
+  input.value = "";
+  try {
+    await hooks.addSubtask?.(todoId, title);
+    await hooks.loadTodos?.();
+    hooks.renderTodos?.();
+  } catch (error) {
+    console.error("Failed to add subtask:", error);
+  }
+}
+
+async function deleteSubtaskFromTaskPage(todoId, subtaskId) {
+  try {
+    await hooks.deleteSubtask?.(todoId, subtaskId);
+    await hooks.loadTodos?.();
+    hooks.renderTodos?.();
+  } catch (error) {
+    console.error("Failed to delete subtask:", error);
+  }
+}
+
+// --- Task picker mount for dependencies ---
+
+export function mountTaskPageDependsPicker() {
+  const container = document.getElementById("taskPageDependsOnPicker");
+  if (!container || !state.taskPageDraft || !state.taskPageTodoId) return;
+  if (activeTaskPageDepPicker) {
+    activeTaskPageDepPicker.destroy?.();
+    activeTaskPageDepPicker = null;
+  }
+  const selectedIds = (state.taskPageDraft.dependsOnTaskIdsText || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  activeTaskPageDepPicker = mountTaskPicker(container, {
+    selectedIds,
+    getTodos: () => state.todos || [],
+    excludeId: state.taskPageTodoId,
+    onChange: (ids) => {
+      if (state.taskPageDraft) {
+        state.taskPageDraft.dependsOnTaskIdsText = ids.join(", ");
+      }
+      void flushTaskPageDraft({ dependsOnTaskIds: ids });
+    },
   });
 }
 
@@ -1015,6 +1501,9 @@ function registerWindowBridge() {
   window.openTaskPageFromDrawer = openTaskPageFromDrawer;
   window.closeTaskPage = closeTaskPage;
   window.openDrawerFromTaskPage = openDrawerFromTaskPage;
+  window.addSubtaskFromTaskPage = addSubtaskFromTaskPage;
+  window.deleteSubtaskFromTaskPage = deleteSubtaskFromTaskPage;
+  window.deleteTaskFromTaskPage = deleteTaskFromTaskPage;
 }
 
 export function initTaskDetailSurface() {

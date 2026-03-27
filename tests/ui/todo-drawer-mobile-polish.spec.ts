@@ -277,7 +277,7 @@ test.describe("Todo drawer mobile polish", () => {
       .toBe(true);
   });
 
-  test("details accordion state is preserved after save rerender", async ({
+  test("slimmed drawer triage content persists after save rerender", async ({
     page,
   }) => {
     await installDrawerMockApi(page, [
@@ -298,20 +298,17 @@ test.describe("Todo drawer mobile polish", () => {
       page.locator(".todo-item .todo-title").first(),
     );
 
-    await page.locator("#drawerDetailsToggle").click();
-    await expect(page.locator("#drawerDetailsToggle")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
+    // No accordion in slimmed drawer — triage fields visible directly
+    await expect(page.locator("#drawerDetailsToggle")).toHaveCount(0);
+    await expect(page.locator("#drawerPrioritySelect")).toBeVisible();
 
     await page.locator("#drawerPrioritySelect").selectOption("high");
     await expect(page.locator("#drawerSaveStatus")).toContainText("Saved");
 
-    await expect(page.locator("#drawerDetailsToggle")).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    await expect(page.locator("#drawerDetailsPanel")).toBeVisible();
+    // Triage fields should still be visible after save rerender
+    await expect(page.locator("#drawerPrioritySelect")).toBeVisible();
+    await expect(page.locator("#drawerEffortSelect")).toBeVisible();
+    await expect(page.locator("#drawerEnergySelect")).toBeVisible();
   });
 
   test("save status transitions from Saving to Saved to Ready", async ({

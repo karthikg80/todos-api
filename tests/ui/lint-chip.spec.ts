@@ -248,7 +248,7 @@ test.describe("Lint-first task drawer chip", () => {
     await openTaskComposerSheet(page);
   });
 
-  test("drawer shows lint chip for vague task title; full AI list hidden", async ({
+  test("slimmed drawer does not show AI lint chip for vague task title", async ({
     page,
   }) => {
     // Create a todo with a vague title
@@ -259,17 +259,20 @@ test.describe("Lint-first task drawer chip", () => {
     // Open drawer
     await openTodoDrawerFromListRow(page, page.locator(".todo-item").first());
     await expect(page.locator("#todoDetailsDrawer")).toBeVisible();
-    // Lint chip should be in the AI section
-    await expect(
-      page.locator("#todoDetailsDrawer .ai-lint-chip"),
-    ).toBeVisible();
-    // Full AI list should not be rendered
+    // AI section was removed from drawer — lint chip should not render
+    await expect(page.locator("#todoDetailsDrawer .ai-lint-chip")).toHaveCount(
+      0,
+    );
+    // Full AI list should not be rendered either
     await expect(
       page.locator("#todoDetailsDrawer .todo-drawer-ai-list"),
-    ).toBeHidden();
+    ).toHaveCount(0);
+    // Triage fields should still be present
+    await expect(page.locator("#drawerTitleInput")).toBeVisible();
+    await expect(page.locator("#drawerPrioritySelect")).toBeVisible();
   });
 
-  test("Fix in drawer reveals full AI suggestions section", async ({
+  test("slimmed drawer does not contain AI suggestions section", async ({
     page,
   }) => {
     await page.locator("#todoInput").fill("handle things");
@@ -277,21 +280,18 @@ test.describe("Lint-first task drawer chip", () => {
     await expect(page.locator(".todo-item").first()).toBeVisible();
     await openTodoDrawerFromListRow(page, page.locator(".todo-item").first());
     await expect(page.locator("#todoDetailsDrawer")).toBeVisible();
-    await expect(
-      page.locator("#todoDetailsDrawer .ai-lint-chip"),
-    ).toBeVisible();
-    await page
-      .locator(
-        "#todoDetailsDrawer .ai-lint-chip__action[data-ai-lint-action='fix']",
-      )
-      .click();
-    // Lint chip should be gone; the AI Suggestions section title should appear
-    await expect(page.locator("#todoDetailsDrawer .ai-lint-chip")).toBeHidden();
+    // AI section was removed from drawer — no lint chip, no Assistant section
+    await expect(page.locator("#todoDetailsDrawer .ai-lint-chip")).toHaveCount(
+      0,
+    );
     await expect(
       page.locator("#todoDetailsDrawer .todo-drawer__section-title", {
         hasText: "Assistant",
       }),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    // Drawer should show triage fields instead
+    await expect(page.locator("#drawerStatusSelect")).toBeVisible();
+    await expect(page.locator("#drawerEnergySelect")).toBeVisible();
   });
 });
 

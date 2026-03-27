@@ -163,6 +163,14 @@ export function applyUiAction(type, payload = {}) {
       state.taskPageDraft = null;
       state.taskPageSaveState = "idle";
       state.taskPageSaveMessage = "";
+      if (state.taskPageNotesSaveTimer) {
+        clearTimeout(state.taskPageNotesSaveTimer);
+        state.taskPageNotesSaveTimer = null;
+      }
+      for (const key of Object.keys(state.taskPageTextFieldSaveTimers)) {
+        clearTimeout(state.taskPageTextFieldSaveTimers[key]);
+      }
+      state.taskPageTextFieldSaveTimers = {};
       if (!state.isTodoDrawerOpen && !state.inlineTaskEditorTodoId) {
         state.selectedTodoId = null;
       }
