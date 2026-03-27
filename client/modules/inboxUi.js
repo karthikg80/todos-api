@@ -1,5 +1,5 @@
 // =============================================================================
-// inboxUi.js — Capture inbox view: list, capture, triage, promote.
+// inboxUi.js — Desk view: list, capture, organize, promote.
 // Uses callAgentAction for all API calls. Renders into #todosContent when
 // currentWorkspaceView === "inbox".
 // All user-provided content is passed through hooks.escapeHtml before
@@ -29,7 +29,7 @@ export async function loadInboxItems() {
     });
   } catch (err) {
     applyAsyncAction("inbox/failure", {
-      error: err.message || "Could not load inbox.",
+      error: err.message || "Could not load your desk.",
     });
   }
   renderInboxView();
@@ -69,7 +69,7 @@ function renderInboxItem(item) {
             : `
           <button type="button" class="inbox-btn inbox-btn--primary"
             data-inbox-action="promote" data-capture-id="${escapeHtml(item.id)}">
-            Promote to task
+            Create task
           </button>
           <button type="button" class="inbox-btn inbox-btn--ghost"
             data-inbox-action="discard" data-capture-id="${escapeHtml(item.id)}">
@@ -93,7 +93,7 @@ export function renderInboxView() {
   let bodyHtml;
 
   if (s.loading && !s.hasLoaded) {
-    bodyHtml = `<div class="inbox-view__loading" role="status" aria-live="polite">Loading inbox…</div>`;
+    bodyHtml = `<div class="inbox-view__loading" role="status" aria-live="polite">Loading your desk…</div>`;
   } else if (s.error && s.items.length === 0) {
     bodyHtml = `
       <div class="inbox-view__error" role="status">
@@ -101,7 +101,12 @@ export function renderInboxView() {
         <button type="button" class="inbox-btn" data-inbox-action="reload">Retry</button>
       </div>`;
   } else if (!s.loading && s.hasLoaded && s.items.length === 0) {
-    bodyHtml = `<div class="inbox-view__empty">${illustrationInboxClear()}<p>Inbox is clear.</p></div>`;
+    bodyHtml = `
+      <div class="inbox-view__empty">
+        ${illustrationInboxClear()}
+        <p>Your desk is clear.</p>
+        <p>New items will appear here until you're ready to organize them.</p>
+      </div>`;
   } else {
     const itemsHtml = s.items.map(renderInboxItem).join("");
     bodyHtml = `
@@ -121,11 +126,11 @@ export function renderInboxView() {
             type="text"
             class="inbox-capture-input"
             id="inboxCaptureInput"
-            placeholder="Capture something… (Enter to save)"
+            placeholder="Add a note, task, or idea..."
             maxlength="2000"
             autocomplete="off"
           />
-          <button type="submit" class="inbox-btn inbox-btn--primary">Capture</button>
+          <button type="submit" class="inbox-btn inbox-btn--primary">Add to Desk</button>
         </form>
       </div>
       <div class="inbox-view__body">${bodyHtml}</div>

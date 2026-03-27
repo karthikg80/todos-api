@@ -533,7 +533,7 @@ function getCurrentDateViewLabel() {
 
 function getCurrentWorkspaceHeaderConfig() {
   const workspaceTitleMap = {
-    inbox: "Inbox",
+    inbox: "Desk",
     today: "Today",
     upcoming: "Upcoming",
     completed: "Completed",

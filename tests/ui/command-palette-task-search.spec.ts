@@ -196,7 +196,7 @@ test.describe("Command palette task search", () => {
       },
       {
         id: "todo-flight",
-        title: "Book flights",
+        title: "Desk booking",
         description: "Travel planning",
         notes: null,
         category: "Travel",
@@ -217,7 +217,7 @@ test.describe("Command palette task search", () => {
 
     await expect(page.locator("#commandPaletteList")).toContainText("Pay rent");
     await expect(page.locator("#commandPaletteList")).not.toContainText(
-      "Book flights",
+      "Desk booking",
     );
   });
 
@@ -241,9 +241,8 @@ test.describe("Command palette task search", () => {
 
   test("keyboard navigation skips section headers", async ({ page }) => {
     await openCommandPalette(page);
-    // "b" matches commands: Go to Inbox (0), Go to Feedback (1),
-    // Show Keyboard Shortcuts (2) — and tasks: Book flights (3).
-    await page.locator("#commandPaletteInput").fill("b");
+    // "desk" matches the command "Go to Desk" and the task "Desk booking".
+    await page.locator("#commandPaletteInput").fill("desk");
 
     await expect(page.locator("#commandPaletteList")).toContainText("Commands");
     await expect(page.locator("#commandPaletteList")).toContainText("Tasks");
@@ -253,22 +252,20 @@ test.describe("Command palette task search", () => {
       "true",
     );
     await expect(page.locator("#commandPaletteOption-0")).toContainText(
-      "Go to Inbox",
+      "Go to Desk",
     );
 
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await expect(page.locator("#commandPaletteOption-1")).toHaveAttribute(
+    await expect(page.locator("#commandPaletteOption-0")).toHaveAttribute(
       "aria-selected",
       "false",
     );
-    await expect(page.locator("#commandPaletteOption-3")).toHaveAttribute(
+    await expect(page.locator("#commandPaletteOption-1")).toHaveAttribute(
       "aria-selected",
       "true",
     );
-    await expect(page.locator("#commandPaletteOption-3")).toContainText(
-      "Book flights",
+    await expect(page.locator("#commandPaletteOption-1")).toContainText(
+      "Desk booking",
     );
   });
 });

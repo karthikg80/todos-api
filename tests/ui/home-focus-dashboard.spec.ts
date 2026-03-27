@@ -868,9 +868,9 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expectListOrEmptyState(page);
   });
 
-  test("Inbox shows an explicit header title", async ({ page }) => {
+  test("Desk shows an explicit header title", async ({ page }) => {
     await clickWorkspaceView(page, "inbox");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Inbox");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Desk");
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
   });
 

@@ -44,7 +44,7 @@ function buildCommandPaletteItems() {
     },
     {
       id: "nav-inbox",
-      label: "Go to Inbox",
+      label: "Go to Desk",
       type: "workspace",
       payload: "inbox",
     },
