@@ -158,5 +158,10 @@
     }
   }
 
+  if (window.StandaloneTransitions) {
+    StandaloneTransitions.fadeInOnLoad();
+    StandaloneTransitions.bindNavigateLinks();
+  }
+
   loadFeedback();
 })();
