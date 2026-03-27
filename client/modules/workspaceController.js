@@ -5,6 +5,11 @@
 // =============================================================================
 
 import { state } from "./store.js";
+import {
+  showOverlay,
+  getViewDurationMs,
+  prefersReducedMotion,
+} from "../utils/viewTransitions.js";
 
 export function createWorkspaceController({
   normalizeWorkspaceView,
@@ -127,7 +132,13 @@ export function createWorkspaceController({
     }
 
     if (requestedView === "feedback") {
-      window.location.href = "/feedback/new";
+      if (prefersReducedMotion()) {
+        window.location.href = "/feedback/new";
+      } else {
+        showOverlay().then(() => {
+          window.location.href = "/feedback/new";
+        });
+      }
       return;
     }
   }

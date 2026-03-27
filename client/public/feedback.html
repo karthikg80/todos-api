@@ -10,7 +10,9 @@
   <body>
     <div class="feedback-standalone">
       <div class="feedback-standalone__header">
-        <a href="/app" class="feedback-standalone__back">&larr; Workspace</a>
+        <a data-navigate="/app" class="feedback-standalone__back" href="/app"
+          >&larr; Workspace</a
+        >
         <span class="feedback-standalone__logo">Todos</span>
       </div>
 
@@ -35,13 +37,16 @@
       </div>
 
       <div class="feedback-standalone__actions">
-        <a href="/feedback/new" class="btn">Submit feedback</a>
+        <a data-navigate="/feedback/new" href="/feedback/new" class="btn"
+          >Submit feedback</a
+        >
       </div>
     </div>
 
     <script src="/utils/authSession.js"></script>
     <script src="/utils/apiClient.js"></script>
     <script src="/utils/utils.js"></script>
+    <script src="/utils/standaloneTransitions.js"></script>
     <script src="/public/feedback-list-page.js"></script>
   </body>
 </html>

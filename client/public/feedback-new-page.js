@@ -246,6 +246,11 @@
   // ---------------------------------------------------------------------------
   // Boot
   // ---------------------------------------------------------------------------
+  if (window.StandaloneTransitions) {
+    StandaloneTransitions.fadeInOnLoad();
+    StandaloneTransitions.bindNavigateLinks();
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     syncLabels();
     syncContext();

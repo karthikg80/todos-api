@@ -48,6 +48,13 @@
   }
 
   // -------------------------------------------------------------------------
+  // 1c. Fade in on load — masks the hard navigation from feedback pages.
+  // -------------------------------------------------------------------------
+  if (window.StandaloneTransitions) {
+    StandaloneTransitions.fadeInOnLoad();
+  }
+
+  // -------------------------------------------------------------------------
   // 2. Inject stub DOM elements that app.js/authUi.js reference without
   //    null guards. These are invisible and exist solely to prevent
   //    "cannot read property of null" errors.
