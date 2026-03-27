@@ -126,4 +126,124 @@ export class EmailService {
       throw new Error("Failed to send password reset email");
     }
   }
+
+  /**
+   * Send feedback submission confirmation
+   */
+  async sendFeedbackReceivedEmail(
+    email: string,
+    details: { title: string; type: string; id: string },
+  ): Promise<void> {
+    if (!this.transporter) return;
+
+    const feedbackUrl = `${this.baseUrl}/feedback`;
+    const typeLabel =
+      details.type === "feature" ? "Feature request" : "Bug report";
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
+        to: email,
+        subject: "We received your feedback",
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>We received your feedback</h2>
+            <p>Thanks for taking the time to share this with us.</p>
+            <table style="margin: 20px 0; border-collapse: collapse;">
+              <tr><td style="padding: 4px 12px 4px 0; color: #666;">Type</td><td>${typeLabel}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #666;">Title</td><td>${details.title}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #666;">Reference</td><td style="font-family: monospace; font-size: 13px;">${details.id}</td></tr>
+            </table>
+            <p>You can track the status of your submissions anytime:</p>
+            <p style="margin: 20px 0;">
+              <a href="${feedbackUrl}"
+                 style="background-color: #667eea; color: white; padding: 12px 24px;
+                        text-decoration: none; border-radius: 5px; display: inline-block;">
+                View your submissions
+              </a>
+            </p>
+            <p style="color: #999; font-size: 12px; margin-top: 40px;">
+              You're receiving this because you submitted feedback on Todo App.
+            </p>
+          </div>
+        `,
+      });
+      console.log("Feedback received email sent:", info.messageId);
+    } catch (error) {
+      console.error("Error sending feedback received email:", error);
+    }
+  }
+
+  /**
+   * Send feedback status change notification
+   */
+  async sendFeedbackStatusEmail(
+    email: string,
+    details: {
+      title: string;
+      status: string;
+      githubIssueUrl?: string | null;
+      rejectionReason?: string | null;
+    },
+  ): Promise<void> {
+    if (!this.transporter) return;
+
+    const feedbackUrl = `${this.baseUrl}/feedback`;
+    const subjectMap: Record<string, string> = {
+      triaged: "Your feedback is under review",
+      promoted: "Your feedback is now tracked",
+      rejected: "Update on your feedback",
+    };
+    const statusLabelMap: Record<string, string> = {
+      triaged: "Under review",
+      promoted: "Tracked",
+      rejected: "Closed",
+    };
+    const subject = subjectMap[details.status] || "Update on your feedback";
+    const statusLabel = statusLabelMap[details.status] || details.status;
+
+    let extraHtml = "";
+    if (details.status === "promoted" && details.githubIssueUrl) {
+      extraHtml = `
+        <p>We've created a public issue to track this:</p>
+        <p><a href="${details.githubIssueUrl}" style="color: #667eea;">${details.githubIssueUrl}</a></p>
+      `;
+    }
+    if (details.status === "rejected" && details.rejectionReason) {
+      extraHtml = `
+        <p style="color: #666;"><strong>Reason:</strong> ${details.rejectionReason}</p>
+      `;
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
+        to: email,
+        subject,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>${subject}</h2>
+            <table style="margin: 20px 0; border-collapse: collapse;">
+              <tr><td style="padding: 4px 12px 4px 0; color: #666;">Title</td><td>${details.title}</td></tr>
+              <tr><td style="padding: 4px 12px 4px 0; color: #666;">Status</td><td><strong>${statusLabel}</strong></td></tr>
+            </table>
+            ${extraHtml}
+            <p style="margin: 24px 0;">
+              <a href="${feedbackUrl}"
+                 style="background-color: #667eea; color: white; padding: 12px 24px;
+                        text-decoration: none; border-radius: 5px; display: inline-block;">
+                View your submissions
+              </a>
+            </p>
+            <p style="color: #999; font-size: 12px; margin-top: 40px;">
+              You're receiving this because you submitted feedback on Todo App.
+            </p>
+          </div>
+        `,
+      });
+      console.log("Feedback status email sent:", info.messageId);
+    } catch (error) {
+      console.error("Error sending feedback status email:", error);
+    }
+  }
 }

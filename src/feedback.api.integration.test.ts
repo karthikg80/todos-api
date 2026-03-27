@@ -2,6 +2,7 @@ import request from "supertest";
 import { createApp } from "./app";
 import { PrismaTodoService } from "./services/prismaTodoService";
 import { AuthService } from "./services/authService";
+import { EmailService } from "./services/emailService";
 import { prisma } from "./prismaClient";
 
 describe("Feedback API Integration", () => {
@@ -278,6 +279,158 @@ describe("Feedback API Integration", () => {
     expect(response.body).toHaveLength(2);
     expect(response.body[0].title).toBe("Newer feature");
     expect(response.body[1].title).toBe("Older bug");
+  });
+
+  // ── Feedback email notifications ────────────────────────────────────────
+
+  describe("email notifications", () => {
+    let receivedSpy: jest.SpyInstance;
+    let statusSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      receivedSpy = jest
+        .spyOn(EmailService.prototype, "sendFeedbackReceivedEmail")
+        .mockResolvedValue();
+      statusSpy = jest
+        .spyOn(EmailService.prototype, "sendFeedbackStatusEmail")
+        .mockResolvedValue();
+    });
+
+    afterEach(() => {
+      receivedSpy.mockRestore();
+      statusSpy.mockRestore();
+    });
+
+    const flushMicrotasks = () =>
+      new Promise((resolve) => setTimeout(resolve, 0));
+
+    it("sends received email on feedback submission", async () => {
+      await request(app)
+        .post("/api/feedback")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          type: "bug",
+          title: "Test email notification",
+          body: "Testing email",
+        })
+        .expect(201);
+
+      await flushMicrotasks();
+
+      expect(receivedSpy).toHaveBeenCalledWith(
+        userEmail,
+        expect.objectContaining({
+          title: "Test email notification",
+          type: "bug",
+        }),
+      );
+    });
+
+    it("sends status email when admin triages", async () => {
+      const feedback = await prisma.feedbackRequest.create({
+        data: {
+          userId,
+          type: "bug",
+          title: "Triage test",
+          body: "details",
+          status: "new",
+        },
+      });
+
+      await request(app)
+        .patch(`/admin/feedback/${feedback.id}`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ status: "triaged" })
+        .expect(200);
+
+      await flushMicrotasks();
+
+      expect(statusSpy).toHaveBeenCalledWith(
+        userEmail,
+        expect.objectContaining({
+          title: "Triage test",
+          status: "triaged",
+        }),
+      );
+    });
+
+    it("sends status email when admin direct-promotes (no GitHub URL)", async () => {
+      const feedback = await prisma.feedbackRequest.create({
+        data: {
+          userId,
+          type: "feature",
+          title: "Direct promote test",
+          body: "details",
+          status: "triaged",
+        },
+      });
+
+      await request(app)
+        .patch(`/admin/feedback/${feedback.id}`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ status: "promoted", ignoreDuplicateSuggestion: true })
+        .expect(200);
+
+      await flushMicrotasks();
+
+      expect(statusSpy).toHaveBeenCalledWith(
+        userEmail,
+        expect.objectContaining({
+          title: "Direct promote test",
+          status: "promoted",
+        }),
+      );
+    });
+
+    it("sends status email with rejection reason", async () => {
+      const feedback = await prisma.feedbackRequest.create({
+        data: {
+          userId,
+          type: "bug",
+          title: "Reject test",
+          body: "details",
+          status: "new",
+        },
+      });
+
+      await request(app)
+        .patch(`/admin/feedback/${feedback.id}`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ status: "rejected", rejectionReason: "Not reproducible" })
+        .expect(200);
+
+      await flushMicrotasks();
+
+      expect(statusSpy).toHaveBeenCalledWith(
+        userEmail,
+        expect.objectContaining({
+          title: "Reject test",
+          status: "rejected",
+          rejectionReason: "Not reproducible",
+        }),
+      );
+    });
+
+    it("does not send email for user with null email", async () => {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { email: null },
+      });
+
+      await request(app)
+        .post("/api/feedback")
+        .set("Authorization", `Bearer ${authToken}`)
+        .send({
+          type: "bug",
+          title: "No email user",
+          body: "Testing null email",
+        })
+        .expect(201);
+
+      await flushMicrotasks();
+
+      expect(receivedSpy).not.toHaveBeenCalled();
+    });
   });
 
   // ── Admin feedback ────────────────────────────────────────────────────
