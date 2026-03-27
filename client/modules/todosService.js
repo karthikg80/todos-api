@@ -661,6 +661,11 @@ async function moveTodoToProject(todoId, projectValue) {
     state.todos = state.todos.map((item) =>
       item.id === todoId ? updated : item,
     );
+    trackEvent("task_status_changed", {
+      entityType: "todo",
+      entityId: todoId,
+      metadata: { action: "move_to_project", project: category },
+    });
     if (category && !state.customProjects.includes(category)) {
       state.customProjects.push(category);
     }
@@ -730,6 +735,7 @@ async function applyTodoPatch(todoId, patch) {
   state.todos = state.todos.map((todo) =>
     todo.id === todoId ? updatedTodo : todo,
   );
+  trackEvent("task_updated", { entityType: "todo", entityId: todoId });
 
   const projectIdentifier = updatedTodo?.projectId
     ? (state.projectRecords?.find(
@@ -875,6 +881,9 @@ async function completeSelected() {
   }
 
   if (completedIds.length > 0) {
+    trackEvent("bulk_action", {
+      metadata: { action: "complete", count: completedIds.length },
+    });
     addUndoAction(
       "bulk-complete",
       completedIds,
@@ -930,6 +939,9 @@ async function deleteSelected() {
   }
 
   if (deletedTodos.length > 0) {
+    trackEvent("bulk_action", {
+      metadata: { action: "delete", count: deletedTodos.length },
+    });
     addUndoAction(
       "bulk-delete",
       deletedTodos,

@@ -11,6 +11,7 @@ import {
 } from "../platform/events/eventReasons.js";
 import { applyUiAction } from "./stateActions.js";
 import { toDateInputValue, toIsoFromDateInput } from "./todosService.js";
+import { trackEvent } from "../utils/activityTracker.js";
 
 function projectStorageKey() {
   return `todo-projects:${state.currentUser?.id || "anonymous"}`;
@@ -234,6 +235,12 @@ async function ensureProjectExists(projectName) {
       body: JSON.stringify({ name: normalized }),
     });
     if (response && (response.ok || response.status === 409)) {
+      if (response.ok) {
+        trackEvent("project_created", {
+          entityType: "project",
+          metadata: { name: normalized },
+        });
+      }
       return true;
     }
     const data = response ? await hooks.parseApiBody(response) : {};
@@ -1288,6 +1295,11 @@ async function archiveProject(projectName) {
     const updatedProject = await response.json();
     replaceProjectRecord(updatedProject);
     renderProjectEditDrawer();
+    trackEvent("project_archived", {
+      entityType: "project",
+      entityId: updatedProject.id,
+      metadata: { name: normalized },
+    });
     hooks.showMessage?.(
       "todosMessage",
       `Project "${normalized}" archived`,

@@ -869,6 +869,88 @@ function buildHomeFocusItems(model) {
   );
 }
 
+// ─── Insights "Your Week" Card ───────────────────────────────────────────────
+
+let cachedInsights = null;
+let insightsFetchedAt = 0;
+const INSIGHTS_CACHE_MS = 5 * 60_000; // 5 minutes
+
+async function loadInsightsForCard() {
+  const now = Date.now();
+  if (cachedInsights && now - insightsFetchedAt < INSIGHTS_CACHE_MS) {
+    return cachedInsights;
+  }
+  if (!hooks.apiCall || !hooks.API_URL) return null;
+  try {
+    const res = await hooks.apiCall(`${hooks.API_URL}/insights`);
+    if (res && res.ok) {
+      cachedInsights = await res.json();
+      insightsFetchedAt = now;
+      return cachedInsights;
+    }
+  } catch {
+    /* silent — card shows empty state */
+  }
+  return cachedInsights;
+}
+
+function renderInsightsCard() {
+  const data = cachedInsights;
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    return ""; // Don't render until data arrives
+  }
+
+  const byType = {};
+  for (const d of data) byType[d.insightType] = d;
+
+  const velocity = byType.completion_velocity;
+  const streak = byType.streak_days;
+  const overcommit = byType.overcommitment_ratio;
+  const stale = byType.stale_task_count;
+
+  const velocityVal = velocity
+    ? `${Math.round(velocity.value * 10) / 10}/day`
+    : "--";
+  const streakVal = streak ? `${Math.round(streak.value)}` : "0";
+  const overcommitVal = overcommit ? Math.round(overcommit.value * 100) : 0;
+  const staleVal = stale ? Math.round(stale.value) : 0;
+
+  const overcommitColor =
+    overcommitVal > 150 ? "var(--color-danger)" : "var(--color-text-muted)";
+
+  return `
+    <section class="home-tile home-tile--insights" data-home-tile="insights" data-testid="home-insights-card">
+      <div class="home-tile__header">
+        <div class="home-tile__title-row">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2 14V6h3v8H2Zm4.5 0V2h3v12h-3ZM11 14V9h3v5h-3Z" fill="currentColor" opacity=".6"/>
+          </svg>
+          <h3>Your week</h3>
+        </div>
+      </div>
+      <div class="home-tile__body">
+        <div class="home-insights-grid">
+          <div class="home-insights-stat">
+            <span class="home-insights-stat__value">${escapeHtml(velocityVal)}</span>
+            <span class="home-insights-stat__label">Completion rate</span>
+          </div>
+          <div class="home-insights-stat">
+            <span class="home-insights-stat__value">${escapeHtml(streakVal)} days</span>
+            <span class="home-insights-stat__label">Streak</span>
+          </div>
+          <div class="home-insights-stat">
+            <span class="home-insights-stat__value" style="color:${overcommitColor}">${overcommitVal}%</span>
+            <span class="home-insights-stat__label">Commit ratio</span>
+          </div>
+          <div class="home-insights-stat">
+            <span class="home-insights-stat__value">${staleVal}</span>
+            <span class="home-insights-stat__label">Stale tasks</span>
+          </div>
+        </div>
+      </div>
+    </section>`;
+}
+
 function renderHomeBriefCard(model) {
   const focusItems = buildHomeFocusItems(model);
   const focusTask = focusItems[0] || null;
@@ -1213,6 +1295,16 @@ export function renderHomeDashboard() {
     return `<section class="home-dashboard" data-testid="home-dashboard"></section>`;
   }
   void loadPrioritiesBrief();
+  void loadInsightsForCard().then(() => {
+    // Re-render the insights card once data arrives (async, non-blocking)
+    const slot = document.querySelector('[data-home-tile="insights"]');
+    if (!slot && cachedInsights) {
+      const grid = document.querySelector(".home-dashboard__support-grid");
+      if (grid) {
+        grid.insertAdjacentHTML("afterend", renderInsightsCard());
+      }
+    }
+  });
   const model = getHomeDashboardModel();
   const staleRiskTodos = getStaleRiskTodos(3);
 
@@ -1256,6 +1348,7 @@ export function renderHomeDashboard() {
             </div>`
           : ""
       }
+      ${hasTasks ? renderInsightsCard() : ""}
       ${emptyStateCta}
     </section>`;
 }

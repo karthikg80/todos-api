@@ -500,6 +500,7 @@ import {
 } from "./bootstrap/initGlobalListeners.js";
 import { initTodosFeature } from "./features/todos/initTodosFeature.js";
 import { initProjectsFeature } from "./features/projects/initProjectsFeature.js";
+import { trackEvent } from "./utils/activityTracker.js";
 import {
   initOnboarding,
   isOnboardingActive,
@@ -1730,6 +1731,7 @@ function init() {
     state.currentUser = user;
     setAuthState(AUTH_STATE.AUTHENTICATED);
     showAppView();
+    trackEvent("session_start", { metadata: { source: "stored_session" } });
     loadUserProfile();
   } else if (token && !user) {
     // Social login (Google/Apple) stores tokens but not the user object.

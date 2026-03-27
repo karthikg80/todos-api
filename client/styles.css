@@ -11354,6 +11354,42 @@ body.is-todos-view .home-dashboard__support-grid {
   align-items: start;
 }
 
+/* ── Insights "Your Week" card ────────────────────────────────────────────── */
+
+.home-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.home-insights-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 8px;
+  border-radius: 10px;
+  background: color-mix(in oklab, var(--surface-2) 50%, transparent);
+  text-align: center;
+}
+
+.home-insights-stat__value {
+  font-size: var(--fs-title);
+  font-weight: var(--fw-semibold);
+  letter-spacing: -0.02em;
+}
+
+.home-insights-stat__label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 480px) {
+  .home-insights-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 body.is-todos-view .home-brief-card {
   display: grid;
   gap: 16px;
