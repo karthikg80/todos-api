@@ -39,6 +39,7 @@ export {
   validateAgentCaptureInboxItemInput,
   validateAgentListInboxItemsInput,
   validateAgentPromoteInboxItemInput,
+  validateAgentSuggestCaptureRouteInput,
   validateAgentTriageCaptureItemInput,
   validateAgentTriageInboxInput,
   // Follow-up

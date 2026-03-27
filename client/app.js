@@ -91,11 +91,9 @@ import {
   matchesWorkspaceView,
   syncWorkspaceViewState,
   isHomeWorkspaceActive,
-  isUnsortedWorkspaceActive,
   hasHomeListDrilldown,
   clearHomeListDrilldown,
   normalizeWorkspaceView,
-  isTodoUnsorted,
   isSameLocalDay,
   matchesDateView,
   getVisibleTodos,
@@ -280,6 +278,9 @@ import {
   clearTaskComposerDueDate,
   bindTaskComposerHandlers,
   getComposerDependsOnIds,
+  bindCaptureComposerHandlers,
+  submitTaskComposerCapture,
+  submitInlineCapture,
 } from "./modules/quickEntry.js";
 import {
   getTodoDueDate,
@@ -706,6 +707,7 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
     readStoredAiWorkspaceCollapsedState,
     setAiWorkspaceCollapsed,
     loadTodos,
+    loadInboxItems,
     loadAiSuggestions,
     loadAiUsage,
     loadAiInsights,
@@ -1212,6 +1214,8 @@ function bindDockHandlers() {
   hooks.loadTodos = loadTodos;
   hooks.addTodo = addTodo;
   hooks.addTodoFromInlineInput = addTodoFromInlineInput;
+  hooks.submitTaskComposerCapture = submitTaskComposerCapture;
+  hooks.submitInlineCapture = submitInlineCapture;
   hooks.addUndoAction = addUndoAction;
   hooks.renderTodos = renderTodos;
   hooks.validateTodoTitle = validateTodoTitle;
@@ -1436,6 +1440,8 @@ window.handleUnlinkProvider = handleUnlinkProvider;
 window.handleSetPassword = handleSetPassword;
 // Todo CRUD
 window.addTodo = addTodo;
+window.submitTaskComposerCapture = submitTaskComposerCapture;
+window.submitInlineCapture = submitInlineCapture;
 window.filterTodos = filterTodos;
 window.clearFilters = clearFilters;
 window.setDateView = setDateView;
@@ -1514,7 +1520,7 @@ window.setUiMode = function setUiMode(mode) {
       ".workspace-view-item.projects-rail-item--active",
     );
     const view = active?.getAttribute("data-workspace-view");
-    if (view && ["home", "inbox", "unsorted"].includes(view)) {
+    if (view && ["home", "triage"].includes(view)) {
       const allBtn = document.querySelector(
         '[data-workspace-view="all"].workspace-view-item',
       );
@@ -1660,6 +1666,7 @@ function init() {
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
   bindTaskComposerHandlers();
+  bindCaptureComposerHandlers();
   bindDockHandlers();
   OnCreateAssist.bindOnCreateAssistHandlers();
   bindQuickEntryNaturalDateHandlers();
@@ -1779,7 +1786,7 @@ if (document.body.classList.contains("simple-mode")) {
     ".workspace-view-item.projects-rail-item--active",
   );
   const view = active?.getAttribute("data-workspace-view");
-  if (view && ["home", "inbox", "unsorted"].includes(view)) {
+  if (view && ["home", "triage"].includes(view)) {
     const allBtn = document.querySelector(
       '[data-workspace-view="all"].workspace-view-item',
     );

@@ -201,6 +201,7 @@ function minimumRequiredScopesForAction(
     case "get_day_context":
     case "weekly_executive_summary":
     case "list_inbox_items":
+    case "suggest_capture_route":
     case "evaluate_daily_plan":
     case "evaluate_weekly_system":
     case "list_learning_recommendations":

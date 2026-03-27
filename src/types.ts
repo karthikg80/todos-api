@@ -306,6 +306,7 @@ export interface FindTodosQuery {
   project?: string;
   projectId?: string;
   unsorted?: boolean;
+  needsOrganizing?: boolean;
   archived?: boolean;
   tags?: string[];
   contexts?: string[];

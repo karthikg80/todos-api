@@ -87,7 +87,9 @@ function buildVisibleTodosQueryParams() {
     params.project = selectedProject;
   }
 
-  if (state.currentWorkspaceView === "unsorted") {
+  if (state.currentWorkspaceView === "triage") {
+    params.needsOrganizing = true;
+  } else if (state.currentWorkspaceView === "unsorted") {
     params.unsorted = true;
   }
 
@@ -275,7 +277,8 @@ function retryLoadTodos() {
   loadTodos();
 }
 
-async function addTodo() {
+async function addTodo(options = {}) {
+  const captureSuggestion = options.captureSuggestion || null;
   const input = document.getElementById("todoInput");
   const projectSelect = document.getElementById("todoProjectSelect");
   const dueDateInput = document.getElementById("todoDueDateInput");
@@ -305,7 +308,8 @@ async function addTodo() {
     cleanupTitle: true,
   });
 
-  const title = input.value.trim();
+  const suggestedTitle = String(captureSuggestion?.cleanedTitle || "").trim();
+  const title = suggestedTitle || input.value.trim();
   if (!title) return;
 
   const payload = {
@@ -332,6 +336,8 @@ async function addTodo() {
   }
   if (dueDateInput.value) {
     payload.dueDate = new Date(dueDateInput.value).toISOString();
+  } else if (captureSuggestion?.extractedFields?.dueDate) {
+    payload.dueDate = captureSuggestion.extractedFields.dueDate;
   }
   if (
     startDateInput instanceof HTMLInputElement &&
@@ -1057,14 +1063,18 @@ async function restoreTodo(todoData) {
   }
 }
 
-async function addTodoFromInlineInput() {
+async function addTodoFromInlineInput(options = {}) {
+  const captureSuggestion = options.captureSuggestion || null;
   const input = document.getElementById("inlineQuickAddInput");
   if (!(input instanceof HTMLInputElement)) return;
 
   const title = input.value.trim();
   if (!title) return;
 
-  const payload = { title, priority: "medium" };
+  const payload = {
+    title: String(captureSuggestion?.cleanedTitle || "").trim() || title,
+    priority: "medium",
+  };
 
   // Detect natural date inline using chrono (if loaded)
   const chronoModule = window.__chronoNaturalDateModule || null;
@@ -1077,12 +1087,23 @@ async function addTodoFromInlineInput() {
       if (cleanedTitle) payload.title = cleanedTitle;
     }
   }
+  if (!payload.dueDate && captureSuggestion?.extractedFields?.dueDate) {
+    payload.dueDate = captureSuggestion.extractedFields.dueDate;
+  }
 
   // Auto-assign project if viewing a specific project
   const selectedProject = hooks.getSelectedProjectKey?.() || "";
   if (selectedProject) {
     payload.category = selectedProject;
     const projectRecord = hooks.getProjectRecordByName?.(selectedProject);
+    if (projectRecord?.id) {
+      payload.projectId = projectRecord.id;
+    }
+  } else if (captureSuggestion?.extractedFields?.project) {
+    payload.category = captureSuggestion.extractedFields.project;
+    const projectRecord = hooks.getProjectRecordByName?.(
+      captureSuggestion.extractedFields.project,
+    );
     if (projectRecord?.id) {
       payload.projectId = projectRecord.id;
     }

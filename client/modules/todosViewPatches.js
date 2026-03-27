@@ -59,8 +59,11 @@ function normalizeProjectPath(value) {
     : String(value || "");
 }
 
-function isTodoUnsorted(todo) {
-  return !normalizeProjectPath(todo?.category || "");
+function isTodoNeedingTriage(todo) {
+  return (
+    !todo?.completed &&
+    (todo?.status === "inbox" || !normalizeProjectPath(todo?.category || ""))
+  );
 }
 
 function getOpenTodoCountMapByProject() {
@@ -315,26 +318,26 @@ export function patchProjectsRailCounts() {
         desktopList: document.getElementById("projectsRailList"),
         sheetList: document.getElementById("projectsRailSheetList"),
         desktopAllCount: null,
-        desktopUnsortedCount: null,
+        desktopTriageCount: null,
         sheetAllCount: null,
-        sheetUnsortedCount: null,
+        sheetTriageCount: null,
       };
 
   const openTodoCountMap = getOpenTodoCountMapByProject();
   const pendingTodos = state.todos.filter((todo) => !todo?.completed);
   const allCount = pendingTodos.length;
-  const unsortedCount = pendingTodos.filter((todo) =>
-    isTodoUnsorted(todo),
-  ).length;
+  const triageCount =
+    pendingTodos.filter((todo) => isTodoNeedingTriage(todo)).length +
+    state.inboxState.items.length;
 
   [refs.desktopAllCount, refs.sheetAllCount].forEach((countEl) => {
     if (countEl instanceof HTMLElement) {
       countEl.textContent = String(allCount);
     }
   });
-  [refs.desktopUnsortedCount, refs.sheetUnsortedCount].forEach((countEl) => {
+  [refs.desktopTriageCount, refs.sheetTriageCount].forEach((countEl) => {
     if (countEl instanceof HTMLElement) {
-      countEl.textContent = String(unsortedCount);
+      countEl.textContent = String(triageCount);
     }
   });
 

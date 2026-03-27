@@ -316,8 +316,8 @@
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item"
-                          data-workspace-view="inbox"
-                          title="Inbox"
+                          data-workspace-view="triage"
+                          title="Triage"
                         >
                           <svg
                             class="nav-icon"
@@ -339,35 +339,7 @@
                               d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
                             />
                           </svg>
-                          <span class="nav-label">Inbox</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="unsorted"
-                          title="Unsorted"
-                        >
-                          <svg
-                            class="nav-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="15"
-                            height="15"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline
-                              points="22 12 16 12 14 15 10 15 8 12 2 12"
-                            />
-                            <path
-                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
-                            />
-                          </svg>
-                          <span class="nav-label">Unsorted</span>
+                          <span class="nav-label">Triage</span>
                           <span class="projects-rail-item__count" hidden
                             >0</span
                           >
@@ -772,8 +744,8 @@
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item"
-                          data-workspace-view="inbox"
-                          title="Inbox"
+                          data-workspace-view="triage"
+                          title="Triage"
                         >
                           <svg
                             class="nav-icon"
@@ -795,35 +767,7 @@
                               d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
                             />
                           </svg>
-                          <span class="nav-label">Inbox</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="unsorted"
-                          title="Unsorted"
-                        >
-                          <svg
-                            class="nav-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="15"
-                            height="15"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline
-                              points="22 12 16 12 14 15 10 15 8 12 2 12"
-                            />
-                            <path
-                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
-                            />
-                          </svg>
-                          <span class="nav-label">Unsorted</span>
+                          <span class="nav-label">Triage</span>
                           <span class="projects-rail-item__count" hidden
                             >0</span
                           >
@@ -2016,9 +1960,9 @@
                                   </option>
                                   <option
                                     value="inbox"
-                                    title="Captured, not yet organized"
+                                    title="Task created but not fully organized yet"
                                   >
-                                    Inbox
+                                    Untriaged
                                   </option>
                                   <option
                                     value="in_progress"
@@ -2312,11 +2256,24 @@
                             id="taskComposerAddButton"
                             class="add-btn"
                             type="button"
-                            data-onclick="addTodo()"
+                            data-onclick="submitTaskComposerCapture()"
                           >
-                            Add
+                            Create task now
+                          </button>
+                          <button
+                            id="taskComposerTriageButton"
+                            class="mini-btn"
+                            type="button"
+                            data-onclick="submitTaskComposerCapture('alternate')"
+                          >
+                            Send to triage
                           </button>
                         </div>
+                        <p
+                          id="taskComposerRouteHint"
+                          class="task-composer-route-hint"
+                          hidden
+                        ></p>
                       </section>
 
                       <section
@@ -2509,31 +2466,61 @@
                         id="inlineQuickAdd"
                         class="inline-quick-add"
                         role="form"
-                        aria-label="Quick add task"
+                        aria-label="Capture"
                       >
                         <span class="inline-quick-add__icon" aria-hidden="true"
                           >+</span
                         >
-                        <label for="inlineQuickAddInput" class="sr-only"
-                          >Quick add task</label
-                        >
-                        <input
-                          type="text"
-                          id="inlineQuickAddInput"
-                          class="inline-quick-add__input"
-                          placeholder="What needs to be done?"
-                          autocomplete="off"
-                          data-onkeypress="handleInlineQuickAddKeyPress(event)"
-                        />
-                        <div
-                          id="inlineQuickAddChipRow"
-                          class="inline-quick-add__chips"
-                          hidden
-                          aria-live="polite"
-                        ></div>
-                        <kbd class="inline-quick-add__hint" aria-hidden="true"
-                          >Enter</kbd
-                        >
+                        <div class="inline-quick-add__body">
+                          <label for="inlineQuickAddInput" class="sr-only"
+                            >Capture</label
+                          >
+                          <input
+                            type="text"
+                            id="inlineQuickAddInput"
+                            class="inline-quick-add__input"
+                            placeholder="Capture a task or idea..."
+                            autocomplete="off"
+                            data-onkeypress="handleInlineQuickAddKeyPress(event)"
+                          />
+                          <div
+                            id="inlineQuickAddChipRow"
+                            class="inline-quick-add__chips"
+                            hidden
+                            aria-live="polite"
+                          ></div>
+                          <p
+                            id="inlineQuickAddRouteHint"
+                            class="inline-quick-add__route"
+                            hidden
+                          ></p>
+                        </div>
+                        <div class="inline-quick-add__actions">
+                          <button
+                            id="inlineQuickAddPrimaryButton"
+                            class="add-btn"
+                            type="button"
+                            data-onclick="submitInlineCapture()"
+                          >
+                            Create task now
+                          </button>
+                          <button
+                            id="inlineQuickAddSecondaryButton"
+                            class="mini-btn"
+                            type="button"
+                            data-onclick="submitInlineCapture('alternate')"
+                          >
+                            Send to triage
+                          </button>
+                          <button
+                            id="inlineQuickAddDetailsButton"
+                            class="mini-btn"
+                            type="button"
+                            data-onclick="openTaskComposer()"
+                          >
+                            Details
+                          </button>
+                        </div>
                       </div>
 
                       <div id="todosContent">

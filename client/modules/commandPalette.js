@@ -43,10 +43,16 @@ function buildCommandPaletteItems() {
       payload: "home",
     },
     {
-      id: "nav-inbox",
-      label: "Go to Inbox",
+      id: "nav-triage",
+      label: "Go to Triage",
       type: "workspace",
-      payload: "inbox",
+      payload: "triage",
+    },
+    {
+      id: "all-tasks",
+      label: "Go to All tasks",
+      type: "project",
+      payload: "",
     },
     {
       id: "nav-today",
@@ -59,18 +65,6 @@ function buildCommandPaletteItems() {
       label: "Go to Upcoming",
       type: "workspace",
       payload: "upcoming",
-    },
-    {
-      id: "all-tasks",
-      label: "Go to All tasks",
-      type: "project",
-      payload: "",
-    },
-    {
-      id: "nav-unsorted",
-      label: "Go to Unsorted",
-      type: "workspace",
-      payload: "unsorted",
     },
     {
       id: "nav-waiting",

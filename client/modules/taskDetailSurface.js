@@ -335,7 +335,7 @@ export function renderTaskPageSurface(todo) {
             <label class="task-page__field" for="taskPageStatusSelect">
               <span>Status</span>
               <select id="taskPageStatusSelect">
-                <option value="inbox" ${draft.status === "inbox" ? "selected" : ""}>Inbox</option>
+                <option value="inbox" ${draft.status === "inbox" ? "selected" : ""}>Untriaged</option>
                 <option value="next" ${draft.status === "next" ? "selected" : ""}>Up next</option>
                 <option value="in_progress" ${draft.status === "in_progress" ? "selected" : ""}>In progress</option>
                 <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Waiting</option>
