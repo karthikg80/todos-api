@@ -9,7 +9,7 @@
 import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
-import { illustrationInboxClear } from "../utils/illustrations.js";
+import { illustrationDeskClear } from "../utils/illustrations.js";
 
 export async function loadInboxItems() {
   if (state.inboxState.loading) return;
@@ -122,7 +122,7 @@ function renderCapturesSection() {
   if (!s.loading && s.hasLoaded && s.items.length === 0) {
     return `
       <li class="todo-list-state triage-empty-state" role="status" aria-live="polite">
-        ${illustrationInboxClear()}
+        ${illustrationDeskClear()}
         <p>Your desk is clear.</p>
         <p>New items will appear here until you're ready to organize them.</p>
         <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
