@@ -11,9 +11,28 @@ import {
   UpdateAdminFeedbackRequestDto,
   UserFeedbackItemDto,
 } from "../types";
+import type { EmailService } from "./emailService";
 
 export class FeedbackService {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly emailService: EmailService | null = null,
+  ) {}
+
+  private dispatchEmail(task: () => Promise<void>): void {
+    if (!this.emailService) return;
+    void Promise.resolve()
+      .then(task)
+      .catch((err) => console.error("Feedback email failed:", err));
+  }
+
+  private async getUserEmail(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    return user?.email ?? null;
+  }
 
   private buildGitHubIssueUrl(issueNumber: number | null): string | null {
     if (!issueNumber) {
@@ -43,6 +62,17 @@ export class FeedbackService {
         userAgent: dto.userAgent ?? null,
         appVersion: dto.appVersion ?? null,
       },
+    });
+
+    this.dispatchEmail(async () => {
+      const email = await this.getUserEmail(userId);
+      if (email) {
+        await this.emailService!.sendFeedbackReceivedEmail(email, {
+          title: dto.title,
+          type: dto.type,
+          id: record.id,
+        });
+      }
     });
 
     return this.toDto(record);
@@ -182,6 +212,25 @@ export class FeedbackService {
       },
     });
 
+    if (
+      dto.status === "triaged" ||
+      dto.status === "promoted" ||
+      dto.status === "rejected"
+    ) {
+      const userEmail = record.user?.email;
+      if (userEmail) {
+        this.dispatchEmail(async () => {
+          await this.emailService!.sendFeedbackStatusEmail(userEmail, {
+            title: record.title,
+            status: dto.status,
+            githubIssueUrl: record.githubIssueUrl,
+            rejectionReason:
+              dto.status === "rejected" ? dto.rejectionReason : null,
+          });
+        });
+      }
+    }
+
     return this.toAdminDto(record);
   }
 
@@ -230,6 +279,17 @@ export class FeedbackService {
         },
       },
     });
+
+    const userEmail = record.user?.email;
+    if (userEmail) {
+      this.dispatchEmail(async () => {
+        await this.emailService!.sendFeedbackStatusEmail(userEmail, {
+          title: record.title,
+          status: "promoted",
+          githubIssueUrl: record.githubIssueUrl,
+        });
+      });
+    }
 
     return this.toAdminDto(record);
   }

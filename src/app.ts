@@ -42,6 +42,7 @@ import { CaptureService } from "./services/captureService";
 import { createCaptureRouter } from "./routes/captureRouter";
 import { createPreferencesRouter } from "./routes/preferencesRouter";
 import { createAgentEnrollmentRouter } from "./routes/agentEnrollmentRouter";
+import { EmailService } from "./services/emailService";
 import { FeedbackService } from "./services/feedbackService";
 import { FeedbackDuplicateService } from "./services/feedbackDuplicateService";
 import { FeedbackPromotionService } from "./services/feedbackPromotionService";
@@ -105,8 +106,9 @@ export function createApp(
   const captureService = persistencePrisma
     ? new CaptureService(persistencePrisma)
     : null;
+  const emailService = new EmailService();
   const feedbackService = persistencePrisma
-    ? new FeedbackService(persistencePrisma)
+    ? new FeedbackService(persistencePrisma, emailService)
     : null;
   const feedbackFailureService = persistencePrisma
     ? new FeedbackFailureService(
