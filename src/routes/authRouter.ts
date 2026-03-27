@@ -1036,13 +1036,23 @@ export function createAuthRouter({
         const state = req.query.state as string;
         const storedState = req.cookies?.oauth_state;
         if (!state || !storedState || state !== storedState) {
+          console.error("Google OAuth state mismatch", {
+            hasState: !!state,
+            hasStoredState: !!storedState,
+            cookieKeys: Object.keys(req.cookies || {}),
+          });
           return res.redirect(
-            `/auth?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
+            `/auth?auth=error&message=${encodeURIComponent("Invalid OAuth state — please try again")}`,
           );
         }
 
-        // Clear state cookie
-        res.clearCookie("oauth_state", { path: "/auth/google" });
+        // Clear state cookie (include all original options so the browser matches it)
+        res.clearCookie("oauth_state", {
+          path: "/auth/google",
+          httpOnly: true,
+          secure: config.nodeEnv === "production",
+          sameSite: "lax",
+        });
 
         const code = req.query.code as string;
         if (!code) {
@@ -1058,7 +1068,12 @@ export function createAuthRouter({
         );
 
         // Clear link cookie
-        res.clearCookie("link_to_user", { path: "/auth/google" });
+        res.clearCookie("link_to_user", {
+          path: "/auth/google",
+          httpOnly: true,
+          secure: config.nodeEnv === "production",
+          sameSite: "lax",
+        });
 
         // Redirect to app with tokens
         const params = new URLSearchParams({
