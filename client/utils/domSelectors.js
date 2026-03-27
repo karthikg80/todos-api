@@ -84,23 +84,23 @@
     const desktopAllCount = document.querySelector(
       '#projectsRail .workspace-view-item[data-workspace-view="all"] .projects-rail-item__count',
     );
-    const desktopUnsortedCount = document.querySelector(
-      '#projectsRail .workspace-view-item[data-workspace-view="unsorted"] .projects-rail-item__count',
+    const desktopTriageCount = document.querySelector(
+      '#projectsRail .workspace-view-item[data-workspace-view="triage"] .projects-rail-item__count',
     );
     const sheetAllCount = document.querySelector(
       '#projectsRailSheet .workspace-view-item[data-workspace-view="all"] .projects-rail-item__count',
     );
-    const sheetUnsortedCount = document.querySelector(
-      '#projectsRailSheet .workspace-view-item[data-workspace-view="unsorted"] .projects-rail-item__count',
+    const sheetTriageCount = document.querySelector(
+      '#projectsRailSheet .workspace-view-item[data-workspace-view="triage"] .projects-rail-item__count',
     );
 
     return {
       desktopList,
       sheetList,
       desktopAllCount,
-      desktopUnsortedCount,
+      desktopTriageCount,
       sheetAllCount,
-      sheetUnsortedCount,
+      sheetTriageCount,
     };
   }
 

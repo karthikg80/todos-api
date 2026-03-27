@@ -91,11 +91,13 @@ import {
   matchesWorkspaceView,
   syncWorkspaceViewState,
   isHomeWorkspaceActive,
+  isTriageWorkspaceActive,
   isUnsortedWorkspaceActive,
   hasHomeListDrilldown,
   clearHomeListDrilldown,
   normalizeWorkspaceView,
   isTodoUnsorted,
+  isTodoNeedsOrganizing,
   isSameLocalDay,
   matchesDateView,
   getVisibleTodos,
@@ -1237,6 +1239,7 @@ function bindDockHandlers() {
   hooks.closeTaskPage = closeTaskPage;
   hooks.syncTaskPageRouteFromLocation = syncTaskPageRouteFromLocation;
   hooks.renderInlineTaskEditor = renderInlineTaskEditor;
+  hooks.renderTodoRowHtml = renderTodoRowHtml;
   hooks.renderTaskPageSurface = renderTaskPageSurface;
   hooks.mountTaskPageDependsPicker = mountTaskPageDependsPicker;
   // drawerUi → projectsState
@@ -1328,6 +1331,8 @@ function bindDockHandlers() {
   hooks.renderHomeDashboard = renderHomeDashboard;
   hooks.renderInboxView = renderInboxView;
   hooks.loadInboxItems = loadInboxItems;
+  hooks.isTriageWorkspaceActive = isTriageWorkspaceActive;
+  hooks.isTodoNeedsOrganizing = isTodoNeedsOrganizing;
   hooks.renderWeeklyReviewView = renderWeeklyReviewView;
   hooks.renderCleanupView = renderCleanupView;
   hooks.updateBulkActionsVisibility = updateBulkActionsVisibility;
@@ -1528,7 +1533,7 @@ window.setUiMode = function setUiMode(mode) {
       ".workspace-view-item.projects-rail-item--active",
     );
     const view = active?.getAttribute("data-workspace-view");
-    if (view && ["home", "inbox", "unsorted"].includes(view)) {
+    if (view && ["home", "triage"].includes(view)) {
       const allBtn = document.querySelector(
         '[data-workspace-view="all"].workspace-view-item',
       );
@@ -1793,7 +1798,7 @@ if (document.body.classList.contains("simple-mode")) {
     ".workspace-view-item.projects-rail-item--active",
   );
   const view = active?.getAttribute("data-workspace-view");
-  if (view && ["home", "inbox", "unsorted"].includes(view)) {
+  if (view && ["home", "triage"].includes(view)) {
     const allBtn = document.querySelector(
       '[data-workspace-view="all"].workspace-view-item',
     );

@@ -315,15 +315,15 @@ export function patchProjectsRailCounts() {
         desktopList: document.getElementById("projectsRailList"),
         sheetList: document.getElementById("projectsRailSheetList"),
         desktopAllCount: null,
-        desktopUnsortedCount: null,
+        desktopTriageCount: null,
         sheetAllCount: null,
-        sheetUnsortedCount: null,
+        sheetTriageCount: null,
       };
 
   const openTodoCountMap = getOpenTodoCountMapByProject();
   const pendingTodos = state.todos.filter((todo) => !todo?.completed);
   const allCount = pendingTodos.length;
-  const unsortedCount = pendingTodos.filter((todo) =>
+  const triageCount = pendingTodos.filter((todo) =>
     isTodoUnsorted(todo),
   ).length;
 
@@ -332,9 +332,9 @@ export function patchProjectsRailCounts() {
       countEl.textContent = String(allCount);
     }
   });
-  [refs.desktopUnsortedCount, refs.sheetUnsortedCount].forEach((countEl) => {
+  [refs.desktopTriageCount, refs.sheetTriageCount].forEach((countEl) => {
     if (countEl instanceof HTMLElement) {
-      countEl.textContent = String(unsortedCount);
+      countEl.textContent = String(triageCount);
     }
   });
 

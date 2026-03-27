@@ -241,34 +241,22 @@ test.describe("Command palette task search", () => {
 
   test("keyboard navigation skips section headers", async ({ page }) => {
     await openCommandPalette(page);
-    // "b" matches commands: Go to Inbox (0), Go to Feedback (1),
-    // Show Keyboard Shortcuts (2) — and tasks: Book flights (3).
+    // "b" matches commands: Go to Feedback (0), Show Keyboard Shortcuts (1),
+    // and the task Book flights (2), while section headers remain non-selectable.
     await page.locator("#commandPaletteInput").fill("b");
+    const options = page.locator('[id^="commandPaletteOption-"]');
+    const selectedOption = page.locator(
+      '[id^="commandPaletteOption-"][aria-selected="true"]',
+    );
 
     await expect(page.locator("#commandPaletteList")).toContainText("Commands");
     await expect(page.locator("#commandPaletteList")).toContainText("Tasks");
 
-    await expect(page.locator("#commandPaletteOption-0")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    await expect(page.locator("#commandPaletteOption-0")).toContainText(
-      "Go to Inbox",
-    );
+    await expect(options).toHaveCount(3);
+    await expect(selectedOption).toContainText("Go to Feedback");
 
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await expect(page.locator("#commandPaletteOption-1")).toHaveAttribute(
-      "aria-selected",
-      "false",
-    );
-    await expect(page.locator("#commandPaletteOption-3")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    await expect(page.locator("#commandPaletteOption-3")).toContainText(
-      "Book flights",
-    );
+    await expect(selectedOption).toContainText("Book flights");
   });
 });

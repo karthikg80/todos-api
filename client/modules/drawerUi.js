@@ -1331,7 +1331,7 @@ export function renderTodoDrawerContent() {
       <label class="todo-drawer__field" for="drawerStatusSelect">
         <span>Status</span>
         <select id="drawerStatusSelect">
-          <option value="inbox" ${draft.status === "inbox" ? "selected" : ""} title="Captured, not yet organized">Inbox</option>
+          <option value="inbox" ${draft.status === "inbox" ? "selected" : ""} title="Needs triage before it is fully organized">Untriaged</option>
           <option value="next" ${draft.status === "next" ? "selected" : ""} title="Ready to work on soon">Up Next</option>
           <option value="in_progress" ${draft.status === "in_progress" ? "selected" : ""}>In progress</option>
           <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Waiting</option>

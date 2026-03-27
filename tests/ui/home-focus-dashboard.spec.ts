@@ -782,16 +782,16 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "true",
     );
 
-    await clickWorkspaceView(page, "unsorted");
+    await clickWorkspaceView(page, "triage");
     await expect(
       page.locator(".todo-item").filter({ hasText: "Sheet entry task" }),
     ).toBeVisible();
   });
 
-  test("Creating a task with a project keeps it out of Unsorted and shows in that project", async ({
+  test("Creating a task with a project keeps it out of Triage and shows in that project", async ({
     page,
   }) => {
-    await clickWorkspaceView(page, "unsorted");
+    await clickWorkspaceView(page, "triage");
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("Project scoped task");
     await page.locator("#quickEntryPropertiesToggle").click();
@@ -868,9 +868,9 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expectListOrEmptyState(page);
   });
 
-  test("Inbox shows an explicit header title", async ({ page }) => {
-    await clickWorkspaceView(page, "inbox");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Inbox");
+  test("Triage shows an explicit header title", async ({ page }) => {
+    await clickWorkspaceView(page, "triage");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Triage");
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
   });
 

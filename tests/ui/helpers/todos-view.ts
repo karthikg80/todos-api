@@ -33,7 +33,14 @@ async function closeProjectsRailSheetIfOpen(page: Page) {
 
 export async function selectWorkspaceView(
   page: Page,
-  view: "home" | "unsorted" | "all" | "today" | "upcoming" | "completed",
+  view:
+    | "home"
+    | "triage"
+    | "unsorted"
+    | "all"
+    | "today"
+    | "upcoming"
+    | "completed",
 ) {
   const selector = `.workspace-view-item[data-workspace-view="${view}"]`;
   if (!isMobileViewport(page)) {

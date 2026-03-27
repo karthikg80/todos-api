@@ -515,7 +515,7 @@ test.describe("Project actions drawer", () => {
       "aria-current",
       "page",
     );
-    await selectWorkspaceView(page, "unsorted", isMobile);
+    await selectWorkspaceView(page, "triage", isMobile);
     await expect(page.locator(".todo-item")).toContainText("Home task");
   });
 
