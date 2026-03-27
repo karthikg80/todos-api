@@ -1,5 +1,5 @@
 // =============================================================================
-// inboxUi.js — Triage view: captures + tasks that still need organizing.
+// inboxUi.js — Desk view: list, capture, organize, promote.
 // Uses callAgentAction for all API calls. Renders into #todosContent when
 // the triage workspace is active.
 // All user-provided content is passed through hooks.escapeHtml before
@@ -27,7 +27,7 @@ export async function loadInboxItems() {
     });
   } catch (err) {
     applyAsyncAction("inbox/failure", {
-      error: err.message || "Could not load triage captures.",
+      error: err.message || "Could not load your desk.",
     });
   }
   if (typeof hooks.renderProjectsRail === "function") {
@@ -71,7 +71,7 @@ function renderCaptureItem(item) {
     <li class="todo-item triage-capture-item" data-capture-id="${escapeHtml(item.id)}">
       <div class="triage-capture-item__content">
         <div class="todo-title" title="${escapeHtml(item.text || "")}">${escapeHtml(item.text || "")}</div>
-        <p class="todo-description">Raw capture</p>
+        <p class="todo-description">New item</p>
         ${age ? `<div class="todo-meta"><span class="todo-chip">${escapeHtml(age)}</span></div>` : ""}
       </div>
       <div class="todo-row-actions triage-capture-item__actions">
@@ -108,12 +108,12 @@ function renderSectionState(message, { modifier = "", actionsHtml = "" } = {}) {
 function renderCapturesSection() {
   const s = state.inboxState;
   if (s.loading && !s.hasLoaded) {
-    return renderSectionState("Loading captures…", {
+    return renderSectionState("Loading your desk…", {
       modifier: "todo-list-state--loading",
     });
   }
   if (s.error && s.items.length === 0) {
-    return renderSectionState(s.error || "Could not load captures.", {
+    return renderSectionState(s.error || "Could not load your desk.", {
       modifier: "todo-list-state--error",
       actionsHtml:
         '<button type="button" class="mini-btn" data-triage-action="reload">Retry</button>',
@@ -123,7 +123,8 @@ function renderCapturesSection() {
     return `
       <li class="todo-list-state triage-empty-state" role="status" aria-live="polite">
         ${illustrationInboxClear()}
-        <p>Captures are clear.</p>
+        <p>Your desk is clear.</p>
+        <p>New items will appear here until you're ready to organize them.</p>
         <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
       </li>
     `;
@@ -134,7 +135,7 @@ function renderCapturesSection() {
 function renderNeedsOrganizingSection() {
   const todos = getNeedsOrganizingTodos();
   if (!todos.length) {
-    return renderSectionState("Nothing needs organizing right now.");
+    return renderSectionState("Nothing is waiting to be sorted.");
   }
   return todos.map((todo) => hooks.renderTodoRowHtml?.(todo) || "").join("");
 }
@@ -149,7 +150,7 @@ export function renderInboxView() {
   const totalCount = captureCount + needsOrganizingTodos.length;
 
   hooks.updateHeaderAndContextUI?.({
-    projectName: "Triage",
+    projectName: "Desk",
     visibleCount: totalCount,
     dateLabel: "",
   });
@@ -158,9 +159,9 @@ export function renderInboxView() {
     <div class="triage-view">
       <div class="triage-view__toolbar">
         <div class="triage-view__summary">
-          <p class="triage-view__eyebrow">Triage</p>
-          <h2 class="triage-view__title">Process captures and organize loose tasks.</h2>
-          <p class="triage-view__copy">Use New Task or press N to capture something new, then finish sorting it here.</p>
+          <p class="triage-view__eyebrow">Desk</p>
+          <h2 class="triage-view__title">A calm place for new items before they're organized.</h2>
+          <p class="triage-view__copy">Capture first, sort when you're ready.</p>
         </div>
         <div class="triage-view__actions">
           <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
@@ -170,7 +171,7 @@ export function renderInboxView() {
       <div class="triage-view__sections">
         <section class="triage-section" aria-labelledby="triageCapturesHeading">
           <div class="todo-group-header triage-section__header">
-            <span id="triageCapturesHeading">Captures</span>
+            <span id="triageCapturesHeading">On your desk</span>
             <span>${captureCount} item${captureCount === 1 ? "" : "s"}</span>
           </div>
           <ul class="todos-list triage-section__list">
@@ -179,7 +180,7 @@ export function renderInboxView() {
         </section>
         <section class="triage-section" aria-labelledby="triageOrganizingHeading">
           <div class="todo-group-header triage-section__header">
-            <span id="triageOrganizingHeading">Needs organizing</span>
+            <span id="triageOrganizingHeading">Ready to sort</span>
             <span>${needsOrganizingTodos.length} task${needsOrganizingTodos.length === 1 ? "" : "s"}</span>
           </div>
           <ul class="todos-list triage-section__list">

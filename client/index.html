@@ -227,10 +227,10 @@
                           </div>
                           <h3>Capture anything, organize later</h3>
                           <p>
-                            Dump tasks, ideas, and notes into your inbox. AI
-                            triages them into projects with the right priority,
-                            or type naturally — "Call dentist tomorrow 2pm" —
-                            and the date is set automatically.
+                            Drop tasks, ideas, and notes onto your desk. Sort
+                            them when you're ready, or type naturally — "Call
+                            dentist tomorrow 2pm" — and the date is set
+                            automatically.
                           </p>
                         </div>
                         <div class="landing-feature-card">
@@ -399,11 +399,10 @@
                               />
                             </svg>
                           </div>
-                          <h4>Inbox Capture</h4>
+                          <h4>Desk</h4>
                           <p>
-                            Capture ideas fast. AI triages and classifies inbox
-                            items into tasks with the right project and
-                            priority.
+                            Capture ideas fast. New items land on your desk
+                            until you're ready to organize them.
                           </p>
                         </div>
                         <div class="landing-card">
@@ -1087,8 +1086,8 @@
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item"
-                          data-workspace-view="inbox"
-                          title="Inbox"
+                          data-workspace-view="triage"
+                          title="Desk"
                         >
                           <svg
                             class="nav-icon"
@@ -1110,35 +1109,7 @@
                               d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
                             />
                           </svg>
-                          <span class="nav-label">Inbox</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="unsorted"
-                          title="Unsorted"
-                        >
-                          <svg
-                            class="nav-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="15"
-                            height="15"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline
-                              points="22 12 16 12 14 15 10 15 8 12 2 12"
-                            />
-                            <path
-                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
-                            />
-                          </svg>
-                          <span class="nav-label">Unsorted</span>
+                          <span class="nav-label">Desk</span>
                           <span class="projects-rail-item__count" hidden
                             >0</span
                           >
@@ -1543,8 +1514,8 @@
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item"
-                          data-workspace-view="inbox"
-                          title="Inbox"
+                          data-workspace-view="triage"
+                          title="Desk"
                         >
                           <svg
                             class="nav-icon"
@@ -1566,35 +1537,7 @@
                               d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
                             />
                           </svg>
-                          <span class="nav-label">Inbox</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="unsorted"
-                          title="Unsorted"
-                        >
-                          <svg
-                            class="nav-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="15"
-                            height="15"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline
-                              points="22 12 16 12 14 15 10 15 8 12 2 12"
-                            />
-                            <path
-                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
-                            />
-                          </svg>
-                          <span class="nav-label">Unsorted</span>
+                          <span class="nav-label">Desk</span>
                           <span class="projects-rail-item__count" hidden
                             >0</span
                           >
@@ -2820,9 +2763,9 @@
                                   </option>
                                   <option
                                     value="inbox"
-                                    title="Captured, not yet organized"
+                                    title="Waiting on your desk"
                                   >
-                                    Inbox
+                                    Desk
                                   </option>
                                   <option
                                     value="in_progress"

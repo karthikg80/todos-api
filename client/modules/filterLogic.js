@@ -558,9 +558,9 @@ function getCurrentDateViewLabel() {
 
 function getCurrentWorkspaceHeaderConfig() {
   const workspaceTitleMap = {
-    triage: "Triage",
-    inbox: "Triage",
-    unsorted: "Triage",
+    inbox: "Desk",
+    triage: "Desk",
+    unsorted: "Desk",
     today: "Today",
     upcoming: "Upcoming",
     completed: "Completed",
@@ -581,7 +581,7 @@ function getCurrentWorkspaceHeaderConfig() {
 
 function getSelectedProjectLabel(selectedProject) {
   if (!selectedProject && state.currentWorkspaceView === "home") return "Home";
-  if (!selectedProject && isTriageWorkspaceActive()) return "Triage";
+  if (!selectedProject && isTriageWorkspaceActive()) return "Desk";
   if (!selectedProject) return "All tasks";
   return hooks.getProjectLeafName(selectedProject);
 }
@@ -695,7 +695,7 @@ function updateHeaderFromVisibleTodos(visibleTodos = []) {
   }
   if (isTriageWorkspaceActive()) {
     updateHeaderAndContextUI({
-      projectName: "Triage",
+      projectName: "Desk",
       visibleCount: getVisibleTodosCount(visibleTodos),
       dateLabel: "",
     });

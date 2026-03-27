@@ -791,7 +791,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
     ).toBeVisible();
   });
 
-  test("Creating a task with a project keeps it out of Triage and shows in that project", async ({
+  test("Creating a task with a project keeps it out of Desk and shows in that project", async ({
     page,
   }) => {
     await clickWorkspaceView(page, "triage");
@@ -881,9 +881,9 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expectListOrEmptyState(page);
   });
 
-  test("Triage shows an explicit header title", async ({ page }) => {
+  test("Desk shows an explicit header title", async ({ page }) => {
     await clickWorkspaceView(page, "triage");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Triage");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Desk");
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
   });
 

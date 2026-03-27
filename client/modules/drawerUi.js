@@ -1306,10 +1306,10 @@ export function renderTodoDrawerContent() {
     .replace(/\n/g, " ");
 
   titleEl.textContent = "Quick panel";
-  // Slimmed drawer: triage fields only. Full editing is on the task page.
+  // Slimmed drawer: quick-edit fields only. Full editing is on the task page.
   contentEl.innerHTML = `
     ${renderDrawerSection({
-      title: "Triage",
+      title: "Essentials",
       bodyHtml: `
       <div class="todo-drawer__top-actions">
         <button type="button" class="mini-btn todo-drawer__full-task-btn" data-onclick="openTaskPageFromDrawer('${escapeHtml(todo.id)}')">Open full task</button>
@@ -1331,7 +1331,7 @@ export function renderTodoDrawerContent() {
       <label class="todo-drawer__field" for="drawerStatusSelect">
         <span>Status</span>
         <select id="drawerStatusSelect">
-          <option value="inbox" ${draft.status === "inbox" ? "selected" : ""} title="Needs triage before it is fully organized">Untriaged</option>
+          <option value="inbox" ${draft.status === "inbox" ? "selected" : ""} title="Waiting on your desk">Desk</option>
           <option value="next" ${draft.status === "next" ? "selected" : ""} title="Ready to work on soon">Up Next</option>
           <option value="in_progress" ${draft.status === "in_progress" ? "selected" : ""}>In progress</option>
           <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Waiting</option>

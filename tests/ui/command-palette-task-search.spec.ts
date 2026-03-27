@@ -196,7 +196,7 @@ test.describe("Command palette task search", () => {
       },
       {
         id: "todo-flight",
-        title: "Book flights",
+        title: "Desk booking",
         description: "Travel planning",
         notes: null,
         category: "Travel",
@@ -226,7 +226,7 @@ test.describe("Command palette task search", () => {
 
     await expect(page.locator("#commandPaletteList")).toContainText("Pay rent");
     await expect(page.locator("#commandPaletteList")).not.toContainText(
-      "Book flights",
+      "Desk booking",
     );
   });
 
@@ -250,9 +250,8 @@ test.describe("Command palette task search", () => {
 
   test("keyboard navigation skips section headers", async ({ page }) => {
     await openCommandPalette(page);
-    // "shortcut" matches the Show Keyboard Shortcuts command
-    // and the seeded "Shortcut cleanup" task.
-    await page.locator("#commandPaletteInput").fill("shortcut");
+    // "desk" matches the command "Go to Desk" and the task "Desk booking".
+    await page.locator("#commandPaletteInput").fill("desk");
 
     await expect(page.locator("#commandPaletteList")).toContainText("Commands");
     await expect(page.locator("#commandPaletteList")).toContainText("Tasks");
@@ -260,9 +259,9 @@ test.describe("Command palette task search", () => {
     const selectedOption = page.locator(
       '[id^="commandPaletteOption-"][aria-selected="true"]',
     );
-    await expect(selectedOption).toContainText("Show Keyboard Shortcuts");
+    await expect(selectedOption).toContainText("Go to Desk");
 
     await page.keyboard.press("ArrowDown");
-    await expect(selectedOption).toContainText("Shortcut cleanup");
+    await expect(selectedOption).toContainText("Desk booking");
   });
 });

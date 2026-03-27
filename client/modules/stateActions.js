@@ -586,7 +586,9 @@ export function applyAsyncAction(type, payload = {}) {
       return state.inboxState;
     case "inbox/failure":
       state.inboxState.loading = false;
-      state.inboxState.error = String(payload.error || "Could not load inbox.");
+      state.inboxState.error = String(
+        payload.error || "Could not load your desk.",
+      );
       state.inboxState.hasLoaded = true;
       return state.inboxState;
 

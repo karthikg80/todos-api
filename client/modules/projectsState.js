@@ -1068,11 +1068,11 @@ function confirmDeleteSelectedProject(
       projectName: normalized,
       body: `"${hooks.getProjectLeafName(normalized)}" still has ${openTodoCount} open ${
         openTodoCount === 1 ? "task" : "tasks"
-      }. Choose whether to keep them in Triage or delete them with the project.`,
+      }. Choose whether to keep them on your desk or delete them with the project.`,
       actions: [
         {
           value: "unsorted",
-          label: "Delete project and move tasks to Triage",
+          label: "Delete project and move tasks to Desk",
           className: "add-btn",
         },
         {

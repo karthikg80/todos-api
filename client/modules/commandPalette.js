@@ -44,7 +44,7 @@ function buildCommandPaletteItems() {
     },
     {
       id: "nav-triage",
-      label: "Go to Triage",
+      label: "Go to Desk",
       type: "workspace",
       payload: "triage",
     },

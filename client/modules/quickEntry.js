@@ -109,7 +109,7 @@ function getAlternateCaptureRoute(surface = captureRouteState.activeSurface) {
 }
 
 function getCaptureRouteLabel(route) {
-  return route === "task" ? "Create task now" : "Send to triage";
+  return route === "task" ? "Create task now" : "Add to Desk";
 }
 
 function getCaptureRouteHintText(surface) {
@@ -845,19 +845,11 @@ async function captureInlineToTriage() {
     }
     resetCaptureRouteSuggestion();
     await hooks.loadInboxItems?.();
-    hooks.showMessage?.(
-      "todosMessage",
-      "Saved to triage for review.",
-      "success",
-    );
+    hooks.showMessage?.("todosMessage", "Added to Desk.", "success");
     hooks.applyFiltersAndRender?.();
   } catch (error) {
     console.error("Inline capture to triage failed:", error);
-    hooks.showMessage?.(
-      "todosMessage",
-      "Could not save capture to triage.",
-      "error",
-    );
+    hooks.showMessage?.("todosMessage", "Could not save to Desk.", "error");
   }
 }
 
@@ -876,19 +868,11 @@ async function captureTaskComposerToTriage() {
       force: true,
       reset: true,
     });
-    hooks.showMessage?.(
-      "todosMessage",
-      "Saved to triage for review.",
-      "success",
-    );
+    hooks.showMessage?.("todosMessage", "Added to Desk.", "success");
     hooks.applyFiltersAndRender?.();
   } catch (error) {
     console.error("Task composer capture to triage failed:", error);
-    hooks.showMessage?.(
-      "todosMessage",
-      "Could not save capture to triage.",
-      "error",
-    );
+    hooks.showMessage?.("todosMessage", "Could not save to Desk.", "error");
   }
 }
 
