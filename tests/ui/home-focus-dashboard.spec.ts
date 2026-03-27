@@ -787,9 +787,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
 
     await clickWorkspaceView(page, "triage");
     await expect(
-      page
-        .locator(".todo-item")
-        .filter({ hasText: "Submit expense report" }),
+      page.locator(".todo-item").filter({ hasText: "Submit expense report" }),
     ).toBeVisible();
   });
 
@@ -808,9 +806,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "true",
     );
     await expect(
-      page
-        .locator(".todo-item")
-        .filter({ hasText: "Project scoped task" }),
+      page.locator(".todo-item").filter({ hasText: "Project scoped task" }),
     ).toHaveCount(0);
 
     await clickProjectInRail(page, "Work");
