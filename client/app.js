@@ -282,6 +282,7 @@ import {
   getComposerDependsOnIds,
   bindCaptureComposerHandlers,
   submitTaskComposerCapture,
+  submitInlineCapture,
 } from "./modules/quickEntry.js";
 import {
   getTodoDueDate,
@@ -1456,6 +1457,14 @@ window.handleSetPassword = handleSetPassword;
 // Todo CRUD
 window.addTodo = addTodo;
 window.submitTaskComposerCapture = submitTaskComposerCapture;
+window.handleInlineQuickAddKeyPress = function handleInlineQuickAddKeyPress(
+  event,
+) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    submitInlineCapture();
+  }
+};
 window.filterTodos = filterTodos;
 window.clearFilters = clearFilters;
 window.setDateView = setDateView;

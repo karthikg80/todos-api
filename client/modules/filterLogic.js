@@ -243,7 +243,8 @@ function matchesDateView(todo) {
 
   if (state.currentDateView === "someday") return !dueDate;
   if (!dueDate) return false;
-  if (state.currentDateView === "today") return dueDate <= todayEnd;
+  if (state.currentDateView === "today")
+    return !todo.completed && dueDate <= todayEnd;
   if (state.currentDateView === "upcoming") {
     const upcomingEnd = new Date(todayEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
     return dueDate > todayEnd && dueDate <= upcomingEnd;
