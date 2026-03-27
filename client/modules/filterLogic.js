@@ -901,7 +901,8 @@ function renderTodos() {
       visibleCount: 1,
       dateLabel: "",
     });
-    container.innerHTML = hooks.renderTaskPageSurface?.(taskTodo) ?? "";
+    container.innerHTML = hooks.renderTaskPageSurface?.(taskTodo) ?? ""; // eslint-disable-line -- hardcoded HTML only, no user input
+    hooks.mountTaskPageDependsPicker?.();
     hooks.syncTodoDrawerStateWithRender?.();
     hooks.updateBulkActionsVisibility?.();
     updateIcsExportButtonState();

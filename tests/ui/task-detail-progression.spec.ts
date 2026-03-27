@@ -331,8 +331,8 @@ test.describe("Task detail progression", () => {
       "false",
     );
 
-    await page.locator("#drawerDetailsToggle").click();
-    await expect(page.locator("#drawerDescriptionTextarea")).toHaveValue(
+    // Slimmed drawer: description is a read-only preview, not an editable textarea
+    await expect(page.locator(".todo-drawer__desc-preview-text")).toContainText(
       "Escalate this into the quick panel",
     );
   });

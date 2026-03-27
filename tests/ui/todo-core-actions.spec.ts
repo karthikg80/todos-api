@@ -535,7 +535,7 @@ test.describe("Bulk operations", () => {
 // ---------------------------------------------------------------------------
 
 test.describe("Subtask display", () => {
-  test("drawer shows subtask list with completion indicators", async ({
+  test("slimmed drawer does not show subtask list (moved to task page)", async ({
     page,
   }) => {
     await installCoreActionsMockApi(page, [
@@ -567,14 +567,12 @@ test.describe("Subtask display", () => {
       page.locator(".todo-item .todo-title").first(),
     );
 
-    // Subtask list should be visible in the drawer
+    // Subtasks were moved to the task page — drawer should not show them
     const subtaskItems = page.locator(".todo-drawer__subtasks-item");
-    await expect(subtaskItems).toHaveCount(3);
+    await expect(subtaskItems).toHaveCount(0);
 
-    // First subtask should have completed indicator
-    await expect(subtaskItems.first()).toHaveClass(/completed/);
-
-    // Second subtask should not be completed
-    await expect(subtaskItems.nth(1)).not.toHaveClass(/completed/);
+    // Drawer should still show triage fields
+    await expect(page.locator("#drawerTitleInput")).toBeVisible();
+    await expect(page.locator("#drawerPrioritySelect")).toBeVisible();
   });
 });

@@ -138,6 +138,7 @@ import {
   bindTaskDetailSurfaceHandlers,
   renderInlineTaskEditor,
   renderTaskPageSurface,
+  mountTaskPageDependsPicker,
   openTaskPage,
   closeTaskPage,
   syncTaskPageRouteFromLocation,
@@ -1206,10 +1207,22 @@ function bindDockHandlers() {
   hooks.showConfirmDialog = showConfirmDialog;
   // app.js orchestrator callbacks
   hooks.updateHeaderAndContextUI = updateHeaderAndContextUI;
-  // drawerUi → todosService
+  // drawerUi / taskDetailSurface → todosService
   hooks.applyTodoPatch = applyTodoPatch;
   hooks.deleteTodo = deleteTodo;
   hooks.loadTodos = loadTodos;
+  hooks.addSubtask = async (todoId, title) => {
+    await apiCall(`${API_URL}/todos/${todoId}/subtasks`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title }),
+    });
+  };
+  hooks.deleteSubtask = async (todoId, subtaskId) => {
+    await apiCall(`${API_URL}/todos/${todoId}/subtasks/${subtaskId}`, {
+      method: "DELETE",
+    });
+  };
   hooks.addTodo = addTodo;
   hooks.addTodoFromInlineInput = addTodoFromInlineInput;
   hooks.addUndoAction = addUndoAction;
@@ -1225,6 +1238,7 @@ function bindDockHandlers() {
   hooks.syncTaskPageRouteFromLocation = syncTaskPageRouteFromLocation;
   hooks.renderInlineTaskEditor = renderInlineTaskEditor;
   hooks.renderTaskPageSurface = renderTaskPageSurface;
+  hooks.mountTaskPageDependsPicker = mountTaskPageDependsPicker;
   // drawerUi → projectsState
   hooks.getAllProjects = getAllProjects;
   hooks.normalizeProjectPath = normalizeProjectPath;

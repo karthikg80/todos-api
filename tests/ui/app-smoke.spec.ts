@@ -281,7 +281,9 @@ test.describe("App smoke flows", () => {
     await firstRow.hover();
     await firstRow.locator(".todo-kebab").click();
     await firstRow.locator(".todo-kebab-item--danger").click();
-    await page.locator("#drawerDeleteTodoButton").click();
+    // Danger zone moved to task page — open full task from drawer
+    await page.locator(".todo-drawer__full-task-btn").click();
+    await page.locator(".task-page__delete-btn").click();
     await page.locator("#confirmDialog").waitFor({ state: "visible" });
     await page.locator("#confirmDialogOk").click();
     await expect(page.locator(".todo-item .todo-title")).toHaveCount(0);

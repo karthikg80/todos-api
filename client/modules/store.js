@@ -247,6 +247,8 @@ export const state = {
   taskPageSaveState: "idle",
   taskPageSaveMessage: "",
   taskPageDescriptionSaveTimer: null,
+  taskPageNotesSaveTimer: null,
+  taskPageTextFieldSaveTimers: {},
   taskPageSaveResetTimer: null,
 
   // Rail
