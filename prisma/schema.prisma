@@ -161,6 +161,8 @@ model User {
   goals                    Goal[]
   planningPreferences      UserPlanningPreferences?
   socialAccounts           SocialAccount[]
+  activityEvents           ActivityEvent[]
+  userInsights             UserInsight[]
 
   @@map("users")
 }
@@ -786,4 +788,68 @@ model LearningRecommendation {
   @@index([userId, status])
   @@index([userId, createdAt])
   @@map("learning_recommendations")
+}
+
+// ─── Data Intelligence Layer ────────────────────────────────────────────────
+
+enum ActivityEventType {
+  task_created
+  task_completed
+  task_uncompleted
+  task_deleted
+  task_updated
+  task_status_changed
+  project_created
+  project_archived
+  subtask_completed
+  filter_used
+  bulk_action
+  session_start
+}
+
+enum InsightType {
+  completion_velocity
+  overcommitment_ratio
+  stale_task_count
+  streak_days
+  most_productive_hour
+  project_health
+}
+
+enum InsightPeriodType {
+  daily
+  weekly
+}
+
+model ActivityEvent {
+  id         String            @id @default(uuid()) @db.Uuid
+  userId     String            @map("user_id")
+  eventType  ActivityEventType @map("event_type")
+  entityType String?           @map("entity_type") @db.VarChar(50)
+  entityId   String?           @map("entity_id") @db.VarChar(100)
+  metadata   Json?
+  createdAt  DateTime          @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, eventType, createdAt])
+  @@map("activity_events")
+}
+
+model UserInsight {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @map("user_id")
+  insightType InsightType       @map("insight_type")
+  periodType  InsightPeriodType @map("period_type")
+  periodStart DateTime          @map("period_start")
+  value       Float
+  metadata    Json?
+  computedAt  DateTime          @default(now()) @map("computed_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, insightType, periodType, periodStart])
+  @@index([userId, computedAt])
+  @@map("user_insights")
 }

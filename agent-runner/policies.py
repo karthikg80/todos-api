@@ -15,6 +15,8 @@ SAFE_AUTO_APPLY_ACTIONS: frozenset[str] = frozenset(
         "create_next_action",
         # Create a follow-up task for a waiting item that has no pending follow-up.
         "follow_up_waiting_task",
+        # Compute user insights — read-heavy, writes only to user_insights table.
+        "compute_insights",
     ]
 )
 

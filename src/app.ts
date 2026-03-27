@@ -51,6 +51,12 @@ import { FailedAutomationActionService } from "./services/failedAutomationAction
 import { FeedbackFailureService } from "./services/feedbackFailureService";
 import { createFeedbackRouter } from "./routes/feedbackRouter";
 import { AgentEnrollmentService } from "./services/agentEnrollmentService";
+import { ActivityEventService } from "./services/activityEventService";
+import { InsightsService } from "./services/insightsService";
+import { InsightsComputeService } from "./services/insightsComputeService";
+import { createEventsRouter } from "./routes/eventsRouter";
+import { createInsightsRouter } from "./routes/insightsRouter";
+import { createCalendarRouter } from "./routes/calendarRouter";
 import {
   authLimiter,
   emailActionLimiter,
@@ -281,6 +287,9 @@ export function createApp(
   app.use("/capture", apiLimiter);
   app.use("/api/feedback", apiLimiter);
   app.use("/preferences", apiLimiter);
+  app.use("/events", apiLimiter);
+  app.use("/insights", apiLimiter);
+  app.use("/calendar", apiLimiter);
   app.use("/oauth", mcpPublicLimiter);
   app.use("/.well-known", mcpPublicLimiter);
 
@@ -332,6 +341,9 @@ export function createApp(
     app.use("/capture", authMiddleware(authService));
     app.use("/api/feedback", authMiddleware(authService));
     app.use("/preferences", authMiddleware(authService));
+    app.use("/events", authMiddleware(authService));
+    app.use("/insights", authMiddleware(authService));
+    app.use("/calendar", authMiddleware(authService));
     app.use(
       "/admin",
       authMiddleware(authService),
@@ -358,6 +370,13 @@ export function createApp(
       todoService,
       projectService,
       resolveTodoUserId,
+    }),
+  );
+  app.use(
+    "/calendar",
+    createCalendarRouter({
+      todoService,
+      resolveUserId: resolveTodoUserId,
     }),
   );
   app.use(
@@ -421,6 +440,28 @@ export function createApp(
     app.use(
       "/api/agent-enrollment",
       createAgentEnrollmentRouter({ enrollmentService, authService }),
+    );
+
+    const activityEventService = new ActivityEventService(persistencePrisma);
+    app.use(
+      "/events",
+      createEventsRouter({
+        activityEventService,
+        resolveUserId: resolveAiUserId,
+      }),
+    );
+
+    const insightsService = new InsightsService(persistencePrisma);
+    const insightsComputeService = new InsightsComputeService(
+      persistencePrisma,
+    );
+    app.use(
+      "/insights",
+      createInsightsRouter({
+        insightsService,
+        insightsComputeService,
+        resolveUserId: resolveAiUserId,
+      }),
     );
   }
 

@@ -16,6 +16,7 @@ import {
 } from "./todosViewPatches.js";
 import { EventBus } from "./eventBus.js";
 import { getEffortScoreValue } from "./soulConfig.js";
+import { trackEvent } from "../utils/activityTracker.js";
 import { TODOS_CHANGED } from "../platform/events/eventTypes.js";
 import {
   TODO_ADDED,
@@ -417,6 +418,11 @@ async function addTodo(options = {}) {
     if (response && response.ok) {
       const newTodo = await response.json();
       state.todos.unshift(newTodo);
+      trackEvent("task_created", {
+        entityType: "todo",
+        entityId: newTodo.id,
+        metadata: { priority: newTodo.priority },
+      });
       await refreshVisibleTodosIfNeeded();
       EventBus.dispatch(TODOS_CHANGED, { reason: TODO_ADDED });
       hooks.updateCategoryFilter?.();
@@ -549,6 +555,10 @@ async function toggleTodo(id, forceValue = null) {
     if (response && response.ok) {
       const updatedTodo = await response.json();
       state.todos = state.todos.map((t) => (t.id === id ? updatedTodo : t));
+      trackEvent(newCompletedValue ? "task_completed" : "task_uncompleted", {
+        entityType: "todo",
+        entityId: id,
+      });
       const canPatchInPlace =
         !hooks.shouldUseServerVisibleTodos?.() &&
         state.currentWorkspaceView === "all" &&
@@ -596,6 +606,7 @@ async function deleteTodo(id) {
     if (response && response.ok) {
       state.todos = state.todos.filter((t) => t.id !== id);
       state.selectedTodos.delete(id);
+      trackEvent("task_deleted", { entityType: "todo", entityId: id });
       EventBus.dispatch(TODOS_CHANGED, { reason: TODO_DELETED });
       hooks.updateCategoryFilter?.();
 

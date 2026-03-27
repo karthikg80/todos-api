@@ -11,6 +11,7 @@ import {
 } from "../validation/aiContracts";
 import { randomUUID } from "crypto";
 import { PlannerService } from "./plannerService";
+import { sanitizeText } from "./contentSanitizer";
 
 export interface CritiqueTaskInput {
   title: string;
@@ -1009,8 +1010,8 @@ export class AiPlannerService {
       const response = await this.provider.generateJson<unknown>(
         "You are an execution coach. Return JSON with: qualityScore (0-100), improvedTitle, improvedDescription, suggestions (string[]). Keep suggestions actionable and concrete with owners, measurable outcomes, and deadlines where possible.",
         JSON.stringify({
-          title: input.title,
-          description: input.description || "",
+          title: sanitizeText(input.title),
+          description: sanitizeText(input.description || ""),
           dueDate: input.dueDate?.toISOString(),
           priority: input.priority || "medium",
           context: contextBlock,
@@ -1047,7 +1048,7 @@ export class AiPlannerService {
       const response = await this.provider.generateJson<unknown>(
         "You are an execution planner. Return JSON with: goal, summary, tasks[]. Each task must include title, description, priority(low|medium|high), optional dueDate ISO string. Prefer concrete, measurable tasks.",
         JSON.stringify({
-          goal: input.goal,
+          goal: sanitizeText(input.goal),
           targetDate: input.targetDate?.toISOString(),
           maxTasks: input.maxTasks,
           context: contextBlock,
@@ -1093,9 +1094,9 @@ export class AiPlannerService {
       const response = await this.provider.generateJson<unknown>(
         "You decompose a task into execution subtasks. Return JSON with: summary, subtasks[{title}]. Titles must be concise and action-oriented.",
         JSON.stringify({
-          title: input.title,
-          description: input.description || "",
-          notes: input.notes || "",
+          title: sanitizeText(input.title),
+          description: sanitizeText(input.description || ""),
+          notes: sanitizeText(input.notes || ""),
           priority: input.priority || "medium",
           maxSubtasks: input.maxSubtasks,
           context: contextBlock,
