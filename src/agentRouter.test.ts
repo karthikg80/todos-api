@@ -115,6 +115,11 @@ describe("Agent router", () => {
           readOnly: false,
         }),
         expect.objectContaining({
+          name: "suggest_capture_route",
+          enabled: true,
+          readOnly: true,
+        }),
+        expect.objectContaining({
           name: "ensure_next_action",
           enabled: true,
           readOnly: false,
@@ -177,6 +182,19 @@ describe("Agent router", () => {
     expect(response.body.error.code).toBe("INVALID_INPUT");
     expect(response.body.error.retryable).toBe(false);
     expect(response.body.error.hint).toContain("/agent/manifest");
+  });
+
+  it("suggests capture routing through the read surface", async () => {
+    const response = await request(app)
+      .post("/agent/read/suggest_capture_route")
+      .send({ text: "Submit expense report tomorrow" })
+      .expect(200);
+
+    expect(response.body.ok).toBe(true);
+    expect(response.body.action).toBe("suggest_capture_route");
+    expect(response.body.readOnly).toBe(true);
+    expect(response.body.data.route).toBe("task");
+    expect(response.body.data.extractedFields.dueDate).toBeDefined();
   });
 
   it("replays create_task responses for matching idempotency keys", async () => {

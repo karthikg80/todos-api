@@ -9,7 +9,7 @@ import {
   getSelectedProjectKey,
   getSelectedProjectLabel,
   syncWorkspaceViewState,
-  isTodoUnsorted,
+  isTodoNeedingTriage,
   setSelectedProjectKey,
 } from "./filterLogic.js";
 import {
@@ -305,8 +305,8 @@ export function getProjectsRailElements() {
   const homeButton = desktopPrimary?.querySelector(
     '.workspace-view-item[data-workspace-view="home"]',
   );
-  const unsortedButton = desktopPrimary?.querySelector(
-    '.workspace-view-item[data-workspace-view="unsorted"]',
+  const triageButton = desktopPrimary?.querySelector(
+    '.workspace-view-item[data-workspace-view="triage"]',
   );
   const allTasksButton = desktopPrimary?.querySelector(
     '.workspace-view-item[data-workspace-view="all"]',
@@ -327,8 +327,8 @@ export function getProjectsRailElements() {
   const sheetHomeButton = sheet?.querySelector(
     '.projects-rail__primary .workspace-view-item[data-workspace-view="home"]',
   );
-  const sheetUnsortedButton = sheet?.querySelector(
-    '.projects-rail__primary .workspace-view-item[data-workspace-view="unsorted"]',
+  const sheetTriageButton = sheet?.querySelector(
+    '.projects-rail__primary .workspace-view-item[data-workspace-view="triage"]',
   );
   const backdrop = document.getElementById("projectsRailBackdrop");
 
@@ -337,7 +337,7 @@ export function getProjectsRailElements() {
   if (!(railList instanceof HTMLElement)) return null;
   if (!(allTasksButton instanceof HTMLElement)) return null;
   if (!(homeButton instanceof HTMLElement)) return null;
-  if (!(unsortedButton instanceof HTMLElement)) return null;
+  if (!(triageButton instanceof HTMLElement)) return null;
   if (!(mobileOpenButton instanceof HTMLElement)) return null;
   if (!(mobileCloseButton instanceof HTMLElement)) return null;
   if (!(sheetCreateButton instanceof HTMLElement)) return null;
@@ -345,7 +345,7 @@ export function getProjectsRailElements() {
   if (!(sheetList instanceof HTMLElement)) return null;
   if (!(sheetAllTasksButton instanceof HTMLElement)) return null;
   if (!(sheetHomeButton instanceof HTMLElement)) return null;
-  if (!(sheetUnsortedButton instanceof HTMLElement)) return null;
+  if (!(sheetTriageButton instanceof HTMLElement)) return null;
   if (!(backdrop instanceof HTMLElement)) return null;
 
   return {
@@ -354,7 +354,7 @@ export function getProjectsRailElements() {
     collapseToggle,
     railList,
     homeButton,
-    unsortedButton,
+    triageButton,
     allTasksButton,
     mobileOpenButton,
     mobileCloseButton,
@@ -363,7 +363,7 @@ export function getProjectsRailElements() {
     sheet,
     sheetList,
     sheetHomeButton,
-    sheetUnsortedButton,
+    sheetTriageButton,
     sheetAllTasksButton,
     backdrop,
   };
@@ -784,9 +784,9 @@ export function renderProjectsRail() {
 
   const selectedProject = getSelectedProjectKey();
   const allCount = state.todos.filter((t) => !t.completed).length;
-  const unsortedCount = state.todos.filter((todo) =>
-    isTodoUnsorted(todo),
-  ).length;
+  const triageCount =
+    state.todos.filter((todo) => isTodoNeedingTriage(todo)).length +
+    state.inboxState.items.length;
   const openTodoCountMap = buildOpenTodoCountMapByProject();
   const projects = getProjectsForRail(openTodoCountMap);
   if (
@@ -825,30 +825,30 @@ export function renderProjectsRail() {
   const desktopAllCount = refs.allTasksButton.querySelector(
     ".projects-rail-item__count",
   );
-  const desktopUnsortedCount = refs.unsortedButton.querySelector(
+  const desktopTriageCount = refs.triageButton.querySelector(
     ".projects-rail-item__count",
   );
   if (desktopAllCount instanceof HTMLElement) {
     desktopAllCount.textContent = String(allCount);
     desktopAllCount.hidden = allCount === 0;
   }
-  if (desktopUnsortedCount instanceof HTMLElement) {
-    desktopUnsortedCount.textContent = String(unsortedCount);
-    desktopUnsortedCount.hidden = unsortedCount === 0;
+  if (desktopTriageCount instanceof HTMLElement) {
+    desktopTriageCount.textContent = String(triageCount);
+    desktopTriageCount.hidden = triageCount === 0;
   }
   const sheetAllCount = refs.sheetAllTasksButton.querySelector(
     ".projects-rail-item__count",
   );
-  const sheetUnsortedCount = refs.sheetUnsortedButton.querySelector(
+  const sheetTriageCount = refs.sheetTriageButton.querySelector(
     ".projects-rail-item__count",
   );
   if (sheetAllCount instanceof HTMLElement) {
     sheetAllCount.textContent = String(allCount);
     sheetAllCount.hidden = allCount === 0;
   }
-  if (sheetUnsortedCount instanceof HTMLElement) {
-    sheetUnsortedCount.textContent = String(unsortedCount);
-    sheetUnsortedCount.hidden = unsortedCount === 0;
+  if (sheetTriageCount instanceof HTMLElement) {
+    sheetTriageCount.textContent = String(triageCount);
+    sheetTriageCount.hidden = triageCount === 0;
   }
 
   refs.allTasksButton.setAttribute("data-project-key", "");

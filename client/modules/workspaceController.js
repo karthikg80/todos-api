@@ -28,6 +28,7 @@ export function createWorkspaceController({
   readStoredAiWorkspaceCollapsedState,
   setAiWorkspaceCollapsed,
   loadTodos,
+  loadInboxItems,
   loadAiSuggestions,
   loadAiUsage,
   loadAiInsights,
@@ -105,6 +106,7 @@ export function createWorkspaceController({
         persist: false,
       });
       loadTodos();
+      loadInboxItems?.();
       loadAiSuggestions();
       loadAiUsage();
       loadAiInsights();

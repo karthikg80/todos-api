@@ -131,6 +131,35 @@ describe("TodoService", () => {
       expect(filtered).toHaveLength(1);
       expect(filtered[0].title).toBe("Charlie");
     });
+
+    it("should filter tasks that still need triage", async () => {
+      await service.create(TEST_USER_ID, {
+        title: "Captured task",
+        status: "inbox",
+        projectId: "project-1",
+        category: "Work",
+      });
+      await service.create(TEST_USER_ID, {
+        title: "Loose task",
+      });
+      await service.create(TEST_USER_ID, {
+        title: "Organized task",
+        status: "next",
+        projectId: "project-2",
+        category: "Ops",
+      });
+
+      const triageTodos = await service.findAll(TEST_USER_ID, {
+        needsOrganizing: true,
+      });
+
+      expect(triageTodos.map((todo) => todo.title)).toEqual(
+        expect.arrayContaining(["Captured task", "Loose task"]),
+      );
+      expect(triageTodos.map((todo) => todo.title)).not.toContain(
+        "Organized task",
+      );
+    });
   });
 
   describe("findById", () => {

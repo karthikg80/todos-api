@@ -23,14 +23,14 @@ const { escapeHtml, showMessage } = window.Utils || {};
 function handleTodoKeyPress(event) {
   if (event.key === "Enter") {
     event.preventDefault();
-    hooks.addTodo?.();
+    hooks.submitTaskComposerCapture?.();
   }
 }
 
 function handleInlineQuickAddKeyPress(event) {
   if (event.key === "Enter") {
     event.preventDefault();
-    hooks.addTodoFromInlineInput?.();
+    hooks.submitInlineCapture?.();
   }
 }
 

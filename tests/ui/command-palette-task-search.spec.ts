@@ -203,6 +203,15 @@ test.describe("Command palette task search", () => {
         dueDate: null,
         priority: "medium",
       },
+      {
+        id: "todo-shortcut",
+        title: "Shortcut cleanup",
+        description: "Review saved shortcuts",
+        notes: null,
+        category: "Admin",
+        dueDate: null,
+        priority: "low",
+      },
     ]);
 
     await openTodosViewWithStorageState(page, {
@@ -241,34 +250,19 @@ test.describe("Command palette task search", () => {
 
   test("keyboard navigation skips section headers", async ({ page }) => {
     await openCommandPalette(page);
-    // "b" matches commands: Go to Inbox (0), Go to Feedback (1),
-    // Show Keyboard Shortcuts (2) — and tasks: Book flights (3).
-    await page.locator("#commandPaletteInput").fill("b");
+    // "shortcut" matches the Show Keyboard Shortcuts command
+    // and the seeded "Shortcut cleanup" task.
+    await page.locator("#commandPaletteInput").fill("shortcut");
 
     await expect(page.locator("#commandPaletteList")).toContainText("Commands");
     await expect(page.locator("#commandPaletteList")).toContainText("Tasks");
 
-    await expect(page.locator("#commandPaletteOption-0")).toHaveAttribute(
-      "aria-selected",
-      "true",
+    const selectedOption = page.locator(
+      '[id^="commandPaletteOption-"][aria-selected="true"]',
     );
-    await expect(page.locator("#commandPaletteOption-0")).toContainText(
-      "Go to Inbox",
-    );
+    await expect(selectedOption).toContainText("Show Keyboard Shortcuts");
 
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await expect(page.locator("#commandPaletteOption-1")).toHaveAttribute(
-      "aria-selected",
-      "false",
-    );
-    await expect(page.locator("#commandPaletteOption-3")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    await expect(page.locator("#commandPaletteOption-3")).toContainText(
-      "Book flights",
-    );
+    await expect(selectedOption).toContainText("Shortcut cleanup");
   });
 });

@@ -9998,9 +9998,9 @@ body.is-admin-user .projects-rail__footer--admin-only {
   pointer-events: auto;
 }
 
-/* ── Inbox view ────────────────────────────────────────────────────────── */
-.inbox-view {
-  max-width: 680px;
+/* ── Triage view ───────────────────────────────────────────────────────── */
+.triage-view {
+  max-width: 760px;
   margin: 0 auto;
   padding: 16px;
   display: flex;
@@ -10008,135 +10008,118 @@ body.is-admin-user .projects-rail__footer--admin-only {
   gap: 16px;
 }
 
-.inbox-capture-form {
-  display: flex;
-  gap: 8px;
-}
-
-.inbox-capture-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-size: var(--fs-body);
-}
-
-.inbox-capture-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px
-    color-mix(in srgb, var(--primary-color) 25%, transparent);
-}
-
-.inbox-btn {
-  padding: 7px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  background: var(--input-bg);
-  color: var(--text-primary);
-  font-size: var(--fs-meta);
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-
-.inbox-btn:hover {
-  background: var(--hover-bg);
-}
-
-.inbox-btn--primary {
-  background: var(--primary-color);
-  color: #fff;
-  border-color: var(--primary-color);
-}
-
-.inbox-btn--primary:hover {
-  filter: brightness(1.1);
-  background: var(--primary-color);
-}
-
-.inbox-btn--ghost {
-  background: transparent;
-}
-
-.inbox-view__toolbar {
+.triage-view__toolbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.inbox-view__count {
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
-}
-
-.inbox-view__list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.inbox-item {
-  display: flex;
   justify-content: space-between;
-  align-items: flex-start;
   gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  background: var(--input-bg);
 }
 
-.inbox-item__body {
-  flex: 1;
-  min-width: 0;
+.triage-view__toolbar h2,
+.triage-section__header h3 {
+  margin: 0;
 }
 
-.inbox-item__text {
-  margin: 0 0 4px;
-  font-size: var(--fs-body);
-  color: var(--text-primary);
-  word-break: break-word;
-}
-
-.inbox-item__age {
-  font-size: var(--fs-meta);
+.triage-view__toolbar p,
+.triage-section__header p {
+  margin: 4px 0 0;
   color: var(--text-secondary);
 }
 
-.inbox-item__actions {
-  display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.inbox-item__spinner {
-  font-size: var(--fs-meta);
-  color: var(--text-secondary);
-  padding: 4px 0;
-}
-
-.inbox-view__loading,
-.inbox-view__error,
-.inbox-view__empty {
-  padding: 24px 0;
+.triage-view__empty,
+.triage-section__empty {
+  padding: 24px;
+  border: 1px dashed var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-2);
   text-align: center;
   color: var(--text-secondary);
-  font-size: var(--fs-body);
 }
 
-.inbox-view__empty .empty-state-illustration {
+.triage-view__empty .empty-state-illustration {
   width: 100px;
   height: 80px;
   margin-bottom: var(--s-3);
 }
 
-.inbox-view__error {
-  color: var(--danger);
+.triage-section {
+  display: grid;
+  gap: 12px;
+}
+
+.triage-section__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.triage-section__count {
+  min-width: 32px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.triage-section__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.triage-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--card-bg);
+}
+
+.triage-item__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.triage-item__title {
+  margin: 0;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.triage-item__meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.triage-item__meta,
+.triage-item__spinner {
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
+}
+
+.triage-item__pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  color: var(--accent);
+  font-size: var(--fs-meta);
+}
+
+.triage-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  flex-shrink: 0;
 }
 
 /* ── Day Plan Agent panel ───────────────────────────────────────────────── */
@@ -11065,14 +11048,13 @@ body.simple-mode .todo-item {
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
-/* Sidebar: hide project tree sections, Home, Inbox, Unsorted, Projects button */
+/* Sidebar: hide project tree sections, Home, Triage, Projects button */
 body.simple-mode
   .projects-rail__section:not(.projects-rail__section--workspace):not(
     .projects-rail__section--utilities
   ),
 body.simple-mode .projects-rail__spacer,
-body.simple-mode [data-workspace-view="inbox"],
-body.simple-mode [data-workspace-view="unsorted"],
+body.simple-mode [data-workspace-view="triage"],
 body.simple-mode .projects-rail-projects-access,
 body.simple-mode .projects-rail-mobile-open {
   display: none !important;
@@ -11144,7 +11126,7 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
 
 .inline-quick-add {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 10px 14px;
   margin-bottom: var(--s-3);
@@ -11186,8 +11168,7 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
 }
 
 .inline-quick-add__input {
-  flex: 1 1 0;
-  min-width: 0;
+  width: 100%;
   border: none;
   background: transparent;
   font-size: var(--fs-body);
@@ -11200,35 +11181,43 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
   color: var(--text-muted);
 }
 
+.inline-quick-add__body {
+  min-width: 0;
+  flex: 1 1 0;
+  display: grid;
+  gap: 8px;
+}
+
 .inline-quick-add__chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  flex-shrink: 0;
 }
 
-.inline-quick-add__hint {
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  padding: 2px 6px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--surface-2);
+.inline-quick-add__route {
+  margin: 0;
+  font-size: var(--fs-meta);
   color: var(--text-muted);
-  font-family: inherit;
-  opacity: 0;
-  transition: opacity var(--dur-fast) var(--ease-out);
-  pointer-events: none;
 }
 
-.inline-quick-add:focus-within .inline-quick-add__hint {
-  opacity: 1;
+.inline-quick-add__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 /* Chip reuse inside inline quick-add */
 .inline-quick-add__chips .quick-entry-natural-due-chip {
   font-size: var(--fs-meta);
   padding: 3px 8px;
+}
+
+.task-composer-route-hint {
+  margin: 0;
+  padding: 0 14px 12px;
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
 }
 
 /* ── Cleaner todo-item hover/focus states ── */

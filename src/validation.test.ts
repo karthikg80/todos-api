@@ -544,6 +544,11 @@ describe("Validation", () => {
       expect(result.limit).toBe(10);
     });
 
+    it("should parse needsOrganizing=true", () => {
+      const result = validateFindTodosQuery({ needsOrganizing: "true" });
+      expect(result.needsOrganizing).toBe(true);
+    });
+
     it("should throw for limit exceeding max", () => {
       expect(() => validateFindTodosQuery({ limit: "101" })).toThrow(
         "limit cannot exceed 100",

@@ -235,6 +235,20 @@ export class PrismaTodoService implements ITodoService {
         projectId: null,
       });
     }
+    if (query?.needsOrganizing) {
+      and.push({
+        completed: false,
+        OR: [
+          { status: "inbox" },
+          {
+            AND: [
+              { projectId: null },
+              { OR: [{ category: null }, { category: "" }] },
+            ],
+          },
+        ],
+      });
+    }
     if (query?.project) {
       and.push({
         OR: [
