@@ -490,7 +490,7 @@ test.describe("Project actions drawer", () => {
     await expect(projectRailItem(page, "Work", isMobile)).toHaveCount(0);
   });
 
-  test("delete project can move open tasks to Unsorted and falls back to Home", async ({
+  test("delete project can move open tasks to Desk and falls back to Home", async ({
     page,
     isMobile,
   }) => {
@@ -501,7 +501,7 @@ test.describe("Project actions drawer", () => {
     await expect(page.locator("#projectDeleteDialog")).toBeVisible();
     await page
       .getByRole("button", {
-        name: "Delete project and move tasks to Unsorted",
+        name: "Delete project and move tasks to Desk",
       })
       .click();
 
@@ -515,7 +515,7 @@ test.describe("Project actions drawer", () => {
       "aria-current",
       "page",
     );
-    await selectWorkspaceView(page, "unsorted", isMobile);
+    await selectWorkspaceView(page, "triage", isMobile);
     await expect(page.locator(".todo-item")).toContainText("Home task");
   });
 

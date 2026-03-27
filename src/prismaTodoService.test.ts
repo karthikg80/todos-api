@@ -234,6 +234,38 @@ describe("PrismaTodoService (Integration)", () => {
       expect(todos).toHaveLength(1);
       expect(todos[0].title).toBe("Loose today");
     });
+
+    it("should filter tasks that still need triage", async () => {
+      const project = await prisma.project.create({
+        data: {
+          userId: TEST_USER_ID,
+          name: "Work",
+        },
+      });
+
+      await service.create(TEST_USER_ID, {
+        title: "Captured task",
+        status: "inbox",
+        projectId: project.id,
+      });
+      await service.create(TEST_USER_ID, {
+        title: "Loose task",
+      });
+      await service.create(TEST_USER_ID, {
+        title: "Organized task",
+        status: "next",
+        projectId: project.id,
+      });
+
+      const todos = await service.findAll(TEST_USER_ID, {
+        needsOrganizing: true,
+      });
+
+      expect(todos.map((todo) => todo.title)).toEqual(
+        expect.arrayContaining(["Captured task", "Loose task"]),
+      );
+      expect(todos.map((todo) => todo.title)).not.toContain("Organized task");
+    });
   });
 
   describe("findById", () => {

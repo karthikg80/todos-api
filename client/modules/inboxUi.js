@@ -1,7 +1,7 @@
 // =============================================================================
 // inboxUi.js — Desk view: list, capture, organize, promote.
 // Uses callAgentAction for all API calls. Renders into #todosContent when
-// currentWorkspaceView === "inbox".
+// the triage workspace is active.
 // All user-provided content is passed through hooks.escapeHtml before
 // being assigned to innerHTML, consistent with the existing codebase pattern.
 // =============================================================================
@@ -11,14 +11,12 @@ import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { illustrationInboxClear } from "../utils/illustrations.js";
 
-// ---------------------------------------------------------------------------
-// Load inbox items from the agent API
-// ---------------------------------------------------------------------------
-
 export async function loadInboxItems() {
   if (state.inboxState.loading) return;
   applyAsyncAction("inbox/start");
-  renderInboxView();
+  if (isTriageWorkspaceActive()) {
+    renderInboxView();
+  }
   try {
     const data = await callAgentAction("/agent/read/list_inbox_items", {
       lifecycle: "new",
@@ -32,12 +30,11 @@ export async function loadInboxItems() {
       error: err.message || "Could not load your desk.",
     });
   }
+  if (typeof hooks.renderProjectsRail === "function") {
+    hooks.renderProjectsRail();
+  }
   renderInboxView();
 }
-
-// ---------------------------------------------------------------------------
-// Render helpers
-// ---------------------------------------------------------------------------
 
 function formatAge(date) {
   const now = new Date();
@@ -50,116 +47,173 @@ function formatAge(date) {
   return `${diffDays}d ago`;
 }
 
-function renderInboxItem(item) {
+function isTriageWorkspaceActive() {
+  return typeof hooks.isTriageWorkspaceActive === "function"
+    ? hooks.isTriageWorkspaceActive()
+    : state.currentWorkspaceView === "triage";
+}
+
+function getNeedsOrganizingTodos() {
+  const matcher =
+    typeof hooks.isTodoNeedsOrganizing === "function"
+      ? hooks.isTodoNeedsOrganizing
+      : (todo) => !todo?.completed;
+  return state.todos.filter((todo) => matcher(todo));
+}
+
+function renderCaptureItem(item) {
   const escapeHtml = hooks.escapeHtml || ((s) => String(s));
   const s = state.inboxState;
   const isTriaging = s.triagingIds.has(item.id);
   const age = item.capturedAt ? formatAge(new Date(item.capturedAt)) : "";
 
   return `
-    <div class="inbox-item" data-capture-id="${escapeHtml(item.id)}">
-      <div class="inbox-item__body">
-        <p class="inbox-item__text">${escapeHtml(item.text || "")}</p>
-        ${age ? `<span class="inbox-item__age">${escapeHtml(age)}</span>` : ""}
+    <li class="todo-item triage-capture-item" data-capture-id="${escapeHtml(item.id)}">
+      <div class="triage-capture-item__content">
+        <div class="todo-title" title="${escapeHtml(item.text || "")}">${escapeHtml(item.text || "")}</div>
+        <p class="todo-description">New item</p>
+        ${age ? `<div class="todo-meta"><span class="todo-chip">${escapeHtml(age)}</span></div>` : ""}
       </div>
-      <div class="inbox-item__actions">
+      <div class="todo-row-actions triage-capture-item__actions">
         ${
           isTriaging
-            ? `<span class="inbox-item__spinner">Processing…</span>`
+            ? `<span class="triage-capture-item__spinner">Processing...</span>`
             : `
-          <button type="button" class="inbox-btn inbox-btn--primary"
-            data-inbox-action="promote" data-capture-id="${escapeHtml(item.id)}">
+          <button type="button" class="mini-btn"
+            data-triage-action="promote" data-capture-id="${escapeHtml(item.id)}">
             Create task
           </button>
-          <button type="button" class="inbox-btn inbox-btn--ghost"
-            data-inbox-action="discard" data-capture-id="${escapeHtml(item.id)}">
+          <button type="button" class="mini-btn"
+            data-triage-action="discard" data-capture-id="${escapeHtml(item.id)}">
             Discard
           </button>
         `
         }
       </div>
-    </div>
+    </li>
   `;
+}
+
+function renderSectionState(message, { modifier = "", actionsHtml = "" } = {}) {
+  const escapeHtml = hooks.escapeHtml || ((value) => String(value ?? ""));
+  const className = ["todo-list-state", modifier].filter(Boolean).join(" ");
+  return `
+    <li class="${className}" role="status" aria-live="polite">
+      <p>${escapeHtml(message)}</p>
+      ${actionsHtml}
+    </li>
+  `;
+}
+
+function renderCapturesSection() {
+  const s = state.inboxState;
+  if (s.loading && !s.hasLoaded) {
+    return renderSectionState("Loading your desk…", {
+      modifier: "todo-list-state--loading",
+    });
+  }
+  if (s.error && s.items.length === 0) {
+    return renderSectionState(s.error || "Could not load your desk.", {
+      modifier: "todo-list-state--error",
+      actionsHtml:
+        '<button type="button" class="mini-btn" data-triage-action="reload">Retry</button>',
+    });
+  }
+  if (!s.loading && s.hasLoaded && s.items.length === 0) {
+    return `
+      <li class="todo-list-state triage-empty-state" role="status" aria-live="polite">
+        ${illustrationInboxClear()}
+        <p>Your desk is clear.</p>
+        <p>New items will appear here until you're ready to organize them.</p>
+        <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
+      </li>
+    `;
+  }
+  return s.items.map(renderCaptureItem).join("");
+}
+
+function renderNeedsOrganizingSection() {
+  const todos = getNeedsOrganizingTodos();
+  if (!todos.length) {
+    return renderSectionState("Nothing is waiting to be sorted.");
+  }
+  return todos.map((todo) => hooks.renderTodoRowHtml?.(todo) || "").join("");
 }
 
 export function renderInboxView() {
   const container = document.getElementById("todosContent");
   if (!container) return;
-  if (state.currentWorkspaceView !== "inbox") return;
+  if (!isTriageWorkspaceActive()) return;
 
-  const s = state.inboxState;
-  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
+  const captureCount = state.inboxState.items.length;
+  const needsOrganizingTodos = getNeedsOrganizingTodos();
+  const totalCount = captureCount + needsOrganizingTodos.length;
 
-  let bodyHtml;
+  hooks.updateHeaderAndContextUI?.({
+    projectName: "Desk",
+    visibleCount: totalCount,
+    dateLabel: "",
+  });
 
-  if (s.loading && !s.hasLoaded) {
-    bodyHtml = `<div class="inbox-view__loading" role="status" aria-live="polite">Loading your desk…</div>`;
-  } else if (s.error && s.items.length === 0) {
-    bodyHtml = `
-      <div class="inbox-view__error" role="status">
-        <p>${escapeHtml(s.error)}</p>
-        <button type="button" class="inbox-btn" data-inbox-action="reload">Retry</button>
-      </div>`;
-  } else if (!s.loading && s.hasLoaded && s.items.length === 0) {
-    bodyHtml = `
-      <div class="inbox-view__empty">
-        ${illustrationInboxClear()}
-        <p>Your desk is clear.</p>
-        <p>New items will appear here until you're ready to organize them.</p>
-      </div>`;
-  } else {
-    const itemsHtml = s.items.map(renderInboxItem).join("");
-    bodyHtml = `
-      <div class="inbox-view__toolbar">
-        <span class="inbox-view__count">${s.items.length} item${s.items.length !== 1 ? "s" : ""}</span>
-        <button type="button" class="inbox-btn" data-inbox-action="reload">Refresh</button>
-      </div>
-      <div class="inbox-view__list">${itemsHtml}</div>`;
-  }
-
-  // All dynamic values passed through escapeHtml before innerHTML assignment.
   container.innerHTML = `
-    <div class="inbox-view">
-      <div class="inbox-view__capture">
-        <form class="inbox-capture-form" data-inbox-action="capture-submit">
-          <input
-            type="text"
-            class="inbox-capture-input"
-            id="inboxCaptureInput"
-            placeholder="Add a note, task, or idea..."
-            maxlength="2000"
-            autocomplete="off"
-          />
-          <button type="submit" class="inbox-btn inbox-btn--primary">Add to Desk</button>
-        </form>
+    <div class="triage-view">
+      <div class="triage-view__toolbar">
+        <div class="triage-view__summary">
+          <p class="triage-view__eyebrow">Desk</p>
+          <h2 class="triage-view__title">A calm place for new items before they're organized.</h2>
+          <p class="triage-view__copy">Capture first, sort when you're ready.</p>
+        </div>
+        <div class="triage-view__actions">
+          <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
+          <button type="button" class="mini-btn" data-triage-action="reload">Refresh</button>
+        </div>
       </div>
-      <div class="inbox-view__body">${bodyHtml}</div>
+      <div class="triage-view__sections">
+        <section class="triage-section" aria-labelledby="triageCapturesHeading">
+          <div class="todo-group-header triage-section__header">
+            <span id="triageCapturesHeading">On your desk</span>
+            <span>${captureCount} item${captureCount === 1 ? "" : "s"}</span>
+          </div>
+          <ul class="todos-list triage-section__list">
+            ${renderCapturesSection()}
+          </ul>
+        </section>
+        <section class="triage-section" aria-labelledby="triageOrganizingHeading">
+          <div class="todo-group-header triage-section__header">
+            <span id="triageOrganizingHeading">Ready to sort</span>
+            <span>${needsOrganizingTodos.length} task${needsOrganizingTodos.length === 1 ? "" : "s"}</span>
+          </div>
+          <ul class="todos-list triage-section__list">
+            ${renderNeedsOrganizingSection()}
+          </ul>
+        </section>
+      </div>
     </div>
   `;
 }
-
-// ---------------------------------------------------------------------------
-// Action handlers
-// ---------------------------------------------------------------------------
 
 async function promoteItem(captureId) {
   state.inboxState.triagingIds.add(captureId);
   renderInboxView();
   try {
-    await callAgentAction("/agent/write/promote_inbox_item", {
+    const promoted = await callAgentAction("/agent/write/promote_inbox_item", {
       captureItemId: captureId,
       type: "task",
     });
+    if (promoted?.task) {
+      state.todos.unshift(promoted.task);
+    }
     state.inboxState.items = state.inboxState.items.filter(
       (i) => i.id !== captureId,
     );
-    if (typeof hooks.applyFiltersAndRender === "function") {
-      hooks.applyFiltersAndRender();
-    }
+    hooks.applyFiltersAndRender?.();
   } catch (err) {
-    console.error("Inbox promote failed:", err);
+    console.error("Triage promote failed:", err);
   } finally {
     state.inboxState.triagingIds.delete(captureId);
+  }
+  if (typeof hooks.renderProjectsRail === "function") {
+    hooks.renderProjectsRail();
   }
   renderInboxView();
 }
@@ -176,62 +230,34 @@ async function discardItem(captureId) {
       (i) => i.id !== captureId,
     );
   } catch (err) {
-    console.error("Inbox discard failed:", err);
+    console.error("Triage discard failed:", err);
   } finally {
     state.inboxState.triagingIds.delete(captureId);
+  }
+  if (typeof hooks.renderProjectsRail === "function") {
+    hooks.renderProjectsRail();
   }
   renderInboxView();
 }
 
-async function captureItem(text) {
-  if (!text.trim()) return;
-  try {
-    await callAgentAction("/agent/write/capture_inbox_item", {
-      text: text.trim(),
-      source: "manual",
-    });
-    await loadInboxItems();
-  } catch (err) {
-    console.error("Inbox capture failed:", err);
-  }
-}
-
-// ---------------------------------------------------------------------------
-// Event binding (delegated, called once from app.js)
-// ---------------------------------------------------------------------------
-
 export function bindInboxHandlers() {
   document.addEventListener("click", (event) => {
-    if (state.currentWorkspaceView !== "inbox") return;
+    if (!isTriageWorkspaceActive()) return;
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
-    const actionEl = target.closest("[data-inbox-action]");
+    const actionEl = target.closest("[data-triage-action]");
     if (!(actionEl instanceof HTMLElement)) return;
 
-    const action = actionEl.getAttribute("data-inbox-action");
+    const action = actionEl.getAttribute("data-triage-action");
     const captureId = actionEl.getAttribute("data-capture-id") || "";
 
     if (action === "reload") {
       loadInboxItems();
     } else if (action === "promote" && captureId) {
-      promoteItem(captureId);
+      void promoteItem(captureId);
     } else if (action === "discard" && captureId) {
-      discardItem(captureId);
-    }
-  });
-
-  document.addEventListener("submit", (event) => {
-    if (state.currentWorkspaceView !== "inbox") return;
-    const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-    if (!target.matches("[data-inbox-action='capture-submit']")) return;
-    event.preventDefault();
-    const input = document.getElementById("inboxCaptureInput");
-    if (input instanceof HTMLInputElement && input.value.trim()) {
-      const text = input.value;
-      input.value = "";
-      captureItem(text);
+      void discardItem(captureId);
     }
   });
 }

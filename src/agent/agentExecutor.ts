@@ -24,6 +24,7 @@ import { FrictionService } from "../services/frictionService";
 import { ActionPolicyService } from "../services/actionPolicyService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
+import * as chrono from "chrono-node";
 import { DryRunResult } from "../types";
 import { AiPlannerService } from "../services/aiService";
 import type { IAiSuggestionStore } from "../services/aiSuggestionStore";
@@ -101,6 +102,7 @@ import {
   validateAgentCaptureInboxItemInput,
   validateAgentListInboxItemsInput,
   validateAgentPromoteInboxItemInput,
+  validateAgentSuggestCaptureRouteInput,
   validateAgentEvaluateDailyInput,
   validateAgentEvaluateWeeklyInput,
   validateAgentRecordLearningRecInput,
@@ -183,6 +185,7 @@ export type AgentActionName =
   | "weekly_executive_summary"
   | "capture_inbox_item"
   | "list_inbox_items"
+  | "suggest_capture_route"
   | "promote_inbox_item"
   | "evaluate_daily_plan"
   | "evaluate_weekly_system"
@@ -289,6 +292,7 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "get_day_context",
   "weekly_executive_summary",
   "list_inbox_items",
+  "suggest_capture_route",
   "evaluate_daily_plan",
   "evaluate_weekly_system",
   "list_learning_recommendations",
@@ -549,6 +553,125 @@ function triageCaptureText(text: string): {
     confidence: 0.5,
     why: "No clear action verb but text may be actionable — review before adding",
     proposedAction: { title: trimmed, status: "inbox" },
+  };
+}
+
+function removeMatchedDatePhrase(
+  text: string,
+  matchText: string,
+  index: number,
+): string {
+  const rawText = String(text || "");
+  const start = Math.max(0, index);
+  const end = Math.min(rawText.length, start + String(matchText || "").length);
+  if (start >= end) {
+    return rawText.trim();
+  }
+  return `${rawText.slice(0, start)} ${rawText.slice(end)}`
+    .replace(/\s+/g, " ")
+    .replace(/\s+([,.;:!?])/g, "$1")
+    .trim();
+}
+
+function suggestCaptureRoute(input: {
+  text: string;
+  project?: string;
+  workspaceView?: string;
+}): {
+  route: "task" | "triage";
+  confidence: number;
+  why: string;
+  cleanedTitle: string;
+  extractedFields: {
+    dueDate?: string;
+    project?: string;
+    priority?: "low" | "medium" | "high" | "urgent";
+  };
+} {
+  const trimmed = input.text.trim();
+  const project = String(input.project || "").trim();
+  const workspaceView = String(input.workspaceView || "").trim();
+  const chronoResults = chrono.parse(trimmed, new Date(), {
+    forwardDate: true,
+  });
+  const chronoMatch = chronoResults.find((entry) => {
+    const textValue = String(entry?.text || "").trim();
+    return textValue.length >= 2 && /[a-zA-Z]|\/|:/.test(textValue);
+  });
+  const dueDate = chronoMatch?.start?.date?.();
+  const hasDueDate =
+    dueDate instanceof Date &&
+    !Number.isNaN(dueDate.getTime()) &&
+    dueDate.getTime() >= Date.now() - 60_000;
+  const cleanedTitle =
+    chronoMatch && hasDueDate
+      ? removeMatchedDatePhrase(
+          trimmed,
+          String(chronoMatch.text || ""),
+          Number(chronoMatch.index) || 0,
+        ) || trimmed
+      : trimmed;
+  const multiline = /\n/.test(trimmed);
+  const looksReference =
+    /^https?:\/\//.test(trimmed) ||
+    /\b(reference|note|notes|idea|someday|bookmark)\b/i.test(trimmed);
+  const actionVerb = ACTION_VERB_RE.test(trimmed);
+
+  if (project) {
+    return {
+      route: "task",
+      confidence: 0.94,
+      why: "You are already inside a project, so this is likely ready to become a task.",
+      cleanedTitle,
+      extractedFields: {
+        ...(hasDueDate ? { dueDate: dueDate.toISOString() } : {}),
+        project,
+      },
+    };
+  }
+
+  if (actionVerb || hasDueDate) {
+    return {
+      route: "task",
+      confidence: hasDueDate ? 0.88 : 0.84,
+      why: hasDueDate
+        ? "The text includes a concrete date, which usually indicates a ready-to-create task."
+        : "The text starts with a clear action, which usually indicates a ready-to-create task.",
+      cleanedTitle,
+      extractedFields: {
+        ...(hasDueDate ? { dueDate: dueDate.toISOString() } : {}),
+      },
+    };
+  }
+
+  if (multiline || looksReference || trimmed.length > 140) {
+    return {
+      route: "triage",
+      confidence: multiline ? 0.82 : 0.74,
+      why: multiline
+        ? "This looks like a rough capture with multiple ideas and is better reviewed in triage."
+        : "This looks more like reference material or a rough note than a ready task.",
+      cleanedTitle,
+      extractedFields: {},
+    };
+  }
+
+  if (workspaceView === "triage") {
+    return {
+      route: "triage",
+      confidence: 0.62,
+      why: "You are already triaging work, so saving this for review is the safer default.",
+      cleanedTitle,
+      extractedFields: {},
+    };
+  }
+
+  return {
+    route: "triage",
+    confidence: 0.52,
+    why: "The text is still ambiguous, so triage is the safer default until it is clarified.",
+    cleanedTitle,
+    extractedFields: {},
   };
 }
 
@@ -2073,6 +2196,12 @@ export class AgentExecutor {
             items,
             total: items.length,
           });
+        }
+        case "suggest_capture_route": {
+          const suggestion = suggestCaptureRoute(
+            validateAgentSuggestCaptureRouteInput(input),
+          );
+          return this.success(action, readOnly, context, 200, suggestion);
         }
         case "promote_inbox_item": {
           const {

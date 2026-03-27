@@ -255,6 +255,10 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "list_inbox_items"),
   );
   router.post(
+    "/read/suggest_capture_route",
+    createAgentActionHandler(agentExecutor, "suggest_capture_route"),
+  );
+  router.post(
     "/write/promote_inbox_item",
     createAgentActionHandler(agentExecutor, "promote_inbox_item"),
   );

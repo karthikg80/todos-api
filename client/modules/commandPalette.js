@@ -43,10 +43,10 @@ function buildCommandPaletteItems() {
       payload: "home",
     },
     {
-      id: "nav-inbox",
+      id: "nav-triage",
       label: "Go to Desk",
       type: "workspace",
-      payload: "inbox",
+      payload: "triage",
     },
     {
       id: "nav-today",

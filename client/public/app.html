@@ -316,7 +316,7 @@
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item"
-                          data-workspace-view="inbox"
+                          data-workspace-view="triage"
                           title="Desk"
                         >
                           <svg
@@ -340,34 +340,6 @@
                             />
                           </svg>
                           <span class="nav-label">Desk</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="unsorted"
-                          title="Unsorted"
-                        >
-                          <svg
-                            class="nav-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="15"
-                            height="15"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline
-                              points="22 12 16 12 14 15 10 15 8 12 2 12"
-                            />
-                            <path
-                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
-                            />
-                          </svg>
-                          <span class="nav-label">Unsorted</span>
                           <span class="projects-rail-item__count" hidden
                             >0</span
                           >
@@ -772,7 +744,7 @@
                         <button
                           type="button"
                           class="projects-rail-item workspace-view-item"
-                          data-workspace-view="inbox"
+                          data-workspace-view="triage"
                           title="Desk"
                         >
                           <svg
@@ -796,34 +768,6 @@
                             />
                           </svg>
                           <span class="nav-label">Desk</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="projects-rail-item workspace-view-item"
-                          data-workspace-view="unsorted"
-                          title="Unsorted"
-                        >
-                          <svg
-                            class="nav-icon"
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="15"
-                            height="15"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            aria-hidden="true"
-                          >
-                            <polyline
-                              points="22 12 16 12 14 15 10 15 8 12 2 12"
-                            />
-                            <path
-                              d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
-                            />
-                          </svg>
-                          <span class="nav-label">Unsorted</span>
                           <span class="projects-rail-item__count" hidden
                             >0</span
                           >
@@ -1846,6 +1790,16 @@
                           >
                         </button>
                       </div>
+                      <div class="todos-top-bar-actions">
+                        <button
+                          id="topBarNewTaskCta"
+                          type="button"
+                          class="add-btn top-add-btn"
+                          data-onclick="openTaskComposer()"
+                        >
+                          New Task
+                        </button>
+                      </div>
                     </div>
 
                     <div id="todosScrollRegion">
@@ -2312,11 +2266,24 @@
                             id="taskComposerAddButton"
                             class="add-btn"
                             type="button"
-                            data-onclick="addTodo()"
+                            data-onclick="submitTaskComposerCapture()"
                           >
-                            Add
+                            Create task now
+                          </button>
+                          <button
+                            id="taskComposerTriageButton"
+                            class="mini-btn"
+                            type="button"
+                            data-onclick="submitTaskComposerCapture('alternate')"
+                          >
+                            Add to Desk
                           </button>
                         </div>
+                        <p
+                          id="taskComposerRouteHint"
+                          class="task-composer-route-hint"
+                          hidden
+                        ></p>
                       </section>
 
                       <section
@@ -2505,37 +2472,6 @@
                           </button>
                         </div>
                       </div>
-                      <div
-                        id="inlineQuickAdd"
-                        class="inline-quick-add"
-                        role="form"
-                        aria-label="Quick add task"
-                      >
-                        <span class="inline-quick-add__icon" aria-hidden="true"
-                          >+</span
-                        >
-                        <label for="inlineQuickAddInput" class="sr-only"
-                          >Quick add task</label
-                        >
-                        <input
-                          type="text"
-                          id="inlineQuickAddInput"
-                          class="inline-quick-add__input"
-                          placeholder="What needs to be done?"
-                          autocomplete="off"
-                          data-onkeypress="handleInlineQuickAddKeyPress(event)"
-                        />
-                        <div
-                          id="inlineQuickAddChipRow"
-                          class="inline-quick-add__chips"
-                          hidden
-                          aria-live="polite"
-                        ></div>
-                        <kbd class="inline-quick-add__hint" aria-hidden="true"
-                          >Enter</kbd
-                        >
-                      </div>
-
                       <div id="todosContent">
                         <div class="loading">
                           <div class="spinner"></div>

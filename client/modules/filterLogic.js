@@ -94,9 +94,12 @@ function matchesWorkspaceView(view) {
   if (view === "home") {
     return !getSelectedProjectKey() && state.currentWorkspaceView === "home";
   }
-  if (view === "unsorted") {
+  if (view === "triage") {
     return (
-      !getSelectedProjectKey() && state.currentWorkspaceView === "unsorted"
+      !getSelectedProjectKey() &&
+      (state.currentWorkspaceView === "triage" ||
+        state.currentWorkspaceView === "inbox" ||
+        state.currentWorkspaceView === "unsorted")
     );
   }
   if (view === "all") {
@@ -145,6 +148,15 @@ function isHomeWorkspaceActive() {
   return !getSelectedProjectKey() && state.currentWorkspaceView === "home";
 }
 
+function isTriageWorkspaceActive() {
+  if (getSelectedProjectKey()) return false;
+  return (
+    state.currentWorkspaceView === "triage" ||
+    state.currentWorkspaceView === "inbox" ||
+    state.currentWorkspaceView === "unsorted"
+  );
+}
+
 function isUnsortedWorkspaceActive() {
   return !getSelectedProjectKey() && state.currentWorkspaceView === "unsorted";
 }
@@ -158,16 +170,18 @@ function clearHomeListDrilldown() {
 }
 
 function normalizeWorkspaceView(view) {
+  if (view === "inbox" || view === "unsorted") {
+    return "triage";
+  }
   const valid = new Set([
     "home",
-    "unsorted",
+    "triage",
     "all",
     "today",
     "upcoming",
     "next_month",
     "someday",
     "completed",
-    "inbox",
     "weekly-review",
     "cleanup",
     "project",
@@ -183,6 +197,17 @@ function isTodoUnsorted(todo) {
   const hasCategory = !!(todo.category && String(todo.category).trim());
   const hasProjectId = !!(todo.projectId && String(todo.projectId).trim());
   return !hasCategory && !hasProjectId;
+}
+
+function isTodoNeedsOrganizing(todo) {
+  if (!todo || todo.completed) return false;
+  return (
+    String(todo.status || "").toLowerCase() === "inbox" || isTodoUnsorted(todo)
+  );
+}
+
+function isTodoNeedingTriage(todo) {
+  return isTodoNeedsOrganizing(todo);
 }
 
 function isSameLocalDay(a, b) {
@@ -301,8 +326,8 @@ function exportVisibleTodosToIcs() {
 function filterTodosList(todosList, { searchQuery = "" } = {}) {
   let filtered = todosList;
 
-  if (isUnsortedWorkspaceActive()) {
-    filtered = filtered.filter((todo) => isTodoUnsorted(todo));
+  if (isTriageWorkspaceActive()) {
+    filtered = filtered.filter((todo) => isTodoNeedsOrganizing(todo));
   }
 
   const categoryFilter = getSelectedProjectKey();
@@ -534,6 +559,8 @@ function getCurrentDateViewLabel() {
 function getCurrentWorkspaceHeaderConfig() {
   const workspaceTitleMap = {
     inbox: "Desk",
+    triage: "Desk",
+    unsorted: "Desk",
     today: "Today",
     upcoming: "Upcoming",
     completed: "Completed",
@@ -554,8 +581,7 @@ function getCurrentWorkspaceHeaderConfig() {
 
 function getSelectedProjectLabel(selectedProject) {
   if (!selectedProject && state.currentWorkspaceView === "home") return "Home";
-  if (!selectedProject && state.currentWorkspaceView === "unsorted")
-    return "Unsorted";
+  if (!selectedProject && isTriageWorkspaceActive()) return "Desk";
   if (!selectedProject) return "All tasks";
   return hooks.getProjectLeafName(selectedProject);
 }
@@ -667,9 +693,9 @@ function updateHeaderFromVisibleTodos(visibleTodos = []) {
     });
     return;
   }
-  if (isUnsortedWorkspaceActive()) {
+  if (isTriageWorkspaceActive()) {
     updateHeaderAndContextUI({
-      projectName: "Unsorted",
+      projectName: "Desk",
       visibleCount: getVisibleTodosCount(visibleTodos),
       dateLabel: "",
     });
@@ -976,8 +1002,7 @@ function renderTodos() {
     return;
   }
 
-  if (state.currentWorkspaceView === "inbox") {
-    updateHeaderFromVisibleTodos([]);
+  if (isTriageWorkspaceActive()) {
     hooks.renderInboxView?.();
     if (!state.inboxState.hasLoaded && !state.inboxState.loading) {
       hooks.loadInboxItems?.();
@@ -1299,11 +1324,14 @@ export {
   matchesWorkspaceView,
   syncWorkspaceViewState,
   isHomeWorkspaceActive,
+  isTriageWorkspaceActive,
   isUnsortedWorkspaceActive,
   hasHomeListDrilldown,
   clearHomeListDrilldown,
   normalizeWorkspaceView,
   isTodoUnsorted,
+  isTodoNeedsOrganizing,
+  isTodoNeedingTriage,
   isSameLocalDay,
   matchesDateView,
   getVisibleTodos,

@@ -199,7 +199,7 @@ test.describe("Todos layout invariants", () => {
 
     // Topbar hidden on desktop; shortcuts btn removed; floating CTA visible.
     await expect(page.locator(".todos-top-bar")).toBeHidden();
-    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
+    await expect(page.locator(".todos-top-bar .top-add-btn")).toBeHidden();
     await expect(page.locator("#floatingNewTaskCta")).toBeVisible();
     await expect(page.locator(".keyboard-shortcuts-btn")).toHaveCount(0);
 

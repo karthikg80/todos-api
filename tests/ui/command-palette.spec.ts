@@ -221,10 +221,10 @@ test.describe("Command palette", () => {
     page,
     isMobile,
   }) => {
-    // On mobile, #searchInput is in the hidden desktop rail; use the floating
-    // CTA button (always visible) as the pre-palette focus target instead.
+    // On mobile, #searchInput is in the hidden desktop rail; use the visible
+    // New Task CTA in the top bar as the pre-palette focus target instead.
     const focusTarget = isMobile
-      ? page.locator("#floatingNewTaskCta")
+      ? page.locator("#topBarNewTaskCta")
       : page.locator("#searchInput");
     await focusTarget.focus();
 

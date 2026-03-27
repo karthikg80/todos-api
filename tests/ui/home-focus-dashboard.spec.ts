@@ -767,7 +767,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator('[data-home-tile="stale_risks"]')).toBeVisible();
   });
 
-  test("New Task opens bottom sheet; Enter creates task and closes sheet", async ({
+  test("New Task opens bottom sheet; Enter follows the suggested create-task path", async ({
     page,
   }) => {
     await openTaskComposerSheet(page);
@@ -775,23 +775,26 @@ test.describe("Home focus dashboard + sheet composer", () => {
       "aria-hidden",
       "false",
     );
-    await page.locator("#todoInput").fill("Sheet entry task");
+    await page.locator("#todoInput").fill("Submit expense report tomorrow");
+    await expect(page.locator("#taskComposerAddButton")).toHaveText(
+      "Create task now",
+    );
     await page.locator("#todoInput").press("Enter");
     await expect(page.locator("#taskComposerSheet")).toHaveAttribute(
       "aria-hidden",
       "true",
     );
 
-    await clickWorkspaceView(page, "unsorted");
+    await clickWorkspaceView(page, "triage");
     await expect(
-      page.locator(".todo-item").filter({ hasText: "Sheet entry task" }),
+      page.locator(".todo-item").filter({ hasText: "Submit expense report" }),
     ).toBeVisible();
   });
 
-  test("Creating a task with a project keeps it out of Unsorted and shows in that project", async ({
+  test("Creating a task with a project keeps it out of Desk and shows in that project", async ({
     page,
   }) => {
-    await clickWorkspaceView(page, "unsorted");
+    await clickWorkspaceView(page, "triage");
     await openTaskComposerSheet(page);
     await page.locator("#todoInput").fill("Project scoped task");
     await page.locator("#quickEntryPropertiesToggle").click();
@@ -821,10 +824,20 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator("#todoInput")).toBeVisible();
   });
 
-  test("All tasks keeps the list surface primary", async ({ page }) => {
+  test("All tasks keeps the list surface primary", async ({
+    page,
+    isMobile,
+  }) => {
     await clickWorkspaceView(page, "all");
     await expect(page.locator("#todosListHeader")).toBeVisible();
-    await expect(page.locator("#inlineQuickAdd")).toBeVisible();
+    await expect(page.locator("#inlineQuickAdd")).toHaveCount(0);
+    if (isMobile) {
+      await expect(page.locator("#topBarNewTaskCta")).toBeVisible();
+      await expect(page.locator("#floatingNewTaskCta")).toBeHidden();
+    } else {
+      await expect(page.locator("#floatingNewTaskCta")).toBeVisible();
+      await expect(page.locator("#topBarNewTaskCta")).toBeHidden();
+    }
     await expect(page.locator('[data-testid="home-dashboard"]')).toHaveCount(0);
     await expect(page.locator("#aiWorkspace")).toBeHidden();
   });
@@ -869,7 +882,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
   });
 
   test("Desk shows an explicit header title", async ({ page }) => {
-    await clickWorkspaceView(page, "inbox");
+    await clickWorkspaceView(page, "triage");
     await expect(page.locator("#todosListHeaderTitle")).toHaveText("Desk");
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
   });

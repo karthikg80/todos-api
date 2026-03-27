@@ -764,6 +764,14 @@ export function validateFindTodosQuery(query: unknown): FindTodosQuery {
     normalized.unsorted = unsorted;
   }
 
+  const needsOrganizing = parseOptionalBooleanQuery(
+    q.needsOrganizing,
+    "needsOrganizing",
+  );
+  if (needsOrganizing !== undefined) {
+    normalized.needsOrganizing = needsOrganizing;
+  }
+
   const archived = parseOptionalBooleanQuery(q.archived, "archived");
   if (archived !== undefined) {
     normalized.archived = archived;

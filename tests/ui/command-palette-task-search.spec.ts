@@ -203,6 +203,15 @@ test.describe("Command palette task search", () => {
         dueDate: null,
         priority: "medium",
       },
+      {
+        id: "todo-shortcut",
+        title: "Shortcut cleanup",
+        description: "Review saved shortcuts",
+        notes: null,
+        category: "Admin",
+        dueDate: null,
+        priority: "low",
+      },
     ]);
 
     await openTodosViewWithStorageState(page, {
@@ -247,25 +256,12 @@ test.describe("Command palette task search", () => {
     await expect(page.locator("#commandPaletteList")).toContainText("Commands");
     await expect(page.locator("#commandPaletteList")).toContainText("Tasks");
 
-    await expect(page.locator("#commandPaletteOption-0")).toHaveAttribute(
-      "aria-selected",
-      "true",
+    const selectedOption = page.locator(
+      '[id^="commandPaletteOption-"][aria-selected="true"]',
     );
-    await expect(page.locator("#commandPaletteOption-0")).toContainText(
-      "Go to Desk",
-    );
+    await expect(selectedOption).toContainText("Go to Desk");
 
     await page.keyboard.press("ArrowDown");
-    await expect(page.locator("#commandPaletteOption-0")).toHaveAttribute(
-      "aria-selected",
-      "false",
-    );
-    await expect(page.locator("#commandPaletteOption-1")).toHaveAttribute(
-      "aria-selected",
-      "true",
-    );
-    await expect(page.locator("#commandPaletteOption-1")).toContainText(
-      "Desk booking",
-    );
+    await expect(selectedOption).toContainText("Desk booking");
   });
 });
