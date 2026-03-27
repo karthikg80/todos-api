@@ -260,7 +260,7 @@ test.describe("Todos layout invariants", () => {
       page.locator(
         '#projectsRail .workspace-view-item[data-workspace-view="home"]',
       ),
-    ).toHaveAttribute("title", "Home");
+    ).toHaveAttribute("title", "Focus");
   });
 
   test("mobile keeps row actions visible by default", async ({

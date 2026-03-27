@@ -750,7 +750,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
   }) => {
     await expect(page.locator('[data-testid="home-dashboard"]')).toBeVisible();
     await expectWorkspaceViewActive(page, "home");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Focus");
     await expect(page.locator('[data-testid="home-brief-card"]')).toBeVisible();
     await expect(
       page.locator('[data-testid="home-priorities-tile"]'),

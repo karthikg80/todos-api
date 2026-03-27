@@ -631,7 +631,7 @@ export function applyAsyncAction(type, payload = {}) {
     case "weeklyReview/failure":
       state.weeklyReviewState.loading = false;
       state.weeklyReviewState.error = String(
-        payload.error || "Could not run weekly review.",
+        payload.error || "Could not run weekly reset.",
       );
       return state.weeklyReviewState;
     case "weeklyReview/mode:set":
@@ -668,7 +668,7 @@ export function applyAsyncAction(type, payload = {}) {
     case "cleanup/failure":
       state.cleanupState.loading = false;
       state.cleanupState.error = String(
-        payload.error || "Could not run cleanup analysis.",
+        payload.error || "Could not run tune-up analysis.",
       );
       return state.cleanupState;
 

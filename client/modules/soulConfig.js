@@ -101,7 +101,7 @@ export const SOUL_COPY = {
   rescueActive: "Rescue mode is on. Keep today intentionally small.",
   rescuePrompt: "Heavy day? Switch to rescue mode and keep only what matters.",
   reviewIntro:
-    "Run a gentle weekly review to see what moved, what got stuck, and what to carry forward.",
+    "Run a gentle weekly reset to see what moved, what got stuck, and what to carry forward.",
 };
 
 export function normalizeSoulProfile(profile) {

@@ -44,7 +44,7 @@ function escapeSelectorValue(value) {
 }
 
 const AREA_LABELS = {
-  home: "Home",
+  home: "Focus",
   family: "Family",
   work: "Work",
   finance: "Finance",
@@ -425,7 +425,7 @@ export function getProjectTodoCount(projectName) {
   }).length;
 }
 
-export function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
+export function updateTopbarProjectsButton(selectedProjectName = "Everything") {
   const refs = getProjectsRailElements();
   if (!refs) return;
 
@@ -459,14 +459,14 @@ export function updateTopbarProjectsButton(selectedProjectName = "All tasks") {
   }
 
   if (topbarLabel instanceof HTMLElement) {
-    const label = selectedProjectName || "All tasks";
+    const label = selectedProjectName || "Everything";
     topbarLabel.textContent = `Projects: ${label}`;
     topbarLabel.setAttribute("title", `Projects: ${label}`);
   }
 
   const mobileTitle = document.getElementById("todosMobileTitle");
   if (mobileTitle instanceof HTMLElement) {
-    mobileTitle.textContent = selectedProjectName || "Home";
+    mobileTitle.textContent = selectedProjectName || "Focus";
   }
 }
 
@@ -860,7 +860,7 @@ export function renderProjectsRail() {
   refs.sheetAllTasksButton.setAttribute("data-project-key", "");
   refs.sheetAllTasksButton.setAttribute("type", "button");
   refs.sheetAllTasksButton.classList.add("projects-rail-item");
-  refs.sheetAllTasksButton.setAttribute("title", "All tasks");
+  refs.sheetAllTasksButton.setAttribute("title", "Everything");
 
   if (!state.railRovingFocusKey) {
     state.railRovingFocusKey = selectedProject || "";

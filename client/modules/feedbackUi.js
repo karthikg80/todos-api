@@ -9,7 +9,7 @@ const BUG_QUESTIONS = {
   thirdPlaceholder: "Share the steps, clicks, or context leading up to it.",
   successTitle: "Bug report sent",
   successBody:
-    "Thanks for the report. We saved the context with it so we can triage it later.",
+    "Thanks for the report. We saved the context with it so we can review it with context.",
 };
 
 const FEATURE_QUESTIONS = {

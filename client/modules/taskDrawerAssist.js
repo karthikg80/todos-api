@@ -423,9 +423,9 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
   // Workflow status chip (show non-default statuses)
   const status = String(todo.status || "").toLowerCase();
   const STATUS_LABELS = {
-    waiting: "Waiting",
-    scheduled: "Scheduled",
-    someday: "Someday",
+    waiting: "Pending",
+    scheduled: "Planned",
+    someday: "Later",
     in_progress: "In Progress",
     next: "Up Next",
     cancelled: "Cancelled",
@@ -438,7 +438,7 @@ function renderTodoChips(todo, { isOverdue, dueDateStr }) {
 
   // Waiting-on chip (shows who/what)
   if (todo.waitingOn && status === "waiting" && chips.length < 3) {
-    const waitLabel = `Waiting on: ${String(todo.waitingOn)}`;
+    const waitLabel = `Blocked by: ${String(todo.waitingOn)}`;
     chips.push(
       `<span class="todo-chip todo-chip--waiting-on" title="${hooks.escapeHtml(waitLabel)}">${hooks.escapeHtml(waitLabel)}</span>`,
     );

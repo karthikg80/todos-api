@@ -434,7 +434,9 @@ test.describe("Filter pipeline regression", () => {
     await expect(page.locator("#categoryFilter")).toHaveValue("");
     await expect(page.locator("#searchInput")).toHaveValue("");
     await expect(page.locator("#dateViewAll")).toHaveClass(/active/);
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("All tasks");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText(
+      "Everything",
+    );
     await expect(page.locator("#todosListHeaderCount")).toHaveText("3 tasks");
   });
 

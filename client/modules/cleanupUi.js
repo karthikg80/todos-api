@@ -37,7 +37,7 @@ export async function runCleanupAnalysis() {
 
   if (!hasAnyData && firstError) {
     applyAsyncAction("cleanup/failure", {
-      error: firstError.reason?.message || "Cleanup analysis failed.",
+      error: firstError.reason?.message || "Tune-up analysis failed.",
     });
   } else {
     const qualResults = (qualData?.results ?? []).filter(
@@ -101,7 +101,7 @@ export function renderCleanupView() {
   container.innerHTML = `
     <div class="cleanup-view">
       <div class="cleanup-toolbar">
-        <h2 class="cleanup-title">Cleanup</h2>
+        <h2 class="cleanup-title">Tune-up</h2>
         <button type="button" class="cleanup-btn" data-cleanup-action="run"
           ${s.loading ? "disabled" : ""}>
           ${s.loading ? "Running…" : "Re-run analysis"}
