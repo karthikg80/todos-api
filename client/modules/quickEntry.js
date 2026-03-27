@@ -985,14 +985,12 @@ export function inferTaskComposerDefaultProject() {
 
 export function openTaskComposer(triggerEl = null) {
   hooks.ensureTodosShellActive?.();
-  // In simple mode, focus the inline quick-add instead of the full composer
+  // In simple mode, reuse the composer title field instead of opening the sheet
   if (document.body.classList.contains("simple-mode")) {
-    const inlineInput =
-      document.getElementById("inlineQuickAddInput") ||
-      document.getElementById("todoInput");
-    if (inlineInput instanceof HTMLInputElement) {
-      inlineInput.focus();
-      inlineInput.scrollIntoView({ block: "center" });
+    const titleInput = document.getElementById("todoInput");
+    if (titleInput instanceof HTMLInputElement) {
+      titleInput.focus();
+      titleInput.scrollIntoView({ block: "center" });
       return;
     }
   }

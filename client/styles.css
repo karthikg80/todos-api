@@ -7348,9 +7348,8 @@ textarea:disabled {
     grid-template-columns: 1fr;
   }
 
-  .floating-new-task-cta {
-    right: 16px;
-    bottom: 72px;
+  body.is-todos-view .floating-new-task-cta {
+    display: none;
   }
 
   .todos-top-bar {

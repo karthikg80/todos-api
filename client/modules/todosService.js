@@ -1063,85 +1063,6 @@ async function restoreTodo(todoData) {
   }
 }
 
-async function addTodoFromInlineInput(options = {}) {
-  const captureSuggestion = options.captureSuggestion || null;
-  const input = document.getElementById("inlineQuickAddInput");
-  if (!(input instanceof HTMLInputElement)) return;
-
-  const title = input.value.trim();
-  if (!title) return;
-
-  const payload = {
-    title: String(captureSuggestion?.cleanedTitle || "").trim() || title,
-    priority: "medium",
-  };
-
-  // Detect natural date inline using chrono (if loaded)
-  const chronoModule = window.__chronoNaturalDateModule || null;
-  if (chronoModule) {
-    const detection = hooks.parseQuickEntryNaturalDue?.(title, chronoModule);
-    if (detection && !detection.isPast) {
-      payload.dueDate = detection.dueDate.toISOString();
-      const cleanedTitle =
-        hooks.removeMatchedDatePhraseFromTitle?.(title, detection) || title;
-      if (cleanedTitle) payload.title = cleanedTitle;
-    }
-  }
-  if (!payload.dueDate && captureSuggestion?.extractedFields?.dueDate) {
-    payload.dueDate = captureSuggestion.extractedFields.dueDate;
-  }
-
-  // Auto-assign project if viewing a specific project
-  const selectedProject = hooks.getSelectedProjectKey?.() || "";
-  if (selectedProject) {
-    payload.category = selectedProject;
-    const projectRecord = hooks.getProjectRecordByName?.(selectedProject);
-    if (projectRecord?.id) {
-      payload.projectId = projectRecord.id;
-    }
-  } else if (captureSuggestion?.extractedFields?.project) {
-    payload.category = captureSuggestion.extractedFields.project;
-    const projectRecord = hooks.getProjectRecordByName?.(
-      captureSuggestion.extractedFields.project,
-    );
-    if (projectRecord?.id) {
-      payload.projectId = projectRecord.id;
-    }
-  }
-
-  try {
-    const response = await hooks.apiCall(`${hooks.API_URL}/todos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (response && response.ok) {
-      const newTodo = await response.json();
-      state.todos.unshift(newTodo);
-      await refreshVisibleTodosIfNeeded();
-      EventBus.dispatch(TODOS_CHANGED, { reason: TODO_ADDED });
-      hooks.updateCategoryFilter?.();
-
-      input.value = "";
-      const chipRow = document.getElementById("inlineQuickAddChipRow");
-      if (chipRow instanceof HTMLElement) {
-        chipRow.hidden = true;
-        chipRow.innerHTML = "";
-      }
-
-      hooks.showMessage?.(
-        "todosMessage",
-        `Task added – "${newTodo.title}"`,
-        "success",
-      );
-      hooks.refreshProjectCatalog?.();
-    }
-  } catch (error) {
-    console.error("Inline add todo error:", error);
-  }
-}
-
 export {
   buildTodosQueryParams,
   buildVisibleTodosQueryParams,
@@ -1153,7 +1074,6 @@ export {
   loadTodos,
   retryLoadTodos,
   addTodo,
-  addTodoFromInlineInput,
   toggleTodo,
   deleteTodo,
   moveTodoToProject,

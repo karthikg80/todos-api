@@ -26,14 +26,6 @@ function handleTodoKeyPress(event) {
     hooks.submitTaskComposerCapture?.();
   }
 }
-
-function handleInlineQuickAddKeyPress(event) {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    hooks.submitInlineCapture?.();
-  }
-}
-
 function setPriority(priority) {
   state.currentPriority = priority;
 
@@ -201,7 +193,6 @@ async function aiBreakdownTodo(todoId, force = false) {
 
 function registerWindowBridge() {
   window.handleTodoKeyPress = handleTodoKeyPress;
-  window.handleInlineQuickAddKeyPress = handleInlineQuickAddKeyPress;
   window.setPriority = setPriority;
   window.toggleNotesInput = toggleNotesInput;
   window.toggleNotes = toggleNotes;
@@ -234,7 +225,6 @@ export function initTodosFeature() {
 // Re-export for direct use where needed
 export {
   handleTodoKeyPress,
-  handleInlineQuickAddKeyPress,
   setPriority,
   getPriorityIcon,
   toggleNotesInput,
