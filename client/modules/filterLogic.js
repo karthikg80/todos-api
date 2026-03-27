@@ -206,6 +206,10 @@ function isTodoNeedsOrganizing(todo) {
   );
 }
 
+function isTodoNeedingTriage(todo) {
+  return isTodoNeedsOrganizing(todo);
+}
+
 function isSameLocalDay(a, b) {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -324,8 +328,6 @@ function filterTodosList(todosList, { searchQuery = "" } = {}) {
 
   if (isTriageWorkspaceActive()) {
     filtered = filtered.filter((todo) => isTodoNeedsOrganizing(todo));
-  } else if (isUnsortedWorkspaceActive()) {
-    filtered = filtered.filter((todo) => isTodoUnsorted(todo));
   }
 
   const categoryFilter = getSelectedProjectKey();
@@ -1329,6 +1331,7 @@ export {
   normalizeWorkspaceView,
   isTodoUnsorted,
   isTodoNeedsOrganizing,
+  isTodoNeedingTriage,
   isSameLocalDay,
   matchesDateView,
   getVisibleTodos,

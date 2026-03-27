@@ -195,7 +195,7 @@ test.describe("Top bar and rail ellipsis hardening", () => {
 
     // Floating CTA visible on desktop; search is in the sidebar rail.
     await expect(page.locator("#floatingNewTaskCta")).toBeVisible();
-    await expect(page.locator(".todos-top-bar .top-add-btn")).toHaveCount(0);
+    await expect(page.locator(".todos-top-bar .top-add-btn")).toBeHidden();
     const searchArea = page.locator("#railSearchContainer .search-bar");
     await expect(searchArea).toBeVisible();
 

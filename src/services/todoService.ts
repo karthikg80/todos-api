@@ -58,6 +58,15 @@ export class TodoService implements ITodoService {
     );
   }
 
+  private isTodoNeedingOrganization(todo: Todo): boolean {
+    const hasCategory = !!String(todo.category || "").trim();
+    const hasProjectId = !!String(todo.projectId || "").trim();
+    return (
+      !todo.completed &&
+      (todo.status === "inbox" || (!hasCategory && !hasProjectId))
+    );
+  }
+
   private matchesSearchQuery(
     todo: Todo,
     searchQuery: string | undefined,
@@ -236,6 +245,10 @@ export class TodoService implements ITodoService {
 
     if (query?.unsorted) {
       todos = todos.filter((todo) => !String(todo.category || "").trim());
+    }
+
+    if (query?.needsOrganizing) {
+      todos = todos.filter((todo) => this.isTodoNeedingOrganization(todo));
     }
 
     if (query?.project) {

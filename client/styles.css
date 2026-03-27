@@ -7348,9 +7348,8 @@ textarea:disabled {
     grid-template-columns: 1fr;
   }
 
-  .floating-new-task-cta {
-    right: 16px;
-    bottom: 72px;
+  body.is-todos-view .floating-new-task-cta {
+    display: none;
   }
 
   .todos-top-bar {
@@ -11043,7 +11042,7 @@ body.simple-mode .todo-item {
   grid-template-columns: auto minmax(0, 1fr) auto;
 }
 
-/* Sidebar: hide project tree sections, Home, Inbox, Unsorted, Projects button */
+/* Sidebar: hide project tree sections, Home, Triage, Projects button */
 body.simple-mode
   .projects-rail__section:not(.projects-rail__section--workspace):not(
     .projects-rail__section--utilities
@@ -11121,7 +11120,7 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
 
 .inline-quick-add {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   padding: 10px 14px;
   margin-bottom: var(--s-3);
@@ -11163,8 +11162,7 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
 }
 
 .inline-quick-add__input {
-  flex: 1 1 0;
-  min-width: 0;
+  width: 100%;
   border: none;
   background: transparent;
   font-size: var(--fs-body);
@@ -11177,35 +11175,43 @@ body.simple-mode .todo-kebab-item[data-onclick*="aiBreakdownTodo"] {
   color: var(--text-muted);
 }
 
+.inline-quick-add__body {
+  min-width: 0;
+  flex: 1 1 0;
+  display: grid;
+  gap: 8px;
+}
+
 .inline-quick-add__chips {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  flex-shrink: 0;
 }
 
-.inline-quick-add__hint {
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  padding: 2px 6px;
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  background: var(--surface-2);
+.inline-quick-add__route {
+  margin: 0;
+  font-size: var(--fs-meta);
   color: var(--text-muted);
-  font-family: inherit;
-  opacity: 0;
-  transition: opacity var(--dur-fast) var(--ease-out);
-  pointer-events: none;
 }
 
-.inline-quick-add:focus-within .inline-quick-add__hint {
-  opacity: 1;
+.inline-quick-add__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
 }
 
 /* Chip reuse inside inline quick-add */
 .inline-quick-add__chips .quick-entry-natural-due-chip {
   font-size: var(--fs-meta);
   padding: 3px 8px;
+}
+
+.task-composer-route-hint {
+  margin: 0;
+  padding: 0 14px 12px;
+  color: var(--text-secondary);
+  font-size: var(--fs-meta);
 }
 
 /* ── Cleaner todo-item hover/focus states ── */

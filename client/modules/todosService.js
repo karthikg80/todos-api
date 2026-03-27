@@ -87,7 +87,9 @@ function buildVisibleTodosQueryParams() {
     params.project = selectedProject;
   }
 
-  if (state.currentWorkspaceView === "unsorted") {
+  if (state.currentWorkspaceView === "triage") {
+    params.needsOrganizing = true;
+  } else if (state.currentWorkspaceView === "unsorted") {
     params.unsorted = true;
   }
 
@@ -275,7 +277,8 @@ function retryLoadTodos() {
   loadTodos();
 }
 
-async function addTodo() {
+async function addTodo(options = {}) {
+  const captureSuggestion = options.captureSuggestion || null;
   const input = document.getElementById("todoInput");
   const projectSelect = document.getElementById("todoProjectSelect");
   const dueDateInput = document.getElementById("todoDueDateInput");
@@ -305,7 +308,8 @@ async function addTodo() {
     cleanupTitle: true,
   });
 
-  const title = input.value.trim();
+  const suggestedTitle = String(captureSuggestion?.cleanedTitle || "").trim();
+  const title = suggestedTitle || input.value.trim();
   if (!title) return;
 
   const payload = {
@@ -332,6 +336,8 @@ async function addTodo() {
   }
   if (dueDateInput.value) {
     payload.dueDate = new Date(dueDateInput.value).toISOString();
+  } else if (captureSuggestion?.extractedFields?.dueDate) {
+    payload.dueDate = captureSuggestion.extractedFields.dueDate;
   }
   if (
     startDateInput instanceof HTMLInputElement &&
@@ -1057,70 +1063,6 @@ async function restoreTodo(todoData) {
   }
 }
 
-async function addTodoFromInlineInput() {
-  const input = document.getElementById("inlineQuickAddInput");
-  if (!(input instanceof HTMLInputElement)) return;
-
-  const title = input.value.trim();
-  if (!title) return;
-
-  const payload = { title, priority: "medium" };
-
-  // Detect natural date inline using chrono (if loaded)
-  const chronoModule = window.__chronoNaturalDateModule || null;
-  if (chronoModule) {
-    const detection = hooks.parseQuickEntryNaturalDue?.(title, chronoModule);
-    if (detection && !detection.isPast) {
-      payload.dueDate = detection.dueDate.toISOString();
-      const cleanedTitle =
-        hooks.removeMatchedDatePhraseFromTitle?.(title, detection) || title;
-      if (cleanedTitle) payload.title = cleanedTitle;
-    }
-  }
-
-  // Auto-assign project if viewing a specific project
-  const selectedProject = hooks.getSelectedProjectKey?.() || "";
-  if (selectedProject) {
-    payload.category = selectedProject;
-    const projectRecord = hooks.getProjectRecordByName?.(selectedProject);
-    if (projectRecord?.id) {
-      payload.projectId = projectRecord.id;
-    }
-  }
-
-  try {
-    const response = await hooks.apiCall(`${hooks.API_URL}/todos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-
-    if (response && response.ok) {
-      const newTodo = await response.json();
-      state.todos.unshift(newTodo);
-      await refreshVisibleTodosIfNeeded();
-      EventBus.dispatch(TODOS_CHANGED, { reason: TODO_ADDED });
-      hooks.updateCategoryFilter?.();
-
-      input.value = "";
-      const chipRow = document.getElementById("inlineQuickAddChipRow");
-      if (chipRow instanceof HTMLElement) {
-        chipRow.hidden = true;
-        chipRow.innerHTML = "";
-      }
-
-      hooks.showMessage?.(
-        "todosMessage",
-        `Task added – "${newTodo.title}"`,
-        "success",
-      );
-      hooks.refreshProjectCatalog?.();
-    }
-  } catch (error) {
-    console.error("Inline add todo error:", error);
-  }
-}
-
 export {
   buildTodosQueryParams,
   buildVisibleTodosQueryParams,
@@ -1132,7 +1074,6 @@ export {
   loadTodos,
   retryLoadTodos,
   addTodo,
-  addTodoFromInlineInput,
   toggleTodo,
   deleteTodo,
   moveTodoToProject,

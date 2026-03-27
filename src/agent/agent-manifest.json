@@ -3871,6 +3871,61 @@
       }
     },
     {
+      "name": "suggest_capture_route",
+      "namespace": "inbox",
+      "category": "Inbox and Triage",
+      "lifecycle": "suggestive",
+      "audience": "user",
+      "description": "Suggest whether a freeform capture should become a task now or stay in triage, and extract likely fields like due date or project context.",
+      "method": "POST",
+      "path": "/agent/read/suggest_capture_route",
+      "output": {
+        "properties": {
+          "route": {
+            "type": "string",
+            "enum": ["task", "triage"]
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Confidence score from 0 to 1."
+          },
+          "why": {
+            "type": "string",
+            "description": "Short explanation for the suggested route."
+          },
+          "cleanedTitle": {
+            "type": "string",
+            "description": "Normalized capture title with obvious date phrases removed when possible."
+          },
+          "extractedFields": {
+            "type": "object",
+            "description": "Optional extracted fields such as dueDate or project."
+          }
+        }
+      },
+      "readOnly": true,
+      "inputSchema": {
+        "type": "object",
+        "required": ["text"],
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "The raw capture text to analyze."
+          },
+          "project": {
+            "type": "string",
+            "description": "Optional currently selected project path or ID."
+          },
+          "workspaceView": {
+            "type": "string",
+            "description": "Optional current workspace view for routing context."
+          }
+        }
+      }
+    },
+    {
       "name": "evaluate_daily_plan",
       "namespace": "automation",
       "category": "Automation Runtime",
@@ -4315,7 +4370,7 @@
     },
     {
       "id": "inbox_processing",
-      "label": "Inbox Processing",
+      "label": "Capture Processing",
       "description": "Convert raw captures into structured work.",
       "audience": "agent",
       "steps": [

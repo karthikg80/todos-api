@@ -203,6 +203,15 @@ test.describe("Command palette task search", () => {
         dueDate: null,
         priority: "medium",
       },
+      {
+        id: "todo-shortcut",
+        title: "Shortcut cleanup",
+        description: "Review saved shortcuts",
+        notes: null,
+        category: "Admin",
+        dueDate: null,
+        priority: "low",
+      },
     ]);
 
     await openTodosViewWithStorageState(page, {
@@ -241,22 +250,19 @@ test.describe("Command palette task search", () => {
 
   test("keyboard navigation skips section headers", async ({ page }) => {
     await openCommandPalette(page);
-    // "b" matches commands: Go to Feedback (0), Show Keyboard Shortcuts (1),
-    // and the task Book flights (2), while section headers remain non-selectable.
-    await page.locator("#commandPaletteInput").fill("b");
-    const options = page.locator('[id^="commandPaletteOption-"]');
-    const selectedOption = page.locator(
-      '[id^="commandPaletteOption-"][aria-selected="true"]',
-    );
+    // "shortcut" matches the Show Keyboard Shortcuts command
+    // and the seeded "Shortcut cleanup" task.
+    await page.locator("#commandPaletteInput").fill("shortcut");
 
     await expect(page.locator("#commandPaletteList")).toContainText("Commands");
     await expect(page.locator("#commandPaletteList")).toContainText("Tasks");
 
-    await expect(options).toHaveCount(3);
-    await expect(selectedOption).toContainText("Go to Feedback");
+    const selectedOption = page.locator(
+      '[id^="commandPaletteOption-"][aria-selected="true"]',
+    );
+    await expect(selectedOption).toContainText("Show Keyboard Shortcuts");
 
     await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("ArrowDown");
-    await expect(selectedOption).toContainText("Book flights");
+    await expect(selectedOption).toContainText("Shortcut cleanup");
   });
 });

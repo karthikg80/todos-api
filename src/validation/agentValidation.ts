@@ -77,6 +77,7 @@ const LIST_TASK_KEYS = [
   "project",
   "projectId",
   "unsorted",
+  "needsOrganizing",
   "archived",
   "tags",
   "context",
@@ -489,6 +490,14 @@ export function validateAgentListTasksInput(data: unknown): FindTodosQuery {
   const unsorted = parseOptionalBoolean(body.unsorted, "unsorted");
   if (unsorted !== undefined) {
     query.unsorted = unsorted;
+  }
+
+  const needsOrganizing = parseOptionalBoolean(
+    body.needsOrganizing,
+    "needsOrganizing",
+  );
+  if (needsOrganizing !== undefined) {
+    query.needsOrganizing = needsOrganizing;
   }
 
   const tags = parseOptionalStringList(body.tags, "tags", 25, 50);
@@ -2052,6 +2061,7 @@ export function validateAgentEvaluateWeeklyInput(data: unknown): {
 const CAPTURE_INBOX_ITEM_KEYS = ["text", "source"];
 const LIST_INBOX_ITEMS_KEYS = ["lifecycle", "source", "limit", "since"];
 const PROMOTE_INBOX_ITEM_KEYS = ["captureItemId", "type", "projectId", "title"];
+const SUGGEST_CAPTURE_ROUTE_KEYS = ["text", "project", "workspaceView"];
 
 export function validateAgentCaptureInboxItemInput(data: unknown): {
   text: string;
@@ -2124,6 +2134,26 @@ export function validateAgentPromoteInboxItemInput(data: unknown): {
     type: typeVal,
     projectId: parseOptionalString(body.projectId, "projectId", 36),
     title: parseOptionalString(body.title, "title", 500),
+  };
+}
+
+export function validateAgentSuggestCaptureRouteInput(data: unknown): {
+  text: string;
+  project?: string;
+  workspaceView?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, SUGGEST_CAPTURE_ROUTE_KEYS, "Agent action input");
+  const text = parseOptionalString(body.text, "text", 2000);
+  if (!text) {
+    throw new ValidationError(
+      "text is required and must be a non-empty string",
+    );
+  }
+  return {
+    text,
+    project: parseOptionalString(body.project, "project", 120),
+    workspaceView: parseOptionalString(body.workspaceView, "workspaceView", 40),
   };
 }
 

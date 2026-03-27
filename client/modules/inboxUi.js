@@ -11,14 +11,12 @@ import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { illustrationInboxClear } from "../utils/illustrations.js";
 
-// ---------------------------------------------------------------------------
-// Load inbox items from the agent API
-// ---------------------------------------------------------------------------
-
 export async function loadInboxItems() {
   if (state.inboxState.loading) return;
   applyAsyncAction("inbox/start");
-  renderInboxView();
+  if (isTriageWorkspaceActive()) {
+    renderInboxView();
+  }
   try {
     const data = await callAgentAction("/agent/read/list_inbox_items", {
       lifecycle: "new",
@@ -29,15 +27,14 @@ export async function loadInboxItems() {
     });
   } catch (err) {
     applyAsyncAction("inbox/failure", {
-      error: err.message || "Could not load inbox.",
+      error: err.message || "Could not load triage captures.",
     });
+  }
+  if (typeof hooks.renderProjectsRail === "function") {
+    hooks.renderProjectsRail();
   }
   renderInboxView();
 }
-
-// ---------------------------------------------------------------------------
-// Render helpers
-// ---------------------------------------------------------------------------
 
 function formatAge(date) {
   const now = new Date();
@@ -80,14 +77,14 @@ function renderCaptureItem(item) {
       <div class="todo-row-actions triage-capture-item__actions">
         ${
           isTriaging
-            ? `<span class="triage-capture-item__spinner">Processing…</span>`
+            ? `<span class="triage-capture-item__spinner">Processing...</span>`
             : `
           <button type="button" class="mini-btn"
-            data-inbox-action="promote" data-capture-id="${escapeHtml(item.id)}">
+            data-triage-action="promote" data-capture-id="${escapeHtml(item.id)}">
             Create task
           </button>
           <button type="button" class="mini-btn"
-            data-inbox-action="discard" data-capture-id="${escapeHtml(item.id)}">
+            data-triage-action="discard" data-capture-id="${escapeHtml(item.id)}">
             Discard
           </button>
         `
@@ -119,7 +116,7 @@ function renderCapturesSection() {
     return renderSectionState(s.error || "Could not load captures.", {
       modifier: "todo-list-state--error",
       actionsHtml:
-        '<button type="button" class="mini-btn" data-inbox-action="reload">Retry</button>',
+        '<button type="button" class="mini-btn" data-triage-action="reload">Retry</button>',
     });
   }
   if (!s.loading && s.hasLoaded && s.items.length === 0) {
@@ -167,7 +164,7 @@ export function renderInboxView() {
         </div>
         <div class="triage-view__actions">
           <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
-          <button type="button" class="mini-btn" data-inbox-action="reload">Refresh</button>
+          <button type="button" class="mini-btn" data-triage-action="reload">Refresh</button>
         </div>
       </div>
       <div class="triage-view__sections">
@@ -194,28 +191,28 @@ export function renderInboxView() {
   `;
 }
 
-// ---------------------------------------------------------------------------
-// Action handlers
-// ---------------------------------------------------------------------------
-
 async function promoteItem(captureId) {
   state.inboxState.triagingIds.add(captureId);
   renderInboxView();
   try {
-    await callAgentAction("/agent/write/promote_inbox_item", {
+    const promoted = await callAgentAction("/agent/write/promote_inbox_item", {
       captureItemId: captureId,
       type: "task",
     });
+    if (promoted?.task) {
+      state.todos.unshift(promoted.task);
+    }
     state.inboxState.items = state.inboxState.items.filter(
       (i) => i.id !== captureId,
     );
-    if (typeof hooks.applyFiltersAndRender === "function") {
-      hooks.applyFiltersAndRender();
-    }
+    hooks.applyFiltersAndRender?.();
   } catch (err) {
     console.error("Triage promote failed:", err);
   } finally {
     state.inboxState.triagingIds.delete(captureId);
+  }
+  if (typeof hooks.renderProjectsRail === "function") {
+    hooks.renderProjectsRail();
   }
   renderInboxView();
 }
@@ -236,6 +233,9 @@ async function discardItem(captureId) {
   } finally {
     state.inboxState.triagingIds.delete(captureId);
   }
+  if (typeof hooks.renderProjectsRail === "function") {
+    hooks.renderProjectsRail();
+  }
   renderInboxView();
 }
 
@@ -245,18 +245,18 @@ export function bindInboxHandlers() {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
-    const actionEl = target.closest("[data-inbox-action]");
+    const actionEl = target.closest("[data-triage-action]");
     if (!(actionEl instanceof HTMLElement)) return;
 
-    const action = actionEl.getAttribute("data-inbox-action");
+    const action = actionEl.getAttribute("data-triage-action");
     const captureId = actionEl.getAttribute("data-capture-id") || "";
 
     if (action === "reload") {
       loadInboxItems();
     } else if (action === "promote" && captureId) {
-      promoteItem(captureId);
+      void promoteItem(captureId);
     } else if (action === "discard" && captureId) {
-      discardItem(captureId);
+      void discardItem(captureId);
     }
   });
 }

@@ -49,6 +49,12 @@ function buildCommandPaletteItems() {
       payload: "triage",
     },
     {
+      id: "all-tasks",
+      label: "Go to All tasks",
+      type: "project",
+      payload: "",
+    },
+    {
       id: "nav-today",
       label: "Go to Today",
       type: "workspace",
@@ -59,12 +65,6 @@ function buildCommandPaletteItems() {
       label: "Go to Upcoming",
       type: "workspace",
       payload: "upcoming",
-    },
-    {
-      id: "all-tasks",
-      label: "Go to All tasks",
-      type: "project",
-      payload: "",
     },
     {
       id: "nav-waiting",

@@ -59,8 +59,11 @@ function normalizeProjectPath(value) {
     : String(value || "");
 }
 
-function isTodoUnsorted(todo) {
-  return !normalizeProjectPath(todo?.category || "");
+function isTodoNeedingTriage(todo) {
+  return (
+    !todo?.completed &&
+    (todo?.status === "inbox" || !normalizeProjectPath(todo?.category || ""))
+  );
 }
 
 function getOpenTodoCountMapByProject() {
@@ -323,9 +326,9 @@ export function patchProjectsRailCounts() {
   const openTodoCountMap = getOpenTodoCountMapByProject();
   const pendingTodos = state.todos.filter((todo) => !todo?.completed);
   const allCount = pendingTodos.length;
-  const triageCount = pendingTodos.filter((todo) =>
-    isTodoUnsorted(todo),
-  ).length;
+  const triageCount =
+    pendingTodos.filter((todo) => isTodoNeedingTriage(todo)).length +
+    state.inboxState.items.length;
 
   [refs.desktopAllCount, refs.sheetAllCount].forEach((countEl) => {
     if (countEl instanceof HTMLElement) {

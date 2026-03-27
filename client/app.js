@@ -12,7 +12,6 @@ import {
   loadTodos,
   retryLoadTodos,
   addTodo,
-  addTodoFromInlineInput,
   toggleTodo,
   deleteTodo,
   moveTodoToProject,
@@ -92,11 +91,9 @@ import {
   syncWorkspaceViewState,
   isHomeWorkspaceActive,
   isTriageWorkspaceActive,
-  isUnsortedWorkspaceActive,
   hasHomeListDrilldown,
   clearHomeListDrilldown,
   normalizeWorkspaceView,
-  isTodoUnsorted,
   isTodoNeedsOrganizing,
   isSameLocalDay,
   matchesDateView,
@@ -283,6 +280,8 @@ import {
   clearTaskComposerDueDate,
   bindTaskComposerHandlers,
   getComposerDependsOnIds,
+  bindCaptureComposerHandlers,
+  submitTaskComposerCapture,
 } from "./modules/quickEntry.js";
 import {
   getTodoDueDate,
@@ -709,6 +708,7 @@ const { ensureTodosShellActive, selectWorkspaceView, switchView } =
     readStoredAiWorkspaceCollapsedState,
     setAiWorkspaceCollapsed,
     loadTodos,
+    loadInboxItems,
     loadAiSuggestions,
     loadAiUsage,
     loadAiInsights,
@@ -1226,7 +1226,7 @@ function bindDockHandlers() {
     });
   };
   hooks.addTodo = addTodo;
-  hooks.addTodoFromInlineInput = addTodoFromInlineInput;
+  hooks.submitTaskComposerCapture = submitTaskComposerCapture;
   hooks.addUndoAction = addUndoAction;
   hooks.renderTodos = renderTodos;
   hooks.validateTodoTitle = validateTodoTitle;
@@ -1455,6 +1455,7 @@ window.handleUnlinkProvider = handleUnlinkProvider;
 window.handleSetPassword = handleSetPassword;
 // Todo CRUD
 window.addTodo = addTodo;
+window.submitTaskComposerCapture = submitTaskComposerCapture;
 window.filterTodos = filterTodos;
 window.clearFilters = clearFilters;
 window.setDateView = setDateView;
@@ -1679,21 +1680,10 @@ function init() {
   bindProjectsRailHandlers();
   bindCommandPaletteHandlers();
   bindTaskComposerHandlers();
+  bindCaptureComposerHandlers();
   bindDockHandlers();
   OnCreateAssist.bindOnCreateAssistHandlers();
   bindQuickEntryNaturalDateHandlers();
-
-  // Eagerly load chrono when inline quick-add input is focused
-  const inlineQuickAddInput = document.getElementById("inlineQuickAddInput");
-  if (inlineQuickAddInput instanceof HTMLInputElement) {
-    inlineQuickAddInput.addEventListener(
-      "focus",
-      () => {
-        loadChronoNaturalDateModule();
-      },
-      { once: true },
-    );
-  }
 
   // Handle social login callback before anything else — the URL contains
   // ?auth=success&token=...&refreshToken=... after Google/Apple OAuth redirect.

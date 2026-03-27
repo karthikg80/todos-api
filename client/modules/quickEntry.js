@@ -4,13 +4,14 @@
 import { state, hooks } from "./store.js";
 import {
   isHomeWorkspaceActive,
-  isUnsortedWorkspaceActive,
+  isTriageWorkspaceActive,
   hasHomeListDrilldown,
   getSelectedProjectKey,
 } from "./filterLogic.js";
 import { applyUiAction } from "./stateActions.js";
 import { STORAGE_KEYS } from "../utils/storageKeys.js";
 import { mountTaskPicker } from "../utils/taskPicker.js";
+import { callAgentAction } from "./agentApiClient.js";
 
 // Active task-picker instance for the composer depends-on field
 let composerDepPicker = null;
@@ -21,6 +22,174 @@ const { escapeHtml, getProjectLeafName } = (() => ({
 }))();
 
 const QUICK_ENTRY_NATURAL_DATE_DEBOUNCE_MS = 320;
+const CAPTURE_ROUTE_DEBOUNCE_MS = 260;
+const CAPTURE_ROUTE_CONFIDENCE_THRESHOLD = 0.7;
+const captureRouteState = {
+  suggestion: null,
+  loading: false,
+  requestSeq: 0,
+  debounceTimer: null,
+  activeSurface: "inline",
+};
+
+function getInlineCaptureElements() {
+  const input = document.getElementById("inlineQuickAddInput");
+  const chipRow = document.getElementById("inlineQuickAddChipRow");
+  const primaryButton = document.getElementById("inlineQuickAddPrimaryButton");
+  const secondaryButton = document.getElementById(
+    "inlineQuickAddSecondaryButton",
+  );
+  const detailsButton = document.getElementById("inlineQuickAddDetailsButton");
+  const routeHint = document.getElementById("inlineQuickAddRouteHint");
+  return {
+    input: input instanceof HTMLInputElement ? input : null,
+    chipRow: chipRow instanceof HTMLElement ? chipRow : null,
+    primaryButton:
+      primaryButton instanceof HTMLButtonElement ? primaryButton : null,
+    secondaryButton:
+      secondaryButton instanceof HTMLButtonElement ? secondaryButton : null,
+    detailsButton:
+      detailsButton instanceof HTMLButtonElement ? detailsButton : null,
+    routeHint: routeHint instanceof HTMLElement ? routeHint : null,
+  };
+}
+
+function getTaskComposerActionElements() {
+  const primaryButton = document.getElementById("taskComposerAddButton");
+  const secondaryButton = document.getElementById("taskComposerTriageButton");
+  const routeHint = document.getElementById("taskComposerRouteHint");
+  return {
+    primaryButton:
+      primaryButton instanceof HTMLButtonElement ? primaryButton : null,
+    secondaryButton:
+      secondaryButton instanceof HTMLButtonElement ? secondaryButton : null,
+    routeHint: routeHint instanceof HTMLElement ? routeHint : null,
+  };
+}
+
+function getCaptureSurfaceText(surface = captureRouteState.activeSurface) {
+  if (surface === "composer") {
+    const titleInput = document.getElementById("todoInput");
+    return titleInput instanceof HTMLInputElement ? titleInput.value : "";
+  }
+  return getInlineCaptureElements().input?.value || "";
+}
+
+function getCaptureSurfaceProject(surface = captureRouteState.activeSurface) {
+  if (surface === "composer") {
+    const projectSelect = document.getElementById("todoProjectSelect");
+    if (projectSelect instanceof HTMLSelectElement && projectSelect.value) {
+      return projectSelect.value;
+    }
+  }
+  return getSelectedProjectKey() || "";
+}
+
+function getCaptureFallbackRoute(surface = captureRouteState.activeSurface) {
+  if (getCaptureSurfaceProject(surface)) {
+    return "task";
+  }
+  return isTriageWorkspaceActive() ? "triage" : "task";
+}
+
+function getPreferredCaptureRoute(surface = captureRouteState.activeSurface) {
+  const suggestion = captureRouteState.suggestion;
+  if (
+    captureRouteState.activeSurface === surface &&
+    suggestion &&
+    suggestion.confidence >= CAPTURE_ROUTE_CONFIDENCE_THRESHOLD
+  ) {
+    return suggestion.route;
+  }
+  return getCaptureFallbackRoute(surface);
+}
+
+function getAlternateCaptureRoute(surface = captureRouteState.activeSurface) {
+  return getPreferredCaptureRoute(surface) === "task" ? "triage" : "task";
+}
+
+function getCaptureRouteLabel(route) {
+  return route === "task" ? "Create task now" : "Send to triage";
+}
+
+function getCaptureRouteHintText(surface) {
+  const suggestion = captureRouteState.suggestion;
+  if (
+    captureRouteState.activeSurface === surface &&
+    captureRouteState.loading &&
+    getCaptureSurfaceText(surface).trim()
+  ) {
+    return "Reviewing capture...";
+  }
+  if (
+    captureRouteState.activeSurface === surface &&
+    suggestion &&
+    suggestion.why &&
+    getCaptureSurfaceText(surface).trim()
+  ) {
+    return `Suggested: ${getCaptureRouteLabel(getPreferredCaptureRoute(surface))}. ${suggestion.why}`;
+  }
+  if (!getCaptureSurfaceText(surface).trim()) {
+    return "";
+  }
+  return `Default: ${getCaptureRouteLabel(getPreferredCaptureRoute(surface))}.`;
+}
+
+export function resetCaptureRouteSuggestion() {
+  if (captureRouteState.debounceTimer) {
+    clearTimeout(captureRouteState.debounceTimer);
+    captureRouteState.debounceTimer = null;
+  }
+  captureRouteState.suggestion = null;
+  captureRouteState.loading = false;
+  captureRouteState.activeSurface = "inline";
+  renderCaptureRouteUi();
+}
+
+export function renderCaptureRouteUi() {
+  const inlineRefs = getInlineCaptureElements();
+  const composerRefs = getTaskComposerActionElements();
+  const inlineHasText = !!String(inlineRefs.input?.value || "").trim();
+  const composerHasText = !!String(
+    document.getElementById("todoInput")?.value || "",
+  ).trim();
+
+  if (inlineRefs.primaryButton) {
+    inlineRefs.primaryButton.textContent = getCaptureRouteLabel(
+      getPreferredCaptureRoute("inline"),
+    );
+    inlineRefs.primaryButton.disabled = !inlineHasText;
+  }
+  if (inlineRefs.secondaryButton) {
+    inlineRefs.secondaryButton.textContent = getCaptureRouteLabel(
+      getAlternateCaptureRoute("inline"),
+    );
+    inlineRefs.secondaryButton.disabled = !inlineHasText;
+  }
+  if (inlineRefs.routeHint) {
+    const hint = getCaptureRouteHintText("inline");
+    inlineRefs.routeHint.textContent = hint;
+    inlineRefs.routeHint.hidden = !hint;
+  }
+
+  if (composerRefs.primaryButton) {
+    composerRefs.primaryButton.textContent = getCaptureRouteLabel(
+      getPreferredCaptureRoute("composer"),
+    );
+    composerRefs.primaryButton.disabled = !composerHasText;
+  }
+  if (composerRefs.secondaryButton) {
+    composerRefs.secondaryButton.textContent = getCaptureRouteLabel(
+      getAlternateCaptureRoute("composer"),
+    );
+    composerRefs.secondaryButton.disabled = !composerHasText;
+  }
+  if (composerRefs.routeHint) {
+    const hint = getCaptureRouteHintText("composer");
+    composerRefs.routeHint.textContent = hint;
+    composerRefs.routeHint.hidden = !hint;
+  }
+}
 
 export function readStoredQuickEntryPropertiesOpenState() {
   try {
@@ -478,6 +647,7 @@ export function onQuickEntryTitleInputForNaturalDate() {
     state.quickEntryNaturalDateState.appliedPreview = null;
   }
   scheduleQuickEntryNaturalDateParse();
+  scheduleCaptureRouteSuggestion("composer");
 }
 
 export function onQuickEntryDueInputChangedByUser() {
@@ -537,6 +707,61 @@ export function handleQuickEntryNaturalDueChipClick(action) {
   }
 }
 
+export async function requestCaptureRouteSuggestion({
+  surface = captureRouteState.activeSurface,
+  immediate = false,
+} = {}) {
+  const text = getCaptureSurfaceText(surface).trim();
+  captureRouteState.activeSurface = surface;
+  if (!text) {
+    resetCaptureRouteSuggestion();
+    return null;
+  }
+  if (!immediate && captureRouteState.debounceTimer) {
+    clearTimeout(captureRouteState.debounceTimer);
+  }
+  const seq = ++captureRouteState.requestSeq;
+  captureRouteState.loading = true;
+  renderCaptureRouteUi();
+  try {
+    const suggestion = await callAgentAction(
+      "/agent/read/suggest_capture_route",
+      {
+        text,
+        project: getCaptureSurfaceProject(surface),
+        workspaceView: state.currentWorkspaceView,
+      },
+    );
+    if (seq !== captureRouteState.requestSeq) {
+      return null;
+    }
+    captureRouteState.suggestion = suggestion;
+    captureRouteState.loading = false;
+    renderCaptureRouteUi();
+    return suggestion;
+  } catch (error) {
+    if (seq !== captureRouteState.requestSeq) {
+      return null;
+    }
+    captureRouteState.loading = false;
+    captureRouteState.suggestion = null;
+    renderCaptureRouteUi();
+    return null;
+  }
+}
+
+export function scheduleCaptureRouteSuggestion(surface) {
+  captureRouteState.activeSurface = surface;
+  if (captureRouteState.debounceTimer) {
+    clearTimeout(captureRouteState.debounceTimer);
+  }
+  captureRouteState.debounceTimer = setTimeout(() => {
+    captureRouteState.debounceTimer = null;
+    void requestCaptureRouteSuggestion({ surface, immediate: true });
+  }, CAPTURE_ROUTE_DEBOUNCE_MS);
+  renderCaptureRouteUi();
+}
+
 export function bindQuickEntryNaturalDateHandlers() {
   if (window.__quickEntryNaturalDateHandlersBound) return;
   window.__quickEntryNaturalDateHandlersBound = true;
@@ -568,6 +793,137 @@ export function bindQuickEntryNaturalDateHandlers() {
     event.stopPropagation();
     handleQuickEntryNaturalDueChipClick(action);
   });
+}
+
+function buildComposerCaptureText() {
+  const titleInput = document.getElementById("todoInput");
+  const notesInput = document.getElementById("todoNotesInput");
+  const projectSelect = document.getElementById("todoProjectSelect");
+  const dueDateInput = document.getElementById("todoDueDateInput");
+  const parts = [];
+  const title =
+    titleInput instanceof HTMLInputElement ? titleInput.value.trim() : "";
+  const notes =
+    notesInput instanceof HTMLTextAreaElement ? notesInput.value.trim() : "";
+  const project =
+    projectSelect instanceof HTMLSelectElement
+      ? projectSelect.value.trim()
+      : "";
+  const dueDate =
+    dueDateInput instanceof HTMLInputElement ? dueDateInput.value.trim() : "";
+  if (title) parts.push(title);
+  if (notes) parts.push(notes);
+  if (project) parts.push(`Project: ${project}`);
+  if (dueDate) parts.push(`Due: ${dueDate}`);
+  return parts.join("\n\n").trim();
+}
+
+async function captureInlineToTriage() {
+  const inlineRefs = getInlineCaptureElements();
+  const rawText = inlineRefs.input?.value.trim() || "";
+  if (!rawText) return;
+  const suggestion = captureRouteState.suggestion;
+  const project = getCaptureSurfaceProject("inline");
+  const parts = [
+    String(suggestion?.cleanedTitle || "").trim() || rawText,
+    project ? `Project: ${project}` : "",
+    suggestion?.extractedFields?.dueDate
+      ? `Due: ${suggestion.extractedFields.dueDate}`
+      : "",
+  ].filter(Boolean);
+  try {
+    await callAgentAction("/agent/write/capture_inbox_item", {
+      text: parts.join("\n\n"),
+      source: "manual",
+    });
+    if (inlineRefs.input) {
+      inlineRefs.input.value = "";
+    }
+    if (inlineRefs.chipRow) {
+      inlineRefs.chipRow.hidden = true;
+      inlineRefs.chipRow.innerHTML = "";
+    }
+    resetCaptureRouteSuggestion();
+    await hooks.loadInboxItems?.();
+    hooks.showMessage?.(
+      "todosMessage",
+      "Saved to triage for review.",
+      "success",
+    );
+    hooks.applyFiltersAndRender?.();
+  } catch (error) {
+    console.error("Inline capture to triage failed:", error);
+    hooks.showMessage?.(
+      "todosMessage",
+      "Could not save capture to triage.",
+      "error",
+    );
+  }
+}
+
+async function captureTaskComposerToTriage() {
+  const text = buildComposerCaptureText();
+  if (!text) return;
+  try {
+    await callAgentAction("/agent/write/capture_inbox_item", {
+      text,
+      source: "manual",
+    });
+    resetCaptureRouteSuggestion();
+    await hooks.loadInboxItems?.();
+    hooks.closeTaskComposer?.({
+      restoreFocus: false,
+      force: true,
+      reset: true,
+    });
+    hooks.showMessage?.(
+      "todosMessage",
+      "Saved to triage for review.",
+      "success",
+    );
+    hooks.applyFiltersAndRender?.();
+  } catch (error) {
+    console.error("Task composer capture to triage failed:", error);
+    hooks.showMessage?.(
+      "todosMessage",
+      "Could not save capture to triage.",
+      "error",
+    );
+  }
+}
+
+export async function submitInlineCapture(mode = "primary") {
+  const route =
+    mode === "alternate"
+      ? getAlternateCaptureRoute("inline")
+      : getPreferredCaptureRoute("inline");
+  if (route === "task") {
+    await hooks.addTodoFromInlineInput?.({
+      captureSuggestion: captureRouteState.suggestion,
+    });
+    if (!String(getInlineCaptureElements().input?.value || "").trim()) {
+      resetCaptureRouteSuggestion();
+    }
+    return;
+  }
+  await captureInlineToTriage();
+}
+
+export async function submitTaskComposerCapture(mode = "primary") {
+  const route =
+    mode === "alternate"
+      ? getAlternateCaptureRoute("composer")
+      : getPreferredCaptureRoute("composer");
+  if (route === "task") {
+    await hooks.addTodo?.({
+      captureSuggestion: captureRouteState.suggestion,
+    });
+    if (!String(document.getElementById("todoInput")?.value || "").trim()) {
+      resetCaptureRouteSuggestion();
+    }
+    return;
+  }
+  await captureTaskComposerToTriage();
 }
 
 export function syncQuickEntryProjectActions() {
@@ -622,31 +978,37 @@ export function updateTaskComposerDueClearButton() {
 
 export function inferTaskComposerDefaultProject() {
   if (isHomeWorkspaceActive()) return "";
-  if (isUnsortedWorkspaceActive()) return "";
+  if (isTriageWorkspaceActive()) return "";
   if (hasHomeListDrilldown()) return "";
   return getSelectedProjectKey();
 }
 
 export function openTaskComposer(triggerEl = null) {
   hooks.ensureTodosShellActive?.();
-  // In simple mode, focus the inline quick-add instead of the full composer
+  // In simple mode, reuse the composer title field instead of opening the sheet
   if (document.body.classList.contains("simple-mode")) {
-    const inlineInput =
-      document.getElementById("inlineQuickAddInput") ||
-      document.getElementById("todoInput");
-    if (inlineInput instanceof HTMLInputElement) {
-      inlineInput.focus();
-      inlineInput.scrollIntoView({ block: "center" });
+    const titleInput = document.getElementById("todoInput");
+    if (titleInput instanceof HTMLInputElement) {
+      titleInput.focus();
+      titleInput.scrollIntoView({ block: "center" });
       return;
     }
   }
   const refs = getTaskComposerElements();
   if (!refs) return;
+  const inlineRefs = getInlineCaptureElements();
   const defaultProject = inferTaskComposerDefaultProject();
   applyUiAction("taskComposer/open", {
     triggerEl,
     defaultProject,
   });
+  if (
+    refs.titleInput &&
+    !String(refs.titleInput.value || "").trim() &&
+    String(inlineRefs.input?.value || "").trim()
+  ) {
+    refs.titleInput.value = String(inlineRefs.input?.value || "").trim();
+  }
   if (!String(refs.titleInput?.value || "").trim()) {
     setQuickEntryPropertiesOpen(false, { persist: false });
   }
@@ -662,6 +1024,14 @@ export function openTaskComposer(triggerEl = null) {
       closeTaskComposer({ restoreFocus: true, force: true, reset: false }),
   });
   updateTaskComposerDueClearButton();
+  captureRouteState.activeSurface = "composer";
+  renderCaptureRouteUi();
+  if (String(refs.titleInput?.value || "").trim()) {
+    void requestCaptureRouteSuggestion({
+      surface: "composer",
+      immediate: true,
+    });
+  }
   window.requestAnimationFrame(() => {
     refs.titleInput?.focus();
   });
@@ -685,6 +1055,7 @@ export function closeTaskComposer({
   hooks.DialogManager?.close("taskComposer");
   if (reset) {
     resetTaskComposerFields();
+    resetCaptureRouteSuggestion();
   }
   if (restoreFocus && focusTarget instanceof HTMLElement) {
     focusTarget.focus({ preventScroll: true });
@@ -760,6 +1131,7 @@ export function resetTaskComposerFields() {
   setQuickEntryPropertiesOpen(false, { persist: false });
   hooks.setPriority?.("medium");
   updateTaskComposerDueClearButton();
+  renderCaptureRouteUi();
 }
 
 export function getComposerDependsOnIds() {
@@ -816,4 +1188,27 @@ export function bindTaskComposerHandlers() {
       },
     });
   }
+}
+
+export function bindCaptureComposerHandlers() {
+  if (window.__captureComposerHandlersBound) return;
+  window.__captureComposerHandlersBound = true;
+
+  const inlineRefs = getInlineCaptureElements();
+  if (inlineRefs.input) {
+    inlineRefs.input.addEventListener("input", () => {
+      captureRouteState.activeSurface = "inline";
+      scheduleCaptureRouteSuggestion("inline");
+    });
+  }
+
+  const composerTitleInput = document.getElementById("todoInput");
+  if (composerTitleInput instanceof HTMLInputElement) {
+    composerTitleInput.addEventListener("input", () => {
+      captureRouteState.activeSurface = "composer";
+      renderCaptureRouteUi();
+    });
+  }
+
+  renderCaptureRouteUi();
 }

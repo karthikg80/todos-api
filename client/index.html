@@ -399,10 +399,10 @@
                               />
                             </svg>
                           </div>
-                          <h4>Inbox Capture</h4>
+                          <h4>Capture and Triage</h4>
                           <p>
-                            Capture ideas fast. AI triages and classifies inbox
-                            items into tasks with the right project and
+                            Capture ideas fast. AI triages and classifies new
+                            captures into tasks with the right project and
                             priority.
                           </p>
                         </div>
@@ -2594,6 +2594,16 @@
                           >
                         </button>
                       </div>
+                      <div class="todos-top-bar-actions">
+                        <button
+                          id="topBarNewTaskCta"
+                          type="button"
+                          class="add-btn top-add-btn"
+                          data-onclick="openTaskComposer()"
+                        >
+                          New Task
+                        </button>
+                      </div>
                     </div>
 
                     <div id="todosScrollRegion">
@@ -3060,11 +3070,24 @@
                             id="taskComposerAddButton"
                             class="add-btn"
                             type="button"
-                            data-onclick="addTodo()"
+                            data-onclick="submitTaskComposerCapture()"
                           >
-                            Add
+                            Create task now
+                          </button>
+                          <button
+                            id="taskComposerTriageButton"
+                            class="mini-btn"
+                            type="button"
+                            data-onclick="submitTaskComposerCapture('alternate')"
+                          >
+                            Send to triage
                           </button>
                         </div>
+                        <p
+                          id="taskComposerRouteHint"
+                          class="task-composer-route-hint"
+                          hidden
+                        ></p>
                       </section>
 
                       <section
@@ -3253,37 +3276,6 @@
                           </button>
                         </div>
                       </div>
-                      <div
-                        id="inlineQuickAdd"
-                        class="inline-quick-add"
-                        role="form"
-                        aria-label="Quick add task"
-                      >
-                        <span class="inline-quick-add__icon" aria-hidden="true"
-                          >+</span
-                        >
-                        <label for="inlineQuickAddInput" class="sr-only"
-                          >Quick add task</label
-                        >
-                        <input
-                          type="text"
-                          id="inlineQuickAddInput"
-                          class="inline-quick-add__input"
-                          placeholder="What needs to be done?"
-                          autocomplete="off"
-                          data-onkeypress="handleInlineQuickAddKeyPress(event)"
-                        />
-                        <div
-                          id="inlineQuickAddChipRow"
-                          class="inline-quick-add__chips"
-                          hidden
-                          aria-live="polite"
-                        ></div>
-                        <kbd class="inline-quick-add__hint" aria-hidden="true"
-                          >Enter</kbd
-                        >
-                      </div>
-
                       <div id="todosContent">
                         <div class="loading">
                           <div class="spinner"></div>
