@@ -1,12 +1,12 @@
 // =============================================================================
-// cleanupUi.js — Phase 6: Cleanup / Anti-entropy view.
+// cleanupUi.js — Phase 6: Tune-up / anti-entropy view.
 // Four read-only agent analyses rendered into a single workspace view.
 // =============================================================================
 
 import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
-import { illustrationCleanupClear } from "../utils/illustrations.js";
+import { illustrationTuneUpClear } from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
 // Data loading — calls all four endpoints in parallel, merges into one state
@@ -218,7 +218,7 @@ function buildResultsHtml(s, escapeHtml) {
 
   return (
     sections.join("") ||
-    `<div class="cleanup-empty">${illustrationCleanupClear()}<p>No issues found — your task list looks clean!</p></div>`
+    `<div class="cleanup-empty">${illustrationTuneUpClear()}<p>No issues found — everything looks tuned up.</p></div>`
   );
 }
 

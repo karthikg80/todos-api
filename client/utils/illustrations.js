@@ -58,27 +58,29 @@ export function illustrationWelcome() {
 }
 
 /**
- * Open inbox tray with a checkmark — satisfaction of zero inbox.
- * Used for the "Inbox is clear" empty state.
+ * Cleared desk surface with a tidy stack and pencil.
+ * Used for the "Desk is clear" empty state.
  */
-export function illustrationInboxClear() {
+export function illustrationDeskClear() {
   return `<svg viewBox="0 0 200 160" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-state-illustration" aria-hidden="true">
-  <!-- Tray body -->
-  <rect x="55" y="80" width="90" height="50" rx="6" fill="var(--surface)" stroke="var(--border)" stroke-width="2"/>
-  <!-- Tray walls -->
-  <line x1="55" y1="80" x2="45" y2="60" stroke="var(--border)" stroke-width="2" stroke-linecap="round"/>
-  <line x1="145" y1="80" x2="155" y2="60" stroke="var(--border)" stroke-width="2" stroke-linecap="round"/>
-  <!-- Tray lip -->
-  <line x1="45" y1="60" x2="155" y2="60" stroke="var(--border)" stroke-width="2" stroke-linecap="round"/>
-  <!-- Check circle -->
-  <circle cx="100" cy="40" r="18" fill="none" stroke="var(--success)" stroke-width="2" opacity="0.9"/>
-  <circle cx="100" cy="40" r="18" fill="var(--success)" opacity="0.08"/>
-  <!-- Checkmark -->
-  <path d="M91 40l6 6 12-12" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Sparkle dots -->
-  <circle cx="76" cy="30" r="2" fill="var(--success)" opacity="0.25"/>
-  <circle cx="126" cy="34" r="2.5" fill="var(--success)" opacity="0.2"/>
-  <circle cx="120" cy="24" r="1.5" fill="var(--success)" opacity="0.3"/>
+  <!-- Desk line -->
+  <rect x="28" y="118" width="144" height="4" rx="2" fill="var(--border)" opacity="0.28"/>
+  <!-- Paper stack -->
+  <rect x="62" y="58" width="56" height="44" rx="6" fill="var(--border)" opacity="0.08" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="68" y="50" width="56" height="44" rx="6" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="80" y="64" width="24" height="3" rx="1.5" fill="var(--border)" opacity="0.3"/>
+  <rect x="80" y="74" width="32" height="3" rx="1.5" fill="var(--border)" opacity="0.22"/>
+  <rect x="80" y="84" width="20" height="3" rx="1.5" fill="var(--border)" opacity="0.16"/>
+  <!-- Pencil -->
+  <path d="M132 92l20-20" stroke="var(--accent)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M148 76l7-7" stroke="var(--warning)" stroke-width="5" stroke-linecap="round"/>
+  <path d="M129 95l-5 10 10-5" fill="var(--surface)" stroke="var(--border)" stroke-width="1.2" stroke-linejoin="round"/>
+  <!-- Check sparkle -->
+  <circle cx="100" cy="28" r="16" fill="var(--success)" opacity="0.08"/>
+  <circle cx="100" cy="28" r="16" fill="none" stroke="var(--success)" stroke-width="1.8" opacity="0.55"/>
+  <path d="M93 28l5 5 10-10" stroke="var(--success)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="70" cy="30" r="2" fill="var(--accent)" opacity="0.2"/>
+  <circle cx="128" cy="24" r="1.8" fill="var(--accent)" opacity="0.16"/>
 </svg>`;
 }
 
@@ -218,74 +220,76 @@ export function illustrationCompletedEmpty() {
 }
 
 /**
- * Floating thought bubble / cloud — dreamy "someday" feeling.
- * Used for the Someday view zero-task state.
+ * Parking shelf with a few set-aside cards.
+ * Used for the Later view zero-task state.
  */
-export function illustrationSomedayEmpty() {
+export function illustrationLaterEmpty() {
   return `<svg viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-state-illustration" aria-hidden="true">
-  <!-- Main thought bubble -->
-  <ellipse cx="100" cy="58" rx="52" ry="32" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
-  <!-- Thought trail -->
-  <circle cx="62" cy="104" r="8" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
-  <circle cx="48" cy="118" r="5" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
-  <!-- Dreamy stars inside bubble -->
-  <path d="M82 52l2 4 4 .8-3 3 .7 4.2-3.7-2-3.7 2 .7-4.2-3-3 4-.8z" fill="var(--accent)" opacity="0.2"/>
-  <path d="M110 48l1.5 3 3.5 .5-2.5 2.5.6 3.5-3.1-1.6-3.1 1.6.6-3.5-2.5-2.5 3.5-.5z" fill="var(--accent)" opacity="0.15"/>
-  <path d="M96 68l1 2 2.5.4-1.8 1.8.4 2.5-2.1-1.1-2.1 1.1.4-2.5-1.8-1.8 2.5-.4z" fill="var(--accent)" opacity="0.12"/>
-  <!-- Ellipsis inside bubble -->
-  <circle cx="88" cy="58" r="3" fill="var(--border)" opacity="0.25"/>
-  <circle cx="100" cy="58" r="3" fill="var(--border)" opacity="0.25"/>
-  <circle cx="112" cy="58" r="3" fill="var(--border)" opacity="0.25"/>
+  <!-- Shelf -->
+  <rect x="34" y="102" width="132" height="6" rx="3" fill="var(--border)" opacity="0.28"/>
+  <!-- Back cards -->
+  <rect x="58" y="54" width="36" height="42" rx="6" fill="var(--border)" opacity="0.08" stroke="var(--border)" stroke-width="1.2"/>
+  <rect x="106" y="48" width="36" height="48" rx="6" fill="var(--border)" opacity="0.08" stroke="var(--border)" stroke-width="1.2"/>
+  <!-- Front card -->
+  <rect x="82" y="40" width="36" height="56" rx="6" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="90" y="54" width="20" height="3" rx="1.5" fill="var(--border)" opacity="0.25"/>
+  <rect x="90" y="64" width="16" height="3" rx="1.5" fill="var(--border)" opacity="0.18"/>
+  <!-- Pause marker -->
+  <rect x="95" y="74" width="4" height="12" rx="2" fill="var(--accent)" opacity="0.35"/>
+  <rect x="103" y="74" width="4" height="12" rx="2" fill="var(--accent)" opacity="0.35"/>
+  <!-- Soft future hint -->
+  <path d="M150 30l2 4 4 2-4 2-2 4-2-4-4-2 4-2z" fill="var(--accent)" opacity="0.24"/>
+  <circle cx="48" cy="34" r="2" fill="var(--accent)" opacity="0.16"/>
 </svg>`;
 }
 
 // ─── Tier 2: Feature-area empty states ────────────────────────────────────
 
 /**
- * Clipboard with a sparkle wand — weekly review / reflection.
- * Used for the Weekly Review "nothing to clean up" state.
+ * Fresh page wrapped by reset arrows.
+ * Used for the Weekly Reset "nothing urgent" state.
  */
-export function illustrationWeeklyReviewClean() {
+export function illustrationWeeklyResetClear() {
   return `<svg viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-state-illustration" aria-hidden="true">
-  <!-- Clipboard -->
-  <rect x="60" y="36" width="72" height="88" rx="8" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
-  <rect x="82" y="30" width="28" height="10" rx="4" fill="var(--accent)" opacity="0.7"/>
-  <!-- Checked rows -->
-  <path d="M74 58l4 4 8-8" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
-  <rect x="92" y="56" width="30" height="3" rx="1.5" fill="var(--border)" opacity="0.3"/>
-  <path d="M74 76l4 4 8-8" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
-  <rect x="92" y="74" width="26" height="3" rx="1.5" fill="var(--border)" opacity="0.25"/>
-  <path d="M74 94l4 4 8-8" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.4"/>
-  <rect x="92" y="92" width="22" height="3" rx="1.5" fill="var(--border)" opacity="0.2"/>
-  <!-- Sparkle wand -->
-  <line x1="148" y1="30" x2="136" y2="68" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round"/>
-  <path d="M148 26l2 5 5 2-5 2-2 5-2-5-5-2 5-2z" fill="var(--accent)" opacity="0.7"/>
-  <circle cx="155" cy="44" r="2" fill="var(--accent)" opacity="0.3"/>
-  <circle cx="142" cy="20" r="1.5" fill="var(--accent)" opacity="0.25"/>
+  <!-- Fresh page -->
+  <rect x="74" y="34" width="52" height="72" rx="8" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <rect x="86" y="50" width="24" height="3" rx="1.5" fill="var(--border)" opacity="0.28"/>
+  <rect x="86" y="62" width="28" height="3" rx="1.5" fill="var(--border)" opacity="0.22"/>
+  <rect x="86" y="74" width="18" height="3" rx="1.5" fill="var(--border)" opacity="0.16"/>
+  <!-- Reset arrows -->
+  <path d="M58 78c-8-26 5-52 31-61" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>
+  <path d="M84 13h9l-4.5 8.5" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+  <path d="M142 62c8 26-5 52-31 61" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" opacity="0.55"/>
+  <path d="M116 127h-9l4.5-8.5" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"/>
+  <!-- Center calm mark -->
+  <circle cx="100" cy="90" r="12" fill="var(--success)" opacity="0.08"/>
+  <path d="M94 90l4 4 8-8" stroke="var(--success)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
 </svg>`;
 }
 
 /**
- * Broom sweeping sparkles — cleanup analysis found nothing.
- * Used for the Cleanup "no issues" state.
+ * Tuning controls with a settled checkmark.
+ * Used for the Tune-up "no issues" state.
  */
-export function illustrationCleanupClear() {
+export function illustrationTuneUpClear() {
   return `<svg viewBox="0 0 200 140" fill="none" xmlns="http://www.w3.org/2000/svg" class="empty-state-illustration" aria-hidden="true">
-  <!-- Broom handle -->
-  <line x1="85" y1="20" x2="105" y2="90" stroke="var(--border)" stroke-width="3" stroke-linecap="round"/>
-  <!-- Broom head -->
-  <path d="M90 90 Q88 110 78 120 L132 120 Q122 110 120 90 Z" fill="var(--accent)" opacity="0.15" stroke="var(--accent)" stroke-width="1.5" stroke-linejoin="round"/>
-  <!-- Bristle lines -->
-  <line x1="90" y1="100" x2="85" y2="118" stroke="var(--accent)" stroke-width="1" opacity="0.3"/>
-  <line x1="100" y1="98" x2="100" y2="118" stroke="var(--accent)" stroke-width="1" opacity="0.3"/>
-  <line x1="110" y1="100" x2="115" y2="118" stroke="var(--accent)" stroke-width="1" opacity="0.3"/>
-  <!-- Sparkles (cleanliness) -->
-  <path d="M140 40l2 4.5 4.5 2-4.5 2-2 4.5-2-4.5-4.5-2 4.5-2z" fill="var(--success)" opacity="0.5"/>
-  <path d="M56 52l1.5 3 3 1.5-3 1.5-1.5 3-1.5-3-3-1.5 3-1.5z" fill="var(--success)" opacity="0.35"/>
-  <circle cx="150" cy="64" r="2" fill="var(--success)" opacity="0.25"/>
-  <circle cx="48" cy="38" r="1.5" fill="var(--success)" opacity="0.2"/>
-  <!-- Ground line -->
-  <rect x="40" y="124" width="120" height="1.5" rx="0.75" fill="var(--border)" opacity="0.2"/>
+  <!-- Panel -->
+  <rect x="48" y="34" width="104" height="76" rx="10" fill="var(--surface)" stroke="var(--border)" stroke-width="1.5"/>
+  <!-- Slider tracks -->
+  <line x1="72" y1="56" x2="128" y2="56" stroke="var(--border)" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+  <line x1="72" y1="76" x2="128" y2="76" stroke="var(--border)" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+  <line x1="72" y1="96" x2="128" y2="96" stroke="var(--border)" stroke-width="2" stroke-linecap="round" opacity="0.25"/>
+  <!-- Slider knobs -->
+  <circle cx="88" cy="56" r="6" fill="var(--accent)" opacity="0.45"/>
+  <circle cx="116" cy="76" r="6" fill="var(--accent)" opacity="0.35"/>
+  <circle cx="100" cy="96" r="6" fill="var(--success)" opacity="0.4"/>
+  <!-- Settled check -->
+  <circle cx="150" cy="28" r="12" fill="var(--success)" opacity="0.08"/>
+  <circle cx="150" cy="28" r="12" fill="none" stroke="var(--success)" stroke-width="1.5" opacity="0.45"/>
+  <path d="M145 28l3.5 3.5 7-7" stroke="var(--success)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" opacity="0.65"/>
+  <!-- Quiet accent dots -->
+  <circle cx="54" cy="22" r="2" fill="var(--accent)" opacity="0.18"/>
+  <circle cx="140" cy="114" r="1.8" fill="var(--accent)" opacity="0.16"/>
 </svg>`;
 }
 

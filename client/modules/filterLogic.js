@@ -30,7 +30,7 @@ import {
   illustrationTodayClear,
   illustrationUpcomingEmpty,
   illustrationCompletedEmpty,
-  illustrationSomedayEmpty,
+  illustrationLaterEmpty,
 } from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
@@ -1068,9 +1068,9 @@ function renderTodos() {
         sub: "Check one off to see it here.",
       },
       someday: {
-        illus: illustrationSomedayEmpty,
+        illus: illustrationLaterEmpty,
         heading: "No later tasks",
-        sub: "Park ideas here for when the time is right.",
+        sub: "Set something aside here until the time is right.",
       },
     };
     const zeroMsg = zeroTaskMessages[state.currentDateView];
@@ -1274,7 +1274,7 @@ function renderTodos() {
       today: illustrationTodayClear,
       upcoming: illustrationUpcomingEmpty,
       completed: illustrationCompletedEmpty,
-      someday: illustrationSomedayEmpty,
+      someday: illustrationLaterEmpty,
     };
     const illustrationFn =
       viewIllustrations[state.currentDateView] || illustrationNoMatches;

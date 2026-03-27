@@ -1,5 +1,5 @@
 // =============================================================================
-// weeklyReviewUi.js — Weekly Review view: suggest mode → show findings &
+// weeklyReviewUi.js — Weekly Reset view: suggest mode → show findings &
 // recommended actions → apply mode with confirmation.
 // Renders into #todosContent when currentWorkspaceView === "weekly-review".
 // All user-provided content is passed through hooks.escapeHtml before
@@ -10,7 +10,7 @@ import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { SOUL_COPY } from "./soulConfig.js";
-import { illustrationWeeklyReviewClean } from "../utils/illustrations.js";
+import { illustrationWeeklyResetClear } from "../utils/illustrations.js";
 
 // ---------------------------------------------------------------------------
 // Render
@@ -168,7 +168,7 @@ export function renderWeeklyReviewView() {
                 : `<p class="wr-applied-msg">Actions applied.</p>`
             }
           </section>`
-        : `<div class="wr-empty">${illustrationWeeklyReviewClean()}<p>Nothing urgent to clean up this week.</p></div>`;
+        : `<div class="wr-empty">${illustrationWeeklyResetClear()}<p>Nothing urgent to reset this week.</p></div>`;
 
     bodyHtml = `${renderSummaryBadges(s.summary)}${reflectionHtml}${rolloverHtml}${findingsHtml}${anchorsHtml}${adjustmentHtml}${actionsHtml}`;
   } else {
