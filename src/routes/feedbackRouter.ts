@@ -11,6 +11,21 @@ export function createFeedbackRouter({
 }: FeedbackRouterDeps): Router {
   const router = Router();
 
+  router.get("/", async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.userId;
+      if (!userId) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      const items = await feedbackService.listForUser(userId);
+      res.json(items);
+    } catch (error) {
+      next(error);
+    }
+  });
+
   router.post("/", async (req: Request, res: Response, next: NextFunction) => {
     try {
       const userId = req.user?.userId;

@@ -1,0 +1,168 @@
+/* feedback-page.css — Shared styles for standalone feedback pages */
+
+html,
+body {
+  height: 100%;
+  overflow: auto;
+}
+
+body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: var(--bg);
+  padding: var(--s-6) var(--s-4);
+}
+
+.feedback-standalone {
+  width: 100%;
+  max-width: 640px;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-lg);
+  padding: var(--s-7) var(--s-6);
+  box-shadow: var(--shadow-card);
+}
+
+.feedback-standalone__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-5);
+  padding-bottom: var(--s-4);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.feedback-standalone__back {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+}
+
+.feedback-standalone__back:hover {
+  color: var(--text-primary);
+}
+
+.feedback-standalone__logo {
+  font-weight: 700;
+  font-size: var(--fs-lg);
+  color: var(--text-primary);
+}
+
+.feedback-standalone h2 {
+  margin: 0 0 var(--s-2);
+  font-size: var(--fs-xl);
+}
+
+.feedback-standalone__lede {
+  color: var(--text-secondary);
+  font-size: var(--fs-sm);
+  margin: 0 0 var(--s-5);
+}
+
+/* Feedback list */
+.feedback-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.feedback-list__empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: var(--s-8) 0;
+}
+
+.feedback-list__item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.feedback-list__item:last-child {
+  border-bottom: none;
+}
+
+.feedback-list__type {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  flex-shrink: 0;
+}
+
+.feedback-list__type--bug {
+  background: var(--red-bg, rgba(239, 68, 68, 0.1));
+  color: var(--red, #ef4444);
+}
+
+.feedback-list__type--feature {
+  background: var(--blue-bg, rgba(59, 130, 246, 0.1));
+  color: var(--blue, #3b82f6);
+}
+
+.feedback-list__title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+
+.feedback-list__status {
+  font-size: var(--fs-xs);
+  padding: 2px 8px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.feedback-list__status--new {
+  background: var(--surface-alt, rgba(0, 0, 0, 0.05));
+  color: var(--text-secondary);
+}
+
+.feedback-list__status--triaged {
+  background: var(--blue-bg, rgba(59, 130, 246, 0.1));
+  color: var(--blue, #3b82f6);
+}
+
+.feedback-list__status--promoted {
+  background: var(--green-bg, rgba(34, 197, 94, 0.1));
+  color: var(--green, #22c55e);
+}
+
+.feedback-list__status--rejected {
+  background: var(--surface-alt, rgba(0, 0, 0, 0.05));
+  color: var(--text-tertiary);
+}
+
+.feedback-list__date {
+  font-size: var(--fs-xs);
+  color: var(--text-tertiary);
+  flex-shrink: 0;
+}
+
+.feedback-list__link {
+  font-size: var(--fs-xs);
+  flex-shrink: 0;
+}
+
+/* Actions row */
+.feedback-standalone__actions {
+  display: flex;
+  gap: var(--s-3);
+  margin-top: var(--s-5);
+}
+
+/* Confirmation */
+.feedback-confirmation__actions {
+  display: flex;
+  gap: var(--s-3);
+  margin-top: var(--s-4);
+}

@@ -1512,10 +1512,7 @@ window.profileToggleTheme = function profileToggleTheme() {
   if (label) label.textContent = isDark ? "Light mode" : "Dark mode";
 };
 window.logout = logout;
-window.handleFeedbackTypeChange = handleFeedbackTypeChange;
-window.handleFeedbackAttachmentChange = handleFeedbackAttachmentChange;
-window.handleFeedbackSubmit = handleFeedbackSubmit;
-window.resetFeedbackFormView = resetFeedbackFormView;
+// Feedback form moved to standalone /feedback/new page — bridges removed
 // Shortcuts / UI toggles
 window.toggleShortcuts = toggleShortcuts;
 window.closeShortcutsOverlay = closeShortcutsOverlay;

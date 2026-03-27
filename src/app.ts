@@ -237,10 +237,24 @@ export function createApp(
   // Must be registered before the /auth API router so GET /auth is intercepted.
   const authPage = path.join(__dirname, "../client/public/auth.html");
   const appPage = path.join(__dirname, "../client/public/app.html");
+  const feedbackListPage = path.join(
+    __dirname,
+    "../client/public/feedback.html",
+  );
+  const feedbackNewPage = path.join(
+    __dirname,
+    "../client/public/feedback-new.html",
+  );
   app.get("/auth", (_req: Request, res: Response) => res.sendFile(authPage));
   app.get("/app", (_req: Request, res: Response) => res.sendFile(appPage));
   app.get("/app/{*path}", (_req: Request, res: Response) =>
     res.sendFile(appPage),
+  );
+  app.get("/feedback", (_req: Request, res: Response) =>
+    res.sendFile(feedbackListPage),
+  );
+  app.get("/feedback/new", (_req: Request, res: Response) =>
+    res.sendFile(feedbackNewPage),
   );
 
   app.use(
@@ -265,7 +279,7 @@ export function createApp(
   app.use("/agent", apiLimiter);
   app.use("/mcp", apiLimiter);
   app.use("/capture", apiLimiter);
-  app.use("/feedback", apiLimiter);
+  app.use("/api/feedback", apiLimiter);
   app.use("/preferences", apiLimiter);
   app.use("/oauth", mcpPublicLimiter);
   app.use("/.well-known", mcpPublicLimiter);
@@ -316,7 +330,7 @@ export function createApp(
     app.use("/ai", authMiddleware(authService));
     app.use("/projects", authMiddleware(authService));
     app.use("/capture", authMiddleware(authService));
-    app.use("/feedback", authMiddleware(authService));
+    app.use("/api/feedback", authMiddleware(authService));
     app.use("/preferences", authMiddleware(authService));
     app.use(
       "/admin",
@@ -397,7 +411,7 @@ export function createApp(
   }
 
   if (feedbackService) {
-    app.use("/feedback", createFeedbackRouter({ feedbackService }));
+    app.use("/api/feedback", createFeedbackRouter({ feedbackService }));
   }
 
   if (persistencePrisma) {
