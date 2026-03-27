@@ -12,7 +12,6 @@ import {
   loadTodos,
   retryLoadTodos,
   addTodo,
-  addTodoFromInlineInput,
   toggleTodo,
   deleteTodo,
   moveTodoToProject,
@@ -281,7 +280,6 @@ import {
   getComposerDependsOnIds,
   bindCaptureComposerHandlers,
   submitTaskComposerCapture,
-  submitInlineCapture,
 } from "./modules/quickEntry.js";
 import {
   getTodoDueDate,
@@ -1226,9 +1224,7 @@ function bindDockHandlers() {
     });
   };
   hooks.addTodo = addTodo;
-  hooks.addTodoFromInlineInput = addTodoFromInlineInput;
   hooks.submitTaskComposerCapture = submitTaskComposerCapture;
-  hooks.submitInlineCapture = submitInlineCapture;
   hooks.addUndoAction = addUndoAction;
   hooks.renderTodos = renderTodos;
   hooks.validateTodoTitle = validateTodoTitle;
@@ -1455,7 +1451,6 @@ window.handleSetPassword = handleSetPassword;
 // Todo CRUD
 window.addTodo = addTodo;
 window.submitTaskComposerCapture = submitTaskComposerCapture;
-window.submitInlineCapture = submitInlineCapture;
 window.filterTodos = filterTodos;
 window.clearFilters = clearFilters;
 window.setDateView = setDateView;
@@ -1684,18 +1679,6 @@ function init() {
   bindDockHandlers();
   OnCreateAssist.bindOnCreateAssistHandlers();
   bindQuickEntryNaturalDateHandlers();
-
-  // Eagerly load chrono when inline quick-add input is focused
-  const inlineQuickAddInput = document.getElementById("inlineQuickAddInput");
-  if (inlineQuickAddInput instanceof HTMLInputElement) {
-    inlineQuickAddInput.addEventListener(
-      "focus",
-      () => {
-        loadChronoNaturalDateModule();
-      },
-      { once: true },
-    );
-  }
 
   // Handle social login callback before anything else — the URL contains
   // ?auth=success&token=...&refreshToken=... after Google/Apple OAuth redirect.

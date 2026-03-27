@@ -1222,7 +1222,7 @@ export function renderHomeDashboard() {
     : `<div class="home-empty-cta">
         ${illustrationWelcome()}
         <p class="home-empty-cta__heading">Welcome to your workspace</p>
-        <p class="home-empty-cta__sub">Add your first task to get started. Use the <strong>+ New Task</strong> button below, or press <kbd>/</kbd> to quick-add.</p>
+        <p class="home-empty-cta__sub">Add your first task to get started. Use the <strong>+ New Task</strong> button below, or press <kbd>N</kbd> to open capture.</p>
         <button type="button" class="btn" data-onclick="openTaskComposer()">+ Add your first task</button>
       </div>`;
 
