@@ -157,6 +157,33 @@ class AgentClient:
         logger.debug("Token exchange successful (expires_in=%ss)", data.get("expiresIn"))
         return cls(base_url=base_url, token=token, timeout=timeout)
 
+    def post_api(
+        self,
+        path: str,
+        body: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
+        """Call a non-agent REST endpoint directly (e.g. /insights/compute)."""
+        url = f"{self._base_url}{path}"
+        headers = self._headers()
+
+        logger.debug("→ POST %s body=%s", url, body)
+
+        try:
+            with httpx.Client(timeout=self._timeout) as client:
+                response = client.post(url, json=body or {}, headers=headers)
+        except httpx.TimeoutException as exc:
+            raise AgentApiError(0, "TIMEOUT", f"Timed out: {self._timeout}s", retryable=True) from exc
+        except httpx.RequestError as exc:
+            raise AgentApiError(0, "NETWORK_ERROR", str(exc), retryable=True) from exc
+
+        if response.status_code >= 400:
+            raise AgentApiError(response.status_code, "API_ERROR", response.text[:500])
+
+        try:
+            return response.json()
+        except Exception:
+            return {"ok": True}
+
     def read(
         self,
         action: str,
