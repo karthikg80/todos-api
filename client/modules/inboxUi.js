@@ -161,7 +161,7 @@ export function renderInboxView() {
         <div class="triage-view__summary">
           <p class="triage-view__eyebrow">Desk</p>
           <h2 class="triage-view__title">A calm place for new items before they're organized.</h2>
-          <p class="triage-view__copy">Capture first, sort when you're ready.</p>
+          <p class="triage-view__copy">Capture first, organize when you're ready.</p>
         </div>
         <div class="triage-view__actions">
           <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
@@ -180,7 +180,7 @@ export function renderInboxView() {
         </section>
         <section class="triage-section" aria-labelledby="triageOrganizingHeading">
           <div class="todo-group-header triage-section__header">
-            <span id="triageOrganizingHeading">Ready to sort</span>
+            <span id="triageOrganizingHeading">Ready to organize</span>
             <span>${needsOrganizingTodos.length} task${needsOrganizingTodos.length === 1 ? "" : "s"}</span>
           </div>
           <ul class="todos-list triage-section__list">

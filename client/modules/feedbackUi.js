@@ -239,6 +239,10 @@ export function resetFeedbackFormView() {
 }
 
 export function prepareFeedbackView() {
+  const { confirmation } = getFeedbackElements();
+  if (confirmation instanceof HTMLElement && !confirmation.hidden) {
+    resetFeedbackFormView();
+  }
   syncFeedbackFormCopy();
   syncContextPreview();
 }
@@ -261,10 +265,13 @@ export async function handleFeedbackSubmit(event) {
     return;
   }
 
-  if (!body) {
+  const { firstField } = getFeedbackElements();
+  const firstAnswer =
+    firstField instanceof HTMLTextAreaElement ? firstField.value.trim() : "";
+  if (!firstAnswer) {
     hooks.showMessage?.(
       "feedbackMessage",
-      "Please answer the feedback questions before sending.",
+      "Please answer the first question before sending.",
       "error",
     );
     return;

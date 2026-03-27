@@ -214,7 +214,11 @@ export async function handleLogin(event) {
       showMessage("authMessage", data.error || "Login failed", "error");
     }
   } catch (error) {
-    showMessage("authMessage", "Network error. Please try again.", "error");
+    const msg =
+      error instanceof TypeError
+        ? "Network error — check your connection and try again."
+        : "Something went wrong. Please try again.";
+    showMessage("authMessage", msg, "error");
     console.error("Login error:", error);
   } finally {
     if (submitBtn) {
@@ -286,7 +290,11 @@ export async function handleRegister(event) {
       }
     }
   } catch (error) {
-    showMessage("authMessage", "Network error. Please try again.", "error");
+    const msg =
+      error instanceof TypeError
+        ? "Network error — check your connection and try again."
+        : "Something went wrong. Please try again.";
+    showMessage("authMessage", msg, "error");
     console.error("Registration error:", error);
   } finally {
     if (regBtn) {
@@ -351,7 +359,11 @@ export async function handleForgotPassword(event) {
         "error",
       );
     } else {
-      showMessage("authMessage", "Network error. Please try again.", "error");
+      const msg =
+        error instanceof TypeError
+          ? "Network error — check your connection and try again."
+          : "Something went wrong. Please try again.";
+      showMessage("authMessage", msg, "error");
     }
     console.error("Forgot password error:", error);
   } finally {
@@ -403,7 +415,11 @@ export async function handleResetPassword(event) {
       );
     }
   } catch (error) {
-    showMessage("authMessage", "Network error. Please try again.", "error");
+    const msg =
+      error instanceof TypeError
+        ? "Network error — check your connection and try again."
+        : "Something went wrong. Please try again.";
+    showMessage("authMessage", msg, "error");
     console.error("Reset password error:", error);
   }
 }
@@ -1057,11 +1073,14 @@ export function showAuthView() {
   const authView = document.getElementById("authView");
   const profileView = document.getElementById("profileView");
 
-  // Hide nav elements immediately — they sit above the transition
+  // Hide nav elements and panes immediately — they sit above the transition
   document.getElementById("navTabs").style.display = "none";
   document.getElementById("userBar").style.display = "none";
   document.getElementById("adminNavTab").style.display = "none";
   document.body.classList.remove("is-admin-user");
+  hooks.setSettingsPaneVisible?.(false);
+  hooks.setFeedbackPaneVisible?.(false);
+  hooks.setAdminPaneVisible?.(false);
 
   // Determine which view is currently active
   const fromView = todosView?.classList.contains("active")
