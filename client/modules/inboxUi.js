@@ -1,19 +1,20 @@
 // =============================================================================
-// inboxUi.js — Triage workspace: capture backlog plus tasks that still need
-// organization. Kept on the legacy filename to minimize import churn.
+// inboxUi.js — Triage view: captures + tasks that still need organizing.
+// Uses callAgentAction for all API calls. Renders into #todosContent when
+// the triage workspace is active.
+// All user-provided content is passed through hooks.escapeHtml before
+// being assigned to innerHTML, consistent with the existing codebase pattern.
 // =============================================================================
 
 import { state, hooks } from "./store.js";
 import { applyAsyncAction } from "./stateActions.js";
 import { callAgentAction } from "./agentApiClient.js";
 import { illustrationInboxClear } from "../utils/illustrations.js";
-import { isTodoNeedingTriage } from "./filterLogic.js";
-import { getVisibleTodosOverride } from "./todosService.js";
 
 export async function loadInboxItems() {
   if (state.inboxState.loading) return;
   applyAsyncAction("inbox/start");
-  if (state.currentWorkspaceView === "triage") {
+  if (isTriageWorkspaceActive()) {
     renderInboxView();
   }
   try {
@@ -46,21 +47,18 @@ function formatAge(date) {
   return `${diffDays}d ago`;
 }
 
+function isTriageWorkspaceActive() {
+  return typeof hooks.isTriageWorkspaceActive === "function"
+    ? hooks.isTriageWorkspaceActive()
+    : state.currentWorkspaceView === "triage";
+}
+
 function getNeedsOrganizingTodos() {
-  const override =
-    state.currentWorkspaceView === "triage" ? getVisibleTodosOverride() : null;
-  const source = Array.isArray(override) ? override : state.todos;
-  return source
-    .filter((todo) => isTodoNeedingTriage(todo))
-    .sort((a, b) => {
-      const aPriority = a.status === "inbox" ? 0 : 1;
-      const bPriority = b.status === "inbox" ? 0 : 1;
-      if (aPriority !== bPriority) return aPriority - bPriority;
-      return (
-        new Date(b.updatedAt || b.createdAt).getTime() -
-        new Date(a.updatedAt || a.createdAt).getTime()
-      );
-    });
+  const matcher =
+    typeof hooks.isTodoNeedsOrganizing === "function"
+      ? hooks.isTodoNeedsOrganizing
+      : (todo) => !todo?.completed;
+  return state.todos.filter((todo) => matcher(todo));
 }
 
 function renderCaptureItem(item) {
@@ -70,19 +68,20 @@ function renderCaptureItem(item) {
   const age = item.capturedAt ? formatAge(new Date(item.capturedAt)) : "";
 
   return `
-    <article class="triage-item triage-item--capture" data-capture-id="${escapeHtml(item.id)}">
-      <div class="triage-item__body">
-        <p class="triage-item__title">${escapeHtml(item.text || "")}</p>
-        ${age ? `<span class="triage-item__meta">${escapeHtml(age)}</span>` : ""}
+    <li class="todo-item triage-capture-item" data-capture-id="${escapeHtml(item.id)}">
+      <div class="triage-capture-item__content">
+        <div class="todo-title" title="${escapeHtml(item.text || "")}">${escapeHtml(item.text || "")}</div>
+        <p class="todo-description">Raw capture</p>
+        ${age ? `<div class="todo-meta"><span class="todo-chip">${escapeHtml(age)}</span></div>` : ""}
       </div>
-      <div class="triage-item__actions">
+      <div class="todo-row-actions triage-capture-item__actions">
         ${
           isTriaging
-            ? `<span class="triage-item__spinner">Processing...</span>`
+            ? `<span class="triage-capture-item__spinner">Processing...</span>`
             : `
           <button type="button" class="mini-btn"
             data-triage-action="promote" data-capture-id="${escapeHtml(item.id)}">
-            Promote to task
+            Create task
           </button>
           <button type="button" class="mini-btn"
             data-triage-action="discard" data-capture-id="${escapeHtml(item.id)}">
@@ -91,113 +90,103 @@ function renderCaptureItem(item) {
         `
         }
       </div>
-    </article>
+    </li>
   `;
 }
 
-function renderTodoItem(todo) {
-  const escapeHtml = hooks.escapeHtml || ((s) => String(s));
-  const projectLabel =
-    hooks.getProjectLeafName?.(todo.category) || "No project";
-  const statusLabel = todo.status === "inbox" ? "Untriaged" : "Needs project";
+function renderSectionState(message, { modifier = "", actionsHtml = "" } = {}) {
+  const escapeHtml = hooks.escapeHtml || ((value) => String(value ?? ""));
+  const className = ["todo-list-state", modifier].filter(Boolean).join(" ");
   return `
-    <article class="triage-item triage-item--todo" data-todo-id="${escapeHtml(todo.id)}">
-      <div class="triage-item__body">
-        <p class="triage-item__title">${escapeHtml(todo.title || "")}</p>
-        <div class="triage-item__meta-row">
-          <span class="triage-item__pill">${escapeHtml(statusLabel)}</span>
-          <span class="triage-item__meta">${escapeHtml(projectLabel)}</span>
-        </div>
-      </div>
-      <div class="triage-item__actions">
-        <button type="button" class="mini-btn" data-triage-action="open-task" data-todo-id="${escapeHtml(todo.id)}">
-          Open task
-        </button>
-      </div>
-    </article>
+    <li class="${className}" role="status" aria-live="polite">
+      <p>${escapeHtml(message)}</p>
+      ${actionsHtml}
+    </li>
   `;
 }
 
-function renderSection({ title, description, emptyMessage, itemsHtml, count }) {
-  return `
-    <section class="triage-section">
-      <header class="triage-section__header">
-        <div>
-          <h3>${title}</h3>
-          <p>${description}</p>
-        </div>
-        <span class="triage-section__count">${count}</span>
-      </header>
-      ${
-        itemsHtml
-          ? `<div class="triage-section__list">${itemsHtml}</div>`
-          : `<div class="triage-section__empty">${emptyMessage}</div>`
-      }
-    </section>
-  `;
+function renderCapturesSection() {
+  const s = state.inboxState;
+  if (s.loading && !s.hasLoaded) {
+    return renderSectionState("Loading captures…", {
+      modifier: "todo-list-state--loading",
+    });
+  }
+  if (s.error && s.items.length === 0) {
+    return renderSectionState(s.error || "Could not load captures.", {
+      modifier: "todo-list-state--error",
+      actionsHtml:
+        '<button type="button" class="mini-btn" data-triage-action="reload">Retry</button>',
+    });
+  }
+  if (!s.loading && s.hasLoaded && s.items.length === 0) {
+    return `
+      <li class="todo-list-state triage-empty-state" role="status" aria-live="polite">
+        ${illustrationInboxClear()}
+        <p>Captures are clear.</p>
+        <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
+      </li>
+    `;
+  }
+  return s.items.map(renderCaptureItem).join("");
+}
+
+function renderNeedsOrganizingSection() {
+  const todos = getNeedsOrganizingTodos();
+  if (!todos.length) {
+    return renderSectionState("Nothing needs organizing right now.");
+  }
+  return todos.map((todo) => hooks.renderTodoRowHtml?.(todo) || "").join("");
 }
 
 export function renderInboxView() {
   const container = document.getElementById("todosContent");
   if (!container) return;
-  if (state.currentWorkspaceView !== "triage") return;
+  if (!isTriageWorkspaceActive()) return;
 
-  const s = state.inboxState;
+  const captureCount = state.inboxState.items.length;
   const needsOrganizingTodos = getNeedsOrganizingTodos();
+  const totalCount = captureCount + needsOrganizingTodos.length;
 
-  let capturesHtml = "";
-  if (s.loading && !s.hasLoaded) {
-    capturesHtml = `<div class="triage-section__empty">Loading captures...</div>`;
-  } else if (s.error && s.items.length === 0) {
-    capturesHtml = `
-      <div class="triage-section__empty triage-section__empty--error">
-        <p>${hooks.escapeHtml?.(s.error) || s.error}</p>
-        <button type="button" class="mini-btn" data-triage-action="reload">Retry</button>
-      </div>
-    `;
-  } else {
-    capturesHtml = s.items.map(renderCaptureItem).join("");
-  }
-
-  const capturesSection = renderSection({
-    title: "Captures",
-    description: "Raw notes and ideas waiting to be promoted or discarded.",
-    emptyMessage: "No captures waiting in triage.",
-    itemsHtml: capturesHtml,
-    count: s.items.length,
+  hooks.updateHeaderAndContextUI?.({
+    projectName: "Triage",
+    visibleCount: totalCount,
+    dateLabel: "",
   });
-
-  const todosSection = renderSection({
-    title: "Needs organizing",
-    description: "Tasks that still need a project or a clearer status.",
-    emptyMessage: "All tasks are organized.",
-    itemsHtml: needsOrganizingTodos.map(renderTodoItem).join(""),
-    count: needsOrganizingTodos.length,
-  });
-
-  const emptyState =
-    !s.loading &&
-    s.hasLoaded &&
-    s.items.length === 0 &&
-    needsOrganizingTodos.length === 0
-      ? `
-        <div class="triage-view__empty">
-          ${illustrationInboxClear()}
-          <p>Triage is clear.</p>
-        </div>
-      `
-      : "";
 
   container.innerHTML = `
     <div class="triage-view">
       <div class="triage-view__toolbar">
-        <div>
-          <h2>Triage</h2>
-          <p>Capture at the top of the list, then organize here.</p>
+        <div class="triage-view__summary">
+          <p class="triage-view__eyebrow">Triage</p>
+          <h2 class="triage-view__title">Process captures and organize loose tasks.</h2>
+          <p class="triage-view__copy">Use New Task or press N to capture something new, then finish sorting it here.</p>
         </div>
-        <button type="button" class="mini-btn" data-triage-action="reload">Refresh</button>
+        <div class="triage-view__actions">
+          <button type="button" class="mini-btn" data-onclick="openTaskComposer()">New task</button>
+          <button type="button" class="mini-btn" data-triage-action="reload">Refresh</button>
+        </div>
       </div>
-      ${emptyState || `${capturesSection}${todosSection}`}
+      <div class="triage-view__sections">
+        <section class="triage-section" aria-labelledby="triageCapturesHeading">
+          <div class="todo-group-header triage-section__header">
+            <span id="triageCapturesHeading">Captures</span>
+            <span>${captureCount} item${captureCount === 1 ? "" : "s"}</span>
+          </div>
+          <ul class="todos-list triage-section__list">
+            ${renderCapturesSection()}
+          </ul>
+        </section>
+        <section class="triage-section" aria-labelledby="triageOrganizingHeading">
+          <div class="todo-group-header triage-section__header">
+            <span id="triageOrganizingHeading">Needs organizing</span>
+            <span>${needsOrganizingTodos.length} task${needsOrganizingTodos.length === 1 ? "" : "s"}</span>
+          </div>
+          <ul class="todos-list triage-section__list">
+            ${renderNeedsOrganizingSection()}
+          </ul>
+        </section>
+      </div>
     </div>
   `;
 }
@@ -252,7 +241,7 @@ async function discardItem(captureId) {
 
 export function bindInboxHandlers() {
   document.addEventListener("click", (event) => {
-    if (state.currentWorkspaceView !== "triage") return;
+    if (!isTriageWorkspaceActive()) return;
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
 
@@ -261,7 +250,6 @@ export function bindInboxHandlers() {
 
     const action = actionEl.getAttribute("data-triage-action");
     const captureId = actionEl.getAttribute("data-capture-id") || "";
-    const todoId = actionEl.getAttribute("data-todo-id") || "";
 
     if (action === "reload") {
       loadInboxItems();
@@ -269,8 +257,6 @@ export function bindInboxHandlers() {
       void promoteItem(captureId);
     } else if (action === "discard" && captureId) {
       void discardItem(captureId);
-    } else if (action === "open-task" && todoId) {
-      hooks.openTodoDrawer?.(todoId);
     }
   });
 }

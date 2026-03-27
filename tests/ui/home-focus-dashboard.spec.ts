@@ -788,7 +788,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await clickWorkspaceView(page, "triage");
     await expect(
       page
-        .locator(".triage-item--todo")
+        .locator(".todo-item")
         .filter({ hasText: "Submit expense report" }),
     ).toBeVisible();
   });
@@ -809,7 +809,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
     );
     await expect(
       page
-        .locator(".triage-item--todo")
+        .locator(".todo-item")
         .filter({ hasText: "Project scoped task" }),
     ).toHaveCount(0);
 

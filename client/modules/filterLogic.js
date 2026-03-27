@@ -95,7 +95,12 @@ function matchesWorkspaceView(view) {
     return !getSelectedProjectKey() && state.currentWorkspaceView === "home";
   }
   if (view === "triage") {
-    return !getSelectedProjectKey() && state.currentWorkspaceView === "triage";
+    return (
+      !getSelectedProjectKey() &&
+      (state.currentWorkspaceView === "triage" ||
+        state.currentWorkspaceView === "inbox" ||
+        state.currentWorkspaceView === "unsorted")
+    );
   }
   if (view === "all") {
     return (
@@ -144,7 +149,12 @@ function isHomeWorkspaceActive() {
 }
 
 function isTriageWorkspaceActive() {
-  return !getSelectedProjectKey() && state.currentWorkspaceView === "triage";
+  if (getSelectedProjectKey()) return false;
+  return (
+    state.currentWorkspaceView === "triage" ||
+    state.currentWorkspaceView === "inbox" ||
+    state.currentWorkspaceView === "unsorted"
+  );
 }
 
 function isUnsortedWorkspaceActive() {
@@ -172,7 +182,6 @@ function normalizeWorkspaceView(view) {
     "next_month",
     "someday",
     "completed",
-    "inbox",
     "weekly-review",
     "cleanup",
     "project",
@@ -190,8 +199,15 @@ function isTodoUnsorted(todo) {
   return !hasCategory && !hasProjectId;
 }
 
+function isTodoNeedsOrganizing(todo) {
+  if (!todo || todo.completed) return false;
+  return (
+    String(todo.status || "").toLowerCase() === "inbox" || isTodoUnsorted(todo)
+  );
+}
+
 function isTodoNeedingTriage(todo) {
-  return !todo.completed && (todo.status === "inbox" || isTodoUnsorted(todo));
+  return isTodoNeedsOrganizing(todo);
 }
 
 function isSameLocalDay(a, b) {
@@ -311,7 +327,7 @@ function filterTodosList(todosList, { searchQuery = "" } = {}) {
   let filtered = todosList;
 
   if (isTriageWorkspaceActive()) {
-    filtered = filtered.filter((todo) => isTodoNeedingTriage(todo));
+    filtered = filtered.filter((todo) => isTodoNeedsOrganizing(todo));
   }
 
   const categoryFilter = getSelectedProjectKey();
@@ -543,6 +559,8 @@ function getCurrentDateViewLabel() {
 function getCurrentWorkspaceHeaderConfig() {
   const workspaceTitleMap = {
     triage: "Triage",
+    inbox: "Triage",
+    unsorted: "Triage",
     today: "Today",
     upcoming: "Upcoming",
     completed: "Completed",
@@ -563,8 +581,7 @@ function getCurrentWorkspaceHeaderConfig() {
 
 function getSelectedProjectLabel(selectedProject) {
   if (!selectedProject && state.currentWorkspaceView === "home") return "Home";
-  if (!selectedProject && state.currentWorkspaceView === "triage")
-    return "Triage";
+  if (!selectedProject && isTriageWorkspaceActive()) return "Triage";
   if (!selectedProject) return "All tasks";
   return hooks.getProjectLeafName(selectedProject);
 }
@@ -985,8 +1002,7 @@ function renderTodos() {
     return;
   }
 
-  if (state.currentWorkspaceView === "triage") {
-    updateHeaderFromVisibleTodos(getVisibleTodos());
+  if (isTriageWorkspaceActive()) {
     hooks.renderInboxView?.();
     if (!state.inboxState.hasLoaded && !state.inboxState.loading) {
       hooks.loadInboxItems?.();
@@ -1314,6 +1330,7 @@ export {
   clearHomeListDrilldown,
   normalizeWorkspaceView,
   isTodoUnsorted,
+  isTodoNeedsOrganizing,
   isTodoNeedingTriage,
   isSameLocalDay,
   matchesDateView,

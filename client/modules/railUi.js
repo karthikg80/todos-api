@@ -9,7 +9,7 @@ import {
   getSelectedProjectKey,
   getSelectedProjectLabel,
   syncWorkspaceViewState,
-  isTodoNeedingTriage,
+  isTodoNeedsOrganizing,
   setSelectedProjectKey,
 } from "./filterLogic.js";
 import {
@@ -782,10 +782,14 @@ export function renderProjectsRail() {
     closeProjectsRailSheet({ restoreFocus: false });
   }
 
+  if (!state.inboxState.hasLoaded && !state.inboxState.loading) {
+    hooks.loadInboxItems?.();
+  }
+
   const selectedProject = getSelectedProjectKey();
   const allCount = state.todos.filter((t) => !t.completed).length;
   const triageCount =
-    state.todos.filter((todo) => isTodoNeedingTriage(todo)).length +
+    state.todos.filter((todo) => isTodoNeedsOrganizing(todo)).length +
     state.inboxState.items.length;
   const openTodoCountMap = buildOpenTodoCountMapByProject();
   const projects = getProjectsForRail(openTodoCountMap);

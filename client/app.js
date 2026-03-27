@@ -90,9 +90,11 @@ import {
   matchesWorkspaceView,
   syncWorkspaceViewState,
   isHomeWorkspaceActive,
+  isTriageWorkspaceActive,
   hasHomeListDrilldown,
   clearHomeListDrilldown,
   normalizeWorkspaceView,
+  isTodoNeedsOrganizing,
   isSameLocalDay,
   matchesDateView,
   getVisibleTodos,
@@ -1237,6 +1239,7 @@ function bindDockHandlers() {
   hooks.closeTaskPage = closeTaskPage;
   hooks.syncTaskPageRouteFromLocation = syncTaskPageRouteFromLocation;
   hooks.renderInlineTaskEditor = renderInlineTaskEditor;
+  hooks.renderTodoRowHtml = renderTodoRowHtml;
   hooks.renderTaskPageSurface = renderTaskPageSurface;
   hooks.mountTaskPageDependsPicker = mountTaskPageDependsPicker;
   // drawerUi → projectsState
@@ -1328,6 +1331,8 @@ function bindDockHandlers() {
   hooks.renderHomeDashboard = renderHomeDashboard;
   hooks.renderInboxView = renderInboxView;
   hooks.loadInboxItems = loadInboxItems;
+  hooks.isTriageWorkspaceActive = isTriageWorkspaceActive;
+  hooks.isTodoNeedsOrganizing = isTodoNeedsOrganizing;
   hooks.renderWeeklyReviewView = renderWeeklyReviewView;
   hooks.renderCleanupView = renderCleanupView;
   hooks.updateBulkActionsVisibility = updateBulkActionsVisibility;

@@ -516,7 +516,7 @@ test.describe("Project actions drawer", () => {
       "page",
     );
     await selectWorkspaceView(page, "triage", isMobile);
-    await expect(page.locator(".triage-item--todo")).toContainText("Home task");
+    await expect(page.locator(".todo-item")).toContainText("Home task");
   });
 
   test("delete project can delete its open tasks from the drawer dialog", async ({

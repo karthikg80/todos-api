@@ -9999,126 +9999,121 @@ body.is-admin-user .projects-rail__footer--admin-only {
 
 /* ── Triage view ───────────────────────────────────────────────────────── */
 .triage-view {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  gap: var(--s-4);
 }
 
 .triage-view__toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--r-md);
+  background: var(--card-bg);
 }
 
-.triage-view__toolbar h2,
-.triage-section__header h3 {
+.triage-view__summary > * {
   margin: 0;
 }
 
-.triage-view__toolbar p,
-.triage-section__header p {
-  margin: 4px 0 0;
+.triage-view__eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-secondary);
 }
 
-.triage-view__empty,
-.triage-section__empty {
-  padding: 24px;
-  border: 1px dashed var(--border-color);
-  border-radius: 12px;
-  background: var(--surface-2);
+.triage-view__title {
+  margin-top: var(--s-1);
+  font-size: var(--fs-section);
+}
+
+.triage-view__copy {
+  margin-top: var(--s-2);
+  color: var(--text-secondary);
+}
+
+.triage-view__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.triage-view__sections {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.triage-section__header {
+  margin-top: 0;
+}
+
+.triage-section__list {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.triage-capture-item {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.triage-capture-item__content {
+  min-width: 0;
+  display: grid;
+  gap: var(--s-2);
+}
+
+.triage-capture-item .todo-title {
+  white-space: normal;
+  word-break: break-word;
+}
+
+.triage-capture-item__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+  justify-content: flex-end;
+}
+
+.triage-capture-item__spinner {
+  font-size: var(--fs-meta);
+  color: var(--text-secondary);
+  align-self: center;
+}
+
+.triage-empty-state {
   text-align: center;
-  color: var(--text-secondary);
 }
 
-.triage-view__empty .empty-state-illustration {
+.triage-empty-state .empty-state-illustration {
   width: 100px;
   height: 80px;
   margin-bottom: var(--s-3);
 }
 
-.triage-section {
-  display: grid;
-  gap: 12px;
+.triage-empty-state .mini-btn {
+  margin-top: var(--s-2);
 }
 
-.triage-section__header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
+@media (max-width: 720px) {
+  .triage-view__toolbar {
+    display: grid;
+  }
 
-.triage-section__count {
-  min-width: 32px;
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--text-secondary);
-  text-align: center;
-}
+  .triage-view__actions {
+    justify-content: flex-start;
+  }
 
-.triage-section__list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+  .triage-capture-item {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-.triage-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  background: var(--card-bg);
-}
-
-.triage-item__body {
-  min-width: 0;
-  flex: 1;
-}
-
-.triage-item__title {
-  margin: 0;
-  color: var(--text-primary);
-  word-break: break-word;
-}
-
-.triage-item__meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.triage-item__meta,
-.triage-item__spinner {
-  color: var(--text-secondary);
-  font-size: var(--fs-meta);
-}
-
-.triage-item__pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
-  color: var(--accent);
-  font-size: var(--fs-meta);
-}
-
-.triage-item__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  justify-content: flex-end;
-  flex-shrink: 0;
+  .triage-capture-item__actions {
+    justify-content: flex-start;
+  }
 }
 
 /* ── Day Plan Agent panel ───────────────────────────────────────────────── */
