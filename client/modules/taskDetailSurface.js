@@ -434,9 +434,9 @@ export function renderTaskPageSurface(todo) {
                 <option value="inbox" ${draft.status === "inbox" ? "selected" : ""}>Desk</option>
                 <option value="next" ${draft.status === "next" ? "selected" : ""}>Up next</option>
                 <option value="in_progress" ${draft.status === "in_progress" ? "selected" : ""}>In progress</option>
-                <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Waiting</option>
-                <option value="scheduled" ${draft.status === "scheduled" ? "selected" : ""}>Scheduled</option>
-                <option value="someday" ${draft.status === "someday" ? "selected" : ""}>Someday</option>
+                <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Pending</option>
+                <option value="scheduled" ${draft.status === "scheduled" ? "selected" : ""}>Planned</option>
+                <option value="someday" ${draft.status === "someday" ? "selected" : ""}>Later</option>
                 <option value="done" ${draft.status === "done" ? "selected" : ""}>Done</option>
               </select>
             </label>
@@ -497,7 +497,7 @@ export function renderTaskPageSurface(todo) {
               <input id="taskPageStartDateInput" type="datetime-local" value="${escapeHtml(draft.startDate)}" />
             </label>
             <label class="task-page__field" for="taskPageScheduledDateInput">
-              <span>Scheduled date</span>
+              <span>Planned date</span>
               <input id="taskPageScheduledDateInput" type="datetime-local" value="${escapeHtml(draft.scheduledDate)}" />
             </label>
             <label class="task-page__field" for="taskPageReviewDateInput">
@@ -523,7 +523,7 @@ export function renderTaskPageSurface(todo) {
               <input id="taskPageTagsInput" type="text" maxlength="512" value="${escapeHtml(draft.tagsText)}" placeholder="travel, planning, admin" />
             </label>
             <label class="task-page__field" for="taskPageWaitingOnInput">
-              <span>Waiting on</span>
+              <span>Blocked by</span>
               <input id="taskPageWaitingOnInput" type="text" maxlength="255" value="${escapeHtml(draft.waitingOn)}" placeholder="Budget approval, vendor reply" />
             </label>
             <label class="task-page__field" for="taskPageCategoryInput">

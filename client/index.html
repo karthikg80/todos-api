@@ -371,7 +371,7 @@
                               />
                             </svg>
                           </div>
-                          <h4>Home Dashboard</h4>
+                          <h4>Focus Dashboard</h4>
                           <p>
                             AI-powered focus suggestions, due soon alerts, quick
                             wins, and projects that need attention.
@@ -1013,21 +1013,21 @@
                             id="dateViewSomeday"
                             data-onclick="setDateView('someday')"
                           >
-                            Someday
+                            Later
                           </button>
                           <button
                             class="date-view-tab"
                             id="dateViewWaiting"
                             data-onclick="setDateView('waiting')"
                           >
-                            Waiting
+                            Pending
                           </button>
                           <button
                             class="date-view-tab"
                             id="dateViewScheduled"
                             data-onclick="setDateView('scheduled')"
                           >
-                            Scheduled
+                            Planned
                           </button>
                         </div>
                         <div class="more-filters-actions">
@@ -1061,7 +1061,7 @@
                           class="projects-rail-item workspace-view-item projects-rail-item--active"
                           data-workspace-view="home"
                           aria-current="page"
-                          title="Home"
+                          title="Focus"
                         >
                           <svg
                             class="nav-icon"
@@ -1081,7 +1081,7 @@
                             />
                             <polyline points="9 22 9 12 15 12 15 22" />
                           </svg>
-                          <span class="nav-label">Home</span>
+                          <span class="nav-label">Focus</span>
                         </button>
                         <button
                           type="button"
@@ -1118,7 +1118,7 @@
                           type="button"
                           class="projects-rail-item workspace-view-item"
                           data-workspace-view="all"
-                          title="All tasks"
+                          title="Everything"
                         >
                           <svg
                             class="nav-icon"
@@ -1139,7 +1139,7 @@
                             <path d="M13 12h8" />
                             <path d="M13 18h8" />
                           </svg>
-                          <span class="nav-label">All tasks</span>
+                          <span class="nav-label">Everything</span>
                           <span class="projects-rail-item__count" hidden
                             >0</span
                           >
@@ -1489,7 +1489,7 @@
                           class="projects-rail-item workspace-view-item projects-rail-item--active"
                           data-workspace-view="home"
                           aria-current="page"
-                          title="Home"
+                          title="Focus"
                         >
                           <svg
                             class="nav-icon"
@@ -1509,7 +1509,7 @@
                             />
                             <polyline points="9 22 9 12 15 12 15 22" />
                           </svg>
-                          <span class="nav-label">Home</span>
+                          <span class="nav-label">Focus</span>
                         </button>
                         <button
                           type="button"
@@ -1546,7 +1546,7 @@
                           type="button"
                           class="projects-rail-item workspace-view-item"
                           data-workspace-view="all"
-                          title="All tasks"
+                          title="Everything"
                         >
                           <svg
                             class="nav-icon"
@@ -1567,7 +1567,7 @@
                             <path d="M13 12h8" />
                             <path d="M13 18h8" />
                           </svg>
-                          <span class="nav-label">All tasks</span>
+                          <span class="nav-label">Everything</span>
                           <span class="projects-rail-item__count" hidden
                             >0</span
                           >
@@ -1733,21 +1733,21 @@
                             id="dateViewSomedaySheet"
                             data-onclick="setDateView('someday')"
                           >
-                            Someday
+                            Later
                           </button>
                           <button
                             class="date-view-tab"
                             id="dateViewWaitingSheet"
                             data-onclick="setDateView('waiting')"
                           >
-                            Waiting
+                            Pending
                           </button>
                           <button
                             class="date-view-tab"
                             id="dateViewScheduledSheet"
                             data-onclick="setDateView('scheduled')"
                           >
-                            Scheduled
+                            Planned
                           </button>
                         </div>
                         <div class="more-filters-actions">
@@ -1813,7 +1813,7 @@
                               class="btn btn-secondary pane-back-btn"
                               data-onclick="switchView(‘todos’, this)"
                             >
-                              Back to Todos
+                              Back to workspace
                             </button>
                           </div>
                           <h2>Settings</h2>
@@ -2279,7 +2279,7 @@
                               class="btn btn-secondary pane-back-btn"
                               data-onclick="switchView('todos', this)"
                             >
-                              Back to Todos
+                              Back to workspace
                             </button>
                           </div>
                           <h2>Feedback</h2>
@@ -2314,7 +2314,7 @@
                               class="btn btn-secondary"
                               data-onclick="switchView('todos', this)"
                             >
-                              Back to Todos
+                              Back to workspace
                             </button>
                             <button
                               type="button"
@@ -2462,7 +2462,7 @@
                               class="btn btn-secondary pane-back-btn"
                               data-onclick="switchView('todos', this)"
                             >
-                              Back to Todos
+                              Back to workspace
                             </button>
                           </div>
                           <h2>Admin</h2>
@@ -2510,7 +2510,7 @@
                         class="todos-mobile-title"
                         id="todosMobileTitle"
                         aria-live="polite"
-                        >Home</span
+                        >Focus</span
                       >
                       <button
                         class="todos-mobile-theme-btn"
@@ -2589,7 +2589,7 @@
                           aria-expanded="false"
                         >
                           <span id="projectsRailTopbarLabel"
-                            >Projects: All tasks</span
+                            >Projects: Everything</span
                           >
                         </button>
                       </div>
@@ -2777,19 +2777,19 @@
                                     value="waiting"
                                     title="Blocked on someone or something else"
                                   >
-                                    Waiting
+                                    Pending
                                   </option>
                                   <option
                                     value="scheduled"
                                     title="Planned for a specific date"
                                   >
-                                    Scheduled
+                                    Planned
                                   </option>
                                   <option
                                     value="someday"
                                     title="Want to do eventually, not urgent"
                                   >
-                                    Someday
+                                    Later
                                   </option>
                                 </select>
                               </label>
@@ -2878,7 +2878,7 @@
                                   class="task-composer-inline-field"
                                   for="todoScheduledDateInput"
                                 >
-                                  <span>Scheduled</span>
+                                  <span>Planned</span>
                                   <input
                                     type="datetime-local"
                                     id="todoScheduledDateInput"
@@ -2994,7 +2994,7 @@
                                   class="task-composer-inline-field task-composer-inline-field--wide"
                                   for="todoWaitingOnInput"
                                 >
-                                  <span>Waiting on</span>
+                                  <span>Blocked by</span>
                                   <input
                                     type="text"
                                     id="todoWaitingOnInput"
@@ -3198,7 +3198,7 @@
                             id="todosListHeaderTitle"
                             class="todos-list-header__title"
                           >
-                            All tasks
+                            Everything
                           </div>
                           <span
                             id="todosListHeaderDateBadge"
@@ -3970,7 +3970,7 @@
           <kbd class="shortcut-key">T</kbd>
         </div>
         <div class="shortcut-item">
-          <span class="shortcut-desc">Move to Someday</span>
+          <span class="shortcut-desc">Move to Later</span>
           <kbd class="shortcut-key">S</kbd>
         </div>
         <div class="shortcut-item">

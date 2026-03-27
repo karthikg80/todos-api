@@ -549,9 +549,9 @@ function getCurrentDateViewLabel() {
     upcoming: "Upcoming",
     completed: "Completed",
     next_month: "Next month",
-    someday: "Someday",
-    waiting: "Waiting",
-    scheduled: "Scheduled",
+    someday: "Later",
+    waiting: "Pending",
+    scheduled: "Planned",
   };
   return labels[state.currentDateView] || "";
 }
@@ -580,9 +580,9 @@ function getCurrentWorkspaceHeaderConfig() {
 }
 
 function getSelectedProjectLabel(selectedProject) {
-  if (!selectedProject && state.currentWorkspaceView === "home") return "Home";
+  if (!selectedProject && state.currentWorkspaceView === "home") return "Focus";
   if (!selectedProject && isTriageWorkspaceActive()) return "Desk";
-  if (!selectedProject) return "All tasks";
+  if (!selectedProject) return "Everything";
   return hooks.getProjectLeafName(selectedProject);
 }
 
@@ -596,7 +596,7 @@ function formatVisibleTaskCount(taskCount) {
 // outside this section.
 // =============================================================================
 function updateHeaderAndContextUI({
-  projectName = "All tasks",
+  projectName = "Everything",
   visibleCount = 0,
   dateLabel = "",
 } = {}) {
@@ -687,7 +687,7 @@ function getOpenTodos() {
 function updateHeaderFromVisibleTodos(visibleTodos = []) {
   if (isHomeWorkspaceActive()) {
     updateHeaderAndContextUI({
-      projectName: "Home",
+      projectName: "Focus",
       visibleCount: getOpenTodos().length,
       dateLabel: "",
     });
@@ -703,7 +703,7 @@ function updateHeaderFromVisibleTodos(visibleTodos = []) {
   }
   if (hasHomeListDrilldown()) {
     updateHeaderAndContextUI({
-      projectName: hooks.getHomeDrilldownLabel?.() || "Home",
+      projectName: hooks.getHomeDrilldownLabel?.() || "Focus",
       visibleCount: getVisibleTodosCount(visibleTodos),
       dateLabel: "",
     });
@@ -1059,7 +1059,7 @@ function renderTodos() {
       },
       upcoming: {
         illus: illustrationUpcomingEmpty,
-        heading: "Nothing scheduled ahead",
+        heading: "Nothing planned ahead",
         sub: "Plan something for later this week to stay on track.",
       },
       completed: {
@@ -1069,7 +1069,7 @@ function renderTodos() {
       },
       someday: {
         illus: illustrationSomedayEmpty,
-        heading: "No someday tasks",
+        heading: "No later tasks",
         sub: "Park ideas here for when the time is right.",
       },
     };
@@ -1262,7 +1262,7 @@ function renderTodos() {
         sub: "Completed tasks will appear here.",
       },
       someday: {
-        heading: "No someday tasks",
+        heading: "No later tasks",
         sub: "Tasks without a due date appear here.",
       },
     };

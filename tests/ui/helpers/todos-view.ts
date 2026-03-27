@@ -54,11 +54,11 @@ export async function selectWorkspaceView(
 
 export async function ensureAllTasksListActive(page: Page) {
   const headerTitle = page.locator("#todosListHeaderTitle");
-  if ((await headerTitle.textContent())?.trim() === "All tasks") {
+  if ((await headerTitle.textContent())?.trim() === "Everything") {
     return;
   }
   await selectWorkspaceView(page, "all");
-  await expect(headerTitle).toHaveText("All tasks");
+  await expect(headerTitle).toHaveText("Everything");
 }
 
 export async function openTaskComposerSheet(page: Page) {

@@ -110,7 +110,7 @@ test.describe("Feedback flow", () => {
 
     await page
       .locator("#feedbackConfirmation")
-      .getByRole("button", { name: "Back to Todos" })
+      .getByRole("button", { name: "Back to workspace" })
       .click();
     await expect(page.locator("#feedbackPane")).toBeHidden();
     await expect(page.locator("#todosScrollRegion")).toBeVisible();

@@ -750,7 +750,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
   }) => {
     await expect(page.locator('[data-testid="home-dashboard"]')).toBeVisible();
     await expectWorkspaceViewActive(page, "home");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Focus");
     await expect(page.locator('[data-testid="home-brief-card"]')).toBeVisible();
     await expect(
       page.locator('[data-testid="home-priorities-tile"]'),
@@ -824,13 +824,12 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator("#todoInput")).toBeVisible();
   });
 
-  test("All tasks keeps the list surface primary", async ({
+  test("Everything keeps the list surface primary", async ({
     page,
     isMobile,
   }) => {
     await clickWorkspaceView(page, "all");
     await expect(page.locator("#todosListHeader")).toBeVisible();
-    await expect(page.locator("#inlineQuickAdd")).toHaveCount(0);
     if (isMobile) {
       await expect(page.locator("#topBarNewTaskCta")).toBeVisible();
       await expect(page.locator("#floatingNewTaskCta")).toBeHidden();

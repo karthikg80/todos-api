@@ -432,10 +432,10 @@ function _renderStep4Modal() {
       </div>
       <p class="onb-modal__eyebrow">Daily brief preview</p>
       <h2 class="onb-modal__title" id="onboardingModalTitle">
-        Your Home view will stay small on purpose
+        Your Focus view will stay small on purpose
       </h2>
       <p class="onb-modal__subtitle">
-        You’ll see one clear focus, a few things due soon, and a short cleanup list when it helps.
+        You’ll see one clear focus, a few things due soon, and a short tune-up list when it helps.
       </p>
       <div class="onb-preview-card">
         <div class="onb-preview-card__title">Today’s focus</div>

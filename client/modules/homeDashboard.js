@@ -849,10 +849,10 @@ function getHomeBriefHeadline(model, focusTask) {
   const dueSoonCount = model.dueSoon.length;
   const staleCount = getStaleRiskTodos(6).length;
   if (!focusTask && dueSoonCount === 0 && staleCount === 0) {
-    return "Your list looks settled. Use Home to keep the day intentionally small.";
+    return "Your list looks settled. Use Focus to keep the day intentionally small.";
   }
   if (!focusTask) {
-    return `There ${dueSoonCount === 1 ? "is" : "are"} ${dueSoonCount} task${dueSoonCount === 1 ? "" : "s"} coming up soon${staleCount ? ` and ${staleCount} backlog item${staleCount === 1 ? "" : "s"} worth a quick cleanup` : ""}.`;
+    return `There ${dueSoonCount === 1 ? "is" : "are"} ${dueSoonCount} task${dueSoonCount === 1 ? "" : "s"} coming up soon${staleCount ? ` and ${staleCount} backlog item${staleCount === 1 ? "" : "s"} worth a quick tune-up` : ""}.`;
   }
   const reason = getHomeTopFocusReason(focusTask);
   const reasonText = reason ? `${reason.toLowerCase()} and ` : "";
@@ -893,7 +893,7 @@ function renderHomeBriefCard(model) {
           </div>
           <div class="home-brief-card__stat">
             <span class="home-brief-card__stat-value">${staleCount}</span>
-            <span class="home-brief-card__stat-label">Needs cleanup</span>
+            <span class="home-brief-card__stat-label">Needs attention</span>
           </div>
         </div>
       </div>
@@ -1115,9 +1115,9 @@ function _renderUpcomingTabBody() {
   if (_upcomingTab === "due") {
     emptyText = "Nothing due soon or marked next.";
   } else if (_upcomingTab === "scheduled") {
-    emptyText = "Nothing scheduled.";
+    emptyText = "Nothing planned.";
   } else {
-    emptyText = "Nothing waiting.";
+    emptyText = "Nothing pending.";
   }
 
   if (items.length === 0) {
@@ -1158,11 +1158,11 @@ export function renderUpcomingZone() {
     { key: "due", label: `Due soon${hasDue ? ` (${dueItems.length})` : ""}` },
     {
       key: "scheduled",
-      label: `Scheduled${hasScheduled ? ` (${scheduledItems.length})` : ""}`,
+      label: `Planned${hasScheduled ? ` (${scheduledItems.length})` : ""}`,
     },
     {
       key: "waiting",
-      label: `Waiting${hasWaiting ? ` (${waitingItems.length})` : ""}`,
+      label: `Pending${hasWaiting ? ` (${waitingItems.length})` : ""}`,
     },
   ].filter(
     (tab) =>

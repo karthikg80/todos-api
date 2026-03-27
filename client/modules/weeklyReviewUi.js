@@ -86,7 +86,7 @@ function renderSummaryBadges(summary) {
       value: summary.projectsWithoutNextAction,
     },
     { label: "stale tasks", value: summary.staleTasks },
-    { label: "waiting", value: summary.waitingTasks },
+    { label: "pending", value: summary.waitingTasks },
     { label: "upcoming", value: summary.upcomingTasks },
   ]
     .filter((b) => b.value !== undefined && b.value !== null)
@@ -109,7 +109,7 @@ export function renderWeeklyReviewView() {
   let bodyHtml;
 
   if (s.loading) {
-    bodyHtml = `<div class="wr-loading" role="status" aria-live="polite">Running weekly review…</div>`;
+    bodyHtml = `<div class="wr-loading" role="status" aria-live="polite">Running weekly reset…</div>`;
   } else if (s.error) {
     bodyHtml = `
       <div class="wr-error">${escapeHtml(s.error)}</div>
@@ -179,7 +179,7 @@ export function renderWeeklyReviewView() {
   container.innerHTML = `
     <div class="wr-view">
       <div class="wr-toolbar">
-        <h2 class="wr-title">Weekly review</h2>
+        <h2 class="wr-title">Weekly Reset</h2>
         <button
           type="button"
           class="wr-btn wr-btn--primary"
@@ -233,7 +233,7 @@ async function runWeeklyReview(mode = "suggest") {
     }
   } catch (err) {
     applyAsyncAction("weeklyReview/failure", {
-      error: err.message || "Could not run weekly review.",
+      error: err.message || "Could not run weekly reset.",
     });
   }
   renderWeeklyReviewView();

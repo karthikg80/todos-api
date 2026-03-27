@@ -1334,9 +1334,9 @@ export function renderTodoDrawerContent() {
           <option value="inbox" ${draft.status === "inbox" ? "selected" : ""} title="Waiting on your desk">Desk</option>
           <option value="next" ${draft.status === "next" ? "selected" : ""} title="Ready to work on soon">Up Next</option>
           <option value="in_progress" ${draft.status === "in_progress" ? "selected" : ""}>In progress</option>
-          <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Waiting</option>
-          <option value="scheduled" ${draft.status === "scheduled" ? "selected" : ""}>Scheduled</option>
-          <option value="someday" ${draft.status === "someday" ? "selected" : ""}>Someday</option>
+          <option value="waiting" ${draft.status === "waiting" ? "selected" : ""}>Pending</option>
+          <option value="scheduled" ${draft.status === "scheduled" ? "selected" : ""}>Planned</option>
+          <option value="someday" ${draft.status === "someday" ? "selected" : ""}>Later</option>
           ${draft.status === "done" ? `<option value="done" selected>Done</option>` : ""}
           ${draft.status === "cancelled" ? `<option value="cancelled" selected>Cancelled</option>` : ""}
         </select>

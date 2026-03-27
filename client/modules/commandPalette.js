@@ -38,7 +38,7 @@ function buildCommandPaletteItems() {
     // --- Navigation ---
     {
       id: "nav-home",
-      label: "Go to Home",
+      label: "Go to Focus",
       type: "workspace",
       payload: "home",
     },
@@ -62,7 +62,7 @@ function buildCommandPaletteItems() {
     },
     {
       id: "all-tasks",
-      label: "Go to All tasks",
+      label: "Go to Everything",
       type: "project",
       payload: "",
     },
@@ -74,19 +74,19 @@ function buildCommandPaletteItems() {
     },
     {
       id: "nav-waiting",
-      label: "Go to Waiting",
+      label: "Go to Pending",
       type: "workspace",
       payload: "waiting",
     },
     {
       id: "nav-scheduled",
-      label: "Go to Scheduled",
+      label: "Go to Planned",
       type: "workspace",
       payload: "scheduled",
     },
     {
       id: "nav-someday",
-      label: "Go to Someday",
+      label: "Go to Later",
       type: "workspace",
       payload: "someday",
     },
@@ -98,13 +98,13 @@ function buildCommandPaletteItems() {
     },
     {
       id: "nav-weekly-review",
-      label: "Go to Weekly Review",
+      label: "Go to Weekly Reset",
       type: "workspace",
       payload: "weekly-review",
     },
     {
       id: "nav-cleanup",
-      label: "Go to Cleanup",
+      label: "Go to Tune-up",
       type: "workspace",
       payload: "cleanup",
     },
@@ -129,7 +129,7 @@ function buildCommandPaletteItems() {
     },
     {
       id: "workflow-weekly-review",
-      label: "Run Weekly Review",
+      label: "Run Weekly Reset",
       type: "action",
       payload: "run-weekly-review",
     },
