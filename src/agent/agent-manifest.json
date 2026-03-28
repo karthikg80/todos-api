@@ -3276,6 +3276,14 @@
             "minimum": 1,
             "maximum": 90,
             "description": "Waiting tasks older than this many days without a follow-up trigger one."
+          },
+          "aiOptOut": {
+            "type": "boolean",
+            "description": "When true, all AI provider calls are disabled for this user. Deterministic fallbacks are used instead."
+          },
+          "projectHealthEnabled": {
+            "type": "boolean",
+            "description": "When true, the project health intervention job is allowed to auto-intervene on unhealthy projects."
           }
         }
       },
@@ -4224,6 +4232,317 @@
         }
       },
       "readOnly": false
+    },
+    {
+      "name": "list_areas",
+      "namespace": "core",
+      "category": "Areas & Goals",
+      "lifecycle": "primitive_read",
+      "audience": "user",
+      "description": "List all areas for the authenticated user, optionally filtered by archived status.",
+      "method": "POST",
+      "path": "/agent/read/list_areas",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "type": "boolean",
+            "description": "Filter by archived status."
+          }
+        }
+      },
+      "output": { "properties": { "areas": { "type": "array" } } },
+      "readOnly": true
+    },
+    {
+      "name": "get_area",
+      "namespace": "core",
+      "category": "Areas & Goals",
+      "lifecycle": "primitive_read",
+      "audience": "user",
+      "description": "Fetch a single area by ID.",
+      "method": "POST",
+      "path": "/agent/read/get_area",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Area ID." }
+        }
+      },
+      "output": { "properties": { "area": { "type": "object" } } },
+      "readOnly": true
+    },
+    {
+      "name": "create_area",
+      "namespace": "core",
+      "category": "Areas & Goals",
+      "lifecycle": "mutating",
+      "audience": "user",
+      "description": "Create a new area for organizing projects and tasks.",
+      "method": "POST",
+      "path": "/agent/write/create_area",
+      "inputSchema": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Area name (unique per user)."
+          },
+          "description": {
+            "type": ["string", "null"],
+            "maxLength": 4000,
+            "description": "Optional description."
+          }
+        }
+      },
+      "output": { "properties": { "area": { "type": "object" } } },
+      "readOnly": false
+    },
+    {
+      "name": "update_area",
+      "namespace": "core",
+      "category": "Areas & Goals",
+      "lifecycle": "mutating",
+      "audience": "user",
+      "description": "Update an area's name, description, or archived status.",
+      "method": "POST",
+      "path": "/agent/write/update_area",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Area ID." },
+          "name": { "type": "string", "maxLength": 100 },
+          "description": { "type": ["string", "null"], "maxLength": 4000 },
+          "archived": { "type": "boolean" }
+        }
+      },
+      "output": { "properties": { "area": { "type": "object" } } },
+      "readOnly": false
+    },
+    {
+      "name": "list_goals",
+      "namespace": "core",
+      "category": "Areas & Goals",
+      "lifecycle": "primitive_read",
+      "audience": "user",
+      "description": "List all goals for the authenticated user, optionally filtered by archived status.",
+      "method": "POST",
+      "path": "/agent/read/list_goals",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "archived": { "type": "boolean" }
+        }
+      },
+      "output": { "properties": { "goals": { "type": "array" } } },
+      "readOnly": true
+    },
+    {
+      "name": "get_goal",
+      "namespace": "core",
+      "category": "Areas & Goals",
+      "lifecycle": "primitive_read",
+      "audience": "user",
+      "description": "Fetch a single goal by ID.",
+      "method": "POST",
+      "path": "/agent/read/get_goal",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Goal ID." }
+        }
+      },
+      "output": { "properties": { "goal": { "type": "object" } } },
+      "readOnly": true
+    },
+    {
+      "name": "create_goal",
+      "namespace": "core",
+      "category": "Areas & Goals",
+      "lifecycle": "mutating",
+      "audience": "user",
+      "description": "Create a new goal with optional target date.",
+      "method": "POST",
+      "path": "/agent/write/create_goal",
+      "inputSchema": {
+        "type": "object",
+        "required": ["name"],
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "description": "Goal name."
+          },
+          "description": { "type": ["string", "null"], "maxLength": 4000 },
+          "targetDate": {
+            "type": ["string", "null"],
+            "format": "date-time",
+            "description": "Optional target date (ISO 8601)."
+          }
+        }
+      },
+      "output": { "properties": { "goal": { "type": "object" } } },
+      "readOnly": false
+    },
+    {
+      "name": "update_goal",
+      "namespace": "core",
+      "category": "Areas & Goals",
+      "lifecycle": "mutating",
+      "audience": "user",
+      "description": "Update a goal's name, description, target date, or archived status.",
+      "method": "POST",
+      "path": "/agent/write/update_goal",
+      "inputSchema": {
+        "type": "object",
+        "required": ["id"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "description": "Goal ID." },
+          "name": { "type": "string", "maxLength": 200 },
+          "description": { "type": ["string", "null"], "maxLength": 4000 },
+          "targetDate": { "type": ["string", "null"], "format": "date-time" },
+          "archived": { "type": "boolean" }
+        }
+      },
+      "output": { "properties": { "goal": { "type": "object" } } },
+      "readOnly": false
+    },
+    {
+      "name": "list_routines",
+      "namespace": "plan",
+      "category": "Planning & Analysis",
+      "lifecycle": "derived_read",
+      "audience": "user",
+      "description": "Detect and list routines from recurring tasks, grouped by pattern (daily, weekly, monthly, yearly).",
+      "method": "POST",
+      "path": "/agent/read/list_routines",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "properties": {
+          "routines": {
+            "type": "array",
+            "description": "Array of RoutineGroup objects."
+          }
+        }
+      },
+      "readOnly": true
+    },
+    {
+      "name": "run_data_retention",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "agent",
+      "description": "Purge old activity events (90d), insights (365d), and metric events (180d). Returns count of deleted rows.",
+      "method": "POST",
+      "path": "/agent/write/run_data_retention",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "properties": {
+          "purged": {
+            "type": "object",
+            "description": "{ activityEvents, insights, metricEvents } counts."
+          }
+        }
+      },
+      "readOnly": false
+    },
+    {
+      "name": "generate_morning_brief",
+      "namespace": "plan",
+      "category": "Planning & Analysis",
+      "lifecycle": "mutating",
+      "audience": "agent",
+      "description": "Generate a personalized morning brief narrative from plan data, insights, and soul profile. Stores as AiSuggestion.",
+      "method": "POST",
+      "path": "/agent/write/generate_morning_brief",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "Optional ISO date (YYYY-MM-DD). Defaults to today."
+          }
+        }
+      },
+      "output": {
+        "properties": {
+          "brief": { "type": "string" },
+          "deterministic": { "type": "boolean" },
+          "taskCount": { "type": "integer" }
+        }
+      },
+      "readOnly": false
+    },
+    {
+      "name": "project_health_intervention",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "agent",
+      "description": "Auto-intervene on unhealthy projects (score < 40): break down stale tasks into subtasks and ensure next actions. Safety: config gate, max 3 projects, write limit, per-child audit.",
+      "method": "POST",
+      "path": "/agent/write/project_health_intervention",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "properties": {
+          "interventions": { "type": "array" },
+          "projectsAnalyzed": { "type": "integer" },
+          "criticalCount": { "type": "integer" },
+          "totalWriteActions": { "type": "integer" }
+        }
+      },
+      "readOnly": false
+    },
+    {
+      "name": "send_task_reminder",
+      "namespace": "automation",
+      "category": "Automation Runtime",
+      "lifecycle": "mutating",
+      "audience": "agent",
+      "description": "Send a task reminder email digest grouping overdue, due today, and due tomorrow tasks.",
+      "method": "POST",
+      "path": "/agent/write/send_task_reminder",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {}
+      },
+      "output": {
+        "properties": {
+          "sent": {
+            "type": "integer",
+            "description": "Number of tasks included in the reminder."
+          }
+        }
+      },
+      "readOnly": false
     }
   ],
   "notes": [
@@ -4421,6 +4740,80 @@
           "action": "record_metric",
           "namespace": "automation",
           "note": "log recovery outcome"
+        }
+      ]
+    },
+    {
+      "id": "morning_brief",
+      "label": "Morning Brief",
+      "description": "Generate a personalized morning narrative brief with plan + insights + soul profile.",
+      "audience": "agent",
+      "steps": [
+        {
+          "action": "claim_job_run",
+          "namespace": "automation",
+          "note": "claim morning_brief slot"
+        },
+        {
+          "action": "generate_morning_brief",
+          "namespace": "plan",
+          "note": "generate personalized brief"
+        },
+        {
+          "action": "complete_job_run",
+          "namespace": "automation",
+          "note": "close the run"
+        }
+      ]
+    },
+    {
+      "id": "project_health",
+      "label": "Project Health Intervention",
+      "description": "Auto-intervene on critically unhealthy projects by breaking down stale tasks.",
+      "audience": "agent",
+      "steps": [
+        {
+          "action": "claim_job_run",
+          "namespace": "automation",
+          "note": "claim weekly slot"
+        },
+        {
+          "action": "project_health_intervention",
+          "namespace": "automation",
+          "note": "analyze and intervene"
+        },
+        {
+          "action": "record_metric",
+          "namespace": "automation",
+          "note": "log intervention outcomes"
+        },
+        {
+          "action": "complete_job_run",
+          "namespace": "automation",
+          "note": "close the run"
+        }
+      ]
+    },
+    {
+      "id": "data_retention",
+      "label": "Data Retention Purge",
+      "description": "Purge old activity events, insights, and metrics on a weekly schedule.",
+      "audience": "agent",
+      "steps": [
+        {
+          "action": "claim_job_run",
+          "namespace": "automation",
+          "note": "claim weekly retention slot"
+        },
+        {
+          "action": "run_data_retention",
+          "namespace": "automation",
+          "note": "purge expired data"
+        },
+        {
+          "action": "complete_job_run",
+          "namespace": "automation",
+          "note": "close the run"
         }
       ]
     }
