@@ -8,6 +8,16 @@ type SanitizedContext = {
 const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const PHONE_PATTERN = /(?:\+?\d[\d().\-\s]{7,}\d)/g;
 const SECRET_PATTERN = /\b(?:sk|gh[opusr]|github_pat)_[A-Za-z0-9_\-]{8,}\b/g;
+const INLINE_URL_PATTERN = /https?:\/\/[^\s)>\]]+/g;
+
+function stripUrlQueryParams(match: string): string {
+  try {
+    const parsed = new URL(match);
+    return `${parsed.origin}${parsed.pathname || "/"}`;
+  } catch {
+    return match;
+  }
+}
 
 function collapseWhitespace(value: string): string {
   return value.replace(/\s+/g, " ").trim();
@@ -21,6 +31,7 @@ export function redactSensitiveText(value: string | null | undefined): string {
 
   return collapseWhitespace(
     normalized
+      .replace(INLINE_URL_PATTERN, stripUrlQueryParams)
       .replace(EMAIL_PATTERN, "[redacted-email]")
       .replace(PHONE_PATTERN, "[redacted-phone]")
       .replace(SECRET_PATTERN, "[redacted-secret]"),

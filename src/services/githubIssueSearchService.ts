@@ -89,6 +89,12 @@ export class GitHubIssueSearchService implements GitHubIssueAdapter {
   async createIssue(
     input: CreateGitHubIssueInput,
   ): Promise<CreateGitHubIssueResult> {
+    if (!config.githubToken) {
+      throw new Error(
+        "GITHUB_TOKEN is not configured — cannot create GitHub issues",
+      );
+    }
+
     const response = await fetch(
       buildIssuesUrl(`/repos/${config.githubRepo}/issues`).toString(),
       {
@@ -126,6 +132,12 @@ export class GitHubIssueSearchService implements GitHubIssueAdapter {
   async applyLabels(issueNumber: number, labels: string[]): Promise<string[]> {
     if (!labels.length) {
       return [];
+    }
+
+    if (!config.githubToken) {
+      throw new Error(
+        "GITHUB_TOKEN is not configured — cannot apply labels to GitHub issues",
+      );
     }
 
     const response = await fetch(
