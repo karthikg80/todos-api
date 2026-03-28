@@ -4,7 +4,7 @@
 // =============================================================================
 import { state, hooks, createInitialHomeAiState } from "./store.js";
 import { computeNextOccurrence } from "../utils/recurrence.js";
-import { planTodayTaskIds } from "./planTodayAgent.js";
+import { planTodayTaskIds, recordPlanTaskAccepted } from "./planTodayAgent.js";
 import {
   hasTodoRow,
   patchBulkToolbar,
@@ -563,6 +563,9 @@ async function toggleTodo(id, forceValue = null) {
         entityType: "todo",
         entityId: id,
       });
+      if (newCompletedValue && !todo.completed) {
+        recordPlanTaskAccepted(id);
+      }
       if (updatedTodo._offlineQueued) {
         showUndoToast("Saved offline \u2014 will sync when online");
       }
