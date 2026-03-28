@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Strategic Gap Closure — H1 to H3 Executive Summary</title>
+<style>
+  :root {
+    --navy: #1E2761;
+    --ice: #CADCFC;
+    --accent: #667EEA;
+    --accent-light: #818CF8;
+    --green: #10B981;
+    --amber: #F59E0B;
+    --red: #EF4444;
+    --dark: #0F172A;
+    --muted: #64748B;
+    --card: #FFFFFF;
+    --bg: #F4F6FA;
+    --font-head: Georgia, 'Times New Roman', serif;
+    --font-body: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'SF Mono', 'Fira Code', Consolas, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--dark);
+    color: var(--dark);
+    line-height: 1.5;
+  }
+
+  .slide {
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* ── Slide 1: Title ───────────────────────────────────────── */
+  .slide-title {
+    background: var(--navy);
+    color: white;
+    position: relative;
+  }
+  .slide-title::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  }
+  .slide-title h1 {
+    font-family: var(--font-head);
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+  .slide-title .subtitle {
+    font-size: 1.25rem;
+    color: var(--ice);
+    margin-bottom: 0.25rem;
+  }
+  .slide-title .date {
+    font-size: 0.9rem;
+    color: var(--muted);
+    margin-bottom: 3rem;
+  }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+  }
+  .stat-item .stat-value {
+    font-family: var(--font-mono);
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+  }
+  .stat-item .stat-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Slide 2: Strategic Context ────────────────────────────── */
+  .slide-context { background: var(--bg); }
+  .slide-context h2 {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    color: var(--dark);
+    margin-bottom: 0.5rem;
+  }
+  .slide-context .lead {
+    font-size: 0.95rem;
+    color: var(--muted);
+    max-width: 50rem;
+    margin-bottom: 2rem;
+  }
+  .gap-list { display: flex; flex-direction: column; gap: 0.6rem; }
+  .gap-card {
+    display: grid;
+    grid-template-columns: 6rem 10rem 1fr 2rem 1fr;
+    align-items: center;
+    background: var(--card);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    border-left: 4px solid var(--muted);
+    gap: 0.5rem;
+  }
+  .gap-card[data-status="closed-green"] { border-left-color: var(--green); }
+  .gap-card[data-status="closed-amber"] { border-left-color: var(--amber); }
+  .gap-card[data-status="closed-red"] { border-left-color: var(--red); }
+  .gap-label {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .gap-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--dark);
+  }
+  .gap-before { color: var(--red); font-size: 0.85rem; }
+  .gap-arrow { color: var(--muted); text-align: center; font-size: 1.1rem; }
+  .gap-after { color: var(--green); font-size: 0.85rem; }
+
+  /* ── Slide 3: Timeline ─────────────────────────────────────── */
+  .slide-timeline { background: var(--card); }
+  .slide-timeline h2 {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    color: var(--dark);
+    margin-bottom: 2rem;
+  }
+  .pr-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .pr-row {
+    display: grid;
+    grid-template-columns: auto auto 1fr auto;
+    align-items: center;
+    gap: 1rem;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 0.65rem 1rem;
+  }
+  .horizon-badge {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+    min-width: 2rem;
+  }
+  .horizon-badge.h1 { background: var(--green); }
+  .horizon-badge.h2 { background: var(--accent); }
+  .horizon-badge.h3 { background: var(--amber); }
+  .pr-number {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 0.9rem;
+    min-width: 3rem;
+  }
+  .pr-title { font-size: 0.9rem; color: var(--dark); }
+  .pr-lines {
+    font-family: var(--font-mono);
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: right;
+  }
+
+  /* ── Horizon Detail Slides ─────────────────────────────────── */
+  .slide-horizon { background: var(--card); }
+  .horizon-header {
+    padding: 1rem 0;
+    margin-bottom: 2rem;
+    border-radius: 8px;
+  }
+  .horizon-header h2 {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    color: white;
+  }
+  .horizon-header.h1-header { background: var(--green); padding-left: 1.5rem; }
+  .horizon-header.h2-header { background: var(--accent); padding-left: 1.5rem; }
+  .horizon-header.h3-header { background: var(--amber); padding-left: 1.5rem; }
+  .deliverable-list { display: flex; flex-direction: column; gap: 0.5rem; }
+  .deliverable {
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+  }
+  .deliverable-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--dark);
+    margin-bottom: 0.2rem;
+  }
+  .deliverable-desc {
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  /* ── Slide: By The Numbers ─────────────────────────────────── */
+  .slide-numbers {
+    background: var(--navy);
+    color: white;
+  }
+  .slide-numbers h2 {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    margin-bottom: 2rem;
+  }
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+  .metric-card {
+    background: var(--dark);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+  .metric-value {
+    font-family: var(--font-mono);
+    font-size: 2.8rem;
+    font-weight: 700;
+    color: var(--accent);
+    display: block;
+    line-height: 1.1;
+    margin-bottom: 0.5rem;
+  }
+  .metric-label {
+    font-size: 0.85rem;
+    color: var(--ice);
+    line-height: 1.3;
+  }
+
+  /* ── Slide: Next Steps ─────────────────────────────────────── */
+  .slide-next { background: var(--bg); }
+  .slide-next h2 {
+    font-family: var(--font-head);
+    font-size: 2rem;
+    color: var(--dark);
+    margin-bottom: 2rem;
+  }
+  .next-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+  .next-col h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .next-col h3.ready { color: var(--green); }
+  .next-col h3.deferred { color: var(--muted); }
+  .next-col ul {
+    list-style: none;
+    padding: 0;
+  }
+  .next-col li {
+    font-size: 0.85rem;
+    padding: 0.4rem 0;
+    padding-left: 1.2rem;
+    position: relative;
+    color: var(--dark);
+  }
+  .next-col li::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0.7rem;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .next-col.deferred-col li { color: var(--muted); }
+  .next-col.deferred-col li::before { background: var(--muted); }
+  .qa-box {
+    background: var(--card);
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .qa-box h3 {
+    font-size: 1rem;
+    color: var(--dark);
+    margin-bottom: 0.5rem;
+  }
+  .qa-box p {
+    font-size: 0.82rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* ── Divider between slides ────────────────────────────────── */
+  .slide + .slide { border-top: 1px solid rgba(255,255,255,0.05); }
+
+  /* ── Print / responsive ────────────────────────────────────── */
+  @media (max-width: 700px) {
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .gap-card { grid-template-columns: 1fr; }
+    .gap-arrow { display: none; }
+    .metrics-grid { grid-template-columns: 1fr 1fr; }
+    .next-grid { grid-template-columns: 1fr; }
+    .pr-row { grid-template-columns: auto 1fr auto; }
+    .pr-row .horizon-badge { display: none; }
+  }
+
+  @media print {
+    .slide { min-height: auto; page-break-after: always; padding: 2rem 1.5rem; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SLIDE 1: TITLE                                                        -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<section class="slide slide-title">
+  <div class="slide-inner">
+    <h1>Strategic Gap Closure</h1>
+    <p class="subtitle">H1 &rarr; H2 &rarr; H3 &mdash; Full Execution Summary</p>
+    <p class="date">todos-api &bull; March 2026</p>
+    <div class="stats-row">
+      <div class="stat-item"><span class="stat-value">6</span><span class="stat-label">PRs Merged</span></div>
+      <div class="stat-item"><span class="stat-value">74</span><span class="stat-label">Files Changed</span></div>
+      <div class="stat-item"><span class="stat-value">+5,530</span><span class="stat-label">Lines Added</span></div>
+      <div class="stat-item"><span class="stat-value">0</span><span class="stat-label">Test Failures</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SLIDE 2: STRATEGIC CONTEXT                                            -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<section class="slide slide-context">
+  <div class="slide-inner">
+    <h2>Strategic Context</h2>
+    <p class="lead">The strategic audit positioned this codebase at <strong>high-attractiveness / medium-strength</strong> in the GE-McKinsey 9-box. The winning move: close the gap from &ldquo;AI planning substrate&rdquo; to &ldquo;context-aware execution.&rdquo;</p>
+    <div class="gap-list">
+      <div class="gap-card" data-status="closed-red">
+        <span class="gap-label">Gap 1</span>
+        <span class="gap-title">Agentic Execution</span>
+        <span class="gap-before">3 safe-apply actions</span>
+        <span class="gap-arrow">&rarr;</span>
+        <span class="gap-after">14 jobs, reminders, interventions</span>
+      </div>
+      <div class="gap-card" data-status="closed-amber">
+        <span class="gap-label">Gap 2</span>
+        <span class="gap-title">Context Awareness</span>
+        <span class="gap-before">No event pipeline</span>
+        <span class="gap-arrow">&rarr;</span>
+        <span class="gap-after">12 events &rarr; insights &rarr; scoring</span>
+      </div>
+      <div class="gap-card" data-status="closed-amber">
+        <span class="gap-label">Gap 3</span>
+        <span class="gap-title">AI Integration</span>
+        <span class="gap-before">Hardcoded scoring</span>
+        <span class="gap-arrow">&rarr;</span>
+        <span class="gap-after">Feedback loop, soul profile, goals</span>
+      </div>
+      <div class="gap-card" data-status="closed-green">
+        <span class="gap-label">Gap 4</span>
+        <span class="gap-title">Interoperability</span>
+        <span class="gap-before">Login-only</span>
+        <span class="gap-arrow">&rarr;</span>
+        <span class="gap-after">ICS, email, offline, GDPR export</span>
+      </div>
+      <div class="gap-card" data-status="closed-green">
+        <span class="gap-label">Gap 5</span>
+        <span class="gap-title">Trust &amp; Privacy</span>
+        <span class="gap-before">Basic auth only</span>
+        <span class="gap-arrow">&rarr;</span>
+        <span class="gap-after">PII sanitizer, AI opt-out, retention</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SLIDE 3: DELIVERY TIMELINE                                            -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<section class="slide slide-timeline">
+  <div class="slide-inner">
+    <h2>Delivery Timeline &mdash; 6 PRs, All CI Green</h2>
+    <div class="pr-list">
+      <div class="pr-row"><span class="horizon-badge h1">H1</span><span class="pr-number">#639</span><span class="pr-title">Data pipeline, AI privacy, calendar export</span><span class="pr-lines">+1,998</span></div>
+      <div class="pr-row"><span class="horizon-badge h1">H1</span><span class="pr-number">#641</span><span class="pr-title">Insights card, event coverage, integration tests</span><span class="pr-lines">+711</span></div>
+      <div class="pr-row"><span class="horizon-badge h2">H2</span><span class="pr-number">#644</span><span class="pr-title">Feedback loop, scoring, reminders, offline queue</span><span class="pr-lines">+876</span></div>
+      <div class="pr-row"><span class="horizon-badge h3">H3</span><span class="pr-number">#645</span><span class="pr-title">Entity expansion, proactive agents, privacy moat</span><span class="pr-lines">+1,834</span></div>
+      <div class="pr-row"><span class="horizon-badge h3">H3</span><span class="pr-number">#646</span><span class="pr-title">Migration, soul plumbing, work windows, isRoutine</span><span class="pr-lines">+111</span></div>
+      <div class="pr-row"><span class="horizon-badge h3">H3</span><span class="pr-number">#647</span><span class="pr-title">Agent manifest &mdash; 13 actions, 3 golden paths</span><span class="pr-lines">+393</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SLIDE 4: H1 DETAIL                                                    -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<section class="slide slide-horizon">
+  <div class="slide-inner">
+    <div class="horizon-header h1-header"><h2>Horizon 1 &mdash; Foundation</h2></div>
+    <div class="deliverable-list">
+      <div class="deliverable"><div class="deliverable-title">Data Intelligence Pipeline</div><div class="deliverable-desc">ActivityEvent + UserInsight models, events/insights routers, 12 client event sources, batch API</div></div>
+      <div class="deliverable"><div class="deliverable-title">AI Content Privacy</div><div class="deliverable-desc">contentSanitizer.ts &mdash; redacts emails, phones, secrets, SSNs, cards, URLs before all AI provider calls</div></div>
+      <div class="deliverable"><div class="deliverable-title">Calendar Export</div><div class="deliverable-desc">GET /calendar/export.ics &mdash; RFC 5545 ICS generation from user todos with due dates</div></div>
+      <div class="deliverable"><div class="deliverable-title">Insights UI Card</div><div class="deliverable-desc">&ldquo;Your Week&rdquo; dashboard card &mdash; completion rate, streak, commit ratio, stale count</div></div>
+      <div class="deliverable"><div class="deliverable-title">Agent Runner Job</div><div class="deliverable-desc">compute_insights job with safe-apply policy, post_api() on AgentClient</div></div>
+      <div class="deliverable"><div class="deliverable-title">Integration Tests</div><div class="deliverable-desc">10 tests for POST /events/batch, GET /insights, POST /insights/compute, trend, project-health</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SLIDE 5: H2 DETAIL                                                    -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<section class="slide slide-horizon">
+  <div class="slide-inner">
+    <div class="horizon-header h2-header"><h2>Horizon 2 &mdash; Close the Loop</h2></div>
+    <div class="deliverable-list">
+      <div class="deliverable"><div class="deliverable-title">Feedback Loop</div><div class="deliverable-desc">EstimateFit + Freshness weights, batch feedback adjustments in all 3 scorePlan() consumers (plan_today + simulate_plan + compare)</div></div>
+      <div class="deliverable"><div class="deliverable-title">Insights &rarr; Scoring</div><div class="deliverable-desc">Overcommit budget reduction (0.8x), streak boost (+5), stale boost (+8) &mdash; wired into plan_today and simulate_plan for parity</div></div>
+      <div class="deliverable"><div class="deliverable-title">Goal Alignment</div><div class="deliverable-desc">+12/+9 direct/inherited goal boost, +8/+6 goal urgency when target date within 14 days &mdash; both scoring paths</div></div>
+      <div class="deliverable"><div class="deliverable-title">Task Reminders</div><div class="deliverable-desc">Email digest with timezone-aware 7 AM gate (hourly cron), full 6-point action registration (union, executor, router, MCP, manifest, runner)</div></div>
+      <div class="deliverable"><div class="deliverable-title">Offline Queue</div><div class="deliverable-desc">Service worker mutation interception, IndexedDB store, Background Sync + online fallback replay, synthetic JSON response, 24h TTL</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SLIDE 6: H3 DETAIL                                                    -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<section class="slide slide-horizon">
+  <div class="slide-inner">
+    <div class="horizon-header h3-header"><h2>Horizon 3 &mdash; Life OS Foundation</h2></div>
+    <div class="deliverable-list">
+      <div class="deliverable"><div class="deliverable-title">Areas &amp; Goals CRUD</div><div class="deliverable-desc">8 agent actions, MCP scopes (project read/write), REST endpoints, READ_ONLY_ACTIONS registration</div></div>
+      <div class="deliverable"><div class="deliverable-title">Soul Profile Activation</div><div class="deliverable-desc">energyPattern, planningStyle, goodDayThemes wired through scorePlan + DecisionEngine + PlannerService full plumbing chain</div></div>
+      <div class="deliverable"><div class="deliverable-title">Routines Detection</div><div class="deliverable-desc">Groups recurring tasks by pattern (daily/weekly/monthly/yearly), GET /todos/routines (before /:id), list_routines agent action</div></div>
+      <div class="deliverable"><div class="deliverable-title">Morning Brief</div><div class="deliverable-desc">AiPlannerService.generateMorningBrief() with deterministic fallback, generate_morning_brief action, runner job</div></div>
+      <div class="deliverable"><div class="deliverable-title">Project Health Intervention</div><div class="deliverable-desc">Auto-breakdown stale tasks in projects scoring &lt; 40. Safety: config gate + circuit breaker (max 3) + write limit + per-child audit trail</div></div>
+      <div class="deliverable"><div class="deliverable-title">Privacy Moat</div><div class="deliverable-desc">AI opt-out (aiRouter guard + executor guard + agentValidation), GDPR data export (1/hr rate limit), plan caching (page-owned IndexedDB, 6h TTL), data retention auto-purge</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SLIDE 7: BY THE NUMBERS                                               -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<section class="slide slide-numbers">
+  <div class="slide-inner">
+    <h2>By The Numbers</h2>
+    <div class="metrics-grid">
+      <div class="metric-card"><span class="metric-value">92</span><span class="metric-label">MCP Actions<br>(was 79)</span></div>
+      <div class="metric-card"><span class="metric-value">14</span><span class="metric-label">Agent Runner<br>Jobs</span></div>
+      <div class="metric-card"><span class="metric-value">9</span><span class="metric-label">Golden Paths<br>(was 6)</span></div>
+      <div class="metric-card"><span class="metric-value">307</span><span class="metric-label">Unit Tests<br>All Passing</span></div>
+      <div class="metric-card"><span class="metric-value">262</span><span class="metric-label">UI Tests<br>All Passing</span></div>
+      <div class="metric-card"><span class="metric-value">0</span><span class="metric-label">Regressions<br>Introduced</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<!-- SLIDE 8: NEXT STEPS                                                   -->
+<!-- ════════════════════════════════════════════════════════════════════════ -->
+<section class="slide slide-next">
+  <div class="slide-inner">
+    <h2>Operational Next Steps</h2>
+    <div class="next-grid">
+      <div class="next-col">
+        <h3 class="ready">Ready to Deploy</h3>
+        <ul>
+          <li>Railway services created &mdash; configure cron schedules in dashboard</li>
+          <li>Run <code>prisma migrate deploy</code> for 2 pending migrations</li>
+          <li>Agent manifest updated &mdash; 92 actions discoverable via MCP</li>
+        </ul>
+      </div>
+      <div class="next-col deferred-col">
+        <h3 class="deferred">Explicitly Deferred</h3>
+        <ul>
+          <li>Bi-directional calendar sync (Google/Outlook)</li>
+          <li>Mail/messaging connectors (Slack, Teams)</li>
+          <li>Client-side AI inference (WebAssembly)</li>
+          <li>End-to-end encryption at rest</li>
+        </ul>
+      </div>
+    </div>
+    <div class="qa-box">
+      <h3>Quality Assurance</h3>
+      <p>Every PR passed all CI gates: TypeScript typecheck, Prettier format, HTML/CSS lint, 307 unit tests, 262 UI tests (Playwright), Prisma integration tests, MCP contract tests, and Railway preview deploys. The H3 plan underwent 10 rounds of code review before execution, addressing 15 findings across action registration, MCP scopes, audit trails, routing order, and API surfaces.</p>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
