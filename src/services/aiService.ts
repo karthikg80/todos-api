@@ -1148,4 +1148,70 @@ export class AiPlannerService {
 
     return generateDecisionAssistStubOutput(input);
   }
+
+  /**
+   * Generate a personalized morning brief narrative.
+   * Falls back to deterministic template when AI is disabled or fails.
+   */
+  async generateMorningBrief(input: {
+    tasks: Array<{
+      title: string;
+      priority?: string;
+      estimatedMinutes?: number;
+    }>;
+    insightSummary?: {
+      completionVelocity?: number;
+      streakDays?: number;
+      overcommitmentRatio?: number;
+    };
+    tone?: string;
+    dayMode?: string;
+  }): Promise<{ brief: string; deterministic: boolean }> {
+    const taskSummary = input.tasks
+      .slice(0, 5)
+      .map((t, i) => `${i + 1}. ${t.title}`)
+      .join("; ");
+    const taskCount = input.tasks.length;
+
+    // Deterministic fallback
+    const toneLabel =
+      input.tone === "urgent"
+        ? "Let's make today count."
+        : input.tone === "playful"
+          ? "Here's your game plan for today!"
+          : "Here's your focus for today.";
+    const streakNote =
+      input.insightSummary?.streakDays && input.insightSummary.streakDays >= 3
+        ? ` You're on a ${input.insightSummary.streakDays}-day streak — keep the momentum.`
+        : "";
+    const overcommitNote =
+      input.insightSummary?.overcommitmentRatio &&
+      input.insightSummary.overcommitmentRatio > 1.5
+        ? " You've been taking on more than you finish recently — today's plan is lighter."
+        : "";
+    const deterministicBrief = `${toneLabel} You have ${taskCount} task${taskCount === 1 ? "" : "s"} lined up: ${taskSummary}.${streakNote}${overcommitNote}`;
+
+    if (!this.provider) {
+      return { brief: deterministicBrief, deterministic: true };
+    }
+
+    try {
+      const response = await this.provider.generateJson<{ brief: string }>(
+        `You are a personal productivity coach. Write a 2-4 sentence morning brief in a ${input.tone || "calm"} tone. Reference the user's tasks, streaks, and energy patterns. Be concise and actionable.`,
+        JSON.stringify({
+          taskCount,
+          topTasks: sanitizeText(taskSummary),
+          insights: input.insightSummary ?? {},
+          dayMode: input.dayMode ?? "normal",
+        }),
+      );
+      const brief =
+        typeof response === "object" && response && "brief" in response
+          ? String((response as { brief: string }).brief)
+          : deterministicBrief;
+      return { brief, deterministic: false };
+    } catch {
+      return { brief: deterministicBrief, deterministic: true };
+    }
+  }
 }

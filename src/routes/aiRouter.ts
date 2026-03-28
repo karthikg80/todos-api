@@ -75,6 +75,7 @@ interface AiRouterDeps {
   resolveAiUserId: (req: Request, res: Response) => string | null;
   projectService?: IProjectService;
   decisionAssistEnabled?: boolean;
+  persistencePrisma?: import("@prisma/client").PrismaClient;
 }
 
 export function createAiRouter({
@@ -87,6 +88,7 @@ export function createAiRouter({
   resolveAiUserId,
   projectService,
   decisionAssistEnabled = config.aiDecisionAssistEnabled,
+  persistencePrisma,
 }: AiRouterDeps): Router {
   const router = Router();
   const runtimeAiPlannerService =
@@ -95,6 +97,28 @@ export function createAiRouter({
       todoService,
       projectService,
     });
+
+  // Per-user AI opt-out guard — blocks all /ai/* endpoints when aiOptOut is true
+  if (persistencePrisma) {
+    router.use(async (req: Request, res: Response, next: NextFunction) => {
+      const userId = resolveAiUserId(req, res);
+      if (!userId) return;
+      try {
+        const cfg = await persistencePrisma.agentConfig.findUnique({
+          where: { userId },
+          select: { aiOptOut: true },
+        });
+        if (cfg?.aiOptOut) {
+          return res
+            .status(403)
+            .json({ error: "AI features disabled for your account" });
+        }
+      } catch {
+        // Config not found = defaults = not opted out
+      }
+      next();
+    });
+  }
 
   const limitsByPlan = buildLimitsByPlan({
     aiDailySuggestionLimit,

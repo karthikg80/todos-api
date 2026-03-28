@@ -1,13 +1,49 @@
 import { Router, Request, Response, NextFunction } from "express";
+import rateLimit from "express-rate-limit";
 import { AuthService } from "../services/authService";
 import { isValidEmail } from "../validation/authValidation";
+import { DataExportService } from "../services/dataExportService";
 
 interface UsersRouterDeps {
   authService?: AuthService;
+  persistencePrisma?: import("@prisma/client").PrismaClient;
 }
 
-export function createUsersRouter({ authService }: UsersRouterDeps): Router {
+export function createUsersRouter({
+  authService,
+  persistencePrisma,
+}: UsersRouterDeps): Router {
   const router = Router();
+
+  // Data export endpoint — rate limited to 1/hour per user
+  if (persistencePrisma) {
+    const exportLimiter = rateLimit({
+      windowMs: 60 * 60 * 1000,
+      max: 1,
+      keyGenerator: (req: Request) =>
+        (req as any).user?.userId || req.ip || "anon",
+      message: { error: "Export limited to once per hour" },
+    });
+    const exportService = new DataExportService(persistencePrisma);
+    router.get(
+      "/me/export",
+      exportLimiter,
+      async (req: Request, res: Response, next: NextFunction) => {
+        try {
+          const userId = (req as any).user?.userId;
+          if (!userId) return res.status(401).json({ error: "Unauthorized" });
+          const data = await exportService.exportAllUserData(userId);
+          res.setHeader(
+            "Content-Disposition",
+            'attachment; filename="my-data-export.json"',
+          );
+          res.json(data);
+        } catch (error) {
+          next(error);
+        }
+      },
+    );
+  }
 
   router.get("/me", async (req: Request, res: Response, next: NextFunction) => {
     if (!authService) {

@@ -129,6 +129,24 @@ export function createTodosRouter({
     }
   });
 
+  // Routines endpoint — MUST be before /:id to avoid Express treating "routines" as an id
+  router.get(
+    "/routines",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveTodoUserId(req, res);
+        if (!userId) return;
+        const { detectRoutines } =
+          await import("../services/routineDetectionService");
+        const tasks = await todoService.findAll(userId, { archived: false });
+        const routines = detectRoutines(tasks);
+        res.json(routines);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
   router.get(
     "/:id",
     async (req: Request, res: Response, next: NextFunction) => {

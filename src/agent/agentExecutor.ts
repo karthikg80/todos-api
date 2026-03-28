@@ -196,7 +196,19 @@ export type AgentActionName =
   | "get_action_policies"
   | "update_action_policy"
   | "prewarm_home_focus"
-  | "send_task_reminder";
+  | "send_task_reminder"
+  | "run_data_retention"
+  | "list_areas"
+  | "get_area"
+  | "create_area"
+  | "update_area"
+  | "list_goals"
+  | "get_goal"
+  | "create_goal"
+  | "update_goal"
+  | "list_routines"
+  | "generate_morning_brief"
+  | "project_health_intervention";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -299,6 +311,11 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "list_learning_recommendations",
   "list_friction_patterns",
   "get_action_policies",
+  "list_areas",
+  "get_area",
+  "list_goals",
+  "get_goal",
+  "list_routines",
 ]);
 
 const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
@@ -1854,7 +1871,62 @@ export class AgentExecutor {
             staleBoost: staleCount && staleCount > 10 ? 8 : 0,
           };
 
-          const adjustedBudget = Math.round(budget * insightBudgetMult);
+          // Load soul profile for personalized scoring
+          const planPrefs = this.deps.persistencePrisma
+            ? await this.deps.persistencePrisma.userPlanningPreferences
+                .findUnique({ where: { userId: context.userId } })
+                .catch(() => null)
+            : null;
+          const soul =
+            (planPrefs?.soulProfile as Record<string, unknown>) ?? null;
+          type SoulMods = NonNullable<Parameters<typeof this.scorePlan>[10]>;
+          let planSoulMods: SoulMods | undefined;
+          if (soul) {
+            const statusBoosts: Record<string, number> = {};
+            const priorityBoosts: Record<string, number> = {};
+            let soulBudgetMult = 1.0;
+            let soulMaxTasks: number | undefined;
+            let effortBoosts: SoulMods["effortBoosts"];
+            const style = soul.planningStyle as string | undefined;
+            if (style === "structure") {
+              statusBoosts.in_progress = 10;
+              statusBoosts.scheduled = 10;
+            } else if (style === "flexibility") {
+              statusBoosts.next = 10;
+            }
+            const themes = (soul.goodDayThemes as string[]) ?? [];
+            for (const theme of themes) {
+              if (theme === "important_work") {
+                priorityBoosts.high = 8;
+                priorityBoosts.urgent = 8;
+              } else if (theme === "life_admin") {
+                // Admin tasks have no projectId — handled via priorityBoosts for simplicity
+              } else if (theme === "avoid_overload") {
+                soulBudgetMult = 0.85;
+              } else if (theme === "visible_progress") {
+                effortBoosts = { maxEffort: 20, boost: 5 };
+              } else if (theme === "protect_rest") {
+                soulMaxTasks = 5;
+              }
+            }
+            planSoulMods = {
+              statusBoosts: Object.keys(statusBoosts).length
+                ? statusBoosts
+                : undefined,
+              priorityBoosts: Object.keys(priorityBoosts).length
+                ? priorityBoosts
+                : undefined,
+              effortBoosts,
+              budgetMultiplier:
+                soulBudgetMult !== 1 ? soulBudgetMult : undefined,
+              maxTaskCount: soulMaxTasks,
+            };
+          }
+
+          const soulBudgetMult = planSoulMods?.budgetMultiplier ?? 1;
+          const adjustedBudget = Math.round(
+            budget * insightBudgetMult * soulBudgetMult,
+          );
 
           const { selected, excluded, usedMinutes, budgetBreakdown } =
             this.scorePlan(
@@ -1874,9 +1946,13 @@ export class AgentExecutor {
               planGoalIndex,
               planProjectGoalMap,
               planInsightBoosts,
+              planSoulMods,
             );
 
-          const maxTasks = modeModifiers.maxTaskCount ?? selected.length;
+          const modeMax = modeModifiers.maxTaskCount ?? selected.length;
+          const insightCap = insightMaxCap ?? modeMax;
+          const soulCap = planSoulMods?.maxTaskCount ?? insightCap;
+          const maxTasks = Math.min(modeMax, insightCap, soulCap);
           const cappedSelected = selected.slice(0, maxTasks);
 
           // Recompute totals from the capped list so budget metadata stays
@@ -2577,6 +2653,489 @@ export class AgentExecutor {
             },
           });
           return this.success(action, readOnly, context, 200, { prewarm });
+        }
+
+        // ── H3: Areas & Goals CRUD ──────────────────────────────────────────────
+        case "list_areas": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Areas not configured",
+              false,
+            );
+          const { AreaService } = await import("../services/areaService");
+          const svc = new AreaService(this.deps.persistencePrisma);
+          const areas = await svc.findAll(context.userId);
+          return this.success(action, readOnly, context, 200, { areas });
+        }
+        case "get_area": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Areas not configured",
+              false,
+            );
+          const { AreaService } = await import("../services/areaService");
+          const svc = new AreaService(this.deps.persistencePrisma);
+          const id = String((input as Record<string, unknown>).id ?? "");
+          const area = await svc.findById(context.userId, id);
+          if (!area)
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND",
+              "Area not found",
+              false,
+            );
+          return this.success(action, readOnly, context, 200, { area });
+        }
+        case "create_area": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Areas not configured",
+              false,
+            );
+          const { AreaService } = await import("../services/areaService");
+          const svc = new AreaService(this.deps.persistencePrisma);
+          const inp = input as Record<string, unknown>;
+          const area = await svc.create(context.userId, {
+            name: String(inp.name ?? ""),
+            description:
+              inp.description != null ? String(inp.description) : null,
+          });
+          return this.success(action, readOnly, context, 201, { area });
+        }
+        case "update_area": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Areas not configured",
+              false,
+            );
+          const { AreaService } = await import("../services/areaService");
+          const svc = new AreaService(this.deps.persistencePrisma);
+          const inp = input as Record<string, unknown>;
+          const area = await svc.update(context.userId, String(inp.id ?? ""), {
+            ...(inp.name !== undefined ? { name: String(inp.name) } : {}),
+            ...(inp.description !== undefined
+              ? {
+                  description:
+                    inp.description != null ? String(inp.description) : null,
+                }
+              : {}),
+            ...(inp.archived !== undefined
+              ? { archived: Boolean(inp.archived) }
+              : {}),
+          });
+          if (!area)
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND",
+              "Area not found",
+              false,
+            );
+          return this.success(action, readOnly, context, 200, { area });
+        }
+        case "list_goals": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Goals not configured",
+              false,
+            );
+          const { GoalService } = await import("../services/goalService");
+          const svc = new GoalService(this.deps.persistencePrisma);
+          const goals = await svc.findAll(context.userId);
+          return this.success(action, readOnly, context, 200, { goals });
+        }
+        case "get_goal": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Goals not configured",
+              false,
+            );
+          const { GoalService } = await import("../services/goalService");
+          const svc = new GoalService(this.deps.persistencePrisma);
+          const id = String((input as Record<string, unknown>).id ?? "");
+          const goal = await svc.findById(context.userId, id);
+          if (!goal)
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND",
+              "Goal not found",
+              false,
+            );
+          return this.success(action, readOnly, context, 200, { goal });
+        }
+        case "create_goal": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Goals not configured",
+              false,
+            );
+          const { GoalService } = await import("../services/goalService");
+          const svc = new GoalService(this.deps.persistencePrisma);
+          const inp = input as Record<string, unknown>;
+          const goal = await svc.create(context.userId, {
+            name: String(inp.name ?? ""),
+            description:
+              inp.description != null ? String(inp.description) : null,
+            targetDate: inp.targetDate != null ? String(inp.targetDate) : null,
+          });
+          return this.success(action, readOnly, context, 201, { goal });
+        }
+        case "update_goal": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Goals not configured",
+              false,
+            );
+          const { GoalService } = await import("../services/goalService");
+          const svc = new GoalService(this.deps.persistencePrisma);
+          const inp = input as Record<string, unknown>;
+          const goal = await svc.update(context.userId, String(inp.id ?? ""), {
+            ...(inp.name !== undefined ? { name: String(inp.name) } : {}),
+            ...(inp.description !== undefined
+              ? {
+                  description:
+                    inp.description != null ? String(inp.description) : null,
+                }
+              : {}),
+            ...(inp.targetDate !== undefined
+              ? {
+                  targetDate:
+                    inp.targetDate != null ? String(inp.targetDate) : null,
+                }
+              : {}),
+            ...(inp.archived !== undefined
+              ? { archived: Boolean(inp.archived) }
+              : {}),
+          });
+          if (!goal)
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND",
+              "Goal not found",
+              false,
+            );
+          return this.success(action, readOnly, context, 200, { goal });
+        }
+
+        // ── H3: Routines ───────────────────────────────────────────────────────
+        case "list_routines": {
+          const { detectRoutines } =
+            await import("../services/routineDetectionService");
+          const tasks = await this.agentService.listTasks(context.userId, {
+            archived: false,
+            limit: 500,
+          });
+          const routines = detectRoutines(tasks);
+          return this.success(action, readOnly, context, 200, { routines });
+        }
+
+        // ── H3: Data retention ─────────────────────────────────────────────────
+        case "run_data_retention": {
+          if (!this.deps.persistencePrisma)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Retention not configured",
+              false,
+            );
+          const { DataRetentionService } =
+            await import("../services/dataRetentionService");
+          const svc = new DataRetentionService(this.deps.persistencePrisma);
+          const purged = await svc.purgeAll();
+          return this.success(action, readOnly, context, 200, { purged });
+        }
+
+        // ── H3: Project health intervention ─────────────────────────────────────
+        case "project_health_intervention": {
+          if (!this.deps.persistencePrisma || !this.deps.projectService)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Projects not configured",
+              false,
+            );
+
+          const phConfig = await this.agentConfigService.getConfig(
+            context.userId,
+          );
+          if (!phConfig.projectHealthEnabled)
+            return this.success(action, readOnly, context, 200, {
+              skipped: true,
+              reason: "projectHealthEnabled is false",
+            });
+
+          const MAX_PROJECTS = 3;
+          const HEALTH_THRESHOLD = 40;
+          let writeCount = 0;
+          const maxWrites = phConfig.maxWriteActionsPerRun;
+          const interventions: Array<Record<string, unknown>> = [];
+
+          // Get all active projects with health scores
+          const projects = await this.deps.projectService.findAll(
+            context.userId,
+          );
+          const activeProjects = projects.filter(
+            (p) => !p.archived && p.status !== "completed",
+          );
+
+          // Compute health for each project
+          const projectHealthResults: Array<{
+            project: (typeof activeProjects)[0];
+            score: number;
+          }> = [];
+          for (const project of activeProjects) {
+            try {
+              const health =
+                await this.agentService.analyzeProjectHealthForUser(
+                  context.userId,
+                  { projectId: project.id },
+                );
+              if (
+                health?.healthScore !== undefined &&
+                health.healthScore < HEALTH_THRESHOLD
+              ) {
+                projectHealthResults.push({
+                  project,
+                  score: health.healthScore,
+                });
+              }
+            } catch {
+              // Skip projects that fail health analysis
+            }
+          }
+
+          // Sort by worst health first, take max 3
+          projectHealthResults.sort((a, b) => a.score - b.score);
+          const criticalProjects = projectHealthResults.slice(0, MAX_PROJECTS);
+
+          for (const { project, score } of criticalProjects) {
+            const intervention: Record<string, unknown> = {
+              projectId: project.id,
+              projectName: project.name,
+              healthScore: score,
+              subtasksCreated: 0,
+              nextActionCreated: false,
+            };
+
+            // Find oldest stale open task in this project
+            const projectTasks = await this.agentService.listTasks(
+              context.userId,
+              {
+                projectId: project.id,
+                statuses: ["inbox", "next", "in_progress"],
+                archived: false,
+                limit: 50,
+              },
+            );
+            const staleTasks = projectTasks
+              .filter((t) => {
+                const updated =
+                  t.updatedAt instanceof Date
+                    ? t.updatedAt
+                    : new Date(String(t.updatedAt));
+                return (Date.now() - updated.getTime()) / 86_400_000 > 7;
+              })
+              .sort((a, b) => {
+                const aUp =
+                  a.updatedAt instanceof Date
+                    ? a.updatedAt.getTime()
+                    : new Date(String(a.updatedAt)).getTime();
+                const bUp =
+                  b.updatedAt instanceof Date
+                    ? b.updatedAt.getTime()
+                    : new Date(String(b.updatedAt)).getTime();
+                return aUp - bUp;
+              });
+
+            const targetTask = staleTasks[0];
+            if (targetTask && writeCount < maxWrites) {
+              // Break down the task into subtasks
+              try {
+                const breakdown =
+                  await this.deps.aiPlannerService?.breakdownTodoIntoSubtasks({
+                    title: targetTask.title,
+                    description: targetTask.description ?? "",
+                    notes: targetTask.notes ?? "",
+                    priority: targetTask.priority ?? "medium",
+                    maxSubtasks: 4,
+                  });
+
+                if (breakdown?.subtasks?.length) {
+                  for (const sub of breakdown.subtasks) {
+                    if (writeCount >= maxWrites) break;
+                    try {
+                      await this.agentService.addSubtask(
+                        context.userId,
+                        targetTask.id,
+                        { title: sub.title },
+                      );
+                      writeCount++;
+                      intervention.subtasksCreated =
+                        (intervention.subtasksCreated as number) + 1;
+
+                      // Audit child write
+                      await this.auditService.record({
+                        surface: "agent",
+                        action: "add_subtask",
+                        readOnly: false,
+                        outcome: "success",
+                        status: 200,
+                        userId: context.userId,
+                        requestId: context.requestId,
+                        actor: context.actor,
+                        triggeredBy: "automation",
+                        jobName: "project_health_intervention",
+                      });
+                    } catch {
+                      // Skip individual subtask failures
+                    }
+                  }
+                }
+              } catch {
+                // Breakdown failed — continue to next action
+              }
+            }
+
+            // Ensure next action if project is missing one
+            if (writeCount < maxWrites) {
+              try {
+                const nextAction =
+                  await this.agentService.ensureNextActionForUser(
+                    context.userId,
+                    { projectId: project.id, mode: "apply" },
+                  );
+                if (nextAction?.created) {
+                  writeCount++;
+                  intervention.nextActionCreated = true;
+
+                  await this.auditService.record({
+                    surface: "agent",
+                    action: "ensure_next_action",
+                    readOnly: false,
+                    outcome: "success",
+                    status: 200,
+                    userId: context.userId,
+                    requestId: context.requestId,
+                    actor: context.actor,
+                    triggeredBy: "automation",
+                    jobName: "project_health_intervention",
+                  });
+                }
+              } catch {
+                // Next action failed — skip
+              }
+            }
+
+            interventions.push(intervention);
+          }
+
+          return this.success(action, readOnly, context, 200, {
+            interventions,
+            projectsAnalyzed: activeProjects.length,
+            criticalCount: criticalProjects.length,
+            totalWriteActions: writeCount,
+          });
+        }
+
+        // ── H3: Morning brief ────────────────────────────────────────────────────
+        case "generate_morning_brief": {
+          if (!this.deps.aiPlannerService)
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "AI planner not configured",
+              false,
+            );
+
+          // Check AI opt-out
+          const briefConfig = await this.agentConfigService.getConfig(
+            context.userId,
+          );
+          const briefTasks = await this.agentService.listTasks(context.userId, {
+            statuses: ["inbox", "next", "in_progress", "scheduled"],
+            archived: false,
+            limit: 200,
+          });
+
+          // Get insights and soul profile
+          const [briefInsights, briefPrefs] = await Promise.all([
+            this.deps.persistencePrisma
+              ? this.deps.persistencePrisma.userInsight
+                  .findMany({
+                    where: { userId: context.userId, periodType: "daily" },
+                    orderBy: { computedAt: "desc" },
+                    distinct: ["insightType"],
+                  })
+                  .catch(() => [])
+              : Promise.resolve([]),
+            this.deps.persistencePrisma
+              ? this.deps.persistencePrisma.userPlanningPreferences
+                  .findUnique({ where: { userId: context.userId } })
+                  .catch(() => null)
+              : Promise.resolve(null),
+          ]);
+
+          const briefInsightMap = new Map<string, number>();
+          for (const ins of briefInsights)
+            briefInsightMap.set(ins.insightType, ins.value);
+
+          const soul =
+            (briefPrefs?.soulProfile as Record<string, unknown>) ?? {};
+
+          const { brief, deterministic } = briefConfig.aiOptOut
+            ? await this.deps.aiPlannerService.generateMorningBrief({
+                tasks: briefTasks.map((t) => ({
+                  title: t.title,
+                  priority: t.priority ?? undefined,
+                })),
+                insightSummary: {
+                  completionVelocity: briefInsightMap.get(
+                    "completion_velocity",
+                  ),
+                  streakDays: briefInsightMap.get("streak_days"),
+                  overcommitmentRatio: briefInsightMap.get(
+                    "overcommitment_ratio",
+                  ),
+                },
+                tone: String(soul.tone ?? "calm"),
+              })
+            : await this.deps.aiPlannerService.generateMorningBrief({
+                tasks: briefTasks.map((t) => ({
+                  title: t.title,
+                  priority: t.priority ?? undefined,
+                })),
+                insightSummary: {
+                  completionVelocity: briefInsightMap.get(
+                    "completion_velocity",
+                  ),
+                  streakDays: briefInsightMap.get("streak_days"),
+                  overcommitmentRatio: briefInsightMap.get(
+                    "overcommitment_ratio",
+                  ),
+                },
+                tone: String(soul.tone ?? "calm"),
+              });
+
+          return this.success(action, readOnly, context, 200, {
+            brief,
+            deterministic,
+            taskCount: briefTasks.length,
+          });
         }
 
         // ── Task reminder email ────────────────────────────────────────────────
@@ -3622,6 +4181,13 @@ export class AgentExecutor {
     goalIndex?: Map<string, { targetDate: Date | null }>,
     projectGoalMap?: Map<string, string>,
     insightBoosts?: { streakBoost: number; staleBoost: number },
+    soulModifiers?: {
+      statusBoosts?: Record<string, number>;
+      priorityBoosts?: Record<string, number>;
+      effortBoosts?: { maxEffort: number; boost: number };
+      budgetMultiplier?: number;
+      maxTaskCount?: number;
+    },
   ): {
     selected: Array<{
       task: import("../types").Todo;
@@ -3771,6 +4337,30 @@ export class AgentExecutor {
             breakdown.insightBoost =
               (breakdown.insightBoost ?? 0) + insightBoosts.staleBoost;
           }
+        }
+      }
+
+      // Soul profile modifiers
+      if (soulModifiers) {
+        const statusKey = t.status ?? "";
+        if (soulModifiers.statusBoosts?.[statusKey]) {
+          const boost = soulModifiers.statusBoosts[statusKey];
+          score += boost;
+          breakdown.soulBoost = (breakdown.soulBoost ?? 0) + boost;
+        }
+        const prioKey = t.priority ?? "medium";
+        if (soulModifiers.priorityBoosts?.[prioKey]) {
+          const boost = soulModifiers.priorityBoosts[prioKey];
+          score += boost;
+          breakdown.soulBoost = (breakdown.soulBoost ?? 0) + boost;
+        }
+        if (
+          soulModifiers.effortBoosts &&
+          effort <= soulModifiers.effortBoosts.maxEffort
+        ) {
+          score += soulModifiers.effortBoosts.boost;
+          breakdown.soulBoost =
+            (breakdown.soulBoost ?? 0) + soulModifiers.effortBoosts.boost;
         }
       }
 

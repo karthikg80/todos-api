@@ -1,7 +1,10 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { randomUUID } from "crypto";
 
-export type AiSuggestionType = "task_critic" | "plan_from_goal";
+export type AiSuggestionType =
+  | "task_critic"
+  | "plan_from_goal"
+  | "morning_brief";
 export type AiSuggestionStatus = "pending" | "accepted" | "rejected";
 
 export interface AiSuggestionRecord {

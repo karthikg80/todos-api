@@ -127,7 +127,24 @@ function minimumRequiredScopesForAction(
     case "list_stale_tasks":
     case "prewarm_home_focus":
     case "send_task_reminder":
+    case "list_routines":
       return [TASK_READ_SCOPE];
+    case "list_areas":
+    case "get_area":
+    case "list_goals":
+    case "get_goal":
+      return [PROJECT_READ_SCOPE];
+    case "create_area":
+    case "update_area":
+    case "create_goal":
+    case "update_goal":
+      return [PROJECT_WRITE_SCOPE];
+    case "run_data_retention":
+      return [TASK_WRITE_SCOPE];
+    case "generate_morning_brief":
+      return [TASK_READ_SCOPE, TASK_WRITE_SCOPE];
+    case "project_health_intervention":
+      return [TASK_READ_SCOPE, TASK_WRITE_SCOPE, PROJECT_READ_SCOPE];
     case "create_task":
     case "update_task":
     case "complete_task":
