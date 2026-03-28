@@ -1,6 +1,22 @@
 import { createHash } from "crypto";
 import request from "supertest";
 import type { Express } from "express";
+
+// Override config before createApp imports it — disable social login
+// providers so MCP OAuth pages don't render Google/Apple/Phone buttons.
+jest.mock("./config", () => {
+  const actual = jest.requireActual<typeof import("./config")>("./config");
+  return {
+    ...actual,
+    config: {
+      ...actual.config,
+      googleLoginEnabled: false,
+      appleLoginEnabled: false,
+      phoneLoginEnabled: false,
+    },
+  };
+});
+
 import { createApp } from "./app";
 import { TodoService } from "./services/todoService";
 import type { IProjectService } from "./interfaces/IProjectService";
