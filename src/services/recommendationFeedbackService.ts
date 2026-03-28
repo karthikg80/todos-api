@@ -164,6 +164,42 @@ export class RecommendationFeedbackService {
     });
   }
 
+  /**
+   * Batch version of getScoreAdjustment — single query for many tasks.
+   * Returns a Map of taskId → adjustment (+10 for accepted, -15 for ignored).
+   */
+  async getScoreAdjustmentsBatch(
+    userId: string,
+    taskIds: string[],
+  ): Promise<Map<string, number>> {
+    const result = new Map<string, number>();
+    if (!this.prisma || taskIds.length === 0) return result;
+
+    const rows = await this.prisma.taskRecommendationFeedback.findMany({
+      where: { userId, taskId: { in: taskIds } },
+      select: { taskId: true, signal: true },
+      orderBy: { recordedAt: "desc" },
+      take: 200,
+    });
+
+    // Group by taskId, take at most 20 per task
+    const perTask = new Map<string, string[]>();
+    for (const row of rows) {
+      const signals = perTask.get(row.taskId) ?? [];
+      if (signals.length < 20) signals.push(row.signal);
+      perTask.set(row.taskId, signals);
+    }
+
+    for (const [tid, signals] of perTask) {
+      const accepted = signals.filter((s) => s === "accepted").length;
+      const ignored = signals.filter((s) => s === "ignored").length;
+      if (accepted >= 2) result.set(tid, 10);
+      else if (ignored >= 3) result.set(tid, -15);
+    }
+
+    return result;
+  }
+
   /** Return score multiplier for plan_today: +10 if often accepted, -15 if often ignored */
   async getScoreAdjustment(userId: string, taskId: string): Promise<number> {
     if (!this.prisma) return 0;

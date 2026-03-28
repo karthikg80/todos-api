@@ -21,6 +21,9 @@ export class DecisionEngine {
     availableMinutes?: number | null;
     energy?: Todo["energy"] | null;
     context: string[];
+    weights?: { priority?: number; dueDate?: number; energyMatch?: number };
+    goalIndex?: Map<string, { targetDate: Date | null }>;
+    projectGoalMap?: Map<string, string>;
   }): DecideNextWorkResult {
     const openTasks = input.tasks.filter(isOpenTask);
     const taskIndex = buildTaskIndex(openTasks);
@@ -49,6 +52,9 @@ export class DecisionEngine {
             availableEnergy: input.energy,
             contexts: input.context,
             dependentCount: dependents.get(task.id) || 0,
+            weights: input.weights,
+            goalIndex: input.goalIndex,
+            projectGoalMap: input.projectGoalMap,
           }),
         };
       })

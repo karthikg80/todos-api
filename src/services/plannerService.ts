@@ -307,6 +307,9 @@ export class PlannerService implements IPlannerService {
       availableMinutes: input.availableMinutes,
       energy: input.energy,
       context: input.context || [],
+      weights: input.weights,
+      goalIndex: input.goalIndex,
+      projectGoalMap: input.projectGoalMap,
     });
   }
 

@@ -175,6 +175,85 @@ export class EmailService {
   }
 
   /**
+   * Send a daily task reminder digest grouped by urgency.
+   */
+  async sendTaskReminderDigest(
+    email: string,
+    tasks: {
+      overdue: Array<{ title: string; dueDate: string }>;
+      dueToday: Array<{ title: string }>;
+      dueTomorrow: Array<{ title: string }>;
+    },
+  ): Promise<number> {
+    if (!this.transporter) return 0;
+
+    const total =
+      tasks.overdue.length + tasks.dueToday.length + tasks.dueTomorrow.length;
+    if (total === 0) return 0;
+
+    const renderList = (
+      items: Array<{ title: string; dueDate?: string }>,
+    ): string =>
+      items
+        .map(
+          (t) =>
+            `<li style="padding: 4px 0;">${t.title}${t.dueDate ? ` <span style="color:#ff4757;font-size:12px;">(due ${t.dueDate})</span>` : ""}</li>`,
+        )
+        .join("");
+
+    let sectionsHtml = "";
+    if (tasks.overdue.length > 0) {
+      sectionsHtml += `
+        <h3 style="color: #ff4757; margin: 16px 0 8px;">Overdue (${tasks.overdue.length})</h3>
+        <ul style="margin: 0; padding-left: 20px;">${renderList(tasks.overdue)}</ul>
+      `;
+    }
+    if (tasks.dueToday.length > 0) {
+      sectionsHtml += `
+        <h3 style="color: #333; margin: 16px 0 8px;">Due today (${tasks.dueToday.length})</h3>
+        <ul style="margin: 0; padding-left: 20px;">${renderList(tasks.dueToday)}</ul>
+      `;
+    }
+    if (tasks.dueTomorrow.length > 0) {
+      sectionsHtml += `
+        <h3 style="color: #666; margin: 16px 0 8px;">Due tomorrow (${tasks.dueTomorrow.length})</h3>
+        <ul style="margin: 0; padding-left: 20px;">${renderList(tasks.dueTomorrow)}</ul>
+      `;
+    }
+
+    try {
+      const info = await this.transporter.sendMail({
+        from: config.smtpFrom || '"Todo App" <noreply@todoapp.com>',
+        to: email,
+        subject: `${total} task${total === 1 ? "" : "s"} need${total === 1 ? "s" : ""} attention`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2>Your daily task reminder</h2>
+            <p>Here's what needs your attention:</p>
+            ${sectionsHtml}
+            <p style="margin: 30px 0;">
+              <a href="${this.baseUrl}"
+                 style="background-color: #667eea; color: white; padding: 12px 24px;
+                        text-decoration: none; border-radius: 5px; display: inline-block;">
+                Open Todo App
+              </a>
+            </p>
+            <p style="color: #999; font-size: 12px; margin-top: 40px;">
+              You're receiving this because task reminders are enabled for your account.
+              Disable them in Settings &gt; Agent &gt; Action Policies.
+            </p>
+          </div>
+        `,
+      });
+      console.log("Task reminder email sent:", info.messageId);
+      return total;
+    } catch (error) {
+      console.error("Error sending task reminder email:", error);
+      throw new Error("Failed to send task reminder email");
+    }
+  }
+
+  /**
    * Send feedback status change notification
    */
   async sendFeedbackStatusEmail(

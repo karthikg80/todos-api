@@ -1725,6 +1725,29 @@ function init() {
     persistSession({ authToken: null, refreshToken: null, currentUser: null });
   }
 
+  // Listen for offline sync completion from service worker
+  if (navigator.serviceWorker) {
+    navigator.serviceWorker.addEventListener("message", (event) => {
+      if (event.data?.type === "offline-sync-complete") {
+        const { replayed, failed } = event.data;
+        if (replayed > 0) {
+          loadTodos();
+          hooks.showMessage?.(
+            "todosMessage",
+            `Synced ${replayed} offline task${replayed === 1 ? "" : "s"}${failed > 0 ? ` (${failed} failed)` : ""}`,
+            "success",
+          );
+        }
+      }
+    });
+    // Notify service worker when back online (fallback for no Background Sync)
+    window.addEventListener("online", () => {
+      navigator.serviceWorker.controller?.postMessage({
+        type: "online-reconnect",
+      });
+    });
+  }
+
   if (token && user) {
     state.authToken = token;
     state.refreshToken = refresh;

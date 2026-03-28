@@ -140,6 +140,9 @@ export interface DecideNextWorkInput {
   energy?: Energy | null;
   context?: string[];
   mode?: PlannerMode;
+  weights?: { priority?: number; dueDate?: number; energyMatch?: number };
+  goalIndex?: Map<string, { targetDate: Date | null }>;
+  projectGoalMap?: Map<string, string>;
 }
 
 export interface DecideNextWorkRecommendation {

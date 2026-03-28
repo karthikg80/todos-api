@@ -126,6 +126,7 @@ function minimumRequiredScopesForAction(
     case "list_upcoming":
     case "list_stale_tasks":
     case "prewarm_home_focus":
+    case "send_task_reminder":
       return [TASK_READ_SCOPE];
     case "create_task":
     case "update_task":
