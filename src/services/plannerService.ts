@@ -310,6 +310,7 @@ export class PlannerService implements IPlannerService {
       weights: input.weights,
       goalIndex: input.goalIndex,
       projectGoalMap: input.projectGoalMap,
+      soulModifiers: input.soulModifiers,
     });
   }
 

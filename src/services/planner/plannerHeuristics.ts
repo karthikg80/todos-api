@@ -302,6 +302,7 @@ export function scoreTaskForDecision(input: {
   };
   goalIndex?: Map<string, { targetDate: Date | null }>;
   projectGoalMap?: Map<string, string>;
+  soulModifiers?: { statusBoosts?: Record<string, number> };
 }): number {
   const {
     task,
@@ -311,6 +312,7 @@ export function scoreTaskForDecision(input: {
     weights,
     goalIndex,
     projectGoalMap,
+    soulModifiers,
   } = input;
   const wPriority = weights?.priority ?? 1;
   const wDueDate = weights?.dueDate ?? 1;
@@ -377,6 +379,13 @@ export function scoreTaskForDecision(input: {
         score += direct ? 8 : 6;
       }
     }
+  }
+
+  // Soul profile status boosts
+  if (soulModifiers?.statusBoosts) {
+    const statusKey = task.status ?? "";
+    const boost = soulModifiers.statusBoosts[statusKey];
+    if (boost) score += boost;
   }
 
   return score;

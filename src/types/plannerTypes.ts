@@ -143,6 +143,7 @@ export interface DecideNextWorkInput {
   weights?: { priority?: number; dueDate?: number; energyMatch?: number };
   goalIndex?: Map<string, { targetDate: Date | null }>;
   projectGoalMap?: Map<string, string>;
+  soulModifiers?: { statusBoosts?: Record<string, number> };
 }
 
 export interface DecideNextWorkRecommendation {

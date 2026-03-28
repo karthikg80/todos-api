@@ -24,6 +24,7 @@ export class DecisionEngine {
     weights?: { priority?: number; dueDate?: number; energyMatch?: number };
     goalIndex?: Map<string, { targetDate: Date | null }>;
     projectGoalMap?: Map<string, string>;
+    soulModifiers?: { statusBoosts?: Record<string, number> };
   }): DecideNextWorkResult {
     const openTasks = input.tasks.filter(isOpenTask);
     const taskIndex = buildTaskIndex(openTasks);
@@ -55,6 +56,7 @@ export class DecisionEngine {
             weights: input.weights,
             goalIndex: input.goalIndex,
             projectGoalMap: input.projectGoalMap,
+            soulModifiers: input.soulModifiers,
           }),
         };
       })

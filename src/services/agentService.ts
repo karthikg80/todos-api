@@ -508,6 +508,7 @@ export class AgentService {
       mode?: "suggest" | "apply";
       weights?: { priority?: number; dueDate?: number; energyMatch?: number };
       goalIndex?: Map<string, { targetDate: Date | null }>;
+      soulModifiers?: { statusBoosts?: Record<string, number> };
     },
   ): Promise<DecideNextWorkResult> {
     if (!this.plannerService) {
@@ -521,6 +522,7 @@ export class AgentService {
       mode: input.mode,
       weights: input.weights,
       goalIndex: input.goalIndex,
+      soulModifiers: input.soulModifiers,
     });
   }
 

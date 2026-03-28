@@ -1543,8 +1543,8 @@ export class AgentExecutor {
         case "decide_next_work": {
           const plannerInput = validateAgentDecideNextWorkInput(input);
 
-          // Load user weights and goals for personalized scoring
-          const [dnwConfig, dnwGoals] = await Promise.all([
+          // Load user weights, goals, and soul profile for personalized scoring
+          const [dnwConfig, dnwGoals, dnwPrefs] = await Promise.all([
             this.agentConfigService.getConfig(context.userId),
             this.deps.persistencePrisma
               ? this.deps.persistencePrisma.goal
@@ -1556,10 +1556,34 @@ export class AgentExecutor {
               : Promise.resolve(
                   [] as { id: string; targetDate: Date | null }[],
                 ),
+            this.deps.persistencePrisma
+              ? this.deps.persistencePrisma.userPlanningPreferences
+                  .findUnique({ where: { userId: context.userId } })
+                  .catch(() => null)
+              : Promise.resolve(null),
           ]);
           const dnwGoalIndex = new Map(
             dnwGoals.map((g) => [g.id, { targetDate: g.targetDate }]),
           );
+
+          // Build soul modifiers for scoreTaskForDecision
+          const dnwSoul =
+            (dnwPrefs?.soulProfile as Record<string, unknown>) ?? null;
+          let dnwSoulMods:
+            | { statusBoosts?: Record<string, number> }
+            | undefined;
+          if (dnwSoul) {
+            const boosts: Record<string, number> = {};
+            const style = dnwSoul.planningStyle as string | undefined;
+            if (style === "structure") {
+              boosts.in_progress = 10;
+              boosts.scheduled = 10;
+            } else if (style === "flexibility") {
+              boosts.next = 10;
+            }
+            if (Object.keys(boosts).length)
+              dnwSoulMods = { statusBoosts: boosts };
+          }
 
           const decision = await this.agentService.decideNextWorkForUser(
             context.userId,
@@ -1571,6 +1595,7 @@ export class AgentExecutor {
                 energyMatch: dnwConfig.plannerWeightEnergyMatch,
               },
               goalIndex: dnwGoalIndex,
+              soulModifiers: dnwSoulMods,
             },
           );
           return this.success(action, readOnly, context, 200, { decision });
@@ -1972,6 +1997,7 @@ export class AgentExecutor {
             ...s.task,
             estimatedMinutes: s.effort,
             score: s.score,
+            isRoutine: !!s.task.recurrence && s.task.recurrence.type !== "none",
             explanation: {
               scoreBreakdown: s.scoreBreakdown,
               whyIncluded: s.whyIncluded,
@@ -3769,37 +3795,68 @@ export class AgentExecutor {
                 { where: { userId: context.userId } },
               );
             if (prefs) {
-              const startH =
-                (
-                  prefs as unknown as {
-                    workStartTime?: string | null;
-                  }
-                ).workStartTime ?? "09:00";
-              const endH =
-                (
-                  prefs as unknown as {
-                    workEndTime?: string | null;
-                  }
-                ).workEndTime ?? "17:00";
-              const [sh, sm] = startH.split(":").map(Number);
-              const [eh, em] = endH.split(":").map(Number);
-              const totalMin = eh * 60 + em - (sh * 60 + sm);
-              const midMin = Math.floor(totalMin / 2);
-              const midH = sh * 60 + sm + midMin;
-              const midHH = String(Math.floor(midH / 60)).padStart(2, "0");
-              const midMM = String(midH % 60).padStart(2, "0");
-              windows = [
-                {
-                  start: startH,
-                  end: `${midHH}:${midMM}`,
-                  minutes: midMin,
-                },
-                {
-                  start: `${midHH}:${midMM}`,
-                  end: endH,
-                  minutes: totalMin - midMin,
-                },
-              ];
+              // Check workWindowsJson first (H3: per-day work windows)
+              const workWindowsRaw = prefs.workWindowsJson as {
+                windows?: Array<{ day: number; start: string; end: string }>;
+              } | null;
+              const requestedDate = new Date(today + "T12:00:00");
+              const dayOfWeek = requestedDate.getDay(); // 0=Sun, 6=Sat
+
+              const matchingWindows = workWindowsRaw?.windows?.filter(
+                (w) =>
+                  typeof w.day === "number" &&
+                  w.day === dayOfWeek &&
+                  typeof w.start === "string" &&
+                  typeof w.end === "string" &&
+                  /^\d{2}:\d{2}$/.test(w.start) &&
+                  /^\d{2}:\d{2}$/.test(w.end),
+              );
+
+              if (matchingWindows && matchingWindows.length > 0) {
+                // Use per-day work windows from workWindowsJson
+                windows = matchingWindows.map((w) => {
+                  const [sh, sm] = w.start.split(":").map(Number);
+                  const [eh, em] = w.end.split(":").map(Number);
+                  return {
+                    start: w.start,
+                    end: w.end,
+                    minutes: eh * 60 + em - (sh * 60 + sm),
+                  };
+                });
+              } else {
+                // Fall back to workStartTime/workEndTime
+                const startH =
+                  (
+                    prefs as unknown as {
+                      workStartTime?: string | null;
+                    }
+                  ).workStartTime ?? "09:00";
+                const endH =
+                  (
+                    prefs as unknown as {
+                      workEndTime?: string | null;
+                    }
+                  ).workEndTime ?? "17:00";
+                const [sh, sm] = startH.split(":").map(Number);
+                const [eh, em] = endH.split(":").map(Number);
+                const totalMin = eh * 60 + em - (sh * 60 + sm);
+                const midMin = Math.floor(totalMin / 2);
+                const midH = sh * 60 + sm + midMin;
+                const midHH = String(Math.floor(midH / 60)).padStart(2, "0");
+                const midMM = String(midH % 60).padStart(2, "0");
+                windows = [
+                  {
+                    start: startH,
+                    end: `${midHH}:${midMM}`,
+                    minutes: midMin,
+                  },
+                  {
+                    start: `${midHH}:${midMM}`,
+                    end: endH,
+                    minutes: totalMin - midMin,
+                  },
+                ];
+              }
             }
           }
           const scheduledTasks = await this.agentService.listTasks(
