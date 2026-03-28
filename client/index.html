@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <!-- BEGIN:app-shell -->
     <div id="appShell">
       <aside id="appSidebar" aria-label="Workspace sidebar">
         <div class="app-sidebar__top">
@@ -3640,6 +3641,7 @@
         Logout
       </button>
     </div>
+    <!-- END:app-shell -->
 
     <script src="/utils/authSession.js" defer></script>
     <script src="/utils/apiClient.js" defer></script>
@@ -3653,6 +3655,7 @@
     <script src="/utils/domSelectors.js" defer></script>
     <script type="module" src="/app.js"></script>
 
+    <!-- BEGIN:app-overlays -->
     <!-- Undo/Redo Toast -->
     <div id="undoToast" class="undo-toast">
       <span id="undoMessage">Action performed</span>
@@ -3811,5 +3814,6 @@
         </div>
       </div>
     </div>
+    <!-- END:app-overlays -->
   </body>
 </html>

@@ -1,21 +1,12 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="app-version" content="1.6.0" />
-    <title>Todos — Planning Workspace</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="manifest" href="/manifest.json" />
-    <meta name="theme-color" content="#4F46E5" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="Todos" />
-    <link rel="apple-touch-icon" href="/favicon.svg" />
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body class="is-todos-view">
-    <!-- BEGIN:app-shell -->
+<!-- app-shell.fragment.html — Single source of truth for the shared app shell.
+     Do not edit the generated regions in index.html or app.html directly.
+     Edit this file, then run: npm run shell:sync
+
+     Conditional markers:
+       <!-- IF:index -->...<!-- ENDIF:index -->  kept only for client/index.html
+       <!-- IF:app -->...<!-- ENDIF:app -->      kept only for client/public/app.html
+-->
+<!-- SECTION:app-shell -->
     <div id="appShell">
       <aside id="appSidebar" aria-label="Workspace sidebar">
         <div class="app-sidebar__top">
@@ -56,7 +47,12 @@
                   </svg>
                 </button>
               </div>
+              <!-- IF:index -->
+              <div class="user-bar" id="userBar" style="display: none">
+<!-- ENDIF:index -->
+<!-- IF:app -->
               <div class="user-bar" id="userBar" style="display: flex">
+<!-- ENDIF:app -->
                 <div class="user-info">
                   <span id="userEmail"></span>
                   <span id="verifiedBadge"></span>
@@ -69,7 +65,12 @@
             </div>
 
             <!-- Navigation Tabs (only visible when logged in) -->
+            <!-- IF:index -->
+            <div class="nav-tabs" id="navTabs" style="display: none">
+<!-- ENDIF:index -->
+<!-- IF:app -->
             <div class="nav-tabs" id="navTabs" style="display: flex">
+<!-- ENDIF:app -->
               <button
                 class="nav-tab active"
                 data-onclick="switchView('todos', this)"
@@ -98,9 +99,788 @@
               </button>
             </div>
 
+<!-- IF:index -->
+            <div class="content">
+              <!-- Authentication View -->
+              <div id="authView" class="view active">
+                <!-- Landing page — visible when unauthenticated -->
+                <div id="landingPage" class="landing auth-landing-active">
+                  <!-- Nav -->
+                  <nav class="landing-nav" id="landingNav">
+                    <div class="landing-nav__inner">
+                      <a href="#" class="landing-nav__logo">Todos</a>
+                      <div class="landing-nav__links">
+                        <a href="#landing-features" class="landing-nav__link"
+                          >Features</a
+                        >
+                        <button
+                          type="button"
+                          class="landing-nav__link"
+                          data-onclick="showAuthPage('login')"
+                        >
+                          Log in
+                        </button>
+                        <button
+                          type="button"
+                          class="landing-nav__cta"
+                          data-onclick="showAuthPage('register')"
+                        >
+                          Start for free
+                        </button>
+                      </div>
+                    </div>
+                  </nav>
+
+                  <!-- Hero -->
+                  <section class="landing-hero">
+                    <div class="landing-section__inner">
+                      <h1 class="landing-hero__title">
+                        Plan your days. Review your&nbsp;weeks. Focus on
+                        what&nbsp;matters.
+                      </h1>
+                      <p class="landing-hero__sub">
+                        Capture anything, let AI organize it, and wake up to a
+                        plan that fits your energy, your calendar, and your
+                        goals. A calm workspace, not another dashboard.
+                      </p>
+                      <div class="landing-hero__ctas">
+                        <button
+                          type="button"
+                          class="landing-btn landing-btn--primary"
+                          data-onclick="showAuthPage('register')"
+                        >
+                          Start for free
+                        </button>
+                        <a
+                          href="#landing-features"
+                          class="landing-btn landing-btn--secondary"
+                          >See features</a
+                        >
+                      </div>
+                      <div class="landing-hero__screenshot">
+                        <img
+                          src="/images/landing/hero-desktop.png"
+                          alt="Planning workspace with home dashboard, projects, and AI-curated focus"
+                          class="landing-hero__img"
+                          loading="eager"
+                        />
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Features -->
+                  <section id="landing-features" class="landing-features">
+                    <div class="landing-section__inner">
+                      <h2 class="landing-section__heading">
+                        A planning workspace that works the way you think
+                      </h2>
+
+                      <div class="landing-features-grid">
+                        <div class="landing-feature-card">
+                          <div class="landing-feature-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"
+                              />
+                            </svg>
+                          </div>
+                          <h3>
+                            A daily plan that balances priorities and deadlines
+                          </h3>
+                          <p>
+                            AI generates a time-boxed daily plan based on your
+                            priorities, energy level, and deadlines. Review it,
+                            adjust it, and start working — no busywork.
+                          </p>
+                        </div>
+
+                        <div class="landing-feature-card">
+                          <div class="landing-feature-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"
+                              />
+                              <path
+                                d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"
+                              />
+                              <path
+                                d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"
+                              />
+                            </svg>
+                          </div>
+                          <h3>Capture anything, organize later</h3>
+                          <p>
+                            Drop tasks, ideas, and notes onto your desk.
+                            Organize them when you're ready, or type naturally —
+                            "Call dentist tomorrow 2pm" — and the date is set
+                            automatically.
+                          </p>
+                        </div>
+                        <div class="landing-feature-card">
+                          <div class="landing-feature-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                              />
+                            </svg>
+                          </div>
+                          <h3>Review your week, stay honest</h3>
+                          <p>
+                            A structured weekly review surfaces stale tasks,
+                            missing next actions, and forgotten commitments. One
+                            click to clean up and re-prioritize.
+                          </p>
+                        </div>
+                        <div class="landing-feature-card">
+                          <div class="landing-feature-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="24"
+                              height="24"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M12 8V4H8" />
+                              <rect width="16" height="12" x="4" y="8" rx="2" />
+                              <path d="M2 14h2" />
+                              <path d="M20 14h2" />
+                              <path d="M15 13v2" />
+                              <path d="M9 13v2" />
+                            </svg>
+                          </div>
+                          <h3>Your AI assistant already knows your tasks</h3>
+                          <p>
+                            Connect Claude or ChatGPT and manage tasks through
+                            conversation. "What should I work on?" or "Plan my
+                            day" — your assistant has full context.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Capabilities grid -->
+                  <section class="landing-capabilities">
+                    <div class="landing-section__inner">
+                      <h2 class="landing-section__heading">
+                        Built for real workflows
+                      </h2>
+                      <div class="landing-grid">
+                        <div class="landing-card">
+                          <div class="landing-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"
+                              />
+                            </svg>
+                          </div>
+                          <h4>Projects &amp; Areas</h4>
+                          <p>
+                            Organize tasks into projects with headings. Group
+                            projects by area for life/work balance.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <circle cx="11" cy="11" r="8" />
+                              <path d="m21 21-4.3-4.3" />
+                            </svg>
+                          </div>
+                          <h4>Filters &amp; Views</h4>
+                          <p>
+                            Today, Upcoming, Completed views. Filter by project,
+                            priority, and status. Command palette for instant
+                            navigation.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path
+                                d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"
+                              />
+                              <path
+                                d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
+                              />
+                            </svg>
+                          </div>
+                          <h4>Focus Dashboard</h4>
+                          <p>
+                            AI-powered focus suggestions, due soon alerts, quick
+                            wins, and projects that need attention.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <polyline
+                                points="22 12 16 12 14 15 10 15 8 12 2 12"
+                              />
+                              <path
+                                d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"
+                              />
+                            </svg>
+                          </div>
+                          <h4>Desk</h4>
+                          <p>
+                            Capture ideas fast. New items land on your desk
+                            until you're ready to organize them.
+                          </p>
+                        </div>
+                        <div class="landing-card">
+                          <div class="landing-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <rect width="20" height="16" x="2" y="4" rx="2" />
+                              <path d="M6 8h.001" />
+                              <path d="M10 8h.001" />
+                              <path d="M14 8h.001" />
+                              <path d="M18 8h.001" />
+                              <path d="M8 12h.001" />
+                              <path d="M12 12h.001" />
+                              <path d="M16 12h.001" />
+                              <path d="M7 16h10" />
+                            </svg>
+                          </div>
+                          <h4>Keyboard First</h4>
+                          <p>
+                            Command palette (Ctrl+K), keyboard shortcuts for
+                            every action, and quick entry without touching the
+                            mouse.
+                          </p>
+                        </div>
+                        <div class="landing-card landing-card--wide">
+                          <div class="landing-card__icon">
+                            <svg
+                              class="app-icon"
+                              width="20"
+                              height="20"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              aria-hidden="true"
+                            >
+                              <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+                            </svg>
+                          </div>
+                          <h4>Dark Mode</h4>
+                          <p>
+                            Full dark mode support. Automatic theme detection or
+                            manual toggle. Easy on the eyes, day or night.
+                          </p>
+                          <img
+                            src="/images/landing/dark-mode.png"
+                            alt="Planning workspace in dark mode"
+                            class="landing-card__img"
+                            loading="lazy"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- Final CTA -->
+                  <section class="landing-cta-section">
+                    <div class="landing-section__inner">
+                      <h2 class="landing-section__heading">
+                        Get started — it's&nbsp;free
+                      </h2>
+                      <p class="landing-cta-section__sub">
+                        No credit card required. Start planning in seconds.
+                      </p>
+                      <button
+                        type="button"
+                        class="landing-btn landing-btn--primary"
+                        data-onclick="showAuthPage('register')"
+                      >
+                        Create free account
+                      </button>
+                    </div>
+                  </section>
+                </div>
+
+                <div id="authFormSection" class="auth-container auth-page">
+                  <div class="auth-page__header">
+                    <button
+                      type="button"
+                      class="auth-page__back"
+                      data-onclick="showLandingPage()"
+                    >
+                      ← Back
+                    </button>
+                    <span class="auth-page__logo">Todos</span>
+                  </div>
+                  <div class="auth-tabs">
+                    <button
+                      id="loginTabButton"
+                      class="auth-tab active"
+                      data-onclick="switchAuthTab('login', this)"
+                    >
+                      Login
+                    </button>
+                    <button
+                      id="registerTabButton"
+                      class="auth-tab"
+                      data-onclick="switchAuthTab('register', this)"
+                    >
+                      Register
+                    </button>
+                  </div>
+
+                  <div
+                    class="message"
+                    id="authMessage"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  ></div>
+
+                  <!-- Login Form -->
+                  <form
+                    id="loginForm"
+                    class="auth-form active"
+                    data-onsubmit="handleLogin(event)"
+                    style="display: block"
+                  >
+                    <div class="form-group">
+                      <label for="loginEmail">Email</label>
+                      <input
+                        type="email"
+                        id="loginEmail"
+                        required
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="loginPassword">Password</label>
+                      <input
+                        type="password"
+                        id="loginPassword"
+                        required
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Login</button>
+                    <div
+                      class="social-login-section"
+                      id="loginSocialSection"
+                      style="display: none"
+                    >
+                      <div class="auth-divider"><span>or</span></div>
+                      <div class="social-login-buttons">
+                        <button
+                          type="button"
+                          class="btn social-btn google-btn"
+                          id="loginGoogleBtn"
+                          style="display: none"
+                          data-onclick="handleGoogleLogin()"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="#4285F4"
+                              d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"
+                            />
+                          </svg>
+                          Continue with Google
+                        </button>
+                        <button
+                          type="button"
+                          class="btn social-btn apple-btn"
+                          id="loginAppleBtn"
+                          style="display: none"
+                          data-onclick="handleAppleLogin()"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="currentColor"
+                              d="M13.545 8.32c-.022-2.276 1.88-3.388 1.966-3.44-1.076-1.56-2.746-1.773-3.332-1.79-1.4-.147-2.77.84-3.488.84-.734 0-1.835-.826-3.024-.802C3.93 3.156 2.3 4.193 1.4 5.79c-1.846 3.172-.47 7.847 1.303 10.414.89 1.26 1.93 2.67 3.295 2.62 1.334-.054 1.833-.847 3.442-.847 1.593 0 2.06.847 3.44.816 1.428-.023 2.326-1.266 3.18-2.536 1.025-1.443 1.44-2.872 1.458-2.944-.032-.012-2.79-1.058-2.818-4.218l-.155.225Z"
+                            />
+                          </svg>
+                          Sign in with Apple
+                        </button>
+                        <button
+                          type="button"
+                          class="btn social-btn phone-btn"
+                          id="loginPhoneBtn"
+                          style="display: none"
+                          data-onclick="showPhoneLogin()"
+                        >
+                          Continue with Phone
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      id="forgotPasswordLink"
+                      class="link-btn"
+                      data-onclick="showForgotPassword()"
+                    >
+                      Forgot Password?
+                    </button>
+                  </form>
+
+                  <!-- Register Form -->
+                  <form
+                    id="registerForm"
+                    class="auth-form"
+                    data-onsubmit="handleRegister(event)"
+                    style="display: none"
+                  >
+                    <div class="form-group">
+                      <label for="registerName">Name</label>
+                      <input
+                        type="text"
+                        id="registerName"
+                        placeholder="Your Name (optional)"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="registerEmail">Email</label>
+                      <input
+                        type="email"
+                        id="registerEmail"
+                        required
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="registerPassword">Password</label>
+                      <input
+                        type="password"
+                        id="registerPassword"
+                        required
+                        placeholder="••••••••"
+                        minlength="8"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Create Account</button>
+                    <div
+                      class="social-login-section"
+                      id="registerSocialSection"
+                      style="display: none"
+                    >
+                      <div class="auth-divider"><span>or</span></div>
+                      <div class="social-login-buttons">
+                        <button
+                          type="button"
+                          class="btn social-btn google-btn"
+                          id="registerGoogleBtn"
+                          style="display: none"
+                          data-onclick="handleGoogleLogin()"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="#4285F4"
+                              d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615Z"
+                            />
+                            <path
+                              fill="#34A853"
+                              d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18Z"
+                            />
+                            <path
+                              fill="#FBBC05"
+                              d="M3.964 10.71A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.71V4.958H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.042l3.007-2.332Z"
+                            />
+                            <path
+                              fill="#EA4335"
+                              d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58Z"
+                            />
+                          </svg>
+                          Continue with Google
+                        </button>
+                        <button
+                          type="button"
+                          class="btn social-btn apple-btn"
+                          id="registerAppleBtn"
+                          style="display: none"
+                          data-onclick="handleAppleLogin()"
+                        >
+                          <svg
+                            width="18"
+                            height="18"
+                            viewBox="0 0 18 18"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fill="currentColor"
+                              d="M13.545 8.32c-.022-2.276 1.88-3.388 1.966-3.44-1.076-1.56-2.746-1.773-3.332-1.79-1.4-.147-2.77.84-3.488.84-.734 0-1.835-.826-3.024-.802C3.93 3.156 2.3 4.193 1.4 5.79c-1.846 3.172-.47 7.847 1.303 10.414.89 1.26 1.93 2.67 3.295 2.62 1.334-.054 1.833-.847 3.442-.847 1.593 0 2.06.847 3.44.816 1.428-.023 2.326-1.266 3.18-2.536 1.025-1.443 1.44-2.872 1.458-2.944-.032-.012-2.79-1.058-2.818-4.218l-.155.225Z"
+                            />
+                          </svg>
+                          Sign in with Apple
+                        </button>
+                        <button
+                          type="button"
+                          class="btn social-btn phone-btn"
+                          id="registerPhoneBtn"
+                          style="display: none"
+                          data-onclick="showPhoneLogin()"
+                        >
+                          Continue with Phone
+                        </button>
+                      </div>
+                    </div>
+                  </form>
+
+                  <!-- Phone Login Form -->
+                  <form
+                    id="phoneLoginForm"
+                    class="auth-form"
+                    style="display: none"
+                  >
+                    <h2 style="margin-bottom: 20px">Phone Login</h2>
+                    <div class="form-group">
+                      <label for="phoneNumber">Phone Number</label>
+                      <input
+                        type="tel"
+                        id="phoneNumber"
+                        required
+                        placeholder="+1 555 123 4567"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      class="btn"
+                      id="sendOtpBtn"
+                      data-onclick="handleSendOtp()"
+                    >
+                      Send Code
+                    </button>
+                    <div id="otpSection" style="display: none">
+                      <p class="otp-hint">
+                        Code sent to
+                        <span id="otpPhoneMasked"></span>
+                      </p>
+                      <div class="form-group">
+                        <label for="otpCode">Verification Code</label>
+                        <input
+                          type="text"
+                          id="otpCode"
+                          required
+                          placeholder="123456"
+                          maxlength="6"
+                          pattern="[0-9]{6}"
+                          inputmode="numeric"
+                          autocomplete="one-time-code"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        class="btn"
+                        data-onclick="handleVerifyOtp()"
+                      >
+                        Verify &amp; Login
+                      </button>
+                      <button
+                        type="button"
+                        class="link-btn"
+                        id="resendOtpBtn"
+                        disabled
+                        data-onclick="handleResendOtp()"
+                      >
+                        Resend code (<span id="resendTimer">60</span>s)
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      class="link-btn"
+                      data-onclick="showLogin()"
+                    >
+                      Back to Login
+                    </button>
+                  </form>
+
+                  <!-- Forgot Password Form -->
+                  <form
+                    id="forgotPasswordForm"
+                    class="auth-form"
+                    data-onsubmit="handleForgotPassword(event)"
+                    style="display: none"
+                  >
+                    <h2 style="margin-bottom: 20px">Reset Password</h2>
+                    <div class="form-group">
+                      <label for="forgotEmail">Email</label>
+                      <input
+                        type="email"
+                        id="forgotEmail"
+                        required
+                        placeholder="your@email.com"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Send Reset Link</button>
+                    <button
+                      type="button"
+                      id="forgotBackToLoginButton"
+                      class="link-btn"
+                      data-onclick="showLogin()"
+                    >
+                      Back to Login
+                    </button>
+                  </form>
+
+                  <!-- Reset Password Form -->
+                  <form
+                    id="resetPasswordForm"
+                    class="auth-form"
+                    data-onsubmit="handleResetPassword(event)"
+                    style="display: none"
+                  >
+                    <h2 style="margin-bottom: 20px">Set New Password</h2>
+                    <div class="form-group">
+                      <label for="newPassword">New Password</label>
+                      <input
+                        type="password"
+                        id="newPassword"
+                        required
+                        placeholder="••••••••"
+                        minlength="8"
+                      />
+                    </div>
+                    <div class="form-group">
+                      <label for="confirmPassword">Confirm Password</label>
+                      <input
+                        type="password"
+                        id="confirmPassword"
+                        required
+                        placeholder="••••••••"
+                        minlength="8"
+                      />
+                    </div>
+                    <button type="submit" class="btn">Reset Password</button>
+                  </form>
+                </div>
+              </div>
+
+              <!-- Todos View -->
+              <div id="todosView" class="view">
+<!-- ENDIF:index -->
+<!-- IF:app -->
             <div class="content">
               <!-- Todos View -->
               <div id="todosView" class="view active">
+<!-- ENDIF:app -->
                 <div
                   class="message"
                   id="todosMessage"
@@ -1466,6 +2246,41 @@
                             </form>
                           </div>
                         </div>
+<!-- IF:index -->
+
+                        <!-- ═══ Card 4: Assistant Connections ═══ -->
+                        <div class="settings-card">
+                          <h3 class="settings-card__title">
+                            Assistant Connections
+                          </h3>
+                          <p class="settings-hint">
+                            Connect Claude, ChatGPT, or any compatible AI
+                            assistant to manage your tasks conversationally.
+                          </p>
+
+                          <div
+                            id="mcpSessionsList"
+                            class="mcp-sessions-list"
+                            aria-live="polite"
+                          >
+                            <div class="mcp-sessions-empty">
+                              No assistants connected yet.
+                            </div>
+                          </div>
+
+                          <div class="settings-card__inline-action">
+                            <button
+                              type="button"
+                              class="mini-btn mini-btn--danger"
+                              id="revokeAllSessionsBtn"
+                              data-onclick="revokeAllMcpSessions()"
+                              style="display: none"
+                            >
+                              Revoke all sessions
+                            </button>
+                          </div>
+                        </div>
+<!-- ENDIF:index -->
                       </div>
                     </section>
                     <section id="adminPane" class="admin-pane" hidden>
@@ -2080,6 +2895,19 @@
                           >
                             Cancel
                           </button>
+<!-- IF:index -->
+                          <button
+                            id="taskComposerAddButton"
+                            class="add-btn"
+                            type="button"
+                            data-onclick="addTodo()"
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </section>
+<!-- ENDIF:index -->
+<!-- IF:app -->
                           <button
                             id="taskComposerAddButton"
                             class="add-btn"
@@ -2103,6 +2931,7 @@
                           hidden
                         ></p>
                       </section>
+<!-- ENDIF:app -->
 
                       <section
                         id="aiWorkspace"
@@ -2290,6 +3119,39 @@
                           </button>
                         </div>
                       </div>
+<!-- IF:index -->
+                      <div
+                        id="inlineQuickAdd"
+                        class="inline-quick-add"
+                        role="form"
+                        aria-label="Quick add task"
+                      >
+                        <span class="inline-quick-add__icon" aria-hidden="true"
+                          >+</span
+                        >
+                        <label for="inlineQuickAddInput" class="sr-only"
+                          >Quick add task</label
+                        >
+                        <input
+                          type="text"
+                          id="inlineQuickAddInput"
+                          class="inline-quick-add__input"
+                          placeholder="What needs to be done?"
+                          autocomplete="off"
+                          data-onkeypress="handleInlineQuickAddKeyPress(event)"
+                        />
+                        <div
+                          id="inlineQuickAddChipRow"
+                          class="inline-quick-add__chips"
+                          hidden
+                          aria-live="polite"
+                        ></div>
+                        <kbd class="inline-quick-add__hint" aria-hidden="true"
+                          >Enter</kbd
+                        >
+                      </div>
+
+<!-- ENDIF:index -->
                       <div id="todosContent">
                         <div class="loading">
                           <div class="spinner"></div>
@@ -2818,24 +3680,8 @@
         Logout
       </button>
     </div>
-    <!-- END:app-shell -->
-
-    <!-- Auth gate + DOM stubs for standalone operation (must run before app.js) -->
-    <script src="/utils/authSession.js" defer></script>
-    <script src="/utils/standaloneTransitions.js" defer></script>
-    <script src="/public/app-page.js" defer></script>
-    <script src="/utils/apiClient.js" defer></script>
-    <script src="/utils/utils.js" defer></script>
-    <script src="/utils/lintHeuristics.js" defer></script>
-    <script src="/utils/projectPathUtils.js" defer></script>
-    <script src="/utils/icsExport.js" defer></script>
-    <script src="/utils/icons.js" defer></script>
-    <script src="/utils/theme.js" defer></script>
-    <script src="/utils/aiSuggestionUtils.js" defer></script>
-    <script src="/utils/domSelectors.js" defer></script>
-    <script type="module" src="/app.js"></script>
-
-    <!-- BEGIN:app-overlays -->
+<!-- ENDSECTION:app-shell -->
+<!-- SECTION:app-overlays -->
     <!-- Undo/Redo Toast -->
     <div id="undoToast" class="undo-toast">
       <span id="undoMessage">Action performed</span>
@@ -2994,6 +3840,4 @@
         </div>
       </div>
     </div>
-    <!-- END:app-overlays -->
-  </body>
-</html>
+<!-- ENDSECTION:app-overlays -->
