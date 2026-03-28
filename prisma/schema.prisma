@@ -84,6 +84,7 @@ enum TodoRecurrenceType {
 enum AiSuggestionType {
   task_critic
   plan_from_goal
+  morning_brief
 }
 
 enum CaptureLifecycle {
@@ -685,6 +686,8 @@ model AgentConfig {
   plannerWeightEstimateFit Float    @default(1.0) @map("planner_weight_estimate_fit")
   plannerWeightFreshness   Float    @default(1.0) @map("planner_weight_freshness")
   actionPoliciesJson       Json?    @map("action_policies_json")
+  aiOptOut                 Boolean  @default(false) @map("ai_opt_out")
+  projectHealthEnabled     Boolean  @default(true) @map("project_health_enabled")
   createdAt                DateTime @default(now()) @map("created_at")
   updatedAt                DateTime @updatedAt @map("updated_at")
 

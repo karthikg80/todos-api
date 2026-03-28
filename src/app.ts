@@ -58,6 +58,10 @@ import { InsightsComputeService } from "./services/insightsComputeService";
 import { createEventsRouter } from "./routes/eventsRouter";
 import { createInsightsRouter } from "./routes/insightsRouter";
 import { createCalendarRouter } from "./routes/calendarRouter";
+import { createAreasRouter } from "./routes/areasRouter";
+import { createGoalsRouter } from "./routes/goalsRouter";
+import { AreaService } from "./services/areaService";
+import { GoalService } from "./services/goalService";
 import {
   authLimiter,
   emailActionLimiter,
@@ -292,6 +296,8 @@ export function createApp(
   app.use("/events", apiLimiter);
   app.use("/insights", apiLimiter);
   app.use("/calendar", apiLimiter);
+  app.use("/areas", apiLimiter);
+  app.use("/goals", apiLimiter);
   app.use("/oauth", mcpPublicLimiter);
   app.use("/.well-known", mcpPublicLimiter);
 
@@ -346,6 +352,8 @@ export function createApp(
     app.use("/events", authMiddleware(authService));
     app.use("/insights", authMiddleware(authService));
     app.use("/calendar", authMiddleware(authService));
+    app.use("/areas", authMiddleware(authService));
+    app.use("/goals", authMiddleware(authService));
     app.use(
       "/admin",
       authMiddleware(authService),
@@ -365,7 +373,7 @@ export function createApp(
       feedbackFailureService: feedbackFailureService ?? undefined,
     }),
   );
-  app.use("/users", createUsersRouter({ authService }));
+  app.use("/users", createUsersRouter({ authService, persistencePrisma }));
   app.use(
     "/todos",
     createTodosRouter({
@@ -401,6 +409,7 @@ export function createApp(
       resolveAiUserPlan,
       projectService,
       decisionAssistEnabled: aiDecisionAssistEnabled,
+      persistencePrisma,
     }),
   );
   app.use(
@@ -437,6 +446,24 @@ export function createApp(
 
   if (persistencePrisma) {
     app.use("/preferences", createPreferencesRouter(persistencePrisma));
+
+    const areaService = new AreaService(persistencePrisma);
+    app.use(
+      "/areas",
+      createAreasRouter({
+        areaService,
+        resolveUserId: resolveAiUserId,
+      }),
+    );
+
+    const goalService = new GoalService(persistencePrisma);
+    app.use(
+      "/goals",
+      createGoalsRouter({
+        goalService,
+        resolveUserId: resolveAiUserId,
+      }),
+    );
 
     const enrollmentService = new AgentEnrollmentService(persistencePrisma);
     app.use(

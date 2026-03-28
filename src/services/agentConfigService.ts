@@ -21,6 +21,8 @@ export interface AgentConfigRecord {
   plannerWeightEnergyMatch: number;
   plannerWeightEstimateFit: number;
   plannerWeightFreshness: number;
+  aiOptOut: boolean;
+  projectHealthEnabled: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -88,6 +90,8 @@ export class AgentConfigService {
       plannerWeightEnergyMatch: 1.0,
       plannerWeightEstimateFit: 1.0,
       plannerWeightFreshness: 1.0,
+      aiOptOut: false,
+      projectHealthEnabled: true,
       createdAt: now,
       updatedAt: now,
     };
@@ -115,6 +119,8 @@ export class AgentConfigService {
       plannerWeightEnergyMatch: r.plannerWeightEnergyMatch,
       plannerWeightEstimateFit: r.plannerWeightEstimateFit,
       plannerWeightFreshness: r.plannerWeightFreshness,
+      aiOptOut: r.aiOptOut,
+      projectHealthEnabled: r.projectHealthEnabled,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,
     };

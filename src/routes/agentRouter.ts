@@ -213,6 +213,60 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "send_task_reminder"),
   );
 
+  // H3: Areas & Goals
+  router.post(
+    "/read/list_areas",
+    createAgentActionHandler(agentExecutor, "list_areas"),
+  );
+  router.post(
+    "/read/get_area",
+    createAgentActionHandler(agentExecutor, "get_area"),
+  );
+  router.post(
+    "/write/create_area",
+    createAgentActionHandler(agentExecutor, "create_area"),
+  );
+  router.post(
+    "/write/update_area",
+    createAgentActionHandler(agentExecutor, "update_area"),
+  );
+  router.post(
+    "/read/list_goals",
+    createAgentActionHandler(agentExecutor, "list_goals"),
+  );
+  router.post(
+    "/read/get_goal",
+    createAgentActionHandler(agentExecutor, "get_goal"),
+  );
+  router.post(
+    "/write/create_goal",
+    createAgentActionHandler(agentExecutor, "create_goal"),
+  );
+  router.post(
+    "/write/update_goal",
+    createAgentActionHandler(agentExecutor, "update_goal"),
+  );
+
+  // H3: Morning brief & Project health intervention
+  router.post(
+    "/write/generate_morning_brief",
+    createAgentActionHandler(agentExecutor, "generate_morning_brief"),
+  );
+  router.post(
+    "/write/project_health_intervention",
+    createAgentActionHandler(agentExecutor, "project_health_intervention"),
+  );
+
+  // H3: Routines & Retention
+  router.post(
+    "/read/list_routines",
+    createAgentActionHandler(agentExecutor, "list_routines"),
+  );
+  router.post(
+    "/write/run_data_retention",
+    createAgentActionHandler(agentExecutor, "run_data_retention"),
+  );
+
   // Anti-entropy
   router.post(
     "/read/analyze_task_quality",

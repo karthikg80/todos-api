@@ -1552,6 +1552,8 @@ const UPDATE_AGENT_CONFIG_KEYS = [
   "plannerWeightEnergyMatch",
   "plannerWeightEstimateFit",
   "plannerWeightFreshness",
+  "aiOptOut",
+  "projectHealthEnabled",
 ];
 
 export function validateAgentGetAgentConfigInput(
@@ -1576,6 +1578,8 @@ export function validateAgentUpdateAgentConfigInput(data: unknown): {
   plannerWeightEnergyMatch?: number;
   plannerWeightEstimateFit?: number;
   plannerWeightFreshness?: number;
+  aiOptOut?: boolean;
+  projectHealthEnabled?: boolean;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, UPDATE_AGENT_CONFIG_KEYS, "Agent action input");
@@ -1653,6 +1657,13 @@ export function validateAgentUpdateAgentConfigInput(data: unknown): {
       result[field] = raw;
     }
   }
+  if (body.aiOptOut !== undefined)
+    result.aiOptOut = parseOptionalBoolean(body.aiOptOut, "aiOptOut");
+  if (body.projectHealthEnabled !== undefined)
+    result.projectHealthEnabled = parseOptionalBoolean(
+      body.projectHealthEnabled,
+      "projectHealthEnabled",
+    );
   return result;
 }
 
