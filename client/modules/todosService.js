@@ -417,16 +417,20 @@ async function addTodo(options = {}) {
 
     if (response && response.ok) {
       const newTodo = await response.json();
+      const isOffline = !!newTodo._offlineQueued;
       state.todos.unshift(newTodo);
       trackEvent("task_created", {
         entityType: "todo",
         entityId: newTodo.id,
         metadata: { priority: newTodo.priority },
       });
+      if (isOffline) {
+        showUndoToast("Saved offline \u2014 will sync when online");
+      }
       await refreshVisibleTodosIfNeeded();
       EventBus.dispatch(TODOS_CHANGED, { reason: TODO_ADDED });
       hooks.updateCategoryFilter?.();
-      hooks.clearOnCreateDismissed?.(newTodo.id);
+      if (!isOffline) hooks.clearOnCreateDismissed?.(newTodo.id);
 
       // Clear form
       input.value = "";
@@ -559,6 +563,9 @@ async function toggleTodo(id, forceValue = null) {
         entityType: "todo",
         entityId: id,
       });
+      if (updatedTodo._offlineQueued) {
+        showUndoToast("Saved offline \u2014 will sync when online");
+      }
       const canPatchInPlace =
         !hooks.shouldUseServerVisibleTodos?.() &&
         state.currentWorkspaceView === "all" &&

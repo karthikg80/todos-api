@@ -195,7 +195,8 @@ export type AgentActionName =
   | "list_friction_patterns"
   | "get_action_policies"
   | "update_action_policy"
-  | "prewarm_home_focus";
+  | "prewarm_home_focus"
+  | "send_task_reminder";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -1524,9 +1525,36 @@ export class AgentExecutor {
         }
         case "decide_next_work": {
           const plannerInput = validateAgentDecideNextWorkInput(input);
+
+          // Load user weights and goals for personalized scoring
+          const [dnwConfig, dnwGoals] = await Promise.all([
+            this.agentConfigService.getConfig(context.userId),
+            this.deps.persistencePrisma
+              ? this.deps.persistencePrisma.goal
+                  .findMany({
+                    where: { userId: context.userId, archived: false },
+                    select: { id: true, targetDate: true },
+                  })
+                  .catch(() => [] as { id: string; targetDate: Date | null }[])
+              : Promise.resolve(
+                  [] as { id: string; targetDate: Date | null }[],
+                ),
+          ]);
+          const dnwGoalIndex = new Map(
+            dnwGoals.map((g) => [g.id, { targetDate: g.targetDate }]),
+          );
+
           const decision = await this.agentService.decideNextWorkForUser(
             context.userId,
-            plannerInput,
+            {
+              ...plannerInput,
+              weights: {
+                priority: dnwConfig.plannerWeightPriority,
+                dueDate: dnwConfig.plannerWeightDueDate,
+                energyMatch: dnwConfig.plannerWeightEnergyMatch,
+              },
+              goalIndex: dnwGoalIndex,
+            },
           );
           return this.success(action, readOnly, context, 200, { decision });
         }
@@ -1765,14 +1793,88 @@ export class AgentExecutor {
             baseBudget * (modeModifiers.budgetMultiplier ?? 1),
           );
 
+          // Build feedback adjustments, goal index, and insight boosts
+          const taskIds = allTasks.map((t) => t.id);
+          const [planFeedbackMap, planGoals, planInsights] = await Promise.all([
+            this.feedbackService
+              .getScoreAdjustmentsBatch(context.userId, taskIds)
+              .catch(() => new Map<string, number>()),
+            this.deps.persistencePrisma
+              ? this.deps.persistencePrisma.goal
+                  .findMany({
+                    where: { userId: context.userId, archived: false },
+                    select: { id: true, targetDate: true },
+                  })
+                  .catch(() => [] as { id: string; targetDate: Date | null }[])
+              : Promise.resolve(
+                  [] as { id: string; targetDate: Date | null }[],
+                ),
+            this.deps.persistencePrisma
+              ? this.deps.persistencePrisma.userInsight
+                  .findMany({
+                    where: { userId: context.userId, periodType: "daily" },
+                    orderBy: { computedAt: "desc" },
+                    distinct: ["insightType"],
+                  })
+                  .catch(() => [])
+              : Promise.resolve([]),
+          ]);
+
+          const planGoalIndex = new Map(
+            planGoals.map((g) => [g.id, { targetDate: g.targetDate }]),
+          );
+          const planProjectGoalMap = new Map<string, string>();
+          if (waitingTasks.length || missingNextActionProjects.length) {
+            // Build project-to-goal map from available project data
+            for (const t of allTasks) {
+              if (
+                t.projectId &&
+                (t as any).goalId &&
+                !planProjectGoalMap.has(t.projectId)
+              ) {
+                planProjectGoalMap.set(t.projectId, (t as any).goalId);
+              }
+            }
+          }
+
+          // Compute insight modifiers
+          const insightsByType = new Map<string, number>();
+          for (const ins of planInsights) {
+            insightsByType.set(ins.insightType, ins.value);
+          }
+          const overcommitRatio = insightsByType.get("overcommitment_ratio");
+          const streakDays = insightsByType.get("streak_days");
+          const staleCount = insightsByType.get("stale_task_count");
+          const insightBudgetMult =
+            overcommitRatio && overcommitRatio > 1.5 ? 0.8 : 1.0;
+          const insightMaxCap =
+            overcommitRatio && overcommitRatio > 1.5 ? 5 : null;
+          const planInsightBoosts = {
+            streakBoost: streakDays && streakDays >= 7 ? 5 : 0,
+            staleBoost: staleCount && staleCount > 10 ? 8 : 0,
+          };
+
+          const adjustedBudget = Math.round(budget * insightBudgetMult);
+
           const { selected, excluded, usedMinutes, budgetBreakdown } =
-            this.scorePlan(allTasks, today, budget, energy, modeModifiers, {
-              plannerWeightPriority: planConfig.plannerWeightPriority,
-              plannerWeightDueDate: planConfig.plannerWeightDueDate,
-              plannerWeightEnergyMatch: planConfig.plannerWeightEnergyMatch,
-              plannerWeightEstimateFit: planConfig.plannerWeightEstimateFit,
-              plannerWeightFreshness: planConfig.plannerWeightFreshness,
-            });
+            this.scorePlan(
+              allTasks,
+              today,
+              adjustedBudget,
+              energy,
+              modeModifiers,
+              {
+                plannerWeightPriority: planConfig.plannerWeightPriority,
+                plannerWeightDueDate: planConfig.plannerWeightDueDate,
+                plannerWeightEnergyMatch: planConfig.plannerWeightEnergyMatch,
+                plannerWeightEstimateFit: planConfig.plannerWeightEstimateFit,
+                plannerWeightFreshness: planConfig.plannerWeightFreshness,
+              },
+              planFeedbackMap,
+              planGoalIndex,
+              planProjectGoalMap,
+              planInsightBoosts,
+            );
 
           const maxTasks = modeModifiers.maxTaskCount ?? selected.length;
           const cappedSelected = selected.slice(0, maxTasks);
@@ -2477,6 +2579,61 @@ export class AgentExecutor {
           return this.success(action, readOnly, context, 200, { prewarm });
         }
 
+        // ── Task reminder email ────────────────────────────────────────────────
+        case "send_task_reminder": {
+          if (!this.deps.persistencePrisma) {
+            throw new AgentExecutionError(
+              501,
+              "NOT_CONFIGURED",
+              "Task reminders require database access",
+              false,
+            );
+          }
+          const user = await this.deps.persistencePrisma.user.findUnique({
+            where: { id: context.userId },
+            select: { email: true },
+          });
+          if (!user?.email) {
+            return this.success(action, readOnly, context, 200, {
+              sent: 0,
+              reason: "no_email",
+            });
+          }
+          const now = new Date();
+          const todayStr = now.toISOString().slice(0, 10);
+          const tomorrowDate = new Date(now.getTime() + 86_400_000);
+          const tomorrowStr = tomorrowDate.toISOString().slice(0, 10);
+          const allUserTasks = await this.agentService.listTasks(
+            context.userId,
+            {
+              statuses: ["inbox", "next", "in_progress", "scheduled"],
+              archived: false,
+              limit: 200,
+            },
+          );
+          const overdue: Array<{ title: string; dueDate: string }> = [];
+          const dueToday: Array<{ title: string }> = [];
+          const dueTomorrow: Array<{ title: string }> = [];
+          for (const t of allUserTasks) {
+            if (!t.dueDate) continue;
+            const d =
+              t.dueDate instanceof Date
+                ? t.dueDate.toISOString().slice(0, 10)
+                : String(t.dueDate).slice(0, 10);
+            if (d < todayStr) overdue.push({ title: t.title, dueDate: d });
+            else if (d === todayStr) dueToday.push({ title: t.title });
+            else if (d === tomorrowStr) dueTomorrow.push({ title: t.title });
+          }
+          const { EmailService } = await import("../services/emailService");
+          const emailService = new EmailService();
+          const sent = await emailService.sendTaskReminderDigest(user.email, {
+            overdue,
+            dueToday,
+            dueTomorrow,
+          });
+          return this.success(action, readOnly, context, 200, { sent });
+        }
+
         // ── Issue #314: job-run locking ────────────────────────────────────────
         case "claim_job_run": {
           const { jobName, periodKey } = validateAgentClaimJobRunInput(input);
@@ -2684,6 +2841,57 @@ export class AgentExecutor {
           };
 
           const budget = availableMinutes ?? 480;
+
+          // Build feedback, goal, and insight data (parity with plan_today)
+          const simTaskIds = allTasks.map((t) => t.id);
+          const [simFeedbackMap, simGoals, simInsightsRaw] = await Promise.all([
+            this.feedbackService
+              .getScoreAdjustmentsBatch(context.userId, simTaskIds)
+              .catch(() => new Map<string, number>()),
+            this.deps.persistencePrisma
+              ? this.deps.persistencePrisma.goal
+                  .findMany({
+                    where: { userId: context.userId, archived: false },
+                    select: { id: true, targetDate: true },
+                  })
+                  .catch(() => [] as { id: string; targetDate: Date | null }[])
+              : Promise.resolve(
+                  [] as { id: string; targetDate: Date | null }[],
+                ),
+            this.deps.persistencePrisma
+              ? this.deps.persistencePrisma.userInsight
+                  .findMany({
+                    where: { userId: context.userId, periodType: "daily" },
+                    orderBy: { computedAt: "desc" },
+                    distinct: ["insightType"],
+                  })
+                  .catch(() => [])
+              : Promise.resolve([]),
+          ]);
+          const simGoalIndex = new Map(
+            simGoals.map((g) => [g.id, { targetDate: g.targetDate }]),
+          );
+          const simProjectGoalMap = new Map<string, string>();
+          for (const t of allTasks) {
+            if (
+              t.projectId &&
+              (t as any).goalId &&
+              !simProjectGoalMap.has(t.projectId)
+            ) {
+              simProjectGoalMap.set(t.projectId, (t as any).goalId);
+            }
+          }
+          const simInsightMap = new Map<string, number>();
+          for (const ins of simInsightsRaw) {
+            simInsightMap.set(ins.insightType, ins.value);
+          }
+          const simStreakDays = simInsightMap.get("streak_days");
+          const simStaleCount = simInsightMap.get("stale_task_count");
+          const simInsightBoosts = {
+            streakBoost: simStreakDays && simStreakDays >= 7 ? 5 : 0,
+            staleBoost: simStaleCount && simStaleCount > 10 ? 8 : 0,
+          };
+
           const { selected, excluded, usedMinutes, budgetBreakdown } =
             this.scorePlan(
               allTasks,
@@ -2692,6 +2900,10 @@ export class AgentExecutor {
               energy,
               undefined,
               simWeights,
+              simFeedbackMap,
+              simGoalIndex,
+              simProjectGoalMap,
+              simInsightBoosts,
             );
 
           const recommendedTasks = selected.map((s, i) => ({
@@ -2746,6 +2958,10 @@ export class AgentExecutor {
               energy,
               undefined,
               simWeights,
+              simFeedbackMap,
+              simGoalIndex,
+              simProjectGoalMap,
+              simInsightBoosts,
             );
             const cIds = new Set(cSelected.map((s) => s.task.id));
             const bIds = new Set(selected.map((s) => s.task.id));
@@ -3402,6 +3618,10 @@ export class AgentExecutor {
       plannerWeightEstimateFit?: number;
       plannerWeightFreshness?: number;
     },
+    feedbackAdjustments?: Map<string, number>,
+    goalIndex?: Map<string, { targetDate: Date | null }>,
+    projectGoalMap?: Map<string, string>,
+    insightBoosts?: { streakBoost: number; staleBoost: number },
   ): {
     selected: Array<{
       task: import("../types").Todo;
@@ -3434,6 +3654,8 @@ export class AgentExecutor {
     const wPriority = weights?.plannerWeightPriority ?? 1.0;
     const wDueDate = weights?.plannerWeightDueDate ?? 1.0;
     const wEnergyMatch = weights?.plannerWeightEnergyMatch ?? 1.0;
+    const wEstimateFit = weights?.plannerWeightEstimateFit ?? 1.0;
+    const wFreshness = weights?.plannerWeightFreshness ?? 1.0;
 
     const scored = allTasks.map((t) => {
       const breakdown: Record<string, number> = {};
@@ -3501,6 +3723,85 @@ export class AgentExecutor {
           score += scoreBoosts.waitingTask;
           breakdown.modeBoost =
             (breakdown.modeBoost ?? 0) + scoreBoosts.waitingTask;
+        }
+      }
+
+      // Feedback adjustment from accepted/ignored history
+      const fbAdj = feedbackAdjustments?.get(t.id) ?? 0;
+      if (fbAdj !== 0) {
+        score += fbAdj;
+        breakdown.feedbackAdjustment = fbAdj;
+      }
+
+      // Goal alignment boost
+      const taskGoalId =
+        (t as any).goalId ||
+        (t.projectId ? projectGoalMap?.get(t.projectId) : undefined);
+      if (taskGoalId && goalIndex?.has(taskGoalId)) {
+        const goal = goalIndex.get(taskGoalId)!;
+        const directGoal = !!(t as any).goalId;
+        const baseBoost = directGoal ? 12 : 9;
+        score += baseBoost;
+        breakdown.goalAlignment = baseBoost;
+        if (goal.targetDate) {
+          const daysToGoal =
+            (goal.targetDate.getTime() - Date.now()) / 86_400_000;
+          if (daysToGoal >= 0 && daysToGoal <= 14) {
+            const urgencyBoost = directGoal ? 8 : 6;
+            score += urgencyBoost;
+            breakdown.goalAlignment += urgencyBoost;
+          }
+        }
+      }
+
+      // Insight-driven boosts (streak momentum, stale nudge)
+      if (insightBoosts) {
+        if (insightBoosts.streakBoost && t.status === "in_progress") {
+          score += insightBoosts.streakBoost;
+          breakdown.insightBoost =
+            (breakdown.insightBoost ?? 0) + insightBoosts.streakBoost;
+        }
+        if (insightBoosts.staleBoost && t.updatedAt) {
+          const updMs =
+            t.updatedAt instanceof Date
+              ? t.updatedAt.getTime()
+              : new Date(String(t.updatedAt)).getTime();
+          if ((Date.now() - updMs) / 86_400_000 > 7) {
+            score += insightBoosts.staleBoost;
+            breakdown.insightBoost =
+              (breakdown.insightBoost ?? 0) + insightBoosts.staleBoost;
+          }
+        }
+      }
+
+      // Estimate fit: score against total budget proportions
+      if (budgetMin > 0) {
+        if (effort <= budgetMin * 0.25) {
+          const boost = Math.round(8 * wEstimateFit);
+          score += boost;
+          breakdown.estimateFit = boost;
+        } else if (effort > budgetMin * 0.6) {
+          const penalty = Math.round(12 * wEstimateFit);
+          score -= penalty;
+          breakdown.estimateFit = -penalty;
+        }
+      }
+
+      // Freshness: recently touched tasks get a boost, stale ones get penalized
+      if (t.updatedAt) {
+        const updatedMs =
+          t.updatedAt instanceof Date
+            ? t.updatedAt.getTime()
+            : new Date(String(t.updatedAt)).getTime();
+        const daysSinceUpdate = (Date.now() - updatedMs) / 86_400_000;
+        if (daysSinceUpdate < 2) {
+          const boost = Math.round(10 * wFreshness);
+          score += boost;
+          breakdown.freshness = boost;
+        } else if (daysSinceUpdate > 14) {
+          const penalty = Math.round(10 * wFreshness);
+          score -= penalty;
+          breakdown.freshness = -penalty;
         }
       }
 

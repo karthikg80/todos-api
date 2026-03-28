@@ -135,7 +135,31 @@ def run_evaluator_daily_for_user(
                     lr_err,
                 )
 
-        # 5. Complete the run
+        # 5. Auto-apply high-confidence learning recommendations
+        auto_applied_ids: list[str] = []
+        if learning_rec_ids:
+            try:
+                agent_cfg = client.call("get_agent_config", {}).get("data", {}).get("config", {})
+                if agent_cfg.get("autoApply"):
+                    for i, rec_id in enumerate(learning_rec_ids):
+                        rec_conf = config_recs[i].get("confidence", 0) if i < len(config_recs) else 0
+                        if rec_conf >= 0.85:
+                            try:
+                                client.call("apply_learning_recommendation", {"id": rec_id})
+                                auto_applied_ids.append(rec_id)
+                                logger.info(
+                                    "evaluator_daily: auto-applied learning rec %s (confidence=%.2f)",
+                                    rec_id, rec_conf,
+                                )
+                            except AgentApiError as apply_err:
+                                logger.warning(
+                                    "evaluator_daily: failed to auto-apply rec %s: %s",
+                                    rec_id, apply_err,
+                                )
+            except AgentApiError as cfg_err:
+                logger.warning("evaluator_daily: failed to check autoApply: %s", cfg_err)
+
+        # 6. Complete the run
         client.call(
             "complete_job_run",
             {
@@ -148,6 +172,7 @@ def run_evaluator_daily_for_user(
                     "budgetFitScore": evaluation.get("budgetFitScore"),
                     "configRecommendationCount": len(config_recs),
                     "learningRecordingCount": len(learning_rec_ids),
+                    "autoAppliedCount": len(auto_applied_ids),
                 },
             },
         )
@@ -156,6 +181,7 @@ def run_evaluator_daily_for_user(
             "date": yesterday,
             "evaluation": evaluation,
             "learningRecIds": learning_rec_ids,
+            "autoAppliedIds": auto_applied_ids,
         }
 
     except Exception as exc:

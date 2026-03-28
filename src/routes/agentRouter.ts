@@ -208,6 +208,10 @@ export function createAgentRouter({
     "/write/prewarm_home_focus",
     createAgentActionHandler(agentExecutor, "prewarm_home_focus"),
   );
+  router.post(
+    "/write/send_task_reminder",
+    createAgentActionHandler(agentExecutor, "send_task_reminder"),
+  );
 
   // Anti-entropy
   router.post(

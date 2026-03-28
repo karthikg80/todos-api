@@ -295,8 +295,26 @@ export function scoreTaskForDecision(input: {
   availableEnergy?: Energy | null;
   contexts: string[];
   dependentCount: number;
+  weights?: {
+    priority?: number;
+    dueDate?: number;
+    energyMatch?: number;
+  };
+  goalIndex?: Map<string, { targetDate: Date | null }>;
+  projectGoalMap?: Map<string, string>;
 }): number {
-  const { task, now, blocked, dependentCount } = input;
+  const {
+    task,
+    now,
+    blocked,
+    dependentCount,
+    weights,
+    goalIndex,
+    projectGoalMap,
+  } = input;
+  const wPriority = weights?.priority ?? 1;
+  const wDueDate = weights?.dueDate ?? 1;
+  const wEnergyMatch = weights?.energyMatch ?? 1;
   let score = 0;
 
   if (blocked) score -= 200;
@@ -304,16 +322,20 @@ export function scoreTaskForDecision(input: {
   if (task.status === "next") score += 45;
   if (task.status === "scheduled") score += 15;
 
-  score += Math.max(0, 30 - priorityRank(task.priority) * 8);
+  score += Math.round(
+    Math.max(0, 30 - priorityRank(task.priority) * 8) * wPriority,
+  );
 
   if (task.dueDate) {
     const diffDays = Math.floor(
       (task.dueDate.getTime() - now.getTime()) / 86_400_000,
     );
-    if (diffDays < 0) score += 70;
-    else if (diffDays === 0) score += 55;
-    else if (diffDays <= 2) score += 35;
-    else if (diffDays <= 7) score += 15;
+    let rawDue = 0;
+    if (diffDays < 0) rawDue = 70;
+    else if (diffDays === 0) rawDue = 55;
+    else if (diffDays <= 2) rawDue = 35;
+    else if (diffDays <= 7) rawDue = 15;
+    score += Math.round(rawDue * wDueDate);
   }
 
   if (task.scheduledDate && task.scheduledDate <= now) {
@@ -327,9 +349,9 @@ export function scoreTaskForDecision(input: {
   }
 
   if (taskFitsEnergy(task, input.availableEnergy)) {
-    score += input.availableEnergy ? 15 : 0;
+    score += input.availableEnergy ? Math.round(15 * wEnergyMatch) : 0;
   } else if (input.availableEnergy) {
-    score -= 30;
+    score -= Math.round(30 * wEnergyMatch);
   }
 
   if (taskFitsAvailableMinutes(task, input.availableMinutes)) {
@@ -339,6 +361,24 @@ export function scoreTaskForDecision(input: {
   }
 
   score += dependentCount * 8;
+
+  // Goal alignment boost
+  const taskGoalId =
+    (task as any).goalId ||
+    (task.projectId ? projectGoalMap?.get(task.projectId) : undefined);
+  if (taskGoalId && goalIndex?.has(taskGoalId)) {
+    const goal = goalIndex.get(taskGoalId)!;
+    const direct = !!(task as any).goalId;
+    score += direct ? 12 : 9;
+    if (goal.targetDate) {
+      const daysToGoal =
+        (goal.targetDate.getTime() - now.getTime()) / 86_400_000;
+      if (daysToGoal >= 0 && daysToGoal <= 14) {
+        score += direct ? 8 : 6;
+      }
+    }
+  }
+
   return score;
 }
 
