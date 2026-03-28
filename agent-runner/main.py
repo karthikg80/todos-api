@@ -41,7 +41,7 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-COMMANDS = ("daily", "weekly", "inbox", "watchdog", "decomposer", "prewarm", "evaluator_daily", "evaluator_weekly", "reminder", "retention", "morning_brief", "project_health")
+COMMANDS = ("daily", "weekly", "inbox", "watchdog", "decomposer", "prewarm", "evaluator_daily", "evaluator_weekly", "reminder", "retention", "morning_brief", "project_health", "insights")
 USAGE = f"Usage: python main.py <{'|'.join(COMMANDS)}>"
 
 
@@ -111,9 +111,12 @@ def main() -> None:
     elif command == "morning_brief":
         from jobs.morning_brief import run_morning_brief_for_user as run_for_user
         eligible = [e for e in enrollments if e.daily_enabled]
-    else:  # project_health
+    elif command == "project_health":
         from jobs.project_health import run_project_health_for_user as run_for_user
         eligible = [e for e in enrollments if e.weekly_enabled]
+    else:  # insights
+        from jobs.insights import run_insights_for_user as run_for_user
+        eligible = [e for e in enrollments if e.daily_enabled]
 
     logger.info("%d user(s) eligible for %s", len(eligible), command)
 

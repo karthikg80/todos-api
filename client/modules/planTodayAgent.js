@@ -2,7 +2,7 @@
 // planTodayAgent.js — Day plan generation via /agent/read/plan_today
 // =============================================================================
 
-import { hooks } from "./store.js";
+import { state, hooks } from "./store.js";
 import { callAgentAction } from "./agentApiClient.js";
 
 // ── IndexedDB plan cache (page-owned, not service-worker) ───────────────────
@@ -164,4 +164,37 @@ export function resetDayPlan() {
 /** Read-only snapshot of current plan state. */
 export function getDayPlanState() {
   return { ...planState, tasks: [...planState.tasks] };
+}
+
+// ---------------------------------------------------------------------------
+// Plan feedback — emit "accepted" when a planned task is completed
+// ---------------------------------------------------------------------------
+
+/**
+ * Record an "accepted" feedback signal for a task that was in the current
+ * day plan and has just been completed.  Only fires when:
+ *   - taskId is in planTodayTaskIds (task was part of today's plan)
+ *   - the task transitioned from incomplete → complete (caller guarantees this)
+ *
+ * Fire-and-forget: feedback recording should never block the completion flow.
+ */
+export function recordPlanTaskAccepted(taskId) {
+  const id = String(taskId);
+  if (!planTodayTaskIds.includes(id)) return;
+
+  const planDate = new Date().toISOString().slice(0, 10);
+  const energy = state.currentDayContext?.energy || undefined;
+
+  const planTask = planState.tasks.find((t) => String(t.taskId) === id);
+  const score = planTask?.score ?? undefined;
+
+  callAgentAction("/agent/write/record_recommendation_feedback", {
+    planDate,
+    taskId: id,
+    signal: "accepted",
+    ...(energy ? { energy } : {}),
+    ...(score != null ? { score } : {}),
+  }).catch((err) => {
+    hooks.console?.warn?.("planTodayAgent: feedback recording failed", err);
+  });
 }
