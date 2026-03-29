@@ -17,15 +17,11 @@ describe("Authentication API", () => {
     todoService = new PrismaTodoService(prisma);
     authService = new AuthService(prisma);
     projectService = new PrismaProjectService(prisma);
-    app = createApp(
+    app = createApp({
       todoService,
       authService,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
       projectService,
-    );
+    });
   });
 
   beforeEach(async () => {

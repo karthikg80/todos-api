@@ -12,7 +12,7 @@ describe("Capture API Integration", () => {
     process.env.JWT_SECRET = "test-secret-for-capture-api-tests";
     const todoService = new PrismaTodoService(prisma);
     const authService = new AuthService(prisma);
-    app = createApp(todoService, authService);
+    app = createApp({ todoService, authService });
   });
 
   beforeEach(async () => {

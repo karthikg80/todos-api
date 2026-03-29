@@ -104,15 +104,11 @@ describe("Remote MCP router auth and scopes", () => {
       }),
     };
 
-    app = createApp(
+    app = createApp({
       todoService,
-      mockAuthService as any,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
+      authService: mockAuthService as any,
       projectService,
-    );
+    });
   });
 
   it("issues scoped MCP tokens directly for local development", async () => {

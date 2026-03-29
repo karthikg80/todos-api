@@ -62,6 +62,7 @@ import {
   applyTodayPlanSuggestions,
 } from "../services/aiApplyService";
 import { validateDismissable } from "../services/aiDismissService";
+import { SuggestionApplyOrchestrator } from "../services/suggestionApplyOrchestrator";
 
 export { UserPlan } from "../services/aiQuotaService";
 
@@ -789,6 +790,13 @@ export function createAiRouter({
    *       409:
    *         description: Suggestion already handled
    */
+  const applyOrchestrator = new SuggestionApplyOrchestrator({
+    todoService,
+    projectService,
+    suggestionStore,
+    decisionAssistEnabled: decisionAssistEnabled ?? false,
+  });
+
   router.post(
     "/suggestions/:id/apply",
     async (req: Request, res: Response, next: NextFunction) => {
@@ -811,386 +819,35 @@ export function createAiRouter({
             .json({ error: "Cannot apply a rejected suggestion" });
         }
 
-        // ── Today-plan apply path ──
-        if (suggestion.type === "plan_from_goal") {
-          const inputSurfaceRaw =
-            typeof suggestion.input?.surface === "string"
-              ? suggestion.input.surface
-              : "";
-          const inputSurface = inputSurfaceRaw as DecisionAssistSurface;
-          if (inputSurface === TODAY_PLAN_SURFACE) {
-            if (!ensureDecisionAssistFeatureEnabled(res)) return;
-            if (suggestion.status !== "pending") {
-              return res
-                .status(409)
-                .json({ error: "Suggestion is no longer pending" });
-            }
+        const result = await applyOrchestrator.apply(userId, suggestion, {
+          reason,
+          suggestionId,
+          confirmed,
+          selectedTodoIds,
+        });
 
-            let envelope: NormalizedTodayPlanEnvelope;
-            try {
-              envelope = normalizeTodayPlanEnvelope(suggestion.output);
-            } catch {
-              return res
-                .status(400)
-                .json({ error: "Stored suggestion output is invalid" });
-            }
-
-            const plannedTodoIds = new Set(
-              (envelope.planPreview?.items || [])
-                .map((item) =>
-                  typeof item.todoId === "string" ? item.todoId : "",
-                )
-                .filter(Boolean),
-            );
-            const selectedSet =
-              selectedTodoIds && selectedTodoIds.length > 0
-                ? new Set(
-                    selectedTodoIds.filter((todoId) =>
-                      plannedTodoIds.has(todoId),
-                    ),
-                  )
-                : plannedTodoIds;
-
-            const applicableSuggestions = (
-              envelope.suggestions as NormalizedTodayPlanSuggestion[]
-            ).filter((item) => {
-              const payloadTodoId =
-                typeof item.payload?.todoId === "string"
-                  ? item.payload.todoId
-                  : "";
-              return !!payloadTodoId && selectedSet.has(payloadTodoId);
-            });
-
-            if (!applicableSuggestions.length) {
-              return res.status(400).json({
-                error:
-                  "No applicable today plan suggestions for selectedTodoIds",
-              });
-            }
-
-            const applyResult = await applyTodayPlanSuggestions({
-              applicableSuggestions,
-              todoService,
-              userId,
-              confirmed,
-            });
-
-            if (!applyResult.ok) {
-              return res
-                .status(applyResult.status)
-                .json({ error: applyResult.error });
-            }
-
-            const updatedSuggestion = await suggestionStore.markApplied(
-              userId,
-              id,
-              applyResult.appliedTodoIds,
-              {
-                reason: reason || "today_plan_apply",
-                source: "today_plan_apply",
-                suggestionId: suggestionId || null,
-                selectedTodoIds: Array.from(selectedSet),
-                updatedAt: new Date().toISOString(),
-              },
-            );
-            if (!updatedSuggestion) {
-              return res.status(404).json({ error: "Suggestion not found" });
-            }
-
-            emitDecisionAssistTelemetrySafe({
-              eventName: "ai_suggestion_applied",
-              surface: TODAY_PLAN_SURFACE,
-              aiSuggestionDbId: id,
-              suggestionId:
-                typeof envelope.requestId === "string"
-                  ? envelope.requestId
-                  : undefined,
-              suggestionCount: applicableSuggestions.length,
-              selectedTodoIdsCount: selectedSet.size,
-            });
-
-            return res.json({
-              updatedCount: applyResult.updatedTodos.length,
-              todos: applyResult.updatedTodos,
-              suggestion: updatedSuggestion,
-              idempotent: false,
-            });
-          }
-
-          // ── Legacy plan_from_goal apply (non-today_plan) ──
-          if (
-            suggestion.status === "accepted" &&
-            Array.isArray(suggestion.appliedTodoIds) &&
-            suggestion.appliedTodoIds.length > 0
-          ) {
-            const todos = [];
-            for (const todoId of suggestion.appliedTodoIds) {
-              const todo = await todoService.findById(userId, todoId);
-              if (todo) {
-                todos.push(todo);
-              }
-            }
-
-            return res.json({
-              createdCount: todos.length,
-              todos,
-              suggestion,
-              idempotent: true,
-            });
-          }
-          if (suggestion.status === "accepted") {
-            return res.status(409).json({
-              error:
-                "Suggestion already accepted but has no applied todo history",
-            });
-          }
-
-          const tasks = parsePlanTasks(suggestion.output);
-          if (tasks.length === 0) {
-            return res
-              .status(400)
-              .json({ error: "Suggestion does not contain valid plan tasks" });
-          }
-
-          const createdTodos = [];
-          for (const task of tasks) {
-            const todo = await todoService.create(userId, task);
-            createdTodos.push(todo);
-          }
-
-          const createdIds = createdTodos.map((todo) => todo.id);
-          const updatedSuggestion = await suggestionStore.markApplied(
-            userId,
-            id,
-            createdIds,
-            {
-              reason: reason || "applied_via_endpoint",
-              source: "apply_endpoint",
-              updatedAt: new Date().toISOString(),
-            },
-          );
-          if (!updatedSuggestion) {
-            return res.status(404).json({ error: "Suggestion not found" });
-          }
-
-          return res.json({
-            createdCount: createdTodos.length,
-            todos: createdTodos,
-            suggestion: updatedSuggestion,
-            idempotent: false,
-          });
+        if (!result.ok) {
+          return res.status(result.status).json({ error: result.error });
         }
 
-        // ── Home-focus apply path ──
-        if (!ensureDecisionAssistFeatureEnabled(res)) return;
-        if (suggestion.type !== TODO_BOUND_TYPE) {
-          return res.status(400).json({
-            error: "Only task_critic or plan_from_goal can be applied",
-          });
-        }
-        const inputSurfaceRaw =
+        // Emit telemetry for applied suggestions
+        const inputSurface =
           typeof suggestion.input?.surface === "string"
             ? suggestion.input.surface
             : "";
-        const inputSurface = inputSurfaceRaw as DecisionAssistSurface;
-        if (inputSurface === HOME_FOCUS_SURFACE) {
-          if (!suggestionId) {
-            return res
-              .status(400)
-              .json({ error: "suggestionId is required for suggestion apply" });
-          }
-
-          if (
-            suggestion.status === "accepted" &&
-            Array.isArray(suggestion.appliedTodoIds) &&
-            suggestion.appliedTodoIds.length > 0
-          ) {
-            const todo = await todoService.findById(
-              userId,
-              suggestion.appliedTodoIds[0],
-            );
-            if (todo) {
-              return res.json({
-                todo,
-                appliedSuggestionId: suggestionId,
-                suggestion,
-                idempotent: true,
-              });
-            }
-          }
-          if (suggestion.status !== "pending") {
-            return res
-              .status(409)
-              .json({ error: "Suggestion is no longer pending" });
-          }
-
-          let envelope: NormalizedHomeFocusEnvelope;
-          try {
-            envelope = normalizeHomeFocusEnvelope(suggestion.output);
-          } catch {
-            return res
-              .status(400)
-              .json({ error: "Stored suggestion output is invalid" });
-          }
-
-          const selected = (
-            envelope.suggestions as NormalizedHomeFocusSuggestion[]
-          ).find((item) => item.suggestionId === suggestionId);
-          if (!selected) {
-            return res.status(404).json({ error: "Suggestion item not found" });
-          }
-
-          const applyResult = await applyHomeFocusSuggestion({
-            selected,
-            todoService,
-            userId,
-          });
-          if (!applyResult.ok) {
-            return res
-              .status(applyResult.status)
-              .json({ error: applyResult.error });
-          }
-
-          const updatedSuggestion = await suggestionStore.markApplied(
-            userId,
-            id,
-            applyResult.appliedTodoIds,
-            {
-              reason: reason || `applied:${selected.suggestionId}`,
-              source: "home_focus_apply",
-              suggestionId: selected.suggestionId,
-              updatedAt: new Date().toISOString(),
-            },
-          );
-          if (!updatedSuggestion) {
-            return res.status(404).json({ error: "Suggestion not found" });
-          }
-
+        if (inputSurface) {
           emitDecisionAssistTelemetrySafe({
             eventName: "ai_suggestion_applied",
-            surface: HOME_FOCUS_SURFACE,
+            surface: inputSurface as DecisionAssistSurface,
             aiSuggestionDbId: id,
-            suggestionId: selected.suggestionId,
-            todoId: applyResult.todo.id,
-            suggestionCount: envelope.suggestions.length,
-            selectedTodoIdsCount: 1,
-          });
-
-          return res.json({
-            todo: applyResult.todo,
-            appliedSuggestionId: selected.suggestionId,
-            suggestion: updatedSuggestion,
-            idempotent: false,
+            suggestionId: suggestionId || undefined,
+            suggestionCount: result.appliedTodoIds.length,
+            selectedTodoIdsCount:
+              selectedTodoIds?.length || result.appliedTodoIds.length,
           });
         }
 
-        // ── Todo-bound apply path ──
-        if (!TODO_BOUND_SURFACES.has(inputSurface)) {
-          return res.status(400).json({
-            error: "Only on_create or task_drawer suggestions can be applied",
-          });
-        }
-        if (!suggestionId) {
-          return res
-            .status(400)
-            .json({ error: "suggestionId is required for suggestion apply" });
-        }
-
-        const inputTodoId =
-          typeof suggestion.input?.todoId === "string"
-            ? suggestion.input.todoId
-            : "";
-        if (!inputTodoId) {
-          return res
-            .status(400)
-            .json({ error: "Todo-bound suggestion missing todo context" });
-        }
-        const todo = await todoService.findById(userId, inputTodoId);
-        if (!todo) {
-          return res.status(404).json({ error: "Todo not found" });
-        }
-        if (suggestion.status !== "pending") {
-          return res
-            .status(409)
-            .json({ error: "Suggestion is no longer pending" });
-        }
-
-        let envelope: NormalizedTodoBoundEnvelope;
-        try {
-          envelope = normalizeTodoBoundEnvelope(
-            suggestion.output,
-            inputTodoId,
-            inputSurface,
-          );
-        } catch {
-          return res
-            .status(400)
-            .json({ error: "Stored suggestion output is invalid" });
-        }
-
-        const envelopeSuggestions =
-          envelope.suggestions as NormalizedTodoBoundSuggestion[];
-        const selected = envelopeSuggestions.find(
-          (item) => item.suggestionId === suggestionId,
-        );
-        if (!selected) {
-          return res.status(404).json({ error: "Suggestion item not found" });
-        }
-
-        if (selected.requiresConfirmation && confirmed !== true) {
-          return res
-            .status(400)
-            .json({ error: "Confirmation is required for this suggestion" });
-        }
-
-        const applyResult = await applyTodoBoundSuggestion({
-          selected,
-          todoService,
-          projectService,
-          userId,
-          inputTodoId,
-          todo,
-          confirmed,
-        });
-
-        if (!applyResult.ok) {
-          return res
-            .status(applyResult.status)
-            .json({ error: applyResult.error });
-        }
-
-        const todoIdsApplied = [inputTodoId];
-        const updatedSuggestion = await suggestionStore.markApplied(
-          userId,
-          id,
-          todoIdsApplied,
-          {
-            reason: reason || `applied:${selected.suggestionId}`,
-            source: `${inputSurface}_apply`,
-            suggestionId: selected.suggestionId,
-            updatedAt: new Date().toISOString(),
-          },
-        );
-        if (!updatedSuggestion) {
-          return res.status(404).json({ error: "Suggestion not found" });
-        }
-
-        emitDecisionAssistTelemetrySafe({
-          eventName: "ai_suggestion_applied",
-          surface: inputSurface,
-          aiSuggestionDbId: id,
-          suggestionId: selected.suggestionId,
-          todoId: inputTodoId,
-          suggestionCount: envelopeSuggestions.length,
-          selectedTodoIdsCount: 1,
-        });
-
-        return res.json({
-          todo: applyResult.updatedTodo,
-          appliedSuggestionId: selected.suggestionId,
-          suggestion: updatedSuggestion,
-          idempotent: false,
-        });
+        return res.json(result.body);
       } catch (error) {
         next(error);
       }

@@ -68,15 +68,7 @@ describe("Anti-entropy analyzers", () => {
   beforeEach(() => {
     todoService = new TodoService();
     projectService = createProjectServiceMock([]);
-    app = createApp(
-      todoService,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      projectService,
-    );
+    app = createApp({ todoService, projectService });
   });
 
   describe("analyze_task_quality", () => {
