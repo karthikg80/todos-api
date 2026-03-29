@@ -25,6 +25,9 @@ jobs:
       - name: Typecheck
         run: npx tsc --noEmit
 
+      - name: Architecture guard
+        run: npm run check:architecture
+
       - name: Format check
         run: npm run format:check
 
