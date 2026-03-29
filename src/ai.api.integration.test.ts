@@ -15,16 +15,14 @@ describe("AI API Integration", () => {
     const todoService = new PrismaTodoService(prisma);
     const authService = new AuthService(prisma);
     const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
-    app = createApp(
+    app = createApp({
       todoService,
       authService,
-      aiSuggestionStore,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      true,
-    );
+      ai: {
+        suggestionStore: aiSuggestionStore,
+        decisionAssistEnabled: true,
+      },
+    });
   });
 
   beforeEach(async () => {
@@ -1464,13 +1462,14 @@ describe("AI API Integration", () => {
     const todoService = new PrismaTodoService(prisma);
     const authService = new AuthService(prisma);
     const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
-    const limitedApp = createApp(
+    const limitedApp = createApp({
       todoService,
       authService,
-      aiSuggestionStore,
-      undefined,
-      1,
-    );
+      ai: {
+        suggestionStore: aiSuggestionStore,
+        dailySuggestionLimit: 1,
+      },
+    });
 
     const register = await request(limitedApp).post("/auth/register").send({
       email: "ai-limit@example.com",
@@ -1510,18 +1509,18 @@ describe("AI API Integration", () => {
     const todoService = new PrismaTodoService(prisma);
     const authService = new AuthService(prisma);
     const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
-    const planLimitedApp = createApp(
+    const planLimitedApp = createApp({
       todoService,
       authService,
-      aiSuggestionStore,
-      undefined,
-      undefined,
-      {
-        free: 1,
-        pro: 2,
-        team: 3,
+      ai: {
+        suggestionStore: aiSuggestionStore,
+        dailySuggestionLimitByPlan: {
+          free: 1,
+          pro: 2,
+          team: 3,
+        },
       },
-    );
+    });
 
     const register = await request(planLimitedApp).post("/auth/register").send({
       email: "pro-limit@example.com",
@@ -1690,13 +1689,14 @@ describe("AI API Integration", () => {
     const todoService = new PrismaTodoService(prisma);
     const authService = new AuthService(prisma);
     const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
-    const limitedApp = createApp(
+    const limitedApp = createApp({
       todoService,
       authService,
-      aiSuggestionStore,
-      undefined,
-      1,
-    );
+      ai: {
+        suggestionStore: aiSuggestionStore,
+        dailySuggestionLimit: 1,
+      },
+    });
 
     const register = await request(limitedApp).post("/auth/register").send({
       email: "insights-limit@example.com",

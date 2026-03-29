@@ -14,17 +14,15 @@ const authService = new AuthService(prisma);
 const aiSuggestionStore = new PrismaAiSuggestionStore(prisma);
 const projectService = new PrismaProjectService(prisma);
 const headingService = new PrismaHeadingService(prisma);
-const app = createApp(
+const app = createApp({
   todoService,
   authService,
-  aiSuggestionStore,
-  undefined,
-  undefined,
-  undefined,
   projectService,
-  undefined,
   headingService,
-);
+  ai: {
+    suggestionStore: aiSuggestionStore,
+  },
+});
 
 app.get("/healthz", (_req, res) => {
   res.status(200).json({

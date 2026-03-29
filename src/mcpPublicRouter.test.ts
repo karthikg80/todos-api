@@ -130,15 +130,11 @@ describe("Public MCP OAuth and discovery routes", () => {
       }),
     };
 
-    app = createApp(
-      new TodoService(),
-      mockAuthService as any,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      createProjectServiceMock(),
-    );
+    app = createApp({
+      todoService: new TodoService(),
+      authService: mockAuthService as any,
+      projectService: createProjectServiceMock(),
+    });
   });
 
   it("publishes OAuth authorization server metadata for remote connectors", async () => {

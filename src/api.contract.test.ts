@@ -31,16 +31,10 @@ describe("API Contract", () => {
   let app: Express;
 
   beforeEach(() => {
-    app = createApp(
-      new TodoService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      true,
-    );
+    app = createApp({
+      todoService: new TodoService(),
+      ai: { decisionAssistEnabled: true },
+    });
   });
 
   describe("PUT /todos/reorder", () => {
@@ -191,16 +185,11 @@ describe("API Contract", () => {
     });
 
     it("exposes planner actions in the runtime agent manifest", async () => {
-      const appWithProjects = createApp(
-        new TodoService(),
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        createProjectServiceMock(),
-        true,
-      );
+      const appWithProjects = createApp({
+        todoService: new TodoService(),
+        projectService: createProjectServiceMock(),
+        ai: { decisionAssistEnabled: true },
+      });
 
       const response = await request(appWithProjects)
         .get("/agent/manifest")
@@ -591,13 +580,10 @@ describe("API Contract", () => {
     });
 
     it("enforces daily suggestion quota", async () => {
-      const limitedApp = createApp(
-        new TodoService(),
-        undefined,
-        undefined,
-        undefined,
-        1,
-      );
+      const limitedApp = createApp({
+        todoService: new TodoService(),
+        ai: { dailySuggestionLimit: 1 },
+      });
 
       await request(limitedApp)
         .post("/ai/task-critic")

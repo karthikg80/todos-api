@@ -33,15 +33,10 @@ describe("Projects router", () => {
 
   beforeEach(() => {
     projectService = createProjectServiceMock();
-    app = createApp(
-      new TodoService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
+    app = createApp({
+      todoService: new TodoService(),
       projectService,
-    );
+    });
   });
 
   it("passes unsorted disposition by default when deleting a project", async () => {

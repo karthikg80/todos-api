@@ -68,15 +68,7 @@ describe("Agent router", () => {
   beforeEach(() => {
     todoService = new TodoService();
     projectService = createProjectServiceMock();
-    app = createApp(
-      todoService,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      projectService,
-    );
+    app = createApp({ todoService, projectService });
   });
 
   it("returns the runtime manifest with enabled project actions", async () => {
@@ -636,15 +628,11 @@ describe("Agent router", () => {
     const authService = {
       verifyToken: jest.fn(),
     } as unknown as AuthService;
-    const authedApp = createApp(
-      new TodoService(),
+    const authedApp = createApp({
+      todoService: new TodoService(),
       authService,
-      undefined,
-      undefined,
-      undefined,
-      undefined,
       projectService,
-    );
+    });
 
     const response = await request(authedApp)
       .post("/agent/read/list_tasks")

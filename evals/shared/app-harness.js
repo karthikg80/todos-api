@@ -160,15 +160,10 @@ function createMockAuthService(initialSession) {
 function createAgentEvalApp({ projects = [] } = {}) {
   const todoService = new TodoService();
   const projectService = createProjectServiceMock(projects);
-  const app = createApp(
+  const app = createApp({
     todoService,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    projectService.service,
-  );
+    projectService: projectService.service,
+  });
 
   return {
     app,
@@ -181,15 +176,11 @@ function createMcpEvalApp({ projects = [], session } = {}) {
   const todoService = new TodoService();
   const projectService = createProjectServiceMock(projects);
   const auth = createMockAuthService(session);
-  const app = createApp(
+  const app = createApp({
     todoService,
-    auth.authService,
-    undefined,
-    undefined,
-    undefined,
-    undefined,
-    projectService.service,
-  );
+    authService: auth.authService,
+    projectService: projectService.service,
+  });
 
   return {
     app,

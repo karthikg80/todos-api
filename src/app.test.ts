@@ -9,7 +9,7 @@ describe("Todos API", () => {
 
   beforeEach(() => {
     todoService = new TodoService();
-    app = createApp(todoService);
+    app = createApp({ todoService });
   });
 
   describe("POST /todos", () => {
@@ -476,7 +476,7 @@ describe("Todos API", () => {
         sendVerificationEmail: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      const authApp = createApp(new TodoService(), mockAuthService);
+      const authApp = createApp({ todoService: new TodoService(), authService: mockAuthService });
 
       await request(authApp)
         .post("/auth/resend-verification")
@@ -497,7 +497,7 @@ describe("Todos API", () => {
         requestPasswordReset: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      const authApp = createApp(new TodoService(), mockAuthService);
+      const authApp = createApp({ todoService: new TodoService(), authService: mockAuthService });
 
       await request(authApp)
         .post("/auth/forgot-password")
@@ -516,7 +516,7 @@ describe("Todos API", () => {
         verifyEmail: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      const authApp = createApp(new TodoService(), mockAuthService);
+      const authApp = createApp({ todoService: new TodoService(), authService: mockAuthService });
 
       await request(authApp)
         .get("/auth/verify")
@@ -535,7 +535,7 @@ describe("Todos API", () => {
         verifyEmail: jest.fn().mockRejectedValue(new Error("Invalid token")),
       } as any;
 
-      const authApp = createApp(new TodoService(), mockAuthService);
+      const authApp = createApp({ todoService: new TodoService(), authService: mockAuthService });
 
       await request(authApp)
         .get("/auth/verify")
@@ -550,7 +550,7 @@ describe("Todos API", () => {
         verifyEmail: jest.fn().mockResolvedValue(undefined),
       } as any;
 
-      const authApp = createApp(new TodoService(), mockAuthService);
+      const authApp = createApp({ todoService: new TodoService(), authService: mockAuthService });
 
       const response = await request(authApp)
         .get("/auth/verify")
@@ -572,7 +572,7 @@ describe("Todos API", () => {
         getAllUsers: jest.fn().mockRejectedValue({ code: "P2023" }),
       } as any;
 
-      const authApp = createApp(new TodoService(), mockAuthService);
+      const authApp = createApp({ todoService: new TodoService(), authService: mockAuthService });
 
       const response = await request(authApp)
         .get("/admin/users")

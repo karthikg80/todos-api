@@ -71,17 +71,34 @@ import {
 import { requestIdMiddleware } from "./infra/logging/requestId";
 import { routeLatencyMiddleware } from "./infra/metrics/routeLatency";
 
-export function createApp(
-  todoService: ITodoService = new TodoService(),
-  authService?: AuthService,
-  aiSuggestionStore?: IAiSuggestionStore,
-  aiPlannerService?: AiPlannerService,
-  aiDailySuggestionLimit?: number,
-  aiDailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>,
-  projectService?: IProjectService,
-  aiDecisionAssistEnabled?: boolean,
-  headingService?: IHeadingService,
-) {
+export interface AppDependencies {
+  todoService?: ITodoService;
+  authService?: AuthService;
+  projectService?: IProjectService;
+  headingService?: IHeadingService;
+  ai?: {
+    plannerService?: AiPlannerService;
+    suggestionStore?: IAiSuggestionStore;
+    dailySuggestionLimit?: number;
+    dailySuggestionLimitByPlan?: Partial<Record<UserPlan, number>>;
+    decisionAssistEnabled?: boolean;
+  };
+}
+
+export function createApp(deps: AppDependencies = {}) {
+  const {
+    todoService = new TodoService(),
+    authService,
+    projectService,
+    headingService,
+    ai: {
+      plannerService: aiPlannerService,
+      suggestionStore: aiSuggestionStore,
+      dailySuggestionLimit: aiDailySuggestionLimit,
+      dailySuggestionLimitByPlan: aiDailySuggestionLimitByPlan,
+      decisionAssistEnabled: aiDecisionAssistEnabled,
+    } = {},
+  } = deps;
   const app = express();
   const persistencePrisma =
     authService instanceof AuthService
@@ -144,7 +161,7 @@ export function createApp(
       })
     : null;
 
-  const resolveTodoUserId = (req: Request, res: Response): string | null => {
+  const resolveUserId = (req: Request, res: Response): string | null => {
     if (authService) {
       const userId = req.user?.userId;
       if (!userId) {
@@ -157,31 +174,10 @@ export function createApp(
     return req.user?.userId || "default-user";
   };
 
-  const resolveAiUserId = (req: Request, res: Response): string | null => {
-    if (authService) {
-      const userId = req.user?.userId;
-      if (!userId) {
-        res.status(401).json({ error: "Unauthorized" });
-        return null;
-      }
-      return userId;
-    }
-
-    return req.user?.userId || "default-user";
-  };
-
-  const resolveProjectUserId = (req: Request, res: Response): string | null => {
-    if (authService) {
-      const userId = req.user?.userId;
-      if (!userId) {
-        res.status(401).json({ error: "Unauthorized" });
-        return null;
-      }
-      return userId;
-    }
-
-    return req.user?.userId || "default-user";
-  };
+  // Backward-compatible aliases — all three resolve identically.
+  const resolveTodoUserId = resolveUserId;
+  const resolveAiUserId = resolveUserId;
+  const resolveProjectUserId = resolveUserId;
 
   const resolveAiUserPlan = async (
     userId: string,
