@@ -4,9 +4,11 @@
  * Each AgentExecutor owns its own ActionRegistry instance, so there is
  * no global mutable state and no cross-instance bleed in tests.
  *
- * Handlers are stateless functions that receive an ActionRuntime at
- * call-time. They return { status, data } and the executor wraps it
- * in the canonical success/error envelope.
+ * Two handler types:
+ *  - ActionHandler: returns { status, data }; executor wraps via this.success()
+ *  - RawActionHandler: returns AgentExecutionResult directly; used for write
+ *    actions that need access to handleIdempotent / buildDryRunResult / success
+ *    via the WriteActionExecutor shim on runtime.exec.
  */
 
 import type { AgentService } from "../../../services/agentService";
@@ -20,6 +22,14 @@ import type { WeeklyExecutiveSummaryService } from "../../../services/weeklyExec
 import type { LearningRecommendationService } from "../../../services/learningRecommendationService";
 import type { FrictionService } from "../../../services/frictionService";
 import type { ActionPolicyService } from "../../../services/actionPolicyService";
+import type { CaptureService } from "../../../services/captureService";
+import type { IProjectService } from "../../../interfaces/IProjectService";
+import type { PrismaClient } from "@prisma/client";
+import type {
+  AgentActionName,
+  AgentExecutionContext,
+  AgentExecutionResult,
+} from "./agentTypes";
 
 export interface ActionContext {
   userId: string;
@@ -27,6 +37,31 @@ export interface ActionContext {
   actor: string;
   surface: "agent" | "mcp";
   idempotencyKey?: string;
+}
+
+/**
+ * Shim exposing executor private helpers to extracted write action handlers.
+ * Built by the executor via .bind() and attached to runtime.exec.
+ */
+export interface WriteActionExecutor {
+  handleIdempotent(
+    action: AgentActionName,
+    context: AgentExecutionContext,
+    input: unknown,
+    fn: () => Promise<Record<string, unknown>>,
+    successStatus?: number,
+  ): Promise<AgentExecutionResult>;
+  buildDryRunResult(
+    action: "create_task" | "update_task",
+    input: Record<string, unknown>,
+  ): Record<string, unknown>;
+  success(
+    action: AgentActionName,
+    readOnly: boolean,
+    context: AgentExecutionContext,
+    status: number,
+    data: Record<string, unknown>,
+  ): AgentExecutionResult;
 }
 
 /**
@@ -45,6 +80,10 @@ export interface ActionRuntime {
   learningRecommendationService: LearningRecommendationService;
   frictionService: FrictionService;
   actionPolicyService: ActionPolicyService;
+  captureService: CaptureService | null;
+  projectService: IProjectService | undefined;
+  persistencePrisma: PrismaClient | undefined;
+  exec: WriteActionExecutor;
 }
 
 /**
@@ -57,9 +96,7 @@ export interface ActionHandlerResult {
 }
 
 /**
- * Stateless action handler function.
- * Receives params (validated input), context (user/request metadata),
- * and runtime (service instances) at call-time.
+ * Stateless action handler — returns domain data for executor to wrap.
  */
 export type ActionHandler = (
   params: Record<string, unknown>,
@@ -68,10 +105,22 @@ export type ActionHandler = (
 ) => Promise<ActionHandlerResult>;
 
 /**
+ * Raw action handler — returns AgentExecutionResult directly.
+ * Used for write actions that need handleIdempotent / buildDryRunResult
+ * via runtime.exec.
+ */
+export type RawActionHandler = (
+  params: Record<string, unknown>,
+  context: AgentExecutionContext,
+  runtime: ActionRuntime,
+) => Promise<AgentExecutionResult>;
+
+/**
  * Per-instance action registry. Each executor creates its own.
  */
 export class ActionRegistry {
   private readonly handlers = new Map<string, ActionHandler>();
+  private readonly rawHandlers = new Map<string, RawActionHandler>();
 
   register(action: string, handler: ActionHandler): void {
     this.handlers.set(action, handler);
@@ -85,7 +134,22 @@ export class ActionRegistry {
     return this.handlers.has(action);
   }
 
+  registerRaw(action: string, handler: RawActionHandler): void {
+    this.rawHandlers.set(action, handler);
+  }
+
+  getRaw(action: string): RawActionHandler | undefined {
+    return this.rawHandlers.get(action);
+  }
+
+  hasRaw(action: string): boolean {
+    return this.rawHandlers.has(action);
+  }
+
   registeredActions(): string[] {
-    return Array.from(this.handlers.keys());
+    return [
+      ...Array.from(this.handlers.keys()),
+      ...Array.from(this.rawHandlers.keys()),
+    ];
   }
 }
