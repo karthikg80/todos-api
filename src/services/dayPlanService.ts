@@ -35,6 +35,7 @@ const PLAN_WITH_TASKS_INCLUDE = {
   },
 } satisfies Prisma.DayPlanInclude;
 
+
 export interface DayPlanDto {
   id: string;
   userId: string;
@@ -108,6 +109,7 @@ export class DayPlanService {
     let plan = await this.prisma.dayPlan.findUnique({
       where: { userId_date: { userId, date: todayDate } },
       include: PLAN_WITH_TASKS_INCLUDE,
+
     });
 
     if (!plan) {
@@ -144,6 +146,7 @@ export class DayPlanService {
     const plan = await this.prisma.dayPlan.findUnique({
       where: { userId_date: { userId, date: planDate } },
       include: PLAN_WITH_TASKS_INCLUDE,
+
     });
 
     return plan ? this.mapToDto(plan) : null;
@@ -169,6 +172,7 @@ export class DayPlanService {
         ...(dto.notes !== undefined && { notes: dto.notes }),
       },
       include: PLAN_WITH_TASKS_INCLUDE,
+
     });
 
     return this.mapToDto(updated);
@@ -280,6 +284,7 @@ export class DayPlanService {
         finalizedAt: new Date(),
       },
       include: PLAN_WITH_TASKS_INCLUDE,
+
     });
 
     return this.mapToDto(updated);
@@ -375,6 +380,7 @@ export class DayPlanService {
     const plan = await this.prisma.dayPlan.findFirst({
       where: { id: planId, userId },
       include: PLAN_WITH_TASKS_INCLUDE,
+
     });
     return plan ? this.mapToDto(plan) : null;
   }
