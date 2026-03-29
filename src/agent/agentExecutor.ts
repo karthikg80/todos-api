@@ -5,6 +5,14 @@ import {
 } from "../domains/agent/actions/actionRegistry";
 import { AgentExecutionError } from "../domains/agent/actions/agentExecutionError";
 import { registerCoreActions } from "../domains/agent/actions/registerCoreActions";
+import {
+  type AgentActionName,
+  type AgentExecutionContext,
+  type AgentSuccessEnvelope,
+  type AgentErrorEnvelope,
+  type AgentExecutionResult,
+  IDEMPOTENT_PLANNER_APPLY_ACTIONS,
+} from "../domains/agent/actions/agentTypes";
 import { IProjectService } from "../interfaces/IProjectService";
 import { ITodoService } from "../interfaces/ITodoService";
 import agentManifest from "./agent-manifest.json";
@@ -29,32 +37,15 @@ import { FrictionService } from "../services/frictionService";
 import { ActionPolicyService } from "../services/actionPolicyService";
 import { AgentService } from "../services/agentService";
 import { PrismaClient } from "@prisma/client";
-import * as chrono from "chrono-node";
 import { DryRunResult } from "../types";
 import { AiPlannerService } from "../services/aiService";
 import type { IAiSuggestionStore } from "../services/aiSuggestionStore";
 import { analyzeTaskQuality } from "../ai/taskQualityAnalyzer";
 import { findDuplicates } from "../ai/duplicateDetector";
 import {
-  validateAgentAddSubtaskInput,
   validateAgentAnalyzeProjectHealthInput,
   validateAgentAnalyzeWorkGraphInput,
-  validateAgentArchiveProjectInput,
-  validateAgentArchiveTaskInput,
-  validateAgentCompleteTaskInput,
-  validateAgentCreateProjectInput,
-  validateAgentCreateTaskInput,
   validateAgentDecideNextWorkInput,
-  validateAgentDeleteSubtaskInput,
-  validateAgentDeleteTaskInput,
-  validateAgentDeleteProjectInput,
-  validateAgentMoveTaskToProjectInput,
-  validateAgentPlanProjectInput,
-  validateAgentRenameProjectInput,
-  validateAgentEnsureNextActionInput,
-  validateAgentUpdateSubtaskInput,
-  validateAgentUpdateProjectInput,
-  validateAgentUpdateTaskInput,
   validateAgentWeeklyReviewInput,
   validateAgentAnalyzeTaskQualityInput,
   validateAgentFindDuplicateTasksInput,
@@ -64,33 +55,14 @@ import {
   validateAgentBreakDownTaskInput,
   validateAgentSuggestNextActionsInput,
   validateAgentWeeklyReviewSummaryInput,
-  validateAgentTriageCaptureItemInput,
-  validateAgentTriageInboxInput,
   validateAgentListAuditLogInput,
   validateAgentGetAvailabilityWindowsInput,
   validateAgentWeeklyReviewWithSafeInput,
   validateAgentCreateFollowUpInput,
-  validateAgentClaimJobRunInput,
-  validateAgentCompleteJobRunInput,
-  validateAgentFailJobRunInput,
   validateAgentListAuditLogExtendedInput,
-  validateAgentResolveFailedActionInput,
-  validateAgentRecordFailedActionInput,
-  validateAgentUpdateAgentConfigInput,
-  validateAgentReplayJobRunInput,
   validateAgentSimulatePlanInput,
-  validateAgentRecordMetricInput,
-  validateAgentRecordFeedbackInput,
-  validateAgentSetDayContextInput,
-  validateAgentCaptureInboxItemInput,
-  validateAgentListInboxItemsInput,
-  validateAgentPromoteInboxItemInput,
-  validateAgentSuggestCaptureRouteInput,
   validateAgentEvaluateDailyInput,
   validateAgentEvaluateWeeklyInput,
-  validateAgentRecordLearningRecInput,
-  validateAgentApplyLearningRecInput,
-  validateAgentUpdateActionPolicyInput,
   validateAgentPrewarmHomeFocusInput,
   validateAgentGetDayPlanInput,
   validateAgentUpdateDayPlanTaskInput,
@@ -100,104 +72,16 @@ import { CaptureService } from "../services/captureService";
 import { HomeFocusPrewarmService } from "../services/homeFocusPrewarmService";
 import { DayPlanService } from "../services/dayPlanService";
 
-export type AgentActionName =
-  | "list_tasks"
-  | "search_tasks"
-  | "get_task"
-  | "get_project"
-  | "create_task"
-  | "update_task"
-  | "complete_task"
-  | "archive_task"
-  | "delete_task"
-  | "add_subtask"
-  | "update_subtask"
-  | "delete_subtask"
-  | "list_projects"
-  | "create_project"
-  | "update_project"
-  | "rename_project"
-  | "delete_project"
-  | "move_task_to_project"
-  | "archive_project"
-  | "list_today"
-  | "list_next_actions"
-  | "list_waiting_on"
-  | "list_upcoming"
-  | "list_stale_tasks"
-  | "list_projects_without_next_action"
-  | "review_projects"
-  | "plan_project"
-  | "ensure_next_action"
-  | "weekly_review"
-  | "decide_next_work"
-  | "analyze_project_health"
-  | "analyze_work_graph"
-  | "analyze_task_quality"
-  | "find_duplicate_tasks"
-  | "find_stale_items"
-  | "taxonomy_cleanup_suggestions"
-  | "plan_today"
-  | "break_down_task"
-  | "suggest_next_actions"
-  | "weekly_review_summary"
-  | "triage_capture_item"
-  | "triage_inbox"
-  | "list_audit_log"
-  | "get_availability_windows"
-  | "create_follow_up_for_waiting_task"
-  | "claim_job_run"
-  | "complete_job_run"
-  | "fail_job_run"
-  | "get_job_run_status"
-  | "list_job_runs"
-  | "list_failed_actions"
-  | "record_failed_action"
-  | "resolve_failed_action"
-  | "get_agent_config"
-  | "update_agent_config"
-  | "replay_job_run"
-  | "simulate_plan"
-  | "record_metric"
-  | "list_metrics"
-  | "metrics_summary"
-  | "record_recommendation_feedback"
-  | "list_recommendation_feedback"
-  | "feedback_summary"
-  | "set_day_context"
-  | "get_day_context"
-  | "weekly_executive_summary"
-  | "capture_inbox_item"
-  | "list_inbox_items"
-  | "suggest_capture_route"
-  | "promote_inbox_item"
-  | "evaluate_daily_plan"
-  | "evaluate_weekly_system"
-  | "record_learning_recommendation"
-  | "list_learning_recommendations"
-  | "apply_learning_recommendation"
-  | "list_friction_patterns"
-  | "get_action_policies"
-  | "update_action_policy"
-  | "prewarm_home_focus"
-  | "send_task_reminder"
-  | "run_data_retention"
-  | "list_areas"
-  | "get_area"
-  | "create_area"
-  | "update_area"
-  | "list_goals"
-  | "get_goal"
-  | "create_goal"
-  | "update_goal"
-  | "list_routines"
-  | "generate_morning_brief"
-  | "project_health_intervention"
-  | "get_day_plan"
-  | "create_day_plan"
-  | "update_day_plan_task"
-  | "finalize_day_plan"
-  | "review_day_plan";
+// AgentActionName, AgentExecutionContext, AgentSuccessEnvelope, AgentErrorEnvelope,
+// AgentExecutionResult, and IDEMPOTENT_PLANNER_APPLY_ACTIONS are imported from
+// agentTypes.ts above and re-exported here for backwards-compat consumers.
+export type {
+  AgentActionName,
+  AgentExecutionContext,
+  AgentSuccessEnvelope,
+  AgentErrorEnvelope,
+  AgentExecutionResult,
+};
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -206,41 +90,6 @@ interface AgentExecutorDeps {
   aiPlannerService?: AiPlannerService;
   suggestionStore?: IAiSuggestionStore;
 }
-
-export interface AgentExecutionContext {
-  userId: string;
-  requestId: string;
-  actor: string;
-  surface: "agent" | "mcp";
-  idempotencyKey?: string;
-}
-
-export type AgentSuccessEnvelope = {
-  ok: true;
-  action: AgentActionName | "manifest";
-  readOnly: boolean;
-  data: Record<string, unknown>;
-  trace: Record<string, unknown>;
-};
-
-export type AgentErrorEnvelope = {
-  ok: false;
-  action: AgentActionName;
-  readOnly: boolean;
-  error: {
-    code: string;
-    message: string;
-    retryable: boolean;
-    hint?: string;
-    details?: Record<string, unknown>;
-  };
-  trace: Record<string, unknown>;
-};
-
-export type AgentExecutionResult = {
-  status: number;
-  body: AgentSuccessEnvelope | AgentErrorEnvelope;
-};
 
 const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "list_tasks",
@@ -293,12 +142,6 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "get_day_plan",
   "review_day_plan",
   "list_routines",
-]);
-
-const IDEMPOTENT_PLANNER_APPLY_ACTIONS = new Set<AgentActionName>([
-  "plan_project",
-  "ensure_next_action",
-  "weekly_review",
 ]);
 
 function buildTrace(
@@ -501,175 +344,6 @@ function toAgentError(error: unknown): {
   };
 }
 
-const ACTION_VERB_RE =
-  /^(buy|call|send|write|read|review|schedule|book|fix|update|check|draft|prepare|submit|complete|finish|create|build|test|deploy|refactor|add|remove|delete|merge|close|open|contact|email|research|investigate|plan|organize|clean|sort|discuss|confirm|follow|set|get|make|find|move|copy|install|configure|document|upload|download|publish|cancel|archive|approve|reject|invite|register|verify|report|analyze|design|implement|request|order|pay|sign|file|print|record|backup|restore|monitor|notify|present|remind|track|coordinate|attend|join)\b/i;
-
-function triageCaptureText(text: string): {
-  kind: "create_task" | "discard" | "convert_to_note";
-  confidence: number;
-  why: string;
-  proposedAction: { title: string; status: string } | null;
-} {
-  const trimmed = text.trim();
-  // URL / reference — check before word count
-  if (/^https?:\/\//.test(trimmed)) {
-    return {
-      kind: "convert_to_note",
-      confidence: 0.8,
-      why: "Looks like a URL reference, better stored as a note",
-      proposedAction: {
-        title: `Review: ${trimmed.slice(0, 60)}`,
-        status: "inbox",
-      },
-    };
-  }
-  // Very short, no verb → discard candidate
-  const wordCount = trimmed.split(/\s+/).length;
-  if (wordCount < 3 && !ACTION_VERB_RE.test(trimmed)) {
-    return {
-      kind: "discard",
-      confidence: 0.6,
-      why: "Very short text with no action verb — likely noise or incomplete thought",
-      proposedAction: null,
-    };
-  }
-  // Starts with action verb → create task
-  if (ACTION_VERB_RE.test(trimmed)) {
-    return {
-      kind: "create_task",
-      confidence: 0.85,
-      why: "Starts with a clear action verb — actionable task",
-      proposedAction: { title: trimmed, status: "inbox" },
-    };
-  }
-  // Ambiguous — suggest as task but lower confidence
-  return {
-    kind: "create_task",
-    confidence: 0.5,
-    why: "No clear action verb but text may be actionable — review before adding",
-    proposedAction: { title: trimmed, status: "inbox" },
-  };
-}
-
-function removeMatchedDatePhrase(
-  text: string,
-  matchText: string,
-  index: number,
-): string {
-  const rawText = String(text || "");
-  const start = Math.max(0, index);
-  const end = Math.min(rawText.length, start + String(matchText || "").length);
-  if (start >= end) {
-    return rawText.trim();
-  }
-  return `${rawText.slice(0, start)} ${rawText.slice(end)}`
-    .replace(/\s+/g, " ")
-    .replace(/\s+([,.;:!?])/g, "$1")
-    .trim();
-}
-
-function suggestCaptureRoute(input: {
-  text: string;
-  project?: string;
-  workspaceView?: string;
-}): {
-  route: "task" | "triage";
-  confidence: number;
-  why: string;
-  cleanedTitle: string;
-  extractedFields: {
-    dueDate?: string;
-    project?: string;
-    priority?: "low" | "medium" | "high" | "urgent";
-  };
-} {
-  const trimmed = input.text.trim();
-  const project = String(input.project || "").trim();
-  const workspaceView = String(input.workspaceView || "").trim();
-  const chronoResults = chrono.parse(trimmed, new Date(), {
-    forwardDate: true,
-  });
-  const chronoMatch = chronoResults.find((entry) => {
-    const textValue = String(entry?.text || "").trim();
-    return textValue.length >= 2 && /[a-zA-Z]|\/|:/.test(textValue);
-  });
-  const dueDate = chronoMatch?.start?.date?.();
-  const hasDueDate =
-    dueDate instanceof Date &&
-    !Number.isNaN(dueDate.getTime()) &&
-    dueDate.getTime() >= Date.now() - 60_000;
-  const cleanedTitle =
-    chronoMatch && hasDueDate
-      ? removeMatchedDatePhrase(
-          trimmed,
-          String(chronoMatch.text || ""),
-          Number(chronoMatch.index) || 0,
-        ) || trimmed
-      : trimmed;
-  const multiline = /\n/.test(trimmed);
-  const looksReference =
-    /^https?:\/\//.test(trimmed) ||
-    /\b(reference|note|notes|idea|someday|bookmark)\b/i.test(trimmed);
-  const actionVerb = ACTION_VERB_RE.test(trimmed);
-
-  if (project) {
-    return {
-      route: "task",
-      confidence: 0.94,
-      why: "You are already inside a project, so this is likely ready to become a task.",
-      cleanedTitle,
-      extractedFields: {
-        ...(hasDueDate ? { dueDate: dueDate.toISOString() } : {}),
-        project,
-      },
-    };
-  }
-
-  if (actionVerb || hasDueDate) {
-    return {
-      route: "task",
-      confidence: hasDueDate ? 0.88 : 0.84,
-      why: hasDueDate
-        ? "The text includes a concrete date, which usually indicates a ready-to-create task."
-        : "The text starts with a clear action, which usually indicates a ready-to-create task.",
-      cleanedTitle,
-      extractedFields: {
-        ...(hasDueDate ? { dueDate: dueDate.toISOString() } : {}),
-      },
-    };
-  }
-
-  if (multiline || looksReference || trimmed.length > 140) {
-    return {
-      route: "triage",
-      confidence: multiline ? 0.82 : 0.74,
-      why: multiline
-        ? "This looks like a rough capture with multiple ideas and is better reviewed in triage."
-        : "This looks more like reference material or a rough note than a ready task.",
-      cleanedTitle,
-      extractedFields: {},
-    };
-  }
-
-  if (workspaceView === "triage") {
-    return {
-      route: "triage",
-      confidence: 0.62,
-      why: "You are already triaging work, so saving this for review is the safer default.",
-      cleanedTitle,
-      extractedFields: {},
-    };
-  }
-
-  return {
-    route: "triage",
-    confidence: 0.52,
-    why: "The text is still ambiguous, so triage is the safer default until it is clarified.",
-    cleanedTitle,
-    extractedFields: {},
-  };
-}
-
 const SAFE_APPLY_ACTIONS = new Set([
   "create_next_action",
   "follow_up_waiting_task",
@@ -834,24 +508,40 @@ export class AgentExecutor {
   ): Promise<AgentExecutionResult> {
     const readOnly = READ_ONLY_ACTIONS.has(action);
 
-    // Check the instance registry first — registered handlers take priority
-    // over the inline switch/case. This enables incremental extraction.
+    // Build the shared runtime once — used by both registered handler paths.
+    const runtime: ActionRuntime = {
+      agentService: this.agentService,
+      jobRunService: this.jobRunService,
+      metricsService: this.metricsService,
+      feedbackService: this.feedbackService,
+      dayContextService: this.dayContextService,
+      agentConfigService: this.agentConfigService,
+      failedActionService: this.failedActionService,
+      executiveSummaryService: this.executiveSummaryService,
+      learningRecommendationService: this.learningRecommendationService,
+      frictionService: this.frictionService,
+      actionPolicyService: this.actionPolicyService,
+      captureService: this.captureService,
+      projectService: this.deps.projectService,
+      persistencePrisma: this.deps.persistencePrisma,
+      exec: {
+        handleIdempotent: this.handleIdempotentWriteAction.bind(this),
+        buildDryRunResult: (
+          act: "create_task" | "update_task",
+          inp: Record<string, unknown>,
+        ) =>
+          this.buildDryRunResult(act, inp) as unknown as Record<
+            string,
+            unknown
+          >,
+        success: this.success.bind(this),
+      },
+    };
+
+    // Check read-only ActionHandler registry (returns { status, data }).
     const handler = this.registry.get(action);
     if (handler) {
       try {
-        const runtime: ActionRuntime = {
-          agentService: this.agentService,
-          jobRunService: this.jobRunService,
-          metricsService: this.metricsService,
-          feedbackService: this.feedbackService,
-          dayContextService: this.dayContextService,
-          agentConfigService: this.agentConfigService,
-          failedActionService: this.failedActionService,
-          executiveSummaryService: this.executiveSummaryService,
-          learningRecommendationService: this.learningRecommendationService,
-          frictionService: this.frictionService,
-          actionPolicyService: this.actionPolicyService,
-        };
         const result = await handler(
           (input as Record<string, unknown>) ?? {},
           context,
@@ -869,464 +559,22 @@ export class AgentExecutor {
       }
     }
 
+    // Check raw ActionHandler registry (returns AgentExecutionResult directly).
+    const rawHandler = this.registry.getRaw(action);
+    if (rawHandler) {
+      try {
+        return await rawHandler(
+          (input as Record<string, unknown>) ?? {},
+          context,
+          runtime,
+        );
+      } catch (error) {
+        return this.failure(action, readOnly, context, error);
+      }
+    }
+
     try {
       switch (action) {
-        case "create_task": {
-          const createInput = validateAgentCreateTaskInput(input);
-          if (createInput.dryRun === true) {
-            const rawInput = (input as Record<string, unknown>) ?? {};
-            const dryRunResult = this.buildDryRunResult(
-              "create_task",
-              rawInput,
-            );
-            return this.success(
-              action,
-              readOnly,
-              context,
-              200,
-              dryRunResult as unknown as Record<string, unknown>,
-            );
-          }
-          const { dryRun: _createDryRun, ...createFields } = createInput;
-          return await this.handleCreateTask(action, context, createFields);
-        }
-        case "update_task": {
-          const {
-            id,
-            changes,
-            dryRun: updateDryRun,
-          } = validateAgentUpdateTaskInput(input);
-          if (updateDryRun === true) {
-            const rawInput = (input as Record<string, unknown>) ?? {};
-            const dryRunResult = this.buildDryRunResult("update_task", {
-              ...rawInput,
-              id,
-            });
-            return this.success(
-              action,
-              readOnly,
-              context,
-              200,
-              dryRunResult as unknown as Record<string, unknown>,
-            );
-          }
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const task = await this.agentService.updateTask(
-                context.userId,
-                id,
-                changes,
-              );
-              if (!task) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Task not found",
-                  false,
-                  "Verify the task ID belongs to the authenticated user.",
-                );
-              }
-              return { task };
-            },
-          );
-        }
-        case "complete_task": {
-          const { id, completed } = validateAgentCompleteTaskInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const task = await this.agentService.completeTask(
-                context.userId,
-                id,
-                completed,
-              );
-              if (!task) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Task not found",
-                  false,
-                  "Verify the task ID belongs to the authenticated user.",
-                );
-              }
-              return { task };
-            },
-          );
-        }
-        case "archive_task": {
-          const { id, archived } = validateAgentArchiveTaskInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const task = await this.agentService.archiveTask(
-                context.userId,
-                id,
-                archived,
-              );
-              if (!task) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Task not found",
-                  false,
-                  "Verify the task ID belongs to the authenticated user.",
-                );
-              }
-              return { task };
-            },
-          );
-        }
-        case "delete_task": {
-          const { id, hardDelete } = validateAgentDeleteTaskInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const result = await this.agentService.deleteTask(
-                context.userId,
-                id,
-                hardDelete,
-              );
-              if (!result) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Task not found",
-                  false,
-                  "Verify the task ID belongs to the authenticated user.",
-                );
-              }
-              return {
-                deleted: hardDelete === true,
-                archived: hardDelete === true ? false : true,
-                task: typeof result === "boolean" ? null : result,
-                taskId: id,
-              };
-            },
-          );
-        }
-        case "add_subtask": {
-          const { taskId, changes } = validateAgentAddSubtaskInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const subtask = await this.agentService.addSubtask(
-                context.userId,
-                taskId,
-                changes,
-              );
-              if (!subtask) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Task not found",
-                  false,
-                  "Verify the parent task ID belongs to the authenticated user.",
-                );
-              }
-              return { subtask };
-            },
-            201,
-          );
-        }
-        case "update_subtask": {
-          const { taskId, subtaskId, changes } =
-            validateAgentUpdateSubtaskInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const subtask = await this.agentService.updateSubtask(
-                context.userId,
-                taskId,
-                subtaskId,
-                changes,
-              );
-              if (!subtask) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Task or subtask not found",
-                  false,
-                  "Verify the task ID and subtask ID belong to the authenticated user.",
-                );
-              }
-              return { subtask };
-            },
-          );
-        }
-        case "delete_subtask": {
-          const { taskId, subtaskId } = validateAgentDeleteSubtaskInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const deleted = await this.agentService.deleteSubtask(
-                context.userId,
-                taskId,
-                subtaskId,
-              );
-              if (!deleted) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Task or subtask not found",
-                  false,
-                  "Verify the task ID and subtask ID belong to the authenticated user.",
-                );
-              }
-              return { deleted: true, taskId, subtaskId };
-            },
-          );
-        }
-        case "create_project": {
-          const createInput = validateAgentCreateProjectInput(input);
-          return await this.handleCreateProject(action, context, createInput);
-        }
-        case "update_project": {
-          const { id, changes } = validateAgentUpdateProjectInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const project = await this.agentService.updateProject(
-                context.userId,
-                id,
-                changes,
-              );
-              if (!project) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Project not found",
-                  false,
-                  "Verify the project ID belongs to the authenticated user.",
-                );
-              }
-              return { project };
-            },
-          );
-        }
-        case "rename_project": {
-          const { id, name } = validateAgentRenameProjectInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const project = await this.agentService.renameProject(
-                context.userId,
-                id,
-                name,
-              );
-              if (!project) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Project not found",
-                  false,
-                  "Verify the project ID belongs to the authenticated user.",
-                );
-              }
-              return { project };
-            },
-          );
-        }
-        case "delete_project": {
-          const { id, moveTasksToProjectId, archiveInstead } =
-            validateAgentDeleteProjectInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              if (archiveInstead) {
-                const project = await this.agentService.archiveProject(
-                  context.userId,
-                  id,
-                  true,
-                );
-                if (!project) {
-                  throw new AgentExecutionError(
-                    404,
-                    "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                    "Project not found",
-                    false,
-                    "Verify the project ID belongs to the authenticated user.",
-                  );
-                }
-                return { deleted: false, archived: true, project };
-              }
-              const deleted = await this.agentService.deleteProject(
-                context.userId,
-                id,
-                moveTasksToProjectId,
-              );
-              if (!deleted) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Project not found",
-                  false,
-                  "Verify the source and target project IDs belong to the authenticated user.",
-                );
-              }
-              return {
-                deleted: true,
-                projectId: id,
-                movedTasksToProjectId: moveTasksToProjectId,
-                taskDisposition: moveTasksToProjectId
-                  ? "reassigned"
-                  : "unassigned",
-              };
-            },
-          );
-        }
-        case "move_task_to_project": {
-          const { taskId, projectId } =
-            validateAgentMoveTaskToProjectInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const task = await this.agentService.moveTaskToProject(
-                context.userId,
-                taskId,
-                projectId,
-              );
-              if (!task) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Task or project not found",
-                  false,
-                  "Verify the task ID and target project ID belong to the authenticated user.",
-                );
-              }
-              return { task };
-            },
-          );
-        }
-        case "archive_project": {
-          const { id, archived } = validateAgentArchiveProjectInput(input);
-          return await this.handleIdempotentWriteAction(
-            action,
-            context,
-            input,
-            async () => {
-              const project = await this.agentService.archiveProject(
-                context.userId,
-                id,
-                archived,
-              );
-              if (!project) {
-                throw new AgentExecutionError(
-                  404,
-                  "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                  "Project not found",
-                  false,
-                  "Verify the project ID belongs to the authenticated user.",
-                );
-              }
-              return { project };
-            },
-          );
-        }
-        case "plan_project": {
-          const plannerInput = validateAgentPlanProjectInput(input);
-          const executePlanProject = async () => {
-            const plan = await this.agentService.planProjectForUser(
-              context.userId,
-              plannerInput,
-            );
-            if (!plan) {
-              throw new AgentExecutionError(
-                404,
-                "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                "Project not found",
-                false,
-                "Verify the project ID belongs to the authenticated user.",
-              );
-            }
-            return { plan };
-          };
-          if (
-            IDEMPOTENT_PLANNER_APPLY_ACTIONS.has(action) &&
-            plannerInput.mode === "apply"
-          ) {
-            return await this.handleIdempotentWriteAction(
-              action,
-              context,
-              plannerInput,
-              executePlanProject,
-            );
-          }
-          return this.success(
-            action,
-            readOnly,
-            context,
-            200,
-            await executePlanProject(),
-          );
-        }
-        case "ensure_next_action": {
-          const plannerInput = validateAgentEnsureNextActionInput(input);
-          const enaPolicies = await this.actionPolicyService.getPolicies(
-            context.userId,
-          );
-          const enaActionMeta = this.actionPolicyService.buildActionMeta(
-            "ensure_next_action",
-            enaPolicies,
-          );
-          const executeEnsureNextAction = async () => {
-            const result = await this.agentService.ensureNextActionForUser(
-              context.userId,
-              plannerInput,
-            );
-            if (!result) {
-              throw new AgentExecutionError(
-                404,
-                "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-                "Project not found",
-                false,
-                "Verify the project ID belongs to the authenticated user.",
-              );
-            }
-            return { result, actionMeta: enaActionMeta };
-          };
-          if (
-            IDEMPOTENT_PLANNER_APPLY_ACTIONS.has(action) &&
-            plannerInput.mode === "apply"
-          ) {
-            return await this.handleIdempotentWriteAction(
-              action,
-              context,
-              plannerInput,
-              executeEnsureNextAction,
-            );
-          }
-          return this.success(
-            action,
-            readOnly,
-            context,
-            200,
-            await executeEnsureNextAction(),
-          );
-        }
         case "weekly_review": {
           const plannerInput = validateAgentWeeklyReviewWithSafeInput(input);
 
@@ -2365,212 +1613,6 @@ export class AgentExecutor {
             projectsWithNoActive,
           });
         }
-        case "triage_capture_item": {
-          const { captureItemId, mode } =
-            validateAgentTriageCaptureItemInput(input);
-          if (!this.deps.persistencePrisma) {
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Persistence layer not available",
-              false,
-            );
-          }
-          const item = await this.deps.persistencePrisma.captureItem.findFirst({
-            where: { id: captureItemId, userId: context.userId },
-          });
-          if (!item) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-              "Capture item not found",
-              false,
-              "Verify the capture item ID belongs to the authenticated user.",
-            );
-          }
-          const recommendation = triageCaptureText(item.text);
-          let applied = false;
-          if (mode === "apply") {
-            await this.deps.persistencePrisma.captureItem.updateMany({
-              where: { id: captureItemId, userId: context.userId },
-              data: {
-                lifecycle: "triaged",
-                triageResult:
-                  recommendation as unknown as import("@prisma/client").Prisma.JsonObject,
-              },
-            });
-            applied = true;
-          }
-          const triagePolicies = await this.actionPolicyService.getPolicies(
-            context.userId,
-          );
-          return this.success(action, readOnly, context, 200, {
-            captureItemId,
-            recommendation,
-            applied,
-            actionMeta: this.actionPolicyService.buildActionMeta(
-              "triage_capture_item",
-              triagePolicies,
-            ),
-          });
-        }
-        case "triage_inbox": {
-          const { limit, mode } = validateAgentTriageInboxInput(input);
-          if (!this.deps.persistencePrisma) {
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Persistence layer not available",
-              false,
-            );
-          }
-          const items = await this.deps.persistencePrisma.captureItem.findMany({
-            where: { userId: context.userId, lifecycle: "new" },
-            orderBy: { capturedAt: "asc" },
-            take: limit ?? 20,
-          });
-          const triaged = items.map((item) => ({
-            captureItemId: item.id,
-            recommendation: triageCaptureText(item.text),
-          }));
-          if (mode === "apply" && items.length > 0) {
-            for (const item of items) {
-              const rec = triaged.find((t) => t.captureItemId === item.id);
-              await this.deps.persistencePrisma.captureItem.updateMany({
-                where: { id: item.id, userId: context.userId },
-                data: {
-                  lifecycle: "triaged",
-                  triageResult:
-                    rec?.recommendation as unknown as import("@prisma/client").Prisma.JsonObject,
-                },
-              });
-            }
-          }
-          return this.success(
-            action,
-            readOnly,
-            context,
-            mode === "apply" ? 200 : 200,
-            {
-              triaged,
-              totalProcessed: items.length,
-              mode: mode ?? "suggest",
-            },
-          );
-        }
-        case "capture_inbox_item": {
-          const { text, source } = validateAgentCaptureInboxItemInput(input);
-          if (!this.captureService) {
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Persistence layer not available",
-              false,
-            );
-          }
-          const captured = await this.captureService.create(
-            context.userId,
-            text,
-            source,
-          );
-          return this.success(action, readOnly, context, 201, {
-            item: captured,
-          });
-        }
-        case "list_inbox_items": {
-          const { lifecycle, source, limit, since } =
-            validateAgentListInboxItemsInput(input);
-          if (!this.captureService) {
-            return this.success(action, readOnly, context, 200, { items: [] });
-          }
-          let items = await this.captureService.findAll(
-            context.userId,
-            lifecycle,
-          );
-          if (source) {
-            items = items.filter((i) => i.source === source);
-          }
-          if (since) {
-            const sinceDate = new Date(since);
-            items = items.filter((i) => new Date(i.capturedAt) >= sinceDate);
-          }
-          if (limit) {
-            items = items.slice(0, limit);
-          }
-          return this.success(action, readOnly, context, 200, {
-            items,
-            total: items.length,
-          });
-        }
-        case "suggest_capture_route": {
-          const suggestion = suggestCaptureRoute(
-            validateAgentSuggestCaptureRouteInput(input),
-          );
-          return this.success(action, readOnly, context, 200, suggestion);
-        }
-        case "promote_inbox_item": {
-          const {
-            captureItemId,
-            type,
-            projectId,
-            title: titleOverride,
-          } = validateAgentPromoteInboxItemInput(input);
-          if (!this.captureService || !this.deps.persistencePrisma) {
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Persistence layer not available",
-              false,
-            );
-          }
-          const captureItem = await this.captureService.findById(
-            context.userId,
-            captureItemId,
-          );
-          if (!captureItem) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-              "Capture item not found",
-              false,
-              "Verify the capture item ID belongs to the authenticated user.",
-            );
-          }
-          const derivedTitle = titleOverride ?? captureItem.text.slice(0, 200);
-          let promoted: Record<string, unknown>;
-          if (type === "task") {
-            const task = await this.agentService.createTask(context.userId, {
-              title: derivedTitle,
-              status: "inbox",
-              ...(projectId ? { projectId } : {}),
-            });
-            promoted = { type: "task", task };
-          } else {
-            if (!this.deps.projectService) {
-              throw new AgentExecutionError(
-                501,
-                "NOT_CONFIGURED",
-                "Project service not available",
-                false,
-              );
-            }
-            const project = await this.agentService.createProject(
-              context.userId,
-              { name: derivedTitle },
-            );
-            promoted = { type: "project", project };
-          }
-          await this.captureService.updateLifecycle(
-            context.userId,
-            captureItemId,
-            "triaged",
-            {
-              promotedAs: type,
-              promotedId: (promoted[type] as { id: string }).id,
-            },
-          );
-          return this.success(action, readOnly, context, 201, promoted);
-        }
         case "list_audit_log": {
           const {
             limit,
@@ -2783,195 +1825,6 @@ export class AgentExecutor {
         }
 
         // ── H3: Areas & Goals CRUD ──────────────────────────────────────────────
-        case "list_areas": {
-          if (!this.deps.persistencePrisma)
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Areas not configured",
-              false,
-            );
-          const { AreaService } = await import("../services/areaService");
-          const svc = new AreaService(this.deps.persistencePrisma);
-          const areas = await svc.findAll(context.userId);
-          return this.success(action, readOnly, context, 200, { areas });
-        }
-        case "get_area": {
-          if (!this.deps.persistencePrisma)
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Areas not configured",
-              false,
-            );
-          const { AreaService } = await import("../services/areaService");
-          const svc = new AreaService(this.deps.persistencePrisma);
-          const id = String((input as Record<string, unknown>).id ?? "");
-          const area = await svc.findById(context.userId, id);
-          if (!area)
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND",
-              "Area not found",
-              false,
-            );
-          return this.success(action, readOnly, context, 200, { area });
-        }
-        case "create_area": {
-          if (!this.deps.persistencePrisma)
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Areas not configured",
-              false,
-            );
-          const { AreaService } = await import("../services/areaService");
-          const svc = new AreaService(this.deps.persistencePrisma);
-          const inp = input as Record<string, unknown>;
-          const area = await svc.create(context.userId, {
-            name: String(inp.name ?? ""),
-            description:
-              inp.description != null ? String(inp.description) : null,
-          });
-          return this.success(action, readOnly, context, 201, { area });
-        }
-        case "update_area": {
-          if (!this.deps.persistencePrisma)
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Areas not configured",
-              false,
-            );
-          const { AreaService } = await import("../services/areaService");
-          const svc = new AreaService(this.deps.persistencePrisma);
-          const inp = input as Record<string, unknown>;
-          const area = await svc.update(context.userId, String(inp.id ?? ""), {
-            ...(inp.name !== undefined ? { name: String(inp.name) } : {}),
-            ...(inp.description !== undefined
-              ? {
-                  description:
-                    inp.description != null ? String(inp.description) : null,
-                }
-              : {}),
-            ...(inp.archived !== undefined
-              ? { archived: Boolean(inp.archived) }
-              : {}),
-          });
-          if (!area)
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND",
-              "Area not found",
-              false,
-            );
-          return this.success(action, readOnly, context, 200, { area });
-        }
-        case "list_goals": {
-          if (!this.deps.persistencePrisma)
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Goals not configured",
-              false,
-            );
-          const { GoalService } = await import("../services/goalService");
-          const svc = new GoalService(this.deps.persistencePrisma);
-          const goals = await svc.findAll(context.userId);
-          return this.success(action, readOnly, context, 200, { goals });
-        }
-        case "get_goal": {
-          if (!this.deps.persistencePrisma)
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Goals not configured",
-              false,
-            );
-          const { GoalService } = await import("../services/goalService");
-          const svc = new GoalService(this.deps.persistencePrisma);
-          const id = String((input as Record<string, unknown>).id ?? "");
-          const goal = await svc.findById(context.userId, id);
-          if (!goal)
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND",
-              "Goal not found",
-              false,
-            );
-          return this.success(action, readOnly, context, 200, { goal });
-        }
-        case "create_goal": {
-          if (!this.deps.persistencePrisma)
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Goals not configured",
-              false,
-            );
-          const { GoalService } = await import("../services/goalService");
-          const svc = new GoalService(this.deps.persistencePrisma);
-          const inp = input as Record<string, unknown>;
-          const goal = await svc.create(context.userId, {
-            name: String(inp.name ?? ""),
-            description:
-              inp.description != null ? String(inp.description) : null,
-            targetDate: inp.targetDate != null ? String(inp.targetDate) : null,
-          });
-          return this.success(action, readOnly, context, 201, { goal });
-        }
-        case "update_goal": {
-          if (!this.deps.persistencePrisma)
-            throw new AgentExecutionError(
-              501,
-              "NOT_CONFIGURED",
-              "Goals not configured",
-              false,
-            );
-          const { GoalService } = await import("../services/goalService");
-          const svc = new GoalService(this.deps.persistencePrisma);
-          const inp = input as Record<string, unknown>;
-          const goal = await svc.update(context.userId, String(inp.id ?? ""), {
-            ...(inp.name !== undefined ? { name: String(inp.name) } : {}),
-            ...(inp.description !== undefined
-              ? {
-                  description:
-                    inp.description != null ? String(inp.description) : null,
-                }
-              : {}),
-            ...(inp.targetDate !== undefined
-              ? {
-                  targetDate:
-                    inp.targetDate != null ? String(inp.targetDate) : null,
-                }
-              : {}),
-            ...(inp.archived !== undefined
-              ? { archived: Boolean(inp.archived) }
-              : {}),
-          });
-          if (!goal)
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND",
-              "Goal not found",
-              false,
-            );
-          return this.success(action, readOnly, context, 200, { goal });
-        }
-
-        // ── H3: Routines ───────────────────────────────────────────────────────
-        case "list_routines": {
-          const { detectRoutines } =
-            await import("../services/routineDetectionService");
-          const tasks = await this.agentService.listTasks(context.userId, {
-            archived: false,
-            limit: 500,
-          });
-          const routines = detectRoutines(tasks);
-          return this.success(action, readOnly, context, 200, { routines });
-        }
-
-        // ── H3: Data retention ─────────────────────────────────────────────────
         case "run_data_retention": {
           if (!this.deps.persistencePrisma)
             throw new AgentExecutionError(
@@ -3321,135 +2174,6 @@ export class AgentExecutor {
         }
 
         // ── Issue #314: job-run locking ────────────────────────────────────────
-        case "claim_job_run": {
-          const { jobName, periodKey } = validateAgentClaimJobRunInput(input);
-          const { claimed, run } = await this.jobRunService.claimRun(
-            context.userId,
-            jobName,
-            periodKey,
-          );
-          return this.success(action, readOnly, context, 200, {
-            claimed,
-            run,
-          });
-        }
-        case "complete_job_run": {
-          const { jobName, periodKey, metadata } =
-            validateAgentCompleteJobRunInput(input);
-          const completed = await this.jobRunService.completeRun(
-            context.userId,
-            jobName,
-            periodKey,
-            metadata,
-          );
-          if (!completed) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND",
-              `No running job run found for jobName=${jobName} periodKey=${periodKey}`,
-              false,
-              "Ensure claim_job_run was called first for this job/period combination.",
-            );
-          }
-          return this.success(action, readOnly, context, 200, {
-            completed: true,
-            jobName,
-            periodKey,
-          });
-        }
-        case "fail_job_run": {
-          const { jobName, periodKey, errorMessage } =
-            validateAgentFailJobRunInput(input);
-          const failed = await this.jobRunService.failRun(
-            context.userId,
-            jobName,
-            periodKey,
-            errorMessage,
-          );
-          if (!failed) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND",
-              `No running job run found for jobName=${jobName} periodKey=${periodKey}`,
-              false,
-              "Ensure claim_job_run was called first for this job/period combination.",
-            );
-          }
-          return this.success(action, readOnly, context, 200, {
-            failed: true,
-            jobName,
-            periodKey,
-          });
-        }
-        // ── Issue #320: dead-letter store ──────────────────────────────────────
-        case "record_failed_action": {
-          const recordInput = validateAgentRecordFailedActionInput(input);
-          const record = await this.failedActionService.record({
-            ...recordInput,
-            userId: context.userId,
-          });
-          return this.success(action, readOnly, context, 201, {
-            record,
-          });
-        }
-        case "resolve_failed_action": {
-          const { id, resolution } =
-            validateAgentResolveFailedActionInput(input);
-          const resolved = await this.failedActionService.resolve(
-            context.userId,
-            id,
-            resolution,
-          );
-          if (!resolved) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-              "Failed action not found or already resolved",
-              false,
-              "Verify the ID belongs to the authenticated user and the action is unresolved.",
-            );
-          }
-          return this.success(action, readOnly, context, 200, {
-            resolved: true,
-            id,
-            resolution,
-          });
-        }
-
-        // ── Issue #329: agent control plane ───────────────────────────────────
-        case "update_agent_config": {
-          const update = validateAgentUpdateAgentConfigInput(input);
-          const config = await this.agentConfigService.updateConfig(
-            context.userId,
-            update,
-          );
-          return this.success(action, readOnly, context, 200, { config });
-        }
-
-        // ── Issue #330: replay_job_run ─────────────────────────────────────────
-        case "replay_job_run": {
-          const { jobName, periodKey } = validateAgentReplayJobRunInput(input);
-          const result = await this.jobRunService.replayRun(
-            context.userId,
-            jobName,
-            periodKey,
-          );
-          if (!result.replayed) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND",
-              `No job run found for jobName=${jobName} periodKey=${periodKey}`,
-              false,
-              "Verify the job name and period key are correct.",
-            );
-          }
-          return this.success(action, readOnly, context, 200, {
-            replayed: true,
-            run: result.run,
-          });
-        }
-
-        // ── Issue #331: simulate_plan ──────────────────────────────────────────
         case "simulate_plan": {
           const {
             availableMinutes,
@@ -3631,72 +2355,6 @@ export class AgentExecutor {
         }
 
         // ── Issue #332: automation metrics ────────────────────────────────────
-        case "record_metric": {
-          const metricInput = validateAgentRecordMetricInput(input);
-          const event = await this.metricsService.record(
-            context.userId,
-            metricInput,
-          );
-          return this.success(action, readOnly, context, 201, { event });
-        }
-        // ── Issue #334: recommendation feedback ────────────────────────────────
-        case "record_recommendation_feedback": {
-          const fbInput = validateAgentRecordFeedbackInput(input);
-          const feedback = await this.feedbackService.record(
-            context.userId,
-            fbInput,
-          );
-          return this.success(action, readOnly, context, 201, { feedback });
-        }
-        // ── Issue #336: life state / day context ───────────────────────────────
-        case "set_day_context": {
-          const ctxInput = validateAgentSetDayContextInput(input);
-          const dayCtxResult = await this.dayContextService.setContext(
-            context.userId,
-            ctxInput,
-          );
-          return this.success(action, readOnly, context, 200, {
-            context: dayCtxResult,
-          });
-        }
-        case "record_learning_recommendation": {
-          const recInput = validateAgentRecordLearningRecInput(input);
-          const rec = await this.learningRecommendationService.record(
-            context.userId,
-            recInput,
-          );
-          return this.success(action, readOnly, context, 201, {
-            recommendation: rec,
-          });
-        }
-
-        case "apply_learning_recommendation": {
-          const { id } = validateAgentApplyLearningRecInput(input);
-          try {
-            const { recommendation, configUpdated } =
-              await this.learningRecommendationService.apply(
-                context.userId,
-                id,
-              );
-            return this.success(action, readOnly, context, 200, {
-              recommendation,
-              configUpdated,
-            });
-          } catch (err) {
-            if (err instanceof Error) {
-              throw new AgentExecutionError(
-                err.message.includes("not found") ? 404 : 400,
-                err.message.includes("not found")
-                  ? "RESOURCE_NOT_FOUND_OR_FORBIDDEN"
-                  : "INVALID_OPERATION",
-                err.message,
-                false,
-              );
-            }
-            throw err;
-          }
-        }
-
         case "evaluate_daily_plan": {
           const { date, decisionRunId: evalRunId } =
             validateAgentEvaluateDailyInput(input);
@@ -3870,16 +2528,6 @@ export class AgentExecutor {
         }
 
         // ── Issue #339: action policies ───────────────────────────────────────
-        case "update_action_policy": {
-          const { actionName, autoApply, minConfidence } =
-            validateAgentUpdateActionPolicyInput(input);
-          const policies = await this.actionPolicyService.updatePolicy(
-            context.userId,
-            actionName,
-            { autoApply, minConfidence },
-          );
-          return this.success(action, readOnly, context, 200, { policies });
-        }
       }
       throw new AgentExecutionError(
         501,
@@ -3890,156 +2538,6 @@ export class AgentExecutor {
     } catch (error) {
       return this.failure(action, readOnly, context, error);
     }
-  }
-
-  private async handleCreateTask(
-    action: AgentActionName,
-    context: AgentExecutionContext,
-    input: unknown,
-  ): Promise<AgentExecutionResult> {
-    const readOnly = false;
-    const idempotencyKey = context.idempotencyKey;
-
-    if (idempotencyKey) {
-      const lookup = await this.idempotencyService.lookup(
-        action,
-        context.userId,
-        idempotencyKey,
-        input,
-      );
-      if (lookup.kind === "conflict") {
-        throw new AgentExecutionError(
-          409,
-          "IDEMPOTENCY_CONFLICT",
-          "Idempotency key already used for different input",
-          false,
-          "Reuse the original payload or supply a new idempotency key.",
-        );
-      }
-      if (lookup.kind === "replay") {
-        const replayed = lookup.body as AgentSuccessEnvelope;
-        const response = {
-          ...replayed,
-          trace: buildTrace(context, {
-            replayed: true,
-            originalRequestId: replayed.trace.requestId,
-          }),
-        };
-        this.persistActionAudit(context, {
-          action,
-          readOnly,
-          status: lookup.status,
-          outcome: "success",
-          replayed: true,
-        });
-        return {
-          status: lookup.status,
-          body: response,
-        };
-      }
-    }
-
-    const task = await this.agentService.createTask(
-      context.userId,
-      input as Parameters<AgentService["createTask"]>[1],
-    );
-    const response = this.buildSuccessBody(action, readOnly, context, { task });
-    if (idempotencyKey) {
-      await this.idempotencyService.store(
-        action,
-        context.userId,
-        idempotencyKey,
-        input,
-        201,
-        response,
-      );
-    }
-    this.persistActionAudit(context, {
-      action,
-      readOnly,
-      status: 201,
-      outcome: "success",
-    });
-    return {
-      status: 201,
-      body: response,
-    };
-  }
-
-  private async handleCreateProject(
-    action: AgentActionName,
-    context: AgentExecutionContext,
-    input: unknown,
-  ): Promise<AgentExecutionResult> {
-    const readOnly = false;
-    const idempotencyKey = context.idempotencyKey;
-
-    if (idempotencyKey) {
-      const lookup = await this.idempotencyService.lookup(
-        action,
-        context.userId,
-        idempotencyKey,
-        input,
-      );
-      if (lookup.kind === "conflict") {
-        throw new AgentExecutionError(
-          409,
-          "IDEMPOTENCY_CONFLICT",
-          "Idempotency key already used for different input",
-          false,
-          "Reuse the original payload or supply a new idempotency key.",
-        );
-      }
-      if (lookup.kind === "replay") {
-        const replayed = lookup.body as AgentSuccessEnvelope;
-        const response = {
-          ...replayed,
-          trace: buildTrace(context, {
-            replayed: true,
-            originalRequestId: replayed.trace.requestId,
-          }),
-        };
-        this.persistActionAudit(context, {
-          action,
-          readOnly,
-          status: lookup.status,
-          outcome: "success",
-          replayed: true,
-        });
-        return {
-          status: lookup.status,
-          body: response,
-        };
-      }
-    }
-
-    const project = await this.agentService.createProject(
-      context.userId,
-      input as Parameters<AgentService["createProject"]>[1],
-    );
-    const response = this.buildSuccessBody(action, readOnly, context, {
-      project,
-    });
-    if (idempotencyKey) {
-      await this.idempotencyService.store(
-        action,
-        context.userId,
-        idempotencyKey,
-        input,
-        201,
-        response,
-      );
-    }
-    this.persistActionAudit(context, {
-      action,
-      readOnly,
-      status: 201,
-      outcome: "success",
-    });
-    return {
-      status: 201,
-      body: response,
-    };
   }
 
   private async handleIdempotentWriteAction(
