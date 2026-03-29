@@ -1,0 +1,80 @@
+:root {
+  --bg: #f4f7fb;
+  --surface: #ffffff;
+  --surface-2: #f8fafc;
+  --surface-3: #334155;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --border: #dbe3ed;
+  --accent: #4f6ef7;
+  --accent-2: #6983ff;
+  --danger: #e05260;
+  --danger-2: #c94855;
+  --success: #2f9e6a;
+  --warning: #d97706;
+  --overlay: rgb(15 23 42 / 55%);
+  --scrim: rgb(15 23 42 / 35%);
+
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-full: 999px;
+
+  --s-0: 2px;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 40px;
+  --s-8: 48px;
+
+  --font-sans: "Inter", "Avenir Next", "Segoe UI", -apple-system,
+    BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --fs-body: 1rem;
+  --fs-meta: 0.8125rem;
+  --fs-label: 0.75rem;
+  --fs-section: 1.25rem;
+  --lh-base: 1.5;
+  --lh-tight: 1.25;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+
+  --control-sm: 32px;
+  --control-md: 40px;
+  --row-height: 48px;
+
+  --shadow-0: none;
+  --shadow-hover: 0 2px 8px rgb(15 23 42 / 6%), 0 1px 2px rgb(15 23 42 / 4%);
+  --shadow-card: 0 4px 16px rgb(15 23 42 / 8%);
+  --shadow-elevated: 0 8px 30px rgb(15 23 42 / 12%);
+
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur-fast: 120ms;
+  --dur-base: 180ms;
+  --dur-slow: 280ms;
+}
+
+body.dark-mode {
+  --bg: #111827;
+  --surface: #182233;
+  --surface-2: #1f2b3d;
+  --surface-3: #2b3a50;
+  --text: #e5e7eb;
+  --muted: #a8b1bd;
+  --border: #2e3c53;
+  --accent: #89a4ff;
+  --accent-2: #6e8df9;
+  --danger: #ff7f8a;
+  --danger-2: #ef6f7b;
+  --success: #5ecf9f;
+  --warning: #fbbf24;
+  --overlay: rgb(2 6 23 / 72%);
+  --scrim: rgb(2 6 23 / 50%);
+  --shadow-hover: 0 2px 8px rgb(2 6 23 / 20%), 0 1px 2px rgb(2 6 23 / 14%);
+  --shadow-card: 0 4px 16px rgb(2 6 23 / 22%);
+  --shadow-elevated: 0 8px 30px rgb(2 6 23 / 30%);
+}
