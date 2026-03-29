@@ -91,7 +91,14 @@ export class DayPlanService {
       include: {
         tasks: {
           orderBy: { order: "asc" },
-          include: { todo: { include: { project: true, subtasks: { orderBy: { order: "asc" } } } } },
+          include: {
+            todo: {
+              include: {
+                project: true,
+                subtasks: { orderBy: { order: "asc" } },
+              },
+            },
+          },
         },
       },
     });
@@ -106,7 +113,14 @@ export class DayPlanService {
         include: {
           tasks: {
             orderBy: { order: "asc" },
-            include: { todo: { include: { project: true, subtasks: { orderBy: { order: "asc" } } } } },
+            include: {
+              todo: {
+                include: {
+                  project: true,
+                  subtasks: { orderBy: { order: "asc" } },
+                },
+              },
+            },
           },
         },
       });
@@ -125,7 +139,14 @@ export class DayPlanService {
       include: {
         tasks: {
           orderBy: { order: "asc" },
-          include: { todo: { include: { project: true, subtasks: { orderBy: { order: "asc" } } } } },
+          include: {
+            todo: {
+              include: {
+                project: true,
+                subtasks: { orderBy: { order: "asc" } },
+              },
+            },
+          },
         },
       },
     });
@@ -155,7 +176,14 @@ export class DayPlanService {
       include: {
         tasks: {
           orderBy: { order: "asc" },
-          include: { todo: { include: { project: true, subtasks: { orderBy: { order: "asc" } } } } },
+          include: {
+            todo: {
+              include: {
+                project: true,
+                subtasks: { orderBy: { order: "asc" } },
+              },
+            },
+          },
         },
       },
     });
@@ -271,7 +299,14 @@ export class DayPlanService {
       include: {
         tasks: {
           orderBy: { order: "asc" },
-          include: { todo: { include: { project: true, subtasks: { orderBy: { order: "asc" } } } } },
+          include: {
+            todo: {
+              include: {
+                project: true,
+                subtasks: { orderBy: { order: "asc" } },
+              },
+            },
+          },
         },
       },
     });
@@ -345,10 +380,7 @@ export class DayPlanService {
   /**
    * Get plan history for learning loop.
    */
-  async getHistory(
-    userId: string,
-    limit: number = 14,
-  ): Promise<DayPlanDto[]> {
+  async getHistory(userId: string, limit: number = 14): Promise<DayPlanDto[]> {
     const plans = await this.prisma.dayPlan.findMany({
       where: { userId },
       orderBy: { date: "desc" },
@@ -374,7 +406,14 @@ export class DayPlanService {
       include: {
         tasks: {
           orderBy: { order: "asc" },
-          include: { todo: { include: { project: true, subtasks: { orderBy: { order: "asc" } } } } },
+          include: {
+            todo: {
+              include: {
+                project: true,
+                subtasks: { orderBy: { order: "asc" } },
+              },
+            },
+          },
         },
       },
     });
@@ -389,27 +428,30 @@ export class DayPlanService {
     return {
       id: plan.id,
       userId: plan.userId,
-      date: plan.date instanceof Date
-        ? plan.date.toISOString().split("T")[0]
-        : plan.date,
+      date:
+        plan.date instanceof Date
+          ? plan.date.toISOString().split("T")[0]
+          : plan.date,
       status: plan.status,
       energyLevel: plan.energyLevel,
       notes: plan.notes,
-      createdAt: plan.createdAt instanceof Date
-        ? plan.createdAt.toISOString()
-        : plan.createdAt,
-      updatedAt: plan.updatedAt instanceof Date
-        ? plan.updatedAt.toISOString()
-        : plan.updatedAt,
+      createdAt:
+        plan.createdAt instanceof Date
+          ? plan.createdAt.toISOString()
+          : plan.createdAt,
+      updatedAt:
+        plan.updatedAt instanceof Date
+          ? plan.updatedAt.toISOString()
+          : plan.updatedAt,
       finalizedAt: plan.finalizedAt
-        ? (plan.finalizedAt instanceof Date
-            ? plan.finalizedAt.toISOString()
-            : plan.finalizedAt)
+        ? plan.finalizedAt instanceof Date
+          ? plan.finalizedAt.toISOString()
+          : plan.finalizedAt
         : null,
       reviewedAt: plan.reviewedAt
-        ? (plan.reviewedAt instanceof Date
-            ? plan.reviewedAt.toISOString()
-            : plan.reviewedAt)
+        ? plan.reviewedAt instanceof Date
+          ? plan.reviewedAt.toISOString()
+          : plan.reviewedAt
         : null,
       tasks: (plan.tasks || []).map((task: any) => this.mapTaskToDto(task)),
     };

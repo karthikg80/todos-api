@@ -842,7 +842,8 @@ export function createAiRouter({
             aiSuggestionDbId: id,
             suggestionId: suggestionId || undefined,
             suggestionCount: result.appliedTodoIds.length,
-            selectedTodoIdsCount: selectedTodoIds?.length || result.appliedTodoIds.length,
+            selectedTodoIdsCount:
+              selectedTodoIds?.length || result.appliedTodoIds.length,
           });
         }
 

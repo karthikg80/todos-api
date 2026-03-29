@@ -72,7 +72,10 @@ export function createDayPlanRouter({
       try {
         const userId = resolveUserId(req, res);
         if (!userId) return;
-        const plan = await dayPlanService.getByDate(userId, String(req.params.date));
+        const plan = await dayPlanService.getByDate(
+          userId,
+          String(req.params.date),
+        );
         if (!plan) {
           return res.status(404).json({ error: "Plan not found" });
         }
@@ -100,7 +103,11 @@ export function createDayPlanRouter({
           energyLevel: req.body.energyLevel,
           notes: req.body.notes,
         };
-        const plan = await dayPlanService.update(userId, String(req.params.planId), dto);
+        const plan = await dayPlanService.update(
+          userId,
+          String(req.params.planId),
+          dto,
+        );
         if (!plan) {
           return res.status(404).json({ error: "Plan not found" });
         }
@@ -219,7 +226,10 @@ export function createDayPlanRouter({
       try {
         const userId = resolveUserId(req, res);
         if (!userId) return;
-        const plan = await dayPlanService.finalize(userId, String(req.params.planId));
+        const plan = await dayPlanService.finalize(
+          userId,
+          String(req.params.planId),
+        );
         if (!plan) {
           return res
             .status(400)
@@ -245,7 +255,10 @@ export function createDayPlanRouter({
       try {
         const userId = resolveUserId(req, res);
         if (!userId) return;
-        const review = await dayPlanService.review(userId, String(req.params.planId));
+        const review = await dayPlanService.review(
+          userId,
+          String(req.params.planId),
+        );
         if (!review) {
           return res.status(404).json({ error: "Plan not found" });
         }
@@ -269,10 +282,7 @@ export function createDayPlanRouter({
       try {
         const userId = resolveUserId(req, res);
         if (!userId) return;
-        const limit = Math.min(
-          Math.max(Number(req.query.limit) || 14, 1),
-          90,
-        );
+        const limit = Math.min(Math.max(Number(req.query.limit) || 14, 1), 90);
         const plans = await dayPlanService.getHistory(userId, limit);
         res.json(plans);
       } catch (error) {

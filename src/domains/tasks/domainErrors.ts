@@ -18,10 +18,7 @@ export class AppError extends Error {
 
 export class NotFoundError extends AppError {
   constructor(entity: string, id?: string) {
-    super(
-      404,
-      id ? `${entity} not found: ${id}` : `${entity} not found`,
-    );
+    super(404, id ? `${entity} not found: ${id}` : `${entity} not found`);
   }
 }
 

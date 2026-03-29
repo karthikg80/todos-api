@@ -54,7 +54,10 @@ describe("domain errors", () => {
   });
 
   it("InvalidRelationError has status 400", () => {
-    const err = new InvalidRelationError("heading", "Heading does not belong to project");
+    const err = new InvalidRelationError(
+      "heading",
+      "Heading does not belong to project",
+    );
     expect(err.status).toBe(400);
     expect(err).toBeInstanceOf(ValidationError);
   });

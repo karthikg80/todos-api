@@ -10,13 +10,8 @@
 
 import { ITodoService } from "../interfaces/ITodoService";
 import { IProjectService } from "../interfaces/IProjectService";
-import {
-  IAiSuggestionStore,
-  AiSuggestionRecord,
-} from "./aiSuggestionStore";
-import {
-  DecisionAssistSurface,
-} from "../validation/aiContracts";
+import { IAiSuggestionStore, AiSuggestionRecord } from "./aiSuggestionStore";
+import { DecisionAssistSurface } from "../validation/aiContracts";
 import {
   HOME_FOCUS_SURFACE,
   TODAY_PLAN_SURFACE,
@@ -117,16 +112,12 @@ export class SuggestionApplyOrchestrator {
 
     const plannedTodoIds = new Set(
       (envelope.planPreview?.items || [])
-        .map((item) =>
-          typeof item.todoId === "string" ? item.todoId : "",
-        )
+        .map((item) => (typeof item.todoId === "string" ? item.todoId : ""))
         .filter(Boolean),
     );
     const selectedSet =
       input.selectedTodoIds && input.selectedTodoIds.length > 0
-        ? new Set(
-            input.selectedTodoIds.filter((id) => plannedTodoIds.has(id)),
-          )
+        ? new Set(input.selectedTodoIds.filter((id) => plannedTodoIds.has(id)))
         : plannedTodoIds;
 
     const applicableSuggestions = (
@@ -219,8 +210,7 @@ export class SuggestionApplyOrchestrator {
       return {
         ok: false,
         status: 409,
-        error:
-          "Suggestion already accepted but has no applied todo history",
+        error: "Suggestion already accepted but has no applied todo history",
       };
     }
 
@@ -489,7 +479,9 @@ export class SuggestionApplyOrchestrator {
     };
   }
 
-  private extractSurface(suggestion: AiSuggestionRecord): DecisionAssistSurface {
+  private extractSurface(
+    suggestion: AiSuggestionRecord,
+  ): DecisionAssistSurface {
     const raw =
       typeof suggestion.input?.surface === "string"
         ? suggestion.input.surface

@@ -294,9 +294,7 @@ export class InsightsComputeService {
    * Compute all metrics for a user without persisting.
    * Returns structured data suitable for the Today Plan, learning loop, or persistence.
    */
-  async computeMetrics(
-    userId: string,
-  ): Promise<{
+  async computeMetrics(userId: string): Promise<{
     velocity: number;
     overcommitmentRatio: number;
     staleTasks: number;
@@ -390,17 +388,42 @@ export class InsightsComputeService {
       const metrics = await this.computeMetrics(userId);
 
       // Persist base metrics
-      await this.upsertInsight(userId, "completion_velocity", dayStart, now, metrics.velocity);
-      await this.upsertInsight(userId, "overcommitment_ratio", dayStart, now, metrics.overcommitmentRatio);
-      await this.upsertInsight(userId, "stale_task_count", dayStart, now, metrics.staleTasks);
-      await this.upsertInsight(userId, "streak_days", dayStart, now, metrics.streak);
+      await this.upsertInsight(
+        userId,
+        "completion_velocity",
+        dayStart,
+        now,
+        metrics.velocity,
+      );
+      await this.upsertInsight(
+        userId,
+        "overcommitment_ratio",
+        dayStart,
+        now,
+        metrics.overcommitmentRatio,
+      );
+      await this.upsertInsight(
+        userId,
+        "stale_task_count",
+        dayStart,
+        now,
+        metrics.staleTasks,
+      );
+      await this.upsertInsight(
+        userId,
+        "streak_days",
+        dayStart,
+        now,
+        metrics.streak,
+      );
       await this.upsertInsight(
         userId,
         "most_productive_hour",
         dayStart,
         now,
         metrics.productiveHours.peakHour,
-        metrics.productiveHours.distribution as unknown as Prisma.InputJsonValue,
+        metrics.productiveHours
+          .distribution as unknown as Prisma.InputJsonValue,
       );
 
       // Persist project health

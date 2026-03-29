@@ -243,9 +243,7 @@ describe("taskLifecycle", () => {
     });
 
     it("returns done for completed tasks", () => {
-      expect(
-        deriveStatusFromLegacyFields({ completed: true }),
-      ).toBe("done");
+      expect(deriveStatusFromLegacyFields({ completed: true })).toBe("done");
     });
 
     it("returns waiting when waitingOn is set", () => {
@@ -267,9 +265,7 @@ describe("taskLifecycle", () => {
     });
 
     it("returns inbox as default for uncategorized tasks", () => {
-      expect(
-        deriveStatusFromLegacyFields({ completed: false }),
-      ).toBe("inbox");
+      expect(deriveStatusFromLegacyFields({ completed: false })).toBe("inbox");
     });
 
     it("prioritizes completed over other signals", () => {

@@ -109,10 +109,7 @@ export const BLOCKED_STATUSES: readonly TaskStatus[] = [
 /**
  * Check whether a lifecycle transition is valid.
  */
-export function isValidTransition(
-  from: TaskStatus,
-  to: TaskStatus,
-): boolean {
+export function isValidTransition(from: TaskStatus, to: TaskStatus): boolean {
   if (from === to) return true; // no-op transitions are always valid
   return VALID_TRANSITIONS[from]?.includes(to) ?? false;
 }
@@ -120,7 +117,9 @@ export function isValidTransition(
 /**
  * Return all statuses reachable from a given state.
  */
-export function availableTransitions(status: TaskStatus): readonly TaskStatus[] {
+export function availableTransitions(
+  status: TaskStatus,
+): readonly TaskStatus[] {
   return VALID_TRANSITIONS[status] ?? [];
 }
 

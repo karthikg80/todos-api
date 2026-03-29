@@ -18,7 +18,11 @@ import {
   SortOrder,
 } from "../types";
 import { hasPrismaCode } from "../errorHandling";
-import { reconcileStatusAndCompletion } from "../domains/tasks/taskLifecycle";
+import {
+  reconcileStatusAndCompletion,
+  isValidTransition,
+  classifyStatus,
+} from "../domains/tasks/taskLifecycle";
 
 type PrismaTodoWithRelations = Prisma.TodoGetPayload<{
   include: { project: true; subtasks: true };
@@ -532,8 +536,7 @@ export class PrismaTodoService implements ITodoService {
     if (dto.archived !== undefined) data.archived = dto.archived;
     if (dto.source !== undefined) data.source = dto.source;
     if (dto.doDate !== undefined) data.doDate = dto.doDate;
-    if (dto.blockedReason !== undefined)
-      data.blockedReason = dto.blockedReason;
+    if (dto.blockedReason !== undefined) data.blockedReason = dto.blockedReason;
     if (dto.effortScore !== undefined) data.effortScore = dto.effortScore;
     if (dto.confidenceScore !== undefined)
       data.confidenceScore = dto.confidenceScore;
@@ -633,11 +636,15 @@ export class PrismaTodoService implements ITodoService {
           updateData,
         );
         // resolveProjectChanges returns null when project not found AND projectId was set
-        if (dto.projectId && dto.projectId !== null && resolvedProjectId === null) {
+        if (
+          dto.projectId &&
+          dto.projectId !== null &&
+          resolvedProjectId === null
+        ) {
           return null;
         }
 
-        // Reconcile status ↔ completed invariant
+        // Reconcile status ↔ completed invariant via domain state machine
         const state = this.buildTodoState({
           currentStatus: currentTodo.status,
           currentCompleted: currentTodo.completed,
@@ -645,6 +652,20 @@ export class PrismaTodoService implements ITodoService {
           nextStatus: dto.status,
           nextCompleted: dto.completed,
         });
+
+        // Validate lifecycle transition (soft — logs but doesn't block)
+        if (
+          dto.status !== undefined &&
+          currentTodo.status !== state.status &&
+          !isValidTransition(currentTodo.status, state.status)
+        ) {
+          // Log invalid transition for observability but allow it through.
+          // Once consumers are adapted, this becomes a hard error.
+          console.warn(
+            `[taskLifecycle] Invalid transition: ${currentTodo.status} → ${state.status} (todo ${id})`,
+          );
+        }
+
         updateData.status = state.status as PrismaTodoStatus;
         updateData.completed = state.completed;
         updateData.completedAt = state.completedAt;
