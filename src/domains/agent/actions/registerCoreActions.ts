@@ -8,6 +8,7 @@ import { registerProjectWriteActions } from "./projectWriteActions";
 import { registerGoalAreaActions } from "./goalAreaActions";
 import { registerCaptureActions } from "./captureActions";
 import { registerAgentControlActions } from "./agentControlActions";
+import { registerAnalyticActions } from "./analyticActions";
 
 export function registerCoreActions(registry: ActionRegistry): void {
   registerTasksReadActions(registry);
@@ -19,4 +20,5 @@ export function registerCoreActions(registry: ActionRegistry): void {
   registerGoalAreaActions(registry);
   registerCaptureActions(registry);
   registerAgentControlActions(registry);
+  registerAnalyticActions(registry);
 }
