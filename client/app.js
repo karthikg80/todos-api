@@ -498,6 +498,9 @@ import {
   bindDeclarativeHandlers,
   registerServiceWorker,
 } from "./bootstrap/initGlobalListeners.js";
+import { wireHooks } from "./bootstrap/wireHooks.js";
+import { registerWindowBridge } from "./bootstrap/registerWindowBridge.js";
+import { initApp } from "./bootstrap/initApp.js";
 import { initTodosFeature } from "./features/todos/initTodosFeature.js";
 import { initProjectsFeature } from "./features/projects/initProjectsFeature.js";
 import { trackEvent } from "./utils/activityTracker.js";
@@ -1184,645 +1187,350 @@ function bindDockHandlers() {
 // invokeBoundExpression + bindDeclarativeHandlers moved to bootstrap/initGlobalListeners.js
 
 // ---------------------------------------------------------------------------
-// Hook wiring — called after all modules are imported so cross-module
-// calls through hooks.X?.() resolve to the correct functions.
+// Bootstrap wiring — delegates to extracted bootstrap modules.
+// Each call receives a deps bag of every function / constant it needs.
 // ---------------------------------------------------------------------------
-(function wireHooks() {
-  // drawerUi ↔ filterLogic
-  hooks.syncTodoDrawerStateWithRender = syncTodoDrawerStateWithRender;
-  // todosService / projectsState / drawerUi → filterLogic
-  // domain modules dispatch directly via EventBus; EventBus delivers to subscribers
-  hooks.applyFiltersAndRender = (payload) =>
-    EventBus.dispatch(TODOS_CHANGED, payload);
+// --- wireHooks deps ---
+wireHooks({
+  hooks,
+  state,
+  EventBus,
+  TODOS_CHANGED,
+  TODOS_RENDER,
+  AI_DEBUG_ENABLED,
+  API_URL,
+  ApiClientModule,
+  DialogManager,
+  FEATURE_ENHANCED_TASK_CRITIC,
+  FEATURE_TASK_DRAWER_DECISION_ASSIST,
+  HOME_FOCUS_SURFACE,
+  MOBILE_DRAWER_MEDIA_QUERY,
+  ON_CREATE_SURFACE,
+  OnCreateAssist,
+  PROJECT_PATH_SEPARATOR,
+  TODAY_PLAN_SURFACE,
+  TaskDrawerAssist,
+  addTodo,
+  addUndoAction,
+  apiCall,
+  apiCallWithTimeout,
+  applyFiltersAndRender,
+  applyTodoPatch,
+  buildHomeTileListByKey,
+  buildIcsContentForTodos,
+  buildIcsFilename,
+  capSuggestions,
+  clearHomeListDrilldown,
+  clearPlanDraftState,
+  closeCommandPalette,
+  closeMoreFilters,
+  closeProjectsRailSheet,
+  closeTaskComposer,
+  closeTaskPage,
+  closeTodoDrawer,
+  compareProjectPaths,
+  confidenceBand,
+  confidenceLabel,
+  createInitialTaskDrawerAssistState,
+  createProjectByName,
+  deleteTodo,
+  emitAiSuggestionUndoTelemetry,
+  ensureTodosShellActive,
+  escapeHtml,
+  expandProjectTree,
+  fetchWithTimeout,
+  filterTodosList,
+  generateDayPlan,
+  getAllProjects,
+  getComposerDependsOnIds,
+  getHomeDrilldownLabel,
+  getProjectHeadings,
+  getProjectLeafName,
+  getProjectRecordByName,
+  getRailPresentationMode,
+  getSelectedProjectKey,
+  getTodoDrawerElements,
+  getVisibleTodos,
+  hideMessage,
+  impactRankForSurface,
+  initializeDrawerDraft,
+  isAbortError,
+  isInternalCategoryPath,
+  isKnownSuggestionType,
+  isMobileViewport,
+  isTodoNeedsOrganizing,
+  isTriageWorkspaceActive,
+  labelForType,
+  lintTodoFields,
+  loadAiFeedbackSummary,
+  loadAiInsights,
+  loadAiSuggestions,
+  loadAiUsage,
+  loadInboxItems,
+  loadMcpSessions,
+  loadProjects,
+  loadTodos,
+  loadUserPlanningPreferences,
+  mountTaskPageDependsPicker,
+  needsConfirmation,
+  normalizeProjectPath,
+  openEditTodoModal,
+  openTaskComposer,
+  openTaskPage,
+  openTodoDrawer,
+  parseApiBody,
+  parseQuickEntryNaturalDue,
+  patchProjectsRailView,
+  populateSoulPreferencesForm,
+  prepareFeedbackView,
+  processQuickEntryNaturalDate,
+  readStoredAiWorkspaceCollapsedState,
+  readStoredAiWorkspaceVisibleState,
+  readStoredQuickEntryPropertiesOpenState,
+  readStoredRailCollapsedState,
+  refreshHomeFocusSuggestions,
+  refreshProjectCatalog,
+  removeMatchedDatePhraseFromTitle,
+  renderAiDebugMeta,
+  renderAiDebugSuggestionId,
+  renderCleanupView,
+  renderHomeDashboard,
+  renderInboxView,
+  renderInlineTaskEditor,
+  renderLintChip,
+  renderProjectHeadingCreateButton,
+  renderProjectOptionEntry,
+  renderProjectOptions,
+  renderProjectsRail,
+  renderTaskPageSurface,
+  renderTodoRowHtml,
+  renderTodos,
+  renderWeeklyReviewView,
+  resetQuickEntryNaturalDueState,
+  scheduleLoadSelectedProjectHeadings,
+  seedDrawerDraft,
+  selectProjectFromRail,
+  selectWorkspaceView,
+  setAdminPaneVisible,
+  setAiWorkspaceCollapsed,
+  setAiWorkspaceVisible,
+  setDrawerSaveState,
+  setFeedbackPaneVisible,
+  setProjectsRailCollapsed,
+  setQuickEntryPropertiesOpen,
+  setSelectedProjectKey,
+  setSettingsPaneVisible,
+  setTodosViewBodyState,
+  shouldRenderTypeForSurface,
+  shouldUseServerVisibleTodos,
+  showConfirmDialog,
+  showInputDialog,
+  showMessage,
+  sortSuggestions,
+  submitTaskComposerCapture,
+  switchView,
+  syncFeedbackFormCopy,
+  syncProjectHeaderActions,
+  syncQuickEntryProjectActions,
+  syncSidebarNavState,
+  syncTaskPageRouteFromLocation,
+  syncTodoDrawerStateWithRender,
+  toDateInputValue,
+  toDateTimeLocalValue,
+  toIsoFromDateInput,
+  toggleAiWorkspace,
+  truncateRationale,
+  updateAiWorkspaceStatusChip,
+  updateBulkActionsVisibility,
+  updateCategoryFilter,
+  updateCritiqueDraftButtonState,
+  updateHeaderAndContextUI,
+  updateHeaderFromVisibleTodos,
+  updateProjectSelectOptions,
+  updateQuickEntryPropertiesSummary,
+  updateTaskComposerDueClearButton,
+  updateTopbarProjectsButton,
+  validateTodoTitle,
+});
 
-  // Subscribe renderers
-  EventBus.subscribe(TODOS_CHANGED, applyFiltersAndRender);
-  EventBus.subscribe(TODOS_RENDER, renderTodos);
-  hooks.updateCategoryFilter = updateCategoryFilter;
-  hooks.shouldUseServerVisibleTodos = shouldUseServerVisibleTodos;
-  // todosService / filterLogic → projectsState
-  hooks.loadProjects = loadProjects;
-  hooks.createProjectByName = createProjectByName;
-  hooks.refreshProjectCatalog = refreshProjectCatalog;
-  hooks.scheduleLoadSelectedProjectHeadings =
-    scheduleLoadSelectedProjectHeadings;
-  hooks.renderProjectHeadingCreateButton = renderProjectHeadingCreateButton;
-  // todosService → overlayManager
-  hooks.showConfirmDialog = showConfirmDialog;
-  // app.js orchestrator callbacks
-  hooks.updateHeaderAndContextUI = updateHeaderAndContextUI;
-  // drawerUi / taskDetailSurface → todosService
-  hooks.applyTodoPatch = applyTodoPatch;
-  hooks.deleteTodo = deleteTodo;
-  hooks.loadTodos = loadTodos;
-  hooks.addSubtask = async (todoId, title) => {
-    await apiCall(`${API_URL}/todos/${todoId}/subtasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title }),
-    });
-  };
-  hooks.deleteSubtask = async (todoId, subtaskId) => {
-    await apiCall(`${API_URL}/todos/${todoId}/subtasks/${subtaskId}`, {
-      method: "DELETE",
-    });
-  };
-  hooks.addTodo = addTodo;
-  hooks.submitTaskComposerCapture = submitTaskComposerCapture;
-  hooks.addUndoAction = addUndoAction;
-  hooks.renderTodos = renderTodos;
-  hooks.validateTodoTitle = validateTodoTitle;
-  hooks.toDateInputValue = toDateInputValue;
-  hooks.toIsoFromDateInput = toIsoFromDateInput;
-  hooks.openTodoDrawer = openTodoDrawer;
-  hooks.closeTodoDrawer = closeTodoDrawer;
-  hooks.seedDrawerDraft = seedDrawerDraft;
-  hooks.openTaskPage = openTaskPage;
-  hooks.closeTaskPage = closeTaskPage;
-  hooks.syncTaskPageRouteFromLocation = syncTaskPageRouteFromLocation;
-  hooks.renderInlineTaskEditor = renderInlineTaskEditor;
-  hooks.renderTodoRowHtml = renderTodoRowHtml;
-  hooks.renderTaskPageSurface = renderTaskPageSurface;
-  hooks.mountTaskPageDependsPicker = mountTaskPageDependsPicker;
-  // drawerUi → projectsState
-  hooks.getAllProjects = getAllProjects;
-  hooks.normalizeProjectPath = normalizeProjectPath;
-  hooks.renderProjectOptionEntry = renderProjectOptionEntry;
-  hooks.getProjectRecordByName = getProjectRecordByName;
-  // drawerUi → overlayManager
-  hooks.openEditTodoModal = openEditTodoModal;
-  // overlayManager → todosService
-  hooks.toDateTimeLocalValue = toDateTimeLocalValue;
-  hooks.updateProjectSelectOptions = updateProjectSelectOptions;
-  // overlayManager → filterLogic
-  hooks.syncTodoDrawerStateWithRender = syncTodoDrawerStateWithRender;
-  // quickEntry → todosService
-  hooks.getComposerDependsOnIds = getComposerDependsOnIds;
-  // Utility hooks (from window.Utils / aiSuggestionUtils)
-  hooks.escapeHtml = escapeHtml;
-  hooks.showMessage = showMessage;
-  hooks.parseApiBody = parseApiBody;
-  hooks.normalizeProjectPath = normalizeProjectPath;
-  hooks.expandProjectTree = expandProjectTree;
-  hooks.compareProjectPaths = compareProjectPaths;
-  hooks.getProjectLeafName = getProjectLeafName;
-  hooks.PROJECT_PATH_SEPARATOR = PROJECT_PATH_SEPARATOR;
-  // AI utility hooks
-  hooks.labelForType = labelForType;
-  hooks.shouldRenderTypeForSurface = shouldRenderTypeForSurface;
-  hooks.needsConfirmation = needsConfirmation;
-  hooks.truncateRationale = truncateRationale;
-  hooks.capSuggestions = capSuggestions;
-  hooks.sortSuggestions = sortSuggestions;
-  hooks.confidenceLabel = confidenceLabel;
-  hooks.confidenceBand = confidenceBand;
-  hooks.renderLintChip = renderLintChip;
-  hooks.renderAiDebugMeta = renderAiDebugMeta;
-  hooks.renderAiDebugSuggestionId = renderAiDebugSuggestionId;
-  hooks.lintTodoFields = lintTodoFields;
-  hooks.emitAiSuggestionUndoTelemetry = emitAiSuggestionUndoTelemetry;
-  // Config hooks
-  hooks.API_URL = API_URL;
-  hooks.AI_DEBUG_ENABLED = AI_DEBUG_ENABLED;
-  hooks.FEATURE_ENHANCED_TASK_CRITIC = FEATURE_ENHANCED_TASK_CRITIC;
-  hooks.FEATURE_TASK_DRAWER_DECISION_ASSIST =
-    FEATURE_TASK_DRAWER_DECISION_ASSIST;
-  hooks.MOBILE_DRAWER_MEDIA_QUERY = MOBILE_DRAWER_MEDIA_QUERY;
-  hooks.apiCall = apiCall;
-  hooks.fetchWithTimeout = fetchWithTimeout;
-  hooks.apiCallWithTimeout = apiCallWithTimeout;
-  hooks.isAbortError = isAbortError;
-  // authUi cross-module hooks
-  hooks.switchView = switchView;
-  hooks.closeCommandPalette = closeCommandPalette;
-  hooks.resetOnCreateAssistState = OnCreateAssist.resetOnCreateAssistState;
-  hooks.clearPlanDraftState = clearPlanDraftState;
-  hooks.setTodosViewBodyState = setTodosViewBodyState;
-  hooks.setSettingsPaneVisible = setSettingsPaneVisible;
-  hooks.setFeedbackPaneVisible = setFeedbackPaneVisible;
-  hooks.setAdminPaneVisible = setAdminPaneVisible;
-  hooks.setProjectsRailCollapsed = setProjectsRailCollapsed;
-  hooks.readStoredRailCollapsedState = readStoredRailCollapsedState;
-  hooks.readStoredAiWorkspaceVisibleState = readStoredAiWorkspaceVisibleState;
-  hooks.readStoredAiWorkspaceCollapsedState =
-    readStoredAiWorkspaceCollapsedState;
-  hooks.setAiWorkspaceVisible = setAiWorkspaceVisible;
-  hooks.setAiWorkspaceCollapsed = setAiWorkspaceCollapsed;
-  hooks.closeMoreFilters = closeMoreFilters;
-  hooks.syncSidebarNavState = syncSidebarNavState;
-  hooks.loadAiSuggestions = loadAiSuggestions;
-  hooks.loadAiUsage = loadAiUsage;
-  hooks.loadAiInsights = loadAiInsights;
-  hooks.loadAiFeedbackSummary = loadAiFeedbackSummary;
-  hooks.readStoredQuickEntryPropertiesOpenState =
-    readStoredQuickEntryPropertiesOpenState;
-  hooks.loadUserPlanningPreferences = loadUserPlanningPreferences;
-  hooks.populateSoulPreferencesForm = populateSoulPreferencesForm;
-  hooks.updateCritiqueDraftButtonState = updateCritiqueDraftButtonState;
-  // railUi cross-module hooks
-  hooks.DialogManager = DialogManager;
-  hooks.ensureTodosShellActive = ensureTodosShellActive;
-  hooks.getRailPresentationMode = getRailPresentationMode;
-  hooks.isMobileViewport = isMobileViewport;
-  hooks.onResponsiveLayoutChanged = () => {
-    renderProjectsRail();
-  };
-  // filterLogic → render sub-hooks
-  hooks.renderProjectsRail = renderProjectsRail;
-  hooks.patchProjectsRailView = patchProjectsRailView;
-  hooks.renderHomeDashboard = renderHomeDashboard;
-  hooks.renderInboxView = renderInboxView;
-  hooks.loadInboxItems = loadInboxItems;
-  hooks.isTriageWorkspaceActive = isTriageWorkspaceActive;
-  hooks.isTodoNeedsOrganizing = isTodoNeedsOrganizing;
-  hooks.renderWeeklyReviewView = renderWeeklyReviewView;
-  hooks.renderCleanupView = renderCleanupView;
-  hooks.updateBulkActionsVisibility = updateBulkActionsVisibility;
-  hooks.updateAiWorkspaceStatusChip = updateAiWorkspaceStatusChip;
-  // projectsState → rail
-  hooks.renderProjectsRail = renderProjectsRail;
-  hooks.closeProjectsRailSheet = closeProjectsRailSheet;
-  // projectsState path utilities
-  hooks.renderProjectOptionEntry = renderProjectOptionEntry;
-  hooks.getSelectedProjectKey = getSelectedProjectKey;
-  // createInitialTaskDrawerAssistState for drawerUi reset
-  hooks.createInitialTaskDrawerAssistState = createInitialTaskDrawerAssistState;
-  // Additional hooks needed by domain modules
-  hooks.buildUrl = ApiClientModule.buildUrl;
-  hooks.buildHomeTileListByKey = buildHomeTileListByKey;
-  // New module hooks (task 149)
-  hooks.hideMessage = hideMessage;
-  // hooks.moveTodoToHeading, hooks.reorderProjectHeadings — set by initProjectsFeature
-  hooks.openTodoDrawer = openTodoDrawer;
-  hooks.clearHomeListDrilldown = clearHomeListDrilldown;
-  hooks.impactRankForSurface = impactRankForSurface;
-  hooks.ON_CREATE_SURFACE = ON_CREATE_SURFACE;
-  hooks.TODAY_PLAN_SURFACE = TODAY_PLAN_SURFACE;
-  hooks.HOME_FOCUS_SURFACE = HOME_FOCUS_SURFACE;
-  hooks.isKnownSuggestionType = isKnownSuggestionType;
-  hooks.initializeDrawerDraft = initializeDrawerDraft;
-  hooks.setDrawerSaveState = setDrawerSaveState;
-  hooks.getTodoDrawerElements = getTodoDrawerElements;
-  hooks.escapeSelectorValue = TaskDrawerAssist.escapeSelectorValue;
-  hooks.buildIcsContentForTodos = buildIcsContentForTodos;
-  hooks.buildIcsFilename = buildIcsFilename;
-  hooks.clearOnCreateDismissed = OnCreateAssist.clearOnCreateDismissed;
-  hooks.closeTaskComposer = closeTaskComposer;
-  hooks.filterTodosList = filterTodosList;
-  hooks.getHomeDrilldownLabel = getHomeDrilldownLabel;
-  hooks.getProjectHeadings = getProjectHeadings;
-  hooks.getTodoById = TaskDrawerAssist.getTodoById;
-  hooks.getVisibleTodos = getVisibleTodos;
-  hooks.isInternalCategoryPath = isInternalCategoryPath;
-  hooks.loadOnCreateDecisionAssist = OnCreateAssist.loadOnCreateDecisionAssist;
-  hooks.openTaskComposer = openTaskComposer;
-  hooks.parseQuickEntryNaturalDue = parseQuickEntryNaturalDue;
-  hooks.removeMatchedDatePhraseFromTitle = removeMatchedDatePhraseFromTitle;
-  hooks.processQuickEntryNaturalDate = processQuickEntryNaturalDate;
-  hooks.renderOnCreateAssistRow = OnCreateAssist.renderOnCreateAssistRow;
-  hooks.renderProjectOptions = renderProjectOptions;
-  // hooks.renderSubtasks — set by initTodosFeature
-  hooks.getProjectRecordByName = getProjectRecordByName;
-  hooks.renderTodoChips = TaskDrawerAssist.renderTodoChips;
-  hooks.resetQuickEntryNaturalDueState = resetQuickEntryNaturalDueState;
-  hooks.selectProjectFromRail = selectProjectFromRail;
-  hooks.selectWorkspaceView = selectWorkspaceView;
-  hooks.triggerPlanToday = generateDayPlan;
-  hooks.toggleAiWorkspace = toggleAiWorkspace;
-  hooks.refreshHomeFocus = refreshHomeFocusSuggestions;
-  hooks.loadMcpSessions = loadMcpSessions;
-  hooks.exportCalendar = () => {
-    const btn = document.getElementById("exportIcsButton");
-    if (btn instanceof HTMLElement) btn.click();
-  };
-  // hooks.setPriority — set by initTodosFeature
-  hooks.setQuickEntryPropertiesOpen = setQuickEntryPropertiesOpen;
-  hooks.setSelectedProjectKey = setSelectedProjectKey;
-  hooks.showInputDialog = showInputDialog;
-  hooks.syncProjectHeaderActions = syncProjectHeaderActions;
-  hooks.syncQuickEntryProjectActions = syncQuickEntryProjectActions;
-  hooks.prepareFeedbackView = prepareFeedbackView;
-  hooks.syncFeedbackFormCopy = syncFeedbackFormCopy;
-  hooks.updateHeaderFromVisibleTodos = updateHeaderFromVisibleTodos;
-  hooks.updateQuickEntryPropertiesSummary = updateQuickEntryPropertiesSummary;
-  hooks.updateTaskComposerDueClearButton = updateTaskComposerDueClearButton;
-  hooks.updateTopbarProjectsButton = updateTopbarProjectsButton;
-})();
+// --- registerWindowBridge deps ---
+registerWindowBridge({
+  DragDrop,
+  addPlanTasksToTodos,
+  addTodo,
+  advanceOnboarding,
+  applyCritiqueSuggestion,
+  applyCritiqueSuggestionMode,
+  applyHomeFocusSuggestion,
+  archiveProject,
+  backOnboardingStep,
+  cancelTaskComposer,
+  changeUserRole,
+  clearBrainDumpInput,
+  clearFilters,
+  clearTaskComposerDueDate,
+  closeEditTodoModal,
+  closeProfilePanel,
+  closeShortcutsOverlay,
+  closeTaskComposer,
+  completeSelected,
+  confirmAdminFeedbackDuplicate,
+  createHeadingForSelectedProject,
+  createProject,
+  createSubproject,
+  critiqueDraftWithAi,
+  deleteSelected,
+  deleteUser,
+  dismissCritiqueSuggestion,
+  dismissHomeFocusSuggestion,
+  dismissOnboarding,
+  dismissPlanSuggestion,
+  draftPlanFromBrainDumpWithAi,
+  dropTodoFromList,
+  exportVisibleTodosToIcs,
+  filterTodos,
+  finishOnboardingExamples,
+  finishOnboardingStep2,
+  generatePlanWithAi,
+  handleAdminBootstrap,
+  handleAppleLogin,
+  handleForgotPassword,
+  handleGoogleLogin,
+  handleLogin,
+  handleRegister,
+  handleResendOtp,
+  handleResetPassword,
+  handleSaveSoulPreferences,
+  handleSendOtp,
+  handleSetPassword,
+  handleUnlinkProvider,
+  handleUpdateProfile,
+  handleVerifyOtp,
+  hooks,
+  ignoreDuplicateAndPromote,
+  initOnboarding,
+  isOnboardingActive,
+  logout,
+  markTodoNotNow,
+  moveTodoLater,
+  moveTodoToProject,
+  onboardingAddTask,
+  onboardingSetDueDate,
+  onboardingStep1Next,
+  openAiWorkspaceForBrainDump,
+  openAiWorkspaceForGoalPlan,
+  openDrawerDangerZone,
+  openEditTodoFromKebab,
+  openHomeProject,
+  openHomeTileList,
+  openProjectsFromTopbar,
+  openTaskComposer,
+  openTodoDrawer,
+  openTodoFromHomeTile,
+  openTodoFromKebab,
+  performUndo,
+  promoteAdminFeedback,
+  refreshPrioritiesTile,
+  renameProjectTree,
+  resendVerification,
+  resetPlanDraft,
+  retryAdminFeedbackAction,
+  retryLoadTodos,
+  retryMarkPlanSuggestionAccepted,
+  retryTodaysPlan,
+  revokeAllMcpSessions,
+  revokeMcpSession,
+  runAdminFeedbackAutomation,
+  runAdminFeedbackDuplicateCheck,
+  runAdminFeedbackPromotionPreview,
+  runAdminFeedbackTriage,
+  saveAdminFeedbackAutomationConfig,
+  saveEditedTodo,
+  selectAdminFeedback,
+  selectAllPlanDraftTasks,
+  selectNoPlanDraftTasks,
+  setActiveTagFilter,
+  setAdminFeedbackFilter,
+  setCritiqueFeedbackReason,
+  setDateView,
+  setNormalDayMode,
+  setOnboardingDailyRitual,
+  setOnboardingEnergyPattern,
+  setOnboardingPlanningStyle,
+  setOnboardingTone,
+  setPlanDraftTaskSelected,
+  setSelectedProjectKey,
+  setUpcomingTab,
+  showForgotPassword,
+  showLogin,
+  showPhoneLogin,
+  skipOnboardingExamples,
+  startRescueMode,
+  startSmallerForTodo,
+  state,
+  submitInlineCapture,
+  submitTaskComposerCapture,
+  switchAuthTab,
+  switchView,
+  syncSheetSearch,
+  toggleOnboardingArea,
+  toggleOnboardingFailureMode,
+  toggleOnboardingGoodDayTheme,
+  toggleProfilePanel,
+  toggleSelectAll,
+  toggleSelectTodo,
+  toggleShortcuts,
+  toggleTheme,
+  toggleTodo,
+  toggleTodoKebab,
+  unarchiveProject,
+  updateAdminFeedbackStatus,
+  updatePlanDraftTaskDescription,
+  updatePlanDraftTaskDueDate,
+  updatePlanDraftTaskPriority,
+  updatePlanDraftTaskProject,
+  updatePlanDraftTaskTitle,
+});
 
-// ---------------------------------------------------------------------------
-// Window bridge — all functions referenced via data-onclick / data-onsubmit /
-// data-onchange in HTML must be on window because app.js is now a module
-// (modules do not expose top-level declarations to global scope).
-// ---------------------------------------------------------------------------
-window.toggleTheme = toggleTheme;
-window.revokeMcpSession = revokeMcpSession;
-window.revokeAllMcpSessions = revokeAllMcpSessions;
-// toggleSimpleMode removed — single control is #uiModeSelect via setUiMode()
-window.openProjectsFromTopbar = openProjectsFromTopbar;
-// Auth forms
-window.switchAuthTab = switchAuthTab;
-window.showForgotPassword = showForgotPassword;
-window.showLogin = showLogin;
-window.showAuthPage = function showAuthPage(tab) {
-  var landing = document.getElementById("landingPage");
-  var authForm = document.getElementById("authFormSection");
-  if (landing) landing.classList.remove("auth-landing-active");
-  if (authForm) authForm.classList.add("auth-page--active");
-  switchAuthTab(tab || "login");
-  var scroll = document.getElementById("appMainScroll");
-  if (scroll) scroll.scrollTop = 0;
-};
-window.showLandingPage = function showLandingPage() {
-  var landing = document.getElementById("landingPage");
-  var authForm = document.getElementById("authFormSection");
-  if (landing) landing.classList.add("auth-landing-active");
-  if (authForm) authForm.classList.remove("auth-page--active");
-  var scroll = document.getElementById("appMainScroll");
-  if (scroll) scroll.scrollTop = 0;
-};
-window.handleLogin = handleLogin;
-window.handleRegister = handleRegister;
-window.handleForgotPassword = handleForgotPassword;
-window.handleResetPassword = handleResetPassword;
-window.resendVerification = resendVerification;
-// Social / phone auth
-window.handleGoogleLogin = handleGoogleLogin;
-window.handleAppleLogin = handleAppleLogin;
-window.showPhoneLogin = showPhoneLogin;
-window.handleSendOtp = handleSendOtp;
-window.handleVerifyOtp = handleVerifyOtp;
-window.handleResendOtp = handleResendOtp;
-// Account management
-window.handleUnlinkProvider = handleUnlinkProvider;
-window.handleSetPassword = handleSetPassword;
-// Todo CRUD
-window.addTodo = addTodo;
-window.submitTaskComposerCapture = submitTaskComposerCapture;
-window.handleInlineQuickAddKeyPress = function handleInlineQuickAddKeyPress(
-  event,
-) {
-  if (event.key === "Enter") {
-    event.preventDefault();
-    submitInlineCapture();
-  }
-};
-window.filterTodos = filterTodos;
-window.clearFilters = clearFilters;
-window.setDateView = setDateView;
-// handleTodoKeyPress — registered by initTodosFeature
-window.exportVisibleTodosToIcs = exportVisibleTodosToIcs;
-// Edit modal
-window.saveEditedTodo = saveEditedTodo;
-window.closeEditTodoModal = closeEditTodoModal;
-// Bulk actions
-window.toggleSelectAll = toggleSelectAll;
-window.completeSelected = completeSelected;
-window.deleteSelected = deleteSelected;
-window.performUndo = performUndo;
-// Todo drawer — opened by clicking todo-content via data-onclick
-window.openTodoDrawer = openTodoDrawer;
-// Task composer
-window.openTaskComposer = openTaskComposer;
-window.closeTaskComposer = closeTaskComposer;
-window.cancelTaskComposer = cancelTaskComposer;
-// toggleNotesInput — registered by initTodosFeature
-// setPriority — registered by initTodosFeature
-window.clearTaskComposerDueDate = clearTaskComposerDueDate;
-// Projects
-window.createProject = createProject;
-window.createSubproject = createSubproject;
-window.renameProjectTree = renameProjectTree;
-// Project key selection (used directly by UI tests via page.evaluate)
-window.setSelectedProjectKey = setSelectedProjectKey;
-window.toggleTagFilter = function toggleTagFilter(tag) {
-  var current = state.activeTagFilter;
-  setActiveTagFilter(current === tag ? "" : tag);
-};
-// Views / navigation
-window.switchView = switchView;
-window.toggleProfilePanel = toggleProfilePanel;
-window.profileNavTo = function profileNavTo(view) {
-  closeProfilePanel({ restoreFocus: false });
-  switchView(view);
-};
-window.profileToggleTheme = function profileToggleTheme() {
-  ThemeModule.toggleTheme();
-  // Update the label inside the panel
-  var isDark = document.body.classList.contains("dark-mode");
-  var label = document.querySelector(".dock-theme-label");
-  if (label) label.textContent = isDark ? "Light mode" : "Dark mode";
-};
-window.logout = logout;
-// Feedback form moved to standalone /feedback/new page — bridges removed
-// Shortcuts / UI toggles
-window.toggleShortcuts = toggleShortcuts;
-window.closeShortcutsOverlay = closeShortcutsOverlay;
-// Admin
-window.handleAdminBootstrap = handleAdminBootstrap;
-// Profile
-window.handleUpdateProfile = handleUpdateProfile;
-window.handleSaveSoulPreferences = handleSaveSoulPreferences;
-// UI Mode
-window.setUiMode = function setUiMode(mode) {
-  const isSimple = mode === "simple";
-  document.body.classList.toggle("simple-mode", isSimple);
-  try {
-    localStorage.setItem("todos:ui-mode", mode);
-    localStorage.removeItem("simpleMode"); // clean up legacy key
-  } catch {}
-  // Sync both UI controls (both are <select> elements now)
-  const select = document.getElementById("uiModeSelect");
-  if (select instanceof HTMLSelectElement) select.value = mode;
-  const toggle = document.getElementById("simpleModeToggle");
-  if (toggle instanceof HTMLSelectElement) toggle.value = mode;
-  // Redirect away from hidden workspace views by clicking the "All" button
-  if (isSimple) {
-    const active = document.querySelector(
-      ".workspace-view-item.projects-rail-item--active",
-    );
-    const view = active?.getAttribute("data-workspace-view");
-    if (view && ["home", "triage"].includes(view)) {
-      const allBtn = document.querySelector(
-        '[data-workspace-view="all"].workspace-view-item',
-      );
-      if (allBtn instanceof HTMLElement) allBtn.click();
-    }
-  }
-};
-// AI workspace
-window.openAiWorkspaceForBrainDump = openAiWorkspaceForBrainDump;
-window.openAiWorkspaceForGoalPlan = openAiWorkspaceForGoalPlan;
-window.critiqueDraftWithAi = critiqueDraftWithAi;
-window.generatePlanWithAi = generatePlanWithAi;
-window.draftPlanFromBrainDumpWithAi = draftPlanFromBrainDumpWithAi;
-window.clearBrainDumpInput = clearBrainDumpInput;
-// Search / filters
-window.syncSheetSearch = syncSheetSearch;
-// Todo interactions (from dynamically-rendered HTML)
-window.retryLoadTodos = retryLoadTodos;
-window.toggleTodo = toggleTodo;
-// toggleNotes — registered by initTodosFeature
-window.toggleSelectTodo = toggleSelectTodo;
-// toggleSubtask — registered by initTodosFeature
-window.toggleTodoKebab = toggleTodoKebab;
-window.openTodoFromKebab = openTodoFromKebab;
-window.openEditTodoFromKebab = openEditTodoFromKebab;
-window.openDrawerDangerZone = openDrawerDangerZone;
-window.openTodoFromHomeTile = openTodoFromHomeTile;
-window.moveTodoToProject = moveTodoToProject;
-// moveTodoToHeading, moveProjectHeading — registered by initProjectsFeature
-// Drag and drop
-window.handleDragStart = DragDrop.handleDragStart;
-window.handleDragOver = DragDrop.handleDragOver;
-window.handleDrop = DragDrop.handleDrop;
-window.handleDragEnd = DragDrop.handleDragEnd;
-window.handleHeadingDragStart = DragDrop.handleHeadingDragStart;
-window.handleHeadingDragOver = DragDrop.handleHeadingDragOver;
-window.handleHeadingDrop = DragDrop.handleHeadingDrop;
-window.handleHeadingDragEnd = DragDrop.handleHeadingDragEnd;
-// AI critique / plan
-window.applyCritiqueSuggestion = applyCritiqueSuggestion;
-window.applyCritiqueSuggestionMode = applyCritiqueSuggestionMode;
-window.dismissCritiqueSuggestion = dismissCritiqueSuggestion;
-window.setCritiqueFeedbackReason = setCritiqueFeedbackReason;
-// aiBreakdownTodo — registered by initTodosFeature
-window.dismissPlanSuggestion = dismissPlanSuggestion;
-window.resetPlanDraft = resetPlanDraft;
-window.addPlanTasksToTodos = addPlanTasksToTodos;
-window.selectAllPlanDraftTasks = selectAllPlanDraftTasks;
-window.selectNoPlanDraftTasks = selectNoPlanDraftTasks;
-window.setPlanDraftTaskSelected = setPlanDraftTaskSelected;
-window.updatePlanDraftTaskTitle = updatePlanDraftTaskTitle;
-window.updatePlanDraftTaskDescription = updatePlanDraftTaskDescription;
-window.updatePlanDraftTaskDueDate = updatePlanDraftTaskDueDate;
-window.updatePlanDraftTaskPriority = updatePlanDraftTaskPriority;
-window.updatePlanDraftTaskProject = updatePlanDraftTaskProject;
-window.retryMarkPlanSuggestionAccepted = retryMarkPlanSuggestionAccepted;
-// Projects / headings
-window.createHeadingForSelectedProject = createHeadingForSelectedProject;
-window.archiveProject = archiveProject;
-window.unarchiveProject = unarchiveProject;
-// Home workspace
-window.openHomeProject = openHomeProject;
-window.openHomeTileList = openHomeTileList;
-window.startSmallerForTodo = startSmallerForTodo;
-window.moveTodoLater = moveTodoLater;
-window.markTodoNotNow = markTodoNotNow;
-window.dropTodoFromList = dropTodoFromList;
-window.startRescueMode = startRescueMode;
-window.setNormalDayMode = setNormalDayMode;
-window.retryTodaysPlan = retryTodaysPlan;
-window.setUpcomingTab = setUpcomingTab;
-window.refreshPrioritiesTile = refreshPrioritiesTile;
-window.applyHomeFocusSuggestion = applyHomeFocusSuggestion;
-window.dismissHomeFocusSuggestion = dismissHomeFocusSuggestion;
-// Onboarding flow
-window.initOnboarding = initOnboarding;
-window.restartOnboarding = async function () {
-  try {
-    await hooks.apiCall(`${hooks.API_URL}/users/me/onboarding/restart`, {
-      method: "POST",
-    });
-    // Reset client state and re-init
-    if (state.currentUser) {
-      state.currentUser.onboardingCompletedAt = null;
-      state.currentUser.onboardingStep = 0;
-    }
-    hooks.selectWorkspaceView?.("home");
-    window.location.reload();
-  } catch (e) {
-    console.error("Restart onboarding failed:", e);
-    hooks.showMessage?.("profileMessage", "Could not restart tour", "error");
-  }
-};
-window.isOnboardingActive = isOnboardingActive;
-window.advanceOnboarding = advanceOnboarding;
-window.dismissOnboarding = dismissOnboarding;
-window.toggleOnboardingArea = toggleOnboardingArea;
-window.setOnboardingTone = setOnboardingTone;
-window.onboardingStep1Next = onboardingStep1Next;
-window.toggleOnboardingFailureMode = toggleOnboardingFailureMode;
-window.toggleOnboardingGoodDayTheme = toggleOnboardingGoodDayTheme;
-window.setOnboardingPlanningStyle = setOnboardingPlanningStyle;
-window.setOnboardingEnergyPattern = setOnboardingEnergyPattern;
-window.setOnboardingDailyRitual = setOnboardingDailyRitual;
-window.backOnboardingStep = backOnboardingStep;
-window.finishOnboardingStep2 = finishOnboardingStep2;
-window.onboardingAddTask = onboardingAddTask;
-window.finishOnboardingExamples = finishOnboardingExamples;
-window.skipOnboardingExamples = skipOnboardingExamples;
-window.onboardingSetDueDate = onboardingSetDueDate;
-// Admin
-window.changeUserRole = changeUserRole;
-window.deleteUser = deleteUser;
-window.selectAdminFeedback = selectAdminFeedback;
-window.setAdminFeedbackFilter = setAdminFeedbackFilter;
-window.runAdminFeedbackDuplicateCheck = runAdminFeedbackDuplicateCheck;
-window.confirmAdminFeedbackDuplicate = confirmAdminFeedbackDuplicate;
-window.ignoreDuplicateAndPromote = ignoreDuplicateAndPromote;
-window.runAdminFeedbackPromotionPreview = runAdminFeedbackPromotionPreview;
-window.promoteAdminFeedback = promoteAdminFeedback;
-window.retryAdminFeedbackAction = retryAdminFeedbackAction;
-window.runAdminFeedbackTriage = runAdminFeedbackTriage;
-window.updateAdminFeedbackStatus = updateAdminFeedbackStatus;
-window.saveAdminFeedbackAutomationConfig = saveAdminFeedbackAutomationConfig;
-window.runAdminFeedbackAutomation = runAdminFeedbackAutomation;
-
-// ---------------------------------------------------------------------------
-// App bootstrap
-// ---------------------------------------------------------------------------
-function init() {
-  console.warn("[init] START");
-  initTodosFeature();
-  initProjectsFeature();
-  initTaskDetailSurface();
-  bindResponsiveLayoutState();
-  renderSidebarNavigation();
-  bindCriticalHandlers();
-  bindTodoDrawerHandlers();
-  bindTaskDetailSurfaceHandlers();
-  bindInboxHandlers();
-  bindWeeklyReviewHandlers();
-  bindCleanupHandlers();
-  bindProjectsRailHandlers();
-  bindCommandPaletteHandlers();
-  bindTaskComposerHandlers();
-  bindCaptureComposerHandlers();
-  bindDockHandlers();
-  OnCreateAssist.bindOnCreateAssistHandlers();
-  bindQuickEntryNaturalDateHandlers();
-
-  // Handle social login callback before anything else — the URL contains
-  // ?auth=success&token=...&refreshToken=... after Google/Apple OAuth redirect.
-  handleSocialCallback();
-
-  // Check for password-reset token in URL (only when NOT a social auth callback)
-  const urlParams = new URLSearchParams(window.location.search);
-  const isSocialCallback = urlParams.has("auth");
-  const resetToken = !isSocialCallback ? urlParams.get("token") : null;
-
-  if (resetToken) {
-    showResetPassword(resetToken);
-    return;
-  }
-
-  // Auto-show auth form when ?tab= param is present (bypasses landing page)
-  const tabParam = urlParams.get("tab");
-  if (tabParam && typeof window.showAuthPage === "function") {
-    window.showAuthPage(tabParam);
-  }
-
-  const {
-    token,
-    refreshToken: refresh,
-    user,
-    invalidUserData,
-    error,
-  } = loadStoredSession();
-
-  if (invalidUserData) {
-    console.error("Invalid stored user data. Clearing auth state.", error);
-    persistSession({ authToken: null, refreshToken: null, currentUser: null });
-  }
-
-  // Listen for offline sync completion from service worker
-  if (navigator.serviceWorker) {
-    navigator.serviceWorker.addEventListener("message", (event) => {
-      if (event.data?.type === "offline-sync-complete") {
-        const { replayed, failed } = event.data;
-        if (replayed > 0) {
-          loadTodos();
-          hooks.showMessage?.(
-            "todosMessage",
-            `Synced ${replayed} offline task${replayed === 1 ? "" : "s"}${failed > 0 ? ` (${failed} failed)` : ""}`,
-            "success",
-          );
-        }
-      }
-    });
-    // Notify service worker when back online (fallback for no Background Sync)
-    window.addEventListener("online", () => {
-      navigator.serviceWorker.controller?.postMessage({
-        type: "online-reconnect",
-      });
-    });
-  }
-
-  if (token && user) {
-    state.authToken = token;
-    state.refreshToken = refresh;
-    state.currentUser = user;
-    setAuthState(AUTH_STATE.AUTHENTICATED);
-    showAppView();
-    trackEvent("session_start", { metadata: { source: "stored_session" } });
-    loadUserProfile();
-  } else if (token && !user) {
-    // Social login (Google/Apple) stores tokens but not the user object.
-    // Fetch the profile before giving up — if it succeeds we're authenticated.
-    state.authToken = token;
-    state.refreshToken = refresh;
-    setAuthState(AUTH_STATE.AUTHENTICATED);
-    showAppView();
-    loadUserProfile().catch(() => {
-      // Token was invalid or expired — fall back to login screen.
-      persistSession({
-        authToken: null,
-        refreshToken: null,
-        currentUser: null,
-      });
-      setAuthState(AUTH_STATE.UNAUTHENTICATED);
-    });
-  } else {
-    setAuthState(AUTH_STATE.UNAUTHENTICATED);
-  }
-  OnCreateAssist.renderOnCreateAssistRow();
-  setQuickEntryPropertiesOpen(readStoredQuickEntryPropertiesOpenState(), {
-    persist: false,
-  });
-  syncQuickEntryProjectActions();
-  renderProjectHeadingCreateButton();
-  renderQuickEntryNaturalDueChip();
-  handleVerificationStatusFromUrl();
-  // handleSocialCallback() moved earlier in init() — before resetToken check
-  initSocialLogin();
-  bindRailSearchFocusBehavior();
-}
-
-// Initialize theme immediately
-initTheme();
-// Initialize UI mode from localStorage (canonical key: todos:ui-mode)
-(function initUiMode() {
-  try {
-    let mode = localStorage.getItem("todos:ui-mode");
-    // One-time migration from legacy key
-    if (!mode) {
-      const legacy = localStorage.getItem("simpleMode");
-      if (legacy === "1") mode = "simple";
-      if (legacy !== null) localStorage.removeItem("simpleMode");
-    }
-    mode = mode || "advanced";
-    localStorage.setItem("todos:ui-mode", mode);
-    if (mode === "simple") document.body.classList.add("simple-mode");
-    const select = document.getElementById("uiModeSelect");
-    if (select instanceof HTMLSelectElement) select.value = mode;
-  } catch {}
-})();
-
-// Initialize on load
-registerServiceWorker();
-bindDeclarativeHandlers();
-init();
-
-// After init, redirect simple-mode users away from hidden workspace views
-if (document.body.classList.contains("simple-mode")) {
-  const active = document.querySelector(
-    ".workspace-view-item.projects-rail-item--active",
-  );
-  const view = active?.getAttribute("data-workspace-view");
-  if (view && ["home", "triage"].includes(view)) {
-    const allBtn = document.querySelector(
-      '[data-workspace-view="all"].workspace-view-item',
-    );
-    if (allBtn instanceof HTMLElement) allBtn.click();
-  }
-}
+// --- initApp deps ---
+initApp({
+  AUTH_STATE,
+  OnCreateAssist,
+  bindCaptureComposerHandlers,
+  bindCleanupHandlers,
+  bindCommandPaletteHandlers,
+  bindCriticalHandlers,
+  bindDockHandlers,
+  bindInboxHandlers,
+  bindProjectsRailHandlers,
+  bindQuickEntryNaturalDateHandlers,
+  bindRailSearchFocusBehavior,
+  bindResponsiveLayoutState,
+  bindTaskComposerHandlers,
+  bindTaskDetailSurfaceHandlers,
+  bindTodoDrawerHandlers,
+  bindWeeklyReviewHandlers,
+  handleSocialCallback,
+  handleVerificationStatusFromUrl,
+  hooks,
+  initProjectsFeature,
+  initSocialLogin,
+  initTaskDetailSurface,
+  initTheme,
+  initTodosFeature,
+  loadStoredSession,
+  loadTodos,
+  loadUserProfile,
+  persistSession,
+  readStoredQuickEntryPropertiesOpenState,
+  renderProjectHeadingCreateButton,
+  renderQuickEntryNaturalDueChip,
+  renderSidebarNavigation,
+  setAuthState,
+  setQuickEntryPropertiesOpen,
+  showAppView,
+  showResetPassword,
+  state,
+  syncQuickEntryProjectActions,
+  trackEvent,
+});
