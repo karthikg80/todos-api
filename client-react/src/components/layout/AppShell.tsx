@@ -2,11 +2,21 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
+import { useDarkMode } from "../../hooks/useDarkMode";
 import { Sidebar, type DateView } from "../projects/Sidebar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { TodoList } from "../todos/TodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
+import { BulkToolbar } from "../todos/BulkToolbar";
+import { SearchBar } from "../shared/SearchBar";
+import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
+import * as todosApi from "../../api/todos";
+
+interface UndoAction {
+  message: string;
+  onUndo: () => void;
+}
 
 function useIsMobile() {
   const [mobile, setMobile] = useState(window.innerWidth <= 700);
@@ -22,6 +32,7 @@ function useIsMobile() {
 export function AppShell() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
+  const { dark, toggle: toggleDarkMode } = useDarkMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeView, setActiveView] = useState<DateView>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
@@ -29,6 +40,12 @@ export function AppShell() {
   );
   const [activeTodoId, setActiveTodoId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
+
+  // Bulk selection
+  const [bulkMode, setBulkMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const {
     todos,
@@ -50,13 +67,10 @@ export function AppShell() {
       params.projectId = selectedProjectId;
     } else {
       switch (activeView) {
-        case "today": {
-          const today = new Date().toISOString().split("T")[0];
+        case "today":
           params.sortBy = "dueDate";
           params.sortOrder = "asc";
-          // Server doesn't support date range filter — filter client-side
           break;
-        }
         case "completed":
           params.completed = "true";
           break;
@@ -84,24 +98,37 @@ export function AppShell() {
     loadProjects();
   }, [loadProjects]);
 
-  // Client-side date filtering for "today" view
+  // Client-side filtering: date view + search
   const visibleTodos = useMemo(() => {
+    let filtered = todos;
+
     if (activeView === "today" && !selectedProjectId) {
       const today = new Date().toISOString().split("T")[0];
-      return todos.filter(
-        (t) =>
-          !t.completed &&
-          t.dueDate &&
-          t.dueDate.split("T")[0] <= today,
+      filtered = filtered.filter(
+        (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
       );
     }
-    return todos;
-  }, [todos, activeView, selectedProjectId]);
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (t) =>
+          t.title.toLowerCase().includes(q) ||
+          t.description?.toLowerCase().includes(q) ||
+          t.category?.toLowerCase().includes(q) ||
+          t.tags.some((tag) => tag.toLowerCase().includes(q)),
+      );
+    }
+
+    return filtered;
+  }, [todos, activeView, selectedProjectId, searchQuery]);
 
   const activeTodo = useMemo(
     () => todos.find((t) => t.id === activeTodoId) ?? null,
     [todos, activeTodoId],
   );
+
+  // --- Handlers ---
 
   const handleTodoClick = useCallback((id: string) => {
     setActiveTodoId(id);
@@ -111,28 +138,141 @@ export function AppShell() {
     setActiveTodoId(null);
   }, []);
 
+  const handleToggle = useCallback(
+    async (id: string, completed: boolean) => {
+      const todo = todos.find((t) => t.id === id);
+      await toggleTodo(id, completed);
+      if (todo) {
+        setUndoAction({
+          message: completed
+            ? `"${todo.title}" completed`
+            : `"${todo.title}" marked incomplete`,
+          onUndo: () => toggleTodo(id, !completed),
+        });
+      }
+    },
+    [todos, toggleTodo],
+  );
+
   const handleDeleteRequest = useCallback((id: string) => {
     setDeleteTarget(id);
   }, []);
 
   const handleConfirmDelete = useCallback(async () => {
     if (!deleteTarget) return;
+    const todo = todos.find((t) => t.id === deleteTarget);
     await removeTodo(deleteTarget);
     if (activeTodoId === deleteTarget) setActiveTodoId(null);
     setDeleteTarget(null);
-  }, [deleteTarget, activeTodoId, removeTodo]);
+    if (todo) {
+      setUndoAction({
+        message: `"${todo.title}" deleted`,
+        onUndo: () => {
+          // Re-create (best effort — server assigns new ID)
+          addTodo({ title: todo.title, projectId: todo.projectId });
+        },
+      });
+    }
+  }, [deleteTarget, activeTodoId, todos, removeTodo, addTodo]);
 
   const handleSelectView = useCallback((view: DateView) => {
     setActiveView(view);
     setActiveTodoId(null);
+    setBulkMode(false);
+    setSelectedIds(new Set());
   }, []);
 
   const handleSelectProject = useCallback((id: string | null) => {
     setSelectedProjectId(id);
     setActiveTodoId(null);
+    setBulkMode(false);
+    setSelectedIds(new Set());
   }, []);
 
-  // Header title
+  // --- Bulk actions ---
+
+  const handleBulkSelect = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+    setBulkMode(true);
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedIds.size === visibleTodos.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(visibleTodos.map((t) => t.id)));
+    }
+  }, [selectedIds.size, visibleTodos]);
+
+  const handleBulkComplete = useCallback(async () => {
+    const ids = [...selectedIds];
+    await Promise.all(ids.map((id) => todosApi.updateTodo(id, { completed: true })));
+    setBulkMode(false);
+    setSelectedIds(new Set());
+    loadTodos(queryParams);
+  }, [selectedIds, loadTodos, queryParams]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = [...selectedIds];
+    await Promise.all(ids.map((id) => todosApi.deleteTodo(id)));
+    setBulkMode(false);
+    setSelectedIds(new Set());
+    loadTodos(queryParams);
+  }, [selectedIds, loadTodos, queryParams]);
+
+  const handleCancelBulk = useCallback(() => {
+    setBulkMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  // --- Keyboard shortcuts ---
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      // Escape: close drawer, cancel bulk, close mobile nav
+      if (e.key === "Escape") {
+        if (activeTodoId) {
+          setActiveTodoId(null);
+        } else if (bulkMode) {
+          handleCancelBulk();
+        } else if (mobileNavOpen) {
+          setMobileNavOpen(false);
+        }
+        return;
+      }
+
+      // Ctrl/Cmd+K: focus search
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        document.getElementById("searchInput")?.focus();
+        return;
+      }
+
+      // 'n' when no input focused: focus quick entry
+      if (
+        e.key === "n" &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        document.activeElement?.tagName !== "INPUT" &&
+        document.activeElement?.tagName !== "TEXTAREA" &&
+        document.activeElement?.tagName !== "SELECT"
+      ) {
+        e.preventDefault();
+        document.getElementById("todoInput")?.focus();
+      }
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [activeTodoId, bulkMode, mobileNavOpen, handleCancelBulk]);
+
+  // --- Derived ---
+
   const headerTitle = selectedProjectId
     ? projects.find((p) => p.id === selectedProjectId)?.name ?? "Project"
     : activeView === "all"
@@ -156,7 +296,7 @@ export function AppShell() {
   );
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${bulkMode ? " is-bulk-selecting" : ""}`}>
       {/* Desktop sidebar */}
       {!isMobile && <aside className="app-sidebar">{sidebarContent}</aside>}
 
@@ -191,15 +331,25 @@ export function AppShell() {
               ☰
             </button>
             <span className="app-header__title">{headerTitle}</span>
-            {user && (
+            <div style={{ marginLeft: "auto", display: "flex", gap: "var(--s-2)" }}>
               <button
                 className="btn"
-                style={{ marginLeft: "auto", fontSize: "var(--fs-label)" }}
-                onClick={logout}
+                onClick={toggleDarkMode}
+                aria-label="Toggle dark mode"
+                style={{ fontSize: "var(--fs-label)" }}
               >
-                Logout
+                {dark ? "☀️" : "🌙"}
               </button>
-            )}
+              {user && (
+                <button
+                  className="btn"
+                  style={{ fontSize: "var(--fs-label)" }}
+                  onClick={logout}
+                >
+                  Logout
+                </button>
+              )}
+            </div>
           </div>
         )}
 
@@ -214,6 +364,15 @@ export function AppShell() {
                 ? `${visibleTodos.filter((t) => !t.completed).length} tasks`
                 : ""}
             </span>
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+            <button
+              className="btn"
+              onClick={toggleDarkMode}
+              aria-label="Toggle dark mode"
+              style={{ fontSize: "var(--fs-label)" }}
+            >
+              {dark ? "☀️" : "🌙"}
+            </button>
             {user && (
               <button
                 className="btn"
@@ -226,10 +385,30 @@ export function AppShell() {
           </header>
         )}
 
-        <QuickEntry
-          projectId={selectedProjectId}
-          onAdd={addTodo}
-        />
+        {/* Bulk actions toolbar */}
+        {bulkMode && (
+          <BulkToolbar
+            selectedCount={selectedIds.size}
+            totalCount={visibleTodos.length}
+            allSelected={
+              selectedIds.size === visibleTodos.length &&
+              visibleTodos.length > 0
+            }
+            onSelectAll={handleSelectAll}
+            onComplete={handleBulkComplete}
+            onDelete={handleBulkDelete}
+            onCancel={handleCancelBulk}
+          />
+        )}
+
+        <QuickEntry projectId={selectedProjectId} onAdd={addTodo} />
+
+        {/* Mobile search */}
+        {isMobile && (
+          <div style={{ padding: "var(--s-2) var(--s-4)" }}>
+            <SearchBar value={searchQuery} onChange={setSearchQuery} />
+          </div>
+        )}
 
         <div className="app-content">
           <TodoList
@@ -237,10 +416,13 @@ export function AppShell() {
             loadState={loadState}
             errorMessage={errorMessage}
             activeTodoId={activeTodoId}
-            onToggle={toggleTodo}
+            isBulkMode={bulkMode}
+            selectedIds={selectedIds}
+            onToggle={handleToggle}
             onClick={handleTodoClick}
             onKebab={handleTodoClick}
             onRetry={() => loadTodos(queryParams)}
+            onSelect={handleBulkSelect}
           />
         </div>
       </div>
@@ -260,6 +442,8 @@ export function AppShell() {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+
+      <UndoToast action={undoAction} onDismiss={() => setUndoAction(null)} />
     </div>
   );
 }

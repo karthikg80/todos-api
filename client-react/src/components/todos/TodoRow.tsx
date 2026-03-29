@@ -3,9 +3,12 @@ import type { Todo } from "../../types";
 interface Props {
   todo: Todo;
   isActive: boolean;
+  isBulkMode: boolean;
+  isSelected: boolean;
   onToggle: (id: string, completed: boolean) => void;
   onClick: (id: string) => void;
   onKebab: (id: string) => void;
+  onSelect: (id: string) => void;
 }
 
 function formatDueDate(due: string): { label: string; overdue: boolean } {
@@ -24,27 +27,50 @@ function formatDueDate(due: string): { label: string; overdue: boolean } {
   };
 }
 
-export function TodoRow({ todo, isActive, onToggle, onClick, onKebab }: Props) {
+export function TodoRow({
+  todo,
+  isActive,
+  isBulkMode,
+  isSelected,
+  onToggle,
+  onClick,
+  onKebab,
+  onSelect,
+}: Props) {
   const titleClass = `todo-title${todo.completed ? " todo-title--completed" : ""}`;
-  const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${todo.completed ? " completed" : ""}`;
+  const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}`;
 
   return (
     <div
       className={rowClass}
       data-todo-id={todo.id}
-      onClick={() => onClick(todo.id)}
+      onClick={() => (isBulkMode ? onSelect(todo.id) : onClick(todo.id))}
     >
-      <input
-        type="checkbox"
-        className="todo-checkbox"
-        checked={todo.completed}
-        onChange={(e) => {
-          e.stopPropagation();
-          onToggle(todo.id, e.target.checked);
-        }}
-        onClick={(e) => e.stopPropagation()}
-        aria-label={`Mark "${todo.title}" as ${todo.completed ? "incomplete" : "complete"}`}
-      />
+      {isBulkMode ? (
+        <input
+          type="checkbox"
+          className="todo-checkbox"
+          checked={isSelected}
+          onChange={(e) => {
+            e.stopPropagation();
+            onSelect(todo.id);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Select "${todo.title}"`}
+        />
+      ) : (
+        <input
+          type="checkbox"
+          className="todo-checkbox"
+          checked={todo.completed}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggle(todo.id, e.target.checked);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Mark "${todo.title}" as ${todo.completed ? "incomplete" : "complete"}`}
+        />
+      )}
       <span className={titleClass}>{todo.title}</span>
       {todo.dueDate && (
         <span
