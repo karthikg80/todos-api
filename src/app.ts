@@ -60,6 +60,8 @@ import { createInsightsRouter } from "./routes/insightsRouter";
 import { createCalendarRouter } from "./routes/calendarRouter";
 import { createAreasRouter } from "./routes/areasRouter";
 import { createGoalsRouter } from "./routes/goalsRouter";
+import { createDayPlanRouter } from "./routes/dayPlanRouter";
+import { DayPlanService } from "./services/dayPlanService";
 import { AreaService } from "./services/areaService";
 import { GoalService } from "./services/goalService";
 import {
@@ -294,6 +296,7 @@ export function createApp(deps: AppDependencies = {}) {
   app.use("/calendar", apiLimiter);
   app.use("/areas", apiLimiter);
   app.use("/goals", apiLimiter);
+  app.use("/plans", apiLimiter);
   app.use("/oauth", mcpPublicLimiter);
   app.use("/.well-known", mcpPublicLimiter);
 
@@ -350,6 +353,7 @@ export function createApp(deps: AppDependencies = {}) {
     app.use("/calendar", authMiddleware(authService));
     app.use("/areas", authMiddleware(authService));
     app.use("/goals", authMiddleware(authService));
+    app.use("/plans", authMiddleware(authService));
     app.use(
       "/admin",
       authMiddleware(authService),
@@ -486,6 +490,15 @@ export function createApp(deps: AppDependencies = {}) {
         insightsService,
         insightsComputeService,
         resolveUserId: resolveAiUserId,
+      }),
+    );
+
+    const dayPlanService = new DayPlanService(persistencePrisma, todoService);
+    app.use(
+      "/plans",
+      createDayPlanRouter({
+        dayPlanService,
+        resolveUserId,
       }),
     );
   }

@@ -164,6 +164,7 @@ model User {
   socialAccounts           SocialAccount[]
   activityEvents           ActivityEvent[]
   userInsights             UserInsight[]
+  dayPlans                 DayPlan[]
 
   @@map("users")
 }
@@ -409,6 +410,7 @@ model Todo {
   goal                     Goal?                     @relation(fields: [goalId], references: [id], onDelete: SetNull)
   subtasks                 Subtask[]
   aiSuggestionAppliedTodos AiSuggestionAppliedTodo[]
+  dayPlanTasks             DayPlanTask[]
 
   @@index([userId, category])
   @@index([userId, projectId])
@@ -495,50 +497,50 @@ model CaptureItem {
 }
 
 model FeedbackRequest {
-  id                 String         @id @default(uuid()) @db.Uuid
-  userId             String         @map("user_id")
-  reviewedByUserId   String?        @map("reviewed_by_user_id")
-  type               FeedbackType
-  title              String         @db.VarChar(200)
-  body               String         @db.Text
-  screenshotUrl      String?        @map("screenshot_url") @db.VarChar(2000)
-  attachmentMetadata Json?          @map("attachment_metadata")
-  pageUrl            String?        @map("page_url") @db.VarChar(2000)
-  userAgent          String?        @map("user_agent") @db.VarChar(2000)
-  appVersion         String?        @map("app_version") @db.VarChar(50)
-  status             FeedbackStatus @default(new)
-  classification     FeedbackClassification?
-  triageConfidence   Float?         @map("triage_confidence")
-  normalizedTitle    String?        @map("normalized_title") @db.VarChar(200)
-  normalizedBody     String?        @map("normalized_body") @db.Text
-  impactSummary      String?        @map("impact_summary") @db.Text
-  reproStepsJson     Json?          @map("repro_steps_json")
-  expectedBehavior   String?        @map("expected_behavior") @db.Text
-  actualBehavior     String?        @map("actual_behavior") @db.Text
-  proposedOutcome    String?        @map("proposed_outcome") @db.Text
-  agentLabelsJson    Json?          @map("agent_labels_json")
-  missingInfoJson    Json?          @map("missing_info_json")
-  triageSummary      String?        @map("triage_summary") @db.Text
-  severity           String?        @db.VarChar(20)
-  dedupeKey          String?        @map("dedupe_key") @db.VarChar(255)
-  duplicateCandidate Boolean        @default(false) @map("duplicate_candidate")
-  matchedFeedbackIds Json?          @map("matched_feedback_ids")
-  matchedGithubIssueNumber Int?     @map("matched_github_issue_number")
-  matchedGithubIssueUrl String?     @map("matched_github_issue_url") @db.VarChar(2000)
-  duplicateOfFeedbackId String?     @map("duplicate_of_feedback_id")
-  duplicateOfGithubIssueNumber Int? @map("duplicate_of_github_issue_number")
-  duplicateReason    String?        @map("duplicate_reason") @db.Text
-  githubIssueNumber  Int?           @map("github_issue_number")
-  githubIssueUrl     String?        @map("github_issue_url") @db.VarChar(2000)
-  promotedAt         DateTime?      @map("promoted_at")
-  promotionDecision  String?        @map("promotion_decision") @db.VarChar(20)
-  promotionReason    String?        @map("promotion_reason") @db.Text
-  promotionRunId     String?        @map("promotion_run_id") @db.VarChar(120)
-  promotionDecidedAt DateTime?      @map("promotion_decided_at")
-  reviewedAt         DateTime?      @map("reviewed_at")
-  rejectionReason    String?        @map("rejection_reason") @db.Text
-  createdAt          DateTime       @default(now()) @map("created_at")
-  updatedAt          DateTime       @updatedAt @map("updated_at")
+  id                           String                  @id @default(uuid()) @db.Uuid
+  userId                       String                  @map("user_id")
+  reviewedByUserId             String?                 @map("reviewed_by_user_id")
+  type                         FeedbackType
+  title                        String                  @db.VarChar(200)
+  body                         String                  @db.Text
+  screenshotUrl                String?                 @map("screenshot_url") @db.VarChar(2000)
+  attachmentMetadata           Json?                   @map("attachment_metadata")
+  pageUrl                      String?                 @map("page_url") @db.VarChar(2000)
+  userAgent                    String?                 @map("user_agent") @db.VarChar(2000)
+  appVersion                   String?                 @map("app_version") @db.VarChar(50)
+  status                       FeedbackStatus          @default(new)
+  classification               FeedbackClassification?
+  triageConfidence             Float?                  @map("triage_confidence")
+  normalizedTitle              String?                 @map("normalized_title") @db.VarChar(200)
+  normalizedBody               String?                 @map("normalized_body") @db.Text
+  impactSummary                String?                 @map("impact_summary") @db.Text
+  reproStepsJson               Json?                   @map("repro_steps_json")
+  expectedBehavior             String?                 @map("expected_behavior") @db.Text
+  actualBehavior               String?                 @map("actual_behavior") @db.Text
+  proposedOutcome              String?                 @map("proposed_outcome") @db.Text
+  agentLabelsJson              Json?                   @map("agent_labels_json")
+  missingInfoJson              Json?                   @map("missing_info_json")
+  triageSummary                String?                 @map("triage_summary") @db.Text
+  severity                     String?                 @db.VarChar(20)
+  dedupeKey                    String?                 @map("dedupe_key") @db.VarChar(255)
+  duplicateCandidate           Boolean                 @default(false) @map("duplicate_candidate")
+  matchedFeedbackIds           Json?                   @map("matched_feedback_ids")
+  matchedGithubIssueNumber     Int?                    @map("matched_github_issue_number")
+  matchedGithubIssueUrl        String?                 @map("matched_github_issue_url") @db.VarChar(2000)
+  duplicateOfFeedbackId        String?                 @map("duplicate_of_feedback_id")
+  duplicateOfGithubIssueNumber Int?                    @map("duplicate_of_github_issue_number")
+  duplicateReason              String?                 @map("duplicate_reason") @db.Text
+  githubIssueNumber            Int?                    @map("github_issue_number")
+  githubIssueUrl               String?                 @map("github_issue_url") @db.VarChar(2000)
+  promotedAt                   DateTime?               @map("promoted_at")
+  promotionDecision            String?                 @map("promotion_decision") @db.VarChar(20)
+  promotionReason              String?                 @map("promotion_reason") @db.Text
+  promotionRunId               String?                 @map("promotion_run_id") @db.VarChar(120)
+  promotionDecidedAt           DateTime?               @map("promotion_decided_at")
+  reviewedAt                   DateTime?               @map("reviewed_at")
+  rejectionReason              String?                 @map("rejection_reason") @db.Text
+  createdAt                    DateTime                @default(now()) @map("created_at")
+  updatedAt                    DateTime                @updatedAt @map("updated_at")
 
   user     User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   reviewer User? @relation("FeedbackReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
@@ -665,31 +667,31 @@ model FailedAutomationAction {
 }
 
 model AgentConfig {
-  id                       String   @id @default(uuid()) @db.Uuid
-  userId                   String   @unique @map("user_id")
-  dailyEnabled             Boolean  @default(true) @map("daily_enabled")
-  weeklyEnabled            Boolean  @default(true) @map("weekly_enabled")
-  inboxEnabled             Boolean  @default(true) @map("inbox_enabled")
-  watchdogEnabled          Boolean  @default(true) @map("watchdog_enabled")
-  decomposerEnabled        Boolean  @default(true) @map("decomposer_enabled")
-  feedbackAutomationEnabled Boolean @default(false) @map("feedback_automation_enabled")
-  feedbackAutoPromoteEnabled Boolean @default(false) @map("feedback_auto_promote_enabled")
-  feedbackAutoPromoteMinConfidence Float @default(0.9) @map("feedback_auto_promote_min_confidence")
-  autoApply                Boolean  @default(false) @map("auto_apply")
-  maxWriteActionsPerRun    Int      @default(20) @map("max_write_actions_per_run")
-  inboxConfidenceThreshold Float    @default(0.9) @map("inbox_confidence_threshold")
-  staleThresholdDays       Int      @default(14) @map("stale_threshold_days")
-  waitingFollowUpDays      Int      @default(7) @map("waiting_follow_up_days")
-  plannerWeightPriority    Float    @default(1.0) @map("planner_weight_priority")
-  plannerWeightDueDate     Float    @default(1.0) @map("planner_weight_due_date")
-  plannerWeightEnergyMatch Float    @default(1.0) @map("planner_weight_energy_match")
-  plannerWeightEstimateFit Float    @default(1.0) @map("planner_weight_estimate_fit")
-  plannerWeightFreshness   Float    @default(1.0) @map("planner_weight_freshness")
-  actionPoliciesJson       Json?    @map("action_policies_json")
-  aiOptOut                 Boolean  @default(false) @map("ai_opt_out")
-  projectHealthEnabled     Boolean  @default(true) @map("project_health_enabled")
-  createdAt                DateTime @default(now()) @map("created_at")
-  updatedAt                DateTime @updatedAt @map("updated_at")
+  id                               String   @id @default(uuid()) @db.Uuid
+  userId                           String   @unique @map("user_id")
+  dailyEnabled                     Boolean  @default(true) @map("daily_enabled")
+  weeklyEnabled                    Boolean  @default(true) @map("weekly_enabled")
+  inboxEnabled                     Boolean  @default(true) @map("inbox_enabled")
+  watchdogEnabled                  Boolean  @default(true) @map("watchdog_enabled")
+  decomposerEnabled                Boolean  @default(true) @map("decomposer_enabled")
+  feedbackAutomationEnabled        Boolean  @default(false) @map("feedback_automation_enabled")
+  feedbackAutoPromoteEnabled       Boolean  @default(false) @map("feedback_auto_promote_enabled")
+  feedbackAutoPromoteMinConfidence Float    @default(0.9) @map("feedback_auto_promote_min_confidence")
+  autoApply                        Boolean  @default(false) @map("auto_apply")
+  maxWriteActionsPerRun            Int      @default(20) @map("max_write_actions_per_run")
+  inboxConfidenceThreshold         Float    @default(0.9) @map("inbox_confidence_threshold")
+  staleThresholdDays               Int      @default(14) @map("stale_threshold_days")
+  waitingFollowUpDays              Int      @default(7) @map("waiting_follow_up_days")
+  plannerWeightPriority            Float    @default(1.0) @map("planner_weight_priority")
+  plannerWeightDueDate             Float    @default(1.0) @map("planner_weight_due_date")
+  plannerWeightEnergyMatch         Float    @default(1.0) @map("planner_weight_energy_match")
+  plannerWeightEstimateFit         Float    @default(1.0) @map("planner_weight_estimate_fit")
+  plannerWeightFreshness           Float    @default(1.0) @map("planner_weight_freshness")
+  actionPoliciesJson               Json?    @map("action_policies_json")
+  aiOptOut                         Boolean  @default(false) @map("ai_opt_out")
+  projectHealthEnabled             Boolean  @default(true) @map("project_health_enabled")
+  createdAt                        DateTime @default(now()) @map("created_at")
+  updatedAt                        DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -855,4 +857,49 @@ model UserInsight {
   @@unique([userId, insightType, periodType, periodStart])
   @@index([userId, computedAt])
   @@map("user_insights")
+}
+
+// ── Execution Intelligence: Day Plan ──
+
+enum DayPlanStatus {
+  draft
+  finalized
+  reviewed
+}
+
+model DayPlan {
+  id          String        @id @default(uuid()) @db.Uuid
+  userId      String        @map("user_id")
+  date        DateTime      @db.Date
+  status      DayPlanStatus @default(draft)
+  energyLevel String?       @map("energy_level") @db.VarChar(20)
+  notes       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+  finalizedAt DateTime?     @map("finalized_at")
+  reviewedAt  DateTime?     @map("reviewed_at")
+
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks DayPlanTask[]
+
+  @@unique([userId, date])
+  @@index([userId, status])
+  @@map("day_plans")
+}
+
+model DayPlanTask {
+  id        String  @id @default(uuid()) @db.Uuid
+  planId    String  @map("plan_id") @db.Uuid
+  todoId    String  @map("todo_id") @db.Uuid
+  order     Int
+  committed Boolean @default(true)
+  completed Boolean @default(false)
+  deferred  Boolean @default(false)
+
+  plan DayPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  todo Todo    @relation(fields: [todoId], references: [id], onDelete: Cascade)
+
+  @@unique([planId, todoId])
+  @@index([planId, order])
+  @@map("day_plan_tasks")
 }
