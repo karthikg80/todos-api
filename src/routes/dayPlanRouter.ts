@@ -8,7 +8,6 @@
 import { Router, Request, Response, NextFunction } from "express";
 import {
   DayPlanService,
-  CreateDayPlanDto,
   UpdateDayPlanDto,
   AddPlanTaskDto,
 } from "../services/dayPlanService";
@@ -25,16 +24,7 @@ export function createDayPlanRouter({
   const router = Router();
 
   /**
-   * @openapi
-   * /plans/today:
-   *   get:
-   *     tags: [Plans]
-   *     summary: Get or create today's plan
-   *     security:
-   *       - bearerAuth: []
-   *     responses:
-   *       200:
-   *         description: Today's day plan
+   * GET /plans/today — Get or create today's plan
    */
   router.get(
     "/today",
@@ -51,20 +41,25 @@ export function createDayPlanRouter({
   );
 
   /**
-   * @openapi
-   * /plans/{date}:
-   *   get:
-   *     tags: [Plans]
-   *     summary: Get plan for a specific date
-   *     parameters:
-   *       - in: path
-   *         name: date
-   *         required: true
-   *         schema:
-   *           type: string
-   *           format: date
-   *     security:
-   *       - bearerAuth: []
+   * GET /plans/history/list — Get plan history for learning loop
+   */
+  router.get(
+    "/history/list",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveUserId(req, res);
+        if (!userId) return;
+        const limit = Math.min(Math.max(Number(req.query.limit) || 14, 1), 90);
+        const plans = await dayPlanService.getHistory(userId, limit);
+        res.json(plans);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /**
+   * GET /plans/:date — Get plan for a specific date (YYYY-MM-DD)
    */
   router.get(
     "/:date",
@@ -87,11 +82,7 @@ export function createDayPlanRouter({
   );
 
   /**
-   * @openapi
-   * /plans/{planId}:
-   *   put:
-   *     tags: [Plans]
-   *     summary: Update plan metadata (energy, notes)
+   * PUT /plans/:planId/meta — Update plan metadata (energy, notes)
    */
   router.put(
     "/:planId/meta",
@@ -119,11 +110,7 @@ export function createDayPlanRouter({
   );
 
   /**
-   * @openapi
-   * /plans/{planId}/tasks:
-   *   post:
-   *     tags: [Plans]
-   *     summary: Add a task to the plan
+   * POST /plans/:planId/tasks — Add a task to the plan
    */
   router.post(
     "/:planId/tasks",
@@ -134,6 +121,7 @@ export function createDayPlanRouter({
         const dto: AddPlanTaskDto = {
           todoId: req.body.todoId,
           order: req.body.order,
+          estimatedMinutes: req.body.estimatedMinutes,
         };
         if (!dto.todoId) {
           return res.status(400).json({ error: "todoId is required" });
@@ -154,11 +142,7 @@ export function createDayPlanRouter({
   );
 
   /**
-   * @openapi
-   * /plans/{planId}/tasks/{todoId}:
-   *   delete:
-   *     tags: [Plans]
-   *     summary: Remove a task from the plan
+   * DELETE /plans/:planId/tasks/:todoId — Remove a task from the plan
    */
   router.delete(
     "/:planId/tasks/:todoId",
@@ -182,11 +166,7 @@ export function createDayPlanRouter({
   );
 
   /**
-   * @openapi
-   * /plans/{planId}/reorder:
-   *   put:
-   *     tags: [Plans]
-   *     summary: Reorder tasks within a plan
+   * PUT /plans/:planId/reorder — Reorder tasks within a plan
    */
   router.put(
     "/:planId/reorder",
@@ -214,11 +194,38 @@ export function createDayPlanRouter({
   );
 
   /**
-   * @openapi
-   * /plans/{planId}/finalize:
-   *   post:
-   *     tags: [Plans]
-   *     summary: Finalize the plan (commit to working on these tasks)
+   * PATCH /plans/:planId/tasks/:todoId — Update task outcome
+   */
+  router.patch(
+    "/:planId/tasks/:todoId",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveUserId(req, res);
+        if (!userId) return;
+        const { outcome } = req.body;
+        if (outcome !== "completed" && outcome !== "deferred") {
+          return res
+            .status(400)
+            .json({ error: "outcome must be 'completed' or 'deferred'" });
+        }
+        const plan = await dayPlanService.updateTaskOutcome(
+          userId,
+          String(req.params.planId),
+          String(req.params.todoId),
+          outcome,
+        );
+        if (!plan) {
+          return res.status(404).json({ error: "Plan or task not found" });
+        }
+        res.json(plan);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /**
+   * POST /plans/:planId/finalize — Finalize the plan
    */
   router.post(
     "/:planId/finalize",
@@ -233,7 +240,7 @@ export function createDayPlanRouter({
         if (!plan) {
           return res
             .status(400)
-            .json({ error: "Plan not found or not in draft status" });
+            .json({ error: "Plan not found or already finalized" });
         }
         res.json(plan);
       } catch (error) {
@@ -243,11 +250,30 @@ export function createDayPlanRouter({
   );
 
   /**
-   * @openapi
-   * /plans/{planId}/review:
-   *   post:
-   *     tags: [Plans]
-   *     summary: Generate end-of-day review (committed vs actual)
+   * POST /plans/:planId/abandon — Abandon the plan
+   */
+  router.post(
+    "/:planId/abandon",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveUserId(req, res);
+        if (!userId) return;
+        const plan = await dayPlanService.abandon(
+          userId,
+          String(req.params.planId),
+        );
+        if (!plan) {
+          return res.status(404).json({ error: "Plan not found" });
+        }
+        res.json(plan);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /**
+   * POST /plans/:planId/review — Generate end-of-day review
    */
   router.post(
     "/:planId/review",
@@ -263,28 +289,6 @@ export function createDayPlanRouter({
           return res.status(404).json({ error: "Plan not found" });
         }
         res.json(review);
-      } catch (error) {
-        next(error);
-      }
-    },
-  );
-
-  /**
-   * @openapi
-   * /plans/history:
-   *   get:
-   *     tags: [Plans]
-   *     summary: Get plan history for learning loop
-   */
-  router.get(
-    "/history/list",
-    async (req: Request, res: Response, next: NextFunction) => {
-      try {
-        const userId = resolveUserId(req, res);
-        if (!userId) return;
-        const limit = Math.min(Math.max(Number(req.query.limit) || 14, 1), 90);
-        const plans = await dayPlanService.getHistory(userId, limit);
-        res.json(plans);
       } catch (error) {
         next(error);
       }

@@ -225,7 +225,13 @@ function minimumRequiredScopesForAction(
     case "list_learning_recommendations":
     case "list_friction_patterns":
     case "get_action_policies":
+    case "get_day_plan":
+    case "review_day_plan":
       return [TASK_READ_SCOPE];
+    case "create_day_plan":
+    case "update_day_plan_task":
+    case "finalize_day_plan":
+      return [TASK_WRITE_SCOPE];
   }
 }
 

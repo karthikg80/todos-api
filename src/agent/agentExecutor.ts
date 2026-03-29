@@ -112,9 +112,13 @@ import {
   validateAgentGetActionPoliciesInput,
   validateAgentUpdateActionPolicyInput,
   validateAgentPrewarmHomeFocusInput,
+  validateAgentGetDayPlanInput,
+  validateAgentUpdateDayPlanTaskInput,
+  validateAgentFinalizeDayPlanInput,
 } from "../validation/agentValidation";
 import { CaptureService } from "../services/captureService";
 import { HomeFocusPrewarmService } from "../services/homeFocusPrewarmService";
+import { DayPlanService } from "../services/dayPlanService";
 
 export type AgentActionName =
   | "list_tasks"
@@ -208,7 +212,12 @@ export type AgentActionName =
   | "update_goal"
   | "list_routines"
   | "generate_morning_brief"
-  | "project_health_intervention";
+  | "project_health_intervention"
+  | "get_day_plan"
+  | "create_day_plan"
+  | "update_day_plan_task"
+  | "finalize_day_plan"
+  | "review_day_plan";
 
 interface AgentExecutorDeps {
   todoService: ITodoService;
@@ -315,6 +324,8 @@ const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "get_area",
   "list_goals",
   "get_goal",
+  "get_day_plan",
+  "review_day_plan",
   "list_routines",
 ]);
 
@@ -715,6 +726,7 @@ export class AgentExecutor {
   private readonly frictionService: FrictionService;
   private readonly actionPolicyService: ActionPolicyService;
   private readonly homeFocusPrewarmService: HomeFocusPrewarmService | null;
+  private readonly dayPlanService: DayPlanService | null;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -749,6 +761,10 @@ export class AgentExecutor {
             deps.aiPlannerService,
             deps.suggestionStore,
           )
+        : null;
+    this.dayPlanService =
+      deps.persistencePrisma && deps.todoService
+        ? new DayPlanService(deps.persistencePrisma, deps.todoService)
         : null;
     this.agentService = new AgentService({
       todoService: deps.todoService,
@@ -1793,6 +1809,7 @@ export class AgentExecutor {
             energy: energyParam,
             date,
             decisionRunId,
+            persist: persistPlan,
           } = validateAgentPlanTodayInput(input);
           const today = date ?? new Date().toISOString().slice(0, 10);
           const decidedAt = new Date().toISOString();
@@ -2014,11 +2031,43 @@ export class AgentExecutor {
             },
           }));
 
+          // Persist as DayPlan if requested
+          let dayPlanId: string | null = null;
+          if (persistPlan && this.dayPlanService) {
+            const dayPlan = await this.dayPlanService.createFromPlan(
+              context.userId,
+              {
+                planDate: today,
+                mode: dayCtx?.mode ?? "normal",
+                energy: energy ?? null,
+                availableMinutes: budget,
+                totalMinutes: cappedMinutes,
+                remainingMinutes: budget - cappedMinutes,
+                headline: {
+                  recommendedTaskCount: recommendedTasks.length,
+                  waitingCount: waitingTasks.length,
+                  projectsNeedingAttention: missingNextActionProjects.length,
+                },
+                budgetBreakdown: cappedBudgetBreakdown,
+                decisionRunId: decisionRunId ?? null,
+                recommendedTasks: recommendedTasks.map((t) => ({
+                  id: t.id,
+                  estimatedMinutes: t.estimatedMinutes,
+                  score: t.score,
+                  explanation: t.explanation,
+                  attribution: t.attribution,
+                })),
+              },
+            );
+            dayPlanId = dayPlan.id;
+          }
+
           return this.success(action, readOnly, context, 200, {
             plan: {
               date: today,
               timezone: null,
               mode: dayCtx?.mode ?? "normal",
+              dayPlanId,
               headline: {
                 recommendedTaskCount: recommendedTasks.length,
                 waitingCount: waitingTasks.length,
@@ -2052,6 +2101,182 @@ export class AgentExecutor {
             },
           });
         }
+
+        // ── DayPlan actions ──
+
+        case "get_day_plan": {
+          const { date: planDate, id: planId } =
+            validateAgentGetDayPlanInput(input);
+          if (!this.dayPlanService) {
+            throw new AgentExecutionError(
+              503,
+              "SERVICE_UNAVAILABLE",
+              "DayPlan service not available",
+              true,
+            );
+          }
+          let plan;
+          if (planId) {
+            plan = await this.dayPlanService.getByDate(
+              context.userId,
+              planDate ?? new Date().toISOString().slice(0, 10),
+            );
+            // Try by date if ID lookup not directly supported
+          } else {
+            plan = await this.dayPlanService.getByDate(
+              context.userId,
+              planDate ?? new Date().toISOString().slice(0, 10),
+            );
+          }
+          if (!plan) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Day plan not found",
+              false,
+            );
+          }
+          return this.success(action, readOnly, context, 200, { plan });
+        }
+
+        case "create_day_plan": {
+          // Re-use plan_today scoring, then persist
+          const {
+            availableMinutes: cdpMinutes,
+            energy: cdpEnergy,
+            date: cdpDate,
+            decisionRunId: cdpRunId,
+          } = validateAgentPlanTodayInput(input);
+          if (!this.dayPlanService) {
+            throw new AgentExecutionError(
+              503,
+              "SERVICE_UNAVAILABLE",
+              "DayPlan service not available",
+              true,
+            );
+          }
+          // Delegate to plan_today with persist=true
+          const forcedInput = {
+            ...(input as Record<string, unknown>),
+            persist: true,
+          };
+          return this.execute("plan_today", forcedInput, context);
+        }
+
+        case "update_day_plan_task": {
+          const { planId, taskId, outcome } =
+            validateAgentUpdateDayPlanTaskInput(input);
+          if (!this.dayPlanService) {
+            throw new AgentExecutionError(
+              503,
+              "SERVICE_UNAVAILABLE",
+              "DayPlan service not available",
+              true,
+            );
+          }
+          const updated = await this.dayPlanService.updateTaskOutcome(
+            context.userId,
+            planId,
+            taskId,
+            outcome,
+          );
+          if (!updated) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Plan or task not found",
+              false,
+            );
+          }
+          return this.success(action, readOnly, context, 200, {
+            plan: updated,
+          });
+        }
+
+        case "finalize_day_plan": {
+          const { planId, date: finalizeDate } =
+            validateAgentFinalizeDayPlanInput(input);
+          if (!this.dayPlanService) {
+            throw new AgentExecutionError(
+              503,
+              "SERVICE_UNAVAILABLE",
+              "DayPlan service not available",
+              true,
+            );
+          }
+          let targetPlan;
+          if (planId) {
+            targetPlan = await this.dayPlanService.finalize(
+              context.userId,
+              planId,
+            );
+          } else {
+            const datePlan = await this.dayPlanService.getByDate(
+              context.userId,
+              finalizeDate ?? new Date().toISOString().slice(0, 10),
+            );
+            if (datePlan) {
+              targetPlan = await this.dayPlanService.finalize(
+                context.userId,
+                datePlan.id,
+              );
+            }
+          }
+          if (!targetPlan) {
+            throw new AgentExecutionError(
+              400,
+              "INVALID_STATE",
+              "Plan not found or already finalized",
+              false,
+            );
+          }
+          return this.success(action, readOnly, context, 200, {
+            plan: targetPlan,
+          });
+        }
+
+        case "review_day_plan": {
+          const { planId, date: reviewDate } =
+            validateAgentFinalizeDayPlanInput(input);
+          if (!this.dayPlanService) {
+            throw new AgentExecutionError(
+              503,
+              "SERVICE_UNAVAILABLE",
+              "DayPlan service not available",
+              true,
+            );
+          }
+          let reviewPlan;
+          if (planId) {
+            reviewPlan = await this.dayPlanService.review(
+              context.userId,
+              planId,
+            );
+          } else {
+            const datePlan = await this.dayPlanService.getByDate(
+              context.userId,
+              reviewDate ?? new Date().toISOString().slice(0, 10),
+            );
+            if (datePlan) {
+              reviewPlan = await this.dayPlanService.review(
+                context.userId,
+                datePlan.id,
+              );
+            }
+          }
+          if (!reviewPlan) {
+            throw new AgentExecutionError(
+              404,
+              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
+              "Plan not found",
+              false,
+            );
+          }
+          return this.success(action, readOnly, context, 200, {
+            review: reviewPlan,
+          });
+        }
+
         case "break_down_task": {
           const { taskId, maxSubtasks } =
             validateAgentBreakDownTaskInput(input);
