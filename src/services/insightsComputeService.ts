@@ -291,20 +291,25 @@ export class InsightsComputeService {
   }
 
   /**
-   * Compute all insights for a user and upsert into UserInsight table.
+   * Compute all metrics for a user without persisting.
+   * Returns structured data suitable for the Today Plan, learning loop, or persistence.
    */
-  async computeAll(userId: string): Promise<void> {
-    if (!this.prisma) return;
-
+  async computeMetrics(
+    userId: string,
+  ): Promise<{
+    velocity: number;
+    overcommitmentRatio: number;
+    staleTasks: number;
+    streak: number;
+    productiveHours: { peakHour: number; distribution: Record<number, number> };
+    projectHealth: ProjectHealthResult[];
+  }> {
     const now = new Date();
     const weekAgo = new Date(now);
     weekAgo.setDate(weekAgo.getDate() - 7);
 
-    const dayStart = new Date(now);
-    dayStart.setHours(0, 0, 0, 0);
-
-    try {
-      const [velocity, ratio, stale, streak, productive] = await Promise.all([
+    const [velocity, overcommitmentRatio, staleTasks, streak, productiveHours] =
+      await Promise.all([
         this.computeCompletionVelocity(userId, weekAgo, now),
         this.computeOvercommitmentRatio(userId, weekAgo, now),
         this.computeStaleTasks(userId),
@@ -312,91 +317,107 @@ export class InsightsComputeService {
         this.computeProductiveHours(userId, weekAgo, now),
       ]);
 
-      const upserts: Array<{
-        insightType: InsightType;
-        value: number;
-        metadata?: Prisma.InputJsonValue;
-      }> = [
-        { insightType: "completion_velocity", value: velocity },
-        { insightType: "overcommitment_ratio", value: ratio },
-        { insightType: "stale_task_count", value: stale },
-        { insightType: "streak_days", value: streak },
-        {
-          insightType: "most_productive_hour",
-          value: productive.peakHour,
-          metadata: productive.distribution as unknown as Prisma.InputJsonValue,
-        },
-      ];
-
-      for (const u of upserts) {
-        await this.prisma.userInsight.upsert({
-          where: {
-            userId_insightType_periodType_periodStart: {
-              userId,
-              insightType: u.insightType,
-              periodType: "daily" as InsightPeriodType,
-              periodStart: dayStart,
-            },
-          },
-          create: {
-            userId,
-            insightType: u.insightType,
-            periodType: "daily",
-            periodStart: dayStart,
-            value: u.value,
-            metadata: u.metadata,
-          },
-          update: {
-            value: u.value,
-            metadata: u.metadata,
-            computedAt: now,
-          },
-        });
-      }
-
-      // Compute project health for all active projects
+    const projectHealth: ProjectHealthResult[] = [];
+    if (this.prisma) {
       const projects = await this.prisma.project.findMany({
         where: { userId, archived: false },
         select: { id: true },
       });
-
       for (const p of projects) {
         const health = await this.computeProjectHealth(userId, p.id);
-        if (health) {
-          await this.prisma.userInsight.upsert({
-            where: {
-              userId_insightType_periodType_periodStart: {
-                userId,
-                insightType: "project_health",
-                periodType: "daily",
-                periodStart: dayStart,
-              },
-            },
-            create: {
-              userId,
-              insightType: "project_health",
-              periodType: "daily",
-              periodStart: dayStart,
-              value: health.score,
-              metadata: {
-                projectId: health.projectId,
-                projectName: health.projectName,
-                status: health.status,
-                breakdown: health.breakdown,
-              } as unknown as Prisma.InputJsonValue,
-            },
-            update: {
-              value: health.score,
-              metadata: {
-                projectId: health.projectId,
-                projectName: health.projectName,
-                status: health.status,
-                breakdown: health.breakdown,
-              } as unknown as Prisma.InputJsonValue,
-              computedAt: now,
-            },
-          });
-        }
+        if (health) projectHealth.push(health);
+      }
+    }
+
+    return {
+      velocity,
+      overcommitmentRatio,
+      staleTasks,
+      streak,
+      productiveHours,
+      projectHealth,
+    };
+  }
+
+  /**
+   * Persist a single insight record using upsert.
+   */
+  private async upsertInsight(
+    userId: string,
+    insightType: InsightType,
+    periodStart: Date,
+    now: Date,
+    value: number,
+    metadata?: Prisma.InputJsonValue,
+  ): Promise<void> {
+    if (!this.prisma) return;
+    await this.prisma.userInsight.upsert({
+      where: {
+        userId_insightType_periodType_periodStart: {
+          userId,
+          insightType,
+          periodType: "daily" as InsightPeriodType,
+          periodStart,
+        },
+      },
+      create: {
+        userId,
+        insightType,
+        periodType: "daily",
+        periodStart,
+        value,
+        metadata,
+      },
+      update: {
+        value,
+        metadata,
+        computedAt: now,
+      },
+    });
+  }
+
+  /**
+   * Compute all insights for a user and upsert into UserInsight table.
+   */
+  async computeAll(userId: string): Promise<void> {
+    if (!this.prisma) return;
+
+    const now = new Date();
+    const dayStart = new Date(now);
+    dayStart.setHours(0, 0, 0, 0);
+
+    try {
+      const metrics = await this.computeMetrics(userId);
+
+      // Persist base metrics
+      await this.upsertInsight(userId, "completion_velocity", dayStart, now, metrics.velocity);
+      await this.upsertInsight(userId, "overcommitment_ratio", dayStart, now, metrics.overcommitmentRatio);
+      await this.upsertInsight(userId, "stale_task_count", dayStart, now, metrics.staleTasks);
+      await this.upsertInsight(userId, "streak_days", dayStart, now, metrics.streak);
+      await this.upsertInsight(
+        userId,
+        "most_productive_hour",
+        dayStart,
+        now,
+        metrics.productiveHours.peakHour,
+        metrics.productiveHours.distribution as unknown as Prisma.InputJsonValue,
+      );
+
+      // Persist project health
+      for (const health of metrics.projectHealth) {
+        await this.upsertInsight(
+          userId,
+          "project_health",
+          dayStart,
+          now,
+          health.score,
+          {
+            projectId: health.projectId,
+            projectName: health.projectName,
+            status: health.status,
+            breakdown: health.breakdown,
+          } as unknown as Prisma.InputJsonValue,
+        );
       }
 
       log.info("Computed all insights", { userId });
