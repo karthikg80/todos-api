@@ -38,6 +38,32 @@ git status --porcelain
   - Integration: `src/*.integration.test.ts` (Jest + supertest).
   - UI: `tests/ui/*.spec.ts` (Playwright).
 
+## Clean Code + Architecture (REQUIRED)
+
+Before changing code, identify the target layer/domain, the files you expect to
+touch, and the invariant or ADR that should still be true after the change. If
+you cannot explain why the change belongs in a given file or layer, stop and
+ask rather than guessing.
+
+- **Keep orchestrators thin.** `client/app.js`, `src/routes/`, and other
+  entrypoints should coordinate work, not accumulate feature logic.
+- **Put behavior in the right home.** Frontend behavior belongs in
+  `client/features/`, `client/modules/`, `client/platform/`, or `client/utils/`
+  based on responsibility. Backend behavior belongs in the relevant product
+  domain or existing service layer rather than directly in route handlers.
+- **Prefer the canonical path over parallel paths.** Extend the existing
+  filter/project-selection/rendering flow instead of introducing a second way to
+  do the same job.
+- **Do not widen legacy seams casually.** If you touch a large or transitional
+  file, prefer extracting cohesive logic into the appropriate module instead of
+  adding more unrelated responsibility to that file.
+- **Keep cross-cutting code generic.** Shared helpers belong in
+  infrastructure/platform/utils layers only when they are truly reusable across
+  multiple domains.
+- **Document boundary changes.** If the change introduces a new pattern,
+  boundary, or exception to an existing rule, update the durable doc/ADR in the
+  same PR or an immediate follow-up PR.
+
 ## UI Architecture Constraints
 
 These are load-bearing patterns. Do not change them.
@@ -53,6 +79,7 @@ These are load-bearing patterns. Do not change them.
 
 ```bash
 npx tsc --noEmit
+npm run check:architecture
 npm run format:check
 npm run lint:html
 npm run lint:css
@@ -101,6 +128,8 @@ Provide a handoff summary with:
 - Branch name and head SHA.
 - Files changed (list each file).
 - What was implemented (bullet points).
+- Architecture notes: target layer/domain, invariant/ADR followed, and any
+  boundary intentionally preserved or changed.
 - Verification results (which checks passed/failed).
 - PR creation URL: `https://github.com/karthikg80/todos-api/pull/new/<branch-name>`
 
