@@ -12,9 +12,29 @@
  * - Auto-generate plan from AI prioritization
  */
 
-import { PrismaClient, DayPlanStatus } from "@prisma/client";
+import { PrismaClient, DayPlanStatus, Prisma } from "@prisma/client";
 import { ITodoService } from "../interfaces/ITodoService";
 import { Todo } from "../types";
+
+/**
+ * Shared Prisma include for fetching a DayPlan with its tasks and
+ * each task's full todo (with project + subtasks). Defined once to
+ * avoid the 5× duplication that was flagged in the code audit.
+ */
+const PLAN_WITH_TASKS_INCLUDE = {
+  tasks: {
+    orderBy: { order: "asc" as const },
+    include: {
+      todo: {
+        include: {
+          project: true,
+          subtasks: { orderBy: { order: "asc" as const } },
+        },
+      },
+    },
+  },
+} satisfies Prisma.DayPlanInclude;
+
 
 export interface DayPlanDto {
   id: string;
@@ -88,19 +108,8 @@ export class DayPlanService {
 
     let plan = await this.prisma.dayPlan.findUnique({
       where: { userId_date: { userId, date: todayDate } },
-      include: {
-        tasks: {
-          orderBy: { order: "asc" },
-          include: {
-            todo: {
-              include: {
-                project: true,
-                subtasks: { orderBy: { order: "asc" } },
-              },
-            },
-          },
-        },
-      },
+      include: PLAN_WITH_TASKS_INCLUDE,
+
     });
 
     if (!plan) {
@@ -136,19 +145,8 @@ export class DayPlanService {
     const planDate = new Date(date + "T00:00:00.000Z");
     const plan = await this.prisma.dayPlan.findUnique({
       where: { userId_date: { userId, date: planDate } },
-      include: {
-        tasks: {
-          orderBy: { order: "asc" },
-          include: {
-            todo: {
-              include: {
-                project: true,
-                subtasks: { orderBy: { order: "asc" } },
-              },
-            },
-          },
-        },
-      },
+      include: PLAN_WITH_TASKS_INCLUDE,
+
     });
 
     return plan ? this.mapToDto(plan) : null;
@@ -173,19 +171,8 @@ export class DayPlanService {
         ...(dto.energyLevel !== undefined && { energyLevel: dto.energyLevel }),
         ...(dto.notes !== undefined && { notes: dto.notes }),
       },
-      include: {
-        tasks: {
-          orderBy: { order: "asc" },
-          include: {
-            todo: {
-              include: {
-                project: true,
-                subtasks: { orderBy: { order: "asc" } },
-              },
-            },
-          },
-        },
-      },
+      include: PLAN_WITH_TASKS_INCLUDE,
+
     });
 
     return this.mapToDto(updated);
@@ -296,19 +283,8 @@ export class DayPlanService {
         status: "finalized",
         finalizedAt: new Date(),
       },
-      include: {
-        tasks: {
-          orderBy: { order: "asc" },
-          include: {
-            todo: {
-              include: {
-                project: true,
-                subtasks: { orderBy: { order: "asc" } },
-              },
-            },
-          },
-        },
-      },
+      include: PLAN_WITH_TASKS_INCLUDE,
+
     });
 
     return this.mapToDto(updated);
@@ -403,19 +379,8 @@ export class DayPlanService {
   ): Promise<DayPlanDto | null> {
     const plan = await this.prisma.dayPlan.findFirst({
       where: { id: planId, userId },
-      include: {
-        tasks: {
-          orderBy: { order: "asc" },
-          include: {
-            todo: {
-              include: {
-                project: true,
-                subtasks: { orderBy: { order: "asc" } },
-              },
-            },
-          },
-        },
-      },
+      include: PLAN_WITH_TASKS_INCLUDE,
+
     });
     return plan ? this.mapToDto(plan) : null;
   }

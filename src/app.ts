@@ -61,6 +61,7 @@ import { createCalendarRouter } from "./routes/calendarRouter";
 import { createAreasRouter } from "./routes/areasRouter";
 import { createGoalsRouter } from "./routes/goalsRouter";
 import { createDayPlanRouter } from "./routes/dayPlanRouter";
+import { createStaticPagesRouter } from "./routes/staticPagesRouter";
 import { DayPlanService } from "./services/dayPlanService";
 import { AreaService } from "./services/areaService";
 import { GoalService } from "./services/goalService";
@@ -243,29 +244,9 @@ export function createApp(deps: AppDependencies = {}) {
   );
   app.use(express.static(path.join(__dirname, "../client")));
 
-  // Standalone page routes — serve proven standalone HTML pages at product URLs.
-  // Must be registered before the /auth API router so GET /auth is intercepted.
-  const authPage = path.join(__dirname, "../client/public/auth.html");
-  const appPage = path.join(__dirname, "../client/public/app.html");
-  const feedbackListPage = path.join(
-    __dirname,
-    "../client/public/feedback.html",
-  );
-  const feedbackNewPage = path.join(
-    __dirname,
-    "../client/public/feedback-new.html",
-  );
-  app.get("/auth", (_req: Request, res: Response) => res.sendFile(authPage));
-  app.get("/app", (_req: Request, res: Response) => res.sendFile(appPage));
-  app.get("/app/{*path}", (_req: Request, res: Response) =>
-    res.sendFile(appPage),
-  );
-  app.get("/feedback", (_req: Request, res: Response) =>
-    res.sendFile(feedbackListPage),
-  );
-  app.get("/feedback/new", (_req: Request, res: Response) =>
-    res.sendFile(feedbackNewPage),
-  );
+  // Standalone page routes — must be registered before the /auth API router
+  // so GET /auth is intercepted.
+  app.use(createStaticPagesRouter());
 
   app.use(
     "/api-docs",
@@ -341,24 +322,26 @@ export function createApp(deps: AppDependencies = {}) {
   );
 
   if (authService) {
-    app.use("/todos", authMiddleware(authService));
-    app.use("/users", authMiddleware(authService));
-    app.use("/ai", authMiddleware(authService));
-    app.use("/projects", authMiddleware(authService));
-    app.use("/capture", authMiddleware(authService));
-    app.use("/api/feedback", authMiddleware(authService));
-    app.use("/preferences", authMiddleware(authService));
-    app.use("/events", authMiddleware(authService));
-    app.use("/insights", authMiddleware(authService));
-    app.use("/calendar", authMiddleware(authService));
-    app.use("/areas", authMiddleware(authService));
-    app.use("/goals", authMiddleware(authService));
-    app.use("/plans", authMiddleware(authService));
-    app.use(
-      "/admin",
-      authMiddleware(authService),
-      adminMiddleware(authService),
-    );
+    const auth = authMiddleware(authService);
+    const protectedRoutes = [
+      "/todos",
+      "/users",
+      "/ai",
+      "/projects",
+      "/capture",
+      "/api/feedback",
+      "/preferences",
+      "/events",
+      "/insights",
+      "/calendar",
+      "/areas",
+      "/goals",
+      "/plans",
+    ];
+    for (const route of protectedRoutes) {
+      app.use(route, auth);
+    }
+    app.use("/admin", auth, adminMiddleware(authService));
   }
 
   app.use(

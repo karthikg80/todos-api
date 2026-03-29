@@ -184,6 +184,41 @@ export class PrismaTodoService implements ITodoService {
     return dependsOnTaskIds;
   }
 
+  /**
+   * Build a nullable date range filter for a single field.
+   * Returns undefined when neither bound is set.
+   */
+  private static buildDateRangeFilter(bounds: {
+    gte?: Date;
+    lte?: Date;
+    gt?: Date;
+    lt?: Date;
+  }): Prisma.DateTimeNullableFilter | undefined {
+    const { gte, lte, gt, lt } = bounds;
+    if (!gte && !lte && !gt && !lt) return undefined;
+    const filter: Prisma.DateTimeNullableFilter = { not: null };
+    if (gte) filter.gte = gte;
+    if (lte) filter.lte = lte;
+    if (gt) filter.gt = gt;
+    if (lt) filter.lt = lt;
+    return filter;
+  }
+
+  /**
+   * Build a non-nullable date range filter (e.g. for updatedAt).
+   */
+  private static buildDateFilter(bounds: {
+    gte?: Date;
+    lte?: Date;
+  }): Prisma.DateTimeFilter | undefined {
+    const { gte, lte } = bounds;
+    if (!gte && !lte) return undefined;
+    const filter: Prisma.DateTimeFilter = {};
+    if (gte) filter.gte = gte;
+    if (lte) filter.lte = lte;
+    return filter;
+  }
+
   private buildFindAllWhere(
     userId: string,
     query?: FindTodosQuery,
@@ -293,69 +328,43 @@ export class PrismaTodoService implements ITodoService {
     if (query?.energies?.length) {
       and.push({ energy: { in: query.energies } });
     }
+
+    // Date range filters — shared helper eliminates repetitive pattern
     if (query?.dueDateIsNull) {
       and.push({ dueDate: null });
-    } else if (
-      query?.dueDateFrom ||
-      query?.dueDateTo ||
-      query?.dueDateAfter ||
-      query?.dueDateBefore
-    ) {
-      const dueDate: Prisma.DateTimeNullableFilter = { not: null };
-      if (query.dueDateFrom) {
-        dueDate.gte = query.dueDateFrom;
-      }
-      if (query.dueDateTo) {
-        dueDate.lte = query.dueDateTo;
-      }
-      if (query.dueDateAfter) {
-        dueDate.gt = query.dueDateAfter;
-      }
-      if (query.dueDateBefore) {
-        dueDate.lt = query.dueDateBefore;
-      }
-      and.push({ dueDate });
+    } else {
+      const dueDate = PrismaTodoService.buildDateRangeFilter({
+        gte: query?.dueDateFrom,
+        lte: query?.dueDateTo,
+        gt: query?.dueDateAfter,
+        lt: query?.dueDateBefore,
+      });
+      if (dueDate) and.push({ dueDate });
     }
-    if (query?.startDateFrom || query?.startDateTo) {
-      const startDate: Prisma.DateTimeNullableFilter = { not: null };
-      if (query.startDateFrom) {
-        startDate.gte = query.startDateFrom;
-      }
-      if (query.startDateTo) {
-        startDate.lte = query.startDateTo;
-      }
-      and.push({ startDate });
-    }
-    if (query?.scheduledDateFrom || query?.scheduledDateTo) {
-      const scheduledDate: Prisma.DateTimeNullableFilter = { not: null };
-      if (query.scheduledDateFrom) {
-        scheduledDate.gte = query.scheduledDateFrom;
-      }
-      if (query.scheduledDateTo) {
-        scheduledDate.lte = query.scheduledDateTo;
-      }
-      and.push({ scheduledDate });
-    }
-    if (query?.reviewDateFrom || query?.reviewDateTo) {
-      const reviewDate: Prisma.DateTimeNullableFilter = { not: null };
-      if (query.reviewDateFrom) {
-        reviewDate.gte = query.reviewDateFrom;
-      }
-      if (query.reviewDateTo) {
-        reviewDate.lte = query.reviewDateTo;
-      }
-      and.push({ reviewDate });
-    }
-    if (query?.updatedAfter || query?.updatedBefore) {
-      const updatedAt: Prisma.DateTimeFilter = {};
-      if (query.updatedAfter) {
-        updatedAt.gte = query.updatedAfter;
-      }
-      if (query.updatedBefore) {
-        updatedAt.lte = query.updatedBefore;
-      }
-      and.push({ updatedAt });
-    }
+
+    const startDate = PrismaTodoService.buildDateRangeFilter({
+      gte: query?.startDateFrom,
+      lte: query?.startDateTo,
+    });
+    if (startDate) and.push({ startDate });
+
+    const scheduledDate = PrismaTodoService.buildDateRangeFilter({
+      gte: query?.scheduledDateFrom,
+      lte: query?.scheduledDateTo,
+    });
+    if (scheduledDate) and.push({ scheduledDate });
+
+    const reviewDate = PrismaTodoService.buildDateRangeFilter({
+      gte: query?.reviewDateFrom,
+      lte: query?.reviewDateTo,
+    });
+    if (reviewDate) and.push({ reviewDate });
+
+    const updatedAt = PrismaTodoService.buildDateFilter({
+      gte: query?.updatedAfter,
+      lte: query?.updatedBefore,
+    });
+    if (updatedAt) and.push({ updatedAt });
 
     if (and.length) {
       where.AND = and;

@@ -63,6 +63,7 @@ import {
 } from "../services/aiApplyService";
 import { validateDismissable } from "../services/aiDismissService";
 import { SuggestionApplyOrchestrator } from "../services/suggestionApplyOrchestrator";
+import { DecisionAssistGuards } from "../services/decisionAssistGuards";
 
 export { UserPlan } from "../services/aiQuotaService";
 
@@ -132,10 +133,16 @@ export function createAiRouter({
     resolveUserPlan: resolveAiUserPlan,
   });
 
-  // ── Shared HTTP helpers ──
+  const guards = new DecisionAssistGuards({
+    quotaService,
+    suggestionStore,
+    decisionAssistEnabled: decisionAssistEnabled ?? false,
+  });
 
+  // Thin HTTP adapters that delegate to the guards service.
+  // These translate guard results into HTTP responses.
   const enforceDailyQuota = async (userId: string, res: Response) => {
-    const exceeded = await quotaService.checkQuota(userId);
+    const exceeded = await guards.checkQuota(userId);
     if (exceeded) {
       res.status(429).json({
         error: "Daily AI suggestion limit reached",
@@ -146,44 +153,23 @@ export function createAiRouter({
     return true;
   };
 
-  const isExplicitDecisionAssistRequest = (req: Request): boolean => {
-    const rawHeader = req.header("x-ai-explicit-request");
-    if (typeof rawHeader !== "string") {
-      return false;
-    }
-    const normalized = rawHeader.trim().toLowerCase();
-    return normalized === "1" || normalized === "true" || normalized === "yes";
-  };
-
-  const shouldThrottleDecisionAssist = async (
-    userId: string,
-    surface: DecisionAssistSurface,
-  ) => {
-    const records = await suggestionStore.listByUser(userId, 120);
-    return evaluateDecisionAssistThrottle({
-      records,
-      surface,
-      now: new Date(),
-    });
-  };
-
   const ensureDecisionAssistFeatureEnabled = (res: Response): boolean => {
-    if (decisionAssistEnabled) {
-      return true;
-    }
+    if (guards.isFeatureEnabled()) return true;
     res.status(403).json({ error: "Decision assist disabled" });
     return false;
   };
 
+  const shouldThrottleDecisionAssist = (
+    userId: string,
+    surface: DecisionAssistSurface,
+  ) => guards.evaluateThrottle(userId, surface);
+
+  const isExplicitDecisionAssistRequest = (req: Request): boolean =>
+    guards.isExplicitRequest(req.header("x-ai-explicit-request"));
+
   const emitDecisionAssistTelemetrySafe = (
     event: decisionAssistTelemetry.DecisionAssistTelemetryEvent,
-  ) => {
-    try {
-      decisionAssistTelemetry.emitDecisionAssistTelemetry(event);
-    } catch (error) {
-      console.warn("Decision assist telemetry emit failed:", error);
-    }
-  };
+  ) => guards.emitTelemetry(event);
 
   // ── Routes ──
 
