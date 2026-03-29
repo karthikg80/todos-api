@@ -48,7 +48,11 @@
     "docker:reset": "docker-compose down -v && docker-compose up -d",
     "docker:logs": "docker-compose logs -f postgres",
     "db:setup": "npm run docker:up && sleep 3 && npm run prisma:migrate",
-    "db:seed": "ts-node prisma/seed.ts"
+    "db:seed": "ts-node prisma/seed.ts",
+    "dev:react": "npm --prefix client-react run dev",
+    "build:react": "npm --prefix client-react run build",
+    "preview:react": "npm --prefix client-react run preview",
+    "test:ui:react:fast": "npm run build:react && PLAYWRIGHT_AUTH_DIR=.playwright/.auth playwright test --config playwright.react.config.ts --grep-invert @visual"
   },
   "keywords": [],
   "author": "",

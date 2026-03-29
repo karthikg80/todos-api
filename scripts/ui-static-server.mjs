@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, "../client");
+const reactRoot = path.resolve(__dirname, "../client-react/dist");
 const vendorRoots = [
   {
     prefix: "/vendor/chrono-node/",
@@ -67,6 +68,38 @@ const server = http.createServer(async (req, res) => {
     const standaloneFile = standaloneRoutes[pathname];
     if (standaloneFile) {
       const body = await fs.readFile(standaloneFile);
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      res.end(body);
+      return;
+    }
+
+    // React preview — serve built assets or SPA fallback
+    if (pathname === "/app-react" || pathname.startsWith("/app-react/")) {
+      const relative = pathname.replace(/^\/app-react\/?/, "") || "index.html";
+      const reactFile = safePathForRoot(relative, reactRoot);
+      if (reactFile) {
+        try {
+          const stat = await fs.stat(reactFile);
+          if (stat.isFile()) {
+            const ext = path.extname(reactFile).toLowerCase();
+            const body = await fs.readFile(reactFile);
+            res.writeHead(200, {
+              "Content-Type": contentTypes[ext] || "application/octet-stream",
+              "Cache-Control": "no-store",
+            });
+            res.end(body);
+            return;
+          }
+        } catch {
+          // File not found — fall through to SPA fallback
+        }
+      }
+      // SPA fallback — serve index.html for all /app-react/* routes
+      const fallback = path.join(reactRoot, "index.html");
+      const body = await fs.readFile(fallback);
       res.writeHead(200, {
         "Content-Type": "text/html; charset=utf-8",
         "Cache-Control": "no-store",

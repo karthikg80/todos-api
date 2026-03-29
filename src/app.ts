@@ -242,6 +242,12 @@ export function createApp(deps: AppDependencies = {}) {
       path.join(__dirname, "../node_modules/chrono-node/dist/esm"),
     ),
   );
+  // React preview — static assets under /app-react/ (must precede classic root)
+  app.use(
+    "/app-react",
+    express.static(path.join(__dirname, "../client-react/dist")),
+  );
+
   app.use(express.static(path.join(__dirname, "../client")));
 
   // Standalone page routes — must be registered before the /auth API router
