@@ -107,22 +107,25 @@ export function renderTodayPlan() {
   const statusBadge =
     {
       draft: '<span class="plan-badge plan-badge--draft">Draft</span>',
-      finalized: '<span class="plan-badge plan-badge--active">Active</span>',
+      active: '<span class="plan-badge plan-badge--active">Active</span>',
+      finalized:
+        '<span class="plan-badge plan-badge--finalized">Finalized</span>',
       reviewed: '<span class="plan-badge plan-badge--reviewed">Reviewed</span>',
+      abandoned:
+        '<span class="plan-badge plan-badge--abandoned">Abandoned</span>',
     }[plan.status] || "";
 
+  const visibleTasks = plan.tasks.filter((t) => t.outcome !== "removed");
   const taskListHtml =
-    plan.tasks.length === 0
+    visibleTasks.length === 0
       ? '<p class="today-plan-hint">Add tasks from your todo list to build your plan.</p>'
-      : plan.tasks
+      : visibleTasks
           .map((planTask) => {
             const todo = planTask.todo || {};
-            const completedClass = planTask.completed
-              ? "plan-task--completed"
-              : "";
-            const deferredClass = planTask.deferred
-              ? "plan-task--deferred"
-              : "";
+            const completedClass =
+              planTask.outcome === "completed" ? "plan-task--completed" : "";
+            const deferredClass =
+              planTask.outcome === "deferred" ? "plan-task--deferred" : "";
             const priorityClass = todo.priority
               ? `priority-${todo.priority}`
               : "";
@@ -146,34 +149,44 @@ export function renderTodayPlan() {
           })
           .join("");
 
-  const totalEstimate = plan.tasks.reduce((sum, t) => {
-    return sum + (t.todo?.estimateMinutes || 0);
+  const totalEstimate = visibleTasks.reduce((sum, t) => {
+    return sum + (t.estimatedMinutes || t.todo?.estimateMinutes || 0);
   }, 0);
+  const completedCount = visibleTasks.filter(
+    (t) => t.outcome === "completed",
+  ).length;
+  const committedCount = visibleTasks.filter((t) => t.committed).length;
+  const progressLabel =
+    committedCount > 0
+      ? `<span class="plan-progress">${completedCount}/${committedCount} done</span>`
+      : "";
   const estimateSummary =
     totalEstimate > 0
       ? `<span class="plan-estimate-total">${totalEstimate}m planned</span>`
       : "";
 
-  const actionsHtml =
-    plan.status === "draft"
-      ? `<div class="plan-actions">
+  const canFinalize = plan.status === "draft" || plan.status === "active";
+  const canReview = plan.status === "finalized";
+  const actionsHtml = canFinalize
+    ? `<div class="plan-actions">
         <button data-onclick="finalizePlan" class="btn btn-primary btn-sm">
-          Commit to Plan
+          Finalize Day
         </button>
       </div>`
-      : plan.status === "finalized"
-        ? `<div class="plan-actions">
+    : canReview
+      ? `<div class="plan-actions">
           <button data-onclick="reviewPlan" class="btn btn-secondary btn-sm">
             End-of-Day Review
           </button>
         </div>`
-        : "";
+      : "";
 
   container.innerHTML = `
     <div class="today-plan">
       <div class="today-plan-header">
         <h2>Today's Plan</h2>
         ${statusBadge}
+        ${progressLabel}
         ${estimateSummary}
       </div>
       <div class="today-plan-tasks">
@@ -190,12 +203,14 @@ function renderPlanReview(review) {
 
   const taskRows = review.tasks
     .map((t) => {
-      const status = t.completed ? "✓" : t.deferred ? "→" : "✗";
-      const statusClass = t.completed
-        ? "review-completed"
-        : t.deferred
-          ? "review-deferred"
-          : "review-missed";
+      const status =
+        t.outcome === "completed" ? "✓" : t.outcome === "deferred" ? "→" : "✗";
+      const statusClass =
+        t.outcome === "completed"
+          ? "review-completed"
+          : t.outcome === "deferred"
+            ? "review-deferred"
+            : "review-missed";
       return `
         <div class="review-task ${statusClass}">
           <span class="review-status">${status}</span>

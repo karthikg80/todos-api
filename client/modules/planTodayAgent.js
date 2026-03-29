@@ -65,12 +65,16 @@ async function loadCachedPlan() {
 /** Task IDs recommended by the most recent successful plan generation. */
 export let planTodayTaskIds = [];
 
+/** ID of the persisted DayPlan (null if ephemeral-only). */
+export let dayPlanId = null;
+
 const planState = {
   tasks: [],
   totalMinutes: 0,
   remainingMinutes: 0,
   loading: false,
   error: null,
+  dayPlanId: null,
 };
 
 // ---------------------------------------------------------------------------
@@ -92,6 +96,8 @@ function applyPlanData(data) {
     data?.plan?.remainingMinutes ?? data?.remainingMinutes ?? 0;
 
   planTodayTaskIds = planState.tasks.map((t) => t.taskId).filter(Boolean);
+  dayPlanId = data?.plan?.dayPlanId ?? data?.dayPlanId ?? null;
+  planState.dayPlanId = dayPlanId;
 
   // Compute suggested time slots starting from 9:00 AM
   let slotMinutes = 9 * 60;
@@ -122,7 +128,9 @@ export async function generateDayPlan() {
   }
 
   try {
-    const data = await callAgentAction("/agent/read/plan_today", {});
+    const data = await callAgentAction("/agent/read/plan_today", {
+      persist: true,
+    });
 
     applyPlanData(data);
     void cachePlan(data);
@@ -158,12 +166,14 @@ export function resetDayPlan() {
   planState.remainingMinutes = 0;
   planState.loading = false;
   planState.error = null;
+  planState.dayPlanId = null;
   planTodayTaskIds = [];
+  dayPlanId = null;
 }
 
 /** Read-only snapshot of current plan state. */
 export function getDayPlanState() {
-  return { ...planState, tasks: [...planState.tasks] };
+  return { ...planState, tasks: [...planState.tasks], dayPlanId };
 }
 
 // ---------------------------------------------------------------------------
@@ -188,6 +198,7 @@ export function recordPlanTaskAccepted(taskId) {
   const planTask = planState.tasks.find((t) => String(t.taskId) === id);
   const score = planTask?.score ?? undefined;
 
+  // Record feedback signal
   callAgentAction("/agent/write/record_recommendation_feedback", {
     planDate,
     taskId: id,
@@ -197,4 +208,20 @@ export function recordPlanTaskAccepted(taskId) {
   }).catch((err) => {
     hooks.console?.warn?.("planTodayAgent: feedback recording failed", err);
   });
+
+  // Update persisted DayPlan task outcome if available
+  if (dayPlanId) {
+    hooks
+      .apiCall(`/plans/${dayPlanId}/tasks/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ outcome: "completed" }),
+      })
+      .catch((err) => {
+        hooks.console?.warn?.(
+          "planTodayAgent: DayPlan task outcome update failed",
+          err,
+        );
+      });
+  }
 }

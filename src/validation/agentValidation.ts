@@ -1150,7 +1150,13 @@ export function validateAgentTaxonomyCleanupInput(data: unknown): void {
 
 // ─── Planning ─────────────────────────────────────────────────────────────────
 
-const PLAN_TODAY_KEYS = ["availableMinutes", "energy", "date", "decisionRunId"];
+const PLAN_TODAY_KEYS = [
+  "availableMinutes",
+  "energy",
+  "date",
+  "decisionRunId",
+  "persist",
+];
 const BREAK_DOWN_TASK_KEYS = ["taskId", "maxSubtasks"];
 const SUGGEST_NEXT_ACTIONS_KEYS = ["projectId", "limit"];
 const WEEKLY_REVIEW_SUMMARY_KEYS = ["weekStart"];
@@ -1160,6 +1166,7 @@ export function validateAgentPlanTodayInput(data: unknown): {
   energy?: Energy;
   date?: string;
   decisionRunId?: string;
+  persist?: boolean;
 } {
   const body = ensureObject(data, "Agent action input");
   rejectUnknownKeys(body, PLAN_TODAY_KEYS, "Agent action input");
@@ -1173,6 +1180,7 @@ export function validateAgentPlanTodayInput(data: unknown): {
     energy: parseOptionalEnergy(body.energy) ?? undefined,
     date: parseOptionalString(body.date, "date", 10),
     decisionRunId: parseOptionalString(body.decisionRunId, "decisionRunId", 36),
+    persist: body.persist === true ? true : undefined,
   };
 }
 
@@ -2281,4 +2289,51 @@ export function validateAgentWeeklyExecSummaryInput(data: unknown): {
       );
   }
   return { weekOffset };
+}
+
+// ── DayPlan actions ───────────────────────────────────────────────────────────
+
+const GET_DAY_PLAN_KEYS = ["date", "id"];
+const UPDATE_DAY_PLAN_TASK_KEYS = ["planId", "taskId", "outcome"];
+const FINALIZE_DAY_PLAN_KEYS = ["planId", "date"];
+
+export function validateAgentGetDayPlanInput(data: unknown): {
+  date?: string;
+  id?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, GET_DAY_PLAN_KEYS, "Agent action input");
+  return {
+    date: parseOptionalString(body.date, "date", 10),
+    id: parseOptionalString(body.id, "id", 36),
+  };
+}
+
+export function validateAgentUpdateDayPlanTaskInput(data: unknown): {
+  planId: string;
+  taskId: string;
+  outcome: "completed" | "deferred";
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, UPDATE_DAY_PLAN_TASK_KEYS, "Agent action input");
+  const planId = parseOptionalString(body.planId, "planId", 36);
+  if (!planId) throw new ValidationError("planId is required");
+  const taskId = parseOptionalString(body.taskId, "taskId", 36);
+  if (!taskId) throw new ValidationError("taskId is required");
+  const outcome = parseOptionalString(body.outcome, "outcome", 20);
+  if (outcome !== "completed" && outcome !== "deferred")
+    throw new ValidationError("outcome must be 'completed' or 'deferred'");
+  return { planId, taskId, outcome };
+}
+
+export function validateAgentFinalizeDayPlanInput(data: unknown): {
+  planId?: string;
+  date?: string;
+} {
+  const body = ensureObject(data, "Agent action input");
+  rejectUnknownKeys(body, FINALIZE_DAY_PLAN_KEYS, "Agent action input");
+  return {
+    planId: parseOptionalString(body.planId, "planId", 36),
+    date: parseOptionalString(body.date, "date", 10),
+  };
 }

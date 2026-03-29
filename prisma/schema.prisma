@@ -863,21 +863,37 @@ model UserInsight {
 
 enum DayPlanStatus {
   draft
+  active
   finalized
   reviewed
+  abandoned
+}
+
+enum DayPlanTaskOutcome {
+  pending
+  completed
+  deferred
+  removed
 }
 
 model DayPlan {
-  id          String        @id @default(uuid()) @db.Uuid
-  userId      String        @map("user_id")
-  date        DateTime      @db.Date
-  status      DayPlanStatus @default(draft)
-  energyLevel String?       @map("energy_level") @db.VarChar(20)
-  notes       String?
-  createdAt   DateTime      @default(now()) @map("created_at")
-  updatedAt   DateTime      @updatedAt @map("updated_at")
-  finalizedAt DateTime?     @map("finalized_at")
-  reviewedAt  DateTime?     @map("reviewed_at")
+  id               String        @id @default(uuid()) @db.Uuid
+  userId           String        @map("user_id")
+  date             DateTime      @db.Date
+  status           DayPlanStatus @default(draft)
+  mode             String        @default("normal") @db.VarChar(20)
+  energyLevel      String?       @map("energy_level") @db.VarChar(20)
+  availableMinutes Int?          @map("available_minutes")
+  totalMinutes     Int?          @map("total_minutes")
+  remainingMinutes Int?          @map("remaining_minutes")
+  headline         Json?
+  budgetBreakdown  Json?         @map("budget_breakdown")
+  decisionRunId    String?       @map("decision_run_id") @db.Uuid
+  notes            String?
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+  finalizedAt      DateTime?     @map("finalized_at")
+  reviewedAt       DateTime?     @map("reviewed_at")
 
   user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   tasks DayPlanTask[]
@@ -888,18 +904,25 @@ model DayPlan {
 }
 
 model DayPlanTask {
-  id        String  @id @default(uuid()) @db.Uuid
-  planId    String  @map("plan_id") @db.Uuid
-  todoId    String  @map("todo_id") @db.Uuid
-  order     Int
-  committed Boolean @default(true)
-  completed Boolean @default(false)
-  deferred  Boolean @default(false)
+  id               String              @id @default(uuid()) @db.Uuid
+  planId           String              @map("plan_id") @db.Uuid
+  todoId           String              @map("todo_id") @db.Uuid
+  order            Int
+  committed        Boolean             @default(true)
+  outcome          DayPlanTaskOutcome   @default(pending)
+  estimatedMinutes Int?                @map("estimated_minutes")
+  score            Float?
+  explanation      Json?
+  attribution      Json?
+  manuallyAdded    Boolean             @default(false) @map("manually_added")
+  createdAt        DateTime            @default(now()) @map("created_at")
+  updatedAt        DateTime            @updatedAt @map("updated_at")
 
   plan DayPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   todo Todo    @relation(fields: [todoId], references: [id], onDelete: Cascade)
 
   @@unique([planId, todoId])
   @@index([planId, order])
+  @@index([todoId])
   @@map("day_plan_tasks")
 }
