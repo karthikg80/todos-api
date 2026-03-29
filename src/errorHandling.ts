@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response } from "express";
 import { ValidationError } from "./validation/validation";
+import { AppError } from "./domains/tasks/domainErrors";
 
 type ErrorCodeCarrier = { code?: unknown };
 
@@ -25,10 +26,19 @@ export function mapError(error: unknown): HttpError {
     return error;
   }
 
+  // Domain errors from domains/tasks/domainErrors.ts — carry their own status
+  if (error instanceof AppError) {
+    return new HttpError(error.status, error.message);
+  }
+
+  // Validation errors from validation/validation.ts (no status field)
   if (error instanceof ValidationError) {
     return new HttpError(400, error.message);
   }
 
+  // Legacy string-matching for errors thrown from services that haven't
+  // migrated to typed domain errors yet. Each block should be removed
+  // as the corresponding service adopts AppError subclasses.
   if (error instanceof Error) {
     if (
       error.message === "Email already registered" ||

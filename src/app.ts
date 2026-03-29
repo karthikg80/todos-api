@@ -341,24 +341,26 @@ export function createApp(deps: AppDependencies = {}) {
   );
 
   if (authService) {
-    app.use("/todos", authMiddleware(authService));
-    app.use("/users", authMiddleware(authService));
-    app.use("/ai", authMiddleware(authService));
-    app.use("/projects", authMiddleware(authService));
-    app.use("/capture", authMiddleware(authService));
-    app.use("/api/feedback", authMiddleware(authService));
-    app.use("/preferences", authMiddleware(authService));
-    app.use("/events", authMiddleware(authService));
-    app.use("/insights", authMiddleware(authService));
-    app.use("/calendar", authMiddleware(authService));
-    app.use("/areas", authMiddleware(authService));
-    app.use("/goals", authMiddleware(authService));
-    app.use("/plans", authMiddleware(authService));
-    app.use(
-      "/admin",
-      authMiddleware(authService),
-      adminMiddleware(authService),
-    );
+    const auth = authMiddleware(authService);
+    const protectedRoutes = [
+      "/todos",
+      "/users",
+      "/ai",
+      "/projects",
+      "/capture",
+      "/api/feedback",
+      "/preferences",
+      "/events",
+      "/insights",
+      "/calendar",
+      "/areas",
+      "/goals",
+      "/plans",
+    ];
+    for (const route of protectedRoutes) {
+      app.use(route, auth);
+    }
+    app.use("/admin", auth, adminMiddleware(authService));
   }
 
   app.use(
