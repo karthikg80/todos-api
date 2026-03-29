@@ -173,6 +173,18 @@
   // Post-auth redirect — go to main app
   // ---------------------------------------------------------------------------
   function redirectToApp() {
+    var ALLOWED_PREFIXES = ["/app", "/app-react"];
+    var params = new URLSearchParams(window.location.search);
+    var next = params.get("next");
+    if (
+      next &&
+      ALLOWED_PREFIXES.some(function (p) {
+        return next === p || next.startsWith(p + "/");
+      })
+    ) {
+      window.location.href = next;
+      return;
+    }
     window.location.href = "/app";
   }
 

@@ -32,5 +32,14 @@ export function createStaticPagesRouter(): Router {
     res.sendFile(appPage),
   );
 
+  // React preview — SPA catch-all for /app-react and /app-react/*
+  const reactIndex = path.join(__dirname, "../../client-react/dist/index.html");
+  router.get("/app-react", (_req: Request, res: Response) =>
+    res.sendFile(reactIndex),
+  );
+  router.get("/app-react/{*path}", (_req: Request, res: Response) =>
+    res.sendFile(reactIndex),
+  );
+
   return router;
 }
