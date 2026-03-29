@@ -1,5 +1,10 @@
 import { mapError } from "../errorHandling";
-import { getActionHandler } from "../domains/agent/actions/actionRegistry";
+import {
+  ActionRegistry,
+  type ActionRuntime,
+} from "../domains/agent/actions/actionRegistry";
+import { AgentExecutionError } from "../domains/agent/actions/agentExecutionError";
+import { registerCoreActions } from "../domains/agent/actions/registerCoreActions";
 import { IProjectService } from "../interfaces/IProjectService";
 import { ITodoService } from "../interfaces/ITodoService";
 import agentManifest from "./agent-manifest.json";
@@ -43,21 +48,9 @@ import {
   validateAgentDeleteSubtaskInput,
   validateAgentDeleteTaskInput,
   validateAgentDeleteProjectInput,
-  validateAgentGetProjectInput,
-  validateAgentGetTaskInput,
-  validateAgentListNextActionsInput,
-  validateAgentListProjectsInput,
-  validateAgentListProjectsWithoutNextActionInput,
-  validateAgentListTasksInput,
-  validateAgentListStaleTasksInput,
-  validateAgentListTodayInput,
-  validateAgentListUpcomingInput,
-  validateAgentListWaitingOnInput,
   validateAgentMoveTaskToProjectInput,
   validateAgentPlanProjectInput,
   validateAgentRenameProjectInput,
-  validateAgentReviewProjectsInput,
-  validateAgentSearchTasksInput,
   validateAgentEnsureNextActionInput,
   validateAgentUpdateSubtaskInput,
   validateAgentUpdateProjectInput,
@@ -80,25 +73,15 @@ import {
   validateAgentClaimJobRunInput,
   validateAgentCompleteJobRunInput,
   validateAgentFailJobRunInput,
-  validateAgentGetJobRunInput,
-  validateAgentListJobRunsInput,
   validateAgentListAuditLogExtendedInput,
-  validateAgentListFailedActionsInput,
   validateAgentResolveFailedActionInput,
   validateAgentRecordFailedActionInput,
-  validateAgentGetAgentConfigInput,
   validateAgentUpdateAgentConfigInput,
   validateAgentReplayJobRunInput,
   validateAgentSimulatePlanInput,
   validateAgentRecordMetricInput,
-  validateAgentListMetricsInput,
-  validateAgentMetricsSummaryInput,
   validateAgentRecordFeedbackInput,
-  validateAgentListFeedbackInput,
-  validateAgentFeedbackSummaryInput,
   validateAgentSetDayContextInput,
-  validateAgentGetDayContextInput,
-  validateAgentWeeklyExecSummaryInput,
   validateAgentCaptureInboxItemInput,
   validateAgentListInboxItemsInput,
   validateAgentPromoteInboxItemInput,
@@ -106,10 +89,7 @@ import {
   validateAgentEvaluateDailyInput,
   validateAgentEvaluateWeeklyInput,
   validateAgentRecordLearningRecInput,
-  validateAgentListLearningRecsInput,
   validateAgentApplyLearningRecInput,
-  validateAgentListFrictionPatternsInput,
-  validateAgentGetActionPoliciesInput,
   validateAgentUpdateActionPolicyInput,
   validateAgentPrewarmHomeFocusInput,
   validateAgentGetDayPlanInput,
@@ -261,20 +241,6 @@ export type AgentExecutionResult = {
   status: number;
   body: AgentSuccessEnvelope | AgentErrorEnvelope;
 };
-
-class AgentExecutionError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly code: string,
-    message: string,
-    public readonly retryable: boolean,
-    public readonly hint?: string,
-    public readonly details?: Record<string, unknown>,
-  ) {
-    super(message);
-    this.name = "AgentExecutionError";
-  }
-}
 
 const READ_ONLY_ACTIONS = new Set<AgentActionName>([
   "list_tasks",
@@ -727,6 +693,7 @@ export class AgentExecutor {
   private readonly actionPolicyService: ActionPolicyService;
   private readonly homeFocusPrewarmService: HomeFocusPrewarmService | null;
   private readonly dayPlanService: DayPlanService | null;
+  private readonly registry: ActionRegistry;
 
   constructor(private readonly deps: AgentExecutorDeps) {
     this.idempotencyService = new AgentIdempotencyService(
@@ -770,6 +737,8 @@ export class AgentExecutor {
       todoService: deps.todoService,
       projectService: deps.projectService,
     });
+    this.registry = new ActionRegistry();
+    registerCoreActions(this.registry);
   }
 
   private persistActionAudit(
@@ -865,16 +834,36 @@ export class AgentExecutor {
   ): Promise<AgentExecutionResult> {
     const readOnly = READ_ONLY_ACTIONS.has(action);
 
-    // Check the action registry first — registered handlers take priority
+    // Check the instance registry first — registered handlers take priority
     // over the inline switch/case. This enables incremental extraction.
-    const registeredHandler = getActionHandler(action);
-    if (registeredHandler) {
+    const handler = this.registry.get(action);
+    if (handler) {
       try {
-        const result = await registeredHandler(
+        const runtime: ActionRuntime = {
+          agentService: this.agentService,
+          jobRunService: this.jobRunService,
+          metricsService: this.metricsService,
+          feedbackService: this.feedbackService,
+          dayContextService: this.dayContextService,
+          agentConfigService: this.agentConfigService,
+          failedActionService: this.failedActionService,
+          executiveSummaryService: this.executiveSummaryService,
+          learningRecommendationService: this.learningRecommendationService,
+          frictionService: this.frictionService,
+          actionPolicyService: this.actionPolicyService,
+        };
+        const result = await handler(
           (input as Record<string, unknown>) ?? {},
           context,
+          runtime,
         );
-        return result as AgentExecutionResult;
+        return this.success(
+          action,
+          readOnly,
+          context,
+          result.status,
+          result.data,
+        );
       } catch (error) {
         return this.failure(action, readOnly, context, error);
       }
@@ -882,53 +871,6 @@ export class AgentExecutor {
 
     try {
       switch (action) {
-        case "list_tasks": {
-          const query = validateAgentListTasksInput(input);
-          const tasks = await this.agentService.listTasks(
-            context.userId,
-            query,
-          );
-          return this.success(action, readOnly, context, 200, { tasks });
-        }
-        case "search_tasks": {
-          const query = validateAgentSearchTasksInput(input);
-          const tasks = await this.agentService.searchTasks(
-            context.userId,
-            query,
-          );
-          return this.success(action, readOnly, context, 200, { tasks });
-        }
-        case "get_task": {
-          const { id } = validateAgentGetTaskInput(input);
-          const task = await this.agentService.getTask(context.userId, id);
-          if (!task) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-              "Task not found",
-              false,
-              "Verify the task ID belongs to the authenticated user.",
-            );
-          }
-          return this.success(action, readOnly, context, 200, { task });
-        }
-        case "get_project": {
-          const { id } = validateAgentGetProjectInput(input);
-          const project = await this.agentService.getProject(
-            context.userId,
-            id,
-          );
-          if (!project) {
-            throw new AgentExecutionError(
-              404,
-              "RESOURCE_NOT_FOUND_OR_FORBIDDEN",
-              "Project not found",
-              false,
-              "Verify the project ID belongs to the authenticated user.",
-            );
-          }
-          return this.success(action, readOnly, context, 200, { project });
-        }
         case "create_task": {
           const createInput = validateAgentCreateTaskInput(input);
           if (createInput.dryRun === true) {
@@ -1149,14 +1091,6 @@ export class AgentExecutor {
             },
           );
         }
-        case "list_projects": {
-          const filters = validateAgentListProjectsInput(input);
-          const projects = await this.agentService.listProjects(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, { projects });
-        }
         case "create_project": {
           const createInput = validateAgentCreateProjectInput(input);
           return await this.handleCreateProject(action, context, createInput);
@@ -1311,64 +1245,6 @@ export class AgentExecutor {
               return { project };
             },
           );
-        }
-        case "list_today": {
-          const filters = validateAgentListTodayInput(input);
-          const tasks = await this.agentService.listToday(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, { tasks });
-        }
-        case "list_next_actions": {
-          const filters = validateAgentListNextActionsInput(input);
-          const tasks = await this.agentService.listNextActions(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, { tasks });
-        }
-        case "list_waiting_on": {
-          const filters = validateAgentListWaitingOnInput(input);
-          const tasks = await this.agentService.listWaitingOn(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, { tasks });
-        }
-        case "list_upcoming": {
-          const filters = validateAgentListUpcomingInput(input);
-          const tasks = await this.agentService.listUpcoming(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, { tasks });
-        }
-        case "list_stale_tasks": {
-          const filters = validateAgentListStaleTasksInput(input);
-          const tasks = await this.agentService.listStaleTasks(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, { tasks });
-        }
-        case "list_projects_without_next_action": {
-          const filters =
-            validateAgentListProjectsWithoutNextActionInput(input);
-          const projects =
-            await this.agentService.listProjectsWithoutNextAction(
-              context.userId,
-              filters,
-            );
-          return this.success(action, readOnly, context, 200, { projects });
-        }
-        case "review_projects": {
-          const filters = validateAgentReviewProjectsInput(input);
-          const projects = await this.agentService.reviewProjects(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, { projects });
         }
         case "plan_project": {
           const plannerInput = validateAgentPlanProjectInput(input);
@@ -3505,27 +3381,6 @@ export class AgentExecutor {
             periodKey,
           });
         }
-        case "get_job_run_status": {
-          const { jobName, periodKey } = validateAgentGetJobRunInput(input);
-          const run = await this.jobRunService.getRunStatus(
-            context.userId,
-            jobName,
-            periodKey,
-          );
-          return this.success(action, readOnly, context, 200, { run });
-        }
-        case "list_job_runs": {
-          const filters = validateAgentListJobRunsInput(input);
-          const runs = await this.jobRunService.listRuns(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, {
-            runs,
-            total: runs.length,
-          });
-        }
-
         // ── Issue #320: dead-letter store ──────────────────────────────────────
         case "record_failed_action": {
           const recordInput = validateAgentRecordFailedActionInput(input);
@@ -3535,17 +3390,6 @@ export class AgentExecutor {
           });
           return this.success(action, readOnly, context, 201, {
             record,
-          });
-        }
-        case "list_failed_actions": {
-          const filters = validateAgentListFailedActionsInput(input);
-          const actions = await this.failedActionService.list(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, {
-            actions,
-            total: actions.length,
           });
         }
         case "resolve_failed_action": {
@@ -3573,13 +3417,6 @@ export class AgentExecutor {
         }
 
         // ── Issue #329: agent control plane ───────────────────────────────────
-        case "get_agent_config": {
-          validateAgentGetAgentConfigInput(input);
-          const config = await this.agentConfigService.getConfig(
-            context.userId,
-          );
-          return this.success(action, readOnly, context, 200, { config });
-        }
         case "update_agent_config": {
           const update = validateAgentUpdateAgentConfigInput(input);
           const config = await this.agentConfigService.updateConfig(
@@ -3802,26 +3639,6 @@ export class AgentExecutor {
           );
           return this.success(action, readOnly, context, 201, { event });
         }
-        case "list_metrics": {
-          const filters = validateAgentListMetricsInput(input);
-          const events = await this.metricsService.list(
-            context.userId,
-            filters,
-          );
-          return this.success(action, readOnly, context, 200, {
-            events,
-            total: events.length,
-          });
-        }
-        case "metrics_summary": {
-          const summaryFilters = validateAgentMetricsSummaryInput(input);
-          const summary = await this.metricsService.summary(
-            context.userId,
-            summaryFilters,
-          );
-          return this.success(action, readOnly, context, 200, { summary });
-        }
-
         // ── Issue #334: recommendation feedback ────────────────────────────────
         case "record_recommendation_feedback": {
           const fbInput = validateAgentRecordFeedbackInput(input);
@@ -3831,29 +3648,6 @@ export class AgentExecutor {
           );
           return this.success(action, readOnly, context, 201, { feedback });
         }
-        case "list_recommendation_feedback": {
-          const fbFilters = validateAgentListFeedbackInput(input);
-          const items = await this.feedbackService.list(
-            context.userId,
-            fbFilters,
-          );
-          return this.success(action, readOnly, context, 200, {
-            items,
-            total: items.length,
-          });
-        }
-        case "feedback_summary": {
-          const fbSummaryFilters = validateAgentFeedbackSummaryInput(input);
-          const summaries = await this.feedbackService.summary(
-            context.userId,
-            fbSummaryFilters,
-          );
-          return this.success(action, readOnly, context, 200, {
-            summaries,
-            total: summaries.length,
-          });
-        }
-
         // ── Issue #336: life state / day context ───────────────────────────────
         case "set_day_context": {
           const ctxInput = validateAgentSetDayContextInput(input);
@@ -3865,30 +3659,6 @@ export class AgentExecutor {
             context: dayCtxResult,
           });
         }
-        case "get_day_context": {
-          const { contextDate } = validateAgentGetDayContextInput(input);
-          const today = contextDate ?? new Date().toISOString().slice(0, 10);
-          const dayCtxResult = await this.dayContextService.getContext(
-            context.userId,
-            today,
-          );
-          return this.success(action, readOnly, context, 200, {
-            context: dayCtxResult,
-          });
-        }
-
-        // ── Issue #337: weekly executive summary ───────────────────────────────
-        case "weekly_executive_summary": {
-          const { weekOffset } = validateAgentWeeklyExecSummaryInput(input);
-          const execSummary = await this.executiveSummaryService.getSummary(
-            context.userId,
-            weekOffset ?? 0,
-          );
-          return this.success(action, readOnly, context, 200, {
-            summary: execSummary,
-          });
-        }
-
         case "record_learning_recommendation": {
           const recInput = validateAgentRecordLearningRecInput(input);
           const rec = await this.learningRecommendationService.record(
@@ -3897,18 +3667,6 @@ export class AgentExecutor {
           );
           return this.success(action, readOnly, context, 201, {
             recommendation: rec,
-          });
-        }
-
-        case "list_learning_recommendations": {
-          const { status, limit } = validateAgentListLearningRecsInput(input);
-          const recs = await this.learningRecommendationService.list(
-            context.userId,
-            { status, limit },
-          );
-          return this.success(action, readOnly, context, 200, {
-            recommendations: recs,
-            total: recs.length,
           });
         }
 
@@ -4111,32 +3869,7 @@ export class AgentExecutor {
           });
         }
 
-        // ── Issue #338: list_friction_patterns ────────────────────────────────
-        case "list_friction_patterns": {
-          const { since, limit } =
-            validateAgentListFrictionPatternsInput(input);
-          const result = await this.frictionService.listPatterns(
-            context.userId,
-            { since, limit },
-          );
-          return this.success(
-            action,
-            readOnly,
-            context,
-            200,
-            result as unknown as Record<string, unknown>,
-          );
-        }
-
         // ── Issue #339: action policies ───────────────────────────────────────
-        case "get_action_policies": {
-          validateAgentGetActionPoliciesInput(input);
-          const policies = await this.actionPolicyService.getPolicies(
-            context.userId,
-          );
-          return this.success(action, readOnly, context, 200, { policies });
-        }
-
         case "update_action_policy": {
           const { actionName, autoApply, minConfidence } =
             validateAgentUpdateActionPolicyInput(input);
@@ -4148,6 +3881,12 @@ export class AgentExecutor {
           return this.success(action, readOnly, context, 200, { policies });
         }
       }
+      throw new AgentExecutionError(
+        501,
+        "ACTION_NOT_IMPLEMENTED",
+        `Action not implemented: ${String(action)}`,
+        false,
+      );
     } catch (error) {
       return this.failure(action, readOnly, context, error);
     }
