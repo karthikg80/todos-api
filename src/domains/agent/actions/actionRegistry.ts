@@ -19,6 +19,7 @@ import type { DayContextService } from "../../../services/dayContextService";
 import type { AgentConfigService } from "../../../services/agentConfigService";
 import type { FailedAutomationActionService } from "../../../services/failedAutomationActionService";
 import type { WeeklyExecutiveSummaryService } from "../../../services/weeklyExecutiveSummaryService";
+import type { EvaluationService } from "../../../services/evaluationService";
 import type { LearningRecommendationService } from "../../../services/learningRecommendationService";
 import type { FrictionService } from "../../../services/frictionService";
 import type { ActionPolicyService } from "../../../services/actionPolicyService";
@@ -77,6 +78,7 @@ export interface ActionRuntime {
   agentConfigService: AgentConfigService;
   failedActionService: FailedAutomationActionService;
   executiveSummaryService: WeeklyExecutiveSummaryService;
+  evaluationService: EvaluationService;
   learningRecommendationService: LearningRecommendationService;
   frictionService: FrictionService;
   actionPolicyService: ActionPolicyService;
