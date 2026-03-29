@@ -14,7 +14,6 @@
  */
 import { state, hooks } from "./store.js";
 import { applyDomainAction } from "./stateActions.js";
-import { renderTodoRowTemplate } from "./uiTemplates.js";
 import { SOUL_COPY } from "./soulConfig.js";
 import {
   buildVisibleTodosQueryParams,
@@ -26,12 +25,52 @@ import {
 import {
   illustrationNoTasks,
   illustrationNoMatches,
-  illustrationEmptyProject,
   illustrationTodayClear,
   illustrationUpcomingEmpty,
   illustrationCompletedEmpty,
   illustrationLaterEmpty,
 } from "../utils/illustrations.js";
+
+// ---------------------------------------------------------------------------
+// Submodule imports — pure predicates, workspace semantics, DOM header writes,
+// and row/heading renderers extracted from this file.
+// ---------------------------------------------------------------------------
+import {
+  isTodoUnsorted,
+  isTodoNeedsOrganizing,
+  isTodoNeedingTriage,
+  isSameLocalDay,
+  matchesDateView,
+  getOpenTodos,
+  getUniqueTagsWithCounts,
+  getVisibleTodosCount,
+} from "./filtering/todoSelectors.js";
+import {
+  normalizeWorkspaceView,
+  hasHomeListDrilldown,
+  clearHomeListDrilldown,
+  isHomeWorkspaceActive,
+  isTriageWorkspaceActive,
+  isUnsortedWorkspaceActive,
+  matchesWorkspaceView,
+  getSelectedProjectFilterValue,
+  getSelectedProjectKey,
+  getCurrentDateViewLabel,
+  getSelectedProjectLabel,
+  getSelectedProjectName,
+  formatVisibleTaskCount,
+} from "./filtering/workspaceSemantics.js";
+import {
+  syncWorkspaceViewState,
+  updateHeaderAndContextUI,
+  updateHeaderFromVisibleTodos,
+  assertNoHorizontalOverflow,
+} from "./filtering/headerUi.js";
+import {
+  renderHeadingMoveOptions,
+  renderTodoRowHtml,
+  renderProjectHeadingGroupedRows,
+} from "./filtering/todoListRenderer.js";
 
 // ---------------------------------------------------------------------------
 // Utility functions injected via hooks by app.js:
@@ -89,177 +128,9 @@ function setDateView(view, { skipApply = false } = {}) {
     applyFiltersAndRender({ reason: "date-view" });
   }
 }
-
-function matchesWorkspaceView(view) {
-  if (view === "home") {
-    return !getSelectedProjectKey() && state.currentWorkspaceView === "home";
-  }
-  if (view === "triage") {
-    return (
-      !getSelectedProjectKey() &&
-      (state.currentWorkspaceView === "triage" ||
-        state.currentWorkspaceView === "inbox" ||
-        state.currentWorkspaceView === "unsorted")
-    );
-  }
-  if (view === "all") {
-    return (
-      getSelectedProjectKey() === "" &&
-      state.currentDateView === "all" &&
-      state.currentWorkspaceView === "all" &&
-      !hasHomeListDrilldown()
-    );
-  }
-  if (view === "completed") {
-    return (
-      getSelectedProjectKey() === "" &&
-      state.currentDateView === "completed" &&
-      state.currentWorkspaceView === "completed"
-    );
-  }
-  return (
-    getSelectedProjectKey() === "" &&
-    state.currentDateView === view &&
-    state.currentWorkspaceView === view
-  );
-}
-
-function syncWorkspaceViewState() {
-  document
-    .querySelectorAll(".workspace-view-item[data-workspace-view]")
-    .forEach((item) => {
-      if (!(item instanceof HTMLElement)) return;
-      const view = item.getAttribute("data-workspace-view") || "all";
-      const isActive = matchesWorkspaceView(view);
-      item.classList.toggle("projects-rail-item--active", isActive);
-      item.setAttribute("aria-selected", "false");
-      if (isActive) {
-        item.setAttribute("aria-current", "page");
-      } else {
-        item.removeAttribute("aria-current");
-      }
-    });
-}
 // =============================================================================
 // End DOM Boundary Layer
 // =============================================================================
-
-function isHomeWorkspaceActive() {
-  return !getSelectedProjectKey() && state.currentWorkspaceView === "home";
-}
-
-function isTriageWorkspaceActive() {
-  if (getSelectedProjectKey()) return false;
-  return (
-    state.currentWorkspaceView === "triage" ||
-    state.currentWorkspaceView === "inbox" ||
-    state.currentWorkspaceView === "unsorted"
-  );
-}
-
-function isUnsortedWorkspaceActive() {
-  return !getSelectedProjectKey() && state.currentWorkspaceView === "unsorted";
-}
-
-function hasHomeListDrilldown() {
-  return !!state.homeListDrilldownKey;
-}
-
-function clearHomeListDrilldown() {
-  applyDomainAction("homeDrilldown:clear");
-}
-
-function normalizeWorkspaceView(view) {
-  if (view === "inbox" || view === "unsorted") {
-    return "triage";
-  }
-  const valid = new Set([
-    "home",
-    "triage",
-    "all",
-    "today",
-    "upcoming",
-    "next_month",
-    "someday",
-    "completed",
-    "weekly-review",
-    "cleanup",
-    "project",
-    "settings",
-    "admin",
-    "profile",
-    "todos",
-  ]);
-  return valid.has(view) ? view : "home";
-}
-
-function isTodoUnsorted(todo) {
-  const hasCategory = !!(todo.category && String(todo.category).trim());
-  const hasProjectId = !!(todo.projectId && String(todo.projectId).trim());
-  return !hasCategory && !hasProjectId;
-}
-
-function isTodoNeedsOrganizing(todo) {
-  if (!todo || todo.completed) return false;
-  return (
-    String(todo.status || "").toLowerCase() === "inbox" || isTodoUnsorted(todo)
-  );
-}
-
-function isTodoNeedingTriage(todo) {
-  return isTodoNeedsOrganizing(todo);
-}
-
-function isSameLocalDay(a, b) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function matchesDateView(todo) {
-  if (state.currentDateView === "all") return true;
-  if (state.currentDateView === "completed") return !!todo.completed;
-  if (state.currentDateView === "waiting")
-    return (
-      !todo.completed && String(todo.status || "").toLowerCase() === "waiting"
-    );
-  if (state.currentDateView === "scheduled")
-    return !todo.completed && !!todo.scheduledDate;
-
-  const dueDate = todo.dueDate ? new Date(todo.dueDate) : null;
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate(),
-    23,
-    59,
-    59,
-    999,
-  );
-
-  if (state.currentDateView === "someday") return !dueDate;
-  if (!dueDate) return false;
-  if (state.currentDateView === "today")
-    return !todo.completed && dueDate <= todayEnd;
-  if (state.currentDateView === "upcoming") {
-    const upcomingEnd = new Date(todayEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
-    return dueDate > todayEnd && dueDate <= upcomingEnd;
-  }
-  if (state.currentDateView === "next_month") {
-    const nextMonth = (now.getMonth() + 1) % 12;
-    const nextMonthYear =
-      now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
-    return (
-      dueDate.getFullYear() === nextMonthYear &&
-      dueDate.getMonth() === nextMonth
-    );
-  }
-  return dueDate >= todayStart;
-}
 
 function getVisibleTodos({ searchQuery } = {}) {
   const currentSearchQuery =
@@ -436,18 +307,6 @@ function setActiveTagFilter(tag) {
   filterTodos({ reason: "tag-filter" });
 }
 
-function getUniqueTagsWithCounts() {
-  const counts = new Map();
-  state.todos.forEach((todo) => {
-    if (!Array.isArray(todo.tags)) return;
-    todo.tags.forEach((t) => {
-      const tag = String(t).trim();
-      if (tag) counts.set(tag, (counts.get(tag) || 0) + 1);
-    });
-  });
-  return counts;
-}
-
 // =============================================================================
 // DOM Boundary Layer — functions below intentionally read/write DOM elements.
 // This is acceptable view-controller glue. Do not add getElementById calls
@@ -483,18 +342,6 @@ function clearFilters() {
   state.activeTagFilter = "";
   setDateView("all", { skipApply: true });
   applyFiltersAndRender({ reason: "clear-filters" });
-}
-
-function getSelectedProjectFilterValue() {
-  // DOM read: intentional boundary — reads current filter state from DOM
-  const filter = document.getElementById("categoryFilter");
-  if (!(filter instanceof HTMLSelectElement)) return "";
-  const normalized = hooks.normalizeProjectPath(filter.value);
-  return hooks.isInternalCategoryPath?.(normalized) ? "" : normalized;
-}
-
-function getSelectedProjectKey() {
-  return getSelectedProjectFilterValue();
 }
 
 function setSelectedProjectKey(
@@ -535,384 +382,11 @@ function setSelectedProjectKey(
 // End DOM Boundary Layer
 // =============================================================================
 
-function getSelectedProjectName() {
-  return getSelectedProjectLabel(getSelectedProjectKey());
-}
-
-function getVisibleTodosCount(visibleTodos = []) {
-  return Array.isArray(visibleTodos) ? visibleTodos.length : 0;
-}
-
-function getCurrentDateViewLabel() {
-  const labels = {
-    all: "",
-    today: "Today",
-    upcoming: "Upcoming",
-    completed: "Completed",
-    next_month: "Next month",
-    someday: "Later",
-    waiting: "Pending",
-    scheduled: "Planned",
-  };
-  return labels[state.currentDateView] || "";
-}
-
-function getCurrentWorkspaceHeaderConfig() {
-  const workspaceTitleMap = {
-    inbox: "Desk",
-    triage: "Desk",
-    unsorted: "Desk",
-    today: "Today",
-    upcoming: "Upcoming",
-    completed: "Completed",
-  };
-  const explicitTitle = workspaceTitleMap[state.currentWorkspaceView];
-  if (explicitTitle) {
-    return {
-      projectName: explicitTitle,
-      dateLabel: "",
-    };
-  }
-
-  return {
-    projectName: getSelectedProjectName(),
-    dateLabel: getCurrentDateViewLabel(),
-  };
-}
-
-function getSelectedProjectLabel(selectedProject) {
-  if (!selectedProject && state.currentWorkspaceView === "home") return "Focus";
-  if (!selectedProject && isTriageWorkspaceActive()) return "Desk";
-  if (!selectedProject) return "Everything";
-  return hooks.getProjectLeafName(selectedProject);
-}
-
-function formatVisibleTaskCount(taskCount) {
-  return `${taskCount} ${taskCount === 1 ? "task" : "tasks"}`;
-}
-
 // =============================================================================
 // DOM Boundary Layer — functions below intentionally read/write DOM elements.
 // This is acceptable view-controller glue. Do not add getElementById calls
 // outside this section.
 // =============================================================================
-function updateHeaderAndContextUI({
-  projectName = "Everything",
-  visibleCount = 0,
-  dateLabel = "",
-} = {}) {
-  const todosView = document.getElementById("todosView");
-  const headerEl = document.getElementById("todosListHeader");
-  const titleEl = document.getElementById("todosListHeaderTitle");
-  const countEl = document.getElementById("todosListHeaderCount");
-  const dateBadgeEl = document.getElementById("todosListHeaderDateBadge");
-  if (
-    !(headerEl instanceof HTMLElement) ||
-    !(titleEl instanceof HTMLElement) ||
-    !(countEl instanceof HTMLElement) ||
-    !(dateBadgeEl instanceof HTMLElement)
-  ) {
-    return;
-  }
-
-  const surfaceMode = state.taskPageTodoId
-    ? "task-detail"
-    : isHomeWorkspaceActive()
-      ? "home"
-      : getSelectedProjectKey()
-        ? "project"
-        : "list";
-  const shouldShowHeader = surfaceMode === "list" || surfaceMode === "project";
-  headerEl.hidden = !shouldShowHeader;
-  headerEl.setAttribute("aria-hidden", String(!shouldShowHeader));
-  if (todosView instanceof HTMLElement) {
-    todosView.dataset.surfaceMode = surfaceMode;
-  }
-
-  titleEl.textContent = projectName;
-  titleEl.setAttribute("title", projectName);
-  countEl.textContent = formatVisibleTaskCount(visibleCount);
-
-  if (dateLabel) {
-    dateBadgeEl.hidden = false;
-    dateBadgeEl.textContent = dateLabel;
-  } else {
-    dateBadgeEl.hidden = true;
-    dateBadgeEl.textContent = "";
-  }
-
-  hooks.syncProjectHeaderActions?.();
-  hooks.updateTopbarProjectsButton?.(projectName);
-
-  const tagIndicator = document.getElementById("tagFilterIndicator");
-  if (tagIndicator instanceof HTMLElement) {
-    if (state.activeTagFilter) {
-      tagIndicator.hidden = false;
-      tagIndicator.textContent = `#${state.activeTagFilter} ✕`;
-    } else {
-      tagIndicator.hidden = true;
-      tagIndicator.textContent = "";
-    }
-  }
-
-  // Done-today badge
-  const doneBadge = document.getElementById("doneTodayBadge");
-  if (doneBadge instanceof HTMLElement) {
-    const now = new Date();
-    const todayStart = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-    );
-    // Count tasks completed today. Prefer completedAt if available;
-    // fall back to updatedAt for tasks that don't have it yet.
-    const doneToday = state.todos.filter((t) => {
-      if (!t.completed) return false;
-      const ts = t.completedAt || t.updatedAt;
-      if (!ts) return false;
-      return new Date(ts) >= todayStart;
-    }).length;
-    if (doneToday > 0) {
-      doneBadge.textContent = `✓ ${doneToday} done today`;
-      doneBadge.hidden = false;
-    } else {
-      doneBadge.hidden = true;
-    }
-  }
-}
-
-function getOpenTodos() {
-  return state.todos.filter((todo) => !todo.completed);
-}
-
-function updateHeaderFromVisibleTodos(visibleTodos = []) {
-  if (isHomeWorkspaceActive()) {
-    updateHeaderAndContextUI({
-      projectName: "Focus",
-      visibleCount: getOpenTodos().length,
-      dateLabel: "",
-    });
-    return;
-  }
-  if (isTriageWorkspaceActive()) {
-    updateHeaderAndContextUI({
-      projectName: "Desk",
-      visibleCount: getVisibleTodosCount(visibleTodos),
-      dateLabel: "",
-    });
-    return;
-  }
-  if (hasHomeListDrilldown()) {
-    updateHeaderAndContextUI({
-      projectName: hooks.getHomeDrilldownLabel?.() || "Focus",
-      visibleCount: getVisibleTodosCount(visibleTodos),
-      dateLabel: "",
-    });
-    return;
-  }
-
-  const headerConfig = getCurrentWorkspaceHeaderConfig();
-
-  updateHeaderAndContextUI({
-    projectName: headerConfig.projectName,
-    visibleCount: getVisibleTodosCount(visibleTodos),
-    dateLabel: headerConfig.dateLabel,
-  });
-}
-
-function assertNoHorizontalOverflow(container) {
-  if (!(container instanceof HTMLElement)) return;
-  const isOverflowing = container.scrollWidth > container.clientWidth;
-  if (isOverflowing) {
-    console.warn(
-      "Horizontal overflow detected in",
-      container.id || container.className,
-    );
-  }
-}
-
-function renderHeadingMoveOptions(todo) {
-  const selectedProject = getSelectedProjectKey();
-  if (!selectedProject) return "";
-  const headings = hooks.getProjectHeadings?.(selectedProject) ?? [];
-  if (!headings.length) return "";
-
-  const options = headings
-    .map(
-      (h) =>
-        `<option value="${h.id}"${String(todo.headingId) === String(h.id) ? " selected" : ""}>${hooks.escapeHtml?.(h.name)}</option>`,
-    )
-    .join("");
-
-  return `
-    <label class="todo-kebab-project-label">
-      Move to heading
-      <select data-onclick="event.stopPropagation()" data-onchange="moveTodoToHeading('${todo.id}', this.value)">
-        <option value="">No heading</option>
-        ${options}
-      </select>
-    </label>
-  `;
-}
-
-function renderTodoRowHtml(todo) {
-  const isOverdue =
-    todo.dueDate && !todo.completed && new Date(todo.dueDate) < new Date();
-  const dueDateStr = todo.dueDate
-    ? new Date(todo.dueDate).toLocaleString()
-    : "";
-  const isSelected = state.selectedTodos.has(todo.id);
-
-  return renderTodoRowTemplate({
-    todo,
-    isSelected,
-    isActive: state.selectedTodoId === todo.id,
-    kebabExpanded: state.openTodoKebabId === todo.id,
-    descriptionHtml: `
-      <div class="todo-description-row">
-        <div class="todo-description ${todo.description ? "" : "todo-description--placeholder"}">
-          ${
-            todo.description
-              ? hooks.escapeHtml?.(todo.description)
-              : "Add context, notes, or acceptance criteria"
-          }
-        </div>
-        <button
-          type="button"
-          class="todo-description-trigger"
-          data-onclick="openInlineDescriptionEditor('${todo.id}')"
-          aria-label="${todo.description ? `Edit note for ${hooks.escapeHtml?.(todo.title)}` : `Add note for ${hooks.escapeHtml?.(todo.title)}`}"
-        >
-          ${todo.description ? "Edit note" : "Add note"}
-        </button>
-      </div>
-    `,
-    metaHtml: hooks.renderTodoChips?.(todo, { isOverdue, dueDateStr }) ?? "",
-    subtasksHtml:
-      todo.subtasks && todo.subtasks.length > 0
-        ? (hooks.renderSubtasks?.(todo) ?? "")
-        : "",
-    notesHtml:
-      todo.notes && todo.notes.trim()
-        ? `
-          <div class="notes-section">
-            <button class="notes-toggle" data-onclick="toggleNotes('${todo.id}', event)">
-              <span class="expand-icon" id="notes-icon-${todo.id}">\u25b6</span>
-              <span>\u{1F4DD} Notes</span>
-            </button>
-            <div class="notes-content" id="notes-content-${todo.id}" style="display: none;">
-              ${hooks.escapeHtml?.(String(todo.notes))}
-            </div>
-          </div>
-        `
-        : "",
-    inlineEditorHtml: hooks.renderInlineTaskEditor?.(todo) ?? "",
-    projectOptionsHtml:
-      hooks.renderProjectOptions?.(String(todo.category || "")) ?? "",
-    headingMoveOptionsHtml: renderHeadingMoveOptions(todo),
-  });
-}
-
-function renderProjectHeadingGroupedRows(projectTodos, projectName) {
-  const headings = hooks.getProjectHeadings?.(projectName) ?? [];
-  const normalizedProject = hooks.normalizeProjectPath(projectName);
-  const todosForProject = [...projectTodos].sort(
-    (a, b) => (a.order || 0) - (b.order || 0),
-  );
-  const headingsById = new Map(
-    headings.map((heading) => [String(heading.id), heading]),
-  );
-  const unheaded = [];
-  const grouped = new Map();
-  headings.forEach((heading) => grouped.set(String(heading.id), []));
-
-  todosForProject.forEach((todo) => {
-    const todoProject = hooks.normalizeProjectPath(todo.category || "");
-    if (normalizedProject && todoProject && todoProject !== normalizedProject) {
-      unheaded.push(todo);
-      return;
-    }
-    const headingId = String(todo.headingId || "");
-    if (!headingId || !headingsById.has(headingId)) {
-      unheaded.push(todo);
-      return;
-    }
-    grouped.get(headingId).push(todo);
-  });
-
-  let rows = `
-    <li class="project-inline-actions" aria-label="Project actions">
-      <button
-        type="button"
-        class="project-inline-actions__task add-btn"
-        data-onclick="openTaskComposer()"
-      >
-        New Task
-      </button>
-      <button
-        type="button"
-        class="project-inline-actions__heading mini-btn"
-        data-onclick="createHeadingForSelectedProject()"
-      >
-        Add Heading
-      </button>
-    </li>
-  `;
-  if (!unheaded.length && !headings.length) {
-    rows += `
-      <li class="project-inline-empty">
-        ${illustrationEmptyProject()}
-        <p>Start with a task or a heading. The project stays intentionally quiet until you add structure.</p>
-      </li>
-    `;
-  }
-  rows += unheaded.map((todo) => renderTodoRowHtml(todo)).join("");
-  headings.forEach((heading, headingIndex) => {
-    const items = grouped.get(String(heading.id)) || [];
-    const moveUpDisabled = headingIndex === 0;
-    const moveDownDisabled = headingIndex === headings.length - 1;
-    rows += `
-      <li
-        class="todo-heading-divider"
-        data-heading-id="${hooks.escapeHtml?.(String(heading.id))}"
-        draggable="true"
-        data-ondragstart="handleHeadingDragStart(event, this)"
-        data-ondragover="handleHeadingDragOver(event, this)"
-        data-ondrop="handleHeadingDrop(event, this)"
-        data-ondragend="handleHeadingDragEnd(event, this)"
-      >
-        <span class="todo-heading-divider__title">${hooks.escapeHtml?.(String(heading.name))}</span>
-        <span class="todo-heading-divider__meta">
-          <span class="todo-heading-divider__drag-handle" aria-hidden="true"><svg class="app-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg></span>
-          <span class="todo-heading-divider__count">${items.length}</span>
-          <button
-            type="button"
-            class="todo-heading-divider__move-btn"
-            aria-label="Move heading up"
-            title="Move heading up"
-            ${moveUpDisabled ? "disabled" : ""}
-            data-onclick="moveProjectHeading('${hooks.escapeHtml?.(String(heading.id))}', -1)"
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            class="todo-heading-divider__move-btn"
-            aria-label="Move heading down"
-            title="Move heading down"
-            ${moveDownDisabled ? "disabled" : ""}
-            data-onclick="moveProjectHeading('${hooks.escapeHtml?.(String(heading.id))}', 1)"
-          >
-            ↓
-          </button>
-        </span>
-      </li>
-    `;
-    rows += items.map((todo) => renderTodoRowHtml(todo)).join("");
-  });
-  return rows;
-}
-
 function renderTodos() {
   const container = document.getElementById("todosContent");
   if (!container) return;
@@ -957,7 +431,6 @@ function renderTodos() {
               <div class="todo-meta">
                 <span class="skeleton-chip"></span>
                 <span class="skeleton-chip"></span>
-                <span class="skeleton-chip"></span>
               </div>
             </div>
             <div class="todo-row-actions">
@@ -975,7 +448,7 @@ function renderTodos() {
       <ul class="todos-list todos-list--skeleton">
         ${skeletonRows}
       </ul>
-    `;
+    `; // eslint-disable-line -- hardcoded HTML only, no user input
     hooks.syncTodoDrawerStateWithRender?.();
     hooks.updateBulkActionsVisibility?.();
     updateIcsExportButtonState();
@@ -990,12 +463,12 @@ function renderTodos() {
     state.openTodoKebabId = null;
     container.innerHTML = `
       <div id="todosErrorState" class="todo-list-state todo-list-state--error" role="status" aria-live="polite">
-        <div class="empty-state-icon">\u26a0\ufe0f</div>
+        <div class="empty-state-icon">&#x26A0;&#xFE0F;</div>
         <h3>Couldn't load tasks</h3>
         <p>${hooks.escapeHtml?.(state.todosLoadErrorMessage || "Please check your connection and try again.")}</p>
         <button id="todosRetryLoadButton" class="mini-btn" data-onclick="retryLoadTodos()">Retry</button>
       </div>
-    `;
+    `; // eslint-disable-line -- only escapeHtml'd user content used here
     hooks.syncTodoDrawerStateWithRender?.();
     hooks.updateBulkActionsVisibility?.();
     updateIcsExportButtonState();
@@ -1037,7 +510,7 @@ function renderTodos() {
 
   if (isHomeWorkspaceActive()) {
     updateHeaderFromVisibleTodos([]);
-    container.innerHTML = hooks.renderHomeDashboard?.() ?? "";
+    container.innerHTML = hooks.renderHomeDashboard?.() ?? ""; // eslint-disable-line -- trusted hook output
     hooks.syncTodoDrawerStateWithRender?.();
     hooks.updateBulkActionsVisibility?.();
     updateIcsExportButtonState();
@@ -1076,7 +549,7 @@ function renderTodos() {
     };
     const zeroMsg = zeroTaskMessages[state.currentDateView];
     // All content below is hardcoded — no user input, safe for innerHTML
-    container.innerHTML = zeroMsg
+    container.innerHTML = zeroMsg // eslint-disable-line -- hardcoded HTML only, no user input
       ? `<div id="todosEmptyState" class="empty-state">
             ${zeroMsg.illus()}
             <h3>${zeroMsg.heading}</h3>
@@ -1202,7 +675,7 @@ function renderTodos() {
             !suppressCategoryHeaders && categoryChanged
               ? `
           <li class="todo-group-header" data-category-group-key="${hooks.escapeHtml?.(categoryLabel)}">
-            <span>\u{1F4C1} ${hooks.escapeHtml?.(categoryLabel)}</span>
+            <span>&#x1F4C1; ${hooks.escapeHtml?.(categoryLabel)}</span>
             <span data-category-group-stats="true">${stats.done}/${stats.total} done</span>
           </li>
         `
@@ -1279,7 +752,7 @@ function renderTodos() {
     };
     const illustrationFn =
       viewIllustrations[state.currentDateView] || illustrationNoMatches;
-    container.innerHTML =
+    container.innerHTML = // eslint-disable-line -- hardcoded HTML only, no user input
       '<div class="empty-state">' +
       illustrationFn() +
       "<h3>" +
@@ -1304,7 +777,7 @@ function renderTodos() {
             </div>
           </div>`
         : "";
-    container.innerHTML = `${recoveryBanner}<ul class="todos-list">${rows}</ul>`;
+    container.innerHTML = `${recoveryBanner}<ul class="todos-list">${rows}</ul>`; // eslint-disable-line -- trusted rendered rows + recovery banner
   }
 
   if (state.selectedTodoId && !hooks.getTodoById?.(state.selectedTodoId)) {
@@ -1321,20 +794,8 @@ function renderTodos() {
 // =============================================================================
 
 export {
+  // Local functions
   setDateView,
-  matchesWorkspaceView,
-  syncWorkspaceViewState,
-  isHomeWorkspaceActive,
-  isTriageWorkspaceActive,
-  isUnsortedWorkspaceActive,
-  hasHomeListDrilldown,
-  clearHomeListDrilldown,
-  normalizeWorkspaceView,
-  isTodoUnsorted,
-  isTodoNeedsOrganizing,
-  isTodoNeedingTriage,
-  isSameLocalDay,
-  matchesDateView,
   getVisibleTodos,
   getVisibleDueDatedTodos,
   updateIcsExportButtonState,
@@ -1343,22 +804,39 @@ export {
   applyFiltersAndRender,
   filterTodos,
   setActiveTagFilter,
-  getUniqueTagsWithCounts,
   clearFilters,
+  setSelectedProjectKey,
+  renderTodos,
+  // Re-exported from filtering/todoSelectors.js
+  isTodoUnsorted,
+  isTodoNeedsOrganizing,
+  isTodoNeedingTriage,
+  isSameLocalDay,
+  matchesDateView,
+  getOpenTodos,
+  getUniqueTagsWithCounts,
+  getVisibleTodosCount,
+  // Re-exported from filtering/workspaceSemantics.js
+  normalizeWorkspaceView,
+  hasHomeListDrilldown,
+  clearHomeListDrilldown,
+  isHomeWorkspaceActive,
+  isTriageWorkspaceActive,
+  isUnsortedWorkspaceActive,
+  matchesWorkspaceView,
   getSelectedProjectFilterValue,
   getSelectedProjectKey,
-  setSelectedProjectKey,
-  getSelectedProjectName,
-  getVisibleTodosCount,
   getCurrentDateViewLabel,
   getSelectedProjectLabel,
+  getSelectedProjectName,
   formatVisibleTaskCount,
+  // Re-exported from filtering/headerUi.js
+  syncWorkspaceViewState,
   updateHeaderAndContextUI,
-  getOpenTodos,
   updateHeaderFromVisibleTodos,
   assertNoHorizontalOverflow,
+  // Re-exported from filtering/todoListRenderer.js
   renderHeadingMoveOptions,
   renderTodoRowHtml,
   renderProjectHeadingGroupedRows,
-  renderTodos,
 };
