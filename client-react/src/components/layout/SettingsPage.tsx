@@ -5,10 +5,12 @@ import { apiCall } from "../../api/client";
 interface Props {
   dark: boolean;
   onToggleDark: () => void;
+  uiMode: string;
+  onToggleUiMode: () => void;
   onBack: () => void;
 }
 
-export function SettingsPage({ dark, onToggleDark, onBack }: Props) {
+export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, onBack }: Props) {
   const { user } = useAuth();
   const [name, setName] = useState(user?.name || "");
   const [saving, setSaving] = useState(false);
@@ -95,6 +97,12 @@ export function SettingsPage({ dark, onToggleDark, onBack }: Props) {
           <span className="settings-field__label">Dark mode</span>
           <button className="btn" onClick={onToggleDark}>
             {dark ? "☀️ Switch to light" : "🌙 Switch to dark"}
+          </button>
+        </div>
+        <div className="settings-field settings-field--row">
+          <span className="settings-field__label">UI complexity</span>
+          <button className="btn" onClick={onToggleUiMode}>
+            {uiMode === "simple" ? "Switch to normal" : "Switch to simple"}
           </button>
         </div>
       </section>
