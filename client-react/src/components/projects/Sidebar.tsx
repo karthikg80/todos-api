@@ -34,6 +34,10 @@ interface Props {
   onCreateProject: () => void;
   onRenameProject: (id: string, name: string) => void;
   onOpenSettings: () => void;
+  onOpenAi: () => void;
+  onOpenFeedback: () => void;
+  onOpenAdmin: () => void;
+  isAdmin: boolean;
   onRefreshProjects: () => void;
 }
 
@@ -46,6 +50,10 @@ export function Sidebar({
   onCreateProject,
   onRenameProject,
   onOpenSettings,
+  onOpenAi,
+  onOpenFeedback,
+  onOpenAdmin,
+  isAdmin,
   onRefreshProjects,
 }: Props) {
   const [contextMenu, setContextMenu] = useState<{
@@ -202,6 +210,17 @@ export function Sidebar({
       )}
 
       <div className="sidebar-footer">
+        <button className="workspace-view-item" onClick={onOpenAi}>
+          ✦ AI Workspace
+        </button>
+        <button className="workspace-view-item" onClick={onOpenFeedback}>
+          💬 Feedback
+        </button>
+        {isAdmin && (
+          <button className="workspace-view-item" onClick={onOpenAdmin}>
+            🔧 Admin
+          </button>
+        )}
         <button className="workspace-view-item" onClick={onOpenSettings}>
           ⚙ Settings
         </button>

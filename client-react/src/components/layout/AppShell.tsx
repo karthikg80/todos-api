@@ -23,9 +23,12 @@ import { ProjectCrud } from "../projects/ProjectCrud";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
 import { ProjectHeadings } from "../projects/ProjectHeadings";
+import { AiWorkspace } from "../ai/AiWorkspace";
+import { AdminPage } from "../admin/AdminPage";
+import { FeedbackForm } from "../feedback/FeedbackForm";
 import * as todosApi from "../../api/todos";
 
-type AppPage = "todos" | "settings";
+type AppPage = "todos" | "settings" | "ai" | "admin" | "feedback";
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 
@@ -440,6 +443,19 @@ export function AppShell() {
         setPage("settings");
         setMobileNavOpen(false);
       }}
+      onOpenAi={() => {
+        setPage("ai");
+        setMobileNavOpen(false);
+      }}
+      onOpenFeedback={() => {
+        setPage("feedback");
+        setMobileNavOpen(false);
+      }}
+      onOpenAdmin={() => {
+        setPage("admin");
+        setMobileNavOpen(false);
+      }}
+      isAdmin={user?.role === "admin"}
       onRefreshProjects={loadProjects}
     />
   );
@@ -480,6 +496,22 @@ export function AppShell() {
             }}
             onBack={() => setPage("todos")}
           />
+        ) : page === "ai" ? (
+          <>
+            <header className="app-header">
+              <button className="btn" onClick={() => setPage("todos")}>
+                ← Back
+              </button>
+              <span className="app-header__title">AI Workspace</span>
+            </header>
+            <div className="app-content">
+              <AiWorkspace />
+            </div>
+          </>
+        ) : page === "admin" ? (
+          <AdminPage onBack={() => setPage("todos")} />
+        ) : page === "feedback" ? (
+          <FeedbackForm onBack={() => setPage("todos")} />
         ) : activeView === "home" && !selectedProjectId ? (
           <>
             {!isMobile && (
