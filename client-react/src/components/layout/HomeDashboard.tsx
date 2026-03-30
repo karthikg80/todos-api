@@ -1,12 +1,14 @@
 import { useMemo, useState, useEffect } from "react";
-import type { Todo } from "../../types";
+import type { Todo, Project } from "../../types";
 import { apiCall } from "../../api/client";
 
 interface Props {
   todos: Todo[];
+  projects: Project[];
   onTodoClick: (id: string) => void;
   onToggleTodo: (id: string, completed: boolean) => void;
   onNavigate: (view: "today" | "upcoming" | "all") => void;
+  onSelectProject: (id: string) => void;
 }
 
 // --- Helpers ---
@@ -35,9 +37,11 @@ function isStale(todo: Todo): boolean {
 
 export function HomeDashboard({
   todos,
+  projects,
   onTodoClick,
   onToggleTodo,
   onNavigate,
+  onSelectProject,
 }: Props) {
   const active = useMemo(() => todos.filter((t) => !t.completed), [todos]);
 
@@ -107,6 +111,34 @@ export function HomeDashboard({
     ).length;
   }, [todos]);
 
+  // Projects to nudge: projects with overdue or waiting tasks
+  const projectsToNudge = useMemo(() => {
+    return projects
+      .filter((p) => !p.archived)
+      .map((p) => {
+        const projectTodos = active.filter((t) => t.projectId === p.id);
+        const overdue = projectTodos.filter(
+          (t) => t.dueDate && daysUntil(t.dueDate) < 0,
+        ).length;
+        const waiting = projectTodos.filter(
+          (t) => t.status === "waiting",
+        ).length;
+        const dueSoon = projectTodos.filter(
+          (t) => t.dueDate && daysUntil(t.dueDate) >= 0 && daysUntil(t.dueDate) <= 3,
+        ).length;
+        return { project: p, open: projectTodos.length, overdue, waiting, dueSoon };
+      })
+      .filter((p) => p.overdue > 0 || p.waiting > 0 || p.dueSoon > 0)
+      .slice(0, 5);
+  }, [projects, active]);
+
+  // Rescue mode: show when overcommitted (more than 10 active + overdue tasks)
+  const overdueCount = useMemo(
+    () => active.filter((t) => t.dueDate && daysUntil(t.dueDate) < 0).length,
+    [active],
+  );
+  const showRescue = active.length > 10 && overdueCount > 3;
+
   return (
     <div data-testid="home-dashboard" className="home-dashboard">
       {/* Section 1: Daily Brief Card */}
@@ -142,6 +174,20 @@ export function HomeDashboard({
           </button>
         )}
       </section>
+
+      {/* Rescue mode panel */}
+      {showRescue && (
+        <section className="home-rescue-panel">
+          <span className="home-rescue-panel__eyebrow">Rescue mode</span>
+          <h3 className="home-rescue-panel__title">
+            Keep the day workable.
+          </h3>
+          <p className="home-rescue-panel__desc">
+            You have {active.length} open tasks and {overdueCount} overdue.
+            Consider deferring or completing a few to regain focus.
+          </p>
+        </section>
+      )}
 
       {/* Section 2: Support Grid (2-column) */}
       {active.length > 0 && (
@@ -246,6 +292,49 @@ export function HomeDashboard({
 
       {/* Section 3: Insights Card */}
       <InsightsCard />
+
+      {/* Section 4: Projects to Nudge */}
+      {projectsToNudge.length > 0 && (
+        <section className="home-tile" data-home-tile="projects_to_nudge">
+          <div className="home-tile__header">
+            <div className="home-tile__title-row">
+              <svg
+                className="home-tile__icon"
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+              </svg>
+              <h3 className="home-tile__title">Projects to nudge</h3>
+            </div>
+          </div>
+          <div className="home-tile__body">
+            {projectsToNudge.map(({ project, open, overdue, waiting, dueSoon }) => (
+              <div
+                key={project.id}
+                className="home-project-row"
+                onClick={() => onSelectProject(project.id)}
+              >
+                <span className="home-project-row__name">{project.name}</span>
+                <span className="home-project-row__meta">
+                  {open} open
+                  {overdue > 0 && ` · ${overdue} overdue`}
+                  {waiting > 0 && ` · ${waiting} waiting`}
+                  {dueSoon > 0 && ` · ${dueSoon} due soon`}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Empty state */}
       {active.length === 0 && (
