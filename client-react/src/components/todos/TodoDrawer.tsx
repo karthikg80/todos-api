@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { Todo, UpdateTodoDto, TodoStatus, Priority } from "../../types";
+import { SubtaskList } from "./SubtaskList";
 
 interface Props {
   todo: Todo | null;
@@ -225,6 +226,8 @@ export function TodoDrawer({ todo, onClose, onSave, onDelete }: Props) {
                   }}
                 />
               </div>
+
+              <SubtaskList todoId={todo.id} />
             </div>
             <div className="todo-drawer__footer">
               <button

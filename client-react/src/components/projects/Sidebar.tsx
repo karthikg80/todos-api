@@ -23,6 +23,8 @@ interface Props {
   selectedProjectId: string | null;
   onSelectView: (view: DateView) => void;
   onSelectProject: (id: string | null) => void;
+  onCreateProject: () => void;
+  onOpenSettings: () => void;
 }
 
 export function Sidebar({
@@ -31,6 +33,8 @@ export function Sidebar({
   selectedProjectId,
   onSelectView,
   onSelectProject,
+  onCreateProject,
+  onOpenSettings,
 }: Props) {
   return (
     <>
@@ -50,32 +54,47 @@ export function Sidebar({
         ))}
       </nav>
 
-      {projects.length > 0 && (
-        <>
-          <div className="projects-heading">Projects</div>
-          <div id="projectsRailList">
-            {projects
-              .filter((p) => !p.archived)
-              .map((p) => (
-                <button
-                  key={p.id}
-                  className={`projects-rail-item${selectedProjectId === p.id ? " projects-rail-item--active" : ""}`}
-                  data-project-key={p.name}
-                  onClick={() => {
-                    onSelectProject(p.id);
-                  }}
-                >
-                  {p.name}
-                  {p.openTodoCount != null && (
-                    <span className="projects-rail-item__count">
-                      {p.openTodoCount}
-                    </span>
-                  )}
-                </button>
-              ))}
-          </div>
-        </>
-      )}
+      <div className="projects-heading">
+        <span>Projects</span>
+        <button
+          id="railNewProjectBtn"
+          className="projects-heading__add"
+          onClick={onCreateProject}
+          aria-label="New project"
+        >
+          +
+        </button>
+      </div>
+      <div id="projectsRailList">
+        {projects
+          .filter((p) => !p.archived)
+          .map((p) => (
+            <button
+              key={p.id}
+              className={`projects-rail-item${selectedProjectId === p.id ? " projects-rail-item--active" : ""}`}
+              data-project-key={p.name}
+              onClick={() => {
+                onSelectProject(p.id);
+              }}
+            >
+              {p.name}
+              {p.openTodoCount != null && (
+                <span className="projects-rail-item__count">
+                  {p.openTodoCount}
+                </span>
+              )}
+            </button>
+          ))}
+      </div>
+
+      <div className="sidebar-footer">
+        <button
+          className="workspace-view-item"
+          onClick={onOpenSettings}
+        >
+          ⚙ Settings
+        </button>
+      </div>
     </>
   );
 }
