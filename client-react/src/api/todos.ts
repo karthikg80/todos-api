@@ -35,3 +35,14 @@ export async function deleteTodo(id: string): Promise<void> {
   const res = await apiCall(`/todos/${id}`, { method: "DELETE" });
   if (!res.ok) throw new Error(`Failed to delete todo: ${res.status}`);
 }
+
+export async function reorderTodos(
+  items: Array<{ id: string; order: number }>,
+): Promise<Todo[]> {
+  const res = await apiCall("/todos/reorder", {
+    method: "PUT",
+    body: JSON.stringify(items),
+  });
+  if (!res.ok) throw new Error(`Failed to reorder: ${res.status}`);
+  return res.json();
+}

@@ -1,9 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { Todo, UpdateTodoDto, TodoStatus, Priority } from "../../types";
+import type {
+  Todo,
+  UpdateTodoDto,
+  TodoStatus,
+  Priority,
+  Project,
+} from "../../types";
 import { SubtaskList } from "./SubtaskList";
 
 interface Props {
   todo: Todo | null;
+  projects: Project[];
   onClose: () => void;
   onSave: (id: string, dto: UpdateTodoDto) => Promise<unknown>;
   onDelete: (id: string) => void;
@@ -30,11 +37,12 @@ const PRIORITY_OPTIONS: (Priority | "")[] = [
 ];
 const ENERGY_OPTIONS = ["", "low", "medium", "high"];
 
-export function TodoDrawer({ todo, onClose, onSave, onDelete }: Props) {
+export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props) {
   const isOpen = todo !== null;
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TodoStatus>("inbox");
   const [priority, setPriority] = useState<string>("");
+  const [projectId, setProjectId] = useState<string>("");
   const [dueDate, setDueDate] = useState("");
   const [startDate, setStartDate] = useState("");
   const [scheduledDate, setScheduledDate] = useState("");
@@ -56,6 +64,7 @@ export function TodoDrawer({ todo, onClose, onSave, onDelete }: Props) {
       setTitle(todo.title);
       setStatus(todo.status);
       setPriority(todo.priority || "");
+      setProjectId(todo.projectId || "");
       setDueDate(todo.dueDate ? todo.dueDate.split("T")[0] : "");
       setStartDate(todo.startDate ? todo.startDate.split("T")[0] : "");
       setScheduledDate(
@@ -228,6 +237,33 @@ export function TodoDrawer({ todo, onClose, onSave, onDelete }: Props) {
                     save("dueDate", e.target.value || null);
                   }}
                 />
+              </div>
+
+              <div className="todo-drawer__field">
+                <label
+                  className="todo-drawer__label"
+                  htmlFor="drawerProjectSelect"
+                >
+                  Project
+                </label>
+                <select
+                  id="drawerProjectSelect"
+                  className="todo-drawer__select"
+                  value={projectId}
+                  onChange={(e) => {
+                    setProjectId(e.target.value);
+                    save("projectId", e.target.value || null);
+                  }}
+                >
+                  <option value="">None</option>
+                  {projects
+                    .filter((p) => !p.archived)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                </select>
               </div>
 
               <div className="todo-drawer__field">

@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import type { Todo } from "../../types";
 
 interface Props {
@@ -9,6 +10,8 @@ interface Props {
   onClick: (id: string) => void;
   onKebab: (id: string) => void;
   onSelect: (id: string) => void;
+  onInlineEdit: (id: string, title: string) => void;
+  onTagClick?: (tag: string) => void;
 }
 
 function formatDueDate(due: string): { label: string; overdue: boolean } {
@@ -36,7 +39,28 @@ export function TodoRow({
   onClick,
   onKebab,
   onSelect,
+  onInlineEdit,
+  onTagClick,
 }: Props) {
+  const [editing, setEditing] = useState(false);
+  const [editValue, setEditValue] = useState(todo.title);
+  const editRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) {
+      editRef.current?.focus();
+      editRef.current?.select();
+    }
+  }, [editing]);
+
+  const commitEdit = () => {
+    const trimmed = editValue.trim();
+    if (trimmed && trimmed !== todo.title) {
+      onInlineEdit(todo.id, trimmed);
+    }
+    setEditing(false);
+  };
+
   const titleClass = `todo-title${todo.completed ? " todo-title--completed" : ""}`;
   const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}`;
 
@@ -71,22 +95,72 @@ export function TodoRow({
           aria-label={`Mark "${todo.title}" as ${todo.completed ? "incomplete" : "complete"}`}
         />
       )}
-      <span className={titleClass}>{todo.title}</span>
-      {todo.dueDate && (
+
+      {editing ? (
+        <input
+          ref={editRef}
+          className="todo-title-edit"
+          value={editValue}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={commitEdit}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commitEdit();
+            if (e.key === "Escape") {
+              setEditValue(todo.title);
+              setEditing(false);
+            }
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
         <span
-          className={`todo-chip todo-chip--due${formatDueDate(todo.dueDate).overdue ? " todo-chip--due-overdue" : ""}`}
+          className={titleClass}
+          onDoubleClick={(e) => {
+            if (isBulkMode) return;
+            e.stopPropagation();
+            setEditValue(todo.title);
+            setEditing(true);
+          }}
         >
-          {formatDueDate(todo.dueDate).label}
+          {todo.title}
         </span>
       )}
-      {todo.priority && todo.priority !== "low" && (
-        <span className={`todo-chip todo-chip--priority ${todo.priority}`}>
-          {todo.priority}
-        </span>
-      )}
-      {todo.category && (
-        <span className="todo-chip todo-chip--project">{todo.category}</span>
-      )}
+
+      <div className="todo-chips">
+        {todo.dueDate && (
+          <span
+            className={`todo-chip todo-chip--due${formatDueDate(todo.dueDate).overdue ? " todo-chip--due-overdue" : ""}`}
+          >
+            {formatDueDate(todo.dueDate).label}
+          </span>
+        )}
+        {todo.priority && todo.priority !== "low" && (
+          <span className={`todo-chip todo-chip--priority ${todo.priority}`}>
+            {todo.priority}
+          </span>
+        )}
+        {todo.category && (
+          <span className="todo-chip todo-chip--project">{todo.category}</span>
+        )}
+        {todo.tags.slice(0, 3).map((tag) => (
+          <span
+            key={tag}
+            className="todo-chip todo-chip--tag"
+            onClick={(e) => {
+              e.stopPropagation();
+              onTagClick?.(tag);
+            }}
+          >
+            #{tag}
+          </span>
+        ))}
+        {todo.tags.length > 3 && (
+          <span className="todo-chip todo-chip--tag">
+            +{todo.tags.length - 3}
+          </span>
+        )}
+      </div>
+
       <button
         className="todo-kebab"
         onClick={(e) => {
