@@ -5,7 +5,8 @@ import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { Sidebar, type DateView } from "../projects/Sidebar";
 import { QuickEntry } from "../todos/QuickEntry";
-import { TodoList } from "../todos/TodoList";
+import { SortableTodoList } from "../todos/SortableTodoList";
+import { BoardView } from "../todos/BoardView";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { SortControl, type SortField, type SortOrder } from "../todos/SortControl";
@@ -20,6 +21,7 @@ import { VerificationBanner } from "../shared/VerificationBanner";
 import * as todosApi from "../../api/todos";
 
 type AppPage = "todos" | "settings";
+type ViewMode = "list" | "board";
 
 interface UndoAction {
   message: string;
@@ -63,6 +65,7 @@ export function AppShell() {
   const [sortBy, setSortBy] = useState<SortField>("order");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [activeTagFilter, setActiveTagFilter] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
 
   // Bulk selection
   const [bulkMode, setBulkMode] = useState(false);
@@ -180,6 +183,29 @@ export function AppShell() {
   const handleTagClick = useCallback((tag: string) => {
     setActiveTagFilter((prev) => (prev === tag ? "" : tag));
   }, []);
+
+  const handleReorder = useCallback(
+    async (activeId: string, overId: string) => {
+      const oldIndex = visibleTodos.findIndex((t) => t.id === activeId);
+      const newIndex = visibleTodos.findIndex((t) => t.id === overId);
+      if (oldIndex === -1 || newIndex === -1) return;
+
+      // Build reorder payload
+      const reordered = [...visibleTodos];
+      const [moved] = reordered.splice(oldIndex, 1);
+      reordered.splice(newIndex, 0, moved);
+      const items = reordered.map((t, i) => ({ id: t.id, order: i }));
+
+      try {
+        await todosApi.reorderTodos(items);
+        loadTodos(queryParams);
+      } catch {
+        // Refresh to get server state
+        loadTodos(queryParams);
+      }
+    },
+    [visibleTodos, loadTodos, queryParams],
+  );
 
   const handleToggle = useCallback(
     async (id: string, completed: boolean) => {
@@ -451,14 +477,32 @@ export function AppShell() {
                     ? `${visibleTodos.filter((t) => !t.completed).length} tasks`
                     : ""}
                 </span>
-                <SortControl
-                  sortBy={sortBy}
-                  sortOrder={sortOrder}
-                  onChange={(f, o) => {
-                    setSortBy(f);
-                    setSortOrder(o);
-                  }}
-                />
+                <div className="view-toggle">
+                  <button
+                    className={`view-toggle__btn${viewMode === "list" ? " view-toggle__btn--active" : ""}`}
+                    onClick={() => setViewMode("list")}
+                    aria-label="List view"
+                  >
+                    ☰
+                  </button>
+                  <button
+                    className={`view-toggle__btn${viewMode === "board" ? " view-toggle__btn--active" : ""}`}
+                    onClick={() => setViewMode("board")}
+                    aria-label="Board view"
+                  >
+                    ▦
+                  </button>
+                </div>
+                {viewMode === "list" && (
+                  <SortControl
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onChange={(f, o) => {
+                      setSortBy(f);
+                      setSortOrder(o);
+                    }}
+                  />
+                )}
                 <SearchBar value={searchQuery} onChange={setSearchQuery} />
                 <button
                   className="btn"
@@ -525,21 +569,32 @@ export function AppShell() {
             )}
 
             <div className="app-content">
-              <TodoList
-                todos={visibleTodos}
-                loadState={loadState}
-                errorMessage={errorMessage}
-                activeTodoId={activeTodoId}
-                isBulkMode={bulkMode}
-                selectedIds={selectedIds}
-                onToggle={handleToggle}
-                onClick={handleTodoClick}
-                onKebab={handleTodoClick}
-                onRetry={() => loadTodos(queryParams)}
-                onSelect={handleBulkSelect}
-                onInlineEdit={handleInlineEdit}
-                onTagClick={handleTagClick}
-              />
+              {viewMode === "board" ? (
+                <BoardView
+                  todos={visibleTodos}
+                  loadState={loadState}
+                  onToggle={handleToggle}
+                  onClick={handleTodoClick}
+                  onStatusChange={editTodo}
+                />
+              ) : (
+                <SortableTodoList
+                  todos={visibleTodos}
+                  loadState={loadState}
+                  errorMessage={errorMessage}
+                  activeTodoId={activeTodoId}
+                  isBulkMode={bulkMode}
+                  selectedIds={selectedIds}
+                  onToggle={handleToggle}
+                  onClick={handleTodoClick}
+                  onKebab={handleTodoClick}
+                  onRetry={() => loadTodos(queryParams)}
+                  onSelect={handleBulkSelect}
+                  onInlineEdit={handleInlineEdit}
+                  onTagClick={handleTagClick}
+                  onReorder={handleReorder}
+                />
+              )}
             </div>
           </>
         )}
