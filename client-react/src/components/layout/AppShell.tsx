@@ -8,10 +8,12 @@ import { QuickEntry } from "../todos/QuickEntry";
 import { TodoList } from "../todos/TodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import { BulkToolbar } from "../todos/BulkToolbar";
+import { SortControl, type SortField, type SortOrder } from "../todos/SortControl";
 import { SearchBar } from "../shared/SearchBar";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
+import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
 import { SettingsPage } from "./SettingsPage";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import * as todosApi from "../../api/todos";
@@ -49,7 +51,16 @@ export function AppShell() {
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [page, setPage] = useState<AppPage>("todos");
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [projectCrudMode, setProjectCrudMode] = useState<"create" | null>(null);
+  const [projectCrudMode, setProjectCrudMode] = useState<
+    "create" | "rename" | null
+  >(null);
+  const [renameTarget, setRenameTarget] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<SortField>("order");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
 
   // Bulk selection
   const [bulkMode, setBulkMode] = useState(false);
@@ -94,8 +105,13 @@ export function AppShell() {
           break;
       }
     }
+    // User sort overrides view defaults
+    if (sortBy !== "order") {
+      params.sortBy = sortBy;
+      params.sortOrder = sortOrder;
+    }
     return params;
-  }, [activeView, selectedProjectId]);
+  }, [activeView, selectedProjectId, sortBy, sortOrder]);
 
   // Load data on mount and when filters change
   useEffect(() => {
@@ -263,17 +279,30 @@ export function AppShell() {
         return;
       }
 
-      // 'n' when no input focused: focus quick entry
-      if (
-        e.key === "n" &&
-        !e.metaKey &&
-        !e.ctrlKey &&
-        document.activeElement?.tagName !== "INPUT" &&
-        document.activeElement?.tagName !== "TEXTAREA" &&
-        document.activeElement?.tagName !== "SELECT"
-      ) {
+      const inInput =
+        document.activeElement?.tagName === "INPUT" ||
+        document.activeElement?.tagName === "TEXTAREA" ||
+        document.activeElement?.tagName === "SELECT";
+
+      if (inInput) return;
+
+      // 'n': focus quick entry
+      if (e.key === "n" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         document.getElementById("todoInput")?.focus();
+        return;
+      }
+
+      // '/': focus search
+      if (e.key === "/") {
+        e.preventDefault();
+        document.getElementById("searchInput")?.focus();
+        return;
+      }
+
+      // '?': toggle shortcuts overlay
+      if (e.key === "?") {
+        setShortcutsOpen((o) => !o);
       }
     };
 
@@ -314,10 +343,15 @@ export function AppShell() {
         setMobileNavOpen(false);
       }}
       onCreateProject={() => setProjectCrudMode("create")}
+      onRenameProject={(id, name) => {
+        setRenameTarget({ id, name });
+        setProjectCrudMode("rename");
+      }}
       onOpenSettings={() => {
         setPage("settings");
         setMobileNavOpen(false);
       }}
+      onRefreshProjects={loadProjects}
     />
   );
 
@@ -398,6 +432,14 @@ export function AppShell() {
                     ? `${visibleTodos.filter((t) => !t.completed).length} tasks`
                     : ""}
                 </span>
+                <SortControl
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onChange={(f, o) => {
+                    setSortBy(f);
+                    setSortOrder(o);
+                  }}
+                />
                 <SearchBar value={searchQuery} onChange={setSearchQuery} />
                 <button
                   className="btn"
@@ -490,13 +532,24 @@ export function AppShell() {
       {projectCrudMode && (
         <ProjectCrud
           mode={projectCrudMode}
+          currentName={renameTarget?.name}
+          projectId={renameTarget?.id}
           onDone={() => {
             setProjectCrudMode(null);
+            setRenameTarget(null);
             loadProjects();
           }}
-          onCancel={() => setProjectCrudMode(null)}
+          onCancel={() => {
+            setProjectCrudMode(null);
+            setRenameTarget(null);
+          }}
         />
       )}
+
+      <ShortcutsOverlay
+        isOpen={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
+      />
 
       <UndoToast action={undoAction} onDismiss={() => setUndoAction(null)} />
     </div>

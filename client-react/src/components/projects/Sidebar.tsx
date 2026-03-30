@@ -1,4 +1,6 @@
+import { useState } from "react";
 import type { Project } from "../../types";
+import { apiCall } from "../../api/client";
 
 export type DateView =
   | "all"
@@ -24,7 +26,9 @@ interface Props {
   onSelectView: (view: DateView) => void;
   onSelectProject: (id: string | null) => void;
   onCreateProject: () => void;
+  onRenameProject: (id: string, name: string) => void;
   onOpenSettings: () => void;
+  onRefreshProjects: () => void;
 }
 
 export function Sidebar({
@@ -34,8 +38,39 @@ export function Sidebar({
   onSelectView,
   onSelectProject,
   onCreateProject,
+  onRenameProject,
   onOpenSettings,
+  onRefreshProjects,
 }: Props) {
+  const [contextMenu, setContextMenu] = useState<{
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
+
+  const handleContextMenu = (e: React.MouseEvent, projectId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({ id: projectId, x: e.clientX, y: e.clientY });
+  };
+
+  const handleDeleteProject = async (id: string) => {
+    setContextMenu(null);
+    const res = await apiCall(`/projects/${id}?taskDisposition=unsorted`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      if (selectedProjectId === id) onSelectProject(null);
+      onRefreshProjects();
+    }
+  };
+
+  const handleRenameProject = (id: string) => {
+    const project = projects.find((p) => p.id === id);
+    setContextMenu(null);
+    if (project) onRenameProject(id, project.name);
+  };
+
   return (
     <>
       <nav id="projectsRail" className="workspace-nav">
@@ -73,9 +108,8 @@ export function Sidebar({
               key={p.id}
               className={`projects-rail-item${selectedProjectId === p.id ? " projects-rail-item--active" : ""}`}
               data-project-key={p.name}
-              onClick={() => {
-                onSelectProject(p.id);
-              }}
+              onClick={() => onSelectProject(p.id)}
+              onContextMenu={(e) => handleContextMenu(e, p.id)}
             >
               {p.name}
               {p.openTodoCount != null && (
@@ -87,11 +121,35 @@ export function Sidebar({
           ))}
       </div>
 
+      {/* Project context menu */}
+      {contextMenu && (
+        <>
+          <div
+            className="context-backdrop"
+            onClick={() => setContextMenu(null)}
+          />
+          <div
+            className="context-menu"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+          >
+            <button
+              className="context-menu__item"
+              onClick={() => handleRenameProject(contextMenu.id)}
+            >
+              Rename
+            </button>
+            <button
+              className="context-menu__item context-menu__item--danger"
+              onClick={() => handleDeleteProject(contextMenu.id)}
+            >
+              Delete
+            </button>
+          </div>
+        </>
+      )}
+
       <div className="sidebar-footer">
-        <button
-          className="workspace-view-item"
-          onClick={onOpenSettings}
-        >
+        <button className="workspace-view-item" onClick={onOpenSettings}>
           ⚙ Settings
         </button>
       </div>
