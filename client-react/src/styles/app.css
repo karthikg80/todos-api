@@ -2457,3 +2457,90 @@ body {
   font-size: var(--fs-label);
   color: var(--muted);
 }
+
+/* --- AI On-Create Assist --- */
+.ai-on-create {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  padding: var(--s-2) 0;
+}
+
+.ai-on-create__loading {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-style: italic;
+}
+
+.ai-on-create__chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--accent) 15%, var(--border));
+  border-radius: var(--r-sm);
+  font-size: var(--fs-label);
+}
+
+.ai-on-create__chip-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.ai-on-create__chip-reason {
+  color: var(--muted);
+}
+
+.ai-on-create__chip-btn {
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--fs-label);
+  padding: var(--s-0) var(--s-2);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.ai-on-create__chip-btn:hover {
+  opacity: 0.9;
+}
+
+.ai-on-create__chip-applied {
+  font-size: var(--fs-label);
+  color: var(--success);
+  font-weight: var(--fw-medium);
+}
+
+/* --- Today's Plan tile --- */
+.home-tile--plan {
+  border-left: 3px solid var(--accent);
+}
+
+.home-tile__date-label {
+  font-size: var(--fs-label);
+  color: var(--muted);
+}
+
+.plan-slot {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-1);
+  border-radius: var(--r-sm);
+}
+
+.plan-slot:hover {
+  background: var(--surface-2);
+}
+
+.plan-slot__effort {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  min-width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
