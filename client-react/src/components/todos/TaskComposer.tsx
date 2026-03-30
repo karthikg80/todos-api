@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { CreateTodoDto, TodoStatus, Priority, Project } from "../../types";
+import { AiOnCreateAssist } from "../ai/AiOnCreateAssist";
 
 interface Props {
   isOpen: boolean;
@@ -208,6 +209,16 @@ export function TaskComposer({
               onChange={(e) => setTags(e.target.value)}
             />
           </div>
+
+          <AiOnCreateAssist
+            title={title}
+            onApplySuggestion={(field, value) => {
+              if (field === "priority") setPriority(value);
+              else if (field === "status") setStatus(value as TodoStatus);
+              else if (field === "projectId") setProjectId(value);
+              else if (field === "dueDate") setDueDate(value);
+            }}
+          />
         </div>
         <div className="composer__footer">
           <button className="btn" onClick={onClose}>

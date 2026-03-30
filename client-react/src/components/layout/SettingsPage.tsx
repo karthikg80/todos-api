@@ -112,9 +112,59 @@ export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, onBac
         <p className="settings-meta">
           Logged in as <strong>{user?.email}</strong>
         </p>
+        <DataExportButton />
       </section>
 
       <McpSessionsSection />
+    </div>
+  );
+}
+
+function DataExportButton() {
+  const [exporting, setExporting] = useState(false);
+  const [message, setMessage] = useState("");
+
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    setMessage("");
+    try {
+      const res = await apiCall("/users/me/export");
+      if (res.ok) {
+        const data = await res.json();
+        const blob = new Blob([JSON.stringify(data, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "todos-export.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        setMessage("Export downloaded");
+      } else if (res.status === 429) {
+        setMessage("Export limited to once per hour");
+      } else {
+        setMessage("Export failed");
+      }
+    } catch {
+      setMessage("Network error");
+    } finally {
+      setExporting(false);
+      setTimeout(() => setMessage(""), 3000);
+    }
+  }, []);
+
+  return (
+    <div className="settings-field settings-field--row">
+      <span className="settings-field__label">Data export</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+        <button className="btn" onClick={handleExport} disabled={exporting}>
+          {exporting ? "Exporting…" : "Download JSON"}
+        </button>
+        {message && (
+          <span className="settings-meta">{message}</span>
+        )}
+      </div>
     </div>
   );
 }

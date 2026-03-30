@@ -7,6 +7,7 @@ import type {
   Project,
 } from "../../types";
 import { SubtaskList } from "./SubtaskList";
+import { AiDrawerAssist } from "../ai/AiDrawerAssist";
 
 interface Props {
   todo: Todo | null;
@@ -488,6 +489,8 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
               )}
 
               <SubtaskList todoId={todo.id} />
+
+              <AiDrawerAssist todoId={todo.id} todoTitle={title} />
             </div>
             <div className="todo-drawer__footer">
               <button

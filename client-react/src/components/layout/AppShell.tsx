@@ -564,11 +564,16 @@ export function AppShell() {
             <div className="app-content">
               <HomeDashboard
                 todos={todos}
+                projects={projects}
                 onTodoClick={handleTodoClick}
                 onToggleTodo={handleToggle}
                 onNavigate={(v) => {
                   handleSelectView(v);
                   handleSelectProject(null);
+                }}
+                onSelectProject={(id) => {
+                  handleSelectProject(id);
+                  setPage("todos");
                 }}
               />
             </div>
