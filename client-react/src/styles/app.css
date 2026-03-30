@@ -2544,3 +2544,179 @@ body {
   text-align: right;
   flex-shrink: 0;
 }
+
+/* --- Desk / Triage View (classic parity) --- */
+.triage-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.triage-view__toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.triage-view__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.triage-view__eyebrow {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.triage-view__title {
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  margin: 0;
+}
+
+.triage-view__copy {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  margin: 0;
+}
+
+.triage-view__actions {
+  display: flex;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+
+.triage-view__sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  padding: 0 var(--s-5) var(--s-5);
+}
+
+/* Sections */
+.triage-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.triage-section__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  color: var(--text);
+  padding: var(--s-2) 0 var(--s-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.triage-section__count {
+  font-weight: var(--fw-regular);
+  color: var(--muted);
+  font-size: var(--fs-label);
+}
+
+.triage-section__list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Capture items */
+.triage-capture-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent);
+}
+
+.triage-capture-item--processing {
+  opacity: 0.5;
+}
+
+.triage-capture-item__content {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.triage-capture-item__status {
+  font-size: var(--fs-label);
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  padding: var(--s-0) var(--s-2);
+  border-radius: var(--r-full);
+  white-space: nowrap;
+}
+
+.triage-capture-item__age {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.triage-capture-item__actions {
+  display: flex;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+
+.triage-capture-item__btn {
+  font-size: var(--fs-label);
+  padding: var(--s-1) var(--s-3);
+}
+
+.triage-capture-item__btn--discard {
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+.triage-capture-item__spinner {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Desk empty state */
+.triage-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-6) var(--s-4);
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+}
+
+@media (max-width: 700px) {
+  .triage-view__toolbar {
+    flex-direction: column;
+    padding: var(--s-4);
+  }
+
+  .triage-view__sections {
+    padding: 0 var(--s-4) var(--s-4);
+  }
+
+  .triage-capture-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .triage-capture-item__actions {
+    justify-content: flex-end;
+  }
+}

@@ -28,6 +28,7 @@ import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
+import { DeskView } from "../desk/DeskView";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
@@ -578,6 +579,14 @@ export function AppShell() {
               />
             </div>
           </>
+        ) : activeView === "triage" && !selectedProjectId ? (
+          <DeskView
+            todos={todos}
+            onTodoClick={handleTodoClick}
+            onToggleTodo={handleToggle}
+            onRefreshTodos={() => loadTodos(queryParams)}
+            onOpenComposer={() => setComposerOpen(true)}
+          />
         ) : (
           <>
             {/* Mobile header */}
