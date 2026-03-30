@@ -3,10 +3,12 @@ import { useAuth } from "../../auth/AuthProvider";
 import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
+import { useIcsExport } from "../../hooks/useIcsExport";
 import { Sidebar, type DateView } from "../projects/Sidebar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { BoardView } from "../todos/BoardView";
+import { TaskComposer } from "../todos/TaskComposer";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { SortControl, type SortField, type SortOrder } from "../todos/SortControl";
@@ -16,6 +18,7 @@ import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
 import { SettingsPage } from "./SettingsPage";
+import { HomeDashboard } from "./HomeDashboard";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import * as todosApi from "../../api/todos";
@@ -66,6 +69,8 @@ export function AppShell() {
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
   const [activeTagFilter, setActiveTagFilter] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  const [composerOpen, setComposerOpen] = useState(false);
+  const exportIcs = useIcsExport();
 
   // Bulk selection
   const [bulkMode, setBulkMode] = useState(false);
@@ -91,6 +96,15 @@ export function AppShell() {
       params.projectId = selectedProjectId;
     } else {
       switch (activeView) {
+        case "home":
+          // Home fetches all active todos for dashboard tiles
+          break;
+        case "triage":
+          params.status = "inbox";
+          break;
+        case "unsorted":
+          // Unsorted = no project — filter client-side
+          break;
         case "today":
           params.sortBy = "dueDate";
           params.sortOrder = "asc";
@@ -131,11 +145,17 @@ export function AppShell() {
   const visibleTodos = useMemo(() => {
     let filtered = todos;
 
-    if (activeView === "today" && !selectedProjectId) {
-      const today = new Date().toISOString().split("T")[0];
-      filtered = filtered.filter(
-        (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
-      );
+    if (!selectedProjectId) {
+      if (activeView === "today") {
+        const today = new Date().toISOString().split("T")[0];
+        filtered = filtered.filter(
+          (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
+        );
+      } else if (activeView === "unsorted") {
+        filtered = filtered.filter(
+          (t) => !t.completed && !t.projectId && !t.category,
+        );
+      }
     }
 
     if (searchQuery.trim()) {
@@ -357,11 +377,21 @@ export function AppShell() {
 
   // --- Derived ---
 
+  const VIEW_LABELS: Record<string, string> = {
+    home: "Home",
+    triage: "Triage",
+    all: "Everything",
+    today: "Today",
+    upcoming: "Upcoming",
+    someday: "Someday",
+    waiting: "Waiting",
+    completed: "Completed",
+    unsorted: "Unsorted",
+  };
+
   const headerTitle = selectedProjectId
     ? projects.find((p) => p.id === selectedProjectId)?.name ?? "Project"
-    : activeView === "all"
-      ? "Everything"
-      : activeView.charAt(0).toUpperCase() + activeView.slice(1);
+    : VIEW_LABELS[activeView] ?? activeView;
 
   const handlePaletteNavigate = useCallback(
     (view: DateView) => {
@@ -430,6 +460,68 @@ export function AppShell() {
             onToggleDark={toggleDarkMode}
             onBack={() => setPage("todos")}
           />
+        ) : activeView === "home" && !selectedProjectId ? (
+          <>
+            {!isMobile && (
+              <header className="app-header">
+                <span className="app-header__title">Home</span>
+                <button
+                  className="btn"
+                  onClick={() => setComposerOpen(true)}
+                  id="topBarNewTaskCta"
+                >
+                  + New Task
+                </button>
+                <button
+                  className="btn"
+                  onClick={toggleDarkMode}
+                  aria-label="Toggle dark mode"
+                  style={{ fontSize: "var(--fs-label)" }}
+                >
+                  {dark ? "☀️" : "🌙"}
+                </button>
+                {user && (
+                  <button
+                    className="btn"
+                    style={{ fontSize: "var(--fs-label)" }}
+                    onClick={logout}
+                  >
+                    Logout
+                  </button>
+                )}
+              </header>
+            )}
+            {isMobile && (
+              <div className="mobile-header">
+                <button
+                  id="projectsRailMobileOpen"
+                  className="mobile-header__menu-btn"
+                  onClick={() => setMobileNavOpen(true)}
+                  aria-label="Open navigation"
+                >
+                  ☰
+                </button>
+                <span className="app-header__title">Home</span>
+                <button
+                  className="btn"
+                  onClick={() => setComposerOpen(true)}
+                  style={{ marginLeft: "auto", fontSize: "var(--fs-label)" }}
+                >
+                  + New
+                </button>
+              </div>
+            )}
+            <div className="app-content">
+              <HomeDashboard
+                todos={todos}
+                onTodoClick={handleTodoClick}
+                onNavigate={(v) => {
+                  handleSelectView(v);
+                  handleSelectProject(null);
+                }}
+              />
+            </div>
+          </>
         ) : (
           <>
             {/* Mobile header */}
@@ -445,6 +537,13 @@ export function AppShell() {
                 </button>
                 <span className="app-header__title">{headerTitle}</span>
                 <div style={{ marginLeft: "auto", display: "flex", gap: "var(--s-2)" }}>
+                  <button
+                    className="btn"
+                    onClick={() => setComposerOpen(true)}
+                    style={{ fontSize: "var(--fs-label)" }}
+                  >
+                    + New
+                  </button>
                   <button
                     className="btn"
                     onClick={toggleDarkMode}
@@ -504,6 +603,23 @@ export function AppShell() {
                   />
                 )}
                 <SearchBar value={searchQuery} onChange={setSearchQuery} />
+                <button
+                  className="btn"
+                  onClick={() => setComposerOpen(true)}
+                  style={{ fontSize: "var(--fs-label)" }}
+                >
+                  + New Task
+                </button>
+                <button
+                  id="exportIcsButton"
+                  className="btn"
+                  onClick={() => exportIcs(visibleTodos)}
+                  aria-label="Export to calendar"
+                  style={{ fontSize: "var(--fs-label)" }}
+                  title="Export visible tasks to .ics"
+                >
+                  📅
+                </button>
                 <button
                   className="btn"
                   onClick={toggleDarkMode}
@@ -645,6 +761,16 @@ export function AppShell() {
       <ShortcutsOverlay
         isOpen={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
+      />
+
+      <TaskComposer
+        isOpen={composerOpen}
+        projects={projects}
+        defaultProjectId={selectedProjectId}
+        onSubmit={async (dto) => {
+          await addTodo(dto);
+        }}
+        onClose={() => setComposerOpen(false)}
       />
 
       <UndoToast action={undoAction} onDismiss={() => setUndoAction(null)} />

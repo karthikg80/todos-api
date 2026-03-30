@@ -3,20 +3,26 @@ import type { Project } from "../../types";
 import { apiCall } from "../../api/client";
 
 export type DateView =
+  | "home"
+  | "triage"
   | "all"
   | "today"
   | "upcoming"
   | "someday"
   | "waiting"
-  | "completed";
+  | "completed"
+  | "unsorted";
 
 const WORKSPACE_VIEWS: { key: DateView; label: string }[] = [
+  { key: "home", label: "Home" },
+  { key: "triage", label: "Triage" },
   { key: "all", label: "Everything" },
   { key: "today", label: "Today" },
   { key: "upcoming", label: "Upcoming" },
   { key: "someday", label: "Someday" },
   { key: "waiting", label: "Waiting" },
   { key: "completed", label: "Completed" },
+  { key: "unsorted", label: "Unsorted" },
 ];
 
 interface Props {
