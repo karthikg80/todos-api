@@ -3,6 +3,15 @@ import { useAuth } from "../../auth/AuthProvider";
 import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
+import {
+  IconMoon,
+  IconSun,
+  IconMenu,
+  IconCalendar,
+  IconList,
+  IconBoard,
+  IconPlus,
+} from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { QuickEntry } from "../todos/QuickEntry";
@@ -516,7 +525,7 @@ export function AppShell() {
                   aria-label="Toggle dark mode"
                   style={{ fontSize: "var(--fs-label)" }}
                 >
-                  {dark ? "☀️" : "🌙"}
+                  {dark ? <IconSun /> : <IconMoon />}
                 </button>
                 {user && (
                   <button
@@ -537,7 +546,7 @@ export function AppShell() {
                   onClick={() => setMobileNavOpen(true)}
                   aria-label="Open navigation"
                 >
-                  ☰
+                  <IconMenu />
                 </button>
                 <span className="app-header__title">Focus</span>
                 <button
@@ -571,7 +580,7 @@ export function AppShell() {
                   onClick={() => setMobileNavOpen(true)}
                   aria-label="Open navigation"
                 >
-                  ☰
+                  <IconMenu />
                 </button>
                 <span className="app-header__title">{headerTitle}</span>
                 <div style={{ marginLeft: "auto", display: "flex", gap: "var(--s-2)" }}>
@@ -588,7 +597,7 @@ export function AppShell() {
                     aria-label="Toggle dark mode"
                     style={{ fontSize: "var(--fs-label)" }}
                   >
-                    {dark ? "☀️" : "🌙"}
+                    {dark ? <IconSun /> : <IconMoon />}
                   </button>
                   {user && (
                     <button
@@ -620,14 +629,14 @@ export function AppShell() {
                     onClick={() => setViewMode("list")}
                     aria-label="List view"
                   >
-                    ☰
+                    <IconList />
                   </button>
                   <button
                     className={`view-toggle__btn${viewMode === "board" ? " view-toggle__btn--active" : ""}`}
                     onClick={() => setViewMode("board")}
                     aria-label="Board view"
                   >
-                    ▦
+                    <IconBoard />
                   </button>
                 </div>
                 {viewMode === "list" && (
@@ -656,7 +665,7 @@ export function AppShell() {
                   style={{ fontSize: "var(--fs-label)" }}
                   title="Export visible tasks to .ics"
                 >
-                  📅
+                  <IconCalendar />
                 </button>
                 <button
                   className="btn"
@@ -664,7 +673,7 @@ export function AppShell() {
                   aria-label="Toggle dark mode"
                   style={{ fontSize: "var(--fs-label)" }}
                 >
-                  {dark ? "☀️" : "🌙"}
+                  {dark ? <IconSun /> : <IconMoon />}
                 </button>
                 {user && (
                   <button

@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { IconSearch } from "./Icons";
 
 interface Props {
   value: string;
@@ -12,7 +13,7 @@ export function SearchBar({ value, onChange }: Props) {
   return (
     <div className={`search-bar${focused ? " search-bar--focused" : ""}`}>
       <span className="search-bar__icon" aria-hidden="true">
-        🔍
+        <IconSearch size={14} />
       </span>
       <input
         id="searchInput"
