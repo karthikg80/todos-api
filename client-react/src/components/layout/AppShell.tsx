@@ -437,10 +437,6 @@ export function AppShell() {
         setPage("settings");
         setMobileNavOpen(false);
       }}
-      onOpenAi={() => {
-        setPage("ai");
-        setMobileNavOpen(false);
-      }}
       onOpenFeedback={() => {
         setPage("feedback");
         setMobileNavOpen(false);
@@ -449,6 +445,13 @@ export function AppShell() {
         setPage("admin");
         setMobileNavOpen(false);
       }}
+      onToggleTheme={toggleDarkMode}
+      onOpenShortcuts={() => setShortcutsOpen(true)}
+      onOpenProfile={() => {
+        setPage("settings");
+        setMobileNavOpen(false);
+      }}
+      dark={dark}
       isAdmin={user?.role === "admin"}
       uiMode={uiMode}
       onRefreshProjects={loadProjects}
