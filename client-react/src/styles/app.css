@@ -1070,14 +1070,29 @@ body {
   flex-direction: column;
 }
 
+/* Spacer between projects and utilities */
+.projects-rail__spacer {
+  flex: 1;
+  min-height: var(--s-4);
+}
+
 /* Utilities section (bottom of sidebar) */
 .projects-rail__section--utilities {
-  margin-top: auto;
   padding-top: var(--s-3);
   border-top: 1px solid var(--border);
+}
+
+.projects-rail__utility-list {
   display: flex;
   flex-direction: column;
   gap: var(--s-0);
+}
+
+/* Admin footer */
+.projects-rail__footer {
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--border);
+  margin-top: var(--s-2);
 }
 
 .projects-rail-utility-item {

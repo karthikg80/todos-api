@@ -10,7 +10,6 @@ import {
   IconCompleted,
   IconSettings,
   IconFeedback,
-  IconAi,
   IconPlus,
 } from "../shared/Icons";
 
@@ -56,9 +55,12 @@ interface Props {
   onCreateProject: () => void;
   onRenameProject: (id: string, name: string) => void;
   onOpenSettings: () => void;
-  onOpenAi: () => void;
   onOpenFeedback: () => void;
   onOpenAdmin: () => void;
+  onToggleTheme: () => void;
+  onOpenShortcuts: () => void;
+  onOpenProfile: () => void;
+  dark: boolean;
   isAdmin: boolean;
   onRefreshProjects: () => void;
   uiMode: string;
@@ -73,9 +75,12 @@ export function Sidebar({
   onCreateProject,
   onRenameProject,
   onOpenSettings,
-  onOpenAi,
   onOpenFeedback,
   onOpenAdmin,
+  onToggleTheme,
+  onOpenShortcuts,
+  onOpenProfile,
+  dark,
   isAdmin,
   onRefreshProjects,
   uiMode,
@@ -322,35 +327,58 @@ export function Sidebar({
         </>
       )}
 
-      {/* Section 3: Utilities */}
+      {/* Spacer */}
+      <div className="projects-rail__spacer" />
+
+      {/* Section 3: Utilities (matches classic order) */}
       <div className="projects-rail__section--utilities">
-        <button
-          className="projects-rail-utility-item"
-          onClick={onOpenAi}
-        >
-          <IconAi /> AI Workspace
-        </button>
-        <button
-          className="projects-rail-utility-item"
-          onClick={onOpenFeedback}
-        >
-          <IconFeedback /> Feedback
-        </button>
-        {isAdmin && (
+        <div className="projects-rail__utility-list">
+          <button
+            className="projects-rail-utility-item"
+            data-sidebar-view="feedback"
+            onClick={onOpenFeedback}
+          >
+            <IconFeedback /> Feedback
+          </button>
+          <button
+            className="projects-rail-utility-item"
+            data-sidebar-view="settings"
+            onClick={onOpenSettings}
+          >
+            <IconSettings /> Settings
+          </button>
+          <button
+            className="projects-rail-utility-item"
+            onClick={onToggleTheme}
+          >
+            {dark ? "Light mode" : "Dark mode"}
+          </button>
+          <button
+            className="projects-rail-utility-item"
+            onClick={onOpenProfile}
+          >
+            Profile
+          </button>
+          <button
+            className="projects-rail-utility-item"
+            onClick={onOpenShortcuts}
+          >
+            Shortcuts
+          </button>
+        </div>
+      </div>
+
+      {/* Admin footer (classic: projects-rail__footer--admin-only) */}
+      {isAdmin && (
+        <div className="projects-rail__footer projects-rail__footer--admin-only">
           <button
             className="projects-rail-utility-item"
             onClick={onOpenAdmin}
           >
             Admin
           </button>
-        )}
-        <button
-          className="projects-rail-utility-item"
-          onClick={onOpenSettings}
-        >
-          <IconSettings /> Settings
-        </button>
-      </div>
+        </div>
+      )}
     </>
   );
 }
