@@ -4,7 +4,7 @@ import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useIcsExport } from "../../hooks/useIcsExport";
-import { Sidebar, type DateView } from "../projects/Sidebar";
+import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { BoardView } from "../todos/BoardView";
@@ -23,9 +23,12 @@ import { ProjectCrud } from "../projects/ProjectCrud";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
 import { ProjectHeadings } from "../projects/ProjectHeadings";
+import { AiWorkspace } from "../ai/AiWorkspace";
+import { AdminPage } from "../admin/AdminPage";
+import { FeedbackForm } from "../feedback/FeedbackForm";
 import * as todosApi from "../../api/todos";
 
-type AppPage = "todos" | "settings";
+type AppPage = "todos" | "settings" | "ai" | "admin" | "feedback";
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 
@@ -50,7 +53,7 @@ export function AppShell() {
   const isMobile = useIsMobile();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [activeView, setActiveView] = useState<DateView>("all");
+  const [activeView, setActiveView] = useState<WorkspaceView>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
@@ -107,13 +110,11 @@ export function AppShell() {
     } else {
       switch (activeView) {
         case "home":
-          // Home fetches all active todos for dashboard tiles
+          // Focus dashboard fetches all active todos for tiles
           break;
         case "triage":
+          // Desk: inbox-status todos needing organization
           params.status = "inbox";
-          break;
-        case "unsorted":
-          // Unsorted = no project — filter client-side
           break;
         case "today":
           params.sortBy = "dueDate";
@@ -121,12 +122,6 @@ export function AppShell() {
           break;
         case "completed":
           params.completed = "true";
-          break;
-        case "waiting":
-          params.status = "waiting";
-          break;
-        case "someday":
-          params.status = "someday";
           break;
         case "upcoming":
           params.sortBy = "dueDate";
@@ -160,10 +155,6 @@ export function AppShell() {
         const today = new Date().toISOString().split("T")[0];
         filtered = filtered.filter(
           (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
-        );
-      } else if (activeView === "unsorted") {
-        filtered = filtered.filter(
-          (t) => !t.completed && !t.projectId && !t.category,
         );
       }
     }
@@ -278,7 +269,7 @@ export function AppShell() {
     }
   }, [deleteTarget, activeTodoId, todos, removeTodo, addTodo]);
 
-  const handleSelectView = useCallback((view: DateView) => {
+  const handleSelectView = useCallback((view: WorkspaceView) => {
     setActiveView(view);
     setActiveTodoId(null);
     setBulkMode(false);
@@ -392,15 +383,12 @@ export function AppShell() {
   // --- Derived ---
 
   const VIEW_LABELS: Record<string, string> = {
-    home: "Home",
-    triage: "Triage",
+    home: "Focus",
+    triage: "Desk",
     all: "Everything",
     today: "Today",
     upcoming: "Upcoming",
-    someday: "Someday",
-    waiting: "Waiting",
     completed: "Completed",
-    unsorted: "Unsorted",
   };
 
   const headerTitle = selectedProjectId
@@ -408,7 +396,7 @@ export function AppShell() {
     : VIEW_LABELS[activeView] ?? activeView;
 
   const handlePaletteNavigate = useCallback(
-    (view: DateView) => {
+    (view: WorkspaceView) => {
       setPage("todos");
       handleSelectView(view);
       handleSelectProject(null);
@@ -440,6 +428,20 @@ export function AppShell() {
         setPage("settings");
         setMobileNavOpen(false);
       }}
+      onOpenAi={() => {
+        setPage("ai");
+        setMobileNavOpen(false);
+      }}
+      onOpenFeedback={() => {
+        setPage("feedback");
+        setMobileNavOpen(false);
+      }}
+      onOpenAdmin={() => {
+        setPage("admin");
+        setMobileNavOpen(false);
+      }}
+      isAdmin={user?.role === "admin"}
+      uiMode={uiMode}
       onRefreshProjects={loadProjects}
     />
   );
@@ -480,11 +482,27 @@ export function AppShell() {
             }}
             onBack={() => setPage("todos")}
           />
+        ) : page === "ai" ? (
+          <>
+            <header className="app-header">
+              <button className="btn" onClick={() => setPage("todos")}>
+                ← Back
+              </button>
+              <span className="app-header__title">AI Workspace</span>
+            </header>
+            <div className="app-content">
+              <AiWorkspace />
+            </div>
+          </>
+        ) : page === "admin" ? (
+          <AdminPage onBack={() => setPage("todos")} />
+        ) : page === "feedback" ? (
+          <FeedbackForm onBack={() => setPage("todos")} />
         ) : activeView === "home" && !selectedProjectId ? (
           <>
             {!isMobile && (
               <header className="app-header">
-                <span className="app-header__title">Home</span>
+                <span className="app-header__title">Focus</span>
                 <button
                   className="btn"
                   onClick={() => setComposerOpen(true)}
@@ -521,7 +539,7 @@ export function AppShell() {
                 >
                   ☰
                 </button>
-                <span className="app-header__title">Home</span>
+                <span className="app-header__title">Focus</span>
                 <button
                   className="btn"
                   onClick={() => setComposerOpen(true)}

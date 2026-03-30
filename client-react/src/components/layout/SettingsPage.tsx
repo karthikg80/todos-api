@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../../auth/AuthProvider";
 import { apiCall } from "../../api/client";
 
@@ -113,6 +113,78 @@ export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, onBac
           Logged in as <strong>{user?.email}</strong>
         </p>
       </section>
+
+      <McpSessionsSection />
     </div>
+  );
+}
+
+function McpSessionsSection() {
+  const [sessions, setSessions] = useState<
+    Array<{ id: string; clientName: string; createdAt: string }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiCall("/mcp/sessions")
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setSessions(Array.isArray(data) ? data : []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const revoke = useCallback(async (id: string) => {
+    await apiCall(`/mcp/sessions/${id}`, { method: "DELETE" });
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const revokeAll = useCallback(async () => {
+    await apiCall("/mcp/sessions", { method: "DELETE" });
+    setSessions([]);
+  }, []);
+
+  return (
+    <section className="settings-section">
+      <h3 className="settings-section__title">MCP Sessions</h3>
+      {loading ? (
+        <p className="settings-meta">Loading…</p>
+      ) : sessions.length === 0 ? (
+        <p id="mcpSessionsList" className="settings-meta">
+          No active MCP sessions.
+        </p>
+      ) : (
+        <>
+          <div id="mcpSessionsList" className="mcp-sessions">
+            {sessions.map((s) => (
+              <div key={s.id} className="mcp-session">
+                <span className="mcp-session__name">
+                  {s.clientName || "Unknown client"}
+                </span>
+                <span className="mcp-session__date">
+                  {new Date(s.createdAt).toLocaleDateString()}
+                </span>
+                <button
+                  className="btn"
+                  style={{
+                    fontSize: "var(--fs-label)",
+                    padding: "var(--s-0) var(--s-2)",
+                  }}
+                  onClick={() => revoke(s.id)}
+                >
+                  Revoke
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            className="btn btn--danger"
+            style={{ alignSelf: "flex-start", fontSize: "var(--fs-meta)" }}
+            onClick={revokeAll}
+          >
+            Revoke All
+          </button>
+        </>
+      )}
+    </section>
   );
 }
