@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { Todo } from "../../types";
+import { IconKebab } from "../shared/Icons";
 
 interface Props {
   todo: Todo;
@@ -169,7 +170,7 @@ export function TodoRow({
         }}
         aria-label="More actions"
       >
-        ⋮
+        <IconKebab />
       </button>
     </div>
   );
