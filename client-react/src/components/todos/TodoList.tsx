@@ -14,6 +14,8 @@ interface Props {
   onKebab: (id: string) => void;
   onRetry: () => void;
   onSelect: (id: string) => void;
+  onInlineEdit: (id: string, title: string) => void;
+  onTagClick?: (tag: string) => void;
 }
 
 export function TodoList({
@@ -28,6 +30,8 @@ export function TodoList({
   onKebab,
   onRetry,
   onSelect,
+  onInlineEdit,
+  onTagClick,
 }: Props) {
   if (loadState === "loading") {
     return (
@@ -76,6 +80,8 @@ export function TodoList({
           onClick={onClick}
           onKebab={onKebab}
           onSelect={onSelect}
+          onInlineEdit={onInlineEdit}
+          onTagClick={onTagClick}
         />
       ))}
     </div>

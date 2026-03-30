@@ -16,6 +16,7 @@ import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
 import { SettingsPage } from "./SettingsPage";
 import { ProjectCrud } from "../projects/ProjectCrud";
+import { VerificationBanner } from "../shared/VerificationBanner";
 import * as todosApi from "../../api/todos";
 
 type AppPage = "todos" | "settings";
@@ -61,6 +62,7 @@ export function AppShell() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [sortBy, setSortBy] = useState<SortField>("order");
   const [sortOrder, setSortOrder] = useState<SortOrder>("asc");
+  const [activeTagFilter, setActiveTagFilter] = useState("");
 
   // Bulk selection
   const [bulkMode, setBulkMode] = useState(false);
@@ -144,8 +146,14 @@ export function AppShell() {
       );
     }
 
+    if (activeTagFilter) {
+      filtered = filtered.filter((t) =>
+        t.tags.some((tag) => tag === activeTagFilter),
+      );
+    }
+
     return filtered;
-  }, [todos, activeView, selectedProjectId, searchQuery]);
+  }, [todos, activeView, selectedProjectId, searchQuery, activeTagFilter]);
 
   const activeTodo = useMemo(
     () => todos.find((t) => t.id === activeTodoId) ?? null,
@@ -160,6 +168,17 @@ export function AppShell() {
 
   const handleCloseDrawer = useCallback(() => {
     setActiveTodoId(null);
+  }, []);
+
+  const handleInlineEdit = useCallback(
+    async (id: string, title: string) => {
+      await editTodo(id, { title });
+    },
+    [editTodo],
+  );
+
+  const handleTagClick = useCallback((tag: string) => {
+    setActiveTagFilter((prev) => (prev === tag ? "" : tag));
   }, []);
 
   const handleToggle = useCallback(
@@ -461,6 +480,25 @@ export function AppShell() {
               </header>
             )}
 
+            {user && !user.isVerified && (
+              <VerificationBanner
+                email={user.email}
+                isVerified={!!user.isVerified}
+              />
+            )}
+
+            {activeTagFilter && (
+              <div className="active-filter-bar">
+                Filtered by tag: <strong>#{activeTagFilter}</strong>
+                <button
+                  className="active-filter-bar__clear"
+                  onClick={() => setActiveTagFilter("")}
+                >
+                  ✕ Clear
+                </button>
+              </div>
+            )}
+
             {/* Bulk actions toolbar */}
             {bulkMode && (
               <BulkToolbar
@@ -499,6 +537,8 @@ export function AppShell() {
                 onKebab={handleTodoClick}
                 onRetry={() => loadTodos(queryParams)}
                 onSelect={handleBulkSelect}
+                onInlineEdit={handleInlineEdit}
+                onTagClick={handleTagClick}
               />
             </div>
           </>
@@ -507,6 +547,7 @@ export function AppShell() {
 
       <TodoDrawer
         todo={activeTodo}
+        projects={projects}
         onClose={handleCloseDrawer}
         onSave={editTodo}
         onDelete={handleDeleteRequest}
