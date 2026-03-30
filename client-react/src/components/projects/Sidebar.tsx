@@ -1,6 +1,18 @@
 import { useState, useMemo } from "react";
 import type { Project } from "../../types";
 import { apiCall } from "../../api/client";
+import {
+  IconFocus,
+  IconDesk,
+  IconEverything,
+  IconToday,
+  IconUpcoming,
+  IconCompleted,
+  IconSettings,
+  IconFeedback,
+  IconAi,
+  IconPlus,
+} from "../shared/Icons";
 
 // Internal keys match classic store.js currentWorkspaceView values
 export type WorkspaceView =
@@ -12,13 +24,17 @@ export type WorkspaceView =
   | "completed";
 
 // Display labels match classic app-shell.fragment
-const WORKSPACE_VIEWS: { key: WorkspaceView; label: string }[] = [
-  { key: "home", label: "Focus" },
-  { key: "triage", label: "Desk" },
-  { key: "all", label: "Everything" },
-  { key: "today", label: "Today" },
-  { key: "upcoming", label: "Upcoming" },
-  { key: "completed", label: "Completed" },
+const WORKSPACE_VIEWS: {
+  key: WorkspaceView;
+  label: string;
+  icon: React.ComponentType;
+}[] = [
+  { key: "home", label: "Focus", icon: IconFocus },
+  { key: "triage", label: "Desk", icon: IconDesk },
+  { key: "all", label: "Everything", icon: IconEverything },
+  { key: "today", label: "Today", icon: IconToday },
+  { key: "upcoming", label: "Upcoming", icon: IconUpcoming },
+  { key: "completed", label: "Completed", icon: IconCompleted },
 ];
 
 // Area labels and order match classic railUi.js
@@ -170,6 +186,7 @@ export function Sidebar({
               onSelectView(v.key);
             }}
           >
+            <v.icon />
             <span className="nav-label">{v.label}</span>
           </button>
         ))}
@@ -185,7 +202,7 @@ export function Sidebar({
             onClick={onCreateProject}
             aria-label="New project"
           >
-            +
+            <IconPlus />
           </button>
         </div>
         <div id="projectsRailList" className="projects-rail__list">
@@ -311,13 +328,13 @@ export function Sidebar({
           className="projects-rail-utility-item"
           onClick={onOpenAi}
         >
-          ✦ AI Workspace
+          <IconAi /> AI Workspace
         </button>
         <button
           className="projects-rail-utility-item"
           onClick={onOpenFeedback}
         >
-          Feedback
+          <IconFeedback /> Feedback
         </button>
         {isAdmin && (
           <button
@@ -331,7 +348,7 @@ export function Sidebar({
           className="projects-rail-utility-item"
           onClick={onOpenSettings}
         >
-          Settings
+          <IconSettings /> Settings
         </button>
       </div>
     </>
