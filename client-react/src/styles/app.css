@@ -625,3 +625,116 @@ body {
     padding: var(--s-3) var(--s-4);
   }
 }
+
+/* --- Search bar --- */
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  transition: border-color var(--dur-fast);
+  min-width: 0;
+  flex: 0 1 240px;
+}
+
+.search-bar--focused {
+  border-color: var(--accent);
+}
+
+.search-bar__icon {
+  font-size: var(--fs-meta);
+  flex-shrink: 0;
+}
+
+.search-bar__input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--fs-meta);
+  font-family: inherit;
+  color: var(--text);
+  min-width: 0;
+}
+
+.search-bar__input::placeholder {
+  color: var(--muted);
+}
+
+.search-bar__clear {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  padding: var(--s-0);
+  line-height: 1;
+}
+
+.search-bar__clear:hover {
+  color: var(--text);
+}
+
+/* --- Undo toast --- */
+.undo-toast {
+  position: fixed;
+  bottom: var(--s-5);
+  left: 50%;
+  transform: translateX(-50%) translateY(calc(100% + var(--s-5)));
+  background: var(--surface-3);
+  color: #fff;
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-elevated);
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  z-index: 300;
+  transition: transform var(--dur-slow) var(--ease-spring);
+  white-space: nowrap;
+}
+
+.undo-toast.active {
+  transform: translateX(-50%) translateY(0);
+}
+
+.undo-toast__message {
+  font-size: var(--fs-meta);
+}
+
+.undo-toast__btn {
+  border: none;
+  background: none;
+  color: var(--accent-2);
+  font-weight: var(--fw-semibold);
+  cursor: pointer;
+  font-size: var(--fs-meta);
+  padding: 0;
+}
+
+.undo-toast__btn:hover {
+  text-decoration: underline;
+}
+
+/* --- Bulk toolbar --- */
+.bulk-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: color-mix(in oklab, var(--accent) 8%, var(--surface));
+  border-bottom: 1px solid var(--border);
+}
+
+.bulk-toolbar__count {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+}
+
+/* Bulk mode row highlight */
+.todo-item--selected {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}

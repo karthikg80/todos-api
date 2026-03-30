@@ -7,10 +7,13 @@ interface Props {
   loadState: LoadState;
   errorMessage: string;
   activeTodoId: string | null;
+  isBulkMode: boolean;
+  selectedIds: Set<string>;
   onToggle: (id: string, completed: boolean) => void;
   onClick: (id: string) => void;
   onKebab: (id: string) => void;
   onRetry: () => void;
+  onSelect: (id: string) => void;
 }
 
 export function TodoList({
@@ -18,10 +21,13 @@ export function TodoList({
   loadState,
   errorMessage,
   activeTodoId,
+  isBulkMode,
+  selectedIds,
   onToggle,
   onClick,
   onKebab,
   onRetry,
+  onSelect,
 }: Props) {
   if (loadState === "loading") {
     return (
@@ -64,9 +70,12 @@ export function TodoList({
           key={todo.id}
           todo={todo}
           isActive={todo.id === activeTodoId}
+          isBulkMode={isBulkMode}
+          isSelected={selectedIds.has(todo.id)}
           onToggle={onToggle}
           onClick={onClick}
           onKebab={onKebab}
+          onSelect={onSelect}
         />
       ))}
     </div>
