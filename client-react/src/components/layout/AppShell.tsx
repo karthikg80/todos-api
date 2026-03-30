@@ -565,6 +565,7 @@ export function AppShell() {
               <HomeDashboard
                 todos={todos}
                 onTodoClick={handleTodoClick}
+                onToggleTodo={handleToggle}
                 onNavigate={(v) => {
                   handleSelectView(v);
                   handleSelectProject(null);
