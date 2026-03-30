@@ -4,7 +4,7 @@ import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useIcsExport } from "../../hooks/useIcsExport";
-import { Sidebar, type DateView } from "../projects/Sidebar";
+import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { BoardView } from "../todos/BoardView";
@@ -53,7 +53,7 @@ export function AppShell() {
   const isMobile = useIsMobile();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [activeView, setActiveView] = useState<DateView>("all");
+  const [activeView, setActiveView] = useState<WorkspaceView>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
@@ -110,13 +110,11 @@ export function AppShell() {
     } else {
       switch (activeView) {
         case "home":
-          // Home fetches all active todos for dashboard tiles
+          // Focus dashboard fetches all active todos for tiles
           break;
         case "triage":
+          // Desk: inbox-status todos needing organization
           params.status = "inbox";
-          break;
-        case "unsorted":
-          // Unsorted = no project — filter client-side
           break;
         case "today":
           params.sortBy = "dueDate";
@@ -124,12 +122,6 @@ export function AppShell() {
           break;
         case "completed":
           params.completed = "true";
-          break;
-        case "waiting":
-          params.status = "waiting";
-          break;
-        case "someday":
-          params.status = "someday";
           break;
         case "upcoming":
           params.sortBy = "dueDate";
@@ -163,10 +155,6 @@ export function AppShell() {
         const today = new Date().toISOString().split("T")[0];
         filtered = filtered.filter(
           (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
-        );
-      } else if (activeView === "unsorted") {
-        filtered = filtered.filter(
-          (t) => !t.completed && !t.projectId && !t.category,
         );
       }
     }
@@ -281,7 +269,7 @@ export function AppShell() {
     }
   }, [deleteTarget, activeTodoId, todos, removeTodo, addTodo]);
 
-  const handleSelectView = useCallback((view: DateView) => {
+  const handleSelectView = useCallback((view: WorkspaceView) => {
     setActiveView(view);
     setActiveTodoId(null);
     setBulkMode(false);
@@ -395,15 +383,12 @@ export function AppShell() {
   // --- Derived ---
 
   const VIEW_LABELS: Record<string, string> = {
-    home: "Home",
-    triage: "Triage",
+    home: "Focus",
+    triage: "Desk",
     all: "Everything",
     today: "Today",
     upcoming: "Upcoming",
-    someday: "Someday",
-    waiting: "Waiting",
     completed: "Completed",
-    unsorted: "Unsorted",
   };
 
   const headerTitle = selectedProjectId
@@ -411,7 +396,7 @@ export function AppShell() {
     : VIEW_LABELS[activeView] ?? activeView;
 
   const handlePaletteNavigate = useCallback(
-    (view: DateView) => {
+    (view: WorkspaceView) => {
       setPage("todos");
       handleSelectView(view);
       handleSelectProject(null);
@@ -456,6 +441,7 @@ export function AppShell() {
         setMobileNavOpen(false);
       }}
       isAdmin={user?.role === "admin"}
+      uiMode={uiMode}
       onRefreshProjects={loadProjects}
     />
   );
@@ -516,7 +502,7 @@ export function AppShell() {
           <>
             {!isMobile && (
               <header className="app-header">
-                <span className="app-header__title">Home</span>
+                <span className="app-header__title">Focus</span>
                 <button
                   className="btn"
                   onClick={() => setComposerOpen(true)}
@@ -553,7 +539,7 @@ export function AppShell() {
                 >
                   ☰
                 </button>
-                <span className="app-header__title">Home</span>
+                <span className="app-header__title">Focus</span>
                 <button
                   className="btn"
                   onClick={() => setComposerOpen(true)}

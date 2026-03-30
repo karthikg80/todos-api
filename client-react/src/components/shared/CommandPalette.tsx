@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import type { DateView } from "../projects/Sidebar";
+import type { WorkspaceView } from "../projects/Sidebar";
 
 interface Command {
   id: string;
@@ -12,7 +12,7 @@ interface Command {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onNavigate: (view: DateView) => void;
+  onNavigate: (view: WorkspaceView) => void;
   onToggleDarkMode: () => void;
   onLogout: () => void;
 }
@@ -31,6 +31,20 @@ export function CommandPalette({
   const commands: Command[] = useMemo(
     () => [
       {
+        id: "nav-focus",
+        label: "Go to Focus",
+        group: "Navigation",
+        action: () => onNavigate("home"),
+        keywords: "home dashboard",
+      },
+      {
+        id: "nav-desk",
+        label: "Go to Desk",
+        group: "Navigation",
+        action: () => onNavigate("triage"),
+        keywords: "triage inbox",
+      },
+      {
         id: "nav-everything",
         label: "Go to Everything",
         group: "Navigation",
@@ -48,18 +62,6 @@ export function CommandPalette({
         label: "Go to Upcoming",
         group: "Navigation",
         action: () => onNavigate("upcoming"),
-      },
-      {
-        id: "nav-someday",
-        label: "Go to Someday",
-        group: "Navigation",
-        action: () => onNavigate("someday"),
-      },
-      {
-        id: "nav-waiting",
-        label: "Go to Waiting",
-        group: "Navigation",
-        action: () => onNavigate("waiting"),
       },
       {
         id: "nav-completed",

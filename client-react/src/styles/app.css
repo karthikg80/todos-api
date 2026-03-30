@@ -986,11 +986,128 @@ body {
   background: var(--surface-2);
 }
 
-/* --- Sidebar footer --- */
-.sidebar-footer {
+/* --- Sidebar sections (classic parity) --- */
+.projects-rail__primary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+  margin-bottom: var(--s-3);
+}
+
+.projects-rail__section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.projects-rail__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-3) var(--s-3) var(--s-1);
+}
+
+.projects-rail__section-label {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.projects-rail__add-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--fs-body);
+  padding: var(--s-0) var(--s-1);
+  border-radius: var(--r-sm);
+  line-height: 1;
+}
+
+.projects-rail__add-btn:hover {
+  color: var(--accent);
+  background: var(--surface-2);
+}
+
+.projects-rail__list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Area group headers */
+.projects-rail-area-header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  width: 100%;
+  border: none;
+  background: none;
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.projects-rail-area-header:hover {
+  color: var(--text);
+}
+
+.projects-rail-area-header__chevron {
+  font-size: var(--fs-label);
+  width: 12px;
+  text-align: center;
+}
+
+.projects-rail-area-group {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Utilities section (bottom of sidebar) */
+.projects-rail__section--utilities {
   margin-top: auto;
   padding-top: var(--s-3);
   border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-0);
+}
+
+.projects-rail-utility-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  cursor: pointer;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+}
+
+.projects-rail-utility-item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* Nav label */
+.nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* --- Context menu --- */
@@ -1455,11 +1572,15 @@ body {
 .home-tile__header {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
+  justify-content: space-between;
   padding: var(--s-3) var(--s-4);
   border-bottom: 1px solid var(--border);
-  font-size: var(--fs-meta);
-  font-weight: var(--fw-semibold);
+}
+
+.home-tile__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
 }
 
 .home-tile__dot {
@@ -1470,13 +1591,51 @@ body {
 }
 
 .home-tile__title {
-  flex: 1;
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  margin: 0;
 }
 
 .home-tile__count {
   font-size: var(--fs-label);
   color: var(--muted);
   font-weight: var(--fw-regular);
+}
+
+/* AI Insights tile (classic: home-tile--insights) */
+.home-tile--insights {
+  background: color-mix(in oklab, var(--accent) 4%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 15%, var(--border));
+}
+
+.home-tile__insight-text {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  line-height: var(--lh-base);
+  padding: var(--s-2) var(--s-3);
+}
+
+.home-tile__empty {
+  padding: var(--s-4) var(--s-3);
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+}
+
+.mini-btn {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: var(--fs-meta);
+  cursor: pointer;
+  padding: var(--s-2) var(--s-3);
+  text-align: center;
+  width: 100%;
+  font-family: inherit;
+}
+
+.mini-btn:hover {
+  text-decoration: underline;
 }
 
 .home-tile__body {
