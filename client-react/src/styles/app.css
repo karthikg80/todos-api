@@ -1639,3 +1639,155 @@ body {
     min-width: 80px;
   }
 }
+
+/* --- Onboarding overlay --- */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.onboarding-card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: var(--s-7) var(--s-6);
+  max-width: 480px;
+  width: calc(100% - var(--s-6));
+  box-shadow: var(--shadow-elevated);
+  text-align: center;
+}
+
+.onboarding-card__progress {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-5);
+}
+
+.onboarding-card__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.onboarding-card__dot--active {
+  background: var(--accent);
+  width: 24px;
+  border-radius: 4px;
+}
+
+.onboarding-card__dot--done {
+  background: var(--success);
+}
+
+.onboarding-card__title {
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
+  margin-bottom: var(--s-3);
+}
+
+.onboarding-card__desc {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  margin-bottom: var(--s-5);
+  line-height: var(--lh-base);
+}
+
+.onboarding-card__samples {
+  text-align: left;
+  margin-bottom: var(--s-4);
+}
+
+.onboarding-card__sample {
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  font-size: var(--fs-meta);
+  margin-bottom: var(--s-1);
+}
+
+.onboarding-card__actions {
+  display: flex;
+  justify-content: center;
+  gap: var(--s-3);
+}
+
+/* --- Project headings tabs --- */
+.project-headings {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  padding: var(--s-2) var(--s-4);
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.project-headings__item {
+  padding: var(--s-1) var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--fs-label);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.project-headings__item:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.project-headings__item--active {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.project-headings__add {
+  flex-shrink: 0;
+}
+
+.project-headings__input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: var(--fs-label);
+  font-family: inherit;
+  color: var(--muted);
+  width: 100px;
+  padding: var(--s-1) var(--s-2);
+}
+
+.project-headings__input::placeholder {
+  color: var(--muted);
+}
+
+/* --- Archived projects toggle --- */
+.projects-archived-toggle {
+  display: block;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: var(--fs-label);
+  padding: var(--s-2) var(--s-3);
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.projects-archived-toggle:hover {
+  color: var(--text);
+}
+
+.projects-rail-item--archived {
+  opacity: 0.6;
+  font-style: italic;
+}

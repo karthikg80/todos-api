@@ -54,6 +54,8 @@ export function Sidebar({
     y: number;
   } | null>(null);
 
+  const [showArchived, setShowArchived] = useState(false);
+
   const handleContextMenu = (e: React.MouseEvent, projectId: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -127,6 +129,35 @@ export function Sidebar({
           ))}
       </div>
 
+      {projects.some((p) => p.archived) && (
+        <>
+          <button
+            className="projects-archived-toggle"
+            onClick={() => setShowArchived((o) => !o)}
+          >
+            {showArchived ? "▾" : "▸"} Archived (
+            {projects.filter((p) => p.archived).length})
+          </button>
+          {showArchived && (
+            <div className="projects-archived-list">
+              {projects
+                .filter((p) => p.archived)
+                .map((p) => (
+                  <button
+                    key={p.id}
+                    className="projects-rail-item projects-rail-item--archived"
+                    data-project-key={p.name}
+                    onClick={() => onSelectProject(p.id)}
+                    onContextMenu={(e) => handleContextMenu(e, p.id)}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+            </div>
+          )}
+        </>
+      )}
+
       {/* Project context menu */}
       {contextMenu && (
         <>
@@ -143,6 +174,22 @@ export function Sidebar({
               onClick={() => handleRenameProject(contextMenu.id)}
             >
               Rename
+            </button>
+            <button
+              className="context-menu__item"
+              onClick={async () => {
+                const project = projects.find((p) => p.id === contextMenu.id);
+                setContextMenu(null);
+                await apiCall(`/projects/${contextMenu.id}`, {
+                  method: "PUT",
+                  body: JSON.stringify({ archived: !project?.archived }),
+                });
+                onRefreshProjects();
+              }}
+            >
+              {projects.find((p) => p.id === contextMenu.id)?.archived
+                ? "Unarchive"
+                : "Archive"}
             </button>
             <button
               className="context-menu__item context-menu__item--danger"

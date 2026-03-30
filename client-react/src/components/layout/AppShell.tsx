@@ -21,10 +21,13 @@ import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import { VerificationBanner } from "../shared/VerificationBanner";
+import { OnboardingFlow } from "../shared/OnboardingFlow";
+import { ProjectHeadings } from "../projects/ProjectHeadings";
 import * as todosApi from "../../api/todos";
 
 type AppPage = "todos" | "settings";
 type ViewMode = "list" | "board";
+type UiMode = "normal" | "simple";
 
 interface UndoAction {
   message: string;
@@ -70,6 +73,13 @@ export function AppShell() {
   const [activeTagFilter, setActiveTagFilter] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [composerOpen, setComposerOpen] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(
+    () => !localStorage.getItem("todos:onboarding-complete"),
+  );
+  const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
+  const [uiMode, setUiMode] = useState<UiMode>(
+    () => (localStorage.getItem("todos:ui-mode") as UiMode) || "normal",
+  );
   const exportIcs = useIcsExport();
 
   // Bulk selection
@@ -175,8 +185,12 @@ export function AppShell() {
       );
     }
 
+    if (activeHeadingId && selectedProjectId) {
+      filtered = filtered.filter((t) => t.headingId === activeHeadingId);
+    }
+
     return filtered;
-  }, [todos, activeView, selectedProjectId, searchQuery, activeTagFilter]);
+  }, [todos, activeView, selectedProjectId, searchQuery, activeTagFilter, activeHeadingId]);
 
   const activeTodo = useMemo(
     () => todos.find((t) => t.id === activeTodoId) ?? null,
@@ -458,6 +472,12 @@ export function AppShell() {
           <SettingsPage
             dark={dark}
             onToggleDark={toggleDarkMode}
+            uiMode={uiMode}
+            onToggleUiMode={() => {
+              const next = uiMode === "normal" ? "simple" : "normal";
+              setUiMode(next);
+              localStorage.setItem("todos:ui-mode", next);
+            }}
             onBack={() => setPage("todos")}
           />
         ) : activeView === "home" && !selectedProjectId ? (
@@ -675,7 +695,18 @@ export function AppShell() {
               />
             )}
 
-            <QuickEntry projectId={selectedProjectId} onAdd={addTodo} />
+            {uiMode === "normal" && (
+              <QuickEntry projectId={selectedProjectId} onAdd={addTodo} />
+            )}
+
+            {/* Project headings */}
+            {selectedProjectId && uiMode === "normal" && (
+              <ProjectHeadings
+                projectId={selectedProjectId}
+                activeHeadingId={activeHeadingId}
+                onSelectHeading={setActiveHeadingId}
+              />
+            )}
 
             {/* Mobile search */}
             {isMobile && (
@@ -774,6 +805,13 @@ export function AppShell() {
       />
 
       <UndoToast action={undoAction} onDismiss={() => setUndoAction(null)} />
+
+      {showOnboarding && (
+        <OnboardingFlow
+          onComplete={() => setShowOnboarding(false)}
+          onAddTodo={addTodo}
+        />
+      )}
     </div>
   );
 }
