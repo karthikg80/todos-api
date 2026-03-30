@@ -11,7 +11,12 @@ import { BulkToolbar } from "../todos/BulkToolbar";
 import { SearchBar } from "../shared/SearchBar";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
+import { CommandPalette } from "../shared/CommandPalette";
+import { SettingsPage } from "./SettingsPage";
+import { ProjectCrud } from "../projects/ProjectCrud";
 import * as todosApi from "../../api/todos";
+
+type AppPage = "todos" | "settings";
 
 interface UndoAction {
   message: string;
@@ -42,6 +47,9 @@ export function AppShell() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
+  const [page, setPage] = useState<AppPage>("todos");
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [projectCrudMode, setProjectCrudMode] = useState<"create" | null>(null);
 
   // Bulk selection
   const [bulkMode, setBulkMode] = useState(false);
@@ -234,9 +242,11 @@ export function AppShell() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // Escape: close drawer, cancel bulk, close mobile nav
+      // Escape: close palette, close drawer, cancel bulk, close mobile nav
       if (e.key === "Escape") {
-        if (activeTodoId) {
+        if (paletteOpen) {
+          setPaletteOpen(false);
+        } else if (activeTodoId) {
           setActiveTodoId(null);
         } else if (bulkMode) {
           handleCancelBulk();
@@ -246,10 +256,10 @@ export function AppShell() {
         return;
       }
 
-      // Ctrl/Cmd+K: focus search
+      // Ctrl/Cmd+K: open command palette
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
-        document.getElementById("searchInput")?.focus();
+        setPaletteOpen((o) => !o);
         return;
       }
 
@@ -269,7 +279,7 @@ export function AppShell() {
 
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [activeTodoId, bulkMode, mobileNavOpen, handleCancelBulk]);
+  }, [activeTodoId, bulkMode, mobileNavOpen, paletteOpen, handleCancelBulk]);
 
   // --- Derived ---
 
@@ -279,17 +289,33 @@ export function AppShell() {
       ? "Everything"
       : activeView.charAt(0).toUpperCase() + activeView.slice(1);
 
+  const handlePaletteNavigate = useCallback(
+    (view: DateView) => {
+      setPage("todos");
+      handleSelectView(view);
+      handleSelectProject(null);
+    },
+    [handleSelectView, handleSelectProject],
+  );
+
   const sidebarContent = (
     <Sidebar
       projects={projects}
       activeView={activeView}
       selectedProjectId={selectedProjectId}
       onSelectView={(v) => {
+        setPage("todos");
         handleSelectView(v);
         setMobileNavOpen(false);
       }}
       onSelectProject={(id) => {
+        setPage("todos");
         handleSelectProject(id);
+        setMobileNavOpen(false);
+      }}
+      onCreateProject={() => setProjectCrudMode("create")}
+      onOpenSettings={() => {
+        setPage("settings");
         setMobileNavOpen(false);
       }}
     />
@@ -319,112 +345,122 @@ export function AppShell() {
       )}
 
       <div className="app-main">
-        {/* Mobile header */}
-        {isMobile && (
-          <div className="mobile-header">
-            <button
-              id="projectsRailMobileOpen"
-              className="mobile-header__menu-btn"
-              onClick={() => setMobileNavOpen(true)}
-              aria-label="Open navigation"
-            >
-              ☰
-            </button>
-            <span className="app-header__title">{headerTitle}</span>
-            <div style={{ marginLeft: "auto", display: "flex", gap: "var(--s-2)" }}>
-              <button
-                className="btn"
-                onClick={toggleDarkMode}
-                aria-label="Toggle dark mode"
-                style={{ fontSize: "var(--fs-label)" }}
-              >
-                {dark ? "☀️" : "🌙"}
-              </button>
-              {user && (
+        {page === "settings" ? (
+          <SettingsPage
+            dark={dark}
+            onToggleDark={toggleDarkMode}
+            onBack={() => setPage("todos")}
+          />
+        ) : (
+          <>
+            {/* Mobile header */}
+            {isMobile && (
+              <div className="mobile-header">
+                <button
+                  id="projectsRailMobileOpen"
+                  className="mobile-header__menu-btn"
+                  onClick={() => setMobileNavOpen(true)}
+                  aria-label="Open navigation"
+                >
+                  ☰
+                </button>
+                <span className="app-header__title">{headerTitle}</span>
+                <div style={{ marginLeft: "auto", display: "flex", gap: "var(--s-2)" }}>
+                  <button
+                    className="btn"
+                    onClick={toggleDarkMode}
+                    aria-label="Toggle dark mode"
+                    style={{ fontSize: "var(--fs-label)" }}
+                  >
+                    {dark ? "☀️" : "🌙"}
+                  </button>
+                  {user && (
+                    <button
+                      className="btn"
+                      style={{ fontSize: "var(--fs-label)" }}
+                      onClick={logout}
+                    >
+                      Logout
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Desktop header */}
+            {!isMobile && (
+              <header className="app-header">
+                <span id="todosListHeaderTitle" className="app-header__title">
+                  {headerTitle}
+                </span>
+                <span id="todosListHeaderCount" className="app-header__count">
+                  {loadState === "loaded"
+                    ? `${visibleTodos.filter((t) => !t.completed).length} tasks`
+                    : ""}
+                </span>
+                <SearchBar value={searchQuery} onChange={setSearchQuery} />
                 <button
                   className="btn"
+                  onClick={toggleDarkMode}
+                  aria-label="Toggle dark mode"
                   style={{ fontSize: "var(--fs-label)" }}
-                  onClick={logout}
                 >
-                  Logout
+                  {dark ? "☀️" : "🌙"}
                 </button>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Desktop header */}
-        {!isMobile && (
-          <header className="app-header">
-            <span id="todosListHeaderTitle" className="app-header__title">
-              {headerTitle}
-            </span>
-            <span id="todosListHeaderCount" className="app-header__count">
-              {loadState === "loaded"
-                ? `${visibleTodos.filter((t) => !t.completed).length} tasks`
-                : ""}
-            </span>
-            <SearchBar value={searchQuery} onChange={setSearchQuery} />
-            <button
-              className="btn"
-              onClick={toggleDarkMode}
-              aria-label="Toggle dark mode"
-              style={{ fontSize: "var(--fs-label)" }}
-            >
-              {dark ? "☀️" : "🌙"}
-            </button>
-            {user && (
-              <button
-                className="btn"
-                style={{ fontSize: "var(--fs-label)" }}
-                onClick={logout}
-              >
-                Logout
-              </button>
+                {user && (
+                  <button
+                    className="btn"
+                    style={{ fontSize: "var(--fs-label)" }}
+                    onClick={logout}
+                  >
+                    Logout
+                  </button>
+                )}
+              </header>
             )}
-          </header>
+
+            {/* Bulk actions toolbar */}
+            {bulkMode && (
+              <BulkToolbar
+                selectedCount={selectedIds.size}
+                totalCount={visibleTodos.length}
+                allSelected={
+                  selectedIds.size === visibleTodos.length &&
+                  visibleTodos.length > 0
+                }
+                onSelectAll={handleSelectAll}
+                onComplete={handleBulkComplete}
+                onDelete={handleBulkDelete}
+                onCancel={handleCancelBulk}
+              />
+            )}
+
+            <QuickEntry projectId={selectedProjectId} onAdd={addTodo} />
+
+            {/* Mobile search */}
+            {isMobile && (
+              <div style={{ padding: "var(--s-2) var(--s-4)" }}>
+                <SearchBar value={searchQuery} onChange={setSearchQuery} />
+              </div>
+            )}
+
+            <div className="app-content">
+              <TodoList
+                todos={visibleTodos}
+                loadState={loadState}
+                errorMessage={errorMessage}
+                activeTodoId={activeTodoId}
+                isBulkMode={bulkMode}
+                selectedIds={selectedIds}
+                onToggle={handleToggle}
+                onClick={handleTodoClick}
+                onKebab={handleTodoClick}
+                onRetry={() => loadTodos(queryParams)}
+                onSelect={handleBulkSelect}
+              />
+            </div>
+          </>
         )}
-
-        {/* Bulk actions toolbar */}
-        {bulkMode && (
-          <BulkToolbar
-            selectedCount={selectedIds.size}
-            totalCount={visibleTodos.length}
-            allSelected={
-              selectedIds.size === visibleTodos.length &&
-              visibleTodos.length > 0
-            }
-            onSelectAll={handleSelectAll}
-            onComplete={handleBulkComplete}
-            onDelete={handleBulkDelete}
-            onCancel={handleCancelBulk}
-          />
-        )}
-
-        <QuickEntry projectId={selectedProjectId} onAdd={addTodo} />
-
-        {/* Mobile search */}
-        {isMobile && (
-          <div style={{ padding: "var(--s-2) var(--s-4)" }}>
-            <SearchBar value={searchQuery} onChange={setSearchQuery} />
-          </div>
-        )}
-
-        <div className="app-content">
-          <TodoList
-            todos={visibleTodos}
-            loadState={loadState}
-            errorMessage={errorMessage}
-            activeTodoId={activeTodoId}
-            isBulkMode={bulkMode}
-            selectedIds={selectedIds}
-            onToggle={handleToggle}
-            onClick={handleTodoClick}
-            onKebab={handleTodoClick}
-            onRetry={() => loadTodos(queryParams)}
-            onSelect={handleBulkSelect}
-          />
-        </div>
       </div>
 
       <TodoDrawer
@@ -440,6 +476,25 @@ export function AppShell() {
           message="Are you sure you want to delete this task? This cannot be undone."
           onConfirm={handleConfirmDelete}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      <CommandPalette
+        isOpen={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onNavigate={handlePaletteNavigate}
+        onToggleDarkMode={toggleDarkMode}
+        onLogout={logout}
+      />
+
+      {projectCrudMode && (
+        <ProjectCrud
+          mode={projectCrudMode}
+          onDone={() => {
+            setProjectCrudMode(null);
+            loadProjects();
+          }}
+          onCancel={() => setProjectCrudMode(null)}
         />
       )}
 
