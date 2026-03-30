@@ -6,7 +6,7 @@
     "start": "npx prisma migrate deploy && node dist/server.js",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
     "build": "npx prisma generate && tsc",
-    "postinstall": "npm run build && npm run vendor:sync",
+    "postinstall": "npm run build && npm run vendor:sync && npm run build:react",
     "check:architecture": "node scripts/check-architecture-invariants.mjs",
     "check:harness-drift": "node scripts/check-harness-drift.mjs",
     "harness:cleanup-report": "node scripts/harness/cleanup-report.mjs",
@@ -50,7 +50,7 @@
     "db:setup": "npm run docker:up && sleep 3 && npm run prisma:migrate",
     "db:seed": "ts-node prisma/seed.ts",
     "dev:react": "npm --prefix client-react run dev",
-    "build:react": "npm --prefix client-react run build",
+    "build:react": "npm --prefix client-react install && npm --prefix client-react run build",
     "preview:react": "npm --prefix client-react run preview",
     "test:ui:react:fast": "npm run build:react && PLAYWRIGHT_AUTH_DIR=.playwright/.auth playwright test --config playwright.react.config.ts --grep-invert @visual"
   },
