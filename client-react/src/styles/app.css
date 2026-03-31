@@ -19,7 +19,8 @@ body {
 /* --- Layout shell --- */
 .app-shell {
   display: flex;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .app-sidebar {
@@ -38,8 +39,10 @@ body {
 .app-main {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .app-header {
@@ -3145,104 +3148,141 @@ body {
   letter-spacing: 0.04em;
 }
 
-/* --- LLM custom classes (server-generated HTML) --- */
+/* --- LLM custom classes (global — matching classic styles.css exactly) --- */
+/* These classes are used directly in server-generated HTML from /ai/priorities-brief */
 
-/* Section labels */
-.priorities-brief__content .lbl {
-  display: block;
+.lbl {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  color: var(--muted);
   text-transform: uppercase;
-  color: color-mix(in oklab, var(--muted) 82%, var(--surface));
-  margin: 14px 0 6px;
+  letter-spacing: 0.08em;
+  margin: 1.5rem 0 0.6rem;
+  display: block;
 }
 
-.priorities-brief__content .lbl:first-child {
-  margin-top: 0;
-}
-
-/* Urgent alert cards */
-.priorities-brief__content .urgent {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--danger) 8%, var(--surface));
-  border: 1px solid color-mix(in oklab, var(--danger) 25%, var(--border));
+.urgent {
+  background: color-mix(in oklab, var(--danger) 10%, var(--surface));
+  border: 0.5px solid color-mix(in oklab, var(--danger) 40%, transparent);
+  border-radius: var(--r-md);
+  padding: 0.6rem 1rem;
+  font-size: 13px;
   color: var(--danger);
-  font-size: var(--fs-meta);
-  line-height: 1.5;
-  margin: 6px 0;
-}
-
-/* Warning cards */
-.priorities-brief__content .warn {
+  margin-bottom: 0.75rem;
   display: flex;
+  gap: 10px;
   align-items: flex-start;
-  gap: 8px;
-  padding: 10px 14px;
-  border-radius: 12px;
-  background: color-mix(in oklab, var(--warning) 8%, var(--surface));
-  border: 1px solid color-mix(in oklab, var(--warning) 25%, var(--border));
-  color: var(--warning);
-  font-size: var(--fs-meta);
-  line-height: 1.5;
-  margin: 6px 0;
 }
 
-/* Hide empty containers */
-.priorities-brief__content .lbl:has(+ .warn:empty),
-.priorities-brief__content .warn:empty {
+.warn {
+  background: color-mix(in oklab, var(--warning) 14%, var(--surface));
+  border: 0.5px solid var(--warning);
+  border-radius: var(--r-md);
+  padding: 0.6rem 1rem;
+  font-size: 13px;
+  color: var(--warning);
+  margin-bottom: 0.6rem;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.lbl:has(+ .warn:empty),
+.warn:empty {
   display: none;
 }
 
-/* Indicator dots */
-.priorities-brief__content .dot-lg {
+.dot-lg {
   width: 8px;
   height: 8px;
   border-radius: 50%;
   flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.dot-lg.r { background: var(--danger); }
+.dot-lg.a { background: var(--warning); }
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
   margin-top: 5px;
-  background: var(--accent);
 }
 
-.priorities-brief__content .dot-lg.r {
-  background: var(--danger);
-}
+.dot.r { background: var(--danger); }
+.dot.a { background: var(--warning); }
+.dot.g { background: var(--success); }
+.dot.b { background: var(--accent); }
+.dot.p { background: var(--accent-2); }
 
-.priorities-brief__content .dot-lg.a {
-  background: var(--warning);
-}
-
-/* 3-column track layout */
-.priorities-brief__content .track {
+.track {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 10px;
-  margin: 8px 0;
+  margin-bottom: 0.5rem;
 }
 
-/* Column headers */
-.priorities-brief__content .col-head {
+.col-head {
   font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: color-mix(in oklab, var(--muted) 82%, var(--surface));
-  padding: 6px 10px;
-  border-radius: 10px 10px 0 0;
-  border-bottom: 2px solid color-mix(in oklab, var(--border) 60%, transparent);
-  margin-bottom: 4px;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  text-align: center;
 }
 
-/* Priorities body min height */
+.col-head.now {
+  background: color-mix(in oklab, var(--warning) 14%, var(--surface));
+  color: var(--warning);
+}
+
+.col-head.soon {
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  color: var(--accent);
+}
+
+.col-head.after {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.col-body {
+  background: var(--surface);
+  border: 0.5px solid color-mix(in oklab, var(--border) 60%, transparent);
+  border-radius: 0 0 var(--r-md) var(--r-md);
+  padding: 0.6rem 0.75rem;
+  min-height: 60px;
+}
+
+.item {
+  font-size: 12px;
+  color: var(--text);
+  padding: 4px 0;
+  border-bottom: 0.5px solid color-mix(in oklab, var(--border) 40%, transparent);
+  display: flex;
+  gap: 6px;
+  line-height: 1.45;
+  align-items: flex-start;
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.card {
+  background: var(--surface);
+  border: 0.5px solid color-mix(in oklab, var(--border) 60%, transparent);
+  border-radius: var(--r-lg);
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+/* Priorities body */
 .home-priorities-body {
   min-height: 40px;
 }
 
-/* Priorities status/timestamp */
 .home-priorities-status {
   display: flex;
   align-items: center;
@@ -3261,7 +3301,7 @@ body {
 }
 
 @media (max-width: 700px) {
-  .priorities-brief__content .track {
+  .track {
     grid-template-columns: 1fr;
   }
 }
