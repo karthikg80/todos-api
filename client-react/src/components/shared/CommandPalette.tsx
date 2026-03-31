@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { WorkspaceView } from "../projects/Sidebar";
+import type { Todo } from "../../types";
 import { IllustrationNoResults } from "./Illustrations";
 
 interface Command {
@@ -16,6 +17,8 @@ interface Props {
   onNavigate: (view: WorkspaceView) => void;
   onToggleDarkMode: () => void;
   onLogout: () => void;
+  todos?: Todo[];
+  onTodoClick?: (id: string) => void;
 }
 
 export function CommandPalette({
@@ -24,6 +27,8 @@ export function CommandPalette({
   onNavigate,
   onToggleDarkMode,
   onLogout,
+  todos = [],
+  onTodoClick,
 }: Props) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -106,12 +111,30 @@ export function CommandPalette({
   const filtered = useMemo(() => {
     if (!query.trim()) return commands;
     const q = query.toLowerCase();
-    return commands.filter(
+
+    // Filter commands
+    const matchedCommands = commands.filter(
       (c) =>
         c.label.toLowerCase().includes(q) ||
         c.keywords?.toLowerCase().includes(q),
     );
-  }, [commands, query]);
+
+    // Search tasks by title
+    const matchedTasks: Command[] = onTodoClick
+      ? todos
+          .filter((t) => t.title.toLowerCase().includes(q))
+          .slice(0, 5)
+          .map((t) => ({
+            id: `task-${t.id}`,
+            label: t.title,
+            group: "Tasks",
+            action: () => onTodoClick(t.id),
+            keywords: t.category || undefined,
+          }))
+      : [];
+
+    return [...matchedCommands, ...matchedTasks];
+  }, [commands, query, todos, onTodoClick]);
 
   // Reset on open
   useEffect(() => {
