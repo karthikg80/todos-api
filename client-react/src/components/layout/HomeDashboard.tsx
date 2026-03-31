@@ -323,7 +323,7 @@ export function HomeDashboard({
       )}
 
       {/* Section 3: Insights Card */}
-      <InsightsCard />
+      <InsightsCard todos={todos} />
 
       {/* Section 4: Projects to Nudge */}
       {projectsToNudge.length > 0 && (
@@ -480,20 +480,39 @@ interface InsightsData {
   staleTasks?: number;
 }
 
-function InsightsCard() {
-  const [data, setData] = useState<InsightsData | null>(null);
+function InsightsCard({ todos }: { todos: Todo[] }) {
+  const [apiData, setApiData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     apiCall("/ai/insights?days=7")
       .then((res) => (res.ok ? res.json() : null))
-      .then((d) => setData(d))
+      .then((d) => setApiData(d))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return null; // Don't show skeleton — inserted conditionally like classic
-  if (!data) return null;
+  // Compute local stats as fallback when AI endpoint has no data
+  const data = useMemo(() => {
+    if (apiData?.completionRate != null) return apiData;
+
+    const total = todos.length;
+    const completed = todos.filter((t) => t.completed).length;
+    const active = todos.filter((t) => !t.completed);
+    const stale = active.filter((t) => {
+      const days = (Date.now() - new Date(t.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
+      return days > 14;
+    }).length;
+
+    return {
+      completionRate: total > 0 ? (completed / total) * 100 : 0,
+      streak: undefined,
+      commitRatio: undefined,
+      staleTasks: stale,
+    };
+  }, [apiData, todos]);
+
+  if (loading) return null;
 
   return (
     <section

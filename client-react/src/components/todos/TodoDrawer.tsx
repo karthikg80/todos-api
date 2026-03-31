@@ -625,6 +625,22 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
                     )}
                   </div>
 
+                  {/* Dependencies */}
+                  {todo.dependsOnTaskIds && todo.dependsOnTaskIds.length > 0 && (
+                    <div className="todo-drawer__field">
+                      <span className="todo-drawer__label">
+                        Depends on
+                      </span>
+                      <div className="todo-drawer__deps">
+                        {todo.dependsOnTaskIds.map((depId) => (
+                          <span key={depId} className="todo-chip todo-chip--project">
+                            {depId.slice(0, 8)}…
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="todo-drawer__field">
                     <label
                       className="todo-drawer__label"

@@ -51,7 +51,7 @@ type UiMode = "normal" | "simple";
 
 interface UndoAction {
   message: string;
-  onUndo: () => void;
+  onUndo?: () => void;
 }
 
 function useIsMobile() {
@@ -835,7 +835,15 @@ export function AppShell() {
                 <button
                   id="exportIcsButton"
                   className="btn"
-                  onClick={() => exportIcs(visibleTodos)}
+                  onClick={() => {
+                    const withDates = todos.filter((t) => t.dueDate);
+                    if (withDates.length === 0) {
+                      setUndoAction({ message: "No tasks with due dates to export" });
+                      return;
+                    }
+                    exportIcs(withDates);
+                    setUndoAction({ message: `Exported ${withDates.length} tasks to .ics` });
+                  }}
                   aria-label="Export to calendar"
                   style={{ fontSize: "var(--fs-label)" }}
                   title="Export visible tasks to .ics"
@@ -880,6 +888,23 @@ export function AppShell() {
                 </button>
               </div>
             )}
+
+            {/* Today view coaching */}
+            {activeView === "today" && !selectedProjectId && visibleTodos.length > 0 && (() => {
+              const overdue = visibleTodos.filter(
+                (t) => t.dueDate && t.dueDate.split("T")[0] < new Date().toISOString().split("T")[0],
+              ).length;
+              return overdue > 0 ? (
+                <div className="today-coaching-banner">
+                  <span>
+                    {overdue === 1
+                      ? "1 task rolled over."
+                      : `${overdue} tasks rolled over.`}{" "}
+                    Let's make the day smaller.
+                  </span>
+                </div>
+              ) : null;
+            })()}
 
             {/* Bulk actions toolbar */}
             {bulkMode && (

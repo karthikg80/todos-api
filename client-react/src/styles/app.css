@@ -4286,3 +4286,23 @@ body {
     display: none;
   }
 }
+
+/* --- Today coaching banner --- */
+.today-coaching-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-5);
+  background: color-mix(in oklab, var(--warning) 8%, var(--surface));
+  border-bottom: 1px solid color-mix(in oklab, var(--warning) 20%, var(--border));
+  font-size: var(--fs-meta);
+  color: var(--warning);
+  animation: slideInUp var(--dur-base) var(--ease-out);
+}
+
+/* --- Dependency chips in drawer --- */
+.todo-drawer__deps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
