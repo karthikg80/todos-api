@@ -10,6 +10,7 @@ import {
   IconCompleted,
   IconPlus,
   IconSidebar,
+  IconSearch,
 } from "../shared/Icons";
 import { ProfileLauncher } from "../shared/ProfileLauncher";
 
@@ -135,6 +136,8 @@ interface Props {
   isAdmin: boolean;
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
   onRefreshProjects: () => void;
   uiMode: string;
 }
@@ -160,6 +163,8 @@ export function Sidebar({
   isAdmin,
   isCollapsed,
   onToggleCollapse,
+  searchQuery,
+  onSearchChange,
   onRefreshProjects,
   uiMode,
 }: Props) {
@@ -257,15 +262,47 @@ export function Sidebar({
 
   return (
     <>
-      {/* Collapse toggle */}
-      <button
-        className="sidebar-toggle-btn"
-        onClick={onToggleCollapse}
-        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        <IconSidebar />
-      </button>
+      {/* Sidebar header: app name + collapse toggle (like Claude.ai) */}
+      <div className="sidebar-header">
+        <span className="sidebar-header__logo">Todos</span>
+        <button
+          className="sidebar-header__collapse"
+          onClick={onToggleCollapse}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          <IconSidebar />
+        </button>
+      </div>
+
+      {/* Sidebar search (like Claude.ai) */}
+      {!isCollapsed && (
+        <div className="sidebar-search">
+          <IconSearch size={14} />
+          <input
+            className="sidebar-search__input"
+            type="text"
+            placeholder="Search…"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                onSearchChange("");
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+          />
+          {searchQuery && (
+            <button
+              className="sidebar-search__clear"
+              onClick={() => onSearchChange("")}
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Scrollable content area */}
       <div className="sidebar-scroll">
