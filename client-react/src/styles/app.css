@@ -41,6 +41,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+::selection {
+  background: color-mix(in oklab, var(--accent) 25%, transparent);
+  color: var(--text-strong);
+}
+
 /* --- Layout shell --- */
 .app-shell {
   display: flex;
@@ -51,8 +56,8 @@ body {
 .app-sidebar {
   width: 260px;
   flex-shrink: 0;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  background: color-mix(in oklab, var(--surface) 97%, var(--bg));
+  border-right: 1px solid var(--border-light);
   padding: var(--s-4);
   display: flex;
   flex-direction: column;
@@ -131,16 +136,19 @@ body {
 .app-header {
   display: flex;
   align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-4) var(--s-5);
-  border-bottom: 1px solid var(--border);
+  gap: var(--s-4);
+  padding: var(--s-3h) var(--s-5);
+  border-bottom: 1px solid var(--border-light);
   background: var(--surface);
-  min-height: 56px;
+  min-height: 52px;
+  flex-shrink: 0;
 }
 
 .app-header__title {
-  font-size: var(--fs-section);
+  font-size: var(--fs-lg);
   font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-strong);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -157,6 +165,20 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: var(--s-4) var(--s-5);
+  scroll-behavior: smooth;
+}
+
+/* Fade-out gradient at scroll top for depth */
+.app-content::before {
+  content: "";
+  position: sticky;
+  top: 0;
+  display: block;
+  height: 1px;
+  margin-bottom: -1px;
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--bg) 80%, transparent);
+  z-index: 1;
+  pointer-events: none;
 }
 
 /* --- Workspace nav --- */
@@ -169,7 +191,7 @@ body {
 .workspace-view-item {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
+  gap: var(--s-2h);
   padding: var(--s-2) var(--s-3);
   border-radius: var(--r-sm);
   font-size: var(--fs-meta);
@@ -180,7 +202,16 @@ body {
   background: none;
   width: 100%;
   text-align: left;
-  transition: background var(--dur-fast) var(--ease-out);
+  font-family: inherit;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.workspace-view-item .nav-icon {
+  opacity: 0.6;
+  transition: opacity var(--dur-fast);
 }
 
 .workspace-view-item:hover {
@@ -188,9 +219,19 @@ body {
   color: var(--text);
 }
 
-.workspace-view-item.active {
+.workspace-view-item:hover .nav-icon {
+  opacity: 0.85;
+}
+
+.workspace-view-item.active,
+.workspace-view-item.projects-rail-item--active {
   background: color-mix(in oklab, var(--accent) 10%, transparent);
   color: var(--accent);
+}
+
+.workspace-view-item.active .nav-icon,
+.workspace-view-item.projects-rail-item--active .nav-icon {
+  opacity: 1;
 }
 
 /* --- Projects list --- */
@@ -424,9 +465,10 @@ body {
   display: flex;
   align-items: center;
   gap: var(--s-3);
-  padding: var(--s-3) var(--s-4);
-  border-bottom: 1px solid var(--border);
+  padding: var(--s-3h) var(--s-5);
+  border-bottom: 1px solid var(--border-light);
   background: var(--surface);
+  flex-shrink: 0;
 }
 
 .quick-entry__input {
@@ -438,6 +480,7 @@ body {
   background: transparent;
   color: var(--text);
   min-width: 0;
+  padding: var(--s-1) 0;
 }
 
 .quick-entry__input::placeholder {
@@ -730,22 +773,32 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-8) var(--s-4);
+  gap: var(--s-4);
+  padding: var(--s-8) var(--s-5);
   text-align: center;
   color: var(--muted);
+  animation: fadeIn var(--dur-slow) var(--ease-out);
 }
 
 .empty-state__icon {
-  font-size: 2rem;
+  font-size: 2.5rem;
+  opacity: 0.4;
+  line-height: 1;
+}
+
+.empty-state p {
+  max-width: 28ch;
+  line-height: var(--lh-relaxed);
+  font-size: var(--fs-meta);
 }
 
 .error-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-8) var(--s-4);
+  gap: var(--s-4);
+  padding: var(--s-8) var(--s-5);
+  animation: fadeIn var(--dur-slow) var(--ease-out);
   text-align: center;
   color: var(--danger);
 }
