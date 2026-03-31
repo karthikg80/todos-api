@@ -15,6 +15,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Todo } from "../../types";
 import type { LoadState } from "../../store/useTodosStore";
 import { TodoRow } from "./TodoRow";
+import { IconGrip } from "../shared/Icons";
 
 interface SortableRowProps {
   todo: Todo;
@@ -46,7 +47,14 @@ function SortableRow(props: SortableRowProps) {
   };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
+    <div ref={setNodeRef} style={style} className="sortable-row" {...attributes}>
+      <button
+        className="drag-handle"
+        aria-label="Drag to reorder"
+        {...listeners}
+      >
+        <IconGrip />
+      </button>
       <TodoRow {...props} />
     </div>
   );
