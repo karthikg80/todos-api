@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
@@ -16,8 +16,6 @@ import { useIcsExport } from "../../hooks/useIcsExport";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { SortableTodoList } from "../todos/SortableTodoList";
-import { BoardView } from "../todos/BoardView";
-import { TaskComposer } from "../todos/TaskComposer";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { SortControl, type SortField, type SortOrder } from "../todos/SortControl";
@@ -26,6 +24,10 @@ import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
+import { Tooltip } from "../shared/Tooltip";
+import { Breadcrumb } from "../shared/Breadcrumb";
+import { AnimatedCount } from "../shared/AnimatedCount";
+import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
 import { DeskView } from "../desk/DeskView";
@@ -33,10 +35,14 @@ import { ProjectCrud } from "../projects/ProjectCrud";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
 import { ProjectHeadings } from "../projects/ProjectHeadings";
-import { AiWorkspace } from "../ai/AiWorkspace";
-import { AdminPage } from "../admin/AdminPage";
-import { FeedbackForm } from "../feedback/FeedbackForm";
 import * as todosApi from "../../api/todos";
+
+// Lazy-loaded heavy components (code splitting)
+const BoardView = lazy(() => import("../todos/BoardView").then((m) => ({ default: m.BoardView })));
+const TaskComposer = lazy(() => import("../todos/TaskComposer").then((m) => ({ default: m.TaskComposer })));
+const AiWorkspace = lazy(() => import("../ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })));
+const AdminPage = lazy(() => import("../admin/AdminPage").then((m) => ({ default: m.AdminPage })));
+const FeedbackForm = lazy(() => import("../feedback/FeedbackForm").then((m) => ({ default: m.FeedbackForm })));
 
 type AppPage = "todos" | "settings" | "ai" | "admin" | "feedback";
 type ViewMode = "list" | "board";
@@ -571,6 +577,7 @@ export function AppShell() {
       )}
 
       <div className="app-main">
+        <ErrorBoundary>
         {page === "settings" ? (
           <SettingsPage
             dark={dark}
@@ -601,13 +608,19 @@ export function AppShell() {
               <span className="app-header__title">AI Workspace</span>
             </header>
             <div className="app-content">
-              <AiWorkspace />
+              <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
+                <AiWorkspace />
+              </Suspense>
             </div>
           </>
         ) : page === "admin" ? (
-          <AdminPage onBack={() => setPage("todos")} />
+          <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
+            <AdminPage onBack={() => setPage("todos")} />
+          </Suspense>
         ) : page === "feedback" ? (
-          <FeedbackForm onBack={() => setPage("todos")} />
+          <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
+            <FeedbackForm onBack={() => setPage("todos")} />
+          </Suspense>
         ) : activeView === "home" && !selectedProjectId ? (
           <>
             {!isMobile && (
@@ -746,12 +759,30 @@ export function AppShell() {
             {!isMobile && (
               <header className="app-header">
                 <span id="todosListHeaderTitle" className="app-header__title">
-                  {headerTitle}
+                  <Breadcrumb
+                    items={[
+                      ...(selectedProjectId
+                        ? [
+                            {
+                              label: VIEW_LABELS[activeView] ?? "Tasks",
+                              onClick: () => handleSelectProject(null),
+                            },
+                            { label: headerTitle },
+                          ]
+                        : [{ label: headerTitle }]),
+                    ]}
+                  />
+                  {!selectedProjectId && headerTitle}
                 </span>
                 <span id="todosListHeaderCount" className="app-header__count">
-                  {loadState === "loaded"
-                    ? `${visibleTodos.filter((t) => !t.completed).length} tasks`
-                    : ""}
+                  {loadState === "loaded" && (
+                    <>
+                      <AnimatedCount
+                        value={visibleTodos.filter((t) => !t.completed).length}
+                      />{" "}
+                      tasks
+                    </>
+                  )}
                 </span>
                 <div className="view-toggle">
                   <button
@@ -878,13 +909,15 @@ export function AppShell() {
 
             <div className="app-content">
               {viewMode === "board" ? (
-                <BoardView
-                  todos={visibleTodos}
-                  loadState={loadState}
-                  onToggle={handleToggle}
-                  onClick={handleTodoClick}
-                  onStatusChange={editTodo}
-                />
+                <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
+                  <BoardView
+                    todos={visibleTodos}
+                    loadState={loadState}
+                    onToggle={handleToggle}
+                    onClick={handleTodoClick}
+                    onStatusChange={editTodo}
+                  />
+                </Suspense>
               ) : (
                 <SortableTodoList
                   todos={visibleTodos}
@@ -906,6 +939,7 @@ export function AppShell() {
             </div>
           </>
         )}
+        </ErrorBoundary>
       </div>
 
       <TodoDrawer
@@ -955,15 +989,17 @@ export function AppShell() {
         onClose={() => setShortcutsOpen(false)}
       />
 
-      <TaskComposer
-        isOpen={composerOpen}
-        projects={projects}
-        defaultProjectId={selectedProjectId}
-        onSubmit={async (dto) => {
-          await addTodo(dto);
-        }}
-        onClose={() => setComposerOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <TaskComposer
+          isOpen={composerOpen}
+          projects={projects}
+          defaultProjectId={selectedProjectId}
+          onSubmit={async (dto) => {
+            await addTodo(dto);
+          }}
+          onClose={() => setComposerOpen(false)}
+        />
+      </Suspense>
 
       <UndoToast action={undoAction} onDismiss={() => setUndoAction(null)} />
 
