@@ -388,7 +388,9 @@ function HomeTaskRow({
         {todo.title}
       </button>
       {todo.dueDate && (
-        <span className="home-task-row__badge">
+        <span
+          className={`home-task-row__badge${daysUntil(todo.dueDate) < 0 ? " home-task-row__badge--overdue" : ""}`}
+        >
           {formatDueBadge(todo.dueDate)}
         </span>
       )}
