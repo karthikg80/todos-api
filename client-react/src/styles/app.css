@@ -182,6 +182,7 @@ body {
   background: none;
   width: 100%;
   text-align: left;
+  font-family: inherit;
 }
 
 .projects-rail-item:hover {
@@ -194,10 +195,65 @@ body {
   color: var(--accent);
 }
 
+/* Status dot */
+.projects-rail-item__status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Content wrapper */
+.projects-rail-item__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.projects-rail-item__top-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
 .projects-rail-item__count {
   margin-left: auto;
   font-size: var(--fs-label);
   color: var(--muted);
+  flex-shrink: 0;
+}
+
+/* Progress bar */
+.projects-rail-item__progress-bar {
+  height: 2px;
+  background: color-mix(in oklab, var(--border) 50%, transparent);
+  border-radius: 1px;
+  overflow: hidden;
+}
+
+.projects-rail-item__progress-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 1px;
+  transition: width var(--dur-base) var(--ease-out);
+}
+
+.projects-rail-item--active .projects-rail-item__progress-fill {
+  background: color-mix(in oklab, var(--accent) 70%, white);
+}
+
+/* Target date badge */
+.projects-rail-item__deadline {
+  font-size: 10px;
+  color: var(--muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.projects-rail-item__deadline--overdue {
+  color: var(--danger);
 }
 
 /* --- Todo row --- */

@@ -76,9 +76,13 @@ export interface Project {
   description?: string | null;
   status: "active" | "on_hold" | "completed" | "archived";
   priority?: Priority | null;
+  area?: string | null;
+  areaId?: string | null;
+  targetDate?: string | null;
   archived: boolean;
   todoCount?: number;
   openTodoCount?: number;
+  completedTaskCount?: number;
   userId: string;
   createdAt: string;
   updatedAt: string;
