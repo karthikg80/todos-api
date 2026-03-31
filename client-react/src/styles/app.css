@@ -4681,3 +4681,55 @@ body {
   background: var(--border-light);
   margin: var(--s-1) 0;
 }
+
+/* --- Inline hover actions on todo rows --- */
+.todo-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.todo-item:hover .todo-inline-actions {
+  opacity: 1;
+}
+
+.todo-inline-action {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: var(--r-xs);
+  color: var(--muted-light);
+  cursor: pointer;
+  transition:
+    color var(--dur-fast),
+    background var(--dur-fast);
+}
+
+.todo-inline-action:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+.todo-inline-action--danger:hover {
+  color: var(--danger);
+  background: color-mix(in oklab, var(--danger) 8%, var(--surface));
+}
+
+.todo-inline-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 700px) {
+  /* Always show on mobile (no hover) */
+  .todo-inline-actions {
+    opacity: 0.6;
+  }
+}

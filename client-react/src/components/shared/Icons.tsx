@@ -361,3 +361,43 @@ export function IconCheck({ size = 14, className = "app-icon" }: IconProps) {
     </Icon>
   );
 }
+
+export function IconClock({ size = 14, className = "app-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </Icon>
+  );
+}
+
+export function IconArchive({ size = 14, className = "app-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <rect width="20" height="5" x="2" y="3" rx="1" />
+      <path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8" />
+      <path d="M10 12h4" />
+    </Icon>
+  );
+}
+
+export function IconXCircle({ size = 14, className = "app-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="m15 9-6 6" />
+      <path d="m9 9 6 6" />
+    </Icon>
+  );
+}
+
+export function IconRefresh({ size = 14, className = "app-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+      <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+      <path d="M16 16h5v5" />
+    </Icon>
+  );
+}

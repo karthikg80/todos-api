@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import type { Todo } from "../../types";
-import { IconKebab } from "../shared/Icons";
+import { IconKebab, IconClock, IconArchive, IconXCircle, IconRefresh } from "../shared/Icons";
 import { relativeTime } from "../../utils/relativeTime";
 
 interface Props {
@@ -165,6 +165,47 @@ export function TodoRow({
           </span>
         )}
       </div>
+
+      {/* Inline hover actions (visible on row hover) */}
+      {onLifecycleAction && !isBulkMode && (
+        <div className="todo-inline-actions">
+          {!todo.completed && todo.status !== "cancelled" && (
+            <button
+              className="todo-inline-action"
+              title="Snooze → Tomorrow"
+              onClick={(e) => { e.stopPropagation(); onLifecycleAction(todo.id, "snooze-tomorrow"); }}
+            >
+              <IconClock size={13} />
+            </button>
+          )}
+          {todo.status === "cancelled" ? (
+            <button
+              className="todo-inline-action"
+              title="Reopen task"
+              onClick={(e) => { e.stopPropagation(); onLifecycleAction(todo.id, "reopen"); }}
+            >
+              <IconRefresh size={13} />
+            </button>
+          ) : (
+            <button
+              className="todo-inline-action todo-inline-action--danger"
+              title="Cancel task"
+              onClick={(e) => { e.stopPropagation(); onLifecycleAction(todo.id, "cancel"); }}
+            >
+              <IconXCircle size={13} />
+            </button>
+          )}
+          {todo.completed && !todo.archived && (
+            <button
+              className="todo-inline-action"
+              title="Archive"
+              onClick={(e) => { e.stopPropagation(); onLifecycleAction(todo.id, "archive"); }}
+            >
+              <IconArchive size={13} />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="todo-kebab-wrapper">
         <button
