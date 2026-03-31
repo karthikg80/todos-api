@@ -490,21 +490,50 @@ body {
   border-color: color-mix(in oklab, var(--accent) 30%, transparent);
 }
 
+/* Custom checkbox — replaces native browser checkbox */
 .todo-checkbox {
+  appearance: none;
+  -webkit-appearance: none;
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  accent-color: var(--accent);
+  border: 2px solid var(--border);
+  border-radius: var(--r-xs);
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--ease-spring);
+  position: relative;
+  background: var(--surface);
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast);
+}
+
+.todo-checkbox:hover {
+  border-color: var(--accent);
 }
 
 .todo-checkbox:checked {
-  transform: scale(1.1);
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+
+.todo-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
 }
 
 .todo-checkbox:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: none;
+  box-shadow: var(--shadow-focus);
   outline-offset: 2px;
 }
 
