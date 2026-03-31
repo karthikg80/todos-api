@@ -1,0 +1,41 @@
+{
+  "name": "@karthikg80/td",
+  "version": "1.0.0",
+  "description": "CLI for managing your todos — fast task management from the terminal",
+  "bin": {
+    "td": "./dist/index.js"
+  },
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "todo",
+    "cli",
+    "task-management",
+    "productivity",
+    "gtd"
+  ],
+  "author": "karthikg80",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karthikg80/todos-api.git",
+    "directory": "cli"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "picocolors": "^1.1.1",
+    "cli-table3": "^0.6.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.0.0"
+  }
+}
