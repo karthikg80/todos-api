@@ -500,6 +500,15 @@ export function AppShell() {
         ) : page === "ai" ? (
           <>
             <header className="app-header">
+              {isMobile && (
+                <button
+                  className="mobile-header__menu-btn"
+                  onClick={() => setMobileNavOpen(true)}
+                  aria-label="Open navigation"
+                >
+                  <IconMenu />
+                </button>
+              )}
               <button className="btn" onClick={() => setPage("todos")}>
                 ← Back
               </button>
@@ -582,13 +591,28 @@ export function AppShell() {
             </div>
           </>
         ) : activeView === "triage" && !selectedProjectId ? (
-          <DeskView
-            todos={todos}
-            onTodoClick={handleTodoClick}
-            onToggleTodo={handleToggle}
-            onRefreshTodos={() => loadTodos(queryParams)}
-            onOpenComposer={() => setComposerOpen(true)}
-          />
+          <>
+            {isMobile && (
+              <div className="mobile-header">
+                <button
+                  id="projectsRailMobileOpen"
+                  className="mobile-header__menu-btn"
+                  onClick={() => setMobileNavOpen(true)}
+                  aria-label="Open navigation"
+                >
+                  <IconMenu />
+                </button>
+                <span className="app-header__title">Desk</span>
+              </div>
+            )}
+            <DeskView
+              todos={todos}
+              onTodoClick={handleTodoClick}
+              onToggleTodo={handleToggle}
+              onRefreshTodos={() => loadTodos(queryParams)}
+              onOpenComposer={() => setComposerOpen(true)}
+            />
+          </>
         ) : (
           <>
             {/* Mobile header */}
