@@ -182,6 +182,8 @@ export function Sidebar({
 
   return (
     <>
+      {/* Scrollable content area */}
+      <div className="sidebar-scroll">
       {/* Section 1: Workspace navigation */}
       <nav className="projects-rail__primary">
         {visibleViews.map((v) => (
@@ -332,10 +334,9 @@ export function Sidebar({
         </>
       )}
 
-      {/* Spacer */}
-      <div className="projects-rail__spacer" />
+      </div>{/* end sidebar-scroll */}
 
-      {/* Profile launcher — Claude/ChatGPT style bottom-left */}
+      {/* Profile launcher — pinned at bottom, never scrolls */}
       <ProfileLauncher
         user={user}
         dark={dark}
