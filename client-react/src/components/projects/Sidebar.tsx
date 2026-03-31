@@ -118,6 +118,7 @@ interface Props {
   projects: Project[];
   activeView: WorkspaceView;
   selectedProjectId: string | null;
+  viewCounts?: Record<string, number>;
   onSelectView: (view: WorkspaceView) => void;
   onSelectProject: (id: string | null) => void;
   onCreateProject: () => void;
@@ -142,6 +143,7 @@ export function Sidebar({
   projects,
   activeView,
   selectedProjectId,
+  viewCounts,
   onSelectView,
   onSelectProject,
   onCreateProject,
@@ -281,6 +283,11 @@ export function Sidebar({
           >
             <v.icon />
             <span className="nav-label">{v.label}</span>
+            {viewCounts?.[v.key] != null && viewCounts[v.key] > 0 && (
+              <span className="workspace-view-item__count">
+                {viewCounts[v.key]}
+              </span>
+            )}
           </button>
         ))}
       </nav>

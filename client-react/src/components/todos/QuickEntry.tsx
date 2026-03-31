@@ -5,6 +5,7 @@ import { IconClose } from "../shared/Icons";
 interface Props {
   projectId?: string | null;
   onAdd: (dto: CreateTodoDto) => Promise<unknown>;
+  placeholder?: string;
 }
 
 interface ParsedDate {
@@ -87,7 +88,7 @@ function parseNaturalDate(input: string): ParsedDate | null {
   return null;
 }
 
-export function QuickEntry({ projectId, onAdd }: Props) {
+export function QuickEntry({ projectId, onAdd, placeholder = "Add a task…" }: Props) {
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [parsedDate, setParsedDate] = useState<ParsedDate | null>(null);
@@ -137,7 +138,7 @@ export function QuickEntry({ projectId, onAdd }: Props) {
         ref={inputRef}
         className="quick-entry__input"
         type="text"
-        placeholder="Add a task…"
+        placeholder={placeholder}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {

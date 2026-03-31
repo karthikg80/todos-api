@@ -3910,3 +3910,35 @@ body {
   width: 80px;
   height: 60px;
 }
+
+/* --- Workspace view count badges --- */
+.workspace-view-item__count {
+  margin-left: auto;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  min-width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-full);
+  background: color-mix(in oklab, var(--muted) 12%, transparent);
+  color: var(--muted);
+  padding: 0 var(--s-1h);
+  flex-shrink: 0;
+}
+
+.workspace-view-item.projects-rail-item--active .workspace-view-item__count {
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+  color: var(--accent);
+}
+
+/* --- Page transition --- */
+.app-content > *:first-child {
+  animation: fadeIn var(--dur-base) var(--ease-out);
+}
+
+/* Focus highlight for keyboard-navigated tasks */
+.todo-item--active {
+  scroll-margin: var(--s-4);
+}
