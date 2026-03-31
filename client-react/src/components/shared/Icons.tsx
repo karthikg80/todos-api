@@ -340,3 +340,24 @@ export function IconLogout({ size = 15, className = "nav-icon" }: IconProps) {
     </Icon>
   );
 }
+
+export function IconGrip({ size = 14, className = "app-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <circle cx="9" cy="5" r="1" />
+      <circle cx="15" cy="5" r="1" />
+      <circle cx="9" cy="12" r="1" />
+      <circle cx="15" cy="12" r="1" />
+      <circle cx="9" cy="19" r="1" />
+      <circle cx="15" cy="19" r="1" />
+    </Icon>
+  );
+}
+
+export function IconCheck({ size = 14, className = "app-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <path d="M20 6 9 17l-5-5" />
+    </Icon>
+  );
+}

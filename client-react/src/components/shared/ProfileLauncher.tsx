@@ -203,6 +203,12 @@ export function ProfileLauncher({
             <div className="profile-launcher__user-text">
               <span className="profile-launcher__name">
                 {getDisplayName(user)}
+                {user?.isVerified && (
+                  <span className="verified-badge" title="Verified">✓</span>
+                )}
+                {user?.role === "admin" && (
+                  <span className="admin-badge" title="Admin">★</span>
+                )}
               </span>
               {user?.email && (
                 <span className="profile-launcher__email">{user.email}</span>
@@ -246,6 +252,8 @@ export function ProfileLauncher({
         <div className="profile-launcher__trigger-text">
           <span className="profile-launcher__trigger-name">
             {getDisplayName(user)}
+            {user?.isVerified && <span className="verified-badge">✓</span>}
+            {user?.role === "admin" && <span className="admin-badge">★</span>}
           </span>
           {user?.email && (
             <span className="profile-launcher__trigger-email">
