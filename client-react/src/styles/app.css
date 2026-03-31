@@ -3897,3 +3897,16 @@ body {
     max-width: 960px;
   }
 }
+
+/* --- Custom illustrations --- */
+.illustration {
+  width: 160px;
+  height: 120px;
+  opacity: 0.9;
+  animation: fadeIn var(--dur-slow) var(--ease-out);
+}
+
+.illustration--sm {
+  width: 80px;
+  height: 60px;
+}

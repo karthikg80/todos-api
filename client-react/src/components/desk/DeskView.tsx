@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import type { Todo } from "../../types";
+import { IllustrationDeskClear, IllustrationSorted } from "../shared/Illustrations";
 import {
   fetchInboxItems,
   promoteCapture,
@@ -132,7 +133,7 @@ export function DeskView({
             )}
             {!capturesLoading && captures.length === 0 && (
               <div className="triage-empty-state">
-                <DeskEmptyIllustration />
+                <IllustrationDeskClear />
                 <p>
                   Your desk is clear. New items will appear here until you're
                   ready to organize them.
@@ -195,7 +196,8 @@ export function DeskView({
           <div className="triage-section__list">
             {readyToOrganize.length === 0 ? (
               <div className="triage-empty-state">
-                Nothing is waiting to be sorted.
+                <IllustrationSorted />
+                <p>Nothing is waiting to be sorted.</p>
               </div>
             ) : (
               readyToOrganize.map((todo) => (

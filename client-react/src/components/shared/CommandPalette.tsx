@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { WorkspaceView } from "../projects/Sidebar";
+import { IllustrationNoResults } from "./Illustrations";
 
 interface Command {
   id: string;
@@ -190,7 +191,8 @@ export function CommandPalette({
         <div id="commandPaletteList" className="command-palette__list" role="listbox">
           {filtered.length === 0 && (
             <div id="commandPaletteEmpty" className="command-palette__empty">
-              No results
+              <IllustrationNoResults />
+              <p>No results</p>
             </div>
           )}
           {[...groups.entries()].map(([group, cmds]) => (
