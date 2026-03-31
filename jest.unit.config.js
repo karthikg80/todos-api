@@ -21,5 +21,6 @@ module.exports = {
     "**/src/agentIdempotencyService.test.ts",
     "**/src/ai/recommendationSchema.test.ts",
     "**/tests/eval/recommendation-quality.test.ts",
+    "**/src/cli/**/*.test.ts",
   ],
 };
