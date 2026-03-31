@@ -4503,3 +4503,130 @@ body {
   flex-wrap: wrap;
   gap: var(--s-1);
 }
+
+/* --- Filter panel --- */
+.filter-panel {
+  padding: var(--s-3) var(--s-5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  flex-shrink: 0;
+  animation: slideInUp var(--dur-base) var(--ease-out);
+}
+
+.filter-panel__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.filter-panel__title {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  color: var(--text);
+}
+
+.filter-panel__close {
+  margin-left: auto;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  padding: var(--s-1);
+}
+
+.filter-panel__close:hover {
+  color: var(--text);
+}
+
+.clear-filters-btn {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font-size: var(--fs-label);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.clear-filters-btn:hover {
+  text-decoration: underline;
+}
+
+/* Date tabs */
+.filter-panel__date-tabs {
+  display: flex;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+}
+
+.filter-panel__tab {
+  padding: var(--s-1) var(--s-2h);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-full);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--fs-label);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast),
+    border-color var(--dur-fast);
+}
+
+.filter-panel__tab:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.filter-panel__tab--active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+/* Row of selects */
+.filter-panel__row {
+  display: flex;
+  gap: var(--s-3);
+}
+
+.filter-panel__field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.filter-panel__label {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-weight: var(--fw-medium);
+}
+
+/* Active filter indicator on button */
+.btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.filter-badge {
+  color: var(--accent);
+  font-size: 8px;
+  margin-left: 2px;
+  vertical-align: super;
+}
+
+@media (max-width: 700px) {
+  .filter-panel__date-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .filter-panel__row {
+    flex-direction: column;
+  }
+}
