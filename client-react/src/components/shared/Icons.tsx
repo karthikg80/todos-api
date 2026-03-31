@@ -320,3 +320,23 @@ export function IconDownload({ size = 15, className = "nav-icon" }: IconProps) {
     </Icon>
   );
 }
+
+export function IconHelp({ size = 15, className = "nav-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+      <path d="M12 17h.01" />
+    </Icon>
+  );
+}
+
+export function IconLogout({ size = 15, className = "nav-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" x2="9" y1="12" y2="12" />
+    </Icon>
+  );
+}

@@ -1076,57 +1076,188 @@ body {
   min-height: var(--s-4);
 }
 
-/* --- Bottom nav (icon + label, compact) --- */
-.sidebar-nav-bottom {
-  padding-top: var(--s-3);
+/* --- Profile launcher (Claude/ChatGPT style) --- */
+.profile-launcher {
+  position: relative;
   border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+  padding-top: var(--s-2);
 }
 
-.sidebar-nav-item {
+/* Trigger button */
+.profile-launcher__trigger {
   display: flex;
   align-items: center;
   gap: var(--s-3);
+  width: 100%;
   padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-sm);
   border: none;
   background: none;
-  width: 100%;
-  text-align: left;
-  font-family: inherit;
-  font-size: var(--fs-meta);
-  color: var(--muted);
+  border-radius: var(--r-sm);
   cursor: pointer;
-  transition:
-    color var(--dur-fast) var(--ease-out),
-    background var(--dur-fast) var(--ease-out);
+  font-family: inherit;
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease-out);
 }
 
-.sidebar-nav-item:hover {
+.profile-launcher__trigger:hover {
   background: var(--surface-2);
-  color: var(--text);
 }
 
-.sidebar-nav-item .nav-icon,
-.sidebar-nav-item .app-icon {
-  flex-shrink: 0;
-  opacity: 0.7;
-  transition: opacity var(--dur-fast);
-}
-
-.sidebar-nav-item:hover .nav-icon,
-.sidebar-nav-item:hover .app-icon {
-  opacity: 1;
-}
-
-.sidebar-nav-item__label {
-  flex: 1;
+.profile-launcher__trigger-text {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  flex: 1;
+}
+
+.profile-launcher__trigger-name {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.profile-launcher__trigger-email {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Avatar */
+.profile-launcher__avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-full);
+  background: color-mix(in oklab, var(--accent) 15%, var(--surface));
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.profile-launcher__avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+/* Popover panel */
+.profile-launcher__panel {
+  position: absolute;
+  bottom: calc(100% + var(--s-2));
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-elevated);
+  z-index: 200;
+  overflow: hidden;
+  animation: profilePanelIn var(--dur-base) var(--ease-spring);
+}
+
+@keyframes profilePanelIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* User info header */
+.profile-launcher__user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-launcher__user-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.profile-launcher__name {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-launcher__email {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Menu */
+.profile-launcher__menu {
+  padding: var(--s-1) 0;
+}
+
+.profile-launcher__menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  width: 100%;
+  padding: var(--s-2) var(--s-4);
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--fs-meta);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.profile-launcher__menu-item:hover,
+.profile-launcher__menu-item--active {
+  background: var(--surface-2);
+}
+
+.profile-launcher__menu-item--danger {
+  color: var(--danger);
+}
+
+.profile-launcher__menu-item--danger:hover,
+.profile-launcher__menu-item--danger.profile-launcher__menu-item--active {
+  background: color-mix(in oklab, var(--danger) 8%, var(--surface));
+}
+
+.profile-launcher__menu-item .nav-icon {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.profile-launcher__menu-item:hover .nav-icon {
+  opacity: 1;
+}
+
+.profile-launcher__divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--s-1) 0;
 }
 
 /* Nav label */

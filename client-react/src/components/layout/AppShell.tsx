@@ -452,6 +452,8 @@ export function AppShell() {
         setPage("settings");
         setMobileNavOpen(false);
       }}
+      onLogout={logout}
+      user={user}
       dark={dark}
       isAdmin={user?.role === "admin"}
       uiMode={uiMode}
