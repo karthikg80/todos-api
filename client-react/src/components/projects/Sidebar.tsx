@@ -46,6 +46,74 @@ const AREA_LABELS: Record<string, string> = {
   "side-projects": "Side projects",
 };
 
+const STATUS_COLORS: Record<string, string> = {
+  active: "var(--success)",
+  on_hold: "var(--warning)",
+  completed: "var(--muted)",
+  archived: "var(--muted)",
+};
+
+function ProjectRailItem({
+  project: p,
+  isActive,
+  onClick,
+  onContextMenu,
+}: {
+  project: Project;
+  isActive: boolean;
+  onClick: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+}) {
+  const total = p.todoCount ?? 0;
+  const completed = p.completedTaskCount ?? 0;
+  const progress = total > 0 ? completed / total : 0;
+  const isOverdue =
+    p.targetDate && new Date(p.targetDate) < new Date(new Date().toDateString());
+
+  return (
+    <button
+      className={`projects-rail-item${isActive ? " projects-rail-item--active" : ""}`}
+      data-project-key={p.name}
+      onClick={onClick}
+      onContextMenu={onContextMenu}
+    >
+      <span
+        className="projects-rail-item__status-dot"
+        style={{ background: STATUS_COLORS[p.status] || "var(--muted)" }}
+        title={p.status.replace("_", " ")}
+      />
+      <div className="projects-rail-item__content">
+        <div className="projects-rail-item__top-row">
+          <span className="nav-label">{p.name}</span>
+          {p.openTodoCount != null && (
+            <span className="projects-rail-item__count">
+              {p.openTodoCount}
+            </span>
+          )}
+        </div>
+        {total > 0 && (
+          <div className="projects-rail-item__progress-bar">
+            <div
+              className="projects-rail-item__progress-fill"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+        )}
+      </div>
+      {p.targetDate && (
+        <span
+          className={`projects-rail-item__deadline${isOverdue ? " projects-rail-item__deadline--overdue" : ""}`}
+        >
+          {new Date(p.targetDate).toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+          })}
+        </span>
+      )}
+    </button>
+  );
+}
+
 interface Props {
   projects: Project[];
   activeView: WorkspaceView;
@@ -109,7 +177,7 @@ export function Sidebar({
     const groups = new Map<string, Project[]>();
 
     for (const p of active) {
-      const area = (p as Project & { area?: string }).area || "";
+      const area = p.area || "";
       const list = groups.get(area) || [];
       list.push(p);
       groups.set(area, list);
@@ -252,20 +320,13 @@ export function Sidebar({
                   data-area={area || undefined}
                 >
                   {areaProjects.map((p) => (
-                    <button
+                    <ProjectRailItem
                       key={p.id}
-                      className={`projects-rail-item${selectedProjectId === p.id ? " projects-rail-item--active" : ""}`}
-                      data-project-key={p.name}
+                      project={p}
+                      isActive={selectedProjectId === p.id}
                       onClick={() => onSelectProject(p.id)}
                       onContextMenu={(e) => handleContextMenu(e, p.id)}
-                    >
-                      <span className="nav-label">{p.name}</span>
-                      {p.openTodoCount != null && (
-                        <span className="projects-rail-item__count">
-                          {p.openTodoCount}
-                        </span>
-                      )}
-                    </button>
+                    />
                   ))}
                 </div>
               )}
