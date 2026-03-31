@@ -604,6 +604,11 @@ export function AppShell() {
       )}
 
       <div className="app-main">
+        {loadState === "loading" && (
+          <div className="loading-bar" aria-label="Loading">
+            <div className="loading-bar__fill" />
+          </div>
+        )}
         <ErrorBoundary>
         {page === "settings" ? (
           <SettingsPage

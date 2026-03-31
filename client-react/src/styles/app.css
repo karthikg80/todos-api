@@ -270,6 +270,32 @@ body {
   overflow: hidden;
 }
 
+/* Top loading bar — thin accent stripe during data fetch */
+@keyframes loadingSlide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+.loading-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border-light);
+  overflow: hidden;
+  z-index: 10;
+  flex-shrink: 0;
+}
+
+.loading-bar__fill {
+  width: 30%;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: loadingSlide 1.2s var(--ease-in-out) infinite;
+}
+
 .app-header {
   display: flex;
   align-items: center;
