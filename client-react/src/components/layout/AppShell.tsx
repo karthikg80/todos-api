@@ -26,6 +26,7 @@ import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
 import { Tooltip } from "../shared/Tooltip";
+import { FilterPanel, applyFilters, type ActiveFilters } from "../todos/FilterPanel";
 import { Breadcrumb } from "../shared/Breadcrumb";
 import { AnimatedCount } from "../shared/AnimatedCount";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
@@ -79,6 +80,12 @@ export function AppShell() {
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [activeFilters, setActiveFilters] = useState<ActiveFilters>({
+    dateFilter: "all",
+    priority: "",
+    status: "",
+  });
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [page, setPage] = useState<AppPage>("todos");
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -206,8 +213,13 @@ export function AppShell() {
       filtered = filtered.filter((t) => t.headingId === activeHeadingId);
     }
 
+    // Apply advanced filters
+    if (activeFilters.dateFilter !== "all" || activeFilters.priority || activeFilters.status) {
+      filtered = applyFilters(filtered, activeFilters);
+    }
+
     return filtered;
-  }, [todos, activeView, selectedProjectId, searchQuery, activeTagFilter, activeHeadingId]);
+  }, [todos, activeView, selectedProjectId, searchQuery, activeTagFilter, activeHeadingId, activeFilters]);
 
   const activeTodo = useMemo(
     () => todos.find((t) => t.id === activeTodoId) ?? null,
@@ -821,6 +833,21 @@ export function AppShell() {
                     </>
                   )}
                 </span>
+                <Tooltip content="Filters" shortcut="f">
+                  <button
+                    id="moreFiltersToggle"
+                    className={`btn${filtersOpen ? " btn--active" : ""}`}
+                    onClick={() => setFiltersOpen((o) => !o)}
+                    style={{ fontSize: "var(--fs-label)" }}
+                  >
+                    Filters
+                    {(activeFilters.dateFilter !== "all" ||
+                      activeFilters.priority ||
+                      activeFilters.status) && (
+                      <span className="filter-badge">●</span>
+                    )}
+                  </button>
+                </Tooltip>
                 <div className="view-toggle">
                   <button
                     className={`view-toggle__btn${viewMode === "list" ? " view-toggle__btn--active" : ""}`}
@@ -932,6 +959,15 @@ export function AppShell() {
                 </div>
               ) : null;
             })()}
+
+            {/* Filter panel */}
+            {filtersOpen && (
+              <FilterPanel
+                filters={activeFilters}
+                onChange={setActiveFilters}
+                onClose={() => setFiltersOpen(false)}
+              />
+            )}
 
             {/* Bulk actions toolbar */}
             {bulkMode && (
