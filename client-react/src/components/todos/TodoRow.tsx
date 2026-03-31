@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Todo } from "../../types";
 import { IconKebab } from "../shared/Icons";
+import { relativeTime } from "../../utils/relativeTime";
 
 interface Props {
   todo: Todo;

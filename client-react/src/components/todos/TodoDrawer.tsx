@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { relativeTime } from "../../utils/relativeTime";
 import type {
   Todo,
   UpdateTodoDto,
@@ -181,7 +182,9 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
                     ? "Saved"
                     : saveState === "error"
                       ? "Error saving"
-                      : ""}
+                      : todo.updatedAt
+                        ? `Updated ${relativeTime(todo.updatedAt)}`
+                        : ""}
               </span>
             </div>
             <div className="todo-drawer__body">
