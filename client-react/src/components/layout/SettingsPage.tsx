@@ -130,6 +130,18 @@ export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, densi
           Logged in as <strong>{user?.email}</strong>
         </p>
         <DataExportButton />
+        <div className="settings-field settings-field--row">
+          <span className="settings-field__label">Onboarding</span>
+          <button
+            className="btn"
+            onClick={() => {
+              localStorage.removeItem("todos:onboarding-complete");
+              window.location.reload();
+            }}
+          >
+            Restart onboarding
+          </button>
+        </div>
       </section>
 
       <McpSessionsSection />

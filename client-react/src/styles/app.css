@@ -1205,6 +1205,11 @@ body {
   .app-content {
     padding: var(--s-3) var(--s-4);
   }
+
+  /* Hide profile launcher in mobile sheet — mobile has its own logout */
+  .mobile-sheet .profile-launcher {
+    display: none;
+  }
 }
 
 /* --- Search bar --- */
