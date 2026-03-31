@@ -3,6 +3,7 @@ import { useAuth } from "../../auth/AuthProvider";
 import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
+import { useDensity } from "../../hooks/useDensity";
 import {
   IconMoon,
   IconSun,
@@ -68,6 +69,7 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
+  const { density, cycle: cycleDensity } = useDensity();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
@@ -588,6 +590,8 @@ export function AppShell() {
               setUiMode(next);
               localStorage.setItem("todos:ui-mode", next);
             }}
+            density={density}
+            onCycleDensity={cycleDensity}
             onBack={() => setPage("todos")}
           />
         ) : page === "ai" ? (
