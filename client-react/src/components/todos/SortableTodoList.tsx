@@ -29,6 +29,7 @@ interface SortableRowProps {
   onSelect: (id: string) => void;
   onInlineEdit: (id: string, title: string) => void;
   onTagClick?: (tag: string) => void;
+  onLifecycleAction?: (id: string, action: string) => void;
 }
 
 function SortableRow(props: SortableRowProps) {
@@ -75,6 +76,7 @@ interface Props {
   onSelect: (id: string) => void;
   onInlineEdit: (id: string, title: string) => void;
   onTagClick?: (tag: string) => void;
+  onLifecycleAction?: (id: string, action: string) => void;
   onReorder: (activeId: string, overId: string) => void;
 }
 
@@ -92,6 +94,7 @@ export function SortableTodoList({
   onSelect,
   onInlineEdit,
   onTagClick,
+  onLifecycleAction,
   onReorder,
 }: Props) {
   const sensors = useSensors(
@@ -163,6 +166,7 @@ export function SortableTodoList({
               onSelect={onSelect}
               onInlineEdit={onInlineEdit}
               onTagClick={onTagClick}
+              onLifecycleAction={onLifecycleAction}
             />
           ))}
         </div>
