@@ -4244,3 +4244,45 @@ body {
 [data-density="spacious"] .workspace-view-item {
   padding: var(--s-3) var(--s-4);
 }
+
+/* --- Home task action chips --- */
+.home-task-row__actions {
+  display: flex;
+  gap: var(--s-1);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.home-action-chip {
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast),
+    border-color var(--dur-fast);
+}
+
+.home-action-chip:hover {
+  background: var(--accent-light);
+  border-color: color-mix(in oklab, var(--accent) 25%, var(--border));
+  color: var(--accent);
+}
+
+.home-action-chip--danger:hover {
+  background: color-mix(in oklab, var(--danger) 8%, var(--surface));
+  border-color: color-mix(in oklab, var(--danger) 25%, var(--border));
+  color: var(--danger);
+}
+
+@media (max-width: 700px) {
+  .home-task-row__actions {
+    display: none;
+  }
+}

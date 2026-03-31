@@ -112,8 +112,16 @@ export interface CreateTodoDto {
   projectId?: string | null;
   category?: string | null;
   dueDate?: string | null;
+  startDate?: string | null;
+  scheduledDate?: string | null;
   priority?: Priority | null;
   tags?: string[];
+  energy?: "low" | "medium" | "high" | null;
+  context?: string | null;
+  estimateMinutes?: number | null;
+  firstStep?: string | null;
+  emotionalState?: string | null;
+  effortScore?: number | null;
 }
 
 export interface UpdateTodoDto {

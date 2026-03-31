@@ -435,6 +435,53 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
                     </div>
                   </div>
 
+                  <div className="todo-drawer__row">
+                    <div className="todo-drawer__field todo-drawer__field--half">
+                      <label
+                        className="todo-drawer__label"
+                        htmlFor="drawerEffortSelect"
+                      >
+                        Effort
+                      </label>
+                      <select
+                        id="drawerEffortSelect"
+                        className="todo-drawer__select"
+                        value={todo.effortScore != null ? String(todo.effortScore) : ""}
+                        onChange={(e) => {
+                          save("effortScore", e.target.value ? Number(e.target.value) : null);
+                        }}
+                      >
+                        <option value="">None</option>
+                        <option value="1">Low</option>
+                        <option value="2">Medium</option>
+                        <option value="3">High</option>
+                      </select>
+                    </div>
+                    <div className="todo-drawer__field todo-drawer__field--half">
+                      <label
+                        className="todo-drawer__label"
+                        htmlFor="drawerEmotionalStateSelect"
+                      >
+                        Feeling
+                      </label>
+                      <select
+                        id="drawerEmotionalStateSelect"
+                        className="todo-drawer__select"
+                        value={todo.emotionalState || ""}
+                        onChange={(e) => {
+                          save("emotionalState", e.target.value || null);
+                        }}
+                      >
+                        <option value="">None</option>
+                        <option value="avoiding">Avoiding</option>
+                        <option value="unclear">Unclear</option>
+                        <option value="heavy">Heavy</option>
+                        <option value="exciting">Exciting</option>
+                        <option value="draining">Draining</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="todo-drawer__field">
                     <label
                       className="todo-drawer__label"
