@@ -11,6 +11,11 @@ import {
   IconSettings,
   IconFeedback,
   IconPlus,
+  IconMoon,
+  IconSun,
+  IconUser,
+  IconKeyboard,
+  IconShield,
 } from "../shared/Icons";
 
 // Internal keys match classic store.js currentWorkspaceView values
@@ -107,19 +112,21 @@ export function Sidebar({
       groups.set(area, list);
     }
 
-    // Sort: known areas first in order, then unknown alphabetically, then ungrouped last
     const sorted: Array<{ area: string; label: string; projects: Project[] }> =
       [];
 
     for (const area of AREA_ORDER) {
       const list = groups.get(area);
       if (list?.length) {
-        sorted.push({ area, label: AREA_LABELS[area] || area, projects: list });
+        sorted.push({
+          area,
+          label: AREA_LABELS[area] || area,
+          projects: list,
+        });
         groups.delete(area);
       }
     }
 
-    // Unknown areas
     const unknownAreas = [...groups.entries()]
       .filter(([a]) => a !== "")
       .sort(([a], [b]) => a.localeCompare(b));
@@ -131,7 +138,6 @@ export function Sidebar({
       });
     }
 
-    // Ungrouped (no area)
     const ungrouped = groups.get("");
     if (ungrouped?.length) {
       sorted.push({ area: "", label: "", projects: ungrouped });
@@ -172,7 +178,6 @@ export function Sidebar({
     });
   };
 
-  // Filter views based on UI mode (classic hides Focus and Desk in simple mode)
   const visibleViews = isSimple
     ? WORKSPACE_VIEWS.filter((v) => v.key !== "home" && v.key !== "triage")
     : WORKSPACE_VIEWS;
@@ -304,7 +309,9 @@ export function Sidebar({
             <button
               className="context-menu__item"
               onClick={async () => {
-                const project = projects.find((p) => p.id === contextMenu.id);
+                const project = projects.find(
+                  (p) => p.id === contextMenu.id,
+                );
                 setContextMenu(null);
                 await apiCall(`/projects/${contextMenu.id}`, {
                   method: "PUT",
@@ -330,55 +337,37 @@ export function Sidebar({
       {/* Spacer */}
       <div className="projects-rail__spacer" />
 
-      {/* Section 3: Utilities (matches classic order) */}
-      <div className="projects-rail__section--utilities">
-        <div className="projects-rail__utility-list">
-          <button
-            className="projects-rail-utility-item"
-            data-sidebar-view="feedback"
-            onClick={onOpenFeedback}
-          >
-            <IconFeedback /> Feedback
-          </button>
-          <button
-            className="projects-rail-utility-item"
-            data-sidebar-view="settings"
-            onClick={onOpenSettings}
-          >
-            <IconSettings /> Settings
-          </button>
-          <button
-            className="projects-rail-utility-item"
-            onClick={onToggleTheme}
-          >
+      {/* Section 3: Bottom nav — icon + label, compact */}
+      <div className="sidebar-nav-bottom">
+        <button className="sidebar-nav-item" onClick={onOpenFeedback}>
+          <IconFeedback />
+          <span className="sidebar-nav-item__label">Feedback</span>
+        </button>
+        <button className="sidebar-nav-item" onClick={onOpenShortcuts}>
+          <IconKeyboard />
+          <span className="sidebar-nav-item__label">Shortcuts</span>
+        </button>
+        <button className="sidebar-nav-item" onClick={onToggleTheme}>
+          {dark ? <IconSun /> : <IconMoon />}
+          <span className="sidebar-nav-item__label">
             {dark ? "Light mode" : "Dark mode"}
+          </span>
+        </button>
+        <button className="sidebar-nav-item" onClick={onOpenSettings}>
+          <IconSettings />
+          <span className="sidebar-nav-item__label">Settings</span>
+        </button>
+        <button className="sidebar-nav-item" onClick={onOpenProfile}>
+          <IconUser />
+          <span className="sidebar-nav-item__label">Profile</span>
+        </button>
+        {isAdmin && (
+          <button className="sidebar-nav-item" onClick={onOpenAdmin}>
+            <IconShield />
+            <span className="sidebar-nav-item__label">Admin</span>
           </button>
-          <button
-            className="projects-rail-utility-item"
-            onClick={onOpenProfile}
-          >
-            Profile
-          </button>
-          <button
-            className="projects-rail-utility-item"
-            onClick={onOpenShortcuts}
-          >
-            Shortcuts
-          </button>
-        </div>
+        )}
       </div>
-
-      {/* Admin footer (classic: projects-rail__footer--admin-only) */}
-      {isAdmin && (
-        <div className="projects-rail__footer projects-rail__footer--admin-only">
-          <button
-            className="projects-rail-utility-item"
-            onClick={onOpenAdmin}
-          >
-            Admin
-          </button>
-        </div>
-      )}
     </>
   );
 }

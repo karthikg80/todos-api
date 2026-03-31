@@ -286,3 +286,37 @@ export function IconBoard({ size = 14, className = "app-icon" }: IconProps) {
     </Icon>
   );
 }
+
+export function IconKeyboard({ size = 15, className = "nav-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <rect width="20" height="16" x="2" y="4" rx="2" />
+      <path d="M6 8h.001" />
+      <path d="M10 8h.001" />
+      <path d="M14 8h.001" />
+      <path d="M18 8h.001" />
+      <path d="M8 12h.001" />
+      <path d="M12 12h.001" />
+      <path d="M16 12h.001" />
+      <path d="M7 16h10" />
+    </Icon>
+  );
+}
+
+export function IconShield({ size = 15, className = "nav-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67 0C8.5 20.5 5 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" />
+    </Icon>
+  );
+}
+
+export function IconDownload({ size = 15, className = "nav-icon" }: IconProps) {
+  return (
+    <Icon size={size} className={className}>
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" x2="12" y1="15" y2="3" />
+    </Icon>
+  );
+}
