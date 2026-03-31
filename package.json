@@ -2,6 +2,9 @@
   "name": "todos-api",
   "version": "1.6.0",
   "main": "index.js",
+  "bin": {
+    "td": "./dist/cli/index.js"
+  },
   "scripts": {
     "start": "npx prisma migrate deploy && node dist/server.js",
     "dev": "nodemon --watch src --ext ts --exec ts-node src/server.ts",
@@ -69,6 +72,8 @@
     "@types/swagger-ui-express": "^4.1.8",
     "bcrypt": "^6.0.0",
     "chrono-node": "^2.9.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^13.1.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.2.4",
@@ -78,6 +83,7 @@
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.1",
+    "picocolors": "^1.1.1",
     "prisma": "^6.19.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
