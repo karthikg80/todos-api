@@ -2733,3 +2733,140 @@ body {
     justify-content: flex-end;
   }
 }
+
+/* --- AI Focus Suggestions (in brief card) --- */
+.home-ai-suggestions {
+  border-top: 1px solid var(--border);
+  padding-top: var(--s-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.home-ai-suggestions--loading {
+  border-top: none;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  font-style: italic;
+  padding: var(--s-2) 0;
+}
+
+.home-ai-suggestions__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.home-ai-suggestions__title {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.home-ai-suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3);
+  background: color-mix(in oklab, var(--accent) 4%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--accent) 12%, var(--border));
+  border-radius: var(--r-sm);
+}
+
+.home-ai-suggestion__content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.home-ai-suggestion__task-title {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
+.home-ai-suggestion__reason {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  line-height: var(--lh-base);
+}
+
+.home-ai-suggestion__confidence {
+  font-size: var(--fs-label);
+  color: var(--accent);
+  opacity: 0.7;
+}
+
+.home-ai-suggestion__actions {
+  flex-shrink: 0;
+}
+
+.home-ai-suggestion__apply {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  font-size: var(--fs-label);
+  padding: var(--s-1) var(--s-3);
+}
+
+/* --- Priorities Brief Tile --- */
+.home-tile--priorities {
+  border-left: 3px solid var(--accent);
+}
+
+.priorities-brief__timestamp {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-weight: var(--fw-regular);
+}
+
+.priorities-brief__loading {
+  padding: var(--s-4);
+  text-align: center;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  font-style: italic;
+}
+
+.priorities-brief__content {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-base);
+  color: var(--text);
+}
+
+.priorities-brief__content h4 {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  margin: var(--s-3) 0 var(--s-1);
+  color: var(--text);
+}
+
+.priorities-brief__content h4:first-child {
+  margin-top: 0;
+}
+
+.priorities-brief__content ul {
+  padding-left: var(--s-4);
+  margin: var(--s-1) 0;
+}
+
+.priorities-brief__content li {
+  margin-bottom: var(--s-1);
+}
+
+.priorities-brief__content p {
+  margin: var(--s-2) 0;
+}
+
+.priorities-brief__content strong {
+  color: var(--text);
+  font-weight: var(--fw-semibold);
+}
+
+.priorities-brief__content em {
+  color: var(--muted);
+}

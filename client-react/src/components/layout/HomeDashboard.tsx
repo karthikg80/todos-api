@@ -1,6 +1,8 @@
 import { useMemo, useState, useEffect } from "react";
 import type { Todo, Project } from "../../types";
 import { apiCall } from "../../api/client";
+import { HomeFocusSuggestions } from "../ai/HomeFocusSuggestions";
+import { PrioritiesBriefTile } from "../ai/PrioritiesBriefTile";
 
 interface Props {
   todos: Todo[];
@@ -173,7 +175,13 @@ export function HomeDashboard({
             </span>
           </button>
         )}
+
+        {/* AI focus suggestions — up to 3 tasks with reasoning */}
+        <HomeFocusSuggestions todos={todos} onTodoClick={onTodoClick} />
       </section>
+
+      {/* AI Priorities Brief — LLM-generated HTML digest */}
+      <PrioritiesBriefTile />
 
       {/* Rescue mode panel */}
       {showRescue && (
