@@ -1,13 +1,19 @@
 :root {
+  /* --- Colors (light) --- */
   --bg: #f4f7fb;
   --surface: #ffffff;
   --surface-2: #f8fafc;
   --surface-3: #334155;
   --text: #1f2937;
+  --text-strong: #111827;
   --muted: #6b7280;
+  --muted-light: #9ca3af;
   --border: #dbe3ed;
+  --border-light: color-mix(in oklab, #dbe3ed 60%, transparent);
   --accent: #4f6ef7;
   --accent-2: #6983ff;
+  --accent-3: #3b5cdb;
+  --accent-light: color-mix(in oklab, #4f6ef7 8%, #ffffff);
   --danger: #e05260;
   --danger-2: #c94855;
   --success: #2f9e6a;
@@ -15,66 +21,120 @@
   --overlay: rgb(15 23 42 / 55%);
   --scrim: rgb(15 23 42 / 35%);
 
+  /* --- Radius --- */
+  --r-xs: 4px;
   --r-sm: 8px;
   --r-md: 12px;
   --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
   --r-full: 999px;
 
+  /* --- Spacing --- */
   --s-0: 2px;
   --s-1: 4px;
+  --s-1h: 6px;
   --s-2: 8px;
+  --s-2h: 10px;
   --s-3: 12px;
+  --s-3h: 14px;
   --s-4: 16px;
   --s-5: 24px;
   --s-6: 32px;
   --s-7: 40px;
   --s-8: 48px;
 
+  /* --- Typography --- */
   --font-sans: "Inter", "Avenir Next", "Segoe UI", -apple-system,
     BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-  --fs-body: 1rem;
-  --fs-meta: 0.8125rem;
+  --fs-xs: 0.688rem;
   --fs-label: 0.75rem;
+  --fs-meta: 0.8125rem;
+  --fs-body: 1rem;
+  --fs-md: 1.125rem;
   --fs-section: 1.25rem;
-  --lh-base: 1.5;
+  --fs-lg: 1.375rem;
+  --fs-xl: 1.75rem;
   --lh-tight: 1.25;
+  --lh-base: 1.5;
+  --lh-relaxed: 1.7;
   --fw-regular: 400;
   --fw-medium: 500;
   --fw-semibold: 600;
+  --fw-bold: 700;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
 
+  /* --- Controls --- */
   --control-sm: 32px;
   --control-md: 40px;
   --row-height: 48px;
 
+  /* --- Shadows (6-level system) --- */
   --shadow-0: none;
-  --shadow-hover: 0 2px 8px rgb(15 23 42 / 6%), 0 1px 2px rgb(15 23 42 / 4%);
-  --shadow-card: 0 4px 16px rgb(15 23 42 / 8%);
-  --shadow-elevated: 0 8px 30px rgb(15 23 42 / 12%);
+  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
+  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08), 0 2px 4px rgb(15 23 42 / 0.04);
+  --shadow-lg: 0 12px 24px rgb(15 23 42 / 0.1), 0 4px 8px rgb(15 23 42 / 0.06);
+  --shadow-xl: 0 20px 40px rgb(15 23 42 / 0.14), 0 8px 16px rgb(15 23 42 / 0.08);
+  /* Backward compat aliases */
+  --shadow-hover: var(--shadow-sm);
+  --shadow-card: var(--shadow-md);
+  --shadow-elevated: var(--shadow-lg);
+  /* Focus ring */
+  --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
+  --shadow-focus-danger: 0 0 0 3px color-mix(in oklab, var(--danger) 20%, transparent);
 
+  /* --- Motion --- */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.45, 0.05, 0.55, 0.95);
   --dur-fast: 120ms;
   --dur-base: 180ms;
   --dur-slow: 280ms;
 }
 
+/* --- Dark mode (warmer, more vibrant) --- */
 body.dark-mode {
-  --bg: #111827;
-  --surface: #182233;
-  --surface-2: #1f2b3d;
-  --surface-3: #2b3a50;
-  --text: #e5e7eb;
-  --muted: #a8b1bd;
-  --border: #2e3c53;
-  --accent: #89a4ff;
-  --accent-2: #6e8df9;
-  --danger: #ff7f8a;
+  --bg: #0f1419;
+  --surface: #1a232f;
+  --surface-2: #232f3d;
+  --surface-3: #2d3d4d;
+  --text: #f1f3f5;
+  --text-strong: #ffffff;
+  --muted: #a0a8b3;
+  --muted-light: #6b7580;
+  --border: #3a4a5a;
+  --border-light: color-mix(in oklab, #3a4a5a 60%, transparent);
+  --accent: #7fa8ff;
+  --accent-2: #5f89ff;
+  --accent-3: #a0c0ff;
+  --accent-light: color-mix(in oklab, #7fa8ff 12%, #1a232f);
+  --danger: #ff8a96;
   --danger-2: #ef6f7b;
-  --success: #5ecf9f;
-  --warning: #fbbf24;
-  --overlay: rgb(2 6 23 / 72%);
-  --scrim: rgb(2 6 23 / 50%);
-  --shadow-hover: 0 2px 8px rgb(2 6 23 / 20%), 0 1px 2px rgb(2 6 23 / 14%);
-  --shadow-card: 0 4px 16px rgb(2 6 23 / 22%);
-  --shadow-elevated: 0 8px 30px rgb(2 6 23 / 30%);
+  --success: #5dd99f;
+  --warning: #ffb74d;
+  --overlay: rgb(2 6 23 / 75%);
+  --scrim: rgb(2 6 23 / 60%);
+
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.2);
+  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.15);
+  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.3), 0 2px 4px rgb(0 0 0 / 0.2);
+  --shadow-lg: 0 12px 24px rgb(0 0 0 / 0.35), 0 4px 8px rgb(0 0 0 / 0.25);
+  --shadow-xl: 0 20px 40px rgb(0 0 0 / 0.4), 0 8px 16px rgb(0 0 0 / 0.3);
+  --shadow-hover: var(--shadow-sm);
+  --shadow-card: var(--shadow-md);
+  --shadow-elevated: var(--shadow-lg);
+  --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
+  --shadow-focus-danger: 0 0 0 3px color-mix(in oklab, var(--danger) 30%, transparent);
+}
+
+/* --- Reduced motion --- */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-fast: 0ms;
+    --dur-base: 0ms;
+    --dur-slow: 0ms;
+  }
 }
