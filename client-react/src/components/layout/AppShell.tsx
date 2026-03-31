@@ -553,6 +553,8 @@ export function AppShell() {
       isAdmin={user?.role === "admin"}
       isCollapsed={sidebarCollapsed}
       onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
       uiMode={uiMode}
       onRefreshProjects={loadProjects}
     />
