@@ -1026,6 +1026,11 @@ export function AppShell() {
         onNavigate={handlePaletteNavigate}
         onToggleDarkMode={toggleDarkMode}
         onLogout={logout}
+        todos={todos}
+        onTodoClick={(id) => {
+          setActiveTodoId(id);
+          setPaletteOpen(false);
+        }}
       />
 
       {projectCrudMode && (
