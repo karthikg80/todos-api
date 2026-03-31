@@ -138,6 +138,7 @@ interface Props {
   onToggleCollapse: () => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onNewTask: () => void;
   onRefreshProjects: () => void;
   uiMode: string;
 }
@@ -165,6 +166,7 @@ export function Sidebar({
   onToggleCollapse,
   searchQuery,
   onSearchChange,
+  onNewTask,
   onRefreshProjects,
   uiMode,
 }: Props) {
@@ -302,6 +304,14 @@ export function Sidebar({
             </button>
           )}
         </div>
+      )}
+
+      {/* New task button (like Claude's "New chat") */}
+      {!isCollapsed && (
+        <button className="sidebar-new-task-btn" onClick={onNewTask}>
+          <IconPlus />
+          <span>New Task</span>
+        </button>
       )}
 
       {/* Scrollable content area */}

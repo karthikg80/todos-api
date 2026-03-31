@@ -499,6 +499,21 @@ export function AppShell() {
     ? projects.find((p) => p.id === selectedProjectId)?.name ?? "Project"
     : VIEW_LABELS[activeView] ?? activeView;
 
+  // Dynamic page title
+  useEffect(() => {
+    const pageLabel =
+      page === "settings"
+        ? "Settings"
+        : page === "ai"
+          ? "AI Workspace"
+          : page === "admin"
+            ? "Admin"
+            : page === "feedback"
+              ? "Feedback"
+              : headerTitle;
+    document.title = `${pageLabel} — Todos`;
+  }, [page, headerTitle]);
+
   const handlePaletteNavigate = useCallback(
     (view: WorkspaceView) => {
       setPage("todos");
@@ -555,6 +570,7 @@ export function AppShell() {
       onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       searchQuery={searchQuery}
       onSearchChange={setSearchQuery}
+      onNewTask={() => setComposerOpen(true)}
       uiMode={uiMode}
       onRefreshProjects={loadProjects}
     />
@@ -826,40 +842,44 @@ export function AppShell() {
                     }}
                   />
                 )}
-                <SearchBar value={searchQuery} onChange={setSearchQuery} />
-                <button
-                  className="btn"
-                  onClick={() => setComposerOpen(true)}
-                  style={{ fontSize: "var(--fs-label)" }}
-                >
-                  + New Task
-                </button>
-                <button
-                  id="exportIcsButton"
-                  className="btn"
-                  onClick={() => {
-                    const withDates = todos.filter((t) => t.dueDate);
-                    if (withDates.length === 0) {
-                      setUndoAction({ message: "No tasks with due dates to export" });
-                      return;
-                    }
-                    exportIcs(withDates);
-                    setUndoAction({ message: `Exported ${withDates.length} tasks to .ics` });
-                  }}
-                  aria-label="Export to calendar"
-                  style={{ fontSize: "var(--fs-label)" }}
-                  title="Export visible tasks to .ics"
-                >
-                  <IconCalendar />
-                </button>
-                <button
-                  className="btn"
-                  onClick={toggleDarkMode}
-                  aria-label="Toggle dark mode"
-                  style={{ fontSize: "var(--fs-label)" }}
-                >
-                  {dark ? <IconSun /> : <IconMoon />}
-                </button>
+                <Tooltip content="New task" shortcut="n">
+                  <button
+                    className="btn"
+                    onClick={() => setComposerOpen(true)}
+                    style={{ fontSize: "var(--fs-label)" }}
+                  >
+                    <IconPlus /> New Task
+                  </button>
+                </Tooltip>
+                <Tooltip content="Export calendar" shortcut=".ics">
+                  <button
+                    id="exportIcsButton"
+                    className="btn"
+                    onClick={() => {
+                      const withDates = todos.filter((t) => t.dueDate);
+                      if (withDates.length === 0) {
+                        setUndoAction({ message: "No tasks with due dates to export" });
+                        return;
+                      }
+                      exportIcs(withDates);
+                      setUndoAction({ message: `Exported ${withDates.length} tasks to .ics` });
+                    }}
+                    aria-label="Export to calendar"
+                    style={{ fontSize: "var(--fs-label)" }}
+                  >
+                    <IconCalendar />
+                  </button>
+                </Tooltip>
+                <Tooltip content={dark ? "Light mode" : "Dark mode"}>
+                  <button
+                    className="btn"
+                    onClick={toggleDarkMode}
+                    aria-label="Toggle dark mode"
+                    style={{ fontSize: "var(--fs-label)" }}
+                  >
+                    {dark ? <IconSun /> : <IconMoon />}
+                  </button>
+                </Tooltip>
                 {user && (
                   <button
                     className="btn"
