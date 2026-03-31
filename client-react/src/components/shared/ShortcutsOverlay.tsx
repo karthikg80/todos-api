@@ -9,6 +9,10 @@ const SHORTCUTS = [
   { keys: "⌘/Ctrl + K", description: "Open command palette" },
   { keys: "n", description: "New task" },
   { keys: "/", description: "Focus search" },
+  { keys: "j / k", description: "Navigate tasks up/down" },
+  { keys: "x", description: "Toggle completion" },
+  { keys: "e", description: "Open task details" },
+  { keys: "d", description: "Delete task" },
   { keys: "Escape", description: "Close drawer / cancel" },
   { keys: "?", description: "Show keyboard shortcuts" },
 ];

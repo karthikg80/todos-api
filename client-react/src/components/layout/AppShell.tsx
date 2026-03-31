@@ -199,6 +199,41 @@ export function AppShell() {
     [todos, activeTodoId],
   );
 
+  // Count badges for workspace views
+  const viewCounts = useMemo(() => {
+    const active = todos.filter((t) => !t.completed);
+    const today = new Date().toISOString().split("T")[0];
+    return {
+      triage: active.filter(
+        (t) => t.status === "inbox" || (!t.projectId && !t.category),
+      ).length,
+      today: active.filter(
+        (t) => t.dueDate && t.dueDate.split("T")[0] <= today,
+      ).length,
+      upcoming: active.filter(
+        (t) => t.dueDate && t.dueDate.split("T")[0] > today,
+      ).length,
+    };
+  }, [todos]);
+
+  // Context-aware quick entry placeholder
+  const quickEntryPlaceholder = useMemo(() => {
+    if (selectedProjectId) {
+      const project = projects.find((p) => p.id === selectedProjectId);
+      return project ? `Add a task to ${project.name}…` : "Add a task…";
+    }
+    switch (activeView) {
+      case "home":
+        return "What needs your focus today?";
+      case "triage":
+        return "Capture something to organize later…";
+      case "today":
+        return "Add a task for today…";
+      default:
+        return "Add a task…";
+    }
+  }, [selectedProjectId, projects, activeView]);
+
   // --- Handlers ---
 
   const handleTodoClick = useCallback((id: string) => {
@@ -384,6 +419,49 @@ export function AppShell() {
       // '?': toggle shortcuts overlay
       if (e.key === "?") {
         setShortcutsOpen((o) => !o);
+        return;
+      }
+
+      // j/k: navigate between tasks
+      if (e.key === "j" || e.key === "k") {
+        e.preventDefault();
+        const ids = visibleTodos.map((t) => t.id);
+        if (ids.length === 0) return;
+        const currentIdx = activeTodoId ? ids.indexOf(activeTodoId) : -1;
+        let nextIdx: number;
+        if (e.key === "j") {
+          nextIdx = currentIdx < ids.length - 1 ? currentIdx + 1 : 0;
+        } else {
+          nextIdx = currentIdx > 0 ? currentIdx - 1 : ids.length - 1;
+        }
+        setActiveTodoId(ids[nextIdx]);
+        // Scroll the item into view
+        document
+          .querySelector(`[data-todo-id="${ids[nextIdx]}"]`)
+          ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        return;
+      }
+
+      // x: toggle completion of focused task
+      if (e.key === "x" && activeTodoId) {
+        e.preventDefault();
+        const todo = visibleTodos.find((t) => t.id === activeTodoId);
+        if (todo) handleToggle(activeTodoId, !todo.completed);
+        return;
+      }
+
+      // e: open drawer for focused task
+      if (e.key === "e" && activeTodoId) {
+        e.preventDefault();
+        handleTodoClick(activeTodoId);
+        return;
+      }
+
+      // d: delete focused task
+      if (e.key === "d" && activeTodoId) {
+        e.preventDefault();
+        setDeleteTarget(activeTodoId);
+        return;
       }
     };
 
@@ -420,6 +498,7 @@ export function AppShell() {
       projects={projects}
       activeView={activeView}
       selectedProjectId={selectedProjectId}
+      viewCounts={viewCounts}
       onSelectView={(v) => {
         setPage("todos");
         handleSelectView(v);
@@ -774,7 +853,11 @@ export function AppShell() {
             )}
 
             {uiMode === "normal" && (
-              <QuickEntry projectId={selectedProjectId} onAdd={addTodo} />
+              <QuickEntry
+                projectId={selectedProjectId}
+                onAdd={addTodo}
+                placeholder={quickEntryPlaceholder}
+              />
             )}
 
             {/* Project headings */}
