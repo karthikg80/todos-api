@@ -10,6 +10,7 @@ interface Props {
   projects: Project[];
   onTodoClick: (id: string) => void;
   onToggleTodo: (id: string, completed: boolean) => void;
+  onEditTodo: (id: string, updates: Record<string, unknown>) => void;
   onNavigate: (view: "today" | "upcoming" | "all") => void;
   onSelectProject: (id: string) => void;
 }
@@ -43,6 +44,7 @@ export function HomeDashboard({
   projects,
   onTodoClick,
   onToggleTodo,
+  onEditTodo,
   onNavigate,
   onSelectProject,
 }: Props) {
@@ -151,7 +153,15 @@ export function HomeDashboard({
         <p className="home-brief-card__summary">
           {active.length === 0
             ? "All clear — nothing on your plate."
-            : `${active.length} open task${active.length === 1 ? "" : "s"}${completedToday > 0 ? `, ${completedToday} done today` : ""}.`}
+            : focusTask
+              ? `Start with ${focusTask.title}. ${
+                  focusTask.dueDate && daysUntil(focusTask.dueDate) < 0
+                    ? "It's still waiting"
+                    : focusTask.priority === "urgent" || focusTask.priority === "high"
+                      ? "It's high priority"
+                      : "It's a good anchor"
+                } for the rest of the day.`
+              : `${active.length} open task${active.length === 1 ? "" : "s"}${completedToday > 0 ? `, ${completedToday} done today` : ""}.`}
         </p>
         <div className="home-brief-card__stats">
           <div className="home-brief-stat">
@@ -251,6 +261,19 @@ export function HomeDashboard({
                         todo={todo}
                         onClick={onTodoClick}
                         onToggle={onToggleTodo}
+                        showActions
+                        onAction={(id, action) => {
+                          if (action === "smaller") onTodoClick(id);
+                          else if (action === "later") {
+                            const d = new Date();
+                            d.setDate(d.getDate() + 3);
+                            onEditTodo(id, { dueDate: d.toISOString().split("T")[0] });
+                          } else if (action === "not-now") {
+                            onEditTodo(id, { status: "someday" });
+                          } else if (action === "drop") {
+                            onEditTodo(id, { archived: true });
+                          }
+                        }}
                       />
                     ))}
                   </div>
@@ -365,12 +388,16 @@ function HomeTaskRow({
   todo,
   onClick,
   onToggle,
+  onAction,
   meta,
+  showActions = false,
 }: {
   todo: Todo;
   onClick: (id: string) => void;
   onToggle: (id: string, completed: boolean) => void;
+  onAction?: (id: string, action: string) => void;
   meta?: string;
+  showActions?: boolean;
 }) {
   return (
     <div className="home-task-row" data-home-todo-id={todo.id}>
@@ -395,6 +422,38 @@ function HomeTaskRow({
         >
           {formatDueBadge(todo.dueDate)}
         </span>
+      )}
+      {showActions && onAction && (
+        <div className="home-task-row__actions">
+          <button
+            className="home-action-chip"
+            onClick={(e) => { e.stopPropagation(); onAction(todo.id, "smaller"); }}
+            title="Break into smaller steps"
+          >
+            Start smaller
+          </button>
+          <button
+            className="home-action-chip"
+            onClick={(e) => { e.stopPropagation(); onAction(todo.id, "later"); }}
+            title="Move to later date"
+          >
+            Move later
+          </button>
+          <button
+            className="home-action-chip"
+            onClick={(e) => { e.stopPropagation(); onAction(todo.id, "not-now"); }}
+            title="Set to someday"
+          >
+            Not now
+          </button>
+          <button
+            className="home-action-chip home-action-chip--danger"
+            onClick={(e) => { e.stopPropagation(); onAction(todo.id, "drop"); }}
+            title="Remove from list"
+          >
+            Drop
+          </button>
+        </div>
       )}
       {meta && <span className="home-task-row__meta">{meta}</span>}
     </div>

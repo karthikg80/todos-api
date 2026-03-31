@@ -170,21 +170,28 @@ export function AppShell() {
     let filtered = todos;
 
     if (!selectedProjectId) {
+      const today = new Date().toISOString().split("T")[0];
       if (activeView === "today") {
-        const today = new Date().toISOString().split("T")[0];
         filtered = filtered.filter(
           (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
+        );
+      } else if (activeView === "upcoming") {
+        // Only future-dated incomplete tasks
+        filtered = filtered.filter(
+          (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] > today,
         );
       }
     }
 
     if (searchQuery.trim()) {
+      // Search is global — searches all todos, not just current view
       const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(
+      filtered = todos.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
           t.description?.toLowerCase().includes(q) ||
           t.category?.toLowerCase().includes(q) ||
+          t.notes?.toLowerCase().includes(q) ||
           t.tags.some((tag) => tag.toLowerCase().includes(q)),
       );
     }
@@ -682,6 +689,9 @@ export function AppShell() {
                 projects={projects}
                 onTodoClick={handleTodoClick}
                 onToggleTodo={handleToggle}
+                onEditTodo={(id, updates) => {
+                  editTodo(id, updates);
+                }}
                 onNavigate={(v) => {
                   handleSelectView(v);
                   handleSelectProject(null);
