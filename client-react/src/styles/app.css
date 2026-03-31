@@ -473,7 +473,8 @@ body {
   z-index: 90;
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--dur-base) var(--ease-out);
+  transition: opacity var(--dur-slow) var(--ease-out);
+  backdrop-filter: blur(2px);
 }
 
 .todo-drawer-backdrop[aria-hidden="false"] {
@@ -494,7 +495,9 @@ body {
   border-left: 1px solid var(--border-light);
   display: flex;
   flex-direction: column;
-  box-shadow: var(--shadow-elevated);
+  box-shadow:
+    -12px 0 32px rgb(15 23 42 / 0.12),
+    -4px 0 8px rgb(15 23 42 / 0.06);
 }
 
 .todo-drawer[aria-hidden="false"] {
@@ -652,6 +655,77 @@ body {
   }
 }
 
+@keyframes shimmer {
+  from {
+    background-position: -400px 0;
+  }
+  to {
+    background-position: 400px 0;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Skeleton shimmer variant */
+.loading-skeleton__row {
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    color-mix(in oklab, var(--surface-2) 60%, var(--surface)) 50%,
+    var(--surface-2) 75%
+  );
+  background-size: 800px 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Staggered list animations */
+.todo-item {
+  animation: slideInUp var(--dur-base) var(--ease-out) backwards;
+}
+
+.todo-item:nth-child(1) { animation-delay: 0ms; }
+.todo-item:nth-child(2) { animation-delay: 30ms; }
+.todo-item:nth-child(3) { animation-delay: 60ms; }
+.todo-item:nth-child(4) { animation-delay: 90ms; }
+.todo-item:nth-child(5) { animation-delay: 120ms; }
+.todo-item:nth-child(n+6) { animation-delay: 150ms; }
+
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -691,22 +765,25 @@ body {
   position: fixed;
   inset: 0;
   background: var(--overlay);
+  backdrop-filter: blur(4px);
   z-index: 200;
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: fadeIn var(--dur-fast) var(--ease-out);
 }
 
 .confirm-dialog {
   background: var(--surface);
-  border-radius: var(--r-md);
+  border-radius: var(--r-lg);
   padding: var(--s-5);
   max-width: 400px;
   width: calc(100% - var(--s-6));
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
+  animation: scaleIn var(--dur-base) var(--ease-spring);
 }
 
 .confirm-dialog__title {
@@ -1003,19 +1080,23 @@ body {
   position: fixed;
   inset: 0;
   background: var(--overlay);
+  backdrop-filter: blur(4px);
   z-index: 400;
   display: flex;
   align-items: flex-start;
   justify-content: center;
+  animation: fadeIn var(--dur-fast) var(--ease-out);
   padding-top: 15vh;
 }
 
 .command-palette {
   background: var(--surface);
-  border-radius: var(--r-md);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-lg);
   width: min(520px, calc(100vw - var(--s-6)));
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-xl);
   overflow: hidden;
+  animation: scaleIn var(--dur-base) var(--ease-spring);
 }
 
 .command-palette__input {
@@ -1050,11 +1131,19 @@ body {
 }
 
 .command-palette__option {
-  padding: var(--s-2) var(--s-5);
+  padding: var(--s-2h) var(--s-5);
   font-size: var(--fs-meta);
   cursor: pointer;
   transition: background var(--dur-fast);
+  animation: slideInUp var(--dur-fast) var(--ease-out) backwards;
 }
+
+.command-palette__option:nth-child(1) { animation-delay: 0ms; }
+.command-palette__option:nth-child(2) { animation-delay: 25ms; }
+.command-palette__option:nth-child(3) { animation-delay: 50ms; }
+.command-palette__option:nth-child(4) { animation-delay: 75ms; }
+.command-palette__option:nth-child(5) { animation-delay: 100ms; }
+.command-palette__option:nth-child(n+6) { animation-delay: 125ms; }
 
 .command-palette__option:hover,
 .command-palette__option--active {
@@ -3692,4 +3781,66 @@ body {
   margin-left: 4px;
   vertical-align: middle;
   line-height: 1;
+}
+
+/* --- Mobile touch targets (44px minimum) --- */
+@media (max-width: 700px) {
+  .btn {
+    min-height: 44px;
+    padding: var(--s-3) var(--s-4);
+  }
+
+  .todo-item {
+    min-height: 52px;
+    padding: var(--s-3h) var(--s-4);
+  }
+
+  .todo-checkbox {
+    width: 20px;
+    height: 20px;
+  }
+
+  .todo-kebab {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.4;
+  }
+
+  .workspace-view-item {
+    min-height: 44px;
+  }
+
+  .todo-drawer__close {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* --- Tablet optimization (768–1024px) --- */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .app-sidebar {
+    width: 220px;
+  }
+
+  .board__column {
+    flex: 0 0 260px;
+  }
+
+  .app-header {
+    padding: var(--s-3) var(--s-4);
+  }
+}
+
+/* --- Large screens — constrain content width --- */
+@media (min-width: 1440px) {
+  .app-content {
+    max-width: 1200px;
+  }
+
+  .home-dashboard {
+    max-width: 960px;
+  }
 }
