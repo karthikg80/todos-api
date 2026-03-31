@@ -278,6 +278,60 @@ export function AppShell() {
     [editTodo],
   );
 
+  const handleLifecycleAction = useCallback(
+    async (id: string, action: string) => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      const nextMonth = new Date();
+      nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+      switch (action) {
+        case "cancel":
+          await editTodo(id, { status: "cancelled" as "cancelled" });
+          setUndoAction({
+            message: "Task cancelled",
+            onUndo: () => editTodo(id, { status: "inbox" as "inbox" }),
+          });
+          break;
+        case "reopen":
+          await editTodo(id, { status: "inbox" as "inbox" });
+          setUndoAction({ message: "Task reopened" });
+          break;
+        case "archive":
+          await editTodo(id, { archived: true });
+          setUndoAction({
+            message: "Task archived",
+            onUndo: () => editTodo(id, { archived: false }),
+          });
+          break;
+        case "snooze-tomorrow":
+          await editTodo(id, {
+            scheduledDate: tomorrow.toISOString().split("T")[0],
+            status: "scheduled" as "scheduled",
+          });
+          setUndoAction({ message: "Snoozed until tomorrow" });
+          break;
+        case "snooze-next-week":
+          await editTodo(id, {
+            scheduledDate: nextWeek.toISOString().split("T")[0],
+            status: "scheduled" as "scheduled",
+          });
+          setUndoAction({ message: "Snoozed until next week" });
+          break;
+        case "snooze-next-month":
+          await editTodo(id, {
+            scheduledDate: nextMonth.toISOString().split("T")[0],
+            status: "scheduled" as "scheduled",
+          });
+          setUndoAction({ message: "Snoozed until next month" });
+          break;
+      }
+    },
+    [editTodo],
+  );
+
   const handleTagClick = useCallback((tag: string) => {
     setActiveTagFilter((prev) => (prev === tag ? "" : tag));
   }, []);
@@ -1035,6 +1089,7 @@ export function AppShell() {
                   onSelect={handleBulkSelect}
                   onInlineEdit={handleInlineEdit}
                   onTagClick={handleTagClick}
+                  onLifecycleAction={handleLifecycleAction}
                   onReorder={handleReorder}
                 />
               )}

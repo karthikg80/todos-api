@@ -14,6 +14,7 @@ interface Props {
   onSelect: (id: string) => void;
   onInlineEdit: (id: string, title: string) => void;
   onTagClick?: (tag: string) => void;
+  onLifecycleAction?: (id: string, action: string, payload?: string) => void;
 }
 
 function formatDueDate(due: string): { label: string; overdue: boolean } {
@@ -43,9 +44,11 @@ export function TodoRow({
   onSelect,
   onInlineEdit,
   onTagClick,
+  onLifecycleAction,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(todo.title);
+  const [menuOpen, setMenuOpen] = useState(false);
   const editRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -163,16 +166,80 @@ export function TodoRow({
         )}
       </div>
 
-      <button
-        className="todo-kebab"
-        onClick={(e) => {
-          e.stopPropagation();
-          onKebab(todo.id);
-        }}
-        aria-label="More actions"
-      >
-        <IconKebab />
-      </button>
+      <div className="todo-kebab-wrapper">
+        <button
+          className="todo-kebab"
+          onClick={(e) => {
+            e.stopPropagation();
+            setMenuOpen((o) => !o);
+          }}
+          aria-label="More actions"
+        >
+          <IconKebab />
+        </button>
+        {menuOpen && onLifecycleAction && (
+          <>
+            <div
+              className="context-backdrop"
+              onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }}
+            />
+            <div className="todo-kebab-menu" onClick={(e) => e.stopPropagation()}>
+              <button
+                className="todo-kebab-item"
+                onClick={() => { setMenuOpen(false); onKebab(todo.id); }}
+              >
+                Open details
+              </button>
+              {todo.status === "cancelled" ? (
+                <button
+                  className="todo-kebab-item"
+                  onClick={() => { setMenuOpen(false); onLifecycleAction(todo.id, "reopen"); }}
+                >
+                  Reopen
+                </button>
+              ) : (
+                <button
+                  className="todo-kebab-item todo-kebab-item--danger"
+                  onClick={() => { setMenuOpen(false); onLifecycleAction(todo.id, "cancel"); }}
+                >
+                  Cancel task
+                </button>
+              )}
+              {todo.completed && !todo.archived && (
+                <button
+                  className="todo-kebab-item"
+                  onClick={() => { setMenuOpen(false); onLifecycleAction(todo.id, "archive"); }}
+                >
+                  Archive
+                </button>
+              )}
+              {!todo.completed && todo.status !== "cancelled" && (
+                <>
+                  <div className="todo-kebab-divider" />
+                  <button
+                    className="todo-kebab-item"
+                    onClick={() => { setMenuOpen(false); onLifecycleAction(todo.id, "snooze-tomorrow"); }}
+                  >
+                    Snooze → Tomorrow
+                  </button>
+                  <button
+                    className="todo-kebab-item"
+                    onClick={() => { setMenuOpen(false); onLifecycleAction(todo.id, "snooze-next-week"); }}
+                  >
+                    Snooze → Next week
+                  </button>
+                  <button
+                    className="todo-kebab-item"
+                    onClick={() => { setMenuOpen(false); onLifecycleAction(todo.id, "snooze-next-month"); }}
+                  >
+                    Snooze → Next month
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

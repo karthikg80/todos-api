@@ -142,4 +142,8 @@ export interface UpdateTodoDto {
   context?: string | null;
   emotionalState?: string | null;
   recurrence?: Partial<TodoRecurrence> | null;
+  archived?: boolean;
+  scheduledDate?: string | null;
+  startDate?: string | null;
+  headingId?: string | null;
 }
