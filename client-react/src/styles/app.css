@@ -34,6 +34,64 @@ body {
   gap: var(--s-2);
   overflow: hidden;
   min-height: 0;
+  transition: width var(--dur-slow) var(--ease-spring);
+}
+
+/* Collapsed sidebar — icon-only */
+.app-sidebar--collapsed {
+  width: 56px;
+  padding: var(--s-3) var(--s-2);
+}
+
+.app-sidebar--collapsed .nav-label,
+.app-sidebar--collapsed .projects-rail__section-label,
+.app-sidebar--collapsed .projects-rail__section,
+.app-sidebar--collapsed .projects-rail-area-header,
+.app-sidebar--collapsed .projects-rail-area-group,
+.app-sidebar--collapsed .projects-rail__add-btn,
+.app-sidebar--collapsed .projects-archived-toggle,
+.app-sidebar--collapsed .projects-archived-list,
+.app-sidebar--collapsed .sidebar-nav-item__label,
+.app-sidebar--collapsed .profile-launcher__trigger-text,
+.app-sidebar--collapsed .profile-launcher__user-text {
+  display: none;
+}
+
+.app-sidebar--collapsed .workspace-view-item {
+  justify-content: center;
+  padding: var(--s-2);
+}
+
+.app-sidebar--collapsed .profile-launcher__trigger {
+  justify-content: center;
+  padding: var(--s-2);
+}
+
+.app-sidebar--collapsed .profile-launcher__panel {
+  left: calc(100% + var(--s-2));
+  bottom: 0;
+  right: auto;
+  width: 260px;
+}
+
+/* Sidebar toggle button */
+.sidebar-toggle-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: var(--s-2);
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color var(--dur-fast);
+}
+
+.sidebar-toggle-btn:hover {
+  color: var(--text);
+  background: var(--surface-2);
 }
 
 .app-main {
