@@ -3,6 +3,7 @@ import type { Todo, Project } from "../../types";
 import { apiCall } from "../../api/client";
 import { HomeFocusSuggestions } from "../ai/HomeFocusSuggestions";
 import { PrioritiesBriefTile } from "../ai/PrioritiesBriefTile";
+import { IllustrationAllClear } from "../shared/Illustrations";
 
 interface Props {
   todos: Todo[];
@@ -350,6 +351,7 @@ export function HomeDashboard({
       {/* Empty state */}
       {active.length === 0 && (
         <div className="home-dashboard__empty">
+          <IllustrationAllClear />
           <p>All clear. Enjoy your day!</p>
         </div>
       )}

@@ -1,6 +1,7 @@
 import { useMemo, useCallback } from "react";
 import type { Todo, TodoStatus, UpdateTodoDto } from "../../types";
 import type { LoadState } from "../../store/useTodosStore";
+import { IllustrationBoardEmpty } from "../shared/Illustrations";
 
 interface Props {
   todos: Todo[];
@@ -129,7 +130,9 @@ export function BoardView({
                 </div>
               ))}
               {items.length === 0 && (
-                <div className="board__empty">No tasks</div>
+                <div className="board__empty">
+                  <IllustrationBoardEmpty />
+                </div>
               )}
             </div>
           </div>

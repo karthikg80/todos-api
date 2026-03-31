@@ -1,6 +1,7 @@
 import type { Todo } from "../../types";
 import type { LoadState } from "../../store/useTodosStore";
 import { TodoRow } from "./TodoRow";
+import { IllustrationTasksEmpty } from "../shared/Illustrations";
 
 interface Props {
   todos: Todo[];
@@ -61,7 +62,7 @@ export function TodoList({
   if (loadState === "loaded" && todos.length === 0) {
     return (
       <div id="todosEmptyState" className="empty-state">
-        <div className="empty-state__icon">✓</div>
+        <IllustrationTasksEmpty />
         <p>No tasks yet. Add one above!</p>
       </div>
     );

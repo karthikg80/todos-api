@@ -16,6 +16,7 @@ import type { Todo } from "../../types";
 import type { LoadState } from "../../store/useTodosStore";
 import { TodoRow } from "./TodoRow";
 import { IconGrip } from "../shared/Icons";
+import { IllustrationTasksEmpty } from "../shared/Illustrations";
 
 interface SortableRowProps {
   todo: Todo;
@@ -132,7 +133,7 @@ export function SortableTodoList({
   if (loadState === "loaded" && todos.length === 0) {
     return (
       <div id="todosEmptyState" className="empty-state">
-        <div className="empty-state__icon">✓</div>
+        <IllustrationTasksEmpty />
         <p>No tasks yet. Add one above!</p>
       </div>
     );
