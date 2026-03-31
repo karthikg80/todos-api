@@ -69,6 +69,7 @@ export function AppShell() {
   );
   const [activeTodoId, setActiveTodoId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [page, setPage] = useState<AppPage>("todos");
@@ -456,15 +457,21 @@ export function AppShell() {
       user={user}
       dark={dark}
       isAdmin={user?.role === "admin"}
+      isCollapsed={sidebarCollapsed}
+      onToggleCollapse={() => setSidebarCollapsed((c) => !c)}
       uiMode={uiMode}
       onRefreshProjects={loadProjects}
     />
   );
 
   return (
-    <div className={`app-shell${bulkMode ? " is-bulk-selecting" : ""}`}>
+    <div className={`app-shell${bulkMode ? " is-bulk-selecting" : ""}${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
       {/* Desktop sidebar */}
-      {!isMobile && <aside className="app-sidebar">{sidebarContent}</aside>}
+      {!isMobile && (
+        <aside className={`app-sidebar${sidebarCollapsed ? " app-sidebar--collapsed" : ""}`}>
+          {sidebarContent}
+        </aside>
+      )}
 
       {/* Mobile nav sheet */}
       {isMobile && (

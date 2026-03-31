@@ -9,6 +9,7 @@ import {
   IconUpcoming,
   IconCompleted,
   IconPlus,
+  IconSidebar,
 } from "../shared/Icons";
 import { ProfileLauncher } from "../shared/ProfileLauncher";
 
@@ -63,6 +64,8 @@ interface Props {
   user: User | null;
   dark: boolean;
   isAdmin: boolean;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
   onRefreshProjects: () => void;
   uiMode: string;
 }
@@ -85,6 +88,8 @@ export function Sidebar({
   user,
   dark,
   isAdmin,
+  isCollapsed,
+  onToggleCollapse,
   onRefreshProjects,
   uiMode,
 }: Props) {
@@ -182,6 +187,16 @@ export function Sidebar({
 
   return (
     <>
+      {/* Collapse toggle */}
+      <button
+        className="sidebar-toggle-btn"
+        onClick={onToggleCollapse}
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <IconSidebar />
+      </button>
+
       {/* Scrollable content area */}
       <div className="sidebar-scroll">
       {/* Section 1: Workspace navigation */}

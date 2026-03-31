@@ -4,10 +4,13 @@ import type {
   UpdateTodoDto,
   TodoStatus,
   Priority,
+  RecurrenceType,
+  Heading,
   Project,
 } from "../../types";
 import { SubtaskList } from "./SubtaskList";
 import { AiDrawerAssist } from "../ai/AiDrawerAssist";
+import { apiCall } from "../../api/client";
 
 interface Props {
   todo: Todo | null;
@@ -55,6 +58,10 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
   const [waitingOn, setWaitingOn] = useState("");
   const [firstStep, setFirstStep] = useState("");
   const [estimateMinutes, setEstimateMinutes] = useState("");
+  const [recurrenceType, setRecurrenceType] = useState<RecurrenceType>("none");
+  const [recurrenceInterval, setRecurrenceInterval] = useState("1");
+  const [headingId, setHeadingId] = useState("");
+  const [headings, setHeadings] = useState<Heading[]>([]);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const titleRef = useRef<HTMLInputElement>(null);
@@ -81,6 +88,13 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
       setEstimateMinutes(
         todo.estimateMinutes != null ? String(todo.estimateMinutes) : "",
       );
+      setRecurrenceType(todo.recurrence?.type || "none");
+      setRecurrenceInterval(
+        todo.recurrence?.interval != null
+          ? String(todo.recurrence.interval)
+          : "1",
+      );
+      setHeadingId(todo.headingId || "");
       setSaveState("idle");
       setDetailsOpen(false);
       triggerRef.current = document.activeElement;
@@ -96,6 +110,18 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
+
+  // Load headings when project changes
+  useEffect(() => {
+    if (!projectId) {
+      setHeadings([]);
+      return;
+    }
+    apiCall(`/projects/${projectId}/headings`)
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => setHeadings(Array.isArray(data) ? data : []))
+      .catch(() => setHeadings([]));
+  }, [projectId]);
 
   useEffect(() => {
     if (!isOpen && triggerRef.current instanceof HTMLElement) {
@@ -266,6 +292,34 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
                     ))}
                 </select>
               </div>
+
+              {/* Heading selector — only when project has headings */}
+              {projectId && headings.length > 0 && (
+                <div className="todo-drawer__field">
+                  <label
+                    className="todo-drawer__label"
+                    htmlFor="drawerHeadingSelect"
+                  >
+                    Section
+                  </label>
+                  <select
+                    id="drawerHeadingSelect"
+                    className="todo-drawer__select"
+                    value={headingId}
+                    onChange={(e) => {
+                      setHeadingId(e.target.value);
+                      save("headingId", e.target.value || null);
+                    }}
+                  >
+                    <option value="">None</option>
+                    {headings.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="todo-drawer__field">
                 <label
@@ -466,6 +520,62 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
                           save("estimateMinutes", val);
                       }}
                     />
+                  </div>
+
+                  <div className="todo-drawer__row">
+                    <div className="todo-drawer__field todo-drawer__field--half">
+                      <label
+                        className="todo-drawer__label"
+                        htmlFor="drawerRecurrenceSelect"
+                      >
+                        Repeat
+                      </label>
+                      <select
+                        id="drawerRecurrenceSelect"
+                        className="todo-drawer__select"
+                        value={recurrenceType}
+                        onChange={(e) => {
+                          const t = e.target.value as RecurrenceType;
+                          setRecurrenceType(t);
+                          save("recurrence", {
+                            type: t,
+                            interval: t === "none" ? null : Number(recurrenceInterval) || 1,
+                          });
+                        }}
+                      >
+                        <option value="none">Never</option>
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                        <option value="monthly">Monthly</option>
+                        <option value="yearly">Yearly</option>
+                      </select>
+                    </div>
+                    {recurrenceType !== "none" && (
+                      <div className="todo-drawer__field todo-drawer__field--half">
+                        <label
+                          className="todo-drawer__label"
+                          htmlFor="drawerRecurrenceInterval"
+                        >
+                          Every
+                        </label>
+                        <input
+                          id="drawerRecurrenceInterval"
+                          className="todo-drawer__input"
+                          type="number"
+                          min="1"
+                          max="365"
+                          value={recurrenceInterval}
+                          onChange={(e) => setRecurrenceInterval(e.target.value)}
+                          onBlur={() => {
+                            const val = Number(recurrenceInterval) || 1;
+                            save("recurrence", {
+                              type: recurrenceType,
+                              interval: val,
+                            });
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   <div className="todo-drawer__field">

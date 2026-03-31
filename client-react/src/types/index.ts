@@ -27,10 +27,24 @@ export interface Todo {
   emotionalState?: string | null;
   effortScore?: number | null;
   source?: string | null;
+  recurrence?: TodoRecurrence | null;
   subtasks?: Subtask[];
   userId: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export type RecurrenceType =
+  | "none"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "yearly";
+
+export interface TodoRecurrence {
+  type: RecurrenceType;
+  interval?: number | null;
+  nextOccurrence?: string | null;
 }
 
 export type TodoStatus =
@@ -115,4 +129,5 @@ export interface UpdateTodoDto {
   waitingOn?: string | null;
   context?: string | null;
   emotionalState?: string | null;
+  recurrence?: Partial<TodoRecurrence> | null;
 }
