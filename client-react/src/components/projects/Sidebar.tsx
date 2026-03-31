@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import type { Project } from "../../types";
+import type { Project, User } from "../../types";
 import { apiCall } from "../../api/client";
 import {
   IconFocus,
@@ -8,15 +8,9 @@ import {
   IconToday,
   IconUpcoming,
   IconCompleted,
-  IconSettings,
-  IconFeedback,
   IconPlus,
-  IconMoon,
-  IconSun,
-  IconUser,
-  IconKeyboard,
-  IconShield,
 } from "../shared/Icons";
+import { ProfileLauncher } from "../shared/ProfileLauncher";
 
 // Internal keys match classic store.js currentWorkspaceView values
 export type WorkspaceView =
@@ -65,6 +59,8 @@ interface Props {
   onToggleTheme: () => void;
   onOpenShortcuts: () => void;
   onOpenProfile: () => void;
+  onLogout: () => void;
+  user: User | null;
   dark: boolean;
   isAdmin: boolean;
   onRefreshProjects: () => void;
@@ -85,6 +81,8 @@ export function Sidebar({
   onToggleTheme,
   onOpenShortcuts,
   onOpenProfile,
+  onLogout,
+  user,
   dark,
   isAdmin,
   onRefreshProjects,
@@ -337,37 +335,19 @@ export function Sidebar({
       {/* Spacer */}
       <div className="projects-rail__spacer" />
 
-      {/* Section 3: Bottom nav — icon + label, compact */}
-      <div className="sidebar-nav-bottom">
-        <button className="sidebar-nav-item" onClick={onOpenFeedback}>
-          <IconFeedback />
-          <span className="sidebar-nav-item__label">Feedback</span>
-        </button>
-        <button className="sidebar-nav-item" onClick={onOpenShortcuts}>
-          <IconKeyboard />
-          <span className="sidebar-nav-item__label">Shortcuts</span>
-        </button>
-        <button className="sidebar-nav-item" onClick={onToggleTheme}>
-          {dark ? <IconSun /> : <IconMoon />}
-          <span className="sidebar-nav-item__label">
-            {dark ? "Light mode" : "Dark mode"}
-          </span>
-        </button>
-        <button className="sidebar-nav-item" onClick={onOpenSettings}>
-          <IconSettings />
-          <span className="sidebar-nav-item__label">Settings</span>
-        </button>
-        <button className="sidebar-nav-item" onClick={onOpenProfile}>
-          <IconUser />
-          <span className="sidebar-nav-item__label">Profile</span>
-        </button>
-        {isAdmin && (
-          <button className="sidebar-nav-item" onClick={onOpenAdmin}>
-            <IconShield />
-            <span className="sidebar-nav-item__label">Admin</span>
-          </button>
-        )}
-      </div>
+      {/* Profile launcher — Claude/ChatGPT style bottom-left */}
+      <ProfileLauncher
+        user={user}
+        dark={dark}
+        isAdmin={isAdmin}
+        onOpenProfile={onOpenProfile}
+        onOpenSettings={onOpenSettings}
+        onToggleTheme={onToggleTheme}
+        onOpenShortcuts={onOpenShortcuts}
+        onOpenFeedback={onOpenFeedback}
+        onOpenAdmin={onOpenAdmin}
+        onLogout={onLogout}
+      />
     </>
   );
 }
