@@ -7,10 +7,12 @@ interface Props {
   onToggleDark: () => void;
   uiMode: string;
   onToggleUiMode: () => void;
+  density: string;
+  onCycleDensity: () => void;
   onBack: () => void;
 }
 
-export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, onBack }: Props) {
+export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, density, onCycleDensity, onBack }: Props) {
   const { user } = useAuth();
   const [name, setName] = useState(user?.name || "");
   const [saving, setSaving] = useState(false);
@@ -103,6 +105,21 @@ export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, onBac
           <span className="settings-field__label">UI complexity</span>
           <button className="btn" onClick={onToggleUiMode}>
             {uiMode === "simple" ? "Switch to normal" : "Switch to simple"}
+          </button>
+        </div>
+        <div className="settings-field settings-field--row">
+          <span className="settings-field__label">
+            Density
+            <span className="settings-field__hint">
+              {density === "compact"
+                ? "Tight spacing, smaller text"
+                : density === "spacious"
+                  ? "More breathing room"
+                  : "Balanced default"}
+            </span>
+          </span>
+          <button className="btn" onClick={onCycleDensity}>
+            {density.charAt(0).toUpperCase() + density.slice(1)}
           </button>
         </div>
       </section>

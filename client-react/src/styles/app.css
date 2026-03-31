@@ -1260,6 +1260,14 @@ body {
   color: var(--muted);
 }
 
+.settings-field__hint {
+  display: block;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-regular);
+  color: var(--muted-light);
+  margin-top: 2px;
+}
+
 .settings-field__input {
   padding: var(--s-2) var(--s-3);
   border: 1px solid var(--border);
@@ -4057,4 +4065,182 @@ body {
 /* Focus highlight for keyboard-navigated tasks */
 .todo-item--active {
   scroll-margin: var(--s-4);
+}
+
+/* ==========================================================
+   MICRO-INTERACTIONS
+   ========================================================== */
+
+/* Checkbox ripple on check */
+@keyframes checkRipple {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 30%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+.todo-checkbox:checked {
+  animation: checkRipple var(--dur-slow) var(--ease-out);
+}
+
+/* Task title strikethrough animation on completion */
+@keyframes strikethrough {
+  from {
+    text-decoration-color: transparent;
+  }
+  to {
+    text-decoration-color: var(--muted);
+  }
+}
+
+.todo-title--completed {
+  text-decoration: line-through;
+  text-decoration-color: var(--muted);
+  animation: strikethrough var(--dur-slow) var(--ease-out);
+}
+
+/* Chip hover pop */
+.todo-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-xs);
+}
+
+/* Quick entry button pulse on enabled */
+@keyframes subtlePulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 12%, transparent); }
+}
+
+.quick-entry__btn:not(:disabled) {
+  animation: subtlePulse 2s var(--ease-in-out) infinite;
+}
+
+.quick-entry__btn:hover:not(:disabled) {
+  animation: none;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--accent) 20%, transparent);
+}
+
+/* Undo toast slide-in with bounce */
+@keyframes toastBounceIn {
+  0% {
+    transform: translateX(-50%) translateY(calc(100% + var(--s-5)));
+  }
+  70% {
+    transform: translateX(-50%) translateY(-4px);
+  }
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+.undo-toast.active {
+  animation: toastBounceIn var(--dur-slow) var(--ease-spring);
+}
+
+/* Project rail item hover indent */
+.projects-rail-item:hover {
+  padding-left: calc(var(--s-3) + 2px);
+}
+
+/* Drawer field labels — subtle slide on focus-within */
+.todo-drawer__field:focus-within .todo-drawer__label {
+  color: var(--accent);
+  transform: translateX(2px);
+  transition:
+    color var(--dur-fast),
+    transform var(--dur-fast);
+}
+
+/* Profile launcher avatar hover glow */
+.profile-launcher__trigger:hover .profile-launcher__avatar {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 15%, transparent);
+}
+
+/* Board card hover lift */
+.board__card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Search bar expand on focus */
+.search-bar--focused {
+  flex: 0 1 320px;
+  transition: flex var(--dur-base) var(--ease-spring);
+}
+
+/* Sidebar toggle spin on hover */
+.sidebar-toggle-btn:hover .app-icon,
+.sidebar-toggle-btn:hover .nav-icon {
+  transform: rotate(180deg);
+  transition: transform var(--dur-slow) var(--ease-spring);
+}
+
+/* Workspace view item — active indicator bar */
+.workspace-view-item.projects-rail-item--active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  border-radius: 0 2px 2px 0;
+  background: var(--accent);
+  animation: scaleIn var(--dur-base) var(--ease-spring);
+}
+
+.workspace-view-item {
+  position: relative;
+}
+
+/* ==========================================================
+   DENSITY MODE — additional overrides
+   ========================================================== */
+
+/* Compact: tighter rows, smaller gaps */
+[data-density="compact"] .todo-item {
+  min-height: 36px;
+  padding: var(--s-1h) var(--s-3);
+  gap: var(--s-2);
+}
+
+[data-density="compact"] .app-header {
+  min-height: 42px;
+  padding: var(--s-2) var(--s-4);
+}
+
+[data-density="compact"] .quick-entry {
+  padding: var(--s-2) var(--s-4);
+}
+
+[data-density="compact"] .todo-chip {
+  padding: 1px var(--s-2);
+  font-size: var(--fs-xs);
+}
+
+[data-density="compact"] .workspace-view-item {
+  padding: var(--s-1) var(--s-3);
+}
+
+/* Spacious: breathing room, larger touch targets */
+[data-density="spacious"] .todo-item {
+  min-height: 56px;
+  padding: var(--s-4) var(--s-5);
+  gap: var(--s-4);
+}
+
+[data-density="spacious"] .app-header {
+  min-height: 60px;
+  padding: var(--s-4) var(--s-6);
+}
+
+[data-density="spacious"] .quick-entry {
+  padding: var(--s-4) var(--s-6);
+}
+
+[data-density="spacious"] .workspace-view-item {
+  padding: var(--s-3) var(--s-4);
 }

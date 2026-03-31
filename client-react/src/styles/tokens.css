@@ -130,6 +130,30 @@ body.dark-mode {
   --shadow-focus-danger: 0 0 0 3px color-mix(in oklab, var(--danger) 30%, transparent);
 }
 
+/* --- Density modes --- */
+[data-density="compact"] {
+  --row-height: 36px;
+  --control-sm: 28px;
+  --control-md: 34px;
+  --s-3: 10px;
+  --s-4: 12px;
+  --s-5: 18px;
+  --fs-body: 0.875rem;
+  --fs-meta: 0.75rem;
+  --fs-label: 0.688rem;
+}
+
+[data-density="spacious"] {
+  --row-height: 56px;
+  --control-sm: 36px;
+  --control-md: 44px;
+  --s-3: 14px;
+  --s-4: 20px;
+  --s-5: 28px;
+  --fs-body: 1.0625rem;
+  --fs-meta: 0.875rem;
+}
+
 /* --- Reduced motion --- */
 @media (prefers-reduced-motion: reduce) {
   :root {
