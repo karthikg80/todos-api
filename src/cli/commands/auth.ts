@@ -29,10 +29,10 @@ export function registerAuthCommands(
           return;
         }
 
+        const globalOpts = program.opts();
         if (opts.password) {
-          await passwordLogin(getClient);
+          await passwordLogin(getClient, globalOpts.apiUrl);
         } else {
-          const globalOpts = program.opts();
           await browserLogin(globalOpts.apiUrl);
         }
       } catch (err) {
@@ -108,7 +108,10 @@ export function registerAuthCommands(
     });
 }
 
-async function passwordLogin(getClient: () => ApiClient): Promise<void> {
+async function passwordLogin(
+  getClient: () => ApiClient,
+  apiUrlOverride?: string,
+): Promise<void> {
   const email = await promptInput("Email: ");
   const password = await promptPassword("Password: ");
 
@@ -123,6 +126,7 @@ async function passwordLogin(getClient: () => ApiClient): Promise<void> {
   const result = await client.post("/auth/login", { email, password });
 
   const config = loadConfig();
+  if (apiUrlOverride) config.apiUrl = apiUrlOverride;
   config.accessToken = result.accessToken;
   config.refreshToken = result.refreshToken;
   config.user = result.user || { id: result.userId, email };
