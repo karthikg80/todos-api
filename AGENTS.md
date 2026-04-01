@@ -14,6 +14,8 @@ npm ci
 
 One PR = one branch = one worktree. Never reuse a worktree for a new task.
 
+A Husky pre-commit hook blocks commits on `master` and detached `HEAD`. A commit-msg hook enforces conventional commit format. These hooks activate automatically after `npm ci`.
+
 ## Project Structure
 
 - **Backend:** Express + Prisma + PostgreSQL in `src/`. Routes in `src/routes/`, services in `src/services/`.
@@ -26,7 +28,7 @@ One PR = one branch = one worktree. Never reuse a worktree for a new task.
 
 ### Shared contract
 
-`src/types.ts` is the canonical source of truth for all API types and enums. When this file changes, all clients (vanilla JS, React, iOS DTOs) must stay in sync. Mention cross-client impact in the PR description.
+`src/types.ts` is the canonical source of truth for all API types and enums. When this file changes, all clients (vanilla JS, React, iOS DTOs) must stay in sync. Mention cross-client impact in the PR description. CI will automatically verify that iOS compiles (`swift build`) and React typechecks (`tsc --noEmit`) when `src/types.ts` or `src/validation/constants.ts` change.
 
 ## Clean Code + Architecture (REQUIRED)
 
