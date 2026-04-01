@@ -29,6 +29,7 @@ export async function browserLogin(apiUrlOverride?: string): Promise<void> {
     const result = await startCallbackServer(apiUrl);
 
     const config = loadConfig();
+    config.apiUrl = apiUrl;
     config.accessToken = result.token;
     config.refreshToken = result.refreshToken;
     if (result.email) {
@@ -36,9 +37,7 @@ export async function browserLogin(apiUrlOverride?: string): Promise<void> {
     }
     saveConfig(config);
 
-    s.succeed(`Logged in${result.email ? ` as ${result.email}` : ""}`);
-
-    // Fetch full user info to update config
+    // Fetch full user info to update config (non-critical)
     try {
       const res = await fetch(`${apiUrl}/users/me`, {
         headers: { Authorization: `Bearer ${result.token}` },
@@ -61,6 +60,8 @@ export async function browserLogin(apiUrlOverride?: string): Promise<void> {
     } catch {
       // Non-critical — we already have the tokens
     }
+
+    s.succeed(`Logged in${result.email ? ` as ${result.email}` : ""}`);
   } catch (err) {
     s.fail("Login failed");
     if (err instanceof Error) {
@@ -160,6 +161,8 @@ function startCallbackServer(apiUrl: string): Promise<AuthResult> {
     function cleanup() {
       clearTimeout(timeout);
       server.close();
+      // Force-close open connections so Node can exit
+      server.closeAllConnections?.();
     }
   });
 }
