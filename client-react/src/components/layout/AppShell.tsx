@@ -1,4 +1,11 @@
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  lazy,
+  Suspense,
+} from "react";
 import { useAuth } from "../../auth/AuthProvider";
 import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
@@ -20,14 +27,22 @@ import { QuickEntry } from "../todos/QuickEntry";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import { BulkToolbar } from "../todos/BulkToolbar";
-import { SortControl, type SortField, type SortOrder } from "../todos/SortControl";
+import {
+  SortControl,
+  type SortField,
+  type SortOrder,
+} from "../todos/SortControl";
 import { SearchBar } from "../shared/SearchBar";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
 import { Tooltip } from "../shared/Tooltip";
-import { FilterPanel, applyFilters, type ActiveFilters } from "../todos/FilterPanel";
+import {
+  FilterPanel,
+  applyFilters,
+  type ActiveFilters,
+} from "../todos/FilterPanel";
 import { Breadcrumb } from "../shared/Breadcrumb";
 import { AnimatedCount } from "../shared/AnimatedCount";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
@@ -44,12 +59,24 @@ import { TaskFullPage } from "../todos/TaskFullPage";
 import * as todosApi from "../../api/todos";
 
 // Lazy-loaded heavy components (code splitting)
-const BoardView = lazy(() => import("../todos/BoardView").then((m) => ({ default: m.BoardView })));
-const TaskComposer = lazy(() => import("../todos/TaskComposer").then((m) => ({ default: m.TaskComposer })));
-const AiWorkspace = lazy(() => import("../ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })));
-const AdminPage = lazy(() => import("../admin/AdminPage").then((m) => ({ default: m.AdminPage })));
-const FeedbackForm = lazy(() => import("../feedback/FeedbackForm").then((m) => ({ default: m.FeedbackForm })));
-const WeeklyReview = lazy(() => import("./WeeklyReview").then((m) => ({ default: m.WeeklyReview })));
+const BoardView = lazy(() =>
+  import("../todos/BoardView").then((m) => ({ default: m.BoardView })),
+);
+const TaskComposer = lazy(() =>
+  import("../todos/TaskComposer").then((m) => ({ default: m.TaskComposer })),
+);
+const AiWorkspace = lazy(() =>
+  import("../ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
+);
+const AdminPage = lazy(() =>
+  import("../admin/AdminPage").then((m) => ({ default: m.AdminPage })),
+);
+const FeedbackForm = lazy(() =>
+  import("../feedback/FeedbackForm").then((m) => ({ default: m.FeedbackForm })),
+);
+const WeeklyReview = lazy(() =>
+  import("./WeeklyReview").then((m) => ({ default: m.WeeklyReview })),
+);
 
 type AppPage = "todos" | "settings" | "ai" | "admin" | "feedback" | "review";
 type ViewMode = "list" | "board";
@@ -84,8 +111,10 @@ export function AppShell() {
   const taskNav = useTaskNavigation();
   const hashRoute = useHashRoute();
   const activeTodoId = taskNav.activeTaskId;
-  const expandedTodoId = taskNav.state.mode === "quickEdit" ? taskNav.state.taskId : null;
-  const fullPageTaskId = taskNav.state.mode === "fullPage" ? taskNav.state.taskId : null;
+  const expandedTodoId =
+    taskNav.state.mode === "quickEdit" ? taskNav.state.taskId : null;
+  const fullPageTaskId =
+    taskNav.state.mode === "fullPage" ? taskNav.state.taskId : null;
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -202,11 +231,15 @@ export function AppShell() {
   }, [fullPageTaskId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Service worker — offline sync
-  useServiceWorker(useCallback((replayed: number, failed: number) => {
-    if (replayed > 0) {
-      setUndoAction({ message: `Synced ${replayed} offline change${replayed > 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}` });
-    }
-  }, []));
+  useServiceWorker(
+    useCallback((replayed: number, failed: number) => {
+      if (replayed > 0) {
+        setUndoAction({
+          message: `Synced ${replayed} offline change${replayed > 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}`,
+        });
+      }
+    }, []),
+  );
 
   // Client-side filtering: date view + search
   const visibleTodos = useMemo(() => {
@@ -250,16 +283,30 @@ export function AppShell() {
     }
 
     // Apply advanced filters
-    if (activeFilters.dateFilter !== "all" || activeFilters.priority || activeFilters.status) {
+    if (
+      activeFilters.dateFilter !== "all" ||
+      activeFilters.priority ||
+      activeFilters.status
+    ) {
       filtered = applyFilters(filtered, activeFilters);
     }
 
     return filtered;
-  }, [todos, activeView, selectedProjectId, searchQuery, activeTagFilter, activeHeadingId, activeFilters]);
+  }, [
+    todos,
+    activeView,
+    selectedProjectId,
+    searchQuery,
+    activeTagFilter,
+    activeHeadingId,
+    activeFilters,
+  ]);
 
-  const drawerTaskId = taskNav.state.mode === "drawer" ? taskNav.state.taskId : null;
+  const drawerTaskId =
+    taskNav.state.mode === "drawer" ? taskNav.state.taskId : null;
   const activeTodo = useMemo(
-    () => (drawerTaskId ? todos.find((t) => t.id === drawerTaskId) ?? null : null),
+    () =>
+      drawerTaskId ? (todos.find((t) => t.id === drawerTaskId) ?? null) : null,
     [todos, drawerTaskId],
   );
 
@@ -271,9 +318,8 @@ export function AppShell() {
       triage: active.filter(
         (t) => t.status === "inbox" || (!t.projectId && !t.category),
       ).length,
-      today: active.filter(
-        (t) => t.dueDate && t.dueDate.split("T")[0] <= today,
-      ).length,
+      today: active.filter((t) => t.dueDate && t.dueDate.split("T")[0] <= today)
+        .length,
       upcoming: active.filter(
         (t) => t.dueDate && t.dueDate.split("T")[0] > today,
       ).length,
@@ -300,13 +346,19 @@ export function AppShell() {
 
   // --- Handlers ---
 
-  const handleQuickEdit = useCallback((id: string) => {
-    taskNav.openQuickEdit(id);
-  }, [taskNav]);
+  const handleQuickEdit = useCallback(
+    (id: string) => {
+      taskNav.openQuickEdit(id);
+    },
+    [taskNav],
+  );
 
-  const handleOpenDrawer = useCallback((id: string) => {
-    taskNav.openDrawer(id);
-  }, [taskNav]);
+  const handleOpenDrawer = useCallback(
+    (id: string) => {
+      taskNav.openDrawer(id);
+    },
+    [taskNav],
+  );
 
   const handleCloseDrawer = useCallback(() => {
     taskNav.deescalate();
@@ -473,7 +525,9 @@ export function AppShell() {
 
   const handleBulkComplete = useCallback(async () => {
     const ids = [...selectedIds];
-    await Promise.all(ids.map((id) => todosApi.updateTodo(id, { completed: true })));
+    await Promise.all(
+      ids.map((id) => todosApi.updateTodo(id, { completed: true })),
+    );
     setBulkMode(false);
     setSelectedIds(new Set());
     loadTodos(queryParams);
@@ -603,8 +657,8 @@ export function AppShell() {
   };
 
   const headerTitle = selectedProjectId
-    ? projects.find((p) => p.id === selectedProjectId)?.name ?? "Project"
-    : VIEW_LABELS[activeView] ?? activeView;
+    ? (projects.find((p) => p.id === selectedProjectId)?.name ?? "Project")
+    : (VIEW_LABELS[activeView] ?? activeView);
 
   // Dynamic page title
   useEffect(() => {
@@ -684,10 +738,14 @@ export function AppShell() {
   );
 
   return (
-    <div className={`app-shell${bulkMode ? " is-bulk-selecting" : ""}${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}>
+    <div
+      className={`app-shell${bulkMode ? " is-bulk-selecting" : ""}${sidebarCollapsed ? " is-sidebar-collapsed" : ""}`}
+    >
       {/* Desktop sidebar */}
       {!isMobile && (
-        <aside className={`app-sidebar${sidebarCollapsed ? " app-sidebar--collapsed" : ""}`}>
+        <aside
+          className={`app-sidebar${sidebarCollapsed ? " app-sidebar--collapsed" : ""}`}
+        >
           {sidebarContent}
         </aside>
       )}
@@ -717,170 +775,90 @@ export function AppShell() {
           </div>
         )}
         <ErrorBoundary>
-        {page === "settings" ? (
-          <SettingsPage
-            dark={dark}
-            onToggleDark={toggleDarkMode}
-            uiMode={uiMode}
-            onToggleUiMode={() => {
-              const next = uiMode === "normal" ? "simple" : "normal";
-              setUiMode(next);
-              localStorage.setItem("todos:ui-mode", next);
-            }}
-            density={density}
-            onCycleDensity={cycleDensity}
-            onBack={() => setPage("todos")}
-          />
-        ) : page === "ai" ? (
-          <>
-            <header className="app-header">
-              {isMobile && (
-                <button
-                  className="mobile-header__menu-btn"
-                  onClick={() => setMobileNavOpen(true)}
-                  aria-label="Open navigation"
-                >
-                  <IconMenu />
-                </button>
-              )}
-              <button className="btn" onClick={() => setPage("todos")}>
-                ← Back
-              </button>
-              <span className="app-header__title">AI Workspace</span>
-            </header>
-            <div className="app-content">
-              <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
-                <AiWorkspace />
-              </Suspense>
-            </div>
-          </>
-        ) : page === "admin" ? (
-          <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
-            <AdminPage onBack={() => setPage("todos")} />
-          </Suspense>
-        ) : page === "feedback" ? (
-          <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
-            <FeedbackForm onBack={() => setPage("todos")} />
-          </Suspense>
-        ) : page === "review" ? (
-          <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
-            <WeeklyReview onBack={() => setPage("todos")} />
-          </Suspense>
-        ) : activeView === "home" && !selectedProjectId ? (
-          <>
-            {!isMobile && (
+          {page === "settings" ? (
+            <SettingsPage
+              dark={dark}
+              onToggleDark={toggleDarkMode}
+              uiMode={uiMode}
+              onToggleUiMode={() => {
+                const next = uiMode === "normal" ? "simple" : "normal";
+                setUiMode(next);
+                localStorage.setItem("todos:ui-mode", next);
+              }}
+              density={density}
+              onCycleDensity={cycleDensity}
+              onBack={() => setPage("todos")}
+            />
+          ) : page === "ai" ? (
+            <>
               <header className="app-header">
-                <span className="app-header__title">Focus</span>
-                <button
-                  className="btn"
-                  onClick={() => setComposerOpen(true)}
-                  id="topBarNewTaskCta"
-                >
-                  + New Task
-                </button>
-                <button
-                  className="btn"
-                  onClick={toggleDarkMode}
-                  aria-label="Toggle dark mode"
-                  style={{ fontSize: "var(--fs-label)" }}
-                >
-                  {dark ? <IconSun /> : <IconMoon />}
-                </button>
-                {user && (
+                {isMobile && (
                   <button
-                    className="btn"
-                    style={{ fontSize: "var(--fs-label)" }}
-                    onClick={logout}
+                    className="mobile-header__menu-btn"
+                    onClick={() => setMobileNavOpen(true)}
+                    aria-label="Open navigation"
                   >
-                    Logout
+                    <IconMenu />
                   </button>
                 )}
+                <button className="btn" onClick={() => setPage("todos")}>
+                  ← Back
+                </button>
+                <span className="app-header__title">AI Workspace</span>
               </header>
-            )}
-            {isMobile && (
-              <div className="mobile-header">
-                <button
-                  id="projectsRailMobileOpen"
-                  className="mobile-header__menu-btn"
-                  onClick={() => setMobileNavOpen(true)}
-                  aria-label="Open navigation"
+              <div className="app-content">
+                <Suspense
+                  fallback={
+                    <div className="loading-skeleton loading">
+                      <div className="loading-skeleton__row" />
+                    </div>
+                  }
                 >
-                  <IconMenu />
-                </button>
-                <span className="app-header__title">Focus</span>
-                <button
-                  className="btn"
-                  onClick={() => setComposerOpen(true)}
-                  style={{ marginLeft: "auto", fontSize: "var(--fs-label)" }}
-                >
-                  + New
-                </button>
+                  <AiWorkspace />
+                </Suspense>
               </div>
-            )}
-            <div className="app-content">
-              <HomeDashboard
-                todos={todos}
-                projects={projects}
-                onTodoClick={handleOpenDrawer}
-                onToggleTodo={handleToggle}
-                onEditTodo={(id, updates) => {
-                  editTodo(id, updates);
-                }}
-                onNavigate={(v) => {
-                  handleSelectView(v);
-                  handleSelectProject(null);
-                }}
-                onSelectProject={(id) => {
-                  handleSelectProject(id);
-                  setPage("todos");
-                }}
-              />
-            </div>
-          </>
-        ) : activeView === "triage" && !selectedProjectId ? (
-          <>
-            {isMobile && (
-              <div className="mobile-header">
-                <button
-                  id="projectsRailMobileOpen"
-                  className="mobile-header__menu-btn"
-                  onClick={() => setMobileNavOpen(true)}
-                  aria-label="Open navigation"
-                >
-                  <IconMenu />
-                </button>
-                <span className="app-header__title">Desk</span>
-              </div>
-            )}
-            <DeskView
-              todos={todos}
-              onTodoClick={handleOpenDrawer}
-              onToggleTodo={handleToggle}
-              onRefreshTodos={() => loadTodos(queryParams)}
-              onOpenComposer={() => setComposerOpen(true)}
-            />
-          </>
-        ) : (
-          <>
-            {/* Mobile header */}
-            {isMobile && (
-              <div className="mobile-header">
-                <button
-                  id="projectsRailMobileOpen"
-                  className="mobile-header__menu-btn"
-                  onClick={() => setMobileNavOpen(true)}
-                  aria-label="Open navigation"
-                >
-                  <IconMenu />
-                </button>
-                <span className="app-header__title">{headerTitle}</span>
-                <div style={{ marginLeft: "auto", display: "flex", gap: "var(--s-2)" }}>
+            </>
+          ) : page === "admin" ? (
+            <Suspense
+              fallback={
+                <div className="loading-skeleton loading">
+                  <div className="loading-skeleton__row" />
+                </div>
+              }
+            >
+              <AdminPage onBack={() => setPage("todos")} />
+            </Suspense>
+          ) : page === "feedback" ? (
+            <Suspense
+              fallback={
+                <div className="loading-skeleton loading">
+                  <div className="loading-skeleton__row" />
+                </div>
+              }
+            >
+              <FeedbackForm onBack={() => setPage("todos")} />
+            </Suspense>
+          ) : page === "review" ? (
+            <Suspense
+              fallback={
+                <div className="loading-skeleton loading">
+                  <div className="loading-skeleton__row" />
+                </div>
+              }
+            >
+              <WeeklyReview onBack={() => setPage("todos")} />
+            </Suspense>
+          ) : activeView === "home" && !selectedProjectId ? (
+            <>
+              {!isMobile && (
+                <header className="app-header">
+                  <span className="app-header__title">Focus</span>
                   <button
                     className="btn"
                     onClick={() => setComposerOpen(true)}
-                    style={{ fontSize: "var(--fs-label)" }}
+                    id="topBarNewTaskCta"
                   >
-                    + New
+                    + New Task
                   </button>
                   <button
                     className="btn"
@@ -899,267 +877,396 @@ export function AppShell() {
                       Logout
                     </button>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* Desktop header */}
-            {!isMobile && (
-              <header className="app-header">
-                <span id="todosListHeaderTitle" className="app-header__title">
-                  <Breadcrumb
-                    items={[
-                      ...(selectedProjectId
-                        ? [
-                            {
-                              label: VIEW_LABELS[activeView] ?? "Tasks",
-                              onClick: () => handleSelectProject(null),
-                            },
-                            { label: headerTitle },
-                          ]
-                        : [{ label: headerTitle }]),
-                    ]}
-                  />
-                  {!selectedProjectId && headerTitle}
-                </span>
-                <span id="todosListHeaderCount" className="app-header__count">
-                  {loadState === "loaded" && (
-                    <>
-                      <AnimatedCount
-                        value={visibleTodos.filter((t) => !t.completed).length}
-                      />{" "}
-                      tasks
-                    </>
-                  )}
-                </span>
-                <Tooltip content="Filters" shortcut="f">
+                </header>
+              )}
+              {isMobile && (
+                <div className="mobile-header">
                   <button
-                    id="moreFiltersToggle"
-                    className={`btn${filtersOpen ? " btn--active" : ""}`}
-                    onClick={() => setFiltersOpen((o) => !o)}
-                    style={{ fontSize: "var(--fs-label)" }}
+                    id="projectsRailMobileOpen"
+                    className="mobile-header__menu-btn"
+                    onClick={() => setMobileNavOpen(true)}
+                    aria-label="Open navigation"
                   >
-                    Filters
-                    {(activeFilters.dateFilter !== "all" ||
-                      activeFilters.priority ||
-                      activeFilters.status) && (
-                      <span className="filter-badge">●</span>
-                    )}
+                    <IconMenu />
                   </button>
-                </Tooltip>
-                <div className="view-toggle">
-                  <button
-                    className={`view-toggle__btn${viewMode === "list" ? " view-toggle__btn--active" : ""}`}
-                    onClick={() => setViewMode("list")}
-                    aria-label="List view"
-                  >
-                    <IconList />
-                  </button>
-                  <button
-                    className={`view-toggle__btn${viewMode === "board" ? " view-toggle__btn--active" : ""}`}
-                    onClick={() => setViewMode("board")}
-                    aria-label="Board view"
-                  >
-                    <IconBoard />
-                  </button>
-                </div>
-                {viewMode === "list" && (
-                  <SortControl
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onChange={(f, o) => {
-                      setSortBy(f);
-                      setSortOrder(o);
-                    }}
-                  />
-                )}
-                <Tooltip content="New task" shortcut="n">
+                  <span className="app-header__title">Focus</span>
                   <button
                     className="btn"
                     onClick={() => setComposerOpen(true)}
-                    style={{ fontSize: "var(--fs-label)" }}
+                    style={{ marginLeft: "auto", fontSize: "var(--fs-label)" }}
                   >
-                    <IconPlus /> New Task
+                    + New
                   </button>
-                </Tooltip>
-                <Tooltip content="Export calendar" shortcut=".ics">
-                  <button
-                    id="exportIcsButton"
-                    className="btn"
-                    onClick={() => {
-                      const withDates = todos.filter((t) => t.dueDate);
-                      if (withDates.length === 0) {
-                        setUndoAction({ message: "No tasks with due dates to export" });
-                        return;
-                      }
-                      exportIcs(withDates);
-                      setUndoAction({ message: `Exported ${withDates.length} tasks to .ics` });
-                    }}
-                    aria-label="Export to calendar"
-                    style={{ fontSize: "var(--fs-label)" }}
-                  >
-                    <IconCalendar />
-                  </button>
-                </Tooltip>
-                <Tooltip content={dark ? "Light mode" : "Dark mode"}>
-                  <button
-                    className="btn"
-                    onClick={toggleDarkMode}
-                    aria-label="Toggle dark mode"
-                    style={{ fontSize: "var(--fs-label)" }}
-                  >
-                    {dark ? <IconSun /> : <IconMoon />}
-                  </button>
-                </Tooltip>
-                {user && (
-                  <button
-                    className="btn"
-                    style={{ fontSize: "var(--fs-label)" }}
-                    onClick={logout}
-                  >
-                    Logout
-                  </button>
-                )}
-              </header>
-            )}
-
-            {user && !user.isVerified && (
-              <VerificationBanner
-                email={user.email}
-                isVerified={!!user.isVerified}
-              />
-            )}
-
-            {activeTagFilter && (
-              <div className="active-filter-bar">
-                Filtered by tag: <strong>#{activeTagFilter}</strong>
-                <button
-                  className="active-filter-bar__clear"
-                  onClick={() => setActiveTagFilter("")}
-                >
-                  ✕ Clear
-                </button>
-              </div>
-            )}
-
-            {/* Today view coaching */}
-            {activeView === "today" && !selectedProjectId && visibleTodos.length > 0 && (() => {
-              const overdue = visibleTodos.filter(
-                (t) => t.dueDate && t.dueDate.split("T")[0] < new Date().toISOString().split("T")[0],
-              ).length;
-              return overdue > 0 ? (
-                <div className="today-coaching-banner">
-                  <span>
-                    {overdue === 1
-                      ? "1 task rolled over."
-                      : `${overdue} tasks rolled over.`}{" "}
-                    Let's make the day smaller.
-                  </span>
                 </div>
-              ) : null;
-            })()}
-
-            {/* Filter panel */}
-            {filtersOpen && (
-              <FilterPanel
-                filters={activeFilters}
-                onChange={setActiveFilters}
-                onClose={() => setFiltersOpen(false)}
-              />
-            )}
-
-            {/* Bulk actions toolbar */}
-            {bulkMode && (
-              <BulkToolbar
-                selectedCount={selectedIds.size}
-                totalCount={visibleTodos.length}
-                allSelected={
-                  selectedIds.size === visibleTodos.length &&
-                  visibleTodos.length > 0
-                }
-                onSelectAll={handleSelectAll}
-                onComplete={handleBulkComplete}
-                onDelete={handleBulkDelete}
-                onCancel={handleCancelBulk}
-              />
-            )}
-
-            {uiMode === "normal" && (
-              <QuickEntry
-                projectId={selectedProjectId}
-                onAdd={addTodo}
-                placeholder={quickEntryPlaceholder}
-              />
-            )}
-
-            {/* Project headings */}
-            {selectedProjectId && uiMode === "normal" && (
-              <ProjectHeadings
-                projectId={selectedProjectId}
-                activeHeadingId={activeHeadingId}
-                onSelectHeading={setActiveHeadingId}
-              />
-            )}
-
-            {/* Mobile search */}
-            {isMobile && (
-              <div style={{ padding: "var(--s-2) var(--s-4)" }}>
-                <SearchBar value={searchQuery} onChange={setSearchQuery} />
-              </div>
-            )}
-
-            <div className="app-content">
-              {viewMode === "board" ? (
-                <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
-                  <BoardView
-                    todos={visibleTodos}
-                    loadState={loadState}
-                    onToggle={handleToggle}
-                    onClick={handleOpenDrawer}
-                    onStatusChange={editTodo}
-                  />
-                </Suspense>
-              ) : (
-                <SortableTodoList
-                  todos={visibleTodos}
-                  loadState={loadState}
-                  errorMessage={errorMessage}
-                  activeTodoId={activeTodoId}
-                  expandedTodoId={expandedTodoId}
-                  isBulkMode={bulkMode}
-                  selectedIds={selectedIds}
+              )}
+              <div className="app-content">
+                <HomeDashboard
+                  todos={todos}
                   projects={projects}
-                  headings={[]}
-                  onToggle={handleToggle}
-                  onClick={handleQuickEdit}
-                  onKebab={handleOpenDrawer}
-                  onRetry={() => loadTodos(queryParams)}
-                  onSelect={handleBulkSelect}
-                  onInlineEdit={handleInlineEdit}
-                  onSave={editTodo}
-                  onTagClick={handleTagClick}
-                  onLifecycleAction={handleLifecycleAction}
-                  onReorder={handleReorder}
+                  onTodoClick={handleOpenDrawer}
+                  onToggleTodo={handleToggle}
+                  onEditTodo={(id, updates) => {
+                    editTodo(id, updates);
+                  }}
+                  onNavigate={(v) => {
+                    handleSelectView(v);
+                    handleSelectProject(null);
+                  }}
+                  onSelectProject={(id) => {
+                    handleSelectProject(id);
+                    setPage("todos");
+                  }}
+                />
+              </div>
+            </>
+          ) : activeView === "triage" && !selectedProjectId ? (
+            <>
+              {isMobile && (
+                <div className="mobile-header">
+                  <button
+                    id="projectsRailMobileOpen"
+                    className="mobile-header__menu-btn"
+                    onClick={() => setMobileNavOpen(true)}
+                    aria-label="Open navigation"
+                  >
+                    <IconMenu />
+                  </button>
+                  <span className="app-header__title">Desk</span>
+                </div>
+              )}
+              <DeskView
+                todos={todos}
+                onTodoClick={handleOpenDrawer}
+                onToggleTodo={handleToggle}
+                onRefreshTodos={() => loadTodos(queryParams)}
+                onOpenComposer={() => setComposerOpen(true)}
+              />
+            </>
+          ) : (
+            <>
+              {/* Mobile header */}
+              {isMobile && (
+                <div className="mobile-header">
+                  <button
+                    id="projectsRailMobileOpen"
+                    className="mobile-header__menu-btn"
+                    onClick={() => setMobileNavOpen(true)}
+                    aria-label="Open navigation"
+                  >
+                    <IconMenu />
+                  </button>
+                  <span className="app-header__title">{headerTitle}</span>
+                  <div
+                    style={{
+                      marginLeft: "auto",
+                      display: "flex",
+                      gap: "var(--s-2)",
+                    }}
+                  >
+                    <button
+                      className="btn"
+                      onClick={() => setComposerOpen(true)}
+                      style={{ fontSize: "var(--fs-label)" }}
+                    >
+                      + New
+                    </button>
+                    <button
+                      className="btn"
+                      onClick={toggleDarkMode}
+                      aria-label="Toggle dark mode"
+                      style={{ fontSize: "var(--fs-label)" }}
+                    >
+                      {dark ? <IconSun /> : <IconMoon />}
+                    </button>
+                    {user && (
+                      <button
+                        className="btn"
+                        style={{ fontSize: "var(--fs-label)" }}
+                        onClick={logout}
+                      >
+                        Logout
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Desktop header */}
+              {!isMobile && (
+                <header className="app-header">
+                  <span id="todosListHeaderTitle" className="app-header__title">
+                    <Breadcrumb
+                      items={[
+                        ...(selectedProjectId
+                          ? [
+                              {
+                                label: VIEW_LABELS[activeView] ?? "Tasks",
+                                onClick: () => handleSelectProject(null),
+                              },
+                              { label: headerTitle },
+                            ]
+                          : [{ label: headerTitle }]),
+                      ]}
+                    />
+                    {!selectedProjectId && headerTitle}
+                  </span>
+                  <span id="todosListHeaderCount" className="app-header__count">
+                    {loadState === "loaded" && (
+                      <>
+                        <AnimatedCount
+                          value={
+                            visibleTodos.filter((t) => !t.completed).length
+                          }
+                        />{" "}
+                        tasks
+                      </>
+                    )}
+                  </span>
+                  <Tooltip content="Filters" shortcut="f">
+                    <button
+                      id="moreFiltersToggle"
+                      className={`btn${filtersOpen ? " btn--active" : ""}`}
+                      onClick={() => setFiltersOpen((o) => !o)}
+                      style={{ fontSize: "var(--fs-label)" }}
+                    >
+                      Filters
+                      {(activeFilters.dateFilter !== "all" ||
+                        activeFilters.priority ||
+                        activeFilters.status) && (
+                        <span className="filter-badge">●</span>
+                      )}
+                    </button>
+                  </Tooltip>
+                  <div className="view-toggle">
+                    <button
+                      className={`view-toggle__btn${viewMode === "list" ? " view-toggle__btn--active" : ""}`}
+                      onClick={() => setViewMode("list")}
+                      aria-label="List view"
+                    >
+                      <IconList />
+                    </button>
+                    <button
+                      className={`view-toggle__btn${viewMode === "board" ? " view-toggle__btn--active" : ""}`}
+                      onClick={() => setViewMode("board")}
+                      aria-label="Board view"
+                    >
+                      <IconBoard />
+                    </button>
+                  </div>
+                  {viewMode === "list" && (
+                    <SortControl
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                      onChange={(f, o) => {
+                        setSortBy(f);
+                        setSortOrder(o);
+                      }}
+                    />
+                  )}
+                  <Tooltip content="New task" shortcut="n">
+                    <button
+                      className="btn"
+                      onClick={() => setComposerOpen(true)}
+                      style={{ fontSize: "var(--fs-label)" }}
+                    >
+                      <IconPlus /> New Task
+                    </button>
+                  </Tooltip>
+                  <Tooltip content="Export calendar" shortcut=".ics">
+                    <button
+                      id="exportIcsButton"
+                      className="btn"
+                      onClick={() => {
+                        const withDates = todos.filter((t) => t.dueDate);
+                        if (withDates.length === 0) {
+                          setUndoAction({
+                            message: "No tasks with due dates to export",
+                          });
+                          return;
+                        }
+                        exportIcs(withDates);
+                        setUndoAction({
+                          message: `Exported ${withDates.length} tasks to .ics`,
+                        });
+                      }}
+                      aria-label="Export to calendar"
+                      style={{ fontSize: "var(--fs-label)" }}
+                    >
+                      <IconCalendar />
+                    </button>
+                  </Tooltip>
+                  <Tooltip content={dark ? "Light mode" : "Dark mode"}>
+                    <button
+                      className="btn"
+                      onClick={toggleDarkMode}
+                      aria-label="Toggle dark mode"
+                      style={{ fontSize: "var(--fs-label)" }}
+                    >
+                      {dark ? <IconSun /> : <IconMoon />}
+                    </button>
+                  </Tooltip>
+                  {user && (
+                    <button
+                      className="btn"
+                      style={{ fontSize: "var(--fs-label)" }}
+                      onClick={logout}
+                    >
+                      Logout
+                    </button>
+                  )}
+                </header>
+              )}
+
+              {user && !user.isVerified && (
+                <VerificationBanner
+                  email={user.email}
+                  isVerified={!!user.isVerified}
                 />
               )}
-            </div>
-          </>
-        )}
+
+              {activeTagFilter && (
+                <div className="active-filter-bar">
+                  Filtered by tag: <strong>#{activeTagFilter}</strong>
+                  <button
+                    className="active-filter-bar__clear"
+                    onClick={() => setActiveTagFilter("")}
+                  >
+                    ✕ Clear
+                  </button>
+                </div>
+              )}
+
+              {/* Today view coaching */}
+              {activeView === "today" &&
+                !selectedProjectId &&
+                visibleTodos.length > 0 &&
+                (() => {
+                  const overdue = visibleTodos.filter(
+                    (t) =>
+                      t.dueDate &&
+                      t.dueDate.split("T")[0] <
+                        new Date().toISOString().split("T")[0],
+                  ).length;
+                  return overdue > 0 ? (
+                    <div className="today-coaching-banner">
+                      <span>
+                        {overdue === 1
+                          ? "1 task rolled over."
+                          : `${overdue} tasks rolled over.`}{" "}
+                        Let's make the day smaller.
+                      </span>
+                    </div>
+                  ) : null;
+                })()}
+
+              {/* Filter panel */}
+              {filtersOpen && (
+                <FilterPanel
+                  filters={activeFilters}
+                  onChange={setActiveFilters}
+                  onClose={() => setFiltersOpen(false)}
+                />
+              )}
+
+              {/* Bulk actions toolbar */}
+              {bulkMode && (
+                <BulkToolbar
+                  selectedCount={selectedIds.size}
+                  totalCount={visibleTodos.length}
+                  allSelected={
+                    selectedIds.size === visibleTodos.length &&
+                    visibleTodos.length > 0
+                  }
+                  onSelectAll={handleSelectAll}
+                  onComplete={handleBulkComplete}
+                  onDelete={handleBulkDelete}
+                  onCancel={handleCancelBulk}
+                />
+              )}
+
+              {uiMode === "normal" && (
+                <QuickEntry
+                  projectId={selectedProjectId}
+                  onAdd={addTodo}
+                  placeholder={quickEntryPlaceholder}
+                />
+              )}
+
+              {/* Project headings */}
+              {selectedProjectId && uiMode === "normal" && (
+                <ProjectHeadings
+                  projectId={selectedProjectId}
+                  activeHeadingId={activeHeadingId}
+                  onSelectHeading={setActiveHeadingId}
+                />
+              )}
+
+              {/* Mobile search */}
+              {isMobile && (
+                <div style={{ padding: "var(--s-2) var(--s-4)" }}>
+                  <SearchBar value={searchQuery} onChange={setSearchQuery} />
+                </div>
+              )}
+
+              <div className="app-content">
+                {viewMode === "board" ? (
+                  <Suspense
+                    fallback={
+                      <div className="loading-skeleton loading">
+                        <div className="loading-skeleton__row" />
+                      </div>
+                    }
+                  >
+                    <BoardView
+                      todos={visibleTodos}
+                      loadState={loadState}
+                      onToggle={handleToggle}
+                      onClick={handleOpenDrawer}
+                      onStatusChange={editTodo}
+                    />
+                  </Suspense>
+                ) : (
+                  <SortableTodoList
+                    todos={visibleTodos}
+                    loadState={loadState}
+                    errorMessage={errorMessage}
+                    activeTodoId={activeTodoId}
+                    expandedTodoId={expandedTodoId}
+                    isBulkMode={bulkMode}
+                    selectedIds={selectedIds}
+                    projects={projects}
+                    headings={[]}
+                    onToggle={handleToggle}
+                    onClick={handleQuickEdit}
+                    onKebab={handleOpenDrawer}
+                    onRetry={() => loadTodos(queryParams)}
+                    onSelect={handleBulkSelect}
+                    onInlineEdit={handleInlineEdit}
+                    onSave={editTodo}
+                    onTagClick={handleTagClick}
+                    onLifecycleAction={handleLifecycleAction}
+                    onReorder={handleReorder}
+                  />
+                )}
+              </div>
+            </>
+          )}
         </ErrorBoundary>
       </div>
 
-      {fullPageTaskId && (() => {
-        const fullPageTodo = todos.find((t) => t.id === fullPageTaskId);
-        return fullPageTodo ? (
-          <TaskFullPage
-            todo={fullPageTodo}
-            projects={projects}
-            onSave={editTodo}
-            onDelete={handleDeleteRequest}
-            onBack={() => taskNav.collapse()}
-          />
-        ) : null;
-      })()}
+      {fullPageTaskId &&
+        (() => {
+          const fullPageTodo = todos.find((t) => t.id === fullPageTaskId);
+          return fullPageTodo ? (
+            <TaskFullPage
+              todo={fullPageTodo}
+              projects={projects}
+              onSave={editTodo}
+              onDelete={handleDeleteRequest}
+              onBack={() => taskNav.collapse()}
+            />
+          ) : null;
+        })()}
 
       <TodoDrawer
         todo={activeTodo}
@@ -1183,6 +1290,7 @@ export function AppShell() {
         isOpen={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onNavigate={handlePaletteNavigate}
+        onWeeklyReview={() => setPage("review")}
         onToggleDarkMode={toggleDarkMode}
         onLogout={logout}
         todos={todos}
