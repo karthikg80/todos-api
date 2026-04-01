@@ -8,6 +8,7 @@ interface User {
   name?: string;
   role: string;
   createdAt: string;
+  emailVerified: boolean;
 }
 
 interface Props {
@@ -187,7 +188,17 @@ export function AdminPage({ onBack }: Props) {
                       {u.email.charAt(0).toUpperCase()}
                     </div>
                     <div className="admin-user-card__info">
-                      <span className="admin-user-card__email">{u.email}</span>
+                      <span className="admin-user-card__email">
+                        {u.email}
+                        {u.emailVerified && (
+                          <span
+                            className="admin-verified-badge"
+                            title="Email verified"
+                          >
+                            ✓
+                          </span>
+                        )}
+                      </span>
                       <span className="admin-user-card__name">
                         {u.name || "\u2014"}
                       </span>
