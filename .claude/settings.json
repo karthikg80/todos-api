@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash -c 'FILE=\"$CLAUDE_FILE_PATH\"; case \"$FILE\" in *.ts|*.js|*.mjs) source \"$HOME/.nvm/nvm.sh\" && nvm use 22 --silent && npx prettier --check \"$FILE\" 2>&1 | tail -3;; esac'",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "PreCommit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/bin/bash -c 'source \"$HOME/.nvm/nvm.sh\" && nvm use 22 && npx tsc --noEmit'",
+            "timeout": 30000
+          },
+          {
+            "type": "command",
+            "command": "/bin/bash -c 'source \"$HOME/.nvm/nvm.sh\" && nvm use 22 && npm run check:architecture'",
+            "timeout": 15000
+          },
+          {
+            "type": "command",
+            "command": "/bin/bash -c 'source \"$HOME/.nvm/nvm.sh\" && nvm use 22 && npm run format:check'",
+            "timeout": 15000
+          }
+        ]
+      }
+    ]
+  }
+}

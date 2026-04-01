@@ -26,6 +26,7 @@
     "eval:all": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js all",
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage --runInBand",
+    "test:coverage:check": "NODE_ENV=test SKIP_DB_SETUP=true jest --config jest.unit.config.js --runInBand --coverage --coverageReporters=json-summary && node scripts/check-coverage-ratchet.mjs",
     "test:ui": "playwright test",
     "test:ui:check-visual-tags": "node scripts/check-ui-visual-tags.mjs",
     "test:ui:fast": "PLAYWRIGHT_AUTH_DIR=.playwright/.auth npm run test:ui:check-visual-tags && PLAYWRIGHT_AUTH_DIR=.playwright/.auth playwright test --grep-invert @visual",

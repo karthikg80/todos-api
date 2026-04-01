@@ -1,49 +1,61 @@
 # Project: todos-api
 
-Full-stack todo application with Express/Prisma backend and vanilla JS frontend.
+Full-stack todo application — monorepo with multiple clients consuming a shared Express/Prisma backend.
 
 ## Project Structure
 
-- **Frontend:** Static HTML/CSS/JS in `client/` (no build step, no framework).
-  - `client/app.js` — app entrypoint/orchestration.
-  - `client/modules/` — domain JS modules.
-  - `client/utils/` — shared utility JS files.
-  - `client/styles.css` — all styles.
-  - `client/index.html` — single-page app shell.
-- **Backend:** Express + Prisma + PostgreSQL in `src/`.
-- **Tests:**
-  - Unit: `src/*.test.ts` — Jest, run with `npm run test:unit`.
-  - Integration: `src/*.integration.test.ts` — Jest + supertest, requires Postgres.
-  - UI: `tests/ui/*.spec.ts` — Playwright (Chromium desktop + mobile).
+- **Backend:** Express + Prisma + PostgreSQL in `src/`. Routes in `src/routes/`, services in `src/services/`.
+- **Web Client (vanilla):** Static HTML/CSS/JS in `client/` — see @.claude/skills/vanilla-client/SKILL.md
+- **Web Client (React):** Vite + React + TypeScript in `client-react/` — see @.claude/skills/react-client/SKILL.md
+- **iOS App:** SwiftUI (iOS 17+) in `ios/TodosApp/` — see @.claude/skills/ios-app/SKILL.md
+- **CLI:** `td` CLI tool in `src/cli/` (TypeScript, Commander.js).
+- **Agent Runner:** Python worker in `agent-runner/` — Railway cron deployment.
+- **Tests:** Unit (`src/*.test.ts`), Integration (`src/*.integration.test.ts`), UI (`tests/ui/*.spec.ts` — see @.claude/skills/playwright-testing/SKILL.md)
+
+### Shared contract
+
+`src/types.ts` is the canonical source of truth for all API types and enums. When this file changes, all clients must stay in sync. Use the `cross-client-reviewer` subagent to verify.
 
 ## Environment
 
 - Node 22 via nvm: commands must use `/bin/bash -c 'source "$HOME/.nvm/nvm.sh" && nvm use 22 && <command>'`.
-- gh CLI: `/opt/homebrew/Cellar/gh/2.86.0/bin/gh`.
+- gh CLI: `/opt/homebrew/bin/gh`.
 - Docker: `/usr/local/bin/docker`.
 - Git worktrees for feature branches live under `/private/tmp/todos-api-*`.
+- **Never commit directly to master.** Always create a worktree/feature branch first, do all work there, and merge via PR. This applies to all changes — including new directories, isolated features, and "quick" fixes.
 
-## UI Architecture Constraints
+## Clean Code + Architecture
 
-These are load-bearing patterns. Do not change them.
-
-- **Event delegation:** `client/app.js` uses delegated event listeners on container elements. Do not attach listeners directly to dynamic child elements.
-- **Filter pipeline:** `#categoryFilter` + `filterTodos()` is the canonical filter path. All project/category/status filtering routes through it.
-- **Project selection:** Use `setSelectedProjectKey(...)` for all project selection entry points. Do not bypass it.
-- **DOM-ready signal:** After auth/navigation, wait for `#todosView.active` + `#todosContent` visible + no `.loading` children. See `waitForTodosViewIdle()` in `tests/ui/helpers/todos-view.ts`.
+- **Keep orchestrators thin.** `client/app.js`, `src/routes/`, and entrypoints should coordinate, not accumulate logic.
+- **Put behavior in the right home.** Frontend → `client/features/` or `client/modules/`. Backend → services, not route handlers.
+- **Prefer the canonical path.** Extend existing flows instead of introducing parallel paths.
+- **Do not widen legacy seams casually.** Extract cohesive logic into modules instead of growing large files.
 
 ## Verification Checks
 
-After any change, run all applicable checks. All must pass before committing.
+After any change, run all applicable checks. All must pass before committing. Typecheck, architecture check, and format check are also enforced by pre-commit hooks.
 
 ```bash
 npx tsc --noEmit
+npm run check:architecture
 npm run format:check
 npm run lint:html
 npm run lint:css
 npm run test:unit
 CI=1 npm run test:ui:fast
 ```
+
+**IMPORTANT: Do not skip `CI=1 npm run test:ui:fast`** — even for changes that seem backend-only. If port 4173 is in use: `lsof -ti:4173 | xargs kill -9`.
+
+## Definition of Done
+
+- All verification checks pass (typecheck, architecture, format, lint, unit, UI tests)
+- Coverage ratchet passes: `npm run test:coverage:check` (coverage must not drop below baseline)
+- Changes are on a feature branch (never master), merged via PR
+- PR description mentions cross-client impact if `src/types.ts` changed
+- No unrelated files staged
+- Conventional commit message: `feat(ui):`, `fix(api):`, `test(ui):`, `ci:`, `docs:`
+- For complex changes: use `code-reviewer` subagent before creating PR
 
 ## CI Gates (required to pass on every PR)
 
@@ -52,39 +64,11 @@ CI=1 npm run test:ui:fast
 - **ui-quality** — CSS lint + HTML validation + link crawl + fast UI tests.
 - **Railway** — preview deploy.
 
-## UI Test Rules
-
-- **Fast suite (`test:ui:fast`)** is the required CI gate. Excludes `@visual`-tagged tests.
-- **Full suite (`test:ui`)** includes visual snapshot tests. Run only when snapshots are affected.
-- Any test using `toHaveScreenshot()` MUST include `@visual` in the test title.
-- Use `openTodosViewWithStorageState()` or `bootstrapTodosContext()` from `tests/ui/helpers/todos-view.ts` for auth setup. Do not write registration/login flows inline in specs.
-- Use deterministic DOM-ready waits (`waitForTodosViewIdle()`). Never use `page.waitForTimeout()` or sleep-based waits.
-- Never delete or weaken existing tests to make CI pass.
-
-## Snapshot Rules
-
-- CI runs on `ubuntu-latest`. Screenshots generated on macOS will NOT match.
-- `maxDiffPixelRatio: 0.05` in Playwright config. Mobile snapshots diverge more than desktop.
-- Do not update snapshot PNGs unless visually intentional. Note why in the commit message.
-- To generate Linux-compatible baselines:
-  ```bash
-  /usr/local/bin/docker run --rm -v "$(pwd)":/work -w /work \
-    mcr.microsoft.com/playwright:v1.58.2 \
-    /bin/bash -c "npm ci && npx playwright test <spec> --update-snapshots"
-  ```
-
 ## PR Workflow
 
 - Always check `mergeStateStatus` and `mergeable` before merging.
 - Prefer squash merge with `--delete-branch`.
-- When rebasing causes snapshot drift, regenerate in Docker, amend, force-push-with-lease.
 - `--delete-branch` may fail if a local worktree uses the branch (remote still gets deleted).
-
-## Commit Conventions
-
-- Use conventional commits: `feat(ui):`, `fix(api):`, `test(ui):`, `ci:`, `docs:`.
-- One logical change per commit. Split if the change spans unrelated areas.
-- Only commit files you intentionally changed. Do not stage unrelated files.
 
 ## Boundaries
 
@@ -93,3 +77,4 @@ CI=1 npm run test:ui:fast
 - Do not add new npm dependencies without justification.
 - Do not modify `prisma/schema.prisma` unless schema changes are explicitly required.
 - If a check fails for reasons unrelated to the current change, note it rather than fixing unrelated code.
+- Git pathspec exclude syntax: use `:(exclude)path/` not `:!path/` to avoid bash history expansion.

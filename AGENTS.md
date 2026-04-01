@@ -12,70 +12,32 @@ cd "$WORKTREE_DIR"
 npm ci
 ```
 
-Work entirely inside the worktree directory for the duration of the task.
-
-## Worktree hygiene (MANDATORY)
-
-**One PR = one branch = one worktree. Never reuse a worktree for a new task.**
-
-Before starting any task **and before any rebase/merge**, run:
-
-```bash
-git status --porcelain
-```
+One PR = one branch = one worktree. Never reuse a worktree for a new task.
 
 ## Project Structure
 
-- **Frontend:** Static HTML/CSS/JS in `client/` (no build step, no framework).
-  - `client/app.js` — app entrypoint/orchestration.
-  - `client/modules/` — domain JS modules.
-  - `client/utils/` — shared utility JS files.
-  - `client/styles.css` — all styles.
-  - `client/index.html` — single-page app shell.
-- **Backend:** Express + Prisma + PostgreSQL in `src/`.
-- **Tests:**
-  - Unit: `src/*.test.ts` (Jest).
-  - Integration: `src/*.integration.test.ts` (Jest + supertest).
-  - UI: `tests/ui/*.spec.ts` (Playwright).
+- **Backend:** Express + Prisma + PostgreSQL in `src/`. Routes in `src/routes/`, services in `src/services/`.
+- **Web Client (vanilla):** Static HTML/CSS/JS in `client/` — see `client/AGENTS.md`
+- **Web Client (React):** Vite + React + TypeScript in `client-react/` — see `client-react/AGENTS.md`
+- **iOS App:** SwiftUI (iOS 17+) in `ios/TodosApp/` — see `ios/AGENTS.md`
+- **CLI:** `td` CLI tool in `src/cli/` (TypeScript, Commander.js).
+- **Agent Runner:** Python worker in `agent-runner/` — Railway cron deployment.
+- **Tests:** Unit (`src/*.test.ts`), Integration (`src/*.integration.test.ts`), UI (`tests/ui/*.spec.ts`)
+
+### Shared contract
+
+`src/types.ts` is the canonical source of truth for all API types and enums. When this file changes, all clients (vanilla JS, React, iOS DTOs) must stay in sync. Mention cross-client impact in the PR description.
 
 ## Clean Code + Architecture (REQUIRED)
 
-Before changing code, identify the target layer/domain, the files you expect to
-touch, and the invariant or ADR that should still be true after the change. If
-you cannot explain why the change belongs in a given file or layer, stop and
-ask rather than guessing.
+- **Keep orchestrators thin.** `client/app.js`, `src/routes/`, and entrypoints should coordinate, not accumulate logic.
+- **Put behavior in the right home.** Frontend → `client/features/` or `client/modules/`. Backend → services, not route handlers.
+- **Prefer the canonical path.** Extend existing flows instead of introducing parallel paths.
+- **Do not widen legacy seams casually.** Extract cohesive logic into modules instead of growing large files.
 
-- **Keep orchestrators thin.** `client/app.js`, `src/routes/`, and other
-  entrypoints should coordinate work, not accumulate feature logic.
-- **Put behavior in the right home.** Frontend behavior belongs in
-  `client/features/`, `client/modules/`, `client/platform/`, or `client/utils/`
-  based on responsibility. Backend behavior belongs in the relevant product
-  domain or existing service layer rather than directly in route handlers.
-- **Prefer the canonical path over parallel paths.** Extend the existing
-  filter/project-selection/rendering flow instead of introducing a second way to
-  do the same job.
-- **Do not widen legacy seams casually.** If you touch a large or transitional
-  file, prefer extracting cohesive logic into the appropriate module instead of
-  adding more unrelated responsibility to that file.
-- **Keep cross-cutting code generic.** Shared helpers belong in
-  infrastructure/platform/utils layers only when they are truly reusable across
-  multiple domains.
-- **Document boundary changes.** If the change introduces a new pattern,
-  boundary, or exception to an existing rule, update the durable doc/ADR in the
-  same PR or an immediate follow-up PR.
+## Verification Checks
 
-## UI Architecture Constraints
-
-These are load-bearing patterns. Do not change them.
-
-- **Event delegation:** `client/app.js` uses delegated event listeners on container elements. Do not attach listeners directly to dynamic child elements.
-- **Filter pipeline:** `#categoryFilter` + `filterTodos()` is the canonical filter path. All project/category/status filtering routes through it.
-- **Project selection:** Use `setSelectedProjectKey(...)` for all project selection entry points. Do not bypass it.
-- **DOM-ready signal:** After auth/navigation, wait for `#todosView.active` + `#todosContent` visible + no `.loading` children. See `waitForTodosViewIdle()` in `tests/ui/helpers/todos-view.ts`.
-
-## Test Requirements
-
-### After any change, run these checks (all must pass):
+After any change, run all applicable checks. All must pass before committing.
 
 ```bash
 npx tsc --noEmit
@@ -87,35 +49,18 @@ npm run test:unit
 CI=1 npm run test:ui:fast
 ```
 
-### UI test rules
+**IMPORTANT: Do not skip `CI=1 npm run test:ui:fast`** — even for changes that seem backend-only. If port 4173 is in use: `lsof -ti:4173 | xargs kill -9`.
 
-- **Fast suite (`test:ui:fast`)** is the required CI gate. It excludes `@visual`-tagged tests.
-- **Full suite (`test:ui`)** includes visual snapshot tests. Run only when snapshots are affected.
-- Any test using `toHaveScreenshot()` MUST include `@visual` in the test title.
-- Use `openTodosViewWithStorageState()` or `bootstrapTodosContext()` from `tests/ui/helpers/todos-view.ts` for auth setup. Do not write registration/login flows inline.
-- Use deterministic DOM-ready waits (see `waitForTodosViewIdle()`). Never use `page.waitForTimeout()` or sleep-based waits.
-- Never delete or weaken existing tests to make CI pass.
+## Definition of Done
 
-### Snapshot rules
-
-- CI runs on `ubuntu-latest`. Screenshots generated on macOS will NOT match.
-- Do not update snapshot PNGs unless visually intentional. Note why in the commit message.
-- If snapshots need updating, use Docker:
-  ```bash
-  docker run --rm -v "$(pwd)":/work -w /work \
-    mcr.microsoft.com/playwright:v1.58.2 \
-    /bin/bash -c "npm ci && npx playwright test <spec> --update-snapshots"
-  ```
+- All verification checks pass
+- Coverage ratchet passes: `npm run test:coverage:check` (coverage must not drop below baseline)
+- Changes are on a feature branch (never master), merged via PR
+- PR description mentions cross-client impact if `src/types.ts` changed
+- No unrelated files staged
+- Conventional commit: `feat(ui):`, `fix(api):`, `test(ui):`, `ci:`, `docs:`
 
 ## Commit and Handoff
-
-### Commit scope
-
-- Only commit files you intentionally changed. Do not commit unrelated files.
-- Use conventional commit messages: `feat(ui):`, `fix(api):`, `test(ui):`, `ci:`, `docs:`.
-- One logical change per commit. Split if the change spans unrelated areas.
-
-### Push and handoff
 
 After all checks pass:
 
@@ -123,15 +68,7 @@ After all checks pass:
 git push -u origin "$BRANCH_NAME"
 ```
 
-Provide a handoff summary with:
-
-- Branch name and head SHA.
-- Files changed (list each file).
-- What was implemented (bullet points).
-- Architecture notes: target layer/domain, invariant/ADR followed, and any
-  boundary intentionally preserved or changed.
-- Verification results (which checks passed/failed).
-- PR creation URL: `https://github.com/karthikg80/todos-api/pull/new/<branch-name>`
+Provide a handoff summary with: branch name + HEAD SHA, files changed, what was implemented, architecture notes, verification results, and PR creation URL.
 
 ## Boundaries
 
@@ -139,4 +76,5 @@ Provide a handoff summary with:
 - Do not change CI workflow files (`.github/workflows/`) unless the task explicitly requires it.
 - Do not add new npm dependencies without stating why in the handoff.
 - Do not modify `prisma/schema.prisma` unless the task explicitly requires schema changes.
-- If a check fails for reasons unrelated to your change, note it in the handoff rather than trying to fix unrelated code.
+- If a check fails for reasons unrelated to your change, note it in the handoff rather than fixing unrelated code.
+- Git pathspec exclude syntax: use `:(exclude)path/` not `:!path/` to avoid bash history expansion.
