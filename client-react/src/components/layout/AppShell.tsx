@@ -1163,7 +1163,6 @@ export function AppShell() {
 
       <TodoDrawer
         todo={activeTodo}
-        todos={todos}
         projects={projects}
         onClose={handleCloseDrawer}
         onSave={editTodo}

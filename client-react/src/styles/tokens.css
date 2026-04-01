@@ -66,6 +66,12 @@
   --tracking-normal: 0;
   --tracking-wide: 0.025em;
 
+  /* --- Aliases (used by FieldRenderer variants) --- */
+  --fs-sm: 0.75rem;
+  --fs-base: var(--fs-body);
+  --text-2: var(--muted);
+  --border-strong: color-mix(in oklab, var(--border) 70%, var(--text));
+
   /* --- Controls --- */
   --control-sm: 32px;
   --control-md: 40px;
@@ -128,6 +134,8 @@ body.dark-mode {
   --shadow-elevated: var(--shadow-lg);
   --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
   --shadow-focus-danger: 0 0 0 3px color-mix(in oklab, var(--danger) 30%, transparent);
+  --text-2: var(--muted);
+  --border-strong: color-mix(in oklab, var(--border) 70%, var(--text));
 }
 
 /* --- Density modes --- */

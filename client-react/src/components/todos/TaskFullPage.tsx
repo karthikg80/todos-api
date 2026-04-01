@@ -31,6 +31,9 @@ type SaveState = "idle" | "saving" | "saved" | "error";
 /** Fields rendered as hero content in the left column, not via FieldRenderer */
 const HERO_FIELDS = new Set(["description", "notes", "firstStep"]);
 
+/** Groups rendered in the left column below hero fields (balances layout) */
+const LEFT_GROUPS = new Set<FieldGroup>(["planning"]);
+
 /** Fields that need special compound rendering */
 const SPECIAL_FIELDS = new Set(["recurrenceType", "recurrenceInterval", "headingId"]);
 
@@ -126,9 +129,8 @@ export function TaskFullPage({ todo, projects, onSave, onDelete, onBack }: Props
     [save],
   );
 
-  /* ─── Group sidebar fields by section ──────────────────── */
-  const sidebarSections = useMemo(() => {
-    // All fields in the registry, excluding hero and special fields
+  /* ─── Group fields by section, split between columns ───── */
+  const { leftSections, sidebarSections } = useMemo(() => {
     const allKeys = FIELD_REGISTRY.map((f) => f.key).filter(
       (k) => !HERO_FIELDS.has(k) && !SPECIAL_FIELDS.has(k),
     );
@@ -146,11 +148,16 @@ export function TaskFullPage({ todo, projects, onSave, onDelete, onBack }: Props
       if (def) grouped[def.group].push(key);
     }
 
-    return SECTION_ORDER.map((group) => ({
+    const all = SECTION_ORDER.map((group) => ({
       group,
       label: SECTION_LABELS[group],
       fields: grouped[group],
     })).filter((s) => s.fields.length > 0);
+
+    return {
+      leftSections: all.filter((s) => LEFT_GROUPS.has(s.group)),
+      sidebarSections: all.filter((s) => !LEFT_GROUPS.has(s.group)),
+    };
   }, []);
 
   return (
@@ -228,6 +235,29 @@ export function TaskFullPage({ todo, projects, onSave, onDelete, onBack }: Props
               placeholder="Private notes, links, context…"
             />
           </div>
+
+          {/* ─── Planning fields (balanced from sidebar) ── */}
+          {leftSections.map(({ group, label, fields }) => (
+            <div key={group} className="task-full-page__section">
+              <h3 className="task-full-page__section-title">{label}</h3>
+              <div className="task-full-page__section-grid">
+                {fields.map((key) => {
+                  const def = FIELD_REGISTRY_BY_KEY[key];
+                  if (!def) return null;
+                  return (
+                    <FieldRenderer
+                      key={key}
+                      fieldDef={def}
+                      todo={todo}
+                      projects={projects}
+                      headings={headings}
+                      onSave={save}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
 
           <SubtaskList todoId={todo.id} />
           <AiDrawerAssist todoId={todo.id} todoTitle={title} />
