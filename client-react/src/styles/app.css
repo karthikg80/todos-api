@@ -449,6 +449,7 @@ body {
     border-color var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out);
   min-height: var(--row-height);
+  overflow: hidden;
 }
 
 .todo-item:hover {
@@ -2067,6 +2068,14 @@ body {
   gap: var(--s-1);
   flex-shrink: 0;
   flex-wrap: wrap;
+}
+
+@media (max-width: 700px) {
+  .todo-chips {
+    flex-shrink: 1;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
 }
 
 /* --- Tag chip --- */
@@ -4717,9 +4726,9 @@ body {
 }
 
 @media (max-width: 700px) {
-  /* Always show on mobile (no hover) */
+  /* Hide inline actions on mobile — quick edit panel handles this */
   .todo-inline-actions {
-    opacity: 0.6;
+    display: none;
   }
 }
 
