@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiCall } from "../../api/client";
+import { FeedbackTriagePage } from "./FeedbackTriagePage";
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 
@@ -43,6 +44,7 @@ interface FeedbackListItem {
   userId: string;
   user?: { email: string };
   classification?: string | null;
+  triageConfidence?: number | null;
   duplicateCandidate?: boolean;
   matchedFeedbackIds?: string[];
   matchedGithubIssueNumber?: number | null;
@@ -272,6 +274,17 @@ function PipelineIndicator({ item }: { item: FeedbackListItem }) {
         />
       ))}
     </div>
+  );
+}
+
+function AiConfidenceLabel({ item }: { item: FeedbackListItem }) {
+  if (!item.classification || item.triageConfidence == null) return null;
+  const c = item.triageConfidence;
+  const label = c >= 0.8 ? "Promote" : c >= 0.5 ? "Review" : "Reject";
+  return (
+    <span className="afw-row__ai-conf">
+      AI: {label} {Math.round(c * 100)}%
+    </span>
   );
 }
 
@@ -569,11 +582,13 @@ function FeedbackQueue({
   selectedId,
   onSelect,
   onBatchComplete,
+  onIdsLoaded,
   showToast,
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
   onBatchComplete: () => void;
+  onIdsLoaded: (ids: string[]) => void;
   showToast: (message: string, type: "success" | "error") => void;
 }) {
   const [statusFilter, setStatusFilter] = useState("");
@@ -593,13 +608,15 @@ function FeedbackQueue({
       const res = await apiCall(`/admin/feedback${qs ? `?${qs}` : ""}`);
       if (res.ok) {
         const data = await res.json();
-        setItems(Array.isArray(data) ? data : []);
+        const list: FeedbackListItem[] = Array.isArray(data) ? data : [];
+        setItems(list);
+        onIdsLoaded(list.map((i) => i.id));
       }
     } catch {
       /* ignore */
     }
     setLoading(false);
-  }, [statusFilter, typeFilter]);
+  }, [statusFilter, typeFilter, onIdsLoaded]);
 
   useEffect(() => {
     loadItems();
@@ -708,6 +725,7 @@ function FeedbackQueue({
           <Pill variant={item.type}>{item.type}</Pill>
           <Pill variant="status">{item.status}</Pill>
           <PipelineIndicator item={item} />
+          <AiConfidenceLabel item={item} />
         </div>
         <strong className="afw-row__title">{item.title}</strong>
         <div className="afw-row__meta">
@@ -1407,7 +1425,9 @@ function mapFailureRetryAction(actionType: string): string {
 /* ── Main Component ──────────────────────────────────────────────── */
 
 export function AdminFeedbackWorkflow() {
+  const [mode, setMode] = useState<"queue" | "triage">("queue");
   const [selectedId, setSelectedId] = useState("");
+  const [queueIds, setQueueIds] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   const [automationOpen, setAutomationOpen] = useState(false);
   const [toast, setToast] = useState<{
@@ -1427,69 +1447,88 @@ export function AdminFeedbackWorkflow() {
     [],
   );
 
+  const handleSelect = useCallback((id: string) => {
+    setSelectedId(id);
+    setMode("triage");
+  }, []);
+
+  const handleBack = useCallback(() => {
+    setMode("queue");
+  }, []);
+
+  const handleNavigate = useCallback((id: string) => {
+    setSelectedId(id);
+  }, []);
+
+  const handleIdsLoaded = useCallback((ids: string[]) => {
+    setQueueIds(ids);
+  }, []);
+
   return (
     <div className="afw">
-      {/* Automation section — collapsible */}
-      <section className="afw-collapsible">
-        <button
-          type="button"
-          className="afw-collapsible__trigger"
-          onClick={() => setAutomationOpen((o) => !o)}
-          aria-expanded={automationOpen}
-        >
-          <svg
-            className={`afw-collapsible__chevron${automationOpen ? " afw-collapsible__chevron--open" : ""}`}
-            width="14"
-            height="14"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M6 4l4 4-4 4" />
-          </svg>
-          <span>Automation settings</span>
-        </button>
-        {automationOpen && (
-          <div className="afw-collapsible__body">
-            <AutomationPanel onSelectFeedback={setSelectedId} />
-          </div>
-        )}
-      </section>
+      {mode === "queue" && (
+        <>
+          {/* Automation section — collapsible */}
+          <section className="afw-collapsible">
+            <button
+              type="button"
+              className="afw-collapsible__trigger"
+              onClick={() => setAutomationOpen((o) => !o)}
+              aria-expanded={automationOpen}
+            >
+              <svg
+                className={`afw-collapsible__chevron${automationOpen ? " afw-collapsible__chevron--open" : ""}`}
+                width="14"
+                height="14"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M6 4l4 4-4 4" />
+              </svg>
+              <span>Automation settings</span>
+            </button>
+            {automationOpen && (
+              <div className="afw-collapsible__body">
+                <AutomationPanel onSelectFeedback={handleSelect} />
+              </div>
+            )}
+          </section>
 
-      {/* Queue + Detail master-detail section */}
-      <section className="afw-section afw-section--fill">
-        <div className="afw-section__header">
-          <h3 className="afw-section__title">Feedback Queue</h3>
-          <p className="afw-section__subtitle">
-            Review incoming bugs and feature requests before promotion.
-          </p>
-        </div>
-        <div className="afw-master-detail">
-          <FeedbackQueue
-            key={refreshKey}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-            onBatchComplete={handleStatusChanged}
-            showToast={showToast}
-          />
-          {selectedId ? (
-            <DetailPanel
-              key={selectedId}
-              feedbackId={selectedId}
-              onStatusChanged={handleStatusChanged}
+          {/* Queue section (full width) */}
+          <section className="afw-section afw-section--fill">
+            <div className="afw-section__header">
+              <h3 className="afw-section__title">Feedback Queue</h3>
+              <p className="afw-section__subtitle">
+                Review incoming bugs and feature requests before promotion.
+              </p>
+            </div>
+            <FeedbackQueue
+              key={refreshKey}
+              selectedId={selectedId}
+              onSelect={handleSelect}
+              onBatchComplete={handleStatusChanged}
+              onIdsLoaded={handleIdsLoaded}
               showToast={showToast}
             />
-          ) : (
-            <div className="afw-detail afw-empty-block">
-              Select a feedback item to inspect the full submission and
-              metadata.
-            </div>
-          )}
-        </div>
-      </section>
+          </section>
+        </>
+      )}
+
+      {mode === "triage" && selectedId && (
+        <FeedbackTriagePage
+          key={selectedId}
+          feedbackId={selectedId}
+          queueIds={queueIds}
+          onBack={handleBack}
+          onNavigate={handleNavigate}
+          onStatusChanged={handleStatusChanged}
+          showToast={showToast}
+        />
+      )}
 
       {/* Toast notification */}
       {toast && (
