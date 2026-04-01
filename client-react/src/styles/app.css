@@ -821,6 +821,12 @@ body {
   gap: var(--s-3);
 }
 
+@media (max-width: 700px) {
+  .todo-drawer__fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 .todo-drawer__full-page-link {
   display: flex;
   align-items: center;
@@ -5122,6 +5128,12 @@ body {
   margin-bottom: var(--s-3);
 }
 
+@media (max-width: 700px) {
+  .quick-edit-panel__fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 .quick-edit-panel__actions {
   display: flex;
   justify-content: flex-end;
@@ -5630,6 +5642,12 @@ body {
   font-style: italic;
   text-transform: none;
   letter-spacing: 0;
+}
+
+@media (max-width: 700px) {
+  .field-hint {
+    display: none;
+  }
 }
 
 /* ── Chip selector variant ──────────────────────────────────────── */
