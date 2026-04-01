@@ -1,0 +1,3 @@
+// Debug configuration — local development
+// xcconfig treats // as comment, so use $() trick to escape
+BASE_URL = http:/$()/localhost:3000
