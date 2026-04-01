@@ -865,6 +865,33 @@ body {
   color: var(--muted);
 }
 
+.todo-drawer__full-page-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  width: 100%;
+  padding: var(--s-2h) var(--s-4);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast),
+    color var(--dur-fast),
+    background var(--dur-fast);
+}
+
+.todo-drawer__full-page-link:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 4%, transparent);
+}
+
 /* --- States --- */
 .loading-skeleton {
   display: flex;
@@ -5209,12 +5236,7 @@ body {
 .chip--accent { color: var(--accent); }
 .chip--accent.chip--selected { background: color-mix(in srgb, var(--accent) 15%, transparent); }
 
-/* Date shortcuts */
-.field-date-shortcuts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-1);
-}
+/* Date shortcuts (legacy — see FieldRenderer section below for active styles) */
 
 .field-date-shortcuts__label {
   font-size: var(--fs-label);
@@ -5590,6 +5612,19 @@ body {
   gap: var(--s-2);
 }
 
+/* 2-column grid within a section (planning fields in left column) */
+.task-full-page__section-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+}
+
+@media (max-width: 700px) {
+  .task-full-page__section-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .task-full-page__section-title {
   font-size: var(--fs-label);
   color: var(--muted);
@@ -5619,4 +5654,271 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: var(--s-1);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   FieldRenderer — shared primitives
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Label + hint row */
+.field-label-group {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.field-hint {
+  font-size: var(--fs-xs);
+  color: var(--muted-light);
+  font-weight: var(--fw-regular);
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── Chip selector variant ──────────────────────────────────────── */
+
+.field-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+
+.field-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.field-chip:hover {
+  border-color: var(--border-strong);
+  background: var(--surface-2);
+}
+
+.field-chip__icon {
+  font-size: 0.8em;
+  line-height: 1;
+}
+
+.field-chip__label {
+  line-height: 1.3;
+}
+
+/* ─ Tone: muted ─ */
+.field-chip--muted.field-chip--active {
+  border-color: var(--muted);
+  background: color-mix(in oklab, var(--muted) 10%, var(--surface));
+  color: var(--text);
+}
+
+/* ─ Tone: info ─ */
+.field-chip--info.field-chip--active {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 10%, var(--surface));
+  color: var(--accent);
+}
+
+/* ─ Tone: warn ─ */
+.field-chip--warn.field-chip--active {
+  border-color: var(--warning);
+  background: color-mix(in oklab, var(--warning) 10%, var(--surface));
+  color: var(--warning);
+}
+
+/* ─ Tone: danger ─ */
+.field-chip--danger.field-chip--active {
+  border-color: var(--danger);
+  background: color-mix(in oklab, var(--danger) 10%, var(--surface));
+  color: var(--danger);
+}
+
+/* ─ Tone: success ─ */
+.field-chip--success.field-chip--active {
+  border-color: var(--success);
+  background: color-mix(in oklab, var(--success) 10%, var(--surface));
+  color: var(--success);
+}
+
+/* ─ Tone: accent ─ */
+.field-chip--accent.field-chip--active {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+}
+
+/* Active state — subtle inset feel */
+.field-chip--active {
+  font-weight: var(--fw-semibold);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+/* ── Date shortcuts variant ─────────────────────────────────────── */
+
+.field-date-header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.field-date-relative {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--muted);
+}
+
+.field-date-relative--overdue {
+  color: var(--danger);
+}
+
+.field-date-shortcuts {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+  margin-top: var(--s-1);
+}
+
+.field-date-shortcut {
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.field-date-shortcut:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+}
+
+.field-date-shortcut--clear {
+  border-color: transparent;
+  color: var(--muted-light);
+}
+
+.field-date-shortcut--clear:hover {
+  color: var(--danger);
+  border-color: transparent;
+  background: color-mix(in oklab, var(--danger) 6%, var(--surface));
+}
+
+/* ── Estimate presets variant (FieldRenderer) ───────────────────── */
+
+.field-presets {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex-wrap: wrap;
+}
+
+.field-preset {
+  padding: 3px 10px;
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.field-preset:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+}
+
+.field-preset--active {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  font-weight: var(--fw-semibold);
+}
+
+.field-preset--custom {
+  color: var(--muted-light);
+  letter-spacing: 0.1em;
+}
+
+.field-preset-custom {
+  width: 56px;
+  padding: 3px 6px;
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs);
+  font-family: inherit;
+  border: 1.5px solid var(--accent);
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+  color: var(--text);
+  text-align: center;
+  transition: border-color var(--dur-fast);
+}
+
+.field-preset-custom:focus {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* ── Collapsible prompt variant ─────────────────────────────────── */
+
+.field-collapsible-prompt {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  border: 1px dashed var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: var(--fs-meta);
+  font-family: inherit;
+  text-align: left;
+  transition:
+    border-color var(--dur-fast),
+    color var(--dur-fast),
+    background var(--dur-fast);
+}
+
+.field-collapsible-prompt:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 4%, transparent);
+}
+
+/* ── Full-width field modifier ──────────────────────────────────── */
+.todo-drawer__field--full {
+  grid-column: 1 / -1;
 }
