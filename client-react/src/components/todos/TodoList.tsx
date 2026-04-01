@@ -1,4 +1,4 @@
-import type { Todo } from "../../types";
+import type { Todo, UpdateTodoDto } from "../../types";
 import type { LoadState } from "../../store/useTodosStore";
 import { TodoRow } from "./TodoRow";
 import { IllustrationTasksEmpty } from "../shared/Illustrations";
@@ -75,13 +75,17 @@ export function TodoList({
           key={todo.id}
           todo={todo}
           isActive={todo.id === activeTodoId}
+          isExpanded={false}
           isBulkMode={isBulkMode}
           isSelected={selectedIds.has(todo.id)}
+          projects={[]}
+          headings={[]}
           onToggle={onToggle}
           onClick={onClick}
           onKebab={onKebab}
           onSelect={onSelect}
           onInlineEdit={onInlineEdit}
+          onSave={(_id: string, _dto: UpdateTodoDto) => Promise.resolve()}
           onTagClick={onTagClick}
         />
       ))}
