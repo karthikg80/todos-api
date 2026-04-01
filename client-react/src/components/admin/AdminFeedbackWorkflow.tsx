@@ -987,6 +987,7 @@ function mapFailureRetryAction(actionType: string): string {
 export function AdminFeedbackWorkflow() {
   const [selectedId, setSelectedId] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [automationOpen, setAutomationOpen] = useState(false);
 
   const handleStatusChanged = useCallback(() => {
     setRefreshKey((k) => k + 1);
@@ -994,20 +995,38 @@ export function AdminFeedbackWorkflow() {
 
   return (
     <div className="afw">
-      {/* Automation section */}
-      <section className="afw-section">
-        <div className="afw-section__header">
-          <h3 className="afw-section__title">Feedback Automation</h3>
-          <p className="afw-section__subtitle">
-            Keep auto-promotion off by default, then graduate only
-            high-confidence, non-duplicate feedback into GitHub.
-          </p>
-        </div>
-        <AutomationPanel onSelectFeedback={setSelectedId} />
+      {/* Automation section — collapsible */}
+      <section className="afw-collapsible">
+        <button
+          type="button"
+          className="afw-collapsible__trigger"
+          onClick={() => setAutomationOpen((o) => !o)}
+          aria-expanded={automationOpen}
+        >
+          <svg
+            className={`afw-collapsible__chevron${automationOpen ? " afw-collapsible__chevron--open" : ""}`}
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M6 4l4 4-4 4" />
+          </svg>
+          <span>Automation settings</span>
+        </button>
+        {automationOpen && (
+          <div className="afw-collapsible__body">
+            <AutomationPanel onSelectFeedback={setSelectedId} />
+          </div>
+        )}
       </section>
 
       {/* Queue + Detail master-detail section */}
-      <section className="afw-section">
+      <section className="afw-section afw-section--fill">
         <div className="afw-section__header">
           <h3 className="afw-section__title">Feedback Queue</h3>
           <p className="afw-section__subtitle">
