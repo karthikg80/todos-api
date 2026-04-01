@@ -56,7 +56,8 @@
     "dev:react": "npm --prefix client-react run dev",
     "build:react": "npm --prefix client-react install --include=dev && npm --prefix client-react run build",
     "preview:react": "npm --prefix client-react run preview",
-    "test:ui:react:fast": "npm run build:react && PLAYWRIGHT_AUTH_DIR=.playwright/.auth playwright test --config playwright.react.config.ts --grep-invert @visual"
+    "test:ui:react:fast": "npm run build:react && PLAYWRIGHT_AUTH_DIR=.playwright/.auth playwright test --config playwright.react.config.ts --grep-invert @visual",
+    "prepare": "husky install"
   },
   "keywords": [],
   "author": "",
@@ -100,6 +101,7 @@
     "@types/supertest": "^6.0.3",
     "@types/uuid": "^10.0.0",
     "html-validate": "^10.0.0",
+    "husky": "^9.1.7",
     "jest": "^30.2.0",
     "linkinator": "^7.5.3",
     "nodemon": "^3.1.11",

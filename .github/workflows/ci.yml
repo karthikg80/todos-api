@@ -6,6 +6,64 @@ on:
   pull_request:
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      shared_contracts: ${{ steps.decide.outputs.shared_contracts }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check for shared contract changes
+        id: filter
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            shared_contracts:
+              - 'src/types.ts'
+              - 'src/validation/constants.ts'
+
+      - name: Decide whether to run cross-client sync
+        id: decide
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "shared_contracts=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "shared_contracts=${{ steps.filter.outputs.shared_contracts }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  cross-client-sync:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.shared_contracts == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: iOS Swift build
+        working-directory: ios/TodosApp
+        run: swift build
+
+      - name: Install React client dependencies
+        working-directory: client-react
+        run: npm ci
+
+      - name: React client typecheck
+        working-directory: client-react
+        run: npx tsc --noEmit
+
   unit:
     runs-on: ubuntu-latest
 

@@ -22,7 +22,7 @@ Full-stack todo application — monorepo with multiple clients consuming a share
 - gh CLI: `/opt/homebrew/bin/gh`.
 - Docker: `/usr/local/bin/docker`.
 - Git worktrees for feature branches live under `/private/tmp/todos-api-*`.
-- **Never commit directly to master.** Always create a worktree/feature branch first, do all work there, and merge via PR. This applies to all changes — including new directories, isolated features, and "quick" fixes.
+- **Never commit directly to master.** Enforced by a Husky pre-commit hook that blocks commits on `master` and detached `HEAD`. Always create a worktree/feature branch first, do all work there, and merge via PR.
 
 ## Clean Code + Architecture
 
@@ -44,6 +44,8 @@ npm run lint:css
 npm run test:unit
 CI=1 npm run test:ui:fast
 ```
+
+Conventional commit messages are enforced by a Husky `commit-msg` hook. Cross-client compatibility (iOS + React) is verified in CI when `src/types.ts` or `src/validation/constants.ts` change.
 
 **IMPORTANT: Do not skip `CI=1 npm run test:ui:fast`** — even for changes that seem backend-only. If port 4173 is in use: `lsof -ti:4173 | xargs kill -9`.
 
