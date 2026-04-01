@@ -15,6 +15,9 @@ export default defineConfig({
       "/projects": "http://localhost:3000",
       "/users": "http://localhost:3000",
       "/ai": "http://localhost:3000",
+      "/admin": "http://localhost:3000",
+      "/api": "http://localhost:3000",
+      "/agent": "http://localhost:3000",
     },
   },
 });
