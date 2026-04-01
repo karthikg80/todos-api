@@ -4,6 +4,7 @@ import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useDensity } from "../../hooks/useDensity";
+import { useServiceWorker } from "../../hooks/useServiceWorker";
 import {
   IconMoon,
   IconSun,
@@ -45,8 +46,9 @@ const TaskComposer = lazy(() => import("../todos/TaskComposer").then((m) => ({ d
 const AiWorkspace = lazy(() => import("../ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })));
 const AdminPage = lazy(() => import("../admin/AdminPage").then((m) => ({ default: m.AdminPage })));
 const FeedbackForm = lazy(() => import("../feedback/FeedbackForm").then((m) => ({ default: m.FeedbackForm })));
+const WeeklyReview = lazy(() => import("./WeeklyReview").then((m) => ({ default: m.WeeklyReview })));
 
-type AppPage = "todos" | "settings" | "ai" | "admin" | "feedback";
+type AppPage = "todos" | "settings" | "ai" | "admin" | "feedback" | "review";
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 
@@ -171,6 +173,13 @@ export function AppShell() {
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
+
+  // Service worker — offline sync
+  useServiceWorker(useCallback((replayed: number, failed: number) => {
+    if (replayed > 0) {
+      setUndoAction({ message: `Synced ${replayed} offline change${replayed > 1 ? "s" : ""}${failed > 0 ? ` (${failed} failed)` : ""}` });
+    }
+  }, []));
 
   // Client-side filtering: date view + search
   const visibleTodos = useMemo(() => {
@@ -721,6 +730,10 @@ export function AppShell() {
           <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
             <FeedbackForm onBack={() => setPage("todos")} />
           </Suspense>
+        ) : page === "review" ? (
+          <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
+            <WeeklyReview onBack={() => setPage("todos")} />
+          </Suspense>
         ) : activeView === "home" && !selectedProjectId ? (
           <>
             {!isMobile && (
@@ -1101,6 +1114,7 @@ export function AppShell() {
 
       <TodoDrawer
         todo={activeTodo}
+        todos={todos}
         projects={projects}
         onClose={handleCloseDrawer}
         onSave={editTodo}

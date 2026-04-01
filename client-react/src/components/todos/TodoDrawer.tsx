@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { relativeTime } from "../../utils/relativeTime";
+import { TaskPicker } from "../shared/TaskPicker";
+import { TaskTimeline } from "./TaskTimeline";
 import type {
   Todo,
   UpdateTodoDto,
@@ -15,6 +17,7 @@ import { apiCall } from "../../api/client";
 
 interface Props {
   todo: Todo | null;
+  todos: Todo[];
   projects: Project[];
   onClose: () => void;
   onSave: (id: string, dto: UpdateTodoDto) => Promise<unknown>;
@@ -42,7 +45,7 @@ const PRIORITY_OPTIONS: (Priority | "")[] = [
 ];
 const ENERGY_OPTIONS = ["", "low", "medium", "high"];
 
-export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props) {
+export function TodoDrawer({ todo, todos, projects, onClose, onSave, onDelete }: Props) {
   const isOpen = todo !== null;
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TodoStatus>("inbox");
@@ -628,21 +631,16 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
                     )}
                   </div>
 
-                  {/* Dependencies */}
-                  {todo.dependsOnTaskIds && todo.dependsOnTaskIds.length > 0 && (
-                    <div className="todo-drawer__field">
-                      <span className="todo-drawer__label">
-                        Depends on
-                      </span>
-                      <div className="todo-drawer__deps">
-                        {todo.dependsOnTaskIds.map((depId) => (
-                          <span key={depId} className="todo-chip todo-chip--project">
-                            {depId.slice(0, 8)}…
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Dependencies — full picker */}
+                  <div className="todo-drawer__field">
+                    <span className="todo-drawer__label">Depends on</span>
+                    <TaskPicker
+                      todos={todos}
+                      excludeId={todo.id}
+                      selectedIds={todo.dependsOnTaskIds || []}
+                      onChange={(ids) => save("dependsOnTaskIds", ids)}
+                    />
+                  </div>
 
                   <div className="todo-drawer__field">
                     <label
@@ -667,6 +665,8 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete }: Props)
               <SubtaskList todoId={todo.id} />
 
               <AiDrawerAssist todoId={todo.id} todoTitle={title} />
+
+              <TaskTimeline todoId={todo.id} />
             </div>
             <div className="todo-drawer__footer">
               <button
