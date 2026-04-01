@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiCall } from "../../api/client";
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
@@ -531,17 +531,57 @@ function AutomationPanel({
 
 /* ── Feedback Queue ──────────────────────────────────────────────── */
 
+/* ── Queue group derivation (Enhancement 3) ───────────────────────── */
+
+interface QueueGroup {
+  key: string;
+  label: string;
+  items: FeedbackListItem[];
+}
+
+function deriveQueueGroups(items: FeedbackListItem[]): QueueGroup[] {
+  const needsTriage: FeedbackListItem[] = [];
+  const triaged: FeedbackListItem[] = [];
+  const promoted: FeedbackListItem[] = [];
+  const rejected: FeedbackListItem[] = [];
+
+  for (const item of items) {
+    if (item.status === "rejected") {
+      rejected.push(item);
+    } else if (item.githubIssueNumber || item.status === "promoted") {
+      promoted.push(item);
+    } else if (item.classification) {
+      triaged.push(item);
+    } else {
+      needsTriage.push(item);
+    }
+  }
+
+  return [
+    { key: "needs-triage", label: "Needs triage", items: needsTriage },
+    { key: "triaged", label: "Triaged", items: triaged },
+    { key: "promoted", label: "Promoted", items: promoted },
+    { key: "rejected", label: "Rejected", items: rejected },
+  ].filter((g) => g.items.length > 0);
+}
+
 function FeedbackQueue({
   selectedId,
   onSelect,
+  onBatchComplete,
+  showToast,
 }: {
   selectedId: string;
   onSelect: (id: string) => void;
+  onBatchComplete: () => void;
+  showToast: (message: string, type: "success" | "error") => void;
 }) {
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [items, setItems] = useState<FeedbackListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [batchLoading, setBatchLoading] = useState(false);
 
   const loadItems = useCallback(async () => {
     setLoading(true);
@@ -564,6 +604,138 @@ function FeedbackQueue({
   useEffect(() => {
     loadItems();
   }, [loadItems]);
+
+  const groups = useMemo(() => deriveQueueGroups(items), [items]);
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAll = useCallback(() => {
+    setSelectedIds((prev) =>
+      prev.size === items.length ? new Set() : new Set(items.map((i) => i.id)),
+    );
+  }, [items]);
+
+  const handleBatchTriage = useCallback(async () => {
+    setBatchLoading(true);
+    let ok = 0;
+    for (const id of selectedIds) {
+      try {
+        const res = await apiCall(
+          `/admin/feedback/${encodeURIComponent(id)}/triage`,
+          { method: "POST" },
+        );
+        if (res.ok) ok++;
+      } catch {
+        /* continue */
+      }
+    }
+    setSelectedIds(new Set());
+    setBatchLoading(false);
+    showToast(`Triaged ${ok} of ${selectedIds.size} items`, "success");
+    await loadItems();
+    onBatchComplete();
+  }, [selectedIds, loadItems, onBatchComplete, showToast]);
+
+  const handleBatchReject = useCallback(async () => {
+    setBatchLoading(true);
+    let ok = 0;
+    for (const id of selectedIds) {
+      try {
+        const res = await apiCall(`/admin/feedback/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "rejected" }),
+        });
+        if (res.ok) ok++;
+      } catch {
+        /* continue */
+      }
+    }
+    setSelectedIds(new Set());
+    setBatchLoading(false);
+    showToast(`Rejected ${ok} of ${selectedIds.size} items`, "success");
+    await loadItems();
+    onBatchComplete();
+  }, [selectedIds, loadItems, onBatchComplete, showToast]);
+
+  const handleQuickReject = useCallback(
+    async (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      try {
+        const res = await apiCall(`/admin/feedback/${encodeURIComponent(id)}`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "rejected" }),
+        });
+        if (res.ok) {
+          setItems((prev) => prev.filter((i) => i.id !== id));
+          showToast("Item rejected", "success");
+          onBatchComplete();
+        } else {
+          showToast("Failed to reject item", "error");
+        }
+      } catch {
+        showToast("Network error rejecting item", "error");
+      }
+    },
+    [showToast, onBatchComplete],
+  );
+
+  const renderRow = (item: FeedbackListItem) => (
+    <div
+      key={item.id}
+      className={`afw-row${item.id === selectedId ? " is-selected" : ""}`}
+    >
+      <input
+        type="checkbox"
+        className="afw-row__checkbox"
+        checked={selectedIds.has(item.id)}
+        onChange={() => toggleSelected(item.id)}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={`Select ${item.title}`}
+      />
+      <button
+        type="button"
+        className="afw-row__body"
+        onClick={() => onSelect(item.id)}
+      >
+        <div className="afw-row__top">
+          <Pill variant={item.type}>{item.type}</Pill>
+          <Pill variant="status">{item.status}</Pill>
+          <PipelineIndicator item={item} />
+        </div>
+        <strong className="afw-row__title">{item.title}</strong>
+        <div className="afw-row__meta">
+          <span>{item.user?.email || item.userId}</span>
+          <span>{formatDateTime(item.createdAt)}</span>
+        </div>
+      </button>
+      <button
+        type="button"
+        className="afw-row__quick-reject"
+        aria-label="Quick reject"
+        onClick={(e) => handleQuickReject(e, item.id)}
+      >
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 16 16"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M4 4l8 8M12 4l-8 8" />
+        </svg>
+      </button>
+    </div>
+  );
 
   return (
     <div className="afw-queue">
@@ -612,7 +784,47 @@ function FeedbackQueue({
             ))}
           </div>
         </div>
+        <div className="afw-filter-group">
+          <label className="afw-filter-label afw-select-all">
+            <input
+              type="checkbox"
+              checked={items.length > 0 && selectedIds.size === items.length}
+              onChange={toggleSelectAll}
+            />
+            <span>Select all</span>
+          </label>
+        </div>
       </div>
+
+      {/* Batch toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="afw-batch-toolbar">
+          <span className="afw-batch-toolbar__count">
+            {selectedIds.size} selected
+          </span>
+          <button
+            className="btn btn--primary"
+            onClick={handleBatchTriage}
+            disabled={batchLoading}
+          >
+            Triage all
+          </button>
+          <button
+            className="btn btn--danger"
+            onClick={handleBatchReject}
+            disabled={batchLoading}
+          >
+            Reject all
+          </button>
+          <button
+            className="btn"
+            onClick={() => setSelectedIds(new Set())}
+            disabled={batchLoading}
+          >
+            Clear
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="loading">
@@ -625,24 +837,13 @@ function FeedbackQueue({
         </div>
       ) : (
         <div className="afw-list-items">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`afw-row${item.id === selectedId ? " is-selected" : ""}`}
-              onClick={() => onSelect(item.id)}
-            >
-              <div className="afw-row__top">
-                <Pill variant={item.type}>{item.type}</Pill>
-                <Pill variant="status">{item.status}</Pill>
-                <PipelineIndicator item={item} />
+          {groups.map((group) => (
+            <div key={group.key} className="afw-queue-group">
+              <div className="afw-queue-group__header">
+                {group.label} ({group.items.length})
               </div>
-              <strong className="afw-row__title">{item.title}</strong>
-              <div className="afw-row__meta">
-                <span>{item.user?.email || item.userId}</span>
-                <span>{formatDateTime(item.createdAt)}</span>
-              </div>
-            </button>
+              {group.items.map(renderRow)}
+            </div>
           ))}
         </div>
       )}
@@ -655,9 +856,11 @@ function FeedbackQueue({
 function DetailPanel({
   feedbackId,
   onStatusChanged,
+  showToast,
 }: {
   feedbackId: string;
   onStatusChanged: () => void;
+  showToast: (message: string, type: "success" | "error") => void;
 }) {
   const [item, setItem] = useState<FeedbackDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -739,39 +942,68 @@ function DetailPanel({
   }, [item, loadPreview]);
 
   const handleTriage = async () => {
-    await apiCall(`/admin/feedback/${encodeURIComponent(feedbackId)}/triage`, {
-      method: "POST",
-    });
-    await loadDetail();
+    try {
+      const res = await apiCall(
+        `/admin/feedback/${encodeURIComponent(feedbackId)}/triage`,
+        { method: "POST" },
+      );
+      await loadDetail();
+      if (res.ok) showToast("Triage complete", "success");
+      else showToast("Triage failed", "error");
+    } catch {
+      showToast("Network error during triage", "error");
+    }
+    onStatusChanged();
   };
 
   const handleDuplicateCheck = async () => {
-    await apiCall(
-      `/admin/feedback/${encodeURIComponent(feedbackId)}/duplicate-check`,
-      {
-        method: "POST",
-      },
-    );
-    await loadDetail();
+    try {
+      const res = await apiCall(
+        `/admin/feedback/${encodeURIComponent(feedbackId)}/duplicate-check`,
+        { method: "POST" },
+      );
+      await loadDetail();
+      if (res.ok) showToast("Duplicate check complete", "success");
+      else showToast("Duplicate check failed", "error");
+    } catch {
+      showToast("Network error during duplicate check", "error");
+    }
+    onStatusChanged();
   };
 
   const handlePromote = async () => {
-    await apiCall(`/admin/feedback/${encodeURIComponent(feedbackId)}/promote`, {
-      method: "POST",
-    });
-    await loadDetail();
+    try {
+      const res = await apiCall(
+        `/admin/feedback/${encodeURIComponent(feedbackId)}/promote`,
+        { method: "POST" },
+      );
+      await loadDetail();
+      if (res.ok) showToast("Promoted to GitHub", "success");
+      else showToast("Promotion failed", "error");
+    } catch {
+      showToast("Network error during promotion", "error");
+    }
     onStatusChanged();
   };
 
   const handleReject = async () => {
-    await apiCall(`/admin/feedback/${encodeURIComponent(feedbackId)}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        status: "rejected",
-        rejectionReason: rejectionReason || undefined,
-      }),
-    });
-    await loadDetail();
+    try {
+      const res = await apiCall(
+        `/admin/feedback/${encodeURIComponent(feedbackId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify({
+            status: "rejected",
+            rejectionReason: rejectionReason || undefined,
+          }),
+        },
+      );
+      await loadDetail();
+      if (res.ok) showToast("Item rejected", "success");
+      else showToast("Rejection failed", "error");
+    } catch {
+      showToast("Network error during rejection", "error");
+    }
     onStatusChanged();
   };
 
@@ -1178,10 +1410,22 @@ export function AdminFeedbackWorkflow() {
   const [selectedId, setSelectedId] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   const [automationOpen, setAutomationOpen] = useState(false);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const handleStatusChanged = useCallback(() => {
     setRefreshKey((k) => k + 1);
   }, []);
+
+  const showToast = useCallback(
+    (message: string, type: "success" | "error") => {
+      setToast({ message, type });
+      setTimeout(() => setToast(null), 3000);
+    },
+    [],
+  );
 
   return (
     <div className="afw">
@@ -1228,12 +1472,15 @@ export function AdminFeedbackWorkflow() {
             key={refreshKey}
             selectedId={selectedId}
             onSelect={setSelectedId}
+            onBatchComplete={handleStatusChanged}
+            showToast={showToast}
           />
           {selectedId ? (
             <DetailPanel
               key={selectedId}
               feedbackId={selectedId}
               onStatusChanged={handleStatusChanged}
+              showToast={showToast}
             />
           ) : (
             <div className="afw-detail afw-empty-block">
@@ -1243,6 +1490,13 @@ export function AdminFeedbackWorkflow() {
           )}
         </div>
       </section>
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`afw-toast afw-toast--${toast.type}`}>
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

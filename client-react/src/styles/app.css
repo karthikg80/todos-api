@@ -3904,6 +3904,155 @@ body {
   flex-shrink: 0;
 }
 
+/* Batch toolbar */
+.afw-batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  background: color-mix(in oklab, var(--accent) 8%, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+}
+
+.afw-batch-toolbar__count {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+  margin-right: auto;
+}
+
+/* Select-all label in filter bar */
+.afw-select-all {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  cursor: pointer;
+}
+
+/* Row layout update for checkbox + quick-reject */
+.afw-row {
+  flex-direction: row;
+  align-items: flex-start;
+  position: relative;
+}
+
+.afw-row__checkbox {
+  flex-shrink: 0;
+  margin-top: var(--s-1);
+  cursor: pointer;
+}
+
+.afw-row__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 0;
+}
+
+/* Quick-reject button (hover-visible) */
+.afw-row__quick-reject {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  border-radius: var(--r-sm);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    color var(--dur-fast),
+    background var(--dur-fast);
+}
+
+.afw-row:hover .afw-row__quick-reject {
+  opacity: 1;
+}
+
+.afw-row__quick-reject:hover {
+  color: var(--danger);
+  background: color-mix(in oklab, var(--danger) 8%, var(--surface));
+}
+
+.afw-row__quick-reject:focus-visible {
+  opacity: 1;
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Queue group headers */
+.afw-queue-group__header {
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--muted);
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* Toast notification */
+.afw-toast {
+  position: fixed;
+  bottom: var(--s-4);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-sm);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: #fff;
+  z-index: 100;
+  animation: afw-toast-in var(--dur-fast) var(--ease-out);
+}
+
+.afw-toast--success {
+  background: var(--success);
+}
+
+.afw-toast--error {
+  background: var(--danger);
+}
+
+@keyframes afw-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Verified badge on user cards */
+.admin-verified-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--r-full);
+  background: var(--success);
+  color: #fff;
+  font-size: 10px;
+  margin-left: var(--s-1);
+  vertical-align: middle;
+  line-height: 1;
+}
+
 /* --- Feedback page --- */
 .feedback-page {
   padding: var(--s-5);
