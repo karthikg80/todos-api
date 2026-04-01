@@ -3788,6 +3788,122 @@ body {
   min-height: 60px;
 }
 
+/* ── Pipeline indicator (3-dot progress on queue rows) ─────────── */
+
+.afw-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.afw-pipeline__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-full);
+  flex-shrink: 0;
+}
+
+.afw-pipeline__dot--done {
+  background: var(--success);
+}
+
+.afw-pipeline__dot--pending {
+  background: var(--border);
+}
+
+.afw-pipeline__dot--skipped {
+  background: var(--muted-light);
+  opacity: 0.4;
+}
+
+/* ── Next Action Banner (top of detail panel) ──────────────────── */
+
+.afw-next-action {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--r-sm);
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--accent) 20%, var(--border));
+}
+
+.afw-next-action--done {
+  background: color-mix(in oklab, var(--success) 6%, var(--surface));
+  border-color: color-mix(in oklab, var(--success) 20%, var(--border));
+}
+
+.afw-next-action--rejected {
+  background: color-mix(in oklab, var(--danger) 6%, var(--surface));
+  border-color: color-mix(in oklab, var(--danger) 20%, var(--border));
+}
+
+.afw-next-action__label {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  color: var(--text);
+}
+
+.afw-next-action--done .afw-next-action__label {
+  color: var(--success);
+}
+
+.afw-next-action--rejected .afw-next-action__label {
+  color: var(--danger);
+}
+
+.afw-next-action__link {
+  font-size: var(--fs-meta);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.afw-next-action__link:hover {
+  text-decoration: underline;
+}
+
+.afw-next-action__reason {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  font-style: italic;
+}
+
+.afw-next-action__pipeline {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  flex: 1;
+}
+
+.afw-pipeline__step {
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+  white-space: nowrap;
+}
+
+.afw-pipeline__step--done {
+  background: color-mix(in oklab, var(--success) 12%, var(--surface));
+  color: var(--success);
+}
+
+.afw-pipeline__step--pending {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.afw-pipeline__step--skipped {
+  background: transparent;
+  color: var(--muted-light);
+  text-decoration: line-through;
+}
+
+.afw-next-action__btn {
+  flex-shrink: 0;
+}
+
 /* --- Feedback page --- */
 .feedback-page {
   padding: var(--s-5);

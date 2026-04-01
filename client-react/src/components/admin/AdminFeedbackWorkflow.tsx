@@ -42,6 +42,85 @@ interface FeedbackListItem {
   createdAt: string;
   userId: string;
   user?: { email: string };
+  classification?: string | null;
+  duplicateCandidate?: boolean;
+  matchedFeedbackIds?: string[];
+  matchedGithubIssueNumber?: number | null;
+  githubIssueNumber?: number | null;
+  rejectionReason?: string | null;
+}
+
+/* ── Pipeline state derivation ──────────────────────────────────── */
+
+type PipelineStage = "triage" | "dedup" | "promote";
+type PipelineState = {
+  stages: Record<PipelineStage, "done" | "pending" | "skipped">;
+  nextAction: { label: string; stage: PipelineStage } | null;
+  terminal: boolean; // promoted or rejected — no more actions
+};
+
+function derivePipeline(item: {
+  status: string;
+  classification?: string | null;
+  duplicateCandidate?: boolean | null;
+  matchedFeedbackIds?: string[] | null;
+  matchedGithubIssueNumber?: number | null;
+  githubIssueNumber?: number | null;
+}): PipelineState {
+  const isRejected = item.status === "rejected";
+  const isPromoted = item.status === "promoted" || !!item.githubIssueNumber;
+  const isTriaged = !!item.classification;
+  const isDeduped =
+    item.duplicateCandidate != null ||
+    (Array.isArray(item.matchedFeedbackIds) &&
+      item.matchedFeedbackIds.length > 0) ||
+    item.matchedGithubIssueNumber != null;
+
+  if (isRejected) {
+    return {
+      stages: {
+        triage: isTriaged ? "done" : "skipped",
+        dedup: isDeduped ? "done" : "skipped",
+        promote: "skipped",
+      },
+      nextAction: null,
+      terminal: true,
+    };
+  }
+
+  if (isPromoted) {
+    return {
+      stages: {
+        triage: "done",
+        dedup: isDeduped ? "done" : "skipped",
+        promote: "done",
+      },
+      nextAction: null,
+      terminal: true,
+    };
+  }
+
+  if (!isTriaged) {
+    return {
+      stages: { triage: "pending", dedup: "pending", promote: "pending" },
+      nextAction: { label: "Run triage", stage: "triage" },
+      terminal: false,
+    };
+  }
+
+  if (!isDeduped) {
+    return {
+      stages: { triage: "done", dedup: "pending", promote: "pending" },
+      nextAction: { label: "Check duplicates", stage: "dedup" },
+      terminal: false,
+    };
+  }
+
+  return {
+    stages: { triage: "done", dedup: "done", promote: "pending" },
+    nextAction: { label: "Promote to GitHub", stage: "promote" },
+    terminal: false,
+  };
 }
 
 interface FeedbackDetail {
@@ -168,6 +247,108 @@ function Pill({
   variant: string;
 }) {
   return <span className={`afw-pill afw-pill--${variant}`}>{children}</span>;
+}
+
+/* ── Pipeline Indicator (3-dot progress for queue rows) ──────────── */
+
+const STAGE_LABELS: Record<PipelineStage, string> = {
+  triage: "Triage",
+  dedup: "Dedup",
+  promote: "Promote",
+};
+
+function PipelineIndicator({ item }: { item: FeedbackListItem }) {
+  const { stages, terminal } = derivePipeline(item);
+  return (
+    <div
+      className="afw-pipeline"
+      title={terminal ? item.status : "In progress"}
+    >
+      {(["triage", "dedup", "promote"] as PipelineStage[]).map((stage) => (
+        <span
+          key={stage}
+          className={`afw-pipeline__dot afw-pipeline__dot--${stages[stage]}`}
+          title={`${STAGE_LABELS[stage]}: ${stages[stage]}`}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Next Action Banner (top of detail panel) ───────────────────── */
+
+function NextActionBanner({
+  item,
+  onTriage,
+  onDedup,
+  onPromote,
+}: {
+  item: FeedbackDetail;
+  onTriage: () => void;
+  onDedup: () => void;
+  onPromote: () => void;
+}) {
+  const pipeline = derivePipeline(item);
+
+  if (pipeline.terminal) {
+    if (item.status === "promoted" && item.githubIssueUrl) {
+      return (
+        <div className="afw-next-action afw-next-action--done">
+          <span className="afw-next-action__label">Promoted</span>
+          <a
+            className="afw-next-action__link"
+            href={item.githubIssueUrl}
+            target="_blank"
+            rel="noreferrer"
+          >
+            View GitHub issue #{item.githubIssueNumber}
+          </a>
+        </div>
+      );
+    }
+    if (item.status === "rejected") {
+      return (
+        <div className="afw-next-action afw-next-action--rejected">
+          <span className="afw-next-action__label">Rejected</span>
+          {item.rejectionReason && (
+            <span className="afw-next-action__reason">
+              {item.rejectionReason}
+            </span>
+          )}
+        </div>
+      );
+    }
+    return null;
+  }
+
+  if (!pipeline.nextAction) return null;
+
+  const handlers: Record<PipelineStage, () => void> = {
+    triage: onTriage,
+    dedup: onDedup,
+    promote: onPromote,
+  };
+
+  return (
+    <div className="afw-next-action">
+      <div className="afw-next-action__pipeline">
+        {(["triage", "dedup", "promote"] as PipelineStage[]).map((stage) => (
+          <span
+            key={stage}
+            className={`afw-pipeline__step afw-pipeline__step--${pipeline.stages[stage]}`}
+          >
+            {STAGE_LABELS[stage]}
+          </span>
+        ))}
+      </div>
+      <button
+        className="btn btn--primary afw-next-action__btn"
+        onClick={handlers[pipeline.nextAction.stage]}
+      >
+        {pipeline.nextAction.label}
+      </button>
+    </div>
+  );
 }
 
 /* ── Automation Panel ────────────────────────────────────────────── */
@@ -454,6 +635,7 @@ function FeedbackQueue({
               <div className="afw-row__top">
                 <Pill variant={item.type}>{item.type}</Pill>
                 <Pill variant="status">{item.status}</Pill>
+                <PipelineIndicator item={item} />
               </div>
               <strong className="afw-row__title">{item.title}</strong>
               <div className="afw-row__meta">
@@ -646,6 +828,14 @@ function DetailPanel({
             {formatDateTime(item.createdAt)}
           </p>
         </div>
+
+        {/* Next action banner */}
+        <NextActionBanner
+          item={item}
+          onTriage={handleTriage}
+          onDedup={handleDuplicateCheck}
+          onPromote={handlePromote}
+        />
 
         {/* Raw submission */}
         <div className="afw-block">
