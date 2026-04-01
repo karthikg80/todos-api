@@ -22,6 +22,7 @@ interface Props {
   onClose: () => void;
   onSave: (id: string, dto: UpdateTodoDto) => Promise<unknown>;
   onDelete: (id: string) => void;
+  onOpenFullPage?: (id: string) => void;
 }
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -45,7 +46,7 @@ const PRIORITY_OPTIONS: (Priority | "")[] = [
 ];
 const ENERGY_OPTIONS = ["", "low", "medium", "high"];
 
-export function TodoDrawer({ todo, todos, projects, onClose, onSave, onDelete }: Props) {
+export function TodoDrawer({ todo, todos, projects, onClose, onSave, onDelete, onOpenFullPage }: Props) {
   const isOpen = todo !== null;
   const [title, setTitle] = useState("");
   const [status, setStatus] = useState<TodoStatus>("inbox");
@@ -178,6 +179,16 @@ export function TodoDrawer({ todo, todos, projects, onClose, onSave, onDelete }:
               >
                 ✕
               </button>
+              {onOpenFullPage && (
+                <button
+                  className="todo-drawer__expand"
+                  onClick={() => onOpenFullPage(todo.id)}
+                  aria-label="Open full page"
+                  title="Open full page"
+                >
+                  ⛶
+                </button>
+              )}
               <span id="drawerSaveStatus" className="todo-drawer__save-status">
                 {saveState === "saving"
                   ? "Saving…"

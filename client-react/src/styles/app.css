@@ -5092,3 +5092,531 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* ── Drawer expand button ──────────────────────────────────────── */
+.todo-drawer__expand {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: var(--muted);
+  padding: 0;
+  border-radius: var(--r-sm);
+  line-height: 1;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.todo-drawer__expand:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+
+/* ── Quick Edit Panel ──────────────────────────────────────────── */
+.todo-item--expanded {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.quick-edit-panel {
+  width: 100%;
+  padding: var(--s-3) var(--s-4) var(--s-4);
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+}
+
+.quick-edit-panel__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+
+.quick-edit-panel__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+
+/* ── FieldRenderer variants ────────────────────────────────────── */
+
+/* Chip selector */
+.field-chip-selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.field-chip-selector__label {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field-chip-selector__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1);
+}
+
+.chip {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  background: var(--surface-3);
+  color: var(--text-2);
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast),
+    border-color var(--dur-fast),
+    transform var(--dur-fast);
+  user-select: none;
+}
+
+.chip:hover {
+  background: var(--surface-3);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.chip--selected {
+  border-color: currentColor;
+}
+
+/* Chip tone colors */
+.chip--muted { color: var(--text-2); }
+.chip--muted.chip--selected { background: var(--surface-3); color: var(--text); }
+.chip--info { color: var(--blue, #3b82f6); }
+.chip--info.chip--selected { background: color-mix(in srgb, var(--blue, #3b82f6) 12%, transparent); }
+.chip--warn { color: var(--orange, #f97316); }
+.chip--warn.chip--selected { background: color-mix(in srgb, var(--orange, #f97316) 12%, transparent); }
+.chip--danger { color: var(--red, #ef4444); }
+.chip--danger.chip--selected { background: color-mix(in srgb, var(--red, #ef4444) 12%, transparent); }
+.chip--success { color: var(--green, #22c55e); }
+.chip--success.chip--selected { background: color-mix(in srgb, var(--green, #22c55e) 12%, transparent); }
+.chip--accent { color: var(--accent); }
+.chip--accent.chip--selected { background: color-mix(in srgb, var(--accent) 15%, transparent); }
+
+/* Date shortcuts */
+.field-date-shortcuts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.field-date-shortcuts__label {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.field-date-shortcuts__current {
+  font-weight: 600;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.field-date-shortcuts__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.field-date-shortcuts__shortcuts {
+  display: flex;
+  gap: var(--s-1);
+}
+
+.date-shortcut {
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast);
+  white-space: nowrap;
+}
+
+.date-shortcut:hover {
+  background: var(--surface-3);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.field-date-shortcuts__native {
+  flex: 1;
+  min-width: 120px;
+  padding: 3px 6px;
+  font-size: var(--fs-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.field-date-shortcuts__clear {
+  padding: 2px 6px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--muted);
+  transition: color var(--dur-fast);
+}
+
+.field-date-shortcuts__clear:hover {
+  color: var(--red, #ef4444);
+}
+
+/* Collapsible textarea */
+.field-collapsible {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.field-collapsible__trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: var(--s-1) 0;
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  text-align: left;
+  transition: color var(--dur-fast);
+}
+
+.field-collapsible__trigger:hover {
+  color: var(--text);
+}
+
+.field-collapsible__trigger-icon {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  transition: transform var(--dur-fast);
+}
+
+.field-collapsible__trigger-icon--open {
+  transform: rotate(90deg);
+}
+
+.field-collapsible__hint {
+  font-size: var(--fs-xs, 0.7rem);
+  color: var(--muted);
+  font-style: italic;
+  margin-left: var(--s-4);
+}
+
+.field-collapsible__textarea {
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--fs-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+  font-family: inherit;
+  transition: border-color var(--dur-fast);
+}
+
+.field-collapsible__textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Estimate presets */
+.field-estimate-presets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.field-estimate-presets__label {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field-estimate-presets__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+
+.field-estimate-presets__presets {
+  display: flex;
+  gap: var(--s-1);
+}
+
+.estimate-preset {
+  padding: 2px 8px;
+  border-radius: var(--r-sm);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1.5px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.estimate-preset:hover,
+.estimate-preset--selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.field-estimate-presets__input {
+  width: 70px;
+  padding: 3px 6px;
+  font-size: var(--fs-sm);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  text-align: right;
+}
+
+.field-estimate-presets__unit {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+/* ── Task Full Page ─────────────────────────────────────────────── */
+.task-full-page {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.task-full-page__topbar,
+.task-full-page__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-4) var(--s-5);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
+}
+
+.task-full-page__back {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm);
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+
+.task-full-page__back:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.task-full-page__save-status {
+  margin-left: auto;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.task-full-page__layout,
+.task-full-page__body {
+  flex: 1;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-5);
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--s-8);
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .task-full-page__layout,
+  .task-full-page__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.task-full-page__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+}
+
+.task-full-page__title {
+  font-size: var(--fs-xl, 1.5rem);
+  font-weight: 700;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text);
+  width: 100%;
+  padding: var(--s-2) 0;
+  line-height: 1.3;
+  transition: border-color var(--dur-fast);
+}
+
+.task-full-page__title:focus {
+  outline: none;
+  border-bottom-color: var(--accent);
+}
+
+.task-full-page__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.task-full-page__label {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.task-full-page__textarea {
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--fs-base);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.6;
+  transition: border-color var(--dur-fast);
+}
+
+.task-full-page__textarea--tall {
+  min-height: 120px;
+}
+
+.task-full-page__textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.task-full-page__textarea::placeholder {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.task-full-page__input {
+  width: 100%;
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--fs-base);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  transition: border-color var(--dur-fast);
+}
+
+.task-full-page__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.task-full-page__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.task-full-page__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.task-full-page__section-title {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-bottom: var(--s-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.task-full-page__meta {
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+
+.task-full-page__danger {
+  margin-top: var(--s-4);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--border);
+}
+
+/* ── Field label (shared between QE and full page) ───────────────── */
+.field-label {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--s-1);
+}

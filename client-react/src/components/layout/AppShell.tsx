@@ -38,6 +38,9 @@ import { ProjectCrud } from "../projects/ProjectCrud";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
 import { ProjectHeadings } from "../projects/ProjectHeadings";
+import { useTaskNavigation } from "../../hooks/useTaskNavigation";
+import { useHashRoute } from "../../hooks/useHashRoute";
+import { TaskFullPage } from "../todos/TaskFullPage";
 import * as todosApi from "../../api/todos";
 
 // Lazy-loaded heavy components (code splitting)
@@ -78,7 +81,11 @@ export function AppShell() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
-  const [activeTodoId, setActiveTodoId] = useState<string | null>(null);
+  const taskNav = useTaskNavigation();
+  const hashRoute = useHashRoute();
+  const activeTodoId = taskNav.activeTaskId;
+  const expandedTodoId = taskNav.state.mode === "quickEdit" ? taskNav.state.taskId : null;
+  const fullPageTaskId = taskNav.state.mode === "fullPage" ? taskNav.state.taskId : null;
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -174,6 +181,26 @@ export function AppShell() {
     loadProjects();
   }, [loadProjects]);
 
+  // Hash route ↔ task navigation sync
+  // On hash change (e.g. browser back), sync to nav state
+  useEffect(() => {
+    const taskId = hashRoute.taskId;
+    if (taskId && taskNav.state.mode !== "fullPage") {
+      taskNav.openFullPage(taskId);
+    } else if (!taskId && taskNav.state.mode === "fullPage") {
+      taskNav.collapse();
+    }
+  }, [hashRoute.taskId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When nav state enters fullPage, push hash
+  useEffect(() => {
+    if (fullPageTaskId && hashRoute.taskId !== fullPageTaskId) {
+      hashRoute.navigateToTask(fullPageTaskId);
+    } else if (!fullPageTaskId && hashRoute.taskId) {
+      hashRoute.clearRoute();
+    }
+  }, [fullPageTaskId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Service worker — offline sync
   useServiceWorker(useCallback((replayed: number, failed: number) => {
     if (replayed > 0) {
@@ -230,9 +257,10 @@ export function AppShell() {
     return filtered;
   }, [todos, activeView, selectedProjectId, searchQuery, activeTagFilter, activeHeadingId, activeFilters]);
 
+  const drawerTaskId = taskNav.state.mode === "drawer" ? taskNav.state.taskId : null;
   const activeTodo = useMemo(
-    () => todos.find((t) => t.id === activeTodoId) ?? null,
-    [todos, activeTodoId],
+    () => (drawerTaskId ? todos.find((t) => t.id === drawerTaskId) ?? null : null),
+    [todos, drawerTaskId],
   );
 
   // Count badges for workspace views
@@ -272,13 +300,17 @@ export function AppShell() {
 
   // --- Handlers ---
 
-  const handleTodoClick = useCallback((id: string) => {
-    setActiveTodoId(id);
-  }, []);
+  const handleQuickEdit = useCallback((id: string) => {
+    taskNav.openQuickEdit(id);
+  }, [taskNav]);
+
+  const handleOpenDrawer = useCallback((id: string) => {
+    taskNav.openDrawer(id);
+  }, [taskNav]);
 
   const handleCloseDrawer = useCallback(() => {
-    setActiveTodoId(null);
-  }, []);
+    taskNav.deescalate();
+  }, [taskNav]);
 
   const handleInlineEdit = useCallback(
     async (id: string, title: string) => {
@@ -392,7 +424,7 @@ export function AppShell() {
     if (!deleteTarget) return;
     const todo = todos.find((t) => t.id === deleteTarget);
     await removeTodo(deleteTarget);
-    if (activeTodoId === deleteTarget) setActiveTodoId(null);
+    if (activeTodoId === deleteTarget) taskNav.collapse();
     setDeleteTarget(null);
     if (todo) {
       setUndoAction({
@@ -407,14 +439,14 @@ export function AppShell() {
 
   const handleSelectView = useCallback((view: WorkspaceView) => {
     setActiveView(view);
-    setActiveTodoId(null);
+    taskNav.collapse();
     setBulkMode(false);
     setSelectedIds(new Set());
   }, []);
 
   const handleSelectProject = useCallback((id: string | null) => {
     setSelectedProjectId(id);
-    setActiveTodoId(null);
+    taskNav.collapse();
     setBulkMode(false);
     setSelectedIds(new Set());
   }, []);
@@ -469,7 +501,7 @@ export function AppShell() {
         if (paletteOpen) {
           setPaletteOpen(false);
         } else if (activeTodoId) {
-          setActiveTodoId(null);
+          taskNav.collapse();
         } else if (bulkMode) {
           handleCancelBulk();
         } else if (mobileNavOpen) {
@@ -524,7 +556,7 @@ export function AppShell() {
         } else {
           nextIdx = currentIdx > 0 ? currentIdx - 1 : ids.length - 1;
         }
-        setActiveTodoId(ids[nextIdx]);
+        taskNav.openQuickEdit(ids[nextIdx]);
         // Scroll the item into view
         document
           .querySelector(`[data-todo-id="${ids[nextIdx]}"]`)
@@ -543,7 +575,7 @@ export function AppShell() {
       // e: open drawer for focused task
       if (e.key === "e" && activeTodoId) {
         e.preventDefault();
-        handleTodoClick(activeTodoId);
+        handleOpenDrawer(activeTodoId);
         return;
       }
 
@@ -789,7 +821,7 @@ export function AppShell() {
               <HomeDashboard
                 todos={todos}
                 projects={projects}
-                onTodoClick={handleTodoClick}
+                onTodoClick={handleOpenDrawer}
                 onToggleTodo={handleToggle}
                 onEditTodo={(id, updates) => {
                   editTodo(id, updates);
@@ -822,7 +854,7 @@ export function AppShell() {
             )}
             <DeskView
               todos={todos}
-              onTodoClick={handleTodoClick}
+              onTodoClick={handleOpenDrawer}
               onToggleTodo={handleToggle}
               onRefreshTodos={() => loadTodos(queryParams)}
               onOpenComposer={() => setComposerOpen(true)}
@@ -1083,7 +1115,7 @@ export function AppShell() {
                     todos={visibleTodos}
                     loadState={loadState}
                     onToggle={handleToggle}
-                    onClick={handleTodoClick}
+                    onClick={handleOpenDrawer}
                     onStatusChange={editTodo}
                   />
                 </Suspense>
@@ -1093,14 +1125,18 @@ export function AppShell() {
                   loadState={loadState}
                   errorMessage={errorMessage}
                   activeTodoId={activeTodoId}
+                  expandedTodoId={expandedTodoId}
                   isBulkMode={bulkMode}
                   selectedIds={selectedIds}
+                  projects={projects}
+                  headings={[]}
                   onToggle={handleToggle}
-                  onClick={handleTodoClick}
-                  onKebab={handleTodoClick}
+                  onClick={handleQuickEdit}
+                  onKebab={handleOpenDrawer}
                   onRetry={() => loadTodos(queryParams)}
                   onSelect={handleBulkSelect}
                   onInlineEdit={handleInlineEdit}
+                  onSave={editTodo}
                   onTagClick={handleTagClick}
                   onLifecycleAction={handleLifecycleAction}
                   onReorder={handleReorder}
@@ -1112,6 +1148,19 @@ export function AppShell() {
         </ErrorBoundary>
       </div>
 
+      {fullPageTaskId && (() => {
+        const fullPageTodo = todos.find((t) => t.id === fullPageTaskId);
+        return fullPageTodo ? (
+          <TaskFullPage
+            todo={fullPageTodo}
+            projects={projects}
+            onSave={editTodo}
+            onDelete={handleDeleteRequest}
+            onBack={() => taskNav.collapse()}
+          />
+        ) : null;
+      })()}
+
       <TodoDrawer
         todo={activeTodo}
         todos={todos}
@@ -1119,6 +1168,7 @@ export function AppShell() {
         onClose={handleCloseDrawer}
         onSave={editTodo}
         onDelete={handleDeleteRequest}
+        onOpenFullPage={(id) => taskNav.openFullPage(id)}
       />
 
       {deleteTarget && (
@@ -1138,7 +1188,7 @@ export function AppShell() {
         onLogout={logout}
         todos={todos}
         onTodoClick={(id) => {
-          setActiveTodoId(id);
+          taskNav.openDrawer(id);
           setPaletteOpen(false);
         }}
       />

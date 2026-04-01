@@ -8,6 +8,12 @@
       "port": 3000
     },
     {
+      "name": "react-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "client-react"],
+      "port": 5173
+    },
+    {
       "name": "ui-static",
       "runtimeExecutable": "node",
       "runtimeArgs": ["scripts/ui-static-server.mjs"],
