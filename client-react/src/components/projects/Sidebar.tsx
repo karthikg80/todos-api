@@ -277,12 +277,12 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Sidebar search (like Claude.ai) */}
+      {/* Sidebar search — styled like a nav item */}
       {!isCollapsed && (
-        <div className="sidebar-search">
-          <IconSearch size={14} />
+        <div className="sidebar-search workspace-view-item">
+          <IconSearch />
           <input
-            className="sidebar-search__input"
+            className="sidebar-search__input nav-label"
             type="text"
             placeholder="Search…"
             value={searchQuery}
@@ -306,11 +306,11 @@ export function Sidebar({
         </div>
       )}
 
-      {/* New task button (like Claude's "New chat") */}
+      {/* New task button — styled like a nav item */}
       {!isCollapsed && (
-        <button className="sidebar-new-task-btn" onClick={onNewTask}>
-          <IconPlus />
-          <span>New Task</span>
+        <button className="sidebar-new-task-btn workspace-view-item" onClick={onNewTask}>
+          <IconPlus className="nav-icon" />
+          <span className="nav-label">New Task</span>
         </button>
       )}
 
