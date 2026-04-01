@@ -1,0 +1,22 @@
+#!/bin/sh
+
+msg=$(head -1 "$1")
+
+# Allow git-generated and history-edit helper commits
+case "$msg" in
+  Merge*|Revert*|fixup!\ *|squash!\ *)
+    exit 0
+    ;;
+esac
+
+# Conventional commit: type(optional-scope)!: description
+if ! grep -Eq '^(feat|fix|test|ci|docs|chore|refactor|perf|style|build|revert)(\([a-z0-9_-]+\))?(!)?: .+' "$1"; then
+  echo "ERROR: Commit message must follow Conventional Commits format."
+  echo "  Expected: type(scope): description"
+  echo "  Examples: feat(ui): add weekly review nav"
+  echo "            fix(api): handle null project key"
+  echo "            docs: update CLAUDE.md"
+  echo
+  echo "  Got: $msg"
+  exit 1
+fi
