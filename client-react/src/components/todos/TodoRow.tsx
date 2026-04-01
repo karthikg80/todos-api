@@ -1,18 +1,23 @@
 import { useState, useRef, useEffect } from "react";
-import type { Todo } from "../../types";
+import type { Todo, Project, Heading, UpdateTodoDto } from "../../types";
 import { IconKebab, IconClock, IconArchive, IconXCircle, IconRefresh } from "../shared/Icons";
 import { relativeTime } from "../../utils/relativeTime";
+import { QuickEditPanel } from "./QuickEditPanel";
 
 interface Props {
   todo: Todo;
   isActive: boolean;
+  isExpanded: boolean;
   isBulkMode: boolean;
   isSelected: boolean;
+  projects: Project[];
+  headings: Heading[];
   onToggle: (id: string, completed: boolean) => void;
   onClick: (id: string) => void;
   onKebab: (id: string) => void;
   onSelect: (id: string) => void;
   onInlineEdit: (id: string, title: string) => void;
+  onSave: (id: string, dto: UpdateTodoDto) => Promise<unknown>;
   onTagClick?: (tag: string) => void;
   onLifecycleAction?: (id: string, action: string, payload?: string) => void;
 }
@@ -36,13 +41,17 @@ function formatDueDate(due: string): { label: string; overdue: boolean } {
 export function TodoRow({
   todo,
   isActive,
+  isExpanded,
   isBulkMode,
   isSelected,
+  projects,
+  headings,
   onToggle,
   onClick,
   onKebab,
   onSelect,
   onInlineEdit,
+  onSave,
   onTagClick,
   onLifecycleAction,
 }: Props) {
@@ -67,7 +76,7 @@ export function TodoRow({
   };
 
   const titleClass = `todo-title${todo.completed ? " todo-title--completed" : ""}`;
-  const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}`;
+  const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${isExpanded ? " todo-item--expanded" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}`;
 
   return (
     <div
@@ -281,6 +290,16 @@ export function TodoRow({
           </>
         )}
       </div>
+
+      {isExpanded && (
+        <QuickEditPanel
+          todo={todo}
+          projects={projects}
+          headings={headings}
+          onSave={onSave}
+          onOpenDrawer={() => onKebab(todo.id)}
+        />
+      )}
     </div>
   );
 }
