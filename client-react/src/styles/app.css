@@ -1401,6 +1401,9 @@ body {
 .settings-page {
   padding: var(--s-5);
   max-width: 600px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .settings-page__header {
@@ -3011,6 +3014,9 @@ body {
 .admin-page {
   padding: var(--s-5);
   max-width: 900px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .admin-page__header {
@@ -3499,6 +3505,9 @@ body {
 .feedback-page {
   padding: var(--s-5);
   max-width: 600px;
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .feedback-page__header {
@@ -5304,6 +5313,9 @@ body {
 .weekly-review {
   max-width: 700px;
   padding: var(--s-5);
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
 }
 
 .weekly-review__header {
