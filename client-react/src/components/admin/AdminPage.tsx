@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiCall } from "../../api/client";
+import { AdminFeedbackWorkflow } from "./AdminFeedbackWorkflow";
 
 interface User {
   id: string;
@@ -9,15 +10,6 @@ interface User {
   createdAt: string;
 }
 
-interface FeedbackItem {
-  id: string;
-  title: string;
-  type: string;
-  status: string;
-  createdAt: string;
-  user?: { email: string };
-}
-
 interface Props {
   onBack: () => void;
 }
@@ -25,7 +17,6 @@ interface Props {
 export function AdminPage({ onBack }: Props) {
   const [tab, setTab] = useState<"users" | "feedback">("users");
   const [users, setUsers] = useState<User[]>([]);
-  const [feedback, setFeedback] = useState<FeedbackItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -38,19 +29,9 @@ export function AdminPage({ onBack }: Props) {
     setLoading(false);
   }, []);
 
-  const loadFeedback = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await apiCall("/admin/feedback/requests");
-      if (res.ok) setFeedback(await res.json());
-    } catch {}
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
     if (tab === "users") loadUsers();
-    else loadFeedback();
-  }, [tab, loadUsers, loadFeedback]);
+  }, [tab, loadUsers]);
 
   const handleRoleChange = useCallback(
     async (userId: string, role: string) => {
@@ -141,13 +122,14 @@ export function AdminPage({ onBack }: Props) {
                       <option value="admin">admin</option>
                     </select>
                   </td>
-                  <td>
-                    {new Date(u.createdAt).toLocaleDateString()}
-                  </td>
+                  <td>{new Date(u.createdAt).toLocaleDateString()}</td>
                   <td>
                     <button
                       className="btn btn--danger"
-                      style={{ fontSize: "var(--fs-label)", padding: "var(--s-0) var(--s-2)" }}
+                      style={{
+                        fontSize: "var(--fs-label)",
+                        padding: "var(--s-0) var(--s-2)",
+                      }}
                       onClick={() => handleDeleteUser(u.id)}
                     >
                       Delete
@@ -159,26 +141,7 @@ export function AdminPage({ onBack }: Props) {
           </table>
         )}
 
-        {tab === "feedback" && !loading && (
-          <div id="adminFeedbackList" className="admin-feedback-list">
-            {feedback.length === 0 && <p>No feedback items.</p>}
-            {feedback.map((f) => (
-              <div key={f.id} className="admin-feedback-item">
-                <div className="admin-feedback-item__header">
-                  <span className="admin-feedback-item__title">{f.title}</span>
-                  <span className={`todo-chip todo-chip--${f.type}`}>
-                    {f.type}
-                  </span>
-                  <span className="admin-feedback-item__status">{f.status}</span>
-                </div>
-                <div className="admin-feedback-item__meta">
-                  {f.user?.email || "Unknown"} ·{" "}
-                  {new Date(f.createdAt).toLocaleDateString()}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {tab === "feedback" && !loading && <AdminFeedbackWorkflow />}
       </div>
     </div>
   );
