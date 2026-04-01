@@ -4,13 +4,14 @@ import { TaskTimeline } from "./TaskTimeline";
 import type {
   Todo,
   UpdateTodoDto,
-  TodoStatus,
-  Priority,
   Heading,
   Project,
 } from "../../types";
 import { SubtaskList } from "./SubtaskList";
 import { AiDrawerAssist } from "../ai/AiDrawerAssist";
+import { FieldRenderer } from "./FieldRenderer";
+import { useFieldLayout } from "../../hooks/useFieldLayout";
+import { FIELD_REGISTRY_BY_KEY } from "../../types/fieldLayout";
 import { apiCall } from "../../api/client";
 
 interface Props {
@@ -24,32 +25,11 @@ interface Props {
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-const STATUS_OPTIONS: TodoStatus[] = [
-  "inbox",
-  "next",
-  "in_progress",
-  "waiting",
-  "scheduled",
-  "someday",
-  "done",
-  "cancelled",
-];
-const PRIORITY_OPTIONS: (Priority | "")[] = [
-  "",
-  "low",
-  "medium",
-  "high",
-  "urgent",
-];
 export function TodoDrawer({ todo, projects, onClose, onSave, onDelete, onOpenFullPage }: Props) {
   const isOpen = todo !== null;
+  const layout = useFieldLayout();
   const [title, setTitle] = useState("");
-  const [status, setStatus] = useState<TodoStatus>("inbox");
-  const [priority, setPriority] = useState<string>("");
-  const [projectId, setProjectId] = useState<string>("");
-  const [dueDate, setDueDate] = useState("");
-  const [description, setDescription] = useState("");
-  const [headingId, setHeadingId] = useState("");
+  const [projectId, setProjectId] = useState("");
   const [headings, setHeadings] = useState<Heading[]>([]);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const titleRef = useRef<HTMLInputElement>(null);
@@ -58,12 +38,7 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete, onOpenFu
   useEffect(() => {
     if (todo) {
       setTitle(todo.title);
-      setStatus(todo.status);
-      setPriority(todo.priority || "");
       setProjectId(todo.projectId || "");
-      setDueDate(todo.dueDate ? todo.dueDate.split("T")[0] : "");
-      setDescription(todo.description || "");
-      setHeadingId(todo.headingId || "");
       setSaveState("idle");
       triggerRef.current = document.activeElement;
       requestAnimationFrame(() => titleRef.current?.focus());
@@ -100,22 +75,24 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete, onOpenFu
   }, [isOpen]);
 
   const save = useCallback(
-    async (field: string, value: unknown) => {
+    (field: string, value: unknown) => {
       if (!todo) return;
+      if (field === "projectId") setProjectId(String(value ?? ""));
       setSaveState("saving");
-      try {
-        await onSave(todo.id, { [field]: value || null } as UpdateTodoDto);
-        setSaveState("saved");
-        setTimeout(
-          () => setSaveState((s) => (s === "saved" ? "idle" : s)),
-          2000,
-        );
-      } catch {
-        setSaveState("error");
-      }
+      onSave(todo.id, { [field]: value ?? null } as UpdateTodoDto)
+        .then(() => {
+          setSaveState("saved");
+          setTimeout(
+            () => setSaveState((s) => (s === "saved" ? "idle" : s)),
+            2000,
+          );
+        })
+        .catch(() => setSaveState("error"));
     },
     [todo, onSave],
   );
+
+  const fieldKeys = layout.drawer;
 
   return (
     <>
@@ -166,148 +143,21 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete, onOpenFu
                 }}
               />
 
-              {/* Core fields — always visible */}
-              <div className="todo-drawer__row">
-                <div className="todo-drawer__field todo-drawer__field--half">
-                  <label
-                    className="todo-drawer__label"
-                    htmlFor="drawerStatusSelect"
-                  >
-                    Status
-                  </label>
-                  <select
-                    id="drawerStatusSelect"
-                    className="todo-drawer__select"
-                    value={status}
-                    onChange={(e) => {
-                      const v = e.target.value as TodoStatus;
-                      setStatus(v);
-                      save("status", v);
-                    }}
-                  >
-                    {STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>
-                        {s.replace("_", " ")}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="todo-drawer__field todo-drawer__field--half">
-                  <label
-                    className="todo-drawer__label"
-                    htmlFor="drawerPrioritySelect"
-                  >
-                    Priority
-                  </label>
-                  <select
-                    id="drawerPrioritySelect"
-                    className="todo-drawer__select"
-                    value={priority}
-                    onChange={(e) => {
-                      setPriority(e.target.value);
-                      save("priority", e.target.value || null);
-                    }}
-                  >
-                    {PRIORITY_OPTIONS.map((p) => (
-                      <option key={p} value={p}>
-                        {p || "None"}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="todo-drawer__field">
-                <label
-                  className="todo-drawer__label"
-                  htmlFor="drawerDueDateInput"
-                >
-                  Due date
-                </label>
-                <input
-                  id="drawerDueDateInput"
-                  className="todo-drawer__input"
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => {
-                    setDueDate(e.target.value);
-                    save("dueDate", e.target.value || null);
-                  }}
-                />
-              </div>
-
-              <div className="todo-drawer__field">
-                <label
-                  className="todo-drawer__label"
-                  htmlFor="drawerProjectSelect"
-                >
-                  Project
-                </label>
-                <select
-                  id="drawerProjectSelect"
-                  className="todo-drawer__select"
-                  value={projectId}
-                  onChange={(e) => {
-                    setProjectId(e.target.value);
-                    save("projectId", e.target.value || null);
-                  }}
-                >
-                  <option value="">None</option>
-                  {projects
-                    .filter((p) => !p.archived)
-                    .map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              {/* Heading selector — only when project has headings */}
-              {projectId && headings.length > 0 && (
-                <div className="todo-drawer__field">
-                  <label
-                    className="todo-drawer__label"
-                    htmlFor="drawerHeadingSelect"
-                  >
-                    Section
-                  </label>
-                  <select
-                    id="drawerHeadingSelect"
-                    className="todo-drawer__select"
-                    value={headingId}
-                    onChange={(e) => {
-                      setHeadingId(e.target.value);
-                      save("headingId", e.target.value || null);
-                    }}
-                  >
-                    <option value="">None</option>
-                    {headings.map((h) => (
-                      <option key={h.id} value={h.id}>
-                        {h.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="todo-drawer__field">
-                <label
-                  className="todo-drawer__label"
-                  htmlFor="drawerDescriptionTextarea"
-                >
-                  Description
-                </label>
-                <textarea
-                  id="drawerDescriptionTextarea"
-                  className="todo-drawer__textarea"
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  onBlur={() => {
-                    if (description !== (todo.description || ""))
-                      save("description", description);
-                  }}
-                />
+              <div className="todo-drawer__fields">
+                {fieldKeys.map((key) => {
+                  const def = FIELD_REGISTRY_BY_KEY[key];
+                  if (!def) return null;
+                  return (
+                    <FieldRenderer
+                      key={key}
+                      fieldDef={def}
+                      todo={todo}
+                      projects={projects}
+                      headings={headings}
+                      onSave={save}
+                    />
+                  );
+                })}
               </div>
 
               {/* Full page link */}
