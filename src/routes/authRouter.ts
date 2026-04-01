@@ -984,6 +984,40 @@ export function createAuthRouter({
 
   // ── Google OAuth ─────────────────────────────────────────────────
 
+  // CLI OAuth: starts Google login with a localhost callback redirect
+  router.get("/cli/google", authLimiter, (req: Request, res: Response) => {
+    if (!googleAuthService || !config.googleLoginEnabled) {
+      return res.status(404).json({ error: "Google login not enabled" });
+    }
+
+    const portStr = req.query.port as string;
+    const port = parseInt(portStr, 10);
+    if (!portStr || isNaN(port) || port < 1024 || port > 65535) {
+      return res.status(400).json({ error: "Invalid port parameter" });
+    }
+
+    const { url, state } = googleAuthService.generateAuthUrl();
+
+    res.cookie("oauth_state", state, {
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "lax",
+      maxAge: 10 * 60 * 1000,
+      path: "/auth/google",
+    });
+
+    // Store CLI port so the callback knows to redirect to localhost
+    res.cookie("cli_port", String(port), {
+      httpOnly: true,
+      secure: config.nodeEnv === "production",
+      sameSite: "lax",
+      maxAge: 10 * 60 * 1000,
+      path: "/auth/google",
+    });
+
+    res.redirect(url);
+  });
+
   router.get("/google/start", authLimiter, (req: Request, res: Response) => {
     if (!googleAuthService || !config.googleLoginEnabled) {
       return res.status(404).json({ error: "Google login not enabled" });
@@ -1075,7 +1109,30 @@ export function createAuthRouter({
           sameSite: "lax",
         });
 
-        // Redirect to app with tokens
+        // Check if this is a CLI login flow
+        const cliPort = req.cookies?.cli_port;
+        if (cliPort) {
+          res.clearCookie("cli_port", {
+            path: "/auth/google",
+            httpOnly: true,
+            secure: config.nodeEnv === "production",
+            sameSite: "lax",
+          });
+
+          const port = parseInt(cliPort, 10);
+          if (!isNaN(port) && port >= 1024 && port <= 65535) {
+            const cliParams = new URLSearchParams({
+              token: result.token,
+              refreshToken: result.refreshToken,
+              email: result.user?.email || "",
+            });
+            return res.redirect(
+              `http://127.0.0.1:${port}/callback?${cliParams.toString()}`,
+            );
+          }
+        }
+
+        // Redirect to app with tokens (default web flow)
         const params = new URLSearchParams({
           auth: "success",
           token: result.token,
@@ -1084,6 +1141,24 @@ export function createAuthRouter({
         res.redirect(`/auth?${params.toString()}`);
       } catch (error) {
         console.error("Google OAuth callback error:", error);
+
+        // Check for CLI flow on error too
+        const cliPort = req.cookies?.cli_port;
+        if (cliPort) {
+          res.clearCookie("cli_port", {
+            path: "/auth/google",
+            httpOnly: true,
+            secure: config.nodeEnv === "production",
+            sameSite: "lax",
+          });
+          const port = parseInt(cliPort, 10);
+          if (!isNaN(port) && port >= 1024 && port <= 65535) {
+            return res.redirect(
+              `http://127.0.0.1:${port}/callback?error=${encodeURIComponent("Google login failed")}`,
+            );
+          }
+        }
+
         res.redirect(
           `/auth?auth=error&message=${encodeURIComponent("Google login failed")}`,
         );
