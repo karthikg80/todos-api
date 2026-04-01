@@ -2,6 +2,7 @@ import { Command } from "commander";
 import { ApiClient, ApiError } from "../client";
 import { loadConfig, saveConfig, clearAuth, isLoggedIn } from "../config";
 import { promptInput, promptPassword } from "../auth";
+import { browserLogin } from "../browser-auth";
 import {
   spinner,
   formatUserInfo,
@@ -16,8 +17,9 @@ export function registerAuthCommands(
 ): void {
   program
     .command("login")
-    .description("Log in to your account")
-    .action(async () => {
+    .description("Log in to your account (opens browser by default)")
+    .option("--password", "Use email/password instead of browser OAuth")
+    .action(async (opts: { password?: boolean }) => {
       try {
         if (isLoggedIn()) {
           const config = loadConfig();
@@ -27,26 +29,12 @@ export function registerAuthCommands(
           return;
         }
 
-        const email = await promptInput("Email: ");
-        const password = await promptPassword("Password: ");
-
-        if (!email || !password) {
-          printError("Email and password are required.");
-          process.exitCode = 1;
-          return;
+        if (opts.password) {
+          await passwordLogin(getClient);
+        } else {
+          const globalOpts = program.opts();
+          await browserLogin(globalOpts.apiUrl);
         }
-
-        const s = spinner("Logging in...").start();
-        const client = getClient();
-        const result = await client.post("/auth/login", { email, password });
-
-        const config = loadConfig();
-        config.accessToken = result.accessToken;
-        config.refreshToken = result.refreshToken;
-        config.user = result.user || { id: result.userId, email };
-        saveConfig(config);
-
-        s.succeed(`Logged in as ${email}`);
       } catch (err) {
         if (err instanceof ApiError) {
           printError(err.message);
@@ -118,4 +106,27 @@ export function registerAuthCommands(
         process.exitCode = 1;
       }
     });
+}
+
+async function passwordLogin(getClient: () => ApiClient): Promise<void> {
+  const email = await promptInput("Email: ");
+  const password = await promptPassword("Password: ");
+
+  if (!email || !password) {
+    printError("Email and password are required.");
+    process.exitCode = 1;
+    return;
+  }
+
+  const s = spinner("Logging in...").start();
+  const client = getClient();
+  const result = await client.post("/auth/login", { email, password });
+
+  const config = loadConfig();
+  config.accessToken = result.accessToken;
+  config.refreshToken = result.refreshToken;
+  config.user = result.user || { id: result.userId, email };
+  saveConfig(config);
+
+  s.succeed(`Logged in as ${email}`);
 }

@@ -16,42 +16,22 @@ export function promptInput(question: string): Promise<string> {
 
 export function promptPassword(question: string): Promise<string> {
   return new Promise((resolve) => {
+    process.stderr.write(question);
+
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stderr,
+      output: new (require("stream").Writable)({
+        write(_chunk: any, _encoding: any, callback: () => void) {
+          callback();
+        },
+      }),
+      terminal: true,
     });
 
-    // Disable echo for password input
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode?.(true);
-    }
-
-    process.stderr.write(question);
-    let password = "";
-
-    const onData = (char: Buffer) => {
-      const ch = char.toString("utf-8");
-      if (ch === "\n" || ch === "\r" || ch === "\u0004") {
-        if (process.stdin.isTTY) {
-          process.stdin.setRawMode?.(false);
-        }
-        process.stdin.removeListener("data", onData);
-        process.stderr.write("\n");
-        rl.close();
-        resolve(password);
-      } else if (ch === "\u007F" || ch === "\b") {
-        // backspace
-        password = password.slice(0, -1);
-      } else if (ch === "\u0003") {
-        // ctrl-c
-        process.stderr.write("\n");
-        process.exit(1);
-      } else {
-        password += ch;
-      }
-    };
-
-    process.stdin.on("data", onData);
-    process.stdin.resume();
+    rl.question("", (answer) => {
+      process.stderr.write("\n");
+      rl.close();
+      resolve(answer.trim());
+    });
   });
 }
