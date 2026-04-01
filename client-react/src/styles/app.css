@@ -865,6 +865,12 @@ body {
   color: var(--muted);
 }
 
+.todo-drawer__fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-3);
+}
+
 .todo-drawer__full-page-link {
   display: flex;
   align-items: center;
