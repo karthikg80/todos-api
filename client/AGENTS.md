@@ -13,7 +13,7 @@ These are load-bearing patterns. Do not change them.
 
 ## Dangerous Patterns
 
-- **`getProjectsRailElements()`** is a central factory with null-guards. Removing any HTML element it references silently breaks the entire project rail. Remove the guard *before* removing the HTML element.
+- **`getProjectsRailElements()`** is a central factory with null-guards. Removing any HTML element it references silently breaks the entire project rail. Remove the guard _before_ removing the HTML element.
 - **`data-onclick` global dispatcher:** Top-level functions are on `window` automatically. Explicit bridging: `window.fnName = fnName` at the bottom of `app.js`.
 - **Mobile vs desktop divergence:** Desktop header is hidden in todos view via `@media (min-width: 769px)`. The `.logout-btn` in `#userBar` is the mobile logout path. Keep `aria-label` values consistent with test expectations.
 
