@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export type ToastVariant = "default" | "success" | "error" | "warning";
 
@@ -15,11 +15,22 @@ interface Props {
 
 export function UndoToast({ action, onDismiss }: Props) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const [exiting, setExiting] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    if (!action) return;
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(onDismiss, 5000);
+    if (action) {
+      setExiting(false);
+      setVisible(true);
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => {
+        setExiting(true);
+        setTimeout(onDismiss, 200);
+      }, 5000);
+    } else {
+      setVisible(false);
+      setExiting(false);
+    }
     return () => clearTimeout(timerRef.current);
   }, [action, onDismiss]);
 
@@ -28,7 +39,7 @@ export function UndoToast({ action, onDismiss }: Props) {
   return (
     <div
       id="undoToast"
-      className={`undo-toast${action ? " active" : ""} undo-toast--${variant}`}
+      className={`undo-toast${visible ? " active" : ""} undo-toast--${variant}${exiting ? " undo-toast--exiting" : ""}`}
     >
       <span id="undoMessage" className="undo-toast__message">
         {action?.message}
@@ -38,12 +49,16 @@ export function UndoToast({ action, onDismiss }: Props) {
           className="undo-toast__btn"
           onClick={() => {
             action.onUndo?.();
+            setExiting(false);
+            setVisible(false);
+            clearTimeout(timerRef.current);
             onDismiss();
           }}
         >
           Undo
         </button>
       )}
+      {visible && !exiting && <div className="undo-toast__progress" />}
     </div>
   );
 }

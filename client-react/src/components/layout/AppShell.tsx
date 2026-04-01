@@ -40,6 +40,7 @@ import { OnboardingFlow } from "../shared/OnboardingFlow";
 import { ProjectHeadings } from "../projects/ProjectHeadings";
 import { useTaskNavigation } from "../../hooks/useTaskNavigation";
 import { useHashRoute } from "../../hooks/useHashRoute";
+import { useViewTransition } from "../../hooks/useViewTransition";
 import { TaskFullPage } from "../todos/TaskFullPage";
 import * as todosApi from "../../api/todos";
 
@@ -83,6 +84,7 @@ export function AppShell() {
   );
   const taskNav = useTaskNavigation();
   const hashRoute = useHashRoute();
+  const { startTransition } = useViewTransition();
   const activeTodoId = taskNav.activeTaskId;
   const expandedTodoId = taskNav.state.mode === "quickEdit" ? taskNav.state.taskId : null;
   const fullPageTaskId = taskNav.state.mode === "fullPage" ? taskNav.state.taskId : null;
@@ -623,11 +625,11 @@ export function AppShell() {
 
   const handlePaletteNavigate = useCallback(
     (view: WorkspaceView) => {
-      setPage("todos");
+      startTransition(() => setPage("todos"));
       handleSelectView(view);
       handleSelectProject(null);
     },
-    [handleSelectView, handleSelectProject],
+    [handleSelectView, handleSelectProject, startTransition],
   );
 
   const sidebarContent = (
@@ -637,12 +639,12 @@ export function AppShell() {
       selectedProjectId={selectedProjectId}
       viewCounts={viewCounts}
       onSelectView={(v) => {
-        setPage("todos");
+        startTransition(() => setPage("todos"));
         handleSelectView(v);
         setMobileNavOpen(false);
       }}
       onSelectProject={(id) => {
-        setPage("todos");
+        startTransition(() => setPage("todos"));
         handleSelectProject(id);
         setMobileNavOpen(false);
       }}
@@ -652,21 +654,21 @@ export function AppShell() {
         setProjectCrudMode("rename");
       }}
       onOpenSettings={() => {
-        setPage("settings");
+        startTransition(() => setPage("settings"));
         setMobileNavOpen(false);
       }}
       onOpenFeedback={() => {
-        setPage("feedback");
+        startTransition(() => setPage("feedback"));
         setMobileNavOpen(false);
       }}
       onOpenAdmin={() => {
-        setPage("admin");
+        startTransition(() => setPage("admin"));
         setMobileNavOpen(false);
       }}
       onToggleTheme={toggleDarkMode}
       onOpenShortcuts={() => setShortcutsOpen(true)}
       onOpenProfile={() => {
-        setPage("settings");
+        startTransition(() => setPage("settings"));
         setMobileNavOpen(false);
       }}
       onLogout={logout}
@@ -729,7 +731,7 @@ export function AppShell() {
             }}
             density={density}
             onCycleDensity={cycleDensity}
-            onBack={() => setPage("todos")}
+            onBack={() => startTransition(() => setPage("todos"))}
           />
         ) : page === "ai" ? (
           <>
@@ -743,7 +745,7 @@ export function AppShell() {
                   <IconMenu />
                 </button>
               )}
-              <button className="btn" onClick={() => setPage("todos")}>
+              <button className="btn" onClick={() => startTransition(() => setPage("todos"))}>
                 ← Back
               </button>
               <span className="app-header__title">AI Workspace</span>
@@ -756,15 +758,15 @@ export function AppShell() {
           </>
         ) : page === "admin" ? (
           <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
-            <AdminPage onBack={() => setPage("todos")} />
+            <AdminPage onBack={() => startTransition(() => setPage("todos"))} />
           </Suspense>
         ) : page === "feedback" ? (
           <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
-            <FeedbackForm onBack={() => setPage("todos")} />
+            <FeedbackForm onBack={() => startTransition(() => setPage("todos"))} />
           </Suspense>
         ) : page === "review" ? (
           <Suspense fallback={<div className="loading-skeleton loading"><div className="loading-skeleton__row" /></div>}>
-            <WeeklyReview onBack={() => setPage("todos")} />
+            <WeeklyReview onBack={() => startTransition(() => setPage("todos"))} />
           </Suspense>
         ) : activeView === "home" && !selectedProjectId ? (
           <>
@@ -832,7 +834,7 @@ export function AppShell() {
                 }}
                 onSelectProject={(id) => {
                   handleSelectProject(id);
-                  setPage("todos");
+                  startTransition(() => setPage("todos"));
                 }}
               />
             </div>

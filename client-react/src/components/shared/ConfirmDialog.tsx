@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface Props {
   title: string;
@@ -16,18 +16,28 @@ export function ConfirmDialog({
   onCancel,
 }: Props) {
   const okRef = useRef<HTMLButtonElement>(null);
+  const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
     okRef.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
+      if (e.key === "Escape") animateOut(onCancel);
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [onCancel]);
 
+  const animateOut = (callback: () => void) => {
+    setExiting(true);
+    setTimeout(callback, 150);
+  };
+
   return (
-    <div id="confirmDialog" className="confirm-overlay" onClick={onCancel}>
+    <div
+      id="confirmDialog"
+      className={`confirm-overlay${exiting ? " confirm-overlay--exiting" : ""}`}
+      onClick={() => animateOut(onCancel)}
+    >
       <div
         className="confirm-dialog"
         onClick={(e) => e.stopPropagation()}
@@ -39,13 +49,13 @@ export function ConfirmDialog({
         </div>
         <p>{message}</p>
         <div className="confirm-dialog__actions">
-          <button className="btn" onClick={onCancel}>
+          <button className="btn" onClick={() => animateOut(onCancel)}>
             Cancel
           </button>
           <button
             id="confirmDialogOk"
             className="btn btn--danger"
-            onClick={onConfirm}
+            onClick={() => animateOut(onConfirm)}
             ref={okRef}
           >
             {confirmLabel}

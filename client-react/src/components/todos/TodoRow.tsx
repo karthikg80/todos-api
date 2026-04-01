@@ -10,6 +10,8 @@ interface Props {
   isExpanded: boolean;
   isBulkMode: boolean;
   isSelected: boolean;
+  isEntering?: boolean;
+  isExiting?: boolean;
   projects: Project[];
   headings: Heading[];
   onToggle: (id: string, completed: boolean) => void;
@@ -44,6 +46,8 @@ export function TodoRow({
   isExpanded,
   isBulkMode,
   isSelected,
+  isEntering,
+  isExiting,
   projects,
   headings,
   onToggle,
@@ -59,6 +63,8 @@ export function TodoRow({
   const [editValue, setEditValue] = useState(todo.title);
   const [menuOpen, setMenuOpen] = useState(false);
   const editRef = useRef<HTMLInputElement>(null);
+  const [justCompleted, setJustCompleted] = useState(false);
+  const prevCompleted = useRef(todo.completed);
 
   useEffect(() => {
     if (editing) {
@@ -66,6 +72,16 @@ export function TodoRow({
       editRef.current?.select();
     }
   }, [editing]);
+
+  useEffect(() => {
+    if (todo.completed && !prevCompleted.current) {
+      setJustCompleted(true);
+      const timer = setTimeout(() => setJustCompleted(false), 400);
+      prevCompleted.current = todo.completed;
+      return () => clearTimeout(timer);
+    }
+    prevCompleted.current = todo.completed;
+  }, [todo.completed]);
 
   const commitEdit = () => {
     const trimmed = editValue.trim();
@@ -76,7 +92,7 @@ export function TodoRow({
   };
 
   const titleClass = `todo-title${todo.completed ? " todo-title--completed" : ""}`;
-  const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${isExpanded ? " todo-item--expanded" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}`;
+  const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${isExpanded ? " todo-item--expanded" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}${isEntering ? " todo-item--entering" : ""}${isExiting ? " todo-item--exiting" : ""}${justCompleted ? " todo-item--just-completed" : ""}`;
 
   return (
     <div
