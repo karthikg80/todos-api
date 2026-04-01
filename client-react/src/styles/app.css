@@ -149,30 +149,35 @@ body {
 .sidebar-search {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
-  padding: var(--s-2) var(--s-2h);
-  border: 1px solid var(--border-light);
+  gap: var(--s-2h);
+  padding: var(--s-2) var(--s-3);
+  border: none;
   border-radius: var(--r-sm);
-  background: color-mix(in oklab, var(--surface) 50%, var(--bg));
+  background: none;
   flex-shrink: 0;
-  margin-bottom: var(--s-2);
   transition:
-    border-color var(--dur-fast),
-    box-shadow var(--dur-fast);
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.sidebar-search:hover {
+  background: var(--surface-2);
 }
 
 .sidebar-search:focus-within {
-  border-color: var(--accent);
-  box-shadow: var(--shadow-focus);
+  background: var(--surface-2);
 }
 
 .sidebar-search .nav-icon {
   flex-shrink: 0;
   color: var(--muted-light);
+  opacity: 0.6;
+  transition: opacity var(--dur-fast);
 }
 
+.sidebar-search:hover .nav-icon,
 .sidebar-search:focus-within .nav-icon {
-  color: var(--accent);
+  opacity: 0.85;
 }
 
 .sidebar-search__input {
@@ -205,34 +210,31 @@ body {
   color: var(--text);
 }
 
-/* Sidebar new task button (like Claude's "New chat") */
+/* Sidebar new task button — blends with nav items */
 .sidebar-new-task-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: var(--s-2);
+  gap: var(--s-2h);
   width: 100%;
-  padding: var(--s-2h) var(--s-3);
-  border: 1px solid var(--border-light);
+  padding: var(--s-2) var(--s-3);
+  border: none;
   border-radius: var(--r-sm);
-  background: var(--surface);
-  color: var(--text);
+  background: none;
+  color: var(--muted);
   font-size: var(--fs-meta);
   font-weight: var(--fw-medium);
   font-family: inherit;
   cursor: pointer;
   flex-shrink: 0;
-  margin-bottom: var(--s-2);
+  text-align: left;
   transition:
-    background var(--dur-fast),
-    border-color var(--dur-fast),
-    box-shadow var(--dur-fast);
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
 
 .sidebar-new-task-btn:hover {
   background: var(--surface-2);
-  border-color: color-mix(in oklab, var(--accent) 25%, var(--border));
-  box-shadow: var(--shadow-xs);
+  color: var(--text);
 }
 
 .sidebar-new-task-btn:active {
@@ -245,7 +247,12 @@ body {
 }
 
 .sidebar-new-task-btn .app-icon {
-  color: var(--accent);
+  opacity: 0.6;
+  transition: opacity var(--dur-fast);
+}
+
+.sidebar-new-task-btn:hover .app-icon {
+  opacity: 0.85;
 }
 
 /* Collapsed sidebar: hide search and show only icon */
