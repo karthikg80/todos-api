@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import type { Todo, Project } from "../../types";
 import { apiCall } from "../../api/client";
 import { HomeFocusSuggestions } from "../ai/HomeFocusSuggestions";
@@ -6,6 +6,7 @@ import { PrioritiesBriefTile } from "../ai/PrioritiesBriefTile";
 import { IllustrationAllClear } from "../shared/Illustrations";
 import { TuneUpTile } from "../tuneup/TuneUpTile";
 import { WhatNextTile } from "../home/WhatNextTile";
+import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 
 interface Props {
   todos: Todo[];
@@ -54,6 +55,28 @@ export function HomeDashboard({
   onNavigateToTuneUp,
   onUndo,
 }: Props) {
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    scrollContainerRef.current = document.querySelector<HTMLElement>(
+      ".view-router__slot[style*='display: block'] .app-content",
+    );
+  }, []);
+
+  useViewSnapshot({
+    capture: () => ({
+      scrollTop: scrollContainerRef.current?.scrollTop ?? 0,
+    }),
+    restore: (snap) => {
+      if (snap.scrollTop != null && snap.scrollTop > 0) {
+        requestAnimationFrame(() => {
+          scrollContainerRef.current?.scrollTo(0, snap.scrollTop);
+        });
+      }
+    },
+    version: 1,
+  });
+
   const active = useMemo(() => todos.filter((t) => !t.completed), [todos]);
 
   // Strongest next action: highest-priority incomplete todo

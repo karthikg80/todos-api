@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTuneUp } from "../../hooks/useTuneUp";
 import { useViewActivity } from "../../components/layout/ViewActivityContext";
 import { apiCall } from "../../api/client";
@@ -10,6 +10,7 @@ import { StaleSection } from "./StaleSection";
 import { QualitySection } from "./QualitySection";
 import { TaxonomySection } from "./TaxonomySection";
 import type { DuplicateGroup } from "../../types/tuneup";
+import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 
 interface Props {
   onOpenTask?: (taskId: string) => void;
@@ -68,6 +69,34 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
     stale: false,
     quality: false,
     taxonomy: false,
+  });
+
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const collapsedRef = useRef<CollapsedState>(collapsed);
+  collapsedRef.current = collapsed;
+
+  useEffect(() => {
+    scrollContainerRef.current = document.querySelector<HTMLElement>(
+      ".view-router__slot[style*='display: block'] .app-content",
+    );
+  }, []);
+
+  useViewSnapshot({
+    capture: () => ({
+      scrollTop: scrollContainerRef.current?.scrollTop ?? 0,
+      collapsedSections: collapsedRef.current,
+    }),
+    restore: (snap) => {
+      if (snap.collapsedSections != null) {
+        setCollapsed(snap.collapsedSections);
+      }
+      if (snap.scrollTop != null && snap.scrollTop > 0) {
+        requestAnimationFrame(() => {
+          scrollContainerRef.current?.scrollTo(0, snap.scrollTop);
+        });
+      }
+    },
+    version: 1,
   });
 
   const [mergeErrors, setMergeErrors] = useState<Record<string, string>>({});
