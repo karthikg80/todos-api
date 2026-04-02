@@ -170,22 +170,52 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Post-auth redirect — go to main app
+  // Post-auth redirect — default to the primary app, but preserve
+  // validated deep links to protected standalone pages.
   // ---------------------------------------------------------------------------
-  function redirectToApp() {
-    var ALLOWED_PREFIXES = ["/app", "/app-react"];
+  var ALLOWED_POST_AUTH_PREFIXES = [
+    "/app",
+    "/app-react",
+    "/app-classic",
+    "/feedback",
+  ];
+
+  function getValidatedPostAuthDestination() {
     var params = new URLSearchParams(window.location.search);
     var next = params.get("next");
-    if (
-      next &&
-      ALLOWED_PREFIXES.some(function (p) {
-        return next === p || next.startsWith(p + "/");
-      })
-    ) {
-      window.location.href = next;
-      return;
+    if (!next) return null;
+
+    try {
+      var url = new URL(next, window.location.origin);
+      if (url.origin !== window.location.origin) {
+        return null;
+      }
+
+      var pathname = url.pathname;
+      var isAllowed = ALLOWED_POST_AUTH_PREFIXES.some(function (prefix) {
+        return pathname === prefix || pathname.startsWith(prefix + "/");
+      });
+      if (!isAllowed) {
+        return null;
+      }
+
+      return pathname + url.search + url.hash;
+    } catch (_) {
+      return null;
     }
-    window.location.href = "/app";
+  }
+
+  function redirectToApp() {
+    window.location.href = getValidatedPostAuthDestination() || "/app";
+  }
+
+  function buildSocialAuthStartUrl(providerPath) {
+    var next = getValidatedPostAuthDestination();
+    if (!next) return providerPath;
+
+    var params = new URLSearchParams();
+    params.set("next", next);
+    return providerPath + "?" + params.toString();
   }
 
   // ---------------------------------------------------------------------------
@@ -418,11 +448,11 @@
   // Social login
   // ---------------------------------------------------------------------------
   function handleGoogleLogin() {
-    window.location.href = "/auth/google/start";
+    window.location.href = buildSocialAuthStartUrl("/auth/google/start");
   }
 
   function handleAppleLogin() {
-    window.location.href = "/auth/apple/start";
+    window.location.href = buildSocialAuthStartUrl("/auth/apple/start");
   }
 
   function initSocialLogin() {
