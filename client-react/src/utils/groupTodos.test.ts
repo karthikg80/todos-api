@@ -2,6 +2,11 @@ import { describe, it, expect } from "vitest";
 import { groupTodos, type GroupBy } from "./groupTodos";
 import type { Todo } from "../types";
 
+// Fixed reference date used across all time-sensitive tests so results are
+// deterministic regardless of when the suite runs.
+// 2026-04-01 (Wednesday)
+const REF_DATE = new Date("2026-04-01T12:00:00Z");
+
 function makeTodo(overrides: Partial<Todo> = {}): Todo {
   return {
     id: crypto.randomUUID(),
@@ -69,6 +74,25 @@ describe("groupTodos", () => {
       expect(result.map((g) => g.key)).toEqual(["next", "waiting", "inbox"]);
       expect(result[0].todos).toHaveLength(2);
     });
+
+    it("appends done/cancelled after ordered groups when they slip through", () => {
+      // The Everything view filters out done/cancelled upstream; this test
+      // verifies graceful handling if they reach groupTodos anyway.
+      const todos = [
+        makeTodo({ status: "done" }),
+        makeTodo({ status: "cancelled" }),
+        makeTodo({ status: "next" }),
+      ];
+      const result = groupTodos(todos, "status");
+      const keys = result.map((g) => g.key);
+      // "next" comes first (it is in STATUS_ORDER)
+      expect(keys[0]).toBe("next");
+      // done and cancelled land at the end via the fallback path
+      expect(keys).toContain("done");
+      expect(keys).toContain("cancelled");
+      expect(keys.indexOf("next")).toBeLessThan(keys.indexOf("done"));
+      expect(keys.indexOf("next")).toBeLessThan(keys.indexOf("cancelled"));
+    });
   });
 
   describe("priority", () => {
@@ -84,44 +108,44 @@ describe("groupTodos", () => {
   });
 
   describe("dueDate", () => {
+    // All date tests use REF_DATE (2026-04-01, Wednesday) as "now" so results
+    // do not change depending on the calendar day the suite runs.
+
     it("places past dates in overdue", () => {
-      const yesterday = new Date();
+      const yesterday = new Date(REF_DATE);
       yesterday.setDate(yesterday.getDate() - 1);
-      const todos = [
-        makeTodo({ dueDate: yesterday.toISOString() }),
-      ];
-      const result = groupTodos(todos, "dueDate");
+      const todos = [makeTodo({ dueDate: yesterday.toISOString() })];
+      const result = groupTodos(todos, "dueDate", REF_DATE);
       expect(result[0].key).toBe("overdue");
     });
 
     it("places today's date in today bucket", () => {
-      const now = new Date();
-      now.setHours(12, 0, 0, 0);
-      const todos = [makeTodo({ dueDate: now.toISOString() })];
-      const result = groupTodos(todos, "dueDate");
+      const today = new Date(REF_DATE);
+      today.setHours(12, 0, 0, 0);
+      const todos = [makeTodo({ dueDate: today.toISOString() })];
+      const result = groupTodos(todos, "dueDate", REF_DATE);
       expect(result[0].key).toBe("today");
     });
 
     it("places null dueDate in no-date", () => {
       const todos = [makeTodo({ dueDate: null })];
-      const result = groupTodos(todos, "dueDate");
+      const result = groupTodos(todos, "dueDate", REF_DATE);
       expect(result[0].key).toBe("no-date");
     });
 
     it("orders buckets: overdue, today, this-week, next-week, later, no-date", () => {
-      const d = new Date();
-      const yesterday = new Date(d);
-      yesterday.setDate(d.getDate() - 1);
-      const nextMonth = new Date(d);
-      nextMonth.setDate(d.getDate() + 30);
+      // REF_DATE is 2026-04-01 (Wednesday)
+      const yesterday = new Date("2026-03-31T12:00:00Z"); // overdue
+      const today = new Date("2026-04-01T12:00:00Z");     // today
+      const nextMonth = new Date("2026-05-01T12:00:00Z"); // later
 
       const todos = [
         makeTodo({ dueDate: null }),
-        makeTodo({ dueDate: d.toISOString() }),
+        makeTodo({ dueDate: today.toISOString() }),
         makeTodo({ dueDate: yesterday.toISOString() }),
         makeTodo({ dueDate: nextMonth.toISOString() }),
       ];
-      const result = groupTodos(todos, "dueDate");
+      const result = groupTodos(todos, "dueDate", REF_DATE);
       const keys = result.map((g) => g.key);
       expect(keys.indexOf("overdue")).toBeLessThan(keys.indexOf("today"));
       expect(keys.indexOf("today")).toBeLessThan(keys.indexOf("later"));

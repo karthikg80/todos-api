@@ -8,6 +8,10 @@ export interface GroupedSection {
   todos: Todo[];
 }
 
+// "done" and "cancelled" are intentionally excluded: the Everything view
+// filters them out upstream before grouping. If they slip through anyway,
+// groupByOrdered's fallback path (buckets.set on first encounter) will
+// append them after the ordered sections rather than dropping them.
 const STATUS_ORDER: TodoStatus[] = [
   "next",
   "in_progress",
@@ -24,6 +28,8 @@ const STATUS_LABELS: Record<string, string> = {
   scheduled: "Scheduled",
   someday: "Someday",
   inbox: "Inbox",
+  done: "Done",
+  cancelled: "Cancelled",
 };
 
 const PRIORITY_ORDER: (Priority | "none")[] = [
@@ -68,8 +74,8 @@ const DUE_DATE_LABELS: Record<DueDateBucket, string> = {
   "no-date": "No Date",
 };
 
-function startOfToday(): Date {
-  const d = new Date();
+function startOfToday(now?: Date): Date {
+  const d = now ? new Date(now) : new Date();
   d.setHours(0, 0, 0, 0);
   return d;
 }
@@ -92,11 +98,14 @@ function endOfWeek(date: Date): Date {
   return sunday;
 }
 
-function getDueDateBucket(dueDate: string | null | undefined): DueDateBucket {
+function getDueDateBucket(
+  dueDate: string | null | undefined,
+  now?: Date,
+): DueDateBucket {
   if (!dueDate) return "no-date";
   const due = new Date(dueDate);
   due.setHours(0, 0, 0, 0);
-  const today = startOfToday();
+  const today = startOfToday(now);
   if (due < today) return "overdue";
   if (due.getTime() === today.getTime()) return "today";
   const weekEnd = endOfWeek(today);
@@ -107,6 +116,8 @@ function getDueDateBucket(dueDate: string | null | undefined): DueDateBucket {
   return "later";
 }
 
+// Groups todos by project using insertion order (first-seen project key
+// determines position in the output array).
 function groupByProject(todos: Todo[]): GroupedSection[] {
   const map = new Map<string, { label: string; todos: Todo[] }>();
   for (const todo of todos) {
@@ -147,6 +158,7 @@ function groupByOrdered<T extends string>(
 export function groupTodos(
   todos: Todo[],
   groupBy: GroupBy,
+  now?: Date,
 ): GroupedSection[] {
   switch (groupBy) {
     case "none":
@@ -172,7 +184,7 @@ export function groupTodos(
         todos,
         DUE_DATE_ORDER,
         DUE_DATE_LABELS,
-        (t) => getDueDateBucket(t.dueDate),
+        (t) => getDueDateBucket(t.dueDate, now),
       );
   }
 }
