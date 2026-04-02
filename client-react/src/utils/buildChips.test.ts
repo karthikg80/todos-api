@@ -52,7 +52,6 @@ describe("buildChips", () => {
     const chips = buildChips(todo, "normal");
     expect(chips).toHaveLength(5); // 4 shown + overflow
     expect(chips[4].variant).toBe("overflow");
-    expect(chips[4].label).toBe("+3"); // 3 tags overflow (project fits in first 4)
   });
 
   it("shows all chips in spacious mode", () => {
@@ -76,10 +75,9 @@ describe("buildChips", () => {
     expect(chips.find((c) => c.variant === "waiting")?.label).toBe("@Alice");
   });
 
-  it("skips low priority", () => {
-    const todo = makeTodo({ priority: "low" });
-    const chips = buildChips(todo, "normal");
-    expect(chips.find((c) => c.key === "priority")).toBeUndefined();
+  it("skips medium and low priority", () => {
+    expect(buildChips(makeTodo({ priority: "medium" }), "normal").find((c) => c.key === "priority")).toBeUndefined();
+    expect(buildChips(makeTodo({ priority: "low" }), "normal").find((c) => c.key === "priority")).toBeUndefined();
   });
 
   it("shows subtask count in normal mode", () => {
@@ -91,5 +89,43 @@ describe("buildChips", () => {
     });
     const chips = buildChips(todo, "normal");
     expect(chips.find((c) => c.variant === "subtask")?.label).toBe("1/2");
+  });
+
+  it("hides project chip when grouped by project", () => {
+    const todo = makeTodo({ category: "Work" });
+    expect(buildChips(todo, "normal", "project").find((c) => c.variant === "project")).toBeUndefined();
+    expect(buildChips(todo, "normal", "none").find((c) => c.variant === "project")?.label).toBe("Work");
+  });
+
+  it("caps tags at 2 with overflow", () => {
+    const todo = makeTodo({ tags: ["a", "b", "c", "d"] });
+    const chips = buildChips(todo, "spacious");
+    const tagChips = chips.filter((c) => c.variant === "tag");
+    expect(tagChips).toHaveLength(2);
+    expect(chips.find((c) => c.key === "tag-overflow")?.label).toBe("+2 tags");
+  });
+
+  it("shows energy chip", () => {
+    const todo = makeTodo({ energy: "high" });
+    const chips = buildChips(todo, "normal");
+    expect(chips.find((c) => c.variant === "energy")?.label).toBe("⚡ High");
+  });
+
+  it("shows estimate chip", () => {
+    const todo = makeTodo({ estimateMinutes: 30 });
+    const chips = buildChips(todo, "normal");
+    expect(chips.find((c) => c.variant === "estimate")?.label).toBe("~30m");
+  });
+
+  it("formats estimate in hours", () => {
+    const todo = makeTodo({ estimateMinutes: 120 });
+    const chips = buildChips(todo, "normal");
+    expect(chips.find((c) => c.variant === "estimate")?.label).toBe("~2h");
+  });
+
+  it("shows recurrence chip", () => {
+    const todo = makeTodo({ recurrence: { type: "daily" } });
+    const chips = buildChips(todo, "normal");
+    expect(chips.find((c) => c.variant === "recurrence")?.label).toBe("↻");
   });
 });

@@ -7594,9 +7594,14 @@ body {
   color: var(--danger);
   font-weight: var(--fw-medium);
 }
-.todo-chip--priority-med {
+.todo-chip--energy {
   background: color-mix(in srgb, var(--warning) 10%, transparent);
   color: var(--warning);
+}
+.todo-chip--estimate,
+.todo-chip--recurrence {
+  background: var(--surface-3);
+  color: var(--muted);
   font-weight: var(--fw-medium);
 }
 .todo-chip--project,
