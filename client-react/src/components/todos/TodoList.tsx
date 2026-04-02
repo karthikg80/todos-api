@@ -1,6 +1,7 @@
 import type { Todo, UpdateTodoDto } from "../../types";
 import type { LoadState } from "../../store/useTodosStore";
 import { TodoRow } from "./TodoRow";
+import { useDensity } from "../../hooks/useDensity";
 import { IllustrationTasksEmpty } from "../shared/Illustrations";
 
 interface Props {
@@ -34,6 +35,8 @@ export function TodoList({
   onInlineEdit,
   onTagClick,
 }: Props) {
+  const { density } = useDensity();
+
   if (loadState === "loading") {
     return (
       <div className="loading-skeleton loading">
@@ -78,6 +81,7 @@ export function TodoList({
           isExpanded={false}
           isBulkMode={isBulkMode}
           isSelected={selectedIds.has(todo.id)}
+          density={density}
           projects={[]}
           headings={[]}
           onToggle={onToggle}
