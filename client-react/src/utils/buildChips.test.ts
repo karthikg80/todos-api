@@ -97,6 +97,28 @@ describe("buildChips", () => {
     expect(buildChips(todo, "normal", "none").find((c) => c.variant === "project")?.label).toBe("Work");
   });
 
+  it("hides priority chip when grouped by priority", () => {
+    const todo = makeTodo({ priority: "high" });
+    expect(buildChips(todo, "normal", "priority").find((c) => c.variant === "priority-high")).toBeUndefined();
+    expect(buildChips(todo, "normal", "none").find((c) => c.variant === "priority-high")?.label).toBe("high");
+  });
+
+  it("hides date chips when grouped by dueDate", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todo = makeTodo({ dueDate: tomorrow.toISOString() });
+    expect(buildChips(todo, "normal", "dueDate").find((c) => c.variant === "date")).toBeUndefined();
+    expect(buildChips(todo, "normal", "none").find((c) => c.variant === "date")).toBeDefined();
+  });
+
+  it("hides overdue chip when grouped by dueDate", () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const todo = makeTodo({ dueDate: yesterday.toISOString() });
+    expect(buildChips(todo, "normal", "dueDate").find((c) => c.variant === "overdue")).toBeUndefined();
+    expect(buildChips(todo, "normal", "none").find((c) => c.variant === "overdue")).toBeDefined();
+  });
+
   it("caps tags at 2 with overflow", () => {
     const todo = makeTodo({ tags: ["a", "b", "c", "d"] });
     const chips = buildChips(todo, "spacious");
