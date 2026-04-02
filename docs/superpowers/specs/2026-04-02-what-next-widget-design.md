@@ -87,11 +87,11 @@ interface UseNextWorkHook {
   dismiss: (taskId: string) => void;
   markActedOn: (taskId: string) => void;
   unmarkActedOn: (taskId: string) => void;  // for snooze undo
-  refresh: () => void;          // re-fetch current inputs, bypass freshness, clear dismissals
+  refresh: () => void;          // re-fetch using current normalized inputs, bypass TTL, clear dismissals + actedOn
 }
 ```
 
-**Naming:** `setInputs` (not `fetch`) because the hook debounces and may serve from cache — the caller is expressing intent, not commanding a network call.
+**Naming:** `setInputs` (not `fetch`) because the hook debounces and may serve from cache — the caller is expressing intent, not commanding a network call. `setInputs()` updates the local filter state immediately (UI reflects the new selection instantly). Only the network call is debounced — cache lookups are synchronous.
 
 **Cache design — keyed by normalized inputs:**
 - Module-level `Map<string, NextWorkResult>` persists across navigations
@@ -243,7 +243,7 @@ This prevents jarring instant removal, especially when actioning multiple rows i
 - Action buttons have descriptive `aria-label` (e.g., "Start task: {title}", "Snooze task: {title}")
 - Loading state uses `aria-busy="true"` on the tile container
 - Row fade-out respects `prefers-reduced-motion` (instant removal instead of animation)
-- Impact/effort badges are NOT `aria-hidden` — they convey information not always present in the reason text. Each row includes an accessible summary via `aria-label` on the row container: e.g., "Fix login bug — High impact, low effort"
+- Impact/effort badges are NOT `aria-hidden` — they convey information not always present in the reason text. Badges themselves should be readable by assistive tech (text content is sufficient). Additionally, include a visually hidden summary span (`<span class="sr-only">`) within the row that reads "High impact, low effort" — do NOT use `aria-label` on the row container, as that can flatten or obscure nested interactive controls.
 
 ## Testing Strategy
 
