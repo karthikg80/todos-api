@@ -920,6 +920,7 @@ export function AppShell() {
                     startTransition(() => setPage("todos"));
                   }}
                   onNavigateToTuneUp={() => handleSelectView("tuneup")}
+                  onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
                 />
               </div>
             </>
