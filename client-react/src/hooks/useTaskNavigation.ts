@@ -51,8 +51,7 @@ function taskNavReducer(
     case "DEESCALATE":
       switch (state.mode) {
         case "fullPage":
-          // Back from full page → collapsed (not drawer), per spec
-          return { mode: "collapsed" };
+          return { mode: "drawer", taskId: state.taskId };
         case "drawer":
           return { mode: "quickEdit", taskId: state.taskId };
         case "quickEdit":
