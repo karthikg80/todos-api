@@ -1570,11 +1570,27 @@ body {
 }
 
 .command-palette__option {
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   padding: var(--s-2h) var(--s-5);
   font-size: var(--fs-meta);
   cursor: pointer;
   transition: background var(--dur-fast);
   animation: slideInUp var(--dur-fast) var(--ease-out) backwards;
+}
+
+.command-palette__option-label {
+  color: var(--text);
+}
+
+.command-palette__option-meta {
+  color: var(--muted);
+  font-size: var(--fs-xs);
 }
 
 .command-palette__option:nth-child(1) {
