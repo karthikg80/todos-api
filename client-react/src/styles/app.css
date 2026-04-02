@@ -1344,12 +1344,7 @@ body {
     padding: var(--s-3) var(--s-4);
   }
 
-  /* Flip profile popover upward in mobile sheet (sheet overflows) */
-  .mobile-sheet .profile-launcher__panel {
-    bottom: auto;
-    top: calc(100% + var(--s-2));
-  }
-
+  /* Let profile popover escape the sheet (scroll moves to sidebar-scroll) */
   .mobile-sheet {
     overflow: visible;
   }
