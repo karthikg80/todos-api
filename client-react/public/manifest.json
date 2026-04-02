@@ -1,13 +1,13 @@
 {
   "name": "Todos",
   "short_name": "Todos",
-  "start_url": "/app-react",
+  "start_url": "/app",
   "display": "standalone",
   "background_color": "#f4f7fb",
   "theme_color": "#4f6ef7",
   "icons": [
     {
-      "src": "/app-react/favicon.svg",
+      "src": "/app/favicon.svg",
       "sizes": "any",
       "type": "image/svg+xml"
     }

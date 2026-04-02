@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("authToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
-    window.location.href = "/auth?next=/app-react";
+    window.location.href = "/auth?next=/app";
   }, []);
 
   return (
