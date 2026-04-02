@@ -3,6 +3,8 @@ import type { Todo, Project, Heading, UpdateTodoDto } from "../../types";
 import { IconKebab, IconClock, IconArchive, IconXCircle, IconRefresh } from "../shared/Icons";
 import { relativeTime } from "../../utils/relativeTime";
 import { QuickEditPanel } from "./QuickEditPanel";
+import { useDensity } from "../../hooks/useDensity";
+import { buildChips } from "../../utils/buildChips";
 
 interface Props {
   todo: Todo;
@@ -55,6 +57,8 @@ export function TodoRow({
   onTagClick,
   onLifecycleAction,
 }: Props) {
+  const { density } = useDensity();
+  const chips = buildChips(todo, density);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(todo.title);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -146,40 +150,55 @@ export function TodoRow({
         </span>
       )}
 
-      <div className="todo-chips">
-        {todo.dueDate && (
-          <span
-            className={`todo-chip todo-chip--due${formatDueDate(todo.dueDate).overdue ? " todo-chip--due-overdue" : ""}`}
-          >
-            {formatDueDate(todo.dueDate).label}
-          </span>
-        )}
-        {todo.priority && todo.priority !== "low" && (
-          <span className={`todo-chip todo-chip--priority ${todo.priority}`}>
-            {todo.priority}
-          </span>
-        )}
-        {todo.category && (
-          <span className="todo-chip todo-chip--project">{todo.category}</span>
-        )}
-        {todo.tags.slice(0, 3).map((tag) => (
-          <span
-            key={tag}
-            className="todo-chip todo-chip--tag"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTagClick?.(tag);
-            }}
-          >
-            #{tag}
-          </span>
-        ))}
-        {todo.tags.length > 3 && (
-          <span className="todo-chip todo-chip--tag">
-            +{todo.tags.length - 3}
-          </span>
-        )}
-      </div>
+      {chips.length > 0 && (
+        <div className="todo-chips">
+          {chips.map((chip) => (
+            <span
+              key={chip.key}
+              className={`todo-chip todo-chip--${chip.variant}`}
+              onClick={chip.variant === "tag" ? (e) => { e.stopPropagation(); onTagClick?.(chip.label.slice(1)); } : undefined}
+            >
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {density === "spacious" && (
+        <>
+          {todo.description && (
+            <div className="todo-description-preview">
+              {todo.description.length > 120
+                ? todo.description.slice(0, 120) + "..."
+                : todo.description}
+            </div>
+          )}
+          {todo.subtasks && todo.subtasks.length > 0 && (() => {
+            const done = todo.subtasks.filter((s) => s.completed).length;
+            const total = todo.subtasks.length;
+            return (
+              <div className="todo-subtask-bar">
+                <div
+                  className="todo-subtask-bar__track"
+                  role="progressbar"
+                  aria-valuenow={done}
+                  aria-valuemax={total}
+                  aria-label={`${done} of ${total} subtasks complete`}
+                >
+                  <div
+                    className="todo-subtask-bar__fill"
+                    style={{ width: `${(done / total) * 100}%` }}
+                  />
+                </div>
+                <span className="todo-subtask-bar__label">{done} of {total}</span>
+              </div>
+            );
+          })()}
+          {todo.notes && (
+            <div className="todo-notes-indicator">Has notes</div>
+          )}
+        </>
+      )}
 
       {/* Inline hover actions (visible on row hover) */}
       {onLifecycleAction && !isBulkMode && (

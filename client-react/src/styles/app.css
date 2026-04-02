@@ -7249,3 +7249,94 @@ body {
 .todo-item--overdue:hover {
   background: color-mix(in srgb, var(--danger) 8%, var(--surface-2));
 }
+
+/* === Chip variants === */
+.todo-chip--overdue {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  font-weight: var(--fw-medium);
+}
+.todo-chip--blocked {
+  background: color-mix(in srgb, var(--danger) 8%, transparent);
+  color: var(--danger);
+}
+.todo-chip--waiting {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+.todo-chip--priority-high {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+  font-weight: var(--fw-medium);
+}
+.todo-chip--priority-med {
+  background: color-mix(in srgb, var(--warning) 10%, transparent);
+  color: var(--warning);
+  font-weight: var(--fw-medium);
+}
+.todo-chip--project,
+.todo-chip--date,
+.todo-chip--subtask,
+.todo-chip--tag {
+  background: var(--surface-3);
+  color: var(--muted);
+}
+.todo-chip--overflow {
+  background: var(--surface-3);
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+
+/* === Spacious mode extras === */
+.todo-description-preview {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  line-height: var(--lh-snug);
+  margin-top: var(--s-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.todo-subtask-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-1);
+}
+.todo-subtask-bar__track {
+  flex: 1;
+  max-width: 120px;
+  height: 4px;
+  background: var(--surface-3);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+.todo-subtask-bar__fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--r-full);
+  transition: width var(--dur-base) var(--ease-out);
+}
+.todo-subtask-bar__label {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.todo-notes-indicator {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-top: var(--s-1);
+  font-style: italic;
+}
+
+/* === Compact density: hide non-essential elements === */
+[data-density="compact"] .todo-inline-actions {
+  display: none;
+}
+[data-density="compact"] .todo-kebab-wrapper {
+  display: none;
+}
+[data-density="compact"] .todo-description-preview,
+[data-density="compact"] .todo-subtask-bar,
+[data-density="compact"] .todo-notes-indicator {
+  display: none;
+}
