@@ -12,7 +12,7 @@ type FeedbackDuplicateRecord = {
   id: string;
   userId: string;
   type: "bug" | "feature" | "general";
-  status: "new" | "triaged" | "promoted" | "rejected";
+  status: "new" | "triaged" | "promoted" | "rejected" | "resolved";
   title: string;
   body: string;
   pageUrl: string | null;

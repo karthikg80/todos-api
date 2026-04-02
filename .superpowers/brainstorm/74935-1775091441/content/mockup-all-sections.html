@@ -1,0 +1,146 @@
+<h2>Everything View — All Sections Combined</h2>
+<p class="subtitle">Group By (status) + Normal density + Priority borders + Smart chips</p>
+
+<div class="mockup" style="max-width: 720px; margin: 1.5rem auto;">
+  <div class="mockup-header" style="display:flex; justify-content:space-between; align-items:center; padding: 10px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border);">
+    <div style="display:flex; gap:12px; align-items:center;">
+      <span style="font-weight:600; font-size:0.95rem;">Everything</span>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <!-- Group By -->
+      <div style="display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;background:var(--bg-tertiary);font-size:0.8rem;color:var(--text-secondary);">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
+        Group: Status
+      </div>
+      <!-- Density -->
+      <div style="display:flex;gap:2px;padding:2px;border-radius:6px;background:var(--bg-tertiary);">
+        <div style="padding:3px 6px;border-radius:4px;font-size:0.7rem;color:var(--text-muted);" title="Compact">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </div>
+        <div style="padding:3px 6px;border-radius:4px;font-size:0.7rem;background:var(--bg);box-shadow:0 1px 2px rgba(0,0,0,0.1);" title="Normal">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+        </div>
+        <div style="padding:3px 6px;border-radius:4px;font-size:0.7rem;color:var(--text-muted);" title="Spacious">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16M4 12h16M4 20h16"/></svg>
+        </div>
+      </div>
+      <!-- View mode -->
+      <div style="display:flex;gap:2px;padding:2px;border-radius:6px;background:var(--bg-tertiary);">
+        <div style="padding:3px 6px;border-radius:4px;background:var(--bg);box-shadow:0 1px 2px rgba(0,0,0,0.1);font-size:0.7rem;">List</div>
+        <div style="padding:3px 6px;border-radius:4px;font-size:0.7rem;color:var(--text-muted);">Board</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mockup-body" style="padding:0; background:var(--bg); font-size:0.85rem;">
+
+    <!-- Group: In Progress -->
+    <div style="padding:8px 16px; background:var(--bg-secondary); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        <span style="font-weight:600;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">In Progress</span>
+      </div>
+      <span style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:1px 8px;border-radius:99px;">2</span>
+    </div>
+
+    <!-- Task: High priority, overdue -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);border-left:3px solid #ef4444;background:rgba(239,68,68,0.03);display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:500;">Migrate auth middleware to new compliance spec</div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:rgba(239,68,68,0.12);color:#ef4444;font-weight:500;">2d overdue</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:rgba(239,68,68,0.08);color:#dc2626;font-weight:500;">high</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-secondary);">Work/Backend</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-muted);">☑ 3/7</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task: Medium priority -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);border-left:3px solid #f59e0b;display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:500;">Design review for settings page refresh</div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:rgba(245,158,11,0.1);color:#d97706;font-weight:500;">medium</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-secondary);">Tomorrow</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-secondary);">Design</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Waiting -->
+    <div style="padding:8px 16px; background:var(--bg-secondary); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        <span style="font-weight:600;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Waiting</span>
+      </div>
+      <span style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:1px 8px;border-radius:99px;">1</span>
+    </div>
+
+    <!-- Task: Waiting, blocked -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);border-left:3px solid transparent;display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:500;">Get API keys from infrastructure team</div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:rgba(139,92,246,0.1);color:#7c3aed;">⏳ @infrastructure</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:rgba(220,38,38,0.08);color:#dc2626;">🔒 Blocked by 1</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-secondary);">Apr 10</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Next -->
+    <div style="padding:8px 16px; background:var(--bg-secondary); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer;">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        <span style="font-weight:600;font-size:0.8rem;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">Next</span>
+      </div>
+      <span style="font-size:0.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:1px 8px;border-radius:99px;">3</span>
+    </div>
+
+    <!-- Task: Low priority, tags -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);border-left:3px solid transparent;display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:500;">Write integration tests for day plan endpoint</div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-secondary);">Next week</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-secondary);">Work/Backend</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-muted);">#testing</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task: No priority, no due -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);border-left:3px solid transparent;display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:500;">Explore virtual scrolling options for large lists</div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-secondary);">Side Projects</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-muted);">#research</span>
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-muted);">#performance</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task: simple -->
+    <div style="padding:10px 16px;border-bottom:1px solid var(--border);border-left:3px solid transparent;display:flex;align-items:center;gap:10px;">
+      <input type="checkbox" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;" />
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:500;">Update README with new API endpoints</div>
+        <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+          <span style="font-size:0.72rem;padding:2px 8px;border-radius:99px;background:var(--bg-tertiary);color:var(--text-secondary);">Work/Docs</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="max-width:720px;margin:1rem auto;">
+  <p class="subtitle" style="text-align:center;">This shows <strong>Normal</strong> density with <strong>Group By: Status</strong>. Notice: priority left borders (red=high, amber=medium), overdue red tint, blocked/waiting chips, subtask counts.</p>
+</div>

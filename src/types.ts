@@ -378,8 +378,17 @@ export interface CreateCaptureItemDto {
 }
 
 export type FeedbackRequestType = "bug" | "feature" | "general";
-export type FeedbackRequestStatus = "new" | "triaged" | "promoted" | "rejected";
-export type FeedbackReviewAction = "triaged" | "promoted" | "rejected";
+export type FeedbackRequestStatus =
+  | "new"
+  | "triaged"
+  | "promoted"
+  | "rejected"
+  | "resolved";
+export type FeedbackReviewAction =
+  | "triaged"
+  | "promoted"
+  | "rejected"
+  | "resolved";
 export type FeedbackAutomationDecision = "review" | "promoted";
 export type FeedbackTriageClassification =
   | "bug"

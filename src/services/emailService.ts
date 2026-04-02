@@ -263,6 +263,7 @@ export class EmailService {
       status: string;
       githubIssueUrl?: string | null;
       rejectionReason?: string | null;
+      resolutionSummary?: string | null;
     },
   ): Promise<void> {
     if (!this.transporter) return;
@@ -272,11 +273,13 @@ export class EmailService {
       triaged: "Your feedback is under review",
       promoted: "Your feedback is now tracked",
       rejected: "Update on your feedback",
+      resolved: "Your feedback has been resolved",
     };
     const statusLabelMap: Record<string, string> = {
       triaged: "Under review",
       promoted: "Tracked",
       rejected: "Closed",
+      resolved: "Resolved",
     };
     const subject = subjectMap[details.status] || "Update on your feedback";
     const statusLabel = statusLabelMap[details.status] || details.status;
@@ -291,6 +294,15 @@ export class EmailService {
     if (details.status === "rejected" && details.rejectionReason) {
       extraHtml = `
         <p style="color: #666;"><strong>Reason:</strong> ${details.rejectionReason}</p>
+      `;
+    }
+    if (details.status === "resolved") {
+      const summary = details.resolutionSummary
+        ? `<p style="color: #333;">${details.resolutionSummary}</p>`
+        : "";
+      extraHtml = `
+        <p>The issue has been fixed and deployed. Thank you for reporting it!</p>
+        ${summary}
       `;
     }
 

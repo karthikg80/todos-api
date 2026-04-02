@@ -40,6 +40,67 @@ interface AuthRouterDeps {
   requireAuthIfConfigured: RequestHandler;
 }
 
+const POST_AUTH_REDIRECT_COOKIE = "post_auth_redirect";
+const POST_AUTH_REDIRECT_COOKIE_MAX_AGE_MS = 10 * 60 * 1000;
+const ALLOWED_POST_AUTH_PREFIXES = [
+  "/app",
+  "/app-react",
+  "/app-classic",
+  "/feedback",
+];
+
+function normalizePostAuthRedirect(input: unknown): string | null {
+  if (typeof input !== "string") {
+    return null;
+  }
+
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    const url = new URL(trimmed, config.baseUrl);
+    if (url.origin !== config.baseUrl) {
+      return null;
+    }
+
+    const pathname = url.pathname;
+    const isAllowed = ALLOWED_POST_AUTH_PREFIXES.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    );
+    if (!isAllowed) {
+      return null;
+    }
+
+    return `${pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+function getPostAuthRedirectCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: config.nodeEnv === "production",
+    sameSite: "lax" as const,
+    path: "/auth",
+  };
+}
+
+function setPostAuthRedirect(res: Response, next: string | null) {
+  const cookieOptions = getPostAuthRedirectCookieOptions();
+  if (next) {
+    res.cookie(POST_AUTH_REDIRECT_COOKIE, next, {
+      ...cookieOptions,
+      maxAge: POST_AUTH_REDIRECT_COOKIE_MAX_AGE_MS,
+    });
+    return;
+  }
+
+  res.clearCookie(POST_AUTH_REDIRECT_COOKIE, cookieOptions);
+}
+
 function buildLinkRequestId(req: Request): string {
   const headerId =
     req.header("x-mcp-request-id") || req.header("x-agent-request-id");
@@ -1024,6 +1085,7 @@ export function createAuthRouter({
     }
 
     const { url, state } = googleAuthService.generateAuthUrl();
+    const next = normalizePostAuthRedirect(req.query.next);
 
     // Store state in httpOnly cookie for CSRF validation
     res.cookie("oauth_state", state, {
@@ -1033,6 +1095,7 @@ export function createAuthRouter({
       maxAge: 10 * 60 * 1000, // 10 minutes
       path: "/auth/google",
     });
+    setPostAuthRedirect(res, next);
 
     // If user is authenticated, store userId for linking
     const authHeader = req.header("authorization");
@@ -1075,9 +1138,18 @@ export function createAuthRouter({
             hasStoredState: !!storedState,
             cookieKeys: Object.keys(req.cookies || {}),
           });
-          return res.redirect(
-            `/auth?auth=error&message=${encodeURIComponent("Invalid OAuth state — please try again")}`,
+          const next = normalizePostAuthRedirect(
+            req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
           );
+          setPostAuthRedirect(res, null);
+          const params = new URLSearchParams({
+            auth: "error",
+            message: "Invalid OAuth state — please try again",
+          });
+          if (next) {
+            params.set("next", next);
+          }
+          return res.redirect(`/auth?${params.toString()}`);
         }
 
         // Clear state cookie (include all original options so the browser matches it)
@@ -1087,12 +1159,21 @@ export function createAuthRouter({
           secure: config.nodeEnv === "production",
           sameSite: "lax",
         });
+        const next = normalizePostAuthRedirect(
+          req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
+        );
+        setPostAuthRedirect(res, null);
 
         const code = req.query.code as string;
         if (!code) {
-          return res.redirect(
-            `/auth?auth=error&message=${encodeURIComponent("Missing authorization code")}`,
-          );
+          const params = new URLSearchParams({
+            auth: "error",
+            message: "Missing authorization code",
+          });
+          if (next) {
+            params.set("next", next);
+          }
+          return res.redirect(`/auth?${params.toString()}`);
         }
 
         const profile = await googleAuthService.handleCallback(code);
@@ -1138,9 +1219,16 @@ export function createAuthRouter({
           token: result.token,
           refreshToken: result.refreshToken,
         });
+        if (next) {
+          params.set("next", next);
+        }
         res.redirect(`/auth?${params.toString()}`);
       } catch (error) {
         console.error("Google OAuth callback error:", error);
+        const next = normalizePostAuthRedirect(
+          req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
+        );
+        setPostAuthRedirect(res, null);
 
         // Check for CLI flow on error too
         const cliPort = req.cookies?.cli_port;
@@ -1159,9 +1247,14 @@ export function createAuthRouter({
           }
         }
 
-        res.redirect(
-          `/auth?auth=error&message=${encodeURIComponent("Google login failed")}`,
-        );
+        const params = new URLSearchParams({
+          auth: "error",
+          message: "Google login failed",
+        });
+        if (next) {
+          params.set("next", next);
+        }
+        res.redirect(`/auth?${params.toString()}`);
       }
     },
   );
@@ -1174,6 +1267,7 @@ export function createAuthRouter({
     }
 
     const { url, state, nonce } = appleAuthService.generateAuthUrl();
+    const next = normalizePostAuthRedirect(req.query.next);
 
     // Store state + nonce in httpOnly cookie
     res.cookie("apple_oauth", JSON.stringify({ state, nonce }), {
@@ -1183,6 +1277,7 @@ export function createAuthRouter({
       maxAge: 10 * 60 * 1000,
       path: "/auth/apple",
     });
+    setPostAuthRedirect(res, next);
 
     res.redirect(url);
   });
@@ -1211,18 +1306,36 @@ export function createAuthRouter({
         }
 
         if (!state || !storedState || state !== storedState) {
-          return res.redirect(
-            `/auth?auth=error&message=${encodeURIComponent("Invalid OAuth state")}`,
+          const next = normalizePostAuthRedirect(
+            req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
           );
+          setPostAuthRedirect(res, null);
+          const params = new URLSearchParams({
+            auth: "error",
+            message: "Invalid OAuth state",
+          });
+          if (next) {
+            params.set("next", next);
+          }
+          return res.redirect(`/auth?${params.toString()}`);
         }
 
         res.clearCookie("apple_oauth", { path: "/auth/apple" });
+        const next = normalizePostAuthRedirect(
+          req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
+        );
+        setPostAuthRedirect(res, null);
 
         const idToken = req.body.id_token as string;
         if (!idToken) {
-          return res.redirect(
-            `/auth?auth=error&message=${encodeURIComponent("Missing ID token")}`,
-          );
+          const params = new URLSearchParams({
+            auth: "error",
+            message: "Missing ID token",
+          });
+          if (next) {
+            params.set("next", next);
+          }
+          return res.redirect(`/auth?${params.toString()}`);
         }
 
         // Apple sends user info only on first auth
@@ -1265,12 +1378,24 @@ export function createAuthRouter({
           token: result.token,
           refreshToken: result.refreshToken,
         });
+        if (next) {
+          params.set("next", next);
+        }
         res.redirect(`/auth?${params.toString()}`);
       } catch (error) {
         console.error("Apple Sign-In callback error:", error);
-        res.redirect(
-          `/auth?auth=error&message=${encodeURIComponent("Apple login failed")}`,
+        const next = normalizePostAuthRedirect(
+          req.cookies?.[POST_AUTH_REDIRECT_COOKIE],
         );
+        setPostAuthRedirect(res, null);
+        const params = new URLSearchParams({
+          auth: "error",
+          message: "Apple login failed",
+        });
+        if (next) {
+          params.set("next", next);
+        }
+        res.redirect(`/auth?${params.toString()}`);
       }
     },
   );
