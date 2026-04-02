@@ -29,7 +29,7 @@ The backend field `category` represents the project/category a task belongs to. 
 | Group By | Section Headers | Stable Key |
 |----------|----------------|------------|
 | None (default) | Current flat list behavior | — |
-| Project | Category display name, task count | `category` field value (slug-like) |
+| Project | Category display name, task count | `projectId` field value (UUID, stable across renames). Falls back to `category` string only if `projectId` is null. |
 | Status | Ordered: next → in_progress → waiting → scheduled → someday → inbox | `TaskStatus` enum value |
 | Priority | Ordered: urgent → high → medium → low → (none) | `Priority` enum value or `"none"` |
 | Due Date | Ordered: overdue → today → this-week → next-week → later → no-date | Bucket key (see below) |
@@ -44,8 +44,8 @@ The backend field `category` represents the project/category a task belongs to. 
 |--------|------|
 | Overdue | `dueDate` < start of today (local) |
 | Today | `dueDate` falls on today (local) |
-| This Week | `dueDate` > today AND <= end of current calendar week (Sunday) |
-| Next Week | `dueDate` falls within next calendar week (Monday–Sunday) |
+| This Week | `dueDate` > today AND <= end of current calendar week. Week starts Monday (ISO 8601). |
+| Next Week | `dueDate` falls within next calendar week (Monday–Sunday, ISO 8601). |
 | Later | `dueDate` > end of next calendar week |
 | No Date | `dueDate` is null/undefined |
 
@@ -173,6 +173,15 @@ This avoids:
 
 The view-mode toggle (list/board) can stay in AppShell since it applies at a higher level.
 
+## State Ownership
+
+Both `useGroupBy` and `useDensity` are self-contained hooks that own their own localStorage persistence. They are called directly inside `ListToolbar` (for the UI controls) and `SortableTodoList` (for rendering logic). No props from a common parent are needed — both hooks read from the same localStorage key and return the same value regardless of where they're called. This is the same pattern `useDensity` already uses today (called in both `AppShell` and `SettingsPage`).
+
+Summary:
+- `useGroupBy()` — called in `ListToolbar` (dropdown) and `SortableTodoList` (grouping logic)
+- `useDensity()` — called in `ListToolbar` (toggle buttons) and `TodoRow` (conditional rendering)
+- No prop drilling or context provider needed for v1
+
 ---
 
 ## Files Affected
@@ -199,7 +208,7 @@ All required data fields already exist on the `Todo` type:
 
 ## Accessibility Requirements
 
-- **GroupHeader:** Rendered as `<button>` with `aria-expanded="true|false"`. Count badge is decorative (`aria-hidden="true"`).
+- **GroupHeader:** The toggle element is a `<button>` element (not a div with click handler). It carries `aria-expanded="true|false"`. Count badge is decorative (`aria-hidden="true"`).
 - **Density toggle:** Each button uses `aria-pressed="true|false"` and descriptive `aria-label` (e.g., "Compact density").
 - **Priority border:** Color is not the sole indicator — in normal/spacious modes, the priority chip provides text. In compact mode, priority is communicated visually only via border; this is acceptable because compact mode is an opt-in density reduction where users trade information for scannability.
 - **Overdue state:** Conveyed by the overdue chip text in normal/spacious modes, not just the background tint.
@@ -219,7 +228,7 @@ All reads use defensive parsing: invalid/corrupt values silently fall back to de
 ## Performance Notes
 
 - `groupTodos()` must be wrapped in `useMemo` with `[todos, groupBy]` dependencies
-- `buildChips()` is a pure helper called per-row — keep it lightweight (no allocations beyond the return array)
+- `buildChips()` is a pure helper called per-row — keep it lightweight (no allocations beyond the return array). It only runs for mounted rows; collapsed groups skip rendering entirely, so their rows never call `buildChips()`.
 - **Collapsed groups must not render child rows.** This is the most impactful optimization — if a group with 50 tasks is collapsed, those 50 `TodoRow` components should not mount.
 - Multiple `SortableContext` instances (one per group) add some overhead from `@dnd-kit`. Acceptable for typical list sizes (<200 visible tasks). If performance becomes an issue, derived groups already skip `SortableContext` entirely.
 
