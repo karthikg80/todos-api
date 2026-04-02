@@ -2,23 +2,43 @@
  * Bulk-resolve feedback records whose linked GitHub issues have been closed.
  *
  * Usage:
- *   npx ts-node scripts/resolve-feedback-by-issue.ts 623 624 625 ...
+ *   npx ts-node scripts/resolve-feedback-by-issue.ts --summary "Fixed in v1.6.1" 623 624 625 ...
  *
  * For each issue number:
  *   1. Finds the feedback record with that githubIssueNumber
  *   2. Updates status to "resolved"
- *   3. Sends a resolution notification email to the submitting user
+ *   3. Sends a resolution notification email with the summary to the submitting user
  */
 
 import { PrismaClient } from "@prisma/client";
 import { EmailService } from "../src/services/emailService";
 
+function parseArgs(argv: string[]): {
+  summary: string;
+  issueNumbers: number[];
+} {
+  const args = argv.slice(2);
+  let summary = "This has been fixed and deployed.";
+  const issueNumbers: number[] = [];
+
+  for (let i = 0; i < args.length; i++) {
+    if (args[i] === "--summary" && args[i + 1]) {
+      summary = args[++i];
+    } else {
+      const n = Number(args[i]);
+      if (n) issueNumbers.push(n);
+    }
+  }
+
+  return { summary, issueNumbers };
+}
+
 async function main() {
-  const issueNumbers = process.argv.slice(2).map(Number).filter(Boolean);
+  const { summary, issueNumbers } = parseArgs(process.argv);
 
   if (issueNumbers.length === 0) {
     console.error(
-      "Usage: npx ts-node scripts/resolve-feedback-by-issue.ts <issue> [issue...]",
+      'Usage: npx ts-node scripts/resolve-feedback-by-issue.ts [--summary "..."] <issue> [issue...]',
     );
     process.exit(1);
   }
@@ -29,6 +49,7 @@ async function main() {
   console.log(
     `Resolving feedback for GitHub issues: ${issueNumbers.join(", ")}`,
   );
+  console.log(`Summary: "${summary}"\n`);
 
   let resolved = 0;
   let skipped = 0;
@@ -64,7 +85,7 @@ async function main() {
         await emailService.sendFeedbackStatusEmail(record.user.email, {
           title: record.title,
           status: "resolved",
-          githubIssueUrl: record.githubIssueUrl,
+          resolutionSummary: summary,
         });
         console.log(
           `  #${issueNumber}: resolved + notified ${record.user.email}`,

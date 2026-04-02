@@ -263,6 +263,7 @@ export class EmailService {
       status: string;
       githubIssueUrl?: string | null;
       rejectionReason?: string | null;
+      resolutionSummary?: string | null;
     },
   ): Promise<void> {
     if (!this.transporter) return;
@@ -295,10 +296,13 @@ export class EmailService {
         <p style="color: #666;"><strong>Reason:</strong> ${details.rejectionReason}</p>
       `;
     }
-    if (details.status === "resolved" && details.githubIssueUrl) {
+    if (details.status === "resolved") {
+      const summary = details.resolutionSummary
+        ? `<p style="color: #333;">${details.resolutionSummary}</p>`
+        : "";
       extraHtml = `
         <p>The issue has been fixed and deployed. Thank you for reporting it!</p>
-        <p><a href="${details.githubIssueUrl}" style="color: #667eea;">View the resolved issue</a></p>
+        ${summary}
       `;
     }
 
