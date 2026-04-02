@@ -101,6 +101,41 @@ export function IconCompleted(p: IconProps) {
   );
 }
 
+export function IconWaiting(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M8 2h8" />
+      <path d="M8 22h8" />
+      <path d="M9 2v5a3 3 0 0 0 1 2.24l1.5 1.38a2 2 0 0 1 0 2.76L10 14.76A3 3 0 0 0 9 17v5" />
+      <path d="M15 2v5a3 3 0 0 1-1 2.24l-1.5 1.38a2 2 0 0 0 0 2.76l1.5 1.38A3 3 0 0 1 15 17v5" />
+    </Icon>
+  );
+}
+
+export function IconScheduled(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+      <line x1="16" x2="16" y1="2" y2="6" />
+      <line x1="8" x2="8" y1="2" y2="6" />
+      <line x1="3" x2="21" y1="10" y2="10" />
+      <path d="m9 16 2 2 4-5" />
+    </Icon>
+  );
+}
+
+export function IconSomeday(p: IconProps) {
+  return (
+    <Icon {...p}>
+      <path d="M7 3h10" />
+      <path d="M5 7h14" />
+      <path d="M7 11h10" />
+      <path d="M9 15h6" />
+      <path d="M11 19h2" />
+    </Icon>
+  );
+}
+
 export function IconTuneUp({ size = 15, className = "nav-icon" }: IconProps) {
   return (
     <svg className={className} width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

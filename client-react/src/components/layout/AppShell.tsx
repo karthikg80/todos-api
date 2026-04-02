@@ -254,6 +254,18 @@ export function AppShell() {
             t.dueDate.split("T")[0] > today &&
             t.dueDate.split("T")[0] <= upcomingEndIso,
         );
+      } else if (activeView === "waiting") {
+        filtered = filtered.filter(
+          (t) => !t.completed && t.status === "waiting",
+        );
+      } else if (activeView === "scheduled") {
+        filtered = filtered.filter(
+          (t) => !t.completed && t.status === "scheduled",
+        );
+      } else if (activeView === "someday") {
+        filtered = filtered.filter(
+          (t) => !t.completed && t.status === "someday",
+        );
       }
     }
 
@@ -326,6 +338,9 @@ export function AppShell() {
           t.dueDate.split("T")[0] > today &&
           t.dueDate.split("T")[0] <= upcomingEndIso,
       ).length,
+      waiting: active.filter((t) => t.status === "waiting").length,
+      scheduled: active.filter((t) => t.status === "scheduled").length,
+      someday: active.filter((t) => t.status === "someday").length,
     };
   }, [todos]);
 
@@ -342,10 +357,44 @@ export function AppShell() {
         return "Capture something to organize later…";
       case "today":
         return "Add a task for today…";
+      case "waiting":
+        return "Add something you’re waiting on…";
+      case "scheduled":
+        return "Add something planned for later…";
+      case "someday":
+        return "Capture something for later…";
       default:
         return "Add a task…";
     }
   }, [selectedProjectId, projects, activeView]);
+
+  const focusSearchInput = useCallback(() => {
+    startTransition(() => setPage("todos"));
+    requestAnimationFrame(() => {
+      const searchInput =
+        document.getElementById("searchInput") ??
+        document.getElementById("searchInputMobile");
+      if (searchInput instanceof HTMLInputElement) {
+        searchInput.focus();
+        searchInput.select();
+      }
+    });
+  }, [startTransition]);
+
+  const focusQuickEntryOrOpenComposer = useCallback(() => {
+    startTransition(() => setPage("todos"));
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const quickEntryInput = document.getElementById("todoInput");
+        if (quickEntryInput instanceof HTMLInputElement) {
+          quickEntryInput.focus();
+          quickEntryInput.select();
+          return;
+        }
+        setComposerOpen(true);
+      });
+    });
+  }, [startTransition]);
 
   // --- Handlers ---
 
@@ -569,7 +618,7 @@ export function AppShell() {
       // Escape: close palette, close drawer, cancel bulk, close mobile nav
       if (e.key === "Escape") {
         if (paletteOpen) {
-          setPaletteOpen(false);
+          return;
         } else if (activeTodoId) {
           taskNav.deescalate();
         } else if (bulkMode) {
@@ -597,14 +646,14 @@ export function AppShell() {
       // 'n': focus quick entry
       if (e.key === "n" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        document.getElementById("todoInput")?.focus();
+        focusQuickEntryOrOpenComposer();
         return;
       }
 
       // '/': focus search
       if (e.key === "/") {
         e.preventDefault();
-        document.getElementById("searchInput")?.focus();
+        focusSearchInput();
         return;
       }
 
@@ -659,7 +708,19 @@ export function AppShell() {
 
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [activeTodoId, bulkMode, mobileNavOpen, paletteOpen, handleCancelBulk]);
+  }, [
+    activeTodoId,
+    bulkMode,
+    mobileNavOpen,
+    paletteOpen,
+    handleCancelBulk,
+    focusQuickEntryOrOpenComposer,
+    focusSearchInput,
+    handleOpenDrawer,
+    handleToggle,
+    taskNav,
+    visibleTodos,
+  ]);
 
   // --- Derived ---
 
@@ -669,7 +730,11 @@ export function AppShell() {
     all: "Everything",
     today: "Today",
     upcoming: "Upcoming",
+    waiting: "Pending",
+    scheduled: "Planned",
+    someday: "Later",
     completed: "Completed",
+    tuneup: "Tune-up",
   };
 
   const headerTitle = selectedProjectId
@@ -980,7 +1045,17 @@ export function AppShell() {
               </ViewRoute>
 
               {/* List views with shared header */}
-              {(["all", "today", "upcoming", "completed"] as const).map((view) => (
+              {(
+                [
+                  "all",
+                  "today",
+                  "upcoming",
+                  "waiting",
+                  "scheduled",
+                  "someday",
+                  "completed",
+                ] as const
+              ).map((view) => (
                 <ViewRoute key={view} viewKey={view}>
                   <ListViewHeader
                     headerTitle={VIEW_LABELS[view] ?? view}
@@ -1014,6 +1089,7 @@ export function AppShell() {
                     onCancelBulk={handleCancelBulk}
                     uiMode={uiMode}
                     onAddTodo={addTodo}
+                    onCaptureToDesk={handleCaptureToDesk}
                     quickEntryPlaceholder={quickEntryPlaceholder}
                     activeHeadingId={null}
                     onSelectHeading={() => {}}
@@ -1107,6 +1183,7 @@ export function AppShell() {
                     onCancelBulk={handleCancelBulk}
                     uiMode={uiMode}
                     onAddTodo={addTodo}
+                    onCaptureToDesk={handleCaptureToDesk}
                     quickEntryPlaceholder={quickEntryPlaceholder}
                     activeHeadingId={activeHeadingId}
                     onSelectHeading={setActiveHeadingId}
@@ -1207,10 +1284,32 @@ export function AppShell() {
         onNavigate={handlePaletteNavigate}
         onWeeklyReview={() => startTransition(() => setPage("review"))}
         onToggleDarkMode={toggleDarkMode}
+        onOpenSettings={() => startTransition(() => setPage("settings"))}
+        onOpenFeedback={() => startTransition(() => setPage("feedback"))}
+        onOpenShortcuts={() => setShortcutsOpen(true)}
+        onNewTask={focusQuickEntryOrOpenComposer}
+        onFocusSearch={focusSearchInput}
+        onExportCalendar={() => {
+          const withDates = todos.filter((t) => t.dueDate);
+          if (withDates.length === 0) {
+            setUndoAction({ message: "No tasks with due dates to export" });
+            return;
+          }
+          exportIcs(withDates);
+          setUndoAction({
+            message: `Exported ${withDates.length} tasks to .ics`,
+          });
+        }}
         onLogout={logout}
+        projects={projects}
         todos={todos}
         onTodoClick={(id) => {
           taskNav.openDrawer(id);
+          setPaletteOpen(false);
+        }}
+        onProjectOpen={(id) => {
+          startTransition(() => setPage("todos"));
+          handleSelectProject(id);
           setPaletteOpen(false);
         }}
       />

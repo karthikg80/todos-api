@@ -76,6 +76,7 @@ export interface ListViewHeaderProps {
   // Quick entry
   uiMode: UiMode;
   onAddTodo: (dto: CreateTodoDto) => Promise<unknown>;
+  onCaptureToDesk: (text: string) => Promise<unknown>;
   quickEntryPlaceholder: string;
 
   // Project headings
@@ -128,6 +129,7 @@ export function ListViewHeader({
   onCancelBulk,
   uiMode,
   onAddTodo,
+  onCaptureToDesk,
   quickEntryPlaceholder,
   activeHeadingId,
   onSelectHeading,
@@ -376,7 +378,9 @@ export function ListViewHeader({
       {uiMode === "normal" && (
         <QuickEntry
           projectId={selectedProjectId}
-          onAdd={onAddTodo}
+          workspaceView={activeView}
+          onAddTask={onAddTodo}
+          onCaptureToDesk={onCaptureToDesk}
           placeholder={quickEntryPlaceholder}
         />
       )}
@@ -393,7 +397,11 @@ export function ListViewHeader({
       {/* Mobile search */}
       {isMobile && (
         <div style={{ padding: "var(--s-2) var(--s-4)" }}>
-          <SearchBar value={searchQuery} onChange={onSearchChange} />
+          <SearchBar
+            inputId="searchInputMobile"
+            value={searchQuery}
+            onChange={onSearchChange}
+          />
         </div>
       )}
     </>
