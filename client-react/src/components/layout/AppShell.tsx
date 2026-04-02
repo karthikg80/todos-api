@@ -16,49 +16,37 @@ import {
   IconMoon,
   IconSun,
   IconMenu,
-  IconCalendar,
-  IconList,
-  IconBoard,
-  IconPlus,
 } from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
 import { captureInboxItem } from "../../api/inbox";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
-import { QuickEntry } from "../todos/QuickEntry";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
-import { BulkToolbar } from "../todos/BulkToolbar";
 import {
-  SortControl,
   type SortField,
   type SortOrder,
 } from "../todos/SortControl";
-import { SearchBar } from "../shared/SearchBar";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
-import { Tooltip } from "../shared/Tooltip";
 import {
-  FilterPanel,
   applyFilters,
   type ActiveFilters,
 } from "../todos/FilterPanel";
-import { Breadcrumb } from "../shared/Breadcrumb";
-import { AnimatedCount } from "../shared/AnimatedCount";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
 import { DeskView } from "../desk/DeskView";
 import { TuneUpView } from "../tuneup/TuneUpView";
 import { ProjectCrud } from "../projects/ProjectCrud";
-import { VerificationBanner } from "../shared/VerificationBanner";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
-import { ProjectHeadings } from "../projects/ProjectHeadings";
 import { useTaskNavigation } from "../../hooks/useTaskNavigation";
 import { useHashRoute } from "../../hooks/useHashRoute";
 import { useViewTransition } from "../../hooks/useViewTransition";
 import { TaskFullPage } from "../todos/TaskFullPage";
+import { ViewRouter, ViewRoute } from "./ViewRouter";
+import { ListViewHeader } from "./ListViewHeader";
 import * as todosApi from "../../api/todos";
 
 // Lazy-loaded heavy components (code splitting)
@@ -688,6 +676,11 @@ export function AppShell() {
     ? (projects.find((p) => p.id === selectedProjectId)?.name ?? "Project")
     : (VIEW_LABELS[activeView] ?? activeView);
 
+  // ViewRouter active key: projects get a dynamic composite key
+  const activeViewKey = selectedProjectId
+    ? `project:${selectedProjectId}`
+    : activeView;
+
   // Dynamic page title
   useEffect(() => {
     const pageLabel =
@@ -876,141 +869,18 @@ export function AppShell() {
             >
               <WeeklyReview onBack={() => startTransition(() => setPage("todos"))} />
             </Suspense>
-          ) : activeView === "home" && !selectedProjectId ? (
-            <>
-              {!isMobile && (
-                <header className="app-header">
-                  <span className="app-header__title">Focus</span>
-                  <button
-                    className="btn"
-                    onClick={() => setComposerOpen(true)}
-                    id="topBarNewTaskCta"
-                  >
-                    + New Task
-                  </button>
-                  <button
-                    className="btn"
-                    onClick={toggleDarkMode}
-                    aria-label="Toggle dark mode"
-                    style={{ fontSize: "var(--fs-label)" }}
-                  >
-                    {dark ? <IconSun /> : <IconMoon />}
-                  </button>
-                  {user && (
-                    <button
-                      className="btn"
-                      style={{ fontSize: "var(--fs-label)" }}
-                      onClick={logout}
-                    >
-                      Logout
-                    </button>
-                  )}
-                </header>
-              )}
-              {isMobile && (
-                <div className="mobile-header">
-                  <button
-                    id="projectsRailMobileOpen"
-                    className="mobile-header__menu-btn"
-                    onClick={() => setMobileNavOpen(true)}
-                    aria-label="Open navigation"
-                  >
-                    <IconMenu />
-                  </button>
-                  <span className="app-header__title">Focus</span>
-                  <button
-                    className="btn"
-                    onClick={() => setComposerOpen(true)}
-                    style={{ marginLeft: "auto", fontSize: "var(--fs-label)" }}
-                  >
-                    + New
-                  </button>
-                </div>
-              )}
-              <div className="app-content">
-                <HomeDashboard
-                  todos={todos}
-                  projects={projects}
-                  onTodoClick={handleOpenDrawer}
-                  onToggleTodo={handleToggle}
-                  onEditTodo={(id, updates) => {
-                    editTodo(id, updates);
-                  }}
-                  onNavigate={(v) => {
-                    handleSelectView(v);
-                    handleSelectProject(null);
-                  }}
-                  onSelectProject={(id) => {
-                    handleSelectProject(id);
-                    startTransition(() => setPage("todos"));
-                  }}
-                  onNavigateToTuneUp={() => handleSelectView("tuneup")}
-                  onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
-                />
-              </div>
-            </>
-          ) : activeView === "triage" && !selectedProjectId ? (
-            <>
-              {isMobile && (
-                <div className="mobile-header">
-                  <button
-                    id="projectsRailMobileOpen"
-                    className="mobile-header__menu-btn"
-                    onClick={() => setMobileNavOpen(true)}
-                    aria-label="Open navigation"
-                  >
-                    <IconMenu />
-                  </button>
-                  <span className="app-header__title">Desk</span>
-                </div>
-              )}
-              <DeskView
-                todos={todos}
-                onTodoClick={handleOpenDrawer}
-                onToggleTodo={handleToggle}
-                onRefreshTodos={() => loadTodos(queryParams)}
-                onOpenComposer={() => setComposerOpen(true)}
-              />
-            </>
-          ) : activeView === "tuneup" && !selectedProjectId ? (
-            <>
-              <div className="app-content">
-                <TuneUpView
-                  onOpenTask={(taskId) => {
-                    handleSelectView("all");
-                    handleOpenDrawer(taskId);
-                  }}
-                  onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
-                />
-              </div>
-            </>
           ) : (
-            <>
-              {/* Mobile header */}
-              {isMobile && (
-                <div className="mobile-header">
-                  <button
-                    id="projectsRailMobileOpen"
-                    className="mobile-header__menu-btn"
-                    onClick={() => setMobileNavOpen(true)}
-                    aria-label="Open navigation"
-                  >
-                    <IconMenu />
-                  </button>
-                  <span className="app-header__title">{headerTitle}</span>
-                  <div
-                    style={{
-                      marginLeft: "auto",
-                      display: "flex",
-                      gap: "var(--s-2)",
-                    }}
-                  >
+            <ViewRouter activeViewKey={activeViewKey} capacity={3}>
+              <ViewRoute viewKey="home">
+                {!isMobile && (
+                  <header className="app-header">
+                    <span className="app-header__title">Focus</span>
                     <button
                       className="btn"
                       onClick={() => setComposerOpen(true)}
-                      style={{ fontSize: "var(--fs-label)" }}
+                      id="topBarNewTaskCta"
                     >
-                      + New
+                      + New Task
                     </button>
                     <button
                       className="btn"
@@ -1029,274 +899,272 @@ export function AppShell() {
                         Logout
                       </button>
                     )}
-                  </div>
-                </div>
-              )}
-
-              {/* Desktop header */}
-              {!isMobile && (
-                <header className="app-header">
-                  <span id="todosListHeaderTitle" className="app-header__title">
-                    <Breadcrumb
-                      items={[
-                        ...(selectedProjectId
-                          ? [
-                              {
-                                label: VIEW_LABELS[activeView] ?? "Tasks",
-                                onClick: () => handleSelectProject(null),
-                              },
-                              { label: headerTitle },
-                            ]
-                          : [{ label: headerTitle }]),
-                      ]}
-                    />
-                    {!selectedProjectId && headerTitle}
-                  </span>
-                  <span id="todosListHeaderCount" className="app-header__count">
-                    {loadState === "loaded" && (
-                      <>
-                        <AnimatedCount
-                          value={
-                            visibleTodos.filter((t) => !t.completed).length
-                          }
-                        />{" "}
-                        tasks
-                      </>
-                    )}
-                  </span>
-                  <Tooltip content="Filters" shortcut="f">
+                  </header>
+                )}
+                {isMobile && (
+                  <div className="mobile-header">
                     <button
-                      id="moreFiltersToggle"
-                      className={`btn${filtersOpen ? " btn--active" : ""}`}
-                      onClick={() => setFiltersOpen((o) => !o)}
-                      style={{ fontSize: "var(--fs-label)" }}
+                      id="projectsRailMobileOpen"
+                      className="mobile-header__menu-btn"
+                      onClick={() => setMobileNavOpen(true)}
+                      aria-label="Open navigation"
                     >
-                      Filters
-                      {(activeFilters.dateFilter !== "all" ||
-                        activeFilters.priority ||
-                        activeFilters.status) && (
-                        <span className="filter-badge">●</span>
-                      )}
+                      <IconMenu />
                     </button>
-                  </Tooltip>
-                  <div className="view-toggle">
-                    <button
-                      className={`view-toggle__btn${viewMode === "list" ? " view-toggle__btn--active" : ""}`}
-                      onClick={() => setViewMode("list")}
-                      aria-label="List view"
-                    >
-                      <IconList />
-                    </button>
-                    <button
-                      className={`view-toggle__btn${viewMode === "board" ? " view-toggle__btn--active" : ""}`}
-                      onClick={() => setViewMode("board")}
-                      aria-label="Board view"
-                    >
-                      <IconBoard />
-                    </button>
-                  </div>
-                  {viewMode === "list" && (
-                    <SortControl
-                      sortBy={sortBy}
-                      sortOrder={sortOrder}
-                      onChange={(f, o) => {
-                        setSortBy(f);
-                        setSortOrder(o);
-                      }}
-                    />
-                  )}
-                  <Tooltip content="New task" shortcut="n">
+                    <span className="app-header__title">Focus</span>
                     <button
                       className="btn"
                       onClick={() => setComposerOpen(true)}
-                      style={{ fontSize: "var(--fs-label)" }}
+                      style={{ marginLeft: "auto", fontSize: "var(--fs-label)" }}
                     >
-                      <IconPlus /> New Task
+                      + New
                     </button>
-                  </Tooltip>
-                  <Tooltip content="Export calendar" shortcut=".ics">
-                    <button
-                      id="exportIcsButton"
-                      className="btn"
-                      onClick={() => {
-                        const withDates = todos.filter((t) => t.dueDate);
-                        if (withDates.length === 0) {
-                          setUndoAction({
-                            message: "No tasks with due dates to export",
-                          });
-                          return;
-                        }
-                        exportIcs(withDates);
-                        setUndoAction({
-                          message: `Exported ${withDates.length} tasks to .ics`,
-                        });
-                      }}
-                      aria-label="Export to calendar"
-                      style={{ fontSize: "var(--fs-label)" }}
-                    >
-                      <IconCalendar />
-                    </button>
-                  </Tooltip>
-                  <Tooltip content={dark ? "Light mode" : "Dark mode"}>
-                    <button
-                      className="btn"
-                      onClick={toggleDarkMode}
-                      aria-label="Toggle dark mode"
-                      style={{ fontSize: "var(--fs-label)" }}
-                    >
-                      {dark ? <IconSun /> : <IconMoon />}
-                    </button>
-                  </Tooltip>
-                  {user && (
-                    <button
-                      className="btn"
-                      style={{ fontSize: "var(--fs-label)" }}
-                      onClick={logout}
-                    >
-                      Logout
-                    </button>
-                  )}
-                </header>
-              )}
-
-              {user && !user.isVerified && (
-                <VerificationBanner
-                  email={user.email}
-                  isVerified={!!user.isVerified}
-                />
-              )}
-
-              {activeTagFilter && (
-                <div className="active-filter-bar">
-                  Filtered by tag: <strong>#{activeTagFilter}</strong>
-                  <button
-                    className="active-filter-bar__clear"
-                    onClick={() => setActiveTagFilter("")}
-                  >
-                    ✕ Clear
-                  </button>
-                </div>
-              )}
-
-              {/* Today view coaching */}
-              {activeView === "today" &&
-                !selectedProjectId &&
-                visibleTodos.length > 0 &&
-                (() => {
-                  const overdue = visibleTodos.filter(
-                    (t) =>
-                      t.dueDate &&
-                      t.dueDate.split("T")[0] <
-                        new Date().toISOString().split("T")[0],
-                  ).length;
-                  return overdue > 0 ? (
-                    <div className="today-coaching-banner">
-                      <span>
-                        {overdue === 1
-                          ? "1 task rolled over."
-                          : `${overdue} tasks rolled over.`}{" "}
-                        Let's make the day smaller.
-                      </span>
-                    </div>
-                  ) : null;
-                })()}
-
-              {/* Filter panel */}
-              {filtersOpen && (
-                <FilterPanel
-                  filters={activeFilters}
-                  onChange={setActiveFilters}
-                  onClose={() => setFiltersOpen(false)}
-                />
-              )}
-
-              {/* Bulk actions toolbar */}
-              {bulkMode && (
-                <BulkToolbar
-                  selectedCount={selectedIds.size}
-                  totalCount={visibleTodos.length}
-                  allSelected={
-                    selectedIds.size === visibleTodos.length &&
-                    visibleTodos.length > 0
-                  }
-                  onSelectAll={handleSelectAll}
-                  onComplete={handleBulkComplete}
-                  onDelete={handleBulkDelete}
-                  onCancel={handleCancelBulk}
-                />
-              )}
-
-              {uiMode === "normal" && (
-                <QuickEntry
-                  projectId={selectedProjectId}
-                  workspaceView={activeView}
-                  onAddTask={addTodo}
-                  onCaptureToDesk={handleCaptureToDesk}
-                  placeholder={quickEntryPlaceholder}
-                />
-              )}
-
-              {/* Project headings */}
-              {selectedProjectId && uiMode === "normal" && (
-                <ProjectHeadings
-                  projectId={selectedProjectId}
-                  activeHeadingId={activeHeadingId}
-                  onSelectHeading={setActiveHeadingId}
-                />
-              )}
-
-              {/* Mobile search */}
-              {isMobile && (
-                <div style={{ padding: "var(--s-2) var(--s-4)" }}>
-                  <SearchBar value={searchQuery} onChange={setSearchQuery} />
-                </div>
-              )}
-
-              <div className="app-content">
-                {viewMode === "board" ? (
-                  <Suspense
-                    fallback={
-                      <div className="loading-skeleton loading">
-                        <div className="loading-skeleton__row" />
-                      </div>
-                    }
-                  >
-                    <BoardView
-                      todos={visibleTodos}
-                      loadState={loadState}
-                      onToggle={handleToggle}
-                      onClick={handleOpenDrawer}
-                      onStatusChange={editTodo}
-                    />
-                  </Suspense>
-                ) : (
-                  <SortableTodoList
-                    todos={visibleTodos}
-                    loadState={loadState}
-                    errorMessage={errorMessage}
-                    activeTodoId={activeTodoId}
-                    expandedTodoId={expandedTodoId}
-                    isBulkMode={bulkMode}
-                    selectedIds={selectedIds}
+                  </div>
+                )}
+                <div className="app-content">
+                  <HomeDashboard
+                    todos={todos}
                     projects={projects}
-                    headings={[]}
-                    onToggle={handleToggle}
-                    onClick={handleQuickEdit}
-                    onKebab={handleOpenDrawer}
-                    onRetry={() => loadTodos(queryParams)}
-                    onSelect={handleBulkSelect}
-                    onInlineEdit={handleInlineEdit}
-                    onSave={editTodo}
-                    onTagClick={handleTagClick}
-                    onLifecycleAction={handleLifecycleAction}
-                    onReorder={handleReorder}
+                    onTodoClick={handleOpenDrawer}
+                    onToggleTodo={handleToggle}
+                    onEditTodo={(id, updates) => {
+                      editTodo(id, updates);
+                    }}
+                    onNavigate={(v) => {
+                      handleSelectView(v);
+                      handleSelectProject(null);
+                    }}
+                    onSelectProject={(id) => {
+                      handleSelectProject(id);
+                      startTransition(() => setPage("todos"));
+                    }}
+                    onNavigateToTuneUp={() => handleSelectView("tuneup")}
+                    onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
+                  />
+                </div>
+              </ViewRoute>
+
+              <ViewRoute viewKey="triage">
+                {isMobile && (
+                  <div className="mobile-header">
+                    <button
+                      id="projectsRailMobileOpen"
+                      className="mobile-header__menu-btn"
+                      onClick={() => setMobileNavOpen(true)}
+                      aria-label="Open navigation"
+                    >
+                      <IconMenu />
+                    </button>
+                    <span className="app-header__title">Desk</span>
+                  </div>
+                )}
+                <DeskView
+                  todos={todos}
+                  onTodoClick={handleOpenDrawer}
+                  onToggleTodo={handleToggle}
+                  onRefreshTodos={() => loadTodos(queryParams)}
+                  onOpenComposer={() => setComposerOpen(true)}
+                />
+              </ViewRoute>
+
+              <ViewRoute viewKey="tuneup">
+                <div className="app-content">
+                  <TuneUpView
+                    onOpenTask={(taskId) => {
+                      handleSelectView("all");
+                      handleOpenDrawer(taskId);
+                    }}
+                    onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
+                  />
+                </div>
+              </ViewRoute>
+
+              {/* List views with shared header */}
+              {(["all", "today", "upcoming", "completed"] as const).map((view) => (
+                <ViewRoute key={view} viewKey={view}>
+                  <ListViewHeader
+                    headerTitle={VIEW_LABELS[view] ?? view}
+                    activeView={view}
+                    selectedProjectId={null}
+                    isMobile={isMobile}
+                    visibleTodos={visibleTodos}
+                    loadState={loadState}
+                    filtersOpen={filtersOpen}
+                    onToggleFilters={() => setFiltersOpen((o) => !o)}
+                    activeFilters={activeFilters}
+                    onFilterChange={setActiveFilters}
+                    activeTagFilter={activeTagFilter}
+                    onClearTagFilter={() => setActiveTagFilter("")}
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
                     sortBy={sortBy}
                     sortOrder={sortOrder}
                     onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                    onOpenNav={() => setMobileNavOpen(true)}
+                    onNewTask={() => setComposerOpen(true)}
+                    onToggleDark={toggleDarkMode}
+                    onLogout={logout}
+                    onClearProject={() => handleSelectProject(null)}
+                    viewLabels={VIEW_LABELS}
+                    bulkMode={bulkMode}
+                    selectedIds={selectedIds}
+                    onSelectAll={handleSelectAll}
+                    onBulkComplete={handleBulkComplete}
+                    onBulkDelete={handleBulkDelete}
+                    onCancelBulk={handleCancelBulk}
+                    uiMode={uiMode}
+                    onAddTodo={addTodo}
+                    quickEntryPlaceholder={quickEntryPlaceholder}
+                    activeHeadingId={null}
+                    onSelectHeading={() => {}}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    todos={todos}
+                    onExportIcs={exportIcs}
+                    onExportMessage={(msg) => setUndoAction({ message: msg })}
+                    user={user}
+                    dark={dark}
                   />
-                )}
-              </div>
-            </>
+                  <div className="app-content">
+                    {viewMode === "board" ? (
+                      <Suspense
+                        fallback={
+                          <div className="loading-skeleton loading">
+                            <div className="loading-skeleton__row" />
+                          </div>
+                        }
+                      >
+                        <BoardView
+                          todos={visibleTodos}
+                          loadState={loadState}
+                          onToggle={handleToggle}
+                          onClick={handleOpenDrawer}
+                          onStatusChange={editTodo}
+                        />
+                      </Suspense>
+                    ) : (
+                      <SortableTodoList
+                        todos={visibleTodos}
+                        loadState={loadState}
+                        errorMessage={errorMessage}
+                        activeTodoId={activeTodoId}
+                        expandedTodoId={expandedTodoId}
+                        isBulkMode={bulkMode}
+                        selectedIds={selectedIds}
+                        projects={projects}
+                        headings={[]}
+                        onToggle={handleToggle}
+                        onClick={handleQuickEdit}
+                        onKebab={handleOpenDrawer}
+                        onRetry={() => loadTodos(queryParams)}
+                        onSelect={handleBulkSelect}
+                        onInlineEdit={handleInlineEdit}
+                        onSave={editTodo}
+                        onTagClick={handleTagClick}
+                        onLifecycleAction={handleLifecycleAction}
+                        onReorder={handleReorder}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                      />
+                    )}
+                  </div>
+                </ViewRoute>
+              ))}
+
+              {/* Dynamic project view */}
+              {selectedProjectId && (
+                <ViewRoute viewKey={`project:${selectedProjectId}`}>
+                  <ListViewHeader
+                    headerTitle={headerTitle}
+                    activeView={activeView}
+                    selectedProjectId={selectedProjectId}
+                    isMobile={isMobile}
+                    visibleTodos={visibleTodos}
+                    loadState={loadState}
+                    filtersOpen={filtersOpen}
+                    onToggleFilters={() => setFiltersOpen((o) => !o)}
+                    activeFilters={activeFilters}
+                    onFilterChange={setActiveFilters}
+                    activeTagFilter={activeTagFilter}
+                    onClearTagFilter={() => setActiveTagFilter("")}
+                    viewMode={viewMode}
+                    onViewModeChange={setViewMode}
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                    onOpenNav={() => setMobileNavOpen(true)}
+                    onNewTask={() => setComposerOpen(true)}
+                    onToggleDark={toggleDarkMode}
+                    onLogout={logout}
+                    onClearProject={() => handleSelectProject(null)}
+                    viewLabels={VIEW_LABELS}
+                    bulkMode={bulkMode}
+                    selectedIds={selectedIds}
+                    onSelectAll={handleSelectAll}
+                    onBulkComplete={handleBulkComplete}
+                    onBulkDelete={handleBulkDelete}
+                    onCancelBulk={handleCancelBulk}
+                    uiMode={uiMode}
+                    onAddTodo={addTodo}
+                    quickEntryPlaceholder={quickEntryPlaceholder}
+                    activeHeadingId={activeHeadingId}
+                    onSelectHeading={setActiveHeadingId}
+                    searchQuery={searchQuery}
+                    onSearchChange={setSearchQuery}
+                    todos={todos}
+                    onExportIcs={exportIcs}
+                    onExportMessage={(msg) => setUndoAction({ message: msg })}
+                    user={user}
+                    dark={dark}
+                  />
+                  <div className="app-content">
+                    {viewMode === "board" ? (
+                      <Suspense
+                        fallback={
+                          <div className="loading-skeleton loading">
+                            <div className="loading-skeleton__row" />
+                          </div>
+                        }
+                      >
+                        <BoardView
+                          todos={visibleTodos}
+                          loadState={loadState}
+                          onToggle={handleToggle}
+                          onClick={handleOpenDrawer}
+                          onStatusChange={editTodo}
+                        />
+                      </Suspense>
+                    ) : (
+                      <SortableTodoList
+                        todos={visibleTodos}
+                        loadState={loadState}
+                        errorMessage={errorMessage}
+                        activeTodoId={activeTodoId}
+                        expandedTodoId={expandedTodoId}
+                        isBulkMode={bulkMode}
+                        selectedIds={selectedIds}
+                        projects={projects}
+                        headings={[]}
+                        onToggle={handleToggle}
+                        onClick={handleQuickEdit}
+                        onKebab={handleOpenDrawer}
+                        onRetry={() => loadTodos(queryParams)}
+                        onSelect={handleBulkSelect}
+                        onInlineEdit={handleInlineEdit}
+                        onSave={editTodo}
+                        onTagClick={handleTagClick}
+                        onLifecycleAction={handleLifecycleAction}
+                        onReorder={handleReorder}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                      />
+                    )}
+                  </div>
+                </ViewRoute>
+              )}
+            </ViewRouter>
           )}
         </ErrorBoundary>
       </div>

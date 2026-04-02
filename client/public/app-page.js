@@ -23,6 +23,12 @@
     return;
   }
 
+  function buildAuthUrl() {
+    var next =
+      window.location.pathname + window.location.search + window.location.hash;
+    return "/auth?next=" + encodeURIComponent(next);
+  }
+
   // -------------------------------------------------------------------------
   // 1. Auth gate — redirect immediately if not authenticated.
   //    Token alone is sufficient: social OAuth callbacks only carry
@@ -31,7 +37,7 @@
   // -------------------------------------------------------------------------
   var session = AppState.loadStoredSession();
   if (!session.token) {
-    window.location.replace("/auth");
+    window.location.replace(buildAuthUrl());
     return; // stop all further execution
   }
 
@@ -154,7 +160,16 @@
           // showAuthView() may throw on missing DOM — that's fine, we redirect
         }
         AppState.clearSession();
-        window.location.replace("/auth");
+        try {
+          window.sessionStorage.setItem(
+            "todos:cross-page-transition",
+            JSON.stringify({
+              href: "/",
+              at: Date.now(),
+            }),
+          );
+        } catch (_) {}
+        window.location.replace("/");
       }, dur);
     };
   }

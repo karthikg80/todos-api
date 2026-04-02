@@ -1,0 +1,70 @@
+<h2>Elevating the Everything View</h2>
+<p class="subtitle">Three approaches to transform a flat task list into a rich, scannable workspace</p>
+
+<div class="section">
+  <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">
+    Currently: flat <code>&lt;ul&gt;</code> grouped by category, 4 chips max per row, single density mode, no switchable groupings.
+  </p>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Layered Enhancement (Recommended)</h3>
+      <p><strong>What:</strong> Add a <em>Group By</em> dropdown + <em>Density</em> toggle to the existing list. Enrich each row with color-coded priority borders, inline progress rings for subtasks, and smarter chip layout. Keep the current <code>renderTodos()</code> pipeline — extend it, don't replace it.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Lowest risk — builds on working rendering pipeline</li>
+          <li>Each piece (grouping, density, visual cues) ships independently</li>
+          <li>CSS-driven density modes — no DOM changes for compact/expanded</li>
+          <li>Group-by logic already partly exists (category grouping in "All")</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>String-template rendering gets more complex</li>
+          <li>Doesn't lay groundwork for reuse in other views yet</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Component Extraction</h3>
+      <p><strong>What:</strong> Extract a <code>TaskListRenderer</code> module that owns grouping, density, and row rendering. Wire it into the Everything view first, but architect it for reuse across Today, Upcoming, and project views later.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Clean separation — rendering logic gets its own module</li>
+          <li>Switchable grouping becomes a first-class concept</li>
+          <li>Future views (Today, Upcoming) can reuse the same renderer</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Bigger refactor of <code>renderTodos()</code> in filterLogic.js</li>
+          <li>Risk of breaking existing view-specific rendering (Today's section labels, Upcoming's date headers)</li>
+          <li>More upfront work before visible results</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Virtual List + Rich Cards</h3>
+      <p><strong>What:</strong> Replace the DOM-heavy <code>&lt;ul&gt;</code> with a virtual scrolling list (custom or lightweight lib). Each task becomes a "card" with expanded metadata, mini charts, and rich interactions. Full redesign of the task row.</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>Pros</h4><ul>
+          <li>Handles 1000+ tasks smoothly (current DOM approach doesn't)</li>
+          <li>Most dramatic visual improvement</li>
+          <li>Enables features like inline Gantt bars, sparklines</li>
+        </ul></div>
+        <div class="cons"><h4>Cons</h4><ul>
+          <li>Largest scope — touches drag-drop, inline editing, keyboard nav</li>
+          <li>May need a dependency (or significant custom code)</li>
+          <li>Breaks existing test selectors and accessibility patterns</li>
+        </ul></div>
+      </div>
+    </div>
+  </div>
+</div>

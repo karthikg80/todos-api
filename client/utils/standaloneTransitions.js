@@ -7,6 +7,9 @@
 (function (globalScope) {
   "use strict";
 
+  var TRANSITION_KEY = "todos:cross-page-transition";
+  var TRANSITION_TTL_MS = 4000;
+
   function prefersReducedMotion() {
     return globalScope.matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
@@ -32,23 +35,61 @@
     return overlay;
   }
 
+  function writePendingTransition(href) {
+    try {
+      globalScope.sessionStorage.setItem(
+        TRANSITION_KEY,
+        JSON.stringify({
+          href: href,
+          at: Date.now(),
+        }),
+      );
+    } catch (_) {}
+  }
+
+  function consumePendingTransition() {
+    try {
+      var raw = globalScope.sessionStorage.getItem(TRANSITION_KEY);
+      if (!raw) return false;
+
+      globalScope.sessionStorage.removeItem(TRANSITION_KEY);
+      var parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed.at !== "number") {
+        return false;
+      }
+
+      return Date.now() - parsed.at <= TRANSITION_TTL_MS;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function performNavigation(href, options) {
+    if (options && options.replace) {
+      globalScope.location.replace(href);
+      return;
+    }
+    globalScope.location.href = href;
+  }
+
   /**
    * Fade overlay in, then navigate to href.
    * Under reduced motion, navigates immediately.
    */
-  function navigateWithFade(href) {
+  function navigateWithFade(href, options) {
     if (prefersReducedMotion()) {
-      globalScope.location.href = href;
+      performNavigation(href, options);
       return;
     }
 
+    writePendingTransition(href);
     var overlay = getOrCreateOverlay();
     // Force reflow so the browser registers opacity:0 before transition
     overlay.offsetHeight; // eslint-disable-line no-unused-expressions
     overlay.classList.add("active");
 
     setTimeout(function () {
-      globalScope.location.href = href;
+      performNavigation(href, options);
     }, getDurationMs());
   }
 
@@ -58,6 +99,7 @@
    */
   function fadeInOnLoad() {
     if (prefersReducedMotion()) return;
+    if (!consumePendingTransition()) return;
 
     var overlay = getOrCreateOverlay();
     overlay.classList.add("active");
@@ -99,5 +141,6 @@
     navigateWithFade: navigateWithFade,
     fadeInOnLoad: fadeInOnLoad,
     bindNavigateLinks: bindNavigateLinks,
+    consumePendingTransition: consumePendingTransition,
   };
 })(window);

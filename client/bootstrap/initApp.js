@@ -16,6 +16,10 @@ export function initApp(d) {
   // Initialize theme immediately
   d.initTheme();
 
+  if (window.StandaloneTransitions) {
+    window.StandaloneTransitions.fadeInOnLoad();
+  }
+
   // Initialize UI mode from localStorage (canonical key: todos:ui-mode)
   try {
     let mode = localStorage.getItem("todos:ui-mode");
@@ -81,6 +85,11 @@ function init(d) {
   const urlParams = new URLSearchParams(window.location.search);
   const isSocialCallback = urlParams.has("auth");
   const resetToken = !isSocialCallback ? urlParams.get("token") : null;
+  const shouldStayOnRootAuthShell =
+    isSocialCallback ||
+    !!resetToken ||
+    urlParams.has("tab") ||
+    urlParams.has("verified");
 
   if (resetToken) {
     d.showResetPassword(resetToken);
@@ -108,6 +117,13 @@ function init(d) {
       refreshToken: null,
       currentUser: null,
     });
+  }
+
+  if (window.location.pathname === "/" && !shouldStayOnRootAuthShell && token) {
+    window.location.replace(
+      `/app${window.location.search}${window.location.hash}`,
+    );
+    return;
   }
 
   // Listen for offline sync completion from service worker

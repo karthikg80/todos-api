@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useTuneUp } from "../../hooks/useTuneUp";
+import { useViewActivity } from "../../components/layout/ViewActivityContext";
 import { apiCall } from "../../api/client";
 import { dupGroupKey, taxSimilarKey } from "../../utils/topFinding";
 import { titlePassesQuality } from "../../utils/qualityHeuristic";
@@ -9,6 +10,7 @@ import { StaleSection } from "./StaleSection";
 import { QualitySection } from "./QualitySection";
 import { TaxonomySection } from "./TaxonomySection";
 import type { DuplicateGroup } from "../../types/tuneup";
+import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 
 interface Props {
   onOpenTask?: (taskId: string) => void;
@@ -33,6 +35,7 @@ function SkeletonRows() {
 }
 
 export function TuneUpView({ onOpenTask, onUndo }: Props) {
+  const { isActive } = useViewActivity();
   const {
     data,
     loading,
@@ -40,9 +43,11 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
     dismissed,
     patchedTaskIds,
     patchedProjectIds,
+    hasFetched,
     refresh,
     refreshSection,
     dismiss,
+    load,
     patchTaskOut,
     unpatchTaskOut,
     patchProjectOut,
@@ -50,13 +55,48 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
     patchQualityResolved,
     patchStaleResolved,
     restoreStaleTask,
-  } = useTuneUp();
+  } = useTuneUp({ autoFetch: false });
+
+  // Only trigger initial data load when the view becomes active
+  useEffect(() => {
+    if (isActive && !hasFetched) {
+      load();
+    }
+  }, [isActive, hasFetched, load]);
 
   const [collapsed, setCollapsed] = useState<CollapsedState>({
     duplicates: false,
     stale: false,
     quality: false,
     taxonomy: false,
+  });
+
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const collapsedRef = useRef<CollapsedState>(collapsed);
+  collapsedRef.current = collapsed;
+
+  useEffect(() => {
+    scrollContainerRef.current = document.querySelector<HTMLElement>(
+      ".view-router__slot[style*='display: block'] .app-content",
+    );
+  }, []);
+
+  useViewSnapshot({
+    capture: () => ({
+      scrollTop: scrollContainerRef.current?.scrollTop ?? 0,
+      collapsedSections: collapsedRef.current,
+    }),
+    restore: (snap) => {
+      if (snap.collapsedSections != null) {
+        setCollapsed(snap.collapsedSections);
+      }
+      if (snap.scrollTop != null && snap.scrollTop > 0) {
+        requestAnimationFrame(() => {
+          scrollContainerRef.current?.scrollTo(0, snap.scrollTop);
+        });
+      }
+    },
+    version: 1,
   });
 
   const [mergeErrors, setMergeErrors] = useState<Record<string, string>>({});

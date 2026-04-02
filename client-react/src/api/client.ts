@@ -1,3 +1,5 @@
+import { navigateWithFade } from "../utils/pageTransitions";
+
 const API_URL = window.location.origin;
 
 let refreshInFlight: Promise<boolean> | null = null;
@@ -76,7 +78,7 @@ export async function apiCall(
       }
       return fetch(`${API_URL}${path}`, { ...options, headers });
     }
-    window.location.href = "/auth?next=/app";
+    navigateWithFade("/auth?next=/app", { replace: true });
   }
 
   return res;

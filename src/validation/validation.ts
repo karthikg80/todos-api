@@ -1746,9 +1746,12 @@ export function validateListAdminFeedbackRequestsQuery(
   const status = normalizeOptionalString(params.status, "status", 20);
   const type = normalizeOptionalString(params.type, "type", 20);
 
-  if (status && !["new", "triaged", "promoted", "rejected"].includes(status)) {
+  if (
+    status &&
+    !["new", "triaged", "promoted", "rejected", "resolved"].includes(status)
+  ) {
     throw new ValidationError(
-      'status must be "new", "triaged", "promoted", or "rejected"',
+      'status must be "new", "triaged", "promoted", "rejected", or "resolved"',
     );
   }
 
@@ -1774,9 +1777,9 @@ export function validateUpdateAdminFeedbackRequest(
   if (typeof status !== "string") {
     throw new ValidationError("status is required");
   }
-  if (!["triaged", "promoted", "rejected"].includes(status)) {
+  if (!["triaged", "promoted", "rejected", "resolved"].includes(status)) {
     throw new ValidationError(
-      'status must be "triaged", "promoted", or "rejected"',
+      'status must be "triaged", "promoted", "rejected", or "resolved"',
     );
   }
 

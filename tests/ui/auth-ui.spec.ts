@@ -64,6 +64,7 @@ test.describe("Auth UI", () => {
   test("resend verification click shows response message", async ({ page }) => {
     await page.addInitScript(() => {
       window.localStorage.setItem("authToken", "test-token");
+      window.localStorage.setItem("refreshToken", "test-refresh");
       window.localStorage.setItem(
         "user",
         JSON.stringify({
@@ -77,23 +78,32 @@ test.describe("Auth UI", () => {
       );
     });
 
-    await page.goto("/");
-    // The Settings rail button is visible on desktop; on mobile the sheet is
-    // closed so no Settings button is reachable via role. Use evaluate fallback.
-    const settingsButton = page.getByRole("button", { name: "Settings" });
-    if (await settingsButton.first().isVisible()) {
-      await settingsButton.first().click();
-    } else {
-      await page.evaluate(() =>
-        (window as Window & { switchView: (v: string) => void }).switchView(
-          "settings",
-        ),
-      );
-    }
+    await page.goto("/app");
     await expect(page.locator("#verificationBanner")).toBeVisible();
 
-    await page.getByRole("button", { name: "Resend Email" }).click();
-    await expect(page.locator("#profileMessage")).toHaveClass(/show/);
+    await page.getByRole("button", { name: "Resend" }).click();
+    await expect(page.getByText("Sent!")).toBeVisible();
+  });
+
+  test("authenticated root redirects to /app", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.localStorage.setItem("authToken", "test-token");
+      window.localStorage.setItem("refreshToken", "test-refresh");
+      window.localStorage.setItem(
+        "user",
+        JSON.stringify({
+          id: "user-1",
+          email: "user@example.com",
+          name: "Test User",
+          role: "user",
+          isVerified: true,
+          createdAt: "2026-02-09T00:00:00.000Z",
+        }),
+      );
+    });
+
+    await page.goto("/");
+    await page.waitForURL(/\/app\/?$/);
   });
 
   test("forgot password still works with corrupted stored user state", async ({

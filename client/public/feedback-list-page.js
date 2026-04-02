@@ -14,10 +14,16 @@
     return;
   }
 
+  function buildAuthUrl() {
+    var next =
+      window.location.pathname + window.location.search + window.location.hash;
+    return "/auth?next=" + encodeURIComponent(next);
+  }
+
   // Auth gate — read token directly to avoid loadStoredSession user-object coupling
   var token = localStorage.getItem("authToken");
   if (!token) {
-    window.location.replace("/auth");
+    window.location.replace(buildAuthUrl());
     return;
   }
 
@@ -38,7 +44,7 @@
     setAuthState: function () {},
     onAuthFailure: function () {
       AppState.clearSession();
-      window.location.replace("/auth");
+      window.location.replace(buildAuthUrl());
     },
     onAuthTokens: function (nextToken, nextRefreshToken) {
       localStorage.setItem("authToken", nextToken);
