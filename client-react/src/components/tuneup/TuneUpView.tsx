@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useTuneUp } from "../../hooks/useTuneUp";
+import { useViewActivity } from "../../components/layout/ViewActivityContext";
 import { apiCall } from "../../api/client";
 import { dupGroupKey, taxSimilarKey } from "../../utils/topFinding";
 import { titlePassesQuality } from "../../utils/qualityHeuristic";
@@ -33,6 +34,7 @@ function SkeletonRows() {
 }
 
 export function TuneUpView({ onOpenTask, onUndo }: Props) {
+  const { isActive } = useViewActivity();
   const {
     data,
     loading,
@@ -40,9 +42,11 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
     dismissed,
     patchedTaskIds,
     patchedProjectIds,
+    hasFetched,
     refresh,
     refreshSection,
     dismiss,
+    load,
     patchTaskOut,
     unpatchTaskOut,
     patchProjectOut,
@@ -50,7 +54,14 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
     patchQualityResolved,
     patchStaleResolved,
     restoreStaleTask,
-  } = useTuneUp();
+  } = useTuneUp({ autoFetch: false });
+
+  // Only trigger initial data load when the view becomes active
+  useEffect(() => {
+    if (isActive && !hasFetched) {
+      load();
+    }
+  }, [isActive, hasFetched, load]);
 
   const [collapsed, setCollapsed] = useState<CollapsedState>({
     duplicates: false,

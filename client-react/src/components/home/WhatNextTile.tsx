@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useNextWork } from "../../hooks/useNextWork";
+import { useViewActivity } from "../../components/layout/ViewActivityContext";
 import { WhatNextExpanded } from "./WhatNextExpanded";
 import { apiCall } from "../../api/client";
 import { tomorrowLocal } from "../../utils/localDate";
@@ -9,9 +10,21 @@ interface Props {
 }
 
 export function WhatNextTile({ onUndo }: Props) {
+  const { isActive } = useViewActivity();
   const hook = useNextWork();
   const { visible, loading, refreshing, error, inputs, setInputs, dismiss, markActedOn, unmarkActedOn, refresh } = hook;
   const [expanded, setExpanded] = useState(false);
+
+  // Guard debounced fetches: only refresh when view becomes active again after being hidden
+  const wasActiveRef = useRef(isActive);
+  useEffect(() => {
+    const wasActive = wasActiveRef.current;
+    wasActiveRef.current = isActive;
+    // If view transitions from inactive → active and we have no result, trigger a refresh
+    if (isActive && !wasActive && !hook.result) {
+      refresh();
+    }
+  }, [isActive, hook.result, refresh]);
 
   const top = visible[0] ?? null;
 
