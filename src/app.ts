@@ -242,10 +242,16 @@ export function createApp(deps: AppDependencies = {}) {
       path.join(__dirname, "../node_modules/chrono-node/dist/esm"),
     ),
   );
-  // React preview — static assets under /app-react/ (must precede classic root)
+  // React app — primary client at /app (must precede vanilla root)
   app.use(
-    "/app-react",
+    "/app",
     express.static(path.join(__dirname, "../client-react/dist")),
+  );
+
+  // Vanilla classic — fallback client at /app-classic
+  app.use(
+    "/app-classic",
+    express.static(path.join(__dirname, "../client/public")),
   );
 
   app.use(express.static(path.join(__dirname, "../client")));
