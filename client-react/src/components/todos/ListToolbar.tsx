@@ -1,4 +1,4 @@
-import { useDensity, type Density } from "../../hooks/useDensity";
+import type { Density } from "../../hooks/useDensity";
 import { SortControl, type SortField, type SortOrder } from "./SortControl";
 import type { GroupBy } from "../../utils/groupTodos";
 
@@ -22,10 +22,11 @@ interface Props {
   onSortChange: (field: SortField, order: SortOrder) => void;
   groupBy: GroupBy;
   onGroupByChange: (val: GroupBy) => void;
+  density: Density;
+  onDensityChange: (val: Density) => void;
 }
 
-export function ListToolbar({ sortBy, sortOrder, onSortChange, groupBy, onGroupByChange }: Props) {
-  const { density, setDensity } = useDensity();
+export function ListToolbar({ sortBy, sortOrder, onSortChange, groupBy, onGroupByChange, density, onDensityChange }: Props) {
 
   return (
     <div className="list-toolbar">
@@ -51,7 +52,7 @@ export function ListToolbar({ sortBy, sortOrder, onSortChange, groupBy, onGroupB
           <button
             key={opt.value}
             className={`list-toolbar__density-btn${density === opt.value ? " list-toolbar__density-btn--active" : ""}`}
-            onClick={() => setDensity(opt.value)}
+            onClick={() => onDensityChange(opt.value)}
             aria-label={opt.label}
             aria-pressed={density === opt.value}
           >

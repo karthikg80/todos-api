@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import type { Todo, Project, Heading, UpdateTodoDto } from "../../types";
+import type { Density } from "../../hooks/useDensity";
 import { IconKebab, IconClock, IconArchive, IconXCircle, IconRefresh } from "../shared/Icons";
 import { relativeTime } from "../../utils/relativeTime";
 import { QuickEditPanel } from "./QuickEditPanel";
-import { useDensity } from "../../hooks/useDensity";
 import { buildChips } from "../../utils/buildChips";
 
 interface Props {
@@ -14,6 +14,7 @@ interface Props {
   isSelected: boolean;
   isEntering?: boolean;
   isExiting?: boolean;
+  density: Density;
   projects: Project[];
   headings: Heading[];
   onToggle: (id: string, completed: boolean) => void;
@@ -50,6 +51,7 @@ export function TodoRow({
   isSelected,
   isEntering,
   isExiting,
+  density,
   projects,
   headings,
   onToggle,
@@ -61,7 +63,6 @@ export function TodoRow({
   onTagClick,
   onLifecycleAction,
 }: Props) {
-  const { density } = useDensity();
   const chips = buildChips(todo, density);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(todo.title);
