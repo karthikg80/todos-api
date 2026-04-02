@@ -4,6 +4,7 @@ import { apiCall } from "../../api/client";
 import { HomeFocusSuggestions } from "../ai/HomeFocusSuggestions";
 import { PrioritiesBriefTile } from "../ai/PrioritiesBriefTile";
 import { IllustrationAllClear } from "../shared/Illustrations";
+import { TuneUpTile } from "../tuneup/TuneUpTile";
 
 interface Props {
   todos: Todo[];
@@ -13,6 +14,7 @@ interface Props {
   onEditTodo: (id: string, updates: Record<string, unknown>) => void;
   onNavigate: (view: "today" | "upcoming" | "all") => void;
   onSelectProject: (id: string) => void;
+  onNavigateToTuneUp: () => void;
 }
 
 // --- Helpers ---
@@ -47,6 +49,7 @@ export function HomeDashboard({
   onEditTodo,
   onNavigate,
   onSelectProject,
+  onNavigateToTuneUp,
 }: Props) {
   const active = useMemo(() => todos.filter((t) => !t.completed), [todos]);
 
@@ -370,6 +373,9 @@ export function HomeDashboard({
 
       {/* Section 5: Today's Plan */}
       <TodaysPlanTile todos={active} onTodoClick={onTodoClick} />
+
+      {/* Section 6: Tune-up tile */}
+      <TuneUpTile onNavigateToTuneUp={onNavigateToTuneUp} />
 
       {/* Empty state */}
       {active.length === 0 && (

@@ -919,6 +919,7 @@ export function AppShell() {
                     handleSelectProject(id);
                     startTransition(() => setPage("todos"));
                   }}
+                  onNavigateToTuneUp={() => handleSelectView("tuneup")}
                 />
               </div>
             </>
