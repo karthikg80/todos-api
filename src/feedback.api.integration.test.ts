@@ -411,6 +411,36 @@ describe("Feedback API Integration", () => {
       );
     });
 
+    it("sends status email when admin resolves feedback", async () => {
+      const feedback = await prisma.feedbackRequest.create({
+        data: {
+          userId,
+          type: "bug",
+          title: "Resolve test",
+          body: "details",
+          status: "promoted",
+          githubIssueNumber: 740,
+          githubIssueUrl: "https://github.com/example/repo/issues/740",
+        },
+      });
+
+      await request(app)
+        .patch(`/admin/feedback/${feedback.id}`)
+        .set("Authorization", `Bearer ${adminToken}`)
+        .send({ status: "resolved" })
+        .expect(200);
+
+      await flushMicrotasks();
+
+      expect(statusSpy).toHaveBeenCalledWith(
+        userEmail,
+        expect.objectContaining({
+          title: "Resolve test",
+          status: "resolved",
+        }),
+      );
+    });
+
     it("does not send email for user with null email", async () => {
       await prisma.user.update({
         where: { id: userId },
