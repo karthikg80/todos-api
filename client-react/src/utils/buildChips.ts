@@ -15,9 +15,9 @@ export function buildChips(todo: Todo, density: Density, groupBy: GroupBy = "non
 
   const candidates: ChipData[] = [];
 
-  // 1. Overdue due date
+  // 1. Overdue due date (hidden when grouped by dueDate)
   const isOverdue = !todo.completed && !!todo.dueDate && new Date(todo.dueDate) < new Date(new Date().toDateString());
-  if (isOverdue) {
+  if (isOverdue && groupBy !== "dueDate") {
     const d = new Date(todo.dueDate!);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -36,13 +36,13 @@ export function buildChips(todo: Todo, density: Density, groupBy: GroupBy = "non
     candidates.push({ key: "waiting", label: `@${todo.waitingOn}`, variant: "waiting" });
   }
 
-  // 4. Priority (urgent/high only — medium dropped as low-signal)
-  if (todo.priority === "urgent" || todo.priority === "high") {
+  // 4. Priority (urgent/high only — hidden when grouped by priority)
+  if ((todo.priority === "urgent" || todo.priority === "high") && groupBy !== "priority") {
     candidates.push({ key: "priority", label: todo.priority, variant: "priority-high" });
   }
 
-  // 5. Due date (non-overdue)
-  if (todo.dueDate && !isOverdue) {
+  // 5. Due date (non-overdue, hidden when grouped by dueDate)
+  if (todo.dueDate && !isOverdue && groupBy !== "dueDate") {
     const d = new Date(todo.dueDate);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
