@@ -8044,3 +8044,258 @@ body {
   color: var(--danger);
 }
 
+/* === What Next Widget === */
+.whatnext-loading {
+  color: var(--muted);
+  font-size: var(--fs-label);
+  animation: pulse 1.5s infinite;
+}
+.whatnext-error {
+  color: var(--danger);
+  font-size: var(--fs-label);
+}
+.whatnext-retry-link {
+  color: var(--danger);
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  font: inherit;
+  font-size: var(--fs-label);
+}
+.whatnext-empty-collapsed {
+  color: var(--muted);
+  font-size: var(--fs-label);
+}
+
+/* Collapsed state */
+.whatnext-collapsed__title {
+  font-weight: var(--fw-semibold);
+  font-size: var(--fs-body);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.whatnext-collapsed__reason {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  margin-top: var(--s-1);
+}
+.whatnext-collapsed__badges {
+  display: flex;
+  gap: var(--s-1h);
+  margin-top: var(--s-1h);
+}
+
+/* Badges */
+.whatnext-badge {
+  font-size: var(--fs-xs);
+  padding: 1px var(--s-1h);
+  border-radius: var(--r-sm);
+  font-weight: var(--fw-medium);
+}
+.whatnext-badge--impact-high { background: color-mix(in srgb, var(--accent) 12%, transparent); color: var(--accent); }
+.whatnext-badge--impact-medium { background: var(--surface-3); color: var(--muted); }
+.whatnext-badge--impact-low { background: var(--surface-3); color: var(--muted); }
+.whatnext-badge--effort-high { background: color-mix(in srgb, var(--warning) 10%, transparent); color: var(--warning); }
+.whatnext-badge--effort-medium { background: var(--surface-3); color: var(--muted); }
+.whatnext-badge--effort-low { background: color-mix(in srgb, var(--success) 10%, transparent); color: var(--success); }
+
+/* Expanded panel */
+.whatnext-expanded {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+.whatnext-filters {
+  display: flex;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+.whatnext-filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+.whatnext-filter-label {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: var(--fw-medium);
+}
+.whatnext-chips {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+}
+.whatnext-chip {
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-xs);
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+  font-family: inherit;
+}
+.whatnext-chip--active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-0);
+}
+.whatnext-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.whatnext-refreshing {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  animation: pulse 1.5s infinite;
+}
+.whatnext-error-subtle {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+.whatnext-empty {
+  color: var(--muted);
+  font-size: var(--fs-label);
+  text-align: center;
+  padding: var(--s-4) 0;
+}
+
+/* Recommendation rows */
+.whatnext-list {
+  display: flex;
+  flex-direction: column;
+}
+.whatnext-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--border-light);
+  gap: var(--s-2);
+  transition: opacity var(--dur-base) var(--ease-out), max-height var(--dur-base) var(--ease-out);
+  max-height: 200px;
+  overflow: hidden;
+}
+.whatnext-row:last-child { border-bottom: none; }
+.whatnext-row--top {
+  border-left: 3px solid var(--accent);
+  padding-left: var(--s-2);
+}
+.whatnext-row--acting {
+  opacity: 0.5;
+}
+.whatnext-row--done {
+  opacity: 0;
+  max-height: 0;
+  padding: 0;
+  border: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .whatnext-row--done { transition: none; }
+}
+.whatnext-row__content {
+  flex: 1;
+  min-width: 0;
+}
+.whatnext-row__title-line {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+}
+.whatnext-row__title {
+  font-weight: var(--fw-medium);
+  font-size: var(--fs-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.whatnext-row__badges {
+  display: flex;
+  gap: var(--s-1);
+  flex-shrink: 0;
+}
+.whatnext-row__why {
+  font-size: var(--fs-xs);
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  margin-top: var(--s-1);
+}
+.whatnext-row__reason {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-top: var(--s-1);
+  line-height: var(--lh-snug);
+}
+
+/* Action buttons */
+.whatnext-row__actions {
+  display: flex;
+  gap: var(--s-1);
+  align-items: center;
+  flex-shrink: 0;
+}
+.whatnext-btn {
+  border: none;
+  cursor: pointer;
+  border-radius: var(--r-sm);
+  font-family: inherit;
+  line-height: 1;
+}
+.whatnext-btn--start {
+  background: var(--accent);
+  color: white;
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  padding: var(--s-1) var(--s-2);
+}
+.whatnext-btn--start:hover { opacity: 0.9; }
+.whatnext-btn--snooze,
+.whatnext-btn--dismiss {
+  background: none;
+  color: var(--muted);
+  padding: var(--s-1);
+}
+.whatnext-btn--snooze:hover,
+.whatnext-btn--dismiss:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.whatnext-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Collapse link */
+.whatnext-collapse {
+  font-size: var(--fs-xs);
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  align-self: center;
+}
+
+/* Screen reader only utility */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
