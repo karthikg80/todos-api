@@ -6,7 +6,7 @@
 
 ## Problem
 
-The backend exposes 4 analysis endpoints (duplicate detection, stale items, task quality, taxonomy suggestions) that the vanilla client uses in its Cleanup view. The React client has no equivalent — users have no way to discover or act on codebase-level task hygiene issues.
+The backend exposes 4 analysis endpoints (duplicate detection, stale items, task quality, taxonomy suggestions) that the vanilla client uses in its Cleanup view. The React client has no equivalent — users have no way to discover or act on task hygiene issues.
 
 ## Scope
 
@@ -26,13 +26,15 @@ The backend exposes 4 analysis endpoints (duplicate detection, stale items, task
 
 | Endpoint | Returns | Hook key |
 |----------|---------|----------|
-| `/agent/read/find_duplicate_tasks` | `{ exact, normalized, near }` duplicate group arrays | `duplicates` |
-| `/agent/read/find_stale_items` | `{ staleTasks, staleProjects }` arrays | `stale` |
-| `/agent/read/analyze_task_quality` | Array of `{ taskId, title, issues[] }` | `quality` |
-| `/agent/read/taxonomy_cleanup_suggestions` | `{ similarProjects, lowActivityProjects }` | `taxonomy` |
+| `POST /agent/read/find_duplicate_tasks` body: `{}` | `{ exact, normalized, near }` duplicate group arrays | `duplicates` |
+| `POST /agent/read/find_stale_items` body: `{ staleDays: 30 }` | `{ staleTasks, staleProjects }` arrays | `stale` |
+| `POST /agent/read/analyze_task_quality` body: `{}` | Array of `{ taskId, title, issues[] }` | `quality` |
+| `POST /agent/read/taxonomy_cleanup_suggestions` body: `{}` | `{ similarProjects, lowActivityProjects }` | `taxonomy` |
 
 **Hook API:**
 ```typescript
+type TuneUpSection = "duplicates" | "stale" | "quality" | "taxonomy";
+
 interface TuneUpData {
   duplicates: DuplicateResults | null;
   stale: StaleResults | null;
@@ -45,32 +47,46 @@ interface TuneUpHook {
   loading: Record<TuneUpSection, boolean>;
   error: Record<TuneUpSection, string | null>;
   dismissed: Set<string>;
+  hasFetched: boolean;
+  lastFetchedAt: number | null;
   refresh: () => void;
   refreshSection: (key: TuneUpSection) => void;
   dismiss: (findingKey: string) => void;
   patchTaskOut: (taskId: string) => void;
   patchProjectOut: (projectId: string) => void;
+  patchQualityResolved: (taskId: string) => void;
 }
 ```
+
+**`hasFetched` and `lastFetchedAt`:**
+- `hasFetched: boolean` — true once at least one section has returned data. Distinguishes "never loaded" from "loaded and empty."
+- `lastFetchedAt: number | null` — timestamp of the most recent successful fetch. Used by the Home tile for the "Last checked N minutes ago" freshness hint.
 
 **Fetching behavior:**
 - All 4 fire in parallel via `Promise.allSettled` — one failure doesn't block others
 - Results cached in a module-level variable (not React state alone) so the same data is available to both the Home tile and the full view without re-fetching
-- `refresh()` clears cache and re-runs all 4
-- `refreshSection(key)` re-runs one analysis only
+- `refresh()` clears cache, clears dismissals, resets `lastFetchedAt`, and re-runs all 4
+- `refreshSection(key)` re-runs one analysis only, updates `lastFetchedAt`
 
-**Cross-section reconciliation:**
-When a task is archived, merged, or edited, the hook exposes `patchTaskOut(taskId)` which removes that task ID from ALL sections in the cached data — not just the section where the action happened. This prevents contradictions (e.g., a merged duplicate still showing up as a stale item).
-
-Similarly, `patchProjectOut(projectId)` removes a project from all sections.
-
-These are lightweight local patches, not re-fetches. The raw server data is only re-fetched on explicit `refresh()` or `refreshSection()`.
-
-**Dismissed findings:**
+**Dismiss lifecycle:**
 - `dismiss(findingKey)` adds to a `Set<string>` in hook state
 - Finding keys must be semantically stable (e.g., `dup:exact:${taskId1}:${taskId2}`, `stale:task:${taskId}`, `quality:${taskId}`) — not array indices
-- Dismissals are session-only (not persisted). Re-mounting the hook or calling `refresh()` clears them.
-- Counts displayed in the UI reflect visible findings only (after dismissals and optimistic patches), not raw server payload counts.
+- Dismissals are session-only (not persisted to localStorage or backend)
+- Dismissals survive navigation between views **as long as the module-level cache is alive** — navigating from Tune-up to Home and back does not clear them
+- Dismissals are cleared only by: explicit `refresh()` call, or full page refresh (which resets the module-level cache)
+- Counts displayed in the UI reflect visible findings only (after dismissals and optimistic patches), not raw server payload counts
+
+**Cross-section reconciliation — two patch paths:**
+
+Destructive actions (archive, merge) use `patchTaskOut(taskId)` / `patchProjectOut(projectId)`:
+- Removes the task/project ID from ALL sections in cached data
+- Appropriate because the entity is being archived/removed — it should vanish everywhere
+
+Non-destructive actions (title edit, snooze) use targeted patchers:
+- `patchQualityResolved(taskId)` — removes the task from the quality section only. Does NOT remove from stale or duplicates, because editing a title doesn't resolve staleness, and may or may not affect duplicate status.
+- Snooze: calls `patchTaskOut(taskId)` for the stale section only (the task is no longer stale), but does NOT remove from quality or duplicates. Implement as removing the task from `staleData.staleTasks` in the cache, not the full cross-section `patchTaskOut`.
+
+These are lightweight local patches, not re-fetches. The raw server data is only re-fetched on explicit `refresh()` or `refreshSection()`.
 
 ### 2. Full Tune-Up View
 
@@ -82,7 +98,7 @@ These are lightweight local patches, not re-fetches. The raw server data is only
 - Header: "Duplicates" + visible count badge
 - Sub-groups: exact, normalized, near — each group shows task titles side by side
 - Inline actions:
-  - **Merge:** Calls a `mergeDuplicateGroup(group)` wrapper that archives all but the first task in sequence, with explicit revert logic for partial failure. On success: fade out archived rows, show undo toast. On partial failure: revert optimistic state for failed items, show error for specific failures.
+  - **Merge:** Calls a `mergeDuplicateGroup(group)` wrapper (see Section 4). Survivor is the first task by `createdAt` (oldest). This is explicit and deterministic — not payload order.
   - **Dismiss:** Session-only, removes group from view
 
 **2b. Stale Items Section**
@@ -90,35 +106,35 @@ These are lightweight local patches, not re-fetches. The raw server data is only
 - Sub-groups: stale tasks, stale projects
 - Each row: title + "last updated X days ago"
 - Inline actions:
-  - **Archive:** `PUT /todos/:id { archived: true }` — row disappears immediately (removed via `patchTaskOut`)
-  - **Snooze 30 days:** `PUT /todos/:id { reviewDate: +30d }` — row disappears from stale section (it no longer qualifies). Does NOT move to bottom — it's resolved.
+  - **Archive:** `PUT /todos/:id { archived: true }` — row disappears immediately (removed via `patchTaskOut` — cross-section removal)
+  - **Snooze 30 days:** `PUT /todos/:id { reviewDate: +30d }` — row disappears from stale section only (patched out of `staleData.staleTasks` in cache, NOT full cross-section removal). The task may still appear in quality or duplicates.
   - **Open:** Navigates to task drawer
 
 **2c. Quality Issues Section**
 - Header: "Quality" + visible count badge
 - Each row: task title + issue tags ("missing verb", "vague", "too long", "multi-action")
 - Inline actions:
-  - **Edit title:** Inline text input, commits on Enter/blur. Guards: reject empty titles, skip no-op edits (trimmed value === original). If the new title resolves all quality issues for that task, the row disappears from the section.
+  - **Edit title:** Inline text input, commits on Enter/blur. Guards: reject empty titles, skip no-op edits (trimmed value === original). If the new title passes the quality heuristic (see Section 4), the row disappears via `patchQualityResolved(taskId)` — quality section only, not cross-section.
   - **Dismiss:** Session-only
 
 **2d. Taxonomy Section**
 - Header: "Taxonomy" + visible count badge
 - Sub-groups: similar project names, low-activity projects
 - Inline actions:
-  - **Archive project:** `PUT /projects/:id { archived: true }` — row disappears via `patchProjectOut`
+  - **Archive project:** `PUT /projects/:id { archived: true }` — row disappears via `patchProjectOut` (cross-section removal)
   - **Dismiss:** Session-only (for similar project suggestions)
 
-**Loading state:** Each section shows a skeleton loader independently. Sections stream in as endpoints respond.
+**Loading state:** Each section shows a skeleton loader independently with `aria-busy="true"` on the section container. Sections stream in as endpoints respond.
 
-**Empty state:** When a section has zero visible findings (after filtering out dismissed items), show a green checkmark + "All clear" inline. Don't hide the section — users should see it was checked.
+**Empty state:** When a section has loaded successfully and has zero visible findings (after filtering out dismissed and patched items), show a green checkmark + "All clear" inline. Don't hide the section — users should see it was checked.
 
-**Error state:** Per-section error with "Retry" button. Doesn't affect other sections.
+**Error state:** Per-section error with "Retry" button. A failed section NEVER shows "All clear" — it shows the error state. Other sections are unaffected.
 
 ### 3. Home Dashboard Tile
 
 **Tile name:** "Tune-up"
 
-**Loading state:** Shows "Analyzing..." with a subtle pulse animation while any of the 4 endpoints are in flight.
+**Loading state:** Shows "Analyzing..." with a subtle pulse animation. However, once any section has returned data that contains a top-tier finding (tiers 1-3), the tile shows that finding immediately even if other sections are still loading. This makes the tile feel faster.
 
 **Content — top finding preview:**
 Shows the single most impactful finding. Priority order with tiebreaker rules:
@@ -145,11 +161,11 @@ Shows the single most impactful finding. Priority order with tiebreaker rules:
 
 **"View all" link:** Navigates to the full Tune-up view.
 
-**Zero findings:** "All clear — nothing to clean up" with green checkmark + "Last checked just now" freshness hint.
+**Zero findings:** "All clear — nothing to clean up" with green checkmark. Freshness hint derived from `lastFetchedAt`: "Last checked just now" / "Last checked 5 min ago" / etc.
 
 **Error state (all 4 failed):** Compact "Couldn't analyze — Retry" treatment, not blank.
 
-**When to fetch:** Only when Home is the active view. Does not eagerly fetch on app load. If the full Tune-up view was already visited this session, cached data is shown instantly.
+**When to fetch:** Only when Home is the active view. Does not eagerly fetch on app load. If the full Tune-up view was already visited this session, cached data is shown instantly (with `lastFetchedAt` freshness hint).
 
 Note: If the user lands on the full Tune-up view first (not Home), the view fetches immediately on mount. The Home tile then uses cached data when the user navigates there.
 
@@ -163,22 +179,33 @@ Reuse the existing `UndoToast` component. All destructive actions (archive, merg
 
 **`mergeDuplicateGroup(group)` wrapper:**
 A dedicated function (not a sequence of raw archive calls) that:
-1. Optimistically removes all but the first task from the UI
-2. Fires archive calls for each duplicate in sequence (not parallel — avoids race conditions)
-3. On full success: show "Merged N duplicates" toast with undo
-4. On partial failure: revert optimistic state for failed items, show error listing which ones failed, keep succeeded ones archived
-5. Undo: un-archives all archived items in the group
+1. Determines the survivor: the task with the oldest `createdAt` timestamp. This is explicit and deterministic.
+2. Optimistically removes all non-survivors from the UI immediately
+3. Fires archive calls for each non-survivor in sequence (not parallel — avoids race conditions)
+4. On full success: show "Merged N duplicates" toast with undo
+5. On partial failure: failed rows reappear in-place with inline error state (red border + "Failed to archive" text on the row), not just a toast. Succeeded items stay archived.
+6. Undo: un-archives all archived items in the group
 
 **Edit title flow:**
 - Click "Edit" → inline input appears, pre-filled with current title
 - Enter or blur → commit (skip if empty or unchanged)
 - `PUT /todos/:id { title: newTitle }`
-- If the edit resolves all quality issues for that task (server would need to re-evaluate, but for v1 we use a client-side heuristic: if the new title is ≤80 chars, starts with a verb, and contains no "and"/"then" splitting words, remove the quality finding)
+- Quality heuristic (best-effort, not a correctness rule): if the new title is ≤80 chars, starts with a common English verb (check against a small hardcoded list of ~30 action verbs like "add", "fix", "update", "review", "create", "send", etc.), and contains no splitting words ("and", "then", "also"), consider quality issues resolved for that task. Call `patchQualityResolved(taskId)`.
+- This is a v1 approximation. Don't overfit tests to English grammar edge cases — a small utility with predictable behavior is enough.
 - No undo for edits — the user can just re-edit
 
+**Snooze flow:**
+- `PUT /todos/:id { reviewDate: today + 30 days }`
+- Remove the task from `staleData.staleTasks` in the cache only (not cross-section `patchTaskOut`)
+- Row disappears from stale section immediately
+- Show "Snoozed for 30 days" toast with undo
+- Undo: `PUT /todos/:id { reviewDate: null }` and restore the task in stale cache
+
 **After any action, reconcile:**
-- `patchTaskOut(taskId)` removes the task from ALL sections (duplicates, stale, quality)
-- Section count badges update immediately from visible (non-dismissed, non-patched) findings
+- Destructive (archive, merge): `patchTaskOut(taskId)` — removes from ALL sections
+- Non-destructive (edit): `patchQualityResolved(taskId)` — removes from quality section only
+- Non-destructive (snooze): removes from stale section only
+- Section count badges update immediately from visible findings
 - Home tile re-evaluates top finding from the same patched cache
 
 ---
@@ -187,8 +214,11 @@ A dedicated function (not a sequence of raw archive calls) that:
 
 | File | Change |
 |------|--------|
-| `client-react/src/hooks/useTuneUp.ts` | New hook — 4 parallel fetches, caching, dismiss, patch |
-| `client-react/src/api/tuneup.ts` | New API functions — wrappers for the 4 agent endpoints |
+| `client-react/src/hooks/useTuneUp.ts` | New hook — 4 parallel fetches, module-level caching, dismiss, destructive + non-destructive patch paths |
+| `client-react/src/api/tuneup.ts` | New API functions — POST wrappers for the 4 agent endpoints |
+| `client-react/src/types/tuneup.ts` | New types — response shapes for all 4 endpoints |
+| `client-react/src/utils/qualityHeuristic.ts` | New utility — best-effort title quality check |
+| `client-react/src/utils/topFinding.ts` | New utility — priority-ranked finding selection for Home tile |
 | `client-react/src/components/tuneup/TuneUpView.tsx` | New component — full view with 4 sections |
 | `client-react/src/components/tuneup/DuplicatesSection.tsx` | New component — duplicate groups with merge/dismiss |
 | `client-react/src/components/tuneup/StaleSection.tsx` | New component — stale items with archive/snooze |
@@ -196,10 +226,11 @@ A dedicated function (not a sequence of raw archive calls) that:
 | `client-react/src/components/tuneup/TaxonomySection.tsx` | New component — project suggestions with archive |
 | `client-react/src/components/tuneup/TuneUpTile.tsx` | New component — Home dashboard tile |
 | `client-react/src/components/tuneup/SectionHeader.tsx` | New shared component — collapsible header with count |
+| `client-react/src/components/tuneup/mergeDuplicateGroup.ts` | New action wrapper — sequential archive with partial failure handling |
 | `client-react/src/components/layout/AppShell.tsx` | Add "tuneup" to activeView, render TuneUpView |
 | `client-react/src/components/layout/HomeDashboard.tsx` | Add TuneUpTile |
 | `client-react/src/components/projects/Sidebar.tsx` | Add Tune-up nav item |
-| `client-react/src/styles/app.css` | Tune-up view styles, section styles, action button styles |
+| `client-react/src/styles/app.css` | Tune-up view styles, section styles, action button styles, inline error state |
 
 ## Data Dependencies
 
@@ -217,12 +248,14 @@ Response types should be defined in `client-react/src/types/tuneup.ts` based on 
 - Action buttons have descriptive `aria-label` (e.g., "Archive task: {title}")
 - Loading skeletons use `aria-busy="true"` on the section container
 - Undo toast is announced via `role="status"` (existing UndoToast behavior)
+- Inline error state on failed merge rows uses `role="alert"`
 
 ## Testing Strategy
 
-- Unit tests for `useTuneUp` hook: fetch behavior, caching, dismiss, patchTaskOut cross-section reconciliation
-- Unit tests for top-finding priority selection logic
-- Unit tests for quality issue client-side heuristic (verb detection, length check)
+- **`useTuneUp` hook tests:** fetch behavior, caching across mounts, dismiss persistence across navigation, `patchTaskOut` cross-section removal, `patchQualityResolved` quality-only removal, snooze stale-only removal
+- **Optimistic mutation + undo tests:** verify optimistic state, verify undo restores previous state from local mutation layer (not refetch), verify partial failure revert in `mergeDuplicateGroup`
+- **`topFinding` utility tests:** priority ordering, tiebreaker by count, tiebreaker by actionability, early return when top-tier data arrives while others are still loading
+- **`qualityHeuristic` utility tests:** basic verb detection, length check, splitting word detection. Do NOT overfit to grammar edge cases — test the predictable happy path and a few clear negatives.
 - Integration: manual verification with real data against the 4 endpoints
 
 ## Out of Scope
