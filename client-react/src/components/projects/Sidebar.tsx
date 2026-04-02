@@ -8,6 +8,7 @@ import {
   IconToday,
   IconUpcoming,
   IconCompleted,
+  IconTuneUp,
   IconPlus,
   IconSidebar,
   IconSearch,
@@ -21,7 +22,8 @@ export type WorkspaceView =
   | "all"
   | "today"
   | "upcoming"
-  | "completed";
+  | "completed"
+  | "tuneup";
 
 // Display labels match classic app-shell.fragment
 const WORKSPACE_VIEWS: {
@@ -35,6 +37,7 @@ const WORKSPACE_VIEWS: {
   { key: "today", label: "Today", icon: IconToday },
   { key: "upcoming", label: "Upcoming", icon: IconUpcoming },
   { key: "completed", label: "Completed", icon: IconCompleted },
+  { key: "tuneup", label: "Tune-up", icon: IconTuneUp },
 ];
 
 // Area labels and order match classic railUi.js

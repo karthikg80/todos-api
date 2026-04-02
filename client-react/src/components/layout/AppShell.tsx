@@ -49,6 +49,7 @@ import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
 import { DeskView } from "../desk/DeskView";
+import { TuneUpView } from "../tuneup/TuneUpView";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
@@ -943,6 +944,18 @@ export function AppShell() {
                 onRefreshTodos={() => loadTodos(queryParams)}
                 onOpenComposer={() => setComposerOpen(true)}
               />
+            </>
+          ) : activeView === "tuneup" && !selectedProjectId ? (
+            <>
+              <div className="app-content">
+                <TuneUpView
+                  onOpenTask={(taskId) => {
+                    handleSelectView("all");
+                    handleOpenDrawer(taskId);
+                  }}
+                  onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
+                />
+              </div>
             </>
           ) : (
             <>
