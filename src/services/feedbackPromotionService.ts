@@ -22,7 +22,7 @@ type PromotionRecord = {
   id: string;
   userId: string;
   type: "bug" | "feature" | "general";
-  status: "new" | "triaged" | "promoted" | "rejected";
+  status: "new" | "triaged" | "promoted" | "rejected" | "resolved";
   classification:
     | "bug"
     | "feature"

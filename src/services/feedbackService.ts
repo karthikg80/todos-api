@@ -215,7 +215,8 @@ export class FeedbackService {
     if (
       dto.status === "triaged" ||
       dto.status === "promoted" ||
-      dto.status === "rejected"
+      dto.status === "rejected" ||
+      dto.status === "resolved"
     ) {
       const userEmail = record.user?.email;
       if (userEmail) {
@@ -343,7 +344,7 @@ export class FeedbackService {
     pageUrl: string | null;
     userAgent: string | null;
     appVersion: string | null;
-    status: "new" | "triaged" | "promoted" | "rejected";
+    status: "new" | "triaged" | "promoted" | "rejected" | "resolved";
     classification:
       | "bug"
       | "feature"
@@ -471,7 +472,7 @@ export class FeedbackService {
     pageUrl: string | null;
     userAgent: string | null;
     appVersion: string | null;
-    status: "new" | "triaged" | "promoted" | "rejected";
+    status: "new" | "triaged" | "promoted" | "rejected" | "resolved";
     classification:
       | "bug"
       | "feature"

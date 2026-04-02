@@ -272,11 +272,13 @@ export class EmailService {
       triaged: "Your feedback is under review",
       promoted: "Your feedback is now tracked",
       rejected: "Update on your feedback",
+      resolved: "Your feedback has been resolved",
     };
     const statusLabelMap: Record<string, string> = {
       triaged: "Under review",
       promoted: "Tracked",
       rejected: "Closed",
+      resolved: "Resolved",
     };
     const subject = subjectMap[details.status] || "Update on your feedback";
     const statusLabel = statusLabelMap[details.status] || details.status;
@@ -291,6 +293,12 @@ export class EmailService {
     if (details.status === "rejected" && details.rejectionReason) {
       extraHtml = `
         <p style="color: #666;"><strong>Reason:</strong> ${details.rejectionReason}</p>
+      `;
+    }
+    if (details.status === "resolved" && details.githubIssueUrl) {
+      extraHtml = `
+        <p>The issue has been fixed and deployed. Thank you for reporting it!</p>
+        <p><a href="${details.githubIssueUrl}" style="color: #667eea;">View the resolved issue</a></p>
       `;
     }
 
