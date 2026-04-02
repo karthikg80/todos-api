@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import type { Todo } from "../../types";
 import { relativeTime } from "../../utils/relativeTime";
 import { IllustrationDeskClear, IllustrationSorted } from "../shared/Illustrations";
@@ -8,6 +8,7 @@ import {
   discardCapture,
   type CaptureItem,
 } from "../../api/inbox";
+import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 
 interface Props {
   todos: Todo[];
@@ -30,6 +31,28 @@ export function DeskView({
   const [captures, setCaptures] = useState<CaptureItem[]>([]);
   const [capturesLoading, setCapturesLoading] = useState(true);
   const [triagingIds, setTriagingIds] = useState<Set<string>>(new Set());
+
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    scrollContainerRef.current = document.querySelector<HTMLElement>(
+      ".view-router__slot[style*='display: block'] .app-content",
+    );
+  }, []);
+
+  useViewSnapshot({
+    capture: () => ({
+      scrollTop: scrollContainerRef.current?.scrollTop ?? 0,
+    }),
+    restore: (snap) => {
+      if (snap.scrollTop != null && snap.scrollTop > 0) {
+        requestAnimationFrame(() => {
+          scrollContainerRef.current?.scrollTo(0, snap.scrollTop);
+        });
+      }
+    },
+    version: 1,
+  });
 
   // Load inbox captures
   useEffect(() => {

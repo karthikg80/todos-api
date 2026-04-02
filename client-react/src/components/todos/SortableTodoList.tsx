@@ -25,6 +25,7 @@ import { useCollapsedGroups } from "../../hooks/useCollapsedGroups";
 import { GroupHeader } from "./GroupHeader";
 import { ListToolbar } from "./ListToolbar";
 import type { SortField, SortOrder } from "./SortControl";
+import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 
 interface SortableRowProps {
   todo: Todo;
@@ -135,6 +136,31 @@ export function SortableTodoList({
   const sections = useMemo(() => groupTodos(todos, groupBy), [todos, groupBy]);
   const { isCollapsed, toggle } = useCollapsedGroups(groupBy);
   const isDerived = groupBy === "status" || groupBy === "priority" || groupBy === "dueDate";
+
+  const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const expandedTodoIdRef = useRef<string | null>(expandedTodoId);
+  expandedTodoIdRef.current = expandedTodoId;
+
+  useEffect(() => {
+    scrollContainerRef.current = document.querySelector<HTMLElement>(
+      ".view-router__slot[style*='display: block'] .app-content",
+    );
+  }, []);
+
+  useViewSnapshot({
+    capture: () => ({
+      scrollTop: scrollContainerRef.current?.scrollTop ?? 0,
+      expandedTodoId: expandedTodoIdRef.current,
+    }),
+    restore: (snap) => {
+      if (snap.scrollTop != null && snap.scrollTop > 0) {
+        requestAnimationFrame(() => {
+          scrollContainerRef.current?.scrollTo(0, snap.scrollTop);
+        });
+      }
+    },
+    version: 1,
+  });
 
   const prevIdsRef = useRef<Set<string>>(new Set());
   const [enteringIds, setEnteringIds] = useState<Set<string>>(new Set());

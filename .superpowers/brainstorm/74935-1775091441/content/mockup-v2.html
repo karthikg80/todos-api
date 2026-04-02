@@ -1,0 +1,173 @@
+<style>
+  .ev-toolbar { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; background:var(--bg-secondary); border-bottom:1px solid var(--border); }
+  .ev-toolbar-title { font-weight:600; font-size:0.95rem; }
+  .ev-toolbar-controls { display:flex; gap:8px; align-items:center; }
+  .ev-pill-group { display:flex; gap:2px; padding:2px; border-radius:6px; background:var(--bg-tertiary); }
+  .ev-pill { padding:3px 8px; border-radius:4px; font-size:0.72rem; color:var(--text-secondary); cursor:pointer; }
+  .ev-pill--active { background:var(--bg-secondary); box-shadow:0 1px 2px rgba(0,0,0,0.15); color:var(--text-primary); }
+  .ev-dropdown { display:flex; align-items:center; gap:4px; padding:4px 10px; border-radius:6px; background:var(--bg-tertiary); font-size:0.8rem; color:var(--text-secondary); }
+
+  .ev-group-header { padding:8px 16px; background:var(--bg-tertiary); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; cursor:pointer; }
+  .ev-group-label { font-weight:600; font-size:0.78rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.5px; display:flex; align-items:center; gap:6px; }
+  .ev-group-count { font-size:0.72rem; color:var(--text-secondary); background:var(--bg-secondary); padding:1px 8px; border-radius:99px; }
+
+  .ev-row { padding:10px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; transition: background 0.15s; }
+  .ev-row:hover { background: var(--bg-tertiary); }
+  .ev-row--border-high { border-left: 3px solid var(--error); }
+  .ev-row--border-med { border-left: 3px solid var(--warning); }
+  .ev-row--border-none { border-left: 3px solid transparent; }
+  .ev-row--overdue { background: rgba(255, 59, 48, 0.05); }
+
+  .ev-checkbox { width:16px; height:16px; accent-color:var(--accent); flex-shrink:0; border-radius:3px; }
+  .ev-task-title { font-weight:500; font-size:0.88rem; color:var(--text-primary); }
+  .ev-chips { display:flex; gap:6px; margin-top:4px; flex-wrap:wrap; }
+
+  .ev-chip { font-size:0.72rem; padding:2px 8px; border-radius:99px; font-weight:500; white-space:nowrap; }
+  .ev-chip--overdue { background:rgba(255,59,48,0.12); color:var(--error); }
+  .ev-chip--priority-high { background:rgba(255,59,48,0.1); color:var(--error); }
+  .ev-chip--priority-med { background:rgba(255,159,10,0.1); color:var(--warning); }
+  .ev-chip--waiting { background:rgba(10,132,255,0.1); color:var(--accent); }
+  .ev-chip--blocked { background:rgba(255,59,48,0.08); color:var(--error); }
+  .ev-chip--project { background:var(--bg-tertiary); color:var(--text-secondary); font-weight:400; }
+  .ev-chip--tag { background:var(--bg-tertiary); color:var(--text-secondary); font-weight:400; }
+  .ev-chip--subtask { background:var(--bg-tertiary); color:var(--text-secondary); font-weight:400; }
+  .ev-chip--date { background:var(--bg-tertiary); color:var(--text-secondary); font-weight:400; }
+</style>
+
+<h2>Everything View — Full Design</h2>
+<p class="subtitle">Group By: Status + Normal density + Priority borders + Smart chips</p>
+
+<div class="mockup" style="max-width: 720px; margin: 1.5rem auto;">
+
+  <!-- Toolbar -->
+  <div class="ev-toolbar">
+    <div class="ev-toolbar-title">Everything</div>
+    <div class="ev-toolbar-controls">
+      <div class="ev-dropdown">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
+        Group: Status
+      </div>
+      <div class="ev-pill-group">
+        <div class="ev-pill" title="Compact">▤</div>
+        <div class="ev-pill ev-pill--active" title="Normal">☰</div>
+        <div class="ev-pill" title="Spacious">▦</div>
+      </div>
+      <div class="ev-pill-group">
+        <div class="ev-pill ev-pill--active">List</div>
+        <div class="ev-pill">Board</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:var(--bg-secondary);">
+
+    <!-- Group: In Progress -->
+    <div class="ev-group-header">
+      <div class="ev-group-label">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        In Progress
+      </div>
+      <span class="ev-group-count">2</span>
+    </div>
+
+    <!-- High priority + overdue -->
+    <div class="ev-row ev-row--border-high ev-row--overdue">
+      <input type="checkbox" class="ev-checkbox" />
+      <div style="flex:1;min-width:0;">
+        <div class="ev-task-title">Migrate auth middleware to new compliance spec</div>
+        <div class="ev-chips">
+          <span class="ev-chip ev-chip--overdue">2d overdue</span>
+          <span class="ev-chip ev-chip--priority-high">high</span>
+          <span class="ev-chip ev-chip--project">Work/Backend</span>
+          <span class="ev-chip ev-chip--subtask">☑ 3/7</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Medium priority -->
+    <div class="ev-row ev-row--border-med">
+      <input type="checkbox" class="ev-checkbox" />
+      <div style="flex:1;min-width:0;">
+        <div class="ev-task-title">Design review for settings page refresh</div>
+        <div class="ev-chips">
+          <span class="ev-chip ev-chip--priority-med">medium</span>
+          <span class="ev-chip ev-chip--date">Tomorrow</span>
+          <span class="ev-chip ev-chip--project">Design</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Waiting -->
+    <div class="ev-group-header">
+      <div class="ev-group-label">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        Waiting
+      </div>
+      <span class="ev-group-count">1</span>
+    </div>
+
+    <!-- Blocked + waiting-on -->
+    <div class="ev-row ev-row--border-none">
+      <input type="checkbox" class="ev-checkbox" />
+      <div style="flex:1;min-width:0;">
+        <div class="ev-task-title">Get API keys from infrastructure team</div>
+        <div class="ev-chips">
+          <span class="ev-chip ev-chip--waiting">⏳ @infrastructure</span>
+          <span class="ev-chip ev-chip--blocked">🔒 Blocked by 1</span>
+          <span class="ev-chip ev-chip--date">Apr 10</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group: Next -->
+    <div class="ev-group-header">
+      <div class="ev-group-label">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+        Next
+      </div>
+      <span class="ev-group-count">3</span>
+    </div>
+
+    <!-- Normal task with tags -->
+    <div class="ev-row ev-row--border-none">
+      <input type="checkbox" class="ev-checkbox" />
+      <div style="flex:1;min-width:0;">
+        <div class="ev-task-title">Write integration tests for day plan endpoint</div>
+        <div class="ev-chips">
+          <span class="ev-chip ev-chip--date">Next week</span>
+          <span class="ev-chip ev-chip--project">Work/Backend</span>
+          <span class="ev-chip ev-chip--tag">#testing</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Simple task -->
+    <div class="ev-row ev-row--border-none">
+      <input type="checkbox" class="ev-checkbox" />
+      <div style="flex:1;min-width:0;">
+        <div class="ev-task-title">Explore virtual scrolling options for large lists</div>
+        <div class="ev-chips">
+          <span class="ev-chip ev-chip--project">Side Projects</span>
+          <span class="ev-chip ev-chip--tag">#research</span>
+          <span class="ev-chip ev-chip--tag">#performance</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Minimal task -->
+    <div class="ev-row ev-row--border-none">
+      <input type="checkbox" class="ev-checkbox" />
+      <div style="flex:1;min-width:0;">
+        <div class="ev-task-title">Update README with new API endpoints</div>
+        <div class="ev-chips">
+          <span class="ev-chip ev-chip--project">Work/Docs</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div style="max-width:720px;margin:1rem auto;text-align:center;">
+  <p class="subtitle"><strong>Normal density</strong> with <strong>Group By: Status</strong>. Priority left borders (red = high, amber = medium), overdue red tint, blocked/waiting chips, subtask counts.</p>
+</div>
