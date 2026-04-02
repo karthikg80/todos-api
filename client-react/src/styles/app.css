@@ -366,6 +366,7 @@ body {
   width: 100%;
   text-align: left;
   font-family: inherit;
+  position: relative;
 }
 
 .projects-rail-item:hover {
@@ -694,6 +695,23 @@ body {
   transform: translateX(0);
 }
 
+/* Staggered content inside drawer when open */
+.todo-drawer[aria-hidden="false"] .todo-drawer__header {
+  animation: fadeIn var(--dur-base) var(--ease-out) var(--dur-fast) backwards;
+}
+
+.todo-drawer[aria-hidden="false"] .todo-drawer__title-input {
+  animation: slideInUp var(--dur-base) var(--ease-spring) calc(var(--dur-fast) + 50ms) backwards;
+}
+
+.todo-drawer[aria-hidden="false"] .todo-drawer__fields {
+  animation: slideInUp var(--dur-base) var(--ease-spring) calc(var(--dur-fast) + 100ms) backwards;
+}
+
+.todo-drawer[aria-hidden="false"] .todo-drawer__footer {
+  animation: fadeIn var(--dur-base) var(--ease-out) calc(var(--dur-fast) + 150ms) backwards;
+}
+
 .todo-drawer__header {
   display: flex;
   align-items: center;
@@ -935,6 +953,50 @@ body {
   }
 }
 
+/* Item exit — shrink + fade out */
+@keyframes todoItemExit {
+  from {
+    opacity: 1;
+    max-height: var(--row-height);
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    max-height: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: 0;
+    transform: translateX(-16px);
+  }
+}
+
+/* Item enter — expand + fade in */
+@keyframes todoItemEnter {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    max-height: var(--row-height);
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Applied via React when a todo is newly added */
+.todo-item--entering {
+  animation: todoItemEnter var(--dur-slow) var(--ease-spring) both;
+  overflow: hidden;
+}
+
+/* Applied via React before removal — JS listens for animationend then removes DOM */
+.todo-item--exiting {
+  animation: todoItemExit var(--dur-slow) var(--ease-out) forwards;
+  overflow: hidden;
+  pointer-events: none;
+}
+
 /* Skeleton shimmer variant */
 .loading-skeleton__row {
   background: linear-gradient(
@@ -945,6 +1007,37 @@ body {
   );
   background-size: 800px 100%;
   animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Staggered shimmer per skeleton row */
+.loading-skeleton__row:nth-child(1) { animation-delay: 0ms; }
+.loading-skeleton__row:nth-child(2) { animation-delay: 80ms; }
+.loading-skeleton__row:nth-child(3) { animation-delay: 160ms; }
+.loading-skeleton__row:nth-child(4) { animation-delay: 240ms; }
+.loading-skeleton__row:nth-child(5) { animation-delay: 320ms; }
+.loading-skeleton__row:nth-child(n + 6) { animation-delay: 400ms; }
+
+/* Skeleton row sizing variants */
+.loading-skeleton__row--short { width: 60%; }
+.loading-skeleton__row--medium { width: 80%; }
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* --- View Transitions API --- */
+::view-transition-old(root) {
+  animation: fadeOut var(--dur-base) var(--ease-out);
+}
+
+::view-transition-new(root) {
+  animation: fadeIn var(--dur-base) var(--ease-out);
+}
+
+/* Fallback page transition for non-VT browsers */
+.app-main-content {
+  animation: fadeIn var(--dur-base) var(--ease-out);
 }
 
 /* Staggered list animations */
@@ -1041,6 +1134,27 @@ body {
   animation: scaleIn var(--dur-base) var(--ease-spring);
 }
 
+/* Confirm dialog exit */
+@keyframes scaleOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+.confirm-overlay--exiting {
+  animation: fadeOut var(--dur-fast) var(--ease-out) forwards;
+  pointer-events: none;
+}
+
+.confirm-overlay--exiting .confirm-dialog {
+  animation: scaleOut var(--dur-fast) var(--ease-out) forwards;
+}
+
 .confirm-dialog__title {
   font-size: var(--fs-body);
   font-weight: var(--fw-semibold);
@@ -1076,7 +1190,8 @@ body {
 }
 
 .btn:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.97);
+  transition-duration: 50ms;
 }
 
 .btn:focus-visible {
@@ -1277,6 +1392,7 @@ body {
 /* --- Undo toast --- */
 .undo-toast {
   position: fixed;
+  overflow: hidden;
   bottom: var(--s-5);
   left: 50%;
   transform: translateX(-50%) translateY(calc(100% + var(--s-5)));
@@ -2282,7 +2398,9 @@ body {
   border-radius: var(--r-sm);
   box-shadow: var(--shadow-hover);
   cursor: grab;
-  transition: box-shadow var(--dur-fast);
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast);
 }
 
 .board__card:hover {
@@ -2291,6 +2409,53 @@ body {
 
 .board__card:active {
   cursor: grabbing;
+}
+
+/* Board card dragging state */
+.board__card[draggable]:active {
+  transform: rotate(2deg) scale(1.03);
+  box-shadow: var(--shadow-lg);
+  opacity: 0.9;
+  cursor: grabbing;
+  z-index: 10;
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast);
+}
+
+/* Board column drop target */
+.board__column-body {
+  transition: background var(--dur-fast) var(--ease-out);
+  border-radius: var(--r-sm);
+}
+
+/* Board card settle after drop */
+@keyframes cardSettle {
+  0% { transform: translateY(-4px) scale(1.02); }
+  60% { transform: translateY(1px) scale(0.99); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+/* Board card staggered entrance */
+.board__card:nth-child(1) { animation: slideInUp var(--dur-base) var(--ease-out) backwards; animation-delay: 0ms; }
+.board__card:nth-child(2) { animation: slideInUp var(--dur-base) var(--ease-out) backwards; animation-delay: 40ms; }
+.board__card:nth-child(3) { animation: slideInUp var(--dur-base) var(--ease-out) backwards; animation-delay: 80ms; }
+.board__card:nth-child(4) { animation: slideInUp var(--dur-base) var(--ease-out) backwards; animation-delay: 120ms; }
+.board__card:nth-child(n + 5) { animation: slideInUp var(--dur-base) var(--ease-out) backwards; animation-delay: 160ms; }
+
+/* Board empty column breathing */
+.board__column-body:empty::after {
+  content: "Drop here";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-5);
+  color: var(--muted-light);
+  font-size: var(--fs-meta);
+  animation: subtlePulse 3s var(--ease-in-out) infinite;
+  border: 2px dashed var(--border-light);
+  border-radius: var(--r-sm);
+  margin: var(--s-2);
 }
 
 .board__card--done {
@@ -2854,6 +3019,62 @@ body {
   display: flex;
   justify-content: center;
   gap: var(--s-3);
+}
+
+/* Onboarding step transitions */
+.onboarding-card__step {
+  animation: onboardingStepIn var(--dur-slow) var(--ease-spring);
+}
+
+@keyframes onboardingStepIn {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.onboarding-card__step--back {
+  animation: onboardingStepBack var(--dur-slow) var(--ease-spring);
+}
+
+@keyframes onboardingStepBack {
+  from {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.onboarding-overlay {
+  animation: fadeIn var(--dur-slow) var(--ease-out);
+}
+
+.onboarding-card {
+  animation: scaleIn var(--dur-slow) var(--ease-spring) var(--dur-fast) backwards;
+}
+
+.onboarding-card__dot {
+  transition:
+    width var(--dur-base) var(--ease-spring),
+    background var(--dur-base) var(--ease-out),
+    border-radius var(--dur-base) var(--ease-spring);
+}
+
+@keyframes onboardingSuccess {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+.onboarding-card--final {
+  animation: onboardingSuccess var(--dur-slow) var(--ease-spring);
 }
 
 /* --- Project headings tabs --- */
@@ -5114,6 +5335,7 @@ body {
 .sortable-row {
   display: flex;
   align-items: center;
+  transition: box-shadow var(--dur-fast) var(--ease-out);
 }
 
 .drag-handle {
@@ -5123,13 +5345,16 @@ body {
   color: var(--muted);
   padding: var(--s-1);
   opacity: 0;
-  transition: opacity var(--dur-fast);
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-spring);
   flex-shrink: 0;
   touch-action: none;
 }
 
 .sortable-row:hover .drag-handle {
   opacity: 0.5;
+  transform: scale(1.1);
 }
 
 .drag-handle:hover {
@@ -5139,6 +5364,7 @@ body {
 
 .drag-handle:active {
   cursor: grabbing;
+  transform: scale(0.95);
 }
 
 /* --- Natural language date chips --- */
@@ -5477,6 +5703,20 @@ body {
   animation: checkRipple var(--dur-slow) var(--ease-out);
 }
 
+/* Brief accent flash on the row when a task is completed */
+@keyframes completionFlash {
+  0% {
+    background-color: color-mix(in oklab, var(--success) 15%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+.todo-item--just-completed {
+  animation: completionFlash var(--dur-slow) var(--ease-out);
+}
+
 /* Task title strikethrough animation on completion */
 @keyframes strikethrough {
   from {
@@ -5537,6 +5777,38 @@ body {
   animation: toastBounceIn var(--dur-slow) var(--ease-spring);
 }
 
+/* Toast exit animation */
+@keyframes toastSlideOut {
+  from {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(calc(100% + var(--s-5)));
+  }
+}
+
+.undo-toast--exiting {
+  animation: toastSlideOut var(--dur-base) var(--ease-out) forwards;
+}
+
+/* Toast countdown progress bar */
+.undo-toast__progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  background: var(--accent-2);
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
+  animation: toastCountdown 5s linear forwards;
+}
+
+@keyframes toastCountdown {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
 /* Project rail item hover indent */
 .projects-rail-item:hover {
   padding-left: calc(var(--s-3) + 2px);
@@ -5561,6 +5833,46 @@ body {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
 }
+
+/* Quick entry input — focus glow */
+.quick-entry__input:focus {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--accent) 12%, transparent),
+    var(--shadow-sm);
+  border-color: var(--accent);
+  transition:
+    box-shadow var(--dur-base) var(--ease-spring),
+    border-color var(--dur-fast);
+}
+
+/* Sidebar project item — hover accent border */
+.projects-rail-item:hover::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0.6);
+  width: 2px;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 0 2px 2px 0;
+  animation: scaleIn var(--dur-fast) var(--ease-spring);
+}
+
+/* Kebab menu — staggered item entrance */
+.todo-kebab-menu {
+  animation: scaleIn var(--dur-fast) var(--ease-spring);
+  transform-origin: top right;
+}
+
+.todo-kebab-item {
+  animation: slideInUp var(--dur-fast) var(--ease-out) backwards;
+}
+.todo-kebab-item:nth-child(1) { animation-delay: 0ms; }
+.todo-kebab-item:nth-child(2) { animation-delay: 30ms; }
+.todo-kebab-item:nth-child(3) { animation-delay: 60ms; }
+.todo-kebab-item:nth-child(4) { animation-delay: 90ms; }
+.todo-kebab-item:nth-child(5) { animation-delay: 120ms; }
+.todo-kebab-item:nth-child(n + 6) { animation-delay: 150ms; }
 
 /* Search bar expand on focus */
 .search-bar--focused {

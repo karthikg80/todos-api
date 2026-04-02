@@ -15,6 +15,7 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (view: WorkspaceView) => void;
+  onWeeklyReview: () => void;
   onToggleDarkMode: () => void;
   onLogout: () => void;
   todos?: Todo[];
@@ -25,6 +26,7 @@ export function CommandPalette({
   isOpen,
   onClose,
   onNavigate,
+  onWeeklyReview,
   onToggleDarkMode,
   onLogout,
   todos = [],
@@ -77,6 +79,13 @@ export function CommandPalette({
         keywords: "done finished",
       },
       {
+        id: "nav-weekly-review",
+        label: "Go to Weekly Review",
+        group: "Navigation",
+        action: onWeeklyReview,
+        keywords: "weekly reset review",
+      },
+      {
         id: "toggle-dark-mode",
         label: "Toggle Dark Mode",
         group: "Actions",
@@ -105,7 +114,7 @@ export function CommandPalette({
         keywords: "sign out",
       },
     ],
-    [onNavigate, onToggleDarkMode, onLogout],
+    [onNavigate, onWeeklyReview, onToggleDarkMode, onLogout],
   );
 
   const filtered = useMemo(() => {
@@ -211,7 +220,11 @@ export function CommandPalette({
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={onKeyDown}
         />
-        <div id="commandPaletteList" className="command-palette__list" role="listbox">
+        <div
+          id="commandPaletteList"
+          className="command-palette__list"
+          role="listbox"
+        >
           {filtered.length === 0 && (
             <div id="commandPaletteEmpty" className="command-palette__empty">
               <IllustrationNoResults />

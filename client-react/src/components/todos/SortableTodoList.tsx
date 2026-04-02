@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useRef, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -31,6 +31,7 @@ interface SortableRowProps {
   isExpanded: boolean;
   isBulkMode: boolean;
   isSelected: boolean;
+  isEntering?: boolean;
   projects: Project[];
   headings: Heading[];
   onToggle: (id: string, completed: boolean) => void;
@@ -68,7 +69,7 @@ function SortableRow(props: SortableRowProps) {
       >
         <IconGrip />
       </button>
-      <TodoRow {...props} />
+      <TodoRow {...props} isEntering={props.isEntering} />
     </div>
   );
 }
@@ -130,6 +131,25 @@ export function SortableTodoList({
   const sections = useMemo(() => groupTodos(todos, groupBy), [todos, groupBy]);
   const { isCollapsed, toggle } = useCollapsedGroups(groupBy);
   const isDerived = groupBy === "status" || groupBy === "priority" || groupBy === "dueDate";
+
+  const prevIdsRef = useRef<Set<string>>(new Set());
+  const [enteringIds, setEnteringIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const currentIds = new Set(todos.map((t) => t.id));
+    const newIds = new Set<string>();
+    for (const id of currentIds) {
+      if (!prevIdsRef.current.has(id) && prevIdsRef.current.size > 0) {
+        newIds.add(id);
+      }
+    }
+    prevIdsRef.current = currentIds;
+    if (newIds.size > 0) {
+      setEnteringIds(newIds);
+      const timer = setTimeout(() => setEnteringIds(new Set()), 350);
+      return () => clearTimeout(timer);
+    }
+  }, [todos]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -239,6 +259,7 @@ export function SortableTodoList({
                     isExpanded={todo.id === expandedTodoId}
                     isBulkMode={isBulkMode}
                     isSelected={selectedIds.has(todo.id)}
+                    isEntering={enteringIds.has(todo.id)}
                     projects={projects}
                     headings={headings}
                     onToggle={onToggle}
