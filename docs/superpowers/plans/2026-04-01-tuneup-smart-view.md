@@ -54,7 +54,7 @@ Taxonomy (`POST /agent/read/taxonomy_cleanup_suggestions` body: `{}`):
 **Key design decisions from the spec:**
 - Merge survivor = first task in the group (payload order) as survivor for v1, matching backend payload order as currently returned by the endpoint. This is not a guaranteed API contract — if the backend changes ordering, survivor selection may need revisiting.
 - `patchTaskOut` / `patchProjectOut` for destructive removal; `patchQualityResolved` / `patchStaleResolved` for non-destructive patches.
-- Undo reverses from a stored snapshot, not by re-fetching.
+- Undo uses targeted unpatch/restore helpers locally (e.g., `unpatchTaskOut`, `restoreStaleTask`) plus server reversal API calls — not full state snapshots or re-fetching.
 - Dismissed findings, patched IDs, and optimistic mutations are ALL module-level (shared across Home tile and Tune-up view mounts).
 - Hook accepts `autoFetch` option — `false` for Home tile (fetches only when active), `true` (default) for the full view.
 
@@ -651,7 +651,7 @@ Run: `cd client-react && npm ls @testing-library/react 2>/dev/null || npm instal
 
 Create `client-react/src/hooks/useTuneUp.ts`:
 ```typescript
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import type {
   TuneUpSection,
   TuneUpData,
@@ -790,11 +790,13 @@ export function useTuneUp(options: UseTuneUpOptions = {}) {
   // Subscribe to shared state. Returns the immutable cache snapshot.
   const snap = useSyncExternalStore(subscribe, getSnapshot);
 
-  // Auto-fetch on first access if cache is cold and autoFetch is true.
+  // Auto-fetch on first mount if cache is cold and autoFetch is true.
   // Uses module-level initialLoadTriggered to dedupe across concurrent mounts.
-  if (autoFetch && !snap.initialLoadTriggered) {
-    fetchAll();
-  }
+  useEffect(() => {
+    if (autoFetch && !cache.initialLoadTriggered) {
+      fetchAll();
+    }
+  }, [autoFetch]);
 
   const load = useCallback(() => {
     if (!cache.initialLoadTriggered) fetchAll();
@@ -1220,7 +1222,7 @@ The implementer should create all 4 section components and rewrite TuneUpView wi
 **TuneUpView action handlers to implement:**
 - `handleMergeDuplicates(group)` — patchTaskOut for all non-survivors, sequential archive calls, partial failure inline error, undo via unpatchTaskOut + un-archive API calls
 - `handleArchiveTask(taskId)` — patchTaskOut, archive API call, undo via unpatchTaskOut + un-archive
-- `handleSnoozeTask(taskId)` — patchStaleResolved (returns removed task), set reviewDate +30d, undo via restoreStaleTask + reviewDate:null (or prior value)
+- `handleSnoozeTask(taskId)` — fetch the task's current `reviewDate` before mutating. Call `patchStaleResolved(taskId)` (returns removed `StaleTask`). Set `reviewDate` to +30d via API. Undo: call `restoreStaleTask(removedTask)` locally + PUT the stored prior `reviewDate` value back to the server (may be `null` or a pre-existing date).
 - `handleArchiveProject(projectId)` — patchProjectOut, archive API call, undo via unpatchProjectOut + un-archive
 - `handleEditTitle(taskId, newTitle)` — update API call, if titlePassesQuality passes call patchQualityResolved, show "Title updated" toast (no undo)
 
