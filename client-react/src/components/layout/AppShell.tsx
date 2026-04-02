@@ -20,7 +20,7 @@ import { QuickEntry } from "../todos/QuickEntry";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import { BulkToolbar } from "../todos/BulkToolbar";
-import { SortControl, type SortField, type SortOrder } from "../todos/SortControl";
+import type { SortField, SortOrder } from "../todos/SortControl";
 import { SearchBar } from "../shared/SearchBar";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
@@ -963,16 +963,6 @@ export function AppShell() {
                     <IconBoard />
                   </button>
                 </div>
-                {viewMode === "list" && (
-                  <SortControl
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onChange={(f, o) => {
-                      setSortBy(f);
-                      setSortOrder(o);
-                    }}
-                  />
-                )}
                 <Tooltip content="New task" shortcut="n">
                   <button
                     className="btn"
@@ -1140,6 +1130,9 @@ export function AppShell() {
                   onTagClick={handleTagClick}
                   onLifecycleAction={handleLifecycleAction}
                   onReorder={handleReorder}
+                  sortBy={sortBy}
+                  sortOrder={sortOrder}
+                  onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
                 />
               )}
             </div>
