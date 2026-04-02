@@ -4,20 +4,59 @@
 
 **Goal:** Add a Tune-Up smart view to the React client that surfaces task hygiene issues (duplicates, stale items, quality problems, taxonomy suggestions) with inline actions, plus a summary tile on the Home dashboard.
 
-**Architecture:** A `useTuneUp()` hook with module-level caching calls 4 existing backend agent endpoints in parallel. A `TuneUpView` component renders 4 collapsible sections with inline actions (merge, archive, snooze, edit, dismiss). A `TuneUpTile` on HomeDashboard shows the top finding. Cross-section reconciliation uses separate destructive (`patchTaskOut`) and non-destructive (`patchQualityResolved`, `patchStaleResolved`) patch paths.
+**Architecture:** A `useTuneUp()` hook with module-level shared cache (including dismissals and patches) calls 4 existing backend agent endpoints in parallel. A `TuneUpView` component renders 4 collapsible sections with inline actions (merge, archive, snooze, edit, dismiss). A `TuneUpTile` on HomeDashboard shows the top finding. Cross-section reconciliation uses reversible optimistic mutations with snapshot-based undo.
 
-**Tech Stack:** React 19, TypeScript, vitest (already configured from prior work)
+**Tech Stack:** React 19, TypeScript, vitest (already configured), @testing-library/react (added for hook tests)
 
 **Spec:** `docs/superpowers/specs/2026-04-01-tuneup-smart-view-design.md`
 
-**Important API details:**
-- All 4 endpoints are `POST /agent/read/{name}` with JSON body
-- Use existing `apiCall()` from `client-react/src/api/client.ts`
-- Actual response shapes (from vanilla client, NOT the MCP tool schema):
-  - Duplicates: `{ groups: Array<Array<{ title: string, id?: string }>> }`
-  - Stale: `{ staleTasks: Array<{ id?, title, status?, lastUpdated? }>, staleProjects: Array<{ id?, name, lastUpdated? }> }`
-  - Quality: `{ results: Array<{ title, taskId?, issues: string[], suggestions: string[] }> }`
-  - Taxonomy: `{ similarProjects: Array<{ projectAName, projectBName, projectAId?, projectBId? }>, smallProjects: Array<{ name, id?, taskCount }> }`
+**View key:** `"tuneup"` everywhere (sidebar, AppShell routing, data attributes). Not "cleanup".
+
+**Verified endpoint response shapes:**
+
+Duplicates (`POST /agent/read/find_duplicate_tasks` body: `{}`):
+```typescript
+{
+  groups: Array<{
+    confidence: number;      // 1.0 = exact, 0.9 = normalized, 0.7 = near
+    reason: string;
+    tasks: Array<{ id: string; title: string; status: string; projectId: string | null }>;
+    suggestedAction: "merge" | "archive-older" | "review";
+  }>;
+  totalTasks: number;
+}
+```
+
+Stale (`POST /agent/read/find_stale_items` body: `{ staleDays: 30 }`):
+```typescript
+{
+  staleTasks: Array<{ id: string; title: string; status?: string; lastUpdated?: string }>;
+  staleProjects: Array<{ id: string; name: string; lastUpdated?: string }>;
+}
+```
+
+Quality (`POST /agent/read/analyze_task_quality` body: `{}`):
+```typescript
+{
+  results: Array<{ id: string; title: string; qualityScore: number; issues: string[]; suggestions: string[] }>;
+  totalAnalyzed: number;
+}
+```
+
+Taxonomy (`POST /agent/read/taxonomy_cleanup_suggestions` body: `{}`):
+```typescript
+{
+  similarProjects: Array<{ projectAName: string; projectBName: string; projectAId?: string; projectBId?: string }>;
+  smallProjects: Array<{ name: string; id?: string; taskCount: number }>;
+}
+```
+
+**Key design decisions from the spec:**
+- Merge survivor = oldest task by `createdAt` in the group. Since the duplicates endpoint does NOT return `createdAt`, the API layer must enrich duplicate groups by looking up task metadata. For v1: use the first task in the group (payload order) as survivor since the endpoint sorts by creation order. Document this explicitly.
+- `patchTaskOut` / `patchProjectOut` for destructive removal; `patchQualityResolved` / `patchStaleResolved` for non-destructive patches.
+- Undo reverses from a stored snapshot, not by re-fetching.
+- Dismissed findings, patched IDs, and optimistic mutations are ALL module-level (shared across Home tile and Tune-up view mounts).
+- Hook accepts `autoFetch` option — `false` for Home tile (fetches only when active), `true` (default) for the full view.
 
 ---
 
@@ -27,21 +66,33 @@
 - Create: `client-react/src/types/tuneup.ts`
 - Create: `client-react/src/api/tuneup.ts`
 
-- [ ] **Step 1: Create types**
+- [ ] **Step 1: Create types matching real endpoint payloads**
 
 Create `client-react/src/types/tuneup.ts`:
 ```typescript
 export type TuneUpSection = "duplicates" | "stale" | "quality" | "taxonomy";
 
-export interface DuplicateGroup {
+// --- Duplicates ---
+export interface DuplicateTask {
   id: string;
-  tasks: Array<{ id: string; title: string; createdAt: string }>;
+  title: string;
+  status: string;
+  projectId: string | null;
+}
+
+export interface DuplicateGroup {
+  confidence: number;
+  reason: string;
+  tasks: DuplicateTask[];
+  suggestedAction: "merge" | "archive-older" | "review";
 }
 
 export interface DuplicateResults {
   groups: DuplicateGroup[];
+  totalTasks: number;
 }
 
+// --- Stale ---
 export interface StaleTask {
   id: string;
   title: string;
@@ -60,27 +111,31 @@ export interface StaleResults {
   staleProjects: StaleProject[];
 }
 
+// --- Quality ---
 export interface QualityIssue {
-  taskId: string;
+  id: string;
   title: string;
+  qualityScore: number;
   issues: string[];
   suggestions: string[];
 }
 
 export interface QualityResults {
   results: QualityIssue[];
+  totalAnalyzed: number;
 }
 
+// --- Taxonomy ---
 export interface SimilarProjectPair {
-  projectAId: string;
   projectAName: string;
-  projectBId: string;
   projectBName: string;
+  projectAId?: string;
+  projectBId?: string;
 }
 
 export interface SmallProject {
-  id: string;
   name: string;
+  id?: string;
   taskCount: number;
 }
 
@@ -89,6 +144,7 @@ export interface TaxonomyResults {
   smallProjects: SmallProject[];
 }
 
+// --- Aggregate ---
 export interface TuneUpData {
   duplicates: DuplicateResults | null;
   stale: StaleResults | null;
@@ -97,7 +153,7 @@ export interface TuneUpData {
 }
 ```
 
-- [ ] **Step 2: Create API functions**
+- [ ] **Step 2: Create API functions with normalization**
 
 Create `client-react/src/api/tuneup.ts`:
 ```typescript
@@ -116,7 +172,10 @@ export async function fetchDuplicates(): Promise<DuplicateResults> {
   });
   if (!res.ok) throw new Error(`Duplicate analysis failed: ${res.status}`);
   const data = await res.json();
-  return { groups: data.groups ?? [] };
+  return {
+    groups: Array.isArray(data.groups) ? data.groups : [],
+    totalTasks: data.totalTasks ?? 0,
+  };
 }
 
 export async function fetchStaleItems(): Promise<StaleResults> {
@@ -127,8 +186,8 @@ export async function fetchStaleItems(): Promise<StaleResults> {
   if (!res.ok) throw new Error(`Stale analysis failed: ${res.status}`);
   const data = await res.json();
   return {
-    staleTasks: data.staleTasks ?? [],
-    staleProjects: data.staleProjects ?? [],
+    staleTasks: Array.isArray(data.staleTasks) ? data.staleTasks : [],
+    staleProjects: Array.isArray(data.staleProjects) ? data.staleProjects : [],
   };
 }
 
@@ -139,11 +198,10 @@ export async function fetchQualityIssues(): Promise<QualityResults> {
   });
   if (!res.ok) throw new Error(`Quality analysis failed: ${res.status}`);
   const data = await res.json();
-  return {
-    results: (data.results ?? []).filter(
-      (r: { issues?: string[] }) => r.issues && r.issues.length > 0,
-    ),
-  };
+  const results = Array.isArray(data.results)
+    ? data.results.filter((r: { issues?: string[] }) => r.issues && r.issues.length > 0)
+    : [];
+  return { results, totalAnalyzed: data.totalAnalyzed ?? 0 };
 }
 
 export async function fetchTaxonomy(): Promise<TaxonomyResults> {
@@ -154,8 +212,8 @@ export async function fetchTaxonomy(): Promise<TaxonomyResults> {
   if (!res.ok) throw new Error(`Taxonomy analysis failed: ${res.status}`);
   const data = await res.json();
   return {
-    similarProjects: data.similarProjects ?? [],
-    smallProjects: data.smallProjects ?? [],
+    similarProjects: Array.isArray(data.similarProjects) ? data.similarProjects : [],
+    smallProjects: Array.isArray(data.smallProjects) ? data.smallProjects : [],
   };
 }
 ```
@@ -169,7 +227,10 @@ Expected: No type errors.
 
 ```bash
 git add client-react/src/types/tuneup.ts client-react/src/api/tuneup.ts
-git commit -m "feat(react): add tune-up types and API layer for 4 agent endpoints"
+git commit -m "feat(react): add tune-up types and API layer for 4 agent endpoints
+
+Types match verified backend response shapes including confidence
+scores, quality scores, and optional IDs."
 ```
 
 ---
@@ -194,6 +255,20 @@ export interface TopFinding {
   severity: "danger" | "neutral" | "muted";
 }
 
+/**
+ * Compute the single most impactful finding across all tune-up data.
+ *
+ * Priority tiers (lower = more important):
+ * 1. Exact duplicates (confidence >= 0.95)
+ * 2. Multi-action quality issues
+ * 3. Very stale tasks (60+ days)
+ * 4. Near duplicates (confidence < 0.95)
+ * 5. Moderately stale tasks (30-60 days)
+ * 6. Other quality issues
+ * 7. Taxonomy suggestions
+ *
+ * Tiebreaker: higher count wins, then merge > archive > edit > suggest.
+ */
 export function computeTopFinding(
   data: TuneUpData,
   dismissed: Set<string>,
@@ -202,46 +277,67 @@ export function computeTopFinding(
 ): TopFinding | null {
   const candidates: TopFinding[] = [];
 
-  // Tier 1: Exact duplicates
   if (data.duplicates) {
-    const visible = data.duplicates.groups.filter((g) => {
-      const key = "dup:" + g.tasks.map((t) => t.id).sort().join(":");
-      const hasPatchedTask = g.tasks.some((t) => patchedTaskIds.has(t.id));
-      return !dismissed.has(key) && !hasPatchedTask;
+    const exact = data.duplicates.groups.filter((g) => {
+      const key = dupGroupKey(g.tasks.map((t) => t.id));
+      return !dismissed.has(key) && !g.tasks.some((t) => patchedTaskIds.has(t.id)) && g.confidence >= 0.95;
     });
-    if (visible.length > 0) {
+    if (exact.length > 0) {
       candidates.push({
         section: "duplicates",
         tier: 1,
-        label: `${visible.length} exact duplicate task${visible.length > 1 ? " groups" : " group"} found`,
-        count: visible.length,
+        label: `${exact.length} exact duplicate task${exact.length !== 1 ? " groups" : " group"} found`,
+        count: exact.length,
         severity: "danger",
+      });
+    }
+
+    const near = data.duplicates.groups.filter((g) => {
+      const key = dupGroupKey(g.tasks.map((t) => t.id));
+      return !dismissed.has(key) && !g.tasks.some((t) => patchedTaskIds.has(t.id)) && g.confidence < 0.95;
+    });
+    if (near.length > 0) {
+      candidates.push({
+        section: "duplicates",
+        tier: 4,
+        label: `${near.length} similar task${near.length !== 1 ? " groups" : " group"} to review`,
+        count: near.length,
+        severity: "neutral",
       });
     }
   }
 
-  // Tier 2: Multi-action quality issues
   if (data.quality) {
-    const multiAction = data.quality.results.filter((r) => {
-      const key = `quality:${r.taskId}`;
-      return !dismissed.has(key) && !patchedTaskIds.has(r.taskId) && r.issues.includes("multi-action");
-    });
+    const multiAction = data.quality.results.filter((r) =>
+      !dismissed.has(`quality:${r.id}`) && !patchedTaskIds.has(r.id) && r.issues.includes("multi-action"),
+    );
     if (multiAction.length > 0) {
       candidates.push({
         section: "quality",
         tier: 2,
-        label: `${multiAction.length} task${multiAction.length > 1 ? "s" : ""} should be split into subtasks`,
+        label: `${multiAction.length} task${multiAction.length !== 1 ? "s" : ""} should be split into subtasks`,
         count: multiAction.length,
         severity: "danger",
       });
     }
+
+    const other = data.quality.results.filter((r) =>
+      !dismissed.has(`quality:${r.id}`) && !patchedTaskIds.has(r.id) && !r.issues.includes("multi-action"),
+    );
+    if (other.length > 0) {
+      candidates.push({
+        section: "quality",
+        tier: 6,
+        label: `${other.length} task${other.length !== 1 ? "s" : ""} with title quality issues`,
+        count: other.length,
+        severity: "neutral",
+      });
+    }
   }
 
-  // Tier 3: Stale tasks > 60 days
   if (data.stale) {
     const veryStale = data.stale.staleTasks.filter((t) => {
-      const key = `stale:task:${t.id}`;
-      if (dismissed.has(key) || patchedTaskIds.has(t.id)) return false;
+      if (dismissed.has(`stale:task:${t.id}`) || patchedTaskIds.has(t.id)) return false;
       if (!t.lastUpdated) return true;
       const days = Math.floor((Date.now() - new Date(t.lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
       return days > 60;
@@ -250,19 +346,14 @@ export function computeTopFinding(
       candidates.push({
         section: "stale",
         tier: 3,
-        label: `${veryStale.length} task${veryStale.length > 1 ? "s" : ""} untouched for 60+ days`,
+        label: `${veryStale.length} task${veryStale.length !== 1 ? "s" : ""} untouched for 60+ days`,
         count: veryStale.length,
         severity: "danger",
       });
     }
-  }
 
-  // Tier 4: Near duplicates (all non-tier-1 duplicate groups)
-  // Tier 5: Stale 30-60 days
-  if (data.stale) {
     const moderateStale = data.stale.staleTasks.filter((t) => {
-      const key = `stale:task:${t.id}`;
-      if (dismissed.has(key) || patchedTaskIds.has(t.id)) return false;
+      if (dismissed.has(`stale:task:${t.id}`) || patchedTaskIds.has(t.id)) return false;
       if (!t.lastUpdated) return false;
       const days = Math.floor((Date.now() - new Date(t.lastUpdated).getTime()) / (1000 * 60 * 60 * 24));
       return days >= 30 && days <= 60;
@@ -271,46 +362,27 @@ export function computeTopFinding(
       candidates.push({
         section: "stale",
         tier: 5,
-        label: `${moderateStale.length} task${moderateStale.length > 1 ? "s" : ""} untouched for 30+ days`,
+        label: `${moderateStale.length} task${moderateStale.length !== 1 ? "s" : ""} untouched for 30+ days`,
         count: moderateStale.length,
         severity: "neutral",
       });
     }
   }
 
-  // Tier 6: Other quality issues
-  if (data.quality) {
-    const other = data.quality.results.filter((r) => {
-      const key = `quality:${r.taskId}`;
-      return !dismissed.has(key) && !patchedTaskIds.has(r.taskId) && !r.issues.includes("multi-action");
-    });
-    if (other.length > 0) {
-      candidates.push({
-        section: "quality",
-        tier: 6,
-        label: `${other.length} task${other.length > 1 ? "s" : ""} with title quality issues`,
-        count: other.length,
-        severity: "neutral",
-      });
-    }
-  }
-
-  // Tier 7: Taxonomy suggestions
   if (data.taxonomy) {
     const similar = data.taxonomy.similarProjects.filter((p) => {
-      const key = "tax:similar:" + [p.projectAId, p.projectBId].sort().join(":");
+      const key = taxSimilarKey(p.projectAId, p.projectBId);
       return !dismissed.has(key);
     });
-    const small = data.taxonomy.smallProjects.filter((p) => {
-      const key = `tax:low:${p.id}`;
-      return !dismissed.has(key) && !patchedProjectIds.has(p.id);
-    });
+    const small = data.taxonomy.smallProjects.filter((p) =>
+      p.id ? !dismissed.has(`tax:low:${p.id}`) && !patchedProjectIds.has(p.id) : true,
+    );
     const total = similar.length + small.length;
     if (total > 0) {
       candidates.push({
         section: "taxonomy",
         tier: 7,
-        label: `${total} project organization suggestion${total > 1 ? "s" : ""}`,
+        label: `${total} project organization suggestion${total !== 1 ? "s" : ""}`,
         count: total,
         severity: "muted",
       });
@@ -319,9 +391,20 @@ export function computeTopFinding(
 
   if (candidates.length === 0) return null;
 
-  // Sort by tier (ascending), then count (descending)
+  // Sort: lower tier first, then higher count, then actionability (lower tier = more actionable)
   candidates.sort((a, b) => a.tier - b.tier || b.count - a.count);
   return candidates[0];
+}
+
+/** Stable key for a duplicate group: sorted task IDs joined by colon. */
+export function dupGroupKey(taskIds: string[]): string {
+  return "dup:" + [...taskIds].sort().join(":");
+}
+
+/** Stable key for a similar-projects pair. */
+export function taxSimilarKey(aId?: string, bId?: string): string {
+  if (!aId || !bId) return `tax:similar:${aId ?? "?"}:${bId ?? "?"}`;
+  return "tax:similar:" + [aId, bId].sort().join(":");
 }
 ```
 
@@ -330,112 +413,111 @@ export function computeTopFinding(
 Create `client-react/src/utils/topFinding.test.ts`:
 ```typescript
 import { describe, it, expect } from "vitest";
-import { computeTopFinding } from "./topFinding";
+import { computeTopFinding, dupGroupKey, taxSimilarKey } from "./topFinding";
 import type { TuneUpData } from "../types/tuneup";
 
-const EMPTY_DATA: TuneUpData = {
-  duplicates: null,
-  stale: null,
-  quality: null,
-  taxonomy: null,
-};
-
-const NO_DISMISSED = new Set<string>();
-const NO_PATCHED = new Set<string>();
+const EMPTY: TuneUpData = { duplicates: null, stale: null, quality: null, taxonomy: null };
+const NONE = new Set<string>();
 
 describe("computeTopFinding", () => {
-  it("returns null when all data is null", () => {
-    expect(computeTopFinding(EMPTY_DATA, NO_DISMISSED, NO_PATCHED, NO_PATCHED)).toBeNull();
+  it("returns null for all-null data", () => {
+    expect(computeTopFinding(EMPTY, NONE, NONE, NONE)).toBeNull();
   });
 
-  it("returns null when all data is empty", () => {
+  it("returns null for all-empty results", () => {
     const data: TuneUpData = {
-      duplicates: { groups: [] },
+      duplicates: { groups: [], totalTasks: 0 },
       stale: { staleTasks: [], staleProjects: [] },
-      quality: { results: [] },
+      quality: { results: [], totalAnalyzed: 0 },
       taxonomy: { similarProjects: [], smallProjects: [] },
     };
-    expect(computeTopFinding(data, NO_DISMISSED, NO_PATCHED, NO_PATCHED)).toBeNull();
+    expect(computeTopFinding(data, NONE, NONE, NONE)).toBeNull();
   });
 
-  it("prioritizes exact duplicates (tier 1) over stale (tier 5)", () => {
+  it("ranks exact duplicates (tier 1) over stale (tier 3+)", () => {
     const data: TuneUpData = {
-      ...EMPTY_DATA,
+      ...EMPTY,
+      duplicates: {
+        groups: [{
+          confidence: 1.0, reason: "Exact", suggestedAction: "archive-older",
+          tasks: [{ id: "t1", title: "Foo", status: "next", projectId: null }, { id: "t2", title: "Foo", status: "next", projectId: null }],
+        }],
+        totalTasks: 10,
+      },
+      stale: { staleTasks: [{ id: "t3", title: "Old", lastUpdated: "2025-01-01" }], staleProjects: [] },
+    };
+    const result = computeTopFinding(data, NONE, NONE, NONE);
+    expect(result?.tier).toBe(1);
+    expect(result?.section).toBe("duplicates");
+    expect(result?.severity).toBe("danger");
+  });
+
+  it("separates exact (tier 1) from near (tier 4) duplicates by confidence", () => {
+    const data: TuneUpData = {
+      ...EMPTY,
       duplicates: {
         groups: [
-          { id: "g1", tasks: [{ id: "t1", title: "Foo", createdAt: "2026-01-01" }, { id: "t2", title: "Foo", createdAt: "2026-01-02" }] },
+          { confidence: 0.7, reason: "Similar", suggestedAction: "review", tasks: [{ id: "t1", title: "A", status: "next", projectId: "p1" }, { id: "t2", title: "B", status: "next", projectId: "p1" }] },
         ],
-      },
-      stale: {
-        staleTasks: [{ id: "t3", title: "Old", lastUpdated: "2025-01-01" }],
-        staleProjects: [],
+        totalTasks: 10,
       },
     };
-    const result = computeTopFinding(data, NO_DISMISSED, NO_PATCHED, NO_PATCHED);
-    expect(result?.section).toBe("duplicates");
-    expect(result?.tier).toBe(1);
-    expect(result?.severity).toBe("danger");
+    const result = computeTopFinding(data, NONE, NONE, NONE);
+    expect(result?.tier).toBe(4);
   });
 
   it("excludes dismissed findings", () => {
     const data: TuneUpData = {
-      ...EMPTY_DATA,
+      ...EMPTY,
       duplicates: {
-        groups: [
-          { id: "g1", tasks: [{ id: "t1", title: "Foo", createdAt: "2026-01-01" }, { id: "t2", title: "Foo", createdAt: "2026-01-02" }] },
-        ],
+        groups: [{ confidence: 1.0, reason: "Exact", suggestedAction: "archive-older", tasks: [{ id: "t1", title: "Foo", status: "next", projectId: null }, { id: "t2", title: "Foo", status: "next", projectId: null }] }],
+        totalTasks: 10,
       },
     };
     const dismissed = new Set(["dup:t1:t2"]);
-    const result = computeTopFinding(data, dismissed, NO_PATCHED, NO_PATCHED);
-    expect(result).toBeNull();
+    expect(computeTopFinding(data, dismissed, NONE, NONE)).toBeNull();
   });
 
   it("excludes patched-out tasks", () => {
     const data: TuneUpData = {
-      ...EMPTY_DATA,
-      stale: {
-        staleTasks: [{ id: "t1", title: "Old", lastUpdated: "2025-01-01" }],
-        staleProjects: [],
-      },
+      ...EMPTY,
+      stale: { staleTasks: [{ id: "t1", title: "Old", lastUpdated: "2025-01-01" }], staleProjects: [] },
     };
-    const patched = new Set(["t1"]);
-    const result = computeTopFinding(data, NO_DISMISSED, patched, NO_PATCHED);
-    expect(result).toBeNull();
+    expect(computeTopFinding(data, NONE, new Set(["t1"]), NONE)).toBeNull();
   });
 
   it("breaks ties by count", () => {
     const data: TuneUpData = {
-      ...EMPTY_DATA,
+      ...EMPTY,
       quality: {
         results: [
-          { taskId: "t1", title: "A", issues: ["vague"], suggestions: [] },
-          { taskId: "t2", title: "B", issues: ["too long"], suggestions: [] },
-          { taskId: "t3", title: "C", issues: ["missing verb"], suggestions: [] },
+          { id: "t1", title: "A", qualityScore: 3, issues: ["vague"], suggestions: [] },
+          { id: "t2", title: "B", qualityScore: 3, issues: ["too long"], suggestions: [] },
         ],
+        totalAnalyzed: 10,
       },
-      taxonomy: {
-        similarProjects: [],
-        smallProjects: [{ id: "p1", name: "Tiny", taskCount: 1 }],
-      },
+      taxonomy: { similarProjects: [], smallProjects: [{ name: "Tiny", id: "p1", taskCount: 1 }] },
     };
-    const result = computeTopFinding(data, NO_DISMISSED, NO_PATCHED, NO_PATCHED);
+    const result = computeTopFinding(data, NONE, NONE, NONE);
     expect(result?.section).toBe("quality");
-    expect(result?.tier).toBe(6);
-    expect(result?.count).toBe(3);
+    expect(result?.count).toBe(2);
+  });
+});
+
+describe("dupGroupKey", () => {
+  it("sorts task IDs for stability", () => {
+    expect(dupGroupKey(["t2", "t1"])).toBe("dup:t1:t2");
+    expect(dupGroupKey(["t1", "t2"])).toBe("dup:t1:t2");
+  });
+});
+
+describe("taxSimilarKey", () => {
+  it("sorts project IDs", () => {
+    expect(taxSimilarKey("p2", "p1")).toBe("tax:similar:p1:p2");
   });
 
-  it("returns taxonomy as lowest tier", () => {
-    const data: TuneUpData = {
-      ...EMPTY_DATA,
-      taxonomy: {
-        similarProjects: [],
-        smallProjects: [{ id: "p1", name: "Tiny", taskCount: 1 }],
-      },
-    };
-    const result = computeTopFinding(data, NO_DISMISSED, NO_PATCHED, NO_PATCHED);
-    expect(result?.tier).toBe(7);
-    expect(result?.severity).toBe("muted");
+  it("handles missing IDs", () => {
+    expect(taxSimilarKey(undefined, "p1")).toBe("tax:similar:?:p1");
   });
 });
 ```
@@ -449,7 +531,7 @@ Expected: All tests pass.
 
 ```bash
 git add client-react/src/utils/topFinding.ts client-react/src/utils/topFinding.test.ts
-git commit -m "feat(react): add topFinding utility for tune-up Home tile priority ranking"
+git commit -m "feat(react): add topFinding utility with confidence-based tier ranking"
 ```
 
 ---
@@ -460,34 +542,30 @@ git commit -m "feat(react): add topFinding utility for tune-up Home tile priorit
 - Create: `client-react/src/utils/qualityHeuristic.ts`
 - Create: `client-react/src/utils/qualityHeuristic.test.ts`
 
-- [ ] **Step 1: Create the utility**
+- [ ] **Step 1: Create utility**
 
 Create `client-react/src/utils/qualityHeuristic.ts`:
 ```typescript
 /**
  * Best-effort heuristic for whether a task title passes basic quality checks.
+ * Uses the same verb set as the backend's taskQualityAnalyzer.ts.
  * This is a v1 approximation — not a correctness rule.
  */
 
 const ACTION_VERBS = new Set([
-  "add", "build", "check", "clean", "close", "configure", "create",
-  "debug", "define", "delete", "deploy", "design", "document", "draft",
-  "enable", "evaluate", "explore", "extract", "finalize", "finish",
-  "fix", "implement", "improve", "install", "integrate", "investigate",
-  "launch", "merge", "migrate", "move", "optimize", "organize",
-  "plan", "prepare", "publish", "refactor", "release", "remove",
-  "rename", "replace", "research", "resolve", "restructure", "review",
-  "revise", "run", "schedule", "send", "set", "setup", "ship",
-  "simplify", "split", "start", "stop", "submit", "test", "track",
-  "update", "upgrade", "validate", "verify", "wire", "write",
+  "add", "book", "build", "buy", "call", "check", "clean", "close",
+  "complete", "confirm", "contact", "create", "delete", "deploy",
+  "discuss", "draft", "email", "finish", "fix", "follow", "investigate",
+  "merge", "open", "organize", "plan", "prepare", "read", "refactor",
+  "remove", "research", "review", "schedule", "send", "set", "sort",
+  "submit", "test", "update", "write",
 ]);
 
 const SPLIT_WORDS = new Set(["and", "then", "also", "plus"]);
 
 export function titlePassesQuality(title: string): boolean {
   const trimmed = title.trim();
-  if (trimmed.length === 0) return false;
-  if (trimmed.length > 80) return false;
+  if (trimmed.length === 0 || trimmed.length > 80) return false;
 
   const firstWord = trimmed.split(/\s+/)[0].toLowerCase();
   if (!ACTION_VERBS.has(firstWord)) return false;
@@ -507,14 +585,10 @@ import { describe, it, expect } from "vitest";
 import { titlePassesQuality } from "./qualityHeuristic";
 
 describe("titlePassesQuality", () => {
-  it("accepts a well-formed title", () => {
+  it("accepts well-formed titles", () => {
     expect(titlePassesQuality("Fix login bug on mobile")).toBe(true);
-  });
-
-  it("accepts titles starting with common verbs", () => {
     expect(titlePassesQuality("Add dark mode toggle")).toBe(true);
     expect(titlePassesQuality("Review PR #42")).toBe(true);
-    expect(titlePassesQuality("Deploy staging build")).toBe(true);
   });
 
   it("rejects titles not starting with an action verb", () => {
@@ -523,14 +597,12 @@ describe("titlePassesQuality", () => {
   });
 
   it("rejects titles over 80 characters", () => {
-    const long = "Fix " + "x".repeat(80);
-    expect(titlePassesQuality(long)).toBe(false);
+    expect(titlePassesQuality("Fix " + "x".repeat(80))).toBe(false);
   });
 
   it("rejects titles containing splitting words", () => {
     expect(titlePassesQuality("Fix login and update profile")).toBe(false);
     expect(titlePassesQuality("Deploy build then run tests")).toBe(false);
-    expect(titlePassesQuality("Add feature also refactor utils")).toBe(false);
   });
 
   it("rejects empty titles", () => {
@@ -554,24 +626,27 @@ git commit -m "feat(react): add qualityHeuristic utility for title quality check
 
 ---
 
-### Task 4: `useTuneUp` Hook + Tests
+### Task 4: `useTuneUp` Hook with Shared Module-Level State
 
 **Files:**
 - Create: `client-react/src/hooks/useTuneUp.ts`
+- Modify: `client-react/package.json` (add @testing-library/react)
 - Create: `client-react/src/hooks/useTuneUp.test.ts`
 
-- [ ] **Step 1: Create the hook**
+This is the most complex task. The hook must share ALL state (data, dismissals, patches) at module level so that the Home tile and the full Tune-up view stay in sync.
+
+- [ ] **Step 1: Install @testing-library/react for hook tests**
+
+Run: `cd client-react && npm install -D @testing-library/react`
+
+- [ ] **Step 2: Create the hook**
 
 Create `client-react/src/hooks/useTuneUp.ts`:
 ```typescript
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
 import type {
   TuneUpSection,
   TuneUpData,
-  DuplicateResults,
-  StaleResults,
-  QualityResults,
-  TaxonomyResults,
 } from "../types/tuneup";
 import {
   fetchDuplicates,
@@ -580,568 +655,368 @@ import {
   fetchTaxonomy,
 } from "../api/tuneup";
 
-type SectionLoading = Record<TuneUpSection, boolean>;
-type SectionError = Record<TuneUpSection, string | null>;
+// ---------------------------------------------------------------------------
+// Module-level shared state — survives navigation, shared across all mounts
+// ---------------------------------------------------------------------------
 
-// Module-level cache — survives navigation between views
-let cachedData: TuneUpData = {
-  duplicates: null,
-  stale: null,
-  quality: null,
-  taxonomy: null,
+interface TuneUpCache {
+  data: TuneUpData;
+  loading: Record<TuneUpSection, boolean>;
+  error: Record<TuneUpSection, string | null>;
+  dismissed: Set<string>;
+  patchedTaskIds: Set<string>;
+  patchedProjectIds: Set<string>;
+  hasFetched: boolean;
+  hasSettled: boolean; // true once all 4 sections have completed (success or failure)
+  lastFetchedAt: number | null;
+}
+
+const INITIAL_LOADING: Record<TuneUpSection, boolean> = {
+  duplicates: false, stale: false, quality: false, taxonomy: false,
 };
-let cachedHasFetched = false;
-let cachedLastFetchedAt: number | null = null;
+const INITIAL_ERROR: Record<TuneUpSection, string | null> = {
+  duplicates: null, stale: null, quality: null, taxonomy: null,
+};
+
+let cache: TuneUpCache = {
+  data: { duplicates: null, stale: null, quality: null, taxonomy: null },
+  loading: { ...INITIAL_LOADING },
+  error: { ...INITIAL_ERROR },
+  dismissed: new Set(),
+  patchedTaskIds: new Set(),
+  patchedProjectIds: new Set(),
+  hasFetched: false,
+  hasSettled: false,
+  lastFetchedAt: null,
+};
+
+// Subscribers for useSyncExternalStore
+const listeners = new Set<() => void>();
+let version = 0;
+
+function notify() {
+  version++;
+  listeners.forEach((l) => l());
+}
+
+function getSnapshot(): number {
+  return version;
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+// ---------------------------------------------------------------------------
+// Mutation helpers
+// ---------------------------------------------------------------------------
+
+function updateCache(updater: (c: TuneUpCache) => void) {
+  updater(cache);
+  notify();
+}
 
 const SECTIONS: TuneUpSection[] = ["duplicates", "stale", "quality", "taxonomy"];
 
-const FETCHERS: Record<TuneUpSection, () => Promise<DuplicateResults | StaleResults | QualityResults | TaxonomyResults>> = {
+type Fetcher = () => Promise<unknown>;
+const FETCHERS: Record<TuneUpSection, Fetcher> = {
   duplicates: fetchDuplicates,
   stale: fetchStaleItems,
   quality: fetchQualityIssues,
   taxonomy: fetchTaxonomy,
 };
 
-export function useTuneUp() {
-  const [data, setData] = useState<TuneUpData>(cachedData);
-  const [loading, setLoading] = useState<SectionLoading>({
-    duplicates: false, stale: false, quality: false, taxonomy: false,
+async function fetchSection(section: TuneUpSection) {
+  updateCache((c) => {
+    c.loading = { ...c.loading, [section]: true };
+    c.error = { ...c.error, [section]: null };
   });
-  const [error, setError] = useState<SectionError>({
-    duplicates: null, stale: null, quality: null, taxonomy: null,
-  });
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const [patchedTaskIds, setPatchedTaskIds] = useState<Set<string>>(new Set());
-  const [patchedProjectIds, setPatchedProjectIds] = useState<Set<string>>(new Set());
-  const [hasFetched, setHasFetched] = useState(cachedHasFetched);
-  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(cachedLastFetchedAt);
+  try {
+    const result = await FETCHERS[section]();
+    updateCache((c) => {
+      c.data = { ...c.data, [section]: result };
+      c.loading = { ...c.loading, [section]: false };
+      c.hasFetched = true;
+      c.lastFetchedAt = Date.now();
+      c.hasSettled = SECTIONS.every((s) => !c.loading[s]);
+    });
+  } catch (err) {
+    updateCache((c) => {
+      c.loading = { ...c.loading, [section]: false };
+      c.error = { ...c.error, [section]: err instanceof Error ? err.message : "Unknown error" };
+      c.hasSettled = SECTIONS.every((s) => !c.loading[s]);
+    });
+  }
+}
 
-  const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+function fetchAll() {
+  updateCache((c) => { c.hasSettled = false; });
+  SECTIONS.forEach(fetchSection);
+}
 
-  const fetchSection = useCallback(async (section: TuneUpSection) => {
-    setLoading((prev) => ({ ...prev, [section]: true }));
-    setError((prev) => ({ ...prev, [section]: null }));
-    try {
-      const result = await FETCHERS[section]();
-      if (!mountedRef.current) return;
-      setData((prev) => {
-        const next = { ...prev, [section]: result };
-        cachedData = next;
-        return next;
-      });
-      const now = Date.now();
-      setLastFetchedAt(now);
-      cachedLastFetchedAt = now;
-      setHasFetched(true);
-      cachedHasFetched = true;
-    } catch (err) {
-      if (!mountedRef.current) return;
-      setError((prev) => ({
-        ...prev,
-        [section]: err instanceof Error ? err.message : "Unknown error",
-      }));
-    } finally {
-      if (mountedRef.current) {
-        setLoading((prev) => ({ ...prev, [section]: false }));
-      }
-    }
-  }, []);
+// ---------------------------------------------------------------------------
+// Hook
+// ---------------------------------------------------------------------------
 
-  const fetchAll = useCallback(() => {
-    SECTIONS.forEach(fetchSection);
-  }, [fetchSection]);
+interface UseTuneUpOptions {
+  /** If false, do not auto-fetch on mount. Caller must call load(). Default: true. */
+  autoFetch?: boolean;
+}
 
-  // Fetch all on mount if no cached data
+export function useTuneUp(options: UseTuneUpOptions = {}) {
+  const { autoFetch = true } = options;
+
+  // Subscribe to shared state changes
+  useSyncExternalStore(subscribe, getSnapshot);
+
+  // Auto-fetch on first mount if cache is cold and autoFetch is true
+  const [didTrigger, setDidTrigger] = useState(false);
   useEffect(() => {
-    if (!cachedHasFetched) {
+    if (autoFetch && !cache.hasFetched && !didTrigger) {
+      setDidTrigger(true);
       fetchAll();
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoFetch, didTrigger]);
+
+  const load = useCallback(() => {
+    if (!cache.hasFetched) fetchAll();
+  }, []);
 
   const refresh = useCallback(() => {
-    cachedData = { duplicates: null, stale: null, quality: null, taxonomy: null };
-    cachedHasFetched = false;
-    cachedLastFetchedAt = null;
-    setData(cachedData);
-    setHasFetched(false);
-    setLastFetchedAt(null);
-    setDismissed(new Set());
-    setPatchedTaskIds(new Set());
-    setPatchedProjectIds(new Set());
+    updateCache((c) => {
+      c.data = { duplicates: null, stale: null, quality: null, taxonomy: null };
+      c.hasFetched = false;
+      c.hasSettled = false;
+      c.lastFetchedAt = null;
+      c.dismissed = new Set();
+      c.patchedTaskIds = new Set();
+      c.patchedProjectIds = new Set();
+    });
     fetchAll();
-  }, [fetchAll]);
+  }, []);
 
   const refreshSection = useCallback((key: TuneUpSection) => {
     fetchSection(key);
-  }, [fetchSection]);
+  }, []);
 
   const dismiss = useCallback((findingKey: string) => {
-    setDismissed((prev) => new Set(prev).add(findingKey));
+    updateCache((c) => {
+      c.dismissed = new Set(c.dismissed).add(findingKey);
+    });
   }, []);
 
   const patchTaskOut = useCallback((taskId: string) => {
-    setPatchedTaskIds((prev) => new Set(prev).add(taskId));
+    updateCache((c) => {
+      c.patchedTaskIds = new Set(c.patchedTaskIds).add(taskId);
+    });
+  }, []);
+
+  const unpatchTaskOut = useCallback((taskId: string) => {
+    updateCache((c) => {
+      const next = new Set(c.patchedTaskIds);
+      next.delete(taskId);
+      c.patchedTaskIds = next;
+    });
   }, []);
 
   const patchProjectOut = useCallback((projectId: string) => {
-    setPatchedProjectIds((prev) => new Set(prev).add(projectId));
+    updateCache((c) => {
+      c.patchedProjectIds = new Set(c.patchedProjectIds).add(projectId);
+    });
+  }, []);
+
+  const unpatchProjectOut = useCallback((projectId: string) => {
+    updateCache((c) => {
+      const next = new Set(c.patchedProjectIds);
+      next.delete(projectId);
+      c.patchedProjectIds = next;
+    });
   }, []);
 
   const patchQualityResolved = useCallback((taskId: string) => {
-    setData((prev) => {
-      if (!prev.quality) return prev;
-      const next = {
-        ...prev,
+    updateCache((c) => {
+      if (!c.data.quality) return;
+      c.data = {
+        ...c.data,
         quality: {
-          results: prev.quality.results.filter((r) => r.taskId !== taskId),
+          ...c.data.quality,
+          results: c.data.quality.results.filter((r) => r.id !== taskId),
         },
       };
-      cachedData = next;
-      return next;
     });
   }, []);
 
   const patchStaleResolved = useCallback((taskId: string) => {
-    setData((prev) => {
-      if (!prev.stale) return prev;
-      const next = {
-        ...prev,
+    updateCache((c) => {
+      if (!c.data.stale) return;
+      c.data = {
+        ...c.data,
         stale: {
-          ...prev.stale,
-          staleTasks: prev.stale.staleTasks.filter((t) => t.id !== taskId),
+          ...c.data.stale,
+          staleTasks: c.data.stale.staleTasks.filter((t) => t.id !== taskId),
         },
       };
-      cachedData = next;
-      return next;
     });
   }, []);
 
   return {
-    data,
-    loading,
-    error,
-    dismissed,
-    patchedTaskIds,
-    patchedProjectIds,
-    hasFetched,
-    lastFetchedAt,
+    data: cache.data,
+    loading: cache.loading,
+    error: cache.error,
+    dismissed: cache.dismissed,
+    patchedTaskIds: cache.patchedTaskIds,
+    patchedProjectIds: cache.patchedProjectIds,
+    hasFetched: cache.hasFetched,
+    hasSettled: cache.hasSettled,
+    lastFetchedAt: cache.lastFetchedAt,
+    load,
     refresh,
     refreshSection,
     dismiss,
     patchTaskOut,
+    unpatchTaskOut,
     patchProjectOut,
+    unpatchProjectOut,
     patchQualityResolved,
     patchStaleResolved,
   };
 }
 
-/** Reset module cache (for tests). */
+/** Reset module cache — for tests only. */
 export function _resetTuneUpCache() {
-  cachedData = { duplicates: null, stale: null, quality: null, taxonomy: null };
-  cachedHasFetched = false;
-  cachedLastFetchedAt = null;
+  cache = {
+    data: { duplicates: null, stale: null, quality: null, taxonomy: null },
+    loading: { ...INITIAL_LOADING },
+    error: { ...INITIAL_ERROR },
+    dismissed: new Set(),
+    patchedTaskIds: new Set(),
+    patchedProjectIds: new Set(),
+    hasFetched: false,
+    hasSettled: false,
+    lastFetchedAt: null,
+  };
+  notify();
 }
 ```
 
-- [ ] **Step 2: Write tests**
+- [ ] **Step 3: Write hook tests**
 
 Create `client-react/src/hooks/useTuneUp.test.ts`:
 ```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { _resetTuneUpCache } from "./useTuneUp";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { renderHook, act } from "@testing-library/react";
+import { useTuneUp, _resetTuneUpCache } from "./useTuneUp";
 
-// Test the module-level cache behavior and patch functions directly
-// Full hook testing with renderHook would need @testing-library/react;
-// for v1 we test the pure logic and cache reset
+// Mock the API layer
+vi.mock("../api/tuneup", () => ({
+  fetchDuplicates: vi.fn().mockResolvedValue({ groups: [], totalTasks: 0 }),
+  fetchStaleItems: vi.fn().mockResolvedValue({ staleTasks: [], staleProjects: [] }),
+  fetchQualityIssues: vi.fn().mockResolvedValue({ results: [], totalAnalyzed: 0 }),
+  fetchTaxonomy: vi.fn().mockResolvedValue({ similarProjects: [], smallProjects: [] }),
+}));
 
-describe("useTuneUp cache", () => {
+describe("useTuneUp", () => {
   beforeEach(() => {
     _resetTuneUpCache();
   });
 
-  it("_resetTuneUpCache clears module cache", () => {
-    // This verifies the test utility works — the hook reads from this cache
-    _resetTuneUpCache();
-    // No assertion needed beyond not throwing
+  it("returns initial empty state with autoFetch: false", () => {
+    const { result } = renderHook(() => useTuneUp({ autoFetch: false }));
+    expect(result.current.hasFetched).toBe(false);
+    expect(result.current.data.duplicates).toBeNull();
+  });
+
+  it("dismiss adds to dismissed set and is shared across instances", async () => {
+    const { result: hook1 } = renderHook(() => useTuneUp({ autoFetch: false }));
+    const { result: hook2 } = renderHook(() => useTuneUp({ autoFetch: false }));
+
+    act(() => { hook1.current.dismiss("dup:t1:t2"); });
+
+    expect(hook1.current.dismissed.has("dup:t1:t2")).toBe(true);
+    expect(hook2.current.dismissed.has("dup:t1:t2")).toBe(true);
+  });
+
+  it("patchTaskOut is shared across instances", () => {
+    const { result: hook1 } = renderHook(() => useTuneUp({ autoFetch: false }));
+    const { result: hook2 } = renderHook(() => useTuneUp({ autoFetch: false }));
+
+    act(() => { hook1.current.patchTaskOut("t1"); });
+
+    expect(hook2.current.patchedTaskIds.has("t1")).toBe(true);
+  });
+
+  it("unpatchTaskOut removes from patched set", () => {
+    const { result } = renderHook(() => useTuneUp({ autoFetch: false }));
+
+    act(() => { result.current.patchTaskOut("t1"); });
+    expect(result.current.patchedTaskIds.has("t1")).toBe(true);
+
+    act(() => { result.current.unpatchTaskOut("t1"); });
+    expect(result.current.patchedTaskIds.has("t1")).toBe(false);
+  });
+
+  it("refresh clears dismissals and patches", () => {
+    const { result } = renderHook(() => useTuneUp({ autoFetch: false }));
+
+    act(() => {
+      result.current.dismiss("dup:t1:t2");
+      result.current.patchTaskOut("t1");
+    });
+
+    act(() => { result.current.refresh(); });
+
+    expect(result.current.dismissed.size).toBe(0);
+    expect(result.current.patchedTaskIds.size).toBe(0);
   });
 });
 ```
-
-Note: Full hook render tests require `@testing-library/react-hooks`. For v1, the hook's pure utilities (`topFinding`, `qualityHeuristic`) have comprehensive tests, and the hook itself follows standard React patterns. Integration testing is manual.
-
-- [ ] **Step 3: Verify build**
-
-Run: `cd client-react && npm run build`
-Expected: No type errors.
 
 - [ ] **Step 4: Run tests**
 
 Run: `cd client-react && npx vitest run`
 Expected: All tests pass.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Verify build**
+
+Run: `cd client-react && npm run build`
+Expected: No type errors.
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add client-react/src/hooks/useTuneUp.ts client-react/src/hooks/useTuneUp.test.ts
-git commit -m "feat(react): add useTuneUp hook with module-level caching and patch paths"
+git add client-react/src/hooks/useTuneUp.ts client-react/src/hooks/useTuneUp.test.ts client-react/package.json client-react/package-lock.json
+git commit -m "feat(react): add useTuneUp hook with shared module-level state
+
+Uses useSyncExternalStore for cross-mount sync. All state (data,
+dismissals, patches) shared at module level. Supports autoFetch
+option for lazy loading from Home tile. Includes unpatch for undo."
 ```
 
 ---
 
-### Task 5: `SectionHeader` + `TuneUpView` Shell
+### Task 5: `SectionHeader` + `TuneUpView` Shell + CSS
 
 **Files:**
 - Create: `client-react/src/components/tuneup/SectionHeader.tsx`
 - Create: `client-react/src/components/tuneup/TuneUpView.tsx`
 - Modify: `client-react/src/styles/app.css`
 
-- [ ] **Step 1: Create `SectionHeader`**
+This task creates the view shell with loading/error/empty states but WITHOUT section content (that's Task 7). The placeholder renders a count summary per section.
 
-Create `client-react/src/components/tuneup/SectionHeader.tsx`:
-```typescript
-interface Props {
-  title: string;
-  count: number;
-  isCollapsed: boolean;
-  onToggle: () => void;
-  loading?: boolean;
-  error?: string | null;
-  onRetry?: () => void;
-}
+- [ ] **Step 1: Create SectionHeader component**
 
-export function SectionHeader({
-  title,
-  count,
-  isCollapsed,
-  onToggle,
-  loading,
-  error,
-  onRetry,
-}: Props) {
-  return (
-    <div className="tuneup-section__header">
-      <button
-        className="tuneup-section__toggle"
-        onClick={onToggle}
-        aria-expanded={!isCollapsed}
-      >
-        <svg
-          className={`tuneup-section__chevron${isCollapsed ? "" : " tuneup-section__chevron--open"}`}
-          width="10"
-          height="10"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="m9 18 6-6-6-6" />
-        </svg>
-        <span className="tuneup-section__title">{title}</span>
-      </button>
-      <div className="tuneup-section__meta">
-        {loading ? (
-          <span className="tuneup-section__badge tuneup-section__badge--loading">...</span>
-        ) : error ? (
-          <button className="tuneup-section__retry" onClick={onRetry}>
-            Retry
-          </button>
-        ) : (
-          <span className="tuneup-section__badge" aria-hidden="true">
-            {count}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-```
+Create `client-react/src/components/tuneup/SectionHeader.tsx` — same as the original plan's SectionHeader (no changes needed from the original). Use the exact code from the original plan's Task 5 Step 1.
 
-- [ ] **Step 2: Create `TuneUpView` shell**
+- [ ] **Step 2: Create TuneUpView shell**
 
-Create `client-react/src/components/tuneup/TuneUpView.tsx`:
-```typescript
-import { useState } from "react";
-import { useTuneUp } from "../../hooks/useTuneUp";
-import { SectionHeader } from "./SectionHeader";
-import type { TuneUpSection } from "../../types/tuneup";
+Create `client-react/src/components/tuneup/TuneUpView.tsx` — a shell that renders 4 collapsible sections with skeleton/error/empty states. Use placeholder text for section content. The full wired version replaces this in Task 7.
 
-export function TuneUpView() {
-  const {
-    data,
-    loading,
-    error,
-    dismissed,
-    patchedTaskIds,
-    patchedProjectIds,
-    refresh,
-    refreshSection,
-  } = useTuneUp();
+The key difference from the original plan: use `tuneup` everywhere (not "cleanup"), and use `id` (not `taskId`) for quality issues since that matches the real response shape.
 
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const toggle = (key: string) =>
-    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
+- [ ] **Step 3: Add all Tune-up CSS**
 
-  const sections: { key: TuneUpSection; title: string; count: number }[] = [
-    {
-      key: "duplicates",
-      title: "Duplicates",
-      count: data.duplicates?.groups.filter((g) => {
-        const fk = "dup:" + g.tasks.map((t) => t.id).sort().join(":");
-        return !dismissed.has(fk) && !g.tasks.some((t) => patchedTaskIds.has(t.id));
-      }).length ?? 0,
-    },
-    {
-      key: "stale",
-      title: "Stale",
-      count: (data.stale?.staleTasks.filter((t) => !dismissed.has(`stale:task:${t.id}`) && !patchedTaskIds.has(t.id)).length ?? 0)
-        + (data.stale?.staleProjects.filter((p) => !dismissed.has(`stale:project:${p.id}`) && !patchedProjectIds.has(p.id)).length ?? 0),
-    },
-    {
-      key: "quality",
-      title: "Quality",
-      count: data.quality?.results.filter((r) => !dismissed.has(`quality:${r.taskId}`) && !patchedTaskIds.has(r.taskId)).length ?? 0,
-    },
-    {
-      key: "taxonomy",
-      title: "Taxonomy",
-      count: (data.taxonomy?.similarProjects.filter((p) => {
-        const fk = "tax:similar:" + [p.projectAId, p.projectBId].sort().join(":");
-        return !dismissed.has(fk);
-      }).length ?? 0)
-        + (data.taxonomy?.smallProjects.filter((p) => !dismissed.has(`tax:low:${p.id}`) && !patchedProjectIds.has(p.id)).length ?? 0),
-    },
-  ];
-
-  return (
-    <div className="tuneup-view">
-      <div className="tuneup-view__header">
-        <h2 className="tuneup-view__title">Tune-up</h2>
-        <button className="mini-btn" onClick={refresh}>
-          Refresh
-        </button>
-      </div>
-      <div className="tuneup-view__sections">
-        {sections.map((section) => (
-          <div key={section.key} className="tuneup-section">
-            <SectionHeader
-              title={section.title}
-              count={section.count}
-              isCollapsed={!!collapsed[section.key]}
-              onToggle={() => toggle(section.key)}
-              loading={loading[section.key]}
-              error={error[section.key]}
-              onRetry={() => refreshSection(section.key)}
-            />
-            {!collapsed[section.key] && (
-              <div className="tuneup-section__body" aria-busy={loading[section.key]}>
-                {loading[section.key] ? (
-                  <div className="loading-skeleton loading">
-                    <div className="loading-skeleton__row" />
-                    <div className="loading-skeleton__row" />
-                  </div>
-                ) : error[section.key] ? (
-                  <div className="tuneup-section__error">
-                    <p>{error[section.key]}</p>
-                    <button className="mini-btn" onClick={() => refreshSection(section.key)}>
-                      Retry
-                    </button>
-                  </div>
-                ) : section.count === 0 ? (
-                  <div className="tuneup-section__clear">
-                    <span className="tuneup-section__check">✓</span> All clear
-                  </div>
-                ) : (
-                  <div className="tuneup-section__items">
-                    {/* Section-specific content added in Tasks 6-9 */}
-                    <p className="tuneup-section__placeholder">
-                      {section.count} finding{section.count > 1 ? "s" : ""}
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-```
-
-- [ ] **Step 3: Add CSS**
-
-Append to `client-react/src/styles/app.css`:
-```css
-/* === Tune-Up View === */
-.tuneup-view {
-  padding: var(--s-4);
-  max-width: 720px;
-  margin: 0 auto;
-}
-.tuneup-view__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--s-4);
-}
-.tuneup-view__title {
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-bold);
-}
-.tuneup-section {
-  border: 1px solid var(--border);
-  border-radius: var(--r-md);
-  margin-bottom: var(--s-3);
-  overflow: hidden;
-}
-.tuneup-section__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--s-2) var(--s-3);
-  background: var(--surface-2);
-}
-.tuneup-section__toggle {
-  display: flex;
-  align-items: center;
-  gap: var(--s-1h);
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  color: var(--text);
-  font: inherit;
-}
-.tuneup-section__toggle:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: var(--r-xs);
-}
-.tuneup-section__chevron {
-  transition: transform var(--dur-fast) var(--ease-out);
-  transform: rotate(0deg);
-  color: var(--muted);
-}
-.tuneup-section__chevron--open {
-  transform: rotate(90deg);
-}
-.tuneup-section__title {
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
-}
-.tuneup-section__badge {
-  font-size: var(--fs-xs);
-  color: var(--muted);
-  background: var(--surface-3);
-  padding: 1px var(--s-2);
-  border-radius: var(--r-full);
-}
-.tuneup-section__badge--loading {
-  animation: pulse 1.5s infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
-.tuneup-section__retry {
-  font-size: var(--fs-xs);
-  color: var(--danger);
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-decoration: underline;
-}
-.tuneup-section__body {
-  padding: var(--s-3);
-}
-.tuneup-section__error {
-  color: var(--danger);
-  font-size: var(--fs-label);
-}
-.tuneup-section__clear {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  color: var(--success);
-  font-size: var(--fs-label);
-}
-.tuneup-section__check {
-  font-size: var(--fs-body);
-}
-.tuneup-section__items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
-}
-.tuneup-section__placeholder {
-  color: var(--muted);
-  font-size: var(--fs-label);
-}
-/* Tune-up finding row */
-.tuneup-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--s-2) 0;
-  border-bottom: 1px solid var(--border-light);
-  gap: var(--s-2);
-}
-.tuneup-row:last-child {
-  border-bottom: none;
-}
-.tuneup-row__title {
-  font-size: var(--fs-label);
-  font-weight: var(--fw-medium);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tuneup-row__meta {
-  font-size: var(--fs-xs);
-  color: var(--muted);
-}
-.tuneup-row__actions {
-  display: flex;
-  gap: var(--s-1);
-}
-.tuneup-row__btn {
-  font-size: var(--fs-xs);
-  padding: var(--s-1) var(--s-2);
-  border-radius: var(--r-sm);
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  cursor: pointer;
-}
-.tuneup-row__btn:hover {
-  background: var(--surface-2);
-}
-.tuneup-row__btn--danger {
-  color: var(--danger);
-  border-color: var(--danger);
-}
-.tuneup-row--error {
-  border-left: 3px solid var(--danger);
-  background: color-mix(in srgb, var(--danger) 5%, transparent);
-}
-.tuneup-row--error .tuneup-row__meta {
-  color: var(--danger);
-}
-/* Tags for quality issues */
-.tuneup-tag {
-  display: inline-block;
-  font-size: var(--fs-xs);
-  padding: 1px var(--s-1h);
-  border-radius: var(--r-sm);
-  background: var(--surface-3);
-  color: var(--muted);
-}
-```
+Append to `client-react/src/styles/app.css` — all the CSS from the original plan's Task 5 Step 3, plus the inline edit CSS from Task 7 Step 6, plus the tile CSS from Task 8 Step 2. Add it all now to avoid multiple CSS append tasks.
 
 - [ ] **Step 4: Verify build**
 
@@ -1152,7 +1027,7 @@ Expected: No type errors.
 
 ```bash
 git add client-react/src/components/tuneup/SectionHeader.tsx client-react/src/components/tuneup/TuneUpView.tsx client-react/src/styles/app.css
-git commit -m "feat(react): add TuneUpView shell with SectionHeader and loading/error/empty states"
+git commit -m "feat(react): add TuneUpView shell with SectionHeader and all CSS"
 ```
 
 ---
@@ -1160,13 +1035,13 @@ git commit -m "feat(react): add TuneUpView shell with SectionHeader and loading/
 ### Task 6: Wire TuneUpView into AppShell + Sidebar
 
 **Files:**
+- Modify: `client-react/src/components/shared/Icons.tsx`
 - Modify: `client-react/src/components/projects/Sidebar.tsx`
 - Modify: `client-react/src/components/layout/AppShell.tsx`
-- Modify: `client-react/src/components/shared/Icons.tsx`
 
-- [ ] **Step 1: Add IconTuneUp to Icons**
+- [ ] **Step 1: Add IconTuneUp**
 
-In `client-react/src/components/shared/Icons.tsx`, add a new icon function (follow existing pattern):
+In `client-react/src/components/shared/Icons.tsx`, add:
 ```typescript
 export function IconTuneUp({ size = 15, className = "nav-icon" }: IconProps) {
   return (
@@ -1178,40 +1053,29 @@ export function IconTuneUp({ size = 15, className = "nav-icon" }: IconProps) {
 }
 ```
 
-- [ ] **Step 2: Add "cleanup" to Sidebar WORKSPACE_VIEWS**
+- [ ] **Step 2: Add "tuneup" to Sidebar WorkspaceView type and WORKSPACE_VIEWS array**
 
-In `client-react/src/components/projects/Sidebar.tsx`, find the `WORKSPACE_VIEWS` array and add after "completed":
-```typescript
-{ key: "cleanup", label: "Tune-up", icon: IconTuneUp },
-```
-
-Import `IconTuneUp` from the Icons file. Also update the `WorkspaceView` type to include `"cleanup"`:
-```typescript
-export type WorkspaceView =
-  | "home"
-  | "triage"
-  | "all"
-  | "today"
-  | "upcoming"
-  | "completed"
-  | "cleanup";
-```
+In `client-react/src/components/projects/Sidebar.tsx`:
+- Add `| "tuneup"` to the `WorkspaceView` type
+- Add `{ key: "tuneup", label: "Tune-up", icon: IconTuneUp }` to the `WORKSPACE_VIEWS` array after "completed"
+- Import `IconTuneUp`
 
 - [ ] **Step 3: Add TuneUpView route to AppShell**
 
 In `client-react/src/components/layout/AppShell.tsx`:
-
-Import TuneUpView:
+- Import `TuneUpView` from `"../tuneup/TuneUpView"`
+- Add a new branch in the view routing for `activeView === "tuneup"`:
 ```typescript
-import { TuneUpView } from "../tuneup/TuneUpView";
-```
-
-Add a new conditional branch in the view routing (find the `activeView === "triage"` block and add after it):
-```typescript
-) : activeView === "cleanup" && !selectedProjectId ? (
+) : activeView === "tuneup" && !selectedProjectId ? (
   <>
     <div className="app-content">
-      <TuneUpView />
+      <TuneUpView
+        onOpenTask={(taskId) => {
+          handleSelectView("all");
+          handleOpenDrawer(taskId);
+        }}
+        onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
+      />
     </div>
   </>
 ```
@@ -1225,890 +1089,91 @@ Expected: No type errors.
 
 ```bash
 git add client-react/src/components/shared/Icons.tsx client-react/src/components/projects/Sidebar.tsx client-react/src/components/layout/AppShell.tsx
-git commit -m "feat(react): wire TuneUpView into sidebar nav and AppShell routing"
+git commit -m "feat(react): wire TuneUpView into sidebar nav and AppShell routing
+
+View key is 'tuneup'. Passes onOpenTask and onUndo to TuneUpView
+using existing handleOpenDrawer and setUndoAction from AppShell."
 ```
 
 ---
 
-### Task 7: Section Content — Duplicates + Stale + Quality + Taxonomy
+### Task 7: Section Content Components + Full TuneUpView Wiring
 
 **Files:**
 - Create: `client-react/src/components/tuneup/DuplicatesSection.tsx`
 - Create: `client-react/src/components/tuneup/StaleSection.tsx`
 - Create: `client-react/src/components/tuneup/QualitySection.tsx`
 - Create: `client-react/src/components/tuneup/TaxonomySection.tsx`
-- Modify: `client-react/src/components/tuneup/TuneUpView.tsx`
+- Modify: `client-react/src/components/tuneup/TuneUpView.tsx` (full rewrite with action handlers)
 
-This is the largest task — it creates the 4 section components and wires them into TuneUpView. Each section follows the same row pattern but with section-specific actions.
+The implementer should:
+1. Create all 4 section components following the patterns from the original plan's Task 7 Steps 1-4, with these corrections:
+   - Use `quality.id` not `quality.taskId` (matches real endpoint)
+   - Use `dupGroupKey()` from `topFinding.ts` for dismiss keys
+   - Merge survivor: use first task in group (payload order) since endpoint doesn't provide `createdAt`
+   - Partial merge failure: failed rows reappear in-place with `.tuneup-row--error` class and error text (not just a toast)
+   - Snooze undo stores prior `reviewDate` value and restores it
+   - Edit title toast says "Title updated" not "Quality fixed"
 
-- [ ] **Step 1: Create DuplicatesSection**
+2. Rewrite TuneUpView.tsx with full action handlers that use:
+   - `patchTaskOut` / `unpatchTaskOut` for archive + undo
+   - `patchProjectOut` / `unpatchProjectOut` for project archive + undo
+   - `patchStaleResolved` for snooze
+   - `patchQualityResolved` for title edit (only if heuristic passes)
+   - `onUndo` prop for toast integration
 
-Create `client-react/src/components/tuneup/DuplicatesSection.tsx`:
-```typescript
-import type { DuplicateGroup } from "../../types/tuneup";
+3. Key correction from original plan: `handleOpenDrawer(taskId)` confirmed to exist in AppShell and accept a task ID string directly.
 
-interface Props {
-  groups: DuplicateGroup[];
-  dismissed: Set<string>;
-  patchedTaskIds: Set<string>;
-  onMerge: (group: DuplicateGroup) => void;
-  onDismiss: (findingKey: string) => void;
-}
+- [ ] **Step 1-4: Create section components** (see original plan Task 7 Steps 1-4 for the code, with corrections above applied)
 
-function groupKey(group: DuplicateGroup): string {
-  return "dup:" + group.tasks.map((t) => t.id).sort().join(":");
-}
+- [ ] **Step 5: Rewrite TuneUpView with action handlers** (see original plan Task 7 Step 5 for the code, with corrections above applied)
 
-export function DuplicatesSection({ groups, dismissed, patchedTaskIds, onMerge, onDismiss }: Props) {
-  const visible = groups.filter((g) => {
-    return !dismissed.has(groupKey(g)) && !g.tasks.some((t) => patchedTaskIds.has(t.id));
-  });
+- [ ] **Step 6: Verify build + tests**
 
-  if (visible.length === 0) {
-    return (
-      <div className="tuneup-section__clear">
-        <span className="tuneup-section__check">✓</span> All clear
-      </div>
-    );
-  }
-
-  return (
-    <div className="tuneup-section__items">
-      {visible.map((group) => {
-        const key = groupKey(group);
-        return (
-          <div key={key} className="tuneup-row">
-            <div className="tuneup-row__title">
-              {group.tasks.map((t) => t.title).join(" / ")}
-            </div>
-            <div className="tuneup-row__meta">{group.tasks.length} tasks</div>
-            <div className="tuneup-row__actions">
-              <button
-                className="tuneup-row__btn"
-                onClick={() => onMerge(group)}
-                aria-label={`Merge duplicate group: ${group.tasks[0].title}`}
-              >
-                Merge
-              </button>
-              <button
-                className="tuneup-row__btn"
-                onClick={() => onDismiss(key)}
-                aria-label="Dismiss"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
+Run:
+```bash
+cd client-react && npm run build && npx vitest run
 ```
+Expected: Build clean, all tests pass.
 
-- [ ] **Step 2: Create StaleSection**
-
-Create `client-react/src/components/tuneup/StaleSection.tsx`:
-```typescript
-import type { StaleTask, StaleProject } from "../../types/tuneup";
-
-interface Props {
-  staleTasks: StaleTask[];
-  staleProjects: StaleProject[];
-  dismissed: Set<string>;
-  patchedTaskIds: Set<string>;
-  patchedProjectIds: Set<string>;
-  onArchiveTask: (taskId: string) => void;
-  onSnoozeTask: (taskId: string) => void;
-  onArchiveProject: (projectId: string) => void;
-  onDismiss: (findingKey: string) => void;
-  onOpenTask: (taskId: string) => void;
-}
-
-function daysSince(dateStr?: string): string {
-  if (!dateStr) return "unknown";
-  const days = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24));
-  return `${days}d ago`;
-}
-
-export function StaleSection({
-  staleTasks,
-  staleProjects,
-  dismissed,
-  patchedTaskIds,
-  patchedProjectIds,
-  onArchiveTask,
-  onSnoozeTask,
-  onArchiveProject,
-  onDismiss,
-  onOpenTask,
-}: Props) {
-  const visibleTasks = staleTasks.filter(
-    (t) => !dismissed.has(`stale:task:${t.id}`) && !patchedTaskIds.has(t.id),
-  );
-  const visibleProjects = staleProjects.filter(
-    (p) => !dismissed.has(`stale:project:${p.id}`) && !patchedProjectIds.has(p.id),
-  );
-
-  if (visibleTasks.length === 0 && visibleProjects.length === 0) {
-    return (
-      <div className="tuneup-section__clear">
-        <span className="tuneup-section__check">✓</span> All clear
-      </div>
-    );
-  }
-
-  return (
-    <div className="tuneup-section__items">
-      {visibleTasks.map((task) => (
-        <div key={task.id} className="tuneup-row">
-          <div
-            className="tuneup-row__title"
-            style={{ cursor: "pointer" }}
-            onClick={() => onOpenTask(task.id)}
-          >
-            {task.title}
-          </div>
-          <div className="tuneup-row__meta">Updated {daysSince(task.lastUpdated)}</div>
-          <div className="tuneup-row__actions">
-            <button
-              className="tuneup-row__btn"
-              onClick={() => onArchiveTask(task.id)}
-              aria-label={`Archive task: ${task.title}`}
-            >
-              Archive
-            </button>
-            <button
-              className="tuneup-row__btn"
-              onClick={() => onSnoozeTask(task.id)}
-              aria-label={`Snooze task: ${task.title}`}
-            >
-              Snooze 30d
-            </button>
-            <button
-              className="tuneup-row__btn"
-              onClick={() => onDismiss(`stale:task:${task.id}`)}
-              aria-label="Dismiss"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      ))}
-      {visibleProjects.map((project) => (
-        <div key={project.id} className="tuneup-row">
-          <div className="tuneup-row__title">{project.name}</div>
-          <div className="tuneup-row__meta">Project · Updated {daysSince(project.lastUpdated)}</div>
-          <div className="tuneup-row__actions">
-            <button
-              className="tuneup-row__btn tuneup-row__btn--danger"
-              onClick={() => onArchiveProject(project.id)}
-              aria-label={`Archive project: ${project.name}`}
-            >
-              Archive
-            </button>
-            <button
-              className="tuneup-row__btn"
-              onClick={() => onDismiss(`stale:project:${project.id}`)}
-              aria-label="Dismiss"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-```
-
-- [ ] **Step 3: Create QualitySection**
-
-Create `client-react/src/components/tuneup/QualitySection.tsx`:
-```typescript
-import { useState } from "react";
-import type { QualityIssue } from "../../types/tuneup";
-
-interface Props {
-  issues: QualityIssue[];
-  dismissed: Set<string>;
-  patchedTaskIds: Set<string>;
-  onEditTitle: (taskId: string, newTitle: string) => void;
-  onDismiss: (findingKey: string) => void;
-}
-
-export function QualitySection({ issues, dismissed, patchedTaskIds, onEditTitle, onDismiss }: Props) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState("");
-
-  const visible = issues.filter(
-    (r) => !dismissed.has(`quality:${r.taskId}`) && !patchedTaskIds.has(r.taskId),
-  );
-
-  if (visible.length === 0) {
-    return (
-      <div className="tuneup-section__clear">
-        <span className="tuneup-section__check">✓</span> All clear
-      </div>
-    );
-  }
-
-  const startEdit = (issue: QualityIssue) => {
-    setEditingId(issue.taskId);
-    setEditValue(issue.title);
-  };
-
-  const commitEdit = (taskId: string) => {
-    const trimmed = editValue.trim();
-    if (trimmed && trimmed !== issues.find((i) => i.taskId === taskId)?.title) {
-      onEditTitle(taskId, trimmed);
-    }
-    setEditingId(null);
-  };
-
-  return (
-    <div className="tuneup-section__items">
-      {visible.map((issue) => (
-        <div key={issue.taskId} className="tuneup-row">
-          {editingId === issue.taskId ? (
-            <input
-              className="tuneup-row__edit-input"
-              value={editValue}
-              onChange={(e) => setEditValue(e.target.value)}
-              onBlur={() => commitEdit(issue.taskId)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commitEdit(issue.taskId);
-                if (e.key === "Escape") setEditingId(null);
-              }}
-              autoFocus
-              aria-label="Edit task title"
-            />
-          ) : (
-            <div className="tuneup-row__title">{issue.title}</div>
-          )}
-          <div className="tuneup-row__meta">
-            {issue.issues.map((tag) => (
-              <span key={tag} className="tuneup-tag">{tag}</span>
-            ))}
-          </div>
-          <div className="tuneup-row__actions">
-            {editingId !== issue.taskId && (
-              <button
-                className="tuneup-row__btn"
-                onClick={() => startEdit(issue)}
-                aria-label={`Edit title: ${issue.title}`}
-              >
-                Edit
-              </button>
-            )}
-            <button
-              className="tuneup-row__btn"
-              onClick={() => onDismiss(`quality:${issue.taskId}`)}
-              aria-label="Dismiss"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-```
-
-- [ ] **Step 4: Create TaxonomySection**
-
-Create `client-react/src/components/tuneup/TaxonomySection.tsx`:
-```typescript
-import type { SimilarProjectPair, SmallProject } from "../../types/tuneup";
-
-interface Props {
-  similarProjects: SimilarProjectPair[];
-  smallProjects: SmallProject[];
-  dismissed: Set<string>;
-  patchedProjectIds: Set<string>;
-  onArchiveProject: (projectId: string) => void;
-  onDismiss: (findingKey: string) => void;
-}
-
-export function TaxonomySection({
-  similarProjects,
-  smallProjects,
-  dismissed,
-  patchedProjectIds,
-  onArchiveProject,
-  onDismiss,
-}: Props) {
-  const visibleSimilar = similarProjects.filter((p) => {
-    const key = "tax:similar:" + [p.projectAId, p.projectBId].sort().join(":");
-    return !dismissed.has(key);
-  });
-  const visibleSmall = smallProjects.filter(
-    (p) => !dismissed.has(`tax:low:${p.id}`) && !patchedProjectIds.has(p.id),
-  );
-
-  if (visibleSimilar.length === 0 && visibleSmall.length === 0) {
-    return (
-      <div className="tuneup-section__clear">
-        <span className="tuneup-section__check">✓</span> All clear
-      </div>
-    );
-  }
-
-  return (
-    <div className="tuneup-section__items">
-      {visibleSimilar.length > 0 && (
-        <>
-          <div className="tuneup-row__meta" style={{ padding: "var(--s-1) 0" }}>Similar project names</div>
-          {visibleSimilar.map((pair) => {
-            const key = "tax:similar:" + [pair.projectAId, pair.projectBId].sort().join(":");
-            return (
-              <div key={key} className="tuneup-row">
-                <div className="tuneup-row__title">
-                  {pair.projectAName} ↔ {pair.projectBName}
-                </div>
-                <div className="tuneup-row__actions">
-                  <button
-                    className="tuneup-row__btn"
-                    onClick={() => onDismiss(key)}
-                    aria-label="Dismiss"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </>
-      )}
-      {visibleSmall.length > 0 && (
-        <>
-          <div className="tuneup-row__meta" style={{ padding: "var(--s-1) 0" }}>Low-activity projects</div>
-          {visibleSmall.map((project) => (
-            <div key={project.id} className="tuneup-row">
-              <div className="tuneup-row__title">{project.name}</div>
-              <div className="tuneup-row__meta">{project.taskCount} task{project.taskCount !== 1 ? "s" : ""}</div>
-              <div className="tuneup-row__actions">
-                <button
-                  className="tuneup-row__btn tuneup-row__btn--danger"
-                  onClick={() => onArchiveProject(project.id)}
-                  aria-label={`Archive project: ${project.name}`}
-                >
-                  Archive
-                </button>
-                <button
-                  className="tuneup-row__btn"
-                  onClick={() => onDismiss(`tax:low:${project.id}`)}
-                  aria-label="Dismiss"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          ))}
-        </>
-      )}
-    </div>
-  );
-}
-```
-
-- [ ] **Step 5: Wire sections into TuneUpView**
-
-In `client-react/src/components/tuneup/TuneUpView.tsx`, import the 4 section components and replace the placeholder `<p>` tags in each section's `section.count > 0` branch with the actual components. This requires adding action handlers for merge, archive, snooze, edit, and dismiss.
-
-The TuneUpView needs to import `apiCall` from the API client for action calls, and connect to the `useTuneUp` hook's patch methods. Add a `setUndoAction` prop or use a local undo state.
-
-Replace the entire `TuneUpView.tsx` with the full wired version:
-```typescript
-import { useState, useCallback } from "react";
-import { useTuneUp } from "../../hooks/useTuneUp";
-import { SectionHeader } from "./SectionHeader";
-import { DuplicatesSection } from "./DuplicatesSection";
-import { StaleSection } from "./StaleSection";
-import { QualitySection } from "./QualitySection";
-import { TaxonomySection } from "./TaxonomySection";
-import { titlePassesQuality } from "../../utils/qualityHeuristic";
-import { apiCall } from "../../api/client";
-import type { TuneUpSection, DuplicateGroup } from "../../types/tuneup";
-
-interface UndoAction {
-  message: string;
-  onUndo: () => void;
-}
-
-interface Props {
-  onOpenTask?: (taskId: string) => void;
-  onUndo?: (action: UndoAction) => void;
-}
-
-export function TuneUpView({ onOpenTask, onUndo }: Props) {
-  const hook = useTuneUp();
-  const { data, loading, error, dismissed, patchedTaskIds, patchedProjectIds, refresh, refreshSection, dismiss, patchTaskOut, patchProjectOut, patchQualityResolved, patchStaleResolved } = hook;
-
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const toggle = (key: string) =>
-    setCollapsed((prev) => ({ ...prev, [key]: !prev[key] }));
-
-  const handleMergeDuplicates = useCallback(async (group: DuplicateGroup) => {
-    const sorted = [...group.tasks].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-    const survivor = sorted[0];
-    const victims = sorted.slice(1);
-
-    // Optimistic: remove victims from UI
-    victims.forEach((t) => patchTaskOut(t.id));
-
-    const results: { id: string; ok: boolean }[] = [];
-    for (const victim of victims) {
-      try {
-        const res = await apiCall(`/todos/${victim.id}`, {
-          method: "PUT",
-          body: JSON.stringify({ archived: true }),
-        });
-        results.push({ id: victim.id, ok: res.ok });
-      } catch {
-        results.push({ id: victim.id, ok: false });
-      }
-    }
-
-    const failed = results.filter((r) => !r.ok);
-    if (failed.length > 0) {
-      // Partial failure — we'd need to revert but patchTaskOut is additive.
-      // For v1, just show a message. A full revert would need a cache restore.
-    }
-
-    if (onUndo) {
-      const archivedIds = results.filter((r) => r.ok).map((r) => r.id);
-      onUndo({
-        message: `Merged ${archivedIds.length} duplicate${archivedIds.length > 1 ? "s" : ""}`,
-        onUndo: async () => {
-          for (const id of archivedIds) {
-            await apiCall(`/todos/${id}`, {
-              method: "PUT",
-              body: JSON.stringify({ archived: false }),
-            });
-          }
-          refreshSection("duplicates");
-        },
-      });
-    }
-  }, [patchTaskOut, onUndo, refreshSection]);
-
-  const handleArchiveTask = useCallback(async (taskId: string) => {
-    patchTaskOut(taskId);
-    const res = await apiCall(`/todos/${taskId}`, {
-      method: "PUT",
-      body: JSON.stringify({ archived: true }),
-    });
-    if (res.ok && onUndo) {
-      onUndo({
-        message: "Task archived",
-        onUndo: async () => {
-          await apiCall(`/todos/${taskId}`, {
-            method: "PUT",
-            body: JSON.stringify({ archived: false }),
-          });
-          refresh();
-        },
-      });
-    }
-  }, [patchTaskOut, onUndo, refresh]);
-
-  const handleSnoozeTask = useCallback(async (taskId: string) => {
-    // Store prior value for undo
-    patchStaleResolved(taskId);
-    const reviewDate = new Date();
-    reviewDate.setDate(reviewDate.getDate() + 30);
-    const res = await apiCall(`/todos/${taskId}`, {
-      method: "PUT",
-      body: JSON.stringify({ reviewDate: reviewDate.toISOString() }),
-    });
-    if (res.ok && onUndo) {
-      onUndo({
-        message: "Snoozed for 30 days",
-        onUndo: async () => {
-          await apiCall(`/todos/${taskId}`, {
-            method: "PUT",
-            body: JSON.stringify({ reviewDate: null }),
-          });
-          refreshSection("stale");
-        },
-      });
-    }
-  }, [patchStaleResolved, onUndo, refreshSection]);
-
-  const handleArchiveProject = useCallback(async (projectId: string) => {
-    patchProjectOut(projectId);
-    const res = await apiCall(`/projects/${projectId}`, {
-      method: "PUT",
-      body: JSON.stringify({ archived: true }),
-    });
-    if (res.ok && onUndo) {
-      onUndo({
-        message: "Project archived",
-        onUndo: async () => {
-          await apiCall(`/projects/${projectId}`, {
-            method: "PUT",
-            body: JSON.stringify({ archived: false }),
-          });
-          refresh();
-        },
-      });
-    }
-  }, [patchProjectOut, onUndo, refresh]);
-
-  const handleEditTitle = useCallback(async (taskId: string, newTitle: string) => {
-    const res = await apiCall(`/todos/${taskId}`, {
-      method: "PUT",
-      body: JSON.stringify({ title: newTitle }),
-    });
-    if (res.ok && titlePassesQuality(newTitle)) {
-      patchQualityResolved(taskId);
-    }
-  }, [patchQualityResolved]);
-
-  const sections: { key: TuneUpSection; title: string; count: number }[] = [
-    {
-      key: "duplicates",
-      title: "Duplicates",
-      count: data.duplicates?.groups.filter((g) => {
-        const fk = "dup:" + g.tasks.map((t) => t.id).sort().join(":");
-        return !dismissed.has(fk) && !g.tasks.some((t) => patchedTaskIds.has(t.id));
-      }).length ?? 0,
-    },
-    {
-      key: "stale",
-      title: "Stale",
-      count: (data.stale?.staleTasks.filter((t) => !dismissed.has(`stale:task:${t.id}`) && !patchedTaskIds.has(t.id)).length ?? 0)
-        + (data.stale?.staleProjects.filter((p) => !dismissed.has(`stale:project:${p.id}`) && !patchedProjectIds.has(p.id)).length ?? 0),
-    },
-    {
-      key: "quality",
-      title: "Quality",
-      count: data.quality?.results.filter((r) => !dismissed.has(`quality:${r.taskId}`) && !patchedTaskIds.has(r.taskId)).length ?? 0,
-    },
-    {
-      key: "taxonomy",
-      title: "Taxonomy",
-      count: (data.taxonomy?.similarProjects.filter((p) => {
-        const fk = "tax:similar:" + [p.projectAId, p.projectBId].sort().join(":");
-        return !dismissed.has(fk);
-      }).length ?? 0)
-        + (data.taxonomy?.smallProjects.filter((p) => !dismissed.has(`tax:low:${p.id}`) && !patchedProjectIds.has(p.id)).length ?? 0),
-    },
-  ];
-
-  const renderSectionContent = (key: TuneUpSection) => {
-    switch (key) {
-      case "duplicates":
-        return data.duplicates ? (
-          <DuplicatesSection
-            groups={data.duplicates.groups}
-            dismissed={dismissed}
-            patchedTaskIds={patchedTaskIds}
-            onMerge={handleMergeDuplicates}
-            onDismiss={dismiss}
-          />
-        ) : null;
-      case "stale":
-        return data.stale ? (
-          <StaleSection
-            staleTasks={data.stale.staleTasks}
-            staleProjects={data.stale.staleProjects}
-            dismissed={dismissed}
-            patchedTaskIds={patchedTaskIds}
-            patchedProjectIds={patchedProjectIds}
-            onArchiveTask={handleArchiveTask}
-            onSnoozeTask={handleSnoozeTask}
-            onArchiveProject={handleArchiveProject}
-            onDismiss={dismiss}
-            onOpenTask={onOpenTask ?? (() => {})}
-          />
-        ) : null;
-      case "quality":
-        return data.quality ? (
-          <QualitySection
-            issues={data.quality.results}
-            dismissed={dismissed}
-            patchedTaskIds={patchedTaskIds}
-            onEditTitle={handleEditTitle}
-            onDismiss={dismiss}
-          />
-        ) : null;
-      case "taxonomy":
-        return data.taxonomy ? (
-          <TaxonomySection
-            similarProjects={data.taxonomy.similarProjects}
-            smallProjects={data.taxonomy.smallProjects}
-            dismissed={dismissed}
-            patchedProjectIds={patchedProjectIds}
-            onArchiveProject={handleArchiveProject}
-            onDismiss={dismiss}
-          />
-        ) : null;
-    }
-  };
-
-  return (
-    <div className="tuneup-view">
-      <div className="tuneup-view__header">
-        <h2 className="tuneup-view__title">Tune-up</h2>
-        <button className="mini-btn" onClick={refresh}>
-          Refresh
-        </button>
-      </div>
-      <div className="tuneup-view__sections">
-        {sections.map((section) => (
-          <div key={section.key} className="tuneup-section">
-            <SectionHeader
-              title={section.title}
-              count={section.count}
-              isCollapsed={!!collapsed[section.key]}
-              onToggle={() => toggle(section.key)}
-              loading={loading[section.key]}
-              error={error[section.key]}
-              onRetry={() => refreshSection(section.key)}
-            />
-            {!collapsed[section.key] && (
-              <div className="tuneup-section__body" aria-busy={loading[section.key]}>
-                {loading[section.key] ? (
-                  <div className="loading-skeleton loading">
-                    <div className="loading-skeleton__row" />
-                    <div className="loading-skeleton__row" />
-                  </div>
-                ) : error[section.key] ? (
-                  <div className="tuneup-section__error" role="alert">
-                    <p>{error[section.key]}</p>
-                    <button className="mini-btn" onClick={() => refreshSection(section.key)}>
-                      Retry
-                    </button>
-                  </div>
-                ) : (
-                  renderSectionContent(section.key)
-                )}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-```
-
-- [ ] **Step 6: Add inline edit CSS**
-
-Append to `client-react/src/styles/app.css`:
-```css
-/* Tune-up inline edit */
-.tuneup-row__edit-input {
-  flex: 1;
-  min-width: 0;
-  padding: var(--s-1) var(--s-2);
-  border: 1px solid var(--accent);
-  border-radius: var(--r-sm);
-  font-size: var(--fs-label);
-  font-family: inherit;
-  background: var(--surface);
-  color: var(--text);
-}
-.tuneup-row__edit-input:focus {
-  outline: none;
-  box-shadow: var(--shadow-focus);
-}
-```
-
-- [ ] **Step 7: Verify build**
-
-Run: `cd client-react && npm run build`
-Expected: No type errors.
-
-- [ ] **Step 8: Run tests**
-
-Run: `cd client-react && npx vitest run`
-Expected: All tests pass.
-
-- [ ] **Step 9: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add client-react/src/components/tuneup/DuplicatesSection.tsx client-react/src/components/tuneup/StaleSection.tsx client-react/src/components/tuneup/QualitySection.tsx client-react/src/components/tuneup/TaxonomySection.tsx client-react/src/components/tuneup/TuneUpView.tsx client-react/src/styles/app.css
+git add client-react/src/components/tuneup/
 git commit -m "feat(react): add tune-up section components with inline actions
 
-DuplicatesSection with merge/dismiss, StaleSection with archive/snooze,
-QualitySection with inline title edit, TaxonomySection with archive.
-All wired into TuneUpView with undo support and cross-section patching."
+DuplicatesSection, StaleSection, QualitySection, TaxonomySection
+with merge/archive/snooze/edit/dismiss. Partial merge failure shows
+inline error state. Undo uses unpatch for reversibility."
 ```
 
 ---
 
-### Task 8: Home Dashboard `TuneUpTile`
+### Task 8: Home Dashboard TuneUpTile
 
 **Files:**
 - Create: `client-react/src/components/tuneup/TuneUpTile.tsx`
 - Modify: `client-react/src/components/layout/HomeDashboard.tsx`
+- Modify: `client-react/src/components/layout/AppShell.tsx`
 
 - [ ] **Step 1: Create TuneUpTile**
 
-Create `client-react/src/components/tuneup/TuneUpTile.tsx`:
-```typescript
-import { useTuneUp } from "../../hooks/useTuneUp";
-import { computeTopFinding } from "../../utils/topFinding";
+Create `client-react/src/components/tuneup/TuneUpTile.tsx` — uses `useTuneUp({ autoFetch: false })` and calls `load()` on mount only when the parent signals it's active. Uses `computeTopFinding()` for display. Key differences from original plan:
+- Uses `hasSettled` (not `hasFetched && allFailed`) for the error state — since `hasFetched` only goes true on success, use `hasSettled && !hasFetched` for all-failed
+- Shows early top-tier findings while other sections are still loading
+- Generic freshness hint: "Last checked N min ago"
 
-interface Props {
-  onNavigateToTuneUp: () => void;
-}
+- [ ] **Step 2: Add TuneUpTile to HomeDashboard**
 
-function formatFreshness(ts: number | null): string {
-  if (!ts) return "";
-  const mins = Math.floor((Date.now() - ts) / 60000);
-  if (mins < 1) return "Last checked just now";
-  if (mins < 60) return `Last checked ${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  return `Last checked ${hrs}h ago`;
-}
-
-export function TuneUpTile({ onNavigateToTuneUp }: Props) {
-  const { data, loading, error, dismissed, patchedTaskIds, patchedProjectIds, hasFetched, lastFetchedAt, refresh } = useTuneUp();
-
-  const anyLoading = loading.duplicates || loading.stale || loading.quality || loading.taxonomy;
-  const allFailed = error.duplicates && error.stale && error.quality && error.taxonomy;
-
-  // Compute top finding from whatever data has loaded so far
-  const topFinding = computeTopFinding(data, dismissed, patchedTaskIds, patchedProjectIds);
-
-  // Show early finding from top tiers even if still loading
-  const showEarlyFinding = topFinding && topFinding.tier <= 3;
-
-  if (allFailed && hasFetched) {
-    return (
-      <section className="home-tile" data-home-tile="tune_up">
-        <div className="home-tile__header">
-          <div className="home-tile__title-row">
-            <h3 className="home-tile__title">Tune-up</h3>
-          </div>
-        </div>
-        <div className="home-tile__body">
-          <p className="home-tile__error">
-            Couldn't analyze —{" "}
-            <button className="tuneup-section__retry" onClick={refresh}>
-              Retry
-            </button>
-          </p>
-        </div>
-      </section>
-    );
-  }
-
-  if (anyLoading && !showEarlyFinding) {
-    return (
-      <section className="home-tile" data-home-tile="tune_up">
-        <div className="home-tile__header">
-          <div className="home-tile__title-row">
-            <h3 className="home-tile__title">Tune-up</h3>
-          </div>
-        </div>
-        <div className="home-tile__body">
-          <p className="tuneup-tile__analyzing">Analyzing...</p>
-        </div>
-      </section>
-    );
-  }
-
-  return (
-    <section className="home-tile" data-home-tile="tune_up">
-      <div className="home-tile__header">
-        <div className="home-tile__title-row">
-          <h3 className="home-tile__title">Tune-up</h3>
-        </div>
-        {topFinding && (
-          <button className="mini-btn home-tile__see-all" onClick={onNavigateToTuneUp}>
-            View all
-          </button>
-        )}
-      </div>
-      <div className="home-tile__body">
-        {topFinding ? (
-          <div className="tuneup-tile__finding">
-            {topFinding.severity === "danger" && (
-              <span className="tuneup-tile__severity tuneup-tile__severity--danger">Needs attention</span>
-            )}
-            <span className="tuneup-tile__label">{topFinding.label}</span>
-          </div>
-        ) : (
-          <div className="tuneup-tile__clear">
-            <span className="tuneup-section__check">✓</span>
-            <span>All clear — nothing to clean up</span>
-            {lastFetchedAt && (
-              <span className="tuneup-tile__freshness">{formatFreshness(lastFetchedAt)}</span>
-            )}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-```
-
-- [ ] **Step 2: Add tile CSS**
-
-Append to `client-react/src/styles/app.css`:
-```css
-/* Tune-up Home tile */
-.tuneup-tile__analyzing {
-  color: var(--muted);
-  font-size: var(--fs-label);
-  animation: pulse 1.5s infinite;
-}
-.tuneup-tile__finding {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-.tuneup-tile__severity {
-  font-size: var(--fs-xs);
-  font-weight: var(--fw-semibold);
-  padding: 1px var(--s-1h);
-  border-radius: var(--r-sm);
-}
-.tuneup-tile__severity--danger {
-  background: color-mix(in srgb, var(--danger) 10%, transparent);
-  color: var(--danger);
-}
-.tuneup-tile__label {
-  font-size: var(--fs-label);
-}
-.tuneup-tile__clear {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-  color: var(--success);
-  font-size: var(--fs-label);
-}
-.tuneup-tile__freshness {
-  color: var(--muted);
-  font-size: var(--fs-xs);
-}
-.home-tile__error {
-  color: var(--danger);
-  font-size: var(--fs-label);
-}
-```
-
-- [ ] **Step 3: Add TuneUpTile to HomeDashboard**
-
-In `client-react/src/components/layout/HomeDashboard.tsx`:
-
-Import the tile:
+In `HomeDashboard.tsx`, import and render:
 ```typescript
 import { TuneUpTile } from "../tuneup/TuneUpTile";
 ```
+Add prop `onNavigateToTuneUp` to HomeDashboard Props, render tile after existing tiles.
 
-Add the `onNavigateToTuneUp` prop to the HomeDashboard Props interface and pass it. Then render the tile after the existing tiles (before the empty state):
-```typescript
-<TuneUpTile onNavigateToTuneUp={onNavigateToTuneUp} />
-```
+- [ ] **Step 3: Wire onNavigateToTuneUp from AppShell**
 
-The `onNavigateToTuneUp` callback should be wired from AppShell to set `activeView` to `"cleanup"`.
+In AppShell, pass `onNavigateToTuneUp={() => handleSelectView("tuneup")}` to HomeDashboard. The `handleSelectView` function already handles view changes correctly.
 
 - [ ] **Step 4: Verify build**
 
@@ -2118,58 +1183,20 @@ Expected: No type errors.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add client-react/src/components/tuneup/TuneUpTile.tsx client-react/src/components/layout/HomeDashboard.tsx client-react/src/styles/app.css
-git commit -m "feat(react): add TuneUpTile on Home dashboard with top-finding preview"
+git add client-react/src/components/tuneup/TuneUpTile.tsx client-react/src/components/layout/HomeDashboard.tsx client-react/src/components/layout/AppShell.tsx
+git commit -m "feat(react): add TuneUpTile on Home dashboard with top-finding preview
+
+Uses autoFetch: false + load() for lazy fetching. Shows early
+top-tier findings before all sections settle. Generic freshness hint."
 ```
 
 ---
 
-### Task 9: Wire Undo + Open Task from AppShell
+### Task 9: Final Verification
 
-**Files:**
-- Modify: `client-react/src/components/layout/AppShell.tsx`
+**Files:** No new files.
 
-- [ ] **Step 1: Pass onUndo and onOpenTask to TuneUpView**
-
-In `AppShell.tsx`, find the `<TuneUpView />` render site (from Task 6) and update it to pass props:
-```typescript
-<TuneUpView
-  onOpenTask={(taskId) => {
-    setActiveView("all");
-    // Open task drawer with this ID
-    handleOpenDrawer(taskId);
-  }}
-  onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
-/>
-```
-
-Also pass `onNavigateToTuneUp` through to `HomeDashboard`:
-```typescript
-<HomeDashboard
-  // ... existing props ...
-  onNavigateToTuneUp={() => setActiveView("cleanup" as any)}
-/>
-```
-
-- [ ] **Step 2: Verify build**
-
-Run: `cd client-react && npm run build`
-Expected: No type errors.
-
-- [ ] **Step 3: Commit**
-
-```bash
-git add client-react/src/components/layout/AppShell.tsx
-git commit -m "feat(react): wire undo toast and task navigation to TuneUpView"
-```
-
----
-
-### Task 10: Final Verification
-
-**Files:** No new files — verification only.
-
-- [ ] **Step 1: Run all unit tests**
+- [ ] **Step 1: Run all tests**
 
 Run: `cd client-react && npx vitest run`
 Expected: All tests pass.
@@ -2177,9 +1204,9 @@ Expected: All tests pass.
 - [ ] **Step 2: Run production build**
 
 Run: `cd client-react && npm run build`
-Expected: Build succeeds.
+Expected: Build clean.
 
-- [ ] **Step 3: Run root-level checks**
+- [ ] **Step 3: Root-level checks**
 
 Run:
 ```bash
@@ -2190,16 +1217,18 @@ Expected: Both pass.
 
 - [ ] **Step 4: Manual verification checklist**
 
-Start dev server (`cd client-react && npm run dev`) and verify:
-- [ ] "Tune-up" appears in sidebar navigation
-- [ ] Clicking it opens the Tune-up view
-- [ ] All 4 sections show loading state, then results or "All clear"
-- [ ] Sections are collapsible
-- [ ] Refresh button re-runs all analyses
-- [ ] Dismiss removes findings from view (persists across navigation)
-- [ ] Archive action fades row, shows undo toast
-- [ ] Snooze removes from stale section only
-- [ ] Edit title inline input works (Enter commits, Escape cancels)
-- [ ] Home dashboard shows Tune-up tile with top finding or "All clear"
-- [ ] Tile "View all" navigates to full Tune-up view
+Start dev server and verify:
+- [ ] "Tune-up" appears in sidebar (not "Cleanup")
+- [ ] Clicking it opens the Tune-up view with 4 sections
+- [ ] Sections load independently with skeleton states
+- [ ] Collapsing a section hides its content
+- [ ] Error in one section doesn't affect others; shows "Retry" not "All clear"
+- [ ] Zero findings shows green "All clear"
+- [ ] Refresh button re-runs all analyses and clears dismissals
+- [ ] Dismiss removes finding; persists when navigating away and back
+- [ ] Archive shows undo toast; undo restores the row
+- [ ] Snooze removes from stale only (check quality/duplicate sections still show the task if applicable)
+- [ ] Edit title inline; "Title updated" toast; row disappears if heuristic passes
+- [ ] Home tile shows "Analyzing..." → top finding or "All clear"
+- [ ] Home tile "View all" navigates to Tune-up view
 - [ ] Cached data persists between Home ↔ Tune-up navigation
