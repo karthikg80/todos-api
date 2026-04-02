@@ -1,4 +1,3 @@
-import { useGroupBy } from "../../hooks/useGroupBy";
 import { useDensity, type Density } from "../../hooks/useDensity";
 import { SortControl, type SortField, type SortOrder } from "./SortControl";
 import type { GroupBy } from "../../utils/groupTodos";
@@ -21,10 +20,11 @@ interface Props {
   sortBy: SortField;
   sortOrder: SortOrder;
   onSortChange: (field: SortField, order: SortOrder) => void;
+  groupBy: GroupBy;
+  onGroupByChange: (val: GroupBy) => void;
 }
 
-export function ListToolbar({ sortBy, sortOrder, onSortChange }: Props) {
-  const { groupBy, setGroupBy } = useGroupBy();
+export function ListToolbar({ sortBy, sortOrder, onSortChange, groupBy, onGroupByChange }: Props) {
   const { density, setDensity } = useDensity();
 
   return (
@@ -34,7 +34,7 @@ export function ListToolbar({ sortBy, sortOrder, onSortChange }: Props) {
           <select
             className="sort-control__select"
             value={groupBy}
-            onChange={(e) => setGroupBy(e.target.value as GroupBy)}
+            onChange={(e) => onGroupByChange(e.target.value as GroupBy)}
             aria-label="Group by"
           >
             {GROUP_OPTIONS.map((o) => (

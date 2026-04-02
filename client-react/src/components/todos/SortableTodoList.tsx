@@ -127,7 +127,7 @@ export function SortableTodoList({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const { groupBy } = useGroupBy();
+  const { groupBy, setGroupBy } = useGroupBy();
   const sections = useMemo(() => groupTodos(todos, groupBy), [todos, groupBy]);
   const { isCollapsed, toggle } = useCollapsedGroups(groupBy);
   const isDerived = groupBy === "status" || groupBy === "priority" || groupBy === "dueDate";
@@ -193,7 +193,7 @@ export function SortableTodoList({
   }
 
   const toolbar = (
-    <ListToolbar sortBy={sortBy} sortOrder={sortOrder} onSortChange={onSortChange} />
+    <ListToolbar sortBy={sortBy} sortOrder={sortOrder} onSortChange={onSortChange} groupBy={groupBy} onGroupByChange={setGroupBy} />
   );
 
   if (groupBy === "none") {
