@@ -1,20 +1,23 @@
 import type { Todo } from "../types";
 import type { Density } from "../hooks/useDensity";
+import type { GroupBy } from "./groupTodos";
 
 export interface ChipData {
   key: string;
   label: string;
-  variant: "overdue" | "blocked" | "waiting" | "priority-high" | "priority-med" | "project" | "date" | "subtask" | "tag" | "overflow";
+  variant: "overdue" | "blocked" | "waiting" | "priority-high" | "energy" | "estimate" | "project" | "date" | "subtask" | "tag" | "overflow" | "recurrence";
 }
 
-export function buildChips(todo: Todo, density: Density): ChipData[] {
+const MAX_TAGS = 2;
+
+export function buildChips(todo: Todo, density: Density, groupBy: GroupBy = "none"): ChipData[] {
   if (density === "compact") return [];
 
   const candidates: ChipData[] = [];
 
-  // 1. Overdue due date
+  // 1. Overdue due date (hidden when grouped by dueDate)
   const isOverdue = !todo.completed && !!todo.dueDate && new Date(todo.dueDate) < new Date(new Date().toDateString());
-  if (isOverdue) {
+  if (isOverdue && groupBy !== "dueDate") {
     const d = new Date(todo.dueDate!);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -33,15 +36,13 @@ export function buildChips(todo: Todo, density: Density): ChipData[] {
     candidates.push({ key: "waiting", label: `@${todo.waitingOn}`, variant: "waiting" });
   }
 
-  // 4. Priority (only urgent/high/medium)
-  if (todo.priority === "urgent" || todo.priority === "high") {
+  // 4. Priority (urgent/high only — hidden when grouped by priority)
+  if ((todo.priority === "urgent" || todo.priority === "high") && groupBy !== "priority") {
     candidates.push({ key: "priority", label: todo.priority, variant: "priority-high" });
-  } else if (todo.priority === "medium") {
-    candidates.push({ key: "priority", label: "medium", variant: "priority-med" });
   }
 
-  // 5. Due date (non-overdue)
-  if (todo.dueDate && !isOverdue) {
+  // 5. Due date (non-overdue, hidden when grouped by dueDate)
+  if (todo.dueDate && !isOverdue && groupBy !== "dueDate") {
     const d = new Date(todo.dueDate);
     const now = new Date();
     now.setHours(0, 0, 0, 0);
@@ -53,20 +54,45 @@ export function buildChips(todo: Todo, density: Density): ChipData[] {
     candidates.push({ key: "due", label, variant: "date" });
   }
 
-  // 6. Subtask count (normal mode only)
+  // 6. Recurrence
+  if (todo.recurrence?.type && todo.recurrence.type !== "none") {
+    candidates.push({ key: "recurrence", label: "↻", variant: "recurrence" });
+  }
+
+  // 7. Energy level
+  if (todo.energy) {
+    const energyLabels: Record<string, string> = { high: "⚡ High", medium: "◐ Med", low: "🧘 Low" };
+    const label = energyLabels[todo.energy];
+    if (label) {
+      candidates.push({ key: "energy", label, variant: "energy" });
+    }
+  }
+
+  // 8. Estimate
+  if (todo.estimateMinutes) {
+    const mins = todo.estimateMinutes;
+    const label = mins >= 60 ? `~${Math.round(mins / 60)}h` : `~${mins}m`;
+    candidates.push({ key: "estimate", label, variant: "estimate" });
+  }
+
+  // 9. Subtask count (normal mode only — spacious has progress bar)
   if (density === "normal" && todo.subtasks && todo.subtasks.length > 0) {
     const done = todo.subtasks.filter((s) => s.completed).length;
     candidates.push({ key: "subtask", label: `${done}/${todo.subtasks.length}`, variant: "subtask" });
   }
 
-  // 7. Category/project
-  if (todo.category) {
+  // 10. Category/project (hidden when already grouped by project)
+  if (todo.category && groupBy !== "project") {
     candidates.push({ key: "project", label: todo.category, variant: "project" });
   }
 
-  // 8. Tags (last-fill)
-  for (const tag of todo.tags) {
+  // 11. Tags (capped to avoid overflow domination)
+  const tags = todo.tags.slice(0, MAX_TAGS);
+  for (const tag of tags) {
     candidates.push({ key: `tag-${tag}`, label: `#${tag}`, variant: "tag" });
+  }
+  if (todo.tags.length > MAX_TAGS) {
+    candidates.push({ key: "tag-overflow", label: `+${todo.tags.length - MAX_TAGS} tags`, variant: "overflow" });
   }
 
   // Truncation for normal mode

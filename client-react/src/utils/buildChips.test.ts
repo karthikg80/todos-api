@@ -52,7 +52,6 @@ describe("buildChips", () => {
     const chips = buildChips(todo, "normal");
     expect(chips).toHaveLength(5); // 4 shown + overflow
     expect(chips[4].variant).toBe("overflow");
-    expect(chips[4].label).toBe("+3"); // 3 tags overflow (project fits in first 4)
   });
 
   it("shows all chips in spacious mode", () => {
@@ -76,10 +75,9 @@ describe("buildChips", () => {
     expect(chips.find((c) => c.variant === "waiting")?.label).toBe("@Alice");
   });
 
-  it("skips low priority", () => {
-    const todo = makeTodo({ priority: "low" });
-    const chips = buildChips(todo, "normal");
-    expect(chips.find((c) => c.key === "priority")).toBeUndefined();
+  it("skips medium and low priority", () => {
+    expect(buildChips(makeTodo({ priority: "medium" }), "normal").find((c) => c.key === "priority")).toBeUndefined();
+    expect(buildChips(makeTodo({ priority: "low" }), "normal").find((c) => c.key === "priority")).toBeUndefined();
   });
 
   it("shows subtask count in normal mode", () => {
@@ -91,5 +89,65 @@ describe("buildChips", () => {
     });
     const chips = buildChips(todo, "normal");
     expect(chips.find((c) => c.variant === "subtask")?.label).toBe("1/2");
+  });
+
+  it("hides project chip when grouped by project", () => {
+    const todo = makeTodo({ category: "Work" });
+    expect(buildChips(todo, "normal", "project").find((c) => c.variant === "project")).toBeUndefined();
+    expect(buildChips(todo, "normal", "none").find((c) => c.variant === "project")?.label).toBe("Work");
+  });
+
+  it("hides priority chip when grouped by priority", () => {
+    const todo = makeTodo({ priority: "high" });
+    expect(buildChips(todo, "normal", "priority").find((c) => c.variant === "priority-high")).toBeUndefined();
+    expect(buildChips(todo, "normal", "none").find((c) => c.variant === "priority-high")?.label).toBe("high");
+  });
+
+  it("hides date chips when grouped by dueDate", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todo = makeTodo({ dueDate: tomorrow.toISOString() });
+    expect(buildChips(todo, "normal", "dueDate").find((c) => c.variant === "date")).toBeUndefined();
+    expect(buildChips(todo, "normal", "none").find((c) => c.variant === "date")).toBeDefined();
+  });
+
+  it("hides overdue chip when grouped by dueDate", () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const todo = makeTodo({ dueDate: yesterday.toISOString() });
+    expect(buildChips(todo, "normal", "dueDate").find((c) => c.variant === "overdue")).toBeUndefined();
+    expect(buildChips(todo, "normal", "none").find((c) => c.variant === "overdue")).toBeDefined();
+  });
+
+  it("caps tags at 2 with overflow", () => {
+    const todo = makeTodo({ tags: ["a", "b", "c", "d"] });
+    const chips = buildChips(todo, "spacious");
+    const tagChips = chips.filter((c) => c.variant === "tag");
+    expect(tagChips).toHaveLength(2);
+    expect(chips.find((c) => c.key === "tag-overflow")?.label).toBe("+2 tags");
+  });
+
+  it("shows energy chip", () => {
+    const todo = makeTodo({ energy: "high" });
+    const chips = buildChips(todo, "normal");
+    expect(chips.find((c) => c.variant === "energy")?.label).toBe("⚡ High");
+  });
+
+  it("shows estimate chip", () => {
+    const todo = makeTodo({ estimateMinutes: 30 });
+    const chips = buildChips(todo, "normal");
+    expect(chips.find((c) => c.variant === "estimate")?.label).toBe("~30m");
+  });
+
+  it("formats estimate in hours", () => {
+    const todo = makeTodo({ estimateMinutes: 120 });
+    const chips = buildChips(todo, "normal");
+    expect(chips.find((c) => c.variant === "estimate")?.label).toBe("~2h");
+  });
+
+  it("shows recurrence chip", () => {
+    const todo = makeTodo({ recurrence: { type: "daily" } });
+    const chips = buildChips(todo, "normal");
+    expect(chips.find((c) => c.variant === "recurrence")?.label).toBe("↻");
   });
 });

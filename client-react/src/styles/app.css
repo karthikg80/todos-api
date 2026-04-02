@@ -519,6 +519,19 @@ body {
   outline-offset: 2px;
 }
 
+.todo-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.todo-content__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
 .todo-title {
   flex: 1;
   min-width: 0;
@@ -7581,9 +7594,14 @@ body {
   color: var(--danger);
   font-weight: var(--fw-medium);
 }
-.todo-chip--priority-med {
+.todo-chip--energy {
   background: color-mix(in srgb, var(--warning) 10%, transparent);
   color: var(--warning);
+}
+.todo-chip--estimate,
+.todo-chip--recurrence {
+  background: var(--surface-3);
+  color: var(--muted);
   font-weight: var(--fw-medium);
 }
 .todo-chip--project,

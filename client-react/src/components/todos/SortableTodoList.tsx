@@ -20,6 +20,7 @@ import { IconGrip } from "../shared/Icons";
 import { IllustrationTasksEmpty } from "../shared/Illustrations";
 import { groupTodos } from "../../utils/groupTodos";
 import { useGroupBy } from "../../hooks/useGroupBy";
+import { useDensity } from "../../hooks/useDensity";
 import { useCollapsedGroups } from "../../hooks/useCollapsedGroups";
 import { GroupHeader } from "./GroupHeader";
 import { ListToolbar } from "./ListToolbar";
@@ -32,6 +33,8 @@ interface SortableRowProps {
   isBulkMode: boolean;
   isSelected: boolean;
   isEntering?: boolean;
+  density: "compact" | "normal" | "spacious";
+  groupBy?: "none" | "project" | "status" | "priority" | "dueDate";
   projects: Project[];
   headings: Heading[];
   onToggle: (id: string, completed: boolean) => void;
@@ -127,7 +130,8 @@ export function SortableTodoList({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const { groupBy } = useGroupBy();
+  const { groupBy, setGroupBy } = useGroupBy();
+  const { density, setDensity } = useDensity();
   const sections = useMemo(() => groupTodos(todos, groupBy), [todos, groupBy]);
   const { isCollapsed, toggle } = useCollapsedGroups(groupBy);
   const isDerived = groupBy === "status" || groupBy === "priority" || groupBy === "dueDate";
@@ -193,7 +197,7 @@ export function SortableTodoList({
   }
 
   const toolbar = (
-    <ListToolbar sortBy={sortBy} sortOrder={sortOrder} onSortChange={onSortChange} />
+    <ListToolbar sortBy={sortBy} sortOrder={sortOrder} onSortChange={onSortChange} groupBy={groupBy} onGroupByChange={setGroupBy} density={density} onDensityChange={setDensity} />
   );
 
   if (groupBy === "none") {
@@ -218,6 +222,8 @@ export function SortableTodoList({
                   isExpanded={todo.id === expandedTodoId}
                   isBulkMode={isBulkMode}
                   isSelected={selectedIds.has(todo.id)}
+                  density={density}
+                  groupBy={groupBy}
                   projects={projects}
                   headings={headings}
                   onToggle={onToggle}
@@ -260,6 +266,8 @@ export function SortableTodoList({
                     isBulkMode={isBulkMode}
                     isSelected={selectedIds.has(todo.id)}
                     isEntering={enteringIds.has(todo.id)}
+                    density={density}
+                    groupBy={groupBy}
                     projects={projects}
                     headings={headings}
                     onToggle={onToggle}
@@ -310,6 +318,8 @@ export function SortableTodoList({
                       isExpanded={todo.id === expandedTodoId}
                       isBulkMode={isBulkMode}
                       isSelected={selectedIds.has(todo.id)}
+                      density={density}
+                      groupBy={groupBy}
                       projects={projects}
                       headings={headings}
                       onToggle={onToggle}

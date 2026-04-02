@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import type { Todo, Project, Heading, UpdateTodoDto } from "../../types";
+import type { Density } from "../../hooks/useDensity";
+import type { GroupBy } from "../../utils/groupTodos";
 import { IconKebab, IconClock, IconArchive, IconXCircle, IconRefresh } from "../shared/Icons";
 import { relativeTime } from "../../utils/relativeTime";
 import { QuickEditPanel } from "./QuickEditPanel";
-import { useDensity } from "../../hooks/useDensity";
 import { buildChips } from "../../utils/buildChips";
 
 interface Props {
@@ -14,6 +15,8 @@ interface Props {
   isSelected: boolean;
   isEntering?: boolean;
   isExiting?: boolean;
+  density: Density;
+  groupBy?: GroupBy;
   projects: Project[];
   headings: Heading[];
   onToggle: (id: string, completed: boolean) => void;
@@ -50,6 +53,8 @@ export function TodoRow({
   isSelected,
   isEntering,
   isExiting,
+  density,
+  groupBy,
   projects,
   headings,
   onToggle,
@@ -61,8 +66,7 @@ export function TodoRow({
   onTagClick,
   onLifecycleAction,
 }: Props) {
-  const { density } = useDensity();
-  const chips = buildChips(todo, density);
+  const chips = buildChips(todo, density, groupBy);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(todo.title);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -136,85 +140,89 @@ export function TodoRow({
         />
       )}
 
-      {editing ? (
-        <input
-          ref={editRef}
-          className="todo-title-edit"
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={commitEdit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commitEdit();
-            if (e.key === "Escape") {
-              setEditValue(todo.title);
-              setEditing(false);
-            }
-          }}
-          onClick={(e) => e.stopPropagation()}
-        />
-      ) : (
-        <span
-          className={titleClass}
-          onDoubleClick={(e) => {
-            if (isBulkMode) return;
-            e.stopPropagation();
-            setEditValue(todo.title);
-            setEditing(true);
-          }}
-        >
-          {todo.title}
-        </span>
-      )}
-
-      {chips.length > 0 && (
-        <div className="todo-chips">
-          {chips.map((chip) => (
+      <div className="todo-content">
+        <div className="todo-content__row">
+          {editing ? (
+            <input
+              ref={editRef}
+              className="todo-title-edit"
+              value={editValue}
+              onChange={(e) => setEditValue(e.target.value)}
+              onBlur={commitEdit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") commitEdit();
+                if (e.key === "Escape") {
+                  setEditValue(todo.title);
+                  setEditing(false);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+            />
+          ) : (
             <span
-              key={chip.key}
-              className={`todo-chip todo-chip--${chip.variant}`}
-              onClick={chip.variant === "tag" ? (e) => { e.stopPropagation(); onTagClick?.(chip.label.slice(1)); } : undefined}
+              className={titleClass}
+              onDoubleClick={(e) => {
+                if (isBulkMode) return;
+                e.stopPropagation();
+                setEditValue(todo.title);
+                setEditing(true);
+              }}
             >
-              {chip.label}
+              {todo.title}
             </span>
-          ))}
-        </div>
-      )}
+          )}
 
-      {density === "spacious" && (
-        <>
-          {todo.description && (
-            <div className="todo-description-preview">
-              {todo.description.length > 120
-                ? todo.description.slice(0, 120) + "..."
-                : todo.description}
+          {chips.length > 0 && (
+            <div className="todo-chips">
+              {chips.map((chip) => (
+                <span
+                  key={chip.key}
+                  className={`todo-chip todo-chip--${chip.variant}`}
+                  onClick={chip.variant === "tag" ? (e) => { e.stopPropagation(); onTagClick?.(chip.label.slice(1)); } : undefined}
+                >
+                  {chip.label}
+                </span>
+              ))}
             </div>
           )}
-          {todo.subtasks && todo.subtasks.length > 0 && (() => {
-            const done = todo.subtasks.filter((s) => s.completed).length;
-            const total = todo.subtasks.length;
-            return (
-              <div className="todo-subtask-bar">
-                <div
-                  className="todo-subtask-bar__track"
-                  role="progressbar"
-                  aria-valuenow={done}
-                  aria-valuemax={total}
-                  aria-label={`${done} of ${total} subtasks complete`}
-                >
-                  <div
-                    className="todo-subtask-bar__fill"
-                    style={{ width: `${(done / total) * 100}%` }}
-                  />
-                </div>
-                <span className="todo-subtask-bar__label">{done} of {total}</span>
+        </div>
+
+        {density === "spacious" && (
+          <>
+            {todo.description && (
+              <div className="todo-description-preview">
+                {todo.description.length > 120
+                  ? todo.description.slice(0, 120) + "..."
+                  : todo.description}
               </div>
-            );
-          })()}
-          {todo.notes && (
-            <div className="todo-notes-indicator">Has notes</div>
-          )}
-        </>
-      )}
+            )}
+            {todo.subtasks && todo.subtasks.length > 0 && (() => {
+              const done = todo.subtasks.filter((s) => s.completed).length;
+              const total = todo.subtasks.length;
+              return (
+                <div className="todo-subtask-bar">
+                  <div
+                    className="todo-subtask-bar__track"
+                    role="progressbar"
+                    aria-valuenow={done}
+                    aria-valuemax={total}
+                    aria-label={`${done} of ${total} subtasks complete`}
+                  >
+                    <div
+                      className="todo-subtask-bar__fill"
+                      style={{ width: `${(done / total) * 100}%` }}
+                    />
+                  </div>
+                  <span className="todo-subtask-bar__label">{done} of {total}</span>
+                </div>
+              );
+            })()}
+            {todo.notes && (
+              <div className="todo-notes-indicator">Has notes</div>
+            )}
+          </>
+        )}
+      </div>
 
       {/* Inline hover actions (visible on row hover) */}
       {onLifecycleAction && !isBulkMode && (
