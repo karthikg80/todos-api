@@ -98,11 +98,14 @@ interface UseNextWorkHook {
 - Cache key: `JSON.stringify({ m: inputs.availableMinutes ?? null, e: inputs.energy ?? null })`
 - Inputs are normalized before keying (undefined → null)
 - Cache TTL: 5 minutes. Entries older than 5 minutes are considered stale.
+- Cache size is naturally bounded: the input space is at most ~18 combinations (5 time presets + no-filter × 3 energy levels + no-filter). No eviction policy needed for v1.
 
 **Stale-while-revalidate:**
 - Fresh cache hit (< 5 min): return immediately, `loading: false`, `refreshing: false`
 - Stale cache hit (>= 5 min): return stale data immediately (`loading: false`), trigger background fetch (`refreshing: true`), replace when new data arrives
 - Cache miss: `loading: true`, `result: null`, trigger fetch
+
+**Revalidation failure:** If a background revalidation fetch fails while stale data is being shown, keep the stale data visible. Show a subtle inline "Couldn't refresh — Retry" affordance (not a full error state). Do NOT drop back to `result: null` or show the empty state if usable stale data exists. The error state (`error: string | null, loading: true, result: null`) only applies when there is truly no cached data at all.
 
 **Debounce:**
 - Input changes debounce at 300ms before triggering network calls
@@ -114,7 +117,7 @@ interface UseNextWorkHook {
 **Dismiss behavior:**
 - Session-global: dismissing a task hides it across all input combinations. This is intentional — if the user says "not this task right now," the intent spans energy/time contexts.
 - Dismissals are a client-side exclusion layer. Cached server results are never mutated by dismissals.
-- `refresh()` clears both `dismissed` and `actedOn` sets.
+- `refresh()` clears both `dismissed` and `actedOn` sets. Clearing `actedOn` is safe because acted-on tasks (started or snoozed) will naturally be absent from fresh server results — the clear only resets the client-side hiding state, not the server mutations. Document this rationale in code comments.
 
 **Acted-on behavior:**
 - Separate `actedOn: Set<string>` tracks tasks where Start or Snooze succeeded optimistically.
@@ -186,7 +189,16 @@ When `refreshing: true` (stale-while-revalidate in flight), show a subtle inline
 
 **Snooze (secondary):**
 - `PUT /todos/:taskId { scheduledDate: tomorrowLocalISO, status: "scheduled" }`
-  - `tomorrowLocalISO`: computed as `const d = new Date(); d.setDate(d.getDate() + 1); d.toISOString().split("T")[0]` — same pattern used by the existing `handleLifecycleAction("snooze-tomorrow")` in AppShell.tsx (line ~379). Also sets `status: "scheduled"` to match existing snooze behavior.
+  - `tomorrowLocalISO`: computed using local calendar date formatting to avoid UTC drift:
+    ```typescript
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const tomorrowLocalISO = `${yyyy}-${mm}-${dd}`;
+    ```
+    Note: the existing `handleLifecycleAction("snooze-tomorrow")` in AppShell.tsx uses `toISOString().split("T")[0]` which serializes in UTC, not local time. This can produce the wrong date near midnight in non-UTC timezones. The What Next widget should use explicit local formatting as shown above. If this is the first instance of local date formatting, extract it as a shared utility (`utils/localDate.ts`). Also sets `status: "scheduled"` to match existing snooze behavior.
 - Visual: clock icon button, muted
 - Optimistic: `markActedOn(taskId)`, row fades out with height preservation
 - On success: undo toast "Snoozed to tomorrow" for 5 seconds
@@ -231,7 +243,7 @@ This prevents jarring instant removal, especially when actioning multiple rows i
 - Action buttons have descriptive `aria-label` (e.g., "Start task: {title}", "Snooze task: {title}")
 - Loading state uses `aria-busy="true"` on the tile container
 - Row fade-out respects `prefers-reduced-motion` (instant removal instead of animation)
-- Impact/effort badges are `aria-hidden` (decorative, information is in the reason text)
+- Impact/effort badges are NOT `aria-hidden` — they convey information not always present in the reason text. Each row includes an accessible summary via `aria-label` on the row container: e.g., "Fix login bug — High impact, low effort"
 
 ## Testing Strategy
 
