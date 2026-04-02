@@ -949,6 +949,19 @@ export function AppShell() {
             </>
           ) : activeView === "tuneup" && !selectedProjectId ? (
             <>
+              {isMobile && (
+                <div className="mobile-header">
+                  <button
+                    id="projectsRailMobileOpen"
+                    className="mobile-header__menu-btn"
+                    onClick={() => setMobileNavOpen(true)}
+                    aria-label="Open navigation"
+                  >
+                    <IconMenu />
+                  </button>
+                  <span className="app-header__title">Tune-up</span>
+                </div>
+              )}
               <div className="app-content">
                 <TuneUpView
                   onOpenTask={(taskId) => {
