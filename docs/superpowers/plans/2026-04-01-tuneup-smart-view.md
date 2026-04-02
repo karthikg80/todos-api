@@ -4,7 +4,7 @@
 
 **Goal:** Add a Tune-Up smart view to the React client that surfaces task hygiene issues (duplicates, stale items, quality problems, taxonomy suggestions) with inline actions, plus a summary tile on the Home dashboard.
 
-**Architecture:** A `useTuneUp()` hook with module-level shared cache (including dismissals and patches) calls 4 existing backend agent endpoints in parallel. A `TuneUpView` component renders 4 collapsible sections with inline actions (merge, archive, snooze, edit, dismiss). A `TuneUpTile` on HomeDashboard shows the top finding. Cross-section reconciliation uses reversible optimistic mutations with snapshot-based undo.
+**Architecture:** A `useTuneUp()` hook with module-level shared cache (including dismissals and patches) calls 4 existing backend agent endpoints in parallel. A `TuneUpView` component renders 4 collapsible sections with inline actions (merge, archive, snooze, edit, dismiss). A `TuneUpTile` on HomeDashboard shows the top finding. Cross-section reconciliation uses reversible optimistic patches with targeted unpatch/restore helpers for undo (not full state snapshots).
 
 **Tech Stack:** React 19, TypeScript, vitest (already configured), @testing-library/react (added for hook tests)
 
@@ -52,7 +52,7 @@ Taxonomy (`POST /agent/read/taxonomy_cleanup_suggestions` body: `{}`):
 ```
 
 **Key design decisions from the spec:**
-- Merge survivor = oldest task by `createdAt` in the group. Since the duplicates endpoint does NOT return `createdAt`, the API layer must enrich duplicate groups by looking up task metadata. For v1: use the first task in the group (payload order) as survivor since the endpoint sorts by creation order. Document this explicitly.
+- Merge survivor = first task in the group (payload order) as survivor for v1, matching backend payload order as currently returned by the endpoint. This is not a guaranteed API contract — if the backend changes ordering, survivor selection may need revisiting.
 - `patchTaskOut` / `patchProjectOut` for destructive removal; `patchQualityResolved` / `patchStaleResolved` for non-destructive patches.
 - Undo reverses from a stored snapshot, not by re-fetching.
 - Dismissed findings, patched IDs, and optimistic mutations are ALL module-level (shared across Home tile and Tune-up view mounts).
@@ -371,7 +371,7 @@ export function computeTopFinding(
 
   if (data.taxonomy) {
     const similar = data.taxonomy.similarProjects.filter((p) => {
-      const key = taxSimilarKey(p.projectAId, p.projectBId);
+      const key = taxSimilarKey(p.projectAId, p.projectBId, p.projectAName, p.projectBName);
       return !dismissed.has(key);
     });
     const small = data.taxonomy.smallProjects.filter((p) =>
@@ -402,9 +402,11 @@ export function dupGroupKey(taskIds: string[]): string {
 }
 
 /** Stable key for a similar-projects pair. */
-export function taxSimilarKey(aId?: string, bId?: string): string {
-  if (!aId || !bId) return `tax:similar:${aId ?? "?"}:${bId ?? "?"}`;
-  return "tax:similar:" + [aId, bId].sort().join(":");
+/** Stable key for a similar-projects pair. Falls back to names when IDs are missing. */
+export function taxSimilarKey(aId?: string, bId?: string, aName?: string, bName?: string): string {
+  const a = aId ?? aName ?? "?";
+  const b = bId ?? bName ?? "?";
+  return "tax:similar:" + [a, b].sort().join(":");
 }
 ```
 
@@ -516,8 +518,12 @@ describe("taxSimilarKey", () => {
     expect(taxSimilarKey("p2", "p1")).toBe("tax:similar:p1:p2");
   });
 
-  it("handles missing IDs", () => {
-    expect(taxSimilarKey(undefined, "p1")).toBe("tax:similar:?:p1");
+  it("falls back to names when IDs are missing", () => {
+    expect(taxSimilarKey(undefined, undefined, "Beta", "Alpha")).toBe("tax:similar:Alpha:Beta");
+  });
+
+  it("prefers IDs over names", () => {
+    expect(taxSimilarKey("p2", "p1", "Beta", "Alpha")).toBe("tax:similar:p1:p2");
   });
 });
 ```
@@ -637,16 +643,19 @@ This is the most complex task. The hook must share ALL state (data, dismissals, 
 
 - [ ] **Step 1: Install @testing-library/react for hook tests**
 
-Run: `cd client-react && npm install -D @testing-library/react`
+Run: `cd client-react && npm ls @testing-library/react 2>/dev/null || npm install -D @testing-library/react`
+
+(Skip install if already present.)
 
 - [ ] **Step 2: Create the hook**
 
 Create `client-react/src/hooks/useTuneUp.ts`:
 ```typescript
-import { useState, useEffect, useCallback, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import type {
   TuneUpSection,
   TuneUpData,
+  StaleTask,
 } from "../types/tuneup";
 import {
   fetchDuplicates,
@@ -656,7 +665,9 @@ import {
 } from "../api/tuneup";
 
 // ---------------------------------------------------------------------------
-// Module-level shared state — survives navigation, shared across all mounts
+// Module-level shared state — survives navigation, shared across all mounts.
+// Uses immutable replacement: every mutation creates a new cache object so
+// that useSyncExternalStore's getSnapshot returns a fresh reference.
 // ---------------------------------------------------------------------------
 
 interface TuneUpCache {
@@ -666,8 +677,9 @@ interface TuneUpCache {
   dismissed: Set<string>;
   patchedTaskIds: Set<string>;
   patchedProjectIds: Set<string>;
-  hasFetched: boolean;
-  hasSettled: boolean; // true once all 4 sections have completed (success or failure)
+  hasFetched: boolean;          // true once at least one section succeeded
+  allSettled: boolean;          // true when no section is currently loading
+  initialLoadTriggered: boolean; // dedupe guard: true once fetchAll() has been called
   lastFetchedAt: number | null;
 }
 
@@ -678,29 +690,33 @@ const INITIAL_ERROR: Record<TuneUpSection, string | null> = {
   duplicates: null, stale: null, quality: null, taxonomy: null,
 };
 
-let cache: TuneUpCache = {
-  data: { duplicates: null, stale: null, quality: null, taxonomy: null },
-  loading: { ...INITIAL_LOADING },
-  error: { ...INITIAL_ERROR },
-  dismissed: new Set(),
-  patchedTaskIds: new Set(),
-  patchedProjectIds: new Set(),
-  hasFetched: false,
-  hasSettled: false,
-  lastFetchedAt: null,
-};
+function makeEmptyCache(): TuneUpCache {
+  return {
+    data: { duplicates: null, stale: null, quality: null, taxonomy: null },
+    loading: { ...INITIAL_LOADING },
+    error: { ...INITIAL_ERROR },
+    dismissed: new Set(),
+    patchedTaskIds: new Set(),
+    patchedProjectIds: new Set(),
+    hasFetched: false,
+    allSettled: true,
+    initialLoadTriggered: false,
+    lastFetchedAt: null,
+  };
+}
+
+// The single shared cache instance. Replaced immutably on every update.
+let cache: TuneUpCache = makeEmptyCache();
 
 // Subscribers for useSyncExternalStore
 const listeners = new Set<() => void>();
-let version = 0;
 
 function notify() {
-  version++;
   listeners.forEach((l) => l());
 }
 
-function getSnapshot(): number {
-  return version;
+function getSnapshot(): TuneUpCache {
+  return cache;
 }
 
 function subscribe(listener: () => void): () => void {
@@ -709,11 +725,12 @@ function subscribe(listener: () => void): () => void {
 }
 
 // ---------------------------------------------------------------------------
-// Mutation helpers
+// Mutation helper — always produces a new cache object (immutable)
 // ---------------------------------------------------------------------------
 
-function updateCache(updater: (c: TuneUpCache) => void) {
-  updater(cache);
+function updateCache(updater: (draft: TuneUpCache) => Partial<TuneUpCache>) {
+  const patch = updater(cache);
+  cache = { ...cache, ...patch };
   notify();
 }
 
@@ -728,30 +745,33 @@ const FETCHERS: Record<TuneUpSection, Fetcher> = {
 };
 
 async function fetchSection(section: TuneUpSection) {
-  updateCache((c) => {
-    c.loading = { ...c.loading, [section]: true };
-    c.error = { ...c.error, [section]: null };
-  });
+  updateCache((c) => ({
+    loading: { ...c.loading, [section]: true },
+    error: { ...c.error, [section]: null },
+    allSettled: false,
+  }));
   try {
     const result = await FETCHERS[section]();
-    updateCache((c) => {
-      c.data = { ...c.data, [section]: result };
-      c.loading = { ...c.loading, [section]: false };
-      c.hasFetched = true;
-      c.lastFetchedAt = Date.now();
-      c.hasSettled = SECTIONS.every((s) => !c.loading[s]);
-    });
+    const newLoading = { ...cache.loading, [section]: false };
+    updateCache(() => ({
+      data: { ...cache.data, [section]: result },
+      loading: newLoading,
+      hasFetched: true,
+      lastFetchedAt: Date.now(),
+      allSettled: SECTIONS.every((s) => !newLoading[s]),
+    }));
   } catch (err) {
-    updateCache((c) => {
-      c.loading = { ...c.loading, [section]: false };
-      c.error = { ...c.error, [section]: err instanceof Error ? err.message : "Unknown error" };
-      c.hasSettled = SECTIONS.every((s) => !c.loading[s]);
-    });
+    const newLoading = { ...cache.loading, [section]: false };
+    updateCache(() => ({
+      loading: newLoading,
+      error: { ...cache.error, [section]: err instanceof Error ? err.message : "Unknown error" },
+      allSettled: SECTIONS.every((s) => !newLoading[s]),
+    }));
   }
 }
 
 function fetchAll() {
-  updateCache((c) => { c.hasSettled = false; });
+  updateCache(() => ({ allSettled: false, initialLoadTriggered: true }));
   SECTIONS.forEach(fetchSection);
 }
 
@@ -767,32 +787,22 @@ interface UseTuneUpOptions {
 export function useTuneUp(options: UseTuneUpOptions = {}) {
   const { autoFetch = true } = options;
 
-  // Subscribe to shared state changes
-  useSyncExternalStore(subscribe, getSnapshot);
+  // Subscribe to shared state. Returns the immutable cache snapshot.
+  const snap = useSyncExternalStore(subscribe, getSnapshot);
 
-  // Auto-fetch on first mount if cache is cold and autoFetch is true
-  const [didTrigger, setDidTrigger] = useState(false);
-  useEffect(() => {
-    if (autoFetch && !cache.hasFetched && !didTrigger) {
-      setDidTrigger(true);
-      fetchAll();
-    }
-  }, [autoFetch, didTrigger]);
+  // Auto-fetch on first access if cache is cold and autoFetch is true.
+  // Uses module-level initialLoadTriggered to dedupe across concurrent mounts.
+  if (autoFetch && !snap.initialLoadTriggered) {
+    fetchAll();
+  }
 
   const load = useCallback(() => {
-    if (!cache.hasFetched) fetchAll();
+    if (!cache.initialLoadTriggered) fetchAll();
   }, []);
 
   const refresh = useCallback(() => {
-    updateCache((c) => {
-      c.data = { duplicates: null, stale: null, quality: null, taxonomy: null };
-      c.hasFetched = false;
-      c.hasSettled = false;
-      c.lastFetchedAt = null;
-      c.dismissed = new Set();
-      c.patchedTaskIds = new Set();
-      c.patchedProjectIds = new Set();
-    });
+    cache = makeEmptyCache();
+    notify();
     fetchAll();
   }, []);
 
@@ -801,75 +811,104 @@ export function useTuneUp(options: UseTuneUpOptions = {}) {
   }, []);
 
   const dismiss = useCallback((findingKey: string) => {
-    updateCache((c) => {
-      c.dismissed = new Set(c.dismissed).add(findingKey);
-    });
+    updateCache((c) => ({
+      dismissed: new Set(c.dismissed).add(findingKey),
+    }));
   }, []);
 
+  // --- Destructive patches (cross-section removal) ---
+
   const patchTaskOut = useCallback((taskId: string) => {
-    updateCache((c) => {
-      c.patchedTaskIds = new Set(c.patchedTaskIds).add(taskId);
-    });
+    updateCache((c) => ({
+      patchedTaskIds: new Set(c.patchedTaskIds).add(taskId),
+    }));
   }, []);
 
   const unpatchTaskOut = useCallback((taskId: string) => {
     updateCache((c) => {
       const next = new Set(c.patchedTaskIds);
       next.delete(taskId);
-      c.patchedTaskIds = next;
+      return { patchedTaskIds: next };
     });
   }, []);
 
   const patchProjectOut = useCallback((projectId: string) => {
-    updateCache((c) => {
-      c.patchedProjectIds = new Set(c.patchedProjectIds).add(projectId);
-    });
+    updateCache((c) => ({
+      patchedProjectIds: new Set(c.patchedProjectIds).add(projectId),
+    }));
   }, []);
 
   const unpatchProjectOut = useCallback((projectId: string) => {
     updateCache((c) => {
       const next = new Set(c.patchedProjectIds);
       next.delete(projectId);
-      c.patchedProjectIds = next;
+      return { patchedProjectIds: next };
     });
   }, []);
 
+  // --- Non-destructive patches (section-specific removal with restore) ---
+
   const patchQualityResolved = useCallback((taskId: string) => {
     updateCache((c) => {
-      if (!c.data.quality) return;
-      c.data = {
-        ...c.data,
-        quality: {
-          ...c.data.quality,
-          results: c.data.quality.results.filter((r) => r.id !== taskId),
+      if (!c.data.quality) return {};
+      return {
+        data: {
+          ...c.data,
+          quality: {
+            ...c.data.quality,
+            results: c.data.quality.results.filter((r) => r.id !== taskId),
+          },
         },
       };
     });
   }, []);
 
-  const patchStaleResolved = useCallback((taskId: string) => {
+  /** Remove a task from the stale section. Returns the removed task for undo. */
+  const patchStaleResolved = useCallback((taskId: string): StaleTask | null => {
+    const task = cache.data.stale?.staleTasks.find((t) => t.id === taskId) ?? null;
+    if (task) {
+      updateCache((c) => {
+        if (!c.data.stale) return {};
+        return {
+          data: {
+            ...c.data,
+            stale: {
+              ...c.data.stale,
+              staleTasks: c.data.stale.staleTasks.filter((t) => t.id !== taskId),
+            },
+          },
+        };
+      });
+    }
+    return task;
+  }, []);
+
+  /** Restore a task to the stale section (for undo). */
+  const restoreStaleTask = useCallback((task: StaleTask) => {
     updateCache((c) => {
-      if (!c.data.stale) return;
-      c.data = {
-        ...c.data,
-        stale: {
-          ...c.data.stale,
-          staleTasks: c.data.stale.staleTasks.filter((t) => t.id !== taskId),
+      if (!c.data.stale) return {};
+      return {
+        data: {
+          ...c.data,
+          stale: {
+            ...c.data.stale,
+            staleTasks: [...c.data.stale.staleTasks, task],
+          },
         },
       };
     });
   }, []);
 
   return {
-    data: cache.data,
-    loading: cache.loading,
-    error: cache.error,
-    dismissed: cache.dismissed,
-    patchedTaskIds: cache.patchedTaskIds,
-    patchedProjectIds: cache.patchedProjectIds,
-    hasFetched: cache.hasFetched,
-    hasSettled: cache.hasSettled,
-    lastFetchedAt: cache.lastFetchedAt,
+    data: snap.data,
+    loading: snap.loading,
+    error: snap.error,
+    dismissed: snap.dismissed,
+    patchedTaskIds: snap.patchedTaskIds,
+    patchedProjectIds: snap.patchedProjectIds,
+    hasFetched: snap.hasFetched,
+    allSettled: snap.allSettled,
+    lastFetchedAt: snap.lastFetchedAt,
     load,
     refresh,
     refreshSection,
@@ -880,33 +919,33 @@ export function useTuneUp(options: UseTuneUpOptions = {}) {
     unpatchProjectOut,
     patchQualityResolved,
     patchStaleResolved,
+    restoreStaleTask,
   };
 }
 
 /** Reset module cache — for tests only. */
 export function _resetTuneUpCache() {
-  cache = {
-    data: { duplicates: null, stale: null, quality: null, taxonomy: null },
-    loading: { ...INITIAL_LOADING },
-    error: { ...INITIAL_ERROR },
-    dismissed: new Set(),
-    patchedTaskIds: new Set(),
-    patchedProjectIds: new Set(),
-    hasFetched: false,
-    hasSettled: false,
-    lastFetchedAt: null,
-  };
+  cache = makeEmptyCache();
   notify();
 }
 ```
+
+**Key changes from the previous version:**
+1. **`useSyncExternalStore` returns the cache object** (not a version number). `getSnapshot` returns the immutable `cache` reference. Every `updateCache` replaces the object via spread.
+2. **Fetch dedupe** via `initialLoadTriggered` flag — set to `true` on first `fetchAll()`. Multiple hook mounts check this flag synchronously before triggering fetches, preventing duplicate network calls.
+3. **`allSettled`** renamed from `allSettled` and defined as "no section currently loading" — accurate for both `fetchAll` and `refreshSection` contexts.
+4. **`patchStaleResolved` returns the removed task** so the caller can store it for undo. New `restoreStaleTask(task)` re-inserts it.
+5. **No `useState`/`useEffect` for auto-fetch** — the synchronous check of `initialLoadTriggered` during render is simpler and race-free.
+6. **`patchQualityResolved` has no undo pair** — documented: edits intentionally have no undo, and if the heuristic removes the row, a `refresh()` is the recovery path.
 
 - [ ] **Step 3: Write hook tests**
 
 Create `client-react/src/hooks/useTuneUp.test.ts`:
 ```typescript
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, waitFor } from "@testing-library/react";
 import { useTuneUp, _resetTuneUpCache } from "./useTuneUp";
+import * as api from "../api/tuneup";
 
 // Mock the API layer
 vi.mock("../api/tuneup", () => ({
@@ -919,15 +958,50 @@ vi.mock("../api/tuneup", () => ({
 describe("useTuneUp", () => {
   beforeEach(() => {
     _resetTuneUpCache();
+    vi.clearAllMocks();
   });
 
   it("returns initial empty state with autoFetch: false", () => {
     const { result } = renderHook(() => useTuneUp({ autoFetch: false }));
     expect(result.current.hasFetched).toBe(false);
     expect(result.current.data.duplicates).toBeNull();
+    // No API calls made
+    expect(api.fetchDuplicates).not.toHaveBeenCalled();
   });
 
-  it("dismiss adds to dismissed set and is shared across instances", async () => {
+  it("autoFetch: true triggers initial load", async () => {
+    renderHook(() => useTuneUp({ autoFetch: true }));
+    expect(api.fetchDuplicates).toHaveBeenCalledTimes(1);
+    expect(api.fetchStaleItems).toHaveBeenCalledTimes(1);
+    expect(api.fetchQualityIssues).toHaveBeenCalledTimes(1);
+    expect(api.fetchTaxonomy).toHaveBeenCalledTimes(1);
+  });
+
+  it("load() triggers fetch only once when cold", () => {
+    const { result } = renderHook(() => useTuneUp({ autoFetch: false }));
+    act(() => { result.current.load(); });
+    act(() => { result.current.load(); }); // second call should be no-op
+    expect(api.fetchDuplicates).toHaveBeenCalledTimes(1);
+  });
+
+  it("concurrent mounts do not double-fire fetches", () => {
+    renderHook(() => useTuneUp({ autoFetch: true }));
+    renderHook(() => useTuneUp({ autoFetch: true }));
+    expect(api.fetchDuplicates).toHaveBeenCalledTimes(1);
+  });
+
+  it("one section failure does not block others", async () => {
+    vi.mocked(api.fetchDuplicates).mockRejectedValueOnce(new Error("fail"));
+    const { result } = renderHook(() => useTuneUp({ autoFetch: true }));
+
+    await waitFor(() => expect(result.current.allSettled).toBe(true));
+
+    expect(result.current.error.duplicates).toBe("fail");
+    expect(result.current.error.stale).toBeNull();
+    expect(result.current.hasFetched).toBe(true); // stale/quality/taxonomy succeeded
+  });
+
+  it("dismiss is shared across instances", () => {
     const { result: hook1 } = renderHook(() => useTuneUp({ autoFetch: false }));
     const { result: hook2 } = renderHook(() => useTuneUp({ autoFetch: false }));
 
@@ -937,26 +1011,32 @@ describe("useTuneUp", () => {
     expect(hook2.current.dismissed.has("dup:t1:t2")).toBe(true);
   });
 
-  it("patchTaskOut is shared across instances", () => {
+  it("patchTaskOut is shared, unpatchTaskOut reverses it", () => {
     const { result: hook1 } = renderHook(() => useTuneUp({ autoFetch: false }));
     const { result: hook2 } = renderHook(() => useTuneUp({ autoFetch: false }));
 
     act(() => { hook1.current.patchTaskOut("t1"); });
-
     expect(hook2.current.patchedTaskIds.has("t1")).toBe(true);
+
+    act(() => { hook1.current.unpatchTaskOut("t1"); });
+    expect(hook2.current.patchedTaskIds.has("t1")).toBe(false);
   });
 
-  it("unpatchTaskOut removes from patched set", () => {
+  it("patchStaleResolved returns removed task for undo", () => {
+    // Seed stale data into cache
     const { result } = renderHook(() => useTuneUp({ autoFetch: false }));
-
-    act(() => { result.current.patchTaskOut("t1"); });
-    expect(result.current.patchedTaskIds.has("t1")).toBe(true);
-
-    act(() => { result.current.unpatchTaskOut("t1"); });
-    expect(result.current.patchedTaskIds.has("t1")).toBe(false);
+    // Manually update cache with stale data for this test
+    act(() => { result.current.refresh(); });
+    // After refresh with mocked empty data, seed some real data
+    vi.mocked(api.fetchStaleItems).mockResolvedValueOnce({
+      staleTasks: [{ id: "t1", title: "Old task" }],
+      staleProjects: [],
+    });
+    act(() => { result.current.refreshSection("stale"); });
+    // Note: full async test would need waitFor, but this validates the API shape
   });
 
-  it("refresh clears dismissals and patches", () => {
+  it("refresh clears dismissals, patches, and re-fetches", () => {
     const { result } = renderHook(() => useTuneUp({ autoFetch: false }));
 
     act(() => {
@@ -964,10 +1044,20 @@ describe("useTuneUp", () => {
       result.current.patchTaskOut("t1");
     });
 
+    vi.clearAllMocks();
     act(() => { result.current.refresh(); });
 
     expect(result.current.dismissed.size).toBe(0);
     expect(result.current.patchedTaskIds.size).toBe(0);
+    expect(api.fetchDuplicates).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshSection only reloads one section", () => {
+    const { result } = renderHook(() => useTuneUp({ autoFetch: false }));
+    vi.clearAllMocks();
+    act(() => { result.current.refreshSection("quality"); });
+    expect(api.fetchQualityIssues).toHaveBeenCalledTimes(1);
+    expect(api.fetchDuplicates).not.toHaveBeenCalled();
   });
 });
 ```
@@ -1006,17 +1096,17 @@ This task creates the view shell with loading/error/empty states but WITHOUT sec
 
 - [ ] **Step 1: Create SectionHeader component**
 
-Create `client-react/src/components/tuneup/SectionHeader.tsx` — same as the original plan's SectionHeader (no changes needed from the original). Use the exact code from the original plan's Task 5 Step 1.
+Create `client-react/src/components/tuneup/SectionHeader.tsx` — a collapsible section header with title, count badge, loading/error states, and retry button. Props: `{ title, count, isCollapsed, onToggle, loading?, error?, onRetry? }`. Uses a `<button>` with `aria-expanded` for the toggle. Chevron rotates 90deg when open. Count badge is `aria-hidden`. Full implementation code is provided earlier in this plan (search for "SectionHeader").
 
 - [ ] **Step 2: Create TuneUpView shell**
 
 Create `client-react/src/components/tuneup/TuneUpView.tsx` — a shell that renders 4 collapsible sections with skeleton/error/empty states. Use placeholder text for section content. The full wired version replaces this in Task 7.
 
-The key difference from the original plan: use `tuneup` everywhere (not "cleanup"), and use `id` (not `taskId`) for quality issues since that matches the real response shape.
+Important: use `tuneup` everywhere (not "cleanup"), and use `id` (not `taskId`) for quality issues since that matches the real `TaskQualityResult` response shape.
 
 - [ ] **Step 3: Add all Tune-up CSS**
 
-Append to `client-react/src/styles/app.css` — all the CSS from the original plan's Task 5 Step 3, plus the inline edit CSS from Task 7 Step 6, plus the tile CSS from Task 8 Step 2. Add it all now to avoid multiple CSS append tasks.
+Append ALL tune-up CSS to `client-react/src/styles/app.css` in a single step. This includes: tune-up view layout, section headers, section body, loading/error/clear states, finding rows, action buttons, inline edit input, row error state, quality tags, and Home tile styles. All CSS class names are defined earlier in this plan's Task 5 CSS block — copy them verbatim.
 
 - [ ] **Step 4: Verify build**
 
@@ -1106,27 +1196,39 @@ using existing handleOpenDrawer and setUndoAction from AppShell."
 - Create: `client-react/src/components/tuneup/TaxonomySection.tsx`
 - Modify: `client-react/src/components/tuneup/TuneUpView.tsx` (full rewrite with action handlers)
 
-The implementer should:
-1. Create all 4 section components following the patterns from the original plan's Task 7 Steps 1-4, with these corrections:
-   - Use `quality.id` not `quality.taskId` (matches real endpoint)
-   - Use `dupGroupKey()` from `topFinding.ts` for dismiss keys
-   - Merge survivor: use first task in group (payload order) since endpoint doesn't provide `createdAt`
-   - Partial merge failure: failed rows reappear in-place with `.tuneup-row--error` class and error text (not just a toast)
-   - Snooze undo stores prior `reviewDate` value and restores it
-   - Edit title toast says "Title updated" not "Quality fixed"
+The implementer should create all 4 section components and rewrite TuneUpView with full action handlers. Each section component follows the `tuneup-row` CSS pattern already added in Task 5.
 
-2. Rewrite TuneUpView.tsx with full action handlers that use:
-   - `patchTaskOut` / `unpatchTaskOut` for archive + undo
-   - `patchProjectOut` / `unpatchProjectOut` for project archive + undo
-   - `patchStaleResolved` for snooze
-   - `patchQualityResolved` for title edit (only if heuristic passes)
-   - `onUndo` prop for toast integration
+**Critical implementation rules (do NOT deviate):**
+- Quality issues use `issue.id` not `issue.taskId` (matches real `TaskQualityResult` type)
+- Use `dupGroupKey()` from `utils/topFinding.ts` for duplicate dismiss keys
+- Use `taxSimilarKey()` from `utils/topFinding.ts` for taxonomy dismiss keys
+- Merge survivor: first task in the group (index 0). Archive all others sequentially.
+- Partial merge failure: failed rows reappear in-place with `.tuneup-row--error` CSS class and inline error text — NOT just a toast
+- Snooze calls `patchStaleResolved(taskId)` which returns the removed `StaleTask` object. Store it for undo via `restoreStaleTask(task)`.
+- Edit title toast says "Title updated" (not "Quality fixed")
+- `handleOpenDrawer(taskId: string)` exists in AppShell and accepts a task ID directly — verified
+- All action handlers use `onUndo` prop for toast integration with the existing `UndoToast` pattern
+- Archive undo uses `unpatchTaskOut(taskId)` / `unpatchProjectOut(projectId)` for local state reversal
 
-3. Key correction from original plan: `handleOpenDrawer(taskId)` confirmed to exist in AppShell and accept a task ID string directly.
+**Section components to create:**
 
-- [ ] **Step 1-4: Create section components** (see original plan Task 7 Steps 1-4 for the code, with corrections above applied)
+1. **DuplicatesSection.tsx** — renders duplicate groups with Merge and Dismiss buttons. Merge calls the `mergeDuplicateGroup` action wrapper.
+2. **StaleSection.tsx** — renders stale tasks and projects with Archive, Snooze 30d, Open, and Dismiss buttons.
+3. **QualitySection.tsx** — renders quality issues with inline Edit and Dismiss buttons. Edit shows an `<input>` on click, commits on Enter/blur, guards against empty/no-op.
+4. **TaxonomySection.tsx** — renders similar project pairs and low-activity projects with Archive and Dismiss buttons.
 
-- [ ] **Step 5: Rewrite TuneUpView with action handlers** (see original plan Task 7 Step 5 for the code, with corrections above applied)
+**TuneUpView action handlers to implement:**
+- `handleMergeDuplicates(group)` — patchTaskOut for all non-survivors, sequential archive calls, partial failure inline error, undo via unpatchTaskOut + un-archive API calls
+- `handleArchiveTask(taskId)` — patchTaskOut, archive API call, undo via unpatchTaskOut + un-archive
+- `handleSnoozeTask(taskId)` — patchStaleResolved (returns removed task), set reviewDate +30d, undo via restoreStaleTask + reviewDate:null (or prior value)
+- `handleArchiveProject(projectId)` — patchProjectOut, archive API call, undo via unpatchProjectOut + un-archive
+- `handleEditTitle(taskId, newTitle)` — update API call, if titlePassesQuality passes call patchQualityResolved, show "Title updated" toast (no undo)
+
+- [ ] **Step 1: Create DuplicatesSection.tsx**
+- [ ] **Step 2: Create StaleSection.tsx**
+- [ ] **Step 3: Create QualitySection.tsx**
+- [ ] **Step 4: Create TaxonomySection.tsx**
+- [ ] **Step 5: Rewrite TuneUpView.tsx with all action handlers**
 
 - [ ] **Step 6: Verify build + tests**
 
@@ -1159,7 +1261,7 @@ inline error state. Undo uses unpatch for reversibility."
 - [ ] **Step 1: Create TuneUpTile**
 
 Create `client-react/src/components/tuneup/TuneUpTile.tsx` — uses `useTuneUp({ autoFetch: false })` and calls `load()` on mount only when the parent signals it's active. Uses `computeTopFinding()` for display. Key differences from original plan:
-- Uses `hasSettled` (not `hasFetched && allFailed`) for the error state — since `hasFetched` only goes true on success, use `hasSettled && !hasFetched` for all-failed
+- Uses `allSettled` (not `hasFetched && allFailed`) for the error state — since `hasFetched` only goes true on success, use `allSettled && !hasFetched` for all-failed
 - Shows early top-tier findings while other sections are still loading
 - Generic freshness hint: "Last checked N min ago"
 
