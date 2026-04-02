@@ -91,10 +91,11 @@ describe("useNextWork", () => {
   });
 
   it("handles fetch error gracefully", async () => {
-    vi.mocked(fetchNextWork).mockRejectedValueOnce(new Error("Network error"));
+    // Reset cache first, then set the rejection mock, so the fresh hook hits the error
     _resetNextWorkCache();
+    vi.mocked(fetchNextWork).mockRejectedValueOnce(new Error("Network error"));
     const { result } = renderHook(() => useNextWork());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    expect(result.current.error).toBe("Network error");
+    await waitFor(() => expect(result.current.error).toBe("Network error"));
+    expect(result.current.loading).toBe(false);
   });
 });
