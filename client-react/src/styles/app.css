@@ -7234,3 +7234,18 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* === Priority borders === */
+.todo-item--border-high {
+  border-left: 3px solid var(--danger);
+}
+.todo-item--border-med {
+  border-left: 3px solid var(--warning);
+}
+/* === Overdue tint === */
+.todo-item--overdue {
+  background: color-mix(in srgb, var(--danger) 5%, transparent);
+}
+.todo-item--overdue:hover {
+  background: color-mix(in srgb, var(--danger) 8%, var(--surface-2));
+}

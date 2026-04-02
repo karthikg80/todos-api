@@ -76,7 +76,13 @@ export function TodoRow({
   };
 
   const titleClass = `todo-title${todo.completed ? " todo-title--completed" : ""}`;
-  const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${isExpanded ? " todo-item--expanded" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}`;
+  const isOverdue = !todo.completed && !!todo.dueDate && new Date(todo.dueDate) < new Date(new Date().toDateString());
+  const priorityBorder = (todo.priority === "urgent" || todo.priority === "high")
+    ? " todo-item--border-high"
+    : todo.priority === "medium"
+      ? " todo-item--border-med"
+      : "";
+  const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${isExpanded ? " todo-item--expanded" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}${priorityBorder}${isOverdue ? " todo-item--overdue" : ""}`;
 
   return (
     <div
