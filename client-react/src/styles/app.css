@@ -1344,9 +1344,20 @@ body {
     padding: var(--s-3) var(--s-4);
   }
 
-  /* Hide profile launcher in mobile sheet — mobile has its own logout */
-  .mobile-sheet .profile-launcher {
-    display: none;
+  /* Flip profile popover upward in mobile sheet (sheet overflows) */
+  .mobile-sheet .profile-launcher__panel {
+    bottom: auto;
+    top: calc(100% + var(--s-2));
+  }
+
+  .mobile-sheet {
+    overflow: visible;
+  }
+
+  .mobile-sheet .sidebar-scroll {
+    overflow-y: auto;
+    flex: 1 1 0;
+    min-height: 0;
   }
 }
 
