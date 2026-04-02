@@ -25,7 +25,7 @@ type AutomationCandidateRecord = {
   id: string;
   title: string;
   type: "bug" | "feature" | "general";
-  status: "new" | "triaged" | "promoted" | "rejected";
+  status: "new" | "triaged" | "promoted" | "rejected" | "resolved";
   classification: FeedbackTriageClassification | null;
   triageConfidence?: number | null;
   normalizedTitle: string | null;
@@ -68,7 +68,7 @@ function toDecisionDto(record: {
   id: string;
   title: string;
   type: "bug" | "feature" | "general";
-  status: "new" | "triaged" | "promoted" | "rejected";
+  status: "new" | "triaged" | "promoted" | "rejected" | "resolved";
   classification?: FeedbackTriageClassification | null;
   triageConfidence?: number | null;
   promotionDecision?: string | null;
