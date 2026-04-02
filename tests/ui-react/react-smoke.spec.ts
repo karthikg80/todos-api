@@ -51,7 +51,7 @@ test.describe("React preview – smoke", () => {
 
     await page.goto("/");
 
-    // The React app should redirect to /auth?next=/app-react
-    await page.waitForURL(/\/auth\?next=\/app-react/);
+    // The React app should redirect to /auth?next=/app
+    await page.waitForURL(/\/auth\?next=\/app/);
   });
 });
