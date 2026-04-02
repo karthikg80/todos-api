@@ -1248,6 +1248,9 @@ export function AppShell() {
                     onTagClick={handleTagClick}
                     onLifecycleAction={handleLifecycleAction}
                     onReorder={handleReorder}
+                    sortBy={sortBy}
+                    sortOrder={sortOrder}
+                    onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
                   />
                 )}
               </div>
