@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { CreateTodoDto } from "../../types";
 import { IconClose } from "../shared/Icons";
+import { useCaptureRoute } from "../../hooks/useCaptureRoute";
 
 interface Props {
   projectId?: string | null;
-  onAdd: (dto: CreateTodoDto) => Promise<unknown>;
+  workspaceView?: string;
+  onAddTask: (dto: CreateTodoDto) => Promise<unknown>;
+  onCaptureToDesk: (text: string) => Promise<unknown>;
   placeholder?: string;
 }
 
@@ -88,13 +91,29 @@ function parseNaturalDate(input: string): ParsedDate | null {
   return null;
 }
 
-export function QuickEntry({ projectId, onAdd, placeholder = "Add a task…" }: Props) {
+function getRouteLabel(route: "task" | "triage") {
+  return route === "task" ? "Create task now" : "Add to Desk";
+}
+
+export function QuickEntry({
+  projectId,
+  workspaceView,
+  onAddTask,
+  onCaptureToDesk,
+  placeholder = "Add a task…",
+}: Props) {
   const [title, setTitle] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [parsedDate, setParsedDate] = useState<ParsedDate | null>(null);
   const [dateApplied, setDateApplied] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const { suggestion, loading, preferredRoute, alternateRoute } =
+    useCaptureRoute({
+      text: title,
+      project: projectId,
+      workspaceView,
+    });
 
   // Debounced date parsing
   useEffect(() => {
@@ -112,16 +131,31 @@ export function QuickEntry({ projectId, onAdd, placeholder = "Add a task…" }: 
     return () => clearTimeout(debounceRef.current);
   }, [title]);
 
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async (route: "task" | "triage") => {
     const trimmed = title.trim();
     if (!trimmed || submitting) return;
     setSubmitting(true);
     try {
-      await onAdd({
-        title: trimmed,
-        ...(projectId ? { projectId } : {}),
-        ...(dateApplied && parsedDate ? { dueDate: parsedDate.date } : {}),
-      });
+      if (route === "triage") {
+        await onCaptureToDesk(trimmed);
+      } else {
+        const extractedDueDate =
+          suggestion?.extractedFields?.dueDate &&
+          typeof suggestion.extractedFields.dueDate === "string"
+            ? suggestion.extractedFields.dueDate
+            : null;
+        await onAddTask({
+          title: suggestion?.cleanedTitle?.trim() || trimmed,
+          ...(projectId ? { projectId } : {}),
+          ...((dateApplied && parsedDate) || extractedDueDate
+            ? {
+                dueDate:
+                  (dateApplied && parsedDate ? parsedDate.date : null) ??
+                  extractedDueDate,
+              }
+            : {}),
+        });
+      }
       setTitle("");
       setParsedDate(null);
       setDateApplied(false);
@@ -129,7 +163,24 @@ export function QuickEntry({ projectId, onAdd, placeholder = "Add a task…" }: 
     } finally {
       setSubmitting(false);
     }
-  }, [title, submitting, projectId, dateApplied, parsedDate, onAdd]);
+  }, [
+    title,
+    submitting,
+    projectId,
+    dateApplied,
+    parsedDate,
+    onAddTask,
+    onCaptureToDesk,
+    suggestion,
+  ]);
+
+  const routeHint = !title.trim()
+    ? ""
+    : loading
+      ? "Reviewing capture…"
+      : suggestion?.why
+        ? `Suggested: ${getRouteLabel(preferredRoute)}. ${suggestion.why}`
+        : `Default: ${getRouteLabel(preferredRoute)}.`;
 
   return (
     <div className="quick-entry" id="taskComposerSheet" aria-hidden="false">
@@ -142,7 +193,7 @@ export function QuickEntry({ projectId, onAdd, placeholder = "Add a task…" }: 
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === "Enter") handleSubmit();
+          if (e.key === "Enter") handleSubmit(preferredRoute);
         }}
       />
       {parsedDate && (
@@ -167,14 +218,29 @@ export function QuickEntry({ projectId, onAdd, placeholder = "Add a task…" }: 
           </button>
         </div>
       )}
-      <button
-        id="taskComposerAddButton"
-        className="quick-entry__btn"
-        disabled={!title.trim() || submitting}
-        onClick={handleSubmit}
-      >
-        Add
-      </button>
+      {routeHint && (
+        <span className="capture-route-hint" aria-live="polite">
+          {routeHint}
+        </span>
+      )}
+      <div className="quick-entry__actions">
+        <button
+          id="taskComposerAddButton"
+          className="quick-entry__btn"
+          disabled={!title.trim() || submitting}
+          onClick={() => handleSubmit(preferredRoute)}
+        >
+          {submitting ? "Saving…" : getRouteLabel(preferredRoute)}
+        </button>
+        <button
+          type="button"
+          className="quick-entry__btn quick-entry__btn--secondary"
+          disabled={!title.trim() || submitting}
+          onClick={() => handleSubmit(alternateRoute)}
+        >
+          {getRouteLabel(alternateRoute)}
+        </button>
+      </div>
     </div>
   );
 }

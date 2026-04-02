@@ -625,6 +625,7 @@ body {
 .quick-entry {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--s-3);
   padding: var(--s-3h) var(--s-5);
   border-bottom: 1px solid var(--border-light);
@@ -667,6 +668,30 @@ body {
 .quick-entry__btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.quick-entry__btn--secondary {
+  background: var(--surface-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.quick-entry__btn--secondary:hover:not(:disabled) {
+  background: var(--surface-3);
+}
+
+.quick-entry__actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-shrink: 0;
+}
+
+.capture-route-hint {
+  flex-basis: 100%;
+  font-size: var(--fs-label);
+  color: var(--muted);
+  margin-top: calc(var(--s-1) * -1);
 }
 
 /* --- Drawer --- */
@@ -8298,4 +8323,3 @@ body {
   white-space: nowrap;
   border-width: 0;
 }
-

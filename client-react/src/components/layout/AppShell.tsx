@@ -22,6 +22,7 @@ import {
   IconPlus,
 } from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
+import { captureInboxItem } from "../../api/inbox";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { SortableTodoList } from "../todos/SortableTodoList";
@@ -255,17 +256,22 @@ export function AppShell() {
           (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
         );
       } else if (activeView === "upcoming") {
-        // Only future-dated incomplete tasks
+        const upcomingEnd = new Date();
+        upcomingEnd.setDate(upcomingEnd.getDate() + 14);
+        const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
         filtered = filtered.filter(
-          (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] > today,
+          (t) =>
+            !t.completed &&
+            !!t.dueDate &&
+            t.dueDate.split("T")[0] > today &&
+            t.dueDate.split("T")[0] <= upcomingEndIso,
         );
       }
     }
 
     if (searchQuery.trim()) {
-      // Search is global — searches all todos, not just current view
       const q = searchQuery.toLowerCase();
-      filtered = todos.filter(
+      filtered = filtered.filter(
         (t) =>
           t.title.toLowerCase().includes(q) ||
           t.description?.toLowerCase().includes(q) ||
@@ -317,6 +323,9 @@ export function AppShell() {
   const viewCounts = useMemo(() => {
     const active = todos.filter((t) => !t.completed);
     const today = new Date().toISOString().split("T")[0];
+    const upcomingEnd = new Date();
+    upcomingEnd.setDate(upcomingEnd.getDate() + 14);
+    const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
     return {
       triage: active.filter(
         (t) => t.status === "inbox" || (!t.projectId && !t.category),
@@ -324,7 +333,10 @@ export function AppShell() {
       today: active.filter((t) => t.dueDate && t.dueDate.split("T")[0] <= today)
         .length,
       upcoming: active.filter(
-        (t) => t.dueDate && t.dueDate.split("T")[0] > today,
+        (t) =>
+          !!t.dueDate &&
+          t.dueDate.split("T")[0] > today &&
+          t.dueDate.split("T")[0] <= upcomingEndIso,
       ).length,
     };
   }, [todos]);
@@ -366,6 +378,19 @@ export function AppShell() {
   const handleCloseDrawer = useCallback(() => {
     taskNav.deescalate();
   }, [taskNav]);
+
+  const handleCaptureToDesk = useCallback(
+    async (text: string) => {
+      const ok = await captureInboxItem(text);
+      if (!ok) {
+        throw new Error("Failed to add capture");
+      }
+      setUndoAction({
+        message: "Added to Desk",
+      });
+    },
+    [],
+  );
 
   const handleInlineEdit = useCallback(
     async (id: string, title: string) => {
@@ -558,7 +583,7 @@ export function AppShell() {
         if (paletteOpen) {
           setPaletteOpen(false);
         } else if (activeTodoId) {
-          taskNav.collapse();
+          taskNav.deescalate();
         } else if (bulkMode) {
           handleCancelBulk();
         } else if (mobileNavOpen) {
@@ -1204,7 +1229,9 @@ export function AppShell() {
               {uiMode === "normal" && (
                 <QuickEntry
                   projectId={selectedProjectId}
-                  onAdd={addTodo}
+                  workspaceView={activeView}
+                  onAddTask={addTodo}
+                  onCaptureToDesk={handleCaptureToDesk}
                   placeholder={quickEntryPlaceholder}
                 />
               )}
@@ -1283,7 +1310,7 @@ export function AppShell() {
               projects={projects}
               onSave={editTodo}
               onDelete={handleDeleteRequest}
-              onBack={() => taskNav.collapse()}
+              onBack={() => taskNav.deescalate()}
             />
           ) : null;
         })()}
@@ -1347,9 +1374,11 @@ export function AppShell() {
           isOpen={composerOpen}
           projects={projects}
           defaultProjectId={selectedProjectId}
-          onSubmit={async (dto) => {
+          workspaceView={activeView}
+          onSubmitTask={async (dto) => {
             await addTodo(dto);
           }}
+          onCaptureToDesk={handleCaptureToDesk}
           onClose={() => setComposerOpen(false)}
         />
       </Suspense>

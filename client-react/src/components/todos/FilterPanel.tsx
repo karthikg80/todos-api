@@ -152,58 +152,64 @@ export function applyFilters<
   },
 >(todos: T[], filters: ActiveFilters): T[] {
   let result = todos;
-  const today = new Date().toISOString().split("T")[0];
+  const now = new Date();
+  const today = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+  const todayIso = today.toISOString().split("T")[0];
 
   // Date filter
   switch (filters.dateFilter) {
     case "today":
       result = result.filter(
-        (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
+        (t) =>
+          !t.completed &&
+          !!t.dueDate &&
+          t.dueDate.split("T")[0] <= todayIso,
       );
       break;
     case "upcoming": {
-      const nextWeek = new Date();
-      nextWeek.setDate(nextWeek.getDate() + 7);
-      const nw = nextWeek.toISOString().split("T")[0];
+      const upcomingEnd = new Date(today);
+      upcomingEnd.setDate(upcomingEnd.getDate() + 14);
+      const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
       result = result.filter(
         (t) =>
           !t.completed &&
           t.dueDate &&
-          t.dueDate.split("T")[0] > today &&
-          t.dueDate.split("T")[0] <= nw,
+          t.dueDate.split("T")[0] > todayIso &&
+          t.dueDate.split("T")[0] <= upcomingEndIso,
       );
       break;
     }
     case "next-month": {
-      const nextMonth = new Date();
-      nextMonth.setDate(nextMonth.getDate() + 30);
-      const nm = nextMonth.toISOString().split("T")[0];
+      const nextMonthStart = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+      const monthAfterNextStart = new Date(
+        nextMonthStart.getFullYear(),
+        nextMonthStart.getMonth() + 1,
+        1,
+      );
       result = result.filter(
         (t) =>
           !t.completed &&
           t.dueDate &&
-          t.dueDate.split("T")[0] > today &&
-          t.dueDate.split("T")[0] <= nm,
+          t.dueDate >= nextMonthStart.toISOString() &&
+          t.dueDate < monthAfterNextStart.toISOString(),
       );
       break;
     }
     case "later":
-      result = result.filter((t) => {
-        if (t.completed) return false;
-        if (!t.dueDate) return true;
-        const d = new Date();
-        d.setDate(d.getDate() + 30);
-        return t.dueDate.split("T")[0] > d.toISOString().split("T")[0];
-      });
+      result = result.filter((t) => !t.completed && !t.dueDate);
       break;
     case "pending":
       result = result.filter(
-        (t) => !t.completed && (t.status === "waiting" || t.status === "scheduled"),
+        (t) => !t.completed && t.status === "waiting",
       );
       break;
     case "planned":
       result = result.filter(
-        (t) => !t.completed && t.scheduledDate,
+        (t) => !t.completed && !!t.scheduledDate,
       );
       break;
   }

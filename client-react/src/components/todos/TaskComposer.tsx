@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { CreateTodoDto, TodoStatus, Priority, Project } from "../../types";
 import { AiOnCreateAssist } from "../ai/AiOnCreateAssist";
+import { useCaptureRoute } from "../../hooks/useCaptureRoute";
 
 interface Props {
   isOpen: boolean;
   projects: Project[];
   defaultProjectId?: string | null;
-  onSubmit: (dto: CreateTodoDto) => Promise<unknown>;
+  workspaceView?: string;
+  onSubmitTask: (dto: CreateTodoDto) => Promise<unknown>;
+  onCaptureToDesk: (text: string) => Promise<unknown>;
   onClose: () => void;
 }
 
@@ -30,7 +33,9 @@ export function TaskComposer({
   isOpen,
   projects,
   defaultProjectId,
-  onSubmit,
+  workspaceView,
+  onSubmitTask,
+  onCaptureToDesk,
   onClose,
 }: Props) {
   const [title, setTitle] = useState("");
@@ -42,6 +47,13 @@ export function TaskComposer({
   const [tags, setTags] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
+  const { suggestion, loading, preferredRoute, alternateRoute } =
+    useCaptureRoute({
+      text: title,
+      project: projectId,
+      workspaceView,
+      enabled: isOpen,
+    });
 
   useEffect(() => {
     if (isOpen) {
@@ -65,18 +77,28 @@ export function TaskComposer({
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen, onClose]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (route: "task" | "triage") => {
     const trimmed = title.trim();
     if (!trimmed || submitting) return;
     setSubmitting(true);
     try {
+      if (route === "triage") {
+        await onCaptureToDesk(trimmed);
+        onClose();
+        return;
+      }
       const dto: CreateTodoDto = {
-        title: trimmed,
+        title: suggestion?.cleanedTitle?.trim() || trimmed,
         ...(description.trim() ? { description: description.trim() } : {}),
         ...(status !== "inbox" ? { status } : {}),
         ...(priority ? { priority: priority as Priority } : {}),
         ...(projectId ? { projectId } : {}),
-        ...(dueDate ? { dueDate } : {}),
+        ...(dueDate || suggestion?.extractedFields?.dueDate
+          ? {
+              dueDate:
+                dueDate || suggestion?.extractedFields?.dueDate || undefined,
+            }
+          : {}),
         ...(tags.trim()
           ? {
               tags: tags
@@ -86,12 +108,20 @@ export function TaskComposer({
             }
           : {}),
       };
-      await onSubmit(dto);
+      await onSubmitTask(dto);
       onClose();
     } finally {
       setSubmitting(false);
     }
   };
+
+  const routeHint = !title.trim()
+    ? ""
+    : loading
+      ? "Reviewing capture…"
+      : suggestion?.why
+        ? `Suggested: ${preferredRoute === "task" ? "Create task now" : "Add to Desk"}. ${suggestion.why}`
+        : "";
 
   if (!isOpen) return null;
 
@@ -116,14 +146,14 @@ export function TaskComposer({
             type="text"
             placeholder="Task title"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSubmit();
-              }
-            }}
-          />
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSubmit(preferredRoute);
+                }
+              }}
+            />
           <textarea
             className="composer__textarea"
             placeholder="Description (optional)"
@@ -219,10 +249,18 @@ export function TaskComposer({
               else if (field === "dueDate") setDueDate(value);
             }}
           />
+          {routeHint && <p className="capture-route-hint">{routeHint}</p>}
         </div>
         <div className="composer__footer">
           <button className="btn" onClick={onClose}>
             Cancel
+          </button>
+          <button
+            className="btn"
+            onClick={() => handleSubmit(alternateRoute)}
+            disabled={!title.trim() || submitting}
+          >
+            {alternateRoute === "task" ? "Create task now" : "Add to Desk"}
           </button>
           <button
             className="btn"
@@ -231,10 +269,14 @@ export function TaskComposer({
               color: "#fff",
               borderColor: "var(--accent)",
             }}
-            onClick={handleSubmit}
+            onClick={() => handleSubmit(preferredRoute)}
             disabled={!title.trim() || submitting}
           >
-            {submitting ? "Creating…" : "Create Task"}
+            {submitting
+              ? "Saving…"
+              : preferredRoute === "task"
+                ? "Create task now"
+                : "Add to Desk"}
           </button>
         </div>
       </div>
