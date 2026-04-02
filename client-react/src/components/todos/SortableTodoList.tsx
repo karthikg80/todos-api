@@ -267,6 +267,7 @@ export function SortableTodoList({
                     isSelected={selectedIds.has(todo.id)}
                     isEntering={enteringIds.has(todo.id)}
                     density={density}
+                    groupBy={groupBy}
                     projects={projects}
                     headings={headings}
                     onToggle={onToggle}
@@ -318,6 +319,7 @@ export function SortableTodoList({
                       isBulkMode={isBulkMode}
                       isSelected={selectedIds.has(todo.id)}
                       density={density}
+                      groupBy={groupBy}
                       projects={projects}
                       headings={headings}
                       onToggle={onToggle}
