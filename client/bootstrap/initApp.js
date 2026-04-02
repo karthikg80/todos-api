@@ -16,6 +16,10 @@ export function initApp(d) {
   // Initialize theme immediately
   d.initTheme();
 
+  if (window.StandaloneTransitions) {
+    window.StandaloneTransitions.fadeInOnLoad();
+  }
+
   // Initialize UI mode from localStorage (canonical key: todos:ui-mode)
   try {
     let mode = localStorage.getItem("todos:ui-mode");

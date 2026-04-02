@@ -160,7 +160,16 @@
           // showAuthView() may throw on missing DOM — that's fine, we redirect
         }
         AppState.clearSession();
-        window.location.replace(buildAuthUrl());
+        try {
+          window.sessionStorage.setItem(
+            "todos:cross-page-transition",
+            JSON.stringify({
+              href: "/",
+              at: Date.now(),
+            }),
+          );
+        } catch (_) {}
+        window.location.replace("/");
       }, dur);
     };
   }
