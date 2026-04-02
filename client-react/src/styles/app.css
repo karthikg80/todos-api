@@ -8299,3 +8299,12 @@ body {
   border-width: 0;
 }
 
+/* === ViewRouter === */
+.view-router__slot {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
