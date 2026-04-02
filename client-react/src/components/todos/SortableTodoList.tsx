@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   DndContext,
   closestCenter,
@@ -17,6 +18,10 @@ import type { LoadState } from "../../store/useTodosStore";
 import { TodoRow } from "./TodoRow";
 import { IconGrip } from "../shared/Icons";
 import { IllustrationTasksEmpty } from "../shared/Illustrations";
+import { groupTodos } from "../../utils/groupTodos";
+import { useGroupBy } from "../../hooks/useGroupBy";
+import { useCollapsedGroups } from "../../hooks/useCollapsedGroups";
+import { GroupHeader } from "./GroupHeader";
 
 interface SortableRowProps {
   todo: Todo;
@@ -113,6 +118,11 @@ export function SortableTodoList({
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
+  const { groupBy } = useGroupBy();
+  const sections = useMemo(() => groupTodos(todos, groupBy), [todos, groupBy]);
+  const { isCollapsed, toggle } = useCollapsedGroups(groupBy);
+  const isDerived = groupBy === "status" || groupBy === "priority" || groupBy === "dueDate";
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
     if (over && active.id !== over.id) {
@@ -154,39 +164,128 @@ export function SortableTodoList({
     );
   }
 
-  return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragEnd={handleDragEnd}
-    >
-      <SortableContext
-        items={todos.map((t) => t.id)}
-        strategy={verticalListSortingStrategy}
+  if (groupBy === "none") {
+    return (
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
       >
-        <div id="todosList">
-          {todos.map((todo) => (
-            <SortableRow
-              key={todo.id}
-              todo={todo}
-              isActive={todo.id === activeTodoId}
-              isExpanded={todo.id === expandedTodoId}
-              isBulkMode={isBulkMode}
-              isSelected={selectedIds.has(todo.id)}
-              projects={projects}
-              headings={headings}
-              onToggle={onToggle}
-              onClick={onClick}
-              onKebab={onKebab}
-              onSelect={onSelect}
-              onInlineEdit={onInlineEdit}
-              onSave={onSave}
-              onTagClick={onTagClick}
-              onLifecycleAction={onLifecycleAction}
+        <SortableContext
+          items={todos.map((t) => t.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div id="todosList">
+            {todos.map((todo) => (
+              <SortableRow
+                key={todo.id}
+                todo={todo}
+                isActive={todo.id === activeTodoId}
+                isExpanded={todo.id === expandedTodoId}
+                isBulkMode={isBulkMode}
+                isSelected={selectedIds.has(todo.id)}
+                projects={projects}
+                headings={headings}
+                onToggle={onToggle}
+                onClick={onClick}
+                onKebab={onKebab}
+                onSelect={onSelect}
+                onInlineEdit={onInlineEdit}
+                onSave={onSave}
+                onTagClick={onTagClick}
+                onLifecycleAction={onLifecycleAction}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
+    );
+  }
+
+  if (isDerived) {
+    return (
+      <div id="todosList">
+        {sections.map((section) => (
+          <div key={section.key} className="todo-group">
+            <GroupHeader
+              label={section.label}
+              count={section.todos.length}
+              isCollapsed={isCollapsed(section.key)}
+              onToggle={() => toggle(section.key)}
             />
-          ))}
+            {!isCollapsed(section.key) &&
+              section.todos.map((todo) => (
+                <TodoRow
+                  key={todo.id}
+                  todo={todo}
+                  isActive={todo.id === activeTodoId}
+                  isExpanded={todo.id === expandedTodoId}
+                  isBulkMode={isBulkMode}
+                  isSelected={selectedIds.has(todo.id)}
+                  projects={projects}
+                  headings={headings}
+                  onToggle={onToggle}
+                  onClick={onClick}
+                  onKebab={onKebab}
+                  onSelect={onSelect}
+                  onInlineEdit={onInlineEdit}
+                  onSave={onSave}
+                  onTagClick={onTagClick}
+                  onLifecycleAction={onLifecycleAction}
+                />
+              ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  // groupBy === "project": per-section DnD
+  return (
+    <div id="todosList">
+      {sections.map((section) => (
+        <div key={section.key} className="todo-group">
+          <GroupHeader
+            label={section.label}
+            count={section.todos.length}
+            isCollapsed={isCollapsed(section.key)}
+            onToggle={() => toggle(section.key)}
+          />
+          {!isCollapsed(section.key) && (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={section.todos.map((t) => t.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {section.todos.map((todo) => (
+                  <SortableRow
+                    key={todo.id}
+                    todo={todo}
+                    isActive={todo.id === activeTodoId}
+                    isExpanded={todo.id === expandedTodoId}
+                    isBulkMode={isBulkMode}
+                    isSelected={selectedIds.has(todo.id)}
+                    projects={projects}
+                    headings={headings}
+                    onToggle={onToggle}
+                    onClick={onClick}
+                    onKebab={onKebab}
+                    onSelect={onSelect}
+                    onInlineEdit={onInlineEdit}
+                    onSave={onSave}
+                    onTagClick={onTagClick}
+                    onLifecycleAction={onLifecycleAction}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
         </div>
-      </SortableContext>
-    </DndContext>
+      ))}
+    </div>
   );
 }
