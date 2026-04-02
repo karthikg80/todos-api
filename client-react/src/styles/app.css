@@ -519,6 +519,19 @@ body {
   outline-offset: 2px;
 }
 
+.todo-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.todo-content__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
 .todo-title {
   flex: 1;
   min-width: 0;
