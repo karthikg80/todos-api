@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import type { Todo, Project, Heading, UpdateTodoDto } from "../../types";
 import type { Density } from "../../hooks/useDensity";
+import type { GroupBy } from "../../utils/groupTodos";
 import { IconKebab, IconClock, IconArchive, IconXCircle, IconRefresh } from "../shared/Icons";
 import { relativeTime } from "../../utils/relativeTime";
 import { QuickEditPanel } from "./QuickEditPanel";
@@ -15,6 +16,7 @@ interface Props {
   isEntering?: boolean;
   isExiting?: boolean;
   density: Density;
+  groupBy?: GroupBy;
   projects: Project[];
   headings: Heading[];
   onToggle: (id: string, completed: boolean) => void;
@@ -52,6 +54,7 @@ export function TodoRow({
   isEntering,
   isExiting,
   density,
+  groupBy,
   projects,
   headings,
   onToggle,
@@ -63,7 +66,7 @@ export function TodoRow({
   onTagClick,
   onLifecycleAction,
 }: Props) {
-  const chips = buildChips(todo, density);
+  const chips = buildChips(todo, density, groupBy);
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(todo.title);
   const [menuOpen, setMenuOpen] = useState(false);

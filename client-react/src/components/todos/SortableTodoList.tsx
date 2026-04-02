@@ -34,6 +34,7 @@ interface SortableRowProps {
   isSelected: boolean;
   isEntering?: boolean;
   density: "compact" | "normal" | "spacious";
+  groupBy?: "none" | "project" | "status" | "priority" | "dueDate";
   projects: Project[];
   headings: Heading[];
   onToggle: (id: string, completed: boolean) => void;
@@ -222,6 +223,7 @@ export function SortableTodoList({
                   isBulkMode={isBulkMode}
                   isSelected={selectedIds.has(todo.id)}
                   density={density}
+                  groupBy={groupBy}
                   projects={projects}
                   headings={headings}
                   onToggle={onToggle}
