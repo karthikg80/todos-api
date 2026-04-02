@@ -41,6 +41,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.view-transition-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--overlay);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 9999;
+  transition: opacity var(--dur-view) var(--ease-out);
+}
+
+.view-transition-overlay.active {
+  opacity: 1;
+}
+
 ::selection {
   background: color-mix(in oklab, var(--accent) 25%, transparent);
   color: var(--text-strong);
@@ -8309,7 +8323,6 @@ body {
   white-space: nowrap;
   border-width: 0;
 }
-
 /* === ViewRouter === */
 .view-router__slot {
   display: flex;
@@ -8318,5 +8331,3 @@ body {
   min-height: 0;
   overflow: hidden;
 }
-
-

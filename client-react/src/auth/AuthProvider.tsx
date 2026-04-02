@@ -8,6 +8,7 @@ import {
 } from "react";
 import type { User } from "../types";
 import { apiCall } from "../api/client";
+import { navigateWithFade } from "../utils/pageTransitions";
 
 interface AuthContextValue {
   user: User | null;
@@ -58,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("authToken");
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
-    window.location.href = "/auth?next=/app";
+    navigateWithFade("/", { replace: true });
   }, []);
 
   return (

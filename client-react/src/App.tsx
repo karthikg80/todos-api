@@ -1,9 +1,19 @@
+import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { AppShell } from "./components/layout/AppShell";
 import "./styles/app.css";
+import { navigateWithFade } from "./utils/pageTransitions";
 
 function AuthGate() {
   const { user, loading } = useAuth();
+  const hasToken =
+    typeof window !== "undefined" && !!localStorage.getItem("authToken");
+
+  useEffect(() => {
+    if (!loading && !user && !hasToken) {
+      navigateWithFade("/auth?next=/app", { replace: true });
+    }
+  }, [hasToken, loading, user]);
 
   if (loading) {
     return (
@@ -15,13 +25,8 @@ function AuthGate() {
     );
   }
 
-  if (!user) {
-    // Check if we have a token but user fetch is still pending
-    const token = localStorage.getItem("authToken");
-    if (!token) {
-      window.location.href = "/auth?next=/app";
-      return null;
-    }
+  if (!user && !hasToken) {
+    return null;
   }
 
   return (

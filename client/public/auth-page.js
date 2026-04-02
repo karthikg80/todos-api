@@ -13,6 +13,7 @@
 
   var AppState = window.AppState;
   var ApiClient = window.ApiClient;
+  var StandaloneTransitions = window.StandaloneTransitions;
   var Utils = window.Utils;
 
   // -- dependency guard -----------------------------------------------------
@@ -206,7 +207,12 @@
   }
 
   function redirectToApp() {
-    window.location.href = getValidatedPostAuthDestination() || "/app";
+    var destination = getValidatedPostAuthDestination() || "/app";
+    if (StandaloneTransitions) {
+      StandaloneTransitions.navigateWithFade(destination);
+      return;
+    }
+    window.location.href = destination;
   }
 
   function buildSocialAuthStartUrl(providerPath) {
@@ -796,6 +802,11 @@
   // ---------------------------------------------------------------------------
   function boot() {
     initTheme();
+
+    if (StandaloneTransitions) {
+      StandaloneTransitions.fadeInOnLoad();
+      StandaloneTransitions.bindNavigateLinks();
+    }
 
     // If already authenticated, redirect to app
     var session = AppState.loadStoredSession();

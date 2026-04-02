@@ -10,7 +10,9 @@
   <body>
     <div class="auth-standalone">
       <div class="auth-standalone__header">
-        <a href="/" class="auth-standalone__back">&larr; Home</a>
+        <a href="/" data-navigate="/" class="auth-standalone__back"
+          >&larr; Home</a
+        >
         <span class="auth-standalone__logo">Todos</span>
       </div>
 
@@ -386,6 +388,7 @@
     <script src="/utils/authSession.js"></script>
     <script src="/utils/apiClient.js"></script>
     <script src="/utils/utils.js"></script>
+    <script src="/utils/standaloneTransitions.js"></script>
     <!-- Standalone auth controller -->
     <script src="/public/auth-page.js"></script>
   </body>
