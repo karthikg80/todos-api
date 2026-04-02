@@ -55,12 +55,13 @@ interface TuneUpHook {
   patchTaskOut: (taskId: string) => void;
   patchProjectOut: (projectId: string) => void;
   patchQualityResolved: (taskId: string) => void;
+  patchStaleResolved: (taskId: string) => void;
 }
 ```
 
 **`hasFetched` and `lastFetchedAt`:**
 - `hasFetched: boolean` — true once at least one section has returned data. Distinguishes "never loaded" from "loaded and empty."
-- `lastFetchedAt: number | null` — timestamp of the most recent successful fetch. Used by the Home tile for the "Last checked N minutes ago" freshness hint.
+- `lastFetchedAt: number | null` — timestamp of the most recent successful section fetch (any section, not necessarily all four). Used by the Home tile for a generic freshness hint ("Last checked 5 min ago"). The tile does not imply all four sections refreshed together.
 
 **Fetching behavior:**
 - All 4 fire in parallel via `Promise.allSettled` — one failure doesn't block others
@@ -70,7 +71,11 @@ interface TuneUpHook {
 
 **Dismiss lifecycle:**
 - `dismiss(findingKey)` adds to a `Set<string>` in hook state
-- Finding keys must be semantically stable (e.g., `dup:exact:${taskId1}:${taskId2}`, `stale:task:${taskId}`, `quality:${taskId}`) — not array indices
+- Finding keys must be semantically stable — not array indices. Examples:
+  - Duplicates: `dup:exact:${sortedMemberIds.join(':')}` (sorted joined list of all member IDs, stable regardless of group size or payload order)
+  - Stale: `stale:task:${taskId}`
+  - Quality: `quality:${taskId}`
+  - Taxonomy: `tax:similar:${sortedProjectIds.join(':')}` / `tax:low:${projectId}`
 - Dismissals are session-only (not persisted to localStorage or backend)
 - Dismissals survive navigation between views **as long as the module-level cache is alive** — navigating from Tune-up to Home and back does not clear them
 - Dismissals are cleared only by: explicit `refresh()` call, or full page refresh (which resets the module-level cache)
@@ -84,7 +89,7 @@ Destructive actions (archive, merge) use `patchTaskOut(taskId)` / `patchProjectO
 
 Non-destructive actions (title edit, snooze) use targeted patchers:
 - `patchQualityResolved(taskId)` — removes the task from the quality section only. Does NOT remove from stale or duplicates, because editing a title doesn't resolve staleness, and may or may not affect duplicate status.
-- Snooze: calls `patchTaskOut(taskId)` for the stale section only (the task is no longer stale), but does NOT remove from quality or duplicates. Implement as removing the task from `staleData.staleTasks` in the cache, not the full cross-section `patchTaskOut`.
+- `patchStaleResolved(taskId)` — removes the task from `staleData.staleTasks` in the cache only. Does NOT remove from quality or duplicates, because snoozing doesn't fix title quality or duplicate status.
 
 These are lightweight local patches, not re-fetches. The raw server data is only re-fetched on explicit `refresh()` or `refreshSection()`.
 
@@ -134,7 +139,7 @@ These are lightweight local patches, not re-fetches. The raw server data is only
 
 **Tile name:** "Tune-up"
 
-**Loading state:** Shows "Analyzing..." with a subtle pulse animation. However, once any section has returned data that contains a top-tier finding (tiers 1-3), the tile shows that finding immediately even if other sections are still loading. This makes the tile feel faster.
+**Loading state:** Shows "Analyzing..." with a subtle pulse animation. However, once any section has returned data that contains a top-tier finding (tiers 1-3), the tile shows that finding immediately even if other sections are still loading. This makes the tile feel faster. If no loaded section produces tiers 1-3 and fetches are still in flight, keep showing "Analyzing...". Only once all fetches settle does the tile compute from the full visible dataset (which may produce a lower-tier finding or "All clear").
 
 **Content — top finding preview:**
 Shows the single most impactful finding. Priority order with tiebreaker rules:
@@ -192,19 +197,20 @@ A dedicated function (not a sequence of raw archive calls) that:
 - `PUT /todos/:id { title: newTitle }`
 - Quality heuristic (best-effort, not a correctness rule): if the new title is ≤80 chars, starts with a common English verb (check against a small hardcoded list of ~30 action verbs like "add", "fix", "update", "review", "create", "send", etc.), and contains no splitting words ("and", "then", "also"), consider quality issues resolved for that task. Call `patchQualityResolved(taskId)`.
 - This is a v1 approximation. Don't overfit tests to English grammar edge cases — a small utility with predictable behavior is enough.
+- Toast copy: "Title updated" (not "Quality fixed" — the heuristic is approximate, don't make definitive claims)
 - No undo for edits — the user can just re-edit
 
 **Snooze flow:**
 - `PUT /todos/:id { reviewDate: today + 30 days }`
-- Remove the task from `staleData.staleTasks` in the cache only (not cross-section `patchTaskOut`)
+- Call `patchStaleResolved(taskId)` (stale section only, not cross-section)
 - Row disappears from stale section immediately
 - Show "Snoozed for 30 days" toast with undo
-- Undo: `PUT /todos/:id { reviewDate: null }` and restore the task in stale cache
+- Undo: `PUT /todos/:id { reviewDate: previousValue }` — the toast stores the prior `reviewDate` value so undo restores it correctly (may be null or a pre-existing date), then re-inserts the task into the stale cache
 
 **After any action, reconcile:**
 - Destructive (archive, merge): `patchTaskOut(taskId)` — removes from ALL sections
 - Non-destructive (edit): `patchQualityResolved(taskId)` — removes from quality section only
-- Non-destructive (snooze): removes from stale section only
+- Non-destructive (snooze): `patchStaleResolved(taskId)` — removes from stale section only
 - Section count badges update immediately from visible findings
 - Home tile re-evaluates top finding from the same patched cache
 
@@ -252,7 +258,7 @@ Response types should be defined in `client-react/src/types/tuneup.ts` based on 
 
 ## Testing Strategy
 
-- **`useTuneUp` hook tests:** fetch behavior, caching across mounts, dismiss persistence across navigation, `patchTaskOut` cross-section removal, `patchQualityResolved` quality-only removal, snooze stale-only removal
+- **`useTuneUp` hook tests:** fetch behavior, caching across mounts, dismiss persistence across navigation, `patchTaskOut` cross-section removal, `patchQualityResolved` quality-only removal, `patchStaleResolved` stale-only removal
 - **Optimistic mutation + undo tests:** verify optimistic state, verify undo restores previous state from local mutation layer (not refetch), verify partial failure revert in `mergeDuplicateGroup`
 - **`topFinding` utility tests:** priority ordering, tiebreaker by count, tiebreaker by actionability, early return when top-tier data arrives while others are still loading
 - **`qualityHeuristic` utility tests:** basic verb detection, length check, splitting word detection. Do NOT overfit to grammar edge cases — test the predictable happy path and a few clear negatives.
