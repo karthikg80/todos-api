@@ -76,7 +76,7 @@ export async function apiCall(
       }
       return fetch(`${API_URL}${path}`, { ...options, headers });
     }
-    window.location.href = "/auth?next=/app-react";
+    window.location.href = "/auth?next=/app";
   }
 
   return res;

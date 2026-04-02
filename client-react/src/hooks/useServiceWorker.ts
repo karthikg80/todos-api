@@ -7,7 +7,7 @@ export function useServiceWorker(
     if (!("serviceWorker" in navigator)) return;
 
     navigator.serviceWorker
-      .register("/app-react/sw.js")
+      .register("/app/sw.js")
       .catch(() => {
         // SW registration failed — no offline support
       });
