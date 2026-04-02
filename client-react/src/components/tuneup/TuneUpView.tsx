@@ -1,7 +1,14 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useTuneUp } from "../../hooks/useTuneUp";
+import { apiCall } from "../../api/client";
 import { dupGroupKey, taxSimilarKey } from "../../utils/topFinding";
+import { titlePassesQuality } from "../../utils/qualityHeuristic";
 import { SectionHeader } from "./SectionHeader";
+import { DuplicatesSection } from "./DuplicatesSection";
+import { StaleSection } from "./StaleSection";
+import { QualitySection } from "./QualitySection";
+import { TaxonomySection } from "./TaxonomySection";
+import type { DuplicateGroup } from "../../types/tuneup";
 
 interface Props {
   onOpenTask?: (taskId: string) => void;
@@ -17,7 +24,7 @@ type CollapsedState = {
 
 function SkeletonRows() {
   return (
-    <div className="tuneup-skeleton" aria-busy="true" aria-label="Loading…">
+    <div className="tuneup-skeleton" aria-busy="true" aria-label="Loading...">
       <div className="tuneup-skeleton__row" />
       <div className="tuneup-skeleton__row" />
       <div className="tuneup-skeleton__row" />
@@ -25,16 +32,7 @@ function SkeletonRows() {
   );
 }
 
-function AllClear() {
-  return (
-    <div className="tuneup-all-clear">
-      <span className="tuneup-all-clear__icon" aria-hidden="true">✓</span>
-      All clear
-    </div>
-  );
-}
-
-export function TuneUpView({ onOpenTask: _onOpenTask, onUndo: _onUndo }: Props) {
+export function TuneUpView({ onOpenTask, onUndo }: Props) {
   const {
     data,
     loading,
@@ -44,6 +42,14 @@ export function TuneUpView({ onOpenTask: _onOpenTask, onUndo: _onUndo }: Props) 
     patchedProjectIds,
     refresh,
     refreshSection,
+    dismiss,
+    patchTaskOut,
+    unpatchTaskOut,
+    patchProjectOut,
+    unpatchProjectOut,
+    patchQualityResolved,
+    patchStaleResolved,
+    restoreStaleTask,
   } = useTuneUp();
 
   const [collapsed, setCollapsed] = useState<CollapsedState>({
@@ -53,11 +59,13 @@ export function TuneUpView({ onOpenTask: _onOpenTask, onUndo: _onUndo }: Props) 
     taxonomy: false,
   });
 
+  const [mergeErrors, setMergeErrors] = useState<Record<string, string>>({});
+
   function toggleSection(section: keyof CollapsedState) {
     setCollapsed((prev) => ({ ...prev, [section]: !prev[section] }));
   }
 
-  // --- Compute visible counts per section (mirrors dismissal + patch filtering) ---
+  // --- Compute visible counts per section ---
 
   const dupCount = data.duplicates
     ? data.duplicates.groups.filter((g) => {
@@ -90,6 +98,229 @@ export function TuneUpView({ onOpenTask: _onOpenTask, onUndo: _onUndo }: Props) 
         (p) => !(p.id ? dismissed.has(`tax:low:${p.id}`) || patchedProjectIds.has(p.id) : false),
       ).length
     : 0;
+
+  // --- Action handlers ---
+
+  const handleMergeDuplicates = useCallback(
+    async (group: DuplicateGroup) => {
+      const survivor = group.tasks[0];
+      const others = group.tasks.slice(1);
+      const archivedIds: string[] = [];
+      const failedIds: string[] = [];
+
+      // Optimistically patch out all non-survivors
+      for (const task of others) {
+        patchTaskOut(task.id);
+      }
+
+      // Sequential archive calls
+      for (const task of others) {
+        try {
+          const res = await apiCall(`/todos/${task.id}`, {
+            method: "PUT",
+            body: JSON.stringify({ archived: true }),
+          });
+          if (!res.ok) throw new Error(`Archive failed: ${res.status}`);
+          archivedIds.push(task.id);
+        } catch {
+          failedIds.push(task.id);
+          // Unpatch failed ones so they reappear
+          unpatchTaskOut(task.id);
+        }
+      }
+
+      // Show inline error for partial failures
+      if (failedIds.length > 0) {
+        const groupKey = dupGroupKey(group.tasks.map((t) => t.id));
+        setMergeErrors((prev) => ({
+          ...prev,
+          [groupKey]: `Failed to archive ${failedIds.length} task${failedIds.length !== 1 ? "s" : ""}`,
+        }));
+      }
+
+      if (archivedIds.length > 0 && onUndo) {
+        onUndo({
+          message: `Merged ${archivedIds.length + 1} tasks (kept "${survivor.title}")`,
+          onUndo: async () => {
+            for (const id of archivedIds) {
+              unpatchTaskOut(id);
+              try {
+                await apiCall(`/todos/${id}`, {
+                  method: "PUT",
+                  body: JSON.stringify({ archived: false }),
+                });
+              } catch {
+                // Best effort undo
+              }
+            }
+          },
+        });
+      }
+    },
+    [patchTaskOut, unpatchTaskOut, onUndo],
+  );
+
+  const handleArchiveTask = useCallback(
+    async (taskId: string) => {
+      patchTaskOut(taskId);
+      try {
+        const res = await apiCall(`/todos/${taskId}`, {
+          method: "PUT",
+          body: JSON.stringify({ archived: true }),
+        });
+        if (!res.ok) {
+          unpatchTaskOut(taskId);
+          return;
+        }
+      } catch {
+        unpatchTaskOut(taskId);
+        return;
+      }
+
+      if (onUndo) {
+        onUndo({
+          message: "Task archived",
+          onUndo: async () => {
+            unpatchTaskOut(taskId);
+            try {
+              await apiCall(`/todos/${taskId}`, {
+                method: "PUT",
+                body: JSON.stringify({ archived: false }),
+              });
+            } catch {
+              // Best effort
+            }
+          },
+        });
+      }
+    },
+    [patchTaskOut, unpatchTaskOut, onUndo],
+  );
+
+  const handleSnoozeTask = useCallback(
+    async (taskId: string) => {
+      // Fetch current reviewDate before mutating
+      let priorReviewDate: string | null = null;
+      try {
+        const fetchRes = await apiCall(`/todos/${taskId}`);
+        if (fetchRes.ok) {
+          const taskData = await fetchRes.json();
+          priorReviewDate = taskData.reviewDate ?? null;
+        }
+      } catch {
+        // Proceed with null
+      }
+
+      const removedTask = patchStaleResolved(taskId);
+
+      const reviewDate = new Date();
+      reviewDate.setDate(reviewDate.getDate() + 30);
+
+      try {
+        const res = await apiCall(`/todos/${taskId}`, {
+          method: "PUT",
+          body: JSON.stringify({ reviewDate: reviewDate.toISOString() }),
+        });
+        if (!res.ok && removedTask) {
+          restoreStaleTask(removedTask);
+          return;
+        }
+      } catch {
+        if (removedTask) restoreStaleTask(removedTask);
+        return;
+      }
+
+      if (onUndo && removedTask) {
+        onUndo({
+          message: "Snoozed for 30 days",
+          onUndo: async () => {
+            restoreStaleTask(removedTask);
+            try {
+              await apiCall(`/todos/${taskId}`, {
+                method: "PUT",
+                body: JSON.stringify({ reviewDate: priorReviewDate }),
+              });
+            } catch {
+              // Best effort
+            }
+          },
+        });
+      }
+    },
+    [patchStaleResolved, restoreStaleTask, onUndo],
+  );
+
+  const handleArchiveProject = useCallback(
+    async (projectId: string) => {
+      patchProjectOut(projectId);
+      try {
+        const res = await apiCall(`/projects/${projectId}`, {
+          method: "PUT",
+          body: JSON.stringify({ archived: true }),
+        });
+        if (!res.ok) {
+          unpatchProjectOut(projectId);
+          return;
+        }
+      } catch {
+        unpatchProjectOut(projectId);
+        return;
+      }
+
+      if (onUndo) {
+        onUndo({
+          message: "Project archived",
+          onUndo: async () => {
+            unpatchProjectOut(projectId);
+            try {
+              await apiCall(`/projects/${projectId}`, {
+                method: "PUT",
+                body: JSON.stringify({ archived: false }),
+              });
+            } catch {
+              // Best effort
+            }
+          },
+        });
+      }
+    },
+    [patchProjectOut, unpatchProjectOut, onUndo],
+  );
+
+  const handleEditTitle = useCallback(
+    async (taskId: string, newTitle: string) => {
+      try {
+        const res = await apiCall(`/todos/${taskId}`, {
+          method: "PUT",
+          body: JSON.stringify({ title: newTitle }),
+        });
+        if (!res.ok) return;
+      } catch {
+        return;
+      }
+
+      if (titlePassesQuality(newTitle)) {
+        patchQualityResolved(taskId);
+      }
+
+      if (onUndo) {
+        onUndo({
+          message: "Title updated",
+          onUndo: () => {
+            // No undo for title edits
+          },
+        });
+      }
+    },
+    [patchQualityResolved, onUndo],
+  );
+
+  const handleOpenTask = useCallback(
+    (taskId: string) => {
+      if (onOpenTask) onOpenTask(taskId);
+    },
+    [onOpenTask],
+  );
 
   return (
     <div className="tuneup-view">
@@ -128,13 +359,22 @@ export function TuneUpView({ onOpenTask: _onOpenTask, onUndo: _onUndo }: Props) 
               <div className="tuneup-section__error" role="alert">
                 {error.duplicates}
               </div>
-            ) : dupCount === 0 ? (
-              <AllClear />
-            ) : (
-              <div className="tuneup-section__placeholder">
-                {dupCount} duplicate group{dupCount !== 1 ? "s" : ""} found
-              </div>
-            )}
+            ) : data.duplicates ? (
+              <>
+                <DuplicatesSection
+                  groups={data.duplicates.groups}
+                  dismissed={dismissed}
+                  patchedTaskIds={patchedTaskIds}
+                  onMerge={handleMergeDuplicates}
+                  onDismiss={dismiss}
+                />
+                {Object.entries(mergeErrors).map(([key, msg]) => (
+                  <div key={key} className="tuneup-row tuneup-row--error">
+                    <span className="tuneup-row__error-text">{msg}</span>
+                  </div>
+                ))}
+              </>
+            ) : null}
           </div>
         )}
       </section>
@@ -162,13 +402,20 @@ export function TuneUpView({ onOpenTask: _onOpenTask, onUndo: _onUndo }: Props) 
               <div className="tuneup-section__error" role="alert">
                 {error.stale}
               </div>
-            ) : staleCount === 0 ? (
-              <AllClear />
-            ) : (
-              <div className="tuneup-section__placeholder">
-                {staleCount} stale item{staleCount !== 1 ? "s" : ""} found
-              </div>
-            )}
+            ) : data.stale ? (
+              <StaleSection
+                staleTasks={data.stale.staleTasks}
+                staleProjects={data.stale.staleProjects}
+                dismissed={dismissed}
+                patchedTaskIds={patchedTaskIds}
+                patchedProjectIds={patchedProjectIds}
+                onArchiveTask={handleArchiveTask}
+                onSnoozeTask={handleSnoozeTask}
+                onArchiveProject={handleArchiveProject}
+                onDismiss={dismiss}
+                onOpenTask={handleOpenTask}
+              />
+            ) : null}
           </div>
         )}
       </section>
@@ -196,13 +443,15 @@ export function TuneUpView({ onOpenTask: _onOpenTask, onUndo: _onUndo }: Props) 
               <div className="tuneup-section__error" role="alert">
                 {error.quality}
               </div>
-            ) : qualityCount === 0 ? (
-              <AllClear />
-            ) : (
-              <div className="tuneup-section__placeholder">
-                {qualityCount} quality issue{qualityCount !== 1 ? "s" : ""} found
-              </div>
-            )}
+            ) : data.quality ? (
+              <QualitySection
+                issues={data.quality.results}
+                dismissed={dismissed}
+                patchedTaskIds={patchedTaskIds}
+                onEditTitle={handleEditTitle}
+                onDismiss={dismiss}
+              />
+            ) : null}
           </div>
         )}
       </section>
@@ -230,13 +479,16 @@ export function TuneUpView({ onOpenTask: _onOpenTask, onUndo: _onUndo }: Props) 
               <div className="tuneup-section__error" role="alert">
                 {error.taxonomy}
               </div>
-            ) : taxonomyCount === 0 ? (
-              <AllClear />
-            ) : (
-              <div className="tuneup-section__placeholder">
-                {taxonomyCount} taxonomy suggestion{taxonomyCount !== 1 ? "s" : ""} found
-              </div>
-            )}
+            ) : data.taxonomy ? (
+              <TaxonomySection
+                similarProjects={data.taxonomy.similarProjects}
+                smallProjects={data.taxonomy.smallProjects}
+                dismissed={dismissed}
+                patchedProjectIds={patchedProjectIds}
+                onArchiveProject={handleArchiveProject}
+                onDismiss={dismiss}
+              />
+            ) : null}
           </div>
         )}
       </section>
