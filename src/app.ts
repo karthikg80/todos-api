@@ -243,10 +243,7 @@ export function createApp(deps: AppDependencies = {}) {
     ),
   );
   // React app — primary client at /app (must precede vanilla root)
-  app.use(
-    "/app",
-    express.static(path.join(__dirname, "../client-react/dist")),
-  );
+  app.use("/app", express.static(path.join(__dirname, "../client-react/dist")));
 
   // Vanilla classic — fallback client at /app-classic
   app.use(
