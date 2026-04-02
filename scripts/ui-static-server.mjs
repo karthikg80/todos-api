@@ -54,7 +54,6 @@ function safePath(requestPath) {
 // Standalone page routes — map product URLs to their HTML files
 const standaloneRoutes = {
   "/auth": path.join(root, "public", "auth.html"),
-  "/app": path.join(root, "public", "app.html"),
   "/feedback": path.join(root, "public", "feedback.html"),
   "/feedback/new": path.join(root, "public", "feedback-new.html"),
 };
@@ -76,9 +75,52 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // React preview — serve built assets or SPA fallback
+    // Vanilla classic — serve from public/ with SPA fallback to app.html
+    if (pathname === "/app-classic" || pathname.startsWith("/app-classic/")) {
+      const relative =
+        pathname.replace(/^\/app-classic\/?/, "") || "app.html";
+      const classicRoot = path.join(root, "public");
+      const classicFile = safePathForRoot(relative, classicRoot);
+      if (classicFile) {
+        try {
+          const stat = await fs.stat(classicFile);
+          if (stat.isFile()) {
+            const ext = path.extname(classicFile).toLowerCase();
+            const body = await fs.readFile(classicFile);
+            res.writeHead(200, {
+              "Content-Type": contentTypes[ext] || "application/octet-stream",
+              "Cache-Control": "no-store",
+            });
+            res.end(body);
+            return;
+          }
+        } catch {
+          // File not found — fall through to SPA fallback
+        }
+      }
+      // SPA fallback — serve app.html for all /app-classic/* routes
+      const fallback = path.join(classicRoot, "app.html");
+      const body = await fs.readFile(fallback);
+      res.writeHead(200, {
+        "Content-Type": "text/html; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      res.end(body);
+      return;
+    }
+
+    // Legacy /app-react redirect — 302 to /app, preserving sub-path
     if (pathname === "/app-react" || pathname.startsWith("/app-react/")) {
-      const relative = pathname.replace(/^\/app-react\/?/, "") || "index.html";
+      const newPath = pathname.replace(/^\/app-react/, "/app") || "/app";
+      const qs = urlPath.includes("?") ? urlPath.slice(urlPath.indexOf("?")) : "";
+      res.writeHead(302, { Location: newPath + qs });
+      res.end();
+      return;
+    }
+
+    // React app — serve built assets or SPA fallback
+    if (pathname === "/app" || pathname.startsWith("/app/")) {
+      const relative = pathname.replace(/^\/app\/?/, "") || "index.html";
       const reactFile = safePathForRoot(relative, reactRoot);
       if (reactFile) {
         try {
@@ -97,7 +139,7 @@ const server = http.createServer(async (req, res) => {
           // File not found — fall through to SPA fallback
         }
       }
-      // SPA fallback — serve index.html for all /app-react/* routes
+      // SPA fallback — serve index.html for all /app/* routes
       const fallback = path.join(reactRoot, "index.html");
       const body = await fs.readFile(fallback);
       res.writeHead(200, {

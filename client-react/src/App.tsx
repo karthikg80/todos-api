@@ -19,7 +19,7 @@ function AuthGate() {
     // Check if we have a token but user fetch is still pending
     const token = localStorage.getItem("authToken");
     if (!token) {
-      window.location.href = "/auth?next=/app-react";
+      window.location.href = "/auth?next=/app";
       return null;
     }
   }
