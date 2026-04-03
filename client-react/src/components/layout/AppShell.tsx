@@ -29,7 +29,6 @@ import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
-import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { DeskView } from "../desk/DeskView";
 import { TuneUpView } from "../tuneup/TuneUpView";
 import { ProjectCrud } from "../projects/ProjectCrud";
