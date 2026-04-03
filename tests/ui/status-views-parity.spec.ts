@@ -217,23 +217,23 @@ test.describe("Status view parity", () => {
     });
   });
 
-  test("sidebar surfaces pending, planned, and later lists", async ({
+  test("horizon surfaces due, pending, planned, and later as segmented views", async ({
     page,
   }) => {
-    await selectWorkspaceView(page, "waiting");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Pending");
+    await selectWorkspaceView(page, "horizon");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Horizon");
+
+    await page.locator("#horizonSegmentPending").click();
     await expect(page.locator(".todo-item .todo-title")).toHaveText(
       "Waiting for supplier quote",
     );
 
-    await selectWorkspaceView(page, "scheduled");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Planned");
+    await page.locator("#horizonSegmentPlanned").click();
     await expect(page.locator(".todo-item .todo-title")).toHaveText(
       "Planned design review",
     );
 
-    await selectWorkspaceView(page, "someday");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Later");
+    await page.locator("#horizonSegmentLater").click();
     await expect(page.locator(".todo-item .todo-title")).toHaveText(
       "Someday writing idea",
     );

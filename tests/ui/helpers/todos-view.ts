@@ -33,16 +33,7 @@ async function closeProjectsRailSheetIfOpen(page: Page) {
 
 export async function selectWorkspaceView(
   page: Page,
-  view:
-    | "home"
-    | "triage"
-    | "all"
-    | "today"
-    | "upcoming"
-    | "waiting"
-    | "scheduled"
-    | "someday"
-    | "completed",
+  view: "home" | "triage" | "all" | "today" | "horizon" | "completed",
 ) {
   const selector = `.workspace-view-item[data-workspace-view="${view}"]`;
   if (!isMobileViewport(page)) {
@@ -245,7 +236,6 @@ export async function bootstrapTodosContext(browser: Browser): Promise<{
   const page = await context.newPage();
   await page.goto("/");
   await waitForTodosViewIdle(page);
-  await ensureAllTasksListActive(page);
   return { context, page, storageStatePath };
 }
 

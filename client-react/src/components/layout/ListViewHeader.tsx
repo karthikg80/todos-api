@@ -28,6 +28,7 @@ import { VerificationBanner } from "../shared/VerificationBanner";
 
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
+type HorizonSegment = "due" | "planned" | "pending" | "later";
 
 export interface ListViewHeaderProps {
   // Identity
@@ -35,6 +36,9 @@ export interface ListViewHeaderProps {
   activeView: string;
   selectedProjectId: string | null;
   isMobile: boolean;
+  horizonSegment?: HorizonSegment;
+  onHorizonSegmentChange?: (segment: HorizonSegment) => void;
+  horizonSegmentCounts?: Partial<Record<HorizonSegment, number>>;
 
   // Counts
   visibleTodos: Todo[];
@@ -102,6 +106,9 @@ export function ListViewHeader({
   activeView,
   selectedProjectId,
   isMobile,
+  horizonSegment,
+  onHorizonSegmentChange,
+  horizonSegmentCounts,
   visibleTodos,
   loadState,
   filtersOpen,
@@ -142,6 +149,11 @@ export function ListViewHeader({
   dark,
 }: ListViewHeaderProps) {
   const activeCount = visibleTodos.filter((t) => !t.completed).length;
+  const showHorizonSegments =
+    activeView === "horizon" &&
+    !selectedProjectId &&
+    !!horizonSegment &&
+    !!onHorizonSegmentChange;
 
   return (
     <>
@@ -326,6 +338,36 @@ export function ListViewHeader({
           >
             ✕ Clear
           </button>
+        </div>
+      )}
+
+      {showHorizonSegments && (
+        <div className="horizon-segment-bar" role="tablist" aria-label="Horizon views">
+          {(
+            [
+              { key: "due", label: "Due" },
+              { key: "planned", label: "Planned" },
+              { key: "pending", label: "Pending" },
+              { key: "later", label: "Later" },
+            ] as const
+          ).map(({ key, label }) => (
+            <button
+              key={key}
+              id={`horizonSegment${label}`}
+              type="button"
+              role="tab"
+              aria-selected={horizonSegment === key}
+              className={`horizon-segment-bar__btn${horizonSegment === key ? " horizon-segment-bar__btn--active" : ""}`}
+              onClick={() => onHorizonSegmentChange(key)}
+            >
+              <span>{label}</span>
+              {!!horizonSegmentCounts?.[key] && (
+                <span className="horizon-segment-bar__count">
+                  {horizonSegmentCounts[key]}
+                </span>
+              )}
+            </button>
+          ))}
         </div>
       )}
 

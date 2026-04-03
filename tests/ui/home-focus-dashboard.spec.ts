@@ -872,7 +872,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
     ).toContainText("Rescue mode is on");
   });
 
-  test("Today and Upcoming still navigate on the planner surface", async ({
+  test("Today and Horizon still navigate on the planner surface", async ({
     page,
   }) => {
     await clickWorkspaceView(page, "today");
@@ -881,9 +881,9 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
     await expectListOrEmptyState(page);
 
-    await clickWorkspaceView(page, "upcoming");
-    await expectWorkspaceViewActive(page, "upcoming");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Upcoming");
+    await clickWorkspaceView(page, "horizon");
+    await expectWorkspaceViewActive(page, "horizon");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Horizon");
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
     await expectListOrEmptyState(page);
   });
