@@ -1013,7 +1013,9 @@ export function AppShell() {
                     onBulkDelete={handleBulkDelete}
                     onCancelBulk={handleCancelBulk}
                     uiMode={uiMode}
+                    workspaceView={activeView}
                     onAddTodo={addTodo}
+                    onCaptureToDesk={handleCaptureToDesk}
                     quickEntryPlaceholder={quickEntryPlaceholder}
                     activeHeadingId={null}
                     onSelectHeading={() => {}}
@@ -1106,7 +1108,9 @@ export function AppShell() {
                     onBulkDelete={handleBulkDelete}
                     onCancelBulk={handleCancelBulk}
                     uiMode={uiMode}
+                    workspaceView={activeView}
                     onAddTodo={addTodo}
+                    onCaptureToDesk={handleCaptureToDesk}
                     quickEntryPlaceholder={quickEntryPlaceholder}
                     activeHeadingId={activeHeadingId}
                     onSelectHeading={setActiveHeadingId}
