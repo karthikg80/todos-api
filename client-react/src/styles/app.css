@@ -2685,6 +2685,18 @@ body {
   gap: 12px;
 }
 
+.home-dashboard__hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.home-dashboard__secondary-stack {
+  display: grid;
+  gap: 12px;
+}
+
 /* Daily Brief card — gradient bg, rounded, elevated */
 .home-brief-card {
   display: grid;
@@ -2812,6 +2824,10 @@ body {
   gap: 9px;
 }
 
+.home-tile--compact {
+  padding: 14px 15px;
+}
+
 .home-tile__header {
   display: flex;
   justify-content: space-between;
@@ -2882,11 +2898,63 @@ body {
   border-color: color-mix(in oklab, var(--accent) 15%, var(--border));
 }
 
+.home-tile--pulse {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 98%, var(--surface-2)) 0%,
+    color-mix(in oklab, var(--surface) 94%, var(--surface-2)) 100%
+  );
+}
+
 .insights-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: var(--s-3);
   padding: var(--s-2) 0;
+}
+
+.home-pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-2);
+}
+
+.home-pulse-agenda {
+  display: grid;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.home-pulse-agenda__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in oklab, var(--border) 48%, transparent);
+  border-radius: 14px;
+  background: color-mix(in oklab, var(--surface) 95%, var(--surface-2));
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.home-pulse-agenda__item:hover {
+  border-color: color-mix(in oklab, var(--accent) 28%, var(--border));
+}
+
+.home-pulse-agenda__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-pulse-agenda__meta {
+  color: var(--muted);
+  font-size: var(--fs-label);
+  white-space: nowrap;
 }
 
 .insight-metric {
@@ -3001,6 +3069,10 @@ body {
 }
 
 @media (max-width: 700px) {
+  .home-dashboard__hero-grid {
+    grid-template-columns: 1fr;
+  }
+
   .home-dashboard__support-grid {
     grid-template-columns: 1fr;
   }
@@ -3015,6 +3087,10 @@ body {
   }
 
   .insights-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .home-pulse-grid {
     grid-template-columns: 1fr 1fr;
   }
 }
@@ -4976,6 +5052,8 @@ body {
 
 /* --- Rescue mode panel --- */
 .home-rescue-panel {
+  display: grid;
+  gap: var(--s-2);
   background: color-mix(in oklab, var(--warning) 8%, var(--surface));
   border: 1px solid color-mix(in oklab, var(--warning) 20%, var(--border));
   border-radius: var(--r-md);
@@ -5001,6 +5079,11 @@ body {
   color: var(--muted);
   line-height: var(--lh-base);
   margin: 0;
+}
+
+.home-rescue-panel__action {
+  justify-self: start;
+  margin-top: var(--s-1);
 }
 
 /* --- Projects to nudge --- */
@@ -5386,6 +5469,16 @@ body {
   color: var(--muted);
   font-size: var(--fs-meta);
   font-style: italic;
+}
+
+.priorities-brief__status {
+  margin-top: var(--s-3);
+  font-size: var(--fs-label);
+  color: var(--muted);
+}
+
+.priorities-brief__status--warning {
+  color: var(--warning);
 }
 
 /* LLM-generated HTML — comprehensive styling for server-rendered content */

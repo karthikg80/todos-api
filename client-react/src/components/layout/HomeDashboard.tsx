@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect, useRef } from "react";
 import type { Todo, Project } from "../../types";
 import { apiCall } from "../../api/client";
-import { HomeFocusSuggestions } from "../ai/HomeFocusSuggestions";
 import { PrioritiesBriefTile } from "../ai/PrioritiesBriefTile";
 import { IllustrationAllClear } from "../shared/Illustrations";
 import { TuneUpTile } from "../tuneup/TuneUpTile";
@@ -172,75 +171,122 @@ export function HomeDashboard({
     [active],
   );
   const showRescue = active.length > 10 && overdueCount > 3;
+  const [rescueModeActive, setRescueModeActive] = useState(false);
+  const [rescueModeSaving, setRescueModeSaving] = useState(false);
+
+  const todaysPlannedTasks = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    return active
+      .filter((t) => {
+        const due = t.dueDate?.split("T")[0];
+        const scheduled = t.scheduledDate?.split("T")[0];
+        const doDate = t.doDate?.split("T")[0];
+        return due === today || scheduled === today || doDate === today;
+      })
+      .slice(0, 3);
+  }, [active]);
+
+  const handleStartRescueMode = async () => {
+    setRescueModeSaving(true);
+    try {
+      const res = await apiCall("/agent/write/set_day_context", {
+        method: "POST",
+        body: JSON.stringify({ mode: "rescue" }),
+      });
+      if (!res.ok) throw new Error("Failed to start rescue mode");
+      setRescueModeActive(true);
+    } catch {
+      setRescueModeActive(false);
+    } finally {
+      setRescueModeSaving(false);
+    }
+  };
 
   return (
     <div data-testid="home-dashboard" className="home-dashboard">
-      {/* Section 1: Daily Brief Card */}
-      <section className="home-brief-card" data-testid="home-brief-card">
-        <span className="home-brief-card__eyebrow">Daily brief</span>
-        <h2 className="home-brief-card__title">Today's focus</h2>
-        <p className="home-brief-card__summary">
-          {active.length === 0
-            ? "All clear — nothing on your plate."
-            : focusTask
-              ? `Start with ${focusTask.title}. ${
-                  focusTask.dueDate && daysUntil(focusTask.dueDate) < 0
-                    ? "It's still waiting"
-                    : focusTask.priority === "urgent" || focusTask.priority === "high"
-                      ? "It's high priority"
-                      : "It's a good anchor"
-                } for the rest of the day.`
-              : `${active.length} open task${active.length === 1 ? "" : "s"}${completedToday > 0 ? `, ${completedToday} done today` : ""}.`}
-        </p>
-        <div className="home-brief-card__stats">
-          <div className="home-brief-stat">
-            <span className="home-brief-stat__number">{dueSoonTotal}</span>
-            <span className="home-brief-stat__label">Due soon</span>
-          </div>
-          <div className="home-brief-stat">
-            <span className="home-brief-stat__number">{needsAttention}</span>
-            <span className="home-brief-stat__label">Needs attention</span>
-          </div>
-        </div>
-        {focusTask && (
-          <button
-            className="home-brief-card__action"
-            onClick={() => onTodoClick(focusTask.id)}
-          >
-            <span className="home-brief-card__action-label">
-              Strongest next action
-            </span>
-            <span className="home-brief-card__action-title">
-              {focusTask.title}
-            </span>
-          </button>
-        )}
-
-        {/* AI focus suggestions — up to 3 tasks with reasoning */}
-        <HomeFocusSuggestions todos={todos} onTodoClick={onTodoClick} />
-      </section>
-
-      {/* AI Priorities Brief — LLM-generated HTML digest */}
-      <PrioritiesBriefTile />
-
-      {/* Rescue mode panel */}
-      {showRescue && (
-        <section className="home-rescue-panel">
-          <span className="home-rescue-panel__eyebrow">Rescue mode</span>
-          <h3 className="home-rescue-panel__title">
-            Keep the day workable.
-          </h3>
-          <p className="home-rescue-panel__desc">
-            You have {active.length} open tasks and {overdueCount} overdue.
-            Consider deferring or completing a few to regain focus.
+      <div className="home-dashboard__hero-grid">
+        <section className="home-brief-card" data-testid="home-brief-card">
+          <span className="home-brief-card__eyebrow">Daily brief</span>
+          <h2 className="home-brief-card__title">Today's focus</h2>
+          <p className="home-brief-card__summary">
+            {active.length === 0
+              ? "All clear — nothing on your plate."
+              : focusTask
+                ? `Start with ${focusTask.title}. ${
+                    focusTask.dueDate && daysUntil(focusTask.dueDate) < 0
+                      ? "It is still overdue"
+                      : focusTask.priority === "urgent" || focusTask.priority === "high"
+                        ? "It carries the most urgency"
+                        : "It is the cleanest anchor for the day"
+                  }.`
+                : `${active.length} open task${active.length === 1 ? "" : "s"}${completedToday > 0 ? `, ${completedToday} finished today` : ""}.`}
           </p>
+          <div className="home-brief-card__stats">
+            <div className="home-brief-stat">
+              <span className="home-brief-stat__number">{dueSoonTotal}</span>
+              <span className="home-brief-stat__label">Due soon</span>
+            </div>
+            <div className="home-brief-stat">
+              <span className="home-brief-stat__number">{needsAttention}</span>
+              <span className="home-brief-stat__label">Needs attention</span>
+            </div>
+          </div>
+          {focusTask && (
+            <button
+              className="home-brief-card__action"
+              onClick={() => onTodoClick(focusTask.id)}
+            >
+              <span className="home-brief-card__action-label">
+                Strongest next action
+              </span>
+              <span className="home-brief-card__action-title">
+                {focusTask.title}
+              </span>
+            </button>
+          )}
         </section>
-      )}
 
-      {/* Section 2: Support Grid (2-column) */}
+        <div className="home-dashboard__secondary-stack">
+          {showRescue && (
+            <section
+              className="home-rescue-panel"
+              data-testid="home-rescue-panel"
+            >
+              <span className="home-rescue-panel__eyebrow">Rescue mode</span>
+              <h3 className="home-rescue-panel__title">
+                {rescueModeActive ? "Rescue mode is on" : "Keep the day workable."}
+              </h3>
+              <p className="home-rescue-panel__desc">
+                {rescueModeActive
+                  ? "The day context is now set to rescue so planning can stay narrow and defensive."
+                  : `You have ${active.length} open tasks and ${overdueCount} overdue. Narrow the day before adding anything else.`}
+              </p>
+              {!rescueModeActive && (
+                <button
+                  className="btn btn--primary home-rescue-panel__action"
+                  onClick={() => void handleStartRescueMode()}
+                  disabled={rescueModeSaving}
+                >
+                  {rescueModeSaving ? "Starting..." : "Start rescue mode"}
+                </button>
+              )}
+            </section>
+          )}
+
+          <PrioritiesBriefTile />
+          <HomePulseTile
+            todos={todos}
+            activeTodos={active}
+            completedToday={completedToday}
+            staleCount={staleItems.length}
+            todaysPlannedTasks={todaysPlannedTasks}
+            onTodoClick={onTodoClick}
+          />
+        </div>
+      </div>
+
       {active.length > 0 && (
         <div className="home-dashboard__support-grid">
-          {/* Due Soon tile */}
           <section className="home-tile" data-home-tile="due_soon">
             <div className="home-tile__header">
               <div className="home-tile__title-row">
@@ -311,7 +357,12 @@ export function HomeDashboard({
             </div>
           </section>
 
-          {/* Backlog Hygiene tile */}
+          <WhatNextTile onUndo={onUndo} />
+        </div>
+      )}
+
+      <div className="home-dashboard__support-grid">
+        {active.length > 0 && (
           <section className="home-tile" data-home-tile="stale_risks">
             <div className="home-tile__header">
               <div className="home-tile__title-row">
@@ -348,15 +399,15 @@ export function HomeDashboard({
               )}
             </div>
           </section>
-        </div>
-      )}
+        )}
+        <TuneUpTile onNavigateToTuneUp={onNavigateToTuneUp} />
+      </div>
 
-      {/* Section 3: Insights Card */}
-      <InsightsCard todos={todos} />
-
-      {/* Section 4: Projects to Nudge */}
       {projectsToNudge.length > 0 && (
-        <section className="home-tile" data-home-tile="projects_to_nudge">
+        <section
+          className="home-tile home-tile--compact"
+          data-home-tile="projects_to_nudge"
+        >
           <div className="home-tile__header">
             <div className="home-tile__title-row">
               <svg
@@ -377,8 +428,11 @@ export function HomeDashboard({
               <h3 className="home-tile__title">Projects to nudge</h3>
             </div>
           </div>
+          <div className="home-tile__subtitle">
+            A short radar of projects that may slip without one quick touch.
+          </div>
           <div className="home-tile__body">
-            {projectsToNudge.map(({ project, open, overdue, waiting, dueSoon }) => (
+            {projectsToNudge.slice(0, 4).map(({ project, open, overdue, waiting, dueSoon }) => (
               <div
                 key={project.id}
                 className="home-project-row"
@@ -396,15 +450,6 @@ export function HomeDashboard({
           </div>
         </section>
       )}
-
-      {/* Section 5: Today's Plan */}
-      <TodaysPlanTile todos={active} onTodoClick={onTodoClick} />
-
-      {/* Section 6: Tune-up tile */}
-      <TuneUpTile onNavigateToTuneUp={onNavigateToTuneUp} />
-
-      {/* Section 7: What Next? */}
-      <WhatNextTile onUndo={onUndo} />
 
       {/* Empty state */}
       {active.length === 0 && (
@@ -506,193 +551,62 @@ function formatDueBadge(dateStr: string): string {
   });
 }
 
-// --- Insights Card (async, matches classic home-tile--insights) ---
-
-interface InsightsData {
-  completionRate?: number;
-  streak?: number;
-  commitRatio?: number;
-  staleTasks?: number;
-}
-
-function InsightsCard({ todos }: { todos: Todo[] }) {
-  const [apiData, setApiData] = useState<InsightsData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    apiCall("/ai/insights?days=7")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((d) => setApiData(d))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  // Compute local stats as fallback when AI endpoint has no data
-  const data = useMemo(() => {
-    if (apiData?.completionRate != null) return apiData;
-
-    const total = todos.length;
-    const completed = todos.filter((t) => t.completed).length;
-    const active = todos.filter((t) => !t.completed);
-    const stale = active.filter((t) => {
-      const days = (Date.now() - new Date(t.updatedAt).getTime()) / (1000 * 60 * 60 * 24);
-      return days > 14;
-    }).length;
-
-    return {
-      completionRate: total > 0 ? (completed / total) * 100 : 0,
-      streak: undefined,
-      commitRatio: undefined,
-      staleTasks: stale,
-    };
-  }, [apiData, todos]);
-
-  if (loading) return null;
-
-  return (
-    <section
-      className="home-tile home-tile--insights"
-      data-home-tile="insights"
-    >
-      <div className="home-tile__header">
-        <div className="home-tile__title-row">
-          <svg
-            className="home-tile__icon"
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M2 14V6h3v8H2Zm4.5 0V2h3v12h-3ZM11 14V9h3v5h-3Z"
-              fill="currentColor"
-              opacity=".6"
-            />
-          </svg>
-          <h3 className="home-tile__title">Your week</h3>
-        </div>
-      </div>
-      <div className="home-tile__body">
-        <div className="insights-grid">
-          <InsightMetric
-            label="Completion"
-            value={
-              data.completionRate != null
-                ? `${Math.round(data.completionRate)}%`
-                : "—"
-            }
-          />
-          <InsightMetric
-            label="Streak"
-            value={
-              data.streak != null ? `${data.streak}d` : "—"
-            }
-          />
-          <InsightMetric
-            label="Commit ratio"
-            value={
-              data.commitRatio != null
-                ? `${Math.round(data.commitRatio)}%`
-                : "—"
-            }
-            color={
-              data.commitRatio != null
-                ? data.commitRatio >= 70
-                  ? "var(--success)"
-                  : "var(--danger)"
-                : undefined
-            }
-          />
-          <InsightMetric
-            label="Stale"
-            value={
-              data.staleTasks != null ? String(data.staleTasks) : "—"
-            }
-          />
-        </div>
-      </div>
-    </section>
-  );
-}
-
-// --- Today's Plan tile (matches classic data-home-tile="todays_plan") ---
-
-function TodaysPlanTile({
+function HomePulseTile({
   todos,
+  activeTodos,
+  completedToday,
+  staleCount,
+  todaysPlannedTasks,
   onTodoClick,
 }: {
   todos: Todo[];
+  activeTodos: Todo[];
+  completedToday: number;
+  staleCount: number;
+  todaysPlannedTasks: Todo[];
   onTodoClick: (id: string) => void;
 }) {
-  // Show tasks scheduled for today or with today's due date
-  const todaysTasks = useMemo(() => {
-    const today = new Date().toISOString().split("T")[0];
-    return todos
-      .filter((t) => {
-        const due = t.dueDate?.split("T")[0];
-        const scheduled = t.scheduledDate?.split("T")[0];
-        const doDate = t.doDate?.split("T")[0];
-        return due === today || scheduled === today || doDate === today;
-      })
-      .sort((a, b) => {
-        // Sort by scheduled time if available, then by order
-        const aTime = a.scheduledDate || a.dueDate || "";
-        const bTime = b.scheduledDate || b.dueDate || "";
-        return aTime.localeCompare(bTime);
-      });
+  const completionRate = useMemo(() => {
+    if (todos.length === 0) return 0;
+    return Math.round((todos.filter((t) => t.completed).length / todos.length) * 100);
   }, [todos]);
 
-  if (todaysTasks.length === 0) return null;
-
-  const todayLabel = new Date().toLocaleDateString(undefined, {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-
   return (
-    <section className="home-tile home-tile--plan" data-home-tile="todays_plan">
+    <section className="home-tile home-tile--pulse" data-home-tile="home_pulse">
       <div className="home-tile__header">
         <div className="home-tile__title-row">
-          <svg
-            className="home-tile__icon"
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
-            <line x1="16" x2="16" y1="2" y2="6" />
-            <line x1="8" x2="8" y1="2" y2="6" />
-            <line x1="3" x2="21" y1="10" y2="10" />
-          </svg>
-          <h3 className="home-tile__title">Today's plan</h3>
+          <h3 className="home-tile__title">Pulse</h3>
         </div>
-        <span className="home-tile__date-label">{todayLabel}</span>
+      </div>
+      <div className="home-tile__subtitle">
+        Enough signal to orient the day, without turning focus into a report.
       </div>
       <div className="home-tile__body">
-        {todaysTasks.map((todo) => (
-          <div key={todo.id} className="plan-slot">
-            {todo.estimateMinutes && (
-              <span className="plan-slot__effort">
-                {todo.estimateMinutes}m
-              </span>
-            )}
-            <button
-              className="home-task-row__title"
-              onClick={() => onTodoClick(todo.id)}
-            >
-              {todo.title}
-            </button>
+        <div className="home-pulse-grid">
+          <InsightMetric label="Open" value={String(activeTodos.length)} />
+          <InsightMetric label="Done today" value={String(completedToday)} />
+          <InsightMetric label="Completion" value={`${completionRate}%`} />
+          <InsightMetric label="Stale" value={String(staleCount)} />
+        </div>
+        {todaysPlannedTasks.length > 0 && (
+          <div className="home-pulse-agenda">
+            <div className="home-task-group__label">Scheduled today</div>
+            {todaysPlannedTasks.map((todo) => (
+              <button
+                key={todo.id}
+                className="home-pulse-agenda__item"
+                onClick={() => onTodoClick(todo.id)}
+              >
+                <span className="home-pulse-agenda__title">{todo.title}</span>
+                {todo.estimateMinutes && (
+                  <span className="home-pulse-agenda__meta">
+                    {todo.estimateMinutes}m
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </section>
   );
