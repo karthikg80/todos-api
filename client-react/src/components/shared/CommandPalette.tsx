@@ -12,6 +12,11 @@ interface CommandItem {
   meta?: string;
 }
 
+type ScoredTaskMatch = Omit<CommandItem, "section"> & {
+  section: "Tasks";
+  score: number;
+};
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -230,7 +235,7 @@ export function CommandPalette({
       normalizedQuery.length === 0 || !onTodoClick
         ? []
         : todos
-            .map((todo) => {
+            .map<ScoredTaskMatch | null>((todo) => {
               const title = todo.title.toLowerCase();
               const description = todo.description?.toLowerCase() ?? "";
               const category = todo.category?.toLowerCase() ?? "";
@@ -258,9 +263,7 @@ export function CommandPalette({
                 score,
               };
             })
-            .filter(
-              (item): item is CommandItem & { score: number } => item !== null,
-            )
+            .filter((item): item is ScoredTaskMatch => item !== null)
             .sort((a, b) => {
               if (a.score !== b.score) return a.score - b.score;
               return a.label.localeCompare(b.label);

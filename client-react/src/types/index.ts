@@ -154,6 +154,7 @@ export interface CreateTodoDto {
   firstStep?: string | null;
   emotionalState?: string | null;
   effortScore?: number | null;
+  source?: string | null;
 }
 
 export interface UpdateTodoDto {

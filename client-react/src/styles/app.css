@@ -3146,6 +3146,11 @@ body {
   text-align: center;
 }
 
+.onboarding-card--wide {
+  max-width: 760px;
+  text-align: left;
+}
+
 .onboarding-card__progress {
   display: flex;
   justify-content: center;
@@ -3176,6 +3181,15 @@ body {
   margin-bottom: var(--s-3);
 }
 
+.onboarding-card__eyebrow {
+  margin: 0 0 var(--s-2);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .onboarding-card__desc {
   font-size: var(--fs-meta);
   color: var(--muted);
@@ -3183,23 +3197,145 @@ body {
   line-height: var(--lh-base);
 }
 
-.onboarding-card__samples {
-  text-align: left;
-  margin-bottom: var(--s-4);
+.onboarding-card__helper {
+  margin: var(--s-3) 0 0;
+  font-size: var(--fs-label);
+  color: var(--muted);
 }
 
-.onboarding-card__sample {
-  padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-sm);
-  background: var(--surface-2);
+.onboarding-card__error {
+  margin: var(--s-3) 0 0;
   font-size: var(--fs-meta);
-  margin-bottom: var(--s-1);
+  color: var(--danger);
 }
 
 .onboarding-card__actions {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--s-5);
   gap: var(--s-3);
+}
+
+.onboarding-section {
+  margin-bottom: var(--s-5);
+}
+
+.onboarding-section__label {
+  margin-bottom: var(--s-2);
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+}
+
+.onboarding-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s-3);
+}
+
+.onboarding-choice-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.onboarding-chip {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--r-full);
+  padding: var(--s-2) var(--s-3);
+  font-size: var(--fs-label);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.onboarding-chip--selected {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.onboarding-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s-2);
+}
+
+.onboarding-card-grid--compact {
+  grid-template-columns: 1fr;
+}
+
+.onboarding-choice-card {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  font-size: var(--fs-label);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.onboarding-choice-card--selected {
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.onboarding-examples {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-2);
+}
+
+.onboarding-example {
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text);
+  border-radius: var(--r-md);
+  padding: var(--s-3);
+  font-size: var(--fs-meta);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.onboarding-example--added {
+  border-color: color-mix(in srgb, var(--success) 40%, var(--border));
+  color: var(--success);
+}
+
+.onboarding-custom-task {
+  display: flex;
+  gap: var(--s-2);
+  margin-top: var(--s-4);
+}
+
+.onboarding-preview-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  background: var(--surface-elevated);
+  margin-top: var(--s-3);
+}
+
+.onboarding-preview-card--muted {
+  background: var(--surface-2);
+}
+
+.onboarding-preview-card__title {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  margin-bottom: var(--s-2);
+}
+
+.onboarding-preview-card__text {
+  margin: 0;
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  line-height: var(--lh-base);
 }
 
 /* Onboarding step transitions */
@@ -3263,6 +3399,25 @@ body {
 
 .onboarding-card--final {
   animation: onboardingSuccess var(--dur-slow) var(--ease-spring);
+}
+
+@media (max-width: 720px) {
+  .onboarding-card {
+    padding: var(--s-5) var(--s-4);
+    width: calc(100% - var(--s-4));
+  }
+
+  .onboarding-custom-task,
+  .onboarding-card__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .onboarding-grid,
+  .onboarding-card-grid,
+  .onboarding-examples {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* --- Project headings tabs --- */
