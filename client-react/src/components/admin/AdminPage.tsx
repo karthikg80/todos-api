@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiCall } from "../../api/client";
+import { IconFeedback, IconUser } from "../shared/Icons";
+import { SearchBar } from "../shared/SearchBar";
+import { SegmentedControl } from "../shared/SegmentedControl";
 import { AdminFeedbackWorkflow } from "./AdminFeedbackWorkflow";
 
 interface User {
@@ -32,7 +35,7 @@ function avatarColor(email: string): string {
 }
 
 export function AdminPage({ onBack }: Props) {
-  const [tab, setTab] = useState<"users" | "feedback">("users");
+  const [tab, setTab] = useState<"users" | "feedback">("feedback");
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
@@ -112,153 +115,160 @@ export function AdminPage({ onBack }: Props) {
 
   return (
     <div id="adminPane" className="admin-page">
-      {/* Sidebar nav */}
-      <nav className="admin-nav">
-        <button className="admin-nav__back" onClick={onBack}>
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M10 12L6 8l4-4" />
-          </svg>
-          <span className="admin-nav__heading">Admin</span>
-        </button>
-
-        <div className="admin-nav__items">
-          <button
-            className={`admin-nav__item${tab === "users" ? " admin-nav__item--active" : ""}`}
-            onClick={() => setTab("users")}
-          >
-            <span>Users</span>
-            {users.length > 0 && (
-              <span className="admin-nav__badge">{users.length}</span>
-            )}
-          </button>
-          <button
-            className={`admin-nav__item${tab === "feedback" ? " admin-nav__item--active" : ""}`}
-            onClick={() => setTab("feedback")}
-          >
-            <span>Feedback</span>
-            {feedbackCount > 0 && (
-              <span className="admin-nav__badge">{feedbackCount}</span>
-            )}
-          </button>
-        </div>
-      </nav>
-
-      {/* Content area */}
       <div className="admin-content">
-        {message && (
-          <p id="adminMessage" className="settings-message">
-            {message}
-          </p>
-        )}
+        <div className="admin-shell">
+          <div className="admin-shell__header">
+            <button type="button" className="admin-shell__back" onClick={onBack}>
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M10 12L6 8l4-4" />
+              </svg>
+              <span>Back</span>
+            </button>
 
-        {tab === "users" && (
-          <div className="admin-users">
-            <div className="admin-users__toolbar">
-              <input
-                type="text"
-                className="admin-users__search"
-                placeholder="Search users..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="admin-shell__heading-block">
+              <span className="admin-shell__eyebrow">Workspace controls</span>
+              <h1 className="admin-shell__title">Admin</h1>
             </div>
 
-            {loading ? (
-              <div className="loading">
-                <div className="spinner" />
-                Loading users...
-              </div>
-            ) : (
-              <div className="admin-users__list">
-                {filteredUsers.map((u) => (
-                  <div key={u.id} className="admin-user-card">
-                    <div
-                      className="admin-user-avatar"
-                      style={{ background: avatarColor(u.email) }}
-                    >
-                      {u.email.charAt(0).toUpperCase()}
-                    </div>
-                    <div className="admin-user-card__info">
-                      <span className="admin-user-card__email">
-                        {u.email}
-                        {u.emailVerified && (
-                          <span
-                            className="admin-verified-badge"
-                            title="Email verified"
-                          >
-                            ✓
-                          </span>
-                        )}
-                      </span>
-                      <span className="admin-user-card__name">
-                        {u.name || "\u2014"}
-                      </span>
-                    </div>
-                    <div className="admin-user-card__role">
-                      <button
-                        type="button"
-                        className={`field-chip field-chip--muted${u.role === "user" ? " field-chip--active" : ""}`}
-                        onClick={() =>
-                          u.role !== "user" && handleRoleChange(u.id, "user")
-                        }
-                      >
-                        user
-                      </button>
-                      <button
-                        type="button"
-                        className={`field-chip field-chip--accent${u.role === "admin" ? " field-chip--active" : ""}`}
-                        onClick={() =>
-                          u.role !== "admin" && handleRoleChange(u.id, "admin")
-                        }
-                      >
-                        admin
-                      </button>
-                    </div>
-                    <span className="admin-user-card__date">
-                      {new Date(u.createdAt).toLocaleDateString()}
-                    </span>
-                    <button
-                      className="admin-user-card__delete"
-                      onClick={() => handleDeleteUser(u.id)}
-                      title="Delete user"
-                      aria-label="Delete user"
-                    >
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 16 16"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M2 4h12M5.33 4V2.67a1.33 1.33 0 011.34-1.34h2.66a1.33 1.33 0 011.34 1.34V4m2 0v9.33a1.33 1.33 0 01-1.34 1.34H4.67a1.33 1.33 0 01-1.34-1.34V4h9.34z" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-
-                {filteredUsers.length === 0 && !loading && (
-                  <div className="afw-empty-block">
-                    {search ? "No users match your search." : "No users found."}
-                  </div>
-                )}
-              </div>
-            )}
+            <SegmentedControl
+              value={tab}
+              onChange={(next) => setTab(next as "users" | "feedback")}
+              ariaLabel="Admin sections"
+              className="admin-shell__tabs"
+              options={[
+                {
+                  value: "users",
+                  label: "Users",
+                  icon: <IconUser size={14} />,
+                  badge: users.length > 0 ? users.length : undefined,
+                },
+                {
+                  value: "feedback",
+                  label: "Feedback",
+                  icon: <IconFeedback size={14} />,
+                  badge: feedbackCount > 0 ? feedbackCount : undefined,
+                },
+              ]}
+            />
           </div>
-        )}
 
-        {tab === "feedback" && <AdminFeedbackWorkflow />}
+          {message && (
+            <p id="adminMessage" className="settings-message">
+              {message}
+            </p>
+          )}
+
+          {tab === "users" && (
+            <div className="admin-users">
+              <div className="admin-users__toolbar">
+                <div className="admin-users__search-field">
+                  <SearchBar
+                    value={search}
+                    onChange={setSearch}
+                    inputId="adminUsersSearch"
+                    placeholder="Search users…"
+                    ariaLabel="Search users"
+                  />
+                </div>
+              </div>
+
+              {loading ? (
+                <div className="loading">
+                  <div className="spinner" />
+                  Loading users...
+                </div>
+              ) : (
+                <div className="admin-users__list">
+                  {filteredUsers.map((u) => (
+                    <div key={u.id} className="admin-user-card">
+                      <div
+                        className="admin-user-avatar"
+                        style={{ background: avatarColor(u.email) }}
+                      >
+                        {u.email.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="admin-user-card__info">
+                        <span className="admin-user-card__email">
+                          {u.email}
+                          {u.emailVerified && (
+                            <span
+                              className="admin-verified-badge"
+                              title="Email verified"
+                            >
+                              ✓
+                            </span>
+                          )}
+                        </span>
+                        <span className="admin-user-card__name">
+                          {u.name || "\u2014"}
+                        </span>
+                      </div>
+                      <div className="admin-user-card__role">
+                        <button
+                          type="button"
+                          className={`field-chip field-chip--muted${u.role === "user" ? " field-chip--active" : ""}`}
+                          onClick={() =>
+                            u.role !== "user" && handleRoleChange(u.id, "user")
+                          }
+                        >
+                          user
+                        </button>
+                        <button
+                          type="button"
+                          className={`field-chip field-chip--accent${u.role === "admin" ? " field-chip--active" : ""}`}
+                          onClick={() =>
+                            u.role !== "admin" && handleRoleChange(u.id, "admin")
+                          }
+                        >
+                          admin
+                        </button>
+                      </div>
+                      <span className="admin-user-card__date">
+                        {new Date(u.createdAt).toLocaleDateString()}
+                      </span>
+                      <button
+                        className="admin-user-card__delete"
+                        onClick={() => handleDeleteUser(u.id)}
+                        title="Delete user"
+                        aria-label="Delete user"
+                      >
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 16 16"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M2 4h12M5.33 4V2.67a1.33 1.33 0 011.34-1.34h2.66a1.33 1.33 0 011.34 1.34V4m2 0v9.33a1.33 1.33 0 01-1.34 1.34H4.67a1.33 1.33 0 01-1.34-1.34V4h9.34z" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+
+                  {filteredUsers.length === 0 && !loading && (
+                    <div className="afw-empty-block">
+                      {search ? "No users match your search." : "No users found."}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "feedback" && <AdminFeedbackWorkflow />}
+        </div>
       </div>
     </div>
   );

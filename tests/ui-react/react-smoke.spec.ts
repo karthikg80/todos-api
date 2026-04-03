@@ -35,7 +35,7 @@ test.describe("React preview – smoke", () => {
       );
     });
 
-    await page.goto("/");
+    await page.goto("/app");
     await waitForTodosViewIdle(page);
   });
 
@@ -49,7 +49,7 @@ test.describe("React preview – smoke", () => {
       localStorage.removeItem("user");
     });
 
-    await page.goto("/");
+    await page.goto("/app");
 
     // The React app should redirect to /auth?next=/app
     await page.waitForURL(/\/auth\?next=\/app/);

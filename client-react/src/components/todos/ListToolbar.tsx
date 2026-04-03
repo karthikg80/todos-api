@@ -24,10 +24,22 @@ interface Props {
   onGroupByChange: (val: GroupBy) => void;
   density: Density;
   onDensityChange: (val: Density) => void;
+  groupByOptions?: GroupBy[];
 }
 
-export function ListToolbar({ sortBy, sortOrder, onSortChange, groupBy, onGroupByChange, density, onDensityChange }: Props) {
-
+export function ListToolbar({
+  sortBy,
+  sortOrder,
+  onSortChange,
+  groupBy,
+  onGroupByChange,
+  density,
+  onDensityChange,
+  groupByOptions,
+}: Props) {
+  const visibleGroupOptions = groupByOptions?.length
+    ? GROUP_OPTIONS.filter((option) => groupByOptions.includes(option.value))
+    : GROUP_OPTIONS;
   return (
     <div className="list-toolbar">
       <div className="list-toolbar__group">
@@ -38,7 +50,7 @@ export function ListToolbar({ sortBy, sortOrder, onSortChange, groupBy, onGroupB
             onChange={(e) => onGroupByChange(e.target.value as GroupBy)}
             aria-label="Group by"
           >
-            {GROUP_OPTIONS.map((o) => (
+            {visibleGroupOptions.map((o) => (
               <option key={o.value} value={o.value}>
                 Group: {o.label}
               </option>

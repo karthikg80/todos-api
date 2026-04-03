@@ -3,6 +3,7 @@ import type { User } from "../../types";
 import {
   IconUser,
   IconSettings,
+  IconList,
   IconMoon,
   IconSun,
   IconKeyboard,
@@ -27,6 +28,7 @@ interface Props {
   isAdmin: boolean;
   onOpenProfile: () => void;
   onOpenSettings: () => void;
+  onOpenComponents: () => void;
   onToggleTheme: () => void;
   onOpenShortcuts: () => void;
   onOpenFeedback: () => void;
@@ -58,6 +60,7 @@ export function ProfileLauncher({
   isAdmin,
   onOpenProfile,
   onOpenSettings,
+  onOpenComponents,
   onToggleTheme,
   onOpenShortcuts,
   onOpenFeedback,
@@ -81,6 +84,12 @@ export function ProfileLauncher({
       icon: IconSettings,
       label: "Settings",
       action: onOpenSettings,
+    },
+    {
+      id: "components",
+      icon: IconList,
+      label: "Component gallery",
+      action: onOpenComponents,
     },
     {
       id: "theme",
@@ -127,14 +136,11 @@ export function ProfileLauncher({
     },
   ];
 
-  const handleSelect = useCallback(
-    (item: MenuItem) => {
-      setOpen(false);
-      // Delay so popover closes before navigation
-      requestAnimationFrame(() => item.action());
-    },
-    [],
-  );
+  const handleSelect = useCallback((item: MenuItem) => {
+    setOpen(false);
+    // Delay so popover closes before navigation
+    requestAnimationFrame(() => item.action());
+  }, []);
 
   // Close on outside click
   useEffect(() => {
@@ -197,22 +203,32 @@ export function ProfileLauncher({
         >
           {/* User info header */}
           <div className="profile-launcher__user-info">
-            <div className="profile-launcher__avatar">
-              {getInitials(user)}
-            </div>
+            <div className="profile-launcher__avatar">{getInitials(user)}</div>
             <div className="profile-launcher__user-text">
               <span className="profile-launcher__name">
                 {getDisplayName(user)}
-                {user?.isVerified && (
-                  <span className="verified-badge" title="Verified">✓</span>
-                )}
-                {user?.role === "admin" && (
-                  <span className="admin-badge" title="Admin">★</span>
-                )}
               </span>
               {user?.email && (
                 <span className="profile-launcher__email">{user.email}</span>
               )}
+              <div className="profile-launcher__status-row">
+                {user?.isVerified && (
+                  <span
+                    className="profile-launcher__status-badge"
+                    title="Verified account"
+                  >
+                    Verified
+                  </span>
+                )}
+                {user?.role === "admin" && (
+                  <span
+                    className="profile-launcher__status-badge profile-launcher__status-badge--admin"
+                    title="Admin access"
+                  >
+                    Admin
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -252,8 +268,6 @@ export function ProfileLauncher({
         <div className="profile-launcher__trigger-text">
           <span className="profile-launcher__trigger-name">
             {getDisplayName(user)}
-            {user?.isVerified && <span className="verified-badge">✓</span>}
-            {user?.role === "admin" && <span className="admin-badge">★</span>}
           </span>
           {user?.email && (
             <span className="profile-launcher__trigger-email">
@@ -261,6 +275,12 @@ export function ProfileLauncher({
             </span>
           )}
         </div>
+        <span
+          className="profile-launcher__trigger-affordance"
+          aria-hidden="true"
+        >
+          ▾
+        </span>
       </button>
     </div>
   );

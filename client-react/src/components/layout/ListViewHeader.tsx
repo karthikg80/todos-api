@@ -11,10 +11,7 @@ import {
 import { Breadcrumb } from "../shared/Breadcrumb";
 import { AnimatedCount } from "../shared/AnimatedCount";
 import { Tooltip } from "../shared/Tooltip";
-import {
-  FilterPanel,
-  type ActiveFilters,
-} from "../todos/FilterPanel";
+import { FilterPanel, type ActiveFilters } from "../todos/FilterPanel";
 import {
   SortControl,
   type SortField,
@@ -22,12 +19,23 @@ import {
 } from "../todos/SortControl";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { QuickEntry } from "../todos/QuickEntry";
-import { ProjectHeadings } from "../projects/ProjectHeadings";
 import { SearchBar } from "../shared/SearchBar";
+import { SegmentedControl } from "../shared/SegmentedControl";
 import { VerificationBanner } from "../shared/VerificationBanner";
 
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
+type HorizonSegment = "due" | "planned" | "pending" | "later";
+
+const HORIZON_SEGMENT_OPTIONS = [
+  { key: "due", label: "Due" },
+  { key: "planned", label: "Planned" },
+  { key: "pending", label: "Pending" },
+  { key: "later", label: "Later" },
+] as const satisfies ReadonlyArray<{
+  key: HorizonSegment;
+  label: string;
+}>;
 
 export interface ListViewHeaderProps {
   // Identity
@@ -35,6 +43,9 @@ export interface ListViewHeaderProps {
   activeView: string;
   selectedProjectId: string | null;
   isMobile: boolean;
+  horizonSegment?: HorizonSegment;
+  onHorizonSegmentChange?: (segment: HorizonSegment) => void;
+  horizonSegmentCounts?: Partial<Record<HorizonSegment, number>>;
 
   // Counts
   visibleTodos: Todo[];
@@ -79,10 +90,6 @@ export interface ListViewHeaderProps {
   onCaptureToDesk: (text: string) => Promise<unknown>;
   quickEntryPlaceholder: string;
 
-  // Project headings
-  activeHeadingId: string | null;
-  onSelectHeading: (id: string | null) => void;
-
   // Search
   searchQuery: string;
   onSearchChange: (q: string) => void;
@@ -102,6 +109,9 @@ export function ListViewHeader({
   activeView,
   selectedProjectId,
   isMobile,
+  horizonSegment,
+  onHorizonSegmentChange,
+  horizonSegmentCounts,
   visibleTodos,
   loadState,
   filtersOpen,
@@ -131,8 +141,6 @@ export function ListViewHeader({
   onAddTodo,
   onCaptureToDesk,
   quickEntryPlaceholder,
-  activeHeadingId,
-  onSelectHeading,
   searchQuery,
   onSearchChange,
   todos,
@@ -142,6 +150,11 @@ export function ListViewHeader({
   dark,
 }: ListViewHeaderProps) {
   const activeCount = visibleTodos.filter((t) => !t.completed).length;
+  const showHorizonSegments =
+    activeView === "horizon" &&
+    !selectedProjectId &&
+    !!horizonSegment &&
+    !!onHorizonSegmentChange;
 
   return (
     <>
@@ -234,22 +247,24 @@ export function ListViewHeader({
               )}
             </button>
           </Tooltip>
-          <div className="view-toggle">
-            <button
-              className={`view-toggle__btn${viewMode === "list" ? " view-toggle__btn--active" : ""}`}
-              onClick={() => onViewModeChange("list")}
-              aria-label="List view"
-            >
-              <IconList />
-            </button>
-            <button
-              className={`view-toggle__btn${viewMode === "board" ? " view-toggle__btn--active" : ""}`}
-              onClick={() => onViewModeChange("board")}
-              aria-label="Board view"
-            >
-              <IconBoard />
-            </button>
-          </div>
+          <SegmentedControl
+            value={viewMode}
+            onChange={(next) => onViewModeChange(next as "list" | "board")}
+            ariaLabel="View mode"
+            iconOnly
+            options={[
+              {
+                value: "list",
+                ariaLabel: "List view",
+                icon: <IconList />,
+              },
+              {
+                value: "board",
+                ariaLabel: "Board view",
+                icon: <IconBoard />,
+              },
+            ]}
+          />
           {viewMode === "list" && (
             <SortControl
               sortBy={sortBy}
@@ -278,9 +293,7 @@ export function ListViewHeader({
                   return;
                 }
                 onExportIcs(withDates);
-                onExportMessage(
-                  `Exported ${withDates.length} tasks to .ics`,
-                );
+                onExportMessage(`Exported ${withDates.length} tasks to .ics`);
               }}
               aria-label="Export to calendar"
               style={{ fontSize: "var(--fs-label)" }}
@@ -311,10 +324,7 @@ export function ListViewHeader({
       )}
 
       {user && !user.isVerified && (
-        <VerificationBanner
-          email={user.email}
-          isVerified={!!user.isVerified}
-        />
+        <VerificationBanner email={user.email} isVerified={!!user.isVerified} />
       )}
 
       {activeTagFilter && (
@@ -329,6 +339,21 @@ export function ListViewHeader({
         </div>
       )}
 
+      {showHorizonSegments && (
+        <SegmentedControl
+          value={horizonSegment ?? "due"}
+          onChange={(next) => onHorizonSegmentChange(next as HorizonSegment)}
+          ariaLabel="Horizon views"
+          className="horizon-segment-bar"
+          options={HORIZON_SEGMENT_OPTIONS.map(({ key, label }) => ({
+            value: key,
+            label,
+            buttonId: `horizonSegment${label}`,
+            badge: horizonSegmentCounts?.[key] ? horizonSegmentCounts[key] : undefined,
+          }))}
+        />
+      )}
+
       {/* Today view coaching */}
       {activeView === "today" &&
         !selectedProjectId &&
@@ -337,8 +362,7 @@ export function ListViewHeader({
           const overdue = visibleTodos.filter(
             (t) =>
               t.dueDate &&
-              t.dueDate.split("T")[0] <
-                new Date().toISOString().split("T")[0],
+              t.dueDate.split("T")[0] < new Date().toISOString().split("T")[0],
           ).length;
           return overdue > 0 ? (
             <div className="today-coaching-banner">
@@ -367,8 +391,7 @@ export function ListViewHeader({
           selectedCount={selectedIds.size}
           totalCount={visibleTodos.length}
           allSelected={
-            selectedIds.size === visibleTodos.length &&
-            visibleTodos.length > 0
+            selectedIds.size === visibleTodos.length && visibleTodos.length > 0
           }
           onSelectAll={onSelectAll}
           onComplete={onBulkComplete}
@@ -387,15 +410,6 @@ export function ListViewHeader({
         />
       )}
 
-      {/* Project headings */}
-      {selectedProjectId && uiMode === "normal" && (
-        <ProjectHeadings
-          projectId={selectedProjectId}
-          activeHeadingId={activeHeadingId}
-          onSelectHeading={onSelectHeading}
-        />
-      )}
-
       {/* Mobile search */}
       {isMobile && (
         <div style={{ padding: "var(--s-2) var(--s-4)" }}>
@@ -403,6 +417,7 @@ export function ListViewHeader({
             inputId="searchInputMobile"
             value={searchQuery}
             onChange={onSearchChange}
+            shortcutHint="/"
           />
         </div>
       )}

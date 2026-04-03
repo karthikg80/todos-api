@@ -26,6 +26,7 @@ import { GroupHeader } from "./GroupHeader";
 import { ListToolbar } from "./ListToolbar";
 import type { SortField, SortOrder } from "./SortControl";
 import { useViewSnapshot } from "../../hooks/useViewSnapshot";
+import type { GroupBy } from "../../utils/groupTodos";
 
 interface SortableRowProps {
   todo: Todo;
@@ -101,6 +102,7 @@ interface Props {
   sortBy: SortField;
   sortOrder: SortOrder;
   onSortChange: (field: SortField, order: SortOrder) => void;
+  groupByOptions?: GroupBy[];
 }
 
 export function SortableTodoList({
@@ -126,16 +128,22 @@ export function SortableTodoList({
   sortBy,
   sortOrder,
   onSortChange,
+  groupByOptions,
 }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
   const { groupBy, setGroupBy } = useGroupBy();
+  const effectiveGroupBy = groupByOptions?.includes(groupBy)
+    ? groupBy
+    : (groupByOptions?.[0] ?? groupBy);
   const { density, setDensity } = useDensity();
-  const sections = useMemo(() => groupTodos(todos, groupBy), [todos, groupBy]);
-  const { isCollapsed, toggle } = useCollapsedGroups(groupBy);
-  const isDerived = groupBy === "status" || groupBy === "priority" || groupBy === "dueDate";
+  const sections = useMemo(
+    () => groupTodos(todos, effectiveGroupBy),
+    [todos, effectiveGroupBy],
+  );
+  const { isCollapsed, toggle } = useCollapsedGroups(effectiveGroupBy);
 
   const scrollContainerRef = useRef<HTMLElement | null>(null);
   const expandedTodoIdRef = useRef<string | null>(expandedTodoId);
@@ -188,6 +196,12 @@ export function SortableTodoList({
     }
   };
 
+  useEffect(() => {
+    if (effectiveGroupBy !== groupBy) {
+      setGroupBy(effectiveGroupBy);
+    }
+  }, [effectiveGroupBy, groupBy, setGroupBy]);
+
   if (loadState === "loading") {
     return (
       <div className="loading-skeleton loading">
@@ -223,10 +237,19 @@ export function SortableTodoList({
   }
 
   const toolbar = (
-    <ListToolbar sortBy={sortBy} sortOrder={sortOrder} onSortChange={onSortChange} groupBy={groupBy} onGroupByChange={setGroupBy} density={density} onDensityChange={setDensity} />
+    <ListToolbar
+      sortBy={sortBy}
+      sortOrder={sortOrder}
+      onSortChange={onSortChange}
+      groupBy={effectiveGroupBy}
+      onGroupByChange={setGroupBy}
+      density={density}
+      onDensityChange={setDensity}
+      groupByOptions={groupByOptions}
+    />
   );
 
-  if (groupBy === "none") {
+  if (effectiveGroupBy === "none") {
     return (
       <>
         {toolbar}
@@ -249,7 +272,7 @@ export function SortableTodoList({
                   isBulkMode={isBulkMode}
                   isSelected={selectedIds.has(todo.id)}
                   density={density}
-                  groupBy={groupBy}
+                  groupBy={effectiveGroupBy}
                   projects={projects}
                   headings={headings}
                   onToggle={onToggle}
@@ -269,7 +292,7 @@ export function SortableTodoList({
     );
   }
 
-  if (isDerived) {
+  if (effectiveGroupBy === "status" || effectiveGroupBy === "priority" || effectiveGroupBy === "dueDate") {
     return (
       <>
         {toolbar}
@@ -293,7 +316,7 @@ export function SortableTodoList({
                     isSelected={selectedIds.has(todo.id)}
                     isEntering={enteringIds.has(todo.id)}
                     density={density}
-                    groupBy={groupBy}
+                    groupBy={effectiveGroupBy}
                     projects={projects}
                     headings={headings}
                     onToggle={onToggle}
@@ -313,7 +336,7 @@ export function SortableTodoList({
     );
   }
 
-  // groupBy === "project": per-section DnD
+  // effectiveGroupBy === "project": per-section DnD
   return (
     <>
       {toolbar}
@@ -345,7 +368,7 @@ export function SortableTodoList({
                       isBulkMode={isBulkMode}
                       isSelected={selectedIds.has(todo.id)}
                       density={density}
-                      groupBy={groupBy}
+                      groupBy={effectiveGroupBy}
                       projects={projects}
                       headings={headings}
                       onToggle={onToggle}

@@ -13,7 +13,7 @@ interface Props {
   onTodoClick: (id: string) => void;
   onToggleTodo: (id: string, completed: boolean) => void;
   onEditTodo: (id: string, updates: Record<string, unknown>) => void;
-  onNavigate: (view: "today" | "upcoming" | "all") => void;
+  onNavigate: (view: "today" | "horizon" | "all") => void;
   onSelectProject: (id: string) => void;
   onNavigateToTuneUp: () => void;
   onUndo: (action: { message: string; onUndo: () => void }) => void;
@@ -55,12 +55,13 @@ export function HomeDashboard({
   onUndo,
 }: Props) {
   const scrollContainerRef = useRef<HTMLElement | null>(null);
+  const [showMoreSections, setShowMoreSections] = useState(false);
 
   useEffect(() => {
     scrollContainerRef.current = document.querySelector<HTMLElement>(
-      ".view-router__slot[style*='display: block'] .app-content",
+      ".view-router__slot[data-active='true'] .app-content",
     );
-  }, []);
+  });
 
   useViewSnapshot({
     capture: () => ({
@@ -186,6 +187,15 @@ export function HomeDashboard({
       .slice(0, 3);
   }, [active]);
 
+  const moreSummary = useMemo(() => {
+    const parts: string[] = [];
+    if (dueSoonTotal > 0) parts.push(`${dueSoonTotal} due soon`);
+    if (staleItems.length > 0) parts.push(`${staleItems.length} stale`);
+    if (projectsToNudge.length > 0) parts.push(`${projectsToNudge.length} projects to nudge`);
+    if (todaysPlannedTasks.length > 0) parts.push(`${todaysPlannedTasks.length} planned today`);
+    return parts.slice(0, 3).join(" · ") || "Open supporting views only when you need more context.";
+  }, [dueSoonTotal, staleItems.length, projectsToNudge.length, todaysPlannedTasks.length]);
+
   const handleStartRescueMode = async () => {
     setRescueModeSaving(true);
     try {
@@ -204,7 +214,7 @@ export function HomeDashboard({
 
   return (
     <div data-testid="home-dashboard" className="home-dashboard">
-      <div className="home-dashboard__hero-grid">
+      <div className="home-dashboard__primary-stack">
         <section className="home-brief-card" data-testid="home-brief-card">
           <span className="home-brief-card__eyebrow">Daily brief</span>
           <h2 className="home-brief-card__title">Today's focus</h2>
@@ -246,34 +256,71 @@ export function HomeDashboard({
           )}
         </section>
 
-        <div className="home-dashboard__secondary-stack">
-          {showRescue && (
-            <section
-              className="home-rescue-panel"
-              data-testid="home-rescue-panel"
-            >
-              <span className="home-rescue-panel__eyebrow">Rescue mode</span>
-              <h3 className="home-rescue-panel__title">
-                {rescueModeActive ? "Rescue mode is on" : "Keep the day workable."}
-              </h3>
-              <p className="home-rescue-panel__desc">
-                {rescueModeActive
-                  ? "The day context is now set to rescue so planning can stay narrow and defensive."
-                  : `You have ${active.length} open tasks and ${overdueCount} overdue. Narrow the day before adding anything else.`}
-              </p>
-              {!rescueModeActive && (
-                <button
-                  className="btn btn--primary home-rescue-panel__action"
-                  onClick={() => void handleStartRescueMode()}
-                  disabled={rescueModeSaving}
-                >
-                  {rescueModeSaving ? "Starting..." : "Start rescue mode"}
-                </button>
-              )}
-            </section>
-          )}
+        {showRescue && (
+          <section
+            className="home-rescue-panel"
+            data-testid="home-rescue-panel"
+          >
+            <span className="home-rescue-panel__eyebrow">Rescue mode</span>
+            <h3 className="home-rescue-panel__title">
+              {rescueModeActive ? "Rescue mode is on" : "Keep the day workable."}
+            </h3>
+            <p className="home-rescue-panel__desc">
+              {rescueModeActive
+                ? "The day context is now set to rescue so planning can stay narrow and defensive."
+                : `You have ${active.length} open tasks and ${overdueCount} overdue. Narrow the day before adding anything else.`}
+            </p>
+            {!rescueModeActive && (
+              <button
+                className="btn btn--primary home-rescue-panel__action"
+                onClick={() => void handleStartRescueMode()}
+                disabled={rescueModeSaving}
+              >
+                {rescueModeSaving ? "Starting..." : "Start rescue mode"}
+              </button>
+            )}
+          </section>
+        )}
 
-          <PrioritiesBriefTile />
+        <PrioritiesBriefTile />
+      </div>
+
+      {active.length > 0 && (
+        <section className="home-dashboard__disclosure">
+          <button
+            type="button"
+            className="home-dashboard__disclosure-toggle"
+            aria-expanded={showMoreSections}
+            onClick={() => setShowMoreSections((current) => !current)}
+          >
+            <span className="home-dashboard__disclosure-copy">
+              <span className="home-dashboard__disclosure-title">
+                {showMoreSections ? "Hide supporting views" : "Show more for today"}
+              </span>
+              <span className="home-dashboard__disclosure-summary">
+                {moreSummary}
+              </span>
+            </span>
+            <span className="home-dashboard__disclosure-icon" aria-hidden="true">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 6l4 4 4-4" />
+              </svg>
+            </span>
+          </button>
+        </section>
+      )}
+
+      {showMoreSections && (
+        <div className="home-dashboard__progressive-stack">
           <HomePulseTile
             todos={todos}
             activeTodos={active}
@@ -282,173 +329,173 @@ export function HomeDashboard({
             todaysPlannedTasks={todaysPlannedTasks}
             onTodoClick={onTodoClick}
           />
-        </div>
-      </div>
 
-      {active.length > 0 && (
-        <div className="home-dashboard__support-grid">
-          <section className="home-tile" data-home-tile="due_soon">
-            <div className="home-tile__header">
-              <div className="home-tile__title-row">
-                <svg
-                  className="home-tile__icon"
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16.5 12" />
-                </svg>
-                <h3 className="home-tile__title">Due soon</h3>
-              </div>
-              {dueSoonTotal > 0 && (
-                <button
-                  className="mini-btn home-tile__see-all"
-                  onClick={() => onNavigate("today")}
-                >
-                  See all
-                </button>
-              )}
-            </div>
-            <div className="home-tile__subtitle">
-              Keep the horizon visible without turning it into a dashboard.
-            </div>
-            <div className="home-tile__body">
-              {dueSoonGroups.length === 0 ? (
-                <div className="home-tile__empty">
-                  <DueSoonEmptyIllustration />
-                  <p>Nothing urgent is coming up.</p>
+          {active.length > 0 && (
+            <div className="home-dashboard__support-grid">
+              <section className="home-tile" data-home-tile="due_soon">
+                <div className="home-tile__header">
+                  <div className="home-tile__title-row">
+                    <svg
+                      className="home-tile__icon"
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16.5 12" />
+                    </svg>
+                    <h3 className="home-tile__title">Due soon</h3>
+                  </div>
+                  {dueSoonTotal > 0 && (
+                    <button
+                      className="mini-btn home-tile__see-all"
+                      onClick={() => onNavigate("today")}
+                    >
+                      See all
+                    </button>
+                  )}
                 </div>
-              ) : (
-                dueSoonGroups.map((group) => (
-                  <div key={group.label} className="home-task-group">
-                    <div className="home-task-group__label">{group.label}</div>
-                    {group.items.slice(0, 6).map((todo) => (
+                <div className="home-tile__subtitle">
+                  Keep the horizon visible without turning it into a dashboard.
+                </div>
+                <div className="home-tile__body">
+                  {dueSoonGroups.length === 0 ? (
+                    <div className="home-tile__empty">
+                      <DueSoonEmptyIllustration />
+                      <p>Nothing urgent is coming up.</p>
+                    </div>
+                  ) : (
+                    dueSoonGroups.map((group) => (
+                      <div key={group.label} className="home-task-group">
+                        <div className="home-task-group__label">{group.label}</div>
+                        {group.items.slice(0, 6).map((todo) => (
+                          <HomeTaskRow
+                            key={todo.id}
+                            todo={todo}
+                            onClick={onTodoClick}
+                            onToggle={onToggleTodo}
+                            showActions
+                            onAction={(id, action) => {
+                              if (action === "smaller") onTodoClick(id);
+                              else if (action === "later") {
+                                const d = new Date();
+                                d.setDate(d.getDate() + 3);
+                                onEditTodo(id, { dueDate: d.toISOString().split("T")[0] });
+                              } else if (action === "not-now") {
+                                onEditTodo(id, { status: "someday" });
+                              } else if (action === "drop") {
+                                onEditTodo(id, { archived: true });
+                              }
+                            }}
+                          />
+                        ))}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </section>
+
+              <WhatNextTile onUndo={onUndo} />
+            </div>
+          )}
+
+          <div className="home-dashboard__support-grid">
+            {active.length > 0 && (
+              <section className="home-tile" data-home-tile="stale_risks">
+                <div className="home-tile__header">
+                  <div className="home-tile__title-row">
+                    <h3 className="home-tile__title">Backlog hygiene</h3>
+                  </div>
+                  {staleItems.length > 0 && (
+                    <button
+                      className="mini-btn home-tile__see-all"
+                      onClick={() => onNavigate("all")}
+                    >
+                      Review list
+                    </button>
+                  )}
+                </div>
+                <div className="home-tile__subtitle">
+                  A short list to keep the system feeling clean.
+                </div>
+                <div className="home-tile__body">
+                  {staleItems.length === 0 ? (
+                    <div className="home-tile__empty">
+                      <BacklogCleanEmptyIllustration />
+                      <p>Backlog looks calm right now.</p>
+                    </div>
+                  ) : (
+                    staleItems.map((todo) => (
                       <HomeTaskRow
                         key={todo.id}
                         todo={todo}
                         onClick={onTodoClick}
                         onToggle={onToggleTodo}
-                        showActions
-                        onAction={(id, action) => {
-                          if (action === "smaller") onTodoClick(id);
-                          else if (action === "later") {
-                            const d = new Date();
-                            d.setDate(d.getDate() + 3);
-                            onEditTodo(id, { dueDate: d.toISOString().split("T")[0] });
-                          } else if (action === "not-now") {
-                            onEditTodo(id, { status: "someday" });
-                          } else if (action === "drop") {
-                            onEditTodo(id, { archived: true });
-                          }
-                        }}
+                        meta={`${staleDays(todo)}d untouched`}
                       />
-                    ))}
-                  </div>
-                ))
-              )}
-            </div>
-          </section>
-
-          <WhatNextTile onUndo={onUndo} />
-        </div>
-      )}
-
-      <div className="home-dashboard__support-grid">
-        {active.length > 0 && (
-          <section className="home-tile" data-home-tile="stale_risks">
-            <div className="home-tile__header">
-              <div className="home-tile__title-row">
-                <h3 className="home-tile__title">Backlog hygiene</h3>
-              </div>
-              {staleItems.length > 0 && (
-                <button
-                  className="mini-btn home-tile__see-all"
-                  onClick={() => onNavigate("all")}
-                >
-                  Review list
-                </button>
-              )}
-            </div>
-            <div className="home-tile__subtitle">
-              A short list to keep the system feeling clean.
-            </div>
-            <div className="home-tile__body">
-              {staleItems.length === 0 ? (
-                <div className="home-tile__empty">
-                  <BacklogCleanEmptyIllustration />
-                  <p>Backlog looks calm right now.</p>
+                    ))
+                  )}
                 </div>
-              ) : (
-                staleItems.map((todo) => (
-                  <HomeTaskRow
-                    key={todo.id}
-                    todo={todo}
-                    onClick={onTodoClick}
-                    onToggle={onToggleTodo}
-                    meta={`${staleDays(todo)}d untouched`}
-                  />
-                ))
-              )}
-            </div>
-          </section>
-        )}
-        <TuneUpTile onNavigateToTuneUp={onNavigateToTuneUp} />
-      </div>
+              </section>
+            )}
+            <TuneUpTile onNavigateToTuneUp={onNavigateToTuneUp} />
+          </div>
 
-      {projectsToNudge.length > 0 && (
-        <section
-          className="home-tile home-tile--compact"
-          data-home-tile="projects_to_nudge"
-        >
-          <div className="home-tile__header">
-            <div className="home-tile__title-row">
-              <svg
-                className="home-tile__icon"
-                xmlns="http://www.w3.org/2000/svg"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
-              </svg>
-              <h3 className="home-tile__title">Projects to nudge</h3>
-            </div>
-          </div>
-          <div className="home-tile__subtitle">
-            A short radar of projects that may slip without one quick touch.
-          </div>
-          <div className="home-tile__body">
-            {projectsToNudge.slice(0, 4).map(({ project, open, overdue, waiting, dueSoon }) => (
-              <div
-                key={project.id}
-                className="home-project-row"
-                onClick={() => onSelectProject(project.id)}
-              >
-                <span className="home-project-row__name">{project.name}</span>
-                <span className="home-project-row__meta">
-                  {open} open
-                  {overdue > 0 && ` · ${overdue} overdue`}
-                  {waiting > 0 && ` · ${waiting} waiting`}
-                  {dueSoon > 0 && ` · ${dueSoon} due soon`}
-                </span>
+          {projectsToNudge.length > 0 && (
+            <section
+              className="home-tile home-tile--compact"
+              data-home-tile="projects_to_nudge"
+            >
+              <div className="home-tile__header">
+                <div className="home-tile__title-row">
+                  <svg
+                    className="home-tile__icon"
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                  </svg>
+                  <h3 className="home-tile__title">Projects to nudge</h3>
+                </div>
               </div>
-            ))}
-          </div>
-        </section>
+              <div className="home-tile__subtitle">
+                A short radar of projects that may slip without one quick touch.
+              </div>
+              <div className="home-tile__body">
+                {projectsToNudge.slice(0, 4).map(({ project, open, overdue, waiting, dueSoon }) => (
+                  <div
+                    key={project.id}
+                    className="home-project-row"
+                    onClick={() => onSelectProject(project.id)}
+                  >
+                    <span className="home-project-row__name">{project.name}</span>
+                    <span className="home-project-row__meta">
+                      {open} open
+                      {overdue > 0 && ` · ${overdue} overdue`}
+                      {waiting > 0 && ` · ${waiting} waiting`}
+                      {dueSoon > 0 && ` · ${dueSoon} due soon`}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
       )}
 
       {/* Empty state */}
