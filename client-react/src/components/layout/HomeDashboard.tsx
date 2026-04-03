@@ -13,7 +13,7 @@ interface Props {
   onTodoClick: (id: string) => void;
   onToggleTodo: (id: string, completed: boolean) => void;
   onEditTodo: (id: string, updates: Record<string, unknown>) => void;
-  onNavigate: (view: "today" | "upcoming" | "all") => void;
+  onNavigate: (view: "today" | "horizon" | "all") => void;
   onSelectProject: (id: string) => void;
   onNavigateToTuneUp: () => void;
   onUndo: (action: { message: string; onUndo: () => void }) => void;
