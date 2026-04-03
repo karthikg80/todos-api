@@ -13,6 +13,7 @@ import { FieldRenderer } from "./FieldRenderer";
 import { useFieldLayout } from "../../hooks/useFieldLayout";
 import { FIELD_REGISTRY_BY_KEY } from "../../types/fieldLayout";
 import { apiCall } from "../../api/client";
+import { useOverlayFocusTrap } from "../shared/useOverlayFocusTrap";
 
 interface Props {
   todo: Todo | null;
@@ -34,6 +35,15 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete, onOpenFu
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const titleRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<Element | null>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+
+  useOverlayFocusTrap({
+    isOpen,
+    containerRef: drawerRef,
+    onClose,
+    initialFocusRef: titleRef,
+    restoreFocus: false,
+  });
 
   useEffect(() => {
     if (todo) {
@@ -102,11 +112,14 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete, onOpenFu
         onClick={onClose}
       />
       <div
+        ref={drawerRef}
         id="todoDetailsDrawer"
         className="todo-drawer"
         aria-hidden={!isOpen}
         role="dialog"
+        aria-modal="true"
         aria-label="Task details"
+        tabIndex={-1}
       >
         {todo && (
           <>

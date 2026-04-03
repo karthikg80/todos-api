@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import type { Project, User } from "../../types";
 import { apiCall } from "../../api/client";
 import {
@@ -12,6 +12,7 @@ import {
   IconPlus,
   IconSidebar,
   IconSearch,
+  IconKebab,
 } from "../shared/Icons";
 import { ProfileLauncher } from "../shared/ProfileLauncher";
 
@@ -62,11 +63,15 @@ function ProjectRailItem({
   isActive,
   onClick,
   onContextMenu,
+  onOpenMenu,
+  isMenuOpen,
 }: {
   project: Project;
   isActive: boolean;
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onOpenMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  isMenuOpen: boolean;
 }) {
   const total = p.todoCount ?? 0;
   const completed = p.completedTaskCount ?? 0;
@@ -75,46 +80,107 @@ function ProjectRailItem({
     p.targetDate && new Date(p.targetDate) < new Date(new Date().toDateString());
 
   return (
-    <button
-      className={`projects-rail-item${isActive ? " projects-rail-item--active" : ""}`}
-      data-project-key={p.name}
-      onClick={onClick}
+    <div
+      className={`projects-rail-item-row${isActive ? " projects-rail-item-row--active" : ""}`}
       onContextMenu={onContextMenu}
     >
-      <span
-        className="projects-rail-item__status-dot"
-        style={{ background: STATUS_COLORS[p.status] || "var(--muted)" }}
-        title={p.status.replace("_", " ")}
-      />
-      <div className="projects-rail-item__content">
-        <div className="projects-rail-item__top-row">
-          <span className="nav-label">{p.name}</span>
-          {p.openTodoCount != null && (
-            <span className="projects-rail-item__count">
-              {p.openTodoCount}
-            </span>
+      <button
+        className={`projects-rail-item${isActive ? " projects-rail-item--active" : ""}`}
+        data-project-key={p.name}
+        onClick={onClick}
+      >
+        <span
+          className="projects-rail-item__status-dot"
+          style={{ background: STATUS_COLORS[p.status] || "var(--muted)" }}
+          title={p.status.replace("_", " ")}
+        />
+        <div className="projects-rail-item__content">
+          <div className="projects-rail-item__top-row">
+            <span className="nav-label">{p.name}</span>
+            {p.openTodoCount != null && (
+              <span className="projects-rail-item__count">
+                {p.openTodoCount}
+              </span>
+            )}
+          </div>
+          {total > 0 && (
+            <div className="projects-rail-item__progress-bar">
+              <div
+                className="projects-rail-item__progress-fill"
+                style={{ width: `${Math.round(progress * 100)}%` }}
+              />
+            </div>
           )}
         </div>
-        {total > 0 && (
-          <div className="projects-rail-item__progress-bar">
-            <div
-              className="projects-rail-item__progress-fill"
-              style={{ width: `${Math.round(progress * 100)}%` }}
-            />
-          </div>
+        {p.targetDate && (
+          <span
+            className={`projects-rail-item__deadline${isOverdue ? " projects-rail-item__deadline--overdue" : ""}`}
+          >
+            {new Date(p.targetDate).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
         )}
-      </div>
-      {p.targetDate && (
-        <span
-          className={`projects-rail-item__deadline${isOverdue ? " projects-rail-item__deadline--overdue" : ""}`}
-        >
-          {new Date(p.targetDate).toLocaleDateString(undefined, {
-            month: "short",
-            day: "numeric",
-          })}
-        </span>
-      )}
-    </button>
+      </button>
+      <button
+        className="projects-rail-item__actions"
+        type="button"
+        aria-label={`Project actions for ${p.name}`}
+        aria-haspopup="menu"
+        aria-expanded={isMenuOpen}
+        onClick={onOpenMenu}
+      >
+        <IconKebab size={13} />
+      </button>
+    </div>
+  );
+}
+
+function getMenuPosition(target: HTMLElement) {
+  const rect = target.getBoundingClientRect();
+  return {
+    x: Math.max(8, rect.right - 180),
+    y: rect.bottom + 6,
+  };
+}
+
+function renderArchivedProjectItem({
+  project,
+  selectedProjectId,
+  onSelectProject,
+  onContextMenu,
+  onOpenMenu,
+  isMenuOpen,
+}: {
+  project: Project;
+  selectedProjectId: string | null;
+  onSelectProject: (id: string | null) => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onOpenMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  isMenuOpen: boolean;
+}) {
+  return (
+    <div key={project.id} className="projects-rail-item-row">
+      <button
+        className={`projects-rail-item projects-rail-item--archived${selectedProjectId === project.id ? " projects-rail-item--active" : ""}`}
+        data-project-key={project.name}
+        onClick={() => onSelectProject(project.id)}
+        onContextMenu={onContextMenu}
+      >
+        <span className="nav-label">{project.name}</span>
+      </button>
+      <button
+        className="projects-rail-item__actions"
+        type="button"
+        aria-label={`Project actions for ${project.name}`}
+        aria-haspopup="menu"
+        aria-expanded={isMenuOpen}
+        onClick={onOpenMenu}
+      >
+        <IconKebab size={13} />
+      </button>
+    </div>
   );
 }
 
@@ -180,8 +246,24 @@ export function Sidebar({
   } | null>(null);
   const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set());
   const [showArchived, setShowArchived] = useState(false);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   const isSimple = uiMode === "simple";
+
+  useEffect(() => {
+    if (!contextMenu) return;
+    requestAnimationFrame(() => {
+      contextMenuRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    });
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setContextMenu(null);
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [contextMenu]);
 
   // Group active projects by area (matching classic railUi.js logic)
   const projectGroups = useMemo(() => {
@@ -235,6 +317,20 @@ export function Sidebar({
     setContextMenu({ id: projectId, x: e.clientX, y: e.clientY });
   };
 
+  const openProjectMenu = (
+    event: React.MouseEvent<HTMLButtonElement>,
+    projectId: string,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const nextPosition = getMenuPosition(event.currentTarget);
+    setContextMenu((current) =>
+      current?.id === projectId
+        ? null
+        : { id: projectId, x: nextPosition.x, y: nextPosition.y },
+    );
+  };
+
   const handleDeleteProject = async (id: string) => {
     setContextMenu(null);
     const res = await apiCall(`/projects/${id}?taskDisposition=unsorted`, {
@@ -286,8 +382,10 @@ export function Sidebar({
           <IconSearch />
           <input
             className="sidebar-search__input nav-label"
+            data-global-search-input="true"
             type="text"
             placeholder="Search…"
+            aria-label="Search tasks"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             onKeyDown={(e) => {
@@ -311,7 +409,11 @@ export function Sidebar({
 
       {/* New task button — styled like a nav item */}
       {!isCollapsed && (
-        <button className="sidebar-new-task-btn workspace-view-item" onClick={onNewTask}>
+        <button
+          className="sidebar-new-task-btn workspace-view-item"
+          data-new-task-trigger="true"
+          onClick={onNewTask}
+        >
           <IconPlus className="nav-icon" />
           <span className="nav-label">New Task</span>
         </button>
@@ -383,6 +485,8 @@ export function Sidebar({
                       isActive={selectedProjectId === p.id}
                       onClick={() => onSelectProject(p.id)}
                       onContextMenu={(e) => handleContextMenu(e, p.id)}
+                      onOpenMenu={(event) => openProjectMenu(event, p.id)}
+                      isMenuOpen={contextMenu?.id === p.id}
                     />
                   ))}
                 </div>
@@ -406,15 +510,14 @@ export function Sidebar({
                 {projects
                   .filter((p) => p.archived)
                   .map((p) => (
-                    <button
-                      key={p.id}
-                      className="projects-rail-item projects-rail-item--archived"
-                      data-project-key={p.name}
-                      onClick={() => onSelectProject(p.id)}
-                      onContextMenu={(e) => handleContextMenu(e, p.id)}
-                    >
-                      {p.name}
-                    </button>
+                    renderArchivedProjectItem({
+                      project: p,
+                      selectedProjectId,
+                      onSelectProject,
+                      onContextMenu: (e) => handleContextMenu(e, p.id),
+                      onOpenMenu: (event) => openProjectMenu(event, p.id),
+                      isMenuOpen: contextMenu?.id === p.id,
+                    })
                   ))}
               </div>
             )}
@@ -430,17 +533,22 @@ export function Sidebar({
             onClick={() => setContextMenu(null)}
           />
           <div
+            ref={contextMenuRef}
             className="context-menu"
             style={{ top: contextMenu.y, left: contextMenu.x }}
+            role="menu"
+            aria-label="Project actions"
           >
             <button
               className="context-menu__item"
+              role="menuitem"
               onClick={() => handleRenameProject(contextMenu.id)}
             >
               Rename
             </button>
             <button
               className="context-menu__item"
+              role="menuitem"
               onClick={async () => {
                 const project = projects.find(
                   (p) => p.id === contextMenu.id,
@@ -459,6 +567,7 @@ export function Sidebar({
             </button>
             <button
               className="context-menu__item context-menu__item--danger"
+              role="menuitem"
               onClick={() => handleDeleteProject(contextMenu.id)}
             >
               Delete

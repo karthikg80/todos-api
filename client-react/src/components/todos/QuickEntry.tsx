@@ -188,8 +188,10 @@ export function QuickEntry({
         id="todoInput"
         ref={inputRef}
         className="quick-entry__input"
+        data-quick-entry-input="true"
         type="text"
         placeholder={placeholder}
+        aria-label={placeholder}
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         onKeyDown={(e) => {

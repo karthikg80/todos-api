@@ -1,4 +1,5 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useOverlayFocusTrap } from "./useOverlayFocusTrap";
 
 interface Props {
   isOpen: boolean;
@@ -18,6 +19,16 @@ const SHORTCUTS = [
 ];
 
 export function ShortcutsOverlay({ isOpen, onClose }: Props) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useOverlayFocusTrap({
+    isOpen,
+    containerRef: dialogRef,
+    onClose,
+    initialFocusRef: closeRef,
+  });
+
   useEffect(() => {
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -36,14 +47,21 @@ export function ShortcutsOverlay({ isOpen, onClose }: Props) {
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
         className="shortcuts-dialog"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label="Keyboard shortcuts"
       >
         <div className="shortcuts-dialog__header">
           <h2 className="shortcuts-dialog__title">Keyboard Shortcuts</h2>
-          <button className="todo-drawer__close" onClick={onClose}>
+          <button
+            ref={closeRef}
+            className="todo-drawer__close"
+            onClick={onClose}
+            aria-label="Close keyboard shortcuts"
+          >
             ✕
           </button>
         </div>

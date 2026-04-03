@@ -40,6 +40,9 @@ export function UndoToast({ action, onDismiss }: Props) {
     <div
       id="undoToast"
       className={`undo-toast${visible ? " active" : ""} undo-toast--${variant}${exiting ? " undo-toast--exiting" : ""}`}
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
     >
       <span id="undoMessage" className="undo-toast__message">
         {action?.message}

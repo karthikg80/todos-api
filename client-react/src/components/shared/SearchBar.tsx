@@ -19,8 +19,10 @@ export function SearchBar({ value, onChange }: Props) {
         id="searchInput"
         ref={inputRef}
         className="search-bar__input"
+        data-global-search-input="true"
         type="text"
         placeholder="Search tasks…"
+        aria-label="Search tasks"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}

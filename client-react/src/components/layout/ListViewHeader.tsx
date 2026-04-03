@@ -76,6 +76,7 @@ export interface ListViewHeaderProps {
   // Quick entry
   uiMode: UiMode;
   onAddTodo: (dto: CreateTodoDto) => Promise<unknown>;
+  onCaptureToDesk: (text: string) => Promise<unknown>;
   quickEntryPlaceholder: string;
 
   // Project headings
@@ -128,6 +129,7 @@ export function ListViewHeader({
   onCancelBulk,
   uiMode,
   onAddTodo,
+  onCaptureToDesk,
   quickEntryPlaceholder,
   activeHeadingId,
   onSelectHeading,
@@ -164,6 +166,7 @@ export function ListViewHeader({
           >
             <button
               className="btn"
+              data-new-task-trigger="true"
               onClick={onNewTask}
               style={{ fontSize: "var(--fs-label)" }}
             >
@@ -257,6 +260,7 @@ export function ListViewHeader({
           <Tooltip content="New task" shortcut="n">
             <button
               className="btn"
+              data-new-task-trigger="true"
               onClick={onNewTask}
               style={{ fontSize: "var(--fs-label)" }}
             >
@@ -376,7 +380,9 @@ export function ListViewHeader({
       {uiMode === "normal" && (
         <QuickEntry
           projectId={selectedProjectId}
-          onAdd={onAddTodo}
+          workspaceView={activeView}
+          onAddTask={onAddTodo}
+          onCaptureToDesk={onCaptureToDesk}
           placeholder={quickEntryPlaceholder}
         />
       )}

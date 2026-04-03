@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { apiCall } from "../../api/client";
+import { useOverlayFocusTrap } from "../shared/useOverlayFocusTrap";
 
 interface Props {
   mode: "create" | "rename";
@@ -20,6 +21,14 @@ export function ProjectCrud({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useOverlayFocusTrap({
+    isOpen: true,
+    containerRef: dialogRef,
+    onClose: onCancel,
+    initialFocusRef: inputRef,
+  });
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -57,9 +66,11 @@ export function ProjectCrud({
   return (
     <div id="projectCrudModal" className="confirm-overlay" onClick={onCancel}>
       <div
+        ref={dialogRef}
         className="confirm-dialog"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label={mode === "create" ? "Create project" : "Rename project"}
       >
         <div className="confirm-dialog__title">

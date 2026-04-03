@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { WorkspaceView } from "../projects/Sidebar";
 import type { Todo } from "../../types";
 import { IllustrationNoResults } from "./Illustrations";
+import { focusGlobalSearchInput, triggerPrimaryNewTask } from "../../utils/focusTargets";
+import { useOverlayFocusTrap } from "./useOverlayFocusTrap";
 
 interface Command {
   id: string;
@@ -35,6 +37,14 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useOverlayFocusTrap({
+    isOpen,
+    containerRef: panelRef,
+    onClose,
+    initialFocusRef: inputRef,
+  });
 
   const commands: Command[] = useMemo(
     () => [
@@ -96,14 +106,18 @@ export function CommandPalette({
         id: "focus-search",
         label: "Focus Search",
         group: "Actions",
-        action: () => document.getElementById("searchInput")?.focus(),
+        action: () => {
+          focusGlobalSearchInput();
+        },
         keywords: "find filter",
       },
       {
         id: "new-task",
         label: "New Task",
         group: "Actions",
-        action: () => document.getElementById("todoInput")?.focus(),
+        action: () => {
+          triggerPrimaryNewTask();
+        },
         keywords: "add create todo",
       },
       {
@@ -170,6 +184,10 @@ export function CommandPalette({
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (filtered.length === 0) {
+        if (e.key === "Escape") onClose();
+        return;
+      }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         setActiveIndex((i) => (i + 1) % filtered.length);
@@ -205,9 +223,11 @@ export function CommandPalette({
       onClick={onClose}
     >
       <div
+        ref={panelRef}
         className="command-palette"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label="Command palette"
       >
         <input
