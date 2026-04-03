@@ -5,6 +5,8 @@ interface SegmentedOption {
   label?: string;
   ariaLabel?: string;
   icon?: ReactNode;
+  badge?: ReactNode;
+  buttonId?: string;
 }
 
 interface Props {
@@ -33,6 +35,7 @@ export function SegmentedControl({
       {options.map((option) => (
         <button
           key={option.value}
+          id={option.buttonId}
           type="button"
           role="tab"
           aria-selected={value === option.value}
@@ -41,8 +44,15 @@ export function SegmentedControl({
           onClick={() => onChange(option.value)}
         >
           {option.icon}
-          {!iconOnly && option.label && (
-            <span className="view-toggle__label">{option.label}</span>
+          {!iconOnly && (option.label || option.badge) && (
+            <span className="view-toggle__content">
+              {option.label && (
+                <span className="view-toggle__label">{option.label}</span>
+              )}
+              {option.badge != null && (
+                <span className="view-toggle__meta">{option.badge}</span>
+              )}
+            </span>
           )}
         </button>
       ))}
