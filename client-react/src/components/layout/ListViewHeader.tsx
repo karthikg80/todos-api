@@ -337,33 +337,23 @@ export function ListViewHeader({
       )}
 
       {showHorizonSegments && (
-        <div className="horizon-segment-bar" role="tablist" aria-label="Horizon views">
-          {(
-            [
-              { key: "due", label: "Due" },
-              { key: "planned", label: "Planned" },
-              { key: "pending", label: "Pending" },
-              { key: "later", label: "Later" },
-            ] as const
-          ).map(({ key, label }) => (
-            <button
-              key={key}
-              id={`horizonSegment${label}`}
-              type="button"
-              role="tab"
-              aria-selected={horizonSegment === key}
-              className={`horizon-segment-bar__btn${horizonSegment === key ? " horizon-segment-bar__btn--active" : ""}`}
-              onClick={() => onHorizonSegmentChange(key)}
-            >
-              <span>{label}</span>
-              {!!horizonSegmentCounts?.[key] && (
-                <span className="horizon-segment-bar__count">
-                  {horizonSegmentCounts[key]}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          value={horizonSegment ?? "due"}
+          onChange={(next) => onHorizonSegmentChange(next as HorizonSegment)}
+          ariaLabel="Horizon views"
+          className="horizon-segment-bar"
+          options={[
+            { key: "due", label: "Due" },
+            { key: "planned", label: "Planned" },
+            { key: "pending", label: "Pending" },
+            { key: "later", label: "Later" },
+          ].map(({ key, label }) => ({
+            value: key,
+            label,
+            buttonId: `horizonSegment${label}`,
+            badge: horizonSegmentCounts?.[key] ? horizonSegmentCounts[key] : undefined,
+          }))}
+        />
       )}
 
       {/* Today view coaching */}

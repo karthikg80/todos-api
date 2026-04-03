@@ -6,6 +6,8 @@ interface Props {
   onChange: (query: string) => void;
   inputId?: string;
   shortcutHint?: string;
+  placeholder?: string;
+  ariaLabel?: string;
 }
 
 export function SearchBar({
@@ -13,6 +15,8 @@ export function SearchBar({
   onChange,
   inputId = "searchInput",
   shortcutHint,
+  placeholder = "Search tasks…",
+  ariaLabel = "Search tasks",
 }: Props) {
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -32,8 +36,8 @@ export function SearchBar({
         className="search-bar__input"
         data-global-search-input="true"
         type="text"
-        placeholder="Search tasks…"
-        aria-label="Search tasks"
+        placeholder={placeholder}
+        aria-label={ariaLabel}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}

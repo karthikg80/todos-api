@@ -293,10 +293,28 @@ export function HomeDashboard({
             aria-expanded={showMoreSections}
             onClick={() => setShowMoreSections((current) => !current)}
           >
-            <span className="home-dashboard__disclosure-title">
-              {showMoreSections ? "Hide supporting views" : "Show more for today"}
+            <span className="home-dashboard__disclosure-copy">
+              <span className="home-dashboard__disclosure-title">
+                {showMoreSections ? "Hide supporting views" : "Show more for today"}
+              </span>
+              <span className="home-dashboard__disclosure-summary">
+                {moreSummary}
+              </span>
             </span>
-            <span className="home-dashboard__disclosure-summary">{moreSummary}</span>
+            <span className="home-dashboard__disclosure-icon" aria-hidden="true">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 6l4 4 4-4" />
+              </svg>
+            </span>
           </button>
         </section>
       )}
