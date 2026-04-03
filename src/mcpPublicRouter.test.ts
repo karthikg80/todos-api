@@ -235,6 +235,12 @@ describe("Public MCP OAuth and discovery routes", () => {
 
     const loginPage = await agent.get(authorizeUrl).expect(200);
     expect(loginPage.text).toContain("Connect Assistant");
+    expect(loginPage.headers["content-security-policy"]).toContain(
+      "form-action 'self' http://localhost:3000",
+    );
+    expect(loginPage.text).toContain(
+      'action="http://localhost:3000/oauth/authorize/login"',
+    );
 
     const login = await agent
       .post("/oauth/authorize/login")
@@ -258,6 +264,12 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(consent.text).toContain("Authorize Assistant");
     expect(consent.text).toContain("tasks.read");
     expect(consent.text).toContain("tasks.write");
+    expect(consent.headers["content-security-policy"]).toContain(
+      "form-action 'self' http://localhost:3000",
+    );
+    expect(consent.text).toContain(
+      'action="http://localhost:3000/oauth/authorize/decision"',
+    );
 
     const approve = await agent
       .post("/oauth/authorize/decision")
@@ -273,6 +285,12 @@ describe("Public MCP OAuth and discovery routes", () => {
         code_challenge_method: "S256",
       })
       .expect(303);
+    expect(approve.headers["content-security-policy"]).toContain(
+      "form-action 'self' http://localhost:3000",
+    );
+    expect(approve.headers["content-security-policy"]).toContain(
+      "script-src 'nonce-",
+    );
 
     const redirectUrl = new URL(approve.headers.location);
     const code = redirectUrl.searchParams.get("code");
