@@ -26,6 +26,7 @@ import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
 import { applyFilters, type ActiveFilters } from "../todos/FilterPanel";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
+import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
 import { DeskView } from "../desk/DeskView";
@@ -38,7 +39,10 @@ import { useViewTransition } from "../../hooks/useViewTransition";
 import { TaskFullPage } from "../todos/TaskFullPage";
 import { ViewRouter, ViewRoute } from "./ViewRouter";
 import { ListViewHeader } from "./ListViewHeader";
-import { focusGlobalSearchInput, triggerPrimaryNewTask } from "../../utils/focusTargets";
+import {
+  focusGlobalSearchInput,
+  triggerPrimaryNewTask,
+} from "../../utils/focusTargets";
 import { useOverlayFocusTrap } from "../shared/useOverlayFocusTrap";
 import * as todosApi from "../../api/todos";
 
@@ -62,7 +66,14 @@ const WeeklyReview = lazy(() =>
   import("./WeeklyReview").then((m) => ({ default: m.WeeklyReview })),
 );
 
-type AppPage = "todos" | "settings" | "ai" | "admin" | "feedback" | "review";
+type AppPage =
+  | "todos"
+  | "settings"
+  | "components"
+  | "ai"
+  | "admin"
+  | "feedback"
+  | "review";
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 
@@ -768,13 +779,15 @@ export function AppShell() {
     const pageLabel =
       page === "settings"
         ? "Settings"
-        : page === "ai"
-          ? "AI Workspace"
-          : page === "admin"
-            ? "Admin"
-            : page === "feedback"
-              ? "Feedback"
-              : headerTitle;
+        : page === "components"
+          ? "Component gallery"
+          : page === "ai"
+            ? "AI Workspace"
+            : page === "admin"
+              ? "Admin"
+              : page === "feedback"
+                ? "Feedback"
+                : headerTitle;
     document.title = `${pageLabel} — Todos`;
   }, [page, headerTitle]);
 
@@ -814,6 +827,10 @@ export function AppShell() {
       }}
       onOpenFeedback={() => {
         startTransition(() => setPage("feedback"));
+        setMobileNavOpen(false);
+      }}
+      onOpenComponentGallery={() => {
+        startTransition(() => setPage("components"));
         setMobileNavOpen(false);
       }}
       onOpenAdmin={() => {
@@ -897,6 +914,20 @@ export function AppShell() {
               density={density}
               onCycleDensity={cycleDensity}
               onBack={() => startTransition(() => setPage("todos"))}
+            />
+          ) : page === "components" ? (
+            <ComponentGalleryPage
+              user={user}
+              dark={dark}
+              isAdmin={user?.role === "admin"}
+              onBack={() => startTransition(() => setPage("todos"))}
+              onOpenProfile={() => startTransition(() => setPage("settings"))}
+              onOpenSettings={() => startTransition(() => setPage("settings"))}
+              onToggleTheme={toggleDarkMode}
+              onOpenShortcuts={() => setShortcutsOpen(true)}
+              onOpenFeedback={() => startTransition(() => setPage("feedback"))}
+              onOpenAdmin={() => startTransition(() => setPage("admin"))}
+              onLogout={logout}
             />
           ) : page === "ai" ? (
             <>

@@ -11,10 +11,7 @@ import {
 import { Breadcrumb } from "../shared/Breadcrumb";
 import { AnimatedCount } from "../shared/AnimatedCount";
 import { Tooltip } from "../shared/Tooltip";
-import {
-  FilterPanel,
-  type ActiveFilters,
-} from "../todos/FilterPanel";
+import { FilterPanel, type ActiveFilters } from "../todos/FilterPanel";
 import {
   SortControl,
   type SortField,
@@ -24,6 +21,7 @@ import { BulkToolbar } from "../todos/BulkToolbar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { ProjectHeadings } from "../projects/ProjectHeadings";
 import { SearchBar } from "../shared/SearchBar";
+import { SegmentedControl } from "../shared/SegmentedControl";
 import { VerificationBanner } from "../shared/VerificationBanner";
 
 type ViewMode = "list" | "board";
@@ -234,22 +232,24 @@ export function ListViewHeader({
               )}
             </button>
           </Tooltip>
-          <div className="view-toggle">
-            <button
-              className={`view-toggle__btn${viewMode === "list" ? " view-toggle__btn--active" : ""}`}
-              onClick={() => onViewModeChange("list")}
-              aria-label="List view"
-            >
-              <IconList />
-            </button>
-            <button
-              className={`view-toggle__btn${viewMode === "board" ? " view-toggle__btn--active" : ""}`}
-              onClick={() => onViewModeChange("board")}
-              aria-label="Board view"
-            >
-              <IconBoard />
-            </button>
-          </div>
+          <SegmentedControl
+            value={viewMode}
+            onChange={(next) => onViewModeChange(next as "list" | "board")}
+            ariaLabel="View mode"
+            iconOnly
+            options={[
+              {
+                value: "list",
+                ariaLabel: "List view",
+                icon: <IconList />,
+              },
+              {
+                value: "board",
+                ariaLabel: "Board view",
+                icon: <IconBoard />,
+              },
+            ]}
+          />
           {viewMode === "list" && (
             <SortControl
               sortBy={sortBy}
@@ -278,9 +278,7 @@ export function ListViewHeader({
                   return;
                 }
                 onExportIcs(withDates);
-                onExportMessage(
-                  `Exported ${withDates.length} tasks to .ics`,
-                );
+                onExportMessage(`Exported ${withDates.length} tasks to .ics`);
               }}
               aria-label="Export to calendar"
               style={{ fontSize: "var(--fs-label)" }}
@@ -311,10 +309,7 @@ export function ListViewHeader({
       )}
 
       {user && !user.isVerified && (
-        <VerificationBanner
-          email={user.email}
-          isVerified={!!user.isVerified}
-        />
+        <VerificationBanner email={user.email} isVerified={!!user.isVerified} />
       )}
 
       {activeTagFilter && (
@@ -337,8 +332,7 @@ export function ListViewHeader({
           const overdue = visibleTodos.filter(
             (t) =>
               t.dueDate &&
-              t.dueDate.split("T")[0] <
-                new Date().toISOString().split("T")[0],
+              t.dueDate.split("T")[0] < new Date().toISOString().split("T")[0],
           ).length;
           return overdue > 0 ? (
             <div className="today-coaching-banner">
@@ -367,8 +361,7 @@ export function ListViewHeader({
           selectedCount={selectedIds.size}
           totalCount={visibleTodos.length}
           allSelected={
-            selectedIds.size === visibleTodos.length &&
-            visibleTodos.length > 0
+            selectedIds.size === visibleTodos.length && visibleTodos.length > 0
           }
           onSelectAll={onSelectAll}
           onComplete={onBulkComplete}
@@ -403,6 +396,7 @@ export function ListViewHeader({
             inputId="searchInputMobile"
             value={searchQuery}
             onChange={onSearchChange}
+            shortcutHint="/"
           />
         </div>
       )}
