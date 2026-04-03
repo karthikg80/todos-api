@@ -22,14 +22,21 @@ export interface ChipData {
 }
 
 const MAX_TAGS = 2;
+const COMPACT_VARIANTS = new Set<ChipData["variant"]>([
+  "overdue",
+  "blocked",
+  "waiting",
+  "priority-high",
+  "date",
+  "project",
+]);
+const COMPACT_MAX_CHIPS = 2;
 
 export function buildChips(
   todo: Todo,
   density: Density,
   groupBy: GroupBy = "none",
 ): ChipData[] {
-  if (density === "compact") return [];
-
   const candidates: ChipData[] = [];
 
   // 1. Overdue due date (hidden when grouped by dueDate)
@@ -183,6 +190,12 @@ export function buildChips(
       variant: "overflow",
       family: "meta",
     });
+  }
+
+  if (density === "compact") {
+    return candidates
+      .filter((chip) => COMPACT_VARIANTS.has(chip.variant))
+      .slice(0, COMPACT_MAX_CHIPS);
   }
 
   // Truncation for normal mode
