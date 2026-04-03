@@ -7,6 +7,30 @@ export interface SectionGroup {
   todos: Todo[];
 }
 
+export type ProjectOverviewMode = "simple" | "guided" | "rich";
+
+export interface ProjectOverviewProfile {
+  mode: ProjectOverviewMode;
+  totalTasks: number;
+  openTasks: number;
+  completedTasks: number;
+  headingsCount: number;
+  sectionsWithTasks: number;
+  datedTasks: number;
+  priorityTasks: number;
+  overdueTasks: number;
+  waitingTasks: number;
+  unplacedTasks: number;
+  recentActivityCount: number;
+  showStarter: boolean;
+  showSectionsPreview: boolean;
+  showInsights: boolean;
+  showRiskInsights: boolean;
+  showRecentInsights: boolean;
+  showUnplacedInsights: boolean;
+  primaryContent: "tasks" | "sections";
+}
+
 export function startOfToday(now = new Date()) {
   return new Date(now.toDateString());
 }
@@ -29,6 +53,13 @@ export function daysUntil(date: string | null | undefined, now = new Date()) {
   const due = new Date(date);
   const today = startOfToday(now);
   return Math.floor((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function daysSince(date: string | null | undefined, now = new Date()) {
+  if (!date) return null;
+  const then = new Date(date);
+  const today = startOfToday(now);
+  return Math.floor((today.getTime() - then.getTime()) / (1000 * 60 * 60 * 24));
 }
 
 export function buildSectionGroups(
@@ -96,4 +127,77 @@ export function pickTopTasks(projectTodos: Todo[], now = new Date()) {
       return aDays - bDays;
     })
     .slice(0, 4);
+}
+
+export function classifyProjectOverview(
+  projectTodos: Todo[],
+  headings: Heading[],
+  now = new Date(),
+): ProjectOverviewProfile {
+  const totalTasks = projectTodos.length;
+  const openTasks = projectTodos.filter((todo) => !todo.completed).length;
+  const completedTasks = totalTasks - openTasks;
+  const headingsCount = headings.length;
+  const sectionsWithTasks = headings.filter((heading) =>
+    projectTodos.some((todo) => todo.headingId === heading.id),
+  ).length;
+  const datedTasks = projectTodos.filter(
+    (todo) => todo.dueDate || todo.startDate || todo.scheduledDate,
+  ).length;
+  const priorityTasks = projectTodos.filter((todo) => !!todo.priority).length;
+  const overdueTasks = projectTodos.filter((todo) => isOverdue(todo, now)).length;
+  const waitingTasks = projectTodos.filter(
+    (todo) => !todo.completed && (todo.status === "waiting" || !!todo.waitingOn),
+  ).length;
+  const unplacedTasks = projectTodos.filter(
+    (todo) => !todo.completed && !todo.headingId,
+  ).length;
+  const recentActivityCount = projectTodos.filter((todo) => {
+    const age = daysSince(todo.updatedAt, now);
+    return age != null && age <= 7;
+  }).length;
+
+  const isSimple =
+    totalTasks <= 5 &&
+    headingsCount <= 1 &&
+    datedTasks <= 1 &&
+    priorityTasks <= 1 &&
+    completedTasks <= 1;
+  const isRich =
+    totalTasks >= 12 ||
+    headingsCount >= 3 ||
+    sectionsWithTasks >= 3 ||
+    datedTasks >= 4 ||
+    completedTasks >= 4 ||
+    (recentActivityCount >= 8 && totalTasks >= 8);
+
+  const mode: ProjectOverviewMode = isSimple ? "simple" : isRich ? "rich" : "guided";
+  const showStarter = totalTasks === 0 || (mode === "simple" && totalTasks <= 2);
+  const showSectionsPreview =
+    sectionsWithTasks >= 2 || (mode !== "simple" && headingsCount >= 2);
+  const showRiskInsights = overdueTasks > 0 || waitingTasks > 1;
+  const showUnplacedInsights = unplacedTasks > 1 && showSectionsPreview;
+  const showRecentInsights = mode === "rich" && recentActivityCount >= 3;
+
+  return {
+    mode,
+    totalTasks,
+    openTasks,
+    completedTasks,
+    headingsCount,
+    sectionsWithTasks,
+    datedTasks,
+    priorityTasks,
+    overdueTasks,
+    waitingTasks,
+    unplacedTasks,
+    recentActivityCount,
+    showStarter,
+    showSectionsPreview,
+    showInsights: showRiskInsights || showUnplacedInsights || showRecentInsights,
+    showRiskInsights,
+    showRecentInsights,
+    showUnplacedInsights,
+    primaryContent: showSectionsPreview ? "sections" : "tasks",
+  };
 }
