@@ -10,15 +10,11 @@ import { Breadcrumb } from "../shared/Breadcrumb";
 import {
   IconBoard,
   IconCalendar,
-  IconCheck,
   IconClock,
   IconFolder,
-  IconLightning,
   IconList,
   IconMenu,
   IconPlus,
-  IconRefresh,
-  IconTarget,
   IconWaiting,
 } from "../shared/Icons";
 import { SegmentedControl } from "../shared/SegmentedControl";
@@ -35,10 +31,12 @@ import type { LoadState } from "../../store/useTodosStore";
 import type { SortField, SortOrder } from "../todos/SortControl";
 import {
   buildSectionGroups,
+  classifyProjectOverview,
   daysUntil,
   formatProjectDate,
   isOverdue,
   pickTopTasks,
+  type ProjectOverviewProfile,
 } from "./projectWorkspaceModels";
 
 const BoardView = lazy(() =>
@@ -54,7 +52,6 @@ const WORKSPACE_MODES = [
 type WorkspaceMode = (typeof WORKSPACE_MODES)[number]["value"];
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
-type PulseTone = "steady" | "focused" | "risk" | "done";
 
 interface Props {
   project: Project;
@@ -162,58 +159,76 @@ function formatRelativeDate(date: string | null | undefined) {
   return `Due in ${delta}d`;
 }
 
-function formatRecentLabel(date: string | null | undefined) {
-  const delta = daysUntil(date ? new Date(date).toISOString() : null);
-  if (delta == null) return null;
-  if (delta === 0) return "Updated today";
-  if (delta === -1) return "Updated yesterday";
-  if (delta < 0) return `Updated ${Math.abs(delta)}d ago`;
-  return `Updated in ${delta}d`;
+function buildOverviewTone(profile: ProjectOverviewProfile) {
+  if (profile.showStarter) {
+    return "Start with one real step and let the project grow from there.";
+  }
+  if (profile.mode === "simple") {
+    return "A light project should feel easy to resume.";
+  }
+  if (profile.mode === "guided") {
+    return "You have enough structure here to move confidently without overthinking it.";
+  }
+  return "This project has moving parts, but the overview should still bring you back in gently.";
 }
 
-function buildPulse(
-  openCount: number,
-  overdueCount: number,
-  waitingCount: number,
-  unplacedCount: number,
+function buildSnapshotItems(
+  profile: ProjectOverviewProfile,
   progress: number,
-): { tone: PulseTone; title: string; detail: string } {
-  if (progress === 100 && openCount === 0) {
-    return {
-      tone: "done",
-      title: "Wrapped",
-      detail: "Everything in this project is complete.",
-    };
+  project: Project,
+) {
+  const items: Array<{ label: string; value: string }> = [
+    {
+      label: "Open",
+      value: pluralize(profile.openTasks, "task"),
+    },
+  ];
+
+  if (profile.completedTasks > 0 || profile.mode !== "simple") {
+    items.push({
+      label: "Progress",
+      value: `${progress}% complete`,
+    });
   }
 
-  if (overdueCount > 0) {
-    return {
-      tone: "risk",
-      title: "Needs intervention",
-      detail: `${pluralize(overdueCount, "overdue task")} are setting the pace right now.`,
-    };
+  if (profile.showSectionsPreview) {
+    items.push({
+      label: "Sections",
+      value: pluralize(profile.sectionsWithTasks || profile.headingsCount, "section"),
+    });
   }
 
-  if (unplacedCount > 0) {
-    return {
-      tone: "focused",
-      title: "Needs shaping",
-      detail: `${pluralize(unplacedCount, "task")} still need a section before the project will feel crisp.`,
-    };
+  if (project.targetDate) {
+    items.push({
+      label: "Target",
+      value:
+        formatRelativeDate(project.targetDate) ??
+        formatProjectDate(project.targetDate) ??
+        "Set",
+    });
+  } else if (profile.datedTasks > 0) {
+    items.push({
+      label: "Dates",
+      value: pluralize(profile.datedTasks, "scheduled step", "scheduled steps"),
+    });
   }
 
-  if (waitingCount > 0) {
+  return items.slice(0, 4);
+}
+
+function buildStarterCopy(profile: ProjectOverviewProfile) {
+  if (profile.totalTasks === 0) {
     return {
-      tone: "focused",
-      title: "Waiting on input",
-      detail: `${pluralize(waitingCount, "task")} depend on someone else or an external reply.`,
+      title: "Start with the first concrete step",
+      body: "You do not need a full plan yet. Add the next real action and let the project take shape from there.",
+      cta: "Add first task",
     };
   }
 
   return {
-    tone: "steady",
-    title: "Steady momentum",
-    detail: "The project has a clear working shape and no immediate pressure points.",
+    title: "Keep this project lightweight",
+    body: "A small project does not need a dashboard. Add the next couple of steps and only introduce sections if the work starts to branch.",
+    cta: "Add next task",
   };
 }
 
@@ -282,6 +297,7 @@ export function ProjectWorkspaceView({
   onSortChange,
 }: Props) {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("overview");
+  const [insightsOpen, setInsightsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const workspaceModeRef = useRef<WorkspaceMode>(workspaceMode);
   workspaceModeRef.current = workspaceMode;
@@ -318,6 +334,10 @@ export function ProjectWorkspaceView({
     }
   }, [workspaceMode, activeHeadingId, onSelectHeading]);
 
+  useEffect(() => {
+    setInsightsOpen(false);
+  }, [project.id]);
+
   const allProjectTodos = useMemo(
     () => projectTodos.filter((todo) => !todo.archived),
     [projectTodos],
@@ -333,10 +353,6 @@ export function ProjectWorkspaceView({
   );
   const waitingTodos = useMemo(
     () => openTodos.filter((todo) => todo.status === "waiting" || !!todo.waitingOn),
-    [openTodos],
-  );
-  const blockedTodos = useMemo(
-    () => openTodos.filter((todo) => (todo.dependsOnTaskIds?.length ?? 0) > 0),
     [openTodos],
   );
   const unplacedTodos = useMemo(
@@ -364,6 +380,10 @@ export function ProjectWorkspaceView({
       : 0;
   const activeViewLabel = viewLabels[activeView] ?? "Tasks";
   const activeHeading = headings.find((heading) => heading.id === activeHeadingId) ?? null;
+  const overviewProfile = useMemo(
+    () => classifyProjectOverview(allProjectTodos, headings),
+    [allProjectTodos, headings],
+  );
   const sectionStats = useMemo(() => {
     const stats = new Map<
       string,
@@ -392,40 +412,37 @@ export function ProjectWorkspaceView({
 
     return stats;
   }, [allProjectTodos]);
-  const pulse = buildPulse(
-    openTodos.length,
-    overdueTodos.length,
-    waitingTodos.length,
-    unplacedTodos.length,
-    progress,
-  );
   const targetSummary = project.targetDate
     ? `${formatProjectDate(project.targetDate)} · ${formatRelativeDate(project.targetDate)}`
-    : "No target date set";
-  const updatedSummary = formatRecentLabel(project.updatedAt) ?? "Recently updated";
+    : null;
   const activeFilterCount =
     Number(activeFilters.dateFilter !== "all") +
     Number(Boolean(activeFilters.priority)) +
     Number(Boolean(activeFilters.status)) +
     Number(Boolean(searchQuery)) +
     Number(Boolean(activeTagFilter));
-  const topSection = sectionGroups
-    .map((group) => ({
-      group,
-      stats: sectionStats.get(group.heading?.id ?? "__unplaced__") ?? {
-        total: 0,
-        complete: 0,
-        open: group.todos.length,
-        overdue: group.todos.filter((todo) => isOverdue(todo)).length,
-        nextTask: group.todos[0] ?? null,
-      },
-    }))
-    .sort((a, b) => {
-      if (b.stats.overdue !== a.stats.overdue) {
-        return b.stats.overdue - a.stats.overdue;
-      }
-      return b.stats.open - a.stats.open;
-    })[0];
+  const snapshotItems = useMemo(
+    () => buildSnapshotItems(overviewProfile, progress, project),
+    [overviewProfile, progress, project],
+  );
+  const starterCopy = useMemo(() => buildStarterCopy(overviewProfile), [overviewProfile]);
+  const primaryTasks = useMemo(() => {
+    const featuredId = nextUp[0]?.id;
+    const ranked = nextUp.length > 0 ? nextUp : openTodos.slice(0, 4);
+    const trimmed = featuredId
+      ? ranked.filter((todo) => todo.id !== featuredId)
+      : ranked;
+    return trimmed.length > 0 ? trimmed : ranked.slice(0, 1);
+  }, [nextUp, openTodos]);
+  const insightTasks = useMemo(() => {
+    const ranked = [...openTodos].sort((a, b) => {
+      const overdueDelta = Number(isOverdue(b)) - Number(isOverdue(a));
+      if (overdueDelta !== 0) return overdueDelta;
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+    return ranked.slice(0, 3);
+  }, [openTodos]);
+  const sectionPreviewGroups = useMemo(() => sectionGroups.slice(0, 4), [sectionGroups]);
 
   const openSection = (headingId: string | null) => {
     onSelectHeading(headingId);
@@ -468,123 +485,45 @@ export function ProjectWorkspaceView({
             </button>
           </div>
 
-          <div className="project-workspace__hero-layout">
-            <div className="project-workspace__hero-main">
-              <div className="project-workspace__hero-copy">
-                <span className="project-workspace__eyebrow">Project workspace</span>
-                <h1 className="project-workspace__title">{project.name}</h1>
-                <p className="project-workspace__summary">
-                  {project.description?.trim() ||
-                    "A dedicated place to review the shape of the work before dropping into task management."}
-                </p>
-                <div className="project-workspace__meta">
-                  <span className="project-workspace__meta-pill">
-                    <IconFolder size={13} className="app-icon" />
-                    {titleCaseLabel(project.status)}
-                  </span>
-                  {project.priority && (
-                    <span className="project-workspace__meta-pill">
-                      <IconLightning size={13} className="app-icon" />
-                      {formatPriorityLabel(project.priority)}
-                    </span>
-                  )}
-                  {project.area && (
-                    <span className="project-workspace__meta-pill">{project.area}</span>
-                  )}
-                  {project.targetDate && (
-                    <span className="project-workspace__meta-pill">
-                      <IconCalendar size={13} className="app-icon" />
-                      Target {formatProjectDate(project.targetDate)}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div className="project-workspace__metrics">
-                <div className="project-workspace-metric">
-                  <span className="project-workspace-metric__value">{openTodos.length}</span>
-                  <span className="project-workspace-metric__label">Open</span>
-                </div>
-                <div className="project-workspace-metric">
-                  <span className="project-workspace-metric__value">{completeCount}</span>
-                  <span className="project-workspace-metric__label">Complete</span>
-                </div>
-                <div className="project-workspace-metric">
-                  <span className="project-workspace-metric__value">{overdueTodos.length}</span>
-                  <span className="project-workspace-metric__label">Overdue</span>
-                </div>
-                <div className="project-workspace-metric">
-                  <span className="project-workspace-metric__value">{unplacedTodos.length}</span>
-                  <span className="project-workspace-metric__label">Unplaced</span>
-                </div>
-              </div>
-
-              <div className="project-workspace__progress">
-                <div className="project-workspace__progress-copy">
-                  <span className="project-workspace__progress-label">
-                    Project momentum
-                  </span>
-                  <span className="project-workspace__progress-value">
-                    {progress}% complete
-                  </span>
-                </div>
-                <div className="project-workspace__progress-bar" aria-hidden="true">
-                  <div
-                    className="project-workspace__progress-fill"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <aside className="project-workspace__hero-panel">
-              <div
-                className={`project-workspace__pulse project-workspace__pulse--${pulse.tone}`}
-              >
-                <span className="project-workspace__pulse-label">Project pulse</span>
-                <strong className="project-workspace__pulse-title">{pulse.title}</strong>
-                <p className="project-workspace__pulse-detail">{pulse.detail}</p>
-              </div>
-
-              <div className="project-workspace__hero-facts">
-                <div className="project-workspace__hero-fact">
-                  <span className="project-workspace__hero-fact-label">Target window</span>
-                  <strong>{targetSummary}</strong>
-                </div>
-                <div className="project-workspace__hero-fact">
-                  <span className="project-workspace__hero-fact-label">Sections in play</span>
-                  <strong>{pluralize(sectionGroups.length, "section")}</strong>
-                </div>
-                <div className="project-workspace__hero-fact">
-                  <span className="project-workspace__hero-fact-label">Freshness</span>
-                  <strong>{updatedSummary}</strong>
-                </div>
-              </div>
-
-              {nextUp[0] && (
-                <div className="project-workspace__hero-focus">
-                  <span className="project-workspace__hero-fact-label">Best next move</span>
-                  <ProjectTaskPreview todo={nextUp[0]} onClick={onTaskClick} />
-                </div>
+          <div className="project-workspace__hero-copy">
+            <span className="project-workspace__eyebrow">Project</span>
+            <h1 className="project-workspace__title">{project.name}</h1>
+            <p className="project-workspace__summary">
+              {project.description?.trim() ||
+                "A bounded personal outcome with just enough structure to keep you moving."}
+            </p>
+            <p className="project-workspace__hero-support">
+              {buildOverviewTone(overviewProfile)}
+            </p>
+            <div className="project-workspace__meta">
+              <span className="project-workspace__meta-pill">
+                <IconFolder size={13} className="app-icon" />
+                {titleCaseLabel(project.status)}
+              </span>
+              {project.area && (
+                <span className="project-workspace__meta-pill">{project.area}</span>
               )}
-            </aside>
+              {targetSummary && (
+                <span className="project-workspace__meta-pill">
+                  <IconCalendar size={13} className="app-icon" />
+                  {targetSummary}
+                </span>
+              )}
+              {(project.priority === "high" || project.priority === "urgent") && (
+                <span className="project-workspace__meta-pill">
+                  {formatPriorityLabel(project.priority)}
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="project-workspace__hero-note">
-            <span className="project-workspace__hero-note-item">
-              <IconCheck size={13} className="app-icon" />
-              {pluralize(completeCount, "task")} complete
-            </span>
-            <span className="project-workspace__hero-note-item">
-              <IconTarget size={13} className="app-icon" />
-              {topSection
-                ? `${topSection.group.label} is the busiest section`
-                : "No sections yet"}
-            </span>
-            <span className="project-workspace__hero-note-item">
-              <IconRefresh size={13} className="app-icon" />
-              {updatedSummary}
-            </span>
+          <div className="project-workspace__snapshot">
+            {snapshotItems.map((item) => (
+              <div key={item.label} className="project-workspace__snapshot-item">
+                <span className="project-workspace__snapshot-label">{item.label}</span>
+                <strong className="project-workspace__snapshot-value">{item.value}</strong>
+              </div>
+            ))}
           </div>
         </section>
 
@@ -647,185 +586,154 @@ export function ProjectWorkspaceView({
         )}
 
         {workspaceMode === "overview" && (
-          <div className="project-workspace__stack">
-            <div className="project-workspace__overview-grid">
-              <section className="project-workspace-card project-workspace-card--focus">
-                <div className="project-workspace-card__header">
-                  <div>
-                    <span className="project-workspace-card__eyebrow">Next up</span>
-                    <h2 className="project-workspace-card__title">Strongest moves</h2>
-                  </div>
-                  <span className="project-workspace-card__badge">{nextUp.length}</span>
-                </div>
-                <p className="project-workspace-card__summary">
-                  The shortest path to moving the project instead of just touching it.
-                </p>
-                <div className="project-workspace-card__body">
-                  {nextUp.length === 0 ? (
-                    <p className="project-workspace-card__empty">No active tasks yet.</p>
-                  ) : (
-                    nextUp.map((todo) => (
-                      <ProjectTaskPreview
-                        key={todo.id}
-                        todo={todo}
-                        onClick={onTaskClick}
-                      />
-                    ))
-                  )}
-                </div>
-              </section>
-
-              <section className="project-workspace-card project-workspace-card--risk">
-                <div className="project-workspace-card__header">
-                  <div>
-                    <span className="project-workspace-card__eyebrow">Risks</span>
-                    <h2 className="project-workspace-card__title">Pressure points</h2>
-                  </div>
-                </div>
-                <div className="project-workspace-risk-list">
-                  <div className="project-workspace-risk-item">
-                    <span className="project-workspace-risk-item__icon">
-                      <IconClock size={14} className="app-icon" />
-                    </span>
-                    <div>
-                      <strong>{overdueTodos.length}</strong> overdue tasks
-                    </div>
-                  </div>
-                  <div className="project-workspace-risk-item">
-                    <span className="project-workspace-risk-item__icon">
-                      <IconWaiting size={14} className="app-icon" />
-                    </span>
-                    <div>
-                      <strong>{waitingTodos.length}</strong> waiting or blocked by others
-                    </div>
-                  </div>
-                  <div className="project-workspace-risk-item">
-                    <span className="project-workspace-risk-item__icon">
-                      <IconTarget size={14} className="app-icon" />
-                    </span>
-                    <div>
-                      <strong>{blockedTodos.length}</strong> dependency-heavy tasks
-                    </div>
-                  </div>
-                </div>
-                {overdueTodos.slice(0, 2).map((todo) => (
-                  <ProjectTaskPreview
-                    key={todo.id}
-                    todo={todo}
-                    onClick={onTaskClick}
-                  />
-                ))}
-              </section>
-
-              <section className="project-workspace-card project-workspace-card--cleanup">
-                <div className="project-workspace-card__header">
-                  <div>
-                    <span className="project-workspace-card__eyebrow">Loose ends</span>
-                    <h2 className="project-workspace-card__title">Cleanup queue</h2>
-                  </div>
-                  <button
-                    type="button"
-                    className="mini-btn"
-                    onClick={() => openSection(null)}
-                  >
-                    Open in tasks
-                  </button>
-                </div>
-                <p className="project-workspace-card__summary">
-                  Unplaced work is usually where projects start to feel mushy.
-                </p>
-                <div className="project-workspace-card__body">
-                  {unplacedTodos.length === 0 ? (
-                    <p className="project-workspace-card__empty">
-                      Everything has a section right now.
-                    </p>
-                  ) : (
-                    unplacedTodos.slice(0, 4).map((todo) => (
-                      <ProjectTaskPreview
-                        key={todo.id}
-                        todo={todo}
-                        onClick={onTaskClick}
-                      />
-                    ))
-                  )}
-                </div>
-              </section>
-            </div>
-
-            <section className="project-workspace-card project-workspace-card--chapters">
+          <div className="project-workspace__overview">
+            <section className="project-workspace-card project-workspace-card--next">
               <div className="project-workspace-card__header">
                 <div>
-                  <span className="project-workspace-card__eyebrow">Sections</span>
-                  <h2 className="project-workspace-card__title">Chapter view</h2>
+                  <span className="project-workspace-card__eyebrow">Next up</span>
+                  <h2 className="project-workspace-card__title">
+                    {overviewProfile.showStarter ? "Start here" : "Resume with this"}
+                  </h2>
                 </div>
-                <button
-                  type="button"
-                  className="mini-btn"
-                  onClick={() => setWorkspaceMode("sections")}
-                >
-                  Open sections
-                </button>
               </div>
-              <div className="project-workspace-sections-grid">
-                {sectionGroups.map((group) => {
-                  const stats = sectionStats.get(group.heading?.id ?? "__unplaced__");
-                  const total = stats?.total ?? group.todos.length;
-                  const complete = stats?.complete ?? 0;
-                  const completion = total > 0 ? Math.round((complete / total) * 100) : 0;
-                  const nextTask = stats?.nextTask ?? null;
-                  return (
+              <p className="project-workspace-card__summary">
+                {overviewProfile.showStarter
+                  ? starterCopy.body
+                  : "One clear next step is more useful than a wall of insight."}
+              </p>
+              <div className="project-workspace-card__body">
+                {overviewProfile.showStarter ? (
+                  <div className="project-workspace__starter">
+                    <strong className="project-workspace__starter-title">
+                      {starterCopy.title}
+                    </strong>
+                    <p className="project-workspace-card__empty">{starterCopy.body}</p>
                     <button
-                      key={group.key}
                       type="button"
-                      className="project-workspace-section-card"
-                      onClick={() => openSection(group.heading?.id ?? null)}
+                      className="btn btn--primary"
+                      onClick={onNewTask}
                     >
-                      <div className="project-workspace-section-card__topline">
-                        <span className="project-workspace-section-card__title">
-                          {group.label}
-                        </span>
-                        <span className="project-workspace-section-card__count">
-                          {pluralize(group.todos.length, "open task")}
-                        </span>
-                      </div>
-                      <span className="project-workspace-section-card__meta">
-                        {completion}% complete
-                        {stats && stats.overdue > 0
-                          ? ` · ${pluralize(stats.overdue, "overdue task")}`
-                          : ""}
-                      </span>
-                      <div
-                        className="project-workspace-section-card__progress"
-                        aria-hidden="true"
-                      >
-                        <span
-                          className="project-workspace-section-card__progress-fill"
-                          style={{ width: `${completion}%` }}
-                        />
-                      </div>
-                      <span className="project-workspace-section-card__next">
-                        {nextTask ? `Next: ${nextTask.title}` : "No active tasks in this section."}
-                      </span>
+                      <IconPlus /> {starterCopy.cta}
                     </button>
-                  );
-                })}
+                  </div>
+                ) : (
+                  <>
+                    {nextUp[0] ? (
+                      <ProjectTaskPreview todo={nextUp[0]} onClick={onTaskClick} />
+                    ) : (
+                      <p className="project-workspace-card__empty">
+                        Add the next actionable step to get this project moving.
+                      </p>
+                    )}
+                    {nextUp.length > 1 && (
+                      <div className="project-workspace__secondary-list">
+                        <span className="project-workspace__secondary-label">
+                          After that
+                        </span>
+                        {nextUp.slice(1, 3).map((todo) => (
+                          <ProjectTaskPreview
+                            key={todo.id}
+                            todo={todo}
+                            onClick={onTaskClick}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </section>
 
-            <section className="project-workspace-card project-workspace-card--recent">
+            <section className="project-workspace-card project-workspace-card--primary">
               <div className="project-workspace-card__header">
                 <div>
-                  <span className="project-workspace-card__eyebrow">Recent movement</span>
-                  <h2 className="project-workspace-card__title">What changed lately</h2>
+                  <span className="project-workspace-card__eyebrow">
+                    {overviewProfile.primaryContent === "sections" ? "Plan" : "Tasks"}
+                  </span>
+                  <h2 className="project-workspace-card__title">
+                    {overviewProfile.primaryContent === "sections"
+                      ? "Sections at a glance"
+                      : "Open tasks"}
+                  </h2>
                 </div>
+                {overviewProfile.primaryContent === "sections" ? (
+                  <button
+                    type="button"
+                    className="mini-btn"
+                    onClick={() => setWorkspaceMode("sections")}
+                  >
+                    Open sections
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="mini-btn"
+                    onClick={() => setWorkspaceMode("tasks")}
+                  >
+                    Open tasks
+                  </button>
+                )}
               </div>
+              <p className="project-workspace-card__summary">
+                {overviewProfile.primaryContent === "sections"
+                  ? "See the shape of the work without dropping into full task management."
+                  : "A compact preview of the work that is still in motion."}
+              </p>
               <div className="project-workspace-card__body">
-                {recentlyChanged.length === 0 ? (
+                {overviewProfile.primaryContent === "sections" ? (
+                  <div className="project-workspace-sections-grid project-workspace-sections-grid--overview">
+                    {sectionPreviewGroups.map((group) => {
+                      const stats = sectionStats.get(group.heading?.id ?? "__unplaced__");
+                      const total = stats?.total ?? group.todos.length;
+                      const complete = stats?.complete ?? 0;
+                      const completion =
+                        total > 0 ? Math.round((complete / total) * 100) : 0;
+                      const nextTask = stats?.nextTask ?? null;
+                      return (
+                        <button
+                          key={group.key}
+                          type="button"
+                          className="project-workspace-section-card"
+                          onClick={() => openSection(group.heading?.id ?? null)}
+                        >
+                          <div className="project-workspace-section-card__topline">
+                            <span className="project-workspace-section-card__title">
+                              {group.label}
+                            </span>
+                            <span className="project-workspace-section-card__count">
+                              {pluralize(group.todos.length, "open task")}
+                            </span>
+                          </div>
+                          <span className="project-workspace-section-card__meta">
+                            {completion}% complete
+                            {stats && stats.overdue > 0
+                              ? ` · ${pluralize(stats.overdue, "overdue task")}`
+                              : ""}
+                          </span>
+                          <div
+                            className="project-workspace-section-card__progress"
+                            aria-hidden="true"
+                          >
+                            <span
+                              className="project-workspace-section-card__progress-fill"
+                              style={{ width: `${completion}%` }}
+                            />
+                          </div>
+                          <span className="project-workspace-section-card__next">
+                            {nextTask
+                              ? `Next: ${nextTask.title}`
+                              : "No active tasks in this section."}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : primaryTasks.length === 0 ? (
                   <p className="project-workspace-card__empty">
-                    No task changes yet inside this project.
+                    No active tasks yet. Add the first step and keep it light.
                   </p>
                 ) : (
-                  recentlyChanged.map((todo) => (
+                  primaryTasks.map((todo) => (
                     <ProjectTaskPreview
                       key={todo.id}
                       todo={todo}
@@ -835,6 +743,124 @@ export function ProjectWorkspaceView({
                 )}
               </div>
             </section>
+
+            {overviewProfile.showInsights && (
+              <section className="project-workspace-card project-workspace-card--insights">
+                <div className="project-workspace-card__header">
+                  <div>
+                    <span className="project-workspace-card__eyebrow">Insights</span>
+                    <h2 className="project-workspace-card__title">
+                      Only when they help
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="mini-btn"
+                    onClick={() => setInsightsOpen((value) => !value)}
+                  >
+                    {insightsOpen ? "Hide insights" : "Show insights"}
+                  </button>
+                </div>
+                <p className="project-workspace-card__summary">
+                  Richer signals stay tucked away until the project is complex enough to need them.
+                </p>
+                {insightsOpen && (
+                  <div className="project-workspace-insights-grid">
+                    {overviewProfile.showRiskInsights && (
+                      <section className="project-workspace-insight-card">
+                        <div className="project-workspace-insight-card__header">
+                          <span className="project-workspace-card__eyebrow">
+                            Needs attention
+                          </span>
+                        </div>
+                        <div className="project-workspace-risk-list">
+                          {overviewProfile.overdueTasks > 0 && (
+                            <div className="project-workspace-risk-item">
+                              <span className="project-workspace-risk-item__icon">
+                                <IconClock size={14} className="app-icon" />
+                              </span>
+                              <div>
+                                <strong>{overviewProfile.overdueTasks}</strong> overdue
+                              </div>
+                            </div>
+                          )}
+                          {overviewProfile.waitingTasks > 0 && (
+                            <div className="project-workspace-risk-item">
+                              <span className="project-workspace-risk-item__icon">
+                                <IconWaiting size={14} className="app-icon" />
+                              </span>
+                              <div>
+                                <strong>{overviewProfile.waitingTasks}</strong> waiting
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        {insightTasks
+                          .filter((todo) => isOverdue(todo) || todo.status === "waiting")
+                          .slice(0, 2)
+                          .map((todo) => (
+                            <ProjectTaskPreview
+                              key={todo.id}
+                              todo={todo}
+                              onClick={onTaskClick}
+                            />
+                          ))}
+                      </section>
+                    )}
+
+                    {overviewProfile.showUnplacedInsights && (
+                      <section className="project-workspace-insight-card">
+                        <div className="project-workspace-insight-card__header">
+                          <span className="project-workspace-card__eyebrow">
+                            Needs structure
+                          </span>
+                          <button
+                            type="button"
+                            className="mini-btn"
+                            onClick={() => openSection(null)}
+                          >
+                            Open tasks
+                          </button>
+                        </div>
+                        <p className="project-workspace-card__summary">
+                          {pluralize(
+                            overviewProfile.unplacedTasks,
+                            "task",
+                          )} still sit outside a section.
+                        </p>
+                        {unplacedTodos.slice(0, 3).map((todo) => (
+                          <ProjectTaskPreview
+                            key={todo.id}
+                            todo={todo}
+                            onClick={onTaskClick}
+                          />
+                        ))}
+                      </section>
+                    )}
+
+                    {overviewProfile.showRecentInsights && (
+                      <section className="project-workspace-insight-card">
+                        <div className="project-workspace-insight-card__header">
+                          <span className="project-workspace-card__eyebrow">
+                            Recent movement
+                          </span>
+                        </div>
+                        <p className="project-workspace-card__summary">
+                          What has changed lately across the project.
+                        </p>
+                        {recentlyChanged.map((todo) => (
+                          <ProjectTaskPreview
+                            key={todo.id}
+                            todo={todo}
+                            onClick={onTaskClick}
+                          />
+                        ))}
+                      </section>
+                    )}
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         )}
 
