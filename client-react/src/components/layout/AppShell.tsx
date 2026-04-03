@@ -15,6 +15,7 @@ import { useDensity } from "../../hooks/useDensity";
 import { useServiceWorker } from "../../hooks/useServiceWorker";
 import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
+import { useProjectHeadings } from "../../hooks/useProjectHeadings";
 import { captureInboxItem } from "../../api/inbox";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { SortableTodoList } from "../todos/SortableTodoList";
@@ -32,6 +33,7 @@ import { DeskView } from "../desk/DeskView";
 import { TuneUpView } from "../tuneup/TuneUpView";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
+import { ProjectView } from "../projects/ProjectView";
 import { useTaskNavigation } from "../../hooks/useTaskNavigation";
 import { useHashRoute } from "../../hooks/useHashRoute";
 import { useViewTransition } from "../../hooks/useViewTransition";
@@ -41,6 +43,7 @@ import { ListViewHeader } from "./ListViewHeader";
 import { focusGlobalSearchInput, triggerPrimaryNewTask } from "../../utils/focusTargets";
 import { useOverlayFocusTrap } from "../shared/useOverlayFocusTrap";
 import * as todosApi from "../../api/todos";
+import type { Todo } from "../../types";
 
 // Lazy-loaded heavy components (code splitting)
 const BoardView = lazy(() =>
@@ -130,6 +133,9 @@ export function AppShell() {
     () => (localStorage.getItem("todos:ui-mode") as UiMode) || "normal",
   );
   const exportIcs = useIcsExport();
+  const { headings, loading: headingsLoading } = useProjectHeadings(
+    selectedProjectId,
+  );
   const mobileSheetRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const appMainRef = useRef<HTMLDivElement>(null);
@@ -583,6 +589,34 @@ export function AppShell() {
     taskNav.collapse();
     setBulkMode(false);
     setSelectedIds(new Set());
+  }, []);
+
+  // --- Project next step handlers ---
+
+  const handleStartTask = useCallback(
+    (todo: Todo) => {
+      taskNav.openFullPage(todo.id);
+    },
+    [taskNav],
+  );
+
+  const handleDeferTask = useCallback(
+    async (todo: Todo) => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      await editTodo(todo.id, { dueDate: tomorrow.toISOString() });
+      setUndoAction({
+        message: `"${todo.title}" deferred to tomorrow`,
+        onUndo: () => editTodo(todo.id, { dueDate: todo.dueDate }),
+      });
+    },
+    [editTodo],
+  );
+
+  const handleReplaceTask = useCallback(() => {
+    // This is handled by the ProjectNextStep component internally
+    // by cycling through available tasks
   }, []);
 
   // --- Bulk actions ---
@@ -1208,7 +1242,15 @@ export function AppShell() {
               {/* Dynamic project view */}
               {selectedProjectId && (
                 <ViewRoute viewKey={`project:${selectedProjectId}`}>
-                  <ListViewHeader
+                  <ProjectView
+                    todos={todos}
+                    projectId={selectedProjectId}
+                    headings={headings}
+                    onStartTask={handleStartTask}
+                    onDeferTask={handleDeferTask}
+                    onReplaceTask={handleReplaceTask}
+                  >
+                    <ListViewHeader
                     headerTitle={headerTitle}
                     activeView={activeView}
                     selectedProjectId={selectedProjectId}
@@ -1302,6 +1344,7 @@ export function AppShell() {
                       />
                     )}
                   </div>
+                  </ProjectView>
                 </ViewRoute>
               )}
             </ViewRouter>
