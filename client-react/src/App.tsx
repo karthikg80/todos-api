@@ -6,14 +6,12 @@ import { navigateWithFade } from "./utils/pageTransitions";
 
 function AuthGate() {
   const { user, loading } = useAuth();
-  const hasToken =
-    typeof window !== "undefined" && !!localStorage.getItem("authToken");
 
   useEffect(() => {
-    if (!loading && !user && !hasToken) {
+    if (!loading && !user) {
       navigateWithFade("/auth?next=/app", { replace: true });
     }
-  }, [hasToken, loading, user]);
+  }, [loading, user]);
 
   if (loading) {
     return (
@@ -25,7 +23,7 @@ function AuthGate() {
     );
   }
 
-  if (!user && !hasToken) {
+  if (!user) {
     return null;
   }
 
