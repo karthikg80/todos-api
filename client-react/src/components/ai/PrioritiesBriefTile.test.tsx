@@ -9,6 +9,10 @@ vi.mock("../../api/ai", () => ({
   refreshPrioritiesBrief: vi.fn(),
 }));
 
+function expectTileText(text: string) {
+  expect(screen.getByTestId("home-priorities-tile").textContent).toContain(text);
+}
+
 describe("PrioritiesBriefTile", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -50,23 +54,13 @@ describe("PrioritiesBriefTile", () => {
 
     render(<PrioritiesBriefTile />);
 
-    expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
-      "Cached priorities",
-    );
+    expectTileText("Cached priorities");
 
-    await waitFor(() =>
-      expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
-        "Updating priorities in the background",
-      ),
-    );
+    await waitFor(() => expectTileText("Updating priorities in the background"));
 
     await vi.advanceTimersByTimeAsync(1500);
 
-    await waitFor(() =>
-      expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
-        "Fresh priorities",
-      ),
-    );
+    await waitFor(() => expectTileText("Fresh priorities"));
   });
 
   it("keeps the last visible priorities when refresh fails", async () => {
@@ -83,21 +77,11 @@ describe("PrioritiesBriefTile", () => {
 
     render(<PrioritiesBriefTile />);
 
-    await waitFor(() =>
-      expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
-        "Visible priorities",
-      ),
-    );
+    await waitFor(() => expectTileText("Visible priorities"));
 
     screen.getByRole("button", { name: "Refresh" }).click();
 
-    await waitFor(() =>
-      expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
-        "Showing the last update.",
-      ),
-    );
-    expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
-      "Visible priorities",
-    );
+    await waitFor(() => expectTileText("Showing the last update."));
+    expectTileText("Visible priorities");
   });
 });
