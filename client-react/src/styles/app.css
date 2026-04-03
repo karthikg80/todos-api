@@ -9062,12 +9062,14 @@ body {
 .view-toggle {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--ds-soft-border);
-  border-radius: 1rem;
-  background: color-mix(in oklab, var(--surface-2) 72%, #efe4d2);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.7);
+  gap: 5px;
+  padding: 5px;
+  border: 1px solid color-mix(in oklab, var(--border) 44%, #e6d8c8);
+  border-radius: 1.18rem;
+  background: color-mix(in oklab, var(--surface-2) 82%, #ebe2d5);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.82),
+    inset 0 -1px 0 rgb(23 23 23 / 0.02);
 }
 
 .view-toggle__btn {
@@ -9075,19 +9077,27 @@ body {
   align-items: center;
   justify-content: center;
   gap: var(--s-1h);
-  min-height: 34px;
-  padding: 0.45rem 0.8rem;
-  border-radius: 0.8rem;
-  color: var(--ds-quiet-text);
-  font-size: var(--fs-label);
-  font-weight: 540;
+  min-height: 38px;
+  padding: 0.55rem 1rem;
+  border-radius: 0.92rem;
+  color: color-mix(in oklab, var(--muted) 82%, var(--text));
+  font-size: var(--fs-meta);
+  font-weight: 520;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
 .view-toggle__btn:focus-visible {
   outline: none;
   box-shadow:
     0 0 0 4px color-mix(in oklab, var(--accent) 12%, transparent),
-    inset 0 1px 0 rgb(255 255 255 / 0.82);
+    0 1px 2px rgb(15 23 42 / 0.06),
+    inset 0 1px 0 rgb(255 255 255 / 0.84);
 }
 
 .view-toggle__btn:not(:last-child) {
@@ -9095,30 +9105,33 @@ body {
 }
 
 .view-toggle__btn--active {
-  background: color-mix(in oklab, var(--surface) 82%, white);
+  background: color-mix(in oklab, var(--surface) 96%, white);
   color: var(--text-strong);
   box-shadow:
     0 1px 2px rgb(15 23 42 / 0.08),
-    inset 0 1px 0 rgb(255 255 255 / 0.85);
+    0 10px 18px rgb(15 23 42 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
 }
 
 .view-toggle__btn:hover:not(.view-toggle__btn--active) {
-  background: color-mix(in oklab, var(--surface) 42%, transparent);
+  background: color-mix(in oklab, var(--surface) 52%, transparent);
+  color: color-mix(in oklab, var(--text) 88%, var(--muted));
 }
 
 .view-toggle--icon-only .view-toggle__btn {
-  width: 2.25rem;
+  width: 2.45rem;
+  min-height: 2.45rem;
   padding-inline: 0;
 }
 
 .view-toggle__label {
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .view-toggle__content {
   display: inline-flex;
   align-items: center;
-  gap: var(--s-1h);
+  gap: 0.45rem;
 }
 
 .view-toggle__meta {
@@ -9129,15 +9142,15 @@ body {
   height: 1.35rem;
   padding: 0 0.42rem;
   border-radius: 999px;
-  background: color-mix(in oklab, var(--surface) 70%, #efe3cf);
-  color: color-mix(in oklab, var(--text) 75%, var(--muted));
-  font-size: 10px;
+  background: color-mix(in oklab, var(--surface) 74%, #ece1d2);
+  color: color-mix(in oklab, var(--text) 70%, var(--muted));
+  font-size: 0.63rem;
   font-weight: var(--fw-semibold);
   line-height: 1;
 }
 
 .view-toggle__btn--active .view-toggle__meta {
-  background: color-mix(in oklab, var(--accent) 14%, #f2e2d0);
+  background: color-mix(in oklab, var(--accent) 12%, #efe0cf);
   color: var(--accent);
 }
 
