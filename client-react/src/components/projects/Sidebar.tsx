@@ -86,7 +86,8 @@ function ProjectRailItem({
   const completed = p.completedTaskCount ?? 0;
   const progress = total > 0 ? completed / total : 0;
   const isOverdue =
-    p.targetDate && new Date(p.targetDate) < new Date(new Date().toDateString());
+    p.targetDate &&
+    new Date(p.targetDate) < new Date(new Date().toDateString());
 
   return (
     <div
@@ -203,6 +204,7 @@ interface Props {
   onCreateProject: () => void;
   onRenameProject: (id: string, name: string) => void;
   onOpenSettings: () => void;
+  onOpenComponents: () => void;
   onOpenFeedback: () => void;
   onOpenAdmin: () => void;
   onToggleTheme: () => void;
@@ -231,6 +233,7 @@ export function Sidebar({
   onCreateProject,
   onRenameProject,
   onOpenSettings,
+  onOpenComponents,
   onOpenFeedback,
   onOpenAdmin,
   onToggleTheme,
@@ -262,7 +265,9 @@ export function Sidebar({
   useEffect(() => {
     if (!contextMenu) return;
     requestAnimationFrame(() => {
-      contextMenuRef.current?.querySelector<HTMLButtonElement>("button")?.focus();
+      contextMenuRef.current
+        ?.querySelector<HTMLButtonElement>("button")
+        ?.focus();
     });
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -432,162 +437,160 @@ export function Sidebar({
 
       {/* Scrollable content area */}
       <div className="sidebar-scroll">
-      {/* Section 1: Workspace navigation */}
-      <nav className="projects-rail__primary">
-        {visibleViews.map((v) => (
-          <button
-            key={v.key}
-            className={`workspace-view-item${activeView === v.key && !selectedProjectId ? " projects-rail-item--active" : ""}`}
-            data-workspace-view={v.key}
-            onClick={() => {
-              onSelectProject(null);
-              onSelectView(v.key);
-            }}
-          >
-            <v.icon />
-            <span className="nav-label">{v.label}</span>
-            {viewCounts?.[v.key] != null && viewCounts[v.key] > 0 && (
-              <span className="workspace-view-item__count">
-                {viewCounts[v.key]}
-              </span>
-            )}
-          </button>
-        ))}
-      </nav>
-
-      {/* Section 2: Projects grouped by area */}
-      <div className="projects-rail__section">
-        <div className="projects-rail__section-header">
-          <span className="projects-rail__section-label">Projects</span>
-          <button
-            id="railNewProjectBtn"
-            className="projects-rail__add-btn"
-            onClick={onCreateProject}
-            aria-label="New project"
-          >
-            <IconPlus />
-          </button>
-        </div>
-        <div id="projectsRailList" className="projects-rail__list">
-          {projectGroups.map(({ area, label, projects: areaProjects }) => (
-            <div key={area || "__ungrouped"}>
-              {label && (
-                <button
-                  className={`projects-rail-area-header${collapsedAreas.has(area) ? " projects-rail-area-header--collapsed" : ""}`}
-                  data-area-toggle={area}
-                  aria-expanded={!collapsedAreas.has(area)}
-                  onClick={() => toggleArea(area)}
-                >
-                  <span className="projects-rail-area-header__chevron">
-                    {collapsedAreas.has(area) ? "▸" : "▾"}
-                  </span>
-                  {label}
-                </button>
+        {/* Section 1: Workspace navigation */}
+        <nav className="projects-rail__primary">
+          {visibleViews.map((v) => (
+            <button
+              key={v.key}
+              className={`workspace-view-item${activeView === v.key && !selectedProjectId ? " projects-rail-item--active" : ""}`}
+              data-workspace-view={v.key}
+              onClick={() => {
+                onSelectProject(null);
+                onSelectView(v.key);
+              }}
+            >
+              <v.icon />
+              <span className="nav-label">{v.label}</span>
+              {viewCounts?.[v.key] != null && viewCounts[v.key] > 0 && (
+                <span className="workspace-view-item__count">
+                  {viewCounts[v.key]}
+                </span>
               )}
-              {!collapsedAreas.has(area) && (
-                <div
-                  className="projects-rail-area-group"
-                  data-area={area || undefined}
-                >
-                  {areaProjects.map((p) => (
-                    <ProjectRailItem
-                      key={p.id}
-                      project={p}
-                      isActive={selectedProjectId === p.id}
-                      onClick={() => onSelectProject(p.id)}
-                      onContextMenu={(e) => handleContextMenu(e, p.id)}
-                      onOpenMenu={(event) => openProjectMenu(event, p.id)}
-                      isMenuOpen={contextMenu?.id === p.id}
-                    />
-                  ))}
+            </button>
+          ))}
+        </nav>
+
+        {/* Section 2: Projects grouped by area */}
+        <div className="projects-rail__section">
+          <div className="projects-rail__section-header">
+            <span className="projects-rail__section-label">Projects</span>
+            <button
+              id="railNewProjectBtn"
+              className="projects-rail__add-btn"
+              onClick={onCreateProject}
+              aria-label="New project"
+            >
+              <IconPlus />
+            </button>
+          </div>
+          <div id="projectsRailList" className="projects-rail__list">
+            {projectGroups.map(({ area, label, projects: areaProjects }) => (
+              <div key={area || "__ungrouped"}>
+                {label && (
+                  <button
+                    className={`projects-rail-area-header${collapsedAreas.has(area) ? " projects-rail-area-header--collapsed" : ""}`}
+                    data-area-toggle={area}
+                    aria-expanded={!collapsedAreas.has(area)}
+                    onClick={() => toggleArea(area)}
+                  >
+                    <span className="projects-rail-area-header__chevron">
+                      {collapsedAreas.has(area) ? "▸" : "▾"}
+                    </span>
+                    {label}
+                  </button>
+                )}
+                {!collapsedAreas.has(area) && (
+                  <div
+                    className="projects-rail-area-group"
+                    data-area={area || undefined}
+                  >
+                    {areaProjects.map((p) => (
+                      <ProjectRailItem
+                        key={p.id}
+                        project={p}
+                        isActive={selectedProjectId === p.id}
+                        onClick={() => onSelectProject(p.id)}
+                        onContextMenu={(e) => handleContextMenu(e, p.id)}
+                        onOpenMenu={(event) => openProjectMenu(event, p.id)}
+                        isMenuOpen={contextMenu?.id === p.id}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Archived projects */}
+          {projects.some((p) => p.archived) && (
+            <>
+              <button
+                className="projects-archived-toggle"
+                onClick={() => setShowArchived((o) => !o)}
+              >
+                {showArchived ? "▾" : "▸"} Archived (
+                {projects.filter((p) => p.archived).length})
+              </button>
+              {showArchived && (
+                <div className="projects-archived-list">
+                  {projects
+                    .filter((p) => p.archived)
+                    .map((p) =>
+                      renderArchivedProjectItem({
+                        project: p,
+                        selectedProjectId,
+                        onSelectProject,
+                        onContextMenu: (e) => handleContextMenu(e, p.id),
+                        onOpenMenu: (event) => openProjectMenu(event, p.id),
+                        isMenuOpen: contextMenu?.id === p.id,
+                      }),
+                    )}
                 </div>
               )}
-            </div>
-          ))}
+            </>
+          )}
         </div>
 
-        {/* Archived projects */}
-        {projects.some((p) => p.archived) && (
+        {/* Project context menu */}
+        {contextMenu && (
           <>
-            <button
-              className="projects-archived-toggle"
-              onClick={() => setShowArchived((o) => !o)}
+            <div
+              className="context-backdrop"
+              onClick={() => setContextMenu(null)}
+            />
+            <div
+              ref={contextMenuRef}
+              className="context-menu"
+              style={{ top: contextMenu.y, left: contextMenu.x }}
+              role="menu"
+              aria-label="Project actions"
             >
-              {showArchived ? "▾" : "▸"} Archived (
-              {projects.filter((p) => p.archived).length})
-            </button>
-            {showArchived && (
-              <div className="projects-archived-list">
-                {projects
-                  .filter((p) => p.archived)
-                  .map((p) => (
-                    renderArchivedProjectItem({
-                      project: p,
-                      selectedProjectId,
-                      onSelectProject,
-                      onContextMenu: (e) => handleContextMenu(e, p.id),
-                      onOpenMenu: (event) => openProjectMenu(event, p.id),
-                      isMenuOpen: contextMenu?.id === p.id,
-                    })
-                  ))}
-              </div>
-            )}
+              <button
+                className="context-menu__item"
+                role="menuitem"
+                onClick={() => handleRenameProject(contextMenu.id)}
+              >
+                Rename
+              </button>
+              <button
+                className="context-menu__item"
+                role="menuitem"
+                onClick={async () => {
+                  const project = projects.find((p) => p.id === contextMenu.id);
+                  setContextMenu(null);
+                  await apiCall(`/projects/${contextMenu.id}`, {
+                    method: "PUT",
+                    body: JSON.stringify({ archived: !project?.archived }),
+                  });
+                  onRefreshProjects();
+                }}
+              >
+                {projects.find((p) => p.id === contextMenu.id)?.archived
+                  ? "Unarchive"
+                  : "Archive"}
+              </button>
+              <button
+                className="context-menu__item context-menu__item--danger"
+                role="menuitem"
+                onClick={() => handleDeleteProject(contextMenu.id)}
+              >
+                Delete
+              </button>
+            </div>
           </>
         )}
       </div>
-
-      {/* Project context menu */}
-      {contextMenu && (
-        <>
-          <div
-            className="context-backdrop"
-            onClick={() => setContextMenu(null)}
-          />
-          <div
-            ref={contextMenuRef}
-            className="context-menu"
-            style={{ top: contextMenu.y, left: contextMenu.x }}
-            role="menu"
-            aria-label="Project actions"
-          >
-            <button
-              className="context-menu__item"
-              role="menuitem"
-              onClick={() => handleRenameProject(contextMenu.id)}
-            >
-              Rename
-            </button>
-            <button
-              className="context-menu__item"
-              role="menuitem"
-              onClick={async () => {
-                const project = projects.find(
-                  (p) => p.id === contextMenu.id,
-                );
-                setContextMenu(null);
-                await apiCall(`/projects/${contextMenu.id}`, {
-                  method: "PUT",
-                  body: JSON.stringify({ archived: !project?.archived }),
-                });
-                onRefreshProjects();
-              }}
-            >
-              {projects.find((p) => p.id === contextMenu.id)?.archived
-                ? "Unarchive"
-                : "Archive"}
-            </button>
-            <button
-              className="context-menu__item context-menu__item--danger"
-              role="menuitem"
-              onClick={() => handleDeleteProject(contextMenu.id)}
-            >
-              Delete
-            </button>
-          </div>
-        </>
-      )}
-
-      </div>{/* end sidebar-scroll */}
+      {/* end sidebar-scroll */}
 
       {/* Profile launcher — pinned at bottom, never scrolls */}
       <ProfileLauncher
@@ -596,6 +599,7 @@ export function Sidebar({
         isAdmin={isAdmin}
         onOpenProfile={onOpenProfile}
         onOpenSettings={onOpenSettings}
+        onOpenComponents={onOpenComponents}
         onToggleTheme={onToggleTheme}
         onOpenShortcuts={onOpenShortcuts}
         onOpenFeedback={onOpenFeedback}
