@@ -1,77 +1,45 @@
 import { useState, useCallback } from "react";
 import { apiCall } from "../../api/client";
+import {
+  normalizeWeeklyReviewResponse,
+  type ReviewData,
+} from "./weeklyReviewModels";
 
-interface ReviewSummary {
-  projectsWithoutNextAction: number;
-  staleTasks: number;
-  waitingTasks: number;
-  upcomingTasks: number;
-}
-
-interface Finding {
-  type: string;
-  taskTitle: string;
-  reason: string;
-}
-
-interface ReviewAction {
-  type: string;
-  title: string;
-  reason: string;
-}
-
-interface ReviewData {
-  summary: ReviewSummary | null;
-  findings: Finding[];
-  actions: ReviewAction[];
-  rolloverGroups: Array<{ label: string; tasks: Array<{ title: string }> }>;
-  anchorSuggestions: Array<{ title: string; reason: string }>;
-  behaviorAdjustment: string;
-  reflectionSummary: string;
-}
-
-type ReviewState = "idle" | "loading" | "reviewing" | "applying" | "done" | "error";
+type ReviewState = "idle" | "loading" | "reviewing" | "applying" | "error";
+type ReviewMode = "suggest" | "apply";
 
 interface Props {
   onBack: () => void;
+  onApplied?: () => void;
 }
 
-export function WeeklyReview({ onBack }: Props) {
+export function WeeklyReview({ onBack, onApplied }: Props) {
   const [state, setState] = useState<ReviewState>("idle");
   const [data, setData] = useState<ReviewData | null>(null);
+  const [reviewMode, setReviewMode] = useState<ReviewMode>("suggest");
   const [error, setError] = useState("");
 
-  const runReview = useCallback(async () => {
-    setState("loading");
+  const runReview = useCallback(async (mode: ReviewMode = "suggest") => {
+    setState(mode === "apply" ? "applying" : "loading");
     setError("");
     try {
       const res = await apiCall("/agent/write/weekly_review", {
         method: "POST",
-        body: JSON.stringify({ mode: "suggest" }),
+        body: JSON.stringify({ mode }),
       });
       if (!res.ok) throw new Error("Failed to run review");
       const result = await res.json();
-      setData(result);
+      setData(normalizeWeeklyReviewResponse(result));
+      setReviewMode(mode);
       setState("reviewing");
+      if (mode === "apply") {
+        onApplied?.();
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setState("error");
     }
-  }, []);
-
-  const applyActions = useCallback(async () => {
-    setState("applying");
-    try {
-      await apiCall("/agent/write/weekly_review", {
-        method: "POST",
-        body: JSON.stringify({ mode: "apply" }),
-      });
-      setState("done");
-    } catch {
-      setError("Failed to apply actions");
-      setState("error");
-    }
-  }, []);
+  }, [onApplied]);
 
   return (
     <div className="weekly-review">
@@ -87,7 +55,10 @@ export function WeeklyReview({ onBack }: Props) {
           <p className="weekly-review__desc">
             Review your week, clear the backlog, and set focus for next week.
           </p>
-          <button className="btn btn--primary" onClick={runReview}>
+          <button
+            className="btn btn--primary"
+            onClick={() => void runReview("suggest")}
+          >
             Run Review
           </button>
         </div>
@@ -105,7 +76,7 @@ export function WeeklyReview({ onBack }: Props) {
       {state === "error" && (
         <div className="weekly-review__error">
           <p>{error}</p>
-          <button className="btn" onClick={runReview}>
+          <button className="btn" onClick={() => void runReview("suggest")}>
             Try again
           </button>
         </div>
@@ -161,8 +132,10 @@ export function WeeklyReview({ onBack }: Props) {
             <section className="weekly-review__section">
               <h3 className="weekly-review__section-title">Rolled Over</h3>
               {data.rolloverGroups.map((group, i) => (
-                <div key={i} className="weekly-review__group">
-                  <div className="weekly-review__group-label">{group.label}</div>
+                  <div key={i} className="weekly-review__group">
+                  <div className="weekly-review__group-label">
+                    {group.label} ({group.tasks.length})
+                  </div>
                   {group.tasks.map((t, j) => (
                     <div key={j} className="weekly-review__task-row">
                       {t.title}
@@ -222,9 +195,23 @@ export function WeeklyReview({ onBack }: Props) {
                   <span className="weekly-review__action-reason">{a.reason}</span>
                 </div>
               ))}
-              <button className="btn btn--primary" onClick={applyActions}>
-                Apply All Actions
-              </button>
+              {reviewMode === "apply" ? (
+                <p className="weekly-review__applied">Actions applied.</p>
+              ) : (
+                <button
+                  className="btn btn--primary"
+                  onClick={() => void runReview("apply")}
+                >
+                  Apply All Actions
+                </button>
+              )}
+            </section>
+          )}
+
+          {data.actions.length === 0 && (
+            <section className="weekly-review__empty">
+              <h3>Nothing urgent to reset this week.</h3>
+              <p>Your weekly review is clear.</p>
             </section>
           )}
         </div>
@@ -233,16 +220,6 @@ export function WeeklyReview({ onBack }: Props) {
       {state === "applying" && (
         <div className="weekly-review__loading">
           <p>Applying actions…</p>
-        </div>
-      )}
-
-      {state === "done" && (
-        <div className="weekly-review__done">
-          <h3>Review Complete</h3>
-          <p>Actions applied. You're set for next week.</p>
-          <button className="btn" onClick={onBack}>
-            Back to tasks
-          </button>
         </div>
       )}
     </div>
