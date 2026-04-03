@@ -763,6 +763,14 @@ test.describe("Home focus dashboard + sheet composer", () => {
     ).toContainText(
       /Prepare launch checklist|Send overdue invoice|Nothing urgent right now/,
     );
+    const disclosureToggle = page.locator(".home-dashboard__disclosure-toggle");
+    await expect(disclosureToggle).toBeVisible();
+    await expect(disclosureToggle).toContainText("Show more for today");
+    await expect(page.locator('[data-home-tile="due_soon"]')).toHaveCount(0);
+    await expect(page.locator('[data-home-tile="stale_risks"]')).toHaveCount(0);
+
+    await disclosureToggle.click();
+
     await expect(page.locator('[data-home-tile="due_soon"]')).toBeVisible();
     await expect(page.locator('[data-home-tile="stale_risks"]')).toBeVisible();
   });
