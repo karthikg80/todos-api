@@ -19,7 +19,6 @@ import {
 } from "../todos/SortControl";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { QuickEntry } from "../todos/QuickEntry";
-import { ProjectHeadings } from "../projects/ProjectHeadings";
 import { SearchBar } from "../shared/SearchBar";
 import { SegmentedControl } from "../shared/SegmentedControl";
 import { VerificationBanner } from "../shared/VerificationBanner";
@@ -91,10 +90,6 @@ export interface ListViewHeaderProps {
   onCaptureToDesk: (text: string) => Promise<unknown>;
   quickEntryPlaceholder: string;
 
-  // Project headings
-  activeHeadingId: string | null;
-  onSelectHeading: (id: string | null) => void;
-
   // Search
   searchQuery: string;
   onSearchChange: (q: string) => void;
@@ -146,8 +141,6 @@ export function ListViewHeader({
   onAddTodo,
   onCaptureToDesk,
   quickEntryPlaceholder,
-  activeHeadingId,
-  onSelectHeading,
   searchQuery,
   onSearchChange,
   todos,
@@ -414,15 +407,6 @@ export function ListViewHeader({
           onAddTask={onAddTodo}
           onCaptureToDesk={onCaptureToDesk}
           placeholder={quickEntryPlaceholder}
-        />
-      )}
-
-      {/* Project headings */}
-      {selectedProjectId && uiMode === "normal" && (
-        <ProjectHeadings
-          projectId={selectedProjectId}
-          activeHeadingId={activeHeadingId}
-          onSelectHeading={onSelectHeading}
         />
       )}
 
