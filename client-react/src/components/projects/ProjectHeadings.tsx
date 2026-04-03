@@ -1,46 +1,31 @@
-import { useState, useEffect, useCallback } from "react";
-import { apiCall } from "../../api/client";
+import { useState } from "react";
 import type { Heading } from "../../types";
 
 interface Props {
-  projectId: string;
+  headings: Heading[];
+  loading?: boolean;
   activeHeadingId: string | null;
   onSelectHeading: (id: string | null) => void;
+  onAddHeading: (name: string) => Promise<unknown>;
 }
 
 export function ProjectHeadings({
-  projectId,
+  headings,
+  loading = false,
   activeHeadingId,
   onSelectHeading,
+  onAddHeading,
 }: Props) {
-  const [headings, setHeadings] = useState<Heading[]>([]);
-  const [loading, setLoading] = useState(true);
   const [newName, setNewName] = useState("");
 
-  useEffect(() => {
-    setLoading(true);
-    apiCall(`/projects/${projectId}/headings`)
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => setHeadings(data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [projectId]);
-
-  const addHeading = useCallback(async () => {
+  const handleAddHeading = async () => {
     const trimmed = newName.trim();
     if (!trimmed) return;
-    try {
-      const res = await apiCall(`/projects/${projectId}/headings`, {
-        method: "POST",
-        body: JSON.stringify({ name: trimmed }),
-      });
-      if (res.ok) {
-        const created = await res.json();
-        setHeadings((prev) => [...prev, created]);
-        setNewName("");
-      }
-    } catch {}
-  }, [projectId, newName]);
+    const created = await onAddHeading(trimmed);
+    if (created) {
+      setNewName("");
+    }
+  };
 
   if (loading && headings.length === 0) return null;
 
@@ -50,15 +35,15 @@ export function ProjectHeadings({
         className={`project-headings__item${activeHeadingId === null ? " project-headings__item--active" : ""}`}
         onClick={() => onSelectHeading(null)}
       >
-        All
+        All tasks
       </button>
-      {headings.map((h) => (
+      {headings.map((heading) => (
         <button
-          key={h.id}
-          className={`project-headings__item${activeHeadingId === h.id ? " project-headings__item--active" : ""}`}
-          onClick={() => onSelectHeading(h.id)}
+          key={heading.id}
+          className={`project-headings__item${activeHeadingId === heading.id ? " project-headings__item--active" : ""}`}
+          onClick={() => onSelectHeading(heading.id)}
         >
-          {h.name}
+          {heading.name}
         </button>
       ))}
       <div className="project-headings__add">
@@ -67,9 +52,11 @@ export function ProjectHeadings({
           type="text"
           placeholder="+ Add section"
           value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") addHeading();
+          onChange={(event) => setNewName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              void handleAddHeading();
+            }
           }}
         />
       </div>
