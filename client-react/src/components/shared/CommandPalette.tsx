@@ -1,15 +1,21 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { WorkspaceView } from "../projects/Sidebar";
-import type { Todo } from "../../types";
+import type { Project, Todo } from "../../types";
 import { IllustrationNoResults } from "./Illustrations";
 
-interface Command {
+interface CommandItem {
   id: string;
   label: string;
-  group: string;
+  section: "Commands" | "Tasks";
   action: () => void;
   keywords?: string;
+  meta?: string;
 }
+
+type ScoredTaskMatch = Omit<CommandItem, "section"> & {
+  section: "Tasks";
+  score: number;
+};
 
 interface Props {
   isOpen: boolean;
@@ -17,9 +23,17 @@ interface Props {
   onNavigate: (view: WorkspaceView) => void;
   onWeeklyReview: () => void;
   onToggleDarkMode: () => void;
+  onOpenSettings: () => void;
+  onOpenFeedback: () => void;
+  onOpenShortcuts: () => void;
+  onNewTask: () => void;
+  onFocusSearch: () => void;
+  onExportCalendar: () => void;
   onLogout: () => void;
+  projects?: Project[];
   todos?: Todo[];
   onTodoClick?: (id: string) => void;
+  onProjectOpen?: (id: string) => void;
 }
 
 export function CommandPalette({
@@ -28,173 +42,328 @@ export function CommandPalette({
   onNavigate,
   onWeeklyReview,
   onToggleDarkMode,
+  onOpenSettings,
+  onOpenFeedback,
+  onOpenShortcuts,
+  onNewTask,
+  onFocusSearch,
+  onExportCalendar,
   onLogout,
+  projects = [],
   todos = [],
   onTodoClick,
+  onProjectOpen,
 }: Props) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
-  const commands: Command[] = useMemo(
+  const commands: CommandItem[] = useMemo(
     () => [
+      {
+        id: "new-task",
+        label: "Create Task",
+        section: "Commands",
+        action: onNewTask,
+        keywords: "add create todo quick entry",
+      },
       {
         id: "nav-focus",
         label: "Go to Focus",
-        group: "Navigation",
+        section: "Commands",
         action: () => onNavigate("home"),
         keywords: "home dashboard",
       },
       {
         id: "nav-desk",
         label: "Go to Desk",
-        group: "Navigation",
+        section: "Commands",
         action: () => onNavigate("triage"),
         keywords: "triage inbox",
       },
       {
         id: "nav-everything",
         label: "Go to Everything",
-        group: "Navigation",
+        section: "Commands",
         action: () => onNavigate("all"),
         keywords: "all tasks",
       },
       {
         id: "nav-today",
         label: "Go to Today",
-        group: "Navigation",
+        section: "Commands",
         action: () => onNavigate("today"),
+        keywords: "today due now",
       },
       {
         id: "nav-upcoming",
         label: "Go to Upcoming",
-        group: "Navigation",
+        section: "Commands",
         action: () => onNavigate("upcoming"),
+        keywords: "upcoming due later",
+      },
+      {
+        id: "nav-waiting",
+        label: "Go to Pending",
+        section: "Commands",
+        action: () => onNavigate("waiting"),
+        keywords: "waiting blocked hold pending",
+      },
+      {
+        id: "nav-scheduled",
+        label: "Go to Planned",
+        section: "Commands",
+        action: () => onNavigate("scheduled"),
+        keywords: "scheduled planned calendar",
+      },
+      {
+        id: "nav-someday",
+        label: "Go to Later",
+        section: "Commands",
+        action: () => onNavigate("someday"),
+        keywords: "later someday maybe backlog",
       },
       {
         id: "nav-completed",
         label: "Go to Completed",
-        group: "Navigation",
+        section: "Commands",
         action: () => onNavigate("completed"),
-        keywords: "done finished",
+        keywords: "done finished completed",
+      },
+      {
+        id: "nav-tuneup",
+        label: "Go to Tune-up",
+        section: "Commands",
+        action: () => onNavigate("tuneup"),
+        keywords: "cleanup maintenance",
       },
       {
         id: "nav-weekly-review",
-        label: "Go to Weekly Review",
-        group: "Navigation",
+        label: "Go to Weekly Reset",
+        section: "Commands",
         action: onWeeklyReview,
-        keywords: "weekly reset review",
+        keywords: "weekly review reset",
       },
       {
-        id: "toggle-dark-mode",
-        label: "Toggle Dark Mode",
-        group: "Actions",
-        action: onToggleDarkMode,
-        keywords: "theme light night",
+        id: "nav-settings",
+        label: "Go to Settings",
+        section: "Commands",
+        action: onOpenSettings,
+        keywords: "profile preferences account",
+      },
+      {
+        id: "nav-feedback",
+        label: "Go to Feedback",
+        section: "Commands",
+        action: onOpenFeedback,
+        keywords: "bug report feedback",
       },
       {
         id: "focus-search",
         label: "Focus Search",
-        group: "Actions",
-        action: () => document.getElementById("searchInput")?.focus(),
-        keywords: "find filter",
+        section: "Commands",
+        action: onFocusSearch,
+        keywords: "find filter search",
       },
       {
-        id: "new-task",
-        label: "New Task",
-        group: "Actions",
-        action: () => document.getElementById("todoInput")?.focus(),
-        keywords: "add create todo",
+        id: "toggle-dark-mode",
+        label: "Toggle Dark Mode",
+        section: "Commands",
+        action: onToggleDarkMode,
+        keywords: "theme light night",
+      },
+      {
+        id: "show-shortcuts",
+        label: "Show Keyboard Shortcuts",
+        section: "Commands",
+        action: onOpenShortcuts,
+        keywords: "help shortcuts keys",
+      },
+      {
+        id: "export-calendar",
+        label: "Export Calendar",
+        section: "Commands",
+        action: onExportCalendar,
+        keywords: "ics calendar download",
       },
       {
         id: "logout",
         label: "Logout",
-        group: "Account",
+        section: "Commands",
         action: onLogout,
-        keywords: "sign out",
+        keywords: "sign out log out",
       },
+      ...projects
+        .filter((project) => !project.archived)
+        .map((project) => ({
+          id: `project-${project.id}`,
+          label: `Go to project: ${project.name}`,
+          section: "Commands" as const,
+          action: () => onProjectOpen?.(project.id),
+          keywords: `${project.name.toLowerCase()} project`,
+        })),
     ],
-    [onNavigate, onWeeklyReview, onToggleDarkMode, onLogout],
+    [
+      onNewTask,
+      onNavigate,
+      onWeeklyReview,
+      onOpenSettings,
+      onOpenFeedback,
+      onFocusSearch,
+      onToggleDarkMode,
+      onOpenShortcuts,
+      onExportCalendar,
+      onLogout,
+      projects,
+      onProjectOpen,
+    ],
   );
 
   const filtered = useMemo(() => {
-    if (!query.trim()) return commands;
-    const q = query.toLowerCase();
+    const normalizedQuery = query.trim().toLowerCase();
+    const commandMatches =
+      normalizedQuery.length === 0
+        ? commands
+        : commands.filter(
+            (command) =>
+              command.label.toLowerCase().includes(normalizedQuery) ||
+              command.keywords?.toLowerCase().includes(normalizedQuery),
+          );
 
-    // Filter commands
-    const matchedCommands = commands.filter(
-      (c) =>
-        c.label.toLowerCase().includes(q) ||
-        c.keywords?.toLowerCase().includes(q),
-    );
+    const taskMatches: CommandItem[] =
+      normalizedQuery.length === 0 || !onTodoClick
+        ? []
+        : todos
+            .map<ScoredTaskMatch | null>((todo) => {
+              const title = todo.title.toLowerCase();
+              const description = todo.description?.toLowerCase() ?? "";
+              const category = todo.category?.toLowerCase() ?? "";
 
-    // Search tasks by title
-    const matchedTasks: Command[] = onTodoClick
-      ? todos
-          .filter((t) => t.title.toLowerCase().includes(q))
-          .slice(0, 5)
-          .map((t) => ({
-            id: `task-${t.id}`,
-            label: t.title,
-            group: "Tasks",
-            action: () => onTodoClick(t.id),
-            keywords: t.category || undefined,
-          }))
-      : [];
+              let score = -1;
+              if (title.startsWith(normalizedQuery)) score = 0;
+              else if (title.includes(normalizedQuery)) score = 1;
+              else if (
+                description.includes(normalizedQuery) ||
+                category.includes(normalizedQuery)
+              ) {
+                score = 2;
+              }
 
-    return [...matchedCommands, ...matchedTasks];
+              if (score === -1) return null;
+
+              return {
+                id: `task-${todo.id}`,
+                label: todo.title,
+                section: "Tasks" as const,
+                action: () => onTodoClick(todo.id),
+                meta: [todo.category, todo.status !== "next" ? todo.status : ""]
+                  .filter(Boolean)
+                  .join(" · "),
+                score,
+              };
+            })
+            .filter((item): item is ScoredTaskMatch => item !== null)
+            .sort((a, b) => {
+              if (a.score !== b.score) return a.score - b.score;
+              return a.label.localeCompare(b.label);
+            })
+            .slice(0, 6)
+            .map(({ score: _score, ...item }) => item);
+
+    return [...commandMatches, ...taskMatches];
   }, [commands, query, todos, onTodoClick]);
 
-  // Reset on open
-  useEffect(() => {
-    if (isOpen) {
-      setQuery("");
-      setActiveIndex(0);
-      requestAnimationFrame(() => inputRef.current?.focus());
+  const rows = useMemo(() => {
+    if (filtered.length === 0) return [];
+
+    const nextRows: Array<
+      | { kind: "section"; label: string }
+      | { kind: "item"; item: CommandItem }
+    > = [];
+    let currentSection: CommandItem["section"] | null = null;
+
+    for (const item of filtered) {
+      if (item.section !== currentSection) {
+        currentSection = item.section;
+        nextRows.push({ kind: "section", label: currentSection });
+      }
+      nextRows.push({ kind: "item", item });
     }
+
+    return nextRows;
+  }, [filtered]);
+
+  const closePalette = useCallback(
+    (restoreFocus: boolean) => {
+      onClose();
+      if (!restoreFocus) return;
+      requestAnimationFrame(() => {
+        restoreFocusRef.current?.focus({ preventScroll: true });
+      });
+    },
+    [onClose],
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    restoreFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    setQuery("");
+    setActiveIndex(0);
+    requestAnimationFrame(() => inputRef.current?.focus());
   }, [isOpen]);
 
-  // Clamp active index
   useEffect(() => {
-    setActiveIndex((i) => Math.min(i, Math.max(0, filtered.length - 1)));
+    setActiveIndex((index) => Math.min(index, Math.max(0, filtered.length - 1)));
   }, [filtered.length]);
 
   const execute = useCallback(
-    (cmd: Command) => {
-      onClose();
-      // Delay action so palette closes first
-      requestAnimationFrame(() => cmd.action());
+    (item: CommandItem) => {
+      closePalette(false);
+      requestAnimationFrame(() => item.action());
     },
-    [onClose],
+    [closePalette],
   );
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        setActiveIndex((i) => (i + 1) % filtered.length);
-      } else if (e.key === "ArrowUp") {
+        e.stopPropagation();
+        if (filtered.length === 0) return;
+        setActiveIndex((index) => (index + 1) % filtered.length);
+        return;
+      }
+
+      if (e.key === "ArrowUp") {
         e.preventDefault();
-        setActiveIndex((i) => (i - 1 + filtered.length) % filtered.length);
-      } else if (e.key === "Enter") {
+        e.stopPropagation();
+        if (filtered.length === 0) return;
+        setActiveIndex((index) => (index - 1 + filtered.length) % filtered.length);
+        return;
+      }
+
+      if (e.key === "Enter") {
         e.preventDefault();
+        e.stopPropagation();
         if (filtered[activeIndex]) execute(filtered[activeIndex]);
-      } else if (e.key === "Escape") {
-        onClose();
+        return;
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        closePalette(true);
       }
     },
-    [filtered, activeIndex, execute, onClose],
+    [activeIndex, closePalette, execute, filtered],
   );
 
   if (!isOpen) return null;
-
-  // Group commands for display
-  const groups = new Map<string, Command[]>();
-  for (const cmd of filtered) {
-    const list = groups.get(cmd.group) || [];
-    list.push(cmd);
-    groups.set(cmd.group, list);
-  }
 
   let flatIndex = 0;
 
@@ -202,7 +371,8 @@ export function CommandPalette({
     <div
       id="commandPaletteOverlay"
       className="command-palette-overlay command-palette-overlay--open"
-      onClick={onClose}
+      onClick={() => closePalette(true)}
+      onKeyDown={onKeyDown}
     >
       <div
         className="command-palette"
@@ -231,27 +401,40 @@ export function CommandPalette({
               <p>No results</p>
             </div>
           )}
-          {[...groups.entries()].map(([group, cmds]) => (
-            <div key={group}>
-              <div className="command-palette__group">{group}</div>
-              {cmds.map((cmd) => {
-                const idx = flatIndex++;
-                return (
-                  <div
-                    key={cmd.id}
-                    id={`commandPaletteOption-${idx}`}
-                    className={`command-palette__option${idx === activeIndex ? " command-palette__option--active" : ""}`}
-                    role="option"
-                    aria-selected={idx === activeIndex}
-                    onClick={() => execute(cmd)}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                  >
-                    {cmd.label}
-                  </div>
-                );
-              })}
-            </div>
-          ))}
+          {rows.map((row) => {
+            if (row.kind === "section") {
+              return (
+                <div key={row.label} className="command-palette__group">
+                  {row.label}
+                </div>
+              );
+            }
+
+            const index = flatIndex++;
+            const isActive = index === activeIndex;
+
+            return (
+              <button
+                key={row.item.id}
+                type="button"
+                id={`commandPaletteOption-${index}`}
+                className={`command-palette__option${isActive ? " command-palette__option--active" : ""}`}
+                role="option"
+                aria-selected={isActive}
+                onClick={() => execute(row.item)}
+                onMouseEnter={() => setActiveIndex(index)}
+              >
+                <span className="command-palette__option-label">
+                  {row.item.label}
+                </span>
+                {row.item.meta && (
+                  <span className="command-palette__option-meta">
+                    {row.item.meta}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

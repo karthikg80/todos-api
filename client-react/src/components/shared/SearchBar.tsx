@@ -4,9 +4,14 @@ import { IconSearch } from "./Icons";
 interface Props {
   value: string;
   onChange: (query: string) => void;
+  inputId?: string;
 }
 
-export function SearchBar({ value, onChange }: Props) {
+export function SearchBar({
+  value,
+  onChange,
+  inputId = "searchInput",
+}: Props) {
   const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -16,7 +21,8 @@ export function SearchBar({ value, onChange }: Props) {
         <IconSearch size={14} />
       </span>
       <input
-        id="searchInput"
+        id={inputId}
+        data-search-input="true"
         ref={inputRef}
         className="search-bar__input"
         type="text"
