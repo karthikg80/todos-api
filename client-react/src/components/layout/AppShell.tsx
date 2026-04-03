@@ -56,9 +56,6 @@ const BoardView = lazy(() =>
 const TaskComposer = lazy(() =>
   import("../todos/TaskComposer").then((m) => ({ default: m.TaskComposer })),
 );
-const AiWorkspace = lazy(() =>
-  import("../ai/AiWorkspace").then((m) => ({ default: m.AiWorkspace })),
-);
 const AdminPage = lazy(() =>
   import("../admin/AdminPage").then((m) => ({ default: m.AdminPage })),
 );
@@ -73,7 +70,6 @@ type AppPage =
   | "todos"
   | "settings"
   | "components"
-  | "ai"
   | "admin"
   | "feedback"
   | "review";
@@ -853,13 +849,11 @@ export function AppShell() {
         ? "Settings"
         : page === "components"
           ? "Component Gallery"
-          : page === "ai"
-            ? "AI Workspace"
-            : page === "admin"
-              ? "Admin"
-              : page === "feedback"
-                ? "Feedback"
-                : headerTitle;
+          : page === "admin"
+            ? "Admin"
+            : page === "feedback"
+              ? "Feedback"
+              : headerTitle;
     document.title = `${pageLabel} — Todos`;
   }, [page, headerTitle]);
 
@@ -992,38 +986,6 @@ export function AppShell() {
               dark={dark}
               onBack={() => startTransition(() => setPage("todos"))}
             />
-          ) : page === "ai" ? (
-            <>
-              <header className="app-header">
-                {isMobile && (
-                  <button
-                    className="mobile-header__menu-btn"
-                    onClick={() => setMobileNavOpen(true)}
-                    aria-label="Open navigation"
-                  >
-                    <IconMenu />
-                  </button>
-                )}
-                <button
-                  className="btn"
-                  onClick={() => startTransition(() => setPage("todos"))}
-                >
-                  ← Back
-                </button>
-                <span className="app-header__title">AI Workspace</span>
-              </header>
-              <div className="app-content">
-                <Suspense
-                  fallback={
-                    <div className="loading-skeleton loading">
-                      <div className="loading-skeleton__row" />
-                    </div>
-                  }
-                >
-                  <AiWorkspace />
-                </Suspense>
-              </div>
-            </>
           ) : page === "admin" ? (
             <Suspense
               fallback={
