@@ -17,3 +17,5 @@ artifacts/evals/
 .codex/feature-checklist.json
 
 /src/generated/prisma
+.worktrees/
+.superpowers/

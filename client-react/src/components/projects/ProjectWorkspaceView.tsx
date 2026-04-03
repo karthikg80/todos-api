@@ -32,8 +32,12 @@ import type { SortField, SortOrder } from "../todos/SortControl";
 import {
   buildSectionGroups,
   classifyProjectOverview,
+  COMPLEXITY_LABELS,
+  COMPLEXITY_STYLES,
   daysUntil,
+  estimateTaskEffort,
   formatProjectDate,
+  getTaskNextReason,
   isOverdue,
   pickTopTasks,
   type ProjectOverviewProfile,
@@ -102,14 +106,18 @@ interface Props {
   sortBy: SortField;
   sortOrder: SortOrder;
   onSortChange: (field: SortField, order: SortOrder) => void;
+  onDeferTask?: (todo: Todo) => Promise<void>;
+  onReplaceNext?: () => void;
 }
 
-function ProjectTaskPreview({
+function ProjectTaskPreview(
   todo,
   onClick,
+  effort,
 }: {
   todo: Todo;
   onClick: (id: string) => void;
+  effort?: { minutes: number; label: string };
 }) {
   const due = formatProjectDate(todo.dueDate);
   const bits = [
@@ -128,6 +136,11 @@ function ProjectTaskPreview({
       {bits.length > 0 && (
         <span className="project-workspace-task-preview__meta">
           {bits.join(" · ")}
+        </span>
+      )}
+      {effort && (
+        <span className="project-workspace-task-preview__effort">
+          {effort.label}
         </span>
       )}
     </button>
@@ -297,6 +310,17 @@ export function ProjectWorkspaceView({
   onSortChange,
 }: Props) {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("overview");
+
+  // Set default workspace mode based on project complexity
+  useEffect(() => {
+    const defaultMode =
+      overviewProfile.mode === "simple"
+        ? "overview"
+        : overviewProfile.mode === "guided"
+          ? "sections"
+          : "tasks";
+    setWorkspaceMode(defaultMode as WorkspaceMode);
+  }, [project.id, overviewProfile.mode]);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const workspaceModeRef = useRef<WorkspaceMode>(workspaceMode);
@@ -444,6 +468,24 @@ export function ProjectWorkspaceView({
   }, [openTodos]);
   const sectionPreviewGroups = useMemo(() => sectionGroups.slice(0, 4), [sectionGroups]);
 
+  const handleDeferTask = async (todo: Todo) => {
+    if (!onDeferTask) return;
+    await onDeferTask(todo);
+  };
+
+  const handleReplaceNext = () => {
+    if (!onReplaceNext) return;
+    onReplaceNext();
+  };
+
+  const nextTask = nextUp[0] ?? null;
+  const nextTaskEffort = nextTask
+    ? estimateTaskEffort(nextTask)
+    : { minutes: 0, label: "" };
+  const nextTaskReason = nextTask
+    ? getTaskNextReason(nextTask, allProjectTodos)
+    : "";
+
   const openSection = (headingId: string | null) => {
     onSelectHeading(headingId);
     setWorkspaceMode("tasks");
@@ -488,6 +530,24 @@ export function ProjectWorkspaceView({
           <div className="project-workspace__hero-copy">
             <span className="project-workspace__eyebrow">Project</span>
             <h1 className="project-workspace__title">{project.name}</h1>
+            <div
+              className="project-complexity-badge"
+              style={{
+                background: COMPLEXITY_STYLES[overviewProfile.mode].background,
+                border: COMPLEXITY_STYLES[overviewProfile.mode].border,
+                color: COMPLEXITY_STYLES[overviewProfile.mode].color,
+              }}
+            >
+              <span
+                className="project-complexity-badge__icon"
+                aria-hidden="true"
+              >
+                {COMPLEXITY_STYLES[overviewProfile.mode].icon}
+              </span>
+              <span className="project-complexity-badge__label">
+                {COMPLEXITY_LABELS[overviewProfile.mode]}
+              </span>
+            </div>
             <p className="project-workspace__summary">
               {project.description?.trim() ||
                 "A bounded personal outcome with just enough structure to keep you moving."}
@@ -595,6 +655,12 @@ export function ProjectWorkspaceView({
                     {overviewProfile.showStarter ? "Start here" : "Resume with this"}
                   </h2>
                 </div>
+                <div className="project-workspace-card__next-effort">
+                  <span className="project-workspace-card__next-effort-label">Est. effort</span>
+                  <span className="project-workspace-card__next-effort-value">
+                    {nextTaskEffort.label}
+                  </span>
+                </div>
               </div>
               <p className="project-workspace-card__summary">
                 {overviewProfile.showStarter
@@ -619,7 +685,34 @@ export function ProjectWorkspaceView({
                 ) : (
                   <>
                     {nextUp[0] ? (
-                      <ProjectTaskPreview todo={nextUp[0]} onClick={onTaskClick} />
+                      <>
+                        <ProjectTaskPreview
+                          todo={nextUp[0]}
+                          effort={nextTaskEffort}
+                          onClick={onTaskClick}
+                        />
+                        {nextTaskReason && (
+                          <p className="project-workspace-card__next-reason">
+                            {nextTaskReason}
+                          </p>
+                        )}
+                        <div className="project-workspace-card__next-actions">
+                          <button
+                            type="button"
+                            className="mini-btn mini-btn--ghost"
+                            onClick={() => handleDeferTask(nextUp[0])}
+                          >
+                            Defer
+                          </button>
+                          <button
+                            type="button"
+                            className="mini-btn mini-btn--ghost"
+                            onClick={handleReplaceNext}
+                          >
+                            Pick another
+                          </button>
+                        </div>
+                      </>
                     ) : (
                       <p className="project-workspace-card__empty">
                         Add the next actionable step to get this project moving.
