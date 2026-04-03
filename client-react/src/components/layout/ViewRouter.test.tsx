@@ -51,7 +51,8 @@ describe("ViewRouter", () => {
     const slotA = getByTestId("view-a").closest(".view-router__slot") as HTMLElement;
     expect(slotA.style.display).toBe("none");
     const slotB = getByTestId("view-b").closest(".view-router__slot") as HTMLElement;
-    expect(slotB.style.display).toBe("block");
+    expect(slotB.style.display).toBe("");
+    expect(slotB.dataset.active).toBe("true");
   });
 
   it("evicts oldest view when exceeding capacity", () => {

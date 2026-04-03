@@ -2739,6 +2739,8 @@ body {
 .home-dashboard {
   display: grid;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
 }
 
 .home-dashboard__hero-grid {
@@ -2746,11 +2748,13 @@ body {
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.9fr);
   gap: 16px;
   align-items: start;
+  min-width: 0;
 }
 
 .home-dashboard__secondary-stack {
   display: grid;
   gap: 12px;
+  min-width: 0;
 }
 
 /* Daily Brief card — gradient bg, rounded, elevated */

@@ -58,9 +58,9 @@ export function HomeDashboard({
 
   useEffect(() => {
     scrollContainerRef.current = document.querySelector<HTMLElement>(
-      ".view-router__slot[style*='display: block'] .app-content",
+      ".view-router__slot[data-active='true'] .app-content",
     );
-  }, []);
+  });
 
   useViewSnapshot({
     capture: () => ({
