@@ -627,6 +627,30 @@ export function AppShell() {
     }
   }, [deleteTarget, activeTodoId, todos, removeTodo, addTodo]);
 
+  // --- Project next step handlers ---
+
+  const handleProjectTaskDefer = useCallback(
+    async (todo: Todo) => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      await editTodo(todo.id, { dueDate: tomorrow.toISOString() });
+      setUndoAction({
+        message: `"${todo.title}" deferred to tomorrow`,
+        onUndo: () => editTodo(todo.id, { dueDate: todo.dueDate }),
+      });
+    },
+    [editTodo],
+  );
+
+  const handleReplaceNextTask = useCallback(() => {
+    // This would cycle to the next task
+    // For now, just show a toast
+    setUndoAction({
+      message: "Pick another task feature coming soon",
+    });
+  }, []);
+
   const handleSelectView = useCallback((view: WorkspaceView) => {
     setActiveView(view);
     taskNav.collapse();
@@ -1340,6 +1364,8 @@ export function AppShell() {
                       setSortBy(f);
                       setSortOrder(o);
                     }}
+                    onDeferTask={handleProjectTaskDefer}
+                    onReplaceNext={handleReplaceNextTask}
                   />
                 </ViewRoute>
               )}
