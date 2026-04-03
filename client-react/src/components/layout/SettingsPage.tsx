@@ -1,6 +1,17 @@
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../../auth/AuthProvider";
 import { apiCall } from "../../api/client";
+import type { McpSessionSummary, UserPlanningPreferences } from "../../types";
+import {
+  CHUNK_MINUTE_OPTIONS,
+  DEFAULT_USER_PREFERENCES,
+  SOUL_DAILY_RITUAL_OPTIONS,
+  SOUL_ENERGY_PATTERN_OPTIONS,
+  SOUL_PLANNING_STYLE_OPTIONS,
+  SOUL_TONE_OPTIONS,
+  mergePlanningPreferences,
+  parsePreferredContexts,
+} from "./settingsModels";
 
 interface Props {
   dark: boolean;
@@ -12,35 +23,92 @@ interface Props {
   onBack: () => void;
 }
 
-export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, density, onCycleDensity, onBack }: Props) {
-  const { user } = useAuth();
+export function SettingsPage({
+  dark,
+  onToggleDark,
+  uiMode,
+  onToggleUiMode,
+  density,
+  onCycleDensity,
+  onBack,
+}: Props) {
+  const { user, setUser } = useAuth();
   const [name, setName] = useState(user?.name || "");
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
+  const [email, setEmail] = useState(user?.email || "");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [sendingVerification, setSendingVerification] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState("");
 
-  const handleSave = useCallback(async () => {
-    setSaving(true);
-    setMessage("");
+  useEffect(() => {
+    setName(user?.name || "");
+    setEmail(user?.email || "");
+  }, [user?.name, user?.email]);
+
+  const handleSaveProfile = useCallback(async () => {
+    if (!user) return;
+
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    setSavingProfile(true);
+    setProfileMessage("");
     try {
       const res = await apiCall("/users/me", {
         method: "PUT",
-        body: JSON.stringify({ name: name.trim() || null }),
+        body: JSON.stringify({
+          name: trimmedName || null,
+          email: trimmedEmail,
+        }),
       });
-      if (res.ok) {
-        const updated = await res.json();
-        localStorage.setItem("user", JSON.stringify(updated));
-        setMessage("Saved");
-        setTimeout(() => setMessage(""), 2000);
-      } else {
+      if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        setMessage((err as { error?: string }).error || "Failed to save");
+        setProfileMessage(
+          (err as { error?: string }).error || "Failed to save profile",
+        );
+        return;
       }
+      const updated = await res.json();
+      setUser(updated);
+      setProfileMessage(
+        trimmedEmail !== user.email
+          ? "Profile updated. Please verify your new email."
+          : "Profile saved.",
+      );
     } catch {
-      setMessage("Network error");
+      setProfileMessage("Network error");
     } finally {
-      setSaving(false);
+      setSavingProfile(false);
     }
-  }, [name]);
+  }, [email, name, setUser, user]);
+
+  const resendVerification = useCallback(async () => {
+    if (!user?.email) return;
+    setSendingVerification(true);
+    setVerificationMessage("");
+    try {
+      const res = await apiCall("/auth/resend-verification", {
+        method: "POST",
+        body: JSON.stringify({ email: user.email }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setVerificationMessage(
+          (err as { error?: string }).error ||
+            "Could not send verification email",
+        );
+        return;
+      }
+      setVerificationMessage("Verification email sent.");
+    } catch {
+      setVerificationMessage("Network error");
+    } finally {
+      setSendingVerification(false);
+    }
+  }, [user?.email]);
+
+  const profileDirty =
+    (name.trim() || "") !== (user?.name || "") ||
+    email.trim().toLowerCase() !== (user?.email || "");
 
   return (
     <div id="settingsPane" className="settings-page">
@@ -53,45 +121,81 @@ export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, densi
 
       <section className="settings-section">
         <h3 className="settings-section__title">Profile</h3>
-        <div className="settings-field">
-          <label className="settings-field__label" htmlFor="settingsEmail">
-            Email
-          </label>
-          <input
-            id="settingsEmail"
-            className="settings-field__input"
-            type="email"
-            value={user?.email || ""}
-            disabled
-          />
+        <div className="settings-grid">
+          <div className="settings-field">
+            <label className="settings-field__label" htmlFor="settingsName">
+              Name
+            </label>
+            <input
+              id="settingsName"
+              className="settings-field__input"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="settings-field">
+            <label className="settings-field__label" htmlFor="settingsEmail">
+              Email
+            </label>
+            <input
+              id="settingsEmail"
+              className="settings-field__input"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+            <span className="settings-field__hint">
+              Changing your email will require verification again.
+            </span>
+          </div>
         </div>
-        <div className="settings-field">
-          <label className="settings-field__label" htmlFor="settingsName">
-            Name
-          </label>
-          <input
-            id="settingsName"
-            className="settings-field__input"
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            onBlur={handleSave}
-          />
+
+        <div
+          className={`settings-status${user?.isVerified ? " settings-status--good" : " settings-status--warning"}`}
+        >
+          <div>
+            <div className="settings-status__title">
+              {user?.isVerified
+                ? "Email verified"
+                : "Email verification pending"}
+            </div>
+            <p className="settings-status__copy">
+              {user?.isVerified
+                ? "Your account email is verified."
+                : "Verify your email to keep account recovery and linked sessions healthy."}
+            </p>
+          </div>
+          {!user?.isVerified && (
+            <button
+              className="btn"
+              onClick={resendVerification}
+              disabled={sendingVerification}
+            >
+              {sendingVerification ? "Sending…" : "Resend verification"}
+            </button>
+          )}
         </div>
-        {message && (
+
+        {verificationMessage && (
+          <p className="settings-message">{verificationMessage}</p>
+        )}
+        {profileMessage && (
           <p id="profileMessage" className="settings-message">
-            {message}
+            {profileMessage}
           </p>
         )}
         <button
           className="btn"
-          onClick={handleSave}
-          disabled={saving}
-          style={{ alignSelf: "flex-start" }}
+          onClick={handleSaveProfile}
+          disabled={!profileDirty || savingProfile}
         >
-          {saving ? "Saving…" : "Save"}
+          {savingProfile ? "Saving…" : "Save profile"}
         </button>
       </section>
+
+      <PlanningPreferencesSection />
 
       <section className="settings-section">
         <h3 className="settings-section__title">Appearance</h3>
@@ -131,7 +235,12 @@ export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, densi
         </p>
         <DataExportButton />
         <div className="settings-field settings-field--row">
-          <span className="settings-field__label">Onboarding</span>
+          <span className="settings-field__label">
+            Onboarding
+            <span className="settings-field__hint">
+              Re-run the intro flow with your current account.
+            </span>
+          </span>
           <button
             className="btn"
             onClick={() => {
@@ -146,6 +255,335 @@ export function SettingsPage({ dark, onToggleDark, uiMode, onToggleUiMode, densi
 
       <McpSessionsSection />
     </div>
+  );
+}
+
+function PlanningPreferencesSection() {
+  const [prefs, setPrefs] = useState<UserPlanningPreferences>(
+    DEFAULT_USER_PREFERENCES,
+  );
+  const [preferredContextsInput, setPreferredContextsInput] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    apiCall("/preferences")
+      .then(async (res) => {
+        if (!res.ok) throw new Error("Failed to load");
+        const data = (await res.json()) as Partial<UserPlanningPreferences>;
+        const merged = mergePlanningPreferences(data);
+        setPrefs(merged);
+        setPreferredContextsInput(merged.preferredContexts.join(", "));
+      })
+      .catch(() => {
+        setMessage("Could not load planning preferences");
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const updatePrefs = useCallback(
+    (
+      updater:
+        | UserPlanningPreferences
+        | ((current: UserPlanningPreferences) => UserPlanningPreferences),
+    ) => {
+      setPrefs((current) =>
+        typeof updater === "function"
+          ? (
+              updater as (
+                current: UserPlanningPreferences,
+              ) => UserPlanningPreferences
+            )(current)
+          : updater,
+      );
+    },
+    [],
+  );
+
+  const savePreferences = useCallback(async () => {
+    setSaving(true);
+    setMessage("");
+    const payload = {
+      ...prefs,
+      preferredContexts: parsePreferredContexts(preferredContextsInput),
+    };
+    try {
+      const res = await apiCall("/preferences", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        setMessage(
+          (err as { error?: string }).error || "Failed to save preferences",
+        );
+        return;
+      }
+      const saved = mergePlanningPreferences(
+        (await res.json()) as Partial<UserPlanningPreferences>,
+      );
+      setPrefs(saved);
+      setPreferredContextsInput(saved.preferredContexts.join(", "));
+      setMessage("Planning preferences saved.");
+    } catch {
+      setMessage("Network error");
+    } finally {
+      setSaving(false);
+    }
+  }, [preferredContextsInput, prefs]);
+
+  return (
+    <section className="settings-section">
+      <h3 className="settings-section__title">Planning preferences</h3>
+      {loading ? (
+        <p className="settings-meta">Loading…</p>
+      ) : (
+        <>
+          <div className="settings-grid">
+            <div className="settings-field">
+              <label
+                className="settings-field__label"
+                htmlFor="settingsMaxDailyTasks"
+              >
+                Daily task target
+              </label>
+              <input
+                id="settingsMaxDailyTasks"
+                className="settings-field__input"
+                type="number"
+                min="1"
+                max="20"
+                value={prefs.maxDailyTasks ?? ""}
+                onChange={(e) =>
+                  updatePrefs((current) => ({
+                    ...current,
+                    maxDailyTasks: e.target.value
+                      ? Number(e.target.value)
+                      : null,
+                  }))
+                }
+              />
+            </div>
+            <div className="settings-field">
+              <label
+                className="settings-field__label"
+                htmlFor="settingsPreferredChunkMinutes"
+              >
+                Preferred work chunk
+              </label>
+              <select
+                id="settingsPreferredChunkMinutes"
+                className="settings-field__input"
+                value={prefs.preferredChunkMinutes ?? ""}
+                onChange={(e) =>
+                  updatePrefs((current) => ({
+                    ...current,
+                    preferredChunkMinutes: e.target.value
+                      ? Number(e.target.value)
+                      : null,
+                  }))
+                }
+              >
+                {CHUNK_MINUTE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="settings-field">
+              <label
+                className="settings-field__label"
+                htmlFor="settingsWaitingFollowUpDays"
+              >
+                Waiting follow-up days
+              </label>
+              <input
+                id="settingsWaitingFollowUpDays"
+                className="settings-field__input"
+                type="number"
+                min="1"
+                max="30"
+                value={prefs.waitingFollowUpDays}
+                onChange={(e) =>
+                  updatePrefs((current) => ({
+                    ...current,
+                    waitingFollowUpDays: Math.max(
+                      1,
+                      Number(e.target.value) || 1,
+                    ),
+                  }))
+                }
+              />
+            </div>
+            <label className="settings-checkbox">
+              <input
+                type="checkbox"
+                checked={prefs.weekendsActive}
+                onChange={(e) =>
+                  updatePrefs((current) => ({
+                    ...current,
+                    weekendsActive: e.target.checked,
+                  }))
+                }
+              />
+              <span>
+                <span className="settings-field__label">Plan weekends too</span>
+                <span className="settings-field__hint">
+                  Keep the planner active on Saturdays and Sundays.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <div className="settings-grid">
+            <div className="settings-field">
+              <label className="settings-field__label" htmlFor="settingsTone">
+                Tone
+              </label>
+              <select
+                id="settingsTone"
+                className="settings-field__input"
+                value={prefs.soulProfile?.tone ?? "calm"}
+                onChange={(e) =>
+                  updatePrefs((current) => ({
+                    ...mergePlanningPreferences(current),
+                    soulProfile: {
+                      ...mergePlanningPreferences(current).soulProfile,
+                      tone: e.target.value as NonNullable<
+                        UserPlanningPreferences["soulProfile"]
+                      >["tone"],
+                    },
+                  }))
+                }
+              >
+                {SOUL_TONE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="settings-field">
+              <label
+                className="settings-field__label"
+                htmlFor="settingsPlanningStyle"
+              >
+                Planning style
+              </label>
+              <select
+                id="settingsPlanningStyle"
+                className="settings-field__input"
+                value={prefs.soulProfile?.planningStyle ?? "both"}
+                onChange={(e) =>
+                  updatePrefs((current) => ({
+                    ...mergePlanningPreferences(current),
+                    soulProfile: {
+                      ...mergePlanningPreferences(current).soulProfile,
+                      planningStyle: e.target.value as NonNullable<
+                        UserPlanningPreferences["soulProfile"]
+                      >["planningStyle"],
+                    },
+                  }))
+                }
+              >
+                {SOUL_PLANNING_STYLE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="settings-field">
+              <label
+                className="settings-field__label"
+                htmlFor="settingsEnergyPattern"
+              >
+                Energy pattern
+              </label>
+              <select
+                id="settingsEnergyPattern"
+                className="settings-field__input"
+                value={prefs.soulProfile?.energyPattern ?? "variable"}
+                onChange={(e) =>
+                  updatePrefs((current) => ({
+                    ...mergePlanningPreferences(current),
+                    soulProfile: {
+                      ...mergePlanningPreferences(current).soulProfile,
+                      energyPattern: e.target.value as NonNullable<
+                        UserPlanningPreferences["soulProfile"]
+                      >["energyPattern"],
+                    },
+                  }))
+                }
+              >
+                {SOUL_ENERGY_PATTERN_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="settings-field">
+              <label
+                className="settings-field__label"
+                htmlFor="settingsDailyRitual"
+              >
+                Daily ritual
+              </label>
+              <select
+                id="settingsDailyRitual"
+                className="settings-field__input"
+                value={prefs.soulProfile?.dailyRitual ?? "neither"}
+                onChange={(e) =>
+                  updatePrefs((current) => ({
+                    ...mergePlanningPreferences(current),
+                    soulProfile: {
+                      ...mergePlanningPreferences(current).soulProfile,
+                      dailyRitual: e.target.value as NonNullable<
+                        UserPlanningPreferences["soulProfile"]
+                      >["dailyRitual"],
+                    },
+                  }))
+                }
+              >
+                {SOUL_DAILY_RITUAL_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="settings-field">
+            <label
+              className="settings-field__label"
+              htmlFor="settingsPreferredContexts"
+            >
+              Preferred contexts
+            </label>
+            <input
+              id="settingsPreferredContexts"
+              className="settings-field__input"
+              type="text"
+              value={preferredContextsInput}
+              onChange={(e) => setPreferredContextsInput(e.target.value)}
+              placeholder="Home, errands, deep work"
+            />
+            <span className="settings-field__hint">
+              Comma-separated contexts used by planning features.
+            </span>
+          </div>
+
+          {message && <p className="settings-message">{message}</p>}
+          <button className="btn" onClick={savePreferences} disabled={saving}>
+            {saving ? "Saving…" : "Save planning preferences"}
+          </button>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -186,81 +624,111 @@ function DataExportButton() {
   return (
     <div className="settings-field settings-field--row">
       <span className="settings-field__label">Data export</span>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)" }}>
+      <div className="settings-actions">
         <button className="btn" onClick={handleExport} disabled={exporting}>
           {exporting ? "Exporting…" : "Download JSON"}
         </button>
-        {message && (
-          <span className="settings-meta">{message}</span>
-        )}
+        {message && <span className="settings-meta">{message}</span>}
       </div>
     </div>
   );
 }
 
 function McpSessionsSection() {
-  const [sessions, setSessions] = useState<
-    Array<{ id: string; clientName: string; createdAt: string }>
-  >([]);
+  const [sessions, setSessions] = useState<McpSessionSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    apiCall("/mcp/sessions")
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => setSessions(Array.isArray(data) ? data : []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const loadSessions = useCallback(async () => {
+    setLoading(true);
+    setMessage("");
+    try {
+      const res = await apiCall("/auth/mcp/sessions");
+      if (!res.ok) {
+        throw new Error("Could not load sessions");
+      }
+      const data = (await res.json()) as { sessions?: McpSessionSummary[] };
+      setSessions(Array.isArray(data.sessions) ? data.sessions : []);
+    } catch {
+      setMessage("Could not load sessions.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    void loadSessions();
+  }, [loadSessions]);
+
   const revoke = useCallback(async (id: string) => {
-    await apiCall(`/mcp/sessions/${id}`, { method: "DELETE" });
-    setSessions((prev) => prev.filter((s) => s.id !== id));
+    const res = await apiCall("/auth/mcp/sessions/revoke", {
+      method: "POST",
+      body: JSON.stringify({ sessionId: id }),
+    });
+    if (!res.ok) {
+      setMessage("Could not revoke session.");
+      return;
+    }
+    setSessions((prev) => prev.filter((session) => session.id !== id));
   }, []);
 
   const revokeAll = useCallback(async () => {
-    await apiCall("/mcp/sessions", { method: "DELETE" });
+    const res = await apiCall("/auth/mcp/sessions/revoke", {
+      method: "POST",
+      body: JSON.stringify({ revokeAll: true }),
+    });
+    if (!res.ok) {
+      setMessage("Could not revoke sessions.");
+      return;
+    }
     setSessions([]);
   }, []);
 
   return (
     <section className="settings-section">
-      <h3 className="settings-section__title">MCP Sessions</h3>
+      <h3 className="settings-section__title">MCP sessions</h3>
+      <p className="settings-meta">
+        Review connected assistants and revoke access when you no longer need
+        it.
+      </p>
+      {message && <p className="settings-message">{message}</p>}
       {loading ? (
         <p className="settings-meta">Loading…</p>
       ) : sessions.length === 0 ? (
         <p id="mcpSessionsList" className="settings-meta">
-          No active MCP sessions.
+          No assistants connected yet.
         </p>
       ) : (
         <>
           <div id="mcpSessionsList" className="mcp-sessions">
-            {sessions.map((s) => (
-              <div key={s.id} className="mcp-session">
-                <span className="mcp-session__name">
-                  {s.clientName || "Unknown client"}
-                </span>
-                <span className="mcp-session__date">
-                  {new Date(s.createdAt).toLocaleDateString()}
-                </span>
-                <button
-                  className="btn"
-                  style={{
-                    fontSize: "var(--fs-label)",
-                    padding: "var(--s-0) var(--s-2)",
-                  }}
-                  onClick={() => revoke(s.id)}
-                >
+            {sessions.map((session) => (
+              <div key={session.id} className="mcp-session">
+                <div className="mcp-session__body">
+                  <span className="mcp-session__name">
+                    {session.assistantName ||
+                      session.clientId ||
+                      "Unknown assistant"}
+                  </span>
+                  <span className="mcp-session__meta">
+                    {session.scopes.length > 0
+                      ? session.scopes.join(", ")
+                      : "No scopes recorded"}
+                  </span>
+                  <span className="mcp-session__date">
+                    Last used{" "}
+                    {session.lastUsedAt
+                      ? new Date(session.lastUsedAt).toLocaleDateString()
+                      : "never"}
+                  </span>
+                </div>
+                <button className="btn" onClick={() => revoke(session.id)}>
                   Revoke
                 </button>
               </div>
             ))}
           </div>
-          <button
-            className="btn btn--danger"
-            style={{ alignSelf: "flex-start", fontSize: "var(--fs-meta)" }}
-            onClick={revokeAll}
-          >
-            Revoke All
+          <button className="btn btn--danger" onClick={revokeAll}>
+            Revoke all
           </button>
         </>
       )}

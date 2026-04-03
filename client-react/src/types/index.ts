@@ -119,7 +119,21 @@ export interface UserPlanningPreferences {
   preferredContexts: string[];
   waitingFollowUpDays: number;
   workWindowsJson?: unknown;
-  soulProfile?: SoulProfile;
+  soulProfile: SoulProfile;
+}
+
+export interface McpSessionSummary {
+  id: string;
+  userId: string;
+  scopes: string[];
+  source: "oauth" | "local";
+  clientId?: string;
+  assistantName?: string;
+  revokedAt?: string;
+  lastAccessTokenIssuedAt?: string;
+  lastUsedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreateTodoDto {
