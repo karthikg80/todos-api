@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { CreateTodoDto } from "../../types";
 import { IconClose } from "../shared/Icons";
+import { AiOnCreateAssist } from "../ai/AiOnCreateAssist";
 import { useCaptureRoute } from "../../hooks/useCaptureRoute";
 
 interface Props {
@@ -95,6 +96,27 @@ function getRouteLabel(route: "task" | "triage") {
   return route === "task" ? "Create task now" : "Add to Desk";
 }
 
+function formatAssistDueDate(value: string): ParsedDate | null {
+  const isoDate = value.includes("T") ? value.split("T")[0] : value;
+  const parts = isoDate.split("-").map((part) => Number(part));
+  if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) {
+    return null;
+  }
+
+  const [year, month, day] = parts;
+  const parsed = new Date(year, month - 1, day);
+  if (Number.isNaN(parsed.getTime())) return null;
+
+  return {
+    text: parsed.toLocaleDateString(undefined, {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+    }),
+    date: isoDate,
+  };
+}
+
 export function QuickEntry({
   projectId,
   workspaceView,
@@ -182,6 +204,29 @@ export function QuickEntry({
         ? `Suggested: ${getRouteLabel(preferredRoute)}. ${suggestion.why}`
         : `Default: ${getRouteLabel(preferredRoute)}.`;
 
+  const handleApplySuggestion = useCallback((field: string, value: string) => {
+    if (!value) return;
+
+    switch (field) {
+      case "title":
+      case "cleanedTitle":
+      case "rewrite_title": {
+        setTitle(value);
+        return;
+      }
+      case "dueDate":
+      case "due_date": {
+        const nextParsedDate = formatAssistDueDate(value);
+        if (!nextParsedDate) return;
+        setParsedDate(nextParsedDate);
+        setDateApplied(true);
+        return;
+      }
+      default:
+        return;
+    }
+  }, []);
+
   return (
     <div className="quick-entry" id="taskComposerSheet" aria-hidden="false">
       <input
@@ -225,6 +270,10 @@ export function QuickEntry({
           {routeHint}
         </span>
       )}
+      <AiOnCreateAssist
+        title={title}
+        onApplySuggestion={handleApplySuggestion}
+      />
       <div className="quick-entry__actions">
         <button
           id="taskComposerAddButton"
