@@ -926,6 +926,10 @@ export function AppShell() {
             >
               <WeeklyReview
                 onBack={() => startTransition(() => setPage("todos"))}
+                onApplied={() => {
+                  void loadTodos(queryParams);
+                  void loadProjects();
+                }}
               />
             </Suspense>
           ) : (
