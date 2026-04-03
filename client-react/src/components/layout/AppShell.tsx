@@ -12,28 +12,18 @@ import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useDensity } from "../../hooks/useDensity";
 import { useServiceWorker } from "../../hooks/useServiceWorker";
-import {
-  IconMoon,
-  IconSun,
-  IconMenu,
-} from "../shared/Icons";
+import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
 import { captureInboxItem } from "../../api/inbox";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
-import {
-  type SortField,
-  type SortOrder,
-} from "../todos/SortControl";
+import { type SortField, type SortOrder } from "../todos/SortControl";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
-import {
-  applyFilters,
-  type ActiveFilters,
-} from "../todos/FilterPanel";
+import { applyFilters, type ActiveFilters } from "../todos/FilterPanel";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
@@ -132,14 +122,12 @@ export function AppShell() {
   const [activeTagFilter, setActiveTagFilter] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [composerOpen, setComposerOpen] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem("todos:onboarding-complete"),
-  );
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [uiMode, setUiMode] = useState<UiMode>(
     () => (localStorage.getItem("todos:ui-mode") as UiMode) || "normal",
   );
   const exportIcs = useIcsExport();
+  const showOnboarding = Boolean(user && !user.onboardingCompletedAt);
 
   // Bulk selection
   const [bulkMode, setBulkMode] = useState(false);
@@ -416,18 +404,15 @@ export function AppShell() {
     taskNav.deescalate();
   }, [taskNav]);
 
-  const handleCaptureToDesk = useCallback(
-    async (text: string) => {
-      const ok = await captureInboxItem(text);
-      if (!ok) {
-        throw new Error("Failed to add capture");
-      }
-      setUndoAction({
-        message: "Added to Desk",
-      });
-    },
-    [],
-  );
+  const handleCaptureToDesk = useCallback(async (text: string) => {
+    const ok = await captureInboxItem(text);
+    if (!ok) {
+      throw new Error("Failed to add capture");
+    }
+    setUndoAction({
+      message: "Added to Desk",
+    });
+  }, []);
 
   const handleInlineEdit = useCallback(
     async (id: string, title: string) => {
@@ -887,7 +872,10 @@ export function AppShell() {
                     <IconMenu />
                   </button>
                 )}
-                <button className="btn" onClick={() => startTransition(() => setPage("todos"))}>
+                <button
+                  className="btn"
+                  onClick={() => startTransition(() => setPage("todos"))}
+                >
                   ← Back
                 </button>
                 <span className="app-header__title">AI Workspace</span>
@@ -912,7 +900,9 @@ export function AppShell() {
                 </div>
               }
             >
-              <AdminPage onBack={() => startTransition(() => setPage("todos"))} />
+              <AdminPage
+                onBack={() => startTransition(() => setPage("todos"))}
+              />
             </Suspense>
           ) : page === "feedback" ? (
             <Suspense
@@ -922,7 +912,9 @@ export function AppShell() {
                 </div>
               }
             >
-              <FeedbackForm onBack={() => startTransition(() => setPage("todos"))} />
+              <FeedbackForm
+                onBack={() => startTransition(() => setPage("todos"))}
+              />
             </Suspense>
           ) : page === "review" ? (
             <Suspense
@@ -932,7 +924,9 @@ export function AppShell() {
                 </div>
               }
             >
-              <WeeklyReview onBack={() => startTransition(() => setPage("todos"))} />
+              <WeeklyReview
+                onBack={() => startTransition(() => setPage("todos"))}
+              />
             </Suspense>
           ) : (
             <ViewRouter activeViewKey={activeViewKey} capacity={3}>
@@ -980,7 +974,10 @@ export function AppShell() {
                     <button
                       className="btn"
                       onClick={() => setComposerOpen(true)}
-                      style={{ marginLeft: "auto", fontSize: "var(--fs-label)" }}
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: "var(--fs-label)",
+                      }}
                     >
                       + New
                     </button>
@@ -1004,7 +1001,12 @@ export function AppShell() {
                       startTransition(() => setPage("todos"));
                     }}
                     onNavigateToTuneUp={() => handleSelectView("tuneup")}
-                    onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
+                    onUndo={(action) =>
+                      setUndoAction({
+                        message: action.message,
+                        onUndo: action.onUndo,
+                      })
+                    }
                   />
                 </div>
               </ViewRoute>
@@ -1039,7 +1041,12 @@ export function AppShell() {
                       handleSelectView("all");
                       handleOpenDrawer(taskId);
                     }}
-                    onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
+                    onUndo={(action) =>
+                      setUndoAction({
+                        message: action.message,
+                        onUndo: action.onUndo,
+                      })
+                    }
                   />
                 </div>
               </ViewRoute>
@@ -1074,7 +1081,10 @@ export function AppShell() {
                     onViewModeChange={setViewMode}
                     sortBy={sortBy}
                     sortOrder={sortOrder}
-                    onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                    onSortChange={(f, o) => {
+                      setSortBy(f);
+                      setSortOrder(o);
+                    }}
                     onOpenNav={() => setMobileNavOpen(true)}
                     onNewTask={() => setComposerOpen(true)}
                     onToggleDark={toggleDarkMode}
@@ -1141,7 +1151,10 @@ export function AppShell() {
                         onReorder={handleReorder}
                         sortBy={sortBy}
                         sortOrder={sortOrder}
-                        onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                        onSortChange={(f, o) => {
+                          setSortBy(f);
+                          setSortOrder(o);
+                        }}
                       />
                     )}
                   </div>
@@ -1168,7 +1181,10 @@ export function AppShell() {
                     onViewModeChange={setViewMode}
                     sortBy={sortBy}
                     sortOrder={sortOrder}
-                    onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                    onSortChange={(f, o) => {
+                      setSortBy(f);
+                      setSortOrder(o);
+                    }}
                     onOpenNav={() => setMobileNavOpen(true)}
                     onNewTask={() => setComposerOpen(true)}
                     onToggleDark={toggleDarkMode}
@@ -1235,7 +1251,10 @@ export function AppShell() {
                         onReorder={handleReorder}
                         sortBy={sortBy}
                         sortOrder={sortOrder}
-                        onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                        onSortChange={(f, o) => {
+                          setSortBy(f);
+                          setSortOrder(o);
+                        }}
                       />
                     )}
                   </div>
@@ -1353,10 +1372,7 @@ export function AppShell() {
       <UndoToast action={undoAction} onDismiss={() => setUndoAction(null)} />
 
       {showOnboarding && (
-        <OnboardingFlow
-          onComplete={() => setShowOnboarding(false)}
-          onAddTodo={addTodo}
-        />
+        <OnboardingFlow onComplete={() => {}} onAddTodo={addTodo} />
       )}
     </div>
   );
