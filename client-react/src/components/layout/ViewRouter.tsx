@@ -117,8 +117,9 @@ export function ViewRouter({ activeViewKey, capacity = 3, children }: ViewRouter
           <div
             key={viewKey}
             className="view-router__slot"
-            style={{ display: isActive ? "block" : "none" }}
+            style={{ display: isActive ? undefined : "none" }}
             data-view-key={viewKey}
+            data-active={isActive ? "true" : "false"}
           >
             <ViewActivityProvider isActive={isActive}>
               <ViewSnapshotContext.Provider value={makeSnapshotCtx(viewKey)}>

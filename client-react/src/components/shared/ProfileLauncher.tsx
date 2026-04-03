@@ -3,11 +3,11 @@ import type { User } from "../../types";
 import {
   IconUser,
   IconSettings,
+  IconList,
   IconMoon,
   IconSun,
   IconKeyboard,
   IconFeedback,
-  IconBoard,
   IconShield,
   IconHelp,
   IconLogout,
@@ -28,10 +28,10 @@ interface Props {
   isAdmin: boolean;
   onOpenProfile: () => void;
   onOpenSettings: () => void;
+  onOpenComponents: () => void;
   onToggleTheme: () => void;
   onOpenShortcuts: () => void;
   onOpenFeedback: () => void;
-  onOpenComponentGallery: () => void;
   onOpenAdmin: () => void;
   onLogout: () => void;
 }
@@ -60,10 +60,10 @@ export function ProfileLauncher({
   isAdmin,
   onOpenProfile,
   onOpenSettings,
+  onOpenComponents,
   onToggleTheme,
   onOpenShortcuts,
   onOpenFeedback,
-  onOpenComponentGallery,
   onOpenAdmin,
   onLogout,
 }: Props) {
@@ -86,6 +86,12 @@ export function ProfileLauncher({
       action: onOpenSettings,
     },
     {
+      id: "components",
+      icon: IconList,
+      label: "Component gallery",
+      action: onOpenComponents,
+    },
+    {
       id: "theme",
       icon: dark ? IconSun : IconMoon,
       label: dark ? "Light mode" : "Dark mode",
@@ -102,12 +108,6 @@ export function ProfileLauncher({
       icon: IconFeedback,
       label: "Send feedback",
       action: onOpenFeedback,
-    },
-    {
-      id: "components",
-      icon: IconBoard,
-      label: "Component gallery",
-      action: onOpenComponentGallery,
     },
     ...(isAdmin
       ? [

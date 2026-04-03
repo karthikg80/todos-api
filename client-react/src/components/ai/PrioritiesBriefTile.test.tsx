@@ -50,12 +50,12 @@ describe("PrioritiesBriefTile", () => {
 
     render(<PrioritiesBriefTile />);
 
-    expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
+    expect(screen.getByTestId("home-priorities-tile").textContent).toContain(
       "Cached priorities",
     );
 
     await waitFor(() =>
-      expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
+      expect(screen.getByTestId("home-priorities-tile").textContent).toContain(
         "Updating priorities in the background",
       ),
     );
@@ -63,7 +63,7 @@ describe("PrioritiesBriefTile", () => {
     await vi.advanceTimersByTimeAsync(1500);
 
     await waitFor(() =>
-      expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
+      expect(screen.getByTestId("home-priorities-tile").textContent).toContain(
         "Fresh priorities",
       ),
     );
@@ -84,7 +84,7 @@ describe("PrioritiesBriefTile", () => {
     render(<PrioritiesBriefTile />);
 
     await waitFor(() =>
-      expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
+      expect(screen.getByTestId("home-priorities-tile").textContent).toContain(
         "Visible priorities",
       ),
     );
@@ -92,11 +92,11 @@ describe("PrioritiesBriefTile", () => {
     screen.getByRole("button", { name: "Refresh" }).click();
 
     await waitFor(() =>
-      expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
+      expect(screen.getByTestId("home-priorities-tile").textContent).toContain(
         "Showing the last update.",
       ),
     );
-    expect(screen.getByTestId("home-priorities-tile")).toHaveTextContent(
+    expect(screen.getByTestId("home-priorities-tile").textContent).toContain(
       "Visible priorities",
     );
   });

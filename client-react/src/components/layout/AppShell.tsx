@@ -29,6 +29,7 @@ import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
+import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { DeskView } from "../desk/DeskView";
 import { TuneUpView } from "../tuneup/TuneUpView";
 import { ProjectCrud } from "../projects/ProjectCrud";
@@ -76,6 +77,7 @@ type AppPage =
   | "review";
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
+type HorizonSegment = "due" | "planned" | "pending" | "later";
 
 interface UndoAction {
   message: string;
@@ -100,7 +102,16 @@ export function AppShell() {
   const { density, cycle: cycleDensity } = useDensity();
   const { startTransition } = useViewTransition();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [activeView, setActiveView] = useState<WorkspaceView>("all");
+  const [activeView, setActiveView] = useState<WorkspaceView>("home");
+  const [horizonSegment, setHorizonSegment] = useState<HorizonSegment>(() => {
+    const stored = localStorage.getItem("todos:horizon-segment");
+    return stored === "due" ||
+      stored === "planned" ||
+      stored === "pending" ||
+      stored === "later"
+      ? stored
+      : "due";
+  });
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
@@ -190,7 +201,7 @@ export function AppShell() {
         case "completed":
           params.completed = "true";
           break;
-        case "upcoming":
+        case "horizon":
           params.sortBy = "dueDate";
           params.sortOrder = "asc";
           break;
@@ -212,6 +223,10 @@ export function AppShell() {
   useEffect(() => {
     loadProjects();
   }, [loadProjects]);
+
+  useEffect(() => {
+    localStorage.setItem("todos:horizon-segment", horizonSegment);
+  }, [horizonSegment]);
 
   // Hash route ↔ task navigation sync
   // On hash change (e.g. browser back), sync to nav state
@@ -254,29 +269,29 @@ export function AppShell() {
         filtered = filtered.filter(
           (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
         );
-      } else if (activeView === "upcoming") {
+      } else if (activeView === "horizon") {
         const upcomingEnd = new Date();
         upcomingEnd.setDate(upcomingEnd.getDate() + 14);
         const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
-        filtered = filtered.filter(
-          (t) =>
-            !t.completed &&
-            !!t.dueDate &&
-            t.dueDate.split("T")[0] > today &&
-            t.dueDate.split("T")[0] <= upcomingEndIso,
-        );
-      } else if (activeView === "waiting") {
-        filtered = filtered.filter(
-          (t) => !t.completed && t.status === "waiting",
-        );
-      } else if (activeView === "scheduled") {
-        filtered = filtered.filter(
-          (t) => !t.completed && t.status === "scheduled",
-        );
-      } else if (activeView === "someday") {
-        filtered = filtered.filter(
-          (t) => !t.completed && t.status === "someday",
-        );
+        if (horizonSegment === "due") {
+          filtered = filtered.filter(
+            (t) =>
+              !t.completed &&
+              !!t.dueDate &&
+              t.dueDate.split("T")[0] > today &&
+              t.dueDate.split("T")[0] <= upcomingEndIso,
+          );
+        } else if (horizonSegment === "pending") {
+          filtered = filtered.filter(
+            (t) => !t.completed && t.status === "waiting",
+          );
+        } else if (horizonSegment === "planned") {
+          filtered = filtered.filter((t) => !t.completed && !!t.scheduledDate);
+        } else if (horizonSegment === "later") {
+          filtered = filtered.filter(
+            (t) => !t.completed && t.status === "someday",
+          );
+        }
       }
     }
 
@@ -315,6 +330,7 @@ export function AppShell() {
   }, [
     todos,
     activeView,
+    horizonSegment,
     selectedProjectId,
     searchQuery,
     activeTagFilter,
@@ -359,28 +375,52 @@ export function AppShell() {
     };
   }, [hasBlockingOverlay]);
 
-  // Count badges for workspace views
-  const viewCounts = useMemo(() => {
+  const horizonCounts = useMemo(() => {
     const active = todos.filter((t) => !t.completed);
     const today = new Date().toISOString().split("T")[0];
     const upcomingEnd = new Date();
     upcomingEnd.setDate(upcomingEnd.getDate() + 14);
     const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
     return {
-      triage: active.filter(
-        (t) => t.status === "inbox" || (!t.projectId && !t.category),
-      ).length,
-      today: active.filter((t) => t.dueDate && t.dueDate.split("T")[0] <= today)
-        .length,
-      upcoming: active.filter(
+      due: active.filter(
         (t) =>
           !!t.dueDate &&
           t.dueDate.split("T")[0] > today &&
           t.dueDate.split("T")[0] <= upcomingEndIso,
       ).length,
-      waiting: active.filter((t) => t.status === "waiting").length,
-      scheduled: active.filter((t) => t.status === "scheduled").length,
-      someday: active.filter((t) => t.status === "someday").length,
+      pending: active.filter((t) => t.status === "waiting").length,
+      planned: active.filter((t) => !!t.scheduledDate).length,
+      later: active.filter((t) => t.status === "someday").length,
+    };
+  }, [todos]);
+
+  // Count badges for workspace views
+  const viewCounts = useMemo(() => {
+    const active = todos.filter((t) => !t.completed);
+    const horizonIds = new Set<string>();
+    const today = new Date().toISOString().split("T")[0];
+    const upcomingEnd = new Date();
+    upcomingEnd.setDate(upcomingEnd.getDate() + 14);
+    const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
+    for (const todo of active) {
+      if (
+        (todo.dueDate &&
+          todo.dueDate.split("T")[0] > today &&
+          todo.dueDate.split("T")[0] <= upcomingEndIso) ||
+        todo.status === "waiting" ||
+        !!todo.scheduledDate ||
+        todo.status === "someday"
+      ) {
+        horizonIds.add(todo.id);
+      }
+    }
+    return {
+      triage: active.filter(
+        (t) => t.status === "inbox" || (!t.projectId && !t.category),
+      ).length,
+      today: active.filter((t) => t.dueDate && t.dueDate.split("T")[0] <= today)
+        .length,
+      horizon: horizonIds.size,
     };
   }, [todos]);
 
@@ -397,16 +437,21 @@ export function AppShell() {
         return "Capture something to organize later…";
       case "today":
         return "Add a task for today…";
-      case "waiting":
-        return "Add something you’re waiting on…";
-      case "scheduled":
-        return "Add something planned for later…";
-      case "someday":
-        return "Capture something for later…";
+      case "horizon":
+        switch (horizonSegment) {
+          case "pending":
+            return "Add something you’re waiting on…";
+          case "planned":
+            return "Add something planned for later…";
+          case "later":
+            return "Capture something for later…";
+          default:
+            return "Add something on the horizon…";
+        }
       default:
         return "Add a task…";
     }
-  }, [selectedProjectId, projects, activeView]);
+  }, [selectedProjectId, projects, activeView, horizonSegment]);
 
   const focusSearchInput = useCallback(() => {
     startTransition(() => setPage("todos"));
@@ -589,6 +634,17 @@ export function AppShell() {
     setSelectedIds(new Set());
   }, []);
 
+  const handleSelectHorizonSegment = useCallback(
+    (segment: HorizonSegment) => {
+      setHorizonSegment(segment);
+      setActiveView("horizon");
+      taskNav.collapse();
+      setBulkMode(false);
+      setSelectedIds(new Set());
+    },
+    [taskNav],
+  );
+
   const handleSelectProject = useCallback((id: string | null) => {
     setSelectedProjectId(id);
     taskNav.collapse();
@@ -757,10 +813,7 @@ export function AppShell() {
     triage: "Desk",
     all: "Everything",
     today: "Today",
-    upcoming: "Upcoming",
-    waiting: "Pending",
-    scheduled: "Planned",
-    someday: "Later",
+    horizon: "Horizon",
     completed: "Completed",
     tuneup: "Tune-up",
   };
@@ -780,7 +833,7 @@ export function AppShell() {
       page === "settings"
         ? "Settings"
         : page === "components"
-          ? "Component gallery"
+          ? "Component Gallery"
           : page === "ai"
             ? "AI Workspace"
             : page === "admin"
@@ -825,12 +878,12 @@ export function AppShell() {
         startTransition(() => setPage("settings"));
         setMobileNavOpen(false);
       }}
-      onOpenFeedback={() => {
-        startTransition(() => setPage("feedback"));
+      onOpenComponents={() => {
+        startTransition(() => setPage("components"));
         setMobileNavOpen(false);
       }}
-      onOpenComponentGallery={() => {
-        startTransition(() => setPage("components"));
+      onOpenFeedback={() => {
+        startTransition(() => setPage("feedback"));
         setMobileNavOpen(false);
       }}
       onOpenAdmin={() => {
@@ -917,17 +970,8 @@ export function AppShell() {
             />
           ) : page === "components" ? (
             <ComponentGalleryPage
-              user={user}
               dark={dark}
-              isAdmin={user?.role === "admin"}
               onBack={() => startTransition(() => setPage("todos"))}
-              onOpenProfile={() => startTransition(() => setPage("settings"))}
-              onOpenSettings={() => startTransition(() => setPage("settings"))}
-              onToggleTheme={toggleDarkMode}
-              onOpenShortcuts={() => setShortcutsOpen(true)}
-              onOpenFeedback={() => startTransition(() => setPage("feedback"))}
-              onOpenAdmin={() => startTransition(() => setPage("admin"))}
-              onLogout={logout}
             />
           ) : page === "ai" ? (
             <>
@@ -1127,114 +1171,117 @@ export function AppShell() {
               </ViewRoute>
 
               {/* List views with shared header */}
-              {(
-                [
-                  "all",
-                  "today",
-                  "upcoming",
-                  "waiting",
-                  "scheduled",
-                  "someday",
-                  "completed",
-                ] as const
-              ).map((view) => (
-                <ViewRoute key={view} viewKey={view}>
-                  <ListViewHeader
-                    headerTitle={VIEW_LABELS[view] ?? view}
-                    activeView={view}
-                    selectedProjectId={null}
-                    isMobile={isMobile}
-                    visibleTodos={visibleTodos}
-                    loadState={loadState}
-                    filtersOpen={filtersOpen}
-                    onToggleFilters={() => setFiltersOpen((o) => !o)}
-                    activeFilters={activeFilters}
-                    onFilterChange={setActiveFilters}
-                    activeTagFilter={activeTagFilter}
-                    onClearTagFilter={() => setActiveTagFilter("")}
-                    viewMode={viewMode}
-                    onViewModeChange={setViewMode}
-                    sortBy={sortBy}
-                    sortOrder={sortOrder}
-                    onSortChange={(f, o) => {
-                      setSortBy(f);
-                      setSortOrder(o);
-                    }}
-                    onOpenNav={() => setMobileNavOpen(true)}
-                    onNewTask={() => setComposerOpen(true)}
-                    onToggleDark={toggleDarkMode}
-                    onLogout={logout}
-                    onClearProject={() => handleSelectProject(null)}
-                    viewLabels={VIEW_LABELS}
-                    bulkMode={bulkMode}
-                    selectedIds={selectedIds}
-                    onSelectAll={handleSelectAll}
-                    onBulkComplete={handleBulkComplete}
-                    onBulkDelete={handleBulkDelete}
-                    onCancelBulk={handleCancelBulk}
-                    uiMode={uiMode}
-                    onAddTodo={addTodo}
-                    onCaptureToDesk={handleCaptureToDesk}
-                    quickEntryPlaceholder={quickEntryPlaceholder}
-                    activeHeadingId={null}
-                    onSelectHeading={() => {}}
-                    searchQuery={searchQuery}
-                    onSearchChange={setSearchQuery}
-                    todos={todos}
-                    onExportIcs={exportIcs}
-                    onExportMessage={(msg) => setUndoAction({ message: msg })}
-                    user={user}
-                    dark={dark}
-                  />
-                  <div className="app-content">
-                    {viewMode === "board" ? (
-                      <Suspense
-                        fallback={
-                          <div className="loading-skeleton loading">
-                            <div className="loading-skeleton__row" />
-                          </div>
-                        }
-                      >
-                        <BoardView
+              {(["all", "today", "horizon", "completed"] as const).map(
+                (view) => (
+                  <ViewRoute key={view} viewKey={view}>
+                    <ListViewHeader
+                      headerTitle={VIEW_LABELS[view] ?? view}
+                      activeView={view}
+                      selectedProjectId={null}
+                      isMobile={isMobile}
+                      horizonSegment={
+                        view === "horizon" ? horizonSegment : undefined
+                      }
+                      onHorizonSegmentChange={
+                        view === "horizon"
+                          ? handleSelectHorizonSegment
+                          : undefined
+                      }
+                      horizonSegmentCounts={
+                        view === "horizon" ? horizonCounts : undefined
+                      }
+                      visibleTodos={visibleTodos}
+                      loadState={loadState}
+                      filtersOpen={filtersOpen}
+                      onToggleFilters={() => setFiltersOpen((o) => !o)}
+                      activeFilters={activeFilters}
+                      onFilterChange={setActiveFilters}
+                      activeTagFilter={activeTagFilter}
+                      onClearTagFilter={() => setActiveTagFilter("")}
+                      viewMode={viewMode}
+                      onViewModeChange={setViewMode}
+                      sortBy={sortBy}
+                      sortOrder={sortOrder}
+                      onSortChange={(f, o) => {
+                        setSortBy(f);
+                        setSortOrder(o);
+                      }}
+                      onOpenNav={() => setMobileNavOpen(true)}
+                      onNewTask={() => setComposerOpen(true)}
+                      onToggleDark={toggleDarkMode}
+                      onLogout={logout}
+                      onClearProject={() => handleSelectProject(null)}
+                      viewLabels={VIEW_LABELS}
+                      bulkMode={bulkMode}
+                      selectedIds={selectedIds}
+                      onSelectAll={handleSelectAll}
+                      onBulkComplete={handleBulkComplete}
+                      onBulkDelete={handleBulkDelete}
+                      onCancelBulk={handleCancelBulk}
+                      uiMode={uiMode}
+                      onAddTodo={addTodo}
+                      onCaptureToDesk={handleCaptureToDesk}
+                      quickEntryPlaceholder={quickEntryPlaceholder}
+                      activeHeadingId={null}
+                      onSelectHeading={() => {}}
+                      searchQuery={searchQuery}
+                      onSearchChange={setSearchQuery}
+                      todos={todos}
+                      onExportIcs={exportIcs}
+                      onExportMessage={(msg) => setUndoAction({ message: msg })}
+                      user={user}
+                      dark={dark}
+                    />
+                    <div className="app-content">
+                      {viewMode === "board" ? (
+                        <Suspense
+                          fallback={
+                            <div className="loading-skeleton loading">
+                              <div className="loading-skeleton__row" />
+                            </div>
+                          }
+                        >
+                          <BoardView
+                            todos={visibleTodos}
+                            loadState={loadState}
+                            onToggle={handleToggle}
+                            onClick={handleOpenDrawer}
+                            onStatusChange={editTodo}
+                          />
+                        </Suspense>
+                      ) : (
+                        <SortableTodoList
                           todos={visibleTodos}
                           loadState={loadState}
+                          errorMessage={errorMessage}
+                          activeTodoId={activeTodoId}
+                          expandedTodoId={expandedTodoId}
+                          isBulkMode={bulkMode}
+                          selectedIds={selectedIds}
+                          projects={projects}
+                          headings={[]}
                           onToggle={handleToggle}
-                          onClick={handleOpenDrawer}
-                          onStatusChange={editTodo}
+                          onClick={handleQuickEdit}
+                          onKebab={handleOpenDrawer}
+                          onRetry={() => loadTodos(queryParams)}
+                          onSelect={handleBulkSelect}
+                          onInlineEdit={handleInlineEdit}
+                          onSave={editTodo}
+                          onTagClick={handleTagClick}
+                          onLifecycleAction={handleLifecycleAction}
+                          onReorder={handleReorder}
+                          sortBy={sortBy}
+                          sortOrder={sortOrder}
+                          onSortChange={(f, o) => {
+                            setSortBy(f);
+                            setSortOrder(o);
+                          }}
                         />
-                      </Suspense>
-                    ) : (
-                      <SortableTodoList
-                        todos={visibleTodos}
-                        loadState={loadState}
-                        errorMessage={errorMessage}
-                        activeTodoId={activeTodoId}
-                        expandedTodoId={expandedTodoId}
-                        isBulkMode={bulkMode}
-                        selectedIds={selectedIds}
-                        projects={projects}
-                        headings={[]}
-                        onToggle={handleToggle}
-                        onClick={handleQuickEdit}
-                        onKebab={handleOpenDrawer}
-                        onRetry={() => loadTodos(queryParams)}
-                        onSelect={handleBulkSelect}
-                        onInlineEdit={handleInlineEdit}
-                        onSave={editTodo}
-                        onTagClick={handleTagClick}
-                        onLifecycleAction={handleLifecycleAction}
-                        onReorder={handleReorder}
-                        sortBy={sortBy}
-                        sortOrder={sortOrder}
-                        onSortChange={(f, o) => {
-                          setSortBy(f);
-                          setSortOrder(o);
-                        }}
-                      />
-                    )}
-                  </div>
-                </ViewRoute>
-              ))}
+                      )}
+                    </div>
+                  </ViewRoute>
+                ),
+              )}
 
               {/* Dynamic project view */}
               {selectedProjectId && (
@@ -1244,6 +1291,21 @@ export function AppShell() {
                     activeView={activeView}
                     selectedProjectId={selectedProjectId}
                     isMobile={isMobile}
+                    horizonSegment={
+                      !selectedProjectId && activeView === "horizon"
+                        ? horizonSegment
+                        : undefined
+                    }
+                    onHorizonSegmentChange={
+                      !selectedProjectId && activeView === "horizon"
+                        ? handleSelectHorizonSegment
+                        : undefined
+                    }
+                    horizonSegmentCounts={
+                      !selectedProjectId && activeView === "horizon"
+                        ? horizonCounts
+                        : undefined
+                    }
                     visibleTodos={visibleTodos}
                     loadState={loadState}
                     filtersOpen={filtersOpen}
@@ -1376,6 +1438,11 @@ export function AppShell() {
         isOpen={paletteOpen}
         onClose={() => setPaletteOpen(false)}
         onNavigate={handlePaletteNavigate}
+        onNavigateHorizonSegment={(segment) => {
+          startTransition(() => setPage("todos"));
+          handleSelectHorizonSegment(segment);
+          handleSelectProject(null);
+        }}
         onWeeklyReview={() => startTransition(() => setPage("review"))}
         onToggleDarkMode={toggleDarkMode}
         onOpenSettings={() => startTransition(() => setPage("settings"))}

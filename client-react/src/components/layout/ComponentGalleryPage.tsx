@@ -1,492 +1,568 @@
-import { useMemo, useState } from "react";
-import type { Heading, Project, Todo, UpdateTodoDto, User } from "../../types";
+import { useDeferredValue, useMemo, useState, type ReactNode } from "react";
+import type { Heading, Project, Todo, User } from "../../types";
+import { buildChips } from "../../utils/buildChips";
 import {
-  IconEverything,
-  IconToday,
-  IconWaiting,
-  IconList,
   IconBoard,
-  IconPlus,
+  IconFocus,
+  IconList,
+  IconToday,
+  IconTuneUp,
+  IconUpcoming,
 } from "../shared/Icons";
 import { ProfileLauncher } from "../shared/ProfileLauncher";
 import { SearchBar } from "../shared/SearchBar";
-import { SegmentedControl } from "../shared/SegmentedControl";
-import { ToggleSwitch } from "../shared/ToggleSwitch";
-import { UndoToast } from "../shared/UndoToast";
+import { UndoToast, type ToastVariant } from "../shared/UndoToast";
 import { TodoRow } from "../todos/TodoRow";
 
+type PreviewMode = "list" | "board";
+
 interface Props {
-  user: User | null;
   dark: boolean;
-  isAdmin: boolean;
   onBack: () => void;
-  onOpenProfile: () => void;
-  onOpenSettings: () => void;
-  onToggleTheme: () => void;
-  onOpenShortcuts: () => void;
-  onOpenFeedback: () => void;
-  onOpenAdmin: () => void;
-  onLogout: () => void;
 }
+
+interface GalleryToastAction {
+  message: string;
+  onUndo?: () => void;
+  variant?: ToastVariant;
+}
+
+interface GallerySection {
+  id: string;
+  eyebrow: string;
+  title: string;
+  keywords: string[];
+  content: ReactNode;
+}
+
+const timestamp = new Date().toISOString();
 
 const SAMPLE_PROJECTS: Project[] = [
   {
-    id: "project-design",
-    name: "Design system",
+    id: "project-focus",
+    name: "Focus System",
     status: "active",
+    priority: "high",
+    area: "work",
     archived: false,
     openTodoCount: 6,
+    completedTaskCount: 12,
+    todoCount: 18,
+    userId: "gallery-user",
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  },
+  {
+    id: "project-home",
+    name: "Home Reset",
+    status: "on_hold",
+    priority: "medium",
+    area: "home",
+    archived: false,
+    openTodoCount: 3,
+    completedTaskCount: 5,
     todoCount: 8,
-    completedTaskCount: 2,
-    userId: "sample",
-    createdAt: "2026-04-01T10:00:00.000Z",
-    updatedAt: "2026-04-03T10:00:00.000Z",
+    userId: "gallery-user",
+    createdAt: timestamp,
+    updatedAt: timestamp,
   },
 ];
 
 const SAMPLE_HEADINGS: Heading[] = [];
 
-function makeSampleTodos(): Todo[] {
-  return [
-    {
-      id: "gallery-overdue",
-      title: "Refine task row anatomy",
-      description:
-        "Move chips below the title and make status/action clusters easier to scan.",
-      notes: null,
-      status: "next",
-      completed: false,
-      projectId: "project-design",
-      category: "Workbench",
-      headingId: null,
-      tags: ["ui", "rows", "priority"],
-      context: null,
-      energy: "high",
-      dueDate: "2026-04-01T12:00:00.000Z",
-      startDate: null,
-      scheduledDate: null,
-      reviewDate: null,
-      doDate: null,
-      estimateMinutes: 45,
-      waitingOn: null,
-      dependsOnTaskIds: [],
-      order: 0,
-      priority: "high",
-      archived: false,
-      firstStep: null,
-      emotionalState: null,
-      effortScore: null,
-      source: null,
-      recurrence: null,
-      subtasks: [
-        {
-          id: "subtask-1",
-          title: "Rework the metadata line",
-          completed: true,
-          order: 0,
-          todoId: "gallery-overdue",
-          createdAt: "2026-04-01T10:00:00.000Z",
-          updatedAt: "2026-04-03T10:00:00.000Z",
-        },
-        {
-          id: "subtask-2",
-          title: "Tune state colors",
-          completed: false,
-          order: 1,
-          todoId: "gallery-overdue",
-          createdAt: "2026-04-01T10:00:00.000Z",
-          updatedAt: "2026-04-03T10:00:00.000Z",
-        },
-      ],
-      userId: "sample",
-      createdAt: "2026-04-01T10:00:00.000Z",
-      updatedAt: "2026-04-03T10:00:00.000Z",
-    },
-    {
-      id: "gallery-waiting",
-      title: "Align search and segmented controls",
-      description:
-        "Dock accessory controls into the field and strengthen active mode contrast.",
-      notes: null,
-      status: "waiting",
-      completed: false,
-      projectId: "project-design",
-      category: "Workbench",
-      headingId: null,
-      tags: ["search", "controls"],
-      context: null,
-      energy: "medium",
-      dueDate: "2026-04-05T12:00:00.000Z",
-      startDate: null,
-      scheduledDate: null,
-      reviewDate: null,
-      doDate: null,
-      estimateMinutes: 30,
-      waitingOn: "Engineering",
-      dependsOnTaskIds: ["gallery-overdue"],
-      order: 1,
-      priority: "medium",
-      archived: false,
-      firstStep: null,
-      emotionalState: null,
-      effortScore: null,
-      source: null,
-      recurrence: null,
-      subtasks: [],
-      userId: "sample",
-      createdAt: "2026-04-01T10:00:00.000Z",
-      updatedAt: "2026-04-03T10:00:00.000Z",
-    },
-    {
-      id: "gallery-complete",
-      title: "Ship a warmer button family",
-      description:
-        "Primary, secondary, ghost, and destructive should feel related but clearly distinct.",
-      notes: null,
-      status: "done",
-      completed: true,
-      completedAt: "2026-04-02T09:00:00.000Z",
-      projectId: "project-design",
-      category: "Workbench",
-      headingId: null,
-      tags: ["buttons"],
-      context: null,
-      energy: null,
-      dueDate: "2026-04-02T12:00:00.000Z",
-      startDate: null,
-      scheduledDate: null,
-      reviewDate: null,
-      doDate: null,
-      estimateMinutes: 20,
-      waitingOn: null,
-      dependsOnTaskIds: [],
-      order: 2,
-      priority: "low",
-      archived: false,
-      firstStep: null,
-      emotionalState: null,
-      effortScore: null,
-      source: null,
-      recurrence: { type: "weekly", interval: 1, nextOccurrence: null },
-      subtasks: [],
-      userId: "sample",
-      createdAt: "2026-04-01T10:00:00.000Z",
-      updatedAt: "2026-04-03T10:00:00.000Z",
-    },
-  ];
+const SAMPLE_USER: User = {
+  id: "gallery-user",
+  email: "design@todos.app",
+  name: "Design Review",
+  role: "admin",
+  isVerified: true,
+};
+
+const COLOR_SWATCHES = [
+  { name: "Accent", value: "var(--accent)" },
+  { name: "Success", value: "var(--success)" },
+  { name: "Warning", value: "var(--warning)" },
+  { name: "Danger", value: "var(--danger)" },
+  { name: "Surface", value: "var(--surface)" },
+  { name: "Surface 3", value: "var(--surface-3)" },
+];
+
+const NAV_PREVIEW_ITEMS = [
+  { key: "focus", label: "Focus", icon: IconFocus, count: 3 },
+  { key: "today", label: "Today", icon: IconToday, count: 7 },
+  { key: "upcoming", label: "Upcoming", icon: IconUpcoming, count: 4 },
+  { key: "tuneup", label: "Tune-up", icon: IconTuneUp, count: 2 },
+] as const;
+
+function isoWithOffset(days: number) {
+  const date = new Date();
+  date.setHours(10, 0, 0, 0);
+  date.setDate(date.getDate() + days);
+  return date.toISOString();
 }
 
-export function ComponentGalleryPage({
-  user,
-  dark,
-  isAdmin,
-  onBack,
-  onOpenProfile,
-  onOpenSettings,
-  onToggleTheme,
-  onOpenShortcuts,
-  onOpenFeedback,
-  onOpenAdmin,
-  onLogout,
-}: Props) {
-  const [searchValue, setSearchValue] = useState("");
-  const [viewMode, setViewMode] = useState("list");
-  const [layoutMode, setLayoutMode] = useState("list");
-  const [toggles, setToggles] = useState({
-    groupByStatus: true,
-    hideCompleted: false,
-  });
-  const [toastAction, setToastAction] = useState<{
-    message: string;
-    variant?: "default" | "success" | "error" | "warning";
-    onUndo?: () => void;
-  } | null>(null);
-  const [activeTodoId, setActiveTodoId] = useState("gallery-overdue");
-  const [todos, setTodos] = useState<Todo[]>(() => makeSampleTodos());
+function buildSampleTodo(
+  overrides: Partial<Todo> & Pick<Todo, "id" | "title">,
+): Todo {
+  return {
+    id: overrides.id,
+    title: overrides.title,
+    description: overrides.description ?? null,
+    notes: overrides.notes ?? null,
+    status: overrides.status ?? "next",
+    completed: overrides.completed ?? false,
+    completedAt: overrides.completedAt ?? null,
+    projectId: overrides.projectId ?? SAMPLE_PROJECTS[0].id,
+    category: overrides.category ?? "Focus System",
+    headingId: overrides.headingId ?? null,
+    tags: overrides.tags ?? [],
+    context: overrides.context ?? "desktop",
+    energy: overrides.energy ?? "medium",
+    dueDate: overrides.dueDate ?? null,
+    startDate: overrides.startDate ?? null,
+    scheduledDate: overrides.scheduledDate ?? null,
+    reviewDate: overrides.reviewDate ?? null,
+    doDate: overrides.doDate ?? null,
+    estimateMinutes: overrides.estimateMinutes ?? 25,
+    waitingOn: overrides.waitingOn ?? null,
+    dependsOnTaskIds: overrides.dependsOnTaskIds ?? [],
+    order: overrides.order ?? 0,
+    priority: overrides.priority ?? "medium",
+    archived: overrides.archived ?? false,
+    firstStep: overrides.firstStep ?? "Review the current state",
+    emotionalState: overrides.emotionalState ?? "exciting",
+    effortScore: overrides.effortScore ?? 3,
+    source: overrides.source ?? "manual",
+    recurrence: overrides.recurrence ?? { type: "none" },
+    subtasks: overrides.subtasks ?? [],
+    userId: overrides.userId ?? "gallery-user",
+    createdAt: overrides.createdAt ?? timestamp,
+    updatedAt: overrides.updatedAt ?? timestamp,
+  };
+}
 
-  const sampleTodos = useMemo(
-    () =>
-      todos.filter((todo) =>
-        searchValue.trim()
-          ? todo.title.toLowerCase().includes(searchValue.toLowerCase())
-          : true,
-      ),
-    [searchValue, todos],
+const INITIAL_PREVIEW_TODOS: Todo[] = [
+  buildSampleTodo({
+    id: "preview-rich-row",
+    title: "Tighten the Focus dashboard hierarchy",
+    description:
+      "Refine spacing, update the summary copy, and tighten the responsive layout before the next release.",
+    status: "in_progress",
+    priority: "high",
+    dueDate: isoWithOffset(1),
+    estimateMinutes: 45,
+    tags: ["design-system", "release"],
+    subtasks: [
+      {
+        id: "subtask-1",
+        title: "Revisit tile spacing",
+        completed: true,
+        order: 0,
+        todoId: "preview-rich-row",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: "subtask-2",
+        title: "Polish hero copy",
+        completed: false,
+        order: 1,
+        todoId: "preview-rich-row",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+      {
+        id: "subtask-3",
+        title: "Check tablet breakpoints",
+        completed: false,
+        order: 2,
+        todoId: "preview-rich-row",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      },
+    ],
+  }),
+  buildSampleTodo({
+    id: "preview-done-row",
+    title: "Ship keyboard shortcut polish",
+    status: "done",
+    completed: true,
+    completedAt: isoWithOffset(0),
+    priority: "medium",
+    dueDate: isoWithOffset(-1),
+    estimateMinutes: 15,
+    tags: ["quality"],
+    category: "Workbench",
+  }),
+];
+
+function SectionCard({
+  eyebrow,
+  title,
+  children,
+}: Pick<GallerySection, "eyebrow" | "title"> & { children: ReactNode }) {
+  return (
+    <section className="component-gallery__card">
+      <span className="component-gallery__eyebrow">{eyebrow}</span>
+      <h2 className="component-gallery__title">{title}</h2>
+      <div className="component-gallery__body">{children}</div>
+    </section>
+  );
+}
+
+export function ComponentGalleryPage({ dark, onBack }: Props) {
+  const [filterText, setFilterText] = useState("");
+  const [searchPreviewValue, setSearchPreviewValue] = useState("overdue");
+  const [previewMode, setPreviewMode] = useState<PreviewMode>("list");
+  const [activeNavKey, setActiveNavKey] =
+    useState<(typeof NAV_PREVIEW_ITEMS)[number]["key"]>("focus");
+  const [activeRowId, setActiveRowId] = useState(INITIAL_PREVIEW_TODOS[0].id);
+  const [previewTodos, setPreviewTodos] = useState(INITIAL_PREVIEW_TODOS);
+  const [toastAction, setToastAction] = useState<GalleryToastAction | null>(
+    null,
+  );
+  const deferredFilter = useDeferredValue(filterText.trim().toLowerCase());
+
+  const handlePreviewToast = (
+    message: string,
+    variant: ToastVariant = "default",
+  ) => {
+    setToastAction({
+      message,
+      variant,
+      onUndo:
+        variant === "success"
+          ? () =>
+              setToastAction({
+                message: "Rolled the preview back.",
+                variant: "warning",
+              })
+          : undefined,
+    });
+  };
+
+  const updatePreviewTodo = (id: string, updater: (todo: Todo) => Todo) => {
+    setPreviewTodos((current) =>
+      current.map((todo) => (todo.id === id ? updater(todo) : todo)),
+    );
+  };
+
+  const chipPreview = useMemo(
+    () => buildChips(previewTodos[0], "spacious"),
+    [previewTodos],
   );
 
-  const handleToggleTodo = (id: string, completed: boolean) => {
-    setTodos((current) =>
-      current.map((todo) =>
-        todo.id === id
-          ? {
-              ...todo,
-              completed,
-              status: completed ? "done" : "next",
+  const sections: GallerySection[] = [
+    {
+      id: "buttons",
+      eyebrow: "Buttons",
+      title: "Actions and affordances",
+      keywords: ["buttons", "cta", "actions", "toolbar"],
+      content: (
+        <div className="component-gallery__button-grid">
+          <button type="button" className="btn btn--primary">
+            Create task
+          </button>
+          <button type="button" className="btn">
+            Export calendar
+          </button>
+          <button type="button" className="btn btn--danger">
+            Delete selected
+          </button>
+          <button
+            type="button"
+            className="mini-btn"
+            onClick={() =>
+              handlePreviewToast("Previewed the action stack.", "success")
             }
-          : todo,
-      ),
-    );
-  };
-
-  const handleInlineEdit = (id: string, title: string) => {
-    setTodos((current) =>
-      current.map((todo) => (todo.id === id ? { ...todo, title } : todo)),
-    );
-  };
-
-  const handleSave = async (id: string, dto: UpdateTodoDto) => {
-    setTodos((current) =>
-      current.map((todo) => (todo.id === id ? { ...todo, ...dto } : todo)),
-    );
-    return Promise.resolve();
-  };
-
-  return (
-    <div className="component-gallery-page">
-      <header className="component-gallery-page__header">
-        <button className="btn" onClick={onBack}>
-          ← Back
-        </button>
-        <div>
-          <p className="component-gallery-page__eyebrow">
-            Internal component system
-          </p>
-          <h1 className="component-gallery-page__title">
-            React component gallery
-          </h1>
+          >
+            Trigger success toast
+          </button>
         </div>
-      </header>
-
-      <div className="component-gallery-page__grid">
-        <section className="component-gallery-card">
-          <div className="component-gallery-card__header">
-            <span className="component-gallery-card__label">Buttons</span>
-          </div>
-          <div className="component-gallery-actions">
-            <button className="btn btn--primary">
-              <IconPlus /> New task
+      ),
+    },
+    {
+      id: "navigation",
+      eyebrow: "Navigation",
+      title: "Workspace rail items",
+      keywords: ["navigation", "sidebar", "views", "rail"],
+      content: (
+        <div className="component-gallery__nav-stack">
+          {NAV_PREVIEW_ITEMS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`workspace-view-item${activeNavKey === item.key ? " projects-rail-item--active" : ""}`}
+              onClick={() => setActiveNavKey(item.key)}
+            >
+              <item.icon />
+              <span className="nav-label">{item.label}</span>
+              <span className="workspace-view-item__count">{item.count}</span>
             </button>
-            <button className="btn">Suggest next work</button>
-            <button className="btn btn--ghost">Share view</button>
-            <button className="btn btn--danger">Clear completed</button>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: "inputs",
+      eyebrow: "Inputs",
+      title: "Search and view switching",
+      keywords: ["search", "input", "switch", "view toggle", "segmented"],
+      content: (
+        <div className="component-gallery__input-stack">
+          <div className="component-gallery__search-preview">
+            <SearchBar
+              inputId="componentGallerySearchPreview"
+              value={searchPreviewValue}
+              onChange={setSearchPreviewValue}
+            />
+            <span className="component-gallery__keycap">/</span>
           </div>
-        </section>
-
-        <section className="component-gallery-card">
-          <div className="component-gallery-card__header">
-            <span className="component-gallery-card__label">
-              Search and modes
+          <div className="component-gallery__segmented-row">
+            <div className="view-toggle" aria-label="Gallery preview mode">
+              <button
+                type="button"
+                className={`view-toggle__btn${previewMode === "list" ? " view-toggle__btn--active" : ""}`}
+                onClick={() => setPreviewMode("list")}
+                aria-label="List preview"
+              >
+                <IconList />
+              </button>
+              <button
+                type="button"
+                className={`view-toggle__btn${previewMode === "board" ? " view-toggle__btn--active" : ""}`}
+                onClick={() => setPreviewMode("board")}
+                aria-label="Board preview"
+              >
+                <IconBoard />
+              </button>
+            </div>
+            <span className="component-gallery__muted-copy">
+              {previewMode === "list"
+                ? "List mode keeps the information dense."
+                : "Board mode opens up more spatial grouping."}
             </span>
           </div>
-          <div className="component-gallery-stack">
-            <SearchBar
-              value={searchValue}
-              onChange={setSearchValue}
-              inputId="componentGallerySearch"
-              shortcutHint="/"
-            />
-            <SegmentedControl
-              value={layoutMode}
-              onChange={setLayoutMode}
-              ariaLabel="Gallery layout"
-              options={[
-                { value: "list", label: "List" },
-                { value: "board", label: "Board" },
-                { value: "focus", label: "Focus" },
-              ]}
-            />
-            <SegmentedControl
-              value={viewMode}
-              onChange={setViewMode}
-              ariaLabel="Task view"
-              iconOnly
-              options={[
-                { value: "list", ariaLabel: "List view", icon: <IconList /> },
-                {
-                  value: "board",
-                  ariaLabel: "Board view",
-                  icon: <IconBoard />,
-                },
-              ]}
-            />
-          </div>
-        </section>
-
-        <section className="component-gallery-card">
-          <div className="component-gallery-card__header">
-            <span className="component-gallery-card__label">Rail items</span>
-          </div>
-          <div className="component-gallery-rail">
-            <button
-              className="workspace-view-item projects-rail-item--active"
-              type="button"
+        </div>
+      ),
+    },
+    {
+      id: "metadata",
+      eyebrow: "Badges",
+      title: "Task chips and metadata",
+      keywords: ["chips", "badges", "tags", "metadata"],
+      content: (
+        <div className="component-gallery__chip-wrap">
+          {chipPreview.map((chip) => (
+            <span
+              key={chip.key}
+              className={`todo-chip todo-chip--${chip.variant}`}
             >
-              <IconEverything />
-              <span className="nav-label">Everything</span>
-              <span className="workspace-view-item__count">12</span>
-            </button>
-            <button className="workspace-view-item" type="button">
-              <IconToday />
-              <span className="nav-label">Today</span>
-              <span className="workspace-view-item__count">4</span>
-            </button>
-            <button className="workspace-view-item" type="button">
-              <IconWaiting />
-              <span className="nav-label">Waiting</span>
-              <span className="workspace-view-item__count">2</span>
-            </button>
-          </div>
-        </section>
-
-        <section className="component-gallery-card">
-          <div className="component-gallery-card__header">
-            <span className="component-gallery-card__label">Switches</span>
-          </div>
-          <div className="component-gallery-stack">
-            <ToggleSwitch
-              checked={toggles.groupByStatus}
-              label="Group by status"
-              description="Use the stronger semantic cluster in the list."
-              onChange={(checked) =>
-                setToggles((current) => ({
+              {chip.label}
+            </span>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: "rows",
+      eyebrow: "Task Rows",
+      title: "Live list row specimens",
+      keywords: ["rows", "tasks", "todo row", "list"],
+      content: (
+        <div className="component-gallery__rows">
+          {previewTodos.map((todo) => (
+            <TodoRow
+              key={todo.id}
+              todo={todo}
+              isActive={activeRowId === todo.id}
+              isExpanded={false}
+              isBulkMode={false}
+              isSelected={false}
+              density="spacious"
+              groupBy="none"
+              projects={SAMPLE_PROJECTS}
+              headings={SAMPLE_HEADINGS}
+              onToggle={(id, completed) => {
+                updatePreviewTodo(id, (current) => ({
                   ...current,
-                  groupByStatus: checked,
-                }))
+                  completed,
+                  status: completed ? "done" : "in_progress",
+                  completedAt: completed ? new Date().toISOString() : null,
+                }));
+                handlePreviewToast(
+                  completed
+                    ? "Marked preview row complete."
+                    : "Reopened preview row.",
+                  completed ? "success" : "warning",
+                );
+              }}
+              onClick={(id) => setActiveRowId(id)}
+              onKebab={(id) => {
+                setActiveRowId(id);
+                handlePreviewToast("Opened row details preview.");
+              }}
+              onSelect={(id) => setActiveRowId(id)}
+              onInlineEdit={(id, title) =>
+                updatePreviewTodo(id, (current) => ({ ...current, title }))
+              }
+              onSave={async () => undefined}
+              onTagClick={(tag) =>
+                handlePreviewToast(`Filtering by #${tag} in the preview.`)
+              }
+              onLifecycleAction={(id, action) => {
+                setActiveRowId(id);
+                handlePreviewToast(`Previewed "${action}" on a task row.`);
+              }}
+            />
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: "identity",
+      eyebrow: "Identity",
+      title: "Account launcher and color tokens",
+      keywords: ["profile", "launcher", "colors", "tokens"],
+      content: (
+        <div className="component-gallery__identity-grid">
+          <div className="component-gallery__profile-preview">
+            <ProfileLauncher
+              user={SAMPLE_USER}
+              dark={dark}
+              isAdmin
+              onOpenProfile={() =>
+                handlePreviewToast("Opened profile preview.")
+              }
+              onOpenSettings={() =>
+                handlePreviewToast("Opened settings preview.")
+              }
+              onOpenComponents={() =>
+                handlePreviewToast("Already viewing the gallery.")
+              }
+              onToggleTheme={() =>
+                handlePreviewToast("Theme toggle stays live in the real shell.")
+              }
+              onOpenShortcuts={() =>
+                handlePreviewToast("Opened shortcuts preview.")
+              }
+              onOpenFeedback={() =>
+                handlePreviewToast("Opened feedback preview.")
+              }
+              onOpenAdmin={() => handlePreviewToast("Opened admin preview.")}
+              onLogout={() =>
+                handlePreviewToast(
+                  "Sign-out stays disabled in the gallery.",
+                  "warning",
+                )
               }
             />
-            <ToggleSwitch
-              checked={toggles.hideCompleted}
-              label="Hide completed"
-              description="Keep completed rows available but visually quieter."
-              onChange={(checked) =>
-                setToggles((current) => ({
-                  ...current,
-                  hideCompleted: checked,
-                }))
-              }
-            />
-            <ToggleSwitch
-              checked
-              disabled
-              label="Auto-archive done work"
-              description="Disabled specimen for the system states."
-              onChange={() => {}}
-            />
           </div>
-        </section>
-
-        <section className="component-gallery-card component-gallery-card--wide">
-          <div className="component-gallery-card__header">
-            <span className="component-gallery-card__label">Task rows</span>
-          </div>
-          <div className="component-gallery-list">
-            {sampleTodos.map((todo, index) => (
-              <TodoRow
-                key={todo.id}
-                todo={todo}
-                isActive={activeTodoId === todo.id}
-                isExpanded={false}
-                isBulkMode={false}
-                isSelected={false}
-                density={index === 0 ? "spacious" : "normal"}
-                projects={SAMPLE_PROJECTS}
-                headings={SAMPLE_HEADINGS}
-                onToggle={handleToggleTodo}
-                onClick={setActiveTodoId}
-                onKebab={setActiveTodoId}
-                onSelect={() => {}}
-                onInlineEdit={handleInlineEdit}
-                onSave={handleSave}
-                onTagClick={() => {}}
-                onLifecycleAction={() => {}}
-              />
-            ))}
-          </div>
-        </section>
-
-        <section className="component-gallery-card">
-          <div className="component-gallery-card__header">
-            <span className="component-gallery-card__label">Tokens</span>
-          </div>
-          <div className="component-gallery-swatches">
-            {[
-              {
-                label: "Surface",
-                role: "Default cards",
-                css: "var(--surface)",
-              },
-              {
-                label: "Surface 2",
-                role: "Nested chrome",
-                css: "var(--surface-2)",
-              },
-              {
-                label: "Accent",
-                role: "Primary actions",
-                css: "var(--accent)",
-              },
-              {
-                label: "Warning",
-                role: "Time pressure",
-                css: "var(--warning)",
-              },
-              {
-                label: "Danger",
-                role: "Destructive and overdue",
-                css: "var(--danger)",
-              },
-            ].map((swatch) => (
-              <div key={swatch.label} className="component-gallery-swatch">
+          <div className="component-gallery__swatches">
+            {COLOR_SWATCHES.map((swatch) => (
+              <div key={swatch.name} className="component-gallery__swatch">
                 <span
-                  className="component-gallery-swatch__sample"
-                  style={{ background: swatch.css }}
+                  className="component-gallery__swatch-dot"
+                  style={{ background: swatch.value }}
                 />
-                <span className="component-gallery-swatch__label">
-                  {swatch.label}
-                </span>
-                <span className="component-gallery-swatch__role">
-                  {swatch.role}
+                <span className="component-gallery__swatch-label">
+                  {swatch.name}
                 </span>
               </div>
             ))}
           </div>
-        </section>
+        </div>
+      ),
+    },
+  ];
 
-        <section className="component-gallery-card">
-          <div className="component-gallery-card__header">
-            <span className="component-gallery-card__label">
-              Identity and toast
+  const filteredSections = useMemo(() => {
+    if (!deferredFilter) return sections;
+
+    return sections.filter((section) => {
+      const haystack =
+        `${section.eyebrow} ${section.title} ${section.keywords.join(" ")}`.toLowerCase();
+      return haystack.includes(deferredFilter);
+    });
+  }, [deferredFilter, sections]);
+
+  return (
+    <div
+      data-testid="component-gallery-page"
+      className="component-gallery-page"
+    >
+      <header className="component-gallery__hero">
+        <div className="component-gallery__hero-copy">
+          <div className="component-gallery__hero-topline">
+            <button type="button" className="btn" onClick={onBack}>
+              ← Back
+            </button>
+            <span className="component-gallery__hero-kicker">
+              Internal design inventory
             </span>
           </div>
-          <div className="component-gallery-stack">
-            <ProfileLauncher
-              user={user}
-              dark={dark}
-              isAdmin={isAdmin}
-              onOpenProfile={onOpenProfile}
-              onOpenSettings={onOpenSettings}
-              onToggleTheme={onToggleTheme}
-              onOpenShortcuts={onOpenShortcuts}
-              onOpenFeedback={onOpenFeedback}
-              onOpenComponentGallery={() => {}}
-              onOpenAdmin={onOpenAdmin}
-              onLogout={onLogout}
+          <h1 className="component-gallery__hero-title">Component gallery</h1>
+          <p className="component-gallery__hero-summary">
+            A live board of the controls, navigation patterns, and task rows
+            that shape the React app. Each specimen uses the same shared classes
+            and components as production screens.
+          </p>
+        </div>
+
+        <div className="component-gallery__hero-tools">
+          <label className="settings-field">
+            <span className="settings-field__label">Filter sections</span>
+            <input
+              className="settings-field__input component-gallery__filter-input"
+              type="text"
+              value={filterText}
+              onChange={(event) => setFilterText(event.target.value)}
+              placeholder="Buttons, rows, profile…"
             />
-            <button
-              className="btn btn--primary"
-              onClick={() =>
-                setToastAction({
-                  message: "Added 5 components to the specimen board",
-                  variant: "success",
-                  onUndo: () => setToastAction(null),
-                })
-              }
-            >
-              Trigger success toast
-            </button>
+          </label>
+          <div className="component-gallery__hero-stats">
+            <div className="component-gallery__hero-stat">
+              <strong>{filteredSections.length}</strong>
+              <span>Sections</span>
+            </div>
+            <div className="component-gallery__hero-stat">
+              <strong>6</strong>
+              <span>Live modules</span>
+            </div>
+            <div className="component-gallery__hero-stat">
+              <strong>2</strong>
+              <span>Task specimens</span>
+            </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </header>
+
+      {filteredSections.length === 0 ? (
+        <div className="component-gallery__empty">
+          <span className="component-gallery__empty-title">
+            No sections match that filter.
+          </span>
+          <button
+            type="button"
+            className="mini-btn"
+            onClick={() => setFilterText("")}
+          >
+            Clear filter
+          </button>
+        </div>
+      ) : (
+        <div className="component-gallery__grid">
+          {filteredSections.map((section) => (
+            <SectionCard
+              key={section.id}
+              eyebrow={section.eyebrow}
+              title={section.title}
+            >
+              {section.content}
+            </SectionCard>
+          ))}
+        </div>
+      )}
 
       <UndoToast action={toastAction} onDismiss={() => setToastAction(null)} />
     </div>

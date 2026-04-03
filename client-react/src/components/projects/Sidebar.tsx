@@ -7,9 +7,6 @@ import {
   IconEverything,
   IconToday,
   IconUpcoming,
-  IconWaiting,
-  IconScheduled,
-  IconSomeday,
   IconCompleted,
   IconTuneUp,
   IconPlus,
@@ -25,10 +22,7 @@ export type WorkspaceView =
   | "triage"
   | "all"
   | "today"
-  | "upcoming"
-  | "waiting"
-  | "scheduled"
-  | "someday"
+  | "horizon"
   | "completed"
   | "tuneup";
 
@@ -42,10 +36,7 @@ const WORKSPACE_VIEWS: {
   { key: "triage", label: "Desk", icon: IconDesk },
   { key: "all", label: "Everything", icon: IconEverything },
   { key: "today", label: "Today", icon: IconToday },
-  { key: "upcoming", label: "Upcoming", icon: IconUpcoming },
-  { key: "waiting", label: "Pending", icon: IconWaiting },
-  { key: "scheduled", label: "Planned", icon: IconScheduled },
-  { key: "someday", label: "Later", icon: IconSomeday },
+  { key: "horizon", label: "Horizon", icon: IconUpcoming },
   { key: "completed", label: "Completed", icon: IconCompleted },
   { key: "tuneup", label: "Tune-up", icon: IconTuneUp },
 ];
@@ -204,12 +195,12 @@ interface Props {
   onCreateProject: () => void;
   onRenameProject: (id: string, name: string) => void;
   onOpenSettings: () => void;
+  onOpenComponents: () => void;
   onOpenFeedback: () => void;
   onOpenAdmin: () => void;
   onToggleTheme: () => void;
   onOpenShortcuts: () => void;
   onOpenProfile: () => void;
-  onOpenComponentGallery: () => void;
   onLogout: () => void;
   user: User | null;
   dark: boolean;
@@ -233,12 +224,12 @@ export function Sidebar({
   onCreateProject,
   onRenameProject,
   onOpenSettings,
+  onOpenComponents,
   onOpenFeedback,
   onOpenAdmin,
   onToggleTheme,
   onOpenShortcuts,
   onOpenProfile,
-  onOpenComponentGallery,
   onLogout,
   user,
   dark,
@@ -599,10 +590,10 @@ export function Sidebar({
         isAdmin={isAdmin}
         onOpenProfile={onOpenProfile}
         onOpenSettings={onOpenSettings}
+        onOpenComponents={onOpenComponents}
         onToggleTheme={onToggleTheme}
         onOpenShortcuts={onOpenShortcuts}
         onOpenFeedback={onOpenFeedback}
-        onOpenComponentGallery={onOpenComponentGallery}
         onOpenAdmin={onOpenAdmin}
         onLogout={onLogout}
       />

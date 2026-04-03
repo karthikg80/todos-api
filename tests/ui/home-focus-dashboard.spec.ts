@@ -763,6 +763,14 @@ test.describe("Home focus dashboard + sheet composer", () => {
     ).toContainText(
       /Prepare launch checklist|Send overdue invoice|Nothing urgent right now/,
     );
+    const disclosureToggle = page.locator(".home-dashboard__disclosure-toggle");
+    await expect(disclosureToggle).toBeVisible();
+    await expect(disclosureToggle).toContainText("Show more for today");
+    await expect(page.locator('[data-home-tile="due_soon"]')).toHaveCount(0);
+    await expect(page.locator('[data-home-tile="stale_risks"]')).toHaveCount(0);
+
+    await disclosureToggle.click();
+
     await expect(page.locator('[data-home-tile="due_soon"]')).toBeVisible();
     await expect(page.locator('[data-home-tile="stale_risks"]')).toBeVisible();
   });
@@ -864,7 +872,7 @@ test.describe("Home focus dashboard + sheet composer", () => {
     ).toContainText("Rescue mode is on");
   });
 
-  test("Today and Upcoming still navigate on the planner surface", async ({
+  test("Today and Horizon still navigate on the planner surface", async ({
     page,
   }) => {
     await clickWorkspaceView(page, "today");
@@ -873,9 +881,9 @@ test.describe("Home focus dashboard + sheet composer", () => {
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
     await expectListOrEmptyState(page);
 
-    await clickWorkspaceView(page, "upcoming");
-    await expectWorkspaceViewActive(page, "upcoming");
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Upcoming");
+    await clickWorkspaceView(page, "horizon");
+    await expectWorkspaceViewActive(page, "horizon");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Horizon");
     await expect(page.locator("#todosListHeaderDateBadge")).toBeHidden();
     await expectListOrEmptyState(page);
   });
