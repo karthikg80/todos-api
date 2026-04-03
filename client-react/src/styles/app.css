@@ -8911,6 +8911,35 @@ body {
   --ds-warm-surface-strong: color-mix(in oklab, var(--surface-2) 82%, #efe0ca);
   --ds-soft-border: color-mix(in oklab, var(--border) 78%, #d7c3ab);
   --ds-quiet-text: color-mix(in oklab, var(--muted) 82%, var(--text));
+  --ds-toggle-rail: color-mix(in oklab, var(--surface-2) 84%, var(--surface-3));
+  --ds-toggle-pill: color-mix(in oklab, var(--surface) 96%, var(--surface-2));
+  --ds-toggle-pill-hover: color-mix(in oklab, var(--surface) 52%, transparent);
+  --ds-toggle-meta: color-mix(in oklab, var(--surface) 40%, var(--surface-3));
+  --ds-toggle-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.82),
+    inset 0 -1px 0 rgb(23 23 23 / 0.02);
+  --ds-toggle-pill-shadow:
+    0 1px 2px rgb(15 23 42 / 0.08),
+    0 10px 18px rgb(15 23 42 / 0.04),
+    inset 0 1px 0 rgb(255 255 255 / 0.9);
+}
+
+body.dark-mode {
+  --ds-warm-surface: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
+  --ds-warm-surface-strong: color-mix(in oklab, var(--surface-2) 88%, var(--surface-3));
+  --ds-soft-border: color-mix(in oklab, var(--border) 76%, var(--surface-3));
+  --ds-quiet-text: color-mix(in oklab, var(--muted) 78%, var(--text));
+  --ds-toggle-rail: color-mix(in oklab, var(--surface-2) 88%, var(--surface-3));
+  --ds-toggle-pill: color-mix(in oklab, var(--surface) 90%, var(--surface-2));
+  --ds-toggle-pill-hover: color-mix(in oklab, var(--surface) 32%, transparent);
+  --ds-toggle-meta: color-mix(in oklab, var(--surface-2) 32%, var(--surface-3));
+  --ds-toggle-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.04),
+    inset 0 -1px 0 rgb(0 0 0 / 0.2);
+  --ds-toggle-pill-shadow:
+    0 1px 2px rgb(0 0 0 / 0.35),
+    0 10px 18px rgb(0 0 0 / 0.14),
+    inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 
 .btn {
@@ -9064,12 +9093,10 @@ body {
   align-items: center;
   gap: 5px;
   padding: 5px;
-  border: 1px solid color-mix(in oklab, var(--border) 44%, #e6d8c8);
+  border: 1px solid color-mix(in oklab, var(--border) 68%, var(--surface-3));
   border-radius: 1.18rem;
-  background: color-mix(in oklab, var(--surface-2) 82%, #ebe2d5);
-  box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.82),
-    inset 0 -1px 0 rgb(23 23 23 / 0.02);
+  background: var(--ds-toggle-rail);
+  box-shadow: var(--ds-toggle-shadow);
 }
 
 .view-toggle__btn {
@@ -9079,7 +9106,10 @@ body {
   gap: var(--s-1h);
   min-height: 38px;
   padding: 0.55rem 1rem;
+  border: none;
   border-radius: 0.92rem;
+  background: transparent;
+  box-shadow: none;
   color: color-mix(in oklab, var(--muted) 82%, var(--text));
   font-size: var(--fs-meta);
   font-weight: 520;
@@ -9105,16 +9135,13 @@ body {
 }
 
 .view-toggle__btn--active {
-  background: color-mix(in oklab, var(--surface) 96%, white);
+  background: var(--ds-toggle-pill);
   color: var(--text-strong);
-  box-shadow:
-    0 1px 2px rgb(15 23 42 / 0.08),
-    0 10px 18px rgb(15 23 42 / 0.04),
-    inset 0 1px 0 rgb(255 255 255 / 0.9);
+  box-shadow: var(--ds-toggle-pill-shadow);
 }
 
 .view-toggle__btn:hover:not(.view-toggle__btn--active) {
-  background: color-mix(in oklab, var(--surface) 52%, transparent);
+  background: var(--ds-toggle-pill-hover);
   color: color-mix(in oklab, var(--text) 88%, var(--muted));
 }
 
@@ -9142,7 +9169,7 @@ body {
   height: 1.35rem;
   padding: 0 0.42rem;
   border-radius: 999px;
-  background: color-mix(in oklab, var(--surface) 74%, #ece1d2);
+  background: var(--ds-toggle-meta);
   color: color-mix(in oklab, var(--text) 70%, var(--muted));
   font-size: 0.63rem;
   font-weight: var(--fw-semibold);
@@ -9150,7 +9177,7 @@ body {
 }
 
 .view-toggle__btn--active .view-toggle__meta {
-  background: color-mix(in oklab, var(--accent) 12%, #efe0cf);
+  background: color-mix(in oklab, var(--accent) 14%, var(--ds-toggle-pill));
   color: var(--accent);
 }
 
