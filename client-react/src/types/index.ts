@@ -34,12 +34,7 @@ export interface Todo {
   updatedAt: string;
 }
 
-export type RecurrenceType =
-  | "none"
-  | "daily"
-  | "weekly"
-  | "monthly"
-  | "yearly";
+export type RecurrenceType = "none" | "daily" | "weekly" | "monthly" | "yearly";
 
 export interface TodoRecurrence {
   type: RecurrenceType;
@@ -102,6 +97,29 @@ export interface User {
   role?: string;
   isVerified?: boolean;
   plan?: string;
+  onboardingStep?: number | null;
+  onboardingCompletedAt?: string | null;
+}
+
+export interface SoulProfile {
+  lifeAreas: string[];
+  failureModes: string[];
+  planningStyle: "structure" | "flexibility" | "both";
+  energyPattern: "morning" | "afternoon" | "evening" | "variable";
+  goodDayThemes: string[];
+  tone: "calm" | "focused" | "encouraging" | "direct";
+  dailyRitual: "morning_plan" | "evening_reset" | "both" | "neither";
+}
+
+export interface UserPlanningPreferences {
+  maxDailyTasks?: number | null;
+  preferredChunkMinutes?: number | null;
+  deepWorkPreference?: string | null;
+  weekendsActive: boolean;
+  preferredContexts: string[];
+  waitingFollowUpDays: number;
+  workWindowsJson?: unknown;
+  soulProfile?: SoulProfile;
 }
 
 export interface CreateTodoDto {
@@ -122,6 +140,7 @@ export interface CreateTodoDto {
   firstStep?: string | null;
   emotionalState?: string | null;
   effortScore?: number | null;
+  source?: string | null;
 }
 
 export interface UpdateTodoDto {
