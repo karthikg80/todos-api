@@ -7,9 +7,6 @@ import {
   IconEverything,
   IconToday,
   IconUpcoming,
-  IconWaiting,
-  IconScheduled,
-  IconSomeday,
   IconCompleted,
   IconTuneUp,
   IconPlus,
@@ -25,10 +22,7 @@ export type WorkspaceView =
   | "triage"
   | "all"
   | "today"
-  | "upcoming"
-  | "waiting"
-  | "scheduled"
-  | "someday"
+  | "horizon"
   | "completed"
   | "tuneup";
 
@@ -42,10 +36,7 @@ const WORKSPACE_VIEWS: {
   { key: "triage", label: "Desk", icon: IconDesk },
   { key: "all", label: "Everything", icon: IconEverything },
   { key: "today", label: "Today", icon: IconToday },
-  { key: "upcoming", label: "Upcoming", icon: IconUpcoming },
-  { key: "waiting", label: "Pending", icon: IconWaiting },
-  { key: "scheduled", label: "Planned", icon: IconScheduled },
-  { key: "someday", label: "Later", icon: IconSomeday },
+  { key: "horizon", label: "Horizon", icon: IconUpcoming },
   { key: "completed", label: "Completed", icon: IconCompleted },
   { key: "tuneup", label: "Tune-up", icon: IconTuneUp },
 ];

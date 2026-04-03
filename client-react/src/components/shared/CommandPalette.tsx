@@ -22,6 +22,9 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (view: WorkspaceView) => void;
+  onNavigateHorizonSegment: (
+    segment: "due" | "planned" | "pending" | "later",
+  ) => void;
   onWeeklyReview: () => void;
   onToggleDarkMode: () => void;
   onOpenSettings: () => void;
@@ -41,6 +44,7 @@ export function CommandPalette({
   isOpen,
   onClose,
   onNavigate,
+  onNavigateHorizonSegment,
   onWeeklyReview,
   onToggleDarkMode,
   onOpenSettings,
@@ -107,32 +111,39 @@ export function CommandPalette({
         keywords: "today due now",
       },
       {
-        id: "nav-upcoming",
-        label: "Go to Upcoming",
+        id: "nav-horizon",
+        label: "Go to Horizon",
         section: "Commands",
-        action: () => onNavigate("upcoming"),
-        keywords: "upcoming due later",
+        action: () => onNavigate("horizon"),
+        keywords: "horizon upcoming future planning",
       },
       {
-        id: "nav-waiting",
-        label: "Go to Pending",
+        id: "nav-horizon-due",
+        label: "Go to Horizon: Due",
         section: "Commands",
-        action: () => onNavigate("waiting"),
-        keywords: "waiting blocked hold pending",
+        action: () => onNavigateHorizonSegment("due"),
+        keywords: "horizon upcoming due soon schedule",
       },
       {
-        id: "nav-scheduled",
-        label: "Go to Planned",
+        id: "nav-horizon-pending",
+        label: "Go to Horizon: Pending",
         section: "Commands",
-        action: () => onNavigate("scheduled"),
-        keywords: "scheduled planned calendar",
+        action: () => onNavigateHorizonSegment("pending"),
+        keywords: "waiting blocked hold pending horizon",
       },
       {
-        id: "nav-someday",
-        label: "Go to Later",
+        id: "nav-horizon-planned",
+        label: "Go to Horizon: Planned",
         section: "Commands",
-        action: () => onNavigate("someday"),
-        keywords: "later someday maybe backlog",
+        action: () => onNavigateHorizonSegment("planned"),
+        keywords: "scheduled planned calendar horizon",
+      },
+      {
+        id: "nav-horizon-later",
+        label: "Go to Horizon: Later",
+        section: "Commands",
+        action: () => onNavigateHorizonSegment("later"),
+        keywords: "later someday maybe backlog horizon",
       },
       {
         id: "nav-completed",
@@ -217,6 +228,7 @@ export function CommandPalette({
     [
       onNewTask,
       onNavigate,
+      onNavigateHorizonSegment,
       onWeeklyReview,
       onOpenSettings,
       onOpenFeedback,

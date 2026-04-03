@@ -238,16 +238,16 @@ test.describe("Command palette", () => {
     await expect(focusTarget).toBeFocused();
   });
 
-  test('typing filters commands and shows "Go to Everything"', async ({
+  test('typing filters commands and shows "Go to Horizon"', async ({
     page,
   }) => {
     await openCommandPalette(page);
 
     const input = page.locator("#commandPaletteInput");
-    await input.fill("every");
+    await input.fill("hori");
 
     await expect(page.locator("#commandPaletteList")).toContainText(
-      "Go to Everything",
+      "Go to Horizon",
     );
     await expect(page.locator("#commandPaletteEmpty")).toBeHidden();
   });
