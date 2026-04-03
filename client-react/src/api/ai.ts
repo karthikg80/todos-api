@@ -148,7 +148,10 @@ export async function dismissFocusSuggestion(
 export interface PrioritiesBrief {
   html: string;
   generatedAt: string;
+  expiresAt?: string | null;
   cached: boolean;
+  isStale?: boolean;
+  refreshInFlight?: boolean;
 }
 
 export async function fetchPrioritiesBrief(): Promise<PrioritiesBrief | null> {
