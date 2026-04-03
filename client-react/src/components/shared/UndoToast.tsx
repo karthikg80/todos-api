@@ -44,6 +44,7 @@ export function UndoToast({ action, onDismiss }: Props) {
       aria-live="polite"
       aria-atomic="true"
     >
+      <span className="undo-toast__status" aria-hidden="true" />
       <span id="undoMessage" className="undo-toast__message">
         {action?.message}
       </span>

@@ -12,6 +12,7 @@ import {
   mergePlanningPreferences,
   parsePreferredContexts,
 } from "./settingsModels";
+import { ToggleSwitch } from "../shared/ToggleSwitch";
 
 interface Props {
   dark: boolean;
@@ -199,18 +200,18 @@ export function SettingsPage({
 
       <section className="settings-section">
         <h3 className="settings-section__title">Appearance</h3>
-        <div className="settings-field settings-field--row">
-          <span className="settings-field__label">Dark mode</span>
-          <button className="btn" onClick={onToggleDark}>
-            {dark ? "☀️ Switch to light" : "🌙 Switch to dark"}
-          </button>
-        </div>
-        <div className="settings-field settings-field--row">
-          <span className="settings-field__label">UI complexity</span>
-          <button className="btn" onClick={onToggleUiMode}>
-            {uiMode === "simple" ? "Switch to normal" : "Switch to simple"}
-          </button>
-        </div>
+        <ToggleSwitch
+          checked={dark}
+          label="Dark mode"
+          description="Use the darker palette across the shell and task views."
+          onChange={() => onToggleDark()}
+        />
+        <ToggleSwitch
+          checked={uiMode === "normal"}
+          label="Normal UI"
+          description="Show the fuller workspace instead of the simplified mode."
+          onChange={() => onToggleUiMode()}
+        />
         <div className="settings-field settings-field--row">
           <span className="settings-field__label">
             Density
