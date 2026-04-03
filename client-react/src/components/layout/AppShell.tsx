@@ -28,6 +28,7 @@ import { applyFilters, type ActiveFilters } from "../todos/FilterPanel";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
+import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { DeskView } from "../desk/DeskView";
 import { TuneUpView } from "../tuneup/TuneUpView";
 import { ProjectCrud } from "../projects/ProjectCrud";
@@ -38,7 +39,10 @@ import { useViewTransition } from "../../hooks/useViewTransition";
 import { TaskFullPage } from "../todos/TaskFullPage";
 import { ViewRouter, ViewRoute } from "./ViewRouter";
 import { ListViewHeader } from "./ListViewHeader";
-import { focusGlobalSearchInput, triggerPrimaryNewTask } from "../../utils/focusTargets";
+import {
+  focusGlobalSearchInput,
+  triggerPrimaryNewTask,
+} from "../../utils/focusTargets";
 import { useOverlayFocusTrap } from "../shared/useOverlayFocusTrap";
 import * as todosApi from "../../api/todos";
 
@@ -62,7 +66,14 @@ const WeeklyReview = lazy(() =>
   import("./WeeklyReview").then((m) => ({ default: m.WeeklyReview })),
 );
 
-type AppPage = "todos" | "settings" | "ai" | "admin" | "feedback" | "review";
+type AppPage =
+  | "todos"
+  | "settings"
+  | "components"
+  | "ai"
+  | "admin"
+  | "feedback"
+  | "review";
 type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 
@@ -768,13 +779,15 @@ export function AppShell() {
     const pageLabel =
       page === "settings"
         ? "Settings"
-        : page === "ai"
-          ? "AI Workspace"
-          : page === "admin"
-            ? "Admin"
-            : page === "feedback"
-              ? "Feedback"
-              : headerTitle;
+        : page === "components"
+          ? "Component Gallery"
+          : page === "ai"
+            ? "AI Workspace"
+            : page === "admin"
+              ? "Admin"
+              : page === "feedback"
+                ? "Feedback"
+                : headerTitle;
     document.title = `${pageLabel} — Todos`;
   }, [page, headerTitle]);
 
@@ -810,6 +823,10 @@ export function AppShell() {
       }}
       onOpenSettings={() => {
         startTransition(() => setPage("settings"));
+        setMobileNavOpen(false);
+      }}
+      onOpenComponents={() => {
+        startTransition(() => setPage("components"));
         setMobileNavOpen(false);
       }}
       onOpenFeedback={() => {
@@ -896,6 +913,11 @@ export function AppShell() {
               }}
               density={density}
               onCycleDensity={cycleDensity}
+              onBack={() => startTransition(() => setPage("todos"))}
+            />
+          ) : page === "components" ? (
+            <ComponentGalleryPage
+              dark={dark}
               onBack={() => startTransition(() => setPage("todos"))}
             />
           ) : page === "ai" ? (
