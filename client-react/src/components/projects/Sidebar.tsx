@@ -7,6 +7,9 @@ import {
   IconEverything,
   IconToday,
   IconUpcoming,
+  IconWaiting,
+  IconScheduled,
+  IconSomeday,
   IconCompleted,
   IconTuneUp,
   IconPlus,
@@ -23,6 +26,9 @@ export type WorkspaceView =
   | "all"
   | "today"
   | "upcoming"
+  | "waiting"
+  | "scheduled"
+  | "someday"
   | "completed"
   | "tuneup";
 
@@ -37,6 +43,9 @@ const WORKSPACE_VIEWS: {
   { key: "all", label: "Everything", icon: IconEverything },
   { key: "today", label: "Today", icon: IconToday },
   { key: "upcoming", label: "Upcoming", icon: IconUpcoming },
+  { key: "waiting", label: "Pending", icon: IconWaiting },
+  { key: "scheduled", label: "Planned", icon: IconScheduled },
+  { key: "someday", label: "Later", icon: IconSomeday },
   { key: "completed", label: "Completed", icon: IconCompleted },
   { key: "tuneup", label: "Tune-up", icon: IconTuneUp },
 ];
@@ -381,6 +390,8 @@ export function Sidebar({
         <div className="sidebar-search workspace-view-item">
           <IconSearch />
           <input
+            id="searchInput"
+            data-search-input="true"
             className="sidebar-search__input nav-label"
             data-global-search-input="true"
             type="text"

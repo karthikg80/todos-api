@@ -399,7 +399,11 @@ export function ListViewHeader({
       {/* Mobile search */}
       {isMobile && (
         <div style={{ padding: "var(--s-2) var(--s-4)" }}>
-          <SearchBar value={searchQuery} onChange={onSearchChange} />
+          <SearchBar
+            inputId="searchInputMobile"
+            value={searchQuery}
+            onChange={onSearchChange}
+          />
         </div>
       )}
     </>

@@ -13,28 +13,18 @@ import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useDensity } from "../../hooks/useDensity";
 import { useServiceWorker } from "../../hooks/useServiceWorker";
-import {
-  IconMoon,
-  IconSun,
-  IconMenu,
-} from "../shared/Icons";
+import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
 import { captureInboxItem } from "../../api/inbox";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
-import {
-  type SortField,
-  type SortOrder,
-} from "../todos/SortControl";
+import { type SortField, type SortOrder } from "../todos/SortControl";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
-import {
-  applyFilters,
-  type ActiveFilters,
-} from "../todos/FilterPanel";
+import { applyFilters, type ActiveFilters } from "../todos/FilterPanel";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
@@ -135,9 +125,6 @@ export function AppShell() {
   const [activeTagFilter, setActiveTagFilter] = useState("");
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [composerOpen, setComposerOpen] = useState(false);
-  const [showOnboarding, setShowOnboarding] = useState(
-    () => !localStorage.getItem("todos:onboarding-complete"),
-  );
   const [activeHeadingId, setActiveHeadingId] = useState<string | null>(null);
   const [uiMode, setUiMode] = useState<UiMode>(
     () => (localStorage.getItem("todos:ui-mode") as UiMode) || "normal",
@@ -146,6 +133,7 @@ export function AppShell() {
   const mobileSheetRef = useRef<HTMLDivElement>(null);
   const sidebarRef = useRef<HTMLElement>(null);
   const appMainRef = useRef<HTMLDivElement>(null);
+  const showOnboarding = Boolean(user && !user.onboardingCompletedAt);
 
   useOverlayFocusTrap({
     isOpen: isMobile && mobileNavOpen,
@@ -266,6 +254,18 @@ export function AppShell() {
             t.dueDate.split("T")[0] > today &&
             t.dueDate.split("T")[0] <= upcomingEndIso,
         );
+      } else if (activeView === "waiting") {
+        filtered = filtered.filter(
+          (t) => !t.completed && t.status === "waiting",
+        );
+      } else if (activeView === "scheduled") {
+        filtered = filtered.filter(
+          (t) => !t.completed && t.status === "scheduled",
+        );
+      } else if (activeView === "someday") {
+        filtered = filtered.filter(
+          (t) => !t.completed && t.status === "someday",
+        );
       }
     }
 
@@ -367,6 +367,9 @@ export function AppShell() {
           t.dueDate.split("T")[0] > today &&
           t.dueDate.split("T")[0] <= upcomingEndIso,
       ).length,
+      waiting: active.filter((t) => t.status === "waiting").length,
+      scheduled: active.filter((t) => t.status === "scheduled").length,
+      someday: active.filter((t) => t.status === "someday").length,
     };
   }, [todos]);
 
@@ -383,10 +386,35 @@ export function AppShell() {
         return "Capture something to organize later…";
       case "today":
         return "Add a task for today…";
+      case "waiting":
+        return "Add something you’re waiting on…";
+      case "scheduled":
+        return "Add something planned for later…";
+      case "someday":
+        return "Capture something for later…";
       default:
         return "Add a task…";
     }
   }, [selectedProjectId, projects, activeView]);
+
+  const focusSearchInput = useCallback(() => {
+    startTransition(() => setPage("todos"));
+    requestAnimationFrame(() => {
+      focusGlobalSearchInput();
+    });
+  }, [startTransition]);
+
+  const focusQuickEntryOrOpenComposer = useCallback(() => {
+    startTransition(() => setPage("todos"));
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (triggerPrimaryNewTask()) {
+          return;
+        }
+        setComposerOpen(true);
+      });
+    });
+  }, [startTransition]);
 
   // --- Handlers ---
 
@@ -408,18 +436,15 @@ export function AppShell() {
     taskNav.deescalate();
   }, [taskNav]);
 
-  const handleCaptureToDesk = useCallback(
-    async (text: string) => {
-      const ok = await captureInboxItem(text);
-      if (!ok) {
-        throw new Error("Failed to add capture");
-      }
-      setUndoAction({
-        message: "Added to Desk",
-      });
-    },
-    [],
-  );
+  const handleCaptureToDesk = useCallback(async (text: string) => {
+    const ok = await captureInboxItem(text);
+    if (!ok) {
+      throw new Error("Failed to add capture");
+    }
+    setUndoAction({
+      message: "Added to Desk",
+    });
+  }, []);
 
   const handleInlineEdit = useCallback(
     async (id: string, title: string) => {
@@ -610,7 +635,7 @@ export function AppShell() {
       // Escape: close palette, close drawer, cancel bulk, close mobile nav
       if (e.key === "Escape") {
         if (paletteOpen) {
-          setPaletteOpen(false);
+          return;
         } else if (activeTodoId) {
           taskNav.deescalate();
         } else if (bulkMode) {
@@ -638,14 +663,14 @@ export function AppShell() {
       // 'n': focus quick entry
       if (e.key === "n" && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        triggerPrimaryNewTask();
+        focusQuickEntryOrOpenComposer();
         return;
       }
 
       // '/': focus search
       if (e.key === "/") {
         e.preventDefault();
-        focusGlobalSearchInput();
+        focusSearchInput();
         return;
       }
 
@@ -700,7 +725,19 @@ export function AppShell() {
 
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [activeTodoId, bulkMode, mobileNavOpen, paletteOpen, handleCancelBulk]);
+  }, [
+    activeTodoId,
+    bulkMode,
+    mobileNavOpen,
+    paletteOpen,
+    handleCancelBulk,
+    focusQuickEntryOrOpenComposer,
+    focusSearchInput,
+    handleOpenDrawer,
+    handleToggle,
+    taskNav,
+    visibleTodos,
+  ]);
 
   // --- Derived ---
 
@@ -710,7 +747,11 @@ export function AppShell() {
     all: "Everything",
     today: "Today",
     upcoming: "Upcoming",
+    waiting: "Pending",
+    scheduled: "Planned",
+    someday: "Later",
     completed: "Completed",
+    tuneup: "Tune-up",
   };
 
   const headerTitle = selectedProjectId
@@ -869,7 +910,10 @@ export function AppShell() {
                     <IconMenu />
                   </button>
                 )}
-                <button className="btn" onClick={() => startTransition(() => setPage("todos"))}>
+                <button
+                  className="btn"
+                  onClick={() => startTransition(() => setPage("todos"))}
+                >
                   ← Back
                 </button>
                 <span className="app-header__title">AI Workspace</span>
@@ -894,7 +938,9 @@ export function AppShell() {
                 </div>
               }
             >
-              <AdminPage onBack={() => startTransition(() => setPage("todos"))} />
+              <AdminPage
+                onBack={() => startTransition(() => setPage("todos"))}
+              />
             </Suspense>
           ) : page === "feedback" ? (
             <Suspense
@@ -904,7 +950,9 @@ export function AppShell() {
                 </div>
               }
             >
-              <FeedbackForm onBack={() => startTransition(() => setPage("todos"))} />
+              <FeedbackForm
+                onBack={() => startTransition(() => setPage("todos"))}
+              />
             </Suspense>
           ) : page === "review" ? (
             <Suspense
@@ -914,7 +962,13 @@ export function AppShell() {
                 </div>
               }
             >
-              <WeeklyReview onBack={() => startTransition(() => setPage("todos"))} />
+              <WeeklyReview
+                onBack={() => startTransition(() => setPage("todos"))}
+                onApplied={() => {
+                  void loadTodos(queryParams);
+                  void loadProjects();
+                }}
+              />
             </Suspense>
           ) : (
             <ViewRouter activeViewKey={activeViewKey} capacity={3}>
@@ -964,7 +1018,10 @@ export function AppShell() {
                       className="btn"
                       data-new-task-trigger="true"
                       onClick={() => setComposerOpen(true)}
-                      style={{ marginLeft: "auto", fontSize: "var(--fs-label)" }}
+                      style={{
+                        marginLeft: "auto",
+                        fontSize: "var(--fs-label)",
+                      }}
                     >
                       + New
                     </button>
@@ -988,7 +1045,12 @@ export function AppShell() {
                       startTransition(() => setPage("todos"));
                     }}
                     onNavigateToTuneUp={() => handleSelectView("tuneup")}
-                    onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
+                    onUndo={(action) =>
+                      setUndoAction({
+                        message: action.message,
+                        onUndo: action.onUndo,
+                      })
+                    }
                   />
                 </div>
               </ViewRoute>
@@ -1023,13 +1085,28 @@ export function AppShell() {
                       handleSelectView("all");
                       handleOpenDrawer(taskId);
                     }}
-                    onUndo={(action) => setUndoAction({ message: action.message, onUndo: action.onUndo })}
+                    onUndo={(action) =>
+                      setUndoAction({
+                        message: action.message,
+                        onUndo: action.onUndo,
+                      })
+                    }
                   />
                 </div>
               </ViewRoute>
 
               {/* List views with shared header */}
-              {(["all", "today", "upcoming", "completed"] as const).map((view) => (
+              {(
+                [
+                  "all",
+                  "today",
+                  "upcoming",
+                  "waiting",
+                  "scheduled",
+                  "someday",
+                  "completed",
+                ] as const
+              ).map((view) => (
                 <ViewRoute key={view} viewKey={view}>
                   <ListViewHeader
                     headerTitle={VIEW_LABELS[view] ?? view}
@@ -1048,7 +1125,10 @@ export function AppShell() {
                     onViewModeChange={setViewMode}
                     sortBy={sortBy}
                     sortOrder={sortOrder}
-                    onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                    onSortChange={(f, o) => {
+                      setSortBy(f);
+                      setSortOrder(o);
+                    }}
                     onOpenNav={() => setMobileNavOpen(true)}
                     onNewTask={() => setComposerOpen(true)}
                     onToggleDark={toggleDarkMode}
@@ -1115,7 +1195,10 @@ export function AppShell() {
                         onReorder={handleReorder}
                         sortBy={sortBy}
                         sortOrder={sortOrder}
-                        onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                        onSortChange={(f, o) => {
+                          setSortBy(f);
+                          setSortOrder(o);
+                        }}
                       />
                     )}
                   </div>
@@ -1142,7 +1225,10 @@ export function AppShell() {
                     onViewModeChange={setViewMode}
                     sortBy={sortBy}
                     sortOrder={sortOrder}
-                    onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                    onSortChange={(f, o) => {
+                      setSortBy(f);
+                      setSortOrder(o);
+                    }}
                     onOpenNav={() => setMobileNavOpen(true)}
                     onNewTask={() => setComposerOpen(true)}
                     onToggleDark={toggleDarkMode}
@@ -1209,7 +1295,10 @@ export function AppShell() {
                         onReorder={handleReorder}
                         sortBy={sortBy}
                         sortOrder={sortOrder}
-                        onSortChange={(f, o) => { setSortBy(f); setSortOrder(o); }}
+                        onSortChange={(f, o) => {
+                          setSortBy(f);
+                          setSortOrder(o);
+                        }}
                       />
                     )}
                   </div>
@@ -1258,10 +1347,32 @@ export function AppShell() {
         onNavigate={handlePaletteNavigate}
         onWeeklyReview={() => startTransition(() => setPage("review"))}
         onToggleDarkMode={toggleDarkMode}
+        onOpenSettings={() => startTransition(() => setPage("settings"))}
+        onOpenFeedback={() => startTransition(() => setPage("feedback"))}
+        onOpenShortcuts={() => setShortcutsOpen(true)}
+        onNewTask={focusQuickEntryOrOpenComposer}
+        onFocusSearch={focusSearchInput}
+        onExportCalendar={() => {
+          const withDates = todos.filter((t) => t.dueDate);
+          if (withDates.length === 0) {
+            setUndoAction({ message: "No tasks with due dates to export" });
+            return;
+          }
+          exportIcs(withDates);
+          setUndoAction({
+            message: `Exported ${withDates.length} tasks to .ics`,
+          });
+        }}
         onLogout={logout}
+        projects={projects}
         todos={todos}
         onTodoClick={(id) => {
           taskNav.openDrawer(id);
+          setPaletteOpen(false);
+        }}
+        onProjectOpen={(id) => {
+          startTransition(() => setPage("todos"));
+          handleSelectProject(id);
           setPaletteOpen(false);
         }}
       />
@@ -1305,10 +1416,7 @@ export function AppShell() {
       <UndoToast action={undoAction} onDismiss={() => setUndoAction(null)} />
 
       {showOnboarding && (
-        <OnboardingFlow
-          onComplete={() => setShowOnboarding(false)}
-          onAddTodo={addTodo}
-        />
+        <OnboardingFlow onComplete={() => {}} onAddTodo={addTodo} />
       )}
     </div>
   );

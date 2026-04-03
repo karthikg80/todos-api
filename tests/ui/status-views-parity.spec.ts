@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
-import { openTodosViewWithStorageState } from "./helpers/todos-view";
+import {
+  openTodosViewWithStorageState,
+  selectWorkspaceView,
+} from "./helpers/todos-view";
 
 type TodoSeed = {
   id: string;
@@ -9,13 +12,14 @@ type TodoSeed = {
   category: string | null;
   dueDate: string | null;
   priority: "low" | "medium" | "high";
+  status: "waiting" | "scheduled" | "someday";
 };
 
 function nowIso() {
   return new Date().toISOString();
 }
 
-async function installCommandPaletteMockApi(page: Page, todosSeed: TodoSeed[]) {
+async function installStatusViewMockApi(page: Page, todosSeed: TodoSeed[]) {
   const users = new Map<
     string,
     { id: string; email: string; password: string }
@@ -122,7 +126,7 @@ async function installCommandPaletteMockApi(page: Page, todosSeed: TodoSeed[]) {
       return json(route, 200, {
         id: user.id,
         email: user.email,
-        name: "Command Palette Tester",
+        name: "Status View User",
         role: "user",
         isVerified: true,
         createdAt: nowIso(),
@@ -172,132 +176,66 @@ async function installCommandPaletteMockApi(page: Page, todosSeed: TodoSeed[]) {
   });
 }
 
-async function openCommandPalette(page: Page) {
-  await page.keyboard.press("ControlOrMeta+K");
-  await expect(page.locator("#commandPaletteOverlay")).toHaveClass(
-    /command-palette-overlay--open/,
-  );
-}
-
-test.describe("Command palette", () => {
+test.describe("Status view parity", () => {
   test.beforeEach(async ({ page }) => {
-    await installCommandPaletteMockApi(page, [
+    await installStatusViewMockApi(page, [
       {
-        id: "todo-1",
-        title: "Work task",
+        id: "todo-waiting",
+        title: "Waiting for supplier quote",
+        description: null,
+        notes: null,
+        category: "Ops",
+        dueDate: null,
+        priority: "medium",
+        status: "waiting",
+      },
+      {
+        id: "todo-scheduled",
+        title: "Planned design review",
         description: null,
         notes: null,
         category: "Work",
         dueDate: null,
-        priority: "medium",
-      },
-      {
-        id: "todo-2",
-        title: "Home task",
-        description: null,
-        notes: null,
-        category: "Home",
-        dueDate: null,
         priority: "high",
+        status: "scheduled",
       },
       {
-        id: "todo-3",
-        title: "Second Home task",
+        id: "todo-someday",
+        title: "Someday writing idea",
         description: null,
         notes: null,
-        category: "Home",
+        category: "Personal",
         dueDate: null,
         priority: "low",
+        status: "someday",
       },
     ]);
 
     await openTodosViewWithStorageState(page, {
-      name: "Command Palette User",
-      email: "command-palette@example.com",
+      name: "Status View User",
+      email: "status-view-user@example.com",
     });
   });
 
-  test("Ctrl/Cmd+K opens palette and Escape closes with focus restore", async ({
-    page,
-    isMobile,
-  }) => {
-    // On mobile, #searchInput is in the hidden desktop rail; use the visible
-    // New Task CTA in the top bar as the pre-palette focus target instead.
-    const focusTarget = isMobile
-      ? page.locator("#topBarNewTaskCta")
-      : page.locator("#searchInput");
-    await focusTarget.focus();
-
-    await openCommandPalette(page);
-    await expect(page.locator("#commandPaletteInput")).toBeFocused();
-
-    await page.keyboard.press("Escape");
-    await expect(page.locator("#commandPaletteOverlay")).not.toHaveClass(
-      /command-palette-overlay--open/,
-    );
-    await expect(focusTarget).toBeFocused();
-  });
-
-  test('typing filters commands and shows "Go to Everything"', async ({
+  test("sidebar surfaces pending, planned, and later lists", async ({
     page,
   }) => {
-    await openCommandPalette(page);
-
-    const input = page.locator("#commandPaletteInput");
-    await input.fill("every");
-
-    await expect(page.locator("#commandPaletteList")).toContainText(
-      "Go to Everything",
-    );
-    await expect(page.locator("#commandPaletteEmpty")).toBeHidden();
-  });
-
-  test("project command sets category filter and updates list header count", async ({
-    page,
-  }) => {
-    await openCommandPalette(page);
-
-    const input = page.locator("#commandPaletteInput");
-    await input.fill("home");
-    await page
-      .locator("#commandPaletteList button", { hasText: "Go to project: Home" })
-      .first()
-      .click();
-
-    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Home");
-    await expect(page.locator("#todosListHeaderCount")).toHaveText("2 tasks");
-    await expect(page.locator(".todo-item .todo-title")).toContainText([
-      "Home task",
-      "Second Home task",
-    ]);
-  });
-
-  test("Enter on Add task focuses quick entry input", async ({ page }) => {
-    await openCommandPalette(page);
-    const input = page.locator("#commandPaletteInput");
-    await input.fill("create task");
-    await page.keyboard.press("Enter");
-
-    await expect(page.locator("#todosView")).toHaveClass(/active/);
-    await expect(page.locator("#todoInput")).toBeFocused();
-  });
-
-  test("Arrow navigation updates aria-selected", async ({ page }) => {
-    await openCommandPalette(page);
-
-    await expect(page.locator("#commandPaletteOption-0")).toHaveAttribute(
-      "aria-selected",
-      "true",
+    await selectWorkspaceView(page, "waiting");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Pending");
+    await expect(page.locator(".todo-item .todo-title")).toHaveText(
+      "Waiting for supplier quote",
     );
 
-    await page.keyboard.press("ArrowDown");
-    await expect(page.locator("#commandPaletteOption-0")).toHaveAttribute(
-      "aria-selected",
-      "false",
+    await selectWorkspaceView(page, "scheduled");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Planned");
+    await expect(page.locator(".todo-item .todo-title")).toHaveText(
+      "Planned design review",
     );
-    await expect(page.locator("#commandPaletteOption-1")).toHaveAttribute(
-      "aria-selected",
-      "true",
+
+    await selectWorkspaceView(page, "someday");
+    await expect(page.locator("#todosListHeaderTitle")).toHaveText("Later");
+    await expect(page.locator(".todo-item .todo-title")).toHaveText(
+      "Someday writing idea",
     );
   });
 });
