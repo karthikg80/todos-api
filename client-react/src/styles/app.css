@@ -366,6 +366,19 @@ body {
 }
 
 /* --- Projects list --- */
+.projects-rail-item-row {
+  display: flex;
+  align-items: stretch;
+  gap: var(--s-1);
+  position: relative;
+}
+
+.projects-rail-item-row--active .projects-rail-item__actions,
+.projects-rail-item-row:hover .projects-rail-item__actions,
+.projects-rail-item-row:focus-within .projects-rail-item__actions {
+  opacity: 1;
+}
+
 .projects-rail-item {
   display: flex;
   align-items: center;
@@ -381,6 +394,7 @@ body {
   text-align: left;
   font-family: inherit;
   position: relative;
+  flex: 1;
 }
 
 .projects-rail-item:hover {
@@ -454,6 +468,33 @@ body {
   color: var(--danger);
 }
 
+.projects-rail-item__actions {
+  width: 28px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--muted);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.projects-rail-item__actions:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.projects-rail-item__actions:focus-visible {
+  opacity: 1;
+}
+
 /* --- Todo row --- */
 .todo-item {
   display: flex;
@@ -484,6 +525,12 @@ body {
 
 .todo-item:focus-within {
   border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+.todo-item:focus-visible {
+  outline: none;
+  border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+  box-shadow: var(--shadow-focus);
 }
 
 /* Custom checkbox — replaces native browser checkbox */
@@ -2227,6 +2274,10 @@ body {
   background: var(--surface-2);
 }
 
+.context-menu__item:focus-visible {
+  background: var(--surface-2);
+}
+
 .context-menu__item--danger {
   color: var(--danger);
 }
@@ -2565,6 +2616,11 @@ body {
 
 .board__card:hover {
   box-shadow: var(--shadow-card);
+}
+
+.board__card:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus), var(--shadow-card);
 }
 
 .board__card:active {
@@ -3569,6 +3625,7 @@ body {
 .projects-rail-item--archived {
   opacity: 0.6;
   font-style: italic;
+  flex: 1;
 }
 
 /* --- AI Workspace --- */

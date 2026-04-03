@@ -3,6 +3,7 @@ import {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
   lazy,
   Suspense,
 } from "react";
@@ -37,6 +38,8 @@ import { useViewTransition } from "../../hooks/useViewTransition";
 import { TaskFullPage } from "../todos/TaskFullPage";
 import { ViewRouter, ViewRoute } from "./ViewRouter";
 import { ListViewHeader } from "./ListViewHeader";
+import { focusGlobalSearchInput, triggerPrimaryNewTask } from "../../utils/focusTargets";
+import { useOverlayFocusTrap } from "../shared/useOverlayFocusTrap";
 import * as todosApi from "../../api/todos";
 
 // Lazy-loaded heavy components (code splitting)
@@ -127,7 +130,16 @@ export function AppShell() {
     () => (localStorage.getItem("todos:ui-mode") as UiMode) || "normal",
   );
   const exportIcs = useIcsExport();
+  const mobileSheetRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+  const appMainRef = useRef<HTMLDivElement>(null);
   const showOnboarding = Boolean(user && !user.onboardingCompletedAt);
+
+  useOverlayFocusTrap({
+    isOpen: isMobile && mobileNavOpen,
+    containerRef: mobileSheetRef,
+    onClose: () => setMobileNavOpen(false),
+  });
 
   // Bulk selection
   const [bulkMode, setBulkMode] = useState(false);
@@ -306,6 +318,35 @@ export function AppShell() {
       drawerTaskId ? (todos.find((t) => t.id === drawerTaskId) ?? null) : null,
     [todos, drawerTaskId],
   );
+  const hasBlockingOverlay =
+    mobileNavOpen ||
+    paletteOpen ||
+    shortcutsOpen ||
+    composerOpen ||
+    !!projectCrudMode ||
+    !!deleteTarget ||
+    !!activeTodo ||
+    showOnboarding;
+
+  useEffect(() => {
+    for (const element of [sidebarRef.current, appMainRef.current]) {
+      if (!element) continue;
+      if (hasBlockingOverlay) {
+        element.setAttribute("aria-hidden", "true");
+        element.setAttribute("inert", "");
+      } else {
+        element.removeAttribute("aria-hidden");
+        element.removeAttribute("inert");
+      }
+    }
+
+    return () => {
+      for (const element of [sidebarRef.current, appMainRef.current]) {
+        element?.removeAttribute("aria-hidden");
+        element?.removeAttribute("inert");
+      }
+    };
+  }, [hasBlockingOverlay]);
 
   // Count badges for workspace views
   const viewCounts = useMemo(() => {
@@ -359,13 +400,7 @@ export function AppShell() {
   const focusSearchInput = useCallback(() => {
     startTransition(() => setPage("todos"));
     requestAnimationFrame(() => {
-      const searchInput =
-        document.getElementById("searchInput") ??
-        document.getElementById("searchInputMobile");
-      if (searchInput instanceof HTMLInputElement) {
-        searchInput.focus();
-        searchInput.select();
-      }
+      focusGlobalSearchInput();
     });
   }, [startTransition]);
 
@@ -373,10 +408,7 @@ export function AppShell() {
     startTransition(() => setPage("todos"));
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const quickEntryInput = document.getElementById("todoInput");
-        if (quickEntryInput instanceof HTMLInputElement) {
-          quickEntryInput.focus();
-          quickEntryInput.select();
+        if (triggerPrimaryNewTask()) {
           return;
         }
         setComposerOpen(true);
@@ -815,6 +847,7 @@ export function AppShell() {
       {/* Desktop sidebar */}
       {!isMobile && (
         <aside
+          ref={sidebarRef}
           className={`app-sidebar${sidebarCollapsed ? " app-sidebar--collapsed" : ""}`}
         >
           {sidebarContent}
@@ -826,8 +859,13 @@ export function AppShell() {
         <>
           <div
             id="projectsRailSheet"
+            ref={mobileSheetRef}
             className="mobile-sheet"
             aria-hidden={!mobileNavOpen}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Navigation"
+            tabIndex={-1}
           >
             {sidebarContent}
           </div>
@@ -839,7 +877,7 @@ export function AppShell() {
         </>
       )}
 
-      <div className="app-main">
+      <div ref={appMainRef} className="app-main">
         {loadState === "loading" && (
           <div className="loading-bar" aria-label="Loading">
             <div className="loading-bar__fill" />
@@ -940,6 +978,7 @@ export function AppShell() {
                     <span className="app-header__title">Focus</span>
                     <button
                       className="btn"
+                      data-new-task-trigger="true"
                       onClick={() => setComposerOpen(true)}
                       id="topBarNewTaskCta"
                     >
@@ -977,6 +1016,7 @@ export function AppShell() {
                     <span className="app-header__title">Focus</span>
                     <button
                       className="btn"
+                      data-new-task-trigger="true"
                       onClick={() => setComposerOpen(true)}
                       style={{
                         marginLeft: "auto",

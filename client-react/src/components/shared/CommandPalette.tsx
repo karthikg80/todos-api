@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import type { WorkspaceView } from "../projects/Sidebar";
 import type { Project, Todo } from "../../types";
 import { IllustrationNoResults } from "./Illustrations";
+import { useOverlayFocusTrap } from "./useOverlayFocusTrap";
 
 interface CommandItem {
   id: string;
@@ -57,7 +58,16 @@ export function CommandPalette({
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const restoreFocusRef = useRef<HTMLElement | null>(null);
+
+  useOverlayFocusTrap({
+    isOpen,
+    containerRef: panelRef,
+    onClose,
+    initialFocusRef: inputRef,
+    restoreFocus: false,
+  });
 
   const commands: CommandItem[] = useMemo(
     () => [
@@ -331,6 +341,10 @@ export function CommandPalette({
 
   const onKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (filtered.length === 0) {
+        if (e.key === "Escape") onClose();
+        return;
+      }
       if (e.key === "ArrowDown") {
         e.preventDefault();
         e.stopPropagation();
@@ -375,9 +389,11 @@ export function CommandPalette({
       onKeyDown={onKeyDown}
     >
       <div
+        ref={panelRef}
         className="command-palette"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
+        aria-modal="true"
         aria-label="Command palette"
       >
         <input

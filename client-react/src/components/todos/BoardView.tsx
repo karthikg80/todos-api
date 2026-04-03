@@ -92,15 +92,26 @@ export function BoardView({
                   className={`board__card${todo.completed ? " board__card--done" : ""}`}
                   data-todo-id={todo.id}
                   draggable
+                  tabIndex={0}
+                  role="button"
+                  aria-label={`Open task ${todo.title}`}
                   onDragStart={(e) =>
                     e.dataTransfer.setData("text/plain", todo.id)
                   }
                   onClick={() => onClick(todo.id)}
+                  onKeyDown={(e) => {
+                    if (e.target !== e.currentTarget) return;
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onClick(todo.id);
+                    }
+                  }}
                 >
                   <input
                     type="checkbox"
                     className="todo-checkbox"
                     checked={todo.completed}
+                    aria-label={`Mark "${todo.title}" as ${todo.completed ? "incomplete" : "complete"}`}
                     onChange={(e) => {
                       e.stopPropagation();
                       onToggle(todo.id, e.target.checked);

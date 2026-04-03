@@ -166,6 +166,7 @@ export function ListViewHeader({
           >
             <button
               className="btn"
+              data-new-task-trigger="true"
               onClick={onNewTask}
               style={{ fontSize: "var(--fs-label)" }}
             >
@@ -259,6 +260,7 @@ export function ListViewHeader({
           <Tooltip content="New task" shortcut="n">
             <button
               className="btn"
+              data-new-task-trigger="true"
               onClick={onNewTask}
               style={{ fontSize: "var(--fs-label)" }}
             >

@@ -107,12 +107,28 @@ export function TodoRow({
       ? " todo-item--border-med"
       : "";
   const rowClass = `todo-item${isActive ? " todo-item--active" : ""}${isExpanded ? " todo-item--expanded" : ""}${todo.completed ? " completed" : ""}${isSelected ? " todo-item--selected" : ""}${priorityBorder}${isOverdue ? " todo-item--overdue" : ""}${isEntering ? " todo-item--entering" : ""}${isExiting ? " todo-item--exiting" : ""}${justCompleted ? " todo-item--just-completed" : ""}`;
+  const rowActionLabel = isBulkMode
+    ? `Select task ${todo.title}`
+    : `Open task ${todo.title}`;
 
   return (
     <div
       className={rowClass}
       data-todo-id={todo.id}
+      tabIndex={0}
+      aria-label={rowActionLabel}
       onClick={() => (isBulkMode ? onSelect(todo.id) : onClick(todo.id))}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          if (isBulkMode) {
+            onSelect(todo.id);
+          } else {
+            onClick(todo.id);
+          }
+        }
+      }}
     >
       {isBulkMode ? (
         <input
