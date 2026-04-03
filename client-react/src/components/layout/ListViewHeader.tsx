@@ -28,6 +28,16 @@ type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 type HorizonSegment = "due" | "planned" | "pending" | "later";
 
+const HORIZON_SEGMENT_OPTIONS = [
+  { key: "due", label: "Due" },
+  { key: "planned", label: "Planned" },
+  { key: "pending", label: "Pending" },
+  { key: "later", label: "Later" },
+] as const satisfies ReadonlyArray<{
+  key: HorizonSegment;
+  label: string;
+}>;
+
 export interface ListViewHeaderProps {
   // Identity
   headerTitle: string;
@@ -342,12 +352,7 @@ export function ListViewHeader({
           onChange={(next) => onHorizonSegmentChange(next as HorizonSegment)}
           ariaLabel="Horizon views"
           className="horizon-segment-bar"
-          options={[
-            { key: "due", label: "Due" },
-            { key: "planned", label: "Planned" },
-            { key: "pending", label: "Pending" },
-            { key: "later", label: "Later" },
-          ].map(({ key, label }) => ({
+          options={HORIZON_SEGMENT_OPTIONS.map(({ key, label }) => ({
             value: key,
             label,
             buttonId: `horizonSegment${label}`,
