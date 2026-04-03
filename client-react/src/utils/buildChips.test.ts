@@ -20,9 +20,38 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
 }
 
 describe("buildChips", () => {
-  it("returns empty for compact density", () => {
-    const todo = makeTodo({ priority: "high", category: "Work" });
-    expect(buildChips(todo, "compact")).toEqual([]);
+  it("keeps only the highest-signal chips in compact density", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todo = makeTodo({
+      dueDate: tomorrow.toISOString(),
+      dependsOnTaskIds: ["dep1"],
+      priority: "high",
+      category: "Work",
+      tags: ["ops"],
+      estimateMinutes: 30,
+    });
+
+    expect(buildChips(todo, "compact")).toEqual([
+      expect.objectContaining({ variant: "blocked", label: "Blocked by 1" }),
+      expect.objectContaining({ variant: "priority-high", label: "high" }),
+    ]);
+  });
+
+  it("uses due date and project as compact fallback metadata", () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const todo = makeTodo({
+      dueDate: tomorrow.toISOString(),
+      category: "Work",
+      tags: ["ops"],
+      estimateMinutes: 30,
+    });
+
+    expect(buildChips(todo, "compact")).toEqual([
+      expect.objectContaining({ variant: "date", label: "Tomorrow" }),
+      expect.objectContaining({ variant: "project", label: "Work" }),
+    ]);
   });
 
   it("orders overdue before blocked before priority", () => {
