@@ -10778,24 +10778,16 @@ body.dark-mode {
 .project-complexity-badge {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-3);
+  border-radius: var(--r-full);
+  font-size: var(--fs-label);
+  font-weight: 500;
   margin: 0;
   transition: all 0.15s ease;
 }
 
-.project-complexity-badge__icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 8px;
-  opacity: 0.8;
-}
+/* (removed project-complexity-badge__icon since it's no longer used) */
 
 .project-complexity-badge__label {
   letter-spacing: 0.01em;
