@@ -1,0 +1,20 @@
+{
+  "category": "clear-urgency",
+  "expected_order": [
+    "Fix broken email notifications",
+    "Set up CI/CD pipeline",
+    "Write API for mobile app",
+    "Design new onboarding flow"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Email fix first (password resets broken), then CI/CD (blocking deploys), then API (team waiting), then design (2 weeks out).",
+  "common_failure_modes": [
+    "starts_design_first",
+    "ignores_broken_password_resets",
+    "misses_ci_blocking"
+  ],
+  "acceptable_variation": "May swap CI/CD and API. Must put email fix first.",
+  "notes": "Broken password resets is P0. CI/CD is blocking infrastructure."
+}

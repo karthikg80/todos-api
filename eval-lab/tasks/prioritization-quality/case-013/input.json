@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Respond to 15 customer support tickets",
+      "metadata": "oldest is 3 days old"
+    },
+    {
+      "title": "Fix search returning no results",
+      "metadata": "affects all users, workaround exists"
+    },
+    {
+      "title": "Update privacy policy for GDPR",
+      "metadata": "legal deadline in 2 weeks"
+    },
+    {
+      "title": "Plan team retrospective",
+      "metadata": "sprint ends Friday"
+    }
+  ],
+  "context": "You are the product manager of a SaaS product."
+}

@@ -1,0 +1,25 @@
+{
+  "tasks": [
+    {
+      "title": "Fix typo in homepage",
+      "metadata": "cosmetic, low impact"
+    },
+    {
+      "title": "Update footer copyright year",
+      "metadata": "cosmetic, low impact"
+    },
+    {
+      "title": "Change button color on settings page",
+      "metadata": "design tweak, low impact"
+    },
+    {
+      "title": "Add alt text to 3 images",
+      "metadata": "accessibility, low impact"
+    },
+    {
+      "title": "Update README with new logo",
+      "metadata": "documentation, low impact"
+    }
+  ],
+  "context": "All tasks are small, low-impact UI tweaks. Team has capacity for all of them."
+}

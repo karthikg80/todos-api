@@ -1,0 +1,25 @@
+{
+  "category": "clear-urgency",
+  "expected_order": [
+    "Deploy hotfix to production",
+    "Review and merge feature branch A",
+    "Review and merge feature branch B",
+    "Update project roadmap"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [
+    [
+      "Review and merge feature branch A",
+      "Review and merge feature branch B"
+    ]
+  ],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Hotfix first (production bug), then PR reviews (tied), then roadmap (next week).",
+  "common_failure_modes": [
+    "reviews_before_hotfix",
+    "updates_roadmap_first",
+    "no_tie_identification"
+  ],
+  "acceptable_variation": "May order PR reviews either way. Should identify them as tied.",
+  "notes": "Hotfix is P0. PR reviews are tied. Roadmap can wait."
+}

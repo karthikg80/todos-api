@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-018"
+description = "SSL first (site goes down in 3 days), then SSO ($500k deal), then pagination (us"
+
+[scoring]
+weight = 1.0

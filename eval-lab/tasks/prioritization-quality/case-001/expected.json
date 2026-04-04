@@ -1,0 +1,20 @@
+{
+  "category": "clear-urgency",
+  "expected_order": [
+    "Fix production server crash",
+    "Prepare Q1 board presentation",
+    "Update team documentation",
+    "Order office supplies"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Production crash first (all users affected), then board presentation (due tomorrow, CEO), then documentation, then supplies.",
+  "common_failure_modes": [
+    "puts_supplies_first",
+    "misses_production_urgency",
+    "ignores_board_deadline"
+  ],
+  "acceptable_variation": "May swap documentation and supplies. Must put crash first and presentation second.",
+  "notes": "Clear urgency differences. Production crash is P0, board presentation is P1."
+}

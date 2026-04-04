@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Optimize database queries",
+      "metadata": "reports taking 30+ seconds"
+    },
+    {
+      "title": "Implement user feedback form",
+      "metadata": "requested by sales team"
+    },
+    {
+      "title": "Set up monitoring alerts",
+      "metadata": "no current alerts, risky"
+    },
+    {
+      "title": "Refactor legacy payment code",
+      "metadata": "works fine, but hard to maintain"
+    }
+  ],
+  "context": "You are the sole backend developer. Team capacity: 1-2 tasks this week."
+}

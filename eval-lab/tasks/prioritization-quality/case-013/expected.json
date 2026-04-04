@@ -1,0 +1,20 @@
+{
+  "category": "ambiguous",
+  "expected_order": [
+    "Fix search returning no results",
+    "Respond to 15 customer support tickets",
+    "Update privacy policy for GDPR",
+    "Plan team retrospective"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Search fix first (all users affected), then support tickets (3 days old), then GDPR (2 weeks), then retrospective (Friday).",
+  "common_failure_modes": [
+    "plans_retrospective_first",
+    "ignores_search_impact",
+    "misses_support_backlog"
+  ],
+  "acceptable_variation": "May swap support tickets and search. Must put retrospective last.",
+  "notes": "Search affects all users. Support tickets are aging. GDPR has 2 weeks."
+}

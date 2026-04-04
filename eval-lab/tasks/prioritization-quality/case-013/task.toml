@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-013"
+description = "Search fix first (all users affected), then support tickets (3 days old), then G"
+
+[scoring]
+weight = 1.0

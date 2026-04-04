@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-005"
+description = "Security first (known exploit), then VIP customer (revenue risk), then complianc"
+
+[scoring]
+weight = 1.0

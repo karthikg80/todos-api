@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Renew SSL certificates",
+      "metadata": "expire in 3 days, site goes down"
+    },
+    {
+      "title": "Fix pagination bug on search results",
+      "metadata": "users can't see page 2+"
+    },
+    {
+      "title": "Add SSO integration for enterprise client",
+      "metadata": "deal worth $500k/year"
+    },
+    {
+      "title": "Clean up unused feature flags",
+      "metadata": "technical hygiene"
+    }
+  ],
+  "context": "You are a senior engineer at a SaaS company."
+}

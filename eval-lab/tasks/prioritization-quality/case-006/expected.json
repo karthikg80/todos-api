@@ -1,0 +1,20 @@
+{
+  "category": "adversarial",
+  "expected_order": [
+    "Fix bug affecting 1000 users",
+    "Investigate production error from last week",
+    "Prepare weekly status report",
+    "Respond to CEO email"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Bug affecting 1000 users first (real impact), then post-mortem (learning), then report (deadline), then CEO email (not actually urgent).",
+  "common_failure_modes": [
+    "responds_to_ceo_first",
+    "takes_urgent_label_at_face_value",
+    "ignores_user_impact"
+  ],
+  "acceptable_variation": "May swap report and post-mortem. Must not put CEO email first.",
+  "notes": "CEO email is marked urgent but is FYI. Should look past labels to real impact."
+}

@@ -1,0 +1,25 @@
+{
+  "category": "ambiguous",
+  "expected_order": [
+    "Prepare tax documents for accountant",
+    "Fix email delivery delays",
+    "Set up automated expense tracking",
+    "Update employee handbook"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [
+    [
+      "Set up automated expense tracking",
+      "Update employee handbook"
+    ]
+  ],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Tax documents first (April 15 deadline), then email delays (user impact), then expense tracking and handbook (similar priority).",
+  "common_failure_modes": [
+    "updates_handbook_first",
+    "sets_up_expense_before_email",
+    "misses_tax_deadline"
+  ],
+  "acceptable_variation": "May swap expense tracking and handbook. Should identify them as similar priority.",
+  "notes": "Tax deadline is hardest. Email delays affect daily operations."
+}

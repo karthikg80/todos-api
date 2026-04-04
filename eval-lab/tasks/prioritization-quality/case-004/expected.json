@@ -1,0 +1,28 @@
+{
+  "category": "many-ties",
+  "expected_order": [
+    "Add alt text to 3 images",
+    "Fix typo in homepage",
+    "Update footer copyright year",
+    "Change button color on settings page",
+    "Update README with new logo"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [
+    [
+      "Fix typo in homepage",
+      "Update footer copyright year",
+      "Change button color on settings page",
+      "Update README with new logo"
+    ]
+  ],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Accessibility first (alt text), then groups remaining tasks as similar priority.",
+  "common_failure_modes": [
+    "creates_false_ordering",
+    "misses_accessibility_priority",
+    "no_tie_identification"
+  ],
+  "acceptable_variation": "May order tied tasks differently. Should identify most as similar priority.",
+  "notes": "Most tasks are similar priority. Accessibility (alt text) has slight edge."
+}

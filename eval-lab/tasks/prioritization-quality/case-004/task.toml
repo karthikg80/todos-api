@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-004"
+description = "Accessibility first (alt text), then groups remaining tasks as similar priority."
+
+[scoring]
+weight = 1.0

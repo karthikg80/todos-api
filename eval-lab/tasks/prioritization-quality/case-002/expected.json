@@ -1,0 +1,25 @@
+{
+  "category": "clear-dependencies",
+  "expected_order": [
+    "Write unit tests for payment module",
+    "Review PR #432",
+    "Deploy v2.3 to production",
+    "Plan next sprint"
+  ],
+  "expected_dependencies": {
+    "Review PR #432": "Write unit tests for payment module",
+    "Deploy v2.3 to production": "Review PR #432"
+  },
+  "expected_ties": [],
+  "expected_blocked": {
+    "Deploy v2.3 to production": "Review PR #432"
+  },
+  "what_good_prioritization_looks_like": "Tests first (blocking), then PR review (blocking deploy), then deploy, then sprint planning.",
+  "common_failure_modes": [
+    "deploys_before_review",
+    "plans_sprint_before_deploy",
+    "misses_blocking_chain"
+  ],
+  "acceptable_variation": "May put sprint planning before deploy if reasoning is sound. Must respect dependency chain.",
+  "notes": "Clear dependency chain: tests \u2192 review \u2192 deploy. Sprint planning is independent."
+}

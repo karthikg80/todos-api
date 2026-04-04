@@ -1,0 +1,20 @@
+{
+  "category": "clear-dependencies",
+  "expected_order": [
+    "Deploy hotfix for checkout crash",
+    "Review pull request for new feature",
+    "Update staging environment",
+    "Attend weekly team standup"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Hotfix first (20% transactions), then PR review (blocking feature), then staging update, then standup (recurring).",
+  "common_failure_modes": [
+    "attends_standup_first",
+    "updates_staging_before_hotfix",
+    "misses_transaction_impact"
+  ],
+  "acceptable_variation": "May swap staging update and standup. Must put hotfix first.",
+  "notes": "Checkout crash is P0 (revenue impact). Standup is lowest priority."
+}

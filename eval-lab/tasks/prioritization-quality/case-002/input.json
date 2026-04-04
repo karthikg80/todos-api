@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Deploy v2.3 to production",
+      "metadata": "tested, approved, ready"
+    },
+    {
+      "title": "Write unit tests for payment module",
+      "metadata": "blocking release"
+    },
+    {
+      "title": "Review PR #432",
+      "metadata": "blocking deployment"
+    },
+    {
+      "title": "Plan next sprint",
+      "metadata": "meeting tomorrow"
+    }
+  ],
+  "context": "You are the tech lead. Release is scheduled for Friday."
+}

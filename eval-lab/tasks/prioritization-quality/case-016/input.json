@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Respond to investor due diligence request",
+      "metadata": "funding round closes in 1 week"
+    },
+    {
+      "title": "Fix production database backup failure",
+      "metadata": "no backups for 2 days"
+    },
+    {
+      "title": "Complete employee performance reviews",
+      "metadata": "HR deadline in 2 weeks"
+    },
+    {
+      "title": "Update company website homepage",
+      "metadata": "rebranding launch in 1 month"
+    }
+  ],
+  "context": "You are the COO of a 50-person company."
+}

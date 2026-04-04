@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-001"
+description = "Production crash first (all users affected), then board presentation (due tomorr"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-008"
+description = "Email fix first (password resets broken), then CI/CD (blocking deploys), then AP"
+
+[scoring]
+weight = 1.0

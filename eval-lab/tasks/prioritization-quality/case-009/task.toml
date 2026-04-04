@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-009"
+description = "Hotfix first (production bug), then PR reviews (tied), then roadmap (next week)."
+
+[scoring]
+weight = 1.0

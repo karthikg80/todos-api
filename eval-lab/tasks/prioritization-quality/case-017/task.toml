@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-017"
+description = "Post-mortem first (CEO request, learning), then backup verification (prevents fu"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,20 @@
+{
+  "category": "adversarial",
+  "expected_order": [
+    "Fix login page loading slowly",
+    "Update dependencies to latest versions",
+    "Add export to CSV feature",
+    "Migrate database to new schema"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Login performance first (30% users, 5s delay), then security (dependencies), then feature request, then migration (longest, no deadline).",
+  "common_failure_modes": [
+    "starts_migration_first",
+    "ignores_performance_impact",
+    "misses_security_patches"
+  ],
+  "acceptable_variation": "May swap dependencies and CSV. Must put login fix first and migration last.",
+  "notes": "Migration is longest task with no deadline. Login fix has highest user impact."
+}

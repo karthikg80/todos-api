@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-003"
+description = "Performance issue first (user impact), then auth refactor (security), then dark "
+
+[scoring]
+weight = 1.0

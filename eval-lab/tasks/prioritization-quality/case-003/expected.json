@@ -1,0 +1,25 @@
+{
+  "category": "ambiguous",
+  "expected_order": [
+    "Investigate slow query on reports page",
+    "Refactor authentication module",
+    "Add dark mode to mobile app",
+    "Update API documentation"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [
+    [
+      "Add dark mode to mobile app",
+      "Update API documentation"
+    ]
+  ],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Performance issue first (user impact), then auth refactor (security), then dark mode and docs (similar priority, can be tied).",
+  "common_failure_modes": [
+    "puts_docs_first",
+    "ignores_performance_impact",
+    "no_tie_identification"
+  ],
+  "acceptable_variation": "May order dark mode and docs differently. Should identify them as similar priority.",
+  "notes": "No clear urgency. Should prioritize by impact and identify ties."
+}
