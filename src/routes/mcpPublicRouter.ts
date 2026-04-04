@@ -123,6 +123,29 @@ function buildAuthorizeSearchParams(input: {
   return params.toString();
 }
 
+function buildPublicOauthUrl(pathOrUrl: string): string {
+  return new URL(pathOrUrl, config.baseUrl).toString();
+}
+
+function buildOAuthHtmlCsp(options: { scriptNonce?: string } = {}): string {
+  const directives = [
+    "default-src 'self'",
+    options.scriptNonce
+      ? `script-src 'nonce-${options.scriptNonce}'`
+      : "script-src 'self'",
+    "style-src 'self' 'unsafe-inline' https:",
+    `form-action 'self' ${new URL(config.baseUrl).origin}`,
+  ];
+  return directives.join("; ");
+}
+
+function setOAuthHtmlCsp(
+  res: Response,
+  options: { scriptNonce?: string } = {},
+) {
+  res.setHeader("Content-Security-Policy", buildOAuthHtmlCsp(options));
+}
+
 function setRequestId(res: Response, requestId: string) {
   res.setHeader("x-request-id", requestId);
 }
@@ -247,10 +270,11 @@ function renderRegistrationError(
         ? req.body.code_challenge_method
         : undefined,
   };
+  setOAuthHtmlCsp(res);
   return res.status(200).send(
     renderOAuthRegisterPage({
       error: errorMessage,
-      formAction: "/oauth/authorize/register",
+      formAction: buildPublicOauthUrl("/oauth/authorize/register"),
       hiddenFields,
       clientName,
     }),
@@ -582,13 +606,18 @@ export function createMcpPublicRouter({
           codeChallenge: authorize.codeChallenge,
           codeChallengeMethod: authorize.codeChallengeMethod,
         });
-        const registerUrl = `/oauth/authorize/register?${authorizeSearchParams}`;
+        const registerUrl = buildPublicOauthUrl(
+          `/oauth/authorize/register?${authorizeSearchParams}`,
+        );
         const googleUrl = googleAuthService
-          ? `/oauth/authorize/google/start?${authorizeSearchParams}`
+          ? buildPublicOauthUrl(
+              `/oauth/authorize/google/start?${authorizeSearchParams}`,
+            )
           : undefined;
+        setOAuthHtmlCsp(res);
         return res.status(200).send(
           renderOAuthLoginPage({
-            formAction: "/oauth/authorize/login",
+            formAction: buildPublicOauthUrl("/oauth/authorize/login"),
             hiddenFields,
             clientName: client.clientName,
             registerUrl,
@@ -605,12 +634,13 @@ export function createMcpPublicRouter({
         clientName: client.clientName,
         scopes: authorize.scopes,
       });
+      setOAuthHtmlCsp(res);
       res.status(200).send(
         renderOAuthConsentPage({
           clientName: client.clientName,
           userEmail: linkSession.email,
           scopes: authorize.scopes,
-          formAction: "/oauth/authorize/decision",
+          formAction: buildPublicOauthUrl("/oauth/authorize/decision"),
           hiddenFields,
         }),
       );
@@ -712,10 +742,11 @@ export function createMcpPublicRouter({
         errorCode: "MCP_OAUTH_LOGIN_FAILED",
       });
 
+      setOAuthHtmlCsp(res);
       res.status(401).send(
         renderOAuthLoginPage({
           error: mappedMessage,
-          formAction: "/oauth/authorize/login",
+          formAction: buildPublicOauthUrl("/oauth/authorize/login"),
           hiddenFields: {
             client_id:
               typeof req.body.client_id === "string"
@@ -788,9 +819,13 @@ export function createMcpPublicRouter({
         codeChallenge: authorize.codeChallenge,
         codeChallengeMethod: authorize.codeChallengeMethod,
       });
-      const loginUrl = `/oauth/authorize?${regAuthorizeSearchParams}`;
+      const loginUrl = buildPublicOauthUrl(
+        `/oauth/authorize?${regAuthorizeSearchParams}`,
+      );
       const googleRegUrl = googleAuthService
-        ? `/oauth/authorize/google/start?${regAuthorizeSearchParams}`
+        ? buildPublicOauthUrl(
+            `/oauth/authorize/google/start?${regAuthorizeSearchParams}`,
+          )
         : undefined;
 
       logMcpOauthEvent({
@@ -801,9 +836,10 @@ export function createMcpPublicRouter({
         scopes: authorize.scopes,
       });
 
+      setOAuthHtmlCsp(res);
       res.status(200).send(
         renderOAuthRegisterPage({
-          formAction: "/oauth/authorize/register",
+          formAction: buildPublicOauthUrl("/oauth/authorize/register"),
           hiddenFields,
           clientName: client.clientName,
           loginUrl,
@@ -913,7 +949,7 @@ export function createMcpPublicRouter({
         .setHeader("Location", finalRedirectUri)
         .setHeader(
           "Content-Security-Policy",
-          `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'`,
+          buildOAuthHtmlCsp({ scriptNonce: nonce }),
         )
         .send(
           renderOAuthRedirectPage({ redirectUri: finalRedirectUri, nonce }),
@@ -1156,7 +1192,7 @@ export function createMcpPublicRouter({
         .setHeader("Location", finalRedirectUri)
         .setHeader(
           "Content-Security-Policy",
-          `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'`,
+          buildOAuthHtmlCsp({ scriptNonce: nonce }),
         );
 
       // Append clear cookies to any existing Set-Cookie headers
@@ -1267,7 +1303,7 @@ export function createMcpPublicRouter({
         .setHeader("Location", finalRedirectUri)
         .setHeader(
           "Content-Security-Policy",
-          `default-src 'self'; script-src 'nonce-${nonce}'; style-src 'self' 'unsafe-inline'`,
+          buildOAuthHtmlCsp({ scriptNonce: nonce }),
         )
         .send(
           renderOAuthRedirectPage({ redirectUri: finalRedirectUri, nonce }),
