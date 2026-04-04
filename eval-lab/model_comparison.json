@@ -1,0 +1,199 @@
+{
+  "baseline_model": "gpt-4o-mini",
+  "candidate_model": "gpt-4o",
+  "baseline_aggregate": {
+    "weighted_score": 0.838,
+    "is_full_portfolio": false,
+    "families_included": [
+      "task_critic",
+      "clarification_policy"
+    ],
+    "total_families_available": 5,
+    "total_cases": 50,
+    "total_errors": 0,
+    "error_rate": 0.0,
+    "meta_dimension_averages": {
+      "correctness": 0.816,
+      "compliance": 1.0,
+      "robustness": 0.533,
+      "reasoning": 0.84,
+      "safety": 0.885
+    },
+    "meta_dimension_contributions": {
+      "correctness": {
+        "task_critic": 0.559,
+        "clarification_policy": 0.441
+      },
+      "compliance": {
+        "task_critic": 0.75,
+        "clarification_policy": 0.25
+      },
+      "robustness": {
+        "task_critic": 1.0
+      },
+      "reasoning": {
+        "clarification_policy": 1.0
+      },
+      "safety": {
+        "clarification_policy": 1.0
+      }
+    },
+    "split_averages": {
+      "dev": 0.831,
+      "test": 0.876
+    },
+    "difficulty_averages": {
+      "easy": 0.919,
+      "medium": 0.858,
+      "hard": 0.703,
+      "adversarial": 0.901
+    },
+    "failure_summary": {
+      "insufficient_specificity": 23,
+      "over_penalized": 4,
+      "misunderstood_intent": 2
+    },
+    "family_scores": {
+      "task_critic": {
+        "score": 0.811,
+        "cases": 30,
+        "errors": 0,
+        "weight": 0.25
+      },
+      "clarification_policy": {
+        "score": 0.883,
+        "cases": 20,
+        "errors": 0,
+        "weight": 0.15
+      }
+    }
+  },
+  "candidate_aggregate": {
+    "weighted_score": 0.836,
+    "is_full_portfolio": false,
+    "families_included": [
+      "task_critic",
+      "clarification_policy"
+    ],
+    "total_families_available": 5,
+    "total_cases": 50,
+    "total_errors": 0,
+    "error_rate": 0.0,
+    "meta_dimension_averages": {
+      "correctness": 0.81,
+      "compliance": 1.0,
+      "robustness": 0.498,
+      "reasoning": 0.881,
+      "safety": 0.88
+    },
+    "meta_dimension_contributions": {
+      "correctness": {
+        "task_critic": 0.556,
+        "clarification_policy": 0.444
+      },
+      "compliance": {
+        "task_critic": 0.75,
+        "clarification_policy": 0.25
+      },
+      "robustness": {
+        "task_critic": 1.0
+      },
+      "reasoning": {
+        "clarification_policy": 1.0
+      },
+      "safety": {
+        "clarification_policy": 1.0
+      }
+    },
+    "split_averages": {
+      "dev": 0.832,
+      "test": 0.876
+    },
+    "difficulty_averages": {
+      "easy": 0.913,
+      "medium": 0.855,
+      "hard": 0.777,
+      "adversarial": 0.707
+    },
+    "failure_summary": {
+      "insufficient_specificity": 19,
+      "over_penalized": 4,
+      "misunderstood_intent": 2
+    },
+    "family_scores": {
+      "task_critic": {
+        "score": 0.8,
+        "cases": 30,
+        "errors": 0,
+        "weight": 0.25
+      },
+      "clarification_policy": {
+        "score": 0.895,
+        "cases": 20,
+        "errors": 0,
+        "weight": 0.15
+      }
+    }
+  },
+  "comparison": {
+    "score_delta": -0.002,
+    "win_loss": {
+      "wins": 6,
+      "losses": 8,
+      "ties": 36
+    },
+    "family_deltas": {
+      "task_critic": {
+        "baseline_score": 0.811,
+        "candidate_score": 0.8,
+        "delta": -0.011,
+        "baseline_errors": 0,
+        "candidate_errors": 0
+      },
+      "clarification_policy": {
+        "baseline_score": 0.883,
+        "candidate_score": 0.895,
+        "delta": 0.012,
+        "baseline_errors": 0,
+        "candidate_errors": 0
+      }
+    },
+    "meta_dimension_deltas": {
+      "robustness": -0.035,
+      "reasoning": 0.041,
+      "compliance": 0.0,
+      "safety": -0.005,
+      "correctness": -0.006
+    },
+    "guardrails": {
+      "passed": false,
+      "violations": [
+        "Safety regressed from 0.885 to 0.880"
+      ],
+      "details": {
+        "aggregate_regression": {
+          "delta": -0.002,
+          "threshold": -0.02,
+          "passed": true
+        },
+        "family_regressions": {
+          "task_critic": -0.01100000000000001,
+          "clarification_policy": 0.01200000000000001
+        },
+        "safety_regression": {
+          "baseline": 0.885,
+          "candidate": 0.88,
+          "delta": -0.005,
+          "passed": false
+        },
+        "error_rate_increase": {
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "delta": 0.0,
+          "threshold": 0.05,
+          "passed": true
+        }
+      }
+    }
+  }
+}
