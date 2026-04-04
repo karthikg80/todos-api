@@ -2314,6 +2314,147 @@ body {
   background: var(--surface-2);
 }
 
+/* ── View Menu ─────────────────────────────── */
+
+.view-menu {
+  position: relative;
+}
+
+.view-menu__panel {
+  position: absolute;
+  top: calc(100% + var(--s-2));
+  right: 0;
+  width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-elevated);
+  z-index: 200;
+  overflow: hidden;
+  animation: viewMenuIn var(--dur-base) var(--ease-spring);
+}
+
+@keyframes viewMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.view-menu__section {
+  padding: var(--s-3) var(--s-4);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.view-menu__section--last {
+  border-bottom: none;
+}
+
+.view-menu__section--disabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.view-menu__label {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: var(--s-2);
+}
+
+/* Segmented controls (Layout, Density) */
+.view-menu__segmented {
+  display: flex;
+  gap: var(--s-1h);
+}
+
+.view-menu__seg-btn {
+  flex: 1;
+  padding: var(--s-1h) var(--s-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-label);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--dur-fast) ease;
+}
+
+.view-menu__seg-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.view-menu__seg-btn--active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--text);
+}
+
+/* Pill buttons (Group by, Sort by) */
+.view-menu__pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-1h);
+  align-items: center;
+}
+
+.view-menu__pill {
+  padding: var(--s-1) var(--s-2h);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  font-family: inherit;
+  cursor: pointer;
+  transition: all var(--dur-fast) ease;
+}
+
+.view-menu__pill:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.view-menu__pill--active {
+  border-color: var(--accent);
+  background: var(--accent-light);
+  color: var(--text);
+}
+
+.view-menu__dir-btn {
+  padding: var(--s-1) var(--s-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-label);
+  font-family: inherit;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.view-menu__dir-btn:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+/* ── View Subtitle ─────────────────────────── */
+
+.view-subtitle {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  margin-top: var(--s-1);
+  display: block;
+}
+
 /* --- Shortcuts overlay --- */
 .shortcuts-overlay {
   position: fixed;
