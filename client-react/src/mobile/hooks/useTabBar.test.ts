@@ -29,9 +29,9 @@ describe("useTabBar", () => {
 
   it("persists custom view to localStorage", () => {
     const { result } = renderHook(() => useTabBar());
-    act(() => result.current.setCustomView("upcoming"));
-    expect(result.current.customView).toBe("upcoming");
-    expect(store["mobile:customTab"]).toBe("upcoming");
+    act(() => result.current.setCustomView("horizon"));
+    expect(result.current.customView).toBe("horizon");
+    expect(store["mobile:customTab"]).toBe("horizon");
   });
 
   it("restores custom view from localStorage", () => {

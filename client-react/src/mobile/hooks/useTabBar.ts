@@ -7,7 +7,7 @@ const CUSTOM_TAB_KEY = "mobile:customTab";
 
 export const CUSTOM_TAB_OPTIONS: { key: WorkspaceView; label: string }[] = [
   { key: "triage", label: "Desk" },
-  { key: "upcoming", label: "Upcoming" },
+  { key: "horizon", label: "Upcoming" },
   { key: "all", label: "Everything" },
   { key: "completed", label: "Completed" },
   { key: "tuneup", label: "Tune-up" },

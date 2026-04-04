@@ -24,7 +24,7 @@ function daysUntil(dateStr: string): number {
 function filterForView(todos: Todo[], view: WorkspaceView): Todo[] {
   switch (view) {
     case "triage": return todos.filter((t) => t.status === "inbox" && !t.completed && !t.archived);
-    case "upcoming": return todos.filter((t) => !t.completed && !t.archived && t.dueDate && daysUntil(t.dueDate) > 0)
+    case "horizon": return todos.filter((t) => !t.completed && !t.archived && t.dueDate && daysUntil(t.dueDate) > 0)
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
     case "all": return todos.filter((t) => !t.archived);
     case "completed": return todos.filter((t) => t.completed && !t.archived)
