@@ -20,10 +20,7 @@ export interface DerivePolicyResult {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-function capByEligibility<T extends string>(
-  value: T,
-  allowed: T[],
-): T {
+function capByEligibility<T extends string>(value: T, allowed: T[]): T {
   return allowed.includes(value) ? value : allowed[allowed.length - 1];
 }
 
@@ -48,7 +45,8 @@ function deriveSimplePolicy(
   } = profile;
 
   // Base: simple projects stay minimal
-  let defaultOverviewMode: ProjectSurfacePolicy["defaultOverviewMode"] = "minimal";
+  let defaultOverviewMode: ProjectSurfacePolicy["defaultOverviewMode"] =
+    "minimal";
   let showSectionsPreview = false;
   let showTaskPreview = true;
   let showDatesProminently = false;
@@ -157,7 +155,8 @@ function deriveGuidedPolicy(
     eligibility,
   } = profile;
 
-  let defaultOverviewMode: ProjectSurfacePolicy["defaultOverviewMode"] = "balanced";
+  let defaultOverviewMode: ProjectSurfacePolicy["defaultOverviewMode"] =
+    "balanced";
   let showSectionsPreview = false;
   let showTaskPreview = false;
   let showDatesProminently = false;
@@ -286,7 +285,8 @@ function deriveRichPolicy(
     eligibility,
   } = profile;
 
-  let defaultOverviewMode: ProjectSurfacePolicy["defaultOverviewMode"] = "balanced";
+  let defaultOverviewMode: ProjectSurfacePolicy["defaultOverviewMode"] =
+    "balanced";
   let showSectionsPreview = true;
   let showTaskPreview = false;
   let showDatesProminently = true;
@@ -361,7 +361,8 @@ export function deriveSurfacePolicy(
   if (profile.eligibility === "none") {
     return {
       policy: {
-        defaultOverviewMode: projectComplexity === "rich" ? "balanced" : "minimal",
+        defaultOverviewMode:
+          projectComplexity === "rich" ? "balanced" : "minimal",
         personalizationLevel: "none",
         showSectionsPreview: projectComplexity !== "simple",
         showTaskPreview: projectComplexity === "simple",

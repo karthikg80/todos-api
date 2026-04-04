@@ -1,11 +1,5 @@
-import {
-  deriveSurfacePolicy,
-  buildProjectContext,
-} from "./surfacePolicy";
-import type {
-  UserAdaptationProfile,
-  ProjectContext,
-} from "../types";
+import { deriveSurfacePolicy, buildProjectContext } from "./surfacePolicy";
+import type { UserAdaptationProfile, ProjectContext } from "../types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -105,11 +99,7 @@ describe("deriveSurfacePolicy — cold start", () => {
     const profile = baseProfile();
     profile.eligibility = "none";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "rich",
-      richContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "rich", richContext());
 
     expect(policy.defaultOverviewMode).toBe("balanced");
     expect(policy.showSectionsPreview).toBe(true);
@@ -148,11 +138,7 @@ describe("deriveSurfacePolicy — simple projects", () => {
     profile.guidanceNeed = "high";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "simple",
-      sparseContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "simple", sparseContext());
 
     expect(policy.showSetupGuidance).toBe(true);
     expect(policy.setupGuidanceStyle).toBe("light");
@@ -164,11 +150,7 @@ describe("deriveSurfacePolicy — simple projects", () => {
     profile.dateDiscipline = "high";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "simple",
-      sparseContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "simple", sparseContext());
 
     expect(policy.suggestDates).toBe(true);
   });
@@ -179,11 +161,7 @@ describe("deriveSurfacePolicy — simple projects", () => {
     profile.dateDiscipline = "medium";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "simple",
-      sparseContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "simple", sparseContext());
 
     expect(policy.defaultOverviewMode).toBe("minimal");
     expect(policy.showDatesProminently).toBe(true);
@@ -196,11 +174,7 @@ describe("deriveSurfacePolicy — simple projects", () => {
     profile.insightAffinity = "high";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "simple",
-      sparseContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "simple", sparseContext());
 
     expect(policy.showInsightsDisclosure).toBe(true);
   });
@@ -210,11 +184,7 @@ describe("deriveSurfacePolicy — simple projects", () => {
     profile.structureAppetite = "planner";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "simple",
-      sparseContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "simple", sparseContext());
 
     expect(policy.defaultOverviewMode).toBe("balanced");
     expect(policy.showDatesProminently).toBe(true);
@@ -258,11 +228,7 @@ describe("deriveSurfacePolicy — guided projects", () => {
     profile.structureAppetite = "lightweight";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "guided",
-      guidedContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "guided", guidedContext());
 
     expect(policy.defaultOverviewMode).toBe("balanced");
     expect(policy.showSectionsPreview).toBe(true);
@@ -289,11 +255,7 @@ describe("deriveSurfacePolicy — guided projects", () => {
     profile.structureAppetite = "balanced";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "guided",
-      guidedContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "guided", guidedContext());
 
     expect(policy.showSectionsPreview).toBe(true);
     expect(policy.showTaskPreview).toBe(false);
@@ -320,11 +282,7 @@ describe("deriveSurfacePolicy — guided projects", () => {
     profile.confidence = 0.75;
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "guided",
-      guidedContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "guided", guidedContext());
 
     expect(policy.showDatesProminently).toBe(true);
     expect(policy.showInsightsDisclosure).toBe(true);
@@ -337,11 +295,7 @@ describe("deriveSurfacePolicy — guided projects", () => {
     profile.confidence = 0.8;
     profile.eligibility = "full";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "guided",
-      guidedContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "guided", guidedContext());
 
     expect(policy.autoExpandInsights).toBe(true);
   });
@@ -355,11 +309,7 @@ describe("deriveSurfacePolicy — rich projects", () => {
     profile.structureAppetite = "lightweight";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "rich",
-      richContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "rich", richContext());
 
     expect(policy.defaultOverviewMode).toBe("balanced");
     expect(policy.suggestSections).toBe(false);
@@ -373,11 +323,7 @@ describe("deriveSurfacePolicy — rich projects", () => {
     profile.structureAppetite = "balanced";
     profile.eligibility = "standard";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "rich",
-      richContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "rich", richContext());
 
     expect(policy.defaultOverviewMode).toBe("detailed");
     expect(policy.showInsightsDisclosure).toBe(true);
@@ -390,11 +336,7 @@ describe("deriveSurfacePolicy — rich projects", () => {
     profile.confidence = 0.75;
     profile.eligibility = "full";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "rich",
-      richContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "rich", richContext());
 
     expect(policy.autoExpandInsights).toBe(true);
   });
@@ -406,11 +348,7 @@ describe("deriveSurfacePolicy — rich projects", () => {
     profile.insightAffinity = "medium";
     profile.eligibility = "full";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "rich",
-      richContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "rich", richContext());
 
     expect(policy.defaultOverviewMode).toBe("detailed");
     expect(policy.autoExpandInsights).toBe(true);
@@ -423,11 +361,7 @@ describe("deriveSurfacePolicy — rich projects", () => {
     profile.insightAffinity = "low";
     profile.eligibility = "full";
 
-    const { policy } = deriveSurfacePolicy(
-      profile,
-      "rich",
-      richContext(),
-    );
+    const { policy } = deriveSurfacePolicy(profile, "rich", richContext());
 
     expect(policy.autoExpandInsights).toBe(false);
   });
@@ -509,9 +443,7 @@ describe("policy guardrails", () => {
     for (const complexity of complexities) {
       for (const ctx of contexts) {
         const { policy } = deriveSurfacePolicy(profile, complexity, ctx);
-        expect(
-          policy.showTaskPreview || policy.showSectionsPreview,
-        ).toBe(true);
+        expect(policy.showTaskPreview || policy.showSectionsPreview).toBe(true);
       }
     }
   });

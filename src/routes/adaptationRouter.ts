@@ -169,7 +169,8 @@ export function createAdaptationRouter({
         ]);
 
         // Check behavioral confidence — only use LLM when low
-        const profileResult = await adaptationService.getOrCreateProfile(userId);
+        const profileResult =
+          await adaptationService.getOrCreateProfile(userId);
         if (profileResult.profile.confidence >= 0.4) {
           // Behavioral data is sufficient — don't use LLM
           return res.json({
