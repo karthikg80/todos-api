@@ -1,4 +1,6 @@
-"""Benchmark runner for task critic quality."""
+"""Benchmark runner using the framework abstraction."""
+from __future__ import annotations
+
 import json
 import os
 import asyncio
@@ -6,12 +8,15 @@ import shutil
 from pathlib import Path
 from datetime import datetime, timezone
 
-from adapters.task_critic import call_task_critic
-from schemas.task_critic import TaskCriticInput
-from verifiers.task_critic import score_case, compute_final_score
+from dotenv import load_dotenv
+load_dotenv()
+
+from framework.benchmark import BenchmarkFamily
+from framework.schemas import RunConfig, RunResult
+from framework.reporting import generate_scorecard, write_scorecard
+from families.task_critic import TaskCriticFamily
 
 BASE_DIR = Path(__file__).parent
-TASKS_DIR = BASE_DIR / "tasks" / "task-critic-quality"
 RESULTS_DIR = BASE_DIR / "results"
 PROMPTS_DIR = BASE_DIR / "prompts" / "task_critic"
 
@@ -24,119 +29,125 @@ def load_prompt(prompt_name: str = "baseline") -> str | None:
     return prompt_path.read_text()
 
 
-def load_cases() -> list[tuple[dict, dict, str]]:
-    """Load all benchmark cases. Returns [(input, expected, case_name)]."""
-    cases = []
-    for case_dir in sorted(TASKS_DIR.glob("case-*")):
-        with open(case_dir / "input.json") as f:
-            input_data = json.load(f)
-        with open(case_dir / "expected.json") as f:
-            expected = json.load(f)
-        cases.append((input_data, expected, case_dir.name))
-    return cases
+async def run_benchmark(
+    prompt_name: str = "baseline",
+    family: BenchmarkFamily | None = None,
+    split: str | None = None,
+) -> dict:
+    """Run benchmark and return aggregate results (backward-compatible dict interface)."""
+    if family is None:
+        family = TaskCriticFamily()
 
-
-async def run_benchmark(prompt_name: str = "baseline") -> dict:
-    """Run all cases and return aggregate results."""
     prompt_override = load_prompt(prompt_name)
-    cases = load_cases()
-    case_results = []
 
-    for input_data, expected, case_name in cases:
-        input_obj = TaskCriticInput(**input_data)
-        output = await call_task_critic(
-            input_obj, prompt_override=prompt_override
-        )
+    config = RunConfig(
+        benchmark_name=family.NAME,
+        benchmark_version=family.VERSION,
+        prompt_name=prompt_name,
+        model=os.getenv("AI_PROVIDER_MODEL", "unknown"),
+    )
 
-        result = score_case(
-            input_obj,
-            output,
-            expected["quality_score"],
-            expected.get("expected_suggestion_themes", []),
-        )
+    result = await family.run_benchmark(config, prompt_override=prompt_override, split=split)
 
-        abs_error = (
-            abs(output.quality_score - expected["quality_score"])
-            if output
-            else 999
-        )
-        improved_changed = (
-            output.improved_title is not None
-            and output.improved_title.strip().lower()
-            != input_obj.title.strip().lower()
-        ) if output else False
+    # Write scorecard
+    scorecard_dir = RESULTS_DIR / "scorecards"
+    scorecard_path = write_scorecard(result, scorecard_dir)
 
-        case_results.append(
-            {
-                "case": case_name,
-                "score": result["score"],
-                "predicted": output.quality_score if output else None,
-                "expected": expected["quality_score"],
-                "abs_error": round(abs_error, 1),
-                "quality_band": expected.get("quality_band", "unknown"),
-                "category": expected.get("category", "unknown"),
-                "suggestions_count": len(output.suggestions) if output else 0,
-                "improved_title_changed": improved_changed,
-                "error": result.get("error"),
-                "breakdown": {
-                    k: v for k, v in result.items() if k != "error"
-                },
-            }
-        )
+    # Also write TSV for backward compatibility
+    write_results_tsv(result)
 
-    final_score = compute_final_score(case_results)
-    run_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-
+    # Return dict for backward compatibility
     return {
-        "run_id": run_id,
+        "run_id": result.config.timestamp,
         "prompt": prompt_name,
-        "final_score": final_score,
-        "num_cases": len(case_results),
-        "num_errors": sum(1 for r in case_results if r["error"]),
-        "cases": case_results,
+        "final_score": result.mean_score,
+        "num_cases": result.total_cases,
+        "num_errors": result.error_count,
+        "cases": [
+            {
+                "case": c.case_id,
+                "score": c.score,
+                "predicted": c.predicted.get("qualityScore") if c.predicted else None,
+                "expected": next(
+                    (case.expected.get("quality_score", 0)
+                     for case in family.load_cases()
+                     if case.id == c.case_id),
+                    0,
+                ),
+                "abs_error": c.abs_error,
+                "quality_band": next(
+                    (case.expected.get("quality_band", "unknown")
+                     for case in family.load_cases()
+                     if case.id == c.case_id),
+                    "unknown",
+                ),
+                "category": c.slices[0] if c.slices else "unknown",
+                "suggestions_count": len(c.predicted.get("suggestions", [])) if c.predicted else 0,
+                "improved_title_changed": (
+                    c.predicted.get("improvedTitle") is not None
+                    and c.predicted.get("improvedTitle", "").strip().lower()
+                    != next(
+                        (case.input.get("title", "").strip().lower()
+                         for case in family.load_cases()
+                         if case.id == c.case_id),
+                        "",
+                    )
+                ) if c.predicted else False,
+                "error": c.error,
+                "split": c.split,
+                "breakdown": {
+                    "correctness": c.breakdown.correctness,
+                    "instruction_following": c.breakdown.instruction_following,
+                    "robustness": c.breakdown.robustness,
+                    "format_compliance": c.breakdown.format_compliance,
+                },
+                "failure_types": [ft.value for ft in c.failure_types],
+            }
+            for c in result.cases
+        ],
+        "scorecard_path": str(scorecard_path),
     }
 
 
-def write_results(result: dict):
-    """Write results to TSV and save per-run file."""
+def write_results_tsv(result: RunResult):
+    """Write results to TSV for backward compatibility."""
     RESULTS_DIR.mkdir(exist_ok=True)
     runs_dir = RESULTS_DIR / "runs"
     runs_dir.mkdir(exist_ok=True)
 
-    # Per-run file
-    run_file = runs_dir / f"{result['run_id']}.tsv"
+    run_file = runs_dir / f"{result.config.timestamp.replace(':', '')}.tsv"
     with open(run_file, "w") as f:
         f.write(
             "case\tscore\tpredicted\texpected\tabs_error\t"
             "quality_band\tcategory\tsuggestions_count\t"
-            "improved_title_changed\terror\n"
+            "improved_title_changed\terror\tsplit\n"
         )
-        for c in result["cases"]:
+        for c in result.cases:
+            predicted = c.predicted.get("qualityScore") if c.predicted else None
             f.write(
-                f"{c['case']}\t{c['score']}\t{c['predicted']}\t"
-                f"{c['expected']}\t{c['abs_error']}\t"
-                f"{c['quality_band']}\t{c['category']}\t"
-                f"{c['suggestions_count']}\t"
-                f"{c['improved_title_changed']}\t{c['error']}\n"
+                f"{c.case_id}\t{c.score}\t{predicted}\t{c.abs_error}\t"
+                f"{c.abs_error}\t{'-'.join(c.slices)}\t"
+                f"{len(c.predicted.get('suggestions', [])) if c.predicted else 0}\t"
+                f"-\t{c.error}\t{c.split}\n"
             )
 
-    # Copy to latest.tsv (portable, no symlinks)
+    # Copy to latest.tsv
     latest = RESULTS_DIR / "latest.tsv"
     shutil.copy2(run_file, latest)
 
     print(
-        f"Run {result['run_id']} | "
-        f"Score: {result['final_score']} | "
-        f"Cases: {result['num_cases']} | "
-        f"Errors: {result['num_errors']}"
+        f"Run {result.config.timestamp} | "
+        f"Score: {result.mean_score:.3f} | "
+        f"Cases: {result.total_cases} | "
+        f"Errors: {result.error_count}"
     )
 
 
 async def main():
     prompt = os.getenv("EVAL_PROMPT", "baseline")
-    result = await run_benchmark(prompt)
-    write_results(result)
-    return result["final_score"]
+    split = os.getenv("EVAL_SPLIT", None)
+    result = await run_benchmark(prompt, split=split)
+    print(f"\nFinal score: {result['final_score']:.3f}")
 
 
 if __name__ == "__main__":
