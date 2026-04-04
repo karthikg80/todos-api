@@ -166,6 +166,7 @@ model User {
   activityEvents           ActivityEvent[]
   userInsights             UserInsight[]
   dayPlans                 DayPlan[]
+  adaptationProfile        UserAdaptationProfile? @relation("UserAdaptationProfile")
 
   @@map("users")
 }
@@ -811,6 +812,20 @@ enum ActivityEventType {
   filter_used
   bulk_action
   session_start
+
+  // Adaptation signals
+  insights_open
+  insights_dismissed
+  insight_opportunity_shown
+  section_created
+  section_reorganized
+  suggestion_accepted
+  suggestion_dismissed
+  panel_expanded
+  panel_collapsed
+  project_opened
+  project_resumed
+  project_revisited_after_idle
 }
 
 enum InsightType {
@@ -926,4 +941,32 @@ model DayPlanTask {
   @@index([planId, order])
   @@index([todoId])
   @@map("day_plan_tasks")
+}
+
+// ─── User-Level Adaptation System ───────────────────────────────────────────
+
+model UserAdaptationProfile {
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @map("user_id")
+  profileVersion    Int      @default(1) @map("profile_version")
+  policyVersion     Int      @default(1) @map("policy_version")
+  eligibility       String   @default("none") @map("eligibility") @db.VarChar(20)
+  structureAppetite String   @map("structure_appetite") @db.VarChar(20)
+  insightAffinity   String   @map("insight_affinity") @db.VarChar(20)
+  dateDiscipline    String   @map("date_discipline") @db.VarChar(20)
+  organizationStyle String   @map("organization_style") @db.VarChar(20)
+  guidanceNeed      String   @map("guidance_need") @db.VarChar(20)
+  confidence        Float    @default(0.2)
+  confidenceReason  String?  @map("confidence_reason") @db.VarChar(255)
+  signalsSnapshot   Json?    @map("signals_snapshot")
+  scoresSnapshot    Json?    @map("scores_snapshot")
+  signalsWindowDays Int     @default(60) @map("signals_window_days")
+  computedAt        DateTime @default(now()) @map("computed_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation("UserAdaptationProfile", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([userId])
+  @@map("user_adaptation_profiles")
 }

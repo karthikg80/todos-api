@@ -22,6 +22,19 @@ const VALID_EVENT_TYPES = new Set<string>(
     filter_used: "filter_used",
     bulk_action: "bulk_action",
     session_start: "session_start",
+    // Adaptation signals
+    insights_open: "insights_open",
+    insights_dismissed: "insights_dismissed",
+    insight_opportunity_shown: "insight_opportunity_shown",
+    section_created: "section_created",
+    section_reorganized: "section_reorganized",
+    suggestion_accepted: "suggestion_accepted",
+    suggestion_dismissed: "suggestion_dismissed",
+    panel_expanded: "panel_expanded",
+    panel_collapsed: "panel_collapsed",
+    project_opened: "project_opened",
+    project_resumed: "project_resumed",
+    project_revisited_after_idle: "project_revisited_after_idle",
   } satisfies Record<ActivityEventType, string>),
 );
 

@@ -62,7 +62,9 @@ import { createAreasRouter } from "./routes/areasRouter";
 import { createGoalsRouter } from "./routes/goalsRouter";
 import { createDayPlanRouter } from "./routes/dayPlanRouter";
 import { createStaticPagesRouter } from "./routes/staticPagesRouter";
+import { createAdaptationRouter } from "./routes/adaptationRouter";
 import { DayPlanService } from "./services/dayPlanService";
+import { UserAdaptationService } from "./services/userAdaptationService";
 import { AreaService } from "./services/areaService";
 import { GoalService } from "./services/goalService";
 import {
@@ -346,6 +348,7 @@ export function createApp(deps: AppDependencies = {}) {
       "/areas",
       "/goals",
       "/plans",
+      "/adaptation",
     ];
     for (const route of protectedRoutes) {
       app.use(route, auth);
@@ -481,6 +484,19 @@ export function createApp(deps: AppDependencies = {}) {
       createInsightsRouter({
         insightsService,
         insightsComputeService,
+        resolveUserId: resolveAiUserId,
+      }),
+    );
+
+    // User-Level Adaptation System
+    const adaptationService = new UserAdaptationService(
+      persistencePrisma,
+      activityEventService,
+    );
+    app.use(
+      "/adaptation",
+      createAdaptationRouter({
+        adaptationService,
         resolveUserId: resolveAiUserId,
       }),
     );

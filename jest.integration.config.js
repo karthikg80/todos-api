@@ -7,5 +7,6 @@ module.exports = {
     "**/src/auth.api.test.ts",
     "**/src/authService.test.ts",
     "**/src/prismaTodoService.test.ts",
+    "**/src/adaptation.api.integration.test.ts",
   ],
 };
