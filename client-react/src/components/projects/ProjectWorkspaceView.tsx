@@ -28,7 +28,7 @@ import { SortableTodoList } from "../todos/SortableTodoList";
 import { useProjectHeadings } from "../../hooks/useProjectHeadings";
 import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 import type { LoadState } from "../../store/useTodosStore";
-import type { SortField, SortOrder } from "../todos/SortControl";
+import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import {
   buildSectionGroups,
   buildSnapshotItemsEnhanced,
@@ -58,7 +58,6 @@ const WORKSPACE_MODES = [
 ] as const;
 
 type WorkspaceMode = (typeof WORKSPACE_MODES)[number]["value"];
-type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 
 interface Props {

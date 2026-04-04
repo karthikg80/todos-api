@@ -12,18 +12,14 @@ import { Breadcrumb } from "../shared/Breadcrumb";
 import { AnimatedCount } from "../shared/AnimatedCount";
 import { Tooltip } from "../shared/Tooltip";
 import { FilterPanel, type ActiveFilters } from "../todos/FilterPanel";
-import {
-  SortControl,
-  type SortField,
-  type SortOrder,
-} from "../todos/SortControl";
+import { SortControl } from "../todos/SortControl";
+import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { SearchBar } from "../shared/SearchBar";
 import { SegmentedControl } from "../shared/SegmentedControl";
 import { VerificationBanner } from "../shared/VerificationBanner";
 
-type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 type HorizonSegment = "due" | "planned" | "pending" | "later";
 

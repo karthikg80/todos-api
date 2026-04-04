@@ -20,7 +20,7 @@ import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import type { Todo } from "../../types";
-import { type SortField, type SortOrder } from "../todos/SortControl";
+import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
@@ -76,7 +76,6 @@ type AppPage =
   | "admin"
   | "feedback"
   | "review";
-type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 type HorizonSegment = "due" | "planned" | "pending" | "later";
 

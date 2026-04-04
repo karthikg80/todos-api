@@ -1,5 +1,6 @@
 import type { Density } from "../../hooks/useDensity";
-import { SortControl, type SortField, type SortOrder } from "./SortControl";
+import { SortControl } from "./SortControl";
+import type { SortField, SortOrder } from "../../types/viewTypes";
 import type { GroupBy } from "../../utils/groupTodos";
 
 const GROUP_OPTIONS: { value: GroupBy; label: string }[] = [

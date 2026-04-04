@@ -1,10 +1,5 @@
-export type SortField =
-  | "order"
-  | "createdAt"
-  | "dueDate"
-  | "priority"
-  | "title";
-export type SortOrder = "asc" | "desc";
+import type { SortField, SortOrder } from "../../types/viewTypes";
+export type { SortField, SortOrder } from "../../types/viewTypes";
 
 interface Props {
   sortBy: SortField;

@@ -24,7 +24,7 @@ import { useDensity } from "../../hooks/useDensity";
 import { useCollapsedGroups } from "../../hooks/useCollapsedGroups";
 import { GroupHeader } from "./GroupHeader";
 import { ListToolbar } from "./ListToolbar";
-import type { SortField, SortOrder } from "./SortControl";
+import type { SortField, SortOrder } from "../../types/viewTypes";
 import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 import type { GroupBy } from "../../utils/groupTodos";
 
