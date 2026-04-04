@@ -8,7 +8,10 @@ import { useBottomSheet } from "./hooks/useBottomSheet";
 import { TabBar } from "./components/TabBar";
 import { BottomSheet } from "./components/BottomSheet";
 import { QuickCapture } from "./components/QuickCapture";
+import { ProfileSheet } from "./components/ProfileSheet";
+import { FieldPicker } from "./components/FieldPicker";
 import { PullToSearch } from "./components/PullToSearch";
+import type { TodoStatus, Priority } from "../types";
 import { FocusScreen } from "./screens/FocusScreen";
 import { TodayScreen } from "./screens/TodayScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
@@ -17,13 +20,14 @@ import { apiCall } from "../api/client";
 import "./mobile.css";
 
 export function MobileShell() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
   const { todos, loadTodos, addTodo, toggleTodo, editTodo, removeTodo } = useTodosStore();
   const { projects, loadProjects } = useProjectsStore();
-  const { activeTab, setActiveTab, customView } = useTabBar();
+  const { activeTab, setActiveTab, customView, setCustomView } = useTabBar();
   const bottomSheet = useBottomSheet();
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => { loadTodos({}); loadProjects(); }, [loadTodos, loadProjects]);
 
@@ -34,7 +38,7 @@ export function MobileShell() {
     await apiCall("/projects", { method: "POST", body: JSON.stringify({ name }) });
     await loadProjects();
   }, [loadProjects]);
-  const handleAvatarClick = useCallback(() => { /* Settings — future task */ }, []);
+  const handleAvatarClick = useCallback(() => { setProfileOpen(true); }, []);
 
   const sheetTodo = useMemo(
     () => (bottomSheet.taskId ? todos.find((t) => t.id === bottomSheet.taskId) ?? null : null),
@@ -128,6 +132,16 @@ export function MobileShell() {
       <PullToSearch todos={todos} onSelectResult={handleTodoClick} />
       <BottomSheet snap={bottomSheet.snap} onClose={bottomSheet.close} onExpandFull={bottomSheet.expandFull} halfContent={halfContent} fullContent={fullContent} />
       <QuickCapture open={captureOpen} projects={projects} onClose={() => setCaptureOpen(false)} onCreateTask={handleCreateTask} onCreateProject={handleCreateProject} />
+      <ProfileSheet
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        user={user}
+        dark={dark}
+        onToggleDark={toggleDarkMode}
+        customView={customView}
+        onChangeCustomView={setCustomView}
+        onLogout={logout}
+      />
       <TabBar activeTab={activeTab} customView={customView} onTabChange={setActiveTab} onFabPress={() => setCaptureOpen(true)} />
     </div>
   );
