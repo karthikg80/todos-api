@@ -13,6 +13,7 @@ import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useDensity } from "../../hooks/useDensity";
 import { useServiceWorker } from "../../hooks/useServiceWorker";
+import { useIsMobile } from "../../hooks/useIsMobile";
 import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
 import { captureInboxItem } from "../../api/inbox";
@@ -83,17 +84,6 @@ type HorizonSegment = "due" | "planned" | "pending" | "later";
 interface UndoAction {
   message: string;
   onUndo?: () => void;
-}
-
-function useIsMobile() {
-  const [mobile, setMobile] = useState(window.innerWidth <= 700);
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 700px)");
-    const handler = (e: MediaQueryListEvent) => setMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return mobile;
 }
 
 export function AppShell() {
