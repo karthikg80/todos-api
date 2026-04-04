@@ -31,6 +31,7 @@ import { applyFilters, type ActiveFilters } from "../todos/FilterPanel";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { SettingsPage } from "./SettingsPage";
+import { TuneUpView } from "../tuneup/TuneUpView";
 import { HomeDashboard } from "./HomeDashboard";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import { ProjectWorkspaceView } from "../projects/ProjectWorkspaceView";
@@ -119,6 +120,7 @@ export function AppShell() {
   });
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [page, setPage] = useState<AppPage>("todos");
+  const [showTuneUp, setShowTuneUp] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [projectCrudMode, setProjectCrudMode] = useState<
@@ -959,7 +961,16 @@ export function AppShell() {
           </div>
         )}
         <ErrorBoundary>
-          {page === "settings" ? (
+          {page === "settings" && showTuneUp ? (
+            <TuneUpView
+              onOpenTask={(taskId) => {
+                setShowTuneUp(false);
+                startTransition(() => setPage("todos"));
+                taskNav.openDrawer(taskId);
+              }}
+              onUndo={(action) => setUndoAction(action)}
+            />
+          ) : page === "settings" ? (
             <SettingsPage
               dark={dark}
               onToggleDark={toggleDarkMode}
@@ -971,7 +982,11 @@ export function AppShell() {
               }}
               density={density}
               onCycleDensity={cycleDensity}
-              onBack={() => startTransition(() => setPage("todos"))}
+              onBack={() => {
+                setShowTuneUp(false);
+                startTransition(() => setPage("todos"));
+              }}
+              onOpenTuneUp={() => setShowTuneUp(true)}
             />
           ) : page === "components" ? (
             <ComponentGalleryPage

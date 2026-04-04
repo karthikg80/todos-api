@@ -22,6 +22,7 @@ interface Props {
   density: string;
   onCycleDensity: () => void;
   onBack: () => void;
+  onOpenTuneUp: () => void;
 }
 
 export function SettingsPage({
@@ -32,6 +33,7 @@ export function SettingsPage({
   density,
   onCycleDensity,
   onBack,
+  onOpenTuneUp,
 }: Props) {
   const { user, setUser } = useAuth();
   const [name, setName] = useState(user?.name || "");
@@ -250,6 +252,22 @@ export function SettingsPage({
             }}
           >
             Restart onboarding
+          </button>
+        </div>
+      </section>
+
+      <section className="settings-section">
+        <h3 className="settings-section__title">Project Management</h3>
+
+        <div className="settings-field settings-field--row">
+          <span className="settings-field__label">
+            Tune-up
+            <span className="settings-field__hint">
+              Review stale tasks, clean up projects, and improve task quality.
+            </span>
+          </span>
+          <button className="btn" onClick={onOpenTuneUp}>
+            Open Tune-up
           </button>
         </div>
       </section>
