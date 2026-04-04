@@ -56,79 +56,23 @@ function ProjectRailItem({
   project: p,
   isActive,
   onClick,
-  onContextMenu,
-  onOpenMenu,
-  isMenuOpen,
 }: {
   project: Project;
   isActive: boolean;
   onClick: () => void;
-  onContextMenu: (e: React.MouseEvent) => void;
-  onOpenMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
-  isMenuOpen: boolean;
 }) {
-  const total = p.todoCount ?? 0;
-  const completed = p.completedTaskCount ?? 0;
-  const progress = total > 0 ? completed / total : 0;
-  const isOverdue =
-    p.targetDate &&
-    new Date(p.targetDate) < new Date(new Date().toDateString());
-
   return (
-    <div
-      className={`projects-rail-item-row${isActive ? " projects-rail-item-row--active" : ""}`}
-      onContextMenu={onContextMenu}
+    <button
+      className={`projects-rail-item${isActive ? " projects-rail-item--active" : ""}`}
+      data-project-key={p.name}
+      onClick={onClick}
     >
-      <button
-        className={`projects-rail-item${isActive ? " projects-rail-item--active" : ""}`}
-        data-project-key={p.name}
-        onClick={onClick}
-      >
-        <span
-          className="projects-rail-item__status-dot"
-          style={{ background: STATUS_COLORS[p.status] || "var(--muted)" }}
-          title={p.status.replace("_", " ")}
-        />
-        <div className="projects-rail-item__content">
-          <div className="projects-rail-item__top-row">
-            <span className="nav-label">{p.name}</span>
-            {p.openTodoCount != null && (
-              <span className="projects-rail-item__count">
-                {p.openTodoCount}
-              </span>
-            )}
-          </div>
-          {total > 0 && (
-            <div className="projects-rail-item__progress-bar">
-              <div
-                className="projects-rail-item__progress-fill"
-                style={{ width: `${Math.round(progress * 100)}%` }}
-              />
-            </div>
-          )}
-        </div>
-        {p.targetDate && (
-          <span
-            className={`projects-rail-item__deadline${isOverdue ? " projects-rail-item__deadline--overdue" : ""}`}
-          >
-            {new Date(p.targetDate).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            })}
-          </span>
-        )}
-      </button>
-      <button
-        className="projects-rail-item__actions"
-        type="button"
-        aria-label={`Project actions for ${p.name}`}
-        aria-haspopup="menu"
-        aria-expanded={isMenuOpen}
-        onClick={onOpenMenu}
-      >
-        <IconKebab size={13} />
-      </button>
-    </div>
+      <span
+        className="projects-rail-item__status-dot"
+        style={{ background: STATUS_COLORS[p.status] || "var(--muted)" }}
+      />
+      <span className="nav-label">{p.name}</span>
+    </button>
   );
 }
 
@@ -485,9 +429,6 @@ export function Sidebar({
                         project={p}
                         isActive={selectedProjectId === p.id}
                         onClick={() => onSelectProject(p.id)}
-                        onContextMenu={(e) => handleContextMenu(e, p.id)}
-                        onOpenMenu={(event) => openProjectMenu(event, p.id)}
-                        isMenuOpen={contextMenu?.id === p.id}
                       />
                     ))}
                   </div>
