@@ -13,6 +13,7 @@ interface Props {
   onTodoClick: (id: string) => void;
   onToggleTodo: (id: string, completed: boolean) => void;
   onAvatarClick: () => void;
+  onSnoozeTodo: (id: string) => void;
 }
 
 function daysUntil(dateStr: string): number {
@@ -34,7 +35,7 @@ function filterForView(todos: Todo[], view: WorkspaceView): Todo[] {
   }
 }
 
-export function CustomScreen({ view, todos, projects, user, onTodoClick, onToggleTodo, onAvatarClick }: Props) {
+export function CustomScreen({ view, todos, projects, user, onTodoClick, onToggleTodo, onAvatarClick, onSnoozeTodo }: Props) {
   const label = CUSTOM_TAB_OPTIONS.find((o) => o.key === view)?.label ?? "Tasks";
   const filteredTodos = useMemo(() => filterForView(todos, view), [todos, view]);
   const projectMap = useMemo(() => {
@@ -50,7 +51,7 @@ export function CustomScreen({ view, todos, projects, user, onTodoClick, onToggl
         <div className="m-today__pull-hint">↓ pull to search</div>
         <div className="m-custom__list">
           {filteredTodos.map((t) => (
-            <SwipeRow key={t.id} onSwipeRight={() => onToggleTodo(t.id, !t.completed)}>
+            <SwipeRow key={t.id} onSwipeRight={() => onToggleTodo(t.id, !t.completed)} onSwipeLeft={() => onSnoozeTodo(t.id)}>
               <button className="m-todo-row" onClick={() => onTodoClick(t.id)}>
                 <span className={`m-todo-row__check${t.completed ? " m-todo-row__check--done" : ""}`}
                   onClick={(e) => { e.stopPropagation(); onToggleTodo(t.id, !t.completed); }} />

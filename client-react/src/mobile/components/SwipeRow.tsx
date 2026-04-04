@@ -1,4 +1,4 @@
-import { useRef, type ReactNode } from "react";
+import { useRef, useState, useCallback, type ReactNode } from "react";
 import { useSwipeAction, SWIPE_THRESHOLD } from "../hooks/useSwipeAction";
 
 interface Props {
@@ -15,20 +15,30 @@ export function SwipeRow({
 }: Props) {
   const { offsetX, state, onTouchStart, onTouchMove, onTouchEnd, reset } = useSwipeAction();
   const rowRef = useRef<HTMLDivElement>(null);
+  const [completing, setCompleting] = useState(false);
 
   const handleTouchStart = (e: React.TouchEvent) => onTouchStart(e.touches[0].clientX);
   const handleTouchMove = (e: React.TouchEvent) => onTouchMove(e.touches[0].clientX);
   const handleTouchEnd = () => onTouchEnd();
 
-  if (state === "triggered-right" && onSwipeRight) { onSwipeRight(); reset(); }
+  const handleComplete = useCallback(() => {
+    setCompleting(true);
+    setTimeout(() => {
+      onSwipeRight?.();
+      reset();
+    }, 280);
+  }, [onSwipeRight, reset]);
+
+  if (state === "triggered-right" && onSwipeRight && !completing) { handleComplete(); }
+  else if (state === "triggered-right" && !onSwipeRight) { reset(); }
   else if (state === "triggered-left" && onSwipeLeft) { onSwipeLeft(); reset(); }
-  else if ((state === "triggered-right" || state === "triggered-left")) { reset(); }
+  else if (state === "triggered-left") { reset(); }
 
   const isSwipingRight = offsetX > 0;
   const progress = Math.min(Math.abs(offsetX) / SWIPE_THRESHOLD, 1);
 
   return (
-    <div className="m-swipe-row" ref={rowRef}>
+    <div className={`m-swipe-row${completing ? " m-swipe-row--completing" : ""}`} ref={rowRef}>
       <div
         className={`m-swipe-row__action m-swipe-row__action--right${isSwipingRight ? " m-swipe-row__action--visible" : ""}`}
         style={{ opacity: isSwipingRight ? progress : 0 }}

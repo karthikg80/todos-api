@@ -9,6 +9,7 @@ interface Props {
   onTodoClick: (id: string) => void;
   onToggleTodo: (id: string, completed: boolean) => void;
   onAvatarClick: () => void;
+  onSnoozeTodo: (id: string) => void;
 }
 
 function getGreeting(): string {

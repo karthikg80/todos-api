@@ -1,9 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { useTodosStore } from "../store/useTodosStore";
 import { useProjectsStore } from "../store/useProjectsStore";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { useTabBar } from "./hooks/useTabBar";
+import { useScrollPersistence } from "./hooks/useScrollPersistence";
 import { useBottomSheet } from "./hooks/useBottomSheet";
 import { TabBar } from "./components/TabBar";
 import { BottomSheet } from "./components/BottomSheet";
@@ -11,6 +12,7 @@ import { QuickCapture } from "./components/QuickCapture";
 import { ProfileSheet } from "./components/ProfileSheet";
 import { FieldPicker } from "./components/FieldPicker";
 import { PullToSearch } from "./components/PullToSearch";
+import { SnoozePicker } from "./components/SnoozePicker";
 import type { TodoStatus, Priority } from "../types";
 import { FocusScreen } from "./screens/FocusScreen";
 import { TodayScreen } from "./screens/TodayScreen";
@@ -47,11 +49,24 @@ export function MobileShell() {
   const { todos, loadTodos, addTodo, toggleTodo, editTodo, removeTodo } = useTodosStore();
   const { projects, loadProjects } = useProjectsStore();
   const { activeTab, setActiveTab, customView, setCustomView } = useTabBar();
+  const { save: saveScroll, restore: restoreScroll } = useScrollPersistence();
+  const prevTabRef = useRef<string>(activeTab);
   const bottomSheet = useBottomSheet();
   const [captureOpen, setCaptureOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
 
   useEffect(() => { loadTodos({}); loadProjects(); }, [loadTodos, loadProjects]);
+
+  useEffect(() => {
+    const prev = prevTabRef.current as typeof activeTab;
+    if (prev !== activeTab) {
+      saveScroll(prev);
+      prevTabRef.current = activeTab;
+      // Restore after the new screen renders
+      requestAnimationFrame(() => restoreScroll(activeTab));
+    }
+  }, [activeTab, saveScroll, restoreScroll]);
 
   const handleTodoClick = useCallback((id: string) => bottomSheet.openHalf(id), [bottomSheet]);
   const handleToggleTodo = useCallback((id: string, completed: boolean) => toggleTodo(id, completed), [toggleTodo]);
@@ -61,6 +76,12 @@ export function MobileShell() {
     await loadProjects();
   }, [loadProjects]);
   const handleAvatarClick = useCallback(() => { setProfileOpen(true); }, []);
+  const handleSnoozeTodo = useCallback((id: string) => { setSnoozeTargetId(id); }, []);
+  const handleSnoozeConfirm = useCallback((date: string) => {
+    if (snoozeTargetId) editTodo(snoozeTargetId, { dueDate: date });
+    setSnoozeTargetId(null);
+  }, [snoozeTargetId, editTodo]);
+  const handleSnoozeClose = useCallback(() => { setSnoozeTargetId(null); }, []);
 
   const sheetTodo = useMemo(
     () => (bottomSheet.taskId ? todos.find((t) => t.id === bottomSheet.taskId) ?? null : null),
@@ -182,7 +203,7 @@ export function MobileShell() {
     </div>
   ) : null;
 
-  const screenProps = { todos, projects, user, onTodoClick: handleTodoClick, onToggleTodo: handleToggleTodo, onAvatarClick: handleAvatarClick };
+  const screenProps = { todos, projects, user, onTodoClick: handleTodoClick, onToggleTodo: handleToggleTodo, onAvatarClick: handleAvatarClick, onSnoozeTodo: handleSnoozeTodo };
 
   return (
     <div className="m-shell" data-density="normal">
@@ -205,6 +226,7 @@ export function MobileShell() {
         onChangeCustomView={setCustomView}
         onLogout={logout}
       />
+      <SnoozePicker open={!!snoozeTargetId} onClose={handleSnoozeClose} onSnooze={handleSnoozeConfirm} />
       <TabBar activeTab={activeTab} customView={customView} onTabChange={setActiveTab} onFabPress={() => setCaptureOpen(true)} />
     </div>
   );
