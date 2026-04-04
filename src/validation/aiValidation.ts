@@ -42,12 +42,11 @@ export function validateCritiqueTaskInput(data: any): CritiqueTaskInput {
     throw new ValidationError("Request body must be an object");
   }
 
-  if (typeof data.title !== "string" || data.title.trim().length === 0) {
-    throw new ValidationError("title is required");
-  }
-  if (data.title.length > 200) {
-    throw new ValidationError("title cannot exceed 200 characters");
-  }
+  // Allow empty titles through — the LLM should score them poorly
+  const rawTitle = typeof data.title === "string" ? data.title : "";
+  // Truncate long titles instead of rejecting — preserves eval-lab compatibility
+  const title =
+    rawTitle.length > 200 ? rawTitle.slice(0, 197) + "..." : rawTitle;
 
   if (data.description !== undefined && typeof data.description !== "string") {
     throw new ValidationError("description must be a string");
@@ -71,7 +70,7 @@ export function validateCritiqueTaskInput(data: any): CritiqueTaskInput {
   }
 
   return {
-    title: data.title.trim(),
+    title: title.trim(),
     description: data.description?.trim(),
     dueDate,
     priority,
