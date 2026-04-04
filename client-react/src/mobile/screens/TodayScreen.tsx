@@ -10,6 +10,7 @@ interface Props {
   onTodoClick: (id: string) => void;
   onToggleTodo: (id: string, completed: boolean) => void;
   onAvatarClick: () => void;
+  onSnoozeTodo: (id: string) => void;
 }
 
 function daysUntil(dateStr: string): number {
@@ -40,7 +41,7 @@ function TodoRowInner({ todo, project, onClick, onToggle }: {
   );
 }
 
-export function TodayScreen({ todos, projects, user, onTodoClick, onToggleTodo, onAvatarClick }: Props) {
+export function TodayScreen({ todos, projects, user, onTodoClick, onToggleTodo, onAvatarClick, onSnoozeTodo }: Props) {
   const openTodos = useMemo(() => todos.filter((t) => !t.completed && !t.archived), [todos]);
   const projectMap = useMemo(() => {
     const m = new Map<string, Project>();
@@ -72,7 +73,7 @@ export function TodayScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
         <h2 className={`m-today__group-title${className ? ` ${className}` : ""}`}>{label}</h2>
         <div className="m-today__group-list">
           {items.map((t) => (
-            <SwipeRow key={t.id} onSwipeRight={() => onToggleTodo(t.id, true)}>
+            <SwipeRow key={t.id} onSwipeRight={() => onToggleTodo(t.id, true)} onSwipeLeft={() => onSnoozeTodo(t.id)}>
               <TodoRowInner todo={t} project={t.projectId ? projectMap.get(t.projectId) : undefined}
                 onClick={() => onTodoClick(t.id)} onToggle={() => onToggleTodo(t.id, !t.completed)} />
             </SwipeRow>

@@ -10,6 +10,7 @@ interface Props {
   onTodoClick: (id: string) => void;
   onToggleTodo: (id: string, completed: boolean) => void;
   onAvatarClick: () => void;
+  onSnoozeTodo: (id: string) => void;
 }
 
 function groupProjectsByArea(projects: Project[]): { area: string; projects: Project[] }[] {
@@ -24,7 +25,7 @@ function groupProjectsByArea(projects: Project[]): { area: string; projects: Pro
   return Array.from(map.entries()).map(([area, projects]) => ({ area, projects }));
 }
 
-export function ProjectsScreen({ todos, projects, user, onTodoClick, onToggleTodo, onAvatarClick }: Props) {
+export function ProjectsScreen({ todos, projects, user, onTodoClick, onToggleTodo, onAvatarClick, onSnoozeTodo }: Props) {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const groups = useMemo(() => groupProjectsByArea(projects), [projects]);
   const projectTodos = useMemo(() => {
@@ -44,7 +45,7 @@ export function ProjectsScreen({ todos, projects, user, onTodoClick, onToggleTod
         </header>
         <div className="m-projects__task-list">
           {projectTodos.map((t) => (
-            <SwipeRow key={t.id} onSwipeRight={() => onToggleTodo(t.id, true)}>
+            <SwipeRow key={t.id} onSwipeRight={() => onToggleTodo(t.id, true)} onSwipeLeft={() => onSnoozeTodo(t.id)}>
               <button className="m-todo-row" onClick={() => onTodoClick(t.id)}>
                 <span className={`m-todo-row__check${t.completed ? " m-todo-row__check--done" : ""}`}
                   onClick={(e) => { e.stopPropagation(); onToggleTodo(t.id, !t.completed); }} />

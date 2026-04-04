@@ -1,14 +1,19 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { useTodosStore } from "../store/useTodosStore";
 import { useProjectsStore } from "../store/useProjectsStore";
 import { useDarkMode } from "../hooks/useDarkMode";
 import { useTabBar } from "./hooks/useTabBar";
+import { useScrollPersistence } from "./hooks/useScrollPersistence";
 import { useBottomSheet } from "./hooks/useBottomSheet";
 import { TabBar } from "./components/TabBar";
 import { BottomSheet } from "./components/BottomSheet";
 import { QuickCapture } from "./components/QuickCapture";
+import { ProfileSheet } from "./components/ProfileSheet";
+import { FieldPicker } from "./components/FieldPicker";
 import { PullToSearch } from "./components/PullToSearch";
+import { SnoozePicker } from "./components/SnoozePicker";
+import type { TodoStatus, Priority } from "../types";
 import { FocusScreen } from "./screens/FocusScreen";
 import { TodayScreen } from "./screens/TodayScreen";
 import { ProjectsScreen } from "./screens/ProjectsScreen";
@@ -16,16 +21,52 @@ import { CustomScreen } from "./screens/CustomScreen";
 import { apiCall } from "../api/client";
 import "./mobile.css";
 
+const STATUS_OPTIONS: { key: TodoStatus; label: string }[] = [
+  { key: "inbox", label: "Inbox" },
+  { key: "next", label: "Next" },
+  { key: "in_progress", label: "In Progress" },
+  { key: "waiting", label: "Waiting" },
+  { key: "scheduled", label: "Scheduled" },
+  { key: "someday", label: "Someday" },
+];
+
+const PRIORITY_OPTIONS: { key: Priority; label: string; color: string }[] = [
+  { key: "low", label: "Low", color: "var(--muted)" },
+  { key: "medium", label: "Medium", color: "var(--accent)" },
+  { key: "high", label: "High", color: "var(--warning)" },
+  { key: "urgent", label: "Urgent", color: "var(--danger)" },
+];
+
+const ENERGY_OPTIONS: { key: "low" | "medium" | "high"; label: string }[] = [
+  { key: "low", label: "Low" },
+  { key: "medium", label: "Medium" },
+  { key: "high", label: "High" },
+];
+
 export function MobileShell() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
   const { todos, loadTodos, addTodo, toggleTodo, editTodo, removeTodo } = useTodosStore();
   const { projects, loadProjects } = useProjectsStore();
-  const { activeTab, setActiveTab, customView } = useTabBar();
+  const { activeTab, setActiveTab, customView, setCustomView } = useTabBar();
+  const { save: saveScroll, restore: restoreScroll } = useScrollPersistence();
+  const prevTabRef = useRef<string>(activeTab);
   const bottomSheet = useBottomSheet();
   const [captureOpen, setCaptureOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
 
   useEffect(() => { loadTodos({}); loadProjects(); }, [loadTodos, loadProjects]);
+
+  useEffect(() => {
+    const prev = prevTabRef.current as typeof activeTab;
+    if (prev !== activeTab) {
+      saveScroll(prev);
+      prevTabRef.current = activeTab;
+      // Restore after the new screen renders
+      requestAnimationFrame(() => restoreScroll(activeTab));
+    }
+  }, [activeTab, saveScroll, restoreScroll]);
 
   const handleTodoClick = useCallback((id: string) => bottomSheet.openHalf(id), [bottomSheet]);
   const handleToggleTodo = useCallback((id: string, completed: boolean) => toggleTodo(id, completed), [toggleTodo]);
@@ -34,7 +75,13 @@ export function MobileShell() {
     await apiCall("/projects", { method: "POST", body: JSON.stringify({ name }) });
     await loadProjects();
   }, [loadProjects]);
-  const handleAvatarClick = useCallback(() => { /* Settings — future task */ }, []);
+  const handleAvatarClick = useCallback(() => { setProfileOpen(true); }, []);
+  const handleSnoozeTodo = useCallback((id: string) => { setSnoozeTargetId(id); }, []);
+  const handleSnoozeConfirm = useCallback((date: string) => {
+    if (snoozeTargetId) editTodo(snoozeTargetId, { dueDate: date });
+    setSnoozeTargetId(null);
+  }, [snoozeTargetId, editTodo]);
+  const handleSnoozeClose = useCallback(() => { setSnoozeTargetId(null); }, []);
 
   const sheetTodo = useMemo(
     () => (bottomSheet.taskId ? todos.find((t) => t.id === bottomSheet.taskId) ?? null : null),
@@ -42,6 +89,11 @@ export function MobileShell() {
   const sheetProject = useMemo(
     () => (sheetTodo?.projectId ? projects.find((p) => p.id === sheetTodo.projectId) ?? null : null),
     [sheetTodo, projects]);
+
+  const projectOptions = useMemo(
+    () => projects.map((p) => ({ key: p.id, label: p.name })),
+    [projects],
+  );
 
   const halfContent = sheetTodo ? (
     <div className="m-sheet-half">
@@ -81,12 +133,48 @@ export function MobileShell() {
       </div>
       {sheetTodo.description && <div className="m-sheet-full__desc">{sheetTodo.description}</div>}
       <div className="m-sheet-full__fields">
-        <div className="m-sheet-full__field"><div className="m-sheet-full__field-label">Status</div><div className="m-sheet-full__field-value">{sheetTodo.status}</div></div>
-        <div className="m-sheet-full__field"><div className="m-sheet-full__field-label">Priority</div><div className={`m-sheet-full__field-value${sheetTodo.priority ? ` m-priority--${sheetTodo.priority}` : ""}`}>{sheetTodo.priority ?? "—"}</div></div>
-        <div className="m-sheet-full__field"><div className="m-sheet-full__field-label">Due Date</div><div className="m-sheet-full__field-value">{sheetTodo.dueDate ? new Date(sheetTodo.dueDate).toLocaleDateString() : "—"}</div></div>
-        <div className="m-sheet-full__field"><div className="m-sheet-full__field-label">Project</div><div className="m-sheet-full__field-value">{sheetProject?.name ?? "—"}</div></div>
-        <div className="m-sheet-full__field"><div className="m-sheet-full__field-label">Energy</div><div className="m-sheet-full__field-value">{sheetTodo.energy ?? "—"}</div></div>
-        <div className="m-sheet-full__field"><div className="m-sheet-full__field-label">Estimate</div><div className="m-sheet-full__field-value">{sheetTodo.estimateMinutes ? `${sheetTodo.estimateMinutes} min` : "—"}</div></div>
+        <FieldPicker<TodoStatus>
+          label="Status"
+          value={sheetTodo.status}
+          options={STATUS_OPTIONS}
+          onChange={(v) => { if (v) editTodo(sheetTodo.id, { status: v }); }}
+        />
+        <FieldPicker<Priority>
+          label="Priority"
+          value={sheetTodo.priority ?? null}
+          options={PRIORITY_OPTIONS}
+          onChange={(v) => editTodo(sheetTodo.id, { priority: v })}
+          allowClear
+        />
+        <div className="m-field-picker">
+          <div className="m-field-picker__header m-field-picker__header--static">
+            <div className="m-sheet-full__field-label">Due Date</div>
+            <input
+              type="date"
+              className="m-field-picker__date"
+              value={sheetTodo.dueDate ? sheetTodo.dueDate.slice(0, 10) : ""}
+              onChange={(e) => editTodo(sheetTodo.id, { dueDate: e.target.value || null })}
+            />
+          </div>
+        </div>
+        <FieldPicker<string>
+          label="Project"
+          value={sheetTodo.projectId ?? null}
+          options={projectOptions}
+          onChange={(v) => editTodo(sheetTodo.id, { projectId: v })}
+          allowClear
+        />
+        <FieldPicker<"low" | "medium" | "high">
+          label="Energy"
+          value={sheetTodo.energy ?? null}
+          options={ENERGY_OPTIONS}
+          onChange={(v) => editTodo(sheetTodo.id, { energy: v })}
+          allowClear
+        />
+        <div className="m-sheet-full__field">
+          <div className="m-sheet-full__field-label">Estimate</div>
+          <div className="m-sheet-full__field-value">{sheetTodo.estimateMinutes ? `${sheetTodo.estimateMinutes} min` : "—"}</div>
+        </div>
       </div>
       {sheetTodo.tags.length > 0 && (
         <div className="m-sheet-full__tags">
@@ -115,7 +203,7 @@ export function MobileShell() {
     </div>
   ) : null;
 
-  const screenProps = { todos, projects, user, onTodoClick: handleTodoClick, onToggleTodo: handleToggleTodo, onAvatarClick: handleAvatarClick };
+  const screenProps = { todos, projects, user, onTodoClick: handleTodoClick, onToggleTodo: handleToggleTodo, onAvatarClick: handleAvatarClick, onSnoozeTodo: handleSnoozeTodo };
 
   return (
     <div className="m-shell" data-density="normal">
@@ -128,6 +216,17 @@ export function MobileShell() {
       <PullToSearch todos={todos} onSelectResult={handleTodoClick} />
       <BottomSheet snap={bottomSheet.snap} onClose={bottomSheet.close} onExpandFull={bottomSheet.expandFull} halfContent={halfContent} fullContent={fullContent} />
       <QuickCapture open={captureOpen} projects={projects} onClose={() => setCaptureOpen(false)} onCreateTask={handleCreateTask} onCreateProject={handleCreateProject} />
+      <ProfileSheet
+        open={profileOpen}
+        onClose={() => setProfileOpen(false)}
+        user={user}
+        dark={dark}
+        onToggleDark={toggleDarkMode}
+        customView={customView}
+        onChangeCustomView={setCustomView}
+        onLogout={logout}
+      />
+      <SnoozePicker open={!!snoozeTargetId} onClose={handleSnoozeClose} onSnooze={handleSnoozeConfirm} />
       <TabBar activeTab={activeTab} customView={customView} onTabChange={setActiveTab} onFabPress={() => setCaptureOpen(true)} />
     </div>
   );
