@@ -1,0 +1,32 @@
+{
+  "category": "clear",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    5,
+    10
+  ],
+  "must_have_steps": [
+    "outline chapters",
+    "write first draft",
+    "review and revise",
+    "technical review",
+    "format and publish"
+  ],
+  "optional_steps": [
+    "get beta readers",
+    "design cover",
+    "set up marketing"
+  ],
+  "forbidden_steps": [
+    "suggest traditional publishing",
+    "exceed 200 pages"
+  ],
+  "what_good_plan_looks_like": "Phased writing plan: outline \u2192 draft \u2192 review \u2192 publish. Respects 5hr/week constraint and 200-page target. Self-publishing focus.",
+  "common_failure_modes": [
+    "suggests_traditional_publishing",
+    "ignores_page_limit",
+    "unrealistic_writing_pace"
+  ],
+  "acceptable_variation": "May suggest different chapter structures. May include or omit optional steps.",
+  "notes": "Clear goal with specific constraints. Should produce a realistic writing plan."
+}

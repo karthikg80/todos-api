@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-001"
+description = "Phased plan: assessment → study → practice → review. Respects June 15 deadline a"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,5 @@
+{
+  "goal": "Launch a personal blog with custom domain",
+  "context": "I want to write about software engineering. Prefer static site generator over CMS.",
+  "constraints": "Budget $50/year for hosting. Want it live within 2 weeks."
+}

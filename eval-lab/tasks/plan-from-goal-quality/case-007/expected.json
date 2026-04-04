@@ -1,0 +1,15 @@
+{
+  "category": "oversized",
+  "expected_output_mode": "clarification_required",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Flags that learning ML + building production system in 2 months at 5hr/week is unrealistic. Suggests focusing on one: either learn ML fundamentals OR build a simple rule-based recommender.",
+  "common_failure_modes": [
+    "creates_cramped_plan",
+    "ignores_time_constraint",
+    "assumes_prior_knowledge"
+  ],
+  "acceptable_variation": "May suggest learning-only or building-only path. Should NOT produce a full ML + production plan.",
+  "notes": "Oversized goal for the constraints. Should suggest scoping down."
+}

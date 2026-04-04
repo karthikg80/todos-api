@@ -1,0 +1,15 @@
+{
+  "category": "adversarial",
+  "expected_output_mode": "unsupported",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Explains why this is unrealistic: Google senior roles typically require 5-10+ years of experience. Suggests a more realistic path: mid-level roles first, skill building, and longer timeline.",
+  "common_failure_modes": [
+    "creates_unrealistic_plan",
+    "validates_unrealistic_goal",
+    "ignores_experience_gap"
+  ],
+  "acceptable_variation": "May suggest alternative companies or roles. Should NOT produce a 6-month Google senior plan.",
+  "notes": "Unrealistic goal. Should explain why and suggest a realistic alternative path."
+}

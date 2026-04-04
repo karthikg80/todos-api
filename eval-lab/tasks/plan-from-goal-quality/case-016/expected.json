@@ -1,0 +1,33 @@
+{
+  "category": "constrained",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    5,
+    8
+  ],
+  "must_have_steps": [
+    "audit existing content",
+    "design new layout",
+    "migrate content",
+    "set up redirects",
+    "test and launch"
+  ],
+  "optional_steps": [
+    "update branding",
+    "improve performance",
+    "add analytics"
+  ],
+  "forbidden_steps": [
+    "change URLs",
+    "exceed $5k budget",
+    "exceed 6 weeks"
+  ],
+  "what_good_plan_looks_like": "Phased plan: audit \u2192 design \u2192 migrate \u2192 redirect \u2192 launch. Preserves all URLs. Respects budget and timeline.",
+  "common_failure_modes": [
+    "ignores_seo_constraint",
+    "exceeds_budget",
+    "misses_redirects"
+  ],
+  "acceptable_variation": "May suggest different tech stacks. Must preserve URL constraint.",
+  "notes": "Constrained goal with SEO requirement. Should produce a migration plan with redirect strategy."
+}

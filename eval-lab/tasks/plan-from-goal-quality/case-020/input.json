@@ -1,0 +1,5 @@
+{
+  "goal": "Plan a product launch",
+  "context": "We're launching a new SaaS feature. Target audience is existing customers.",
+  "constraints": "Launch date is fixed: March 1. Marketing team of 2. Budget $3k."
+}

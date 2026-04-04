@@ -1,0 +1,15 @@
+{
+  "category": "oversized",
+  "expected_output_mode": "clarification_required",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Acknowledges the goal is too large for the constraints. Suggests scoping down (MVP with core features only) or extending timeline. Asks what the real goal is (learning? launching a startup?).",
+  "common_failure_modes": [
+    "creates_unrealistic_plan",
+    "ignores_constraints",
+    "invents_team"
+  ],
+  "acceptable_variation": "May suggest MVP scoping, timeline extension, or goal clarification. Should NOT produce a full Twitter clone plan.",
+  "notes": "Massively oversized goal. Should flag the mismatch and suggest scoping."
+}

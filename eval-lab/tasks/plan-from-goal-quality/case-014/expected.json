@@ -1,0 +1,15 @@
+{
+  "category": "vague",
+  "expected_output_mode": "clarification_required",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Asks for: current metrics, specific pain points, team structure, recent changes. Cannot plan productivity improvement without diagnosing the problem first.",
+  "common_failure_modes": [
+    "creates_generic_plan",
+    "assumes_root_cause",
+    "suggests_expensive_tools"
+  ],
+  "acceptable_variation": "May suggest a diagnostic phase while asking for specifics.",
+  "notes": "Vague goal with unclear root cause. Should ask for diagnosis before planning."
+}

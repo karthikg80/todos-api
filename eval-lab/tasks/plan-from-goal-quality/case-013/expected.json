@@ -1,0 +1,32 @@
+{
+  "category": "clear",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    5,
+    8
+  ],
+  "must_have_steps": [
+    "define objectives",
+    "research venues",
+    "plan agenda",
+    "arrange logistics",
+    "communicate with team"
+  ],
+  "optional_steps": [
+    "plan activities",
+    "arrange catering",
+    "send surveys"
+  ],
+  "forbidden_steps": [
+    "exceed $15k budget",
+    "plan for more than 2 days"
+  ],
+  "what_good_plan_looks_like": "Phased plan: objectives \u2192 venue \u2192 agenda \u2192 logistics \u2192 communication. Respects $15k budget and 2-day constraint.",
+  "common_failure_modes": [
+    "exceeds_budget",
+    "ignores_team_size",
+    "misses_logistics"
+  ],
+  "acceptable_variation": "May order phases differently. May include or omit optional steps.",
+  "notes": "Clear goal with specific constraints. Should produce a practical event planning plan."
+}

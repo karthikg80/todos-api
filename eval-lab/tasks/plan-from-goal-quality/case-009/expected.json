@@ -1,0 +1,15 @@
+{
+  "category": "missing-context",
+  "expected_output_mode": "clarification_required",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Asks for: audience (board members' priorities), current status of key metrics, what decisions need to be made, what format is expected.",
+  "common_failure_modes": [
+    "invents_metrics",
+    "invents_audience",
+    "creates_generic_plan"
+  ],
+  "acceptable_variation": "Any clarifying response that asks for audience, metrics, decisions, and format is acceptable.",
+  "notes": "Missing critical context. Should ask for specifics before planning."
+}

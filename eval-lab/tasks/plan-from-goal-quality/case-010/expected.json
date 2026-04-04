@@ -1,0 +1,15 @@
+{
+  "category": "missing-context",
+  "expected_output_mode": "clarification_required",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Asks for: tech stack, deployment target, testing strategy, team size, current pain points. Cannot plan CI/CD without knowing what to build, test, and deploy.",
+  "common_failure_modes": [
+    "assumes_tech_stack",
+    "invents_deployment_target",
+    "creates_generic_pipeline"
+  ],
+  "acceptable_variation": "May suggest a basic GitHub Actions template while asking for specifics.",
+  "notes": "Missing technical context. Should ask for stack, deployment, and testing details."
+}

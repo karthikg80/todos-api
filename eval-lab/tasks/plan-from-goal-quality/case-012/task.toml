@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-012"
+description = "Explains why $1M in 6 months as a solo first-time founder is extremely unlikely."
+
+[scoring]
+weight = 1.0

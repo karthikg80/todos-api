@@ -1,0 +1,36 @@
+{
+  "category": "constrained",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    6,
+    12
+  ],
+  "must_have_steps": [
+    "identify service boundaries",
+    "set up infrastructure",
+    "extract first service",
+    "establish communication patterns",
+    "migrate data",
+    "test integration",
+    "deploy incrementally"
+  ],
+  "optional_steps": [
+    "set up monitoring",
+    "document APIs",
+    "train team on microservices"
+  ],
+  "forbidden_steps": [
+    "big bang migration",
+    "hire contractors",
+    "rewrite from scratch"
+  ],
+  "what_good_plan_looks_like": "Strangler fig pattern: identify boundaries \u2192 extract services one by one \u2192 maintain compatibility. Respects zero-downtime, 6-month, and team-size constraints.",
+  "common_failure_modes": [
+    "suggests_big_bang",
+    "ignores_zero_downtime",
+    "exceeds_budget",
+    "suggests_hiring"
+  ],
+  "acceptable_variation": "May suggest different extraction order. May include or omit optional steps. Must respect all constraints.",
+  "notes": "Constrained goal with specific technical and resource limits. Should produce a phased migration plan."
+}

@@ -1,0 +1,5 @@
+{
+  "goal": "Redesign our company website",
+  "context": "Current site is 5 years old. Built on WordPress. Has 50+ pages.",
+  "constraints": "Must preserve all existing URLs (SEO). Budget $5k. Launch in 6 weeks."
+}

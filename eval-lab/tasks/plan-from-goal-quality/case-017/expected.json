@@ -1,0 +1,31 @@
+{
+  "category": "clear",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    4,
+    8
+  ],
+  "must_have_steps": [
+    "learn basics (notes, rhythm)",
+    "practice scales and chords",
+    "learn simple songs",
+    "build repertoire"
+  ],
+  "optional_steps": [
+    "use free apps",
+    "watch YouTube tutorials",
+    "join online communities"
+  ],
+  "forbidden_steps": [
+    "suggest paid lessons",
+    "exceed 30 min/day"
+  ],
+  "what_good_plan_looks_like": "Progressive learning plan: basics \u2192 practice \u2192 simple songs \u2192 repertoire. Uses free resources. Respects 30min/day constraint.",
+  "common_failure_modes": [
+    "suggests_paid_lessons",
+    "unrealistic_progression",
+    "ignores_time_constraint"
+  ],
+  "acceptable_variation": "May suggest different learning resources. Must respect free and 30min/day constraints.",
+  "notes": "Clear goal with specific constraints. Should produce a self-directed learning plan."
+}

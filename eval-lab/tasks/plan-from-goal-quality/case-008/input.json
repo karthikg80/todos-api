@@ -1,0 +1,5 @@
+{
+  "goal": "Launch a mobile app for our restaurant",
+  "context": "We want online ordering, loyalty program, and table reservations.",
+  "constraints": "Must launch in 2 weeks. Budget $500. Must support iOS and Android natively."
+}

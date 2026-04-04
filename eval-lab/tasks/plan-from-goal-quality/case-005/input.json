@@ -1,0 +1,5 @@
+{
+  "goal": "Migrate our monolith to microservices",
+  "context": "Current monolith is a Rails app with 50k lines. Team of 4 developers. Using PostgreSQL and Redis.",
+  "constraints": "Must maintain zero downtime during migration. Budget $10k for infrastructure. Complete within 6 months. Cannot hire additional developers."
+}

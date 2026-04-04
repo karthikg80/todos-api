@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-004"
+description = "Asks for: destination, dates, budget, travel style, interests, group size. Canno"
+
+[scoring]
+weight = 1.0

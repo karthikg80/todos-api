@@ -1,0 +1,5 @@
+{
+  "goal": "Prepare for AWS Solutions Architect certification exam",
+  "context": "I have 6 months of cloud experience. The exam covers EC2, S3, RDS, Lambda, IAM, VPC, and CloudFormation.",
+  "constraints": "Exam date is June 15. Can study 10 hours per week. Budget $200 for practice exams and courses."
+}
