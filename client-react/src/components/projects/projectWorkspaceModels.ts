@@ -1,4 +1,4 @@
-import type { Heading, Todo } from "../../types";
+import type { Heading, Project, Todo } from "../../types";
 
 export interface SectionGroup {
   key: string;
@@ -122,7 +122,7 @@ export function buildSectionGroups(
     groups.unshift({
       key: "__unplaced__",
       heading: null,
-      label: "Unplaced work",
+      label: "Backlog",
       todos: unplaced,
     });
   }
@@ -243,6 +243,258 @@ export function pickTopTasks(projectTodos: Todo[], now = new Date()) {
       return aDays - bDays;
     })
     .slice(0, 4);
+}
+
+export function getEnhancedMetricsText(
+  profile: ProjectOverviewProfile,
+  project: Project,
+  projectTodos: Todo[],
+  now = new Date(),
+): string {
+  const parts: string[] = [];
+
+  // Open tasks
+  if (profile.openTasks === 1) {
+    parts.push("1 open task");
+  } else if (profile.openTasks > 1) {
+    parts.push(`${profile.openTasks} open tasks`);
+  }
+
+  // Completion status
+  if (profile.completedTasks === 0 && profile.openTasks > 0) {
+    parts.push("Nothing completed yet");
+  } else if (profile.completedTasks > 0) {
+    const totalTasks = profile.openTasks + profile.completedTasks;
+    const percent = totalTasks > 0
+      ? Math.round((profile.completedTasks / totalTasks) * 100)
+      : 0;
+    parts.push(`${percent}% complete`);
+  }
+
+  // Next scheduled
+  const nextScheduled = projectTodos
+    .filter((todo) => !todo.completed && todo.dueDate)
+    .sort((a, b) => {
+      const dateA = new Date(a.dueDate ?? "").getTime();
+      const dateB = new Date(b.dueDate ?? "").getTime();
+      return dateA - dateB;
+    })[0];
+
+  if (nextScheduled?.dueDate) {
+    const dueDate = new Date(nextScheduled.dueDate);
+    const today = startOfToday(now);
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+
+    if (dueDate < today) {
+      parts.push("Overdue task(s)");
+    } else if (dueDate < tomorrow) {
+      parts.push("Due today");
+    } else if (dueDate < nextWeek) {
+      const dayName = dueDate.toLocaleDateString("en-US", { weekday: "short" });
+      parts.push(`Next: ${dayName}`);
+    } else {
+      const dateStr = dueDate.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+      parts.push(`Next: ${dateStr}`);
+    }
+  }
+
+  return parts.length > 0 ? parts.join(" · ") : "";
+}
+
+export function getEmptyStateGuidance(
+  profile: ProjectOverviewProfile,
+  project: Project,
+): { title: string; body: string; showAdd: boolean } {
+  // If no tasks at all
+  if (profile.totalTasks === 0) {
+    return {
+      title: "Start with a concrete step",
+      body: `You do not need a full plan yet. Add the next real action for "${project.name}" and let the project take shape from there.`,
+      showAdd: true,
+    };
+  }
+
+  // If simple project with few tasks
+  if (profile.mode === "simple") {
+    return {
+      title: "Keep this project lightweight",
+      body: "A small project does not need a dashboard. Add the next couple of steps and only introduce sections if the work starts to branch.",
+      showAdd: true,
+    };
+  }
+
+  // If guided project with unplaced tasks
+  if (profile.mode === "guided" && profile.unplacedTasks > 0) {
+    return {
+      title: "Organize your work",
+      body: `You have ${profile.unplacedTasks} task${profile.unplacedTasks > 1 ? "s" : ""} in the backlog. Move them into sections when the project grows.`,
+      showAdd: false,
+    };
+  }
+
+  // Default empty state
+  return {
+    title: "No tasks in this section",
+    body: "Add a task to get started, or navigate to another section.",
+    showAdd: true,
+  };
+}
+
+export function buildSnapshotItemsEnhanced(
+  profile: ProjectOverviewProfile,
+  progress: number,
+  project: Project,
+  projectTodos: Todo[],
+  now = new Date(),
+) {
+  const items: Array<{ label: string; value: string; actionable: boolean }> = [];
+
+  // Open tasks - always actionable
+  items.push({
+    label: "Open",
+    value: `${profile.openTasks} task${profile.openTasks === 1 ? "" : "s"}`,
+    actionable: false,
+  });
+
+  // Progress - actionable if zero
+  if (profile.completedTasks === 0 && profile.openTasks > 0) {
+    items.push({
+      label: "Progress",
+      value: "Not started yet",
+      actionable: false,
+    });
+  } else if (profile.completedTasks > 0) {
+    items.push({
+      label: "Progress",
+      value: `${progress}% complete`,
+      actionable: false,
+    });
+  }
+
+  // Sections - actionable if project needs organization
+  if (profile.unplacedTasks > 1 && profile.mode !== "simple") {
+    items.push({
+      label: "Backlog",
+      value: `${profile.unplacedTasks} item${profile.unplacedTasks > 1 ? "s" : ""}`,
+      actionable: true,
+    });
+  } else if (profile.sectionsWithTasks > 0) {
+    items.push({
+      label: "Sections",
+      value: `${profile.sectionsWithTasks} section${profile.sectionsWithTasks > 1 ? "s" : ""}`,
+      actionable: false,
+    });
+  }
+
+  // Target date - actionable if approaching or overdue
+  if (project.targetDate) {
+    const target = new Date(project.targetDate);
+    const today = startOfToday(now);
+    const daysUntilTarget = Math.ceil(
+      (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+    );
+
+    if (daysUntilTarget <= 0) {
+      items.push({
+        label: "Target",
+        value: "Overdue",
+        actionable: true,
+      });
+    } else if (daysUntilTarget <= 7) {
+      items.push({
+        label: "Target",
+        value: `${daysUntilTarget}d left`,
+        actionable: daysUntilTarget <= 3,
+      });
+    } else {
+      items.push({
+        label: "Target",
+        value: formatProjectDate(project.targetDate) ?? "Set",
+        actionable: false,
+      });
+    }
+  } else if (profile.datedTasks > 0) {
+    // Next scheduled
+    const nextScheduled = projectTodos
+      .filter((todo) => !todo.completed && todo.dueDate)
+      .sort((a, b) => {
+        const dateA = new Date(a.dueDate ?? "").getTime();
+        const dateB = new Date(b.dueDate ?? "").getTime();
+        return dateA - dateB;
+      })[0];
+
+    if (nextScheduled?.dueDate) {
+      const dueDate = new Date(nextScheduled.dueDate);
+      const today = startOfToday(now);
+      if (dueDate < today) {
+        items.push({
+          label: "Next",
+          value: "Overdue",
+          actionable: true,
+        });
+      } else if (dueDate.getTime() === today.getTime()) {
+        items.push({
+          label: "Next",
+          value: "Today",
+          actionable: true,
+        });
+      } else {
+        const daysUntil = Math.ceil(
+          (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+        );
+        items.push({
+          label: "Next",
+          value: daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`,
+          actionable: daysUntil <= 3,
+        });
+      }
+    }
+  }
+
+  return items.slice(0, 4);
+}
+
+export function getTabDescription(
+  workspaceMode: string,
+  profile: ProjectOverviewProfile,
+): string {
+  switch (workspaceMode) {
+    case "overview":
+      if (profile.showStarter) {
+        return "Best for getting started with your first step.";
+      }
+      if (profile.mode === "simple") {
+        return "Best for quick wins without structure.";
+      }
+      return "Best for deciding what to do next.";
+
+    case "sections":
+      if (profile.mode === "simple") {
+        return "Use sections when the project grows.";
+      }
+      if (profile.sectionsWithTasks >= 3) {
+        return "Best when the project has distinct phases.";
+      }
+      return "Use sections as chapters, not filters.";
+
+    case "tasks":
+      if (profile.mode === "simple") {
+        return "Keep it simple for now.";
+      }
+      if (profile.openTasks <= 8) {
+        return "Ready for operational mode.";
+      }
+      return "Best for sorting, batching, and bulk edits.";
+
+    default:
+      return "";
+  }
 }
 
 export function classifyProjectOverview(
