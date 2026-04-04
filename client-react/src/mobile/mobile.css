@@ -1574,3 +1574,74 @@
   color: var(--m-muted);
   margin-left: auto;
 }
+
+/* --- Completion burst particles --- */
+.m-burst {
+  position: absolute;
+  left: 32px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.m-burst__dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--m-r-full);
+  background: var(--m-accent);
+  animation: m-burst-fly 400ms var(--ease-out) forwards;
+}
+
+.m-burst__dot:nth-child(even) {
+  background: var(--m-amber);
+  width: 4px;
+  height: 4px;
+}
+
+.m-burst__dot:nth-child(1) { animation-delay: 0ms; }
+.m-burst__dot:nth-child(2) { animation-delay: 20ms; }
+.m-burst__dot:nth-child(3) { animation-delay: 40ms; }
+.m-burst__dot:nth-child(4) { animation-delay: 60ms; }
+.m-burst__dot:nth-child(5) { animation-delay: 80ms; }
+.m-burst__dot:nth-child(6) { animation-delay: 100ms; }
+.m-burst__dot:nth-child(7) { animation-delay: 120ms; }
+.m-burst__dot:nth-child(8) { animation-delay: 140ms; }
+
+@keyframes m-burst-fly {
+  0% { opacity: 1; transform: translate(0, 0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--burst-x, 20px), var(--burst-y, -20px)) scale(0.3); }
+}
+
+.m-burst__dot:nth-child(1) { --burst-x: 24px; --burst-y: 0; }
+.m-burst__dot:nth-child(2) { --burst-x: 17px; --burst-y: -17px; }
+.m-burst__dot:nth-child(3) { --burst-x: 0; --burst-y: -24px; }
+.m-burst__dot:nth-child(4) { --burst-x: -17px; --burst-y: -17px; }
+.m-burst__dot:nth-child(5) { --burst-x: -24px; --burst-y: 0; }
+.m-burst__dot:nth-child(6) { --burst-x: -17px; --burst-y: 17px; }
+.m-burst__dot:nth-child(7) { --burst-x: 0; --burst-y: 24px; }
+
+/* --- Palette picker --- */
+.m-profile__palette-picker {
+  display: flex;
+  gap: var(--s-2);
+}
+
+.m-profile__palette-dot {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--m-r-full);
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.m-profile__palette-dot--active {
+  width: 32px;
+  height: 32px;
+  border-color: var(--m-text);
+  box-shadow: inset 0 0 0 2px var(--m-surface);
+}
+.m-burst__dot:nth-child(8) { --burst-x: 17px; --burst-y: 17px; }

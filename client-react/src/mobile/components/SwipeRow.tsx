@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, type ReactNode } from "react";
 import { useSwipeAction, SWIPE_THRESHOLD } from "../hooks/useSwipeAction";
+import { CompletionBurst } from "./CompletionBurst";
 
 interface Props {
   children: ReactNode;
@@ -40,6 +41,7 @@ export function SwipeRow({
 
   return (
     <div className={`m-swipe-row${completing ? " m-swipe-row--completing" : ""}`} ref={rowRef}>
+      <CompletionBurst active={completing} />
       <div
         className={`m-swipe-row__action m-swipe-row__action--right${isSwipingRight ? " m-swipe-row__action--visible" : ""}`}
         style={{ opacity: isSwipingRight ? progress : 0 }}
