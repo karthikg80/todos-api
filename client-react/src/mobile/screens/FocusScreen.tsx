@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect } from "react";
 import type { Todo, Project, User } from "../../types";
 import { MobileHeader } from "../MobileHeader";
 import { useCountUp } from "../hooks/useCountUp";
+import { IllustrationCelebrate } from "../components/Illustrations";
 
 interface Props {
   todos: Todo[];
@@ -76,12 +77,13 @@ export function FocusScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
                 } as React.CSSProperties} />
               ))}
             </div>
-            <div className="m-empty__icon">🎉</div>
+            <IllustrationCelebrate />
             <div className="m-empty__title m-empty__title--bounce">All clear! No tasks right now.</div>
           </div>
         )}
         {topTask && (
           <button className="m-focus__next-card" onClick={() => onTodoClick(topTask.id)}>
+            <div className="m-focus__next-blob" aria-hidden="true" />
             <div className="m-focus__next-label">✦ What Next</div>
             <div className="m-focus__next-row">
               <span className={`m-focus__check${topTask.completed ? " m-focus__check--done" : ""}`}

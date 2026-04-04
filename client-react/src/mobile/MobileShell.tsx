@@ -18,6 +18,7 @@ import { OfflineBanner } from "./components/OfflineBanner";
 import { SnoozePicker } from "./components/SnoozePicker";
 import { InstallBanner } from "./components/InstallBanner";
 import { Onboarding } from "./components/Onboarding";
+import { IllustrationConstruction } from "./components/Illustrations";
 import type { TodoStatus, Priority } from "../types";
 import { FocusScreen } from "./screens/FocusScreen";
 import { TodayScreen } from "./screens/TodayScreen";
@@ -280,7 +281,7 @@ export function MobileShell() {
           </header>
           <div className="m-shell__page-content">
             <div className="m-empty">
-              <div className="m-empty__icon">🚧</div>
+              <IllustrationConstruction />
               <div className="m-empty__title">Coming soon on mobile</div>
               <div className="m-empty__hint">Use the desktop app for full access</div>
             </div>

@@ -1,17 +1,18 @@
 import { useState, useCallback } from "react";
+import { IllustrationSwipe, IllustrationCapture, IllustrationTap } from "./Illustrations";
 
 const ONBOARDING_KEY = "mobile:onboardingDone";
 
 interface Step {
-  icon: string;
+  icon: React.ReactNode;
   title: string;
   desc: string;
 }
 
 const STEPS: Step[] = [
-  { icon: "👆", title: "Swipe to act", desc: "Swipe right to complete a task. Swipe left to snooze." },
-  { icon: "✨", title: "Quick capture", desc: "Tap the + button to add a task in seconds." },
-  { icon: "📋", title: "Tap for details", desc: "Tap any task to see details. Drag up for more." },
+  { icon: <IllustrationSwipe />, title: "Swipe to act", desc: "Swipe right to complete a task. Swipe left to snooze." },
+  { icon: <IllustrationCapture />, title: "Quick capture", desc: "Tap the + button to add a task in seconds." },
+  { icon: <IllustrationTap />, title: "Tap for details", desc: "Tap any task to see details. Drag up for more." },
 ];
 
 export function Onboarding() {
