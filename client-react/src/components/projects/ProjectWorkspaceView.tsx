@@ -25,6 +25,8 @@ import { BulkToolbar } from "../todos/BulkToolbar";
 import { FilterPanel, type ActiveFilters } from "../todos/FilterPanel";
 import { ProjectHeadings } from "./ProjectHeadings";
 import { SortableTodoList } from "../todos/SortableTodoList";
+import { useGroupBy } from "../../hooks/useGroupBy";
+import { useDensity } from "../../hooks/useDensity";
 import { useProjectHeadings } from "../../hooks/useProjectHeadings";
 import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 import type { LoadState } from "../../store/useTodosStore";
@@ -325,6 +327,8 @@ export function ProjectWorkspaceView({
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("overview");
   const [insightsOpen, setInsightsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { groupBy, setGroupBy } = useGroupBy();
+  const { density, setDensity } = useDensity();
 
   const workspaceModeRef = useRef<WorkspaceMode>(workspaceMode);
   workspaceModeRef.current = workspaceMode;
@@ -1241,6 +1245,10 @@ export function ProjectWorkspaceView({
                 sortBy={sortBy}
                 sortOrder={sortOrder}
                 onSortChange={onSortChange}
+                groupBy={groupBy}
+                onGroupByChange={setGroupBy}
+                density={density}
+                onDensityChange={setDensity}
                 groupByOptions={["none", "status", "priority", "dueDate"]}
               />
             )}
