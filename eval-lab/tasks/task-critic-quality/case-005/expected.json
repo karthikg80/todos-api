@@ -1,0 +1,9 @@
+{
+  "quality_score": 85.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": ["attachment_check", "format_confirmation"],
+  "notes": "Excellent task — specific action, clear recipient, firm deadline, includes scope details. Minor suggestion: confirm format (PDF vs slides)."
+}

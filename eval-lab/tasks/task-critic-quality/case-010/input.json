@@ -1,0 +1,6 @@
+{
+  "title": "Review PR #432 for the authentication refactor",
+  "description": "Focus on the token handling changes in auth_service.py and the new middleware. Check for race conditions in the refresh flow.",
+  "dueDate": "2026-04-06T00:00:00Z",
+  "priority": "high"
+}

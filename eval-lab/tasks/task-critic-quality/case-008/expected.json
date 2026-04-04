@@ -1,0 +1,9 @@
+{
+  "quality_score": 80.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": ["phone_number", "insurance_check"],
+  "notes": "Clear, specific, actionable. Has deadline and context. Minor improvement: include dentist's phone number and whether insurance info is needed."
+}

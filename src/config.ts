@@ -96,6 +96,8 @@ const aiDailySuggestionLimitTeam = Number.parseInt(
 const aiDecisionAssistEnabled = ["1", "true"].includes(
   (process.env.AI_DECISION_ASSIST || "false").toLowerCase(),
 );
+const enableEvalPromptOverride =
+  (process.env.ENABLE_EVAL_PROMPT_OVERRIDE || "false").toLowerCase() === "true";
 
 // Social / phone auth feature flags
 const googleLoginEnabled =
@@ -263,6 +265,7 @@ export const config = {
         : 1000,
   },
   aiDecisionAssistEnabled,
+  enableEvalPromptOverride,
 
   // Social / phone auth
   googleLoginEnabled,

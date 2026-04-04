@@ -301,9 +301,17 @@ export function createAiRouter({
 
         const input = validateCritiqueTaskInput(req.body);
         const feedbackContext = await quotaService.getFeedbackContext(userId);
+
+        // Eval prompt override — only enabled via env flag
+        const promptOverride =
+          config.enableEvalPromptOverride === true
+            ? (req.headers["x-eval-prompt-override"] as string | undefined)
+            : undefined;
+
         const result = await runtimeAiPlannerService.critiqueTask(
           input,
           feedbackContext,
+          promptOverride,
         );
 
         const suggestion = await suggestionStore.create({

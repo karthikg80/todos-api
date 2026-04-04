@@ -1,0 +1,9 @@
+{
+  "quality_score": 20.0,
+  "quality_band": "low",
+  "category": "edge-case",
+  "should_improve_title": true,
+  "should_improve_description": false,
+  "expected_suggestion_themes": ["title_required", "actionability"],
+  "notes": "Empty title is a critical flaw. Description exists but title is the primary identifier. Should score very low and insist on a title."
+}

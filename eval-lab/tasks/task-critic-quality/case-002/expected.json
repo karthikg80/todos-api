@@ -1,0 +1,9 @@
+{
+  "quality_score": 25.0,
+  "quality_band": "low",
+  "category": "vague",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": ["specificity", "deadline", "scope"],
+  "notes": "Vague intent with no concrete action. 'Figure out' is not actionable. Missing deadline, scope, and specific steps."
+}
