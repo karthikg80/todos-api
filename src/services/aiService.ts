@@ -992,11 +992,16 @@ export class AiPlannerService {
   async critiqueTask(
     input: CritiqueTaskInput,
     context?: AiGenerationContext,
+    promptOverride?: string,
   ): Promise<CritiqueTaskOutput> {
     const fallback = critiqueTaskDeterministic(input, context);
     if (!this.provider) {
       return fallback;
     }
+
+    const systemPrompt =
+      promptOverride ||
+      "You are an execution coach. Return JSON with: qualityScore (0-100), improvedTitle, improvedDescription, suggestions (string[]). Keep suggestions actionable and concrete with owners, measurable outcomes, and deadlines where possible.";
 
     try {
       const contextBlock =
@@ -1008,7 +1013,7 @@ export class AiPlannerService {
             }
           : undefined;
       const response = await this.provider.generateJson<unknown>(
-        "You are an execution coach. Return JSON with: qualityScore (0-100), improvedTitle, improvedDescription, suggestions (string[]). Keep suggestions actionable and concrete with owners, measurable outcomes, and deadlines where possible.",
+        systemPrompt,
         JSON.stringify({
           title: sanitizeText(input.title),
           description: sanitizeText(input.description || ""),

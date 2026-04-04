@@ -1,0 +1,6 @@
+{
+  "title": "Implement the OAuth2 authentication flow using PKCE with refresh token rotation and automatic token refresh on 401 responses with exponential backoff retry logic",
+  "description": "The current auth system uses basic tokens. We need to migrate to OAuth2 PKCE. The backend team said the endpoints are ready. Make sure to handle edge cases like network failures during refresh, concurrent refresh requests, and token storage security. Also update the API client library and write integration tests.",
+  "dueDate": "2026-05-01T00:00:00Z",
+  "priority": "high"
+}

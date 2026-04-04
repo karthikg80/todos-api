@@ -1,0 +1,9 @@
+{
+  "quality_score": 75.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": true,
+  "expected_suggestion_themes": ["airline_preference", "backup_dates", "budget_detail"],
+  "notes": "Specific, scoped, has deadline and budget. Could benefit from airline preference and backup date range."
+}

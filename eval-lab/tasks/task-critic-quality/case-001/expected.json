@@ -1,0 +1,9 @@
+{
+  "quality_score": 15.0,
+  "quality_band": "low",
+  "category": "vague",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": ["specificity", "scope", "actionability"],
+  "notes": "Extremely vague. No concrete action, no scope, no deadline. Should score very low and suggest specificity improvements."
+}

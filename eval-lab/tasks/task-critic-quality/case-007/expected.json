@@ -1,0 +1,9 @@
+{
+  "quality_score": 45.0,
+  "quality_band": "mid",
+  "category": "over-specified",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": ["split_tasks", "implementation_detail", "scope"],
+  "notes": "Title includes too much implementation detail (PKCE, refresh rotation, exponential backoff). This is really a project, not a single task. Should be broken into: research/plan, implement core flow, handle edge cases, update client library, write tests."
+}
