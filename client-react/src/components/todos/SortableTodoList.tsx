@@ -23,7 +23,6 @@ import { useGroupBy } from "../../hooks/useGroupBy";
 import { useDensity } from "../../hooks/useDensity";
 import { useCollapsedGroups } from "../../hooks/useCollapsedGroups";
 import { GroupHeader } from "./GroupHeader";
-import { ListToolbar } from "./ListToolbar";
 import type { SortField, SortOrder } from "../../types/viewTypes";
 import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 import type { GroupBy } from "../../utils/groupTodos";
@@ -249,24 +248,9 @@ export function SortableTodoList({
     );
   }
 
-  const toolbar = (
-    <ListToolbar
-      sortBy={sortBy}
-      sortOrder={sortOrder}
-      onSortChange={onSortChange}
-      groupBy={effectiveGroupBy}
-      onGroupByChange={setGroupBy}
-      density={density}
-      onDensityChange={setDensity}
-      groupByOptions={groupByOptions}
-    />
-  );
-
   if (effectiveGroupBy === "none") {
     return (
-      <>
-        {toolbar}
-        <DndContext
+      <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
@@ -301,15 +285,12 @@ export function SortableTodoList({
             </div>
           </SortableContext>
         </DndContext>
-      </>
     );
   }
 
   if (effectiveGroupBy === "status" || effectiveGroupBy === "priority" || effectiveGroupBy === "dueDate") {
     return (
-      <>
-        {toolbar}
-        <div id="todosList">
+      <div id="todosList">
           {sections.map((section) => (
             <div key={section.key} className="todo-group">
               <GroupHeader
@@ -345,14 +326,11 @@ export function SortableTodoList({
             </div>
           ))}
         </div>
-      </>
     );
   }
 
   // effectiveGroupBy === "project": per-section DnD
   return (
-    <>
-      {toolbar}
       <div id="todosList">
         {sections.map((section) => (
           <div key={section.key} className="todo-group">
@@ -400,6 +378,5 @@ export function SortableTodoList({
           </div>
         ))}
       </div>
-    </>
-  );
+    );
 }
