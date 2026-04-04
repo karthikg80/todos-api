@@ -65,6 +65,7 @@ import { createStaticPagesRouter } from "./routes/staticPagesRouter";
 import { createAdaptationRouter } from "./routes/adaptationRouter";
 import { DayPlanService } from "./services/dayPlanService";
 import { UserAdaptationService } from "./services/userAdaptationService";
+import { AdaptationLlmInferenceService } from "./services/adaptationLlmInference";
 import { AreaService } from "./services/areaService";
 import { GoalService } from "./services/goalService";
 import {
@@ -493,10 +494,13 @@ export function createApp(deps: AppDependencies = {}) {
       persistencePrisma,
       activityEventService,
     );
+    const llmInferenceService = new AdaptationLlmInferenceService();
     app.use(
       "/adaptation",
       createAdaptationRouter({
         adaptationService,
+        llmInferenceService,
+        prisma: persistencePrisma,
         resolveUserId: resolveAiUserId,
       }),
     );
