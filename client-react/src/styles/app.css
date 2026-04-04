@@ -292,6 +292,17 @@ body {
   color: var(--muted);
 }
 
+.app-header__title-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
 .app-content {
   flex: 1;
   overflow-y: auto;
