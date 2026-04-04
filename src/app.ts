@@ -348,6 +348,7 @@ export function createApp(deps: AppDependencies = {}) {
       "/areas",
       "/goals",
       "/plans",
+      "/adaptation",
     ];
     for (const route of protectedRoutes) {
       app.use(route, auth);
@@ -488,7 +489,10 @@ export function createApp(deps: AppDependencies = {}) {
     );
 
     // User-Level Adaptation System
-    const adaptationService = new UserAdaptationService(persistencePrisma);
+    const adaptationService = new UserAdaptationService(
+      persistencePrisma,
+      activityEventService,
+    );
     app.use(
       "/adaptation",
       createAdaptationRouter({

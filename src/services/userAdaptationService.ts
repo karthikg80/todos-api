@@ -9,6 +9,7 @@ import {
   buildUserProfile,
   getColdStartProfile,
 } from "./userAdaptationScoring";
+import { ActivityEventService } from "./activityEventService";
 import { createLogger } from "../infra/logging/logger";
 
 const log = createLogger("userAdaptationService");
@@ -24,6 +25,12 @@ const DECAY_RECENT_DAYS = 30;
 const DECAY_RECENT_WEIGHT = 1.0;
 const DECAY_OLDER_WEIGHT = 0.5;
 
+// Profile decay: if profile hasn't been recomputed in this many days,
+// decay confidence and eligibility toward neutral to prevent fossilization.
+// Must be shorter than PROFILE_STALE_HOURS so decay applies before recomputation.
+const PROFILE_DECAY_HOURS = 12;
+const PROFILE_DECAY_FACTOR = 0.3; // decay confidence by 30% after PROFILE_DECAY_HOURS
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export interface ProfileWithMetadata {
@@ -36,7 +43,10 @@ export interface ProfileWithMetadata {
 // ─── Service ────────────────────────────────────────────────────────────────
 
 export class UserAdaptationService {
-  constructor(private readonly prisma?: PrismaClient) {}
+  constructor(
+    private readonly prisma?: PrismaClient,
+    private readonly eventService?: ActivityEventService,
+  ) {}
 
   /**
    * Get the stored profile for a user, or return cold-start defaults.
@@ -411,6 +421,28 @@ export class UserAdaptationService {
         structureAppetite: profile.structureAppetite,
       });
 
+      // Emit observability event
+      this.eventService?.recordEvent(userId, "session_start", {
+        entityType: "adaptation_profile",
+        entityId: userId,
+        metadata: {
+          event: "adaptation_profile_computed",
+          confidence: profile.confidence,
+          eligibility: profile.eligibility,
+          structureAppetite: profile.structureAppetite,
+          insightAffinity: profile.insightAffinity,
+          dateDiscipline: profile.dateDiscipline,
+          scores: {
+            structureUsageScore: scores.structureUsageScore,
+            dateUsageScore: scores.dateUsageScore,
+            insightEngagementScore: scores.insightEngagementScore,
+          },
+          signalWindow: SIGNALS_WINDOW_DAYS,
+          projectsInWindow: signals.projectsCreated,
+          sessionsInWindow: signals.projectOpenedCount,
+        },
+      });
+
       return {
         profile,
         scores,
@@ -447,7 +479,7 @@ export class UserAdaptationService {
       updatedAt: Date;
     },
   ): ProfileWithMetadata {
-    const profile: UserAdaptationProfile = {
+    let profile: UserAdaptationProfile = {
       structureAppetite: stored.structureAppetite as UserAdaptationProfile["structureAppetite"],
       insightAffinity: stored.insightAffinity as UserAdaptationProfile["insightAffinity"],
       dateDiscipline: stored.dateDiscipline as UserAdaptationProfile["dateDiscipline"],
@@ -462,11 +494,57 @@ export class UserAdaptationService {
       signalsWindowDays: stored.signalsWindowDays,
     };
 
+    // Apply decay toward neutral if profile is stale
+    profile = this._applyProfileDecay(profile, stored.computedAt);
+
     return {
       profile,
       scores: (stored.scoresSnapshot ?? {}) as DerivedSignals,
       signals: (stored.signalsSnapshot ?? {}) as UserBehaviorSignals,
       storedAt: stored.computedAt,
+    };
+  }
+
+  /**
+   * Apply decay toward neutral for stale profiles.
+   * Prevents fossilization when user behavior changes.
+   */
+  private _applyProfileDecay(
+    profile: UserAdaptationProfile,
+    computedAt: Date,
+  ): UserAdaptationProfile {
+    const hoursSinceCompute =
+      (Date.now() - computedAt.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceCompute < PROFILE_DECAY_HOURS) {
+      return profile;
+    }
+
+    // Scale decay factor by how long since compute (caps at 2x the base factor)
+    const decayMultiplier = Math.min(2, hoursSinceCompute / PROFILE_DECAY_HOURS);
+    const effectiveDecay = PROFILE_DECAY_FACTOR * decayMultiplier;
+
+    // Decay confidence toward zero
+    const decayedConfidence = Math.max(
+      0,
+      profile.confidence * (1 - effectiveDecay),
+    );
+
+    // Downgrade eligibility if confidence drops below thresholds
+    let decayedEligibility = profile.eligibility;
+    if (decayedConfidence < 0.2) {
+      decayedEligibility = "none";
+    } else if (decayedConfidence < 0.4 && profile.eligibility === "full") {
+      decayedEligibility = "standard";
+    } else if (decayedConfidence < 0.3 && profile.eligibility === "standard") {
+      decayedEligibility = "light";
+    }
+
+    return {
+      ...profile,
+      confidence: Math.round(decayedConfidence * 100) / 100,
+      eligibility: decayedEligibility,
+      confidenceReason: `${profile.confidenceReason} [decayed: ${Math.round(hoursSinceCompute)}h inactive]`,
     };
   }
 

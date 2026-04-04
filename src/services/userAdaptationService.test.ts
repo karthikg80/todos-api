@@ -224,6 +224,84 @@ describe("UserAdaptationService", () => {
     });
   });
 
+  describe("profile decay", () => {
+    it("decays confidence and eligibility for stale profiles", async () => {
+      const staleDate = new Date();
+      staleDate.setHours(staleDate.getHours() - 15); // 15h ago (> 12h decay, < 24h recompute)
+
+      const storedProfile = {
+        id: "profile-id",
+        userId: "user-1",
+        profileVersion: 1,
+        policyVersion: 1,
+        eligibility: "standard",
+        structureAppetite: "planner",
+        insightAffinity: "high",
+        dateDiscipline: "high",
+        organizationStyle: "sections_first",
+        guidanceNeed: "low",
+        confidence: 0.8,
+        confidenceReason: "strong data",
+        signalsSnapshot: null,
+        scoresSnapshot: null,
+        signalsWindowDays: 60,
+        computedAt: staleDate,
+        updatedAt: new Date(),
+      };
+
+      const prisma = createMockPrisma({
+        userAdaptationProfile: {
+          findUnique: jest.fn().mockResolvedValue(storedProfile),
+        },
+      });
+
+      const service = new UserAdaptationService(prisma);
+      const result = await service.getOrCreateProfile("user-1");
+
+      // Confidence should be decayed
+      expect(result.profile.confidence).toBeLessThan(0.8);
+      expect(result.profile.confidenceReason).toContain("decayed");
+    });
+
+    it("does not decay fresh profiles", async () => {
+      const freshDate = new Date();
+      freshDate.setHours(freshDate.getHours() - 1); // 1 hour ago
+
+      const storedProfile = {
+        id: "profile-id",
+        userId: "user-1",
+        profileVersion: 1,
+        policyVersion: 1,
+        eligibility: "standard",
+        structureAppetite: "balanced",
+        insightAffinity: "medium",
+        dateDiscipline: "medium",
+        organizationStyle: "mixed",
+        guidanceNeed: "medium",
+        confidence: 0.5,
+        confidenceReason: "moderate data",
+        signalsSnapshot: null,
+        scoresSnapshot: null,
+        signalsWindowDays: 60,
+        computedAt: freshDate,
+        updatedAt: new Date(),
+      };
+
+      const prisma = createMockPrisma({
+        userAdaptationProfile: {
+          findUnique: jest.fn().mockResolvedValue(storedProfile),
+        },
+      });
+
+      const service = new UserAdaptationService(prisma);
+      const result = await service.getOrCreateProfile("user-1");
+
+      expect(result.profile.confidence).toBe(0.5);
+      expect(result.profile.confidenceReason).toBe("moderate data");
+      expect(result.profile.eligibility).toBe("standard");
+    });
+  });
+
   describe("collectBehaviorSignals", () => {
     it("returns empty signals when prisma is undefined", async () => {
       const service = new UserAdaptationService(undefined);
