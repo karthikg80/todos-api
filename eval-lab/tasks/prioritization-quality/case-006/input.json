@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Respond to CEO email",
+      "metadata": "marked urgent but is just FYI"
+    },
+    {
+      "title": "Fix bug affecting 1000 users",
+      "metadata": "no deadline, workaround exists"
+    },
+    {
+      "title": "Prepare weekly status report",
+      "metadata": "due Friday, routine"
+    },
+    {
+      "title": "Investigate production error from last week",
+      "metadata": "already resolved, post-mortem needed"
+    }
+  ],
+  "context": "You are an engineering manager. Some 'urgent' items are not actually urgent."
+}

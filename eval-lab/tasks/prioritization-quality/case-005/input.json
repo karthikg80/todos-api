@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Launch new feature to all users",
+      "metadata": "marketing campaign starts today"
+    },
+    {
+      "title": "Fix critical security vulnerability",
+      "metadata": "affects 5% of users, exploit known"
+    },
+    {
+      "title": "Respond to customer complaint about billing",
+      "metadata": "VIP customer, threatening to leave"
+    },
+    {
+      "title": "Complete quarterly compliance audit",
+      "metadata": "due end of week, legal requirement"
+    }
+  ],
+  "context": "You are the product manager. It's Monday morning."
+}

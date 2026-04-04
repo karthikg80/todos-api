@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Write integration tests for checkout flow",
+      "metadata": "blocking release"
+    },
+    {
+      "title": "Fix CSS bug on pricing page",
+      "metadata": "cosmetic, wrong alignment"
+    },
+    {
+      "title": "Update API rate limiting",
+      "metadata": "current limits too generous"
+    },
+    {
+      "title": "Add logging to payment processing",
+      "metadata": "needed for debugging"
+    }
+  ],
+  "context": "You are a backend developer. Release is scheduled for Friday."
+}

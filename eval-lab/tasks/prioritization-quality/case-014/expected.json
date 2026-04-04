@@ -1,0 +1,20 @@
+{
+  "category": "clear-urgency",
+  "expected_order": [
+    "Deploy security patch",
+    "Implement two-factor authentication",
+    "Migrate to new cloud provider",
+    "Fix typo in error message"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Security patch first (actively exploited), then 2FA (enterprise customers), then migration (long-term), then typo (cosmetic).",
+  "common_failure_modes": [
+    "starts_migration_first",
+    "fixes_typo_before_security",
+    "misses_active_exploitation"
+  ],
+  "acceptable_variation": "May swap 2FA and migration. Must put security patch first and typo last.",
+  "notes": "Actively exploited CVE is P0. Typo is lowest priority."
+}

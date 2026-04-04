@@ -1,0 +1,20 @@
+{
+  "category": "conflicting-signals",
+  "expected_order": [
+    "Fix critical security vulnerability",
+    "Respond to customer complaint about billing",
+    "Complete quarterly compliance audit",
+    "Launch new feature to all users"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Security first (known exploit), then VIP customer (revenue risk), then compliance (legal deadline), then feature launch (can wait).",
+  "common_failure_modes": [
+    "launches_feature_before_security",
+    "ignores_vip_customer",
+    "misses_legal_deadline"
+  ],
+  "acceptable_variation": "May swap customer and compliance. Must put security first and feature last.",
+  "notes": "Conflicting urgency signals. Security is P0 despite small user base."
+}

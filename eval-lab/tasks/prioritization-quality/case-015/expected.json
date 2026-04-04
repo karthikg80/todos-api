@@ -1,0 +1,25 @@
+{
+  "category": "ambiguous",
+  "expected_order": [
+    "Upgrade Node.js from v16 to v20",
+    "Create onboarding guide for new hires",
+    "Add dark mode to dashboard",
+    "Fix broken link in footer"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [
+    [
+      "Add dark mode to dashboard",
+      "Fix broken link in footer"
+    ]
+  ],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Node.js upgrade first (EOL deadline), then onboarding (5 new hires), then dark mode (user request), then broken link (low traffic).",
+  "common_failure_modes": [
+    "fixes_link_before_upgrade",
+    "creates_guide_before_upgrade",
+    "no_tie_identification"
+  ],
+  "acceptable_variation": "May swap dark mode and broken link. Should identify them as similar priority.",
+  "notes": "Node.js EOL is the hardest deadline. Broken link is lowest impact."
+}

@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-015"
+description = "Node.js upgrade first (EOL deadline), then onboarding (5 new hires), then dark m"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Review and merge feature branch A",
+      "metadata": "tested, approved"
+    },
+    {
+      "title": "Review and merge feature branch B",
+      "metadata": "tested, approved"
+    },
+    {
+      "title": "Deploy hotfix to production",
+      "metadata": "fixes checkout bug"
+    },
+    {
+      "title": "Update project roadmap",
+      "metadata": "stakeholder meeting next week"
+    }
+  ],
+  "context": "You are the tech lead. Hotfix is ready to go."
+}

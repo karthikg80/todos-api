@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Migrate database to new schema",
+      "metadata": "estimated 2 weeks, no deadline"
+    },
+    {
+      "title": "Fix login page loading slowly",
+      "metadata": "affects 30% of users, 5 second delay"
+    },
+    {
+      "title": "Add export to CSV feature",
+      "metadata": "requested by 3 customers"
+    },
+    {
+      "title": "Update dependencies to latest versions",
+      "metadata": "security patches included"
+    }
+  ],
+  "context": "You are a solo developer. Can only do one task this week."
+}

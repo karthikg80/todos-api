@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-014"
+description = "Security patch first (actively exploited), then 2FA (enterprise customers), then"
+
+[scoring]
+weight = 1.0

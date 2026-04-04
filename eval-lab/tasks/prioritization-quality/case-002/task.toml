@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-002"
+description = "Tests first (blocking), then PR review (blocking deploy), then deploy, then spri"
+
+[scoring]
+weight = 1.0

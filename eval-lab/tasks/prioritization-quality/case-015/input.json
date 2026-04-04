@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Create onboarding guide for new hires",
+      "metadata": "5 new hires starting next month"
+    },
+    {
+      "title": "Fix broken link in footer",
+      "metadata": "404 error, low traffic page"
+    },
+    {
+      "title": "Upgrade Node.js from v16 to v20",
+      "metadata": "v16 EOL in 3 months"
+    },
+    {
+      "title": "Add dark mode to dashboard",
+      "metadata": "top user request"
+    }
+  ],
+  "context": "You are a developer on a small team."
+}

@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-006"
+description = "Bug affecting 1000 users first (real impact), then post-mortem (learning), then "
+
+[scoring]
+weight = 1.0

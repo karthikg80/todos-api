@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Deploy hotfix for checkout crash",
+      "metadata": "affecting 20% of transactions"
+    },
+    {
+      "title": "Review pull request for new feature",
+      "metadata": "blocking feature release"
+    },
+    {
+      "title": "Update staging environment",
+      "metadata": "needed for testing"
+    },
+    {
+      "title": "Attend weekly team standup",
+      "metadata": "recurring, 30 minutes"
+    }
+  ],
+  "context": "You are a developer. It's Tuesday morning."
+}

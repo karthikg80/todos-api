@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Refactor authentication module",
+      "metadata": "technical debt, no deadline"
+    },
+    {
+      "title": "Add dark mode to mobile app",
+      "metadata": "user request, no deadline"
+    },
+    {
+      "title": "Update API documentation",
+      "metadata": "outdated, no deadline"
+    },
+    {
+      "title": "Investigate slow query on reports page",
+      "metadata": "performance issue, no deadline"
+    }
+  ],
+  "context": "All tasks are important but none are urgent. Team has capacity for 2 this week."
+}

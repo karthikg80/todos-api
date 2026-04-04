@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-016"
+description = "Database backup first (data risk), then investor response (1 week funding), then"
+
+[scoring]
+weight = 1.0

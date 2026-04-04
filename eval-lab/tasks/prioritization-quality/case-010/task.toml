@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-010"
+description = "Query optimization first (user impact), then monitoring (risk reduction), then f"
+
+[scoring]
+weight = 1.0

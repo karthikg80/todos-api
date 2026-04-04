@@ -1,0 +1,20 @@
+{
+  "category": "clear-urgency",
+  "expected_order": [
+    "Renew SSL certificates",
+    "Add SSO integration for enterprise client",
+    "Fix pagination bug on search results",
+    "Clean up unused feature flags"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "SSL first (site goes down in 3 days), then SSO ($500k deal), then pagination (user impact), then feature flags (hygiene).",
+  "common_failure_modes": [
+    "cleans_flags_first",
+    "adds_sso_before_ssl",
+    "ignores_site_down_risk"
+  ],
+  "acceptable_variation": "May swap SSO and pagination. Must put SSL first and flags last.",
+  "notes": "SSL expiring is existential. Feature flags are lowest value."
+}

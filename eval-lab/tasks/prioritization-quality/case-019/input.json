@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Prepare tax documents for accountant",
+      "metadata": "deadline April 15"
+    },
+    {
+      "title": "Fix email delivery delays",
+      "metadata": "some emails arriving 2+ hours late"
+    },
+    {
+      "title": "Update employee handbook",
+      "metadata": "outdated policies, no deadline"
+    },
+    {
+      "title": "Set up automated expense tracking",
+      "metadata": "saves 2 hours per week"
+    }
+  ],
+  "context": "You are the office manager at a small company."
+}

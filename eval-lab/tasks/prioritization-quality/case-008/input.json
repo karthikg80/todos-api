@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Set up CI/CD pipeline",
+      "metadata": "blocking all future deploys"
+    },
+    {
+      "title": "Write API for mobile app",
+      "metadata": "mobile team waiting"
+    },
+    {
+      "title": "Design new onboarding flow",
+      "metadata": "marketing launch in 2 weeks"
+    },
+    {
+      "title": "Fix broken email notifications",
+      "metadata": "users not receiving password resets"
+    }
+  ],
+  "context": "You are a full-stack developer. Multiple teams are blocked."
+}

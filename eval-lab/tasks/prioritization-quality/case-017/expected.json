@@ -1,0 +1,20 @@
+{
+  "category": "clear-dependencies",
+  "expected_order": [
+    "Write post-mortem for last week's outage",
+    "Implement automated backup verification",
+    "Update runbook for incident response",
+    "Fix minor UI glitch on profile page"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Post-mortem first (CEO request, learning), then backup verification (prevents future outages), then runbook, then UI glitch (cosmetic).",
+  "common_failure_modes": [
+    "fixes_ui_glitch_first",
+    "updates_runbook_before_postmortem",
+    "misses_ceo_request"
+  ],
+  "acceptable_variation": "May swap backup verification and runbook. Must put post-mortem first and UI glitch last.",
+  "notes": "Post-mortem is highest priority (CEO + learning). UI glitch is lowest."
+}

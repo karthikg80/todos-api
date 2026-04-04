@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Fix production server crash",
+      "metadata": "urgent, all users affected"
+    },
+    {
+      "title": "Update team documentation",
+      "metadata": "low urgency, nice to have"
+    },
+    {
+      "title": "Prepare Q1 board presentation",
+      "metadata": "due tomorrow, CEO attending"
+    },
+    {
+      "title": "Order office supplies",
+      "metadata": "no deadline, can wait"
+    }
+  ],
+  "context": "You manage a team of 8 engineers. It's Monday morning."
+}

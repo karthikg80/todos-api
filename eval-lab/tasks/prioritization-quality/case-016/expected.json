@@ -1,0 +1,20 @@
+{
+  "category": "conflicting-signals",
+  "expected_order": [
+    "Fix production database backup failure",
+    "Respond to investor due diligence request",
+    "Complete employee performance reviews",
+    "Update company website homepage"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Database backup first (data risk), then investor response (1 week funding), then reviews (2 weeks), then website (1 month).",
+  "common_failure_modes": [
+    "responds_to_investors_before_backup",
+    "updates_website_first",
+    "misses_data_risk"
+  ],
+  "acceptable_variation": "May swap investor response and reviews. Must put backup first and website last.",
+  "notes": "No backups for 2 days is existential risk. Funding round is nearest deadline."
+}

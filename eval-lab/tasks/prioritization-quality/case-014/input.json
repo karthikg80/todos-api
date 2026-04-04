@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Deploy security patch",
+      "metadata": "CVE-2024-1234, actively exploited"
+    },
+    {
+      "title": "Migrate to new cloud provider",
+      "metadata": "estimated 3 months, cost savings"
+    },
+    {
+      "title": "Fix typo in error message",
+      "metadata": "cosmetic, user reported"
+    },
+    {
+      "title": "Implement two-factor authentication",
+      "metadata": "requested by enterprise customers"
+    }
+  ],
+  "context": "You are the security engineer at a fintech company."
+}

@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Complete SOC 2 compliance documentation",
+      "metadata": "audit in 3 days, legal requirement"
+    },
+    {
+      "title": "Fix mobile app crash on iOS 17",
+      "metadata": "affects 40% of users"
+    },
+    {
+      "title": "Onboard new team member",
+      "metadata": "starts Monday, needs setup"
+    },
+    {
+      "title": "Prepare demo for investor meeting",
+      "metadata": "meeting in 1 week"
+    }
+  ],
+  "context": "You are the CTO of a 15-person startup."
+}

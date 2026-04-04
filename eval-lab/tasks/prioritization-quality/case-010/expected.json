@@ -1,0 +1,25 @@
+{
+  "category": "ambiguous",
+  "expected_order": [
+    "Optimize database queries",
+    "Set up monitoring alerts",
+    "Implement user feedback form",
+    "Refactor legacy payment code"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [
+    [
+      "Implement user feedback form",
+      "Refactor legacy payment code"
+    ]
+  ],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Query optimization first (user impact), then monitoring (risk reduction), then feedback form and refactoring (similar priority, can be tied).",
+  "common_failure_modes": [
+    "refactors_before_monitoring",
+    "implements_form_before_queries",
+    "no_tie_identification"
+  ],
+  "acceptable_variation": "May swap feedback form and refactoring. Should identify them as similar priority.",
+  "notes": "Query optimization has clear user impact. Monitoring is risk reduction."
+}

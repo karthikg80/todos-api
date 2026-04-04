@@ -1,0 +1,20 @@
+{
+  "category": "conflicting-signals",
+  "expected_order": [
+    "Complete SOC 2 compliance documentation",
+    "Fix mobile app crash on iOS 17",
+    "Onboard new team member",
+    "Prepare demo for investor meeting"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "SOC 2 first (3 days, legal), then app crash (40% users), then onboarding (new hire), then investor demo (1 week).",
+  "common_failure_modes": [
+    "prepares_demo_before_soc2",
+    "ignores_40_percent_crash",
+    "onboards_before_compliance"
+  ],
+  "acceptable_variation": "May swap onboarding and investor demo. Must put SOC 2 first.",
+  "notes": "SOC 2 has nearest deadline and legal requirement. App crash has highest user impact."
+}

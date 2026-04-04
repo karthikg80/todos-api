@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-007"
+description = "Login performance first (30% users, 5s delay), then security (dependencies), the"
+
+[scoring]
+weight = 1.0

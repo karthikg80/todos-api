@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-011"
+description = "SOC 2 first (3 days, legal), then app crash (40% users), then onboarding (new hi"
+
+[scoring]
+weight = 1.0

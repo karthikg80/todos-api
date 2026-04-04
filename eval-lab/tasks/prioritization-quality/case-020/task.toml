@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-020"
+description = "Hotfix first (20% transactions), then PR review (blocking feature), then staging"
+
+[scoring]
+weight = 1.0

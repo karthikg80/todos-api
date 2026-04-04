@@ -1,0 +1,20 @@
+{
+  "category": "clear-dependencies",
+  "expected_order": [
+    "Write integration tests for checkout flow",
+    "Add logging to payment processing",
+    "Update API rate limiting",
+    "Fix CSS bug on pricing page"
+  ],
+  "expected_dependencies": {},
+  "expected_ties": [],
+  "expected_blocked": {},
+  "what_good_prioritization_looks_like": "Tests first (blocking release), then logging (needed for debugging), then rate limiting, then CSS (cosmetic).",
+  "common_failure_modes": [
+    "fixes_css_before_tests",
+    "updates_rate_limiting_before_tests",
+    "misses_blocking_release"
+  ],
+  "acceptable_variation": "May swap logging and rate limiting. Must put tests first and CSS last.",
+  "notes": "Tests are blocking release. CSS is cosmetic and lowest priority."
+}

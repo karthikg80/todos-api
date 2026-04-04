@@ -1,0 +1,21 @@
+{
+  "tasks": [
+    {
+      "title": "Write post-mortem for last week's outage",
+      "metadata": "requested by CEO"
+    },
+    {
+      "title": "Implement automated backup verification",
+      "metadata": "prevents future outages"
+    },
+    {
+      "title": "Fix minor UI glitch on profile page",
+      "metadata": "cosmetic, 1 user reported"
+    },
+    {
+      "title": "Update runbook for incident response",
+      "metadata": "outdated, references old systems"
+    }
+  ],
+  "context": "You are the SRE lead. Team just resolved a major outage."
+}

@@ -1,0 +1,6 @@
+[task]
+name = "prioritization-case-012"
+description = "Tests first (blocking release), then logging (needed for debugging), then rate l"
+
+[scoring]
+weight = 1.0
