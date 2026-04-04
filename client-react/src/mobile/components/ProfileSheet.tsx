@@ -11,6 +11,7 @@ interface Props {
   customView: WorkspaceView;
   onChangeCustomView: (view: WorkspaceView) => void;
   onLogout: () => void;
+  onNavigate: (page: string) => void;
 }
 
 function getUserInitial(user: User | null): string {
@@ -38,6 +39,7 @@ export function ProfileSheet({
   customView,
   onChangeCustomView,
   onLogout,
+  onNavigate,
 }: Props) {
   if (!open) return null;
 
@@ -94,6 +96,23 @@ export function ProfileSheet({
           </div>
         </div>
 
+        <div className="m-profile__divider" />
+
+        {/* Navigation section */}
+        <div className="m-profile__section">
+          <div className="m-profile__section-label">More</div>
+          <button className="m-profile__nav-link" onClick={() => { onNavigate("ai"); onClose(); }}>
+            AI Workspace
+          </button>
+          <button className="m-profile__nav-link" onClick={() => { onNavigate("review"); onClose(); }}>
+            Weekly Review
+          </button>
+          {user?.role === "admin" && (
+            <button className="m-profile__nav-link" onClick={() => { onNavigate("admin"); onClose(); }}>
+              Admin
+            </button>
+          )}
+        </div>
         <div className="m-profile__divider" />
 
         {/* Logout */}

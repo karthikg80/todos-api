@@ -33,7 +33,7 @@ export function TabBar({ activeTab, customView, onTabChange, onFabPress }: Props
         <span className="m-tab-bar__icon" aria-hidden="true">☀</span>
         <span className="m-tab-bar__label">Today</span>
       </button>
-      <button className="m-tab-bar__fab" aria-label="Quick capture" onClick={onFabPress}>
+      <button className="m-tab-bar__fab" aria-label="Quick capture" onClick={() => { if (navigator.vibrate) navigator.vibrate(5); onFabPress(); }}>
         <span className="m-tab-bar__fab-icon">+</span>
       </button>
       <button
