@@ -1,0 +1,14 @@
+{
+  "category": "multi-intent",
+  "original_quality": 85,
+  "rewritten_title": "Conduct 5 user research interviews on dashboard redesign",
+  "rewritten_description": "Interview 5 power users about the new dashboard redesign. Focus areas: (1) navigation ease, (2) information hierarchy, (3) feature discoverability, (4) overall satisfaction.\n\nPreparation: create interview guide with 8-10 questions. Logistics: record sessions with participant consent. Output: synthesize findings into a 1-page summary by end of sprint.\n\nDefinition of done: 5 interviews completed, recordings stored, 1-page summary is written and shared with the team.",
+  "what_good_rewriting_looks_like": "Minimal restructuring. Organizes into preparation/logistics/output. Preserves all specifics (5 users, 8-10 questions, 4 focus areas, 1-page summary, sprint deadline).",
+  "common_failure_modes": [
+    "changed_user_count",
+    "changed_question_count",
+    "dropped_focus_area",
+    "changed_deadline"
+  ],
+  "acceptable_variation": "May reorder sections. All numbers and specifics must be preserved."
+}

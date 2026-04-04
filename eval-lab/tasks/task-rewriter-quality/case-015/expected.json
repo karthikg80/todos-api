@@ -1,0 +1,13 @@
+{
+  "category": "adversarial",
+  "original_quality": 5,
+  "rewritten_title": "Create a meaningful task with clear action and purpose",
+  "rewritten_description": "The current task has no actionable content. Replace with a specific task that includes: (1) what needs to be done, (2) why it matters, (3) when it's due. Definition of done: a properly formed task with title, description, and deadline exists.",
+  "what_good_rewriting_looks_like": "Recognizes the task is meaningless. Proposes a template for a proper task. Does NOT invent a specific task.",
+  "common_failure_modes": [
+    "invented_task",
+    "ignored_meaninglessness",
+    "too_vague_still"
+  ],
+  "acceptable_variation": "Any response that flags the task as needing content without inventing specifics."
+}

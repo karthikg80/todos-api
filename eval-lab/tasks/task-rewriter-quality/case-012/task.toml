@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-012"
+description = "Structures the existing workstreams. Preserves all constraints (budget, headcoun"
+
+[scoring]
+original_quality_score = 65
+weight = 1.0

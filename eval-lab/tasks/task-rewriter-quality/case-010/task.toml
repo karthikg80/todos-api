@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-010"
+description = "Adds minimal context without inventing specifics. Makes it actionable (check-in)"
+
+[scoring]
+original_quality_score = 35
+weight = 1.0

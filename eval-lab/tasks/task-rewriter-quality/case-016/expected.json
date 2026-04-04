@@ -1,0 +1,14 @@
+{
+  "category": "adversarial",
+  "original_quality": 15,
+  "rewritten_title": "Investigate API performance issues",
+  "rewritten_description": "The API is reported as slow. Investigate and identify the root cause. Recommended steps: (1) measure current response times and identify slowest endpoints, (2) review recent changes that may have impacted performance, (3) propose specific optimizations with estimated impact. Definition of done: performance baseline is documented, root cause(s) identified, and optimization recommendations are written.",
+  "what_good_rewriting_looks_like": "Converts vague concern into an investigation task. Does NOT invent specific endpoints, metrics, or solutions. Preserves the general concern (API is slow).",
+  "common_failure_modes": [
+    "invented_endpoint",
+    "invented_metric",
+    "too_prescriptive",
+    "ignored_vague_nature"
+  ],
+  "acceptable_variation": "May frame as 'research' or 'audit' instead of 'investigate'. Should not invent specifics about what's slow."
+}

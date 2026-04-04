@@ -1,0 +1,14 @@
+{
+  "category": "well-defined",
+  "original_quality": 75,
+  "rewritten_title": "Book round-trip SFO-Tokyo flights for March 15-22",
+  "rewritten_description": "Find and book round-trip flights from SFO to Tokyo for March 15-22. Budget: ~$1200. Preference: direct flights. Definition of done: flights are booked, confirmation email received, and calendar invite created for March 15-22.",
+  "what_good_rewriting_looks_like": "Minimal edits. Preserves all facts (dates, budget, route, preference). Adds definition of done. Title is slightly more structured.",
+  "common_failure_modes": [
+    "over_edited",
+    "changed_budget",
+    "changed_dates",
+    "added_unnecessary_detail"
+  ],
+  "acceptable_variation": "Minor rewording is fine. All dates, budget, and route must be preserved exactly."
+}

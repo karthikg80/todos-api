@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-003"
+description = "Recognizes single-word task is unusable. Proposes a clarification/scoping task. "
+
+[scoring]
+original_quality_score = 10
+weight = 1.0

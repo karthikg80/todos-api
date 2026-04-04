@@ -1,0 +1,13 @@
+{
+  "category": "adversarial",
+  "original_quality": 10,
+  "rewritten_title": "Clarify: what task needs to be done?",
+  "rewritten_description": "This task references a prior conversation but has no actionable content. Recommended action: follow up with the task creator to identify the specific work item, deadline, and priority. Definition of done: a concrete task with title, description, and deadline replaces this placeholder.",
+  "what_good_rewriting_looks_like": "Recognizes the task is unactionable. Proposes clarification rather than inventing content. Does NOT guess what 'the thing' is.",
+  "common_failure_modes": [
+    "invented_task",
+    "guessed_intent",
+    "too_prescriptive"
+  ],
+  "acceptable_variation": "Any response that asks for clarification without inventing specifics is acceptable."
+}

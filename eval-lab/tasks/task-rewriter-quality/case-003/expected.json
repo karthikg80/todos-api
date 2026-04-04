@@ -1,0 +1,13 @@
+{
+  "category": "vague",
+  "original_quality": 10,
+  "rewritten_title": "Clarify research topic and scope",
+  "rewritten_description": "Identify what needs to be researched, why it matters, and what decision this research will inform. Definition of done: a one-paragraph research brief with topic, purpose, key questions, and deadline is written.",
+  "what_good_rewriting_looks_like": "Recognizes single-word task is unusable. Proposes a clarification/scoping task. Does NOT invent a research topic.",
+  "common_failure_modes": [
+    "invented_topic",
+    "too_specific",
+    "ignored_vagueness"
+  ],
+  "acceptable_variation": "Any title about clarifying research scope is acceptable."
+}

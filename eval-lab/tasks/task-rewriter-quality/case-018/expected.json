@@ -1,0 +1,14 @@
+{
+  "category": "well-defined",
+  "original_quality": 80,
+  "rewritten_title": "Buy birthday gift for Sarah (by April 18)",
+  "rewritten_description": "Purchase a birthday gift for Sarah. Preferences: candles or books (she mentioned liking both). Budget: $40. Birthday: April 20. Definition of done: gift is purchased and wrapped, ready for April 20.",
+  "what_good_rewriting_looks_like": "Minimal edits. Adds deadline to title. Preserves Sarah, preferences, budget, and birthday exactly.",
+  "common_failure_modes": [
+    "changed_name",
+    "changed_budget",
+    "changed_birthday",
+    "invented_gift"
+  ],
+  "acceptable_variation": "May suggest specific gift types within budget, but should not assume a specific item."
+}

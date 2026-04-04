@@ -1,0 +1,14 @@
+{
+  "category": "too-long",
+  "original_quality": 35,
+  "rewritten_title": "Plan design system migration (200+ pages, 3-month transition)",
+  "rewritten_description": "This is a large-scale migration. Recommended approach:\n\nPhase 1: Inventory all 200+ pages and map old\u2192new component usage\nPhase 2: Update pages in priority order with backward compatibility\nPhase 3: Write migration guides and train the team\nPhase 4: Set up deprecation warnings and update documentation\n\nConstraints: 3-month transition period, old design system sunsets end of year, new components in design-system package, coordinate with design team on gaps. Definition of done for Phase 1: complete inventory with migration effort estimates per page.",
+  "what_good_rewriting_looks_like": "Recognizes this is a multi-phase project. Structures into phases. Preserves all constraints (200+ pages, 3 months, end-of-year sunset, design-system package, design team coordination). Does NOT invent technical migration details.",
+  "common_failure_modes": [
+    "kept_as_single_task",
+    "dropped_page_count",
+    "changed_timeline",
+    "added_technical_detail"
+  ],
+  "acceptable_variation": "May use different phase groupings. All constraints must be preserved."
+}

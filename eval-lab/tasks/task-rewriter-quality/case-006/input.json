@@ -1,0 +1,6 @@
+{
+  "title": "Update the React component to use the new API endpoint and fix the styling issues in the header and also add dark mode support while you're at it",
+  "description": "The current header looks bad on mobile and the API is slow. Also we should probably add dark mode since users have been asking for it. And maybe refactor the CSS while we're touching it.",
+  "dueDate": "2026-04-15T00:00:00Z",
+  "priority": "medium"
+}

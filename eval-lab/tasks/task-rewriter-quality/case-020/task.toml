@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-020"
+description = "Adds action verb and specificity. Preserves finance spreadsheet reference and $1"
+
+[scoring]
+original_quality_score = 70
+weight = 1.0

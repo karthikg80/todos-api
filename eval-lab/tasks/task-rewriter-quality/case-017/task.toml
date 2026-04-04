@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-017"
+description = "Recognizes this is a multi-phase project. Structures into phases. Preserves all "
+
+[scoring]
+original_quality_score = 35
+weight = 1.0

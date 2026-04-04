@@ -1,0 +1,13 @@
+{
+  "category": "vague",
+  "original_quality": 15,
+  "rewritten_title": "Define first concrete step for current project",
+  "rewritten_description": "Identify the most impactful next action for the project. Document the specific deliverable, owner, and deadline. Definition of done: a clear, actionable task with acceptance criteria is created.",
+  "what_good_rewriting_looks_like": "Acknowledges vagueness, asks for clarification or proposes a scoping task. Does NOT invent project specifics.",
+  "common_failure_modes": [
+    "invented_project",
+    "too_specific",
+    "missed_vague_nature"
+  ],
+  "acceptable_variation": "Any title that proposes scoping/clarification is acceptable. Should NOT name a specific project."
+}

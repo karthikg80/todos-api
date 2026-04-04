@@ -1,0 +1,13 @@
+{
+  "category": "well-defined",
+  "original_quality": 70,
+  "rewritten_title": "Audit and cancel unused SaaS subscriptions over $100/month",
+  "rewritten_description": "Review the finance spreadsheet to identify SaaS tools that are paid for but unused. Focus on subscriptions over $100/month. For each unused tool: verify no active users, document the cancellation process, and cancel. Definition of done: all unused SaaS subscriptions over $100/month are identified and cancelled, with a summary of savings documented.",
+  "what_good_rewriting_looks_like": "Adds action verb and specificity. Preserves finance spreadsheet reference and $100/month threshold. Adds definition of done.",
+  "common_failure_modes": [
+    "changed_threshold",
+    "dropped_spreadsheet_reference",
+    "invented_tools"
+  ],
+  "acceptable_variation": "May add steps about documenting savings. Core facts (spreadsheet, $100/month) must be preserved."
+}

@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-004"
+description = "Minimal edits. Preserves all facts (dates, budget, route, preference). Adds defi"
+
+[scoring]
+original_quality_score = 75
+weight = 1.0
