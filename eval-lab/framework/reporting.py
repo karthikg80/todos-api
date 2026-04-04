@@ -30,7 +30,16 @@ def generate_scorecard(result: RunResult) -> dict[str, Any]:
     # By slice
     scorecard["by_slice"] = result.score_by_slice()
 
-    # Failure summary
+    # By difficulty
+    scorecard["by_difficulty"] = result.score_by_difficulty()
+
+    # Dimension averages
+    scorecard["dimension_averages"] = result.dimension_averages()
+
+    # Failure rates (normalized)
+    scorecard["failure_rates"] = result.failure_rate()
+
+    # Failure summary (raw counts)
     scorecard["failures"] = result.failure_summary()
 
     # Per-case details
@@ -39,11 +48,15 @@ def generate_scorecard(result: RunResult) -> dict[str, Any]:
         scorecard["cases"].append({
             "id": c.case_id,
             "split": c.split,
+            "difficulty": c.difficulty,
             "score": c.score,
             "error": c.error,
             "slices": c.slices,
             "failure_types": [ft.value for ft in c.failure_types],
             "abs_error": c.abs_error,
+            "dimensions": c.breakdown.dimensions,
+            "grader_rationale": c.breakdown.grader_rationale,
+            "borderline": c.breakdown.borderline,
         })
 
     return scorecard
@@ -77,6 +90,8 @@ def compare_runs(results: list[RunResult]) -> dict[str, Any]:
             "errors": r.error_count,
             "by_split": r.score_by_split(),
             "by_slice": r.score_by_slice(),
+            "by_difficulty": r.score_by_difficulty(),
+            "dimension_averages": r.dimension_averages(),
         })
 
     # Compute deltas between consecutive runs
@@ -90,6 +105,8 @@ def compare_runs(results: list[RunResult]) -> dict[str, Any]:
             "error_delta": curr.error_count - prev.error_count,
             "split_deltas": {},
             "slice_deltas": {},
+            "difficulty_deltas": {},
+            "dimension_deltas": {},
         }
 
         prev_splits = prev.score_by_split()
@@ -106,15 +123,29 @@ def compare_runs(results: list[RunResult]) -> dict[str, Any]:
                 curr_slices.get(slice_name, 0) - prev_slices.get(slice_name, 0), 3
             )
 
+        prev_diffs = prev.score_by_difficulty()
+        curr_diffs = curr.score_by_difficulty()
+        for diff_name in set(list(prev_diffs.keys()) + list(curr_diffs.keys())):
+            delta["difficulty_deltas"][diff_name] = round(
+                curr_diffs.get(diff_name, 0) - prev_diffs.get(diff_name, 0), 3
+            )
+
+        prev_dims = prev.dimension_averages()
+        curr_dims = curr.dimension_averages()
+        for dim_name in set(list(prev_dims.keys()) + list(curr_dims.keys())):
+            delta["dimension_deltas"][dim_name] = round(
+                curr_dims.get(dim_name, 0) - prev_dims.get(dim_name, 0), 3
+            )
+
         comparison["deltas"].append(delta)
 
     return comparison
 
 
-def failure_heatmap(results: list[RunResult]) -> dict[str, dict[str, int]]:
-    """Generate a failure heatmap across runs and failure types."""
-    heatmap: dict[str, dict[str, int]] = {}
+def failure_heatmap(results: list[RunResult]) -> dict[str, dict[str, float]]:
+    """Generate a failure heatmap across runs and failure types (normalized rates)."""
+    heatmap: dict[str, dict[str, float]] = {}
     for r in results:
         run_name = f"{r.config.prompt_name} ({r.config.timestamp[:10]})"
-        heatmap[run_name] = r.failure_summary()
+        heatmap[run_name] = r.failure_rate()
     return heatmap

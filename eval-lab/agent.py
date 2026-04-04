@@ -95,12 +95,9 @@ async def run_benchmark(
                 ) if c.predicted else False,
                 "error": c.error,
                 "split": c.split,
-                "breakdown": {
-                    "correctness": c.breakdown.correctness,
-                    "instruction_following": c.breakdown.instruction_following,
-                    "robustness": c.breakdown.robustness,
-                    "format_compliance": c.breakdown.format_compliance,
-                },
+                "breakdown": c.breakdown.dimensions,
+                "grader_rationale": c.breakdown.grader_rationale,
+                "borderline": c.breakdown.borderline,
                 "failure_types": [ft.value for ft in c.failure_types],
             }
             for c in result.cases
