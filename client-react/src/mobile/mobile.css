@@ -541,6 +541,20 @@
   margin-bottom: var(--s-3);
   font-family: var(--m-font);
   color: var(--m-text);
+  position: relative;
+  overflow: hidden;
+}
+
+.m-focus__next-blob {
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 80px;
+  height: 80px;
+  border-radius: var(--m-r-full);
+  background: var(--m-gradient);
+  opacity: 0.06;
+  pointer-events: none;
 }
 
 .m-focus__next-label {
@@ -1863,8 +1877,9 @@
 }
 
 .m-onboarding__icon {
-  font-size: 48px;
   margin-bottom: var(--s-4);
+  display: flex;
+  justify-content: center;
 }
 
 .m-onboarding__title {
