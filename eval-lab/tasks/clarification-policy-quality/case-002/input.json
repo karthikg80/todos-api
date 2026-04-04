@@ -1,0 +1,5 @@
+{
+  "scenario": "Book a flight for the team offsite",
+  "context": "The team is planning an offsite next quarter.",
+  "available_info": "Destination: Austin. No dates, budget, or traveler names."
+}

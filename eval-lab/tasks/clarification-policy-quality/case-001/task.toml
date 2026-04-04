@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-001"
+description = "Asks for date/time, duration, and attendees. These are essential for scheduling."
+
+[scoring]
+weight = 1.0

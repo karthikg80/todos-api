@@ -1,0 +1,20 @@
+{
+  "category": "ask-critical",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "travel dates",
+    "budget",
+    "traveler names",
+    "departure city"
+  ],
+  "expected_min_questions": 2,
+  "expected_max_questions": 4,
+  "what_good_decision_looks_like": "Asks for dates, budget, and who is traveling. Cannot book without these.",
+  "common_failure_modes": [
+    "proceeds_without_info",
+    "assumes_departure_city",
+    "asks_too_many_questions"
+  ],
+  "acceptable_variation": "May ask about airline preferences or seat class. Must ask for dates.",
+  "notes": "Cannot book a flight without dates and traveler info. Must ask."
+}

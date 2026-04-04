@@ -1,0 +1,5 @@
+{
+  "scenario": "Send a thank you note to the team for completing the project",
+  "context": "You manage team communications.",
+  "available_info": "Project 'Mobile App Launch' was completed yesterday. Team has 8 members."
+}

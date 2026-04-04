@@ -1,0 +1,19 @@
+{
+  "category": "ambiguous",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "team size",
+    "dietary restrictions",
+    "budget"
+  ],
+  "expected_min_questions": 1,
+  "expected_max_questions": 3,
+  "what_good_decision_looks_like": "Asks for team size and dietary restrictions. Cannot order without knowing how much and what.",
+  "common_failure_modes": [
+    "proceeds_without_info",
+    "assumes_team_size",
+    "asks_too_many_questions"
+  ],
+  "acceptable_variation": "May ask about cuisine preferences. Must ask for team size.",
+  "notes": "Cannot order lunch without knowing team size. Should ask."
+}

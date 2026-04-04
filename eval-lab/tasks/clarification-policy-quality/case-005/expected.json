@@ -1,0 +1,15 @@
+{
+  "category": "proceed-clear",
+  "expected_decision": "proceed",
+  "expected_question_topics": [],
+  "expected_min_questions": 0,
+  "expected_max_questions": 0,
+  "what_good_decision_looks_like": "Proceeds to add the item. Simple list addition needs no clarification.",
+  "common_failure_modes": [
+    "asks_what_groceries",
+    "asks_when_to_shop",
+    "refuses_without_reason"
+  ],
+  "acceptable_variation": "May confirm the addition. Should NOT ask what to buy.",
+  "notes": "Simple list addition. Should proceed without asking."
+}

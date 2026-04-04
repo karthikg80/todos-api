@@ -1,0 +1,5 @@
+{
+  "scenario": "Update the project deadline to next Friday",
+  "context": "You manage project timelines.",
+  "available_info": "Project 'Q2 Marketing Campaign' exists. Current deadline is April 30."
+}

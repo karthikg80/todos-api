@@ -1,0 +1,5 @@
+{
+  "scenario": "Add a note to the project 'Website Redesign'",
+  "context": "You manage project notes.",
+  "available_info": "Project exists. Note content not specified."
+}

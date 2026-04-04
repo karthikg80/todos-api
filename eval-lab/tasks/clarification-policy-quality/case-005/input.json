@@ -1,0 +1,5 @@
+{
+  "scenario": "Add 'Buy groceries' to my shopping list",
+  "context": "You manage the user's personal lists.",
+  "available_info": "Task: buy groceries. List: shopping. No other details needed."
+}

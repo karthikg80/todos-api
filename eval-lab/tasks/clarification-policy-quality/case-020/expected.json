@@ -1,0 +1,20 @@
+{
+  "category": "ambiguous",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "date",
+    "budget",
+    "guest count",
+    "boss preferences"
+  ],
+  "expected_min_questions": 2,
+  "expected_max_questions": 4,
+  "what_good_decision_looks_like": "Asks for date, budget, and guest count. Cannot plan without these basics.",
+  "common_failure_modes": [
+    "proceeds_without_info",
+    "invents_party_details",
+    "asks_too_many_questions"
+  ],
+  "acceptable_variation": "May suggest a planning approach while asking for basics.",
+  "notes": "Cannot plan a party without date, budget, and guest count. Must ask."
+}

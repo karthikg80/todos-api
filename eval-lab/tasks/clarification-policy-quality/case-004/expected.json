@@ -1,0 +1,14 @@
+{
+  "category": "proceed-clear",
+  "expected_decision": "proceed",
+  "expected_question_topics": [],
+  "expected_min_questions": 0,
+  "expected_max_questions": 0,
+  "what_good_decision_looks_like": "Proceeds to set the reminder. All necessary information is provided.",
+  "common_failure_modes": [
+    "asks_unnecessary_questions",
+    "refuses_without_reason"
+  ],
+  "acceptable_variation": "May state assumptions (e.g., 'I'll set this for the upcoming Sunday').",
+  "notes": "All info provided. Should proceed without asking."
+}

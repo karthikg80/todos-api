@@ -1,0 +1,20 @@
+{
+  "category": "ask-critical",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "location",
+    "cuisine preference",
+    "party size",
+    "budget"
+  ],
+  "expected_min_questions": 2,
+  "expected_max_questions": 4,
+  "what_good_decision_looks_like": "Asks for location and cuisine at minimum. Cannot recommend without knowing where and what type.",
+  "common_failure_modes": [
+    "proceeds_without_info",
+    "assumes_location",
+    "asks_too_many_questions"
+  ],
+  "acceptable_variation": "May use user's home location if known. Must ask for cuisine preference.",
+  "notes": "Cannot recommend a restaurant without location and cuisine. Must ask."
+}

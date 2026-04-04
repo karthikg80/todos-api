@@ -1,0 +1,5 @@
+{
+  "scenario": "Send the invoice to the client",
+  "context": "We completed a consulting engagement last month.",
+  "available_info": "Client: Acme Corp. Project: website redesign. Amount and email address unknown."
+}

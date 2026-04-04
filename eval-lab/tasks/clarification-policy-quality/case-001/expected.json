@@ -1,0 +1,20 @@
+{
+  "category": "ask-critical",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "date and time",
+    "duration",
+    "attendees",
+    "meeting format"
+  ],
+  "expected_min_questions": 2,
+  "expected_max_questions": 4,
+  "what_good_decision_looks_like": "Asks for date/time, duration, and attendees. These are essential for scheduling.",
+  "common_failure_modes": [
+    "proceeds_without_info",
+    "asks_too_many_questions",
+    "misses_critical_info"
+  ],
+  "acceptable_variation": "May ask about format (in-person/virtual) or agenda. Must ask for date/time.",
+  "notes": "Cannot schedule a meeting without date, time, and attendees. Must ask."
+}

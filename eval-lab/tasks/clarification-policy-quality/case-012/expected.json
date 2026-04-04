@@ -1,0 +1,17 @@
+{
+  "category": "partial-info",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "note content"
+  ],
+  "expected_min_questions": 1,
+  "expected_max_questions": 1,
+  "what_good_decision_looks_like": "Asks what the note should say. Cannot add an empty note.",
+  "common_failure_modes": [
+    "proceeds_without_content",
+    "invents_note_content",
+    "asks_which_project"
+  ],
+  "acceptable_variation": "Must ask for note content. Should NOT invent content.",
+  "notes": "Cannot add a note without content. Must ask."
+}

@@ -1,0 +1,5 @@
+{
+  "scenario": "Cancel all my subscriptions",
+  "context": "You manage the user's personal admin tasks.",
+  "available_info": "User has 12 active subscriptions (Netflix, Spotify, gym, etc.). Request is vague about which ones."
+}

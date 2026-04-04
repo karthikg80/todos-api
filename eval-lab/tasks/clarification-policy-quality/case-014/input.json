@@ -1,0 +1,5 @@
+{
+  "scenario": "Reply to the latest email from Sarah",
+  "context": "You manage the user's email.",
+  "available_info": "User has 3 emails from Sarah. Latest is about meeting rescheduling."
+}

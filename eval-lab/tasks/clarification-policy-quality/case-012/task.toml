@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-012"
+description = "Asks what the note should say. Cannot add an empty note."
+
+[scoring]
+weight = 1.0

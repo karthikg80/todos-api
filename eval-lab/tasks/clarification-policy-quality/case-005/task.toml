@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-005"
+description = "Proceeds to add the item. Simple list addition needs no clarification."
+
+[scoring]
+weight = 1.0

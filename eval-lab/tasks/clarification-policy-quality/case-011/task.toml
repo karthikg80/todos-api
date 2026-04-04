@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-011"
+description = "Proceeds to create the task without a deadline. May note that no deadline was se"
+
+[scoring]
+weight = 1.0

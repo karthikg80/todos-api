@@ -1,0 +1,14 @@
+{
+  "category": "partial-info",
+  "expected_decision": "proceed",
+  "expected_question_topics": [],
+  "expected_min_questions": 0,
+  "expected_max_questions": 1,
+  "what_good_decision_looks_like": "Proceeds to create the task without a deadline. May note that no deadline was set.",
+  "common_failure_modes": [
+    "asks_for_deadline",
+    "refuses_without_deadline"
+  ],
+  "acceptable_variation": "May ask if a deadline is desired, but should proceed either way.",
+  "notes": "Can create a task without a deadline. Should proceed, optionally noting the missing deadline."
+}

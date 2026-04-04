@@ -1,0 +1,5 @@
+{
+  "scenario": "Reschedule my dentist appointment",
+  "context": "You manage the user's personal calendar.",
+  "available_info": "User has a dentist appointment on April 15 at 10am. No new date specified."
+}

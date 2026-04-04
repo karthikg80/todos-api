@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-018"
+description = "Asks for location and cuisine at minimum. Cannot recommend without knowing where"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,5 @@
+{
+  "scenario": "Set a reminder to call mom on Sunday at 2pm",
+  "context": "You manage personal reminders.",
+  "available_info": "Task: call mom. Date: Sunday. Time: 2pm. All details provided."
+}
