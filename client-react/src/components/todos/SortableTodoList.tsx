@@ -23,10 +23,10 @@ import { useGroupBy } from "../../hooks/useGroupBy";
 import { useDensity } from "../../hooks/useDensity";
 import { useCollapsedGroups } from "../../hooks/useCollapsedGroups";
 import { GroupHeader } from "./GroupHeader";
-import { ListToolbar } from "./ListToolbar";
-import type { SortField, SortOrder } from "./SortControl";
+import type { SortField, SortOrder } from "../../types/viewTypes";
 import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 import type { GroupBy } from "../../utils/groupTodos";
+import type { Density } from "../../hooks/useDensity";
 
 interface SortableRowProps {
   todo: Todo;
@@ -103,6 +103,10 @@ interface Props {
   sortOrder: SortOrder;
   onSortChange: (field: SortField, order: SortOrder) => void;
   groupByOptions?: GroupBy[];
+  groupBy?: GroupBy;
+  onGroupByChange?: (val: GroupBy) => void;
+  density?: Density;
+  onDensityChange?: (val: Density) => void;
 }
 
 export function SortableTodoList({
@@ -129,16 +133,24 @@ export function SortableTodoList({
   sortOrder,
   onSortChange,
   groupByOptions,
+  groupBy: groupByProp,
+  onGroupByChange: onGroupByChangeProp,
+  density: densityProp,
+  onDensityChange: onDensityChangeProp,
 }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const { groupBy, setGroupBy } = useGroupBy();
+  const { groupBy: hookGroupBy, setGroupBy: hookSetGroupBy } = useGroupBy();
+  const { density: hookDensity, setDensity: hookSetDensity } = useDensity();
+  const groupBy = groupByProp ?? hookGroupBy;
+  const setGroupBy = onGroupByChangeProp ?? hookSetGroupBy;
+  const density = densityProp ?? hookDensity;
+  const setDensity = onDensityChangeProp ?? hookSetDensity;
   const effectiveGroupBy = groupByOptions?.includes(groupBy)
     ? groupBy
     : (groupByOptions?.[0] ?? groupBy);
-  const { density, setDensity } = useDensity();
   const sections = useMemo(
     () => groupTodos(todos, effectiveGroupBy),
     [todos, effectiveGroupBy],
@@ -236,24 +248,9 @@ export function SortableTodoList({
     );
   }
 
-  const toolbar = (
-    <ListToolbar
-      sortBy={sortBy}
-      sortOrder={sortOrder}
-      onSortChange={onSortChange}
-      groupBy={effectiveGroupBy}
-      onGroupByChange={setGroupBy}
-      density={density}
-      onDensityChange={setDensity}
-      groupByOptions={groupByOptions}
-    />
-  );
-
   if (effectiveGroupBy === "none") {
     return (
-      <>
-        {toolbar}
-        <DndContext
+      <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
@@ -288,15 +285,12 @@ export function SortableTodoList({
             </div>
           </SortableContext>
         </DndContext>
-      </>
     );
   }
 
   if (effectiveGroupBy === "status" || effectiveGroupBy === "priority" || effectiveGroupBy === "dueDate") {
     return (
-      <>
-        {toolbar}
-        <div id="todosList">
+      <div id="todosList">
           {sections.map((section) => (
             <div key={section.key} className="todo-group">
               <GroupHeader
@@ -332,14 +326,11 @@ export function SortableTodoList({
             </div>
           ))}
         </div>
-      </>
     );
   }
 
   // effectiveGroupBy === "project": per-section DnD
   return (
-    <>
-      {toolbar}
       <div id="todosList">
         {sections.map((section) => (
           <div key={section.key} className="todo-group">
@@ -387,6 +378,5 @@ export function SortableTodoList({
           </div>
         ))}
       </div>
-    </>
-  );
+    );
 }

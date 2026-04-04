@@ -12,6 +12,7 @@ import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useDensity } from "../../hooks/useDensity";
+import { useGroupBy } from "../../hooks/useGroupBy";
 import { useServiceWorker } from "../../hooks/useServiceWorker";
 import { useIsMobile } from "../../hooks/useIsMobile";
 import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
@@ -21,7 +22,7 @@ import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
 import type { Todo } from "../../types";
-import { type SortField, type SortOrder } from "../todos/SortControl";
+import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
@@ -73,7 +74,6 @@ type AppPage =
   | "admin"
   | "feedback"
   | "review";
-type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 type HorizonSegment = "due" | "planned" | "pending" | "later";
 
@@ -86,7 +86,8 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
-  const { density, cycle: cycleDensity } = useDensity();
+  const { density, setDensity, cycle: cycleDensity } = useDensity();
+  const { groupBy, setGroupBy } = useGroupBy();
   const { startTransition } = useViewTransition();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("home");
@@ -121,6 +122,7 @@ export function AppShell() {
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [page, setPage] = useState<AppPage>("todos");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [projectCrudMode, setProjectCrudMode] = useState<
     "create" | "rename" | null
   >(null);
@@ -745,6 +747,13 @@ export function AppShell() {
         return;
       }
 
+      // 'v': toggle view menu
+      if (e.key === "v" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setViewMenuOpen((o) => !o);
+        return;
+      }
+
       // '/': focus search
       if (e.key === "/") {
         e.preventDefault();
@@ -808,6 +817,7 @@ export function AppShell() {
     bulkMode,
     mobileNavOpen,
     paletteOpen,
+    viewMenuOpen,
     handleCancelBulk,
     focusQuickEntryOrOpenComposer,
     focusSearchInput,
@@ -1210,6 +1220,12 @@ export function AppShell() {
                       onExportMessage={(msg) => setUndoAction({ message: msg })}
                       user={user}
                       dark={dark}
+                      groupBy={groupBy}
+                      onGroupByChange={setGroupBy}
+                      density={density}
+                      onDensityChange={setDensity}
+                      viewMenuOpen={viewMenuOpen}
+                      onViewMenuOpenChange={setViewMenuOpen}
                     />
                     <div className="app-content">
                       {viewMode === "board" ? (

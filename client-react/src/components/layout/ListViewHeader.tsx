@@ -1,29 +1,20 @@
 import type { Todo, User, CreateTodoDto } from "../../types";
-import {
-  IconMoon,
-  IconSun,
-  IconMenu,
-  IconCalendar,
-  IconList,
-  IconBoard,
-  IconPlus,
-} from "../shared/Icons";
+import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
 import { Breadcrumb } from "../shared/Breadcrumb";
 import { AnimatedCount } from "../shared/AnimatedCount";
 import { Tooltip } from "../shared/Tooltip";
 import { FilterPanel, type ActiveFilters } from "../todos/FilterPanel";
-import {
-  SortControl,
-  type SortField,
-  type SortOrder,
-} from "../todos/SortControl";
+import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
+import type { Density } from "../../hooks/useDensity";
+import type { GroupBy } from "../../utils/groupTodos";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { SearchBar } from "../shared/SearchBar";
 import { SegmentedControl } from "../shared/SegmentedControl";
 import { VerificationBanner } from "../shared/VerificationBanner";
+import { ViewMenu } from "./ViewMenu";
+import { ViewSubtitle } from "./ViewSubtitle";
 
-type ViewMode = "list" | "board";
 type UiMode = "normal" | "simple";
 type HorizonSegment = "due" | "planned" | "pending" | "later";
 
@@ -99,6 +90,15 @@ export interface ListViewHeaderProps {
   onExportIcs: (todos: Todo[]) => void;
   onExportMessage: (msg: string) => void;
 
+  // View controls
+  groupBy: GroupBy;
+  onGroupByChange: (val: GroupBy) => void;
+  density: Density;
+  onDensityChange: (val: Density) => void;
+  groupByOptions?: GroupBy[];
+  viewMenuOpen?: boolean;
+  onViewMenuOpenChange?: (open: boolean) => void;
+
   // Misc
   user: User | null;
   dark: boolean;
@@ -148,6 +148,13 @@ export function ListViewHeader({
   onExportMessage,
   user,
   dark,
+  groupBy,
+  onGroupByChange,
+  density,
+  onDensityChange,
+  groupByOptions,
+  viewMenuOpen,
+  onViewMenuOpenChange,
 }: ListViewHeaderProps) {
   const activeCount = visibleTodos.filter((t) => !t.completed).length;
   const showHorizonSegments =
@@ -209,29 +216,54 @@ export function ListViewHeader({
       {/* Desktop header */}
       {!isMobile && (
         <header className="app-header">
-          <span id="todosListHeaderTitle" className="app-header__title">
-            <Breadcrumb
-              items={[
-                ...(selectedProjectId
-                  ? [
-                      {
-                        label: viewLabels[activeView] ?? "Tasks",
-                        onClick: onClearProject,
-                      },
-                      { label: headerTitle },
-                    ]
-                  : [{ label: headerTitle }]),
-              ]}
+          <div className="app-header__title-group">
+            <div className="app-header__title-row">
+              <span id="todosListHeaderTitle" className="app-header__title">
+                <Breadcrumb
+                  items={[
+                    ...(selectedProjectId
+                      ? [
+                          {
+                            label: viewLabels[activeView] ?? "Tasks",
+                            onClick: onClearProject,
+                          },
+                          { label: headerTitle },
+                        ]
+                      : [{ label: headerTitle }]),
+                  ]}
+                />
+                {!selectedProjectId && headerTitle}
+              </span>
+              <span id="todosListHeaderCount" className="app-header__count">
+                {loadState === "loaded" && (
+                  <>
+                    <AnimatedCount value={activeCount} /> tasks
+                  </>
+                )}
+              </span>
+            </div>
+            <ViewSubtitle
+              viewMode={viewMode}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+              groupBy={groupBy}
+              density={density}
             />
-            {!selectedProjectId && headerTitle}
-          </span>
-          <span id="todosListHeaderCount" className="app-header__count">
-            {loadState === "loaded" && (
-              <>
-                <AnimatedCount value={activeCount} /> tasks
-              </>
-            )}
-          </span>
+          </div>
+          <ViewMenu
+            viewMode={viewMode}
+            onViewModeChange={onViewModeChange}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSortChange={onSortChange}
+            groupBy={groupBy}
+            onGroupByChange={onGroupByChange}
+            density={density}
+            onDensityChange={onDensityChange}
+            groupByOptions={groupByOptions}
+            externalOpen={viewMenuOpen}
+            onOpenChange={onViewMenuOpenChange}
+          />
           <Tooltip content="Filters" shortcut="f">
             <button
               id="moreFiltersToggle"
@@ -245,60 +277,6 @@ export function ListViewHeader({
                 activeFilters.status) && (
                 <span className="filter-badge">●</span>
               )}
-            </button>
-          </Tooltip>
-          <SegmentedControl
-            value={viewMode}
-            onChange={(next) => onViewModeChange(next as "list" | "board")}
-            ariaLabel="View mode"
-            iconOnly
-            options={[
-              {
-                value: "list",
-                ariaLabel: "List view",
-                icon: <IconList />,
-              },
-              {
-                value: "board",
-                ariaLabel: "Board view",
-                icon: <IconBoard />,
-              },
-            ]}
-          />
-          {viewMode === "list" && (
-            <SortControl
-              sortBy={sortBy}
-              sortOrder={sortOrder}
-              onChange={onSortChange}
-            />
-          )}
-          <Tooltip content="New task" shortcut="n">
-            <button
-              className="btn"
-              data-new-task-trigger="true"
-              onClick={onNewTask}
-              style={{ fontSize: "var(--fs-label)" }}
-            >
-              <IconPlus /> New Task
-            </button>
-          </Tooltip>
-          <Tooltip content="Export calendar" shortcut=".ics">
-            <button
-              id="exportIcsButton"
-              className="btn"
-              onClick={() => {
-                const withDates = todos.filter((t) => t.dueDate);
-                if (withDates.length === 0) {
-                  onExportMessage("No tasks with due dates to export");
-                  return;
-                }
-                onExportIcs(withDates);
-                onExportMessage(`Exported ${withDates.length} tasks to .ics`);
-              }}
-              aria-label="Export to calendar"
-              style={{ fontSize: "var(--fs-label)" }}
-            >
-              <IconCalendar />
             </button>
           </Tooltip>
           <Tooltip content={dark ? "Light mode" : "Dark mode"}>
