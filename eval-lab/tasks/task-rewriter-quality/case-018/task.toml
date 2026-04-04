@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-018"
+description = "Minimal edits. Adds deadline to title. Preserves Sarah, preferences, budget, and"
+
+[scoring]
+original_quality_score = 80
+weight = 1.0

@@ -1,0 +1,14 @@
+{
+  "category": "over-specified",
+  "original_quality": 40,
+  "rewritten_title": "Design recommendation engine improvement plan (collaborative filtering)",
+  "rewritten_description": "This is a multi-phase project. Recommended phases:\n1. Data exploration and baseline establishment (current 2% CTR \u2192 target 5%)\n2. Model development (collaborative filtering with matrix factorization)\n3. A/B testing framework setup (NDCG@10, CTR, conversion rate metrics)\n4. Production deployment with feature flags and monitoring\n\nConstraints: weekly retraining, <100ms inference latency, 1M+ users, use ML platform team's infrastructure, training data at s3://ml-data/recs/. Definition of done for Phase 1: baseline metrics documented and data quality verified.",
+  "what_good_rewriting_looks_like": "Recognizes this is a quarter-long project. Structures into phases. Preserves all constraints (CTR targets, latency, user count, data location, retraining frequency). Does NOT add technical specifics beyond what's given.",
+  "common_failure_modes": [
+    "kept_as_single_task",
+    "dropped_constraint",
+    "added_technical_detail",
+    "ignored_scale_requirements"
+  ],
+  "acceptable_variation": "May use different phase names or groupings. All constraints and metrics must be preserved."
+}

@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-005"
+description = "Very minimal edits. Structure the description with bullet points. Add definition"
+
+[scoring]
+original_quality_score = 80
+weight = 1.0

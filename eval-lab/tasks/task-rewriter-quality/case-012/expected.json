@@ -1,0 +1,14 @@
+{
+  "category": "multi-intent",
+  "original_quality": 65,
+  "rewritten_title": "Plan Q2 team offsite (venue, agenda, catering)",
+  "rewritten_description": "Organize Q2 team offsite. Constraints: budget $5k, 12 people, Bay Area location, preferably outdoors (spring). Key workstreams:\n1. Venue: research and book outdoor-friendly Bay Area venue\n2. Agenda: draft half-day or full-day schedule\n3. Activities: plan team-building activities suitable for outdoors\n4. Catering: arrange food/beverage for 12 people\n\nDefinition of done: venue is booked, agenda is shared with team, activities are planned, catering is ordered, and all arrangements are within $5k budget.",
+  "what_good_rewriting_looks_like": "Structures the existing workstreams. Preserves all constraints (budget, headcount, location, season preference). Does NOT invent specific venues or activities.",
+  "common_failure_modes": [
+    "invented_venue",
+    "invented_activity",
+    "dropped_constraint",
+    "changed_budget"
+  ],
+  "acceptable_variation": "May group workstreams differently. All constraints must be preserved."
+}

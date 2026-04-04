@@ -1,0 +1,14 @@
+{
+  "category": "well-defined",
+  "original_quality": 80,
+  "rewritten_title": "Send Q4 board deck to Sarah by Friday",
+  "rewritten_description": "Compile and send Q4 board deck to Sarah before Friday. Include: (1) updated metrics from dashboard, (2) budget variance analysis, (3) hiring plan. Context: Sarah needs it before Monday's board meeting. Definition of done: deck is sent to Sarah with all three sections included, and confirmation of receipt is received.",
+  "what_good_rewriting_looks_like": "Very minimal edits. Structure the description with bullet points. Add definition of done. Preserve Sarah, Friday, Monday, and all three content items exactly.",
+  "common_failure_modes": [
+    "changed_recipient",
+    "changed_deadline",
+    "dropped_content_item",
+    "over_edited"
+  ],
+  "acceptable_variation": "Reordering content items is fine. All names, dates, and content items must be preserved."
+}

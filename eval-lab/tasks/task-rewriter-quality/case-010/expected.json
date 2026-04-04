@@ -1,0 +1,13 @@
+{
+  "category": "missing-context-salvageable",
+  "original_quality": 35,
+  "rewritten_title": "Call mom to check in",
+  "rewritten_description": "Call mom for a personal check-in. Consider: any upcoming events, birthdays, or family matters to discuss. Definition of done: call is completed and any follow-up actions (sending something, planning a visit) are noted.",
+  "what_good_rewriting_looks_like": "Adds minimal context without inventing specifics. Makes it actionable (check-in) while preserving the personal nature. Does NOT invent reasons for calling.",
+  "common_failure_modes": [
+    "invented_reason",
+    "too_prescriptive",
+    "ignored_personal_context"
+  ],
+  "acceptable_variation": "Any gentle enhancement that makes the task actionable without inventing specifics."
+}

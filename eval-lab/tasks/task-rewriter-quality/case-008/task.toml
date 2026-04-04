@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-008"
+description = "Very minimal edits. Maybe adds 'call' action and definition of done. Preserves m"
+
+[scoring]
+original_quality_score = 85
+weight = 1.0

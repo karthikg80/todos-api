@@ -1,0 +1,13 @@
+{
+  "category": "vague",
+  "original_quality": 25,
+  "rewritten_title": "Research tax filing requirements for current year",
+  "rewritten_description": "Determine what tax forms need to be filed, gather necessary documents (W-2s, 1099s, receipts), and identify filing deadline. Definition of done: a complete list of required forms and documents is compiled, and a filing plan with deadlines is created.",
+  "what_good_rewriting_looks_like": "Converts vague intent into a research/scoping task. Preserves 'taxes' topic without inventing specifics about jurisdiction or amounts.",
+  "common_failure_modes": [
+    "invented_jurisdiction",
+    "invented_deadline",
+    "too_prescriptive"
+  ],
+  "acceptable_variation": "Any title about researching/organizing tax filing is acceptable. Should not assume specific tax situation."
+}

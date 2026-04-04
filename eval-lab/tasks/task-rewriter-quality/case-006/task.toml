@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-006"
+description = "Identifies the task mixes multiple actions. Splits into 3 separate tasks. Preser"
+
+[scoring]
+original_quality_score = 35
+weight = 1.0

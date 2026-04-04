@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-013"
+description = "Minimal restructuring. Organizes into preparation/logistics/output. Preserves al"
+
+[scoring]
+original_quality_score = 85
+weight = 1.0

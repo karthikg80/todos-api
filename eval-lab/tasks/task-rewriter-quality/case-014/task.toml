@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-014"
+description = "Recognizes the task is unactionable. Proposes clarification rather than inventin"
+
+[scoring]
+original_quality_score = 10
+weight = 1.0

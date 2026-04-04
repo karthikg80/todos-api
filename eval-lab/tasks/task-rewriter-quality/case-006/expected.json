@@ -1,0 +1,13 @@
+{
+  "category": "over-specified",
+  "original_quality": 35,
+  "rewritten_title": "Split: Update React component, fix header styling, and add dark mode",
+  "rewritten_description": "This task mixes three separate concerns. Recommended split:\n1. Update React component to use new API endpoint (address API slowness)\n2. Fix header styling for mobile responsiveness\n3. Add dark mode support (user-requested feature)\n\nDefinition of done for each: (1) API calls use new endpoint with improved performance, (2) header renders correctly on mobile viewports, (3) dark mode toggle works across all components.",
+  "what_good_rewriting_looks_like": "Identifies the task mixes multiple actions. Splits into 3 separate tasks. Preserves the core concerns (API, header mobile, dark mode) without adding implementation detail.",
+  "common_failure_modes": [
+    "kept_as_single_task",
+    "added_implementation_detail",
+    "dropped_one_of_three_concerns"
+  ],
+  "acceptable_variation": "May keep as single task with clear sub-sections if split is not used. All three concerns must be addressed."
+}

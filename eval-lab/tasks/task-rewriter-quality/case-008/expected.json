@@ -1,0 +1,14 @@
+{
+  "category": "already-good",
+  "original_quality": 85,
+  "rewritten_title": "Schedule dentist appointment for annual cleaning",
+  "rewritten_description": "Call dentist to schedule annual cleaning. Preferences: morning appointment slot. Action item: verify Delta Dental insurance is still valid before booking. Definition of done: appointment is scheduled, insurance is confirmed, and calendar invite is created.",
+  "what_good_rewriting_looks_like": "Very minimal edits. Maybe adds 'call' action and definition of done. Preserves morning preference, Delta Dental, and annual cleaning exactly.",
+  "common_failure_modes": [
+    "over_edited",
+    "changed_insurance_name",
+    "changed_preference",
+    "added_unnecessary_steps"
+  ],
+  "acceptable_variation": "Almost any minimal restructuring is fine. Core facts must be unchanged."
+}

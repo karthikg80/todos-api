@@ -1,0 +1,14 @@
+{
+  "category": "well-defined",
+  "original_quality": 75,
+  "rewritten_title": "Review brand guidelines v3 before Monday stakeholder meeting",
+  "rewritten_description": "Review brand guidelines v3 from the design team. Check areas: (1) logo usage, (2) color palette, (3) typography, (4) tone of voice, (5) social media templates.\n\nDeadline: send feedback by Friday EOD (design team needs weekend to incorporate changes). Context: stakeholder meeting Monday 10am with CEO and CMO. Definition of done: feedback is sent to design team by Friday EOD covering all five review areas.",
+  "what_good_rewriting_looks_like": "Structures the review areas. Preserves all specifics (v3, five review areas, Friday EOD, Monday 10am, CEO/CMO). Adds clear deadline structure.",
+  "common_failure_modes": [
+    "changed_version",
+    "dropped_review_area",
+    "changed_deadline",
+    "changed_attendees"
+  ],
+  "acceptable_variation": "May reorder review areas. All specifics must be preserved."
+}

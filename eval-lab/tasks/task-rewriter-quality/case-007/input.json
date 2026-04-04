@@ -1,0 +1,6 @@
+{
+  "title": "Implement the new recommendation engine using a collaborative filtering approach with matrix factorization, incorporating user-item interaction data from the past 90 days, with A/B testing framework, offline evaluation metrics (NDCG@10, coverage, diversity), online metrics (CTR, conversion rate), feature flags for gradual rollout, and monitoring dashboards for model drift detection",
+  "description": "Current rule-based recommendations have 2% CTR. Target is 5%. Use the ML platform team's infrastructure. Training data is in the data lake at s3://ml-data/recs/. Model should retrain weekly. Latency budget is <100ms for inference. Need to support 1M+ users.",
+  "dueDate": "2026-07-01T00:00:00Z",
+  "priority": "high"
+}

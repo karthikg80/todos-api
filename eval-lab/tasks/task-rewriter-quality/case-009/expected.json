@@ -1,0 +1,14 @@
+{
+  "category": "already-good",
+  "original_quality": 90,
+  "rewritten_title": "Submit expense report for March client dinner",
+  "rewritten_description": "Submit expense report for client dinner at Nobu ($127.50) with Acme Corp team. Receipt is attached. Project code: ACME-2026-Q1. Definition of done: expense is submitted, approved, and reimbursement is confirmed.",
+  "what_good_rewriting_looks_like": "Minimal edits. Maybe restructures description slightly. All facts (amount, restaurant, team, project code) preserved exactly.",
+  "common_failure_modes": [
+    "changed_amount",
+    "changed_restaurant",
+    "changed_project_code",
+    "over_edited"
+  ],
+  "acceptable_variation": "Minor rewording is fine. All specific facts must be preserved."
+}

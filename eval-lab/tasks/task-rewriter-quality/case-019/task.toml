@@ -1,0 +1,7 @@
+[task]
+name = "task-rewriter-case-019"
+description = "Structures the review areas. Preserves all specifics (v3, five review areas, Fri"
+
+[scoring]
+original_quality_score = 75
+weight = 1.0

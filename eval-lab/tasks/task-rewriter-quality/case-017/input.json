@@ -1,0 +1,6 @@
+{
+  "title": "Refactor the entire codebase to use the new design system components while maintaining backward compatibility with the old components during a 3-month transition period, updating all 200+ pages, writing migration guides, training the team, and setting up deprecation warnings",
+  "description": "The old design system is being sunset at end of year. New components are in the design-system package. Need to update every page, form, modal, and notification. Also update the component documentation site. Coordinate with the design team on any gaps in the new system.",
+  "dueDate": "2026-09-30T00:00:00Z",
+  "priority": "high"
+}

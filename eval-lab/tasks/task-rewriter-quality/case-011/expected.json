@@ -1,0 +1,13 @@
+{
+  "category": "missing-context-salvageable",
+  "original_quality": 30,
+  "rewritten_title": "Review and update project README",
+  "rewritten_description": "Audit the current README for outdated information. Check: installation instructions, usage examples, API documentation, and contribution guidelines. Update any sections that no longer reflect the current state of the project. Definition of done: README is reviewed, outdated sections are updated, and changes are committed.",
+  "what_good_rewriting_looks_like": "Expands 'docs' to README specifically (from context). Suggests common sections to check without inventing project-specific details. Makes it actionable.",
+  "common_failure_modes": [
+    "invented_project_details",
+    "too_vague_still",
+    "ignored_readme_context"
+  ],
+  "acceptable_variation": "May reference other doc types (wiki, API docs) if README is not specified. Should stay general about what to update."
+}
