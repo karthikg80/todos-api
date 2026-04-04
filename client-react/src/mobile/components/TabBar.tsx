@@ -1,3 +1,4 @@
+import { Sun, Calendar, FolderOpen, AlignJustify, Plus } from "lucide-react";
 import type { MobileTab } from "../hooks/useTabBar";
 import { CUSTOM_TAB_OPTIONS } from "../hooks/useTabBar";
 
@@ -12,6 +13,9 @@ function getCustomLabel(view: string): string {
   return CUSTOM_TAB_OPTIONS.find((o) => o.key === view)?.label ?? "More";
 }
 
+const ICON_SIZE = 22;
+const ICON_STROKE = 1.5;
+
 export function TabBar({ activeTab, customView, onTabChange, onFabPress }: Props) {
   return (
     <nav className="m-tab-bar" role="tablist" aria-label="Main navigation">
@@ -21,7 +25,7 @@ export function TabBar({ activeTab, customView, onTabChange, onFabPress }: Props
         aria-selected={activeTab === "focus"}
         onClick={() => onTabChange("focus")}
       >
-        <span className="m-tab-bar__icon" aria-hidden="true">◉</span>
+        <Sun size={ICON_SIZE} strokeWidth={ICON_STROKE} fill={activeTab === "focus" ? "currentColor" : "none"} />
         <span className="m-tab-bar__label">Focus</span>
       </button>
       <button
@@ -30,11 +34,15 @@ export function TabBar({ activeTab, customView, onTabChange, onFabPress }: Props
         aria-selected={activeTab === "today"}
         onClick={() => onTabChange("today")}
       >
-        <span className="m-tab-bar__icon" aria-hidden="true">☀</span>
+        <Calendar size={ICON_SIZE} strokeWidth={ICON_STROKE} fill={activeTab === "today" ? "currentColor" : "none"} />
         <span className="m-tab-bar__label">Today</span>
       </button>
-      <button className="m-tab-bar__fab" aria-label="Quick capture" onClick={() => { if (navigator.vibrate) navigator.vibrate(5); onFabPress(); }}>
-        <span className="m-tab-bar__fab-icon">+</span>
+      <button
+        className="m-tab-bar__fab"
+        aria-label="Quick capture"
+        onClick={() => { if (navigator.vibrate) navigator.vibrate(5); onFabPress(); }}
+      >
+        <Plus size={22} strokeWidth={2.5} color="white" />
       </button>
       <button
         className={`m-tab-bar__tab${activeTab === "projects" ? " m-tab-bar__tab--active" : ""}`}
@@ -42,7 +50,7 @@ export function TabBar({ activeTab, customView, onTabChange, onFabPress }: Props
         aria-selected={activeTab === "projects"}
         onClick={() => onTabChange("projects")}
       >
-        <span className="m-tab-bar__icon" aria-hidden="true">▤</span>
+        <FolderOpen size={ICON_SIZE} strokeWidth={ICON_STROKE} fill={activeTab === "projects" ? "currentColor" : "none"} />
         <span className="m-tab-bar__label">Projects</span>
       </button>
       <button
@@ -51,7 +59,7 @@ export function TabBar({ activeTab, customView, onTabChange, onFabPress }: Props
         aria-selected={activeTab === "custom"}
         onClick={() => onTabChange("custom")}
       >
-        <span className="m-tab-bar__icon" aria-hidden="true">≡</span>
+        <AlignJustify size={ICON_SIZE} strokeWidth={ICON_STROKE} fill={activeTab === "custom" ? "currentColor" : "none"} />
         <span className="m-tab-bar__label">{getCustomLabel(customView)}</span>
       </button>
     </nav>

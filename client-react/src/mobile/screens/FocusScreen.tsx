@@ -1,6 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { Todo, Project, User } from "../../types";
 import { MobileHeader } from "../MobileHeader";
+import { useCountUp } from "../hooks/useCountUp";
 
 interface Props {
   todos: Todo[];
@@ -51,14 +52,32 @@ export function FocusScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
   const subtitle = `${todayCount} tasks today${overdueCount ? ` · ${overdueCount} overdue` : ""}`;
   const activeProjects = projects.filter((p) => p.status === "active").length;
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  const animDone = useCountUp(mounted ? completedThisWeek : 0, 800);
+  const animOpen = useCountUp(mounted ? openTodos.length : 0, 800);
+  const animProjects = useCountUp(mounted ? activeProjects : 0, 800);
+
   return (
     <div className="m-screen m-screen--focus">
-      <MobileHeader title={getGreeting()} subtitle={subtitle} user={user} onAvatarClick={onAvatarClick} />
+      <MobileHeader title={getGreeting()} subtitle={subtitle} user={user} onAvatarClick={onAvatarClick} animated={mounted} />
       <div className="m-focus__content">
         {openTodos.length === 0 && (
-          <div className="m-empty">
+          <div className="m-empty m-empty--celebrate">
+            <div className="m-confetti" aria-hidden="true">
+              {Array.from({ length: 20 }, (_, i) => (
+                <div key={i} className="m-confetti__piece" style={{
+                  "--x": `${(Math.random() - 0.5) * 200}px`,
+                  "--y": `${-Math.random() * 150 - 50}px`,
+                  "--r": `${Math.random() * 360}deg`,
+                  "--d": `${300 + Math.random() * 500}ms`,
+                  background: ["var(--m-amber)", "var(--m-accent)", "var(--m-success)", "var(--m-danger)"][i % 4],
+                } as React.CSSProperties} />
+              ))}
+            </div>
             <div className="m-empty__icon">🎉</div>
-            <div className="m-empty__title">All clear! No tasks right now.</div>
+            <div className="m-empty__title m-empty__title--bounce">All clear! No tasks right now.</div>
           </div>
         )}
         {topTask && (
@@ -100,15 +119,15 @@ export function FocusScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
         )}
         <div className="m-focus__stats">
           <div className="m-focus__stat">
-            <div className="m-focus__stat-value m-focus__stat-value--success">{completedThisWeek}</div>
+            <div className="m-focus__stat-value m-focus__stat-value--success">{animDone}</div>
             <div className="m-focus__stat-label">done this week</div>
           </div>
           <div className="m-focus__stat">
-            <div className="m-focus__stat-value m-focus__stat-value--warning">{openTodos.length}</div>
+            <div className="m-focus__stat-value m-focus__stat-value--warning">{animOpen}</div>
             <div className="m-focus__stat-label">open tasks</div>
           </div>
           <div className="m-focus__stat">
-            <div className="m-focus__stat-value m-focus__stat-value--accent">{activeProjects}</div>
+            <div className="m-focus__stat-value m-focus__stat-value--accent">{animProjects}</div>
             <div className="m-focus__stat-label">projects</div>
           </div>
         </div>
