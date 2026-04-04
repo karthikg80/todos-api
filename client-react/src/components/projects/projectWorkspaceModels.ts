@@ -378,7 +378,8 @@ export function buildSnapshotItemsEnhanced(
   }
 
   // Sections - actionable if project needs organization
-  if (profile.unplacedTasks > 1 && profile.mode !== "simple") {
+  // Only show Backlog if it's not redundant with Open tasks
+  if (profile.unplacedTasks > 1 && profile.unplacedTasks !== profile.openTasks && profile.mode !== "simple") {
     items.push({
       label: "Backlog",
       value: `${profile.unplacedTasks} item${profile.unplacedTasks > 1 ? "s" : ""}`,
@@ -450,7 +451,7 @@ export function buildSnapshotItemsEnhanced(
         );
         items.push({
           label: "Next",
-          value: daysUntil === 1 ? "Tomorrow" : `In ${daysUntil} days`,
+          value: daysUntil === 1 ? "Tomorrow" : (formatProjectDate(dueDate.toISOString()) ?? "Set"),
           actionable: daysUntil <= 3,
         });
       }
@@ -478,8 +479,8 @@ export function getTabDescription(
       if (profile.mode === "simple") {
         return "Use sections when the project grows.";
       }
-      if (profile.sectionsWithTasks >= 3) {
-        return "Best when the project has distinct phases.";
+      if (profile.sectionsWithTasks >= 3 || profile.mode === "guided") {
+        return "This project has distinct phases. Map them out here.";
       }
       return "Use sections as chapters, not filters.";
 
