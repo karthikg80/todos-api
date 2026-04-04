@@ -19,8 +19,9 @@ async def call_task_critic(
     payload = input.model_dump(by_alias=True, exclude_none=True)
 
     headers = {"Authorization": f"Bearer {API_TOKEN}"}
+    # Send prompt override in body, not header (headers can't contain newlines)
     if prompt_override:
-        headers["X-Eval-Prompt-Override"] = prompt_override
+        payload["__evalPromptOverride"] = prompt_override
 
     for attempt in range(MAX_RETRIES + 1):
         try:
