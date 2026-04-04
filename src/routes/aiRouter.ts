@@ -303,9 +303,10 @@ export function createAiRouter({
         const feedbackContext = await quotaService.getFeedbackContext(userId);
 
         // Eval prompt override — only enabled via env flag
+        // Read from body field, not header (headers can't contain newlines)
         const promptOverride =
           config.enableEvalPromptOverride === true
-            ? (req.headers["x-eval-prompt-override"] as string | undefined)
+            ? (req.body.__evalPromptOverride as string | undefined)
             : undefined;
 
         const result = await runtimeAiPlannerService.critiqueTask(

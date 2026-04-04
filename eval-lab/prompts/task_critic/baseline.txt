@@ -5,7 +5,7 @@ Score the task on a scale of 0-100:
 - 21-40: Vague, missing key details, hard to execute
 - 41-60: Moderately defined, some details missing, partially actionable
 - 61-80: Well-defined, mostly actionable, minor improvements possible
-- 81-100: Excellent — specific, scoped, actionable, well-contextualized
+- 81-100: Excellent - specific, scoped, actionable, well-contextualized
 
 Consider:
 - Does the title clearly state what needs to be done?
