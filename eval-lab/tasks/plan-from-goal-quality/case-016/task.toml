@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-016"
+description = "Phased plan: audit → design → migrate → redirect → launch. Preserves all URLs. R"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,15 @@
+{
+  "category": "adversarial",
+  "expected_output_mode": "unsupported",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Explains why $1M in 6 months as a solo first-time founder is extremely unlikely. Suggests realistic milestones: validate idea \u2192 build MVP \u2192 get first 10 customers \u2192 iterate.",
+  "common_failure_modes": [
+    "creates_get_rich_quick_plan",
+    "validates_unrealistic_revenue",
+    "ignores_lack_of_experience"
+  ],
+  "acceptable_variation": "May suggest alternative revenue targets or timelines. Should NOT produce a $1M-in-6-months plan.",
+  "notes": "Unrealistic revenue goal. Should explain why and suggest realistic milestones."
+}

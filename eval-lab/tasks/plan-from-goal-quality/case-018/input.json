@@ -1,0 +1,5 @@
+{
+  "goal": "Reduce our cloud infrastructure costs by 50%",
+  "context": "Currently spending $20k/month on AWS. Team of 3 engineers manages the infrastructure.",
+  "constraints": "Cannot impact performance or reliability. Must complete within 2 months."
+}

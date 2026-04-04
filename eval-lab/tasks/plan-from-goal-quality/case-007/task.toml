@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-007"
+description = "Flags that learning ML + building production system in 2 months at 5hr/week is u"
+
+[scoring]
+weight = 1.0

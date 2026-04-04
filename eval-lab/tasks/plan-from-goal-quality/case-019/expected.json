@@ -1,0 +1,32 @@
+{
+  "category": "constrained",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    4,
+    8
+  ],
+  "must_have_steps": [
+    "assess data sources",
+    "choose integration tool",
+    "build extraction",
+    "transform and load",
+    "create dashboard"
+  ],
+  "optional_steps": [
+    "set up scheduling",
+    "add data quality checks",
+    "document pipeline"
+  ],
+  "forbidden_steps": [
+    "suggest complex data engineering tools",
+    "exceed $2k budget"
+  ],
+  "what_good_plan_looks_like": "Simple plan using no-code/low-code tools (e.g., Airbyte, Metabase). Respects team skill level and budget.",
+  "common_failure_modes": [
+    "suggests_complex_tools",
+    "ignores_skill_level",
+    "exceeds_budget"
+  ],
+  "acceptable_variation": "May suggest different no-code tools. Must respect skill level and budget.",
+  "notes": "Constrained goal with skill level limitation. Should produce a simple, accessible plan."
+}

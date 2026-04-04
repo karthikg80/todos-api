@@ -1,0 +1,15 @@
+{
+  "category": "vague",
+  "expected_output_mode": "clarification_required",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Asks clarifying questions: what language? what level? what goal (career, hobby, specific project)? how much time available?",
+  "common_failure_modes": [
+    "invents_specific_plan",
+    "assumes_language",
+    "ignores_vagueness"
+  ],
+  "acceptable_variation": "Any set of clarifying questions that address language, level, goal, and time commitment is acceptable.",
+  "notes": "Extremely vague goal. Should ask for clarification rather than invent a specific plan."
+}

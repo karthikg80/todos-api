@@ -1,0 +1,5 @@
+{
+  "goal": "Set up CI/CD for our project",
+  "context": "We're using GitHub. Not sure what else we need.",
+  "constraints": "Should be automated. No specific deadline."
+}

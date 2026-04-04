@@ -1,0 +1,5 @@
+{
+  "goal": "Build a data pipeline for our analytics",
+  "context": "We have data in PostgreSQL, MongoDB, and CSV files. Want a unified dashboard.",
+  "constraints": "Team has no data engineering experience. Budget $2k. Prefer no-code/low-code tools."
+}

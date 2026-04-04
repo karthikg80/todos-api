@@ -1,0 +1,33 @@
+{
+  "category": "constrained",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    5,
+    8
+  ],
+  "must_have_steps": [
+    "audit current spending",
+    "identify waste",
+    "right-size resources",
+    "implement cost controls",
+    "monitor and optimize"
+  ],
+  "optional_steps": [
+    "negotiate reserved instances",
+    "explore spot instances",
+    "set up budget alerts"
+  ],
+  "forbidden_steps": [
+    "reduce performance",
+    "impact reliability",
+    "exceed 2 months"
+  ],
+  "what_good_plan_looks_like": "Phased optimization: audit \u2192 identify waste \u2192 right-size \u2192 implement controls \u2192 monitor. Respects performance/reliability constraint.",
+  "common_failure_modes": [
+    "suggests_performance_impact",
+    "ignores_reliability",
+    "unrealistic_savings"
+  ],
+  "acceptable_variation": "May suggest different optimization strategies. Must respect performance/reliability constraint.",
+  "notes": "Constrained goal with non-negotiable performance requirement. Should produce a cost optimization plan."
+}

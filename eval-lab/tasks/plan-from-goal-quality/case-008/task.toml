@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-008"
+description = "Identifies the conflict: native iOS+Android with 3 features in 2 weeks for $500 "
+
+[scoring]
+weight = 1.0

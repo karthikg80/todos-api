@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-003"
+description = "Asks clarifying questions: what language? what level? what goal (career, hobby, "
+
+[scoring]
+weight = 1.0

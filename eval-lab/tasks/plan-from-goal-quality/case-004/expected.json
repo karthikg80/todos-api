@@ -1,0 +1,15 @@
+{
+  "category": "vague",
+  "expected_output_mode": "clarification_required",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Asks for: destination, dates, budget, travel style, interests, group size. Cannot plan without these.",
+  "common_failure_modes": [
+    "invents_destination",
+    "invents_dates",
+    "invents_budget"
+  ],
+  "acceptable_variation": "Any clarifying response that asks for destination, dates, and budget is acceptable.",
+  "notes": "Vague goal with uncertain constraints. Should ask for specifics before planning."
+}

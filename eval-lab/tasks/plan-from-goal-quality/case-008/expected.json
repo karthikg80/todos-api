@@ -1,0 +1,15 @@
+{
+  "category": "conflicting",
+  "expected_output_mode": "clarification_required",
+  "must_have_steps": [],
+  "optional_steps": [],
+  "forbidden_steps": [],
+  "what_good_plan_looks_like": "Identifies the conflict: native iOS+Android with 3 features in 2 weeks for $500 is impossible. Suggests alternatives: web app, no-code platform, or extending timeline/budget.",
+  "common_failure_modes": [
+    "creates_impossible_plan",
+    "ignores_budget",
+    "ignores_timeline"
+  ],
+  "acceptable_variation": "May suggest web app, no-code, or constraint relaxation. Should NOT produce a native app plan.",
+  "notes": "Conflicting constraints. Should identify the conflict and suggest alternatives."
+}

@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-009"
+description = "Asks for: audience (board members' priorities), current status of key metrics, w"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,5 @@
+{
+  "goal": "Build a social media platform like Twitter",
+  "context": "I'm a solo developer with basic web development skills.",
+  "constraints": "3 months. $500 budget. No prior experience with distributed systems."
+}

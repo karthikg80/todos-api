@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-013"
+description = "Phased plan: objectives → venue → agenda → logistics → communication. Respects $"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,33 @@
+{
+  "category": "clear",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    5,
+    10
+  ],
+  "must_have_steps": [
+    "assess current knowledge",
+    "study core services",
+    "practice exams",
+    "hands-on labs",
+    "review weak areas"
+  ],
+  "optional_steps": [
+    "join study group",
+    "watch video courses",
+    "read whitepapers"
+  ],
+  "forbidden_steps": [
+    "schedule exam for different date",
+    "study for different certification"
+  ],
+  "what_good_plan_looks_like": "Phased plan: assessment \u2192 study \u2192 practice \u2192 review. Respects June 15 deadline and 10hr/week constraint. Includes practice exams within $200 budget.",
+  "common_failure_modes": [
+    "ignores_deadline",
+    "exceeds_budget",
+    "too_many_steps_for_timeframe",
+    "misses_practice_exams"
+  ],
+  "acceptable_variation": "May order study topics differently. May include or omit optional steps. Must include assessment, practice, and review phases.",
+  "notes": "Clear goal with specific deadline, constraints, and scope. Should produce a realistic study plan."
+}

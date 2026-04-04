@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-019"
+description = "Simple plan using no-code/low-code tools (e.g., Airbyte, Metabase). Respects tea"
+
+[scoring]
+weight = 1.0

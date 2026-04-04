@@ -1,0 +1,32 @@
+{
+  "category": "clear",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    4,
+    8
+  ],
+  "must_have_steps": [
+    "choose platform",
+    "set up hosting",
+    "configure domain",
+    "create initial content",
+    "deploy"
+  ],
+  "optional_steps": [
+    "set up analytics",
+    "configure CI/CD",
+    "add custom theme"
+  ],
+  "forbidden_steps": [
+    "use WordPress",
+    "spend more than $50"
+  ],
+  "what_good_plan_looks_like": "Simple plan: choose SSG \u2192 set up hosting (GitHub Pages/Netlify) \u2192 configure domain \u2192 write first post \u2192 deploy. Respects $50/year and 2-week deadline.",
+  "common_failure_modes": [
+    "suggests_expensive_hosting",
+    "ignores_deadline",
+    "overly_complex_setup"
+  ],
+  "acceptable_variation": "May suggest different SSGs (Hugo, Jekyll, Astro). May include or omit optional steps.",
+  "notes": "Straightforward goal with clear constraints. Should produce a simple, actionable plan."
+}

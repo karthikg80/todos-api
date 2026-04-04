@@ -1,0 +1,6 @@
+[task]
+name = "plan-from-goal-case-011"
+description = "Explains why this is unrealistic: Google senior roles typically require 5-10+ ye"
+
+[scoring]
+weight = 1.0

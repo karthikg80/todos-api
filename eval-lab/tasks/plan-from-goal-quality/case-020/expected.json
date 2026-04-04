@@ -1,0 +1,32 @@
+{
+  "category": "clear",
+  "expected_output_mode": "plan",
+  "expected_step_count_range": [
+    5,
+    8
+  ],
+  "must_have_steps": [
+    "define messaging",
+    "prepare marketing materials",
+    "set up launch infrastructure",
+    "communicate with customers",
+    "monitor and iterate"
+  ],
+  "optional_steps": [
+    "create demo video",
+    "write blog post",
+    "set up feedback collection"
+  ],
+  "forbidden_steps": [
+    "change launch date",
+    "exceed $3k budget"
+  ],
+  "what_good_plan_looks_like": "Phased launch plan: messaging \u2192 materials \u2192 infrastructure \u2192 communication \u2192 monitoring. Respects March 1 deadline and $3k budget.",
+  "common_failure_modes": [
+    "ignores_fixed_date",
+    "exceeds_budget",
+    "overwhelms_small_team"
+  ],
+  "acceptable_variation": "May suggest different marketing channels. Must respect fixed date and budget.",
+  "notes": "Clear goal with fixed deadline. Should produce a practical launch plan for a small team."
+}
