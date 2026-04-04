@@ -34,11 +34,18 @@ export interface Todo {
   updatedAt: string;
 }
 
-export type RecurrenceType = "none" | "daily" | "weekly" | "monthly" | "yearly";
+export type RecurrenceType =
+  | "none"
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "yearly"
+  | "rrule";
 
 export interface TodoRecurrence {
   type: RecurrenceType;
   interval?: number | null;
+  rrule?: string | null;
   nextOccurrence?: string | null;
 }
 
