@@ -612,3 +612,136 @@ export interface UpdateAdminFeedbackRequestDto {
   duplicateOfGithubIssueNumber?: number | null;
   duplicateReason?: string | null;
 }
+
+// ─── User-Level Adaptation System ───────────────────────────────────────────
+
+export type StructureAppetite = "lightweight" | "balanced" | "planner";
+export type InsightAffinity = "low" | "medium" | "high";
+export type DateDiscipline = "low" | "medium" | "high";
+export type OrganizationStyle = "tasks_first" | "sections_first" | "mixed";
+export type GuidanceNeed = "high" | "medium" | "low";
+export type PersonalizationEligibility = "none" | "light" | "standard" | "full";
+
+export interface UserAdaptationProfile {
+  structureAppetite: StructureAppetite;
+  insightAffinity: InsightAffinity;
+  dateDiscipline: DateDiscipline;
+  organizationStyle: OrganizationStyle;
+  guidanceNeed: GuidanceNeed;
+
+  confidence: number;
+  confidenceReason: string;
+  eligibility: PersonalizationEligibility;
+  profileVersion: number;
+  policyVersion: number;
+  lastUpdatedAt: string;
+  signalsWindowDays: number;
+}
+
+export interface UserBehaviorSignals {
+  projectsCreated: number;
+  projectsCompleted: number;
+  avgTasksPerProject: number;
+  avgSectionsPerProject: number;
+  pctProjectsWithSections: number;
+  pctProjectsWithDueDates: number;
+  pctProjectsWithTargetDates: number;
+  pctTasksWithDueDates: number;
+  pctTasksWithPriority: number;
+  avgDaysToFirstSection: number | null;
+  avgDaysToFirstDueDate: number | null;
+  insightsOpenRate: number;
+  insightsActionRate: number;
+  insightsDismissRate: number;
+  insightOpportunityCount: number;
+  sectionCreationRate: number;
+  sectionReorganizationRate: number;
+  taskFirstActionRate: number;
+  suggestionAcceptRate: number;
+  suggestionDismissRate: number;
+  avgProjectStartSparsity: number;
+  avgTimeToSecondMeaningfulEditHours: number | null;
+  dueDateEditRate: number;
+  overdueResolutionRate: number;
+  collapseAdvancedPanelsRate: number;
+  expandAdvancedPanelsRate: number;
+  projectOpenedCount: number;
+  projectResumedCount: number;
+  projectRevisitedAfterIdleCount: number;
+  revisitViaTaskListRate: number;
+  revisitViaSectionViewRate: number;
+}
+
+export interface DerivedSignals {
+  structureUsageScore: number;
+  planningBehaviorScore: number;
+  insightEngagementScore: number;
+  dateUsageScore: number;
+  guidanceRelianceScore: number;
+  tasksFirstScore: number;
+  sectionsFirstScore: number;
+}
+
+export interface ProjectContext {
+  taskCount: number;
+  sectionCount: number;
+  hasSections: boolean;
+  hasDates: boolean;
+  hasTargetDate: boolean;
+  hasMeaningfulInsights: boolean;
+  insightOpportunityCount: number;
+  recentActivityCount: number;
+  overdueCount: number;
+  unplacedTaskCount: number;
+  isSparse: boolean;
+  ageDays: number;
+  completionCount: number;
+}
+
+export interface ProjectSurfacePolicy {
+  defaultOverviewMode: "minimal" | "balanced" | "detailed";
+  personalizationLevel: "none" | "light" | "standard" | "full";
+
+  showSectionsPreview: boolean;
+  showTaskPreview: boolean;
+  showDatesProminently: boolean;
+
+  showInsightsDisclosure: boolean;
+  autoExpandInsights: boolean;
+  showInsightsBadge: boolean;
+
+  showSetupGuidance: boolean;
+  setupGuidanceStyle: "none" | "light" | "structured";
+
+  suggestSections: boolean;
+  suggestDates: boolean;
+
+  emphasizeNextAction: boolean;
+  emphasizeProjectStats: boolean;
+}
+
+export interface ProjectSurfacePolicyDebug {
+  rationale: string[];
+  profileVersion: number;
+  policyVersion: number;
+  projectComplexityVersion: number;
+}
+
+export interface ProjectSurfacePolicyResponse {
+  policy: ProjectSurfacePolicy;
+  debug?: ProjectSurfacePolicyDebug;
+}
+
+export interface UserAdaptationOverride {
+  preferredSurfaceMode?: "simple" | "balanced" | "detailed";
+  prefersDatesProminent?: boolean;
+  prefersInsightsExpanded?: boolean;
+  prefersSectionsFirst?: boolean;
+}
+
+export interface SoftInference {
+  inferredProjectType?: string;
+  suggestedSections?: string[];
+  recommendedHintStyle?: "minimal" | "supportive" | "structured";
+  confidence: number;
+}
