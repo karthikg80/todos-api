@@ -11,18 +11,25 @@ interface Props {
   onCreateProject: (name: string) => Promise<unknown>;
 }
 
+function formatDueDateChip(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function QuickCapture({ open, projects, onClose, onCreateTask, onCreateProject }: Props) {
   const [mode, setMode] = useState<CaptureMode>("task");
   const [title, setTitle] = useState("");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedPriority, setSelectedPriority] = useState<string | null>(null);
+  const [selectedDueDate, setSelectedDueDate] = useState<string | null>(null);
   const [showProjectPicker, setShowProjectPicker] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) {
       setTitle(""); setSelectedProjectId(null); setSelectedPriority(null);
-      setShowProjectPicker(false); setMode("task");
+      setSelectedDueDate(null); setShowProjectPicker(false); setMode("task");
       setTimeout(() => inputRef.current?.focus(), 100);
     }
   }, [open]);
@@ -34,6 +41,7 @@ export function QuickCapture({ open, projects, onClose, onCreateTask, onCreatePr
       const dto: CreateTodoDto = { title: trimmed };
       if (selectedProjectId) dto.projectId = selectedProjectId;
       if (selectedPriority) dto.priority = selectedPriority as CreateTodoDto["priority"];
+      if (selectedDueDate) dto.dueDate = selectedDueDate;
       await onCreateTask(dto);
     } else {
       await onCreateProject(trimmed);
@@ -73,6 +81,17 @@ export function QuickCapture({ open, projects, onClose, onCreateTask, onCreatePr
               }}>
               ● {selectedPriority ?? "Priority"}
             </button>
+            <button className={`m-capture__chip${selectedDueDate ? " m-capture__chip--set" : ""}`}
+              onClick={() => dateInputRef.current?.showPicker()}>
+              ◷ {selectedDueDate ? formatDueDateChip(selectedDueDate) : "Due date"}
+            </button>
+            <input
+              ref={dateInputRef}
+              type="date"
+              style={{ position: "absolute", opacity: 0, pointerEvents: "none", width: 0, height: 0 }}
+              value={selectedDueDate ?? ""}
+              onChange={(e) => setSelectedDueDate(e.target.value || null)}
+            />
           </div>
         )}
         {showProjectPicker && (

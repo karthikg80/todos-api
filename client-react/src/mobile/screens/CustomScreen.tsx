@@ -5,6 +5,17 @@ import { MobileHeader } from "../MobileHeader";
 import { SwipeRow } from "../components/SwipeRow";
 import { CUSTOM_TAB_OPTIONS } from "../hooks/useTabBar";
 
+function getEmptyMessage(view: WorkspaceView): string {
+  switch (view) {
+    case "triage": return "Inbox is empty — nothing to triage";
+    case "horizon": return "No upcoming tasks on the horizon";
+    case "completed": return "No completed tasks yet";
+    case "tuneup": return "All tasks look good — no tune-ups needed";
+    case "all": return "No tasks at all";
+    default: return "Nothing here. Nice work!";
+  }
+}
+
 interface Props {
   view: WorkspaceView;
   todos: Todo[];
@@ -66,7 +77,9 @@ export function CustomScreen({ view, todos, projects, user, onTodoClick, onToggl
             </SwipeRow>
           ))}
           {filteredTodos.length === 0 && (
-            <div className="m-custom__empty"><p>Nothing here. Nice work!</p></div>
+            <div className="m-empty">
+              <div className="m-empty__title">{getEmptyMessage(view)}</div>
+            </div>
           )}
         </div>
       </div>

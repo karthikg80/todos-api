@@ -69,6 +69,12 @@ export function ProjectsScreen({ todos, projects, user, onTodoClick, onToggleTod
       <MobileHeader title="Projects" user={user} onAvatarClick={onAvatarClick} />
       <div className="m-projects__content">
         <div className="m-today__pull-hint">↓ pull to search</div>
+        {groups.length === 0 && (
+          <div className="m-empty">
+            <div className="m-empty__title">No active projects yet</div>
+            <div className="m-empty__hint">Tap + to create one</div>
+          </div>
+        )}
         {groups.map((g) => (
           <section key={g.area} className="m-projects__area">
             <h2 className="m-projects__area-title">{g.area}</h2>

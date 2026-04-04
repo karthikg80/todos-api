@@ -55,6 +55,7 @@ export function MobileShell() {
   const [captureOpen, setCaptureOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
+  const [page, setPage] = useState<"todos" | "ai" | "review" | "admin">("todos");
 
   useEffect(() => { loadTodos({}); loadProjects(); }, [loadTodos, loadProjects]);
 
@@ -82,6 +83,13 @@ export function MobileShell() {
     setSnoozeTargetId(null);
   }, [snoozeTargetId, editTodo]);
   const handleSnoozeClose = useCallback(() => { setSnoozeTargetId(null); }, []);
+  const handleToggleSubtask = useCallback(async (todoId: string, subtaskId: string, completed: boolean) => {
+    await apiCall(`/todos/${todoId}/subtasks/${subtaskId}`, {
+      method: "PUT",
+      body: JSON.stringify({ completed }),
+    });
+    loadTodos({});
+  }, [loadTodos]);
 
   const sheetTodo = useMemo(
     () => (bottomSheet.taskId ? todos.find((t) => t.id === bottomSheet.taskId) ?? null : null),
@@ -114,7 +122,13 @@ export function MobileShell() {
         <div className="m-sheet-half__subtasks">
           <div className="m-sheet-half__subtasks-label">Subtasks · {sheetTodo.subtasks.filter((s) => s.completed).length}/{sheetTodo.subtasks.length}</div>
           {sheetTodo.subtasks.map((s) => (
-            <div key={s.id} className={`m-sheet-half__subtask${s.completed ? " m-sheet-half__subtask--done" : ""}`}>{s.completed ? "☑" : "☐"} {s.title}</div>
+            <button
+              key={s.id}
+              className={`m-sheet-half__subtask${s.completed ? " m-sheet-half__subtask--done" : ""}`}
+              onClick={() => handleToggleSubtask(sheetTodo.id, s.id, !s.completed)}
+            >
+              {s.completed ? "☑" : "☐"} {s.title}
+            </button>
           ))}
         </div>
       )}
@@ -186,16 +200,26 @@ export function MobileShell() {
         <div className="m-sheet-full__subtasks">
           <div className="m-sheet-full__field-label">Subtasks · {sheetTodo.subtasks.filter((s) => s.completed).length}/{sheetTodo.subtasks.length}</div>
           {sheetTodo.subtasks.map((s) => (
-            <div key={s.id} className={`m-sheet-full__subtask${s.completed ? " m-sheet-full__subtask--done" : ""}`}>{s.completed ? "☑" : "☐"} {s.title}</div>
+            <button
+              key={s.id}
+              className={`m-sheet-full__subtask${s.completed ? " m-sheet-full__subtask--done" : ""}`}
+              onClick={() => handleToggleSubtask(sheetTodo.id, s.id, !s.completed)}
+            >
+              {s.completed ? "☑" : "☐"} {s.title}
+            </button>
           ))}
         </div>
       )}
-      {sheetTodo.notes && (
-        <div className="m-sheet-full__notes">
-          <div className="m-sheet-full__field-label">Notes</div>
-          <div className="m-sheet-full__notes-text">{sheetTodo.notes}</div>
-        </div>
-      )}
+      <div className="m-sheet-full__notes">
+        <div className="m-sheet-full__field-label">Notes</div>
+        <textarea
+          className="m-sheet-full__notes-input"
+          value={sheetTodo.notes ?? ""}
+          placeholder="Add notes..."
+          onChange={(e) => editTodo(sheetTodo.id, { notes: e.target.value })}
+          rows={3}
+        />
+      </div>
       <div className="m-sheet-full__actions">
         <button className="m-sheet-full__action m-sheet-full__action--complete" onClick={() => { toggleTodo(sheetTodo.id, !sheetTodo.completed); bottomSheet.close(); }}>✓ Complete</button>
         <button className="m-sheet-full__action m-sheet-full__action--delete" onClick={() => { removeTodo(sheetTodo.id); bottomSheet.close(); }}>🗑 Delete</button>
@@ -213,7 +237,7 @@ export function MobileShell() {
         {activeTab === "projects" && <ProjectsScreen {...screenProps} />}
         {activeTab === "custom" && <CustomScreen view={customView} {...screenProps} />}
       </div>
-      <PullToSearch todos={todos} onSelectResult={handleTodoClick} />
+      <PullToSearch todos={todos} projects={projects} onSelectResult={handleTodoClick} />
       <BottomSheet snap={bottomSheet.snap} onClose={bottomSheet.close} onExpandFull={bottomSheet.expandFull} halfContent={halfContent} fullContent={fullContent} />
       <QuickCapture open={captureOpen} projects={projects} onClose={() => setCaptureOpen(false)} onCreateTask={handleCreateTask} onCreateProject={handleCreateProject} />
       <ProfileSheet
@@ -225,9 +249,29 @@ export function MobileShell() {
         customView={customView}
         onChangeCustomView={setCustomView}
         onLogout={logout}
+        onNavigate={(p) => setPage(p as "todos" | "ai" | "review" | "admin")}
       />
       <SnoozePicker open={!!snoozeTargetId} onClose={handleSnoozeClose} onSnooze={handleSnoozeConfirm} />
       <TabBar activeTab={activeTab} customView={customView} onTabChange={setActiveTab} onFabPress={() => setCaptureOpen(true)} />
+      {page !== "todos" && (
+        <div className="m-shell__page-overlay">
+          <header className="m-header">
+            <button className="m-header__back" onClick={() => setPage("todos")}>← Back</button>
+            <div className="m-header__text">
+              <h1 className="m-header__title">
+                {page === "ai" ? "AI Workspace" : page === "review" ? "Weekly Review" : "Admin"}
+              </h1>
+            </div>
+          </header>
+          <div className="m-shell__page-content">
+            <div className="m-empty">
+              <div className="m-empty__icon">🚧</div>
+              <div className="m-empty__title">Coming soon on mobile</div>
+              <div className="m-empty__hint">Use the desktop app for full access</div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

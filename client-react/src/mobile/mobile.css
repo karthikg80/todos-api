@@ -902,6 +902,18 @@
   border-bottom: 1px solid var(--border-light);
   color: var(--text);
   font-size: var(--fs-meta);
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
 }
 
 .m-sheet-half__subtask:last-child {
@@ -1014,6 +1026,18 @@
   border-bottom: 1px solid var(--border-light);
   font-size: var(--fs-meta);
   color: var(--text);
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
 }
 
 .m-sheet-full__subtask:last-child {
@@ -1038,6 +1062,26 @@
   font-size: var(--fs-meta);
   line-height: var(--lh-relaxed);
   margin-top: var(--s-2);
+}
+
+.m-sheet-full__notes-input {
+  width: 100%;
+  background: var(--surface-3);
+  border-radius: var(--r-md);
+  padding: var(--s-3h);
+  color: var(--text);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-relaxed);
+  border: none;
+  resize: vertical;
+  min-height: 80px;
+  font-family: var(--font-sans);
+  box-sizing: border-box;
+  margin-top: var(--s-2);
+}
+
+.m-sheet-full__notes-input::placeholder {
+  color: var(--muted-light);
 }
 
 .m-sheet-full__actions {
@@ -1458,4 +1502,73 @@
 /* --- Screens base --- */
 .m-screen {
   min-height: 100%;
+}
+
+/* --- Profile nav links --- */
+.m-profile__nav-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--s-3) var(--s-4);
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text);
+  font-size: var(--fs-body);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  min-height: 44px;
+}
+.m-profile__nav-link:last-child {
+  border-bottom: none;
+}
+
+/* --- Page overlay --- */
+.m-shell__page-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+}
+.m-shell__page-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* --- Empty states --- */
+.m-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-8) var(--s-4);
+  text-align: center;
+}
+
+.m-empty__icon {
+  font-size: 2rem;
+  margin-bottom: var(--s-3);
+}
+
+.m-empty__title {
+  font-size: var(--fs-body);
+  color: var(--text);
+  font-weight: var(--fw-medium);
+  margin-bottom: var(--s-1);
+}
+
+.m-empty__hint {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+}
+
+/* --- Search result project name --- */
+.m-search__result-project {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-left: auto;
 }

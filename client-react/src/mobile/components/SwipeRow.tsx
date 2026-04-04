@@ -25,13 +25,14 @@ export function SwipeRow({
     setCompleting(true);
     setTimeout(() => {
       onSwipeRight?.();
+      if (navigator.vibrate) navigator.vibrate(10);
       reset();
     }, 280);
   }, [onSwipeRight, reset]);
 
   if (state === "triggered-right" && onSwipeRight && !completing) { handleComplete(); }
   else if (state === "triggered-right" && !onSwipeRight) { reset(); }
-  else if (state === "triggered-left" && onSwipeLeft) { onSwipeLeft(); reset(); }
+  else if (state === "triggered-left" && onSwipeLeft) { onSwipeLeft(); if (navigator.vibrate) navigator.vibrate(10); reset(); }
   else if (state === "triggered-left") { reset(); }
 
   const isSwipingRight = offsetX > 0;

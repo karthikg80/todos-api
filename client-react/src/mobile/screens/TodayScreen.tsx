@@ -92,7 +92,11 @@ export function TodayScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
         {renderGroup("Due Today", groups.dueToday)}
         {renderGroup("Scheduled", groups.scheduled)}
         {openTodos.length === 0 && (
-          <div className="m-today__empty"><p>Nothing due today. Enjoy your day!</p></div>
+          <div className="m-empty">
+            <div className="m-empty__icon">☀️</div>
+            <div className="m-empty__title">Nothing due today. Enjoy your day!</div>
+            <div className="m-empty__hint">Tasks with today&apos;s due date will appear here</div>
+          </div>
         )}
       </div>
     </div>

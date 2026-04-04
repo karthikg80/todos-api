@@ -55,6 +55,12 @@ export function FocusScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
     <div className="m-screen m-screen--focus">
       <MobileHeader title={getGreeting()} subtitle={subtitle} user={user} onAvatarClick={onAvatarClick} />
       <div className="m-focus__content">
+        {openTodos.length === 0 && (
+          <div className="m-empty">
+            <div className="m-empty__icon">🎉</div>
+            <div className="m-empty__title">All clear! No tasks right now.</div>
+          </div>
+        )}
         {topTask && (
           <button className="m-focus__next-card" onClick={() => onTodoClick(topTask.id)}>
             <div className="m-focus__next-label">✦ What Next</div>
