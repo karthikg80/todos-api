@@ -42,14 +42,14 @@ export function AiDrawerAssist({ todoId, todoTitle }: Props) {
 
   return (
     <div className="ai-drawer-assist">
-      <div className="ai-drawer-assist__header">AI Assist</div>
+      <div className="ai-drawer-assist__header">Task refinement</div>
       <div className="ai-drawer-assist__actions">
         <button
           className="btn ai-drawer-assist__btn"
           onClick={handleCritique}
           disabled={critiqueLoading}
         >
-          {critiqueLoading ? "Analyzing…" : "Improve this task"}
+          {critiqueLoading ? "Reviewing…" : "Sharpen the wording"}
         </button>
         <button
           className="btn ai-drawer-assist__btn"
@@ -57,10 +57,10 @@ export function AiDrawerAssist({ todoId, todoTitle }: Props) {
           disabled={breakdownLoading || breakdownDone}
         >
           {breakdownLoading
-            ? "Breaking down…"
+            ? "Building steps…"
             : breakdownDone
               ? "Subtasks created"
-              : "Break into subtasks"}
+              : "Draft subtasks"}
         </button>
       </div>
 
@@ -68,7 +68,7 @@ export function AiDrawerAssist({ todoId, todoTitle }: Props) {
 
       {critiqueResult && critiqueResult.length > 0 && (
         <div id="aiCritiquePanel" className="ai-drawer-assist__critique">
-          <div className="ai-drawer-assist__critique-title">Suggestions</div>
+          <div className="ai-drawer-assist__critique-title">Suggested edits</div>
           <ul className="ai-drawer-assist__suggestions">
             {critiqueResult.map((s, i) => (
               <li key={i} className="ai-drawer-assist__suggestion">
@@ -81,7 +81,7 @@ export function AiDrawerAssist({ todoId, todoTitle }: Props) {
 
       {critiqueResult && critiqueResult.length === 0 && (
         <p className="ai-drawer-assist__success">
-          This task looks clear and actionable.
+          This task already reads clearly.
         </p>
       )}
     </div>

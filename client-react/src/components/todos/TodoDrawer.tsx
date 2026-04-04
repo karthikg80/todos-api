@@ -8,7 +8,6 @@ import type {
   Project,
 } from "../../types";
 import { SubtaskList } from "./SubtaskList";
-import { AiDrawerAssist } from "../ai/AiDrawerAssist";
 import { FieldRenderer } from "./FieldRenderer";
 import { useFieldLayout } from "../../hooks/useFieldLayout";
 import { FIELD_REGISTRY_BY_KEY } from "../../types/fieldLayout";
@@ -184,8 +183,6 @@ export function TodoDrawer({ todo, projects, onClose, onSave, onDelete, onOpenFu
               )}
 
               <SubtaskList todoId={todo.id} />
-
-              <AiDrawerAssist todoId={todo.id} todoTitle={title} />
 
               <TaskTimeline todoId={todo.id} />
             </div>
