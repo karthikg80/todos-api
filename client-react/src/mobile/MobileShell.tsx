@@ -6,6 +6,7 @@ import { useDarkMode } from "../hooks/useDarkMode";
 import { useTabBar } from "./hooks/useTabBar";
 import { useScrollPersistence } from "./hooks/useScrollPersistence";
 import { useBottomSheet } from "./hooks/useBottomSheet";
+import { usePalette } from "./hooks/usePalette";
 import { TabBar } from "./components/TabBar";
 import { BottomSheet } from "./components/BottomSheet";
 import { QuickCapture } from "./components/QuickCapture";
@@ -50,6 +51,7 @@ export function MobileShell() {
   const { projects, loadProjects } = useProjectsStore();
   const { activeTab, setActiveTab, customView, setCustomView } = useTabBar();
   const { save: saveScroll, restore: restoreScroll } = useScrollPersistence();
+  const { palette, setPalette } = usePalette();
   const prevTabRef = useRef<string>(activeTab);
   const bottomSheet = useBottomSheet();
   const [captureOpen, setCaptureOpen] = useState(false);
@@ -230,7 +232,7 @@ export function MobileShell() {
   const screenProps = { todos, projects, user, onTodoClick: handleTodoClick, onToggleTodo: handleToggleTodo, onAvatarClick: handleAvatarClick, onSnoozeTodo: handleSnoozeTodo };
 
   return (
-    <div className="m-shell" data-density="normal">
+    <div className="m-shell" data-density="normal" data-palette={palette}>
       <div className="m-shell__content">
         {activeTab === "focus" && <FocusScreen {...screenProps} />}
         {activeTab === "today" && <TodayScreen {...screenProps} />}
@@ -250,6 +252,8 @@ export function MobileShell() {
         onChangeCustomView={setCustomView}
         onLogout={logout}
         onNavigate={(p) => setPage(p as "todos" | "ai" | "review" | "admin")}
+        palette={palette}
+        onChangePalette={setPalette}
       />
       <SnoozePicker open={!!snoozeTargetId} onClose={handleSnoozeClose} onSnooze={handleSnoozeConfirm} />
       <TabBar activeTab={activeTab} customView={customView} onTabChange={setActiveTab} onFabPress={() => setCaptureOpen(true)} />
