@@ -19,25 +19,22 @@ export const COMPLEXITY_LABELS: Record<ProjectOverviewMode, ComplexityLabel> = {
 
 export const COMPLEXITY_STYLES: Record<
   ProjectOverviewMode,
-  { background: string; border: string; color: string; icon: string }
+  { background: string; border: string; color: string }
 > = {
   simple: {
     background: "color-mix(in oklab, var(--success) 8%, transparent)",
     border: "1px solid color-mix(in oklab, var(--success) 20%, transparent)",
     color: "var(--success)",
-    icon: "●",
   },
   guided: {
     background: "color-mix(in oklab, var(--info) 8%, transparent)",
     border: "1px solid color-mix(in oklab, var(--info) 20%, transparent)",
     color: "var(--info)",
-    icon: "◆",
   },
   rich: {
     background: "color-mix(in oklab, var(--warning) 8%, transparent)",
     border: "1px solid color-mix(in oklab, var(--warning) 20%, transparent)",
     color: "var(--warning)",
-    icon: "▲",
   },
 };
 
@@ -449,9 +446,17 @@ export function buildSnapshotItemsEnhanced(
         const daysUntil = Math.ceil(
           (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
         );
+        let dateValue = "Set";
+        if (daysUntil === 1) {
+          dateValue = "Tomorrow";
+        } else if (daysUntil < 7) {
+          dateValue = dueDate.toLocaleDateString("en-US", { weekday: "short" });
+        } else {
+          dateValue = formatProjectDate(dueDate.toISOString()) ?? "Set";
+        }
         items.push({
           label: "Next",
-          value: daysUntil === 1 ? "Tomorrow" : (formatProjectDate(dueDate.toISOString()) ?? "Set"),
+          value: dateValue,
           actionable: daysUntil <= 3,
         });
       }

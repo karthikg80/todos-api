@@ -117,7 +117,7 @@ interface Props {
 function formatSectionName(name: string) {
   const normalized = name.trim().toLowerCase();
   if (["first", "new section", "untitled", ""].includes(normalized)) {
-    return "Phase 1";
+    return "Getting started";
   }
   return name;
 }
@@ -567,12 +567,6 @@ export function ProjectWorkspaceView({
                   color: COMPLEXITY_STYLES[overviewProfile.mode].color,
                 }}
               >
-                <span
-                  className="project-complexity-badge__icon"
-                  aria-hidden="true"
-                >
-                  {COMPLEXITY_STYLES[overviewProfile.mode].icon}
-                </span>
                 <span className="project-complexity-badge__label">
                   {COMPLEXITY_LABELS[overviewProfile.mode]}
                 </span>
