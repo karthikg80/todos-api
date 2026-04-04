@@ -114,6 +114,14 @@ interface Props {
   onReplaceNext?: () => void;
 }
 
+function formatSectionName(name: string) {
+  const normalized = name.trim().toLowerCase();
+  if (["first", "new section", "untitled", ""].includes(normalized)) {
+    return "Phase 1";
+  }
+  return name;
+}
+
 function ProjectTaskPreview({
   todo,
   onClick,
@@ -549,24 +557,26 @@ export function ProjectWorkspaceView({
 
           <div className="project-workspace__hero-copy">
             <span className="project-workspace__eyebrow">Project</span>
-            <h1 className="project-workspace__title">{project.name}</h1>
-            <div
-              className="project-complexity-badge"
-              style={{
-                background: COMPLEXITY_STYLES[overviewProfile.mode].background,
-                border: COMPLEXITY_STYLES[overviewProfile.mode].border,
-                color: COMPLEXITY_STYLES[overviewProfile.mode].color,
-              }}
-            >
-              <span
-                className="project-complexity-badge__icon"
-                aria-hidden="true"
+            <div className="project-workspace__title-row">
+              <h1 className="project-workspace__title">{project.name}</h1>
+              <div
+                className="project-complexity-badge"
+                style={{
+                  background: COMPLEXITY_STYLES[overviewProfile.mode].background,
+                  border: COMPLEXITY_STYLES[overviewProfile.mode].border,
+                  color: COMPLEXITY_STYLES[overviewProfile.mode].color,
+                }}
               >
-                {COMPLEXITY_STYLES[overviewProfile.mode].icon}
-              </span>
-              <span className="project-complexity-badge__label">
-                {COMPLEXITY_LABELS[overviewProfile.mode]}
-              </span>
+                <span
+                  className="project-complexity-badge__icon"
+                  aria-hidden="true"
+                >
+                  {COMPLEXITY_STYLES[overviewProfile.mode].icon}
+                </span>
+                <span className="project-complexity-badge__label">
+                  {COMPLEXITY_LABELS[overviewProfile.mode]}
+                </span>
+              </div>
             </div>
             <p className="project-workspace__summary">
               {project.description?.trim() ||
@@ -815,7 +825,7 @@ export function ProjectWorkspaceView({
                         >
                           <div className="project-workspace-section-card__topline">
                             <span className="project-workspace-section-card__title">
-                              {group.label}
+                              {formatSectionName(group.label)}
                             </span>
                             <span className="project-workspace-section-card__count">
                               {pluralize(group.todos.length, "open task")}
@@ -997,7 +1007,9 @@ export function ProjectWorkspaceView({
                     <div className="project-workspace-card__header">
                       <div>
                         <span className="project-workspace-card__eyebrow">Section</span>
-                        <h2 className="project-workspace-card__title">{group.label}</h2>
+                        <h2 className="project-workspace-card__title">
+                          {formatSectionName(group.label)}
+                        </h2>
                       </div>
                       <button
                         type="button"
@@ -1038,7 +1050,21 @@ export function ProjectWorkspaceView({
                               </p>
                             </>
                           ) : (
-                            <p className="project-workspace-card__empty">No active tasks here.</p>
+                            <>
+                              <p className="project-workspace-card__empty-body" style={{ marginBottom: "8px" }}>
+                                Ready for tasks.
+                              </p>
+                              <button
+                                type="button"
+                                className="mini-btn mini-btn--ghost"
+                                onClick={() => {
+                                  onSelectHeading(group.key);
+                                  onNewTask();
+                                }}
+                              >
+                                + Add task
+                              </button>
+                            </>
                           )}
                         </div>
                       ) : (
