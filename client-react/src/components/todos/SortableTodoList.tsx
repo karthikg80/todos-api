@@ -27,6 +27,7 @@ import { ListToolbar } from "./ListToolbar";
 import type { SortField, SortOrder } from "../../types/viewTypes";
 import { useViewSnapshot } from "../../hooks/useViewSnapshot";
 import type { GroupBy } from "../../utils/groupTodos";
+import type { Density } from "../../hooks/useDensity";
 
 interface SortableRowProps {
   todo: Todo;
@@ -103,6 +104,10 @@ interface Props {
   sortOrder: SortOrder;
   onSortChange: (field: SortField, order: SortOrder) => void;
   groupByOptions?: GroupBy[];
+  groupBy?: GroupBy;
+  onGroupByChange?: (val: GroupBy) => void;
+  density?: Density;
+  onDensityChange?: (val: Density) => void;
 }
 
 export function SortableTodoList({
@@ -129,16 +134,24 @@ export function SortableTodoList({
   sortOrder,
   onSortChange,
   groupByOptions,
+  groupBy: groupByProp,
+  onGroupByChange: onGroupByChangeProp,
+  density: densityProp,
+  onDensityChange: onDensityChangeProp,
 }: Props) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const { groupBy, setGroupBy } = useGroupBy();
+  const { groupBy: hookGroupBy, setGroupBy: hookSetGroupBy } = useGroupBy();
+  const { density: hookDensity, setDensity: hookSetDensity } = useDensity();
+  const groupBy = groupByProp ?? hookGroupBy;
+  const setGroupBy = onGroupByChangeProp ?? hookSetGroupBy;
+  const density = densityProp ?? hookDensity;
+  const setDensity = onDensityChangeProp ?? hookSetDensity;
   const effectiveGroupBy = groupByOptions?.includes(groupBy)
     ? groupBy
     : (groupByOptions?.[0] ?? groupBy);
-  const { density, setDensity } = useDensity();
   const sections = useMemo(
     () => groupTodos(todos, effectiveGroupBy),
     [todos, effectiveGroupBy],

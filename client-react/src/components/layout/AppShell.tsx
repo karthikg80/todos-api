@@ -12,6 +12,7 @@ import { useTodosStore } from "../../store/useTodosStore";
 import { useProjectsStore } from "../../store/useProjectsStore";
 import { useDarkMode } from "../../hooks/useDarkMode";
 import { useDensity } from "../../hooks/useDensity";
+import { useGroupBy } from "../../hooks/useGroupBy";
 import { useServiceWorker } from "../../hooks/useServiceWorker";
 import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
@@ -99,7 +100,8 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
-  const { density, cycle: cycleDensity } = useDensity();
+  const { density, setDensity, cycle: cycleDensity } = useDensity();
+  const { groupBy, setGroupBy } = useGroupBy();
   const { startTransition } = useViewTransition();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("home");
@@ -1257,6 +1259,10 @@ export function AppShell() {
                       onExportMessage={(msg) => setUndoAction({ message: msg })}
                       user={user}
                       dark={dark}
+                      groupBy={groupBy}
+                      onGroupByChange={setGroupBy}
+                      density={density}
+                      onDensityChange={setDensity}
                     />
                     <div className="app-content">
                       {viewMode === "board" ? (

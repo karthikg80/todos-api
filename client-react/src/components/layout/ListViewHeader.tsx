@@ -14,6 +14,8 @@ import { Tooltip } from "../shared/Tooltip";
 import { FilterPanel, type ActiveFilters } from "../todos/FilterPanel";
 import { SortControl } from "../todos/SortControl";
 import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
+import type { Density } from "../../hooks/useDensity";
+import type { GroupBy } from "../../utils/groupTodos";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { QuickEntry } from "../todos/QuickEntry";
 import { SearchBar } from "../shared/SearchBar";
@@ -95,6 +97,13 @@ export interface ListViewHeaderProps {
   onExportIcs: (todos: Todo[]) => void;
   onExportMessage: (msg: string) => void;
 
+  // View controls
+  groupBy: GroupBy;
+  onGroupByChange: (val: GroupBy) => void;
+  density: Density;
+  onDensityChange: (val: Density) => void;
+  groupByOptions?: GroupBy[];
+
   // Misc
   user: User | null;
   dark: boolean;
@@ -144,6 +153,11 @@ export function ListViewHeader({
   onExportMessage,
   user,
   dark,
+  groupBy: _groupBy,
+  onGroupByChange: _onGroupByChange,
+  density: _density,
+  onDensityChange: _onDensityChange,
+  groupByOptions: _groupByOptions,
 }: ListViewHeaderProps) {
   const activeCount = visibleTodos.filter((t) => !t.completed).length;
   const showHorizonSegments =
