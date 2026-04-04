@@ -1,6 +1,7 @@
 import type { User } from "../../types";
 import type { WorkspaceView } from "../../components/projects/Sidebar";
 import { CUSTOM_TAB_OPTIONS } from "../hooks/useTabBar";
+import { PALETTES, type PaletteKey } from "../hooks/usePalette";
 
 interface Props {
   open: boolean;
@@ -12,6 +13,8 @@ interface Props {
   onChangeCustomView: (view: WorkspaceView) => void;
   onLogout: () => void;
   onNavigate: (page: string) => void;
+  palette: PaletteKey;
+  onChangePalette: (key: PaletteKey) => void;
 }
 
 function getUserInitial(user: User | null): string {
@@ -40,6 +43,8 @@ export function ProfileSheet({
   onChangeCustomView,
   onLogout,
   onNavigate,
+  palette,
+  onChangePalette,
 }: Props) {
   if (!open) return null;
 
@@ -76,6 +81,28 @@ export function ProfileSheet({
             >
               <span className="m-profile__toggle-knob" />
             </button>
+          </div>
+        </div>
+
+        <div className="m-profile__divider" />
+
+        {/* Theme section */}
+        <div className="m-profile__section">
+          <div className="m-profile__section-label">Theme</div>
+          <div className="m-profile__row">
+            <span className="m-profile__row-label">Color palette</span>
+            <div className="m-profile__palette-picker">
+              {PALETTES.map((p) => (
+                <button
+                  key={p.key}
+                  className={`m-profile__palette-dot${palette === p.key ? " m-profile__palette-dot--active" : ""}`}
+                  style={{ background: `linear-gradient(135deg, ${p.gradient[0]}, ${p.gradient[1]})` }}
+                  onClick={() => onChangePalette(p.key)}
+                  aria-label={p.label}
+                  aria-pressed={palette === p.key}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
