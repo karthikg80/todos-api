@@ -1722,3 +1722,62 @@
   50% { transform: scale(1.15); }
   100% { transform: scale(1); }
 }
+
+/* --- Pull to refresh --- */
+.m-pull-refresh {
+  min-height: 100%;
+}
+
+.m-pull-refresh__indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  height: 0;
+  transition: height var(--dur-base) var(--ease-out);
+}
+
+.m-pull-refresh__indicator--active {
+  height: 48px !important;
+}
+
+.m-pull-refresh__text {
+  font-size: var(--fs-meta);
+  color: var(--m-muted);
+}
+
+.m-pull-refresh__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--m-border);
+  border-top-color: var(--m-accent);
+  border-radius: var(--m-r-full);
+  animation: m-spin 600ms linear infinite;
+}
+
+@keyframes m-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Offline banner --- */
+.m-offline-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-4);
+  background: var(--m-surface-3);
+  font-size: var(--fs-meta);
+  color: var(--m-muted);
+}
+
+.m-offline-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--m-r-full);
+  background: var(--m-amber);
+  flex-shrink: 0;
+}
+
+.m-offline-banner__text {
+  flex: 1;
+}
