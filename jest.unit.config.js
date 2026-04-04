@@ -22,5 +22,9 @@ module.exports = {
     "**/src/ai/recommendationSchema.test.ts",
     "**/tests/eval/recommendation-quality.test.ts",
     "**/src/cli/**/*.test.ts",
+    // Adaptation system
+    "**/src/services/userAdaptationScoring.test.ts",
+    "**/src/services/userAdaptationService.test.ts",
+    "**/src/services/surfacePolicy.test.ts",
   ],
 };
