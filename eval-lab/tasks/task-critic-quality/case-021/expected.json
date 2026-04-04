@@ -1,0 +1,13 @@
+{
+  "quality_score": 65.0,
+  "quality_band": "mid",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "date_options",
+    "dietary_restrictions",
+    "transportation"
+  ],
+  "notes": "Good context \u2014 budget, headcount, location preference, season. Could add: date options, dietary restrictions, transportation plan."
+}

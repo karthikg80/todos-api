@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-027"
+description = "Excellent research task — sample size, focus areas, output format, deadline. Min"
+
+[scoring]
+human_quality_score = 85.0
+weight = 1.0

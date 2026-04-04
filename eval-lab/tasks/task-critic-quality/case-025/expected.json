@@ -1,0 +1,12 @@
+{
+  "quality_score": 80.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "delivery_timeline",
+    "specific_recommendations"
+  ],
+  "notes": "Good personal task \u2014 recipient, preferences, budget, deadline. Clear and actionable."
+}

@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-016"
+description = "Single word with no context. Research what? For what purpose? Lowest score."
+
+[scoring]
+human_quality_score = 10.0
+weight = 1.0

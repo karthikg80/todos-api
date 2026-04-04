@@ -1,0 +1,12 @@
+{
+  "quality_score": 85.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "recruitment_criteria",
+    "scheduling"
+  ],
+  "notes": "Excellent research task \u2014 sample size, focus areas, output format, deadline. Minor: could specify recruitment criteria."
+}

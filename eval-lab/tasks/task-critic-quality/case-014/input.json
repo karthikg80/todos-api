@@ -1,0 +1,6 @@
+{
+  "title": "Set up CI/CD pipeline for the new microservice using GitHub Actions with Docker builds, ECR pushes, ECS deployments, blue-green strategy, canary analysis, automated rollbacks, Slack notifications, and Datadog monitoring dashboards",
+  "description": "The architecture doc is in Confluence. Talk to the infra team about their standards. Also make sure we have proper IAM roles, security groups, VPC config, and load balancer setup. Oh and don't forget the Terraform modules.",
+  "dueDate": "2026-06-01T00:00:00Z",
+  "priority": "high"
+}

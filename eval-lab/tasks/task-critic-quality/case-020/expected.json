@@ -1,0 +1,13 @@
+{
+  "quality_score": 70.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "rollback_plan",
+    "client_coordination",
+    "testing_strategy"
+  ],
+  "notes": "Good technical task \u2014 clear goal, approach, deadline. Could benefit from: migration strategy, rollback plan, client coordination."
+}

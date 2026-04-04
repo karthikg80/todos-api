@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-014"
+description = "This is a multi-week project disguised as a single task. Should be split into: d"
+
+[scoring]
+human_quality_score = 30.0
+weight = 1.0

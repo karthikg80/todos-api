@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-012"
+description = "Strong task — clear deliverable, deadline, scope. Minor: could specify deck form"
+
+[scoring]
+human_quality_score = 80.0
+weight = 1.0

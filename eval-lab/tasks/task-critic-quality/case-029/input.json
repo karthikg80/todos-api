@@ -1,0 +1,6 @@
+{
+  "title": "Cancel unused SaaS subscriptions",
+  "description": "Review the finance spreadsheet for tools we pay for but nobody uses. Focus on tools over $100/month.",
+  "dueDate": "2026-04-12T00:00:00Z",
+  "priority": "medium"
+}

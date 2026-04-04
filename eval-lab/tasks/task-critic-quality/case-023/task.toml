@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-023"
+description = "Strong task — clear deliverable, review criteria, stakeholder context, deadline."
+
+[scoring]
+human_quality_score = 75.0
+weight = 1.0

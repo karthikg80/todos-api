@@ -1,0 +1,13 @@
+{
+  "quality_score": 30.0,
+  "quality_band": "low",
+  "category": "vague",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": [
+    "specific_sections",
+    "what_changed",
+    "deadline"
+  ],
+  "notes": "Too vague. Which docs? What's outdated? No deadline. 'Update docs' could mean anything from typos to full rewrite."
+}

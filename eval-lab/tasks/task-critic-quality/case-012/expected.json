@@ -1,0 +1,12 @@
+{
+  "quality_score": 80.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "audience_context",
+    "backup_slides"
+  ],
+  "notes": "Strong task \u2014 clear deliverable, deadline, scope. Minor: could specify deck format and who reviews first."
+}

@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-019"
+description = "Too vague. Which docs? What's outdated? No deadline. 'Update docs' could mean an"
+
+[scoring]
+human_quality_score = 30.0
+weight = 1.0

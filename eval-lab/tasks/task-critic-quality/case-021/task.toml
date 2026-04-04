@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-021"
+description = "Good context — budget, headcount, location preference, season. Could add: date o"
+
+[scoring]
+human_quality_score = 65.0
+weight = 1.0

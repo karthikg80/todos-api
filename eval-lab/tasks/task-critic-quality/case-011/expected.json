@@ -1,0 +1,9 @@
+{
+  "quality_score": 35.0,
+  "quality_band": "low",
+  "category": "vague",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": ["specificity", "purpose", "timing"],
+  "notes": "Too brief. No context about why, what to discuss, or when. Personal task but still needs minimum structure."
+}

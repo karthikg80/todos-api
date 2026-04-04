@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-020"
+description = "Good technical task — clear goal, approach, deadline. Could benefit from: migrat"
+
+[scoring]
+human_quality_score = 70.0
+weight = 1.0

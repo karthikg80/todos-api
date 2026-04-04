@@ -1,0 +1,12 @@
+{
+  "quality_score": 75.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "review_checklist",
+    "document_location"
+  ],
+  "notes": "Strong task \u2014 clear deliverable, review criteria, stakeholder context, deadline. Minor: could link to the document."
+}

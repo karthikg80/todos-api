@@ -1,0 +1,6 @@
+{
+  "title": "Migrate user authentication from session-based to JWT with refresh token rotation",
+  "description": "Current session store is causing scaling issues. New flow: login returns access token (15min) + refresh token (7d). Refresh endpoint rotates tokens and invalidates old ones. Update all API clients to handle 401 + refresh flow.",
+  "dueDate": "2026-05-01T00:00:00Z",
+  "priority": "high"
+}

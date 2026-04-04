@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-013"
+description = "Extremely vague. No identifiable task, no context, no deadline. Lowest possible "
+
+[scoring]
+human_quality_score = 10.0
+weight = 1.0

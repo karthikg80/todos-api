@@ -1,0 +1,12 @@
+{
+  "quality_score": 5.0,
+  "quality_band": "low",
+  "category": "edge-case",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": [
+    "meaningful_content",
+    "actionability"
+  ],
+  "notes": "No meaningful content. Cannot be evaluated. Lowest possible score."
+}
