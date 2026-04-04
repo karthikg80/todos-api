@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import type { Project, User } from "../../types";
 import {
   IconFocus,
@@ -127,7 +127,22 @@ export function Sidebar({
   onNewTask,
   uiMode,
 }: Props) {
-  const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(new Set());
+  const [collapsedAreas, setCollapsedAreas] = useState<Set<string>>(() => {
+    try {
+      const stored = localStorage.getItem("todos:collapsed-areas");
+      if (stored) return new Set(JSON.parse(stored));
+    } catch { /* ignore */ }
+    return new Set();
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "todos:collapsed-areas",
+        JSON.stringify([...collapsedAreas]),
+      );
+    } catch { /* ignore */ }
+  }, [collapsedAreas]);
 
   const isSimple = uiMode === "simple";
 
