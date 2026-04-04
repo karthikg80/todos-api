@@ -22,9 +22,9 @@ describe("useTabBar", () => {
     expect(result.current.activeTab).toBe("today");
   });
 
-  it("defaults custom tab to triage (Desk)", () => {
+  it("defaults custom tab to horizon (Upcoming)", () => {
     const { result } = renderHook(() => useTabBar());
-    expect(result.current.customView).toBe("triage");
+    expect(result.current.customView).toBe("horizon");
   });
 
   it("persists custom view to localStorage", () => {

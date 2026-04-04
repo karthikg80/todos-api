@@ -15,7 +15,6 @@ interface Props {
   onEditTodo: (id: string, updates: Record<string, unknown>) => void;
   onNavigate: (view: "today" | "horizon" | "all") => void;
   onSelectProject: (id: string) => void;
-  onNavigateToTuneUp: () => void;
   onUndo: (action: { message: string; onUndo: () => void }) => void;
 }
 
@@ -51,7 +50,6 @@ export function HomeDashboard({
   onEditTodo,
   onNavigate,
   onSelectProject,
-  onNavigateToTuneUp,
   onUndo,
 }: Props) {
   const scrollContainerRef = useRef<HTMLElement | null>(null);
@@ -445,7 +443,7 @@ export function HomeDashboard({
                 </div>
               </section>
             )}
-            <TuneUpTile onNavigateToTuneUp={onNavigateToTuneUp} />
+            <TuneUpTile />
           </div>
 
           {projectsToNudge.length > 0 && (

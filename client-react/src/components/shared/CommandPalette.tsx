@@ -90,13 +90,6 @@ export function CommandPalette({
         keywords: "home dashboard",
       },
       {
-        id: "nav-desk",
-        label: "Go to Desk",
-        section: "Commands",
-        action: () => onNavigate("triage"),
-        keywords: "triage inbox",
-      },
-      {
         id: "nav-everything",
         label: "Go to Everything",
         section: "Commands",
@@ -151,13 +144,6 @@ export function CommandPalette({
         section: "Commands",
         action: () => onNavigate("completed"),
         keywords: "done finished completed",
-      },
-      {
-        id: "nav-tuneup",
-        label: "Go to Tune-up",
-        section: "Commands",
-        action: () => onNavigate("tuneup"),
-        keywords: "cleanup maintenance",
       },
       {
         id: "nav-weekly-review",

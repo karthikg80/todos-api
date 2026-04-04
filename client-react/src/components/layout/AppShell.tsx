@@ -32,8 +32,6 @@ import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { SettingsPage } from "./SettingsPage";
 import { HomeDashboard } from "./HomeDashboard";
-import { DeskView } from "../desk/DeskView";
-import { TuneUpView } from "../tuneup/TuneUpView";
 import { ProjectCrud } from "../projects/ProjectCrud";
 import { ProjectWorkspaceView } from "../projects/ProjectWorkspaceView";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
@@ -178,10 +176,6 @@ export function AppShell() {
       switch (activeView) {
         case "home":
           // Focus dashboard fetches all active todos for tiles
-          break;
-        case "triage":
-          // Desk: inbox-status todos needing organization
-          params.status = "inbox";
           break;
         case "today":
           params.sortBy = "dueDate";
@@ -404,9 +398,6 @@ export function AppShell() {
       }
     }
     return {
-      triage: active.filter(
-        (t) => t.status === "inbox" || (!t.projectId && !t.category),
-      ).length,
       today: active.filter((t) => t.dueDate && t.dueDate.split("T")[0] <= today)
         .length,
       horizon: horizonIds.size,
@@ -422,8 +413,6 @@ export function AppShell() {
     switch (activeView) {
       case "home":
         return "What needs your focus today?";
-      case "triage":
-        return "Capture something to organize later…";
       case "today":
         return "Add a task for today…";
       case "horizon":
@@ -831,12 +820,10 @@ export function AppShell() {
 
   const VIEW_LABELS: Record<string, string> = {
     home: "Focus",
-    triage: "Desk",
     all: "Everything",
     today: "Today",
     horizon: "Horizon",
     completed: "Completed",
-    tuneup: "Tune-up",
   };
 
   const selectedProject = selectedProjectId
@@ -1109,47 +1096,6 @@ export function AppShell() {
                     onSelectProject={(id) => {
                       handleSelectProject(id);
                       startTransition(() => setPage("todos"));
-                    }}
-                    onNavigateToTuneUp={() => handleSelectView("tuneup")}
-                    onUndo={(action) =>
-                      setUndoAction({
-                        message: action.message,
-                        onUndo: action.onUndo,
-                      })
-                    }
-                  />
-                </div>
-              </ViewRoute>
-
-              <ViewRoute viewKey="triage">
-                {isMobile && (
-                  <div className="mobile-header">
-                    <button
-                      id="projectsRailMobileOpen"
-                      className="mobile-header__menu-btn"
-                      onClick={() => setMobileNavOpen(true)}
-                      aria-label="Open navigation"
-                    >
-                      <IconMenu />
-                    </button>
-                    <span className="app-header__title">Desk</span>
-                  </div>
-                )}
-                <DeskView
-                  todos={todos}
-                  onTodoClick={handleOpenDrawer}
-                  onToggleTodo={handleToggle}
-                  onRefreshTodos={() => loadTodos(queryParams)}
-                  onOpenComposer={() => setComposerOpen(true)}
-                />
-              </ViewRoute>
-
-              <ViewRoute viewKey="tuneup">
-                <div className="app-content">
-                  <TuneUpView
-                    onOpenTask={(taskId) => {
-                      handleSelectView("all");
-                      handleOpenDrawer(taskId);
                     }}
                     onUndo={(action) =>
                       setUndoAction({

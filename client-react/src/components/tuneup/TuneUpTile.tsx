@@ -2,9 +2,8 @@ import { useEffect } from "react";
 import { useTuneUp } from "../../hooks/useTuneUp";
 import { computeTopFinding } from "../../utils/topFinding";
 
-interface Props {
-  onNavigateToTuneUp: () => void;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+interface Props {}
 
 function freshnessLabel(lastFetchedAt: number | null): string {
   if (lastFetchedAt === null) return "";
@@ -16,7 +15,7 @@ function freshnessLabel(lastFetchedAt: number | null): string {
   return `Last checked ${diffHours}h ago`;
 }
 
-export function TuneUpTile({ onNavigateToTuneUp }: Props) {
+export function TuneUpTile(_props: Props) {
   const {
     data,
     loading,
@@ -80,26 +79,12 @@ export function TuneUpTile({ onNavigateToTuneUp }: Props) {
           </svg>
           <h3 className="home-tile__title">Tune-up</h3>
         </div>
-        {(settledWithFinding || earlyFinding) && (
-          <button
-            className="mini-btn home-tile__see-all"
-            onClick={onNavigateToTuneUp}
-          >
-            View all
-          </button>
-        )}
       </div>
 
       <div className="home-tile__body">
         {allFailed && (
           <div className="home-tile__empty">
             <p className="home-tile__empty-text">Couldn&apos;t analyze</p>
-            <button
-              className="mini-btn"
-              onClick={onNavigateToTuneUp}
-            >
-              Retry
-            </button>
           </div>
         )}
 

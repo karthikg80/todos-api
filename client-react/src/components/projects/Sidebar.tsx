@@ -3,12 +3,10 @@ import type { Project, User } from "../../types";
 import { apiCall } from "../../api/client";
 import {
   IconFocus,
-  IconDesk,
   IconEverything,
   IconToday,
   IconUpcoming,
   IconCompleted,
-  IconTuneUp,
   IconPlus,
   IconSidebar,
   IconSearch,
@@ -19,12 +17,10 @@ import { ProfileLauncher } from "../shared/ProfileLauncher";
 // Internal keys match classic store.js currentWorkspaceView values
 export type WorkspaceView =
   | "home"
-  | "triage"
   | "all"
   | "today"
   | "horizon"
-  | "completed"
-  | "tuneup";
+  | "completed";
 
 // Display labels match classic app-shell.fragment
 const WORKSPACE_VIEWS: {
@@ -33,12 +29,10 @@ const WORKSPACE_VIEWS: {
   icon: React.ComponentType;
 }[] = [
   { key: "home", label: "Focus", icon: IconFocus },
-  { key: "triage", label: "Desk", icon: IconDesk },
   { key: "all", label: "Everything", icon: IconEverything },
   { key: "today", label: "Today", icon: IconToday },
   { key: "horizon", label: "Horizon", icon: IconUpcoming },
   { key: "completed", label: "Completed", icon: IconCompleted },
-  { key: "tuneup", label: "Tune-up", icon: IconTuneUp },
 ];
 
 // Area labels and order match classic railUi.js
@@ -363,7 +357,7 @@ export function Sidebar({
   };
 
   const visibleViews = isSimple
-    ? WORKSPACE_VIEWS.filter((v) => v.key !== "home" && v.key !== "triage")
+    ? WORKSPACE_VIEWS.filter((v) => v.key !== "home")
     : WORKSPACE_VIEWS;
 
   return (
