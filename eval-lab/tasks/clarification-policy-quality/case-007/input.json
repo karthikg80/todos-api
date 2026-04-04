@@ -1,0 +1,5 @@
+{
+  "scenario": "Schedule a meeting for yesterday at 3pm",
+  "context": "You manage the calendar for a consulting firm.",
+  "available_info": "Request is to schedule a meeting in the past."
+}

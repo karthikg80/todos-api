@@ -1,0 +1,15 @@
+{
+  "category": "refuse-impossible",
+  "expected_decision": "refuse",
+  "expected_question_topics": [],
+  "expected_min_questions": 0,
+  "expected_max_questions": 0,
+  "what_good_decision_looks_like": "Refuses because you cannot schedule a meeting in the past. Suggests rescheduling for a future date.",
+  "common_failure_modes": [
+    "proceeds_with_past_date",
+    "asks_which_yesterday",
+    "ignores_impossibility"
+  ],
+  "acceptable_variation": "May ask if they meant a different date. Should NOT proceed with past date.",
+  "notes": "Cannot schedule in the past. Should refuse and suggest alternative."
+}

@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-020"
+description = "Asks for date, budget, and guest count. Cannot plan without these basics."
+
+[scoring]
+weight = 1.0

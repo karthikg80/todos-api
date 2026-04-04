@@ -1,0 +1,15 @@
+{
+  "category": "proceed-clear",
+  "expected_decision": "proceed",
+  "expected_question_topics": [],
+  "expected_min_questions": 0,
+  "expected_max_questions": 0,
+  "what_good_decision_looks_like": "Proceeds to archive the tasks. Clear, reversible action with specific criteria.",
+  "common_failure_modes": [
+    "asks_which_tasks",
+    "asks_why_archiving",
+    "refuses_without_reason"
+  ],
+  "acceptable_variation": "May confirm the number of tasks to archive. Should proceed.",
+  "notes": "Clear, reversible action. Should proceed without asking."
+}

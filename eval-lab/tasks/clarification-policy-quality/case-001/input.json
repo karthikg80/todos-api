@@ -1,0 +1,5 @@
+{
+  "scenario": "Schedule a meeting with the client",
+  "context": "You manage the calendar for a consulting firm.",
+  "available_info": "Client name: Acme Corp. No date, time, duration, or attendees specified."
+}

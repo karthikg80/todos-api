@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-007"
+description = "Refuses because you cannot schedule a meeting in the past. Suggests rescheduling"
+
+[scoring]
+weight = 1.0

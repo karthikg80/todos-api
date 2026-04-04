@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-010"
+description = "Asks for team size and dietary restrictions. Cannot order without knowing how mu"
+
+[scoring]
+weight = 1.0

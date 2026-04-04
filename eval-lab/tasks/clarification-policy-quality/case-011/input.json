@@ -1,0 +1,5 @@
+{
+  "scenario": "Create a task to review the Q1 report",
+  "context": "You manage the user's task list.",
+  "available_info": "Task: review Q1 report. No deadline specified."
+}

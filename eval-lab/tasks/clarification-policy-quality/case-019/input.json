@@ -1,0 +1,5 @@
+{
+  "scenario": "Archive all completed tasks from last month",
+  "context": "You manage the user's task list.",
+  "available_info": "User has 23 completed tasks from last month. Archiving is reversible."
+}

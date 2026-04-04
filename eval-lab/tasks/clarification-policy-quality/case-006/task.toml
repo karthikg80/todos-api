@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-006"
+description = "Proceeds to mark the task complete. Unambiguous request."
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,14 @@
+{
+  "category": "partial-info",
+  "expected_decision": "proceed",
+  "expected_question_topics": [],
+  "expected_min_questions": 0,
+  "expected_max_questions": 1,
+  "what_good_decision_looks_like": "Proceeds to draft a thank you note. May ask if user wants to review before sending.",
+  "common_failure_modes": [
+    "asks_what_to_say",
+    "refuses_without_content"
+  ],
+  "acceptable_variation": "May draft the note and ask for approval. Should proceed with reasonable content.",
+  "notes": "Can draft a reasonable thank you note with the context provided. Should proceed."
+}

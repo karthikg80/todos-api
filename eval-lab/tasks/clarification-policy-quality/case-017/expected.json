@@ -1,0 +1,15 @@
+{
+  "category": "proceed-clear",
+  "expected_decision": "proceed",
+  "expected_question_topics": [],
+  "expected_min_questions": 0,
+  "expected_max_questions": 0,
+  "what_good_decision_looks_like": "Proceeds to update the deadline. Clear request with identifiable project and new date.",
+  "common_failure_modes": [
+    "asks_which_project",
+    "asks_why_changing",
+    "refuses_without_reason"
+  ],
+  "acceptable_variation": "May confirm the change. Should NOT ask which project or why.",
+  "notes": "Clear request. Should proceed without asking."
+}

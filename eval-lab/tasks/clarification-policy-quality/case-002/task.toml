@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-002"
+description = "Asks for dates, budget, and who is traveling. Cannot book without these."
+
+[scoring]
+weight = 1.0

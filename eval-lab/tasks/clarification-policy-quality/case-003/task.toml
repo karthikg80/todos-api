@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-003"
+description = "Asks for the invoice amount and recipient email. Cannot send without these."
+
+[scoring]
+weight = 1.0

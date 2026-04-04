@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-009"
+description = "Asks for the new date and time. Cannot reschedule without knowing when."
+
+[scoring]
+weight = 1.0

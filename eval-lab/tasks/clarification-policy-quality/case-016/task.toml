@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-016"
+description = "Proceeds to draft a thank you note. May ask if user wants to review before sendi"
+
+[scoring]
+weight = 1.0

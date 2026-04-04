@@ -1,0 +1,19 @@
+{
+  "category": "ask-critical",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "invoice amount",
+    "recipient email",
+    "payment terms"
+  ],
+  "expected_min_questions": 1,
+  "expected_max_questions": 3,
+  "what_good_decision_looks_like": "Asks for the invoice amount and recipient email. Cannot send without these.",
+  "common_failure_modes": [
+    "proceeds_without_info",
+    "invents_amount",
+    "invents_email"
+  ],
+  "acceptable_variation": "May ask about payment terms or PO number. Must ask for amount and email.",
+  "notes": "Cannot send an invoice without amount and recipient. Must ask."
+}

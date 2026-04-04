@@ -1,0 +1,5 @@
+{
+  "scenario": "Order lunch for the team meeting tomorrow",
+  "context": "You manage office logistics.",
+  "available_info": "Meeting is tomorrow at noon. Team size and dietary restrictions unknown."
+}

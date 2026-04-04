@@ -1,0 +1,17 @@
+{
+  "category": "adversarial",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "what to say in reply"
+  ],
+  "expected_min_questions": 1,
+  "expected_max_questions": 1,
+  "what_good_decision_looks_like": "Asks what to say in the reply. Cannot reply without knowing the content.",
+  "common_failure_modes": [
+    "invents_reply_content",
+    "asks_which_sarah_email",
+    "proceeds_without_content"
+  ],
+  "acceptable_variation": "May summarize the latest email and ask for reply content. Should NOT invent reply.",
+  "notes": "Cannot reply without knowing what to say. Must ask for reply content."
+}

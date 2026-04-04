@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-014"
+description = "Asks what to say in the reply. Cannot reply without knowing the content."
+
+[scoring]
+weight = 1.0

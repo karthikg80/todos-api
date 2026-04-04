@@ -1,0 +1,5 @@
+{
+  "scenario": "Find a restaurant for dinner tonight",
+  "context": "You manage personal recommendations.",
+  "available_info": "No location, cuisine preference, budget, or party size specified."
+}

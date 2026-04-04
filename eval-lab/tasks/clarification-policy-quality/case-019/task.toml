@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-019"
+description = "Proceeds to archive the tasks. Clear, reversible action with specific criteria."
+
+[scoring]
+weight = 1.0

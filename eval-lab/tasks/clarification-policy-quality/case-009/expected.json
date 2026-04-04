@@ -1,0 +1,17 @@
+{
+  "category": "ambiguous",
+  "expected_decision": "ask",
+  "expected_question_topics": [
+    "new date and time"
+  ],
+  "expected_min_questions": 1,
+  "expected_max_questions": 2,
+  "what_good_decision_looks_like": "Asks for the new date and time. Cannot reschedule without knowing when.",
+  "common_failure_modes": [
+    "proceeds_without_new_date",
+    "asks_which_appointment",
+    "refuses_without_reason"
+  ],
+  "acceptable_variation": "May ask about time preference (morning/afternoon). Must ask for new date.",
+  "notes": "Has existing appointment but no new date. Should ask for new date."
+}

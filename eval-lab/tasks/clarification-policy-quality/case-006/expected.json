@@ -1,0 +1,15 @@
+{
+  "category": "proceed-clear",
+  "expected_decision": "proceed",
+  "expected_question_topics": [],
+  "expected_min_questions": 0,
+  "expected_max_questions": 0,
+  "what_good_decision_looks_like": "Proceeds to mark the task complete. Unambiguous request.",
+  "common_failure_modes": [
+    "asks_which_task",
+    "asks_when_it_was_done",
+    "refuses_without_reason"
+  ],
+  "acceptable_variation": "May confirm the completion. Should NOT ask which task.",
+  "notes": "Unambiguous task completion. Should proceed without asking."
+}

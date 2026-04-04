@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-004"
+description = "Proceeds to set the reminder. All necessary information is provided."
+
+[scoring]
+weight = 1.0

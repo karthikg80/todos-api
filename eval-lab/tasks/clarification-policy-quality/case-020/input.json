@@ -1,0 +1,5 @@
+{
+  "scenario": "Plan a surprise birthday party for my boss",
+  "context": "You manage personal event planning.",
+  "available_info": "No date, location, budget, guest list, or preferences specified."
+}

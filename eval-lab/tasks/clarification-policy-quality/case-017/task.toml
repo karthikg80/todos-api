@@ -1,0 +1,6 @@
+[task]
+name = "clarification-policy-case-017"
+description = "Proceeds to update the deadline. Clear request with identifiable project and new"
+
+[scoring]
+weight = 1.0

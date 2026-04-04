@@ -1,0 +1,5 @@
+{
+  "scenario": "Mark the task 'Submit expense report' as complete",
+  "context": "You manage the user's task list.",
+  "available_info": "Task exists and is named exactly 'Submit expense report'. User wants to mark it done."
+}
