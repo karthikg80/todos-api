@@ -136,6 +136,7 @@ export function AppShell() {
   const [undoAction, setUndoAction] = useState<UndoAction | null>(null);
   const [page, setPage] = useState<AppPage>("todos");
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [projectCrudMode, setProjectCrudMode] = useState<
     "create" | "rename" | null
   >(null);
@@ -760,6 +761,13 @@ export function AppShell() {
         return;
       }
 
+      // 'v': toggle view menu
+      if (e.key === "v" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setViewMenuOpen((o) => !o);
+        return;
+      }
+
       // '/': focus search
       if (e.key === "/") {
         e.preventDefault();
@@ -823,6 +831,7 @@ export function AppShell() {
     bulkMode,
     mobileNavOpen,
     paletteOpen,
+    viewMenuOpen,
     handleCancelBulk,
     focusQuickEntryOrOpenComposer,
     focusSearchInput,
@@ -1263,6 +1272,8 @@ export function AppShell() {
                       onGroupByChange={setGroupBy}
                       density={density}
                       onDensityChange={setDensity}
+                      viewMenuOpen={viewMenuOpen}
+                      onViewMenuOpenChange={setViewMenuOpen}
                     />
                     <div className="app-content">
                       {viewMode === "board" ? (

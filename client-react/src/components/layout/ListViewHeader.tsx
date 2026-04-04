@@ -96,6 +96,8 @@ export interface ListViewHeaderProps {
   density: Density;
   onDensityChange: (val: Density) => void;
   groupByOptions?: GroupBy[];
+  viewMenuOpen?: boolean;
+  onViewMenuOpenChange?: (open: boolean) => void;
 
   // Misc
   user: User | null;
@@ -151,6 +153,8 @@ export function ListViewHeader({
   density,
   onDensityChange,
   groupByOptions,
+  viewMenuOpen,
+  onViewMenuOpenChange,
 }: ListViewHeaderProps) {
   const activeCount = visibleTodos.filter((t) => !t.completed).length;
   const showHorizonSegments =
@@ -257,6 +261,8 @@ export function ListViewHeader({
             density={density}
             onDensityChange={onDensityChange}
             groupByOptions={groupByOptions}
+            externalOpen={viewMenuOpen}
+            onOpenChange={onViewMenuOpenChange}
           />
           <Tooltip content="Filters" shortcut="f">
             <button

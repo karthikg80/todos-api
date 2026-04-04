@@ -2370,6 +2370,10 @@ body {
   pointer-events: none;
 }
 
+.view-menu__section--focused {
+  background: var(--surface-2);
+}
+
 .view-menu__label {
   font-size: var(--fs-xs);
   text-transform: uppercase;

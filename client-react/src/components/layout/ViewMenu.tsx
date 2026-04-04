@@ -15,6 +15,8 @@ interface Props {
   density: Density;
   onDensityChange: (val: Density) => void;
   groupByOptions?: GroupBy[];
+  externalOpen?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const SORT_OPTIONS: { value: SortField; label: string; ariaLabel?: string }[] =
@@ -51,19 +53,38 @@ export function ViewMenu({
   density,
   onDensityChange,
   groupByOptions,
+  externalOpen,
+  onOpenChange,
 }: Props) {
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isOpen = externalOpen ?? internalOpen;
+  const setIsOpen = useCallback(
+    (val: boolean | ((prev: boolean) => boolean)) => {
+      const next = typeof val === "function" ? val(isOpen) : val;
+      if (onOpenChange) onOpenChange(next);
+      else setInternalOpen(next);
+    },
+    [isOpen, onOpenChange],
+  );
+
   const panelRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const close = useCallback(() => {
-    setOpen(false);
+  const [focusedSection, setFocusedSection] = useState(0);
+
+  const closeMenu = useCallback(() => {
+    setIsOpen(false);
     triggerRef.current?.focus();
-  }, []);
+  }, [setIsOpen]);
+
+  // Reset focused section when opening
+  useEffect(() => {
+    if (isOpen) setFocusedSection(0);
+  }, [isOpen]);
 
   // Close on click outside
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     const onMouseDown = (e: MouseEvent) => {
       if (
         panelRef.current &&
@@ -71,25 +92,63 @@ export function ViewMenu({
         triggerRef.current &&
         !triggerRef.current.contains(e.target as Node)
       ) {
-        close();
+        closeMenu();
       }
     };
     document.addEventListener("mousedown", onMouseDown);
     return () => document.removeEventListener("mousedown", onMouseDown);
-  }, [open, close]);
+  }, [isOpen, closeMenu]);
 
-  // Close on Escape
+  const handleArrowNav = useCallback(
+    (section: number, dir: number) => {
+      const visibleGroups = groupByOptions?.length
+        ? GROUP_OPTIONS.filter((o) => groupByOptions.includes(o.value))
+        : GROUP_OPTIONS;
+
+      if (section === 0) {
+        onViewModeChange(viewMode === "list" ? "board" : "list");
+      } else if (section === 1) {
+        const options = visibleGroups.map((o) => o.value);
+        const idx = options.indexOf(groupBy);
+        onGroupByChange(options[(idx + dir + options.length) % options.length]);
+      } else if (section === 2) {
+        const options = SORT_OPTIONS.map((o) => o.value);
+        const idx = options.indexOf(sortBy);
+        onSortChange(options[(idx + dir + options.length) % options.length], sortOrder);
+      } else if (section === 3) {
+        const densities: Density[] = ["compact", "normal", "spacious"];
+        const idx = densities.indexOf(density);
+        onDensityChange(densities[(idx + dir + densities.length) % densities.length]);
+      }
+    },
+    [viewMode, groupBy, sortBy, sortOrder, density, groupByOptions,
+     onViewModeChange, onGroupByChange, onSortChange, onDensityChange],
+  );
+
+  // Keyboard navigation when open
   useEffect(() => {
-    if (!open) return;
+    if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.stopPropagation();
-        close();
+        closeMenu();
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setFocusedSection((s) => Math.min(s + 1, 3));
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setFocusedSection((s) => Math.max(s - 1, 0));
+      } else if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const dir = e.key === "ArrowRight" ? 1 : -1;
+        handleArrowNav(focusedSection, dir);
       }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, close]);
+  }, [isOpen, focusedSection, handleArrowNav, closeMenu]);
 
   const visibleGroupOptions = groupByOptions?.length
     ? GROUP_OPTIONS.filter((o) => groupByOptions.includes(o.value))
@@ -102,10 +161,10 @@ export function ViewMenu({
       <Tooltip content="View options" shortcut="v">
         <button
           ref={triggerRef}
-          className={`btn${open ? " btn--active" : ""}`}
-          onClick={() => setOpen((o) => !o)}
+          className={`btn${isOpen ? " btn--active" : ""}`}
+          onClick={() => setIsOpen((o) => !o)}
           aria-haspopup="true"
-          aria-expanded={open}
+          aria-expanded={isOpen}
           aria-label="View options"
           style={{ fontSize: "var(--fs-label)" }}
         >
@@ -113,10 +172,10 @@ export function ViewMenu({
         </button>
       </Tooltip>
 
-      {open && (
+      {isOpen && (
         <div className="view-menu__panel" role="menu">
           {/* Layout */}
-          <div className="view-menu__section">
+          <div className={`view-menu__section${focusedSection === 0 ? " view-menu__section--focused" : ""}`}>
             <div className="view-menu__label">Layout</div>
             <div className="view-menu__segmented">
               {(["list", "board"] as ViewMode[]).map((mode) => (
@@ -135,7 +194,7 @@ export function ViewMenu({
 
           {/* Group by — disabled in board mode */}
           <div
-            className={`view-menu__section${isBoardMode ? " view-menu__section--disabled" : ""}`}
+            className={`view-menu__section${isBoardMode ? " view-menu__section--disabled" : ""}${focusedSection === 1 ? " view-menu__section--focused" : ""}`}
           >
             <div className="view-menu__label">Group by</div>
             <div className="view-menu__pills">
@@ -156,7 +215,7 @@ export function ViewMenu({
 
           {/* Sort by — disabled in board mode */}
           <div
-            className={`view-menu__section${isBoardMode ? " view-menu__section--disabled" : ""}`}
+            className={`view-menu__section${isBoardMode ? " view-menu__section--disabled" : ""}${focusedSection === 2 ? " view-menu__section--focused" : ""}`}
           >
             <div className="view-menu__label">Sort by</div>
             <div className="view-menu__pills">
@@ -186,7 +245,7 @@ export function ViewMenu({
           </div>
 
           {/* Density */}
-          <div className="view-menu__section view-menu__section--last">
+          <div className={`view-menu__section view-menu__section--last${focusedSection === 3 ? " view-menu__section--focused" : ""}`}>
             <div className="view-menu__label">Density</div>
             <div className="view-menu__segmented">
               {DENSITY_OPTIONS.map((o) => (
