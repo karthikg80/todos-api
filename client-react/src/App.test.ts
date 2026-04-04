@@ -16,10 +16,24 @@ vi.mock("./components/layout/AppShell", () => ({
   AppShell: () => createElement("div", null, "App shell"),
 }));
 
+vi.mock("./mobile/MobileShell", () => ({
+  MobileShell: () => createElement("div", null, "Mobile shell"),
+}));
+
 describe("App auth gate", () => {
   beforeEach(() => {
     localStorage.clear();
     vi.clearAllMocks();
+    // Mock matchMedia for useIsMobile hook
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: false,
+        media: query,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    });
   });
 
   afterEach(() => {
