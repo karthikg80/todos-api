@@ -1645,3 +1645,80 @@
   box-shadow: inset 0 0 0 2px var(--m-surface);
 }
 .m-burst__dot:nth-child(8) { --burst-x: 17px; --burst-y: 17px; }
+
+/* --- Greeting animation --- */
+.m-header__title--animate {
+  animation: m-reveal 600ms var(--ease-out) both;
+}
+
+.m-header__subtitle--animate {
+  animation: m-fade-up 400ms var(--ease-out) 200ms both;
+}
+
+@keyframes m-reveal {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+
+@keyframes m-fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Confetti celebration --- */
+.m-confetti {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+}
+
+.m-confetti__piece {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  animation: m-confetti-fly var(--d, 500ms) var(--ease-out) forwards;
+}
+
+@keyframes m-confetti-fly {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+  100% { opacity: 0; transform: translate(var(--x, 0), var(--y, -100px)) rotate(var(--r, 180deg)) scale(0.3); }
+}
+
+.m-empty--celebrate {
+  position: relative;
+}
+
+.m-empty__title--bounce {
+  animation: m-bounce-in 600ms var(--ease-spring) 300ms both;
+}
+
+@keyframes m-bounce-in {
+  0% { opacity: 0; transform: scale(0.8); }
+  60% { opacity: 1; transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* --- FAB spring press --- */
+.m-tab-bar__fab:active {
+  animation: m-fab-press 250ms var(--ease-spring);
+}
+
+@keyframes m-fab-press {
+  0% { transform: scale(1); }
+  40% { transform: scale(0.9); }
+  70% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* --- Tab icon bounce on active --- */
+.m-tab-bar__tab--active svg {
+  animation: m-tab-bounce 200ms var(--ease-spring);
+}
+
+@keyframes m-tab-bounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
