@@ -54,7 +54,7 @@ describe("projectWorkspaceModels", () => {
     );
 
     expect(groups.map((group) => group.label)).toEqual([
-      "Unplaced work",
+      "Backlog",
       "Prep",
       "Launch",
     ]);

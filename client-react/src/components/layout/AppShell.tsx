@@ -19,6 +19,7 @@ import { captureInboxItem } from "../../api/inbox";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
+import type { Todo } from "../../types";
 import { type SortField, type SortOrder } from "../todos/SortControl";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";

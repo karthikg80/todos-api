@@ -31,12 +31,16 @@ import type { LoadState } from "../../store/useTodosStore";
 import type { SortField, SortOrder } from "../todos/SortControl";
 import {
   buildSectionGroups,
+  buildSnapshotItemsEnhanced,
   classifyProjectOverview,
   COMPLEXITY_LABELS,
   COMPLEXITY_STYLES,
   daysUntil,
   estimateTaskEffort,
   formatProjectDate,
+  getEmptyStateGuidance,
+  getEnhancedMetricsText,
+  getTabDescription,
   getTaskNextReason,
   isOverdue,
   pickTopTasks,
@@ -110,7 +114,7 @@ interface Props {
   onReplaceNext?: () => void;
 }
 
-function ProjectTaskPreview(
+function ProjectTaskPreview({
   todo,
   onClick,
   effort,
@@ -308,21 +312,13 @@ export function ProjectWorkspaceView({
   sortBy,
   sortOrder,
   onSortChange,
+  onDeferTask,
+  onReplaceNext,
 }: Props) {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("overview");
-
-  // Set default workspace mode based on project complexity
-  useEffect(() => {
-    const defaultMode =
-      overviewProfile.mode === "simple"
-        ? "overview"
-        : overviewProfile.mode === "guided"
-          ? "sections"
-          : "tasks";
-    setWorkspaceMode(defaultMode as WorkspaceMode);
-  }, [project.id, overviewProfile.mode]);
   const [insightsOpen, setInsightsOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   const workspaceModeRef = useRef<WorkspaceMode>(workspaceMode);
   workspaceModeRef.current = workspaceMode;
 
@@ -408,6 +404,17 @@ export function ProjectWorkspaceView({
     () => classifyProjectOverview(allProjectTodos, headings),
     [allProjectTodos, headings],
   );
+
+  // Set default workspace mode based on project complexity
+  useEffect(() => {
+    const defaultMode =
+      overviewProfile.mode === "simple"
+        ? "overview"
+        : overviewProfile.mode === "guided"
+          ? "sections"
+          : "tasks";
+    setWorkspaceMode(defaultMode as WorkspaceMode);
+  }, [project.id, overviewProfile.mode]);
   const sectionStats = useMemo(() => {
     const stats = new Map<
       string,
@@ -446,8 +453,16 @@ export function ProjectWorkspaceView({
     Number(Boolean(searchQuery)) +
     Number(Boolean(activeTagFilter));
   const snapshotItems = useMemo(
-    () => buildSnapshotItems(overviewProfile, progress, project),
-    [overviewProfile, progress, project],
+    () => buildSnapshotItemsEnhanced(overviewProfile, progress, project, allProjectTodos),
+    [overviewProfile, progress, project, allProjectTodos],
+  );
+  const enhancedMetricsText = useMemo(
+    () => getEnhancedMetricsText(overviewProfile, project, allProjectTodos),
+    [overviewProfile, project, allProjectTodos],
+  );
+  const tabDescription = useMemo(
+    () => getTabDescription(workspaceMode, overviewProfile),
+    [workspaceMode, overviewProfile],
   );
   const starterCopy = useMemo(() => buildStarterCopy(overviewProfile), [overviewProfile]);
   const primaryTasks = useMemo(() => {
@@ -485,6 +500,11 @@ export function ProjectWorkspaceView({
   const nextTaskReason = nextTask
     ? getTaskNextReason(nextTask, allProjectTodos)
     : "";
+
+  const emptyState = useMemo(
+    () => getEmptyStateGuidance(overviewProfile, project),
+    [overviewProfile, project],
+  );
 
   const openSection = (headingId: string | null) => {
     onSelectHeading(headingId);
@@ -579,12 +599,20 @@ export function ProjectWorkspaceView({
 
           <div className="project-workspace__snapshot">
             {snapshotItems.map((item) => (
-              <div key={item.label} className="project-workspace__snapshot-item">
+              <div
+                key={item.label}
+                className={`project-workspace__snapshot-item${item.actionable ? " project-workspace__snapshot-item--actionable" : ""}`}
+              >
                 <span className="project-workspace__snapshot-label">{item.label}</span>
                 <strong className="project-workspace__snapshot-value">{item.value}</strong>
               </div>
             ))}
           </div>
+          {enhancedMetricsText && (
+            <div className="project-workspace__metrics-text">
+              {enhancedMetricsText}
+            </div>
+          )}
         </section>
 
         <div className="project-workspace__controls">
@@ -606,11 +634,7 @@ export function ProjectWorkspaceView({
               }))}
             />
             <p className="project-workspace__controls-note">
-              {workspaceMode === "overview"
-                ? "Read the shape of the work first."
-                : workspaceMode === "sections"
-                  ? "Use sections as chapters, not filters."
-                  : "Switch into operational mode for sorting, filtering, and bulk work."}
+              {tabDescription}
             </p>
           </div>
           <div className="project-workspace__search">
@@ -1003,7 +1027,20 @@ export function ProjectWorkspaceView({
                     </div>
                     <div className="project-workspace-card__body">
                       {group.todos.length === 0 ? (
-                        <p className="project-workspace-card__empty">No active tasks here.</p>
+                        <div className="project-workspace-card__empty-guidance">
+                          {group.key === "__unplaced__" ? (
+                            <>
+                              <p className="project-workspace-card__empty-title">
+                                {emptyState.title}
+                              </p>
+                              <p className="project-workspace-card__empty-body">
+                                {emptyState.body}
+                              </p>
+                            </>
+                          ) : (
+                            <p className="project-workspace-card__empty">No active tasks here.</p>
+                          )}
+                        </div>
                       ) : (
                         group.todos.slice(0, 5).map((todo) => (
                           <ProjectTaskPreview
@@ -1023,50 +1060,52 @@ export function ProjectWorkspaceView({
 
         {workspaceMode === "tasks" && (
           <div className="project-workspace__stack">
-            <div className="project-workspace-tasks-toolbar">
-              <div className="project-workspace-tasks-toolbar__left">
-                <div className="project-workspace-tasks-toolbar__title-block">
-                  <span className="project-workspace-tasks-toolbar__label">
-                    {activeHeading
-                      ? `Working in ${activeHeading.name}`
-                      : `${visibleTodos.filter((todo) => !todo.completed).length} active tasks`}
-                  </span>
-                  <span className="project-workspace-tasks-toolbar__meta">
-                    {formatSortLabel(sortBy, sortOrder)}
-                    {activeFilterCount > 0
-                      ? ` · ${pluralize(activeFilterCount, "active filter")}`
-                      : ""}
-                  </span>
-                </div>
-                {activeHeading && (
+            {overviewProfile.mode !== "simple" && (
+              <div className="project-workspace-tasks-toolbar">
+                <div className="project-workspace-tasks-toolbar__left">
+                  <div className="project-workspace-tasks-toolbar__title-block">
+                    <span className="project-workspace-tasks-toolbar__label">
+                      {activeHeading
+                        ? `Working in ${activeHeading.name}`
+                        : `${visibleTodos.filter((todo) => !todo.completed).length} active tasks`}
+                    </span>
+                    <span className="project-workspace-tasks-toolbar__meta">
+                      {formatSortLabel(sortBy, sortOrder)}
+                      {activeFilterCount > 0
+                        ? ` · ${pluralize(activeFilterCount, "active filter")}`
+                        : ""}
+                    </span>
+                  </div>
+                  {activeHeading && (
+                    <button
+                      type="button"
+                      className="mini-btn"
+                      onClick={() => onSelectHeading(null)}
+                    >
+                      Back to all sections
+                    </button>
+                  )}
                   <button
                     type="button"
-                    className="mini-btn"
-                    onClick={() => onSelectHeading(null)}
+                    id="moreFiltersToggle"
+                    className={`btn${filtersOpen ? " btn--active" : ""}`}
+                    onClick={onToggleFilters}
                   >
-                    Back to all sections
+                    Filters
                   </button>
-                )}
-                <button
-                  type="button"
-                  id="moreFiltersToggle"
-                  className={`btn${filtersOpen ? " btn--active" : ""}`}
-                  onClick={onToggleFilters}
-                >
-                  Filters
-                </button>
+                </div>
+                <SegmentedControl
+                  value={viewMode}
+                  onChange={(value) => onViewModeChange(value as ViewMode)}
+                  ariaLabel="Project task mode"
+                  iconOnly
+                  options={[
+                    { value: "list", ariaLabel: "List view", icon: <IconList /> },
+                    { value: "board", ariaLabel: "Board view", icon: <IconBoard /> },
+                  ]}
+                />
               </div>
-              <SegmentedControl
-                value={viewMode}
-                onChange={(value) => onViewModeChange(value as ViewMode)}
-                ariaLabel="Project task mode"
-                iconOnly
-                options={[
-                  { value: "list", ariaLabel: "List view", icon: <IconList /> },
-                  { value: "board", ariaLabel: "Board view", icon: <IconBoard /> },
-                ]}
-              />
-            </div>
+            )}
 
             {(activeHeading || activeFilterCount > 0) && (
               <div className="project-workspace__task-context">
