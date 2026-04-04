@@ -205,6 +205,18 @@ export function Sidebar({
         </button>
       </div>
 
+      {/* New task button — styled like a nav item */}
+      {!isCollapsed && (
+        <button
+          className="sidebar-new-task-btn workspace-view-item"
+          data-new-task-trigger="true"
+          onClick={onNewTask}
+        >
+          <IconPlus className="nav-icon" />
+          <span className="nav-label">New Task</span>
+        </button>
+      )}
+
       {/* Sidebar search — styled like a nav item */}
       {!isCollapsed && (
         <div className="sidebar-search workspace-view-item">
@@ -236,18 +248,6 @@ export function Sidebar({
             </button>
           )}
         </div>
-      )}
-
-      {/* New task button — styled like a nav item */}
-      {!isCollapsed && (
-        <button
-          className="sidebar-new-task-btn workspace-view-item"
-          data-new-task-trigger="true"
-          onClick={onNewTask}
-        >
-          <IconPlus className="nav-icon" />
-          <span className="nav-label">New Task</span>
-        </button>
       )}
 
       {/* Scrollable content area */}
