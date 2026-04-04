@@ -1,5 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
+import { PrismaClient } from "@prisma/client";
 import { UserAdaptationService } from "../services/userAdaptationService";
+import { AdaptationLlmInferenceService } from "../services/adaptationLlmInference";
 import {
   AdaptationFlags,
   getDefaultFlags,
@@ -14,6 +16,8 @@ const log = createLogger("adaptationRouter");
 
 interface AdaptationRouterDeps {
   adaptationService: UserAdaptationService;
+  llmInferenceService?: AdaptationLlmInferenceService;
+  prisma?: PrismaClient;
   flags?: AdaptationFlags;
   resolveUserId: (req: Request, res: Response) => string | null;
 }
@@ -22,6 +26,8 @@ interface AdaptationRouterDeps {
 
 export function createAdaptationRouter({
   adaptationService,
+  llmInferenceService,
+  prisma,
   flags,
   resolveUserId,
 }: AdaptationRouterDeps): Router {
@@ -101,6 +107,101 @@ export function createAdaptationRouter({
           eligibleUserIds: activeFlags.eligibleUserIds
             ? `[${activeFlags.eligibleUserIds.length} users]`
             : undefined,
+        });
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  /**
+   * GET /adaptation/projects/:projectId/soft-inference
+   * Returns LLM-based soft inference for a project.
+   * Only used when behavioral confidence is low (< 0.4).
+   * Never feeds the UserAdaptationProfile directly — advisory only.
+   */
+  router.get(
+    "/projects/:projectId/soft-inference",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const userId = resolveUserId(req, res);
+        if (!userId) return;
+
+        const projectId = req.params.projectId;
+        if (Array.isArray(projectId)) {
+          return res.status(400).json({ error: "Invalid project ID" });
+        }
+
+        if (!llmInferenceService || !prisma) {
+          return res.status(503).json({
+            error: "LLM inference not configured",
+            inference: null,
+          });
+        }
+
+        // Fetch project data for inference
+        const project = await prisma.project.findFirst({
+          where: { id: projectId, userId },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            targetDate: true,
+            createdAt: true,
+          },
+        });
+
+        if (!project) {
+          return res.status(404).json({ error: "Project not found" });
+        }
+
+        // Fetch tasks and headings
+        const [todos, headings] = await Promise.all([
+          prisma.todo.findMany({
+            where: { userId, projectId, archived: false },
+            select: { title: true, headingId: true, dueDate: true },
+            take: 50,
+          }),
+          prisma.heading.findMany({
+            where: { projectId },
+            select: { name: true },
+          }),
+        ]);
+
+        // Check behavioral confidence — only use LLM when low
+        const profileResult = await adaptationService.getOrCreateProfile(userId);
+        if (profileResult.profile.confidence >= 0.4) {
+          // Behavioral data is sufficient — don't use LLM
+          return res.json({
+            inference: null,
+            reason: "behavioral confidence sufficient — LLM inference skipped",
+            behavioralConfidence: profileResult.profile.confidence,
+          });
+        }
+
+        // Run LLM inference
+        const inference = await llmInferenceService.inferProjectIntent({
+          projectName: project.name,
+          projectDescription: project.description,
+          taskTitles: todos.map((t) => t.title),
+          existingSectionNames: headings.map((h) => h.name),
+        });
+
+        log.info("Soft inference result", {
+          userId,
+          projectId,
+          projectName: project.name,
+          behavioralConfidence: profileResult.profile.confidence,
+          llmConfidence: inference?.confidence ?? 0,
+          inferredType: inference?.inferredProjectType,
+        });
+
+        res.json({
+          inference,
+          reason: inference
+            ? "llm soft inference"
+            : "llm provider not available",
+          behavioralConfidence: profileResult.profile.confidence,
         });
       } catch (error) {
         next(error);

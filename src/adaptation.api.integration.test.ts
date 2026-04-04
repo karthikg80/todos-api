@@ -138,4 +138,21 @@ describe("Adaptation API Integration", () => {
       expect(getResponse.body.eligibility).toBe(computeResponse.body.eligibility);
     });
   });
+
+  describe("GET /adaptation/projects/:projectId/soft-inference", () => {
+    it("returns 401 without auth token", async () => {
+      await request(app)
+        .get("/adaptation/projects/some-id/soft-inference")
+        .expect(401);
+    });
+
+    it("returns 404 for non-existent project", async () => {
+      const response = await request(app)
+        .get("/adaptation/projects/00000000-0000-0000-0000-000000000001/soft-inference")
+        .set("Authorization", `Bearer ${authToken}`)
+        .expect(404);
+
+      expect(response.body.error).toBe("Project not found");
+    });
+  });
 });
