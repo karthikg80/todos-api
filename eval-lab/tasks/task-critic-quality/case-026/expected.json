@@ -1,0 +1,13 @@
+{
+  "quality_score": 15.0,
+  "quality_band": "low",
+  "category": "vague",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": [
+    "specificity",
+    "measurement",
+    "priority"
+  ],
+  "notes": "Vague concern disguised as a task. No specific API, no metrics, no deadline, no priority. 'When you have time' means never."
+}

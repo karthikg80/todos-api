@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-029"
+description = "Good task — clear action, data source, threshold, deadline. Could add: who appro"
+
+[scoring]
+human_quality_score = 70.0
+weight = 1.0

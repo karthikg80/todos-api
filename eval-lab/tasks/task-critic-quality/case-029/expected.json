@@ -1,0 +1,12 @@
+{
+  "quality_score": 70.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "approval_process",
+    "documentation"
+  ],
+  "notes": "Good task \u2014 clear action, data source, threshold, deadline. Could add: who approves cancellations, document what was cancelled."
+}

@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-022"
+description = "Completely unactionable without external context. 'The thing' could be anything."
+
+[scoring]
+human_quality_score = 10.0
+weight = 1.0

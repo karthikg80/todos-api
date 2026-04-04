@@ -1,0 +1,12 @@
+{
+  "quality_score": 90.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "approval_workflow",
+    "submission_portal"
+  ],
+  "notes": "Excellent \u2014 specific action, amount, context, project code, deadline. Nearly perfect expense task."
+}

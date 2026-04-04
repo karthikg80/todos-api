@@ -1,0 +1,7 @@
+[task]
+name = "task-critic-case-028"
+description = "Massive undertaking as a single task. Should be: component inventory, pilot migr"
+
+[scoring]
+human_quality_score = 35.0
+weight = 1.0

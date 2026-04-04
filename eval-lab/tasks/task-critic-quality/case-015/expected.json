@@ -1,0 +1,12 @@
+{
+  "quality_score": 85.0,
+  "quality_band": "high",
+  "category": "well-defined",
+  "should_improve_title": false,
+  "should_improve_description": false,
+  "expected_suggestion_themes": [
+    "contact_info",
+    "insurance_card"
+  ],
+  "notes": "Excellent personal task \u2014 specific action, preference, deadline, insurance context. Minor: could include dentist phone number."
+}

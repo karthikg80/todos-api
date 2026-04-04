@@ -1,0 +1,13 @@
+{
+  "quality_score": 40.0,
+  "quality_band": "mid",
+  "category": "over-specified",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": [
+    "split_phases",
+    "milestone_definition",
+    "success_criteria"
+  ],
+  "notes": "This is a quarter-long ML project. Should be split into: data exploration, model development, A/B test setup, production deployment, monitoring. Good metrics and constraints but too much for one task."
+}

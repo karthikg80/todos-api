@@ -1,0 +1,13 @@
+{
+  "quality_score": 10.0,
+  "quality_band": "low",
+  "category": "vague",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": [
+    "specificity",
+    "identification",
+    "scope"
+  ],
+  "notes": "Extremely vague. No identifiable task, no context, no deadline. Lowest possible score."
+}

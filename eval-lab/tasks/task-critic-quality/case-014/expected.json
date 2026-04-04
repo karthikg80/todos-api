@@ -1,0 +1,13 @@
+{
+  "quality_score": 30.0,
+  "quality_band": "low",
+  "category": "over-specified",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": [
+    "split_tasks",
+    "phased_approach",
+    "focus"
+  ],
+  "notes": "This is a multi-week project disguised as a single task. Should be split into: design, CI/CD basics, deployment strategy, monitoring, IaC."
+}

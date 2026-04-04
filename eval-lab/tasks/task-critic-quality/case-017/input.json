@@ -1,0 +1,6 @@
+{
+  "title": "Write integration tests for the payment processing module covering Stripe webhook handling, refund flow, subscription upgrades, proration calculations, failed payment retries, and dunning management with proper mock fixtures",
+  "description": "Current test coverage is 40%. Need to get to 80%. Use the existing test utilities in tests/helpers/. Make sure to test both success and failure paths for each endpoint. Also add performance benchmarks for the webhook handler since it processes 10k+ events/day.",
+  "dueDate": "2026-04-20T00:00:00Z",
+  "priority": "high"
+}

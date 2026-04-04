@@ -1,0 +1,13 @@
+{
+  "quality_score": 55.0,
+  "quality_band": "mid",
+  "category": "over-specified",
+  "should_improve_title": true,
+  "should_improve_description": true,
+  "expected_suggestion_themes": [
+    "split_by_feature",
+    "coverage_target",
+    "priority_ordering"
+  ],
+  "notes": "Good context but too many sub-tasks in one. Should split: webhook tests, refund flow, subscription tests, performance tests. Coverage target and deadline are good."
+}
