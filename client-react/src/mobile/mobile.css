@@ -1215,6 +1215,116 @@
   min-height: 44px;
 }
 
+/* --- Field picker (inline expandable) --- */
+.m-field-picker {
+  background: var(--surface-3);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+
+.m-field-picker--open {
+  border: 1px solid var(--border);
+}
+
+.m-field-picker__header {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: var(--s-3);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  color: var(--text);
+}
+
+.m-field-picker__header--static {
+  cursor: default;
+}
+
+.m-field-picker__header .m-sheet-full__field-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.m-field-picker__chevron {
+  font-size: var(--fs-xs);
+  color: var(--muted-light);
+  margin-left: var(--s-1);
+}
+
+.m-field-picker__options {
+  border-top: 1px solid var(--border-light);
+  padding: var(--s-1) 0;
+}
+
+.m-field-picker__option {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  width: 100%;
+  padding: var(--s-2h) var(--s-3);
+  background: none;
+  border: none;
+  text-align: left;
+  font-size: var(--fs-meta);
+  font-family: var(--font-sans);
+  color: var(--text);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.m-field-picker__option:active {
+  background: var(--surface);
+}
+
+.m-field-picker__option--active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: var(--fw-medium);
+}
+
+.m-field-picker__option-check {
+  font-size: var(--fs-xs);
+  color: var(--accent);
+  width: 14px;
+  flex-shrink: 0;
+}
+
+.m-field-picker__clear {
+  display: block;
+  width: 100%;
+  padding: var(--s-2h) var(--s-3);
+  background: none;
+  border: none;
+  border-top: 1px solid var(--border-light);
+  text-align: left;
+  font-size: var(--fs-meta);
+  font-family: var(--font-sans);
+  color: var(--muted);
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.m-field-picker__date {
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: var(--fs-meta);
+  font-family: var(--font-sans);
+  padding: 0;
+  margin-top: var(--s-1);
+  width: 100%;
+  cursor: pointer;
+}
+
+.m-field-picker__date::-webkit-calendar-picker-indicator {
+  opacity: 0.4;
+  cursor: pointer;
+}
+
 /* --- Screens base --- */
 .m-screen {
   min-height: 100%;
