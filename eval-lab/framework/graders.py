@@ -32,12 +32,18 @@ class DeterministicGrader(Grader):
                 split=case.split,
                 error=error,
                 score=0.2,
+                breakdown=ScoreBreakdown(
+                    dimensions={"correctness": 0.0, "instruction_following": 0.0, "robustness": 0.0, "format_compliance": 0.0},
+                    grader_rationale=f"Service error: {error}",
+                ),
                 failure_types=[FailureType.SERVICE_ERROR],
                 slices=case.metadata.slices,
+                difficulty=case.metadata.difficulty.value,
             )
 
         breakdown = self._compute_breakdown(case, output)
-        score = breakdown.composite
+        weights = getattr(self, "_weights", None)
+        score = breakdown.composite(weights)
 
         # Detect failure types
         failure_types = self._detect_failures(case, output)
@@ -51,6 +57,8 @@ class DeterministicGrader(Grader):
             failure_types=failure_types,
             abs_error=abs(output.get("quality_score", 0) - case.expected.get("quality_score", 0)) if output else 999,
             slices=case.metadata.slices,
+            difficulty=case.metadata.difficulty.value,
+            grader_artifacts={"grader_type": "deterministic"},
         )
 
     @abstractmethod
@@ -71,6 +79,7 @@ class RubricGrader(Grader):
     """
 
     RUBRIC: str = ""
+    DIMENSIONS: list[str] = ["quality"]
 
     def __init__(self, model: Optional[str] = None):
         self.model = model or os.getenv("AI_PROVIDER_MODEL", "gpt-4o-mini")
@@ -86,22 +95,33 @@ class RubricGrader(Grader):
                 split=case.split,
                 error=error,
                 score=0.2,
+                breakdown=ScoreBreakdown(
+                    dimensions={d: 0.0 for d in self.DIMENSIONS},
+                    grader_rationale=f"Service error: {error}",
+                ),
                 failure_types=[FailureType.SERVICE_ERROR],
                 slices=case.metadata.slices,
+                difficulty=case.metadata.difficulty.value,
             )
 
-        score = await self._llm_grade(case, output)
+        dimensions, rationale, borderline = await self._llm_grade(case, output)
         return CaseResult(
             case_id=case.id,
             split=case.split,
             predicted=output,
-            score=score,
-            breakdown=ScoreBreakdown(correctness=score),
+            score=breakdown.composite() if (breakdown := ScoreBreakdown(dimensions=dimensions, grader_rationale=rationale, borderline=borderline)) else 0.5,
+            breakdown=ScoreBreakdown(dimensions=dimensions, grader_rationale=rationale, borderline=borderline),
             slices=case.metadata.slices,
+            difficulty=case.metadata.difficulty.value,
+            grader_artifacts={"grader_type": "rubric", "model": self.model},
         )
 
-    async def _llm_grade(self, case: Case, output: dict) -> float:
-        """Use LLM to grade output against rubric."""
+    async def _llm_grade(self, case: Case, output: dict) -> tuple[dict[str, float], str, bool]:
+        """Use LLM to grade output against rubric.
+
+        Returns (dimensions, rationale, borderline).
+        """
+        dims_json = ", ".join(f'"{d}": <0.0-1.0>' for d in self.DIMENSIONS)
         prompt = f"""Grade the following output against this rubric:
 
 Rubric:
@@ -116,7 +136,10 @@ Expected:
 Actual output:
 {json.dumps(output, indent=2)}
 
-Return ONLY a number between 0.0 and 1.0 representing quality."""
+Return ONLY a JSON object with:
+- {dims_json}
+- "rationale": "<brief explanation>"
+- "borderline": <true if score is near a decision boundary>"""
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             resp = await client.post(
@@ -125,7 +148,8 @@ Return ONLY a number between 0.0 and 1.0 representing quality."""
                     "model": self.model,
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.0,
-                    "max_tokens": 10,
+                    "max_tokens": 300,
+                    "response_format": {"type": "json_object"},
                 },
                 headers={"Authorization": f"Bearer {self.api_key}"},
             )
@@ -133,9 +157,13 @@ Return ONLY a number between 0.0 and 1.0 representing quality."""
             data = resp.json()
             content = data["choices"][0]["message"]["content"].strip()
             try:
-                return float(content)
-            except ValueError:
-                return 0.5
+                parsed = json.loads(content)
+                dimensions = {d: float(parsed.get(d, 0.5)) for d in self.DIMENSIONS}
+                rationale = parsed.get("rationale", "")
+                borderline = parsed.get("borderline", False)
+                return dimensions, rationale, borderline
+            except (json.JSONDecodeError, ValueError):
+                return {d: 0.5 for d in self.DIMENSIONS}, f"Failed to parse LLM response: {content[:100]}", False
 
 
 class HybridGrader(Grader):
@@ -174,4 +202,10 @@ class HybridGrader(Grader):
         )
 
         det_result.score = round(combined_score, 3)
+        det_result.grader_artifacts = {
+            "grader_type": "hybrid",
+            "deterministic_score": det_result.score,
+            "rubric_score": rubric_result.score,
+            "deterministic_weight": self.deterministic_weight,
+        }
         return det_result
