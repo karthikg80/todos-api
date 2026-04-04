@@ -140,7 +140,7 @@ class TaskCriticFamily(BenchmarkFamily):
         output: Optional[dict[str, Any]],
         error: Optional[str] = None,
     ) -> CaseResult:
-        if error:
+        if error or output is None:
             return CaseResult(
                 case_id=case.id,
                 split=case.split,
