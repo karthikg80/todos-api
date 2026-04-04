@@ -13,7 +13,11 @@ import { QuickCapture } from "./components/QuickCapture";
 import { ProfileSheet } from "./components/ProfileSheet";
 import { FieldPicker } from "./components/FieldPicker";
 import { PullToSearch } from "./components/PullToSearch";
+import { PullToRefresh } from "./components/PullToRefresh";
+import { OfflineBanner } from "./components/OfflineBanner";
 import { SnoozePicker } from "./components/SnoozePicker";
+import { InstallBanner } from "./components/InstallBanner";
+import { Onboarding } from "./components/Onboarding";
 import type { TodoStatus, Priority } from "../types";
 import { FocusScreen } from "./screens/FocusScreen";
 import { TodayScreen } from "./screens/TodayScreen";
@@ -79,6 +83,9 @@ export function MobileShell() {
     await loadProjects();
   }, [loadProjects]);
   const handleAvatarClick = useCallback(() => { setProfileOpen(true); }, []);
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([loadTodos({}), loadProjects()]);
+  }, [loadTodos, loadProjects]);
   const handleSnoozeTodo = useCallback((id: string) => { setSnoozeTargetId(id); }, []);
   const handleSnoozeConfirm = useCallback((date: string) => {
     if (snoozeTargetId) editTodo(snoozeTargetId, { dueDate: date });
@@ -233,11 +240,15 @@ export function MobileShell() {
 
   return (
     <div className="m-shell" data-density="normal" data-palette={palette}>
+      <OfflineBanner />
+      <InstallBanner />
       <div className="m-shell__content">
-        {activeTab === "focus" && <FocusScreen {...screenProps} />}
-        {activeTab === "today" && <TodayScreen {...screenProps} />}
-        {activeTab === "projects" && <ProjectsScreen {...screenProps} />}
-        {activeTab === "custom" && <CustomScreen view={customView} {...screenProps} />}
+        <PullToRefresh onRefresh={handleRefresh}>
+          {activeTab === "focus" && <FocusScreen {...screenProps} />}
+          {activeTab === "today" && <TodayScreen {...screenProps} />}
+          {activeTab === "projects" && <ProjectsScreen {...screenProps} />}
+          {activeTab === "custom" && <CustomScreen view={customView} {...screenProps} />}
+        </PullToRefresh>
       </div>
       <PullToSearch todos={todos} projects={projects} onSelectResult={handleTodoClick} />
       <BottomSheet snap={bottomSheet.snap} onClose={bottomSheet.close} onExpandFull={bottomSheet.expandFull} halfContent={halfContent} fullContent={fullContent} />
@@ -276,6 +287,7 @@ export function MobileShell() {
           </div>
         </div>
       )}
+      <Onboarding />
     </div>
   );
 }
