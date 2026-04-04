@@ -93,8 +93,6 @@ body {
 .app-sidebar--collapsed .projects-rail-area-header,
 .app-sidebar--collapsed .projects-rail-area-group,
 .app-sidebar--collapsed .projects-rail__add-btn,
-.app-sidebar--collapsed .projects-archived-toggle,
-.app-sidebar--collapsed .projects-archived-list,
 .app-sidebar--collapsed .sidebar-nav-item__label,
 .app-sidebar--collapsed .profile-launcher__trigger-text,
 .app-sidebar--collapsed .profile-launcher__user-text {
@@ -2155,49 +2153,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* --- Context menu --- */
-.context-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-}
-
-.context-menu {
-  position: fixed;
-  z-index: 75;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  box-shadow: var(--shadow-elevated);
-  padding: var(--s-1) 0;
-  min-width: 140px;
-}
-
-.context-menu__item {
-  display: block;
-  width: 100%;
-  padding: var(--s-2) var(--s-4);
-  border: none;
-  background: none;
-  text-align: left;
-  font-size: var(--fs-meta);
-  font-family: inherit;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.context-menu__item:hover {
-  background: var(--surface-2);
-}
-
-.context-menu__item:focus-visible {
-  background: var(--surface-2);
-}
-
-.context-menu__item--danger {
-  color: var(--danger);
 }
 
 /* ── View Menu ─────────────────────────────── */
@@ -4392,30 +4347,6 @@ body {
   top: 0;
   z-index: 2;
   backdrop-filter: blur(14px);
-}
-
-/* --- Archived projects toggle --- */
-.projects-archived-toggle {
-  display: block;
-  width: 100%;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: var(--fs-label);
-  padding: var(--s-2) var(--s-3);
-  text-align: left;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.projects-archived-toggle:hover {
-  color: var(--text);
-}
-
-.projects-rail-item--archived {
-  opacity: 0.6;
-  font-style: italic;
-  flex: 1;
 }
 
 /* --- AI Workspace --- */

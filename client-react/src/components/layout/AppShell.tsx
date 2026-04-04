@@ -880,10 +880,6 @@ export function AppShell() {
         setMobileNavOpen(false);
       }}
       onCreateProject={() => setProjectCrudMode("create")}
-      onRenameProject={(id, name) => {
-        setRenameTarget({ id, name });
-        setProjectCrudMode("rename");
-      }}
       onOpenSettings={() => {
         startTransition(() => setPage("settings"));
         setMobileNavOpen(false);
@@ -916,7 +912,6 @@ export function AppShell() {
       onSearchChange={setSearchQuery}
       onNewTask={() => setComposerOpen(true)}
       uiMode={uiMode}
-      onRefreshProjects={loadProjects}
     />
   );
 
