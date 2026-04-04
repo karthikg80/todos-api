@@ -32,9 +32,7 @@ function normalize(value: number, maxRange: number): number {
 }
 
 /** Weighted average of percentage inputs. */
-function weightedScore(
-  inputs: { value: number; weight: number }[],
-): number {
+function weightedScore(inputs: { value: number; weight: number }[]): number {
   const totalWeight = inputs.reduce((sum, i) => sum + i.weight, 0);
   if (totalWeight === 0) return 0;
   const weighted = inputs.reduce((sum, i) => sum + i.value * i.weight, 0);
@@ -56,7 +54,7 @@ export function computeStructureUsageScore(
     { value: signals.pctProjectsWithSections, weight: 0.35 },
     {
       value: normalize(signals.avgSectionsPerProject, 8),
-      weight: 0.20,
+      weight: 0.2,
     },
     { value: signals.sectionCreationRate, weight: 0.15 },
     { value: signals.sectionReorganizationRate, weight: 0.15 },
@@ -72,7 +70,7 @@ export function computeStructureUsageScore(
 export function computeDateUsageScore(signals: UserBehaviorSignals): number {
   return weightedScore([
     { value: signals.pctProjectsWithDueDates, weight: 0.35 },
-    { value: signals.pctTasksWithDueDates, weight: 0.20 },
+    { value: signals.pctTasksWithDueDates, weight: 0.2 },
     { value: signals.pctProjectsWithTargetDates, weight: 0.15 },
     { value: signals.dueDateEditRate, weight: 0.15 },
     { value: signals.overdueResolutionRate, weight: 0.15 },
@@ -94,8 +92,8 @@ export function computeInsightEngagementScore(
 
   return weightedScore([
     { value: signals.insightsOpenRate, weight: 0.45 },
-    { value: signals.insightsActionRate, weight: 0.30 },
-    { value: signals.expandAdvancedPanelsRate, weight: 0.10 },
+    { value: signals.insightsActionRate, weight: 0.3 },
+    { value: signals.expandAdvancedPanelsRate, weight: 0.1 },
     {
       value: 100 - signals.collapseAdvancedPanelsRate,
       weight: 0.15,
@@ -129,9 +127,9 @@ export function computeSectionsFirstScore(
   signals: UserBehaviorSignals,
 ): number {
   return weightedScore([
-    { value: signals.pctProjectsWithSections, weight: 0.40 },
+    { value: signals.pctProjectsWithSections, weight: 0.4 },
     { value: signals.revisitViaSectionViewRate, weight: 0.25 },
-    { value: signals.sectionCreationRate, weight: 0.20 },
+    { value: signals.sectionCreationRate, weight: 0.2 },
     { value: signals.sectionReorganizationRate, weight: 0.15 },
   ]);
 }
@@ -146,15 +144,16 @@ export function computeGuidanceRelianceScore(
   signals: UserBehaviorSignals,
 ): number {
   return weightedScore([
-    { value: signals.avgProjectStartSparsity, weight: 0.30 },
-    { value: signals.suggestionAcceptRate, weight: 0.20 },
+    { value: signals.avgProjectStartSparsity, weight: 0.3 },
+    { value: signals.suggestionAcceptRate, weight: 0.2 },
     {
-      value: signals.avgTimeToSecondMeaningfulEditHours !== null
-        ? normalize(signals.avgTimeToSecondMeaningfulEditHours, 72)
-        : 50,
+      value:
+        signals.avgTimeToSecondMeaningfulEditHours !== null
+          ? normalize(signals.avgTimeToSecondMeaningfulEditHours, 72)
+          : 50,
       weight: 0.15,
     },
-    { value: 100 - signals.sectionCreationRate, weight: 0.20 },
+    { value: 100 - signals.sectionCreationRate, weight: 0.2 },
     { value: 100 - signals.pctProjectsWithDueDates, weight: 0.15 },
   ]);
 }
@@ -184,7 +183,9 @@ export function classifyOrganizationStyle(
   sectionsFirstScore: number,
 ): OrganizationStyle {
   if (Math.abs(tasksFirstScore - sectionsFirstScore) < 10) return "mixed";
-  return tasksFirstScore > sectionsFirstScore ? "tasks_first" : "sections_first";
+  return tasksFirstScore > sectionsFirstScore
+    ? "tasks_first"
+    : "sections_first";
 }
 
 export function classifyGuidanceNeed(score: number): GuidanceNeed {
@@ -238,11 +239,9 @@ export function computeConfidence(
   const sessionsNorm = normalize(totalMeaningfulSessions, 20);
   const signalsNorm = normalize(signalsWithSufficientData, 5);
 
-  const confidence = clamp(
-    0.4 * projectsNorm + 0.3 * sessionsNorm + 0.3 * signalsNorm,
-    0,
-    100,
-  ) / 100;
+  const confidence =
+    clamp(0.4 * projectsNorm + 0.3 * sessionsNorm + 0.3 * signalsNorm, 0, 100) /
+    100;
 
   const roundedConfidence = Math.round(confidence * 100) / 100;
 
@@ -269,12 +268,21 @@ export interface EligibilityInput {
  * - "standard": full surface emphasis tuning
  * - "full": maximum personalization with auto-expand insights
  */
-export function computeEligibility(input: EligibilityInput): PersonalizationEligibility {
-  const { projectsCreated, meaningfulSessions, daysActive, confidence, hasRecentActivity } = input;
+export function computeEligibility(
+  input: EligibilityInput,
+): PersonalizationEligibility {
+  const {
+    projectsCreated,
+    meaningfulSessions,
+    daysActive,
+    confidence,
+    hasRecentActivity,
+  } = input;
 
   if (confidence >= 0.7 && hasRecentActivity) return "full";
   if (projectsCreated >= 5 || meaningfulSessions >= 20) return "standard";
-  if (projectsCreated < 3 && meaningfulSessions < 10 && daysActive < 14) return "none";
+  if (projectsCreated < 3 && meaningfulSessions < 10 && daysActive < 14)
+    return "none";
   return "light";
 }
 
@@ -295,7 +303,14 @@ export interface BuildProfileInput {
 export function buildUserProfile(
   input: BuildProfileInput,
 ): UserAdaptationProfile {
-  const { signals, scores, projectsCreated, meaningfulSessions, daysActive, hasRecentActivity } = input;
+  const {
+    signals,
+    scores,
+    projectsCreated,
+    meaningfulSessions,
+    daysActive,
+    hasRecentActivity,
+  } = input;
 
   const { confidence, reason: confidenceReason } = computeConfidence(
     projectsCreated,

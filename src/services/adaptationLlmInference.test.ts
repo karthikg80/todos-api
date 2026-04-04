@@ -12,8 +12,11 @@ jest.mock("./llmService", () => ({
   },
 }));
 
-const mockCallLlm = llmService.callLlm as jest.MockedFunction<typeof llmService.callLlm>;
-const MockLlmProviderNotConfiguredError = llmService.LlmProviderNotConfiguredError;
+const mockCallLlm = llmService.callLlm as jest.MockedFunction<
+  typeof llmService.callLlm
+>;
+const MockLlmProviderNotConfiguredError =
+  llmService.LlmProviderNotConfiguredError;
 
 describe("AdaptationLlmInferenceService", () => {
   let service: AdaptationLlmInferenceService;
@@ -25,12 +28,14 @@ describe("AdaptationLlmInferenceService", () => {
 
   describe("inferProjectIntent", () => {
     it("returns parsed inference from valid LLM response", async () => {
-      mockCallLlm.mockResolvedValue(JSON.stringify({
-        inferredProjectType: "trip planning",
-        suggestedSections: ["Flights", "Accommodation", "Itinerary"],
-        recommendedHintStyle: "structured",
-        confidence: 0.85,
-      }));
+      mockCallLlm.mockResolvedValue(
+        JSON.stringify({
+          inferredProjectType: "trip planning",
+          suggestedSections: ["Flights", "Accommodation", "Itinerary"],
+          recommendedHintStyle: "structured",
+          confidence: 0.85,
+        }),
+      );
 
       const result = await service.inferProjectIntent({
         projectName: "Japan Trip",
@@ -41,7 +46,11 @@ describe("AdaptationLlmInferenceService", () => {
 
       expect(result).not.toBeNull();
       expect(result!.inferredProjectType).toBe("trip planning");
-      expect(result!.suggestedSections).toEqual(["Flights", "Accommodation", "Itinerary"]);
+      expect(result!.suggestedSections).toEqual([
+        "Flights",
+        "Accommodation",
+        "Itinerary",
+      ]);
       expect(result!.recommendedHintStyle).toBe("structured");
       expect(result!.confidence).toBe(0.85);
     });
@@ -99,12 +108,14 @@ describe("AdaptationLlmInferenceService", () => {
     });
 
     it("clamps confidence to [0, 1]", async () => {
-      mockCallLlm.mockResolvedValue(JSON.stringify({
-        inferredProjectType: "test",
-        suggestedSections: [],
-        recommendedHintStyle: "minimal",
-        confidence: 1.5,
-      }));
+      mockCallLlm.mockResolvedValue(
+        JSON.stringify({
+          inferredProjectType: "test",
+          suggestedSections: [],
+          recommendedHintStyle: "minimal",
+          confidence: 1.5,
+        }),
+      );
 
       const result = await service.inferProjectIntent({
         projectName: "Test",
@@ -116,9 +127,11 @@ describe("AdaptationLlmInferenceService", () => {
     });
 
     it("handles missing optional fields gracefully", async () => {
-      mockCallLlm.mockResolvedValue(JSON.stringify({
-        confidence: 0.5,
-      }));
+      mockCallLlm.mockResolvedValue(
+        JSON.stringify({
+          confidence: 0.5,
+        }),
+      );
 
       const result = await service.inferProjectIntent({
         projectName: "Test",
@@ -133,9 +146,11 @@ describe("AdaptationLlmInferenceService", () => {
     });
 
     it("limits task titles in prompt to 15", async () => {
-      mockCallLlm.mockResolvedValue(JSON.stringify({
-        confidence: 0.5,
-      }));
+      mockCallLlm.mockResolvedValue(
+        JSON.stringify({
+          confidence: 0.5,
+        }),
+      );
 
       const taskTitles = Array.from({ length: 20 }, (_, i) => `Task ${i + 1}`);
       await service.inferProjectIntent({
@@ -153,7 +168,9 @@ describe("AdaptationLlmInferenceService", () => {
 
   describe("suggestStarterSections", () => {
     it("returns parsed sections from valid LLM response", async () => {
-      mockCallLlm.mockResolvedValue(JSON.stringify(["Planning", "Execution", "Review"]));
+      mockCallLlm.mockResolvedValue(
+        JSON.stringify(["Planning", "Execution", "Review"]),
+      );
 
       const result = await service.suggestStarterSections({
         projectName: "New Project",
@@ -188,9 +205,7 @@ describe("AdaptationLlmInferenceService", () => {
     });
 
     it("limits sections to 5 from plain text", async () => {
-      mockCallLlm.mockResolvedValue(
-        "- A\n- B\n- C\n- D\n- E\n- F\n- G",
-      );
+      mockCallLlm.mockResolvedValue("- A\n- B\n- C\n- D\n- E\n- F\n- G");
 
       const result = await service.suggestStarterSections({
         projectName: "Test",

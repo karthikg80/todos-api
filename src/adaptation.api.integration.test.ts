@@ -135,7 +135,9 @@ describe("Adaptation API Integration", () => {
         .expect(200);
 
       expect(getResponse.body.confidence).toBe(computeResponse.body.confidence);
-      expect(getResponse.body.eligibility).toBe(computeResponse.body.eligibility);
+      expect(getResponse.body.eligibility).toBe(
+        computeResponse.body.eligibility,
+      );
     });
   });
 
@@ -148,7 +150,9 @@ describe("Adaptation API Integration", () => {
 
     it("returns 404 for non-existent project", async () => {
       const response = await request(app)
-        .get("/adaptation/projects/00000000-0000-0000-0000-000000000001/soft-inference")
+        .get(
+          "/adaptation/projects/00000000-0000-0000-0000-000000000001/soft-inference",
+        )
         .set("Authorization", `Bearer ${authToken}`)
         .expect(404);
 

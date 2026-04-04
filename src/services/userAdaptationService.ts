@@ -117,31 +117,29 @@ export class UserAdaptationService {
     });
 
     // Fetch project-level aggregates
-    const [
-      projectsCreated,
-      projectsCompleted,
-      allProjects,
-    ] = await Promise.all([
-      this.prisma.project.count({
-        where: { userId, createdAt: { gte: windowStart } },
-      }),
-      this.prisma.project.count({
-        where: {
-          userId,
-          status: "completed",
-          updatedAt: { gte: windowStart },
-        },
-      }),
-      this.prisma.project.findMany({
-        where: { userId, archived: false },
-        select: {
-          id: true,
-          targetDate: true,
-          createdAt: true,
-          _count: { select: { todos: true, headings: true } },
-        },
-      }),
-    ]);
+    const [projectsCreated, projectsCompleted, allProjects] = await Promise.all(
+      [
+        this.prisma.project.count({
+          where: { userId, createdAt: { gte: windowStart } },
+        }),
+        this.prisma.project.count({
+          where: {
+            userId,
+            status: "completed",
+            updatedAt: { gte: windowStart },
+          },
+        }),
+        this.prisma.project.findMany({
+          where: { userId, archived: false },
+          select: {
+            id: true,
+            targetDate: true,
+            createdAt: true,
+            _count: { select: { todos: true, headings: true } },
+          },
+        }),
+      ],
+    );
 
     // Fetch task-level aggregates across all projects
     const allTodos = await this.prisma.todo.findMany({
@@ -157,13 +155,13 @@ export class UserAdaptationService {
     });
 
     // Apply decay weight to each event
-    const weightedEventCount = (
-      type: ActivityEventType,
-    ): number => {
+    const weightedEventCount = (type: ActivityEventType): number => {
       const matching = events.filter((e) => e.eventType === type);
       return matching.reduce((sum, e) => {
-        const age = (now.getTime() - e.createdAt.getTime()) / (1000 * 60 * 60 * 24);
-        const weight = age <= DECAY_RECENT_DAYS ? DECAY_RECENT_WEIGHT : DECAY_OLDER_WEIGHT;
+        const age =
+          (now.getTime() - e.createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        const weight =
+          age <= DECAY_RECENT_DAYS ? DECAY_RECENT_WEIGHT : DECAY_OLDER_WEIGHT;
         return sum + weight;
       }, 0);
     };
@@ -174,9 +172,7 @@ export class UserAdaptationService {
       (p) => p._count.headings > 0,
     ).length;
     const projectsWithDueDates = allProjects.filter((p) =>
-      allTodos.some(
-        (t) => t.dueDate != null,
-      ),
+      allTodos.some((t) => t.dueDate != null),
     ).length;
     const projectsWithTargetDates = allProjects.filter(
       (p) => p.targetDate != null,
@@ -185,7 +181,9 @@ export class UserAdaptationService {
     // Task-level percentages
     const taskCount = allTodos.length || 1;
     const tasksWithDueDates = allTodos.filter((t) => t.dueDate != null).length;
-    const tasksWithPriority = allTodos.filter((t) => t.priority != null && t.priority !== "medium").length;
+    const tasksWithPriority = allTodos.filter(
+      (t) => t.priority != null && t.priority !== "medium",
+    ).length;
 
     // Sections per project average
     const totalSections = allProjects.reduce(
@@ -199,67 +197,79 @@ export class UserAdaptationService {
       .filter((e) => e.eventType === "section_created")
       .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
 
-    const avgDaysToFirstSection = sectionCreatedEvents.length > 0
-      ? (sectionCreatedEvents[0].createdAt.getTime() -
-          new Date(Math.min(...allProjects.map((p) => p.createdAt.getTime())))
-            .getTime()) /
-        (1000 * 60 * 60 * 24)
-      : null;
+    const avgDaysToFirstSection =
+      sectionCreatedEvents.length > 0
+        ? (sectionCreatedEvents[0].createdAt.getTime() -
+            new Date(
+              Math.min(...allProjects.map((p) => p.createdAt.getTime())),
+            ).getTime()) /
+          (1000 * 60 * 60 * 24)
+        : null;
 
     // Insight engagement metrics
     const insightsOpenCount = weightedEventCount("insights_open");
-    const insightOpportunityCount = weightedEventCount("insight_opportunity_shown");
+    const insightOpportunityCount = weightedEventCount(
+      "insight_opportunity_shown",
+    );
     const insightsDismissCount = weightedEventCount("insights_dismissed");
 
-    const insightsOpenRate = insightOpportunityCount > 0
-      ? (insightsOpenCount / insightOpportunityCount) * 100
-      : 0;
-    const insightsDismissRate = insightOpportunityCount > 0
-      ? (insightsDismissCount / insightOpportunityCount) * 100
-      : 0;
+    const insightsOpenRate =
+      insightOpportunityCount > 0
+        ? (insightsOpenCount / insightOpportunityCount) * 100
+        : 0;
+    const insightsDismissRate =
+      insightOpportunityCount > 0
+        ? (insightsDismissCount / insightOpportunityCount) * 100
+        : 0;
     // Action rate: opens that led to some subsequent task edit within the session
     // Approximated as open rate * 0.5 for now (refined when task-level session data available)
     const insightsActionRate = insightsOpenRate * 0.5;
 
     // Section creation / reorganization rates (per project)
-    const sectionCreationRate = projectCount > 0
-      ? (weightedEventCount("section_created") / projectCount) * 100
-      : 0;
-    const sectionReorganizationRate = projectCount > 0
-      ? (weightedEventCount("section_reorganized") / projectCount) * 100
-      : 0;
+    const sectionCreationRate =
+      projectCount > 0
+        ? (weightedEventCount("section_created") / projectCount) * 100
+        : 0;
+    const sectionReorganizationRate =
+      projectCount > 0
+        ? (weightedEventCount("section_reorganized") / projectCount) * 100
+        : 0;
 
     // Task first action rate: tasks edited before sections created
-    const taskFirstActionRate = taskCount > 0
-      ? ((weightedEventCount("task_created") + weightedEventCount("task_updated")) /
-          (weightedEventCount("task_created") +
-            weightedEventCount("task_updated") +
-            weightedEventCount("section_created") +
-            1)) *
-        100
-      : 0;
+    const taskFirstActionRate =
+      taskCount > 0
+        ? ((weightedEventCount("task_created") +
+            weightedEventCount("task_updated")) /
+            (weightedEventCount("task_created") +
+              weightedEventCount("task_updated") +
+              weightedEventCount("section_created") +
+              1)) *
+          100
+        : 0;
 
     // Suggestion rates
     const suggestionAcceptCount = weightedEventCount("suggestion_accepted");
     const suggestionDismissCount = weightedEventCount("suggestion_dismissed");
     const totalSuggestions = suggestionAcceptCount + suggestionDismissCount;
-    const suggestionAcceptRate = totalSuggestions > 0
-      ? (suggestionAcceptCount / totalSuggestions) * 100
-      : 0;
-    const suggestionDismissRate = totalSuggestions > 0
-      ? (suggestionDismissCount / totalSuggestions) * 100
-      : 0;
+    const suggestionAcceptRate =
+      totalSuggestions > 0
+        ? (suggestionAcceptCount / totalSuggestions) * 100
+        : 0;
+    const suggestionDismissRate =
+      totalSuggestions > 0
+        ? (suggestionDismissCount / totalSuggestions) * 100
+        : 0;
 
     // Panel expand/collapse rates
     const panelExpandCount = weightedEventCount("panel_expanded");
     const panelCollapseCount = weightedEventCount("panel_collapsed");
     const totalPanelActions = panelExpandCount + panelCollapseCount;
-    const expandAdvancedPanelsRate = totalPanelActions > 0
-      ? (panelExpandCount / totalPanelActions) * 100
-      : 0;
-    const collapseAdvancedPanelsRate = totalPanelActions > 0
-      ? (panelCollapseCount / totalPanelActions) * 100
-      : 0;
+    const expandAdvancedPanelsRate =
+      totalPanelActions > 0 ? (panelExpandCount / totalPanelActions) * 100 : 0;
+    const collapseAdvancedPanelsRate =
+      totalPanelActions > 0
+        ? (panelCollapseCount / totalPanelActions) * 100
+        : 0;
 
     // Project revisit metrics
     const projectOpenedCount = weightedEventCount("project_opened");
@@ -268,31 +278,34 @@ export class UserAdaptationService {
       "project_revisited_after_idle",
     );
 
-    const revisitViaTaskListRate = projectOpenedCount > 0
-      ? ((weightedEventCount("task_updated") + weightedEventCount("task_completed")) /
-          (projectOpenedCount + 1)) *
-        50
-      : 0;
-    const revisitViaSectionViewRate = projectOpenedCount > 0
-      ? (weightedEventCount("section_reorganized") / (projectOpenedCount + 1)) *
-        100
-      : 0;
+    const revisitViaTaskListRate =
+      projectOpenedCount > 0
+        ? ((weightedEventCount("task_updated") +
+            weightedEventCount("task_completed")) /
+            (projectOpenedCount + 1)) *
+          50
+        : 0;
+    const revisitViaSectionViewRate =
+      projectOpenedCount > 0
+        ? (weightedEventCount("section_reorganized") /
+            (projectOpenedCount + 1)) *
+          100
+        : 0;
 
     // Due date edit rate (approximate from task updates on dated tasks)
-    const dueDateEditRate = tasksWithDueDates > 0
-      ? (weightedEventCount("task_updated") / tasksWithDueDates) * 50
-      : 0;
+    const dueDateEditRate =
+      tasksWithDueDates > 0
+        ? (weightedEventCount("task_updated") / tasksWithDueDates) * 50
+        : 0;
 
     // Overdue resolution rate (approximate)
     const overdueTasks = allTodos.filter(
-      (t) =>
-        t.dueDate != null &&
-        !t.completed &&
-        new Date(t.dueDate) < now,
+      (t) => t.dueDate != null && !t.completed && new Date(t.dueDate) < now,
     ).length;
-    const overdueResolutionRate = overdueTasks > 0
-      ? ((weightedEventCount("task_completed") / overdueTasks) * 100)
-      : 100;
+    const overdueResolutionRate =
+      overdueTasks > 0
+        ? (weightedEventCount("task_completed") / overdueTasks) * 100
+        : 100;
 
     // Project start sparsity: projects with <= 2 tasks in first week
     const sparseProjects = allProjects.filter((p) => {
@@ -303,9 +316,8 @@ export class UserAdaptationService {
       ).length;
       return tasksInFirstWeek <= 2;
     }).length;
-    const avgProjectStartSparsity = projectCount > 0
-      ? (sparseProjects / projectCount) * 100
-      : 0;
+    const avgProjectStartSparsity =
+      projectCount > 0 ? (sparseProjects / projectCount) * 100 : 0;
 
     // Avg time to second meaningful edit (approximate)
     const avgTimeToSecondMeaningfulEditHours = null; // Requires session-level tracking
@@ -343,7 +355,9 @@ export class UserAdaptationService {
       expandAdvancedPanelsRate: Math.min(expandAdvancedPanelsRate, 100),
       projectOpenedCount: Math.round(projectOpenedCount),
       projectResumedCount: Math.round(projectResumedCount),
-      projectRevisitedAfterIdleCount: Math.round(projectRevisitedAfterIdleCount),
+      projectRevisitedAfterIdleCount: Math.round(
+        projectRevisitedAfterIdleCount,
+      ),
       revisitViaTaskListRate: Math.min(revisitViaTaskListRate, 100),
       revisitViaSectionViewRate: Math.min(revisitViaSectionViewRate, 100),
     };
@@ -458,33 +472,36 @@ export class UserAdaptationService {
     }
   }
 
-  private _mapStoredToProfile(
-    stored: {
-      id: string;
-      userId: string;
-      profileVersion: number;
-      policyVersion: number;
-      eligibility: string;
-      structureAppetite: string;
-      insightAffinity: string;
-      dateDiscipline: string;
-      organizationStyle: string;
-      guidanceNeed: string;
-      confidence: number;
-      confidenceReason: string | null;
-      signalsSnapshot: unknown;
-      scoresSnapshot: unknown;
-      signalsWindowDays: number;
-      computedAt: Date;
-      updatedAt: Date;
-    },
-  ): ProfileWithMetadata {
+  private _mapStoredToProfile(stored: {
+    id: string;
+    userId: string;
+    profileVersion: number;
+    policyVersion: number;
+    eligibility: string;
+    structureAppetite: string;
+    insightAffinity: string;
+    dateDiscipline: string;
+    organizationStyle: string;
+    guidanceNeed: string;
+    confidence: number;
+    confidenceReason: string | null;
+    signalsSnapshot: unknown;
+    scoresSnapshot: unknown;
+    signalsWindowDays: number;
+    computedAt: Date;
+    updatedAt: Date;
+  }): ProfileWithMetadata {
     let profile: UserAdaptationProfile = {
-      structureAppetite: stored.structureAppetite as UserAdaptationProfile["structureAppetite"],
-      insightAffinity: stored.insightAffinity as UserAdaptationProfile["insightAffinity"],
-      dateDiscipline: stored.dateDiscipline as UserAdaptationProfile["dateDiscipline"],
-      organizationStyle: stored.organizationStyle as UserAdaptationProfile["organizationStyle"],
-      guidanceNeed: stored.guidanceNeed as UserAdaptationProfile["guidanceNeed"],
+      structureAppetite:
+        stored.structureAppetite as UserAdaptationProfile["structureAppetite"],
+      insightAffinity:
+        stored.insightAffinity as UserAdaptationProfile["insightAffinity"],
+      dateDiscipline:
+        stored.dateDiscipline as UserAdaptationProfile["dateDiscipline"],
+      organizationStyle:
+        stored.organizationStyle as UserAdaptationProfile["organizationStyle"],
+      guidanceNeed:
+        stored.guidanceNeed as UserAdaptationProfile["guidanceNeed"],
       confidence: stored.confidence,
       confidenceReason: stored.confidenceReason ?? "",
       eligibility: stored.eligibility as UserAdaptationProfile["eligibility"],
@@ -521,7 +538,10 @@ export class UserAdaptationService {
     }
 
     // Scale decay factor by how long since compute (caps at 2x the base factor)
-    const decayMultiplier = Math.min(2, hoursSinceCompute / PROFILE_DECAY_HOURS);
+    const decayMultiplier = Math.min(
+      2,
+      hoursSinceCompute / PROFILE_DECAY_HOURS,
+    );
     const effectiveDecay = PROFILE_DECAY_FACTOR * decayMultiplier;
 
     // Decay confidence toward zero

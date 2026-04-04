@@ -115,7 +115,10 @@ function parseEnvInt(key: string, fallback: number): number {
 function parseEnvAllowlist(key: string): string[] | undefined {
   const val = process.env[key];
   if (!val) return undefined;
-  return val.split(",").map((s) => s.trim()).filter(Boolean);
+  return val
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
 }
 
 /** Simple deterministic hash for rollout. */
