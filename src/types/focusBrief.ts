@@ -26,7 +26,8 @@ export interface TopRecommendation {
 }
 
 export interface RightNow {
-  urgentItems: UrgentItem[];
+  narrative: string; // 2-3 sentence prose summary
+  urgentItems: UrgentItem[]; // kept for card back transparency
   topRecommendation: TopRecommendation | null;
 }
 

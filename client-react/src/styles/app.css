@@ -10818,6 +10818,13 @@ body.dark-mode {
   color: var(--text);
 }
 
+.panel-right-now__narrative {
+  font-size: var(--fs-body);
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0 0 var(--s-3);
+}
+
 /* ==========================================================================
    Today Agenda Panel
    ========================================================================== */

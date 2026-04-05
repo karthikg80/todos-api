@@ -151,6 +151,7 @@ Analyze the user's open tasks and projects and return a JSON object (no markdown
 
 {
   "rightNow": {
+    "narrative": "2-3 sentence paragraph summarizing the user's most urgent situation. Weave in task names, deadlines, and stakes. Write as prose, not a list. Example: 'Your contractor quote for the todo app is overdue — this blocks the project timeline. The AWS study plan and garage sort are both due April 10th, but the contractor call is the bottleneck.'",
     "urgentItems": [
       { "title": "task title", "dueDate": "YYYY-MM-DD", "reason": "one sentence" }
     ],
@@ -175,7 +176,8 @@ Analyze the user's open tasks and projects and return a JSON object (no markdown
 }
 
 Rules:
-- urgentItems: tasks that are overdue OR have priority=urgent AND due within 7 days. Max 3. Omit if none.
+- narrative: 2-3 sentence paragraph synthesizing the urgency situation. Mention actual task names and dates. Write as prose — do NOT list tasks. If nothing is urgent, write something encouraging like "No fires today. Good time to get ahead on..."
+- urgentItems: tasks that are overdue OR have priority=urgent AND due within 7 days. Max 3. These are metadata for transparency, not displayed as a list.
 - topRecommendation: the single most impactful task. Omit (null) if no open tasks.
 - whatNext: 3-5 high-impact task recommendations ordered by impact. Use actual task ids and titles.
 - panelRanking: ordered list of all panel types relevant to the user's situation. Include "whatNext" as a panel type.
@@ -434,6 +436,7 @@ function assembleBrief(
   return {
     pinned: {
       rightNow: llmOutput.rightNow ?? {
+        narrative: "",
         urgentItems: [],
         topRecommendation: null,
       },

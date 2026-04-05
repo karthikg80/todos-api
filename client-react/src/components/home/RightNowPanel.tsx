@@ -11,7 +11,7 @@ interface Props {
 }
 
 export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
-  if (data.urgentItems.length === 0 && !data.topRecommendation) {
+  if (!data.narrative && data.urgentItems.length === 0 && !data.topRecommendation) {
     return null;
   }
 
@@ -22,17 +22,9 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
         <span className="panel-right-now__title">Right Now</span>
       </div>
 
-      {data.urgentItems.map((item, i) => (
-        <div key={i} className="focus-urgent-banner">
-          <span className="focus-urgent-banner__dot" />
-          <div>
-            <strong>
-              {item.dueDate} — {item.title}.
-            </strong>{" "}
-            <span className="focus-urgent-banner__reason">{item.reason}</span>
-          </div>
-        </div>
-      ))}
+      {data.narrative && (
+        <p className="panel-right-now__narrative">{data.narrative}</p>
+      )}
 
       {data.topRecommendation && (
         <button
