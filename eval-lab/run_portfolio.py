@@ -5,6 +5,7 @@ Usage:
     python run_portfolio.py --prompt best      # Run with best prompt
     python run_portfolio.py --families task_critic task_rewriter  # Run specific families
     python run_portfolio.py --compare baseline.json  # Compare with previous run
+    python run_portfolio.py --ci-gate baseline.json  # Run CI regression gate
 """
 from __future__ import annotations
 
@@ -19,7 +20,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from portfolio import run_portfolio, aggregate_portfolio, compare_runs, generate_portfolio_report
+from portfolio import run_portfolio, aggregate_portfolio, compare_runs, generate_portfolio_report, check_guardrails
+from framework.hardening import HoldoutManager, CIRegressionGate, GraderRegistry, DEFAULT_GUARDRAILS
 
 
 def print_aggregate(aggregate: dict):
@@ -34,11 +36,13 @@ def print_aggregate(aggregate: dict):
     print(f"Total cases: {aggregate['total_cases']}")
     print(f"Total errors: {aggregate['total_errors']}")
     print(f"Error rate: {aggregate['error_rate']:.1%}")
+    print(f"Total cost: ${aggregate.get('cost_usd', 0):.4f}")
+    print(f"Total latency: {aggregate.get('latency_ms', 0):.0f}ms")
     print()
 
     print("By family:")
     for name, info in sorted(aggregate["family_scores"].items()):
-        print(f"  {name}: {info['score']:.3f} ({info['cases']} cases, {info['errors']} errors, weight={info['weight']:.2f})")
+        print(f"  {name}: {info['score']:.3f} ({info['cases']} cases, {info['errors']} errors, ${info.get('cost_usd', 0):.4f}, {info.get('latency_ms', 0):.0f}ms)")
     print()
 
     print("By meta-dimension:")
@@ -108,8 +112,23 @@ async def main():
     parser.add_argument("--prompt", default="baseline", help="Prompt name to use")
     parser.add_argument("--families", nargs="+", default=None, help="Families to run (default: all)")
     parser.add_argument("--compare", type=str, default=None, help="Path to previous run JSON for comparison")
+    parser.add_argument("--ci-gate", type=str, default=None, help="Path to baseline JSON for CI regression gate (exits non-zero on failure)")
     parser.add_argument("--output-dir", type=str, default=None, help="Output directory for reports")
+    parser.add_argument("--grader-audit", action="store_true", help="Print grader registry audit and exit")
     args = parser.parse_args()
+
+    # Grader audit mode
+    if args.grader_audit:
+        registry = GraderRegistry()
+        audit = registry.audit()
+        print(f"\nGrader Registry Audit:")
+        print(f"  Total graders: {audit['total_graders']}")
+        print(f"  Families covered: {', '.join(audit['families_covered'])}")
+        print(f"  Uncalibrated LLM graders: {audit['uncalibrated_llm_graders']}")
+        print(f"  Latest versions:")
+        for fam, ver in audit['latest_versions'].items():
+            print(f"    {fam}: v{ver}")
+        return 0
 
     print(f"Running portfolio with prompt='{args.prompt}'")
     if args.families:
@@ -126,14 +145,38 @@ async def main():
     aggregate = aggregate_portfolio(results)
     print_aggregate(aggregate)
 
+    # CI regression gate mode
+    if args.ci_gate:
+        print(f"\n{'='*60}")
+        print(f"CI REGRESSION GATE")
+        print(f"{'='*60}")
+        print(f"Baseline: {args.ci_gate}")
+        
+        with open(args.ci_gate) as f:
+            baseline_data = json.load(f)
+        
+        baseline_agg = baseline_data.get("aggregate", {})
+        guardrail_result = check_guardrails(baseline_agg, aggregate)
+        
+        print(f"Guardrails: {'PASSED' if guardrail_result['passed'] else 'FAILED'}")
+        if guardrail_result.get("violations"):
+            for v in guardrail_result["violations"]:
+                print(f"  ❌ {v}")
+        else:
+            print("  ✅ All guardrails passed")
+        
+        if not guardrail_result["passed"]:
+            print("\nCI gate FAILED — blocking release")
+            return 1
+        print("\nCI gate PASSED — release allowed")
+        return 0
+
     # Compare with previous run if provided
     if args.compare:
         print(f"Comparing with: {args.compare}")
         with open(args.compare) as f:
             prev_data = json.load(f)
 
-        # Reconstruct RunResult objects from previous run
-        # For simplicity, just compare aggregate scores
         prev_score = prev_data.get("aggregate", {}).get("weighted_score", 0)
         delta = round(aggregate["weighted_score"] - prev_score, 3)
         print(f"Previous score: {prev_score:.3f}")
