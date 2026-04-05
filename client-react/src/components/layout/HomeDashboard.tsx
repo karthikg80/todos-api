@@ -16,7 +16,7 @@ interface Props {
   onUndo?: (action: { message: string; onUndo: () => void }) => void;
 }
 
-export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject }: Props) {
+export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject, onEditTodo }: Props) {
   const { brief, loading, error, refreshing } = useFocusBrief();
   const [showMore, setShowMore] = useState(false);
 
@@ -62,6 +62,7 @@ export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject }: Pr
               panel={panel}
               onTaskClick={onTodoClick}
               onSelectProject={onSelectProject}
+              onEditTodo={onEditTodo}
             />
           ))}
           {brief.rankedPanels.length > 3 && (
@@ -73,6 +74,7 @@ export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject }: Pr
                     panel={panel}
                     onTaskClick={onTodoClick}
                     onSelectProject={onSelectProject}
+                    onEditTodo={onEditTodo}
                   />
                 ))}
               <button
