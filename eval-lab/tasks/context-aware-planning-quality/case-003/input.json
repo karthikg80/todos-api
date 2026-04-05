@@ -1,0 +1,57 @@
+{
+  "project_context": {
+    "name": "Website Redesign",
+    "start_date": "2026-03-01",
+    "target_date": "2026-06-01",
+    "progress": "30%",
+    "budget_used": "25%",
+    "team_size": 3
+  },
+  "task_state": [
+    {
+      "title": "Research competitor sites",
+      "priority": "medium",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Create wireframes",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Research competitor sites"
+      ]
+    },
+    {
+      "title": "Design visual mockups",
+      "priority": "high",
+      "status": "in_progress",
+      "depends_on": [
+        "Create wireframes"
+      ]
+    },
+    {
+      "title": "Develop frontend components",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Design visual mockups"
+      ]
+    },
+    {
+      "title": "Set up CMS integration",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "title": "Content migration",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Set up CMS integration"
+      ]
+    }
+  ],
+  "planning_type": "project_plan"
+}

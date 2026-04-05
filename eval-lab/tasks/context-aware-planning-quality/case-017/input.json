@@ -1,0 +1,75 @@
+{
+  "project_context": {
+    "name": "E-commerce Platform",
+    "start_date": "2026-01-01",
+    "target_date": "2026-06-01",
+    "progress": "35%",
+    "budget_used": "30%",
+    "team_size": 8
+  },
+  "task_state": [
+    {
+      "title": "Design product catalog",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Build shopping cart",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Design product catalog"
+      ]
+    },
+    {
+      "title": "Implement payment gateway",
+      "priority": "high",
+      "status": "in_progress",
+      "depends_on": [
+        "Build shopping cart"
+      ]
+    },
+    {
+      "title": "Build order management",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Implement payment gateway",
+        "Build shopping cart"
+      ]
+    },
+    {
+      "title": "Set up inventory system",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Design product catalog"
+      ]
+    },
+    {
+      "title": "Build user reviews",
+      "priority": "low",
+      "status": "pending",
+      "depends_on": [
+        "Design product catalog"
+      ]
+    },
+    {
+      "title": "Implement recommendation engine",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Build user reviews",
+        "Build order management"
+      ]
+    },
+    {
+      "title": "Set up analytics",
+      "priority": "low",
+      "status": "pending",
+      "depends_on": []
+    }
+  ],
+  "planning_type": "project_plan"
+}

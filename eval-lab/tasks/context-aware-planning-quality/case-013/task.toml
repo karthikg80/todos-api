@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-013"
+description = "Sets up project rhythms. Requirements first, then parallel research and design."
+
+[scoring]
+weight = 1.0

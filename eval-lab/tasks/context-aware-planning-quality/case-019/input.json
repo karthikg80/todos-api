@@ -1,0 +1,77 @@
+{
+  "project_context": {
+    "name": "CI/CD Overhaul",
+    "start_date": "2026-03-01",
+    "target_date": "2026-05-01",
+    "progress": "40%",
+    "budget_used": "35%",
+    "team_size": 3
+  },
+  "task_state": [
+    {
+      "title": "Audit current pipeline",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Design new pipeline architecture",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Audit current pipeline"
+      ]
+    },
+    {
+      "title": "Set up build servers",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Design new pipeline architecture"
+      ]
+    },
+    {
+      "title": "Migrate build scripts",
+      "priority": "high",
+      "status": "in_progress",
+      "depends_on": [
+        "Set up build servers"
+      ]
+    },
+    {
+      "title": "Set up test automation",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Set up build servers"
+      ]
+    },
+    {
+      "title": "Configure deployment pipelines",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Migrate build scripts",
+        "Set up test automation"
+      ]
+    },
+    {
+      "title": "Train team on new pipeline",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Configure deployment pipelines"
+      ]
+    },
+    {
+      "title": "Decommission old pipeline",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Configure deployment pipelines",
+        "Train team on new pipeline"
+      ]
+    }
+  ],
+  "planning_type": "next_work"
+}

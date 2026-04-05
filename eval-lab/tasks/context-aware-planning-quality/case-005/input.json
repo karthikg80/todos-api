@@ -1,0 +1,58 @@
+{
+  "project_context": {
+    "name": "Database Migration",
+    "start_date": "2026-02-15",
+    "target_date": "2026-04-01",
+    "progress": "20%",
+    "budget_used": "35%",
+    "team_size": 3
+  },
+  "task_state": [
+    {
+      "title": "Assess current schema",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Design new schema",
+      "priority": "high",
+      "status": "blocked",
+      "depends_on": [],
+      "blocker": "Waiting on DBA approval"
+    },
+    {
+      "title": "Write migration scripts",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Design new schema"
+      ]
+    },
+    {
+      "title": "Test migration on staging",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Write migration scripts"
+      ]
+    },
+    {
+      "title": "Execute production migration",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Test migration on staging"
+      ]
+    },
+    {
+      "title": "Update application code",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Design new schema"
+      ]
+    }
+  ],
+  "planning_type": "project_plan"
+}

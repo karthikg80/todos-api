@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-014"
+description = "Recommends initial planning activities. Does not invent specific technical tasks"
+
+[scoring]
+weight = 1.0

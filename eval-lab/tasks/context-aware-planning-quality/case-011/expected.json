@@ -1,0 +1,24 @@
+{
+  "planning_type": "project_plan",
+  "category": "overdue",
+  "expected_plan": [
+    "Upgrade database",
+    "Upgrade application server",
+    "Migrate custom modules",
+    "User acceptance testing",
+    "Go live"
+  ],
+  "expected_next_work": "Upgrade database",
+  "expected_risks": [
+    "Project is behind schedule (25% at 75% timeline)",
+    "Budget overrun risk (50% used at 25% progress)",
+    "All remaining tasks are sequential high-priority"
+  ],
+  "what_good_plan_looks_like": "Flags schedule and budget risks. Identifies sequential critical path. Continues database upgrade.",
+  "common_failure_modes": [
+    "misses_sequential_dependency_chain",
+    "misses_budget_trajectory"
+  ],
+  "acceptable_variation": "May suggest different risk mitigation. Should flag budget trajectory.",
+  "notes": "Behind schedule with budget concerns. Sequential critical path from database to go-live."
+}

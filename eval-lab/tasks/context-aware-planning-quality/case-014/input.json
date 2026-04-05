@@ -1,0 +1,12 @@
+{
+  "project_context": {
+    "name": "Employee Portal",
+    "start_date": "2026-04-01",
+    "target_date": "2026-06-01",
+    "progress": "0%",
+    "budget_used": "0%",
+    "team_size": 4
+  },
+  "task_state": [],
+  "planning_type": "project_plan"
+}

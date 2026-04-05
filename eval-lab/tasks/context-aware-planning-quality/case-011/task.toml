@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-011"
+description = "Flags schedule and budget risks. Identifies sequential critical path. Continues "
+
+[scoring]
+weight = 1.0

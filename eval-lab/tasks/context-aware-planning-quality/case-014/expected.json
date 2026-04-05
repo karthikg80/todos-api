@@ -1,0 +1,22 @@
+{
+  "planning_type": "project_plan",
+  "category": "normal",
+  "expected_plan": [
+    "Define project scope and requirements",
+    "Set up development environment",
+    "Create project timeline and milestones",
+    "Identify key stakeholders"
+  ],
+  "expected_next_work": "Define project scope and requirements",
+  "expected_risks": [
+    "No tasks defined yet",
+    "Project needs initial planning"
+  ],
+  "what_good_plan_looks_like": "Recommends initial planning activities. Does not invent specific technical tasks.",
+  "common_failure_modes": [
+    "invents_specific_technical_tasks",
+    "overly_prescriptive"
+  ],
+  "acceptable_variation": "May suggest different planning activities. Should focus on setup.",
+  "notes": "Brand new project with no tasks. Should recommend planning activities."
+}

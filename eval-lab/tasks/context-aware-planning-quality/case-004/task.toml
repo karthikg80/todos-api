@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-004"
+description = "Load testing is high priority with all dependencies met. Should be next work ove"
+
+[scoring]
+weight = 1.0

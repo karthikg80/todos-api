@@ -1,0 +1,21 @@
+{
+  "planning_type": "next_work",
+  "category": "normal",
+  "expected_plan": [
+    "Set up data connections",
+    "Design dashboard layout",
+    "Build visualization components"
+  ],
+  "expected_next_work": "Set up data connections",
+  "expected_risks": [
+    "Short timeline (6 weeks)",
+    "Data connections are critical path"
+  ],
+  "what_good_plan_looks_like": "Suggests data connections as next work (unblocked, high priority). Notes short timeline.",
+  "common_failure_modes": [
+    "misses_short_timeline",
+    "suggests_design_over_data"
+  ],
+  "acceptable_variation": "May suggest design layout as parallel work. Data connections are critical.",
+  "notes": "New project with short timeline. Data connections are critical path start."
+}

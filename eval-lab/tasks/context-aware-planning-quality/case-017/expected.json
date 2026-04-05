@@ -1,0 +1,25 @@
+{
+  "planning_type": "project_plan",
+  "category": "complex",
+  "expected_plan": [
+    "Implement payment gateway",
+    "Build order management",
+    "Set up inventory system",
+    "Build user reviews",
+    "Implement recommendation engine",
+    "Set up analytics"
+  ],
+  "expected_next_work": "Implement payment gateway",
+  "expected_risks": [
+    "Order management blocked until payment gateway complete",
+    "Recommendation engine has long dependency chain"
+  ],
+  "what_good_plan_looks_like": "Continues payment gateway, then order management. Inventory and reviews can be parallel. Flags recommendation engine dependency chain.",
+  "common_failure_modes": [
+    "wrong_dependency_order",
+    "misses_parallel_opportunities",
+    "misses_long_dependency_chain"
+  ],
+  "acceptable_variation": "May suggest different parallel work ordering. Payment gateway should be first.",
+  "notes": "Complex dependency graph. Payment gateway is critical path. Recommendation engine has long chain."
+}

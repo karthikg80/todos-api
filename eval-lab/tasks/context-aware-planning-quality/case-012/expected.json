@@ -1,0 +1,22 @@
+{
+  "planning_type": "next_work",
+  "category": "overdue",
+  "expected_plan": [
+    "Document findings",
+    "Create remediation plan",
+    "Present to leadership"
+  ],
+  "expected_next_work": "Document findings",
+  "expected_risks": [
+    "Project is 1 month overdue",
+    "Severe budget overrun (90% used at 60% progress)",
+    "Only 3 tasks remaining but all high priority"
+  ],
+  "what_good_plan_looks_like": "Flags overdue and severe budget issues. Continues documentation as critical path.",
+  "common_failure_modes": [
+    "misses_budget_crisis",
+    "suggests_non_essential_work"
+  ],
+  "acceptable_variation": "May suggest different crisis management. Documentation should continue.",
+  "notes": "1 month overdue, 90% budget used. Only 3 tasks remain on critical path."
+}

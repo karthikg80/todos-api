@@ -1,0 +1,61 @@
+{
+  "project_context": {
+    "name": "Payment System",
+    "start_date": "2026-01-01",
+    "target_date": "2026-03-01",
+    "progress": "40%",
+    "budget_used": "60%",
+    "team_size": 5
+  },
+  "task_state": [
+    {
+      "title": "Design payment flow",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Integrate Stripe API",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Design payment flow"
+      ]
+    },
+    {
+      "title": "Implement webhook handling",
+      "priority": "high",
+      "status": "blocked",
+      "depends_on": [
+        "Integrate Stripe API"
+      ],
+      "blocker": "Stripe webhook endpoint not configured"
+    },
+    {
+      "title": "Build payment UI",
+      "priority": "medium",
+      "status": "in_progress",
+      "depends_on": [
+        "Design payment flow"
+      ]
+    },
+    {
+      "title": "Add refund functionality",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Integrate Stripe API"
+      ]
+    },
+    {
+      "title": "Security audit",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Implement webhook handling",
+        "Build payment UI"
+      ]
+    }
+  ],
+  "planning_type": "project_plan"
+}

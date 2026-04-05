@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-007"
+description = "Continues UI work, suggests refund functionality, flags webhook blocker and budg"
+
+[scoring]
+weight = 1.0

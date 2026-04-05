@@ -1,0 +1,82 @@
+{
+  "project_context": {
+    "name": "Microservices Migration",
+    "start_date": "2026-02-01",
+    "target_date": "2026-08-01",
+    "progress": "20%",
+    "budget_used": "25%",
+    "team_size": 6
+  },
+  "task_state": [
+    {
+      "title": "Identify service boundaries",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Set up service mesh",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Identify service boundaries"
+      ]
+    },
+    {
+      "title": "Migrate user service",
+      "priority": "high",
+      "status": "in_progress",
+      "depends_on": [
+        "Set up service mesh"
+      ]
+    },
+    {
+      "title": "Migrate order service",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Set up service mesh",
+        "Migrate user service"
+      ]
+    },
+    {
+      "title": "Migrate payment service",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Set up service mesh",
+        "Migrate order service"
+      ]
+    },
+    {
+      "title": "Migrate notification service",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Set up service mesh"
+      ]
+    },
+    {
+      "title": "Migrate analytics service",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Set up service mesh",
+        "Migrate user service"
+      ]
+    },
+    {
+      "title": "Decommission monolith",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Migrate user service",
+        "Migrate order service",
+        "Migrate payment service",
+        "Migrate notification service",
+        "Migrate analytics service"
+      ]
+    }
+  ],
+  "planning_type": "project_plan"
+}

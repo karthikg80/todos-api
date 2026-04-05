@@ -1,0 +1,22 @@
+{
+  "planning_type": "next_work",
+  "category": "blocked",
+  "expected_plan": [
+    "Set up Azure AD integration",
+    "Set up Okta integration (unblock)",
+    "Implement SAML flow",
+    "Test with enterprise clients"
+  ],
+  "expected_next_work": "Set up Azure AD integration",
+  "expected_risks": [
+    "Okta integration blocked on account provisioning",
+    "SAML flow blocked until both integrations complete"
+  ],
+  "what_good_plan_looks_like": "Suggests Azure AD work (unblocked) as next work. Flags Okta blocker. Recommends unblocking.",
+  "common_failure_modes": [
+    "suggests_blocked_task",
+    "misses_unblocked_alternative"
+  ],
+  "acceptable_variation": "May suggest following up on Okta provisioning. Azure AD is valid next work.",
+  "notes": "Okta blocked but Azure AD is unblocked. Should suggest Azure AD as next work."
+}

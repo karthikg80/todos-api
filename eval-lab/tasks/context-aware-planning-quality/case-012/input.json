@@ -1,0 +1,57 @@
+{
+  "project_context": {
+    "name": "Security Audit",
+    "start_date": "2026-02-01",
+    "target_date": "2026-03-01",
+    "progress": "60%",
+    "budget_used": "90%",
+    "team_size": 2
+  },
+  "task_state": [
+    {
+      "title": "Scan dependencies",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Penetration testing",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Review access controls",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Document findings",
+      "priority": "high",
+      "status": "in_progress",
+      "depends_on": [
+        "Scan dependencies",
+        "Penetration testing",
+        "Review access controls"
+      ]
+    },
+    {
+      "title": "Create remediation plan",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Document findings"
+      ]
+    },
+    {
+      "title": "Present to leadership",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Create remediation plan"
+      ]
+    }
+  ],
+  "planning_type": "next_work"
+}

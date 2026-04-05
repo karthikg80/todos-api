@@ -1,0 +1,42 @@
+{
+  "project_context": {
+    "name": "Data Dashboard",
+    "start_date": "2026-04-01",
+    "target_date": "2026-05-15",
+    "progress": "10%",
+    "budget_used": "5%",
+    "team_size": 2
+  },
+  "task_state": [
+    {
+      "title": "Gather dashboard requirements",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Set up data connections",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "title": "Design dashboard layout",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Gather dashboard requirements"
+      ]
+    },
+    {
+      "title": "Build visualization components",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Set up data connections",
+        "Design dashboard layout"
+      ]
+    }
+  ],
+  "planning_type": "next_work"
+}

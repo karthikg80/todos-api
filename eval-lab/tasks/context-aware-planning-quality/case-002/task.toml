@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-002"
+description = "Dashboard screens are unblocked (design complete) and medium priority. Good next"
+
+[scoring]
+weight = 1.0

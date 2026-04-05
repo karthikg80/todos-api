@@ -1,0 +1,25 @@
+{
+  "planning_type": "next_work",
+  "category": "overdue",
+  "expected_plan": [
+    "Beta testing",
+    "Fix beta bugs",
+    "App store submission",
+    "Implement push notifications",
+    "Marketing campaign"
+  ],
+  "expected_next_work": "Beta testing",
+  "expected_risks": [
+    "Project is 2 months overdue",
+    "Severe budget overrun (80% used at 50% progress)",
+    "Critical path: beta \u2192 bugs \u2192 submission"
+  ],
+  "what_good_plan_looks_like": "Flags severe overdue and budget issues. Prioritizes beta testing as critical path start.",
+  "common_failure_modes": [
+    "misses_severity_of_overdue",
+    "suggests_marketing_over_beta",
+    "misses_budget_crisis"
+  ],
+  "acceptable_variation": "May suggest different crisis management. Beta testing should be next work.",
+  "notes": "Project 2 months overdue, severe budget overrun. Beta testing is critical path start."
+}

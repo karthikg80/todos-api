@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-018"
+description = "Continues user service. Identifies notification and analytics as parallel work. "
+
+[scoring]
+weight = 1.0

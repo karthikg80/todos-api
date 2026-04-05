@@ -1,0 +1,24 @@
+{
+  "planning_type": "project_plan",
+  "category": "overdue",
+  "expected_plan": [
+    "Migrate content",
+    "Set up redirects",
+    "Test new site",
+    "Go live"
+  ],
+  "expected_next_work": "Migrate content",
+  "expected_risks": [
+    "Project is 2 weeks past target date",
+    "Budget overrun (70% used at 30% progress)",
+    "All remaining tasks are high priority"
+  ],
+  "what_good_plan_looks_like": "Flags overdue status and budget risk. Prioritizes remaining critical path tasks.",
+  "common_failure_modes": [
+    "misses_overdue_status",
+    "misses_budget_risk",
+    "suggests_non_critical_tasks"
+  ],
+  "acceptable_variation": "May suggest different risk mitigation. Should flag overdue and budget.",
+  "notes": "Project 2 weeks overdue, budget overrun. All remaining tasks are critical path."
+}

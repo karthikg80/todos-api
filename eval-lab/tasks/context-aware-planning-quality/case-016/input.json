@@ -1,0 +1,12 @@
+{
+  "project_context": {
+    "name": "Unknown Project",
+    "start_date": null,
+    "target_date": null,
+    "progress": null,
+    "budget_used": null,
+    "team_size": null
+  },
+  "task_state": [],
+  "planning_type": "project_plan"
+}
