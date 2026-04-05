@@ -6,7 +6,7 @@ import type { RightNow, PanelProvenance } from "../../types/focusBrief";
 
 interface Props {
   data: RightNow;
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   onTaskClick: (id: string) => void;
 }
 

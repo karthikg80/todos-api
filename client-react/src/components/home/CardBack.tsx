@@ -2,12 +2,26 @@ import type { ReactNode } from "react";
 import type { PanelProvenance } from "../../types/focusBrief";
 
 interface Props {
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   reason: string;
   pixelArt?: ReactNode;
 }
 
 export function CardBack({ provenance, reason, pixelArt }: Props) {
+  if (!provenance) {
+    return (
+      <div className="card-back">
+        <div className="card-back__header">How this was generated</div>
+        {pixelArt && <div className="card-back__art">{pixelArt}</div>}
+        <p className="card-back__section-text">Provenance data not available. Try refreshing.</p>
+        <div className="card-back__section">
+          <div className="card-back__section-label">Why this panel is showing</div>
+          <p className="card-back__section-text">{reason}</p>
+        </div>
+      </div>
+    );
+  }
+
   const isAi = provenance.source === "ai";
 
   return (
