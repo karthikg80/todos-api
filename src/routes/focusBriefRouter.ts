@@ -129,14 +129,17 @@ function buildDeterministicProvenance(
   itemsShown: number,
 ): PanelProvenance {
   const staticInfo = DETERMINISTIC_PROVENANCE[key];
+  const breakdownStr = Object.entries(dataBreakdown)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join(" · ");
   return {
     source: "deterministic",
     generatedAt,
     cacheStatus,
     cacheExpiresAt,
     freshness,
-    dataBreakdown,
-    itemsShown,
+    dataBreakdown: breakdownStr,
+    itemsShown: `${itemsShown}`,
     ...staticInfo,
   };
 }

@@ -115,8 +115,8 @@ export interface PanelProvenance {
   method?: string;
   freshness?: "fresh" | "stale" | "cached";
   filter?: string;
-  dataBreakdown?: Record<string, number>;
-  itemsShown?: number;
+  dataBreakdown?: string;
+  itemsShown?: string;
   logic?: string;
 }
 
