@@ -103,15 +103,16 @@ class LLMGrader:
                 data = resp.json()
                 content = data["choices"][0]["message"]["content"].strip()
                 scores = json.loads(content)
-                
+
                 # Validate scores are in range
                 return {
                     dim: max(0.0, min(1.0, float(scores.get(dim, 0.0))))
                     for dim in self.config.dimension_names
-                }
+                }, None
         except Exception as e:
-            # Return neutral scores on error
-            return {dim: 0.5 for dim in self.config.dimension_names}
+            # Return error message instead of neutral scores
+            # Caller should mark case as grader_error and exclude from aggregate
+            return {dim: 0.0 for dim in self.config.dimension_names}, str(e)
 
 
 # ── Significance Tester ──────────────────────────────────────────────────────

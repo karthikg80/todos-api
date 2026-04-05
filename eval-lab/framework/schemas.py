@@ -183,6 +183,10 @@ class CaseResult(BaseModel):
     # Grader version (for audit trail)
     grader_version: str = "1"
 
+    # Grader error tracking (separate from execution error)
+    # When grader fails, this is set and case is excluded from semantic aggregate
+    grader_error: Optional[str] = None
+
 
 # ── Run Artifact ─────────────────────────────────────────────────────────────
 
