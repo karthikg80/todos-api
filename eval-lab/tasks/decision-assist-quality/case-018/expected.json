@@ -1,0 +1,19 @@
+{
+  "surface": "task_drawer",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Collect recommendation letters",
+      "description": "Overdue prerequisite",
+      "priority": "medium"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests overdue prerequisite task. 1-2 suggestions.",
+  "common_failure_modes": [
+    "misses_overdue_prerequisite",
+    "wrong_order",
+    "too_many_suggestions"
+  ],
+  "acceptable_variation": "Should suggest recommendation letters as overdue prerequisite.",
+  "notes": "User viewing an overdue task with an overdue prerequisite. Should surface the prerequisite."
+}

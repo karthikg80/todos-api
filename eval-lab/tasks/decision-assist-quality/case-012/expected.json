@@ -1,0 +1,13 @@
+{
+  "surface": "todo_bound",
+  "category": "adversarial",
+  "expected_suggestions": [],
+  "what_good_suggestions_look_like": "No suggestions when only task is vague with no deadline.",
+  "common_failure_modes": [
+    "invents_subtasks",
+    "suggests_generic_learning_tasks",
+    "overly_specific"
+  ],
+  "acceptable_variation": "Should return empty list. Single vague task with no deadline.",
+  "notes": "Single vague task with no deadline. Should not invent subtasks or suggestions."
+}

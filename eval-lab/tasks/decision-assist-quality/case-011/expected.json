@@ -1,0 +1,19 @@
+{
+  "surface": "todo_bound",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Fix login bug",
+      "description": "Overdue high-priority bug",
+      "priority": "high"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests the overdue bug fix. 1 suggestion for todo-bound.",
+  "common_failure_modes": [
+    "suggests_lower_priority",
+    "misses_overdue",
+    "too_many_suggestions"
+  ],
+  "acceptable_variation": "Should suggest the overdue bug fix. May suggest unit tests as second.",
+  "notes": "User viewing an overdue bug. Should prioritize the overdue high-priority task."
+}

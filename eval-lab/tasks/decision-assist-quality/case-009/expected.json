@@ -1,0 +1,19 @@
+{
+  "surface": "todo_bound",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Research SEO keywords",
+      "description": "Due sooner, prerequisite for blog post",
+      "priority": "medium"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests 1-2 related tasks. SEO keywords is prerequisite and due sooner.",
+  "common_failure_modes": [
+    "suggests_unrelated_tasks",
+    "wrong_prerequisite_order",
+    "too_many_suggestions"
+  ],
+  "acceptable_variation": "May suggest SEO keywords or blog post. SEO keywords should be first if both suggested.",
+  "notes": "User viewing a blog post task. Should suggest related prerequisite task first."
+}

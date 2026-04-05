@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-011"
+description = "Suggests the overdue bug fix. 1 suggestion for todo-bound."
+
+[scoring]
+weight = 1.0

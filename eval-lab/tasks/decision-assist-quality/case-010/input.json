@@ -1,0 +1,28 @@
+{
+  "user_context": {
+    "days_active": 30,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Plan vacation itinerary",
+      "priority": "low",
+      "due_date": "2026-05-01"
+    },
+    {
+      "title": "Book hotel",
+      "priority": "medium",
+      "due_date": "2026-04-15"
+    },
+    {
+      "title": "Request time off",
+      "priority": "high",
+      "due_date": "2026-04-07"
+    }
+  ],
+  "surface_type": "todo_bound",
+  "recent_activity": [
+    "created: Plan vacation itinerary"
+  ]
+}

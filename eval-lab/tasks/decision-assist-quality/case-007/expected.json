@@ -1,0 +1,29 @@
+{
+  "surface": "today_plan",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Deploy v2.0 to production",
+      "description": "High priority release task",
+      "priority": "high"
+    },
+    {
+      "title": "Update release notes",
+      "description": "Before deployment",
+      "priority": "medium"
+    },
+    {
+      "title": "Notify stakeholders",
+      "description": "After deployment",
+      "priority": "medium"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests release-related tasks in logical order. 3-4 suggestions.",
+  "common_failure_modes": [
+    "wrong_dependency_order",
+    "misses_release_context",
+    "too_many_suggestions"
+  ],
+  "acceptable_variation": "May suggest 3-4 of the 4 tasks. Should respect dependency order.",
+  "notes": "Release day with multiple related tasks. Should suggest in dependency-aware order."
+}

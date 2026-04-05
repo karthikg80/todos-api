@@ -1,0 +1,34 @@
+{
+  "user_context": {
+    "days_active": 45,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Client meeting at 2pm",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "time": "14:00"
+    },
+    {
+      "title": "Prepare meeting notes",
+      "priority": "medium",
+      "due_date": "2026-04-05"
+    },
+    {
+      "title": "Follow up on proposal",
+      "priority": "medium",
+      "due_date": "2026-04-05"
+    },
+    {
+      "title": "Update CRM",
+      "priority": "low",
+      "due_date": "2026-04-05"
+    }
+  ],
+  "surface_type": "today_plan",
+  "recent_activity": [
+    "viewed: Client meeting at 2pm"
+  ]
+}

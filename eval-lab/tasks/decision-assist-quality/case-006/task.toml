@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-006"
+description = "Suggests 2 high-priority items for free tier user. Overdue first."
+
+[scoring]
+weight = 1.0

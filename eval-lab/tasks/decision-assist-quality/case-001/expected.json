@@ -1,0 +1,19 @@
+{
+  "surface": "home_focus",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Review Q4 budget",
+      "description": "Overdue high-priority task",
+      "priority": "high"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests the overdue high-priority task first. 1-2 suggestions max for home focus.",
+  "common_failure_modes": [
+    "suggests_completed_tasks",
+    "too_many_suggestions",
+    "irrelevant_suggestions"
+  ],
+  "acceptable_variation": "May suggest budget review with slightly different wording. Should not suggest completed tasks.",
+  "notes": "User has one overdue high-priority task. Should be the primary suggestion."
+}

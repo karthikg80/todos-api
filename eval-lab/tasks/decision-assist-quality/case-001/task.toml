@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-001"
+description = "Suggests the overdue high-priority task first. 1-2 suggestions max for home focu"
+
+[scoring]
+weight = 1.0

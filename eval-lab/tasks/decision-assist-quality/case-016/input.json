@@ -1,0 +1,12 @@
+{
+  "user_context": {
+    "days_active": 5,
+    "plan_tier": "free",
+    "daily_suggestion_limit": 2
+  },
+  "task_state": [],
+  "surface_type": "on_create",
+  "recent_activity": [
+    "creating: Learn to code"
+  ]
+}

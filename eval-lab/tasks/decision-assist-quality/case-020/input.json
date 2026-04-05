@@ -1,0 +1,16 @@
+{
+  "user_context": {
+    "days_active": 3,
+    "plan_tier": "free",
+    "daily_suggestion_limit": 2
+  },
+  "task_state": [
+    {
+      "title": "Do something important",
+      "priority": "high",
+      "due_date": null
+    }
+  ],
+  "surface_type": "task_drawer",
+  "recent_activity": []
+}

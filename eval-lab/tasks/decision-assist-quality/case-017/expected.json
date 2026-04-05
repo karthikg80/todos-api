@@ -1,0 +1,24 @@
+{
+  "surface": "task_drawer",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Gather tax documents",
+      "description": "Prerequisite for tax filing",
+      "priority": "high"
+    },
+    {
+      "title": "Schedule accountant meeting",
+      "description": "Due soon",
+      "priority": "medium"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests prerequisite and related tasks. 2-3 suggestions for task drawer.",
+  "common_failure_modes": [
+    "misses_prerequisites",
+    "too_many_suggestions",
+    "unrelated_suggestions"
+  ],
+  "acceptable_variation": "Should suggest gather documents first. May suggest accountant meeting.",
+  "notes": "User viewing tax filing task. Should suggest prerequisite document gathering."
+}

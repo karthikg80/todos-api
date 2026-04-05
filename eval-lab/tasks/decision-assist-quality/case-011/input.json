@@ -1,0 +1,32 @@
+{
+  "user_context": {
+    "days_active": 90,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Fix login bug",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "is_overdue": true,
+      "project": "Engineering"
+    },
+    {
+      "title": "Write unit tests",
+      "priority": "medium",
+      "due_date": "2026-04-06",
+      "project": "Engineering"
+    },
+    {
+      "title": "Update API docs",
+      "priority": "low",
+      "due_date": "2026-04-10",
+      "project": "Engineering"
+    }
+  ],
+  "surface_type": "todo_bound",
+  "recent_activity": [
+    "viewed: Fix login bug"
+  ]
+}

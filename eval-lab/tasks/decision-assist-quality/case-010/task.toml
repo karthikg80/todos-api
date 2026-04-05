@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-010"
+description = "Suggests the most urgent related task. 1 suggestion for todo-bound surface."
+
+[scoring]
+weight = 1.0

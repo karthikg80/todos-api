@@ -1,0 +1,16 @@
+{
+  "user_context": {
+    "days_active": 15,
+    "plan_tier": "free",
+    "daily_suggestion_limit": 2
+  },
+  "task_state": [
+    {
+      "title": "Learn Python",
+      "priority": "low",
+      "due_date": null
+    }
+  ],
+  "surface_type": "todo_bound",
+  "recent_activity": []
+}

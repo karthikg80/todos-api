@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-007"
+description = "Suggests release-related tasks in logical order. 3-4 suggestions."
+
+[scoring]
+weight = 1.0

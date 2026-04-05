@@ -1,0 +1,39 @@
+{
+  "user_context": {
+    "days_active": 120,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Deploy v2.0 to production",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "project": "Release"
+    },
+    {
+      "title": "Run final test suite",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "project": "Release",
+      "depends_on": []
+    },
+    {
+      "title": "Update release notes",
+      "priority": "medium",
+      "due_date": "2026-04-05",
+      "project": "Release"
+    },
+    {
+      "title": "Notify stakeholders",
+      "priority": "medium",
+      "due_date": "2026-04-05",
+      "project": "Release"
+    }
+  ],
+  "surface_type": "today_plan",
+  "recent_activity": [
+    "completed: Run final test suite",
+    "updated: Deploy v2.0 to production"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "user_context": {
+    "days_active": 60,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Complete tax filing",
+      "priority": "high",
+      "due_date": "2026-04-15",
+      "is_overdue": false
+    },
+    {
+      "title": "Gather tax documents",
+      "priority": "high",
+      "due_date": "2026-04-08",
+      "project": "Finance"
+    },
+    {
+      "title": "Schedule accountant meeting",
+      "priority": "medium",
+      "due_date": "2026-04-07"
+    }
+  ],
+  "surface_type": "task_drawer",
+  "recent_activity": [
+    "viewed: Complete tax filing"
+  ]
+}

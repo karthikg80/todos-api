@@ -366,6 +366,35 @@ def _create_family_grader(family_name: str) -> LLMGrader:
                 "format_compliance": "Valid output structure with required fields (0-1)",
             },
         )
+    elif family_name == "decision_assist":
+        config = LLMGraderConfig(
+            family=family_name,
+            rubric=(
+                "Grade the AI suggestions against the expected suggestions.\n"
+                "- relevance: Suggestions match user's current work context and recent activity\n"
+                "- timeliness: Suggestions are appropriate for current time/priority state\n"
+                "- actionability: Suggestions are concrete and executable\n"
+                "- appropriateness: Suggestions respect user's plan tier and daily limits\n"
+                "- no_hallucination: No invented tasks or false context references\n"
+                "- format_compliance: Valid output structure with required fields"
+            ),
+            dimension_names=[
+                "relevance",
+                "timeliness",
+                "actionability",
+                "appropriateness",
+                "no_hallucination",
+                "format_compliance",
+            ],
+            dimension_descriptions={
+                "relevance": "Suggestions match user's current work context (0-1)",
+                "timeliness": "Suggestions appropriate for current time/priority state (0-1)",
+                "actionability": "Suggestions are concrete and executable (0-1)",
+                "appropriateness": "Respects plan tier and daily limits (0-1)",
+                "no_hallucination": "No invented tasks or false context (0-1)",
+                "format_compliance": "Valid output structure with required fields (0-1)",
+            },
+        )
     else:
         # Generic grader for other families
         config = LLMGraderConfig(

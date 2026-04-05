@@ -1,0 +1,13 @@
+{
+  "user_context": {
+    "days_active": 90,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [],
+  "surface_type": "home_focus",
+  "recent_activity": [
+    "completed: Finish quarterly report",
+    "completed: Send tax documents"
+  ]
+}
