@@ -106,7 +106,7 @@ function buildLlmProvenance(
   projectCount: number,
 ): PanelProvenance {
   return {
-    source: "llm",
+    source: "ai",
     model: config.aiProviderModel,
     temperature: 0.3,
     maxTokens: 1500,

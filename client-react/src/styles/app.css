@@ -3074,6 +3074,27 @@ body {
   padding: var(--s-4);
 }
 
+.flip-card__front {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+}
+
+.flip-card__back {
+  min-height: 240px;
+}
+
+/* Hero pinned cards — larger and more prominent */
+.home-dashboard__pinned .flip-card__front,
+.home-dashboard__pinned .flip-card__back {
+  min-height: 300px;
+  padding: var(--s-5);
+}
+
+.home-dashboard__pinned .flip-card__front {
+  border-top: 3px solid var(--accent);
+}
+
 .flip-card:hover .flip-card__front {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.08);
   transform: translateY(-1px);
