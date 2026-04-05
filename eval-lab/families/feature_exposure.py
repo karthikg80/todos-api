@@ -33,28 +33,33 @@ from framework.schemas import (
 FEATURE_EXPOSURE_DIMENSIONS = [
     ScoreDimension(
         name="classification_accuracy",
-        weight=0.25,
+        weight=0.22,
         description="User segment classification matches expected segment",
     ),
     ScoreDimension(
         name="feature_appropriateness",
-        weight=0.25,
+        weight=0.22,
         description="Enabled features match user maturity level",
     ),
     ScoreDimension(
         name="over_exposure_avoidance",
-        weight=0.20,
+        weight=0.18,
         description="Advanced features not shown to novice users",
     ),
     ScoreDimension(
         name="under_exposure_avoidance",
-        weight=0.15,
+        weight=0.13,
         description="Power users get access to advanced features",
     ),
     ScoreDimension(
         name="nudge_quality",
         weight=0.10,
         description="Growth nudges are relevant and actionable",
+    ),
+    ScoreDimension(
+        name="confidence_calibration",
+        weight=0.10,
+        description="Confidence matches accuracy (high confidence = usually correct)",
     ),
     ScoreDimension(
         name="format_compliance",
@@ -160,6 +165,13 @@ class FeatureExposureFamily(BenchmarkFamily):
             "- Progressive unlock as user demonstrates readiness\n"
             "- Include growth nudges to encourage feature adoption\n"
             "- When confidence is low, choose safer exposure policy\n\n"
+            "IMPORTANT CONSERVATISM PRIOR:\n"
+            "- When signals conflict or are ambiguous, prefer the LOWER exposure tier\n"
+            "- High activity volume does NOT equal sophistication if account is new\n"
+            "- Reward progressive nudges more than full unlocks in ambiguous cases\n"
+            "- It is better to under-expose than over-expose\n"
+            "- Only classify as 'advanced' or 'power' when there is clear evidence of\n"
+            "  sustained advanced feature usage over multiple weeks\n\n"
             "Return JSON with:\n"
             "- user_segment: beginner|intermediate|advanced|power\n"
             "- confidence: 0.0-1.0\n"
@@ -269,6 +281,29 @@ class FeatureExposureFamily(BenchmarkFamily):
         else:
             nudge_quality = 1.0
 
+        # Confidence calibration
+        # High confidence should only occur when classification is correct
+        # Low confidence is appropriate when signals are ambiguous
+        is_correct = actual_segment == expected_segment
+        is_high_confidence = confidence >= 0.8
+        is_low_confidence = confidence < 0.6
+        
+        if is_correct and is_high_confidence:
+            # Correct and confident - ideal
+            confidence_calibration = 1.0
+        elif not is_correct and is_high_confidence:
+            # Wrong but confident - bad overconfidence
+            confidence_calibration = 0.0
+        elif is_correct and is_low_confidence:
+            # Correct but uncertain - appropriately cautious
+            confidence_calibration = 0.7
+        elif not is_correct and is_low_confidence:
+            # Wrong and uncertain - appropriate uncertainty
+            confidence_calibration = 0.5
+        else:
+            # Medium confidence
+            confidence_calibration = 0.6 if is_correct else 0.3
+
         # Format compliance
         required_fields = ["user_segment", "confidence", "enabled_features", "hidden_features"]
         format_compliance = 1.0 if all(f in output for f in required_fields) else 0.0
@@ -279,6 +314,7 @@ class FeatureExposureFamily(BenchmarkFamily):
             "over_exposure_avoidance": round(over_exposure_avoidance, 2),
             "under_exposure_avoidance": round(under_exposure_avoidance, 2),
             "nudge_quality": round(nudge_quality, 2),
+            "confidence_calibration": round(confidence_calibration, 2),
             "format_compliance": format_compliance,
         }
 

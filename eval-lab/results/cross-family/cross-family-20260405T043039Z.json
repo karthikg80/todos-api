@@ -1,0 +1,686 @@
+{
+  "cross-001": {
+    "feature_exposure": {
+      "output": {
+        "user_segment": "intermediate",
+        "confidence": 0.8,
+        "signals": [
+          "days_active: 5",
+          "tasks_created: 10",
+          "due_dates_used: 2"
+        ],
+        "enabled_features": [
+          "quick_add",
+          "task_list",
+          "basic_search",
+          "due_dates",
+          "recurring_tasks",
+          "projects"
+        ],
+        "hidden_features": [
+          "tags",
+          "effort_estimates",
+          "daily_plan",
+          "smart_priorities",
+          "dependencies",
+          "goals",
+          "automation_rules",
+          "bulk_edits",
+          "weekly_planning",
+          "custom_views",
+          "agentic_planning",
+          "dependency_graph",
+          "batch_workflows",
+          "api_access",
+          "custom_automations"
+        ],
+        "nudges": [
+          "Try using projects to organize your tasks better!",
+          "Consider setting up recurring tasks for regular activities."
+        ],
+        "guardrails": [
+          "Never expose advanced features to beginners",
+          "Choose safer exposure policy when confidence is low"
+        ]
+      },
+      "result": {
+        "score": 0.4,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 1.0,
+          "under_exposure_avoidance": 1.0,
+          "nudge_quality": 0.0,
+          "format_compliance": 1.0
+        },
+        "actual_segment": "intermediate",
+        "confidence": 0.8
+      }
+    },
+    "prioritization": {
+      "output": {
+        "ranked_tasks": [
+          {
+            "rank": 1,
+            "task_title": "Submit expense report",
+            "priority_reason": "This task has a deadline and impacts financial reporting.",
+            "urgency": "High",
+            "impact": "High"
+          },
+          {
+            "rank": 2,
+            "task_title": "Call dentist",
+            "priority_reason": "This task is urgent as it may involve scheduling an appointment.",
+            "urgency": "Medium",
+            "impact": "Medium"
+          },
+          {
+            "rank": 3,
+            "task_title": "Buy groceries",
+            "priority_reason": "This task is important but can be done later without immediate consequences.",
+            "urgency": "Low",
+            "impact": "Medium"
+          }
+        ],
+        "summary": "Tasks were prioritized based on urgency and impact. The expense report is the most urgent and impactful due to its deadline, followed by the dentist call, which is time-sensitive but less impactful. Grocery shopping, while necessary, can wait without immediate consequences.",
+        "ties": [],
+        "blocked_tasks": []
+      },
+      "result": {
+        "score": 0.885,
+        "dimensions": {
+          "ordering_quality": 0.67,
+          "dependency_respect": 1.0,
+          "justification_quality": 1.0,
+          "tie_handling": 1.0,
+          "format_compliance": 1.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": {
+        "output_mode": "clarification_required",
+        "summary": "The goal is too vague and needs more specific details.",
+        "clarification_needed": [
+          "What specific areas do you want to get organized in (e.g., home, office, digital files)?",
+          "Are there any particular deadlines or events that require prioritization?",
+          "What resources (time, budget, tools) do you have available for this organization effort?"
+        ]
+      },
+      "result": {
+        "score": 0.3,
+        "dimensions": {
+          "goal_coverage": 0.3,
+          "step_quality": 0.3,
+          "sequencing": 0.3,
+          "feasibility": 0.3,
+          "granularity": 0.3,
+          "non_redundancy": 0.3,
+          "constraint_adherence": 0.3,
+          "format_compliance": 0.3
+        }
+      }
+    },
+    "consistency": {
+      "issues": [],
+      "consistent": true,
+      "actual_segment": "intermediate",
+      "expected_segment": "beginner",
+      "confidence": 0.8
+    }
+  },
+  "cross-002": {
+    "feature_exposure": {
+      "output": {
+        "user_segment": "advanced",
+        "confidence": 0.85,
+        "signals": [
+          "days_active: 45",
+          "tasks_created: 150",
+          "projects_created: 5",
+          "due_dates_used: 120",
+          "recurring_tasks_used: 10",
+          "planning_sessions: 10"
+        ],
+        "enabled_features": [
+          "quick_add",
+          "task_list",
+          "basic_search",
+          "due_dates",
+          "recurring_tasks",
+          "projects",
+          "tags",
+          "effort_estimates",
+          "daily_plan",
+          "smart_priorities"
+        ],
+        "hidden_features": [
+          "dependencies",
+          "goals",
+          "automation_rules",
+          "bulk_edits",
+          "weekly_planning",
+          "custom_views"
+        ],
+        "nudges": [
+          "Consider setting up dependencies to streamline your tasks.",
+          "Explore setting goals to enhance your project outcomes.",
+          "Try using automation rules to save time on repetitive tasks."
+        ],
+        "guardrails": [
+          "Do not expose power features yet as user is not fully engaged in advanced behaviors."
+        ]
+      },
+      "result": {
+        "score": 0.4,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 1.0,
+          "under_exposure_avoidance": 1.0,
+          "nudge_quality": 0.0,
+          "format_compliance": 1.0
+        },
+        "actual_segment": "advanced",
+        "confidence": 0.85
+      }
+    },
+    "prioritization": {
+      "output": {
+        "ranked_tasks": [
+          {
+            "rank": 1,
+            "task_title": "Complete Q4 report",
+            "priority_reason": "This task has a deadline and is critical for business reporting.",
+            "urgency": "High",
+            "impact": "High"
+          },
+          {
+            "rank": 2,
+            "task_title": "Update project timeline",
+            "priority_reason": "This task is important for project planning and may affect other tasks.",
+            "urgency": "Medium",
+            "impact": "High"
+          },
+          {
+            "rank": 3,
+            "task_title": "Review design mockups",
+            "priority_reason": "This task is important for the design process but has no immediate deadline.",
+            "urgency": "Low",
+            "impact": "Medium"
+          },
+          {
+            "rank": 4,
+            "task_title": "Schedule team retrospective",
+            "priority_reason": "This task is beneficial for team improvement but can be done later.",
+            "urgency": "Low",
+            "impact": "Medium"
+          }
+        ],
+        "summary": "The tasks were prioritized based on urgency and impact, with the Q4 report being the most urgent and impactful due to its deadline. The project timeline update follows due to its importance in project management. The design mockups review and team retrospective are lower priority as they are less urgent and impactful.",
+        "ties": [],
+        "blocked_tasks": []
+      },
+      "result": {
+        "score": 0.885,
+        "dimensions": {
+          "ordering_quality": 0.67,
+          "dependency_respect": 1.0,
+          "justification_quality": 1.0,
+          "tie_handling": 1.0,
+          "format_compliance": 1.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": {
+        "output_mode": "clarification_required",
+        "summary": "The goal is too vague as it lacks specific details about the deliverables and the timeframe for the sprint.",
+        "clarification_needed": [
+          "What are the specific Q4 deliverables that need to be completed?",
+          "What is the duration of the next sprint?",
+          "Are there any specific deadlines or milestones for the deliverables?",
+          "What resources or team members are available for this sprint?"
+        ]
+      },
+      "result": {
+        "score": 0.3,
+        "dimensions": {
+          "goal_coverage": 0.3,
+          "step_quality": 0.3,
+          "sequencing": 0.3,
+          "feasibility": 0.3,
+          "granularity": 0.3,
+          "non_redundancy": 0.3,
+          "constraint_adherence": 0.3,
+          "format_compliance": 0.3
+        }
+      }
+    },
+    "consistency": {
+      "issues": [
+        "High confidence (0.85) but wrong segment (expected intermediate, got advanced)"
+      ],
+      "consistent": false,
+      "actual_segment": "advanced",
+      "expected_segment": "intermediate",
+      "confidence": 0.85
+    }
+  },
+  "cross-003": {
+    "feature_exposure": {
+      "output": {
+        "user_segment": "power",
+        "confidence": 0.95,
+        "signals": [
+          "days_active: 120",
+          "tasks_created: 800",
+          "projects_created: 20",
+          "due_dates_used: 700",
+          "recurring_tasks_used: 50",
+          "planning_sessions: 60",
+          "features_used: advanced features including dependencies, goals, automation_rules, bulk_edits, weekly_planning, custom_views"
+        ],
+        "enabled_features": [
+          "quick_add",
+          "task_list",
+          "basic_search",
+          "due_dates",
+          "recurring_tasks",
+          "projects",
+          "tags",
+          "effort_estimates",
+          "daily_plan",
+          "smart_priorities",
+          "dependencies",
+          "goals",
+          "automation_rules",
+          "bulk_edits",
+          "weekly_planning",
+          "custom_views",
+          "agentic_planning",
+          "dependency_graph",
+          "batch_workflows",
+          "api_access",
+          "custom_automations"
+        ],
+        "hidden_features": [],
+        "nudges": [
+          "Explore custom automations to streamline your workflows.",
+          "Try batch workflows to manage tasks more efficiently."
+        ],
+        "guardrails": []
+      },
+      "result": {
+        "score": 0.4,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 1.0,
+          "under_exposure_avoidance": 1.0,
+          "nudge_quality": 0.0,
+          "format_compliance": 1.0
+        },
+        "actual_segment": "power",
+        "confidence": 0.95
+      }
+    },
+    "prioritization": {
+      "output": {
+        "ranked_tasks": [
+          {
+            "rank": 1,
+            "task_title": "Deploy v2.0 to production",
+            "priority_reason": "This task is urgent as it likely has a deadline for deployment and high impact on business operations.",
+            "urgency": "High",
+            "impact": "High"
+          },
+          {
+            "rank": 2,
+            "task_title": "Complete testing",
+            "priority_reason": "Testing is crucial before deployment and has a direct impact on the quality of the release.",
+            "urgency": "High",
+            "impact": "High"
+          },
+          {
+            "rank": 3,
+            "task_title": "Update documentation",
+            "priority_reason": "Documentation should be updated in conjunction with deployment but can follow after testing is complete.",
+            "urgency": "Medium",
+            "impact": "Medium"
+          },
+          {
+            "rank": 4,
+            "task_title": "Plan Q2 roadmap",
+            "priority_reason": "While important for future planning, this task is less urgent compared to deployment and testing.",
+            "urgency": "Medium",
+            "impact": "Medium"
+          },
+          {
+            "rank": 5,
+            "task_title": "Automate weekly reports",
+            "priority_reason": "This task is beneficial but has lower urgency and impact compared to the others.",
+            "urgency": "Low",
+            "impact": "Medium"
+          }
+        ],
+        "summary": "Tasks were prioritized based on urgency and impact, with immediate deployment and testing taking precedence due to their critical nature. Documentation and planning tasks were ranked lower due to their dependencies on the completion of testing and deployment.",
+        "ties": [],
+        "blocked_tasks": []
+      },
+      "result": {
+        "score": 0.93,
+        "dimensions": {
+          "ordering_quality": 0.8,
+          "dependency_respect": 1.0,
+          "justification_quality": 1.0,
+          "tie_handling": 1.0,
+          "format_compliance": 1.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": {
+        "output_mode": "clarification_required",
+        "summary": "The goal is too vague and requires more specific information.",
+        "clarification_needed": [
+          "What is the deadline for shipping v2.0?",
+          "What specific features or improvements are included in v2.0?",
+          "What resources (team members, budget) are available for shipping v2.0 and planning the Q2 roadmap?",
+          "What are the key objectives or priorities for the Q2 roadmap?"
+        ]
+      },
+      "result": {
+        "score": 0.3,
+        "dimensions": {
+          "goal_coverage": 0.3,
+          "step_quality": 0.3,
+          "sequencing": 0.3,
+          "feasibility": 0.3,
+          "granularity": 0.3,
+          "non_redundancy": 0.3,
+          "constraint_adherence": 0.3,
+          "format_compliance": 0.3
+        }
+      }
+    },
+    "consistency": {
+      "issues": [
+        "High confidence (0.95) but wrong segment (expected advanced, got power)"
+      ],
+      "consistent": false,
+      "actual_segment": "power",
+      "expected_segment": "advanced",
+      "confidence": 0.95
+    }
+  },
+  "cross-004": {
+    "feature_exposure": {
+      "output": {
+        "user_segment": "intermediate",
+        "confidence": 0.85,
+        "signals": [
+          "days_active: 5",
+          "tasks_created: 50",
+          "projects_created: 5",
+          "due_dates_used: 40",
+          "recurring_tasks_used: 10",
+          "planning_sessions: 3"
+        ],
+        "enabled_features": [
+          "quick_add",
+          "task_list",
+          "basic_search",
+          "due_dates",
+          "recurring_tasks",
+          "projects",
+          "tags",
+          "effort_estimates",
+          "daily_plan",
+          "smart_priorities"
+        ],
+        "hidden_features": [
+          "dependencies",
+          "goals",
+          "automation_rules",
+          "bulk_edits",
+          "weekly_planning",
+          "custom_views",
+          "agentic_planning",
+          "dependency_graph",
+          "batch_workflows",
+          "api_access",
+          "custom_automations"
+        ],
+        "nudges": [
+          "Try using effort estimates to better plan your tasks.",
+          "Explore daily planning to enhance your productivity."
+        ],
+        "guardrails": [
+          "Avoid exposing advanced features until user demonstrates readiness.",
+          "Ensure core features remain accessible at all times."
+        ]
+      },
+      "result": {
+        "score": 0.4,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 1.0,
+          "under_exposure_avoidance": 1.0,
+          "nudge_quality": 0.0,
+          "format_compliance": 1.0
+        },
+        "actual_segment": "intermediate",
+        "confidence": 0.85
+      }
+    },
+    "prioritization": {
+      "output": {
+        "ranked_tasks": [
+          {
+            "rank": 1,
+            "task_title": "Set up project structure",
+            "priority_reason": "This task is foundational and needs to be completed before other tasks can proceed.",
+            "urgency": "High",
+            "impact": "High"
+          },
+          {
+            "rank": 2,
+            "task_title": "Invite team members",
+            "priority_reason": "This task is important for team collaboration and communication, but can be done after the project structure is set up.",
+            "urgency": "Medium",
+            "impact": "High"
+          },
+          {
+            "rank": 3,
+            "task_title": "Create recurring standup tasks",
+            "priority_reason": "This task is dependent on the project structure and team invitations, making it less urgent.",
+            "urgency": "Low",
+            "impact": "Medium"
+          }
+        ],
+        "summary": "Tasks were prioritized based on their urgency and impact, with foundational tasks ranked higher. The project structure is essential for enabling team collaboration, followed by inviting team members, and finally creating standup tasks which depend on the completion of the first two.",
+        "ties": [],
+        "blocked_tasks": [
+          {
+            "task_title": "Create recurring standup tasks",
+            "blocked_by": "Set up project structure, Invite team members"
+          }
+        ]
+      },
+      "result": {
+        "score": 1.0,
+        "dimensions": {
+          "ordering_quality": 1.0,
+          "dependency_respect": 1.0,
+          "justification_quality": 1.0,
+          "tie_handling": 1.0,
+          "format_compliance": 1.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": {
+        "output_mode": "clarification_required",
+        "summary": "The goal is too vague and lacks specific details.",
+        "clarification_needed": [
+          "What specific aspects of organization are you looking to improve (e.g., task management, communication, project tracking)?",
+          "What tools or platforms are currently being used, if any?",
+          "What is the size of the team?",
+          "Are there any deadlines or specific outcomes expected from this organization and collaboration effort?"
+        ]
+      },
+      "result": {
+        "score": 0.3,
+        "dimensions": {
+          "goal_coverage": 0.3,
+          "step_quality": 0.3,
+          "sequencing": 0.3,
+          "feasibility": 0.3,
+          "granularity": 0.3,
+          "non_redundancy": 0.3,
+          "constraint_adherence": 0.3,
+          "format_compliance": 0.3
+        }
+      }
+    },
+    "consistency": {
+      "issues": [
+        "High confidence (0.85) but wrong segment (expected beginner, got intermediate)"
+      ],
+      "consistent": false,
+      "actual_segment": "intermediate",
+      "expected_segment": "beginner",
+      "confidence": 0.85
+    }
+  },
+  "cross-005": {
+    "feature_exposure": {
+      "output": {
+        "user_segment": "power",
+        "confidence": 1.0,
+        "signals": [
+          "days_active: 200",
+          "tasks_created: 1500",
+          "projects_created: 40",
+          "due_dates_used: 1200",
+          "recurring_tasks_used: 100",
+          "planning_sessions: 150",
+          "features_used: all advanced features"
+        ],
+        "enabled_features": [
+          "quick_add",
+          "task_list",
+          "basic_search",
+          "due_dates",
+          "recurring_tasks",
+          "projects",
+          "tags",
+          "effort_estimates",
+          "daily_plan",
+          "smart_priorities",
+          "dependencies",
+          "goals",
+          "automation_rules",
+          "bulk_edits",
+          "weekly_planning",
+          "custom_views",
+          "agentic_planning",
+          "dependency_graph",
+          "batch_workflows",
+          "api_access",
+          "custom_automations"
+        ],
+        "hidden_features": [],
+        "nudges": [],
+        "guardrails": []
+      },
+      "result": {
+        "score": 0.75,
+        "dimensions": {
+          "classification_accuracy": 1.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 1.0,
+          "under_exposure_avoidance": 1.0,
+          "nudge_quality": 1.0,
+          "format_compliance": 1.0
+        },
+        "actual_segment": "power",
+        "confidence": 1.0
+      }
+    },
+    "prioritization": {
+      "output": {
+        "ranked_tasks": [
+          {
+            "rank": 1,
+            "task_title": "Run monthly automation report",
+            "priority_reason": "This task is time-sensitive and has a high impact on business operations as it provides essential insights.",
+            "urgency": "High",
+            "impact": "High"
+          },
+          {
+            "rank": 2,
+            "task_title": "Optimize dependency graph",
+            "priority_reason": "This task has a significant impact on future projects and may unblock other tasks, but it is less urgent than the monthly report.",
+            "urgency": "Medium",
+            "impact": "High"
+          },
+          {
+            "rank": 3,
+            "task_title": "Review agentic planning suggestions",
+            "priority_reason": "This task has lower urgency and impact compared to the other tasks, making it the least critical at this time.",
+            "urgency": "Low",
+            "impact": "Medium"
+          }
+        ],
+        "summary": "The prioritization was based on urgency and impact, with the monthly report taking precedence due to its time sensitivity and critical business value. The optimization of the dependency graph follows as it can influence future tasks, while the review of planning suggestions is less urgent and impactful.",
+        "ties": [],
+        "blocked_tasks": []
+      },
+      "result": {
+        "score": 0.885,
+        "dimensions": {
+          "ordering_quality": 0.67,
+          "dependency_respect": 1.0,
+          "justification_quality": 1.0,
+          "tie_handling": 1.0,
+          "format_compliance": 1.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": {
+        "output_mode": "clarification_required",
+        "summary": "The goal is too vague and needs more specifics.",
+        "clarification_needed": [
+          "What specific automation processes or tools are currently in place?",
+          "What workflows need optimization?",
+          "Are there any deadlines or budget constraints for this goal?",
+          "What metrics will be used to measure the success of the optimization?"
+        ]
+      },
+      "result": {
+        "score": 0.3,
+        "dimensions": {
+          "goal_coverage": 0.3,
+          "step_quality": 0.3,
+          "sequencing": 0.3,
+          "feasibility": 0.3,
+          "granularity": 0.3,
+          "non_redundancy": 0.3,
+          "constraint_adherence": 0.3,
+          "format_compliance": 0.3
+        }
+      }
+    },
+    "consistency": {
+      "issues": [],
+      "consistent": true,
+      "actual_segment": "power",
+      "expected_segment": "power",
+      "confidence": 1.0
+    }
+  }
+}
