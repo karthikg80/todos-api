@@ -1,5 +1,10 @@
 # Hard Gating Validation Plan: Safety Gain vs Unlock Loss
 
+> **Status: Ready for execution.**
+> This plan is sufficient to validate whether hard gating delivers net policy benefit
+> by reducing overexposure without creating unacceptable unlock loss. Remaining work is
+> primarily instrumentation, cohort design, and disciplined live measurement.
+
 ## Executive Summary
 
 This document defines the validation plan for the hard gating system in Eval-Lab's
@@ -74,6 +79,13 @@ Track how often each of the 8 gates fires:
 **Distribution-based alert:** If `max_gate_share > 2x median_gate_share`, alert for review.
 This adapts as the dataset evolves and avoids brittle fixed thresholds.
 
+**Logging convention:** Track both:
+- `raw_gate_firings`: Total times each gate fires (multiple gates can fire per case)
+- `unique_case_overrides`: Number of distinct cases where at least one gate fired
+
+This distinction matters when diagnosing whether one gate is dominating or whether
+multiple gates are collaboratively correcting the same cases.
+
 ### 2.2 Gate Hit-Rate by Slice
 
 Track gate hits by user segment boundary:
@@ -131,9 +143,12 @@ To ground safety_gain, compute explicit counterfactual metrics:
 ### 3.2 Safety Gain Computation
 
 ```python
-safety_gain = (
-    overexposure_llm_only - overexposure_gated
-) / overexposure_llm_only
+if overexposure_llm_only == 0:
+    safety_gain = 0.0  # No overexposure to reduce; metric undefined
+else:
+    safety_gain = (
+        overexposure_llm_only - overexposure_gated
+    ) / overexposure_llm_only
 ```
 
 **Target:** >50% reduction in overexposure errors.
@@ -147,7 +162,7 @@ regret = optimal_plan_score - actual_plan_score
 ```
 
 Where:
-- `optimal_plan_score`: Plan score using expected segment
+- `optimal_plan_score`: Plan score using expected segment (benchmark-defined using the expected segment as the policy oracle, not a claim of globally optimal user utility)
 - `actual_plan_score`: Plan score using gated segment
 
 Track:
@@ -385,12 +400,18 @@ output["user_segment"] = gated_segment  # For policy
 - [ ] Score delta analysis shows gating improves or maintains accuracy
 - [ ] Distribution-based alerts configured (max_gate_share > 2x median)
 
-### Milestone 3: Live Outcome Baseline (Week 3-4)
+### Milestone 3a: Behavioral Telemetry Baseline (Week 3)
 - [ ] Establish baseline for adoption, misuse, unlock latency, retention metrics
+- [ ] Instrumentation deployed for all live outcome measures
+- [ ] Gate hit-rate report includes raw_gate_firings and unique_case_overrides
+- [ ] Counterfactual baseline computed (LLM-only vs gated)
+
+### Milestone 3b: Causal Comparison Completed (Week 4)
 - [ ] Compare gated vs ungated cohorts on live outcomes
 - [ ] Demonstrate safety gain >50% reduction in overexposure errors
 - [ ] Demonstrate unlock loss <10% false conservatism rate
 - [ ] Compute policy regret (optimal vs actual plan score)
+- [ ] Zero-denominator guard validated for safety_gain metric
 
 ### Milestone 4: Operational Trustworthiness (Week 4-6)
 - [ ] Feature exposure is Tier 1 routing authority in portfolio
@@ -411,6 +432,7 @@ output["user_segment"] = gated_segment  # For policy
 | Hard gating masks LLM degradation | Low | High | Log raw LLM segment, compare LLM vs gated accuracy |
 | Gates become stale as product evolves | Medium | Medium | Monthly gate review, automated gate hit-rate alerts |
 | Counterfactual baseline not grounded | Low | High | Explicit LLM-only vs gated comparison |
+| Criteria drift between benchmark labels and live product behavior | Medium | High | Quarterly relabel audit and live-to-benchmark backfill |
 
 ---
 
@@ -448,15 +470,21 @@ output["user_segment"] = gated_segment  # For policy
 
 ### 10.4 Deterministic Criteria for Unlock Latency
 
+Use numeric/ordinal enums in implementation to avoid string comparison errors:
+
 ```python
+# Ordinal mappings (use these, not string comparisons)
+SEGMENT = {"beginner": 0, "intermediate": 1, "advanced": 2, "power": 3}
+CAPABILITY = {"low": 0, "medium": 1, "high": 2}
+
 meets_advanced_criteria = (
-    capability_level >= "medium"
+    capability_score >= CAPABILITY["medium"]
     AND recurring_tasks_used >= 5
     AND feature_depth >= 3  # At least 3 advanced features used
 )
 
 meets_power_criteria = (
-    capability_level >= "high"
+    capability_score >= CAPABILITY["high"]
     AND automation_signals >= 2  # At least 2 automation signals
     AND power_features_used >= 1  # At least 1 power feature used
 )
