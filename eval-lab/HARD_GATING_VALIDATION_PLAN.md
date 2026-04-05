@@ -71,6 +71,9 @@ Track how often each of the 8 gates fires:
 
 **Health check:** No single gate should account for >40% of all overrides.
 
+**Distribution-based alert:** If `max_gate_share > 2x median_gate_share`, alert for review.
+This adapts as the dataset evolves and avoids brittle fixed thresholds.
+
 ### 2.2 Gate Hit-Rate by Slice
 
 Track gate hits by user segment boundary:
@@ -113,27 +116,72 @@ For each gating override, measure:
 
 ---
 
-## 3. False Conservatism Metric
+## 3. Counterfactual Baseline
 
-### 3.1 Definition
+### 3.1 LLM-Only vs Gated Comparison
+
+To ground safety_gain, compute explicit counterfactual metrics:
+
+| Metric | LLM-Only | Gated | Delta |
+|--------|----------|-------|-------|
+| accuracy_llm_only | % correct without gating | accuracy_gated | gated - llm |
+| overexposure_llm_only | % upward errors | overexposure_gated | llm - gated |
+| false_conservatism_llm | N/A (no gating) | false_conservatism_gated | N/A |
+
+### 3.2 Safety Gain Computation
+
+```python
+safety_gain = (
+    overexposure_llm_only - overexposure_gated
+) / overexposure_llm_only
+```
+
+**Target:** >50% reduction in overexposure errors.
+
+### 3.3 Policy Regret
+
+Track whether gating improves or degrades overall decision quality:
+
+```python
+regret = optimal_plan_score - actual_plan_score
+```
+
+Where:
+- `optimal_plan_score`: Plan score using expected segment
+- `actual_plan_score`: Plan score using gated segment
+
+Track:
+- `avg_regret_llm_only`: Regret without gating
+- `avg_regret_gated`: Regret with gating
+
+**Target:** `avg_regret_gated <= avg_regret_llm_only`
+
+**Purpose:** Answers whether gating improved or degraded overall decision quality.
+This is the cleanest end-to-end metric.
+
+---
+
+## 4. False Conservatism Metric
+
+### 4.1 Definition
 
 False conservatism occurs when:
 1. Expected segment is advanced or power (user is ready for advanced features)
 2. Gating forced the final label lower than expected
 3. Downstream impact indicates missed capability, not reduced risk
 
-### 3.2 Computation
+### 4.2 Computation
 
 ```python
 def compute_false_conservatism(expected, actual, downstream_impact):
     segment_order = ["beginner", "intermediate", "advanced", "power"]
     expected_idx = segment_order.index(expected)
     actual_idx = segment_order.index(actual)
-    
+
     # Gating forced lower than expected
     if actual_idx < expected_idx:
         delta = expected_idx - actual_idx
-        
+
         # Check if downstream impact indicates missed capability
         if downstream_impact.get("direction") == "downward_loss":
             severity = downstream_impact.get("severity", "none")
@@ -144,7 +192,15 @@ def compute_false_conservatism(expected, actual, downstream_impact):
                     "severity": severity,
                     "type": "missed_capability",
                 }
-        
+            elif severity == "low":
+                # Near-miss: conservative but minimal harm
+                return {
+                    "false_conservatism": False,
+                    "delta": delta,
+                    "severity": severity,
+                    "type": "near_miss_unlock",
+                }
+
         # Conservative but not harmful (safe downgrade)
         return {
             "false_conservatism": False,
@@ -152,33 +208,53 @@ def compute_false_conservatism(expected, actual, downstream_impact):
             "severity": "safe_downgrade",
             "type": "appropriate_conservatism",
         }
-    
+
     return {"false_conservatism": False, "delta": 0}
 ```
 
-### 3.3 False Conservatism Rate
+### 4.3 Near-Miss Unlock Category
+
+Add `near_miss_unlock` type to distinguish harmless conservatism from harmful:
+
+| Type | Expected | Actual | Impact | Action |
+|------|----------|--------|--------|--------|
+| missed_capability | advanced/power | lower | medium/high | Review gate |
+| near_miss_unlock | advanced/power | lower | low | Monitor, no action |
+| safe_downgrade | advanced/power | lower | none | Appropriate |
+
+**Why:** Prevents over-penalization of safe conservative behavior.
+
+### 4.4 False Conservatism Rate (Refined Denominator)
+
+**Current:** `false_conservatism / total_advanced_power_cases`
+
+**Better:** `false_conservatism / cases_where_expected_is_advanced_or_power`
+
+**Best:** `false_conservatism / cases_where_gating_intervened_on_advanced_power`
+
+**Goal:** Measure correctness when gating actually acts, not overall prevalence.
 
 ```
-false_conservatism_rate = false_conservatism_count / total_advanced_power_cases
+false_conservatism_rate = false_conservatism_count / cases_where_gating_intervened
 ```
 
 **Target:** <10% false conservatism rate on ambiguous holdout slice.
 
 **Alert threshold:** >20% false conservatism rate triggers gate review.
 
-### 3.4 Safety Gain vs Unlock Loss Tradeoff
+### 4.5 Safety Gain vs Unlock Loss Tradeoff
 
 | Metric | Formula | Target |
 |--------|---------|--------|
-| Safety gain | (overexposure_errors_before - overexposure_errors_after) / overexposure_errors_before | >50% reduction |
-| Unlock loss | false_conservatism_count / total_advanced_power_cases | <10% |
+| Safety gain | (overexposure_llm_only - overexposure_gated) / overexposure_llm_only | >50% reduction |
+| Unlock loss | false_conservatism_count / cases_where_gating_intervened | <10% |
 | Net benefit | safety_gain - unlock_loss | >40% |
 
 ---
 
-## 4. Live Outcome Measures
+## 5. Live Outcome Measures
 
-### 4.1 Adoption of Advanced Features
+### 5.1 Adoption of Advanced Features
 
 Track whether hard gating improves feature adoption velocity:
 
@@ -188,7 +264,7 @@ Track whether hard gating improves feature adoption velocity:
 | Time-to-first-power | Days from signup to first power feature usage | <60 days |
 | Advanced feature adoption rate | % of intermediate users who adopt advanced features within 30 days | >40% |
 
-### 4.2 Misuse/Confusion Rate
+### 5.2 Misuse/Confusion Rate
 
 Track whether hard gating reduces feature misuse:
 
@@ -198,9 +274,23 @@ Track whether hard gating reduces feature misuse:
 | Feature abandonment rate | % of users who stop using a feature after 1 use | <30% |
 | Support tickets per feature | Support tickets related to feature confusion per 1000 users | <5 |
 
-### 4.3 Advanced-User Unlock Latency
+### 5.3 Advanced-User Unlock Latency (Deterministic Criteria)
 
-Track whether hard gating delays legitimate unlocks:
+Define explicit criteria for "meets advanced/power" to avoid noisy metrics:
+
+```python
+meets_advanced_criteria = (
+    capability_level >= "medium"
+    AND recurring_tasks_used >= 5
+    AND feature_depth >= 3  # At least 3 advanced features used
+)
+
+meets_power_criteria = (
+    capability_level >= "high"
+    AND automation_signals >= 2  # At least 2 automation signals
+    AND power_features_used >= 1  # At least 1 power feature used
+)
+```
 
 | Metric | Description | Target |
 |--------|-------------|--------|
@@ -208,7 +298,7 @@ Track whether hard gating delays legitimate unlocks:
 | Unlock latency (power) | Days from meeting power criteria to being classified as power | <14 days |
 | False delay rate | % of users who meet criteria but are not unlocked within target | <15% |
 
-### 4.4 Retention by Gated Tier
+### 5.4 Retention by Gated Tier
 
 Track whether hard gating improves retention:
 
@@ -221,9 +311,9 @@ Track whether hard gating improves retention:
 
 ---
 
-## 5. Portfolio-Level Integration
+## 6. Portfolio-Level Integration
 
-### 5.1 Feature Exposure as Tier 1 Routing Authority
+### 6.1 Feature Exposure as Tier 1 Routing Authority
 
 Feature exposure is now a Tier 1 gating family in the portfolio:
 
@@ -233,7 +323,7 @@ Feature exposure is now a Tier 1 gating family in the portfolio:
 | Tier 2 (decision quality) | prioritization, plan_from_goal | Must improve or stay neutral |
 | Tier 3 (content quality) | task_critic, task_rewriter, structured_extraction | Can fluctuate within bounds |
 
-### 5.2 Cross-Family Consistency with Gated Segment
+### 6.2 Cross-Family Consistency with Gated Segment
 
 Downstream families consume the **gated segment**, not the raw LLM segment:
 
@@ -243,7 +333,7 @@ gated_segment = fe_output.get("user_segment", "unknown")
 # Use gated_segment for planning mode selection, not llm_segment
 ```
 
-### 5.3 Raw LLM Segment Logging
+### 6.3 Raw LLM Segment Logging
 
 The raw LLM segment is logged for analysis but not used for policy decisions:
 
@@ -254,35 +344,64 @@ output["user_segment"] = gated_segment  # For policy
 
 ---
 
-## 6. Validation Milestones
+## 7. Expected Outcomes
+
+### 7.1 Best Case
+- Overexposure decreases significantly
+- False conservatism remains low
+- Regret decreases or stays flat
+
+**Action:** Safe to ship.
+
+### 7.2 Likely Case
+- Overexposure decreases
+- Slight conservatism increase
+- Regret neutral
+
+**Action:** Tune 1-2 gates.
+
+### 7.3 Failure Case
+- Overexposure decreases
+- Unlock latency increases
+- Regret increases
+
+**Action:** Gating too aggressive → relax constraints.
+
+---
+
+## 8. Validation Milestones
 
 ### Milestone 1: Holdout Validation (Week 1-2)
 - [ ] Run 30 ambiguous holdout cases through hard gating
 - [ ] Achieve >90% accuracy on holdout slice
 - [ ] Achieve <10% false conservatism rate
 - [ ] Publish gate hit-rate report with per-gate and per-slice breakdowns
+- [ ] Compute counterfactual baseline (LLM-only vs gated)
 
 ### Milestone 2: Gate Distribution Analysis (Week 2-3)
 - [ ] No single gate accounts for >40% of all overrides
 - [ ] Gate hit rates are within target ranges
 - [ ] Pre-gate vs post-gate analysis shows corrective work (not restating LLM)
 - [ ] Score delta analysis shows gating improves or maintains accuracy
+- [ ] Distribution-based alerts configured (max_gate_share > 2x median)
 
 ### Milestone 3: Live Outcome Baseline (Week 3-4)
 - [ ] Establish baseline for adoption, misuse, unlock latency, retention metrics
 - [ ] Compare gated vs ungated cohorts on live outcomes
 - [ ] Demonstrate safety gain >50% reduction in overexposure errors
 - [ ] Demonstrate unlock loss <10% false conservatism rate
+- [ ] Compute policy regret (optimal vs actual plan score)
 
 ### Milestone 4: Operational Trustworthiness (Week 4-6)
 - [ ] Feature exposure is Tier 1 routing authority in portfolio
 - [ ] Cross-family consistency uses gated segment
 - [ ] Gate hit-rate report is part of nightly portfolio output
 - [ ] False conservatism rate is tracked and alerted
+- [ ] Near-miss unlock category tracked separately from missed_capability
 
 ---
 
-## 7. Risk Register
+## 9. Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
@@ -291,12 +410,13 @@ output["user_segment"] = gated_segment  # For policy
 | False conservatism increases unlock latency | Low | Medium | Unlock latency tracking, gate tuning |
 | Hard gating masks LLM degradation | Low | High | Log raw LLM segment, compare LLM vs gated accuracy |
 | Gates become stale as product evolves | Medium | Medium | Monthly gate review, automated gate hit-rate alerts |
+| Counterfactual baseline not grounded | Low | High | Explicit LLM-only vs gated comparison |
 
 ---
 
-## 8. Appendix
+## 10. Appendix
 
-### 8.1 Gate Definitions
+### 10.1 Gate Definitions
 
 | Gate | Condition | Action |
 |------|-----------|--------|
@@ -309,7 +429,7 @@ output["user_segment"] = gated_segment  # For policy
 | 7 | Low activity AND low capability AND LLM says intermediate+ | Demote to beginner |
 | 8 | No power features AND LLM says power | Demote to advanced |
 
-### 8.2 Signal Definitions
+### 10.2 Signal Definitions
 
 | Signal | Computation | Type |
 |--------|-------------|------|
@@ -317,7 +437,7 @@ output["user_segment"] = gated_segment  # For policy
 | capability_level | Feature depth: tier usage count | Structural |
 | automation_signals | Actual feature usage (recurring, bulk, automation) | Structural |
 
-### 8.3 Segment Definitions
+### 10.3 Segment Definitions
 
 | Segment | Criteria |
 |---------|----------|
@@ -325,3 +445,19 @@ output["user_segment"] = gated_segment  # For policy
 | Intermediate | Uses due dates, projects, daily planning |
 | Advanced | Uses dependencies, goals, recurring tasks repeatedly |
 | Power | Uses automation rules, bulk ops, agentic planning, custom automations |
+
+### 10.4 Deterministic Criteria for Unlock Latency
+
+```python
+meets_advanced_criteria = (
+    capability_level >= "medium"
+    AND recurring_tasks_used >= 5
+    AND feature_depth >= 3  # At least 3 advanced features used
+)
+
+meets_power_criteria = (
+    capability_level >= "high"
+    AND automation_signals >= 2  # At least 2 automation signals
+    AND power_features_used >= 1  # At least 1 power feature used
+)
+```
