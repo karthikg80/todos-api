@@ -9,11 +9,15 @@ Features:
 - Case-level diffing with biggest improvements/regressions
 - Comparison guardrails (regression thresholds, no-safety-regression rule)
 - Drill-down paths (aggregate → family → slice → case)
+- Cost/latency metrics per family and per case
+- Holdout evaluation support
+- CI regression gate integration
 """
 from __future__ import annotations
 
 import json
 import os
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
@@ -23,6 +27,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from framework.schemas import RunConfig, RunResult
+from framework.hardening import (
+    HoldoutManager,
+    CIRegressionGate,
+    GraderRegistry,
+    HoldoutResult,
+    HoldoutAccessEvent,
+    DEFAULT_GUARDRAILS,
+)
 from meta_dimensions import (
     get_meta_dimension,
     get_meta_dimension_scores,
@@ -183,6 +195,19 @@ def aggregate_portfolio(
         for ft, count in result.failure_summary().items():
             failure_totals[ft] = failure_totals.get(ft, 0) + count
 
+    # Cost/latency aggregation
+    total_cost_usd = 0.0
+    total_latency_ms = 0.0
+    cost_by_family: dict[str, float] = {}
+    latency_by_family: dict[str, float] = {}
+    for name, result in results.items():
+        family_cost = sum(c.cost_usd for c in result.cases)
+        family_latency = sum(c.latency_ms for c in result.cases)
+        total_cost_usd += family_cost
+        total_latency_ms += family_latency
+        cost_by_family[name] = round(family_cost, 4)
+        latency_by_family[name] = round(family_latency, 2)
+
     return {
         "weighted_score": round(weighted_score, 3),
         "is_full_portfolio": is_full_portfolio,
@@ -196,12 +221,18 @@ def aggregate_portfolio(
         "split_averages": split_averages,
         "difficulty_averages": difficulty_averages,
         "failure_summary": failure_totals,
+        "cost_usd": round(total_cost_usd, 4),
+        "latency_ms": round(total_latency_ms, 2),
+        "cost_by_family": cost_by_family,
+        "latency_by_family": latency_by_family,
         "family_scores": {
             name: {
                 "score": result.mean_score,
                 "cases": result.total_cases,
                 "errors": result.error_count,
                 "weight": active_weights.get(name, 0),
+                "cost_usd": cost_by_family.get(name, 0),
+                "latency_ms": latency_by_family.get(name, 0),
             }
             for name, result in results.items()
         },
@@ -212,78 +243,18 @@ def check_guardrails(
     baseline_agg: dict[str, Any],
     candidate_agg: dict[str, Any],
     guardrails: Optional[dict[str, Any]] = None,
+    holdout_result: Optional[HoldoutResult] = None,
 ) -> dict[str, Any]:
     """Check whether a candidate run passes guardrails vs baseline.
 
-    Returns a dict with:
-    - passed: Whether all guardrails passed
-    - violations: List of violated guardrails
-    - details: Per-guardrail details
+    Uses CIRegressionGate for consistent checking across CLI and API.
     """
-    if guardrails is None:
-        guardrails = DEFAULT_GUARDRAILS
-
-    violations = []
-    details = {}
-
-    # Aggregate regression check
-    score_delta = candidate_agg["weighted_score"] - baseline_agg["weighted_score"]
-    max_regression = guardrails.get("max_aggregate_regression", -0.020)
-    aggregate_ok = score_delta >= max_regression
-    details["aggregate_regression"] = {
-        "delta": round(score_delta, 3),
-        "threshold": max_regression,
-        "passed": aggregate_ok,
-    }
-    if not aggregate_ok:
-        violations.append(f"Aggregate score regressed by {abs(score_delta):.3f} (threshold: {abs(max_regression):.3f})")
-
-    # Family-level regression check
-    max_family_regression = guardrails.get("max_family_regression", -0.050)
-    family_deltas = {}
-    for name in set(list(baseline_agg.get("family_scores", {}).keys()) + list(candidate_agg.get("family_scores", {}).keys())):
-        b = baseline_agg.get("family_scores", {}).get(name)
-        c = candidate_agg.get("family_scores", {}).get(name)
-        if b and c:
-            delta = c["score"] - b["score"]
-            family_deltas[name] = delta
-            if delta < max_family_regression:
-                violations.append(f"Family '{name}' regressed by {abs(delta):.3f} (threshold: {abs(max_family_regression):.3f})")
-    details["family_regressions"] = family_deltas
-
-    # Safety regression check
-    if guardrails.get("no_safety_regression", True):
-        baseline_safety = baseline_agg.get("meta_dimension_averages", {}).get("safety", 0)
-        candidate_safety = candidate_agg.get("meta_dimension_averages", {}).get("safety", 0)
-        safety_ok = candidate_safety >= baseline_safety
-        details["safety_regression"] = {
-            "baseline": baseline_safety,
-            "candidate": candidate_safety,
-            "delta": round(candidate_safety - baseline_safety, 3),
-            "passed": safety_ok,
-        }
-        if not safety_ok:
-            violations.append(f"Safety regressed from {baseline_safety:.3f} to {candidate_safety:.3f}")
-
-    # Error rate increase check
-    baseline_error_rate = baseline_agg.get("error_rate", 0)
-    candidate_error_rate = candidate_agg.get("error_rate", 0)
-    max_error_increase = guardrails.get("max_error_rate_increase", 0.05)
-    error_ok = (candidate_error_rate - baseline_error_rate) <= max_error_increase
-    details["error_rate_increase"] = {
-        "baseline": baseline_error_rate,
-        "candidate": candidate_error_rate,
-        "delta": round(candidate_error_rate - baseline_error_rate, 3),
-        "threshold": max_error_increase,
-        "passed": error_ok,
-    }
-    if not error_ok:
-        violations.append(f"Error rate increased by {candidate_error_rate - baseline_error_rate:.3f} (threshold: {max_error_increase:.3f})")
-
+    gate = CIRegressionGate()
+    result = gate.check(baseline_agg, candidate_agg, guardrails, holdout_result)
     return {
-        "passed": len(violations) == 0,
-        "violations": violations,
-        "details": details,
+        "passed": result.passed,
+        "violations": result.violations,
+        "details": result.details,
     }
 
 

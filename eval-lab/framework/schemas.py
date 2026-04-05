@@ -143,8 +143,9 @@ class Case(BaseModel):
     expected: dict[str, Any]
     metadata: CaseMetadata = Field(default_factory=CaseMetadata)
 
-    # Split assignment
-    split: str = "dev"  # dev, test, regression
+    # Split assignment: dev, test, holdout, regression
+    # Holdout cases are never used for optimization.
+    split: str = "dev"
 
 
 # ── Case Result ──────────────────────────────────────────────────────────────
@@ -174,6 +175,13 @@ class CaseResult(BaseModel):
 
     # Grader artifacts (preserved for debugging)
     grader_artifacts: dict[str, Any] = Field(default_factory=dict)
+
+    # Efficiency metrics
+    cost_usd: float = 0.0
+    latency_ms: float = 0.0
+
+    # Grader version (for audit trail)
+    grader_version: str = "1"
 
 
 # ── Run Artifact ─────────────────────────────────────────────────────────────
