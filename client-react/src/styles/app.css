@@ -3026,6 +3026,169 @@ body {
   padding: var(--s-4) 0;
 }
 
+/* ── Flip Card System ──────────────────────── */
+
+.flip-card {
+  perspective: 1000px;
+}
+
+.flip-card__inner {
+  position: relative;
+  transition: transform 0.6s ease;
+  transform-style: preserve-3d;
+}
+
+.flip-card--flipped .flip-card__inner {
+  transform: rotateY(180deg);
+}
+
+.flip-card__front,
+.flip-card__back {
+  backface-visibility: hidden;
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-elevated);
+  background: var(--surface);
+  padding: var(--s-4);
+}
+
+.flip-card__back {
+  transform: rotateY(180deg);
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, var(--surface), color-mix(in oklab, var(--surface) 95%, var(--muted)));
+  overflow-y: auto;
+}
+
+/* ── Dog Ear Fold ──────────────────────────── */
+
+.dog-ear {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  z-index: 5;
+}
+
+.dog-ear__fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 28px 28px 0;
+  border-color: transparent color-mix(in oklab, var(--muted) 15%, transparent) transparent transparent;
+  transition: border-color var(--dur-fast) ease;
+}
+
+.dog-ear__under {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 26px 26px 0;
+  border-color: transparent var(--surface) transparent transparent;
+}
+
+.dog-ear:hover .dog-ear__fold {
+  border-color: transparent color-mix(in oklab, var(--muted) 30%, transparent) transparent transparent;
+}
+
+/* ── Card Back ─────────────────────────────── */
+
+.card-back__header {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: var(--s-3);
+}
+
+.card-back__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: var(--s-1) var(--s-2h);
+  border-radius: var(--r-full);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  margin-bottom: var(--s-3);
+}
+
+.card-back__badge--ai {
+  background: color-mix(in oklab, #8b5cf6 6%, transparent);
+  border: 1px solid color-mix(in oklab, #8b5cf6 15%, transparent);
+  color: #8b5cf6;
+}
+
+.card-back__badge--deterministic {
+  background: color-mix(in oklab, var(--success) 6%, transparent);
+  border: 1px solid color-mix(in oklab, var(--success) 20%, transparent);
+  color: var(--success);
+}
+
+.card-back__badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.card-back__art {
+  display: flex;
+  justify-content: center;
+  padding: var(--s-3) 0;
+  opacity: 0.6;
+}
+
+.card-back__grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+}
+
+.card-back__label {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.card-back__value {
+  color: var(--text);
+}
+
+.card-back__value--mono {
+  font-family: monospace;
+  font-size: calc(var(--fs-xs) - 1px);
+}
+
+.card-back__section {
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--border-light);
+}
+
+.card-back__section-label {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--s-1);
+}
+
+.card-back__section-text {
+  margin: 0;
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+  color: color-mix(in oklab, var(--text) 70%, transparent);
+}
+
 /* ── Urgent Banner ─────────────────────────── */
 
 .focus-urgent-banner {
@@ -10608,4 +10771,135 @@ body.dark-mode {
   color: var(--text-secondary);
   line-height: var(--lh-snug);
 }
+
+/* ==========================================================================
+   Right Now Panel
+   ========================================================================== */
+
+.panel-right-now__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--s-3);
+}
+
+.panel-right-now__title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ==========================================================================
+   Today Agenda Panel
+   ========================================================================== */
+
+.panel-today-agenda__header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: var(--s-3);
+}
+
+.panel-today-agenda__title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.panel-today-agenda__subtitle {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-left: auto;
+}
+
+/* ==========================================================================
+   Competing Panel Headers (shared)
+   ========================================================================== */
+
+.panel-unsorted__header,
+.panel-due-soon__header,
+.panel-what-next__header,
+.panel-backlog__header,
+.panel-nudge__header,
+.panel-track__header,
+.panel-rescue__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+}
+
+.panel-unsorted__title,
+.panel-due-soon__title,
+.panel-what-next__title,
+.panel-backlog__title,
+.panel-nudge__title,
+.panel-track__title,
+.panel-rescue__title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ==========================================================================
+   Urgency Bars (Due Soon)
+   ========================================================================== */
+
+.urgency-bars { display: flex; flex-direction: column; gap: var(--s-2); }
+.urgency-bar__label { display: flex; justify-content: space-between; font-size: var(--fs-xs); }
+.urgency-bar__track { height: 6px; background: color-mix(in oklab, var(--muted) 8%, transparent); border-radius: 3px; overflow: hidden; }
+.urgency-bar__fill { height: 100%; border-radius: 3px; }
+
+/* ==========================================================================
+   Stacked Inbox (Unsorted)
+   ========================================================================== */
+
+.inbox-stack { position: relative; margin-bottom: var(--s-2); }
+.inbox-stack__shadow { position: absolute; left: 4px; right: 4px; height: 40px; border-radius: var(--r-sm); }
+.inbox-stack__shadow--far { top: 6px; background: color-mix(in oklab, var(--warning) 4%, transparent); border: 1px solid color-mix(in oklab, var(--warning) 8%, transparent); }
+.inbox-stack__shadow--near { top: 3px; left: 2px; right: 2px; background: color-mix(in oklab, var(--warning) 6%, transparent); border: 1px solid color-mix(in oklab, var(--warning) 10%, transparent); }
+.inbox-stack__front { position: relative; padding: var(--s-3); background: var(--surface); border: 1px solid color-mix(in oklab, var(--warning) 15%, transparent); border-radius: var(--r-sm); box-shadow: var(--shadow-0); }
+
+/* ==========================================================================
+   Decay Bars (Backlog Hygiene)
+   ========================================================================== */
+
+.decay-item { display: flex; flex-direction: column; gap: 4px; }
+.decay-item__row { display: flex; justify-content: space-between; font-size: var(--fs-xs); }
+.decay-item__bar { height: 3px; background: color-mix(in oklab, var(--muted) 6%, transparent); border-radius: 2px; overflow: hidden; }
+.decay-item__fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--warning), var(--danger)); }
+
+/* ==========================================================================
+   Health Dots (Projects to Nudge)
+   ========================================================================== */
+
+.health-item { display: flex; align-items: center; gap: var(--s-3); }
+.health-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+.health-dot--critical { background: color-mix(in oklab, var(--danger) 10%, transparent); color: var(--danger); }
+.health-dot--warning { background: color-mix(in oklab, var(--warning) 10%, transparent); color: var(--warning); }
+
+/* ==========================================================================
+   Impact Cards (What Next)
+   ========================================================================== */
+
+.impact-card { padding: var(--s-2h) var(--s-3); border-radius: var(--r-sm); border: 1px solid var(--border-light); cursor: pointer; transition: background var(--dur-fast) ease; }
+.impact-card:first-child { border-color: color-mix(in oklab, var(--accent) 15%, transparent); background: color-mix(in oklab, var(--accent) 3%, transparent); }
+.impact-card:hover { background: var(--surface-2); }
+.impact-card__top { display: flex; justify-content: space-between; align-items: center; }
+.impact-card__reason { font-size: var(--fs-xs); color: var(--muted); margin-top: var(--s-1); }
+
+/* ==========================================================================
+   Timeline
+   ========================================================================== */
+
+.timeline { position: relative; padding-left: 20px; }
+.timeline__line { position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: color-mix(in oklab, var(--accent) 15%, transparent); }
+.timeline__item { position: relative; margin-bottom: 14px; }
+.timeline__item:last-child { margin-bottom: 0; }
+.timeline__dot { position: absolute; left: -17px; top: 4px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface); }
+.timeline__content { display: flex; justify-content: space-between; align-items: baseline; }
+.timeline__title { background: none; border: none; font-family: inherit; font-size: var(--fs-body); font-weight: 500; color: var(--text); cursor: pointer; padding: 0; text-align: left; }
+.timeline__title:hover { color: var(--accent); }
+.timeline__meta { font-size: var(--fs-xs); color: var(--muted); flex-shrink: 0; }
+.timeline__overdue { color: var(--danger); font-weight: 500; }
 
