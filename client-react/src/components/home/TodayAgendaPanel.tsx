@@ -28,7 +28,10 @@ export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle }: P
 
   if (items.length === 0) {
     const front = (
-      <div className="panel-today-agenda">
+      <div className="panel-today-agenda" style={{ position: "relative" }}>
+        <div className="card-watermark">
+          <SunriseArt size={120} />
+        </div>
         <div className="panel-today-agenda__header">
           <SunriseArt size={18} />
           <span className="panel-today-agenda__title">Today's Agenda</span>
@@ -40,7 +43,10 @@ export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle }: P
   }
 
   const front = (
-    <div className="panel-today-agenda">
+    <div className="panel-today-agenda" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <SunriseArt size={120} />
+      </div>
       <div className="panel-today-agenda__header">
         <SunriseArt size={18} />
         <span className="panel-today-agenda__title">Today's Agenda</span>
@@ -73,6 +79,10 @@ export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle }: P
           </div>
         ))}
       </div>
+
+      {items.length <= 2 && items.length > 0 && (
+        <p className="panel-today-agenda__light-day">Light day — room to get ahead.</p>
+      )}
     </div>
   );
 

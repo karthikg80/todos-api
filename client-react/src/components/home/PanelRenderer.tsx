@@ -30,7 +30,10 @@ function UnsortedPanel({
   const topItem = data.items[0];
 
   const front = (
-    <div className="panel-unsorted">
+    <div className="panel-unsorted" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <Art size={120} />
+      </div>
       <div className="panel-unsorted__header">
         <Art size={18} />
         <span className="panel-unsorted__title">Unsorted Items</span>
@@ -144,7 +147,10 @@ function DueSoonPanel({
   const maxCount = Math.max(...data.groups.map((g: any) => g.items.length), 1);
 
   const front = (
-    <div className="panel-due-soon">
+    <div className="panel-due-soon" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <Art size={120} />
+      </div>
       <div className="panel-due-soon__header">
         <Art size={18} />
         <span className="panel-due-soon__title">Due Soon</span>
@@ -222,7 +228,10 @@ function WhatNextPanel({
   const Art = PANEL_ART["whatNext"];
 
   const front = (
-    <div className="panel-what-next">
+    <div className="panel-what-next" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <Art size={120} />
+      </div>
       <div className="panel-what-next__header">
         <Art size={18} />
         <span className="panel-what-next__title">What Next</span>
@@ -283,7 +292,10 @@ function BacklogHygienePanel({
   const Art = PANEL_ART["backlogHygiene"];
 
   const front = (
-    <div className="panel-backlog">
+    <div className="panel-backlog" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <Art size={120} />
+      </div>
       <div className="panel-backlog__header">
         <Art size={18} />
         <span className="panel-backlog__title">Backlog Hygiene</span>
@@ -343,7 +355,10 @@ function ProjectsToNudgePanel({
   const Art = PANEL_ART["projectsToNudge"];
 
   const front = (
-    <div className="panel-nudge">
+    <div className="panel-nudge" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <Art size={120} />
+      </div>
       <div className="panel-nudge__header">
         <Art size={18} />
         <span className="panel-nudge__title">Projects to Nudge</span>
@@ -406,7 +421,10 @@ function TrackOverviewPanel({
   const Art = PANEL_ART["trackOverview"];
 
   const front = (
-    <div className="panel-track">
+    <div className="panel-track" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <Art size={120} />
+      </div>
       <div className="panel-track__header">
         <Art size={18} />
         <span className="panel-track__title">Task Timeline</span>
@@ -459,7 +477,10 @@ function RescueModePanel({
   const Art = PANEL_ART["rescueMode"];
 
   const front = (
-    <div className="panel-rescue">
+    <div className="panel-rescue" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <Art size={120} />
+      </div>
       <div className="panel-rescue__header">
         <Art size={18} />
         <span className="panel-rescue__title">Rescue Mode</span>
