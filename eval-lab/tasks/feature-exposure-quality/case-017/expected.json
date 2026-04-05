@@ -1,0 +1,59 @@
+{
+  "category": "planning-routing",
+  "expected_user_segment": "beginner",
+  "expected_planning_mode": "lightweight_daily",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates"
+  ],
+  "expected_hidden_features": [
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try our daily plan to organize your day"
+  ],
+  "advanced_features": [
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Routed to lightweight_daily planning mode. Core features only.",
+  "common_failure_modes": [
+    "routes to urgency_triage for beginner",
+    "routes to goal_aware_weekly prematurely"
+  ],
+  "acceptable_variation": "May enable due_dates. Should route to lightweight_daily.",
+  "notes": "Beginner user should get lightweight daily planning mode."
+}

@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-010"
+description = "All features enabled. No hidden features. No nudges needed."
+
+[scoring]
+weight = 1.0

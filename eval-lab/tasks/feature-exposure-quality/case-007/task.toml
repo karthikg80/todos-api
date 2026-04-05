@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-007"
+description = "Full intermediate set. Nudge toward advanced features (weekly planning)."
+
+[scoring]
+weight = 1.0

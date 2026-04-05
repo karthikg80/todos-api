@@ -1,0 +1,58 @@
+{
+  "category": "new-user-simplicity",
+  "expected_user_segment": "beginner",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search"
+  ],
+  "expected_hidden_features": [
+    "due_dates",
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try adding a due date to your first task"
+  ],
+  "advanced_features": [
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Minimal feature set. Only quick_add and task_list. One gentle nudge.",
+  "common_failure_modes": [
+    "enables due_dates too early",
+    "overwhelming feature bundle"
+  ],
+  "acceptable_variation": "May enable due_dates as a nudge target. Should not enable projects yet.",
+  "notes": "Very new user, minimal activity. Should get minimal features."
+}

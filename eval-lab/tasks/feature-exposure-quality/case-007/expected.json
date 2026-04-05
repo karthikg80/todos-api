@@ -1,0 +1,52 @@
+{
+  "category": "emerging-intermediate",
+  "expected_user_segment": "intermediate",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags",
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities"
+  ],
+  "expected_hidden_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Ready for weekly planning? Review your projects weekly"
+  ],
+  "advanced_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Full intermediate set. Nudge toward advanced features (weekly planning).",
+  "common_failure_modes": [
+    "enables automation_rules prematurely",
+    "hides smart_priorities from power user"
+  ],
+  "acceptable_variation": "May enable weekly_planning as transition to advanced. Should not enable automation yet.",
+  "notes": "45 days active, heavy intermediate usage. Ready for advanced nudge."
+}

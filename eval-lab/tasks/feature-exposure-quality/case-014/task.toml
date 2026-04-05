@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-014"
+description = "Despite 60 days registered, low activity and inactive for a month. Should classi"
+
+[scoring]
+weight = 1.0

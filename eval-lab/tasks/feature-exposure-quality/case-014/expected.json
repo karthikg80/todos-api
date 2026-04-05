@@ -1,0 +1,58 @@
+{
+  "category": "misclassification",
+  "expected_user_segment": "beginner",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates"
+  ],
+  "expected_hidden_features": [
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Welcome back! Try setting a due date for your next task"
+  ],
+  "advanced_features": [
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Despite 60 days registered, low activity and inactive for a month. Should classify as beginner.",
+  "common_failure_modes": [
+    "classifies as intermediate based on account age",
+    "enables projects prematurely"
+  ],
+  "acceptable_variation": "May enable due_dates as re-engagement nudge. Should not enable intermediate features.",
+  "notes": "60 days registered but inactive for a month. Low activity. Should be beginner."
+}

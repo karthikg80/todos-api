@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-017"
+description = "Routed to lightweight_daily planning mode. Core features only."
+
+[scoring]
+weight = 1.0

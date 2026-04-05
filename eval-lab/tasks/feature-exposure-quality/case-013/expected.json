@@ -1,0 +1,58 @@
+{
+  "category": "misclassification",
+  "expected_user_segment": "beginner",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects"
+  ],
+  "expected_hidden_features": [
+    "recurring_tasks",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "You're moving fast! Try organizing tasks into projects"
+  ],
+  "advanced_features": [
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Despite high activity, only 5 days active. Should classify as beginner and expose conservatively.",
+  "common_failure_modes": [
+    "classifies as intermediate based on activity volume",
+    "enables recurring_tasks too early"
+  ],
+  "acceptable_variation": "May enable projects since user created some. Should not enable intermediate features.",
+  "notes": "High activity but only 5 days. Classifier should prioritize recency over volume."
+}

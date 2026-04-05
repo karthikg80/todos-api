@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-001"
+description = "Only core features enabled. No intermediate or advanced features. One gentle nud"
+
+[scoring]
+weight = 1.0

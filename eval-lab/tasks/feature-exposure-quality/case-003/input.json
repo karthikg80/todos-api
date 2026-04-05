@@ -1,0 +1,45 @@
+{
+  "user_context": {
+    "days_active": 2,
+    "tasks_created": 2,
+    "projects_created": 0,
+    "due_dates_used": 0,
+    "recurring_tasks_used": 0,
+    "planning_sessions": 0,
+    "features_used": [
+      "quick_add"
+    ],
+    "last_active": "2026-04-03"
+  },
+  "feature_catalog": {
+    "core": [
+      "quick_add",
+      "task_list",
+      "basic_search",
+      "due_dates"
+    ],
+    "intermediate": [
+      "recurring_tasks",
+      "projects",
+      "tags",
+      "effort_estimates",
+      "daily_plan",
+      "smart_priorities"
+    ],
+    "advanced": [
+      "dependencies",
+      "goals",
+      "automation_rules",
+      "bulk_edits",
+      "weekly_planning",
+      "custom_views"
+    ],
+    "power": [
+      "agentic_planning",
+      "dependency_graph",
+      "batch_workflows",
+      "api_access",
+      "custom_automations"
+    ]
+  }
+}

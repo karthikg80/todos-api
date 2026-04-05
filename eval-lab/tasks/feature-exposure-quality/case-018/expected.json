@@ -1,0 +1,53 @@
+{
+  "category": "planning-routing",
+  "expected_user_segment": "intermediate",
+  "expected_planning_mode": "goal_aware_weekly",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags",
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities"
+  ],
+  "expected_hidden_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try weekly planning to review your projects"
+  ],
+  "advanced_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Routed to goal_aware_weekly planning mode. Intermediate features enabled.",
+  "common_failure_modes": [
+    "routes to lightweight_daily for intermediate user",
+    "routes to automation_bulk prematurely"
+  ],
+  "acceptable_variation": "May enable effort_estimates. Should route to goal_aware_weekly.",
+  "notes": "Intermediate user should get goal-aware weekly planning mode."
+}

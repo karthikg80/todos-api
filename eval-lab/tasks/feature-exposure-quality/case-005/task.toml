@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-005"
+description = "All intermediate features enabled. Advanced features still hidden. Nudge toward "
+
+[scoring]
+weight = 1.0

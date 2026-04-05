@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-020"
+description = "Routed to automation_bulk planning mode. All features enabled."
+
+[scoring]
+weight = 1.0

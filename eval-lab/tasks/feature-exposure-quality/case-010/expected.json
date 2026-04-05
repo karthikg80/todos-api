@@ -1,0 +1,37 @@
+{
+  "category": "power-user-unlock",
+  "expected_user_segment": "power",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags",
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_hidden_features": [],
+  "expected_nudges": [],
+  "advanced_features": [],
+  "what_good_exposure_looks_like": "All features enabled. No hidden features. No nudges needed.",
+  "common_failure_modes": [
+    "hides agentic_planning from power user",
+    "hides api_access"
+  ],
+  "acceptable_variation": "All features should be enabled for power users. No features hidden.",
+  "notes": "180 days active, power user across all features. Ready for everything."
+}

@@ -1,0 +1,52 @@
+{
+  "category": "emerging-intermediate",
+  "expected_user_segment": "intermediate",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags",
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities"
+  ],
+  "expected_hidden_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try setting effort estimates for better planning"
+  ],
+  "advanced_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Intermediate features enabled. Advanced still hidden. Nudge toward effort estimates.",
+  "common_failure_modes": [
+    "enables goals too early",
+    "hides recurring_tasks from user who uses them"
+  ],
+  "acceptable_variation": "May enable effort_estimates as a nudge. Should not enable goals yet.",
+  "notes": "21 days active, transitioning to intermediate. Uses daily planning."
+}

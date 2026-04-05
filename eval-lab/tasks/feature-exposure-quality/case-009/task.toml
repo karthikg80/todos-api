@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-009"
+description = "All advanced features enabled. Power features still hidden. Nudge toward automat"
+
+[scoring]
+weight = 1.0

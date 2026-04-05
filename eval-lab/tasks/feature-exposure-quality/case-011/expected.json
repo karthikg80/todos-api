@@ -1,0 +1,46 @@
+{
+  "category": "power-user-unlock",
+  "expected_user_segment": "advanced",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags",
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views"
+  ],
+  "expected_hidden_features": [
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try bulk edits to manage multiple tasks at once"
+  ],
+  "advanced_features": [
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Advanced features enabled. Power features hidden. Nudge toward bulk edits.",
+  "common_failure_modes": [
+    "enables agentic_planning prematurely",
+    "hides goals from advanced user"
+  ],
+  "acceptable_variation": "May enable bulk_edits since user is ready. Should not enable agentic_planning.",
+  "notes": "60 days active, using advanced features. Not quite power user yet."
+}

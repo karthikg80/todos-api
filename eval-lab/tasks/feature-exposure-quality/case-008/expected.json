@@ -1,0 +1,52 @@
+{
+  "category": "emerging-intermediate",
+  "expected_user_segment": "intermediate",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags",
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities"
+  ],
+  "expected_hidden_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try using recurring tasks for regular activities"
+  ],
+  "advanced_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Intermediate features enabled. Nudge toward recurring tasks.",
+  "common_failure_modes": [
+    "enables dependencies too early",
+    "hides daily_plan"
+  ],
+  "acceptable_variation": "May enable recurring_tasks since user just tried it. Should not enable dependencies.",
+  "notes": "14 days active, starting to use intermediate features. Early intermediate."
+}

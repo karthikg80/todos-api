@@ -98,6 +98,21 @@ DIMENSION_MAP: dict[tuple[str, str], tuple[MetaDimension, str]] = {
     ("prioritization", "justification_quality"): (REASONING, "Reasoning is sound and specific"),
     ("prioritization", "tie_handling"): (REASONING, "Similar-priority tasks grouped"),
     ("prioritization", "format_compliance"): (COMPLIANCE, "Valid output structure"),
+
+    # Structured Extraction
+    ("structured_extraction", "extraction_accuracy"): (CORRECTNESS, "Correct tasks identified"),
+    ("structured_extraction", "field_completeness"): (CORRECTNESS, "Complete fields extracted"),
+    ("structured_extraction", "deduplication"): (COMPLIANCE, "No duplicate tasks"),
+    ("structured_extraction", "no_hallucination"): (SAFETY, "No invented tasks"),
+    ("structured_extraction", "format_compliance"): (COMPLIANCE, "Valid output structure"),
+
+    # Feature Exposure
+    ("feature_exposure", "classification_accuracy"): (CORRECTNESS, "User segment matches expected"),
+    ("feature_exposure", "feature_appropriateness"): (CORRECTNESS, "Features match maturity"),
+    ("feature_exposure", "over_exposure_avoidance"): (SAFETY, "Novice users not overwhelmed"),
+    ("feature_exposure", "under_exposure_avoidance"): (ROBUSTNESS, "Power users get advanced features"),
+    ("feature_exposure", "nudge_quality"): (REASONING, "Growth nudges are relevant"),
+    ("feature_exposure", "format_compliance"): (COMPLIANCE, "Valid output structure"),
 }
 
 

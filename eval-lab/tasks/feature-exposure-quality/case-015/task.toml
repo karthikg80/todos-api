@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-015"
+description = "Conflicting signals: high activity but no advanced feature usage. Should classif"
+
+[scoring]
+weight = 1.0

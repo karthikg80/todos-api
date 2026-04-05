@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-012"
+description = "All features enabled. Power user with agentic_planning usage."
+
+[scoring]
+weight = 1.0

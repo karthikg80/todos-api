@@ -337,6 +337,35 @@ def _create_family_grader(family_name: str) -> LLMGrader:
                 "format_compliance": "Valid output structure (0-1)",
             },
         )
+    elif family_name == "feature_exposure":
+        config = LLMGraderConfig(
+            family=family_name,
+            rubric=(
+                "Grade the feature exposure recommendation against the expected policy.\n"
+                "- classification_accuracy: User segment classification matches expected\n"
+                "- feature_appropriateness: Enabled features match user maturity level\n"
+                "- over_exposure_avoidance: Advanced features not shown to novice users\n"
+                "- under_exposure_avoidance: Power users get access to advanced features\n"
+                "- nudge_quality: Growth nudges are relevant and actionable\n"
+                "- format_compliance: Valid output structure with required fields"
+            ),
+            dimension_names=[
+                "classification_accuracy",
+                "feature_appropriateness",
+                "over_exposure_avoidance",
+                "under_exposure_avoidance",
+                "nudge_quality",
+                "format_compliance",
+            ],
+            dimension_descriptions={
+                "classification_accuracy": "User segment classification matches expected (0-1)",
+                "feature_appropriateness": "Enabled features match user maturity level (0-1)",
+                "over_exposure_avoidance": "Advanced features not shown to novice users (0-1)",
+                "under_exposure_avoidance": "Power users get access to advanced features (0-1)",
+                "nudge_quality": "Growth nudges are relevant and actionable (0-1)",
+                "format_compliance": "Valid output structure with required fields (0-1)",
+            },
+        )
     else:
         # Generic grader for other families
         config = LLMGraderConfig(

@@ -1,0 +1,52 @@
+{
+  "category": "new-user-simplicity",
+  "expected_user_segment": "beginner",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects"
+  ],
+  "expected_hidden_features": [
+    "recurring_tasks",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try creating your first project to organize tasks"
+  ],
+  "advanced_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Core features plus projects (just created one). Still no intermediate features.",
+  "common_failure_modes": [
+    "enables recurring tasks too early",
+    "enables daily_plan prematurely"
+  ],
+  "acceptable_variation": "May enable projects since user just created one. Should not enable recurring tasks yet.",
+  "notes": "End of first week, created first project. Still beginner but showing engagement."
+}
