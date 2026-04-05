@@ -52,15 +52,17 @@ FAMILY_REGISTRY = {
     "plan_from_goal": "families.plan_from_goal:PlanFromGoalFamily",
     "clarification_policy": "families.clarification_policy:ClarificationPolicyFamily",
     "prioritization": "families.prioritization:PrioritizationFamily",
+    "structured_extraction": "families.structured_extraction:StructuredExtractionFamily",
 }
 
 # Default family weights for aggregate scoring
 DEFAULT_FAMILY_WEIGHTS = {
-    "task_critic": 0.25,
-    "task_rewriter": 0.20,
-    "plan_from_goal": 0.20,
-    "clarification_policy": 0.15,
-    "prioritization": 0.20,
+    "task_critic": 0.20,
+    "task_rewriter": 0.18,
+    "plan_from_goal": 0.18,
+    "clarification_policy": 0.14,
+    "prioritization": 0.15,
+    "structured_extraction": 0.15,
 }
 
 # Guardrail thresholds
@@ -145,15 +147,20 @@ def aggregate_portfolio(
     # Total cases and errors
     total_cases = sum(r.total_cases for r in results.values())
     total_errors = sum(r.error_count for r in results.values())
+    total_grader_errors = sum(
+        sum(1 for c in r.cases if c.grader_error)
+        for r in results.values()
+    )
 
     # Meta-dimension averages and contributions
+    # Exclude both execution errors AND grader errors from semantic aggregate
     meta_dimension_totals: dict[str, list[float]] = {}
     meta_dimension_contributions: dict[str, dict[str, float]] = {}
 
     for name, result in results.items():
         family_weight = active_weights.get(name, 0) / total_weight
         for case_result in result.cases:
-            if case_result.error:
+            if case_result.error or case_result.grader_error:
                 continue
             for dim_name, score in case_result.breakdown.dimensions.items():
                 meta = get_meta_dimension(name, dim_name)
@@ -216,7 +223,9 @@ def aggregate_portfolio(
         "total_families_available": len(FAMILY_REGISTRY),
         "total_cases": total_cases,
         "total_errors": total_errors,
+        "total_grader_errors": total_grader_errors,
         "error_rate": round(total_errors / total_cases, 3) if total_cases > 0 else 0.0,
+        "grader_error_rate": round(total_grader_errors / total_cases, 3) if total_cases > 0 else 0.0,
         "meta_dimension_averages": meta_averages,
         "meta_dimension_contributions": meta_contributions,
         "split_averages": split_averages,
