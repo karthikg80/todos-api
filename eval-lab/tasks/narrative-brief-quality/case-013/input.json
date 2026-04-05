@@ -1,0 +1,36 @@
+{
+  "brief_type": "feedback_summary",
+  "data_context": {
+    "period": "Last 30 days",
+    "total_feedback": 45,
+    "sentiment_distribution": {
+      "positive": 20,
+      "neutral": 15,
+      "negative": 10
+    },
+    "top_themes": [
+      {
+        "theme": "Search is slow",
+        "count": 12,
+        "sentiment": "negative"
+      },
+      {
+        "theme": "Love the new dashboard",
+        "count": 10,
+        "sentiment": "positive"
+      },
+      {
+        "theme": "Mobile app crashes",
+        "count": 8,
+        "sentiment": "negative"
+      },
+      {
+        "theme": "Good customer support",
+        "count": 7,
+        "sentiment": "positive"
+      }
+    ],
+    "nps_score": 42,
+    "nps_trend": "up from 38 last month"
+  }
+}

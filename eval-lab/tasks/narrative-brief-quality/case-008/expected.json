@@ -1,0 +1,21 @@
+{
+  "brief_type": "weekly_review",
+  "category": "normal",
+  "expected_patterns": [
+    "strong completion rate (20 vs 10 created)",
+    "Sprint 12 completed",
+    "good deep work ratio at 60%"
+  ],
+  "expected_recommendations": [
+    "Plan next sprint",
+    "Complete remaining documentation tasks",
+    "Maintain current deep work ratio"
+  ],
+  "what_good_brief_looks_like": "Positive review highlighting strong completion and good time distribution. Forward-looking recommendations.",
+  "common_failure_modes": [
+    "misses_sprint_completion",
+    "misses_good_time_distribution"
+  ],
+  "acceptable_variation": "May phrase positively. Should note sprint completion and deep work ratio.",
+  "notes": "Strong week with 20 completions and good time distribution. Positive review."
+}

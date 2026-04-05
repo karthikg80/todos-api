@@ -1,0 +1,13 @@
+{
+  "brief_type": "daily_priorities",
+  "data_context": {
+    "today": "2026-04-05",
+    "tasks_due_today": [],
+    "tasks_due_this_week": [],
+    "recent_completions": [
+      "Finish quarterly report",
+      "Send tax documents",
+      "Complete performance reviews"
+    ]
+  }
+}

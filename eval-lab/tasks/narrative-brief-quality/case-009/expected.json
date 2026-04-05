@@ -1,0 +1,22 @@
+{
+  "brief_type": "project_health",
+  "category": "normal",
+  "expected_patterns": [
+    "on track timeline (45% progress with 40% budget used)",
+    "2 blockers need resolution",
+    "design handoff is critical path"
+  ],
+  "expected_recommendations": [
+    "Follow up with design team on mockups",
+    "Coordinate with API team on endpoint readiness",
+    "Plan for design handoff transition"
+  ],
+  "what_good_brief_looks_like": "Assesses health as generally on track but flags 2 blockers. Recommends following up on critical path items.",
+  "common_failure_modes": [
+    "misses_blockers",
+    "misses_design_handoff_dependency",
+    "overly_optimistic"
+  ],
+  "acceptable_variation": "May assess health slightly differently. Should flag both blockers.",
+  "notes": "Project at 45% with 2 blockers. Generally on track but needs blocker resolution."
+}

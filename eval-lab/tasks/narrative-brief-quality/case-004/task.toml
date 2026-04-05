@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-004"
+description = "Notes sparse data. Suggests clarifying the vague task. No invented priorities."
+
+[scoring]
+weight = 1.0

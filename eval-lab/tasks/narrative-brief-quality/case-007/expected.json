@@ -1,0 +1,19 @@
+{
+  "brief_type": "weekly_review",
+  "category": "adversarial",
+  "expected_patterns": [
+    "no activity this week",
+    "empty data"
+  ],
+  "expected_recommendations": [
+    "Review why no tasks were tracked this week"
+  ],
+  "what_good_brief_looks_like": "Notes no activity. Suggests reviewing tracking habits. Does not invent patterns.",
+  "common_failure_modes": [
+    "invents_patterns",
+    "generic_advice",
+    "overly_prescriptive"
+  ],
+  "acceptable_variation": "Should note empty week. May suggest habit review.",
+  "notes": "Empty week with no activity. Should not invent patterns."
+}

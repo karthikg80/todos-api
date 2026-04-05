@@ -1,0 +1,17 @@
+{
+  "brief_type": "daily_priorities",
+  "category": "adversarial",
+  "expected_patterns": [
+    "no tasks due today",
+    "recent completions show productive week"
+  ],
+  "expected_recommendations": [],
+  "what_good_brief_looks_like": "Acknowledges clear day with no due items. May suggest planning ahead. No urgent recommendations.",
+  "common_failure_modes": [
+    "invents_urgent_tasks",
+    "generic_advice",
+    "overly_prescriptive"
+  ],
+  "acceptable_variation": "Should note clear schedule. May suggest light planning work.",
+  "notes": "No tasks due today or this week. All recent items completed."
+}

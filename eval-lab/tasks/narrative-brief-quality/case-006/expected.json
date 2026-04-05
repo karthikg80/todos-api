@@ -1,0 +1,23 @@
+{
+  "brief_type": "weekly_review",
+  "category": "normal",
+  "expected_patterns": [
+    "task backlog growing (3 completed vs 15 created)",
+    "8 overdue items is concerning",
+    "Product Launch has 20 remaining tasks",
+    "meeting-heavy week with low deep work"
+  ],
+  "expected_recommendations": [
+    "Address 8 overdue items urgently",
+    "Reduce meetings to increase deep work time",
+    "Break down Product Launch into manageable chunks"
+  ],
+  "what_good_brief_looks_like": "Flags growing backlog and high overdue count. Recommends meeting reduction and task breakdown.",
+  "common_failure_modes": [
+    "misses_backlog_growth",
+    "misses_meeting_problem",
+    "too_positive_tone"
+  ],
+  "acceptable_variation": "Should flag concerning trends. May suggest different specific actions.",
+  "notes": "Concerning week with growing backlog and high overdue count. Should flag issues."
+}

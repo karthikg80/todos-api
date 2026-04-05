@@ -1,0 +1,18 @@
+{
+  "brief_type": "project_health",
+  "data_context": {
+    "project": "Mobile App Redesign",
+    "start_date": "2026-02-01",
+    "target_date": "2026-05-01",
+    "progress": "45%",
+    "tasks_completed": 18,
+    "tasks_remaining": 22,
+    "blockers": [
+      "Waiting on design team for final mockups",
+      "API endpoint not ready"
+    ],
+    "recent_activity": "Completed user research and wireframes. Waiting on design handoff.",
+    "budget_used": "40%",
+    "budget_total": 50000
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "brief_type": "daily_priorities",
+  "data_context": {
+    "today": "2026-04-05",
+    "tasks_due_today": [
+      {
+        "title": "Deploy v2.0",
+        "priority": "high",
+        "is_overdue": true
+      },
+      {
+        "title": "Run final tests",
+        "priority": "high",
+        "depends_on": []
+      },
+      {
+        "title": "Update release notes",
+        "priority": "medium"
+      },
+      {
+        "title": "Notify stakeholders",
+        "priority": "medium"
+      },
+      {
+        "title": "Archive old logs",
+        "priority": "low"
+      },
+      {
+        "title": "Update documentation",
+        "priority": "low"
+      }
+    ],
+    "tasks_due_this_week": [
+      {
+        "title": "Plan Q2 roadmap",
+        "priority": "high",
+        "due_date": "2026-04-08"
+      }
+    ],
+    "recent_completions": [
+      "Complete testing"
+    ]
+  }
+}

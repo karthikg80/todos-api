@@ -1,0 +1,22 @@
+{
+  "brief_type": "daily_priorities",
+  "category": "noisy",
+  "expected_patterns": [
+    "overdue deployment",
+    "release day with multiple tasks",
+    "Q2 roadmap planning due soon"
+  ],
+  "expected_recommendations": [
+    "Deploy v2.0 (overdue, highest priority)",
+    "Run final tests before deployment",
+    "Plan Q2 roadmap (due in 3 days)"
+  ],
+  "what_good_brief_looks_like": "Prioritizes overdue deployment, then release tasks, then Q2 planning. Filters out low-priority noise.",
+  "common_failure_modes": [
+    "wrong_priority_order",
+    "misses_overdue",
+    "includes_low_priority_items"
+  ],
+  "acceptable_variation": "May suggest 3-4 top priorities. Should filter low-priority items.",
+  "notes": "Release day with 6 tasks due. Should prioritize top 3-4, filtering noise."
+}

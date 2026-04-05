@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-009"
+description = "Assesses health as generally on track but flags 2 blockers. Recommends following"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,19 @@
+{
+  "brief_type": "project_health",
+  "data_context": {
+    "project": "Website Migration",
+    "start_date": "2026-01-15",
+    "target_date": "2026-03-15",
+    "progress": "30%",
+    "tasks_completed": 8,
+    "tasks_remaining": 35,
+    "blockers": [
+      "Database migration failed twice",
+      "SSL certificate issues",
+      "DNS propagation delays"
+    ],
+    "recent_activity": "Multiple failed migration attempts. Team investigating root cause.",
+    "budget_used": "70%",
+    "budget_total": 30000
+  }
+}

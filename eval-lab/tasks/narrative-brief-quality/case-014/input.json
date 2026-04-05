@@ -1,0 +1,26 @@
+{
+  "brief_type": "feedback_summary",
+  "data_context": {
+    "period": "Last 30 days",
+    "total_feedback": 5,
+    "sentiment_distribution": {
+      "positive": 2,
+      "neutral": 2,
+      "negative": 1
+    },
+    "top_themes": [
+      {
+        "theme": "App is okay",
+        "count": 2,
+        "sentiment": "neutral"
+      },
+      {
+        "theme": "Could be faster",
+        "count": 1,
+        "sentiment": "negative"
+      }
+    ],
+    "nps_score": 10,
+    "nps_trend": "down from 15 last month"
+  }
+}

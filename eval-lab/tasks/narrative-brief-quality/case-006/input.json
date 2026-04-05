@@ -1,0 +1,26 @@
+{
+  "brief_type": "weekly_review",
+  "data_context": {
+    "week": "2026-03-30 to 2026-04-05",
+    "tasks_completed": 3,
+    "tasks_created": 15,
+    "tasks_overdue": 8,
+    "top_projects": [
+      {
+        "name": "Product Launch",
+        "tasks_completed": 1,
+        "tasks_remaining": 20
+      },
+      {
+        "name": "Bug Fixes",
+        "tasks_completed": 2,
+        "tasks_remaining": 12
+      }
+    ],
+    "time_distribution": {
+      "deep_work": "15%",
+      "meetings": "50%",
+      "admin": "35%"
+    }
+  }
+}

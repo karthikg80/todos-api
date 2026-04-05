@@ -1,0 +1,23 @@
+{
+  "brief_type": "weekly_review",
+  "category": "normal",
+  "expected_patterns": [
+    "net positive task completion (12 completed vs 8 created)",
+    "2 overdue items need attention",
+    "Team Offsite has most remaining work",
+    "meeting-heavy week at 35%"
+  ],
+  "expected_recommendations": [
+    "Address 2 overdue items first thing Monday",
+    "Plan Team Offsite work (6 remaining tasks)",
+    "Consider reducing meeting time next week"
+  ],
+  "what_good_brief_looks_like": "Summarizes completion rate, highlights overdue items, identifies Team Offsite as needing attention. 3 recommendations.",
+  "common_failure_modes": [
+    "misses_overdue_count",
+    "misses_team_offsite_backlog",
+    "generic_recommendations"
+  ],
+  "acceptable_variation": "May phrase recommendations differently. Should highlight overdue and Team Offsite.",
+  "notes": "Productive week with 12 completions. 2 overdue items and Team Offsite backlog need attention."
+}

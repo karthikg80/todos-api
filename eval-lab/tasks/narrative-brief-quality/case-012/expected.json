@@ -1,0 +1,17 @@
+{
+  "brief_type": "project_health",
+  "category": "adversarial",
+  "expected_patterns": [
+    "no project data available"
+  ],
+  "expected_recommendations": [
+    "Set up project tracking before assessing health"
+  ],
+  "what_good_brief_looks_like": "Notes lack of data. Does not invent health assessment. Recommends setting up tracking.",
+  "common_failure_modes": [
+    "invents_health_assessment",
+    "generic_advice"
+  ],
+  "acceptable_variation": "Should note missing data. May suggest different setup steps.",
+  "notes": "No project data. Should not invent health assessment."
+}

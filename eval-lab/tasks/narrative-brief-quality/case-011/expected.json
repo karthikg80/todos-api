@@ -1,0 +1,21 @@
+{
+  "brief_type": "project_health",
+  "category": "normal",
+  "expected_patterns": [
+    "early stage project",
+    "no blockers",
+    "on track with budget"
+  ],
+  "expected_recommendations": [
+    "Set up regular check-ins for new project",
+    "Define milestones for first month",
+    "Identify potential risks early"
+  ],
+  "what_good_brief_looks_like": "Notes early stage with no issues. Recommends setting up project rhythms and risk identification.",
+  "common_failure_modes": [
+    "overly_detailed_for_early_stage",
+    "misses_risk_identification_recommendation"
+  ],
+  "acceptable_variation": "Should note early stage. May suggest different setup activities.",
+  "notes": "Newly started project with no issues. Early stage health assessment."
+}

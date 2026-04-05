@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-014"
+description = "Notes low volume and insufficient data. Does not over-interpret 5 data points. R"
+
+[scoring]
+weight = 1.0

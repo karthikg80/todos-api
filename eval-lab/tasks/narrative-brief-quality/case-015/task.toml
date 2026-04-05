@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-015"
+description = "Notes no feedback. Does not invent patterns. Recommends setting up collection."
+
+[scoring]
+weight = 1.0

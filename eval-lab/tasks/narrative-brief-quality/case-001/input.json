@@ -1,0 +1,39 @@
+{
+  "brief_type": "daily_priorities",
+  "data_context": {
+    "today": "2026-04-05",
+    "tasks_due_today": [
+      {
+        "title": "Submit Q4 budget",
+        "priority": "high",
+        "is_overdue": true
+      },
+      {
+        "title": "Client meeting at 2pm",
+        "priority": "high",
+        "time": "14:00"
+      },
+      {
+        "title": "Review design mockups",
+        "priority": "medium",
+        "due_date": "2026-04-05"
+      }
+    ],
+    "tasks_due_this_week": [
+      {
+        "title": "Plan team offsite",
+        "priority": "medium",
+        "due_date": "2026-04-08"
+      },
+      {
+        "title": "Update project roadmap",
+        "priority": "low",
+        "due_date": "2026-04-10"
+      }
+    ],
+    "recent_completions": [
+      "Send weekly report",
+      "Fix login bug"
+    ]
+  }
+}

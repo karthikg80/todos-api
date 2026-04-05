@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-006"
+description = "Flags growing backlog and high overdue count. Recommends meeting reduction and t"
+
+[scoring]
+weight = 1.0

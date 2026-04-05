@@ -1,0 +1,20 @@
+{
+  "brief_type": "productivity_insights",
+  "data_context": {
+    "period": "Last 90 days",
+    "total_tasks_completed": 45,
+    "average_completion_time": "8.5 days",
+    "peak_productivity_day": "Monday",
+    "least_productive_day": "Thursday",
+    "task_completion_trend": "decreasing (20% decline over 90 days)",
+    "top_categories": {
+      "Work": 70,
+      "Personal": 20,
+      "Health": 10
+    },
+    "streak_data": {
+      "longest_streak": 7,
+      "current_streak": 0
+    }
+  }
+}

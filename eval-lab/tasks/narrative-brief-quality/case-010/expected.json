@@ -1,0 +1,23 @@
+{
+  "brief_type": "project_health",
+  "category": "normal",
+  "expected_patterns": [
+    "behind schedule (30% progress past target date)",
+    "budget overrun risk (70% used with 30% progress)",
+    "3 critical blockers",
+    "migration failures are root cause"
+  ],
+  "expected_recommendations": [
+    "Escalate database migration issue immediately",
+    "Reassess project timeline and budget",
+    "Consider bringing in external migration expertise"
+  ],
+  "what_good_brief_looks_like": "Flags critical health issues: behind schedule, budget overrun, multiple blockers. Urgent recommendations.",
+  "common_failure_modes": [
+    "understates_severity",
+    "misses_budget_risk",
+    "generic_recommendations"
+  ],
+  "acceptable_variation": "Should flag critical health. May suggest different specific actions.",
+  "notes": "Project in trouble: behind schedule, over budget, 3 blockers. Critical health assessment."
+}
