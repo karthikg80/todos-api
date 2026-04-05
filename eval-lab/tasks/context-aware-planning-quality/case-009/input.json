@@ -1,0 +1,60 @@
+{
+  "project_context": {
+    "name": "Website Migration",
+    "start_date": "2026-01-15",
+    "target_date": "2026-03-15",
+    "progress": "30%",
+    "budget_used": "70%",
+    "team_size": 3
+  },
+  "task_state": [
+    {
+      "title": "Audit current site",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Design new site structure",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Audit current site"
+      ]
+    },
+    {
+      "title": "Migrate content",
+      "priority": "high",
+      "status": "in_progress",
+      "depends_on": [
+        "Design new site structure"
+      ]
+    },
+    {
+      "title": "Set up redirects",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Migrate content"
+      ]
+    },
+    {
+      "title": "Test new site",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Migrate content",
+        "Set up redirects"
+      ]
+    },
+    {
+      "title": "Go live",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Test new site"
+      ]
+    }
+  ],
+  "planning_type": "project_plan"
+}

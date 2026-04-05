@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-019"
+description = "Continues build scripts. Suggests test automation as parallel work. Flags deploy"
+
+[scoring]
+weight = 1.0

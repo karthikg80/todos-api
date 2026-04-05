@@ -1,0 +1,25 @@
+{
+  "planning_type": "project_plan",
+  "category": "blocked",
+  "expected_plan": [
+    "Design new schema (unblock first)",
+    "Write migration scripts",
+    "Update application code",
+    "Test migration on staging",
+    "Execute production migration"
+  ],
+  "expected_next_work": "Follow up on DBA approval to unblock schema design",
+  "expected_risks": [
+    "Schema design blocked on DBA approval",
+    "Entire project stalled until schema is approved",
+    "Target date at risk"
+  ],
+  "what_good_plan_looks_like": "Identifies blocker as critical path issue. Recommends unblocking schema design first. Flags timeline risk.",
+  "common_failure_modes": [
+    "misses_blocker",
+    "suggests_blocked_task",
+    "doesnt_flag_timeline_risk"
+  ],
+  "acceptable_variation": "May suggest different unblocking actions. Should flag blocker as critical.",
+  "notes": "Project blocked on schema design. DBA approval needed. Critical path blocked."
+}

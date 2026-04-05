@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-015"
+description = "Suggests data connections as next work (unblocked, high priority). Notes short t"
+
+[scoring]
+weight = 1.0

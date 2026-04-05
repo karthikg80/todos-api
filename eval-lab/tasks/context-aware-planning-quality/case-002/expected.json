@@ -1,0 +1,18 @@
+{
+  "planning_type": "next_work",
+  "category": "normal",
+  "expected_plan": [
+    "Build dashboard screens",
+    "Write unit tests",
+    "Set up CI/CD pipeline"
+  ],
+  "expected_next_work": "Build dashboard screens",
+  "expected_risks": [],
+  "what_good_plan_looks_like": "Dashboard screens are unblocked (design complete) and medium priority. Good next work.",
+  "common_failure_modes": [
+    "suggests_completed_task",
+    "misses_unblocked_tasks"
+  ],
+  "acceptable_variation": "May suggest unit tests as next work (also unblocked). Dashboard or tests are both valid.",
+  "notes": "Auth flow complete. Dashboard screens are now unblocked and should be next work."
+}

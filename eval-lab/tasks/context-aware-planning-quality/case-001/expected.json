@@ -1,0 +1,22 @@
+{
+  "planning_type": "project_plan",
+  "category": "normal",
+  "expected_plan": [
+    "Implement authentication flow",
+    "Build dashboard screens",
+    "Write unit tests",
+    "Set up CI/CD pipeline"
+  ],
+  "expected_next_work": "Implement authentication flow",
+  "expected_risks": [
+    "Authentication flow is in progress but not yet complete"
+  ],
+  "what_good_plan_looks_like": "Continues in-progress auth flow first, then parallel dashboard and tests. CI/CD can be done anytime.",
+  "common_failure_modes": [
+    "misses_in_progress_task",
+    "wrong_dependency_order",
+    "misses_parallel_opportunities"
+  ],
+  "acceptable_variation": "May suggest different ordering for independent tasks. Auth flow should be first.",
+  "notes": "Healthy project with one in-progress task. Should continue auth flow first."
+}

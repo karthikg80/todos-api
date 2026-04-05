@@ -453,6 +453,35 @@ def _create_family_grader(family_name: str) -> LLMGrader:
                 "format_compliance": "Valid output structure with required fields (0-1)",
             },
         )
+    elif family_name == "context_aware_planning":
+        config = LLMGraderConfig(
+            family=family_name,
+            rubric=(
+                "Grade the context-aware plan against the expected plan.\n"
+                "- context_utilization: Plan uses project context, dependencies, and urgency signals\n"
+                "- dependency_respect: Respects task dependencies and constraints\n"
+                "- urgency_alignment: Next-work recommendation matches urgency signals\n"
+                "- feasibility: Plan is realistic given current state and resources\n"
+                "- risk_awareness: Correctly identifies and flags risks\n"
+                "- format_compliance: Valid output structure with required fields"
+            ),
+            dimension_names=[
+                "context_utilization",
+                "dependency_respect",
+                "urgency_alignment",
+                "feasibility",
+                "risk_awareness",
+                "format_compliance",
+            ],
+            dimension_descriptions={
+                "context_utilization": "Plan uses project context appropriately (0-1)",
+                "dependency_respect": "Respects task dependencies and constraints (0-1)",
+                "urgency_alignment": "Next-work matches urgency signals (0-1)",
+                "feasibility": "Plan is realistic given current state (0-1)",
+                "risk_awareness": "Correctly identifies and flags risks (0-1)",
+                "format_compliance": "Valid output structure with required fields (0-1)",
+            },
+        )
     else:
         # Generic grader for other families
         config = LLMGraderConfig(

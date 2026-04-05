@@ -1,0 +1,24 @@
+{
+  "planning_type": "work_graph_analysis",
+  "category": "complex",
+  "expected_plan": [
+    "Implement v2 endpoints",
+    "Write v2 documentation",
+    "Build backward compatibility layer",
+    "Migrate existing clients to v2",
+    "Deprecate v1 endpoints"
+  ],
+  "expected_next_work": "Implement v2 endpoints",
+  "expected_risks": [
+    "Client migration blocked until both compatibility layer and documentation complete",
+    "V1 deprecation is final gate"
+  ],
+  "what_good_plan_looks_like": "Continues v2 endpoints. Suggests documentation as parallel work. Flags client migration dependency.",
+  "common_failure_modes": [
+    "wrong_migration_order",
+    "misses_parallel_documentation",
+    "misses_client_migration_dependency"
+  ],
+  "acceptable_variation": "May suggest documentation as next work (also unblocked). V2 endpoints should continue.",
+  "notes": "V2 endpoints in progress. Documentation can be parallel. Client migration has complex dependency."
+}

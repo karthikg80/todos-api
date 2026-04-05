@@ -1,0 +1,25 @@
+{
+  "planning_type": "project_plan",
+  "category": "complex",
+  "expected_plan": [
+    "Migrate user service",
+    "Migrate order service",
+    "Migrate notification service",
+    "Migrate analytics service",
+    "Migrate payment service",
+    "Decommission monolith"
+  ],
+  "expected_next_work": "Migrate user service",
+  "expected_risks": [
+    "Payment service has long dependency chain (user \u2192 order \u2192 payment)",
+    "Decommission monolith blocked until ALL services migrated"
+  ],
+  "what_good_plan_looks_like": "Continues user service. Identifies notification and analytics as parallel work. Flags monolith decommission as final gate.",
+  "common_failure_modes": [
+    "wrong_migration_order",
+    "misses_parallel_services",
+    "misses_monolith_gate"
+  ],
+  "acceptable_variation": "May suggest different parallel service ordering. User service should continue first.",
+  "notes": "Sequential migration chain with parallel opportunities. Monolith decommission is final gate."
+}

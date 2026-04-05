@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-005"
+description = "Identifies blocker as critical path issue. Recommends unblocking schema design f"
+
+[scoring]
+weight = 1.0

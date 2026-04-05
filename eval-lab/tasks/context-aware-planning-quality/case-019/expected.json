@@ -1,0 +1,23 @@
+{
+  "planning_type": "next_work",
+  "category": "complex",
+  "expected_plan": [
+    "Migrate build scripts",
+    "Set up test automation",
+    "Configure deployment pipelines",
+    "Train team on new pipeline",
+    "Decommission old pipeline"
+  ],
+  "expected_next_work": "Migrate build scripts",
+  "expected_risks": [
+    "Deployment pipelines blocked until both build scripts and test automation complete",
+    "Team training needed before decommissioning old pipeline"
+  ],
+  "what_good_plan_looks_like": "Continues build scripts. Suggests test automation as parallel work. Flags deployment pipeline dependency.",
+  "common_failure_modes": [
+    "misses_parallel_test_automation",
+    "wrong_deployment_ordering"
+  ],
+  "acceptable_variation": "May suggest test automation as next work (also unblocked). Build scripts should continue.",
+  "notes": "Build scripts in progress. Test automation can start in parallel. Deployment blocked on both."
+}

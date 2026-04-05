@@ -1,0 +1,23 @@
+{
+  "planning_type": "next_work",
+  "category": "blocked",
+  "expected_plan": [
+    "Create data warehouse tables",
+    "Set up data ingestion (unblock)",
+    "Build transformation layer",
+    "Set up monitoring and alerting"
+  ],
+  "expected_next_work": "Create data warehouse tables",
+  "expected_risks": [
+    "Data ingestion blocked on AWS access",
+    "Transformation layer blocked until ingestion complete",
+    "Project just started (10% progress)"
+  ],
+  "what_good_plan_looks_like": "Suggests warehouse tables (unblocked) as next work. Flags AWS access blocker.",
+  "common_failure_modes": [
+    "suggests_blocked_task",
+    "misses_unblocked_alternative"
+  ],
+  "acceptable_variation": "May suggest following up on AWS access. Warehouse tables are valid next work.",
+  "notes": "Ingestion blocked on AWS access. Warehouse tables are unblocked and should be next work."
+}

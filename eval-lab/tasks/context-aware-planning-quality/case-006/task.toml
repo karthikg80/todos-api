@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-006"
+description = "Suggests Azure AD work (unblocked) as next work. Flags Okta blocker. Recommends "
+
+[scoring]
+weight = 1.0

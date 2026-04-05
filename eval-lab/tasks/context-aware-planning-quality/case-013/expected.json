@@ -1,0 +1,23 @@
+{
+  "planning_type": "project_plan",
+  "category": "normal",
+  "expected_plan": [
+    "Define chatbot requirements",
+    "Research LLM providers",
+    "Design conversation flows",
+    "Build prototype",
+    "User testing"
+  ],
+  "expected_next_work": "Define chatbot requirements",
+  "expected_risks": [
+    "New project with undefined scope",
+    "LLM provider choice will impact architecture"
+  ],
+  "what_good_plan_looks_like": "Sets up project rhythms. Requirements first, then parallel research and design.",
+  "common_failure_modes": [
+    "over_decomposed_for_new_project",
+    "misses_parallel_opportunities"
+  ],
+  "acceptable_variation": "May suggest different setup activities. Requirements should be first.",
+  "notes": "Newly started project. Requirements in progress. Should set up project rhythms."
+}

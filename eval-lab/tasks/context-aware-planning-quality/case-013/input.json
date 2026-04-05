@@ -1,0 +1,50 @@
+{
+  "project_context": {
+    "name": "AI Chatbot",
+    "start_date": "2026-04-01",
+    "target_date": "2026-07-01",
+    "progress": "5%",
+    "budget_used": "3%",
+    "team_size": 3
+  },
+  "task_state": [
+    {
+      "title": "Define chatbot requirements",
+      "priority": "high",
+      "status": "in_progress",
+      "depends_on": []
+    },
+    {
+      "title": "Research LLM providers",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "title": "Design conversation flows",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Define chatbot requirements"
+      ]
+    },
+    {
+      "title": "Build prototype",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Research LLM providers",
+        "Design conversation flows"
+      ]
+    },
+    {
+      "title": "User testing",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": [
+        "Build prototype"
+      ]
+    }
+  ],
+  "planning_type": "project_plan"
+}

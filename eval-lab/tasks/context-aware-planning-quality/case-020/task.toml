@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-020"
+description = "Continues v2 endpoints. Suggests documentation as parallel work. Flags client mi"
+
+[scoring]
+weight = 1.0

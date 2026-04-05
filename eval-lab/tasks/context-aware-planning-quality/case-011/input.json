@@ -1,0 +1,73 @@
+{
+  "project_context": {
+    "name": "ERP Upgrade",
+    "start_date": "2026-01-01",
+    "target_date": "2026-04-01",
+    "progress": "25%",
+    "budget_used": "50%",
+    "team_size": 8
+  },
+  "task_state": [
+    {
+      "title": "Assess current ERP",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Plan upgrade path",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Assess current ERP"
+      ]
+    },
+    {
+      "title": "Backup current data",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Upgrade database",
+      "priority": "high",
+      "status": "in_progress",
+      "depends_on": [
+        "Backup current data"
+      ]
+    },
+    {
+      "title": "Upgrade application server",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Upgrade database"
+      ]
+    },
+    {
+      "title": "Migrate custom modules",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Upgrade application server"
+      ]
+    },
+    {
+      "title": "User acceptance testing",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Migrate custom modules"
+      ]
+    },
+    {
+      "title": "Go live",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "User acceptance testing"
+      ]
+    }
+  ],
+  "planning_type": "project_plan"
+}

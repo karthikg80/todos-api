@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-010"
+description = "Flags severe overdue and budget issues. Prioritizes beta testing as critical pat"
+
+[scoring]
+weight = 1.0

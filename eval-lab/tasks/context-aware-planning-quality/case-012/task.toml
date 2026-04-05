@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-012"
+description = "Flags overdue and severe budget issues. Continues documentation as critical path"
+
+[scoring]
+weight = 1.0

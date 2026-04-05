@@ -1,0 +1,21 @@
+{
+  "planning_type": "project_plan",
+  "category": "normal",
+  "expected_plan": [
+    "Design visual mockups",
+    "Develop frontend components",
+    "Set up CMS integration",
+    "Content migration"
+  ],
+  "expected_next_work": "Design visual mockups",
+  "expected_risks": [
+    "Frontend development blocked until mockups complete"
+  ],
+  "what_good_plan_looks_like": "Continues mockups, then frontend. CMS integration can start in parallel.",
+  "common_failure_modes": [
+    "misses_in_progress_task",
+    "wrong_dependency_order"
+  ],
+  "acceptable_variation": "May suggest CMS integration as parallel work. Mockups should be first.",
+  "notes": "Healthy project with mockups in progress. Frontend blocked until mockups done."
+}

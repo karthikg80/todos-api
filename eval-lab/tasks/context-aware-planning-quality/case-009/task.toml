@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-009"
+description = "Flags overdue status and budget risk. Prioritizes remaining critical path tasks."
+
+[scoring]
+weight = 1.0

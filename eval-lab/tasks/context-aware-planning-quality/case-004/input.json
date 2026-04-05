@@ -1,0 +1,56 @@
+{
+  "project_context": {
+    "name": "API Gateway",
+    "start_date": "2026-01-15",
+    "target_date": "2026-04-15",
+    "progress": "60%",
+    "budget_used": "55%",
+    "team_size": 2
+  },
+  "task_state": [
+    {
+      "title": "Design API schema",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Implement core endpoints",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Design API schema"
+      ]
+    },
+    {
+      "title": "Add rate limiting",
+      "priority": "medium",
+      "status": "completed",
+      "depends_on": [
+        "Implement core endpoints"
+      ]
+    },
+    {
+      "title": "Write API documentation",
+      "priority": "medium",
+      "status": "in_progress",
+      "depends_on": []
+    },
+    {
+      "title": "Set up monitoring",
+      "priority": "low",
+      "status": "pending",
+      "depends_on": []
+    },
+    {
+      "title": "Load testing",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Implement core endpoints",
+        "Add rate limiting"
+      ]
+    }
+  ],
+  "planning_type": "next_work"
+}

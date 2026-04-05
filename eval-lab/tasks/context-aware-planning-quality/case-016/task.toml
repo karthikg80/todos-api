@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-016"
+description = "Notes lack of data. Recommends defining project basics. Does not invent plans."
+
+[scoring]
+weight = 1.0

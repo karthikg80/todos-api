@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-017"
+description = "Continues payment gateway, then order management. Inventory and reviews can be p"
+
+[scoring]
+weight = 1.0

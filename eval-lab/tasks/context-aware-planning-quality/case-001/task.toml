@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-001"
+description = "Continues in-progress auth flow first, then parallel dashboard and tests. CI/CD "
+
+[scoring]
+weight = 1.0

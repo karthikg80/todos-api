@@ -1,0 +1,20 @@
+{
+  "planning_type": "next_work",
+  "category": "normal",
+  "expected_plan": [
+    "Write API documentation",
+    "Load testing",
+    "Set up monitoring"
+  ],
+  "expected_next_work": "Load testing",
+  "expected_risks": [
+    "Load testing is high priority and dependencies are met"
+  ],
+  "what_good_plan_looks_like": "Load testing is high priority with all dependencies met. Should be next work over documentation.",
+  "common_failure_modes": [
+    "suggests_documentation_over_load_testing",
+    "misses_high_priority_unblocked_task"
+  ],
+  "acceptable_variation": "May suggest documentation as next work (in progress). Load testing is higher priority.",
+  "notes": "Load testing is high priority and unblocked. Should be prioritized over documentation."
+}

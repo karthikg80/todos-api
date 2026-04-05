@@ -1,0 +1,16 @@
+{
+  "planning_type": "project_plan",
+  "category": "adversarial",
+  "expected_plan": [],
+  "expected_next_work": "Define project basics before planning",
+  "expected_risks": [
+    "No project data available"
+  ],
+  "what_good_plan_looks_like": "Notes lack of data. Recommends defining project basics. Does not invent plans.",
+  "common_failure_modes": [
+    "invents_project_plan",
+    "generic_advice"
+  ],
+  "acceptable_variation": "Should note missing data. May suggest different setup steps.",
+  "notes": "No project data. Should not invent plan."
+}

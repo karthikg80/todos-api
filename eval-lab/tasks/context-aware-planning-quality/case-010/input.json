@@ -1,0 +1,63 @@
+{
+  "project_context": {
+    "name": "Mobile App Launch",
+    "start_date": "2025-12-01",
+    "target_date": "2026-02-01",
+    "progress": "50%",
+    "budget_used": "80%",
+    "team_size": 6
+  },
+  "task_state": [
+    {
+      "title": "Design app screens",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": []
+    },
+    {
+      "title": "Build core features",
+      "priority": "high",
+      "status": "completed",
+      "depends_on": [
+        "Design app screens"
+      ]
+    },
+    {
+      "title": "Implement push notifications",
+      "priority": "medium",
+      "status": "in_progress",
+      "depends_on": []
+    },
+    {
+      "title": "Beta testing",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Build core features"
+      ]
+    },
+    {
+      "title": "Fix beta bugs",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Beta testing"
+      ]
+    },
+    {
+      "title": "App store submission",
+      "priority": "high",
+      "status": "pending",
+      "depends_on": [
+        "Fix beta bugs"
+      ]
+    },
+    {
+      "title": "Marketing campaign",
+      "priority": "medium",
+      "status": "pending",
+      "depends_on": []
+    }
+  ],
+  "planning_type": "next_work"
+}

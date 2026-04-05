@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-003"
+description = "Continues mockups, then frontend. CMS integration can start in parallel."
+
+[scoring]
+weight = 1.0

@@ -137,6 +137,14 @@ DIMENSION_MAP: dict[tuple[str, str], tuple[MetaDimension, str]] = {
     ("narrative_brief", "completeness"): (CORRECTNESS, "All relevant patterns and insights covered"),
     ("narrative_brief", "no_hallucination"): (SAFETY, "No invented facts or false patterns"),
     ("narrative_brief", "format_compliance"): (COMPLIANCE, "Valid output structure"),
+
+    # Context-Aware Planning
+    ("context_aware_planning", "context_utilization"): (CORRECTNESS, "Plan uses project context appropriately"),
+    ("context_aware_planning", "dependency_respect"): (COMPLIANCE, "Respects task dependencies and constraints"),
+    ("context_aware_planning", "urgency_alignment"): (ROBUSTNESS, "Next-work matches urgency signals"),
+    ("context_aware_planning", "feasibility"): (ROBUSTNESS, "Plan is realistic given current state"),
+    ("context_aware_planning", "risk_awareness"): (REASONING, "Correctly identifies and flags risks"),
+    ("context_aware_planning", "format_compliance"): (COMPLIANCE, "Valid output structure"),
 }
 
 

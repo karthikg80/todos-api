@@ -1,0 +1,6 @@
+[task]
+name = "context-aware-planning-case-008"
+description = "Suggests warehouse tables (unblocked) as next work. Flags AWS access blocker."
+
+[scoring]
+weight = 1.0
