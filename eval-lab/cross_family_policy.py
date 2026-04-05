@@ -177,13 +177,14 @@ class CrossFamilyPolicyRunner:
         
         # Check segment vs planning mode consistency
         if "plan_from_goal" in results:
-            plan_output = results["plan_from_goal"].get("output", {})
-            plan_mode = plan_output.get("planning_mode", "unknown")
-            
-            if actual_segment == "beginner" and plan_mode in ("automation_bulk", "agentic"):
-                issues.append(f"Beginner user routed to {plan_mode} planning mode")
-            elif actual_segment == "power" and plan_mode in ("lightweight_daily",):
-                issues.append(f"Power user routed to {plan_mode} planning mode")
+            plan_output = results["plan_from_goal"].get("output")
+            if plan_output:
+                plan_mode = plan_output.get("planning_mode", "unknown")
+
+                if actual_segment == "beginner" and plan_mode in ("automation_bulk", "agentic"):
+                    issues.append(f"Beginner user routed to {plan_mode} planning mode")
+                elif actual_segment == "power" and plan_mode in ("lightweight_daily",):
+                    issues.append(f"Power user routed to {plan_mode} planning mode")
         
         # Check confidence vs segment accuracy
         expected_segment = test_case.expected_segment
@@ -193,17 +194,18 @@ class CrossFamilyPolicyRunner:
         # Check feature exposure vs planning mode
         if "feature_exposure" in results and "plan_from_goal" in results:
             enabled_features = fe_result.get("output", {}).get("enabled_features", [])
-            plan_output = results["plan_from_goal"].get("output", {})
-            plan_steps = plan_output.get("steps", [])
-            
-            # If advanced features are hidden, plan should not use them
-            advanced_features = ["dependencies", "goals", "automation_rules", "bulk_edits"]
-            hidden_features = fe_result.get("output", {}).get("hidden_features", [])
-            if any(f in hidden_features for f in advanced_features):
-                # Check if plan uses advanced features
-                plan_text = json.dumps(plan_steps).lower()
-                if any(f in plan_text for f in advanced_features):
-                    issues.append("Plan uses advanced features that are hidden from user")
+            plan_output = results["plan_from_goal"].get("output")
+            if plan_output:
+                plan_steps = plan_output.get("steps", [])
+
+                # If advanced features are hidden, plan should not use them
+                advanced_features = ["dependencies", "goals", "automation_rules", "bulk_edits"]
+                hidden_features = fe_result.get("output", {}).get("hidden_features", [])
+                if any(f in hidden_features for f in advanced_features):
+                    # Check if plan uses advanced features
+                    plan_text = json.dumps(plan_steps).lower()
+                    if any(f in plan_text for f in advanced_features):
+                        issues.append("Plan uses advanced features that are hidden from user")
         
         return {
             "issues": issues,
@@ -211,6 +213,84 @@ class CrossFamilyPolicyRunner:
             "actual_segment": actual_segment,
             "expected_segment": test_case.expected_segment,
             "confidence": confidence,
+            "downstream_impact": self._measure_downstream_impact(test_case, results),
+        }
+    
+    def _measure_downstream_impact(self, test_case: CrossFamilyTestCase, results: dict) -> dict[str, Any]:
+        """Measure downstream impact of misclassification.
+        
+        Instead of just checking classification accuracy, measure:
+        - Did wrong classification cause wrong feature exposure?
+        - Did that cause wrong planning mode?
+        - Did that degrade plan quality?
+        
+        This turns the system into a true policy optimizer, not just a classifier evaluator.
+        """
+        fe_result = results.get("feature_exposure", {}).get("result", {})
+        actual_segment = fe_result.get("actual_segment", "unknown")
+        expected_segment = test_case.expected_segment
+        
+        impacts = []
+        severity = "none"
+        
+        # Check if misclassification caused feature exposure errors
+        if actual_segment != expected_segment:
+            fe_output = results.get("feature_exposure", {}).get("output")
+            if fe_output:
+                enabled_features = set(fe_output.get("enabled_features", []))
+                expected_enabled = set(test_case.user_context.get("expected_enabled_features", []))
+                
+                # Check for over-exposure (enabled features that should be hidden)
+                advanced_features = {"dependencies", "goals", "automation_rules", "bulk_edits", "weekly_planning", "custom_views", "agentic_planning", "dependency_graph", "batch_workflows", "api_access", "custom_automations"}
+                intermediate_features = {"recurring_tasks", "projects", "tags", "effort_estimates", "daily_plan", "smart_priorities"}
+
+                if expected_segment == "beginner" and actual_segment in ("intermediate", "advanced", "power"):
+                    over_exposed = enabled_features & (intermediate_features | advanced_features)
+                    if over_exposed:
+                        impacts.append(f"Beginner exposed to {len(over_exposed)} advanced features: {list(over_exposed)[:3]}")
+                        severity = "high" if actual_segment == "power" else "medium"
+
+                elif expected_segment == "intermediate" and actual_segment in ("advanced", "power"):
+                    over_exposed = enabled_features & advanced_features
+                    if over_exposed:
+                        impacts.append(f"Intermediate exposed to {len(over_exposed)} advanced features: {list(over_exposed)[:3]}")
+                        severity = "high" if actual_segment == "power" else "medium"
+
+                elif expected_segment == "advanced" and actual_segment == "power":
+                    # Advanced→power is less severe but still risky
+                    power_features = {"agentic_planning", "dependency_graph", "batch_workflows", "api_access", "custom_automations"}
+                    over_exposed = enabled_features & power_features
+                    if over_exposed:
+                        impacts.append(f"Advanced exposed to {len(over_exposed)} power features: {list(over_exposed)[:3]}")
+                        severity = "medium"
+        
+        # Check if wrong segment caused planning mode errors
+        if "plan_from_goal" in results:
+            plan_output = results["plan_from_goal"].get("output")
+            if plan_output:
+                plan_mode = plan_output.get("planning_mode", "unknown")
+                expected_mode = test_case.expected_planning_mode
+                
+                if plan_mode != expected_mode:
+                    impacts.append(f"Wrong planning mode: expected {expected_mode}, got {plan_mode}")
+                    if severity == "none":
+                        severity = "low"
+        
+        # Check if plan quality degraded due to misclassification
+        if "plan_from_goal" in results:
+            plan_result = results["plan_from_goal"].get("result", {})
+            plan_score = plan_result.get("score", 0)
+            
+            if plan_score and plan_score < 0.5 and actual_segment != expected_segment:
+                impacts.append(f"Plan quality degraded (score={plan_score:.2f}) due to misclassification")
+                if severity in ("none", "low"):
+                    severity = "medium"
+        
+        return {
+            "impacts": impacts,
+            "severity": severity,
+            "impact_count": len(impacts),
+            "classification_correct": actual_segment == expected_segment,
         }
 
 
@@ -361,16 +441,23 @@ async def run_all_cross_family_tests() -> dict[str, Any]:
         
         # Print summary
         consistency = test_result.get("consistency", {})
+        downstream = consistency.get("downstream_impact", {})
         print(f"Actual segment: {consistency.get('actual_segment', 'unknown')}")
         print(f"Confidence: {consistency.get('confidence', 0):.2f}")
         print(f"Consistent: {consistency.get('consistent', False)}")
-        
+        print(f"Downstream impact: {downstream.get('severity', 'none')} ({downstream.get('impact_count', 0)} impacts)")
+
         if consistency.get("issues"):
             print("Issues:")
             for issue in consistency["issues"]:
                 print(f"  ❌ {issue}")
         else:
             print("  ✅ No consistency issues")
+        
+        if downstream.get("impacts"):
+            print("Downstream impacts:")
+            for impact in downstream["impacts"]:
+                print(f"  ⚠️ {impact}")
         
         # Print family scores
         for family_name in ["feature_exposure", "prioritization", "plan_from_goal"]:
@@ -382,21 +469,31 @@ async def run_all_cross_family_tests() -> dict[str, Any]:
     print(f"\n{'='*60}")
     print(f"CROSS-FAMILY POLICY TEST SUMMARY")
     print(f"{'='*60}")
-    
+
     total_tests = len(results)
     consistent_tests = sum(1 for r in results.values() if r.get("consistency", {}).get("consistent", False))
     print(f"Tests: {total_tests}")
     print(f"Consistent: {consistent_tests}/{total_tests}")
     print(f"Consistency rate: {consistent_tests/total_tests:.1%}")
     
+    # Downstream impact summary
+    impact_severities = [r.get("consistency", {}).get("downstream_impact", {}).get("severity", "none") for r in results.values()]
+    high_impacts = sum(1 for s in impact_severities if s == "high")
+    medium_impacts = sum(1 for s in impact_severities if s == "medium")
+    low_impacts = sum(1 for s in impact_severities if s == "low")
+    no_impacts = sum(1 for s in impact_severities if s == "none")
+    print(f"\nDownstream Impact Summary:")
+    print(f"  High: {high_impacts}, Medium: {medium_impacts}, Low: {low_impacts}, None: {no_impacts}")
+
     # Confusion matrix
     print(f"\nConfusion Matrix:")
     segments = ["beginner", "intermediate", "advanced", "power"]
-    print(f"{'Expected':<15} {'Actual':<15}")
-    print("-" * 30)
+    print(f"{'Expected':<15} {'Actual':<15} {'Impact':<10}")
+    print("-" * 40)
     for test_case in CROSS_FAMILY_TEST_CASES:
         actual = results[test_case.case_id].get("consistency", {}).get("actual_segment", "unknown")
-        print(f"{test_case.expected_segment:<15} {actual:<15}")
+        severity = results[test_case.case_id].get("consistency", {}).get("downstream_impact", {}).get("severity", "none")
+        print(f"{test_case.expected_segment:<15} {actual:<15} {severity:<10}")
     
     return results
 
