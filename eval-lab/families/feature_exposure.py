@@ -305,13 +305,19 @@ class FeatureExposureFamily(BenchmarkFamily):
 
         # HARD GATE 4: No recurring tasks → intermediate at most (not advanced)
         # Advanced users should have repeated recurring task usage
+        # EXCEPTION: Users with advanced features (dependencies, goals) can be advanced
+        # even without recurring tasks, if they have high capability
         if "recurring_tasks_repeated" not in automation_signals and current_segment == "advanced":
-            output["user_segment"] = "intermediate"
-            output["gating_override"] = "advanced→intermediate: no repeated recurring tasks"
-            output["confidence"] = min(output.get("confidence", 0.5), 0.7)
-            FeatureExposureFamily.GATE_HIT_COUNTS["gate_4_no_recurring_tasks"] = \
-                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_4_no_recurring_tasks", 0) + 1
-            gates_fired.append("gate_4_no_recurring_tasks")
+            # Check if user has advanced features as alternative signal
+            if advanced_used and capability_level in ("medium", "high"):
+                pass  # Skip gate: advanced features compensate for lack of recurring tasks
+            else:
+                output["user_segment"] = "intermediate"
+                output["gating_override"] = "advanced→intermediate: no repeated recurring tasks"
+                output["confidence"] = min(output.get("confidence", 0.5), 0.7)
+                FeatureExposureFamily.GATE_HIT_COUNTS["gate_4_no_recurring_tasks"] = \
+                    FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_4_no_recurring_tasks", 0) + 1
+                gates_fired.append("gate_4_no_recurring_tasks")
 
         # HARD GATE 5: Low capability → intermediate at most
         if capability_level == "low" and current_segment in ("advanced", "power"):
@@ -452,25 +458,27 @@ class FeatureExposureFamily(BenchmarkFamily):
     
     def _compute_activity_level(self, user_context: dict) -> str:
         """Compute activity level from behavioral volume signals.
-        
+
         Activity = how much the user does (volume, frequency)
         This is a BAD proxy for maturity on its own.
         """
         days_active = user_context.get("days_active", 0)
         tasks_created = user_context.get("tasks_created", 0)
         planning_sessions = user_context.get("planning_sessions", 0)
-        
+
         # Simple heuristic: high activity = lots of actions
         activity_score = 0
-        if days_active > 30:
+        if days_active > 20:
             activity_score += 1
-        if days_active > 90:
+        if days_active > 60:
             activity_score += 1
-        if tasks_created > 50:
+        if tasks_created > 100:
             activity_score += 1
-        if tasks_created > 200:
+        if tasks_created > 300:
             activity_score += 1
-        if planning_sessions > 10:
+        if planning_sessions > 5:
+            activity_score += 1
+        if planning_sessions > 30:
             activity_score += 1
         if planning_sessions > 50:
             activity_score += 1
@@ -522,9 +530,9 @@ class FeatureExposureFamily(BenchmarkFamily):
         if power_used >= 3:
             capability_score += 1
         
-        if capability_score >= 6:
+        if capability_score >= 5:
             return "high"
-        elif capability_score >= 3:
+        elif capability_score >= 2:
             return "medium"
         else:
             return "low"
