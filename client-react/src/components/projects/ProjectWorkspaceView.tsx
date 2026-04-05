@@ -24,6 +24,8 @@ import { QuickEntry } from "../todos/QuickEntry";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { FilterPanel, type ActiveFilters } from "../todos/FilterPanel";
 import { ProjectHeadings } from "./ProjectHeadings";
+import { EditableTitle } from "./EditableTitle";
+import { ProjectKebabMenu } from "./ProjectKebabMenu";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { useGroupBy } from "../../hooks/useGroupBy";
 import { useDensity } from "../../hooks/useDensity";
@@ -113,6 +115,9 @@ interface Props {
   onSortChange: (field: SortField, order: SortOrder) => void;
   onDeferTask?: (todo: Todo) => Promise<void>;
   onReplaceNext?: () => void;
+  onRenameProject: (id: string, newName: string) => void;
+  onArchiveProject: (id: string) => void;
+  onDeleteProject: (id: string) => void;
 }
 
 function formatSectionName(name: string) {
@@ -323,9 +328,13 @@ export function ProjectWorkspaceView({
   onSortChange,
   onDeferTask,
   onReplaceNext,
+  onRenameProject,
+  onArchiveProject,
+  onDeleteProject,
 }: Props) {
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>("overview");
   const [insightsOpen, setInsightsOpen] = useState(false);
+  const [titleEditing, setTitleEditing] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { groupBy, setGroupBy } = useGroupBy();
   const { density, setDensity } = useDensity();
@@ -561,7 +570,12 @@ export function ProjectWorkspaceView({
           <div className="project-workspace__hero-copy">
             <span className="project-workspace__eyebrow">Project</span>
             <div className="project-workspace__title-row">
-              <h1 className="project-workspace__title">{project.name}</h1>
+              <EditableTitle
+                value={project.name}
+                onSave={(newName) => onRenameProject(project.id, newName)}
+                editing={titleEditing}
+                onEditingChange={setTitleEditing}
+              />
               <div
                 className="project-complexity-badge"
                 style={{
@@ -574,6 +588,11 @@ export function ProjectWorkspaceView({
                   {COMPLEXITY_LABELS[overviewProfile.mode]}
                 </span>
               </div>
+              <ProjectKebabMenu
+                onRename={() => setTitleEditing(true)}
+                onArchive={() => onArchiveProject(project.id)}
+                onDelete={() => onDeleteProject(project.id)}
+              />
             </div>
             <p className="project-workspace__summary">
               {project.description?.trim() ||

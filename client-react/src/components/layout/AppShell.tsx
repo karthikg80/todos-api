@@ -18,6 +18,7 @@ import { useIsMobile } from "../../hooks/useIsMobile";
 import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
 import { useIcsExport } from "../../hooks/useIcsExport";
 import { captureInboxItem } from "../../api/inbox";
+import { apiCall } from "../../api/client";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
@@ -1291,6 +1292,28 @@ export function AppShell() {
                     }}
                     onDeferTask={handleProjectTaskDefer}
                     onReplaceNext={handleReplaceNextTask}
+                    onRenameProject={async (id, newName) => {
+                      await apiCall(`/projects/${id}`, {
+                        method: "PUT",
+                        body: JSON.stringify({ name: newName }),
+                      });
+                      loadProjects();
+                    }}
+                    onArchiveProject={async (id) => {
+                      await apiCall(`/projects/${id}`, {
+                        method: "PUT",
+                        body: JSON.stringify({ archived: true }),
+                      });
+                      handleSelectProject(null);
+                      loadProjects();
+                    }}
+                    onDeleteProject={async (id) => {
+                      await apiCall(`/projects/${id}?taskDisposition=unsorted`, {
+                        method: "DELETE",
+                      });
+                      handleSelectProject(null);
+                      loadProjects();
+                    }}
                   />
                 </ViewRoute>
               )}

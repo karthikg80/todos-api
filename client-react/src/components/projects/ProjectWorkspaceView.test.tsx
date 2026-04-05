@@ -142,6 +142,9 @@ function renderWorkspace({
       sortBy="order"
       sortOrder="asc"
       onSortChange={vi.fn()}
+      onRenameProject={vi.fn()}
+      onArchiveProject={vi.fn()}
+      onDeleteProject={vi.fn()}
     />,
   );
 }
