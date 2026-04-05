@@ -31,6 +31,19 @@ from framework.schemas import Case
 from portfolio import load_family
 
 
+# ── Calibration Thresholds ───────────────────────────────────────────────────
+
+# Explicit, machine-readable thresholds for trust assignment
+CALIBRATION_THRESHOLDS = {
+    "min_human_reviewers": 2,
+    "min_reviewed_cases": 10,
+    "min_human_agreement_kappa": 0.4,  # Tolerance-based reviewer agreement
+    "min_llm_vs_human_agreement": 0.6,  # Correlation between LLM and human scores
+    "max_grader_error_rate": 0.10,  # 10% max grader errors
+    "max_grader_error_rate_for_gating": 0.05,  # 5% max for gating trust
+}
+
+
 # ── Calibration Report ───────────────────────────────────────────────────────
 
 def generate_calibration_report(
@@ -39,12 +52,16 @@ def generate_calibration_report(
     llm_scores: list[dict[str, float]],
     llm_errors: list[Optional[str]],
     human_scores: list[dict[str, float]],
+    thresholds: Optional[dict[str, Any]] = None,
 ) -> dict[str, Any]:
     """Generate a calibration report comparing LLM vs human grading."""
+    if thresholds is None:
+        thresholds = CALIBRATION_THRESHOLDS
+
     # Compute human agreement (tolerance-based)
     reviewers = set(a.reviewer for a in review_set.assignments if a.completed)
     reviewer_list = sorted(reviewers)
-    
+
     agreements = {}
     if len(reviewer_list) >= 2:
         for i in range(len(reviewer_list)):
@@ -52,52 +69,88 @@ def generate_calibration_report(
                 r1, r2 = reviewer_list[i], reviewer_list[j]
                 kappa = review_set.compute_kappa(r1, r2)
                 agreements[f"{r1}_vs_{r2}"] = kappa
-    
-    # Compare LLM vs human average
+
+    # Compare LLM vs human average and compute agreement
     llm_averages = {}
     human_averages = {}
+    llm_vs_human_agreement = 0.0
     if llm_scores and human_scores:
         # Average across all dimensions
         all_dims = set()
         for s in llm_scores + human_scores:
             all_dims.update(s.keys())
-        
+
         for dim in all_dims:
             llm_vals = [s.get(dim, 0) for s in llm_scores]
             human_vals = [s.get(dim, 0) for s in human_scores]
             llm_averages[dim] = round(sum(llm_vals) / len(llm_vals), 3) if llm_vals else 0
             human_averages[dim] = round(sum(human_vals) / len(human_vals), 3) if human_vals else 0
-    
+
+        # Compute LLM vs human agreement (tolerance-based: within 0.15)
+        total_comparisons = 0
+        agreements_count = 0
+        for llm_s, human_s in zip(llm_scores, human_scores):
+            for dim in all_dims:
+                llm_v = llm_s.get(dim, 0)
+                human_v = human_s.get(dim, 0)
+                total_comparisons += 1
+                if abs(llm_v - human_v) <= 0.15:
+                    agreements_count += 1
+        llm_vs_human_agreement = agreements_count / total_comparisons if total_comparisons > 0 else 0
+
     # LLM error rate
     llm_error_count = sum(1 for e in llm_errors if e is not None)
     llm_error_rate = llm_error_count / len(llm_errors) if llm_errors else 0
-    
-    # Trust recommendation
-    human_agreement_ok = all(v >= 0.4 for v in agreements.values()) if agreements else False
-    llm_error_rate_ok = llm_error_rate < 0.1  # Less than 10% grader errors
-    
-    if human_agreement_ok and llm_error_rate_ok:
+
+    # Trust recommendation with explicit thresholds
+    min_human_agreement = thresholds.get("min_human_agreement_kappa", 0.4)
+    min_llm_vs_human = thresholds.get("min_llm_vs_human_agreement", 0.6)
+    max_grader_error = thresholds.get("max_grader_error_rate", 0.10)
+    max_grader_error_gating = thresholds.get("max_grader_error_rate_for_gating", 0.05)
+    min_reviewed = thresholds.get("min_reviewed_cases", 10)
+
+    human_agreement_ok = all(v >= min_human_agreement for v in agreements.values()) if agreements else False
+    llm_vs_human_ok = llm_vs_human_agreement >= min_llm_vs_human
+    llm_error_rate_ok = llm_error_rate < max_grader_error
+    llm_error_rate_gating_ok = llm_error_rate < max_grader_error_gating
+    enough_reviews = len(review_set.get_reviewed_cases()) >= min_reviewed
+
+    # Trust progression:
+    # not_trusted → trusted_for_reporting → trusted_for_gating
+    if human_agreement_ok and llm_vs_human_ok and llm_error_rate_gating_ok and enough_reviews:
+        trust_level = "trusted_for_gating"
+    elif human_agreement_ok and llm_vs_human_ok and llm_error_rate_ok and enough_reviews:
         trust_level = "trusted_for_reporting"
     elif llm_error_rate_ok:
         trust_level = "not_yet_trusted"
     else:
         trust_level = "not_trusted"
-    
+
     return {
         "family": family_name,
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "case_count": len(review_set.assignments),
+        "reviewed_cases": len(review_set.get_reviewed_cases()),
         "reviewers": reviewer_list,
         "human_agreement": agreements,
         "human_agreement_ok": human_agreement_ok,
+        "human_agreement_threshold": min_human_agreement,
+        "llm_vs_human_agreement": round(llm_vs_human_agreement, 3),
+        "llm_vs_human_agreement_ok": llm_vs_human_ok,
+        "llm_vs_human_threshold": min_llm_vs_human,
         "llm_error_rate": round(llm_error_rate, 3),
         "llm_error_rate_ok": llm_error_rate_ok,
+        "llm_error_rate_gating_ok": llm_error_rate_gating_ok,
+        "max_grader_error_rate": max_grader_error,
+        "max_grader_error_rate_for_gating": max_grader_error_gating,
         "llm_averages": llm_averages,
         "human_averages": human_averages,
         "trust_level": trust_level,
+        "thresholds_used": thresholds,
         "recommendation": (
             f"LLM grader is {trust_level.replace('_', ' ')} for {family_name}. "
             f"Human agreement: {agreements}. "
+            f"LLM vs human agreement: {llm_vs_human_agreement:.1%}. "
             f"LLM error rate: {llm_error_rate:.1%}."
         ),
     }

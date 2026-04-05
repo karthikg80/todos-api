@@ -35,14 +35,17 @@ def print_aggregate(aggregate: dict):
     print(f"Weighted score: {aggregate['weighted_score']:.3f}")
     print(f"Total cases: {aggregate['total_cases']}")
     print(f"Total errors: {aggregate['total_errors']}")
+    print(f"Grader errors: {aggregate.get('total_grader_errors', 0)}")
+    print(f"Semantic coverage: {aggregate.get('semantic_coverage', 0):.1%}")
     print(f"Error rate: {aggregate['error_rate']:.1%}")
+    print(f"Grader error rate: {aggregate.get('grader_error_rate', 0):.1%}")
     print(f"Total cost: ${aggregate.get('cost_usd', 0):.4f}")
     print(f"Total latency: {aggregate.get('latency_ms', 0):.0f}ms")
     print()
 
     print("By family:")
     for name, info in sorted(aggregate["family_scores"].items()):
-        print(f"  {name}: {info['score']:.3f} ({info['cases']} cases, {info['errors']} errors, ${info.get('cost_usd', 0):.4f}, {info.get('latency_ms', 0):.0f}ms)")
+        print(f"  {name}: {info['score']:.3f} ({info['cases']} cases, {info['errors']} exec errors, {info.get('grader_errors', 0)} grader errors, {info.get('coverage', 0):.1%} coverage, ${info.get('cost_usd', 0):.4f}, {info.get('latency_ms', 0):.0f}ms)")
     print()
 
     print("By meta-dimension:")
