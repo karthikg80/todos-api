@@ -1,0 +1,74 @@
+{
+  "total_cases": 8,
+  "passed": 8,
+  "failed": 0,
+  "pass_rate": 1.0,
+  "avg_correctness": 1.0,
+  "avg_latency_ms": 0.0,
+  "results": [
+    {
+      "case_id": "read-001",
+      "tool_name": "read/list_tasks",
+      "passed": true,
+      "output_correctness": 1.0,
+      "safety_passed": true,
+      "latency_ms": 0.0057220458984375
+    },
+    {
+      "case_id": "read-002",
+      "tool_name": "read/search_tasks",
+      "passed": true,
+      "output_correctness": 1.0,
+      "safety_passed": true,
+      "latency_ms": 0.0
+    },
+    {
+      "case_id": "read-003",
+      "tool_name": "read/list_today",
+      "passed": true,
+      "output_correctness": 1.0,
+      "safety_passed": true,
+      "latency_ms": 0.0
+    },
+    {
+      "case_id": "read-004",
+      "tool_name": "read/decide_next_work",
+      "passed": true,
+      "output_correctness": 1.0,
+      "safety_passed": true,
+      "latency_ms": 0.0
+    },
+    {
+      "case_id": "write-001",
+      "tool_name": "write/create_task",
+      "passed": true,
+      "output_correctness": 1.0,
+      "safety_passed": true,
+      "latency_ms": 0.00095367431640625
+    },
+    {
+      "case_id": "write-002",
+      "tool_name": "write/update_task",
+      "passed": true,
+      "output_correctness": 1.0,
+      "safety_passed": true,
+      "latency_ms": 0.00095367431640625
+    },
+    {
+      "case_id": "write-003",
+      "tool_name": "write/complete_task",
+      "passed": true,
+      "output_correctness": 1.0,
+      "safety_passed": true,
+      "latency_ms": 0.00095367431640625
+    },
+    {
+      "case_id": "write-004",
+      "tool_name": "write/archive_task",
+      "passed": true,
+      "output_correctness": 1.0,
+      "safety_passed": true,
+      "latency_ms": 0.0
+    }
+  ]
+}
