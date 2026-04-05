@@ -229,9 +229,214 @@ class FeatureExposureFamily(BenchmarkFamily):
                 resp.raise_for_status()
                 data = resp.json()
                 content = data["choices"][0]["message"]["content"].strip()
-                return json.loads(content)
+                output = json.loads(content)
+                
+                # HARD GATING: Enforce structural constraints post-LLM
+                # This converts soft prompt rules into hard policy constraints
+                output = self._apply_hard_gating(output, user_context)
+                
+                return output
         except Exception:
             return None
+    
+    # ── Hard Gating ──────────────────────────────────────────────────────
+    
+    def _apply_hard_gating(self, output: dict, user_context: dict) -> dict:
+        """Apply hard gating rules to LLM output.
+        
+        This enforces structural constraints that the LLM cannot override:
+        - No automation signals → cannot be power user
+        - High activity + low capability → intermediate (not advanced)
+        - Separate activity_level from capability_level
+        """
+        current_segment = output.get("user_segment", "unknown")
+        llm_automation_signals = output.get("automation_signals", [])
+        signals = output.get("signals", [])
+        
+        # Compute activity vs capability separately
+        activity_level = self._compute_activity_level(user_context)
+        capability_level = self._compute_capability_level(user_context, signals)
+        
+        # Compute automation signals from user context directly (not LLM)
+        automation_signals = self._compute_automation_signals(user_context)
+        
+        # Add derived signals to output
+        output["activity_level"] = activity_level
+        output["capability_level"] = capability_level
+        output["automation_signals"] = automation_signals
+        output["automation_signal_count"] = len(automation_signals)
+        
+        # HARD GATE 1: No automation → cannot be power
+        if not automation_signals and current_segment == "power":
+            output["user_segment"] = "advanced"
+            output["gating_override"] = "power→advanced: no automation signals"
+            output["confidence"] = min(output.get("confidence", 0.5), 0.7)
+        
+        # HARD GATE 2: High activity + low capability → intermediate (not advanced)
+        if activity_level == "high" and capability_level == "low" and current_segment in ("advanced", "power"):
+            output["user_segment"] = "intermediate"
+            output["gating_override"] = f"{current_segment}→intermediate: high activity + low capability"
+            output["confidence"] = min(output.get("confidence", 0.5), 0.6)
+        
+        # HARD GATE 3: Weak automation → advanced at most
+        if len(automation_signals) <= 1 and current_segment == "power":
+            output["user_segment"] = "advanced"
+            output["gating_override"] = "power→advanced: weak automation signals"
+            output["confidence"] = min(output.get("confidence", 0.5), 0.7)
+        
+        # HARD GATE 4: No recurring tasks → intermediate at most (not advanced)
+        # Advanced users should have repeated recurring task usage
+        if "recurring_tasks_repeated" not in automation_signals and current_segment == "advanced":
+            output["user_segment"] = "intermediate"
+            output["gating_override"] = "advanced→intermediate: no repeated recurring tasks"
+            output["confidence"] = min(output.get("confidence", 0.5), 0.7)
+        
+        # HARD GATE 5: Low capability → intermediate at most
+        if capability_level == "low" and current_segment in ("advanced", "power"):
+            output["user_segment"] = "intermediate"
+            output["gating_override"] = f"{current_segment}→intermediate: low capability level"
+            output["confidence"] = min(output.get("confidence", 0.5), 0.6)
+        
+        # HARD GATE 6: Medium capability + no advanced features → intermediate at most
+        features_used = set(user_context.get("features_used", []))
+        advanced_features = {"dependencies", "goals", "automation_rules", "bulk_edits", "weekly_planning", "custom_views"}
+        advanced_used = features_used & advanced_features
+        if capability_level == "medium" and not advanced_used and current_segment == "advanced":
+            output["user_segment"] = "intermediate"
+            output["gating_override"] = "advanced→intermediate: medium capability, no advanced features"
+            output["confidence"] = min(output.get("confidence", 0.5), 0.7)
+        
+        # HARD GATE 7: Low activity + low capability → beginner at most
+        if activity_level == "low" and capability_level == "low" and current_segment in ("intermediate", "advanced", "power"):
+            output["user_segment"] = "beginner"
+            output["gating_override"] = f"{current_segment}→beginner: low activity + low capability"
+            output["confidence"] = min(output.get("confidence", 0.5), 0.7)
+        
+        # HARD GATE 8: No power features → cannot be power
+        power_features = {"agentic_planning", "dependency_graph", "batch_workflows", "api_access", "custom_automations"}
+        power_used = features_used & power_features
+        if not power_used and current_segment == "power":
+            output["user_segment"] = "advanced"
+            output["gating_override"] = "power→advanced: no power features used"
+            output["confidence"] = min(output.get("confidence", 0.5), 0.7)
+        
+        return output
+    
+    def _compute_automation_signals(self, user_context: dict) -> list[str]:
+        """Compute automation signals from user context directly.
+        
+        This is a structural computation, not LLM-generated.
+        """
+        signals = []
+        features_used = set(user_context.get("features_used", []))
+        recurring_tasks_used = user_context.get("recurring_tasks_used", 0)
+        
+        # Recurring tasks used repeatedly (not just once)
+        if recurring_tasks_used >= 5:
+            signals.append("recurring_tasks_repeated")
+        elif recurring_tasks_used >= 2:
+            signals.append("recurring_tasks_occasional")
+        
+        # Bulk operations
+        if "bulk_edits" in features_used:
+            signals.append("bulk_edits_used")
+        
+        # Automation rules
+        if "automation_rules" in features_used:
+            signals.append("automation_rules_used")
+        
+        # Custom automations
+        if "custom_automations" in features_used:
+            signals.append("custom_automations_used")
+        
+        # Advanced filters/views
+        if "custom_views" in features_used:
+            signals.append("custom_views_used")
+        
+        # API access
+        if "api_access" in features_used:
+            signals.append("api_access_used")
+        
+        return signals
+    
+    def _compute_activity_level(self, user_context: dict) -> str:
+        """Compute activity level from behavioral volume signals.
+        
+        Activity = how much the user does (volume, frequency)
+        This is a BAD proxy for maturity on its own.
+        """
+        days_active = user_context.get("days_active", 0)
+        tasks_created = user_context.get("tasks_created", 0)
+        planning_sessions = user_context.get("planning_sessions", 0)
+        
+        # Simple heuristic: high activity = lots of actions
+        activity_score = 0
+        if days_active > 30:
+            activity_score += 1
+        if days_active > 90:
+            activity_score += 1
+        if tasks_created > 50:
+            activity_score += 1
+        if tasks_created > 200:
+            activity_score += 1
+        if planning_sessions > 10:
+            activity_score += 1
+        if planning_sessions > 50:
+            activity_score += 1
+        
+        if activity_score >= 5:
+            return "high"
+        elif activity_score >= 2:
+            return "medium"
+        else:
+            return "low"
+    
+    def _compute_capability_level(self, user_context: dict, signals: list) -> str:
+        """Compute capability level from feature usage depth.
+        
+        Capability = how well the user uses the system (feature depth)
+        This is a GOOD proxy for maturity.
+        """
+        features_used = set(user_context.get("features_used", []))
+        
+        # Core features
+        core_features = {"quick_add", "task_list", "basic_search", "due_dates"}
+        # Intermediate features
+        intermediate_features = {"recurring_tasks", "projects", "tags", "effort_estimates", "daily_plan", "smart_priorities"}
+        # Advanced features
+        advanced_features = {"dependencies", "goals", "automation_rules", "bulk_edits", "weekly_planning", "custom_views"}
+        # Power features
+        power_features = {"agentic_planning", "dependency_graph", "batch_workflows", "api_access", "custom_automations"}
+        
+        # Count feature usage by tier
+        core_used = len(features_used & core_features)
+        intermediate_used = len(features_used & intermediate_features)
+        advanced_used = len(features_used & advanced_features)
+        power_used = len(features_used & power_features)
+        
+        # Capability score based on feature depth (not volume)
+        capability_score = 0
+        if core_used >= 3:
+            capability_score += 1
+        if intermediate_used >= 3:
+            capability_score += 1
+        if intermediate_used >= 5:
+            capability_score += 1
+        if advanced_used >= 2:
+            capability_score += 1
+        if advanced_used >= 4:
+            capability_score += 1
+        if power_used >= 1:
+            capability_score += 1
+        if power_used >= 3:
+            capability_score += 1
+        
+        if capability_score >= 6:
+            return "high"
+        elif capability_score >= 3:
+            return "medium"
+        else:
+            return "low"
 
     # ── Grading ──────────────────────────────────────────────────────────
 
