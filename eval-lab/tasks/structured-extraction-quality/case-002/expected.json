@@ -1,0 +1,44 @@
+{
+  "category": "meeting-notes",
+  "expected_tasks": [
+    {
+      "title": "Fix search ranking algorithm",
+      "description": "Search returning irrelevant results, fix before end of month",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Fix mobile app crash on iOS 17",
+      "description": "Affects 30% of users, P0",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Set up better API monitoring",
+      "description": "Current alerts are too noisy",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Handle database migration",
+      "description": "Next sprint, assigned to Bob",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Update onboarding documentation",
+      "description": "Signup flow changed last week",
+      "due_date": null,
+      "priority": "low"
+    }
+  ],
+  "what_good_extraction_looks_like": "5 tasks extracted from discussion points. P0 crash should be high priority. Database migration assigned to Bob.",
+  "common_failure_modes": [
+    "misses_api_monitoring",
+    "misses_onboarding_docs",
+    "invents_action_items",
+    "combines_search_and_crash"
+  ],
+  "acceptable_variation": "Task titles may vary. Priority inference is subjective but P0 should be high.",
+  "notes": "Meeting notes with implicit tasks in discussion. Requires inference."
+}

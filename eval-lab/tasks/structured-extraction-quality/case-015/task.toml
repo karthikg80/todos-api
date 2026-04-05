@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-015"
+description = "6 tasks extracted from structured planning email. All dates should be extracted."
+
+[scoring]
+weight = 1.0

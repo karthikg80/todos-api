@@ -1,0 +1,4 @@
+{
+  "source_text": "So I was thinking about our roadmap and there are a bunch of things we should probably tackle. The search functionality is pretty broken right now - users can't filter by date which is a big complaint. We also really need to get the mobile app updated since it's been months since the last release and the reviews are getting worse. Oh, and the analytics team keeps asking for the data pipeline to be fixed, apparently the numbers have been off for weeks. Also, I guess we should probably update the terms of service since we added the new features last quarter. And someone needs to clean up the old feature flags, there are like 50 of them and most are unused.",
+  "source_type": "rambling_note"
+}

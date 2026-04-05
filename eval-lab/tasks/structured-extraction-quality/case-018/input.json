@@ -1,0 +1,4 @@
+{
+  "source_text": "Error log summary for this week:\n- 404 errors on /api/v2/users endpoint (127 occurrences)\n- Database connection timeout on reports service (43 occurrences)\n- SSL certificate expiring in 7 days for api.example.com\n- Memory usage on production server at 92%\n- Failed payment transactions: 15 (all with Stripe error code 4002)",
+  "source_type": "error_log"
+}

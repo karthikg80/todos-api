@@ -1,0 +1,4 @@
+{
+  "source_text": "Meeting Notes - Product Sync (Dec 10)\n\nAttendees: Alice, Bob, Carol\n\nDiscussion:\n- The search feature is still returning irrelevant results. We need to fix the ranking algorithm before the end of the month.\n- Carol mentioned that the mobile app crashes on iOS 17 for about 30% of users. This is a P0.\n- We should probably set up better monitoring for the API. Current alerts are too noisy.\n- Bob will handle the database migration next sprint.\n- Need to update the onboarding docs since we changed the signup flow last week.\n\nAction items: TBD",
+  "source_type": "meeting_notes"
+}

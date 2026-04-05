@@ -1,0 +1,4 @@
+{
+  "source_text": "The login page is loading really slowly - takes about 8 seconds. Users are complaining. Also, the password reset emails aren't being delivered, we've had 15 support tickets about it this week. The analytics dashboard shows that 40% of users drop off during signup, which is way higher than last month.",
+  "source_type": "bug_report"
+}

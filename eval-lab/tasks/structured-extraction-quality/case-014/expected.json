@@ -1,0 +1,43 @@
+{
+  "category": "implicit",
+  "expected_tasks": [
+    {
+      "title": "Improve dashboard loading time",
+      "description": "Reports take forever to load",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Fix search function",
+      "description": "Can't find existing items",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Add CSV export for data",
+      "description": "Would save users time",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Improve mobile usability",
+      "description": "Buttons too small on phone",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Add reminder feature for deadlines",
+      "description": "User request",
+      "due_date": null,
+      "priority": "low"
+    }
+  ],
+  "what_good_extraction_looks_like": "5 tasks inferred from user feedback. Each complaint implies a task to fix it.",
+  "common_failure_modes": [
+    "misses_reminder_feature",
+    "misses_csv_export",
+    "extracts_feedback_not_tasks"
+  ],
+  "acceptable_variation": "Tasks should be action-oriented. 5 tasks is correct.",
+  "notes": "User feedback implying tasks. Requires inference from complaints to actions."
+}

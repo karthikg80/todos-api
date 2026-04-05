@@ -1,0 +1,44 @@
+{
+  "category": "clear-priority",
+  "expected_tasks": [
+    {
+      "title": "Fix checkout bug",
+      "description": "Customers can't complete purchases",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Update privacy policy for GDPR compliance",
+      "description": "Deadline March 1st",
+      "due_date": "2025-03-01",
+      "priority": "high"
+    },
+    {
+      "title": "Set up monitoring alerts for new microservices",
+      "description": "",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Refactor legacy authentication module",
+      "description": "",
+      "due_date": null,
+      "priority": "low"
+    },
+    {
+      "title": "Add dark mode to settings page",
+      "description": "",
+      "due_date": null,
+      "priority": "low"
+    }
+  ],
+  "what_good_extraction_looks_like": "5 tasks with correct priorities. Urgent \u2192 high, Important \u2192 medium/high, Nice to have \u2192 low.",
+  "common_failure_modes": [
+    "wrong_priorities",
+    "misses_dark_mode",
+    "misses_refactor",
+    "combines_tasks"
+  ],
+  "acceptable_variation": "All 5 tasks should be extracted. Priority mapping should match the emoji labels.",
+  "notes": "Clear priority list with emoji labels. Tests priority inference."
+}

@@ -1,0 +1,4 @@
+{
+  "source_text": "hey @channel quick reminder - we need to get the security audit done by end of week. also can someone update the README with the new setup instructions? the old ones are broken. oh and don't forget to rotate the API keys, they expire tomorrow. thx!",
+  "source_type": "slack_message"
+}

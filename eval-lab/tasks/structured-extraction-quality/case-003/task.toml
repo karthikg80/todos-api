@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-003"
+description = "3 tasks extracted from casual Slack message. Security audit and API key rotation"
+
+[scoring]
+weight = 1.0

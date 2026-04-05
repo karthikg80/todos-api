@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-002"
+description = "5 tasks extracted from discussion points. P0 crash should be high priority. Data"
+
+[scoring]
+weight = 1.0

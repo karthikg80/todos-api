@@ -1,0 +1,43 @@
+{
+  "category": "implicit",
+  "expected_tasks": [
+    {
+      "title": "Fix 404 errors on /api/v2/users endpoint",
+      "description": "127 occurrences this week",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Fix database connection timeout on reports service",
+      "description": "43 occurrences",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Renew SSL certificate for api.example.com",
+      "description": "Expiring in 7 days",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Investigate high memory usage on production",
+      "description": "At 92%",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Fix failed payment transactions with Stripe",
+      "description": "15 failures, error code 4002",
+      "due_date": null,
+      "priority": "high"
+    }
+  ],
+  "what_good_extraction_looks_like": "5 tasks inferred from error log entries. Each error implies a fix task.",
+  "common_failure_modes": [
+    "misses_memory_investigation",
+    "misses_stripe_fix",
+    "extracts_errors_not_tasks"
+  ],
+  "acceptable_variation": "Tasks should be action-oriented (fix/investigate/renew). 5 tasks is correct.",
+  "notes": "Error log implying tasks. Tests inference from errors to actions."
+}

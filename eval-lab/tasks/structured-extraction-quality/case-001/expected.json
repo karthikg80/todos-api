@@ -1,0 +1,38 @@
+{
+  "category": "clear-email",
+  "expected_tasks": [
+    {
+      "title": "Submit Q4 expense reports",
+      "description": "Submit before Friday Dec 15th",
+      "due_date": "2024-12-15",
+      "priority": "high"
+    },
+    {
+      "title": "Update project timeline for client presentation",
+      "description": "Due Jan 5th",
+      "due_date": "2025-01-05",
+      "priority": "medium"
+    },
+    {
+      "title": "Schedule team retrospective",
+      "description": "For next week, maybe Wednesday",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Review design mockups and send feedback to Sarah",
+      "description": "By EOD Thursday",
+      "due_date": null,
+      "priority": "medium"
+    }
+  ],
+  "what_good_extraction_looks_like": "All 4 tasks extracted with correct titles, dates, and priorities. Expense report should be high priority due to firm deadline.",
+  "common_failure_modes": [
+    "misses_expense_report",
+    "misses_design_review",
+    "combines_tasks",
+    "invents_extra_tasks"
+  ],
+  "acceptable_variation": "Task titles may vary slightly. Dates should be extracted when present.",
+  "notes": "Clear email with numbered tasks. Good baseline case."
+}

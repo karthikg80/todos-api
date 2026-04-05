@@ -1,0 +1,4 @@
+{
+  "source_text": "DECISION: We're going with React for the frontend rewrite.\nACTION: Sarah to create the project repo and set up the initial scaffolding by end of week.\nDECISION: We'll use PostgreSQL instead of MongoDB for the new service.\nACTION: Mike to evaluate the migration effort and report back by next Wednesday.\nACTION: Team to review the API contract and provide feedback by Friday.\nNOTE: The client wants a progress update on the 20th.\nACTION: Prepare the progress update presentation for the client meeting on the 20th.",
+  "source_type": "meeting_transcript"
+}

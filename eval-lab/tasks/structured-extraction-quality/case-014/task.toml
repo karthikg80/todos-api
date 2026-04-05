@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-014"
+description = "5 tasks inferred from user feedback. Each complaint implies a task to fix it."
+
+[scoring]
+weight = 1.0

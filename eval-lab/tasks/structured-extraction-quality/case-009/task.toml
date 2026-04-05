@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-009"
+description = "7 tasks with correct dates. All dates should be extracted accurately."
+
+[scoring]
+weight = 1.0

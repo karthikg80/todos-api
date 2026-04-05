@@ -1,0 +1,44 @@
+{
+  "category": "clear-dates",
+  "expected_tasks": [
+    {
+      "title": "Complete Q1 planning document",
+      "description": "Due Jan 10th",
+      "due_date": "2025-01-10",
+      "priority": "high"
+    },
+    {
+      "title": "Prepare slides for client demo",
+      "description": "Demo on Jan 25th",
+      "due_date": "2025-01-25",
+      "priority": "high"
+    },
+    {
+      "title": "Attend budget review meeting",
+      "description": "On Feb 1st",
+      "due_date": "2025-02-01",
+      "priority": "medium"
+    },
+    {
+      "title": "Attend team offsite",
+      "description": "March 15th",
+      "due_date": "2025-03-15",
+      "priority": "medium"
+    },
+    {
+      "title": "Complete self-assessment for performance review",
+      "description": "Review cycle starts Feb 15th, assessments due by then",
+      "due_date": "2025-02-15",
+      "priority": "high"
+    }
+  ],
+  "what_good_extraction_looks_like": "5 tasks with correct dates extracted from scattered date mentions.",
+  "common_failure_modes": [
+    "misses_self_assessment",
+    "misses_team_offsite",
+    "wrong_dates",
+    "combines_tasks"
+  ],
+  "acceptable_variation": "All 5 tasks should be extracted. Dates should be accurate.",
+  "notes": "Dates scattered throughout text. Tests date extraction from unstructured prose."
+}

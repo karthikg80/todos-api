@@ -1,0 +1,50 @@
+{
+  "category": "complex-email",
+  "expected_tasks": [
+    {
+      "title": "Conduct user interviews",
+      "description": "5 minimum, by Jan 20",
+      "due_date": "2025-01-20",
+      "priority": "medium"
+    },
+    {
+      "title": "Create wireframes based on research",
+      "description": "By Feb 3",
+      "due_date": "2025-02-03",
+      "priority": "medium"
+    },
+    {
+      "title": "Evaluate three framework options",
+      "description": "Present recommendation by Jan 27",
+      "due_date": "2025-01-27",
+      "priority": "medium"
+    },
+    {
+      "title": "Build MVP with core features",
+      "description": "Auth, dashboard, reporting",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Set up automated test suite",
+      "description": "Phase 2",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Beta launch to 100 users",
+      "description": "By Apr 15",
+      "due_date": "2025-04-15",
+      "priority": "high"
+    }
+  ],
+  "what_good_extraction_looks_like": "6 tasks extracted from structured planning email. All dates should be extracted.",
+  "common_failure_modes": [
+    "misses_framework_evaluation",
+    "misses_test_suite",
+    "combines_phases",
+    "wrong_dates"
+  ],
+  "acceptable_variation": "All 6 tasks should be extracted. Dates should be accurate.",
+  "notes": "Complex planning email with phases and dates. Tests hierarchical task extraction."
+}

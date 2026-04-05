@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-018"
+description = "5 tasks inferred from error log entries. Each error implies a fix task."
+
+[scoring]
+weight = 1.0

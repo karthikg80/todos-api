@@ -1,0 +1,4 @@
+{
+  "source_text": "Priority tasks for this sprint:\n\n\ud83d\udd34 URGENT: Fix the checkout bug - customers can't complete purchases\n\ud83d\udfe1 IMPORTANT: Update the privacy policy for GDPR compliance (deadline: March 1st)\n\ud83d\udfe1 IMPORTANT: Set up monitoring alerts for the new microservices\n\ud83d\udfe2 NICE TO HAVE: Refactor the legacy authentication module\n\ud83d\udfe2 NICE TO HAVE: Add dark mode to the settings page",
+  "source_type": "priority_list"
+}

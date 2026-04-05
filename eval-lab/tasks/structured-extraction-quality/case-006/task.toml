@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-006"
+description = "3 tasks inferred from problem descriptions. Each problem implies a task to fix i"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,19 @@
+{
+  "category": "adversarial",
+  "expected_tasks": [
+    {
+      "title": "Investigate performance issues",
+      "description": "Performance issues have been observed",
+      "due_date": null,
+      "priority": "medium"
+    }
+  ],
+  "what_good_extraction_looks_like": "1 task extracted (investigate performance). Onboarding improvement is too vague ('at some point'). Client unhappiness has no actionable detail.",
+  "common_failure_modes": [
+    "extracts_onboarding_as_task",
+    "extracts_client_unhappy_as_task",
+    "misses_performance_investigation"
+  ],
+  "acceptable_variation": "Should extract the performance investigation. Other items are too vague.",
+  "notes": "Mix of actionable and vague requests. Tests ability to filter out non-actionable items."
+}

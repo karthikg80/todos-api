@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-011"
+description = "4 ACTION items extracted. DECISIONs and NOTEs should NOT be extracted as tasks."
+
+[scoring]
+weight = 1.0
