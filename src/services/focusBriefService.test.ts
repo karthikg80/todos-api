@@ -62,11 +62,23 @@ describe("computeUnsorted", () => {
   it("returns inbox tasks", () => {
     const todos = [
       makeTodo({ id: "t1", status: "inbox" }),
-      makeTodo({ id: "t2", status: "next" }),
+      makeTodo({ id: "t2", status: "next", projectId: "p1" }),
     ];
     const result = computeUnsorted(todos);
     expect(result.items).toHaveLength(1);
     expect(result.items[0].id).toBe("t1");
+  });
+
+  it("includes tasks with no project and no category", () => {
+    const todos = [
+      makeTodo({ id: "t1", status: "next", projectId: null, category: null }),
+      makeTodo({ id: "t2", status: "next", projectId: "p1", category: "Work" }),
+      makeTodo({ id: "t3", status: "inbox" }),
+    ];
+    const result = computeUnsorted(todos);
+    expect(result.items).toHaveLength(2);
+    expect(result.items.map((i: any) => i.id)).toContain("t1");
+    expect(result.items.map((i: any) => i.id)).toContain("t3");
   });
 });
 
