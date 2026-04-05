@@ -1,0 +1,37 @@
+{
+  "category": "complex_task",
+  "expected_subtasks": [
+    {
+      "title": "Run dependency vulnerability scan",
+      "description": "Scan all dependencies for known CVEs",
+      "priority": "high"
+    },
+    {
+      "title": "Conduct penetration testing",
+      "description": "Test application for common vulnerabilities",
+      "priority": "high"
+    },
+    {
+      "title": "Review access controls and permissions",
+      "description": "Audit user roles and API access",
+      "priority": "high"
+    },
+    {
+      "title": "Review compliance requirements",
+      "description": "Check SOC2 and GDPR compliance gaps",
+      "priority": "medium"
+    },
+    {
+      "title": "Document findings and remediation plan",
+      "description": "Create audit report with prioritized fixes",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "4-5 subtasks covering scanning, pen testing, access review, compliance, reporting.",
+  "common_failure_modes": [
+    "misses_penetration_testing",
+    "misses_compliance_review"
+  ],
+  "acceptable_variation": "May have 4-6 subtasks. Must include pen testing and compliance.",
+  "notes": "Security audit task. Must include technical testing and compliance review."
+}

@@ -1,0 +1,12 @@
+{
+  "task_title": "Implement dark mode",
+  "task_description": "Add dark mode support across the entire application.",
+  "project_context": {
+    "name": "UI/UX",
+    "design_system": "Tailwind CSS",
+    "existing_themes": [
+      "light"
+    ]
+  },
+  "existing_subtasks": []
+}

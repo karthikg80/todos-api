@@ -1,0 +1,43 @@
+{
+  "category": "complex_task",
+  "expected_subtasks": [
+    {
+      "title": "Test schema compatibility with PostgreSQL 16",
+      "description": "Verify all queries and schemas work on v16",
+      "priority": "high"
+    },
+    {
+      "title": "Set up staging environment with PostgreSQL 16",
+      "description": "Create test environment for migration rehearsal",
+      "priority": "high"
+    },
+    {
+      "title": "Rehearse migration on staging",
+      "description": "Run full migration process on staging",
+      "priority": "high"
+    },
+    {
+      "title": "Create rollback plan",
+      "description": "Document steps to revert if migration fails",
+      "priority": "high"
+    },
+    {
+      "title": "Execute production migration",
+      "description": "Run migration during maintenance window",
+      "priority": "high"
+    },
+    {
+      "title": "Verify post-migration health",
+      "description": "Monitor application after migration",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "5-6 subtasks with clear dependencies. Testing and rollback plan are critical.",
+  "common_failure_modes": [
+    "misses_rollback_plan",
+    "misses_staging_test",
+    "misses_verification"
+  ],
+  "acceptable_variation": "May have 5-7 subtasks. Must include testing, rollback, and verification.",
+  "notes": "Complex infrastructure task with zero-downtime requirement. Must include testing and rollback."
+}

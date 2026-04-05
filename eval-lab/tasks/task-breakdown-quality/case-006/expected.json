@@ -1,0 +1,43 @@
+{
+  "category": "complex_task",
+  "expected_subtasks": [
+    {
+      "title": "Design onboarding wireframes",
+      "description": "Create UI designs for new onboarding flow",
+      "priority": "high"
+    },
+    {
+      "title": "Write interactive tutorial content",
+      "description": "Create tutorial steps and copy",
+      "priority": "medium"
+    },
+    {
+      "title": "Implement frontend components",
+      "description": "Build onboarding UI components",
+      "priority": "high"
+    },
+    {
+      "title": "Implement backend tracking",
+      "description": "Track onboarding completion and progress",
+      "priority": "medium"
+    },
+    {
+      "title": "Run user testing",
+      "description": "Test with 5-10 users and collect feedback",
+      "priority": "medium"
+    },
+    {
+      "title": "Launch with feature flag",
+      "description": "Deploy behind feature flag for gradual rollout",
+      "priority": "high"
+    }
+  ],
+  "what_good_breakdown_looks_like": "5-6 subtasks covering design, content, frontend, backend, testing, launch.",
+  "common_failure_modes": [
+    "misses_user_testing",
+    "misses_feature_flag",
+    "misses_content_creation"
+  ],
+  "acceptable_variation": "May have 5-7 subtasks. Must include design, implementation, testing, launch.",
+  "notes": "Complex product launch. Must include design, build, test, and phased launch."
+}

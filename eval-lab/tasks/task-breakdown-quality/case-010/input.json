@@ -1,0 +1,13 @@
+{
+  "task_title": "Build customer feedback dashboard",
+  "task_description": "Create a dashboard that aggregates customer feedback from support tickets, NPS surveys, and product usage analytics.",
+  "project_context": {
+    "name": "Analytics",
+    "data_sources": [
+      "Zendesk",
+      "Delighted",
+      "Mixpanel"
+    ]
+  },
+  "existing_subtasks": []
+}

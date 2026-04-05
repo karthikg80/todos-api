@@ -1,0 +1,21 @@
+{
+  "task_title": "Complete onboarding",
+  "task_description": "Finish the new employee onboarding process.",
+  "project_context": {
+    "name": "HR"
+  },
+  "existing_subtasks": [
+    {
+      "title": "Set up workstation",
+      "status": "completed"
+    },
+    {
+      "title": "Complete HR paperwork",
+      "status": "completed"
+    },
+    {
+      "title": "Attend orientation session",
+      "status": "completed"
+    }
+  ]
+}

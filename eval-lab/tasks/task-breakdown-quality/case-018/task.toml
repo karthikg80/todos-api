@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-018"
+description = "Single subtask. This is already atomic and should not be decomposed."
+
+[scoring]
+weight = 1.0

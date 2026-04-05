@@ -1,0 +1,27 @@
+{
+  "category": "missing_context",
+  "expected_subtasks": [
+    {
+      "title": "Profile application to identify bottlenecks",
+      "description": "Measure current performance and find slow areas",
+      "priority": "high"
+    },
+    {
+      "title": "Prioritize performance issues",
+      "description": "Rank issues by impact and effort",
+      "priority": "medium"
+    },
+    {
+      "title": "Implement top performance fixes",
+      "description": "Address highest-impact bottlenecks",
+      "priority": "high"
+    }
+  ],
+  "what_good_breakdown_looks_like": "2-3 subtasks: profile, prioritize, fix. Should not invent specific fixes.",
+  "common_failure_modes": [
+    "invents_specific_fixes",
+    "misses_profiling_step"
+  ],
+  "acceptable_variation": "Should start with profiling. Should not invent specific performance fixes.",
+  "notes": "Vague performance task. Should start with profiling, not invent specific fixes."
+}

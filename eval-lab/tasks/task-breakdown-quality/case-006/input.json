@@ -1,0 +1,10 @@
+{
+  "task_title": "Launch new user onboarding flow",
+  "task_description": "Design, build, and launch a redesigned onboarding experience with interactive tutorials and progressive disclosure.",
+  "project_context": {
+    "name": "Product",
+    "target_launch": "2026-05-01",
+    "team_size": 4
+  },
+  "existing_subtasks": []
+}

@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-020"
+description = "1 subtask to check remaining items. Most subtasks are already completed."
+
+[scoring]
+weight = 1.0

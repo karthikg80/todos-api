@@ -395,6 +395,35 @@ def _create_family_grader(family_name: str) -> LLMGrader:
                 "format_compliance": "Valid output structure with required fields (0-1)",
             },
         )
+    elif family_name == "task_breakdown":
+        config = LLMGraderConfig(
+            family=family_name,
+            rubric=(
+                "Grade the task decomposition against the expected subtasks.\n"
+                "- decomposition_quality: Subtasks are appropriately scoped and sequenced\n"
+                "- completeness: All aspects of parent task are covered\n"
+                "- non_redundancy: No duplicate or overlapping subtasks\n"
+                "- context_awareness: Subtasks respect project context and existing state\n"
+                "- actionability: Each subtask is concrete and executable\n"
+                "- format_compliance: Valid output structure with required fields"
+            ),
+            dimension_names=[
+                "decomposition_quality",
+                "completeness",
+                "non_redundancy",
+                "context_awareness",
+                "actionability",
+                "format_compliance",
+            ],
+            dimension_descriptions={
+                "decomposition_quality": "Subtasks appropriately scoped and sequenced (0-1)",
+                "completeness": "All aspects of parent task covered (0-1)",
+                "non_redundancy": "No duplicate or overlapping subtasks (0-1)",
+                "context_awareness": "Respects project context and existing state (0-1)",
+                "actionability": "Each subtask is concrete and executable (0-1)",
+                "format_compliance": "Valid output structure with required fields (0-1)",
+            },
+        )
     else:
         # Generic grader for other families
         config = LLMGraderConfig(

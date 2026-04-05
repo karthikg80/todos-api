@@ -1,0 +1,14 @@
+{
+  "task_title": "Prepare annual budget proposal",
+  "task_description": "Create next year's budget proposal including headcount, infrastructure, software licenses, and contingency.",
+  "project_context": {
+    "name": "Finance",
+    "current_budget": 2000000,
+    "departments": [
+      "Engineering",
+      "Product",
+      "Design"
+    ]
+  },
+  "existing_subtasks": []
+}

@@ -1,0 +1,9 @@
+{
+  "task_title": "Plan team offsite",
+  "task_description": "Organize a 2-day team offsite for 15 people including venue, activities, and meals.",
+  "project_context": {
+    "name": "Team Building",
+    "budget": 5000
+  },
+  "existing_subtasks": []
+}

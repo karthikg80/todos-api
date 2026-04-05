@@ -1,0 +1,14 @@
+{
+  "task_title": "Implement search feature",
+  "task_description": "Add full-text search to the application with filters and sorting.",
+  "project_context": {
+    "name": "Core Product",
+    "existing_features": [
+      "task_list",
+      "projects",
+      "filters"
+    ],
+    "tech_stack": "React, Node.js, PostgreSQL"
+  },
+  "existing_subtasks": []
+}

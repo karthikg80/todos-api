@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-003"
+description = "4 subtasks: Dockerfile, CI, CD, monitoring. Dockerfile first as prerequisite."
+
+[scoring]
+weight = 1.0

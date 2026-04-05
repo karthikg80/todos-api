@@ -1,0 +1,37 @@
+{
+  "category": "project_with_context",
+  "expected_subtasks": [
+    {
+      "title": "Define dark mode color palette",
+      "description": "Create dark mode variants for all colors",
+      "priority": "high"
+    },
+    {
+      "title": "Update Tailwind CSS configuration",
+      "description": "Add dark mode theme to Tailwind config",
+      "priority": "high"
+    },
+    {
+      "title": "Update all components for dark mode",
+      "description": "Apply dark mode styles to all UI components",
+      "priority": "high"
+    },
+    {
+      "title": "Add theme toggle component",
+      "description": "Build light/dark mode switcher",
+      "priority": "medium"
+    },
+    {
+      "title": "Test dark mode across all pages",
+      "description": "Verify dark mode on every page and component",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "4-5 subtasks covering palette, config, components, toggle, testing.",
+  "common_failure_modes": [
+    "misses_testing",
+    "misses_theme_toggle"
+  ],
+  "acceptable_variation": "May have 4-6 subtasks. Must cover all components.",
+  "notes": "Dark mode within existing Tailwind CSS design system."
+}

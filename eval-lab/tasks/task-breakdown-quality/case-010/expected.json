@@ -1,0 +1,42 @@
+{
+  "category": "complex_task",
+  "expected_subtasks": [
+    {
+      "title": "Design dashboard wireframes",
+      "description": "Create UI mockups for feedback dashboard",
+      "priority": "high"
+    },
+    {
+      "title": "Set up data pipeline from Zendesk",
+      "description": "Extract and transform support ticket data",
+      "priority": "high"
+    },
+    {
+      "title": "Set up data pipeline from Delighted",
+      "description": "Extract and transform NPS survey data",
+      "priority": "high"
+    },
+    {
+      "title": "Set up data pipeline from Mixpanel",
+      "description": "Extract and transform usage analytics",
+      "priority": "medium"
+    },
+    {
+      "title": "Build dashboard frontend",
+      "description": "Implement dashboard UI with charts and filters",
+      "priority": "high"
+    },
+    {
+      "title": "Test and validate data accuracy",
+      "description": "Verify dashboard data matches source systems",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "5-6 subtasks covering design, 3 data pipelines, frontend, testing.",
+  "common_failure_modes": [
+    "misses_data_validation",
+    "combines_data_pipelines"
+  ],
+  "acceptable_variation": "May have 5-7 subtasks. Must cover all 3 data sources.",
+  "notes": "Analytics dashboard task. Must include each data source separately."
+}

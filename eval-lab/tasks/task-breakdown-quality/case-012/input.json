@@ -1,0 +1,22 @@
+{
+  "task_title": "Add notification system",
+  "task_description": "Implement push and email notifications for task assignments, due dates, and mentions.",
+  "project_context": {
+    "name": "Core Product",
+    "existing_services": [
+      "email_service",
+      "task_service"
+    ],
+    "notification_channels": [
+      "email",
+      "push"
+    ]
+  },
+  "existing_subtasks": [
+    {
+      "title": "Set up email service provider",
+      "description": "Configure SendGrid account",
+      "status": "completed"
+    }
+  ]
+}

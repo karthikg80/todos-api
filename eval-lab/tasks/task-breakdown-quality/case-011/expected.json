@@ -1,0 +1,37 @@
+{
+  "category": "project_with_context",
+  "expected_subtasks": [
+    {
+      "title": "Design search UI components",
+      "description": "Create search bar, filters, and results display",
+      "priority": "high"
+    },
+    {
+      "title": "Implement backend search API",
+      "description": "Add full-text search endpoint with filters",
+      "priority": "high"
+    },
+    {
+      "title": "Integrate search with existing task list",
+      "description": "Connect search results to existing task list UI",
+      "priority": "medium"
+    },
+    {
+      "title": "Add search indexing",
+      "description": "Set up database search indexes",
+      "priority": "high"
+    },
+    {
+      "title": "Write search tests",
+      "description": "Test search accuracy and performance",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "4-5 subtasks that respect existing tech stack and features.",
+  "common_failure_modes": [
+    "ignores_existing_tech_stack",
+    "misses_integration_with_existing_features"
+  ],
+  "acceptable_variation": "May have 4-6 subtasks. Should reference existing architecture.",
+  "notes": "Search feature within existing product. Should respect current tech stack."
+}

@@ -1,0 +1,22 @@
+{
+  "category": "missing_context",
+  "expected_subtasks": [
+    {
+      "title": "Clarify migration scope and target system",
+      "description": "Identify what needs to be migrated and to where",
+      "priority": "high"
+    },
+    {
+      "title": "Assess migration complexity",
+      "description": "Evaluate data volume, dependencies, and risks",
+      "priority": "high"
+    }
+  ],
+  "what_good_breakdown_looks_like": "1-2 subtasks focused on clarification. Too vague for detailed breakdown.",
+  "common_failure_modes": [
+    "invents_specific_migration_steps",
+    "assumes_target_system"
+  ],
+  "acceptable_variation": "Should suggest clarification. Should not assume target system or data.",
+  "notes": "Vague migration task with no context. Should not invent specific migration steps."
+}

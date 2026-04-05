@@ -1,0 +1,42 @@
+{
+  "category": "complex_task",
+  "expected_subtasks": [
+    {
+      "title": "Collect department budget requests",
+      "description": "Gather requests from Engineering, Product, Design",
+      "priority": "high"
+    },
+    {
+      "title": "Analyze current year spending",
+      "description": "Review actuals vs budget for current year",
+      "priority": "high"
+    },
+    {
+      "title": "Project headcount costs",
+      "description": "Calculate salaries, benefits, and hiring costs",
+      "priority": "high"
+    },
+    {
+      "title": "Estimate infrastructure and license costs",
+      "description": "Project cloud, software, and tool costs",
+      "priority": "medium"
+    },
+    {
+      "title": "Build budget model and proposal",
+      "description": "Create spreadsheet and narrative",
+      "priority": "high"
+    },
+    {
+      "title": "Review with leadership",
+      "description": "Present proposal and get approval",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "5-6 subtasks covering data collection, analysis, projection, modeling, review.",
+  "common_failure_modes": [
+    "misses_current_year_analysis",
+    "misses_leadership_review"
+  ],
+  "acceptable_variation": "May have 5-7 subtasks. Must include data collection and review.",
+  "notes": "Complex financial task. Must include data gathering, analysis, and review."
+}

@@ -1,0 +1,17 @@
+{
+  "category": "adversarial",
+  "expected_subtasks": [
+    {
+      "title": "Send email to John",
+      "description": "Quick email about meeting tomorrow",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "Single subtask. This is already atomic and should not be decomposed.",
+  "common_failure_modes": [
+    "over_decomposed",
+    "invents_subtasks"
+  ],
+  "acceptable_variation": "Should return single subtask or original task. Should not decompose further.",
+  "notes": "Already atomic task. Should not be decomposed."
+}
