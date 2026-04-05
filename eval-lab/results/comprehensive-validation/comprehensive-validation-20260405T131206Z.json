@@ -1,0 +1,637 @@
+{
+  "results": [
+    {
+      "case_id": "holdout-int-adv-001",
+      "slice": "INT-ADV",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "low",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_occasional"
+      ],
+      "score": 0.68,
+      "notes": "40 days, recurring occasional (3x). Has daily_plan but no advanced features."
+    },
+    {
+      "case_id": "holdout-int-adv-002",
+      "slice": "INT-ADV",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.8,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_occasional"
+      ],
+      "score": 0.68,
+      "notes": "45 days, recurring occasional (4x). Has smart_priorities but no dependencies/goals."
+    },
+    {
+      "case_id": "holdout-int-adv-003",
+      "slice": "INT-ADV",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "50 days, recurring repeated (8x), has dependencies. Should be advanced."
+    },
+    {
+      "case_id": "holdout-int-adv-004",
+      "slice": "INT-ADV",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "55 days, recurring repeated (10x), has dependencies+goals. Clear advanced."
+    },
+    {
+      "case_id": "holdout-int-adv-005",
+      "slice": "INT-ADV",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "low",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_occasional"
+      ],
+      "score": 0.68,
+      "notes": "35 days, recurring occasional (2x). No advanced features. Intermediate."
+    },
+    {
+      "case_id": "holdout-int-adv-006",
+      "slice": "INT-ADV",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "60 days, recurring repeated (6x), has dependencies. Advanced."
+    },
+    {
+      "case_id": "holdout-int-adv-007",
+      "slice": "INT-ADV",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "low",
+      "capability_level": "medium",
+      "automation_signals": [],
+      "score": 0.68,
+      "notes": "30 days, recurring only once. No advanced features. Intermediate."
+    },
+    {
+      "case_id": "holdout-int-adv-008",
+      "slice": "INT-ADV",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "65 days, recurring repeated (12x), dependencies+goals. Advanced."
+    },
+    {
+      "case_id": "holdout-int-adv-009",
+      "slice": "INT-ADV",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "42 days, recurring borderline (5x). No dependencies/goals. Intermediate."
+    },
+    {
+      "case_id": "holdout-int-adv-010",
+      "slice": "INT-ADV",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "48 days, recurring repeated (7x), has dependencies. Advanced."
+    },
+    {
+      "case_id": "holdout-adv-pwr-001",
+      "slice": "ADV-PWR",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "custom_views_used"
+      ],
+      "score": 0.68,
+      "notes": "80 days, heavy usage but NO automation rules, bulk edits, or power features. Advanced."
+    },
+    {
+      "case_id": "holdout-adv-pwr-002",
+      "slice": "ADV-PWR",
+      "expected_segment": "advanced",
+      "llm_segment": "power",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": "power\u2192advanced: no power features used",
+      "gates_fired": [
+        "gate_8_no_power_features"
+      ],
+      "confidence": 0.7,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "automation_rules_used",
+        "custom_views_used"
+      ],
+      "score": 0.74,
+      "notes": "100 days, uses automation_rules and bulk_edits. But no agentic_planning or power features. Borderline advanced."
+    },
+    {
+      "case_id": "holdout-adv-pwr-003",
+      "slice": "ADV-PWR",
+      "expected_segment": "power",
+      "llm_segment": "power",
+      "actual_segment": "power",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.9,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "automation_rules_used",
+        "custom_views_used"
+      ],
+      "score": 0.68,
+      "notes": "150 days, uses agentic_planning and dependency_graph. Power."
+    },
+    {
+      "case_id": "holdout-adv-pwr-004",
+      "slice": "ADV-PWR",
+      "expected_segment": "power",
+      "llm_segment": "power",
+      "actual_segment": "power",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.9,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "automation_rules_used",
+        "custom_views_used"
+      ],
+      "score": 0.68,
+      "notes": "120 days, uses agentic_planning. Power."
+    },
+    {
+      "case_id": "holdout-adv-pwr-005",
+      "slice": "ADV-PWR",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.9,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "automation_rules_used",
+        "custom_views_used"
+      ],
+      "score": 0.68,
+      "notes": "90 days, uses automation_rules but no bulk_edits or power features. Advanced."
+    },
+    {
+      "case_id": "holdout-adv-pwr-006",
+      "slice": "ADV-PWR",
+      "expected_segment": "power",
+      "llm_segment": "power",
+      "actual_segment": "power",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.9,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "automation_rules_used",
+        "custom_views_used",
+        "api_access_used"
+      ],
+      "score": 0.78,
+      "notes": "130 days, uses api_access. Power."
+    },
+    {
+      "case_id": "holdout-adv-pwr-007",
+      "slice": "ADV-PWR",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "high",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "70 days, no automation rules or power features. Advanced."
+    },
+    {
+      "case_id": "holdout-adv-pwr-008",
+      "slice": "ADV-PWR",
+      "expected_segment": "power",
+      "llm_segment": "power",
+      "actual_segment": "power",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.9,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "automation_rules_used",
+        "custom_views_used"
+      ],
+      "score": 0.68,
+      "notes": "140 days, uses dependency_graph and batch_workflows. Power."
+    },
+    {
+      "case_id": "holdout-adv-pwr-009",
+      "slice": "ADV-PWR",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "custom_views_used"
+      ],
+      "score": 0.68,
+      "notes": "85 days, uses bulk_edits but no automation_rules or power features. Advanced."
+    },
+    {
+      "case_id": "holdout-adv-pwr-010",
+      "slice": "ADV-PWR",
+      "expected_segment": "power",
+      "llm_segment": "power",
+      "actual_segment": "power",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.9,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "automation_rules_used",
+        "custom_automations_used",
+        "custom_views_used"
+      ],
+      "score": 0.78,
+      "notes": "160 days, uses custom_automations. Clear power."
+    },
+    {
+      "case_id": "holdout-high-act-001",
+      "slice": "HIGH-ACT-LOW-CAP",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.8,
+      "activity_level": "medium",
+      "capability_level": "low",
+      "automation_signals": [],
+      "score": 0.68,
+      "notes": "60 days, high volume (300 tasks), but only core+projects. Low capability depth. Intermediate."
+    },
+    {
+      "case_id": "holdout-high-act-002",
+      "slice": "HIGH-ACT-LOW-CAP",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "low",
+      "automation_signals": [],
+      "score": 0.68,
+      "notes": "45 days, high volume (250 tasks), but only core features. Intermediate at most."
+    },
+    {
+      "case_id": "holdout-high-act-003",
+      "slice": "HIGH-ACT-LOW-CAP",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "low",
+      "automation_signals": [
+        "recurring_tasks_occasional"
+      ],
+      "score": 0.68,
+      "notes": "90 days, very high volume (500 tasks), but shallow feature usage. Intermediate."
+    },
+    {
+      "case_id": "holdout-high-act-004",
+      "slice": "HIGH-ACT-LOW-CAP",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.9,
+      "activity_level": "medium",
+      "capability_level": "low",
+      "automation_signals": [],
+      "score": 0.68,
+      "notes": "30 days, high volume (200 tasks), but only core features. Intermediate."
+    },
+    {
+      "case_id": "holdout-high-act-005",
+      "slice": "HIGH-ACT-LOW-CAP",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_occasional"
+      ],
+      "score": 0.68,
+      "notes": "75 days, high volume (400 tasks), but no advanced features. Intermediate."
+    },
+    {
+      "case_id": "holdout-low-act-001",
+      "slice": "LOW-ACT-HIGH-CAP",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "low",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "Only 20 days, low volume, but uses advanced features (dependencies, goals). Advanced despite low activity."
+    },
+    {
+      "case_id": "holdout-low-act-002",
+      "slice": "LOW-ACT-HIGH-CAP",
+      "expected_segment": "advanced",
+      "llm_segment": "unknown",
+      "actual_segment": "unknown",
+      "correct": false,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0,
+      "activity_level": "unknown",
+      "capability_level": "unknown",
+      "automation_signals": [],
+      "score": 0.2,
+      "notes": "15 days, very low volume, but uses dependencies. Advanced despite low activity."
+    },
+    {
+      "case_id": "holdout-low-act-003",
+      "slice": "LOW-ACT-HIGH-CAP",
+      "expected_segment": "advanced",
+      "llm_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "low",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "automation_rules_used"
+      ],
+      "score": 0.68,
+      "notes": "25 days, low volume, but uses automation_rules. Advanced."
+    },
+    {
+      "case_id": "holdout-low-act-004",
+      "slice": "LOW-ACT-HIGH-CAP",
+      "expected_segment": "intermediate",
+      "llm_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0.85,
+      "activity_level": "low",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_occasional"
+      ],
+      "score": 0.68,
+      "notes": "10 days, very low volume, uses daily_plan. Intermediate."
+    },
+    {
+      "case_id": "holdout-low-act-005",
+      "slice": "LOW-ACT-HIGH-CAP",
+      "expected_segment": "power",
+      "llm_segment": "unknown",
+      "actual_segment": "unknown",
+      "correct": false,
+      "false_conservatism": false,
+      "gating_override": null,
+      "gates_fired": [],
+      "confidence": 0,
+      "activity_level": "unknown",
+      "capability_level": "unknown",
+      "automation_signals": [],
+      "score": 0.2,
+      "notes": "18 days, low volume, but uses agentic_planning. Power despite low activity."
+    }
+  ],
+  "milestone_1": {
+    "total": 30,
+    "correct": 28,
+    "accuracy": 0.9333333333333333
+  },
+  "milestone_2": {
+    "total_cases": 30,
+    "total_overrides": 1,
+    "gates": {
+      "gate_8_no_power_features": {
+        "raw_gate_firings": 1,
+        "share": 0.033,
+        "percentage": "3.3%",
+        "distribution_alert": false
+      }
+    },
+    "median_gate_share": 0.033,
+    "max_gate_share": 0.033,
+    "distribution_alert": false,
+    "dominance_alert": false
+  },
+  "milestone_3a": {
+    "total_cases": 30,
+    "accuracy_llm_only": 0.9,
+    "accuracy_gated": 0.933,
+    "accuracy_delta": 0.033,
+    "overexposure_llm_only": 0.033,
+    "overexposure_gated": 0.0,
+    "overexposure_delta": 0.033,
+    "safety_gain": 1.0
+  },
+  "milestone_3b": {
+    "avg_regret_llm_only": 0.2,
+    "avg_regret_gated": 0.167,
+    "net_regret_delta": 0.033,
+    "regret_improved": true
+  },
+  "milestone_4": {
+    "total_advanced_power_cases": 19,
+    "gated_on_advanced_power": 1,
+    "false_conservatism_count": 0,
+    "near_miss_unlock_count": 0,
+    "safe_downgrade_count": 1,
+    "false_conservatism_rate": 0.0,
+    "near_miss_rate": 0.0,
+    "refined_denominator": 1
+  }
+}
