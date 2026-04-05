@@ -3,6 +3,8 @@ import { useState, type ReactNode } from "react";
 interface Props {
   front: ReactNode;
   back: ReactNode;
+  flipped?: boolean;
+  onFlipChange?: (flipped: boolean) => void;
   className?: string;
 }
 
@@ -15,8 +17,18 @@ function DogEar({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function FlipCard({ front, back, className }: Props) {
-  const [flipped, setFlipped] = useState(false);
+export function FlipCard({ front, back, flipped: controlledFlipped, onFlipChange, className }: Props) {
+  const [internalFlipped, setInternalFlipped] = useState(false);
+  const isControlled = controlledFlipped !== undefined;
+  const flipped = isControlled ? controlledFlipped : internalFlipped;
+
+  const handleFlip = (next: boolean) => {
+    if (isControlled) {
+      onFlipChange?.(next);
+    } else {
+      setInternalFlipped(next);
+    }
+  };
 
   return (
     <div
@@ -24,11 +36,11 @@ export function FlipCard({ front, back, className }: Props) {
     >
       <div className="flip-card__inner">
         <div className="flip-card__front">
-          <DogEar onClick={() => setFlipped(true)} />
+          <DogEar onClick={() => handleFlip(true)} />
           {front}
         </div>
         <div className="flip-card__back">
-          <DogEar onClick={() => setFlipped(false)} />
+          <DogEar onClick={() => handleFlip(false)} />
           {back}
         </div>
       </div>
