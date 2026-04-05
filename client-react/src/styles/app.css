@@ -10813,6 +10813,82 @@ body.dark-mode {
 }
 
 /* ==========================================================================
+   Competing Panel Headers (shared)
+   ========================================================================== */
+
+.panel-unsorted__header,
+.panel-due-soon__header,
+.panel-what-next__header,
+.panel-backlog__header,
+.panel-nudge__header,
+.panel-track__header,
+.panel-rescue__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-bottom: var(--s-3);
+}
+
+.panel-unsorted__title,
+.panel-due-soon__title,
+.panel-what-next__title,
+.panel-backlog__title,
+.panel-nudge__title,
+.panel-track__title,
+.panel-rescue__title {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* ==========================================================================
+   Urgency Bars (Due Soon)
+   ========================================================================== */
+
+.urgency-bars { display: flex; flex-direction: column; gap: var(--s-2); }
+.urgency-bar__label { display: flex; justify-content: space-between; font-size: var(--fs-xs); }
+.urgency-bar__track { height: 6px; background: color-mix(in oklab, var(--muted) 8%, transparent); border-radius: 3px; overflow: hidden; }
+.urgency-bar__fill { height: 100%; border-radius: 3px; }
+
+/* ==========================================================================
+   Stacked Inbox (Unsorted)
+   ========================================================================== */
+
+.inbox-stack { position: relative; margin-bottom: var(--s-2); }
+.inbox-stack__shadow { position: absolute; left: 4px; right: 4px; height: 40px; border-radius: var(--r-sm); }
+.inbox-stack__shadow--far { top: 6px; background: color-mix(in oklab, var(--warning) 4%, transparent); border: 1px solid color-mix(in oklab, var(--warning) 8%, transparent); }
+.inbox-stack__shadow--near { top: 3px; left: 2px; right: 2px; background: color-mix(in oklab, var(--warning) 6%, transparent); border: 1px solid color-mix(in oklab, var(--warning) 10%, transparent); }
+.inbox-stack__front { position: relative; padding: var(--s-3); background: var(--surface); border: 1px solid color-mix(in oklab, var(--warning) 15%, transparent); border-radius: var(--r-sm); box-shadow: var(--shadow-0); }
+
+/* ==========================================================================
+   Decay Bars (Backlog Hygiene)
+   ========================================================================== */
+
+.decay-item { display: flex; flex-direction: column; gap: 4px; }
+.decay-item__row { display: flex; justify-content: space-between; font-size: var(--fs-xs); }
+.decay-item__bar { height: 3px; background: color-mix(in oklab, var(--muted) 6%, transparent); border-radius: 2px; overflow: hidden; }
+.decay-item__fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--warning), var(--danger)); }
+
+/* ==========================================================================
+   Health Dots (Projects to Nudge)
+   ========================================================================== */
+
+.health-item { display: flex; align-items: center; gap: var(--s-3); }
+.health-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+.health-dot--critical { background: color-mix(in oklab, var(--danger) 10%, transparent); color: var(--danger); }
+.health-dot--warning { background: color-mix(in oklab, var(--warning) 10%, transparent); color: var(--warning); }
+
+/* ==========================================================================
+   Impact Cards (What Next)
+   ========================================================================== */
+
+.impact-card { padding: var(--s-2h) var(--s-3); border-radius: var(--r-sm); border: 1px solid var(--border-light); cursor: pointer; transition: background var(--dur-fast) ease; }
+.impact-card:first-child { border-color: color-mix(in oklab, var(--accent) 15%, transparent); background: color-mix(in oklab, var(--accent) 3%, transparent); }
+.impact-card:hover { background: var(--surface-2); }
+.impact-card__top { display: flex; justify-content: space-between; align-items: center; }
+.impact-card__reason { font-size: var(--fs-xs); color: var(--muted); margin-top: var(--s-1); }
+
+/* ==========================================================================
    Timeline
    ========================================================================== */
 
