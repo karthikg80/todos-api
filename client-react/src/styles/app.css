@@ -3225,6 +3225,323 @@ body {
   }
 }
 
+/* ── Focus Panel (unified card) ────────────── */
+
+.focus-panel {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-elevated);
+  padding: var(--s-4);
+}
+
+.focus-panel__badge {
+  display: block;
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  margin-bottom: var(--s-2);
+}
+
+.focus-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--s-3);
+}
+
+.focus-panel__title {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.focus-panel__title--danger { color: var(--danger); }
+.focus-panel__title--accent { color: var(--accent); }
+.focus-panel__title--warning { color: var(--warning); }
+.focus-panel__title--purple { color: #8b5cf6; }
+.focus-panel__title--success { color: var(--success); }
+
+.focus-panel__subtitle {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.focus-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+.focus-panel__empty {
+  color: var(--muted);
+  font-size: var(--fs-label);
+  text-align: center;
+  padding: var(--s-4) 0;
+}
+
+/* ── Urgent Banner ─────────────────────────── */
+
+.focus-urgent-banner {
+  display: flex;
+  align-items: start;
+  gap: var(--s-2);
+  padding: var(--s-2) var(--s-3);
+  background: color-mix(in oklab, var(--danger) 6%, transparent);
+  border-radius: var(--r-sm);
+}
+
+.focus-urgent-banner__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger);
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.focus-urgent-banner__reason {
+  color: var(--muted);
+  font-size: var(--fs-label);
+}
+
+/* ── Recommendation ────────────────────────── */
+
+.focus-recommendation {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--s-3);
+  background: color-mix(in oklab, var(--accent) 6%, transparent);
+  border: none;
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+
+.focus-recommendation:hover {
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+}
+
+.focus-recommendation__label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  margin-bottom: var(--s-1);
+}
+
+.focus-recommendation__title {
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+
+.focus-recommendation__reasoning {
+  font-size: var(--fs-label);
+  color: var(--muted);
+  margin-top: var(--s-1);
+}
+
+/* ── Today Agenda ──────────────────────────── */
+
+.focus-agenda {
+  display: flex;
+  flex-direction: column;
+}
+
+.focus-agenda__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.focus-agenda__row:last-child {
+  border-bottom: none;
+}
+
+.focus-agenda__checkbox {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.focus-agenda__title {
+  flex: 1;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
+.focus-agenda__title:hover {
+  text-decoration: underline;
+}
+
+.focus-agenda__meta {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.focus-agenda__overdue {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+/* ── Focus List (shared for competing panels) ── */
+
+.focus-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.focus-list__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--s-1h) 0;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.focus-list__item:hover {
+  color: var(--accent);
+}
+
+.focus-list__item--rich {
+  flex-direction: column;
+  align-items: start;
+  gap: var(--s-1);
+  padding: var(--s-2);
+  border-radius: var(--r-sm);
+}
+
+.focus-list__item--rich:hover {
+  background: var(--surface-2);
+}
+
+.focus-list__item-title {
+  font-weight: 500;
+}
+
+.focus-list__item-meta {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.focus-list__meta {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.focus-list__badge {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.focus-list__badge--overdue {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.focus-badge {
+  font-size: var(--fs-xs);
+  padding: var(--s-1) var(--s-2);
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.focus-badge--high { background: color-mix(in oklab, var(--danger) 10%, transparent); color: var(--danger); }
+.focus-badge--medium { background: color-mix(in oklab, var(--warning) 10%, transparent); color: var(--warning); }
+.focus-badge--low { background: var(--surface-2); color: var(--muted); }
+
+/* ── Focus Group (for due soon bands) ──────── */
+
+.focus-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.focus-group__label {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-top: var(--s-2);
+}
+
+/* ── Focus Track (three-column timeline) ───── */
+
+.focus-track {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--s-3);
+}
+
+.focus-track__header {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding-bottom: var(--s-2);
+  border-bottom: 2px solid var(--border);
+  margin-bottom: var(--s-2);
+}
+
+.focus-track__header--thisWeek { color: var(--warning); border-color: var(--warning); }
+.focus-track__header--next14Days { color: var(--accent); border-color: var(--accent); }
+.focus-track__header--later { color: var(--muted); }
+
+.focus-track__item {
+  font-size: var(--fs-label);
+  padding: var(--s-1) 0;
+  color: var(--text);
+}
+
+/* ── Surfaced divider ──────────────────────── */
+
+.focus-divider {
+  font-size: var(--fs-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: var(--s-2) 0;
+}
+
+/* ── Disclosure toggle ─────────────────────── */
+
+.focus-disclosure {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-label);
+  color: var(--muted);
+  cursor: pointer;
+  padding: var(--s-2) 0;
+  text-align: center;
+  width: 100%;
+}
+
+.focus-disclosure:hover {
+  color: var(--text);
+}
+
 /* --- Task composer modal --- */
 .composer-overlay {
   position: fixed;
