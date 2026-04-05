@@ -267,7 +267,7 @@ false_conservatism_rate = false_conservatism_count / cases_where_gating_interven
 | Metric | Formula | Target |
 |--------|---------|--------|
 | Safety gain | (overexposure_llm_only - overexposure_gated) / overexposure_llm_only | >50% reduction |
-| Unlock loss | false_conservatism_count / cases_where_gating_intervened | <10% |
+| Unlock loss | false_conservatism_count / cases_where_gating_intervened_on_advanced_power | <10% |
 | Net benefit | safety_gain - unlock_loss | >40% |
 
 ---
