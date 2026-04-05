@@ -136,9 +136,11 @@ To ground safety_gain, compute explicit counterfactual metrics:
 
 | Metric | LLM-Only | Gated | Delta |
 |--------|----------|-------|-------|
-| accuracy_llm_only | % correct without gating | accuracy_gated | gated - llm |
-| overexposure_llm_only | % upward errors | overexposure_gated | llm - gated |
-| false_conservatism_llm | N/A (no gating) | false_conservatism_gated | N/A |
+| accuracy | accuracy_llm_only | accuracy_gated | gated - llm |
+| overexposure_rate | overexposure_llm_only | overexposure_gated | llm - gated |
+| false_conservatism | N/A (no gating) | false_conservatism_gated | N/A |
+| avg_regret | avg_regret_llm_only | avg_regret_gated | llm - gated |
+| net_regret_delta | — | — | avg_regret_llm_only - avg_regret_gated |
 
 ### 3.2 Safety Gain Computation
 
@@ -173,6 +175,9 @@ Track:
 
 **Purpose:** Answers whether gating improved or degraded overall decision quality.
 This is the cleanest end-to-end metric.
+
+> **Note:** `optimal_plan_score` is a benchmark proxy using the expected segment as
+> the policy oracle. It should not be interpreted as true causal user utility.
 
 ---
 
@@ -247,10 +252,10 @@ Add `near_miss_unlock` type to distinguish harmless conservatism from harmful:
 
 **Best:** `false_conservatism / cases_where_gating_intervened_on_advanced_power`
 
-**Goal:** Measure correctness when gating actually acts, not overall prevalence.
+**Goal:** Measure correctness when gating actually acts on advanced/power candidates.
 
 ```
-false_conservatism_rate = false_conservatism_count / cases_where_gating_intervened
+false_conservatism_rate = false_conservatism_count / cases_where_gating_intervened_on_advanced_power
 ```
 
 **Target:** <10% false conservatism rate on ambiguous holdout slice.
@@ -392,6 +397,7 @@ output["user_segment"] = gated_segment  # For policy
 - [ ] Achieve <10% false conservatism rate
 - [ ] Publish gate hit-rate report with per-gate and per-slice breakdowns
 - [ ] Compute counterfactual baseline (LLM-only vs gated)
+- [ ] All ambiguous holdout labels have reviewer agreement recorded (boundary cases are where label noise hurts most)
 
 ### Milestone 2: Gate Distribution Analysis (Week 2-3)
 - [ ] No single gate accounts for >40% of all overrides
@@ -479,13 +485,19 @@ CAPABILITY = {"low": 0, "medium": 1, "high": 2}
 
 meets_advanced_criteria = (
     capability_score >= CAPABILITY["medium"]
-    AND recurring_tasks_used >= 5
-    AND feature_depth >= 3  # At least 3 advanced features used
+    and recurring_tasks_used >= 5
+    and feature_depth >= 3  # At least 3 advanced features used
 )
 
 meets_power_criteria = (
     capability_score >= CAPABILITY["high"]
-    AND automation_signals >= 2  # At least 2 automation signals
-    AND power_features_used >= 1  # At least 1 power feature used
+    and automation_signals >= 2  # At least 2 automation signals
+    and power_features_used >= 1  # At least 1 power feature used
 )
 ```
+
+---
+
+> **Decision: Approved for execution.**
+> Open items are limited to implementation hygiene, instrumentation completeness,
+> and live cohort discipline—not framework design.
