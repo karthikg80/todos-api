@@ -1,0 +1,31 @@
+{
+  "user_context": {
+    "days_active": 90,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Write quarterly report",
+      "priority": "medium",
+      "due_date": "2026-04-10",
+      "project": "Management"
+    },
+    {
+      "title": "Collect team metrics",
+      "priority": "medium",
+      "due_date": "2026-04-08",
+      "project": "Management"
+    },
+    {
+      "title": "Review last quarter results",
+      "priority": "low",
+      "due_date": "2026-04-07",
+      "project": "Management"
+    }
+  ],
+  "surface_type": "task_drawer",
+  "recent_activity": [
+    "viewed: Write quarterly report"
+  ]
+}

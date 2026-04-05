@@ -1,0 +1,25 @@
+{
+  "user_context": {
+    "days_active": 30,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Submit grant application",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "is_overdue": true
+    },
+    {
+      "title": "Collect recommendation letters",
+      "priority": "medium",
+      "due_date": "2026-04-03",
+      "is_overdue": true
+    }
+  ],
+  "surface_type": "task_drawer",
+  "recent_activity": [
+    "viewed: Submit grant application"
+  ]
+}

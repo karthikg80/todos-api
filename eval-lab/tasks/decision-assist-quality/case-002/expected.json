@@ -1,0 +1,19 @@
+{
+  "surface": "home_focus",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Buy groceries",
+      "description": "Due tomorrow",
+      "priority": "medium"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests the most urgent upcoming task. 1 suggestion for new user.",
+  "common_failure_modes": [
+    "too_many_suggestions",
+    "suggests_low_priority",
+    "free_tier_violation"
+  ],
+  "acceptable_variation": "May suggest either groceries or dentist. Should not exceed free tier limit.",
+  "notes": "New user on free tier. Should get 1-2 suggestions max, prioritizing urgency."
+}

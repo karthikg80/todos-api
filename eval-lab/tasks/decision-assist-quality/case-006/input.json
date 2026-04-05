@@ -1,0 +1,29 @@
+{
+  "user_context": {
+    "days_active": 10,
+    "plan_tier": "free",
+    "daily_suggestion_limit": 2
+  },
+  "task_state": [
+    {
+      "title": "Submit expense report",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "is_overdue": true
+    },
+    {
+      "title": "Book flight for conference",
+      "priority": "high",
+      "due_date": "2026-04-05"
+    },
+    {
+      "title": "Reply to team emails",
+      "priority": "medium",
+      "due_date": "2026-04-05"
+    }
+  ],
+  "surface_type": "today_plan",
+  "recent_activity": [
+    "created: Submit expense report"
+  ]
+}

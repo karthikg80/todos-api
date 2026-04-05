@@ -1,0 +1,29 @@
+{
+  "surface": "today_plan",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Client meeting at 2pm",
+      "description": "Scheduled today at 2pm",
+      "priority": "high"
+    },
+    {
+      "title": "Prepare meeting notes",
+      "description": "Before client meeting",
+      "priority": "medium"
+    },
+    {
+      "title": "Follow up on proposal",
+      "description": "Due today",
+      "priority": "medium"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests 3-4 tasks due today, prioritizing scheduled events first.",
+  "common_failure_modes": [
+    "misses_scheduled_events",
+    "wrong_order",
+    "too_few_suggestions"
+  ],
+  "acceptable_variation": "May suggest 3-4 of the 4 tasks. Scheduled event should be first.",
+  "notes": "User has 4 tasks due today including a scheduled meeting. Should prioritize the meeting."
+}

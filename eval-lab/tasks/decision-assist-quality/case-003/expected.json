@@ -1,0 +1,24 @@
+{
+  "surface": "home_focus",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Review design mockups",
+      "description": "Due soon, medium priority",
+      "priority": "medium"
+    },
+    {
+      "title": "Prepare board presentation",
+      "description": "High priority, due in 2 days",
+      "priority": "high"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests upcoming deadlines in priority order. 2-3 suggestions for active user.",
+  "common_failure_modes": [
+    "wrong_priority_order",
+    "too_many_suggestions",
+    "misses_urgent_items"
+  ],
+  "acceptable_variation": "May suggest any 2-3 of the 3 tasks. Order should reflect urgency.",
+  "notes": "Active user with multiple upcoming deadlines. Should surface most urgent items."
+}

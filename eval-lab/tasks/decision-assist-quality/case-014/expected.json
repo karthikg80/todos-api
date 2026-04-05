@@ -1,0 +1,19 @@
+{
+  "surface": "on_create",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Deploy to staging",
+      "description": "Prerequisite for production deploy",
+      "priority": "high"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests the prerequisite task (staging before production). 1 suggestion.",
+  "common_failure_modes": [
+    "misses_prerequisite",
+    "suggests_unrelated_tasks",
+    "too_many_suggestions"
+  ],
+  "acceptable_variation": "Should suggest staging deployment as prerequisite. May suggest integration tests.",
+  "notes": "User creating production deploy task. Should suggest staging deployment first."
+}

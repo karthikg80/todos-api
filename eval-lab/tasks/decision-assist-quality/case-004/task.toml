@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-004"
+description = "No suggestions when task list is empty and recent activity shows completion."
+
+[scoring]
+weight = 1.0

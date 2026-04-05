@@ -1,0 +1,19 @@
+{
+  "surface": "on_create",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Buy birthday gift",
+      "description": "Related to birthday party",
+      "priority": "medium"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests the related existing task. 1 suggestion for on-create.",
+  "common_failure_modes": [
+    "invents_new_tasks",
+    "too_many_suggestions",
+    "unrelated_suggestions"
+  ],
+  "acceptable_variation": "Should suggest the existing birthday gift task. Should not invent new tasks.",
+  "notes": "User creating a party planning task. Should suggest the existing related gift task."
+}

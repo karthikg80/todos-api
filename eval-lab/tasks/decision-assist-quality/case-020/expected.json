@@ -1,0 +1,13 @@
+{
+  "surface": "task_drawer",
+  "category": "adversarial",
+  "expected_suggestions": [],
+  "what_good_suggestions_look_like": "No suggestions when only task is vague with no deadline.",
+  "common_failure_modes": [
+    "invents_specific_tasks",
+    "suggests_generic_tasks",
+    "overly_specific"
+  ],
+  "acceptable_variation": "Should return empty list. Single vague task.",
+  "notes": "New user with one vague task. Should not invent suggestions."
+}

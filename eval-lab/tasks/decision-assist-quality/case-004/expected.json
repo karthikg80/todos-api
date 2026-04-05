@@ -1,0 +1,13 @@
+{
+  "surface": "home_focus",
+  "category": "adversarial",
+  "expected_suggestions": [],
+  "what_good_suggestions_look_like": "No suggestions when task list is empty and recent activity shows completion.",
+  "common_failure_modes": [
+    "invents_tasks",
+    "suggests_completed_tasks",
+    "generic_suggestions"
+  ],
+  "acceptable_variation": "Should return empty list. No tasks to suggest.",
+  "notes": "User has no tasks and just completed everything. Should not invent suggestions."
+}

@@ -1,0 +1,32 @@
+{
+  "user_context": {
+    "days_active": 60,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Prepare board presentation",
+      "priority": "high",
+      "due_date": "2026-04-07",
+      "project": "Work"
+    },
+    {
+      "title": "Update project roadmap",
+      "priority": "medium",
+      "due_date": "2026-04-08",
+      "project": "Work"
+    },
+    {
+      "title": "Review design mockups",
+      "priority": "medium",
+      "due_date": "2026-04-06",
+      "project": "Design"
+    }
+  ],
+  "surface_type": "home_focus",
+  "recent_activity": [
+    "completed: Send weekly report",
+    "updated: Prepare board presentation"
+  ]
+}

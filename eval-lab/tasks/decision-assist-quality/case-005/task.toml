@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-005"
+description = "Suggests 3-4 tasks due today, prioritizing scheduled events first."
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,13 @@
+{
+  "surface": "on_create",
+  "category": "adversarial",
+  "expected_suggestions": [],
+  "what_good_suggestions_look_like": "No suggestions when no existing tasks and user is creating a vague task.",
+  "common_failure_modes": [
+    "invents_learning_tasks",
+    "suggests_generic_tasks",
+    "overly_prescriptive"
+  ],
+  "acceptable_variation": "Should return empty list. No existing tasks to suggest.",
+  "notes": "New user with no tasks creating a vague learning task. Should not suggest anything."
+}

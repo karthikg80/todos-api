@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-018"
+description = "Suggests overdue prerequisite task. 1-2 suggestions."
+
+[scoring]
+weight = 1.0

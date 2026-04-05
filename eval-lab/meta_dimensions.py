@@ -113,6 +113,14 @@ DIMENSION_MAP: dict[tuple[str, str], tuple[MetaDimension, str]] = {
     ("feature_exposure", "under_exposure_avoidance"): (ROBUSTNESS, "Power users get advanced features"),
     ("feature_exposure", "nudge_quality"): (REASONING, "Growth nudges are relevant"),
     ("feature_exposure", "format_compliance"): (COMPLIANCE, "Valid output structure"),
+
+    # Decision Assist
+    ("decision_assist", "relevance"): (CORRECTNESS, "Suggestions match user context"),
+    ("decision_assist", "timeliness"): (ROBUSTNESS, "Suggestions appropriate for current state"),
+    ("decision_assist", "actionability"): (CORRECTNESS, "Suggestions are concrete and executable"),
+    ("decision_assist", "appropriateness"): (COMPLIANCE, "Respects plan tier and limits"),
+    ("decision_assist", "no_hallucination"): (SAFETY, "No invented tasks or false context"),
+    ("decision_assist", "format_compliance"): (COMPLIANCE, "Valid output structure"),
 }
 
 

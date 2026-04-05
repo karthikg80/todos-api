@@ -1,0 +1,24 @@
+{
+  "surface": "today_plan",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Submit expense report",
+      "description": "Overdue high priority",
+      "priority": "high"
+    },
+    {
+      "title": "Book flight for conference",
+      "description": "Due today",
+      "priority": "high"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests 2 high-priority items for free tier user. Overdue first.",
+  "common_failure_modes": [
+    "exceeds_free_tier_limit",
+    "misses_overdue",
+    "suggests_medium_priority"
+  ],
+  "acceptable_variation": "Should suggest exactly 2 items. Overdue expense report should be first.",
+  "notes": "Free tier user with 3 tasks due today. Should limit to 2 suggestions, prioritizing high priority."
+}

@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-003"
+description = "Suggests upcoming deadlines in priority order. 2-3 suggestions for active user."
+
+[scoring]
+weight = 1.0

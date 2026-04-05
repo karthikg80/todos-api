@@ -1,0 +1,19 @@
+{
+  "surface": "on_create",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Gather requirements",
+      "description": "Due sooner, related to Sales project",
+      "priority": "medium"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests 1 related task that might be a prerequisite. On-create surface should be minimal.",
+  "common_failure_modes": [
+    "too_many_suggestions",
+    "unrelated_suggestions",
+    "distracting_during_creation"
+  ],
+  "acceptable_variation": "May suggest gather requirements or client proposal. Should be 1 suggestion max.",
+  "notes": "User creating a new task. Should suggest 1 related task, not distract from creation."
+}

@@ -1,0 +1,25 @@
+{
+  "user_context": {
+    "days_active": 60,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Deploy to staging",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "project": "Release"
+    },
+    {
+      "title": "Run integration tests",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "project": "Release"
+    }
+  ],
+  "surface_type": "on_create",
+  "recent_activity": [
+    "creating: Deploy to production"
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "surface": "task_drawer",
+  "category": "noisy",
+  "expected_suggestions": [
+    {
+      "title": "Collect team metrics",
+      "description": "Due sooner, needed for report",
+      "priority": "medium"
+    },
+    {
+      "title": "Review last quarter results",
+      "description": "Reference for report",
+      "priority": "low"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests related tasks in due-date order. 2-3 suggestions.",
+  "common_failure_modes": [
+    "wrong_order",
+    "misses_related_tasks",
+    "too_many_suggestions"
+  ],
+  "acceptable_variation": "Should suggest collect metrics first. May suggest review results.",
+  "notes": "User viewing a report task with related subtasks. Should suggest prerequisites."
+}

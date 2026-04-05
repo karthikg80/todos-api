@@ -1,0 +1,18 @@
+{
+  "user_context": {
+    "days_active": 10,
+    "plan_tier": "free",
+    "daily_suggestion_limit": 2
+  },
+  "task_state": [
+    {
+      "title": "Buy birthday gift",
+      "priority": "medium",
+      "due_date": "2026-04-10"
+    }
+  ],
+  "surface_type": "on_create",
+  "recent_activity": [
+    "creating: Plan birthday party"
+  ]
+}

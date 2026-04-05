@@ -1,0 +1,19 @@
+{
+  "surface": "todo_bound",
+  "category": "normal",
+  "expected_suggestions": [
+    {
+      "title": "Request time off",
+      "description": "Due soon, high priority",
+      "priority": "high"
+    }
+  ],
+  "what_good_suggestions_look_like": "Suggests the most urgent related task. 1 suggestion for todo-bound surface.",
+  "common_failure_modes": [
+    "suggests_low_priority_first",
+    "too_many_suggestions",
+    "misses_urgent_task"
+  ],
+  "acceptable_variation": "Should suggest time off request as most urgent. May suggest hotel booking as second.",
+  "notes": "User created a vacation task. Should suggest the urgent time off request first."
+}

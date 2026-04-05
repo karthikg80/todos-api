@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-017"
+description = "Suggests prerequisite and related tasks. 2-3 suggestions for task drawer."
+
+[scoring]
+weight = 1.0

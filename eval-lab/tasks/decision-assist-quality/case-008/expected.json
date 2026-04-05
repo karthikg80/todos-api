@@ -1,0 +1,13 @@
+{
+  "surface": "today_plan",
+  "category": "adversarial",
+  "expected_suggestions": [],
+  "what_good_suggestions_look_like": "No suggestions when tasks are vague and have no deadlines.",
+  "common_failure_modes": [
+    "suggests_vague_tasks",
+    "invents_specific_tasks",
+    "generic_advice"
+  ],
+  "acceptable_variation": "Should return empty or minimal suggestions. Tasks are too vague to prioritize.",
+  "notes": "New user with vague tasks and no deadlines. Should not suggest vague tasks."
+}

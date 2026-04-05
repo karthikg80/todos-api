@@ -1,0 +1,6 @@
+[task]
+name = "decision-assist-case-008"
+description = "No suggestions when tasks are vague and have no deadlines."
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,25 @@
+{
+  "user_context": {
+    "days_active": 30,
+    "plan_tier": "pro",
+    "daily_suggestion_limit": 5
+  },
+  "task_state": [
+    {
+      "title": "Review Q4 budget",
+      "priority": "high",
+      "due_date": "2026-04-05",
+      "is_overdue": true
+    },
+    {
+      "title": "Schedule team lunch",
+      "priority": "low",
+      "due_date": "2026-04-10"
+    }
+  ],
+  "surface_type": "home_focus",
+  "recent_activity": [
+    "completed: Send client proposal",
+    "created: Review Q4 budget"
+  ]
+}
