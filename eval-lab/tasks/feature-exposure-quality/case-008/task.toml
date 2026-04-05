@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-008"
+description = "Intermediate features enabled. Nudge toward recurring tasks."
+
+[scoring]
+weight = 1.0

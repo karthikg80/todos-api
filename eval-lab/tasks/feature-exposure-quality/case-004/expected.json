@@ -1,0 +1,52 @@
+{
+  "category": "new-user-simplicity",
+  "expected_user_segment": "beginner",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags"
+  ],
+  "expected_hidden_features": [
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try using tags to categorize your tasks"
+  ],
+  "advanced_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Core features plus tags (emerging behavior). Still no intermediate planning features.",
+  "common_failure_modes": [
+    "enables daily_plan prematurely",
+    "enables recurring_tasks too early"
+  ],
+  "acceptable_variation": "May enable tags since user is organizing. Should not enable planning features yet.",
+  "notes": "10 days active, using projects and due dates. Transitioning to intermediate but not there yet."
+}

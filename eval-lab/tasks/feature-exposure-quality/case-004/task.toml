@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-004"
+description = "Core features plus tags (emerging behavior). Still no intermediate planning feat"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-016"
+description = "Low confidence classification. Should choose safer exposure policy."
+
+[scoring]
+weight = 1.0

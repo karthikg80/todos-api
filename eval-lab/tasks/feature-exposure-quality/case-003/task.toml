@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-003"
+description = "Minimal feature set. Only quick_add and task_list. One gentle nudge."
+
+[scoring]
+weight = 1.0

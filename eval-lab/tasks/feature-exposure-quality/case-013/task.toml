@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-013"
+description = "Despite high activity, only 5 days active. Should classify as beginner and expos"
+
+[scoring]
+weight = 1.0

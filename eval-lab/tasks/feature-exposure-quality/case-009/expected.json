@@ -1,0 +1,46 @@
+{
+  "category": "power-user-unlock",
+  "expected_user_segment": "advanced",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags",
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views"
+  ],
+  "expected_hidden_features": [
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try automation rules to save time on repetitive tasks"
+  ],
+  "advanced_features": [
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "All advanced features enabled. Power features still hidden. Nudge toward automation.",
+  "common_failure_modes": [
+    "hides dependencies from advanced user",
+    "enables agentic_planning prematurely"
+  ],
+  "acceptable_variation": "May enable automation_rules since user is ready. Should not enable agentic_planning yet.",
+  "notes": "90 days active, heavy usage across all intermediate features. Ready for advanced."
+}

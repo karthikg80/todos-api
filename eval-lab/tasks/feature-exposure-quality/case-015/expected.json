@@ -1,0 +1,52 @@
+{
+  "category": "misclassification",
+  "expected_user_segment": "intermediate",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects",
+    "tags",
+    "recurring_tasks",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities"
+  ],
+  "expected_hidden_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Ready for weekly planning? Review your projects weekly"
+  ],
+  "advanced_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Conflicting signals: high activity but no advanced feature usage. Should classify as intermediate.",
+  "common_failure_modes": [
+    "classifies as advanced based on volume",
+    "hides daily_plan from active user"
+  ],
+  "acceptable_variation": "May enable smart_priorities. Should not enable dependencies yet.",
+  "notes": "High activity but no advanced features. Should be intermediate, not advanced."
+}

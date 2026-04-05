@@ -1,0 +1,59 @@
+{
+  "category": "misclassification",
+  "expected_user_segment": "beginner",
+  "confidence": 0.6,
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates",
+    "projects"
+  ],
+  "expected_hidden_features": [
+    "recurring_tasks",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try setting due dates for better planning"
+  ],
+  "advanced_features": [
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Low confidence classification. Should choose safer exposure policy.",
+  "common_failure_modes": [
+    "overconfident classification",
+    "enables intermediate features prematurely"
+  ],
+  "acceptable_variation": "May enable projects. Should not enable intermediate features.",
+  "notes": "Ambiguous signals. Classifier should have low confidence and choose safer policy."
+}

@@ -1,0 +1,53 @@
+{
+  "category": "new-user-simplicity",
+  "expected_user_segment": "beginner",
+  "expected_enabled_features": [
+    "quick_add",
+    "task_list",
+    "basic_search",
+    "due_dates"
+  ],
+  "expected_hidden_features": [
+    "recurring_tasks",
+    "projects",
+    "tags",
+    "effort_estimates",
+    "daily_plan",
+    "smart_priorities",
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "expected_nudges": [
+    "Try setting a due date for your first task"
+  ],
+  "advanced_features": [
+    "dependencies",
+    "goals",
+    "automation_rules",
+    "bulk_edits",
+    "weekly_planning",
+    "custom_views",
+    "agentic_planning",
+    "dependency_graph",
+    "batch_workflows",
+    "api_access",
+    "custom_automations"
+  ],
+  "what_good_exposure_looks_like": "Only core features enabled. No intermediate or advanced features. One gentle nudge toward due dates.",
+  "common_failure_modes": [
+    "enables intermediate features too early",
+    "overwhelming nudge bundle",
+    "hides core features"
+  ],
+  "acceptable_variation": "May enable due_dates early as a growth nudge. Should not enable any intermediate features.",
+  "notes": "First-week user with minimal activity. Should get only core features."
+}

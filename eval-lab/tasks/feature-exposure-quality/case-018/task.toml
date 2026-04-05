@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-018"
+description = "Routed to goal_aware_weekly planning mode. Intermediate features enabled."
+
+[scoring]
+weight = 1.0

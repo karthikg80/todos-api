@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-011"
+description = "Advanced features enabled. Power features hidden. Nudge toward bulk edits."
+
+[scoring]
+weight = 1.0

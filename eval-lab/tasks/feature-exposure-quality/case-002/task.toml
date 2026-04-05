@@ -1,0 +1,6 @@
+[task]
+name = "feature-exposure-case-002"
+description = "Core features plus projects (just created one). Still no intermediate features."
+
+[scoring]
+weight = 1.0
