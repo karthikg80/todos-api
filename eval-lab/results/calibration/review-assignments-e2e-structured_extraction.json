@@ -1,0 +1,266 @@
+{
+  "family": "structured_extraction",
+  "timestamp": "2026-04-05T03:58:41.775587+00:00",
+  "assignments": [
+    {
+      "case_id": "case-019",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.9,
+        "field_completeness": 0.8,
+        "deduplication": 1.0,
+        "no_hallucination": 0.9,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-019"
+    },
+    {
+      "case_id": "case-019",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.9,
+        "field_completeness": 0.8,
+        "deduplication": 1.0,
+        "no_hallucination": 0.9,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-019"
+    },
+    {
+      "case_id": "case-002",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.8,
+        "field_completeness": 0.7,
+        "deduplication": 0.9,
+        "no_hallucination": 0.8,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-002"
+    },
+    {
+      "case_id": "case-002",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.8,
+        "field_completeness": 0.7,
+        "deduplication": 0.9,
+        "no_hallucination": 0.8,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-002"
+    },
+    {
+      "case_id": "case-001",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.9,
+        "field_completeness": 0.8,
+        "deduplication": 1.0,
+        "no_hallucination": 0.9,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-001"
+    },
+    {
+      "case_id": "case-001",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.9,
+        "field_completeness": 0.8,
+        "deduplication": 1.0,
+        "no_hallucination": 0.9,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-001"
+    },
+    {
+      "case_id": "case-017",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.85,
+        "field_completeness": 0.75,
+        "deduplication": 0.9,
+        "no_hallucination": 0.85,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-017"
+    },
+    {
+      "case_id": "case-017",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.85,
+        "field_completeness": 0.75,
+        "deduplication": 0.9,
+        "no_hallucination": 0.85,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-017"
+    },
+    {
+      "case_id": "case-015",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.8,
+        "field_completeness": 0.7,
+        "deduplication": 0.9,
+        "no_hallucination": 0.8,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-015"
+    },
+    {
+      "case_id": "case-015",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.8,
+        "field_completeness": 0.7,
+        "deduplication": 0.9,
+        "no_hallucination": 0.8,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-015"
+    },
+    {
+      "case_id": "case-005",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.7,
+        "field_completeness": 0.6,
+        "deduplication": 0.9,
+        "no_hallucination": 0.6,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-005"
+    },
+    {
+      "case_id": "case-005",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.7,
+        "field_completeness": 0.6,
+        "deduplication": 0.9,
+        "no_hallucination": 0.6,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-005"
+    },
+    {
+      "case_id": "case-006",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.75,
+        "field_completeness": 0.65,
+        "deduplication": 0.9,
+        "no_hallucination": 0.75,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-006"
+    },
+    {
+      "case_id": "case-006",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.75,
+        "field_completeness": 0.65,
+        "deduplication": 0.9,
+        "no_hallucination": 0.75,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-006"
+    },
+    {
+      "case_id": "case-020",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.8,
+        "field_completeness": 0.7,
+        "deduplication": 0.9,
+        "no_hallucination": 0.8,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-020"
+    },
+    {
+      "case_id": "case-020",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.8,
+        "field_completeness": 0.7,
+        "deduplication": 0.9,
+        "no_hallucination": 0.8,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-020"
+    },
+    {
+      "case_id": "case-007",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 1.0,
+        "field_completeness": 1.0,
+        "deduplication": 1.0,
+        "no_hallucination": 1.0,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-007"
+    },
+    {
+      "case_id": "case-007",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 1.0,
+        "field_completeness": 1.0,
+        "deduplication": 1.0,
+        "no_hallucination": 1.0,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-007"
+    },
+    {
+      "case_id": "case-010",
+      "reviewer": "human_reviewer_1",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.8,
+        "field_completeness": 0.7,
+        "deduplication": 0.9,
+        "no_hallucination": 0.8,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-010"
+    },
+    {
+      "case_id": "case-010",
+      "reviewer": "human_reviewer_2",
+      "completed": true,
+      "scores": {
+        "extraction_accuracy": 0.8,
+        "field_completeness": 0.7,
+        "deduplication": 0.9,
+        "no_hallucination": 0.8,
+        "format_compliance": 1.0
+      },
+      "rationale": "Human review for case-010"
+    }
+  ]
+}
