@@ -35,6 +35,7 @@ from framework.hardening import (
     HoldoutAccessEvent,
     DEFAULT_GUARDRAILS,
 )
+from framework.evaluators import SignificanceTester
 from meta_dimensions import (
     get_meta_dimension,
     get_meta_dimension_scores,
@@ -311,6 +312,12 @@ def compare_runs(
     losses = sum(1 for d in case_deltas if d["delta"] < 0)
     ties = sum(1 for d in case_deltas if d["delta"] == 0)
 
+    # Significance testing
+    tester = SignificanceTester(n_bootstrap=1000)
+    baseline_scores = [d["baseline_score"] for d in case_deltas]
+    candidate_scores = [d["candidate_score"] for d in case_deltas]
+    significance = tester.test(baseline_scores, candidate_scores)
+
     # Biggest improvements and regressions
     sorted_deltas = sorted(case_deltas, key=lambda d: d["delta"])
     biggest_improvements = [d for d in sorted_deltas if d["delta"] > 0][-5:]
@@ -338,6 +345,13 @@ def compare_runs(
         "biggest_improvements": biggest_improvements,
         "biggest_regressions": biggest_regressions,
         "win_loss": {"wins": wins, "losses": losses, "ties": ties},
+        "significance": {
+            "delta": significance.delta,
+            "p_value": significance.p_value,
+            "confidence_interval": list(significance.confidence_interval),
+            "significant": significance.significant,
+            "bootstrap_samples": significance.bootstrap_samples,
+        },
         "guardrails": guardrail_result,
     }
 
