@@ -208,13 +208,22 @@ def aggregate_portfolio(
     total_latency_ms = 0.0
     cost_by_family: dict[str, float] = {}
     latency_by_family: dict[str, float] = {}
+    coverage_by_family: dict[str, float] = {}
     for name, result in results.items():
         family_cost = sum(c.cost_usd for c in result.cases)
         family_latency = sum(c.latency_ms for c in result.cases)
+        family_grader_errors = sum(1 for c in result.cases if c.grader_error)
         total_cost_usd += family_cost
         total_latency_ms += family_latency
         cost_by_family[name] = round(family_cost, 4)
         latency_by_family[name] = round(family_latency, 2)
+        # Semantic coverage: % of cases successfully graded (no execution or grader errors)
+        valid_cases = sum(1 for c in result.cases if not c.error and not c.grader_error)
+        coverage_by_family[name] = round(valid_cases / result.total_cases, 3) if result.total_cases > 0 else 0.0
+
+    # Overall semantic coverage
+    total_valid_cases = total_cases - total_errors - total_grader_errors
+    semantic_coverage = round(total_valid_cases / total_cases, 3) if total_cases > 0 else 0.0
 
     return {
         "weighted_score": round(weighted_score, 3),
@@ -224,6 +233,7 @@ def aggregate_portfolio(
         "total_cases": total_cases,
         "total_errors": total_errors,
         "total_grader_errors": total_grader_errors,
+        "semantic_coverage": semantic_coverage,
         "error_rate": round(total_errors / total_cases, 3) if total_cases > 0 else 0.0,
         "grader_error_rate": round(total_grader_errors / total_cases, 3) if total_cases > 0 else 0.0,
         "meta_dimension_averages": meta_averages,
@@ -235,11 +245,14 @@ def aggregate_portfolio(
         "latency_ms": round(total_latency_ms, 2),
         "cost_by_family": cost_by_family,
         "latency_by_family": latency_by_family,
+        "coverage_by_family": coverage_by_family,
         "family_scores": {
             name: {
                 "score": result.mean_score,
                 "cases": result.total_cases,
                 "errors": result.error_count,
+                "grader_errors": sum(1 for c in result.cases if c.grader_error),
+                "coverage": coverage_by_family.get(name, 0),
                 "weight": active_weights.get(name, 0),
                 "cost_usd": cost_by_family.get(name, 0),
                 "latency_ms": latency_by_family.get(name, 0),
