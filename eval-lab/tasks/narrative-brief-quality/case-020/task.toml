@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-020"
+description = "Positive review highlighting strong metrics. Notes streak and fast completion. F"
+
+[scoring]
+weight = 1.0

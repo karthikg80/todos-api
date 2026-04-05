@@ -1,0 +1,15 @@
+{
+  "brief_type": "project_health",
+  "data_context": {
+    "project": "New Feature",
+    "start_date": "2026-04-01",
+    "target_date": "2026-06-01",
+    "progress": "5%",
+    "tasks_completed": 1,
+    "tasks_remaining": 15,
+    "blockers": [],
+    "recent_activity": "Project just started. Initial planning complete.",
+    "budget_used": "3%",
+    "budget_total": 20000
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "brief_type": "project_health",
+  "data_context": {
+    "project": "Unknown Project",
+    "start_date": null,
+    "target_date": null,
+    "progress": null,
+    "tasks_completed": 0,
+    "tasks_remaining": 0,
+    "blockers": [],
+    "recent_activity": "",
+    "budget_used": null,
+    "budget_total": null
+  }
+}

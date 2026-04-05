@@ -1,0 +1,23 @@
+{
+  "brief_type": "productivity_insights",
+  "category": "normal",
+  "expected_patterns": [
+    "strong completion trend (15% improvement)",
+    "Tuesday is peak day",
+    "current streak of 5 days",
+    "work dominates task categories"
+  ],
+  "expected_recommendations": [
+    "Protect Tuesday focus time for deep work",
+    "Build on current 5-day streak",
+    "Consider rebalancing work/personal tasks"
+  ],
+  "what_good_brief_looks_like": "Highlights improving trend and current streak. Notes Tuesday peak. 3 actionable insights.",
+  "common_failure_modes": [
+    "misses_improvement_trend",
+    "misses_streak_data",
+    "generic_insights"
+  ],
+  "acceptable_variation": "May phrase insights differently. Should highlight trend and streak.",
+  "notes": "90-day data showing improvement. Strong productivity patterns."
+}

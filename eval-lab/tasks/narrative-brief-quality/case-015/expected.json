@@ -1,0 +1,17 @@
+{
+  "brief_type": "feedback_summary",
+  "category": "adversarial",
+  "expected_patterns": [
+    "no feedback collected"
+  ],
+  "expected_recommendations": [
+    "Set up feedback collection channels"
+  ],
+  "what_good_brief_looks_like": "Notes no feedback. Does not invent patterns. Recommends setting up collection.",
+  "common_failure_modes": [
+    "invents_feedback_patterns",
+    "generic_advice"
+  ],
+  "acceptable_variation": "Should note no data. May suggest different collection channels.",
+  "notes": "No feedback data. Should not invent patterns."
+}

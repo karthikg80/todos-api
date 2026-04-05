@@ -1,0 +1,11 @@
+{
+  "brief_type": "feedback_summary",
+  "data_context": {
+    "period": "Last 30 days",
+    "total_feedback": 0,
+    "sentiment_distribution": {},
+    "top_themes": [],
+    "nps_score": null,
+    "nps_trend": null
+  }
+}

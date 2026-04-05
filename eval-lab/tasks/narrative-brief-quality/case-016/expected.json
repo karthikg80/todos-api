@@ -1,0 +1,23 @@
+{
+  "brief_type": "feedback_summary",
+  "category": "noisy",
+  "expected_patterns": [
+    "login issues are dominant complaint",
+    "billing confusion is second",
+    "NPS declining significantly",
+    "more negative than positive feedback"
+  ],
+  "expected_recommendations": [
+    "Fix login issues as top priority",
+    "Clarify billing process",
+    "Investigate performance issues"
+  ],
+  "what_good_brief_looks_like": "Highlights login and billing as top issues. Notes declining NPS. Prioritizes fixes.",
+  "common_failure_modes": [
+    "misses_login_issues",
+    "misses_nps_decline",
+    "wrong_priority_order"
+  ],
+  "acceptable_variation": "May phrase themes differently. Should prioritize login and billing.",
+  "notes": "120 feedback items with negative trend. Login and billing are top issues."
+}

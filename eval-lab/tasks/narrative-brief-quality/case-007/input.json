@@ -1,0 +1,15 @@
+{
+  "brief_type": "weekly_review",
+  "data_context": {
+    "week": "2026-03-30 to 2026-04-05",
+    "tasks_completed": 0,
+    "tasks_created": 0,
+    "tasks_overdue": 0,
+    "top_projects": [],
+    "time_distribution": {
+      "deep_work": "0%",
+      "meetings": "0%",
+      "admin": "0%"
+    }
+  }
+}

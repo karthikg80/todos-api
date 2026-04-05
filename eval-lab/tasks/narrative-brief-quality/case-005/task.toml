@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-005"
+description = "Summarizes completion rate, highlights overdue items, identifies Team Offsite as"
+
+[scoring]
+weight = 1.0

@@ -129,6 +129,14 @@ DIMENSION_MAP: dict[tuple[str, str], tuple[MetaDimension, str]] = {
     ("task_breakdown", "context_awareness"): (ROBUSTNESS, "Respects project context and existing state"),
     ("task_breakdown", "actionability"): (CORRECTNESS, "Each subtask is concrete and executable"),
     ("task_breakdown", "format_compliance"): (COMPLIANCE, "Valid output structure"),
+
+    # Narrative Brief
+    ("narrative_brief", "accuracy"): (CORRECTNESS, "Analysis correctly reflects underlying data"),
+    ("narrative_brief", "actionability"): (ROBUSTNESS, "Recommendations are concrete and prioritized"),
+    ("narrative_brief", "clarity"): (REASONING, "Narrative is clear and well-structured"),
+    ("narrative_brief", "completeness"): (CORRECTNESS, "All relevant patterns and insights covered"),
+    ("narrative_brief", "no_hallucination"): (SAFETY, "No invented facts or false patterns"),
+    ("narrative_brief", "format_compliance"): (COMPLIANCE, "Valid output structure"),
 }
 
 

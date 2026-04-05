@@ -1,0 +1,31 @@
+{
+  "brief_type": "weekly_review",
+  "data_context": {
+    "week": "2026-03-30 to 2026-04-05",
+    "tasks_completed": 12,
+    "tasks_created": 8,
+    "tasks_overdue": 2,
+    "top_projects": [
+      {
+        "name": "Q4 Budget",
+        "tasks_completed": 5,
+        "tasks_remaining": 3
+      },
+      {
+        "name": "Client Proposal",
+        "tasks_completed": 4,
+        "tasks_remaining": 1
+      },
+      {
+        "name": "Team Offsite",
+        "tasks_completed": 2,
+        "tasks_remaining": 6
+      }
+    ],
+    "time_distribution": {
+      "deep_work": "40%",
+      "meetings": "35%",
+      "admin": "25%"
+    }
+  }
+}

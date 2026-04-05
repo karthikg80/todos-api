@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-001"
+description = "Highlights overdue budget first, then scheduled meeting, then other due items. 3"
+
+[scoring]
+weight = 1.0

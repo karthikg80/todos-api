@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-010"
+description = "Flags critical health issues: behind schedule, budget overrun, multiple blockers"
+
+[scoring]
+weight = 1.0

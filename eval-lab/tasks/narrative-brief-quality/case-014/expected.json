@@ -1,0 +1,20 @@
+{
+  "brief_type": "feedback_summary",
+  "category": "sparse",
+  "expected_patterns": [
+    "very low feedback volume",
+    "insufficient data for strong patterns",
+    "NPS declining"
+  ],
+  "expected_recommendations": [
+    "Increase feedback collection to get better signal",
+    "Monitor NPS trend closely"
+  ],
+  "what_good_brief_looks_like": "Notes low volume and insufficient data. Does not over-interpret 5 data points. Recommends more collection.",
+  "common_failure_modes": [
+    "over_interprets_small_sample",
+    "invents_patterns"
+  ],
+  "acceptable_variation": "Should note low volume. May suggest different collection methods.",
+  "notes": "Only 5 feedback items. Should not over-interpret small sample."
+}

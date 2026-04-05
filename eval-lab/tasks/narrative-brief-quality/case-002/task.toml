@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-002"
+description = "Acknowledges clear day with no due items. May suggest planning ahead. No urgent "
+
+[scoring]
+weight = 1.0

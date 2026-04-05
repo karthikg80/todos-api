@@ -1,0 +1,22 @@
+{
+  "brief_type": "daily_priorities",
+  "category": "normal",
+  "expected_patterns": [
+    "overdue budget submission",
+    "scheduled client meeting",
+    "design review due today"
+  ],
+  "expected_recommendations": [
+    "Submit Q4 budget immediately (overdue)",
+    "Prepare for 2pm client meeting",
+    "Complete design mockup review"
+  ],
+  "what_good_brief_looks_like": "Highlights overdue budget first, then scheduled meeting, then other due items. 3 concrete recommendations.",
+  "common_failure_modes": [
+    "misses_overdue_item",
+    "misses_scheduled_meeting",
+    "generic_recommendations"
+  ],
+  "acceptable_variation": "May phrase recommendations differently. Should prioritize overdue items.",
+  "notes": "Standard daily priorities with one overdue item and one scheduled meeting."
+}

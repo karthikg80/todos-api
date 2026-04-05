@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-013"
+description = "Highlights search and mobile as top issues, dashboard as win. Notes improving NP"
+
+[scoring]
+weight = 1.0

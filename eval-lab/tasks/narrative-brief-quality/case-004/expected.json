@@ -1,0 +1,18 @@
+{
+  "brief_type": "daily_priorities",
+  "category": "sparse",
+  "expected_patterns": [
+    "single vague task due",
+    "no recent activity"
+  ],
+  "expected_recommendations": [
+    "Clarify what 'Something important' means"
+  ],
+  "what_good_brief_looks_like": "Notes sparse data. Suggests clarifying the vague task. No invented priorities.",
+  "common_failure_modes": [
+    "invents_specific_tasks",
+    "overly_generic_advice"
+  ],
+  "acceptable_variation": "Should note sparse data. May suggest task clarification.",
+  "notes": "Very sparse data with one vague task. Should not invent priorities."
+}

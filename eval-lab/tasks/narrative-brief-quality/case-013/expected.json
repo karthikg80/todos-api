@@ -1,0 +1,23 @@
+{
+  "brief_type": "feedback_summary",
+  "category": "normal",
+  "expected_patterns": [
+    "search performance is top complaint",
+    "dashboard redesign well-received",
+    "mobile crashes are urgent",
+    "NPS improving"
+  ],
+  "expected_recommendations": [
+    "Investigate and fix search performance",
+    "Address mobile app crashes urgently",
+    "Continue dashboard improvements"
+  ],
+  "what_good_brief_looks_like": "Highlights search and mobile as top issues, dashboard as win. Notes improving NPS. 3 recommendations.",
+  "common_failure_modes": [
+    "misses_search_complaint",
+    "misses_mobile_crashes",
+    "misses_nps_trend"
+  ],
+  "acceptable_variation": "May phrase themes differently. Should highlight top 2-3 issues.",
+  "notes": "45 feedback items with clear themes. Search and mobile are top issues."
+}

@@ -424,6 +424,35 @@ def _create_family_grader(family_name: str) -> LLMGrader:
                 "format_compliance": "Valid output structure with required fields (0-1)",
             },
         )
+    elif family_name == "narrative_brief":
+        config = LLMGraderConfig(
+            family=family_name,
+            rubric=(
+                "Grade the narrative brief against the expected analysis.\n"
+                "- accuracy: Analysis correctly reflects underlying data and patterns\n"
+                "- actionability: Recommendations are concrete and prioritized\n"
+                "- clarity: Narrative is clear and well-structured\n"
+                "- completeness: All relevant patterns and insights are covered\n"
+                "- no_hallucination: No invented facts or false patterns\n"
+                "- format_compliance: Valid output structure with required fields"
+            ),
+            dimension_names=[
+                "accuracy",
+                "actionability",
+                "clarity",
+                "completeness",
+                "no_hallucination",
+                "format_compliance",
+            ],
+            dimension_descriptions={
+                "accuracy": "Analysis correctly reflects underlying data (0-1)",
+                "actionability": "Recommendations are concrete and prioritized (0-1)",
+                "clarity": "Narrative is clear and well-structured (0-1)",
+                "completeness": "All relevant patterns and insights covered (0-1)",
+                "no_hallucination": "No invented facts or false patterns (0-1)",
+                "format_compliance": "Valid output structure with required fields (0-1)",
+            },
+        )
     else:
         # Generic grader for other families
         config = LLMGraderConfig(

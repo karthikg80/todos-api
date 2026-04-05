@@ -1,0 +1,41 @@
+{
+  "brief_type": "feedback_summary",
+  "data_context": {
+    "period": "Last 30 days",
+    "total_feedback": 120,
+    "sentiment_distribution": {
+      "positive": 30,
+      "neutral": 40,
+      "negative": 50
+    },
+    "top_themes": [
+      {
+        "theme": "Login issues",
+        "count": 35,
+        "sentiment": "negative"
+      },
+      {
+        "theme": "Billing confusion",
+        "count": 25,
+        "sentiment": "negative"
+      },
+      {
+        "theme": "Feature requests for exports",
+        "count": 20,
+        "sentiment": "neutral"
+      },
+      {
+        "theme": "Great new UI",
+        "count": 15,
+        "sentiment": "positive"
+      },
+      {
+        "theme": "Slow loading times",
+        "count": 15,
+        "sentiment": "negative"
+      }
+    ],
+    "nps_score": 15,
+    "nps_trend": "down from 28 last month"
+  }
+}

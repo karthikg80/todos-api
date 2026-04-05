@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-012"
+description = "Notes lack of data. Does not invent health assessment. Recommends setting up tra"
+
+[scoring]
+weight = 1.0

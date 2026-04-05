@@ -1,0 +1,23 @@
+{
+  "brief_type": "productivity_insights",
+  "category": "normal",
+  "expected_patterns": [
+    "high completion volume (200 tasks)",
+    "fast average completion (1.5 days)",
+    "strong current streak (12 days)",
+    "balanced category distribution"
+  ],
+  "expected_recommendations": [
+    "Maintain current productivity habits",
+    "Use Wednesday for most important work",
+    "Consider leveraging 12-day streak momentum"
+  ],
+  "what_good_brief_looks_like": "Positive review highlighting strong metrics. Notes streak and fast completion. Forward-looking.",
+  "common_failure_modes": [
+    "misses_streak_data",
+    "misses_fast_completion",
+    "generic_praise"
+  ],
+  "acceptable_variation": "May phrase positively. Should highlight streak and completion speed.",
+  "notes": "Strong 90-day performance. High volume, fast completion, long streak."
+}

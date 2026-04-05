@@ -1,0 +1,16 @@
+{
+  "brief_type": "productivity_insights",
+  "data_context": {
+    "period": "Last 90 days",
+    "total_tasks_completed": 0,
+    "average_completion_time": null,
+    "peak_productivity_day": null,
+    "least_productive_day": null,
+    "task_completion_trend": "no data",
+    "top_categories": {},
+    "streak_data": {
+      "longest_streak": 0,
+      "current_streak": 0
+    }
+  }
+}

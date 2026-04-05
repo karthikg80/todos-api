@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-016"
+description = "Highlights login and billing as top issues. Notes declining NPS. Prioritizes fix"
+
+[scoring]
+weight = 1.0

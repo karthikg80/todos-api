@@ -1,0 +1,14 @@
+{
+  "brief_type": "daily_priorities",
+  "data_context": {
+    "today": "2026-04-05",
+    "tasks_due_today": [
+      {
+        "title": "Something important",
+        "priority": "medium"
+      }
+    ],
+    "tasks_due_this_week": [],
+    "recent_completions": []
+  }
+}

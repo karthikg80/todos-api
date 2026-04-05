@@ -1,0 +1,6 @@
+[task]
+name = "narrative-brief-case-018"
+description = "Flags declining trend and broken streak. Recommends investigation and small wins"
+
+[scoring]
+weight = 1.0

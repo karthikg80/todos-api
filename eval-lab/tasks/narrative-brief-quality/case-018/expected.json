@@ -1,0 +1,23 @@
+{
+  "brief_type": "productivity_insights",
+  "category": "normal",
+  "expected_patterns": [
+    "declining productivity trend (20% drop)",
+    "long average completion time (8.5 days)",
+    "current streak broken",
+    "work-heavy distribution"
+  ],
+  "expected_recommendations": [
+    "Investigate root cause of declining trend",
+    "Break large tasks into smaller chunks",
+    "Rebuild productivity streak with small wins"
+  ],
+  "what_good_brief_looks_like": "Flags declining trend and broken streak. Recommends investigation and small wins approach.",
+  "common_failure_modes": [
+    "understates_decline",
+    "misses_broken_streak",
+    "too_positive_tone"
+  ],
+  "acceptable_variation": "Should flag concerning trends. May suggest different specific actions.",
+  "notes": "90-day data showing decline. Concerning productivity patterns."
+}
