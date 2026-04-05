@@ -2763,7 +2763,29 @@ body {
 /* --- Home dashboard (classic Focus — pixel-matched) --- */
 .home-dashboard {
   display: grid;
-  gap: 12px;
+  gap: var(--s-4);
+  max-width: 960px;
+  margin: 0 auto;
+  padding: var(--s-4);
+}
+
+.home-dashboard__pinned {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+}
+
+.home-dashboard__ranked {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+}
+
+@media (max-width: 768px) {
+  .home-dashboard__pinned,
+  .home-dashboard__ranked {
+    grid-template-columns: 1fr;
+  }
 }
 
 .home-dashboard__hero-grid {
@@ -3046,9 +3068,16 @@ body {
 .flip-card__back {
   backface-visibility: hidden;
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
+  border: 1px solid var(--border-light);
   background: var(--surface);
   padding: var(--s-4);
+}
+
+.flip-card:hover .flip-card__front {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .flip-card__back {

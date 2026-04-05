@@ -46,51 +46,53 @@ export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject, onEd
 
   return (
     <div data-testid="home-dashboard" className="home-dashboard">
-      <RightNowPanel
-        data={brief.pinned.rightNow}
-        provenance={brief.pinned.rightNowProvenance}
-        onTaskClick={onTodoClick}
-      />
-      <TodayAgendaPanel
-        items={brief.pinned.todayAgenda}
-        provenance={brief.pinned.todayAgendaProvenance}
-        onTaskClick={onTodoClick}
-        onToggle={onToggleTodo}
-      />
+      <div className="home-dashboard__pinned">
+        <RightNowPanel
+          data={brief.pinned.rightNow}
+          provenance={brief.pinned.rightNowProvenance}
+          onTaskClick={onTodoClick}
+        />
+        <TodayAgendaPanel
+          items={brief.pinned.todayAgenda}
+          provenance={brief.pinned.todayAgendaProvenance}
+          onTaskClick={onTodoClick}
+          onToggle={onToggleTodo}
+        />
+      </div>
 
       {brief.rankedPanels.length > 0 && (
         <>
           <div className="focus-divider">Surfaced for you</div>
-          {brief.rankedPanels.slice(0, 3).map((panel) => (
-            <PanelRenderer
-              key={panel.type}
-              panel={panel}
-              onTaskClick={onTodoClick}
-              onSelectProject={onSelectProject}
-              onEditTodo={onEditTodo}
-            />
-          ))}
+          <div className="home-dashboard__ranked">
+            {brief.rankedPanels.slice(0, 3).map((panel) => (
+              <PanelRenderer
+                key={panel.type}
+                panel={panel}
+                onTaskClick={onTodoClick}
+                onSelectProject={onSelectProject}
+                onEditTodo={onEditTodo}
+              />
+            ))}
+            {showMore &&
+              brief.rankedPanels.slice(3).map((panel) => (
+                <PanelRenderer
+                  key={panel.type}
+                  panel={panel}
+                  onTaskClick={onTodoClick}
+                  onSelectProject={onSelectProject}
+                  onEditTodo={onEditTodo}
+                />
+              ))}
+          </div>
           {brief.rankedPanels.length > 3 && (
-            <>
-              {showMore &&
-                brief.rankedPanels.slice(3).map((panel) => (
-                  <PanelRenderer
-                    key={panel.type}
-                    panel={panel}
-                    onTaskClick={onTodoClick}
-                    onSelectProject={onSelectProject}
-                    onEditTodo={onEditTodo}
-                  />
-                ))}
-              <button
-                className="focus-disclosure"
-                onClick={() => setShowMore((s) => !s)}
-              >
-                {showMore
-                  ? "Show less ▴"
-                  : `Show ${brief.rankedPanels.length - 3} more panels ▾`}
-              </button>
-            </>
+            <button
+              className="focus-disclosure"
+              onClick={() => setShowMore((s) => !s)}
+            >
+              {showMore
+                ? "Show less ▴"
+                : `Show ${brief.rankedPanels.length - 3} more panels ▾`}
+            </button>
           )}
         </>
       )}
