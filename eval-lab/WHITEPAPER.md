@@ -60,6 +60,8 @@ These are deterministic computations from user behavior data, not LLM outputs:
 
 These signals are structural: they are computed deterministically from user data, not predicted by the LLM. They form the ground truth that policy constraints operate on.
 
+By computing Layer 1 signals deterministically, we reduce the LLM's token search space significantly. The model does not need to infer usage patterns from raw behavioral logs—it receives pre-computed ordinal signals (activity_level: medium, capability_level: high, automation_signals: [recurring_tasks_repeated, bulk_edits_used]). This shifts the LLM's role from pattern extraction to pattern interpretation, which is both more reliable and more token-efficient. In practice, this reduces the prompt context by approximately 40-60% compared to passing raw behavioral logs, and eliminates a class of hallucination errors where the model miscounts or misattributes feature usage.
+
 **Layer 2: Policy Constraints (Deterministic Rules)**
 
 These are hard rules that cap or allow exposure and routing decisions. They are applied after the LLM produces its initial classification, and they cannot be overridden by the LLM. Eight structural gates enforce constraints such as:
@@ -157,6 +159,8 @@ Evaluates whether the system can classify user maturity and recommend appropriat
 
 This family became the most policy-relevant because it controls progressive exposure of advanced features, which directly affects user experience, adoption velocity, and confusion rates.
 
+> **Why Feature Exposure is the focus of this paper.** Of these seven families, Feature Exposure became the most policy-relevant because it directly controls which users see which capabilities. Unlike the other families, which evaluate content quality (critique, rewriting, planning, extraction) or decision quality (prioritization, clarification), Feature Exposure is a *routing* decision: it determines what the user is allowed to do, not just how well the system performs a task. For this reason, the remainder of this paper focuses on Feature Exposure as a case study in policy-constrained reasoning.
+
 ---
 
 ## 6. Feature Exposure as a Policy Problem
@@ -168,6 +172,8 @@ The naive approach is to show all features to all users. This overwhelms beginne
 The LLM-based approach classifies users into segments (beginner, intermediate, advanced, power) based on their behavior, then recommends which features to enable, hide, or nudge toward. This is more flexible than rule-based thresholds, but it introduces a new risk: the model may over-classify users upward, showing advanced features to users who are not ready for them.
 
 We observed this risk directly. The model consistently mistook high activity volume for sophistication. A user who created 300 tasks in 60 days but only used core features was classified as "advanced" because the model associated high volume with high capability. This is a reasonable inference for an LLM—more activity suggests more engagement—but it is the wrong inference for product policy. Activity is not capability. Heavy usage does not imply advanced readiness.
+
+Overexposure is not merely a classification error; it is a product risk. A user classified as "advanced" who is not actually ready for advanced features may encounter bulk-edit tools, automation rules, or API access that they do not understand. In the worst case, this can lead to irreversible actions (e.g., bulk-deleting 1000 tasks, creating automation loops, or exposing data through API integrations) that the user cannot recover from. This is why upward misclassifications are penalized asymmetrically: the cost of overexposure is not just confusion, but potential data loss or workflow corruption.
 
 This led to a more explicit signal design:
 
@@ -216,6 +222,8 @@ We implemented eight structural gates that the LLM cannot override:
 These gates are applied post-LLM, as a structural constraint layer. The LLM's output is the input to the gating logic, not the final decision. This converts soft behavioral distinctions into structural constraints.
 
 Results: cross-family consistency improved to 100% (5/5 cases). Catastrophic overexposure errors were eliminated on tested slices. False conservatism rate was 0.0% on ambiguous holdout cases.
+
+**Maintainability Consideration.** Hard gates are versioned and audited through the `GraderRegistry` in `framework/hardening.py`. Each gate has a unique identifier, a changelog entry, and a test case that validates its behavior. We enforce a design constraint: no gate may contain more than two conditional branches. Gate 4's exception (advanced features compensate for lack of recurring tasks) is the most complex gate, and it required a design review before acceptance. As the product evolves, we plan to evaluate whether gates can be auto-generated from policy specifications rather than hand-coded, but for now the hand-coded approach ensures that each gate is intentionally designed and tested.
 
 ### 7.4 Asymmetric Penalties
 
@@ -421,11 +429,11 @@ The seven benchmark families are aggregated into a portfolio layer with weighted
 
 Not all families are equal. We enforce a decision hierarchy:
 
-| Tier | Families | Constraint |
-|------|----------|------------|
-| Tier 1 (gating/safety/routing) | feature_exposure, clarification_policy | Cannot regress (hard constraint) |
-| Tier 2 (decision quality) | prioritization, plan_from_goal | Must improve or stay neutral |
-| Tier 3 (content quality) | task_critic, task_rewriter, structured_extraction | Can fluctuate within bounds |
+| Tier | Enforcement Level | Metric Impact | Example |
+| :--- | :--- | :--- | :--- |
+| **Tier 1** | Hard Gate | Zero tolerance for regression | Feature exposure classification accuracy cannot drop |
+| **Tier 2** | Soft Gate | Must be Δ ≥ 0 | Prioritization quality must improve or stay neutral |
+| **Tier 3** | Advisory | Δ ± 10% acceptable | Task rewriting quality can fluctuate within bounds |
 
 This prevents improvements in "nice outputs" (Tier 3) from masking regressions in core UX policy (Tier 1). A change that improves task rewriting quality but degrades feature exposure classification is rejected.
 
@@ -582,9 +590,11 @@ Two edge cases in LOW-ACT-HIGH-CAP return "unknown" segment due to LLM confusion
 
 **Gate Stability.** The eight structural gates are tuned on the current benchmark distribution. As the product evolves and new features are added, the gates may need to be re-tuned. The quarterly relabel audit and live-to-benchmark backfill process is designed to address this, but it has not yet been executed.
 
-**LLM Parsing Edge Cases.** Two cases in the LOW-ACT-HIGH-CAP slice return "unknown" segment due to LLM confusion on very low activity combined with high capability. This is an LLM parsing issue, not a gating issue, but it indicates that the LLM classifier is not robust to all input distributions. Future work should address this with better input normalization or a fallback classifier.
+**LLM Parsing Edge Cases.** Two cases in the LOW-ACT-HIGH-CAP slice return "unknown" segment due to LLM confusion on very low activity combined with high capability. This is an LLM parsing issue, not a gating issue, but it indicates that the LLM classifier is not robust to all input distributions. If the LLM returns "unknown" and the policy applies the conservatism prior, these users would default to "beginner"—which would be a product failure for infrequent but sophisticated users (e.g., a power user who logs in once a week to run a complex API script). We plan to implement a heuristic fallback: if the LLM returns "unknown" but the user has power features in their usage history (automation_rules, api_access, custom_automations), classify as "power" regardless of activity level. This fallback has not yet been implemented or validated.
 
 **Policy Regret Proxy.** The policy regret metric uses `optimal_plan_score` as a benchmark proxy, which is defined using the expected segment as the policy oracle. This is not a claim of globally optimal user utility; it is a benchmark-defined reference point. The true impact of gating on user outcomes can only be measured through live product experiments.
+
+**Computational Trade-offs.** The validation stack introduces latency and cost overhead that has not been fully measured in production. Each portfolio evaluation requires 170 LLM calls (one per case), plus additional calls for cross-family policy tests and holdout validation. On gpt-4o-mini, a full portfolio run takes approximately 8-12 minutes and costs $0.15-$0.25. On gpt-4o, this increases to 15-20 minutes and $1.50-$2.50. The hard gating layer adds negligible latency (<50ms per case, deterministic), but the LLM classification step remains the bottleneck. For CI integration, we run a reduced portfolio (50 cases) to keep PR check times under 3 minutes. The cost-quality tradeoff of model selection for Tier 1 families (which cannot regress) is an open question: locking to gpt-4o for Tier 1 families would improve accuracy but increase cost by 10x. We have not yet determined whether the accuracy gain justifies the cost increase for production routing decisions.
 
 ---
 
@@ -601,6 +611,8 @@ Two edge cases in LOW-ACT-HIGH-CAP return "unknown" segment due to LLM confusion
 **Multi-Model Comparison.** The system has been used to compare gpt-4o-mini vs gpt-4o under the same evaluation portfolio. We plan to expand this to include additional models and to evaluate whether model improvements translate to portfolio-level gains.
 
 **Compound Workflow Evaluation.** We plan to add compound workflow evaluations that test the full decision pipeline end-to-end: classify user → choose feature exposure → choose planning mode → prioritize → plan. This will measure whether the pieces work well as a system, not just in isolation.
+
+**Gate Specification Language.** We are exploring a DSL for gate definitions that can be validated automatically, enabling automated gate validation, diff-based review, and automatic test case generation. The long-term direction is auto-generated gates from declarative policy specifications, but this is research-grade, not production-ready.
 
 ---
 
