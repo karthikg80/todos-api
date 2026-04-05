@@ -2760,27 +2760,79 @@ body {
   }
 }
 
-/* --- Home dashboard (classic Focus — pixel-matched) --- */
+/* ── Dashboard Tabletop ────────────────────── */
+
 .home-dashboard {
   display: grid;
   gap: var(--s-4);
-  max-width: 960px;
+  max-width: 720px;
   margin: 0 auto;
-  padding: var(--s-4);
+  padding: var(--s-5);
+  background: var(--tarot-tabletop);
+  min-height: 100%;
 }
 
 .home-dashboard__pinned {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--s-4);
+  gap: 20px;
   align-items: stretch;
+}
+
+.home-dashboard__pinned .flip-card__inner {
+  height: 360px;
+}
+
+.home-dashboard__pinned .flip-card__front,
+.home-dashboard__pinned .flip-card__back {
+  height: 360px;
+}
+
+/* Hero gradient washes */
+.home-dashboard__pinned .flip-card:first-child .flip-card__front {
+  background: linear-gradient(
+    135deg,
+    var(--tarot-parchment),
+    color-mix(in oklab, var(--tarot-red) 2%, var(--tarot-parchment))
+  );
+}
+
+.home-dashboard__pinned .flip-card:nth-child(2) .flip-card__front {
+  background: linear-gradient(
+    135deg,
+    var(--tarot-parchment),
+    color-mix(in oklab, var(--tarot-sage) 3%, var(--tarot-parchment))
+  );
 }
 
 .home-dashboard__ranked {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--s-4);
+  gap: 20px;
   align-items: stretch;
+}
+
+.home-dashboard__ranked .flip-card__inner {
+  height: 300px;
+}
+
+.home-dashboard__ranked .flip-card__front,
+.home-dashboard__ranked .flip-card__back {
+  height: 300px;
+}
+
+/* Content overflow fade */
+.home-dashboard__ranked .flip-card__front::after,
+.home-dashboard__pinned .flip-card__front::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: linear-gradient(transparent, var(--tarot-parchment));
+  pointer-events: none;
+  border-radius: 0 0 4px 4px;
 }
 
 @media (max-width: 768px) {
@@ -3026,11 +3078,21 @@ body {
   font-weight: 600;
 }
 
-.focus-panel__title--danger { color: var(--danger); }
-.focus-panel__title--accent { color: var(--accent); }
-.focus-panel__title--warning { color: var(--warning); }
-.focus-panel__title--purple { color: #8b5cf6; }
-.focus-panel__title--success { color: var(--success); }
+.focus-panel__title--danger {
+  color: var(--danger);
+}
+.focus-panel__title--accent {
+  color: var(--accent);
+}
+.focus-panel__title--warning {
+  color: var(--warning);
+}
+.focus-panel__title--purple {
+  color: #8b5cf6;
+}
+.focus-panel__title--success {
+  color: var(--success);
+}
 
 .focus-panel__subtitle {
   font-size: var(--fs-xs);
@@ -3050,7 +3112,7 @@ body {
   padding: var(--s-4) 0;
 }
 
-/* ── Flip Card System ──────────────────────── */
+/* ── Tarot Card Shell ──────────────────────── */
 
 .flip-card {
   perspective: 1000px;
@@ -3069,11 +3131,14 @@ body {
 .flip-card__front,
 .flip-card__back {
   backface-visibility: hidden;
-  border-radius: var(--r-lg);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.06);
-  border: 1px solid var(--border-light);
-  background: var(--surface);
-  padding: var(--s-4);
+  background: var(--tarot-parchment);
+  border: 1px solid var(--tarot-border);
+  border-radius: 6px;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 4px 12px rgba(0, 0, 0, 0.06),
+    0 8px 24px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
 }
 
 .flip-card__front {
@@ -3082,102 +3147,188 @@ body {
   position: relative;
 }
 
-/* Geometric inner border frame — collectible card feel */
-.flip-card__front::before {
-  content: "";
+.flip-card__back {
+  transform: rotateY(180deg);
   position: absolute;
-  inset: 8px;
-  border: 1px solid color-mix(in oklab, var(--muted) 10%, transparent);
-  border-radius: calc(var(--r-lg) - 6px);
-  pointer-events: none;
-}
-
-/* ── Competing (ranked) cards — fixed 280px ── */
-
-.home-dashboard__ranked .flip-card__inner {
-  height: 280px;
-}
-
-.home-dashboard__ranked .flip-card__front {
-  height: 280px;
-  overflow: hidden;
-}
-
-/* Fade-out gradient at bottom if content overflows */
-.home-dashboard__ranked .flip-card__front::after {
-  content: "";
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 40px;
-  background: linear-gradient(transparent, var(--surface));
-  pointer-events: none;
-}
-
-.home-dashboard__ranked .flip-card__back {
-  height: 280px;
+  inset: 0;
+  background: var(--tarot-parchment-dark);
   overflow-y: auto;
 }
 
-/* ── Hero pinned cards — fixed 340px ── */
-
-.home-dashboard__pinned .flip-card__inner {
-  height: 340px;
-}
-
-.home-dashboard__pinned .flip-card__front,
-.home-dashboard__pinned .flip-card__back {
-  padding: var(--s-5);
-}
-
-.home-dashboard__pinned .flip-card__front {
-  height: 340px;
+/* Inner frame — printed margin effect */
+.tarot-frame {
+  margin: 8px;
+  border: 1px solid var(--tarot-frame);
+  border-radius: 4px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: calc(100% - 16px);
 }
 
-.home-dashboard__pinned .flip-card__front::after {
+/* Corner markers */
+.tarot-corners {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 12px 0;
+}
+
+.tarot-corner {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.tarot-corner--ai {
+  color: var(--tarot-gold);
+}
+.tarot-corner--sys {
+  color: var(--tarot-sage);
+}
+
+/* Card name plate */
+.tarot-name {
+  text-align: center;
+  padding: 4px 16px 8px;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--tarot-muted);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+/* Central illustration */
+.tarot-illustration {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 8px 24px 12px;
+}
+
+.tarot-illustration svg {
+  opacity: 0.5;
+}
+
+.tarot-illustration--hero svg {
+  opacity: 0.7;
+}
+
+/* Content divider */
+.tarot-divider {
+  margin: 0 16px;
+  border-top: 1px solid var(--tarot-frame);
+}
+
+/* Ornamental divider (for card back) */
+.tarot-divider--ornament {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 24px;
+}
+
+.tarot-divider--ornament::before,
+.tarot-divider--ornament::after {
   content: "";
+  flex: 1;
+  border-top: 1px solid var(--tarot-frame);
+}
+
+.tarot-divider--ornament span {
+  font-size: 8px;
+  color: var(--tarot-faint);
+}
+
+/* Content area */
+.tarot-content {
+  padding: 12px 16px;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Bottom corners (mirrored) */
+.tarot-corners--bottom {
+  padding: 0 12px 8px;
+}
+
+.tarot-corners--bottom .tarot-corner:last-child {
+  transform: rotate(180deg);
+}
+
+/* Dog ear fold */
+.dog-ear {
   position: absolute;
-  bottom: 0;
-  left: 0;
+  top: 0;
   right: 0;
-  height: 40px;
-  background: linear-gradient(transparent, var(--surface));
-  pointer-events: none;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  z-index: 5;
 }
 
-.home-dashboard__pinned .flip-card__back {
-  height: 340px;
-  overflow-y: auto;
+.dog-ear__fold {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 28px 28px 0;
+  border-color: transparent
+    color-mix(in oklab, var(--tarot-muted) 15%, transparent) transparent
+    transparent;
+  transition: border-color 0.2s ease;
 }
 
-/* Hero inner border frame — accent tinted */
-.home-dashboard__pinned .flip-card__front::before {
-  border-color: color-mix(in oklab, var(--accent) 15%, transparent);
-  inset: 10px;
+.dog-ear__under {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 26px 26px 0;
+  border-color: transparent var(--tarot-parchment) transparent transparent;
 }
 
-/* Hero gradient backgrounds instead of thin top border */
-.home-dashboard__pinned .flip-card:first-child .flip-card__front {
-  background: linear-gradient(135deg, var(--surface), color-mix(in oklab, var(--danger) 3%, var(--surface)));
-}
-
-.home-dashboard__pinned .flip-card:nth-child(2) .flip-card__front {
-  background: linear-gradient(135deg, var(--surface), color-mix(in oklab, var(--accent) 3%, var(--surface)));
+.dog-ear:hover .dog-ear__fold {
+  border-color: transparent
+    color-mix(in oklab, var(--tarot-muted) 30%, transparent) transparent
+    transparent;
 }
 
 /* ── Card accent colors per panel type ── */
 
-.panel-right-now { --card-accent: var(--danger); }
-.panel-today-agenda { --card-accent: var(--accent); }
-.panel-due-soon { --card-accent: var(--danger); }
-.panel-what-next { --card-accent: var(--accent); }
-.panel-unsorted { --card-accent: var(--warning); }
-.panel-backlog { --card-accent: var(--warning); }
-.panel-nudge { --card-accent: #8b5cf6; }
-.panel-track { --card-accent: var(--accent); }
-.panel-rescue { --card-accent: var(--danger); }
+.panel-right-now {
+  --card-accent: var(--danger);
+}
+.panel-today-agenda {
+  --card-accent: var(--accent);
+}
+.panel-due-soon {
+  --card-accent: var(--danger);
+}
+.panel-what-next {
+  --card-accent: var(--accent);
+}
+.panel-unsorted {
+  --card-accent: var(--warning);
+}
+.panel-backlog {
+  --card-accent: var(--warning);
+}
+.panel-nudge {
+  --card-accent: #8b5cf6;
+}
+.panel-track {
+  --card-accent: var(--accent);
+}
+.panel-rescue {
+  --card-accent: var(--danger);
+}
 
 /* ── Watermark art — faded illustration in bottom-right ── */
 
@@ -3218,59 +3369,6 @@ body {
   font-style: italic;
   margin-top: auto;
   padding-top: var(--s-3);
-}
-
-.flip-card:hover .flip-card__front {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 8px 24px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.flip-card__back {
-  transform: rotateY(180deg);
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--surface), color-mix(in oklab, var(--surface) 95%, var(--muted)));
-  overflow-y: auto;
-}
-
-/* ── Dog Ear Fold ──────────────────────────── */
-
-.dog-ear {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 28px;
-  height: 28px;
-  cursor: pointer;
-  z-index: 5;
-}
-
-.dog-ear__fold {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 0 28px 28px 0;
-  border-color: transparent color-mix(in oklab, var(--muted) 15%, transparent) transparent transparent;
-  transition: border-color var(--dur-fast) ease;
-}
-
-.dog-ear__under {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 0;
-  height: 0;
-  border-style: solid;
-  border-width: 0 26px 26px 0;
-  border-color: transparent var(--surface) transparent transparent;
-}
-
-.dog-ear:hover .dog-ear__fold {
-  border-color: transparent color-mix(in oklab, var(--muted) 30%, transparent) transparent transparent;
 }
 
 /* ── Card Back ─────────────────────────────── */
@@ -3584,9 +3682,18 @@ body {
   color: var(--muted);
 }
 
-.focus-badge--high { background: color-mix(in oklab, var(--danger) 10%, transparent); color: var(--danger); }
-.focus-badge--medium { background: color-mix(in oklab, var(--warning) 10%, transparent); color: var(--warning); }
-.focus-badge--low { background: var(--surface-2); color: var(--muted); }
+.focus-badge--high {
+  background: color-mix(in oklab, var(--danger) 10%, transparent);
+  color: var(--danger);
+}
+.focus-badge--medium {
+  background: color-mix(in oklab, var(--warning) 10%, transparent);
+  color: var(--warning);
+}
+.focus-badge--low {
+  background: var(--surface-2);
+  color: var(--muted);
+}
 
 /* ── Focus Group (for due soon bands) ──────── */
 
@@ -3623,9 +3730,17 @@ body {
   margin-bottom: var(--s-2);
 }
 
-.focus-track__header--thisWeek { color: var(--warning); border-color: var(--warning); }
-.focus-track__header--next14Days { color: var(--accent); border-color: var(--accent); }
-.focus-track__header--later { color: var(--muted); }
+.focus-track__header--thisWeek {
+  color: var(--warning);
+  border-color: var(--warning);
+}
+.focus-track__header--next14Days {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.focus-track__header--later {
+  color: var(--muted);
+}
 
 .focus-track__item {
   font-size: var(--fs-label);
@@ -3633,32 +3748,210 @@ body {
   color: var(--text);
 }
 
-/* ── Surfaced divider ──────────────────────── */
+/* ── Tarot Data Composition ────────────────── */
 
-.focus-divider {
-  font-size: var(--fs-xs);
-  text-transform: uppercase;
+/* Ranked entries (The Compass) */
+.tarot-ranked-entry {
+  margin-bottom: 12px;
+}
+
+.tarot-ranked-entry__header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.tarot-ranked-numeral {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 300;
+  color: var(--tarot-gold);
+  line-height: 1;
+}
+
+.tarot-ranked-entry__reason {
+  padding-left: 26px;
+  font-size: 11px;
+  color: var(--tarot-muted);
+  line-height: 1.4;
+}
+
+.tarot-ranked-entry__meta {
+  padding-left: 26px;
+  margin-top: 4px;
+}
+
+.tarot-micro-label {
+  font-size: 9px;
   letter-spacing: 0.06em;
-  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.tarot-micro-label--high {
+  color: var(--tarot-red);
+}
+.tarot-micro-label--medium {
+  color: var(--tarot-amber);
+}
+.tarot-micro-label--low {
+  color: var(--tarot-muted);
+}
+
+.tarot-micro-sep {
+  font-size: 9px;
+  color: var(--tarot-faint);
+  margin: 0 4px;
+}
+
+/* Narrative (The Flame) */
+.tarot-narrative {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--tarot-text);
+  margin: 0 0 12px;
+}
+
+/* Action band (The Flame) */
+.tarot-action-band {
+  padding: 10px 12px;
+  background: color-mix(in oklab, var(--tarot-gold) 4%, transparent);
+  border-radius: 4px;
+  border-left: 2px solid var(--tarot-gold);
+}
+
+.tarot-action-band__label {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--tarot-muted);
+  margin-bottom: 4px;
+}
+
+.tarot-action-band__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--tarot-text);
+}
+
+.tarot-action-band__reason {
+  font-size: 11px;
+  color: var(--tarot-muted);
+  margin-top: 3px;
+}
+
+/* Illustration caption */
+.tarot-illustration__caption {
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tarot-muted);
+  text-align: center;
+  margin-top: 4px;
+}
+
+/* Card back inscription */
+.tarot-inscription {
+  padding: 12px 24px;
+  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-family: -apple-system, sans-serif;
+}
+
+.tarot-inscription__label {
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.tarot-inscription__label--ai {
+  color: var(--tarot-gold);
+}
+.tarot-inscription__label--sys {
+  color: var(--tarot-sage);
+}
+
+.tarot-inscription__source {
+  font-size: 13px;
+  color: var(--tarot-text);
+  font-weight: 500;
+  font-family: Georgia, "Times New Roman", serif;
+  margin-bottom: 2px;
+}
+
+.tarot-inscription__detail {
+  font-size: 10px;
+  color: var(--tarot-muted);
+  letter-spacing: 0.04em;
+}
+
+.tarot-inscription__rule {
+  margin: 12px auto;
+  width: 40px;
+  border-top: 1px solid var(--tarot-frame);
+}
+
+.tarot-inscription__intent {
+  font-size: 11px;
+  color: var(--tarot-muted);
+  line-height: 1.5;
+  margin: 0;
+  font-style: italic;
+}
+
+.tarot-inscription__mono {
+  font-size: 11px;
+  color: var(--tarot-muted);
+  line-height: 1.5;
+  margin: 0;
+  font-family: "SF Mono", SFMono-Regular, monospace;
+  letter-spacing: -0.02em;
+}
+
+.tarot-inscription__text {
+  font-size: 11px;
+  color: var(--tarot-muted);
+}
+
+/* Light day message */
+.tarot-light-day {
+  font-size: 11px;
+  color: var(--tarot-muted);
+  font-style: italic;
+  margin-top: auto;
+  padding-top: 12px;
+  text-align: center;
+}
+
+/* Surfaced divider */
+.focus-divider {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tarot-muted);
   padding: var(--s-2) 0;
 }
 
-/* ── Disclosure toggle ─────────────────────── */
-
+/* Disclosure */
 .focus-disclosure {
   background: none;
   border: none;
   font-family: inherit;
-  font-size: var(--fs-label);
-  color: var(--muted);
+  font-size: 11px;
+  color: var(--tarot-muted);
   cursor: pointer;
   padding: var(--s-2) 0;
   text-align: center;
   width: 100%;
+  letter-spacing: 0.04em;
 }
 
 .focus-disclosure:hover {
-  color: var(--text);
+  color: var(--tarot-text);
 }
 
 /* --- Task composer modal --- */
@@ -4122,9 +4415,21 @@ body {
   flex-direction: column;
   gap: var(--s-4);
   background:
-    radial-gradient(circle at top right, color-mix(in oklab, var(--accent) 8%, transparent), transparent 34%),
-    radial-gradient(circle at 14% 12%, color-mix(in oklab, #c4d4ff 20%, transparent), transparent 26%),
-    linear-gradient(180deg, color-mix(in oklab, var(--surface) 98%, var(--bg)) 0%, var(--bg) 100%);
+    radial-gradient(
+      circle at top right,
+      color-mix(in oklab, var(--accent) 8%, transparent),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 14% 12%,
+      color-mix(in oklab, #c4d4ff 20%, transparent),
+      transparent 26%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--surface) 98%, var(--bg)) 0%,
+      var(--bg) 100%
+    );
 }
 
 .project-workspace__hero {
@@ -4135,12 +4440,11 @@ body {
   padding: var(--s-4) var(--s-5);
   border: 1px solid var(--border-light);
   border-radius: calc(var(--r-lg) + 4px);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--surface) 98%, #f7f4ee) 0%,
-      color-mix(in oklab, var(--surface) 95%, #efe7db) 100%
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 98%, #f7f4ee) 0%,
+    color-mix(in oklab, var(--surface) 95%, #efe7db) 100%
+  );
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
   overflow: hidden;
 }
@@ -4152,7 +4456,11 @@ body {
   width: 36%;
   height: 100%;
   background:
-    radial-gradient(circle at top left, rgb(255 255 255 / 0.6), transparent 58%),
+    radial-gradient(
+      circle at top left,
+      rgb(255 255 255 / 0.6),
+      transparent 58%
+    ),
     linear-gradient(135deg, rgb(255 255 255 / 0.14), transparent 72%);
   pointer-events: none;
 }
@@ -4220,12 +4528,11 @@ body {
   padding: var(--s-4);
   border-radius: calc(var(--r-lg) + 2px);
   border: 1px solid color-mix(in oklab, var(--border-light) 72%, white);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, white 70%, var(--surface)) 0%,
-      color-mix(in oklab, var(--surface) 92%, #f6eadc) 100%
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, white 70%, var(--surface)) 0%,
+    color-mix(in oklab, var(--surface) 92%, #f6eadc) 100%
+  );
   box-shadow:
     0 12px 24px rgba(15, 23, 42, 0.06),
     inset 0 1px 0 rgb(255 255 255 / 0.45);
@@ -4289,7 +4596,9 @@ body {
   color: var(--muted);
   cursor: pointer;
   opacity: 0;
-  transition: opacity var(--dur-fast) ease, background var(--dur-fast) ease;
+  transition:
+    opacity var(--dur-fast) ease,
+    background var(--dur-fast) ease;
 }
 
 .project-workspace__title-row:hover .project-kebab__trigger,
@@ -4562,7 +4871,11 @@ body {
 .project-workspace__progress-fill {
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent), color-mix(in oklab, var(--accent) 76%, white));
+  background: linear-gradient(
+    90deg,
+    var(--accent),
+    color-mix(in oklab, var(--accent) 76%, white)
+  );
 }
 
 .project-workspace__hero-note {
@@ -4644,39 +4957,53 @@ body {
 
 .project-workspace-card--focus::before,
 .project-workspace-card--chapters::before {
-  background: linear-gradient(90deg, color-mix(in oklab, var(--accent) 72%, white), transparent 78%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--accent) 72%, white),
+    transparent 78%
+  );
 }
 
 .project-workspace-card--risk::before {
-  background: linear-gradient(90deg, color-mix(in oklab, var(--danger) 76%, white), transparent 78%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--danger) 76%, white),
+    transparent 78%
+  );
 }
 
 .project-workspace-card--cleanup::before {
-  background: linear-gradient(90deg, color-mix(in oklab, var(--warning) 76%, white), transparent 78%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--warning) 76%, white),
+    transparent 78%
+  );
 }
 
 .project-workspace-card--recent::before,
 .project-workspace-card--section-detail::before,
 .project-workspace-card--insights::before {
-  background: linear-gradient(90deg, color-mix(in oklab, var(--success) 66%, white), transparent 78%);
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--success) 66%, white),
+    transparent 78%
+  );
 }
 
 .project-workspace-card--next {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--surface) 99%, #faf6f0) 0%,
-      color-mix(in oklab, var(--surface) 96%, #f6eee3) 100%
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 99%, #faf6f0) 0%,
+    color-mix(in oklab, var(--surface) 96%, #f6eee3) 100%
+  );
 }
 
 .project-workspace-card--primary {
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--surface) 98%, var(--surface-2)) 0%,
-      color-mix(in oklab, var(--surface) 95%, #f7f8fb) 100%
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 98%, var(--surface-2)) 0%,
+    color-mix(in oklab, var(--surface) 95%, #f7f8fb) 100%
+  );
 }
 
 .project-workspace-card--insights {
@@ -4748,7 +5075,10 @@ body {
   gap: var(--s-1);
   width: 100%;
   text-align: left;
-  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
+  transition:
+    transform 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
 }
 
 .project-workspace-task-preview {
@@ -4815,12 +5145,11 @@ body {
   padding: var(--s-4);
   border-radius: var(--r-lg);
   border: 1px solid var(--border-light);
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in oklab, var(--surface) 98%, var(--surface-2)) 0%,
-      color-mix(in oklab, var(--surface) 92%, var(--surface-2)) 100%
-    );
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklab, var(--surface) 98%, var(--surface-2)) 0%,
+    color-mix(in oklab, var(--surface) 92%, var(--surface-2)) 100%
+  );
   overflow: hidden;
 }
 
@@ -4830,7 +5159,11 @@ body {
   inset: 0;
   background:
     linear-gradient(180deg, rgb(255 255 255 / 0.3), transparent 32%),
-    radial-gradient(circle at top right, color-mix(in oklab, var(--accent) 12%, transparent), transparent 36%);
+    radial-gradient(
+      circle at top right,
+      color-mix(in oklab, var(--accent) 12%, transparent),
+      transparent 36%
+    );
   pointer-events: none;
 }
 
@@ -4846,7 +5179,11 @@ body {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent), color-mix(in oklab, var(--accent) 72%, white));
+  background: linear-gradient(
+    90deg,
+    var(--accent),
+    color-mix(in oklab, var(--accent) 72%, white)
+  );
 }
 
 .project-workspace-insights-grid {
@@ -6349,7 +6686,6 @@ body {
   color: var(--success);
 }
 
-
 /* --- Projects to nudge --- */
 .home-project-row {
   display: flex;
@@ -6430,7 +6766,6 @@ body {
   color: var(--success);
   font-weight: var(--fw-medium);
 }
-
 
 .plan-slot {
   display: flex;
@@ -6707,7 +7042,6 @@ body {
   padding: var(--s-1) var(--s-3);
 }
 
-
 /* --- Drag handle --- */
 .sortable-row {
   display: flex;
@@ -6897,7 +7231,7 @@ body {
   }
 
   .home-dashboard {
-    max-width: 960px;
+    max-width: 720px;
   }
 }
 
@@ -7347,7 +7681,6 @@ body {
 [data-density="spacious"] .workspace-view-item {
   padding: var(--s-3) var(--s-4);
 }
-
 
 /* --- Today coaching banner --- */
 .today-coaching-banner {
@@ -9652,17 +9985,19 @@ body {
   --ds-toggle-pill-hover: color-mix(in oklab, var(--surface) 52%, transparent);
   --ds-toggle-meta: color-mix(in oklab, var(--surface) 40%, var(--surface-3));
   --ds-toggle-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.82),
-    inset 0 -1px 0 rgb(23 23 23 / 0.02);
+    inset 0 1px 0 rgb(255 255 255 / 0.82), inset 0 -1px 0 rgb(23 23 23 / 0.02);
   --ds-toggle-pill-shadow:
-    0 1px 2px rgb(15 23 42 / 0.08),
-    0 10px 18px rgb(15 23 42 / 0.04),
+    0 1px 2px rgb(15 23 42 / 0.08), 0 10px 18px rgb(15 23 42 / 0.04),
     inset 0 1px 0 rgb(255 255 255 / 0.9);
 }
 
 body.dark-mode {
   --ds-warm-surface: color-mix(in oklab, var(--surface) 92%, var(--surface-2));
-  --ds-warm-surface-strong: color-mix(in oklab, var(--surface-2) 88%, var(--surface-3));
+  --ds-warm-surface-strong: color-mix(
+    in oklab,
+    var(--surface-2) 88%,
+    var(--surface-3)
+  );
   --ds-soft-border: color-mix(in oklab, var(--border) 76%, var(--surface-3));
   --ds-quiet-text: color-mix(in oklab, var(--muted) 78%, var(--text));
   --ds-toggle-rail: color-mix(in oklab, var(--surface-2) 88%, var(--surface-3));
@@ -9670,11 +10005,9 @@ body.dark-mode {
   --ds-toggle-pill-hover: color-mix(in oklab, var(--surface) 32%, transparent);
   --ds-toggle-meta: color-mix(in oklab, var(--surface-2) 32%, var(--surface-3));
   --ds-toggle-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.04),
-    inset 0 -1px 0 rgb(0 0 0 / 0.2);
+    inset 0 1px 0 rgb(255 255 255 / 0.04), inset 0 -1px 0 rgb(0 0 0 / 0.2);
   --ds-toggle-pill-shadow:
-    0 1px 2px rgb(0 0 0 / 0.35),
-    0 10px 18px rgb(0 0 0 / 0.14),
+    0 1px 2px rgb(0 0 0 / 0.35), 0 10px 18px rgb(0 0 0 / 0.14),
     inset 0 1px 0 rgb(255 255 255 / 0.05);
 }
 
@@ -10917,7 +11250,8 @@ body.dark-mode {
    Project View Enhancements
    ========================================================================== */
 
-.project-workspace__snapshot-item--actionable .project-workspace__snapshot-value {
+.project-workspace__snapshot-item--actionable
+  .project-workspace__snapshot-value {
   color: var(--warning);
 }
 
@@ -11027,61 +11361,204 @@ body.dark-mode {
    Urgency Bars (Due Soon)
    ========================================================================== */
 
-.urgency-bars { display: flex; flex-direction: column; gap: var(--s-2); }
-.urgency-bar__label { display: flex; justify-content: space-between; font-size: var(--fs-xs); }
-.urgency-bar__track { height: 6px; background: color-mix(in oklab, var(--muted) 8%, transparent); border-radius: 3px; overflow: hidden; }
-.urgency-bar__fill { height: 100%; border-radius: 3px; }
+.urgency-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.urgency-bar__label {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+}
+.urgency-bar__track {
+  height: 6px;
+  background: color-mix(in oklab, var(--muted) 8%, transparent);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.urgency-bar__fill {
+  height: 100%;
+  border-radius: 3px;
+}
 
 /* ==========================================================================
    Stacked Inbox (Unsorted)
    ========================================================================== */
 
-.inbox-stack { position: relative; margin-bottom: var(--s-2); }
-.inbox-stack__shadow { position: absolute; left: 4px; right: 4px; height: 40px; border-radius: var(--r-sm); }
-.inbox-stack__shadow--far { top: 6px; background: color-mix(in oklab, var(--warning) 4%, transparent); border: 1px solid color-mix(in oklab, var(--warning) 8%, transparent); }
-.inbox-stack__shadow--near { top: 3px; left: 2px; right: 2px; background: color-mix(in oklab, var(--warning) 6%, transparent); border: 1px solid color-mix(in oklab, var(--warning) 10%, transparent); }
-.inbox-stack__front { position: relative; padding: var(--s-3); background: var(--surface); border: 1px solid color-mix(in oklab, var(--warning) 15%, transparent); border-radius: var(--r-sm); box-shadow: var(--shadow-0); }
+.inbox-stack {
+  position: relative;
+  margin-bottom: var(--s-2);
+}
+.inbox-stack__shadow {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 40px;
+  border-radius: var(--r-sm);
+}
+.inbox-stack__shadow--far {
+  top: 6px;
+  background: color-mix(in oklab, var(--warning) 4%, transparent);
+  border: 1px solid color-mix(in oklab, var(--warning) 8%, transparent);
+}
+.inbox-stack__shadow--near {
+  top: 3px;
+  left: 2px;
+  right: 2px;
+  background: color-mix(in oklab, var(--warning) 6%, transparent);
+  border: 1px solid color-mix(in oklab, var(--warning) 10%, transparent);
+}
+.inbox-stack__front {
+  position: relative;
+  padding: var(--s-3);
+  background: var(--surface);
+  border: 1px solid color-mix(in oklab, var(--warning) 15%, transparent);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-0);
+}
 
 /* ==========================================================================
    Decay Bars (Backlog Hygiene)
    ========================================================================== */
 
-.decay-item { display: flex; flex-direction: column; gap: 4px; }
-.decay-item__row { display: flex; justify-content: space-between; font-size: var(--fs-xs); }
-.decay-item__bar { height: 3px; background: color-mix(in oklab, var(--muted) 6%, transparent); border-radius: 2px; overflow: hidden; }
-.decay-item__fill { height: 100%; border-radius: 2px; background: linear-gradient(90deg, var(--warning), var(--danger)); }
+.decay-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.decay-item__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--fs-xs);
+}
+.decay-item__bar {
+  height: 3px;
+  background: color-mix(in oklab, var(--muted) 6%, transparent);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.decay-item__fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--warning), var(--danger));
+}
 
 /* ==========================================================================
    Health Dots (Projects to Nudge)
    ========================================================================== */
 
-.health-item { display: flex; align-items: center; gap: var(--s-3); }
-.health-dot { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
-.health-dot--critical { background: color-mix(in oklab, var(--danger) 10%, transparent); color: var(--danger); }
-.health-dot--warning { background: color-mix(in oklab, var(--warning) 10%, transparent); color: var(--warning); }
+.health-item {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+.health-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.health-dot--critical {
+  background: color-mix(in oklab, var(--danger) 10%, transparent);
+  color: var(--danger);
+}
+.health-dot--warning {
+  background: color-mix(in oklab, var(--warning) 10%, transparent);
+  color: var(--warning);
+}
 
 /* ==========================================================================
    Impact Cards (What Next)
    ========================================================================== */
 
-.impact-card { padding: var(--s-2h) var(--s-3); border-radius: var(--r-sm); border: 1px solid var(--border-light); cursor: pointer; transition: background var(--dur-fast) ease; }
-.impact-card:first-child { border-color: color-mix(in oklab, var(--accent) 15%, transparent); background: color-mix(in oklab, var(--accent) 3%, transparent); }
-.impact-card:hover { background: var(--surface-2); }
-.impact-card__top { display: flex; justify-content: space-between; align-items: center; }
-.impact-card__reason { font-size: var(--fs-xs); color: var(--muted); margin-top: var(--s-1); }
+.impact-card {
+  padding: var(--s-2h) var(--s-3);
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background var(--dur-fast) ease;
+}
+.impact-card:first-child {
+  border-color: color-mix(in oklab, var(--accent) 15%, transparent);
+  background: color-mix(in oklab, var(--accent) 3%, transparent);
+}
+.impact-card:hover {
+  background: var(--surface-2);
+}
+.impact-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.impact-card__reason {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-top: var(--s-1);
+}
 
 /* ==========================================================================
    Timeline
    ========================================================================== */
 
-.timeline { position: relative; padding-left: 20px; }
-.timeline__line { position: absolute; left: 6px; top: 0; bottom: 0; width: 2px; background: color-mix(in oklab, var(--accent) 15%, transparent); }
-.timeline__item { position: relative; margin-bottom: 14px; }
-.timeline__item:last-child { margin-bottom: 0; }
-.timeline__dot { position: absolute; left: -17px; top: 4px; width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--surface); }
-.timeline__content { display: flex; justify-content: space-between; align-items: baseline; }
-.timeline__title { background: none; border: none; font-family: inherit; font-size: var(--fs-body); font-weight: 500; color: var(--text); cursor: pointer; padding: 0; text-align: left; }
-.timeline__title:hover { color: var(--accent); }
-.timeline__meta { font-size: var(--fs-xs); color: var(--muted); flex-shrink: 0; }
-.timeline__overdue { color: var(--danger); font-weight: 500; }
-
+.timeline {
+  position: relative;
+  padding-left: 20px;
+}
+.timeline__line {
+  position: absolute;
+  left: 6px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: color-mix(in oklab, var(--tarot-gold) 15%, transparent);
+}
+.timeline__item {
+  position: relative;
+  margin-bottom: 14px;
+}
+.timeline__item:last-child {
+  margin-bottom: 0;
+}
+.timeline__dot {
+  position: absolute;
+  left: -17px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+.timeline__content {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.timeline__title {
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  font-weight: 500;
+  color: var(--text);
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+.timeline__title:hover {
+  color: var(--tarot-gold);
+}
+.timeline__meta {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.timeline__overdue {
+  color: var(--tarot-red);
+  font-weight: 500;
+}
