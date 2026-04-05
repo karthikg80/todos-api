@@ -2180,6 +2180,22 @@ body {
   white-space: nowrap;
 }
 
+/* ── Filter Menu ───────────────────────────── */
+
+.filter-menu {
+  position: relative;
+}
+
+.filter-menu__panel {
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-elevated);
+  animation: viewMenuIn var(--dur-base) var(--ease-spring);
+  overflow: hidden;
+}
+
 /* ── View Menu ─────────────────────────────── */
 
 .view-menu {
