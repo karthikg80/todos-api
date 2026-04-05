@@ -150,6 +150,7 @@ DEFAULT_GUARDRAILS = {
     "no_safety_regression": True,          # Safety meta-dimension must not regress
     "max_error_rate_increase": 0.05,       # Error rate can increase by at most 5%
     "max_holdout_delta": 0.030,            # Holdout delta threshold for overfitting
+    "max_grader_error_rate": 0.10,         # Grader error rate must be < 10%
 }
 
 
@@ -265,7 +266,21 @@ class CIRegressionGate:
                     f"Holdout delta {holdout_delta:.3f} exceeds threshold {max_holdout_delta:.3f} "
                     f"(possible overfitting)"
                 )
-        
+
+        # 6. Grader error rate check
+        max_grader_error_rate = guardrails.get("max_grader_error_rate", 0.10)
+        candidate_grader_error_rate = candidate_agg.get("grader_error_rate", 0)
+        grader_error_ok = candidate_grader_error_rate <= max_grader_error_rate
+        details["grader_error_rate"] = {
+            "candidate": candidate_grader_error_rate,
+            "threshold": max_grader_error_rate,
+            "passed": grader_error_ok,
+        }
+        if not grader_error_ok:
+            violations.append(
+                f"Grader error rate {candidate_grader_error_rate:.1%} exceeds threshold {max_grader_error_rate:.1%}"
+            )
+
         return GateResult(
             passed=len(violations) == 0,
             violations=violations,
