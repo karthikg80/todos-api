@@ -1705,6 +1705,31 @@ body {
   flex-wrap: wrap;
 }
 
+.settings-archived-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+}
+
+.settings-archived-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--s-2) var(--s-3);
+  background: var(--surface-2);
+  border-radius: var(--r-sm);
+}
+
+.settings-archived-item__name {
+  font-size: var(--fs-body);
+}
+
+.settings-archived-item__actions {
+  display: flex;
+  gap: var(--s-2);
+}
+
 .settings-checkbox {
   display: flex;
   align-items: flex-start;

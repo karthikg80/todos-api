@@ -270,9 +270,100 @@ export function SettingsPage({
             Open Tune-up
           </button>
         </div>
+
+        <div className="settings-field">
+          <span className="settings-field__label">
+            Archived Projects
+            <span className="settings-field__hint">
+              Restore or permanently delete archived projects.
+            </span>
+          </span>
+          <ArchivedProjectsSection />
+        </div>
       </section>
 
       <McpSessionsSection />
+    </div>
+  );
+}
+
+function ArchivedProjectsSection() {
+  const [projects, setProjects] = useState<
+    Array<{ id: string; name: string; archivedAt: string | null }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [actionInFlight, setActionInFlight] = useState<string | null>(null);
+
+  const fetchArchived = useCallback(async () => {
+    try {
+      const res = await apiCall("/projects");
+      if (!res.ok) return;
+      const all = await res.json();
+      setProjects(all.filter((p: any) => p.archived));
+    } catch {
+      /* ignore */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void fetchArchived();
+  }, [fetchArchived]);
+
+  const handleUnarchive = async (id: string) => {
+    setActionInFlight(id);
+    try {
+      await apiCall(`/projects/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ archived: false }),
+      });
+      await fetchArchived();
+    } finally {
+      setActionInFlight(null);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    setActionInFlight(id);
+    try {
+      await apiCall(`/projects/${id}?taskDisposition=unsorted`, {
+        method: "DELETE",
+      });
+      await fetchArchived();
+    } finally {
+      setActionInFlight(null);
+    }
+  };
+
+  if (loading)
+    return <p className="settings-meta">Loading archived projects...</p>;
+  if (projects.length === 0)
+    return <p className="settings-meta">No archived projects.</p>;
+
+  return (
+    <div className="settings-archived-list">
+      {projects.map((p) => (
+        <div key={p.id} className="settings-archived-item">
+          <span className="settings-archived-item__name">{p.name}</span>
+          <div className="settings-archived-item__actions">
+            <button
+              className="btn"
+              onClick={() => handleUnarchive(p.id)}
+              disabled={actionInFlight === p.id}
+            >
+              Restore
+            </button>
+            <button
+              className="btn btn--danger"
+              onClick={() => handleDelete(p.id)}
+              disabled={actionInFlight === p.id}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
