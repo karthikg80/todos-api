@@ -1,0 +1,67 @@
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { ProjectKebabMenu } from "./ProjectKebabMenu";
+
+const defaultProps = {
+  onRename: vi.fn(),
+  onArchive: vi.fn(),
+  onDelete: vi.fn(),
+};
+
+describe("ProjectKebabMenu", () => {
+  it("renders kebab trigger button", () => {
+    render(<ProjectKebabMenu {...defaultProps} />);
+    expect(screen.getByRole("button", { name: /project actions/i })).toBeInTheDocument();
+  });
+
+  it("opens menu on click", () => {
+    render(<ProjectKebabMenu {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    expect(screen.getByRole("menuitem", { name: /rename/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /archive/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /delete/i })).toBeInTheDocument();
+  });
+
+  it("closes on Escape", () => {
+    render(<ProjectKebabMenu {...defaultProps} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("menuitem", { name: /rename/i })).not.toBeInTheDocument();
+  });
+
+  it("calls onRename and closes", () => {
+    const onRename = vi.fn();
+    render(<ProjectKebabMenu {...defaultProps} onRename={onRename} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /rename/i }));
+    expect(onRename).toHaveBeenCalled();
+    expect(screen.queryByRole("menuitem", { name: /rename/i })).not.toBeInTheDocument();
+  });
+
+  it("calls onArchive and closes", () => {
+    const onArchive = vi.fn();
+    render(<ProjectKebabMenu {...defaultProps} onArchive={onArchive} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /archive/i }));
+    expect(onArchive).toHaveBeenCalled();
+  });
+
+  it("shows confirmation on delete click", () => {
+    const onDelete = vi.fn();
+    render(<ProjectKebabMenu {...defaultProps} onDelete={onDelete} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete/i }));
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.getByText(/tasks will become unsorted/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /confirm delete/i })).toBeInTheDocument();
+  });
+
+  it("calls onDelete after confirmation", () => {
+    const onDelete = vi.fn();
+    render(<ProjectKebabMenu {...defaultProps} onDelete={onDelete} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /delete/i }));
+    fireEvent.click(screen.getByRole("button", { name: /confirm delete/i }));
+    expect(onDelete).toHaveBeenCalled();
+  });
+});
