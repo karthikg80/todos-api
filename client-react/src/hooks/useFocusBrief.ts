@@ -7,7 +7,15 @@ const CACHE_KEY = "todos:focus-brief-cache";
 function readCache(): FocusBriefResponse | null {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      // Invalidate stale cache missing provenance fields (pre-card-design format)
+      if (parsed.rankedPanels?.length > 0 && !parsed.rankedPanels[0].provenance) {
+        localStorage.removeItem(CACHE_KEY);
+        return null;
+      }
+      return parsed;
+    }
   } catch {
     /* ignore */
   }

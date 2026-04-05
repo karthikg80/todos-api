@@ -6,7 +6,7 @@ import type { AgendaItem, PanelProvenance } from "../../types/focusBrief";
 
 interface Props {
   items: AgendaItem[];
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   onTaskClick: (id: string) => void;
   onToggle: (id: string, completed: boolean) => void;
 }

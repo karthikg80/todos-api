@@ -21,7 +21,7 @@ function UnsortedPanel({
   onEditTodo,
 }: {
   data: any;
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   reason: string;
   onTaskClick: (id: string) => void;
   onEditTodo?: (id: string, updates: Record<string, unknown>) => void;
@@ -132,7 +132,7 @@ function DueSoonPanel({
   onTaskClick,
 }: {
   data: any;
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   reason: string;
   onTaskClick: (id: string) => void;
 }) {
@@ -215,7 +215,7 @@ function WhatNextPanel({
   onTaskClick,
 }: {
   data: any;
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   reason: string;
   onTaskClick: (id: string) => void;
 }) {
@@ -276,7 +276,7 @@ function BacklogHygienePanel({
   onTaskClick,
 }: {
   data: any;
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   reason: string;
   onTaskClick: (id: string) => void;
 }) {
@@ -336,7 +336,7 @@ function ProjectsToNudgePanel({
   onSelectProject,
 }: {
   data: any;
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   reason: string;
   onSelectProject: (id: string) => void;
 }) {
@@ -400,7 +400,7 @@ function TrackOverviewPanel({
   reason,
 }: {
   data: any;
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   reason: string;
 }) {
   const Art = PANEL_ART["trackOverview"];
@@ -451,7 +451,7 @@ function RescueModePanel({
   reason,
 }: {
   data: any;
-  provenance: PanelProvenance;
+  provenance?: PanelProvenance;
   reason: string;
 }) {
   if (data.openCount <= 10 || data.overdueCount <= 3) return null;
