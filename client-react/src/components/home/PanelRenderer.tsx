@@ -6,16 +6,45 @@ interface Props {
   panel: RankedPanel;
   onTaskClick: (id: string) => void;
   onSelectProject: (id: string) => void;
+  onEditTodo?: (id: string, updates: Record<string, unknown>) => void;
 }
 
-function UnsortedPanel({ data, onTaskClick }: { data: any; onTaskClick: (id: string) => void }) {
+function UnsortedPanel({
+  data,
+  onTaskClick,
+  onEditTodo,
+}: {
+  data: any;
+  onTaskClick: (id: string) => void;
+  onEditTodo?: (id: string, updates: Record<string, unknown>) => void;
+}) {
   return (
     <FocusPanel title="Unsorted Items" color="warning" subtitle={`${data.items.length} items`}>
       <div className="focus-list">
         {data.items.map((item: any) => (
-          <button key={item.id} className="focus-list__item" onClick={() => onTaskClick(item.id)}>
-            {item.title}
-          </button>
+          <div key={item.id} className="focus-list__item focus-list__item--triage">
+            <button className="focus-list__item-title" onClick={() => onTaskClick(item.id)}>
+              {item.title}
+            </button>
+            {onEditTodo && (
+              <div className="focus-list__item-actions">
+                <button
+                  className="focus-action-chip"
+                  onClick={() => onEditTodo(item.id, { status: "next" })}
+                  title="Move to Next"
+                >
+                  Next
+                </button>
+                <button
+                  className="focus-action-chip focus-action-chip--muted"
+                  onClick={() => onEditTodo(item.id, { status: "someday" })}
+                  title="Move to Someday"
+                >
+                  Later
+                </button>
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </FocusPanel>
@@ -137,8 +166,8 @@ const PANEL_MAP: Record<string, React.ComponentType<any>> = {
   rescueMode: RescueModePanel,
 };
 
-export function PanelRenderer({ panel, onTaskClick, onSelectProject }: Props) {
+export function PanelRenderer({ panel, onTaskClick, onSelectProject, onEditTodo }: Props) {
   const Component = PANEL_MAP[panel.type];
   if (!Component) return null;
-  return <Component data={panel.data} onTaskClick={onTaskClick} onSelectProject={onSelectProject} />;
+  return <Component data={panel.data} onTaskClick={onTaskClick} onSelectProject={onSelectProject} onEditTodo={onEditTodo} />;
 }

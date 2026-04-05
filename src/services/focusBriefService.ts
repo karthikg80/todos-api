@@ -64,7 +64,12 @@ export function computeTodayAgenda(todos: any[], today: Date): AgendaItem[] {
 
 export function computeUnsorted(todos: any[]): UnsortedPanelData {
   const items = todos
-    .filter((t) => !t.completed && !t.archived && t.status === "inbox")
+    .filter(
+      (t) =>
+        !t.completed &&
+        !t.archived &&
+        (t.status === "inbox" || (!t.projectId && !t.category)),
+    )
     .map((t) => ({ id: t.id, title: t.title }));
   return { type: "unsorted", items };
 }
