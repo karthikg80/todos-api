@@ -16,7 +16,10 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
   }
 
   const front = (
-    <div className="panel-right-now">
+    <div className="panel-right-now" style={{ position: "relative" }}>
+      <div className="card-watermark">
+        <FlameArt size={120} />
+      </div>
       <div className="panel-right-now__header">
         <FlameArt size={18} />
         <span className="panel-right-now__title">Right Now</span>

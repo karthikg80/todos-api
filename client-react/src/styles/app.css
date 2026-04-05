@@ -2773,12 +2773,14 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--s-4);
+  align-items: stretch;
 }
 
 .home-dashboard__ranked {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--s-4);
+  align-items: stretch;
 }
 
 @media (max-width: 768px) {
@@ -3075,24 +3077,147 @@ body {
 }
 
 .flip-card__front {
-  min-height: 240px;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-.flip-card__back {
-  min-height: 240px;
+/* Geometric inner border frame — collectible card feel */
+.flip-card__front::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px solid color-mix(in oklab, var(--muted) 10%, transparent);
+  border-radius: calc(var(--r-lg) - 6px);
+  pointer-events: none;
 }
 
-/* Hero pinned cards — larger and more prominent */
+/* ── Competing (ranked) cards — fixed 280px ── */
+
+.home-dashboard__ranked .flip-card__inner {
+  height: 280px;
+}
+
+.home-dashboard__ranked .flip-card__front {
+  height: 280px;
+  overflow: hidden;
+}
+
+/* Fade-out gradient at bottom if content overflows */
+.home-dashboard__ranked .flip-card__front::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(transparent, var(--surface));
+  pointer-events: none;
+}
+
+.home-dashboard__ranked .flip-card__back {
+  height: 280px;
+  overflow-y: auto;
+}
+
+/* ── Hero pinned cards — fixed 340px ── */
+
+.home-dashboard__pinned .flip-card__inner {
+  height: 340px;
+}
+
 .home-dashboard__pinned .flip-card__front,
 .home-dashboard__pinned .flip-card__back {
-  min-height: 300px;
   padding: var(--s-5);
 }
 
 .home-dashboard__pinned .flip-card__front {
-  border-top: 3px solid var(--accent);
+  height: 340px;
+  overflow: hidden;
+}
+
+.home-dashboard__pinned .flip-card__front::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(transparent, var(--surface));
+  pointer-events: none;
+}
+
+.home-dashboard__pinned .flip-card__back {
+  height: 340px;
+  overflow-y: auto;
+}
+
+/* Hero inner border frame — accent tinted */
+.home-dashboard__pinned .flip-card__front::before {
+  border-color: color-mix(in oklab, var(--accent) 15%, transparent);
+  inset: 10px;
+}
+
+/* Hero gradient backgrounds instead of thin top border */
+.home-dashboard__pinned .flip-card:first-child .flip-card__front {
+  background: linear-gradient(135deg, var(--surface), color-mix(in oklab, var(--danger) 3%, var(--surface)));
+}
+
+.home-dashboard__pinned .flip-card:nth-child(2) .flip-card__front {
+  background: linear-gradient(135deg, var(--surface), color-mix(in oklab, var(--accent) 3%, var(--surface)));
+}
+
+/* ── Card accent colors per panel type ── */
+
+.panel-right-now { --card-accent: var(--danger); }
+.panel-today-agenda { --card-accent: var(--accent); }
+.panel-due-soon { --card-accent: var(--danger); }
+.panel-what-next { --card-accent: var(--accent); }
+.panel-unsorted { --card-accent: var(--warning); }
+.panel-backlog { --card-accent: var(--warning); }
+.panel-nudge { --card-accent: #8b5cf6; }
+.panel-track { --card-accent: var(--accent); }
+.panel-rescue { --card-accent: var(--danger); }
+
+/* ── Watermark art — faded illustration in bottom-right ── */
+
+.card-watermark {
+  position: absolute;
+  bottom: var(--s-3);
+  right: var(--s-3);
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Content sits above the watermark */
+.panel-right-now,
+.panel-today-agenda,
+.panel-unsorted,
+.panel-due-soon,
+.panel-what-next,
+.panel-backlog,
+.panel-nudge,
+.panel-track,
+.panel-rescue {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Today's Agenda — flex layout for light-day message ── */
+
+.panel-today-agenda {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.panel-today-agenda__light-day {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-style: italic;
+  margin-top: auto;
+  padding-top: var(--s-3);
 }
 
 .flip-card:hover .flip-card__front {
