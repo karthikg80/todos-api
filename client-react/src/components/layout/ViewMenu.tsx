@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, type CSSProperties } from "react";
 import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import type { Density } from "../../hooks/useDensity";
 import type { GroupBy } from "../../utils/groupTodos";
@@ -71,15 +71,25 @@ export function ViewMenu({
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   const [focusedSection, setFocusedSection] = useState(0);
+  const [panelPos, setPanelPos] = useState<{ top: number; right: number } | null>(null);
 
   const closeMenu = useCallback(() => {
     setIsOpen(false);
     triggerRef.current?.focus();
   }, [setIsOpen]);
 
-  // Reset focused section when opening
+  // Reset focused section when opening; compute fixed panel position
   useEffect(() => {
-    if (isOpen) setFocusedSection(0);
+    if (isOpen) {
+      setFocusedSection(0);
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setPanelPos({
+          top: rect.bottom + 8,
+          right: window.innerWidth - rect.right,
+        });
+      }
+    }
   }, [isOpen]);
 
   // Close on click outside
@@ -172,8 +182,12 @@ export function ViewMenu({
         </button>
       </Tooltip>
 
-      {isOpen && (
-        <div className="view-menu__panel" role="menu">
+      {isOpen && panelPos && (
+        <div
+          className="view-menu__panel"
+          role="menu"
+          style={{ position: "fixed", top: panelPos.top, right: panelPos.right } as CSSProperties}
+        >
           {/* Layout */}
           <div className={`view-menu__section${focusedSection === 0 ? " view-menu__section--focused" : ""}`}>
             <div className="view-menu__label">Layout</div>
