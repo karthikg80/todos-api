@@ -6,11 +6,9 @@ export type MobileTab = "focus" | "today" | "projects" | "custom";
 const CUSTOM_TAB_KEY = "mobile:customTab";
 
 export const CUSTOM_TAB_OPTIONS: { key: WorkspaceView; label: string }[] = [
-  { key: "triage", label: "Desk" },
   { key: "horizon", label: "Upcoming" },
   { key: "all", label: "Everything" },
   { key: "completed", label: "Completed" },
-  { key: "tuneup", label: "Tune-up" },
 ];
 
 function getStoredCustomView(): WorkspaceView {
@@ -18,7 +16,7 @@ function getStoredCustomView(): WorkspaceView {
   if (stored && CUSTOM_TAB_OPTIONS.some((o) => o.key === stored)) {
     return stored as WorkspaceView;
   }
-  return "triage";
+  return "horizon";
 }
 
 export function useTabBar() {

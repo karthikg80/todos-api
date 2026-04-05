@@ -8,10 +8,8 @@ import { IllustrationWaves } from "../components/Illustrations";
 
 function getEmptyMessage(view: WorkspaceView): string {
   switch (view) {
-    case "triage": return "Inbox is empty — nothing to triage";
     case "horizon": return "No upcoming tasks on the horizon";
     case "completed": return "No completed tasks yet";
-    case "tuneup": return "All tasks look good — no tune-ups needed";
     case "all": return "No tasks at all";
     default: return "Nothing here. Nice work!";
   }
@@ -36,13 +34,11 @@ function daysUntil(dateStr: string): number {
 
 function filterForView(todos: Todo[], view: WorkspaceView): Todo[] {
   switch (view) {
-    case "triage": return todos.filter((t) => t.status === "inbox" && !t.completed && !t.archived);
     case "horizon": return todos.filter((t) => !t.completed && !t.archived && t.dueDate && daysUntil(t.dueDate) > 0)
       .sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
     case "all": return todos.filter((t) => !t.archived);
     case "completed": return todos.filter((t) => t.completed && !t.archived)
       .sort((a, b) => new Date(b.completedAt ?? b.updatedAt).getTime() - new Date(a.completedAt ?? a.updatedAt).getTime());
-    case "tuneup": return todos.filter((t) => !t.completed && !t.archived && (!t.projectId || !t.priority));
     default: return todos.filter((t) => !t.completed && !t.archived);
   }
 }

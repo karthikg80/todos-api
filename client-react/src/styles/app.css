@@ -93,8 +93,6 @@ body {
 .app-sidebar--collapsed .projects-rail-area-header,
 .app-sidebar--collapsed .projects-rail-area-group,
 .app-sidebar--collapsed .projects-rail__add-btn,
-.app-sidebar--collapsed .projects-archived-toggle,
-.app-sidebar--collapsed .projects-archived-list,
 .app-sidebar--collapsed .sidebar-nav-item__label,
 .app-sidebar--collapsed .profile-launcher__trigger-text,
 .app-sidebar--collapsed .profile-launcher__user-text {
@@ -377,19 +375,6 @@ body {
 }
 
 /* --- Projects list --- */
-.projects-rail-item-row {
-  display: flex;
-  align-items: stretch;
-  gap: var(--s-1);
-  position: relative;
-}
-
-.projects-rail-item-row--active .projects-rail-item__actions,
-.projects-rail-item-row:hover .projects-rail-item__actions,
-.projects-rail-item-row:focus-within .projects-rail-item__actions {
-  opacity: 1;
-}
-
 .projects-rail-item {
   display: flex;
   align-items: center;
@@ -424,86 +409,6 @@ body {
   height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-}
-
-/* Content wrapper */
-.projects-rail-item__content {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.projects-rail-item__top-row {
-  display: flex;
-  align-items: center;
-  gap: var(--s-2);
-}
-
-.projects-rail-item__count {
-  margin-left: auto;
-  font-size: var(--fs-label);
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-/* Progress bar */
-.projects-rail-item__progress-bar {
-  height: 2px;
-  background: color-mix(in oklab, var(--border) 50%, transparent);
-  border-radius: 1px;
-  overflow: hidden;
-}
-
-.projects-rail-item__progress-fill {
-  height: 100%;
-  background: var(--accent);
-  border-radius: 1px;
-  transition: width var(--dur-base) var(--ease-out);
-}
-
-.projects-rail-item--active .projects-rail-item__progress-fill {
-  background: color-mix(in oklab, var(--accent) 70%, white);
-}
-
-/* Target date badge */
-.projects-rail-item__deadline {
-  font-size: 10px;
-  color: var(--muted);
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
-.projects-rail-item__deadline--overdue {
-  color: var(--danger);
-}
-
-.projects-rail-item__actions {
-  width: 28px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: none;
-  color: var(--muted);
-  border-radius: var(--r-sm);
-  cursor: pointer;
-  opacity: 0;
-  transition:
-    opacity var(--dur-fast) var(--ease-out),
-    background var(--dur-fast) var(--ease-out),
-    color var(--dur-fast) var(--ease-out);
-}
-
-.projects-rail-item__actions:hover {
-  background: var(--surface-2);
-  color: var(--text);
-}
-
-.projects-rail-item__actions:focus-visible {
-  opacity: 1;
 }
 
 /* --- Todo row --- */
@@ -2248,49 +2153,6 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* --- Context menu --- */
-.context-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
-}
-
-.context-menu {
-  position: fixed;
-  z-index: 75;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  box-shadow: var(--shadow-elevated);
-  padding: var(--s-1) 0;
-  min-width: 140px;
-}
-
-.context-menu__item {
-  display: block;
-  width: 100%;
-  padding: var(--s-2) var(--s-4);
-  border: none;
-  background: none;
-  text-align: left;
-  font-size: var(--fs-meta);
-  font-family: inherit;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.context-menu__item:hover {
-  background: var(--surface-2);
-}
-
-.context-menu__item:focus-visible {
-  background: var(--surface-2);
-}
-
-.context-menu__item--danger {
-  color: var(--danger);
 }
 
 /* ── View Menu ─────────────────────────────── */
@@ -4485,30 +4347,6 @@ body {
   top: 0;
   z-index: 2;
   backdrop-filter: blur(14px);
-}
-
-/* --- Archived projects toggle --- */
-.projects-archived-toggle {
-  display: block;
-  width: 100%;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: var(--fs-label);
-  padding: var(--s-2) var(--s-3);
-  text-align: left;
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.projects-archived-toggle:hover {
-  color: var(--text);
-}
-
-.projects-rail-item--archived {
-  opacity: 0.6;
-  font-style: italic;
-  flex: 1;
 }
 
 /* --- AI Workspace --- */
