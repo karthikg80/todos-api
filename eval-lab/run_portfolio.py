@@ -71,6 +71,12 @@ def print_comparison(comparison: dict):
     print(f"{'='*60}")
     print(f"Score delta: {comparison['score_delta']:+.3f}")
     print(f"Win/Loss: {comparison['win_loss']['wins']}W / {comparison['win_loss']['losses']}L / {comparison['win_loss']['ties']}T")
+    
+    # Significance testing
+    sig = comparison.get("significance", {})
+    if sig:
+        sig_label = "SIGNIFICANT" if sig.get("significant") else "not significant"
+        print(f"Significance: {sig_label} (delta={sig.get('delta', 0):+.3f}, p={sig.get('p_value', 1):.3f}, 95% CI=[{sig.get('confidence_interval', [0, 0])[0]:.3f}, {sig.get('confidence_interval', [0, 0])[1]:.3f}])")
     print()
 
     print("Meta-dimension deltas:")
