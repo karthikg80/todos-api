@@ -44,7 +44,9 @@ describe("computeTodayAgenda", () => {
   });
 
   it("includes tasks with scheduledDate today", () => {
-    const todos = [makeTodo({ id: "t1", scheduledDate: new Date("2026-04-05") })];
+    const todos = [
+      makeTodo({ id: "t1", scheduledDate: new Date("2026-04-05") }),
+    ];
     const result = computeTodayAgenda(todos, today);
     expect(result).toHaveLength(1);
   });

@@ -13,7 +13,9 @@ import type {
 } from "../types/focusBrief";
 
 function toTaskItem(t: any, today: Date): TaskItem {
-  const dueDate = t.dueDate ? new Date(t.dueDate).toISOString().slice(0, 10) : null;
+  const dueDate = t.dueDate
+    ? new Date(t.dueDate).toISOString().slice(0, 10)
+    : null;
   const overdue = t.dueDate ? new Date(t.dueDate) < today : false;
   return {
     id: t.id,
@@ -71,15 +73,27 @@ export function computeDueSoon(todos: any[], today: Date): DueSoonPanelData {
   const active = todos.filter((t) => !t.completed && !t.archived && t.dueDate);
   const groups: DueSoonGroup[] = [];
 
-  const overdue = active.filter((t) => daysUntil(new Date(t.dueDate!), today) < 0);
+  const overdue = active.filter(
+    (t) => daysUntil(new Date(t.dueDate!), today) < 0,
+  );
   if (overdue.length > 0)
-    groups.push({ label: "Overdue", items: overdue.slice(0, 6).map((t) => toTaskItem(t, today)) });
+    groups.push({
+      label: "Overdue",
+      items: overdue.slice(0, 6).map((t) => toTaskItem(t, today)),
+    });
 
-  const todayTasks = active.filter((t) => daysUntil(new Date(t.dueDate!), today) === 0);
+  const todayTasks = active.filter(
+    (t) => daysUntil(new Date(t.dueDate!), today) === 0,
+  );
   if (todayTasks.length > 0)
-    groups.push({ label: "Today", items: todayTasks.slice(0, 6).map((t) => toTaskItem(t, today)) });
+    groups.push({
+      label: "Today",
+      items: todayTasks.slice(0, 6).map((t) => toTaskItem(t, today)),
+    });
 
-  const tomorrow = active.filter((t) => daysUntil(new Date(t.dueDate!), today) === 1);
+  const tomorrow = active.filter(
+    (t) => daysUntil(new Date(t.dueDate!), today) === 1,
+  );
   if (tomorrow.length > 0)
     groups.push({
       label: "Tomorrow",
@@ -99,7 +113,10 @@ export function computeDueSoon(todos: any[], today: Date): DueSoonPanelData {
   return { type: "dueSoon", groups };
 }
 
-export function computeBacklogHygiene(todos: any[], today: Date): BacklogHygienePanelData {
+export function computeBacklogHygiene(
+  todos: any[],
+  today: Date,
+): BacklogHygienePanelData {
   const staleThreshold = (t: any) => {
     if (t.priority === "high" || t.priority === "urgent") return 7;
     if (t.status === "inbox") return 7;
@@ -141,15 +158,25 @@ export function computeProjectsToNudge(
       const overdueCount = projectTodos.filter(
         (t: any) => t.dueDate && new Date(t.dueDate) < today,
       ).length;
-      const waitingCount = projectTodos.filter((t: any) => t.status === "waiting").length;
+      const waitingCount = projectTodos.filter(
+        (t: any) => t.status === "waiting",
+      ).length;
       const dueSoonCount = projectTodos.filter((t: any) => {
         if (!t.dueDate) return false;
         const d = daysUntil(new Date(t.dueDate), today);
         return d >= 0 && d <= 3;
       }).length;
-      return { id: p.id, name: p.name, overdueCount, waitingCount, dueSoonCount };
+      return {
+        id: p.id,
+        name: p.name,
+        overdueCount,
+        waitingCount,
+        dueSoonCount,
+      };
     })
-    .filter((p) => p.overdueCount > 0 || p.waitingCount > 0 || p.dueSoonCount > 0)
+    .filter(
+      (p) => p.overdueCount > 0 || p.waitingCount > 0 || p.dueSoonCount > 0,
+    )
     .sort(
       (a, b) =>
         b.overdueCount +
@@ -162,7 +189,10 @@ export function computeProjectsToNudge(
   return { type: "projectsToNudge", items };
 }
 
-export function computeTrackOverview(todos: any[], today: Date): TrackOverviewPanelData {
+export function computeTrackOverview(
+  todos: any[],
+  today: Date,
+): TrackOverviewPanelData {
   const active = todos.filter((t) => !t.completed && !t.archived);
   const thisWeek: TaskItem[] = [];
   const next14Days: TaskItem[] = [];
@@ -191,8 +221,13 @@ export function computeTrackOverview(todos: any[], today: Date): TrackOverviewPa
   };
 }
 
-export function computeRescueMode(todos: any[], today: Date): RescueModePanelData {
+export function computeRescueMode(
+  todos: any[],
+  today: Date,
+): RescueModePanelData {
   const active = todos.filter((t) => !t.completed && !t.archived);
-  const overdueCount = active.filter((t) => t.dueDate && new Date(t.dueDate) < today).length;
+  const overdueCount = active.filter(
+    (t) => t.dueDate && new Date(t.dueDate) < today,
+  ).length;
   return { type: "rescueMode", openCount: active.length, overdueCount };
 }
