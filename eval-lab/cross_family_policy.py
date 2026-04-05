@@ -75,7 +75,10 @@ class CrossFamilyPolicyRunner:
         # Step 1-3: Feature exposure classification and policy
         feature_exposure = self._load_family("feature_exposure")
         fe_input = {
-            "user_context": test_case.user_context,
+            "user_context": {
+                **test_case.user_context,
+                "_expected_segment_for_false_conservatism": test_case.expected_segment,
+            },
             "feature_catalog": {
                 "core": ["quick_add", "task_list", "basic_search", "due_dates"],
                 "intermediate": ["recurring_tasks", "projects", "tags", "effort_estimates", "daily_plan", "smart_priorities"],
@@ -534,6 +537,22 @@ async def run_all_cross_family_tests() -> dict[str, Any]:
         gating = "YES" if fe_output.get("gating_override") else "no"
         print(f"{test_case.expected_segment:<15} {actual:<15} {direction:<15} {gating:<10}")
     
+    # Gate hit-rate report
+    from families.feature_exposure import FeatureExposureFamily
+    gate_report = FeatureExposureFamily.get_gate_hit_report()
+    if gate_report.get("total_cases", 0) > 0:
+        print(f"\n{'='*60}")
+        print(f"GATE HIT-RATE REPORT")
+        print(f"{'='*60}")
+        print(f"Total cases: {gate_report['total_cases']}")
+        print(f"False conservatism rate: {gate_report.get('false_conservatism_rate', 0):.1%}")
+        print(f"\nGate hits:")
+        for gate_name, info in sorted(gate_report.get("gates", {}).items(), key=lambda x: x[1]["hits"], reverse=True):
+            print(f"  {gate_name}: {info['hits']} ({info['percentage']})")
+        print(f"\nTop 3 gates:")
+        for gate in gate_report.get("top_gates", []):
+            print(f"  {gate['name']}: {gate['hits']} hits")
+
     return results
 
 

@@ -74,6 +74,10 @@ class FeatureExposureFamily(BenchmarkFamily):
 
     NAME = "feature_exposure"
     VERSION = "1"
+    
+    # Gate hit-rate tracking (class-level)
+    GATE_HIT_COUNTS: dict[str, int] = {}
+    GATE_TOTAL_CASES: int = 0
 
     def __init__(self, cases_dir: Optional[Path] = None):
         if cases_dir is None:
@@ -243,7 +247,7 @@ class FeatureExposureFamily(BenchmarkFamily):
     
     def _apply_hard_gating(self, output: dict, user_context: dict) -> dict:
         """Apply hard gating rules to LLM output.
-        
+
         This enforces structural constraints that the LLM cannot override:
         - No automation signals → cannot be power user
         - High activity + low capability → intermediate (not advanced)
@@ -253,50 +257,71 @@ class FeatureExposureFamily(BenchmarkFamily):
         llm_automation_signals = output.get("automation_signals", [])
         signals = output.get("signals", [])
         
+        # Track total cases for hit-rate calculation
+        FeatureExposureFamily.GATE_TOTAL_CASES += 1
+
         # Compute activity vs capability separately
         activity_level = self._compute_activity_level(user_context)
         capability_level = self._compute_capability_level(user_context, signals)
-        
+
         # Compute automation signals from user context directly (not LLM)
         automation_signals = self._compute_automation_signals(user_context)
-        
+
         # Add derived signals to output
         output["activity_level"] = activity_level
         output["capability_level"] = capability_level
         output["automation_signals"] = automation_signals
         output["automation_signal_count"] = len(automation_signals)
         
+        # Track which gates fire
+        gates_fired = []
+
         # HARD GATE 1: No automation → cannot be power
         if not automation_signals and current_segment == "power":
             output["user_segment"] = "advanced"
             output["gating_override"] = "power→advanced: no automation signals"
             output["confidence"] = min(output.get("confidence", 0.5), 0.7)
-        
+            FeatureExposureFamily.GATE_HIT_COUNTS["gate_1_no_automation"] = \
+                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_1_no_automation", 0) + 1
+            gates_fired.append("gate_1_no_automation")
+
         # HARD GATE 2: High activity + low capability → intermediate (not advanced)
         if activity_level == "high" and capability_level == "low" and current_segment in ("advanced", "power"):
             output["user_segment"] = "intermediate"
             output["gating_override"] = f"{current_segment}→intermediate: high activity + low capability"
             output["confidence"] = min(output.get("confidence", 0.5), 0.6)
-        
+            FeatureExposureFamily.GATE_HIT_COUNTS["gate_2_high_activity_low_capability"] = \
+                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_2_high_activity_low_capability", 0) + 1
+            gates_fired.append("gate_2_high_activity_low_capability")
+
         # HARD GATE 3: Weak automation → advanced at most
         if len(automation_signals) <= 1 and current_segment == "power":
             output["user_segment"] = "advanced"
             output["gating_override"] = "power→advanced: weak automation signals"
             output["confidence"] = min(output.get("confidence", 0.5), 0.7)
-        
+            FeatureExposureFamily.GATE_HIT_COUNTS["gate_3_weak_automation"] = \
+                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_3_weak_automation", 0) + 1
+            gates_fired.append("gate_3_weak_automation")
+
         # HARD GATE 4: No recurring tasks → intermediate at most (not advanced)
         # Advanced users should have repeated recurring task usage
         if "recurring_tasks_repeated" not in automation_signals and current_segment == "advanced":
             output["user_segment"] = "intermediate"
             output["gating_override"] = "advanced→intermediate: no repeated recurring tasks"
             output["confidence"] = min(output.get("confidence", 0.5), 0.7)
-        
+            FeatureExposureFamily.GATE_HIT_COUNTS["gate_4_no_recurring_tasks"] = \
+                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_4_no_recurring_tasks", 0) + 1
+            gates_fired.append("gate_4_no_recurring_tasks")
+
         # HARD GATE 5: Low capability → intermediate at most
         if capability_level == "low" and current_segment in ("advanced", "power"):
             output["user_segment"] = "intermediate"
             output["gating_override"] = f"{current_segment}→intermediate: low capability level"
             output["confidence"] = min(output.get("confidence", 0.5), 0.6)
-        
+            FeatureExposureFamily.GATE_HIT_COUNTS["gate_5_low_capability"] = \
+                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_5_low_capability", 0) + 1
+            gates_fired.append("gate_5_low_capability")
+
         # HARD GATE 6: Medium capability + no advanced features → intermediate at most
         features_used = set(user_context.get("features_used", []))
         advanced_features = {"dependencies", "goals", "automation_rules", "bulk_edits", "weekly_planning", "custom_views"}
@@ -305,13 +330,19 @@ class FeatureExposureFamily(BenchmarkFamily):
             output["user_segment"] = "intermediate"
             output["gating_override"] = "advanced→intermediate: medium capability, no advanced features"
             output["confidence"] = min(output.get("confidence", 0.5), 0.7)
-        
+            FeatureExposureFamily.GATE_HIT_COUNTS["gate_6_medium_capability_no_advanced"] = \
+                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_6_medium_capability_no_advanced", 0) + 1
+            gates_fired.append("gate_6_medium_capability_no_advanced")
+
         # HARD GATE 7: Low activity + low capability → beginner at most
         if activity_level == "low" and capability_level == "low" and current_segment in ("intermediate", "advanced", "power"):
             output["user_segment"] = "beginner"
             output["gating_override"] = f"{current_segment}→beginner: low activity + low capability"
             output["confidence"] = min(output.get("confidence", 0.5), 0.7)
-        
+            FeatureExposureFamily.GATE_HIT_COUNTS["gate_7_low_activity_low_capability"] = \
+                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_7_low_activity_low_capability", 0) + 1
+            gates_fired.append("gate_7_low_activity_low_capability")
+
         # HARD GATE 8: No power features → cannot be power
         power_features = {"agentic_planning", "dependency_graph", "batch_workflows", "api_access", "custom_automations"}
         power_used = features_used & power_features
@@ -319,8 +350,68 @@ class FeatureExposureFamily(BenchmarkFamily):
             output["user_segment"] = "advanced"
             output["gating_override"] = "power→advanced: no power features used"
             output["confidence"] = min(output.get("confidence", 0.5), 0.7)
+            FeatureExposureFamily.GATE_HIT_COUNTS["gate_8_no_power_features"] = \
+                FeatureExposureFamily.GATE_HIT_COUNTS.get("gate_8_no_power_features", 0) + 1
+            gates_fired.append("gate_8_no_power_features")
         
+        # Track false conservatism: expected is advanced/power but gating forced lower
+        expected_segment = user_context.get("_expected_segment_for_false_conservatism")
+        if expected_segment and expected_segment in ("advanced", "power"):
+            actual_segment = output.get("user_segment", "unknown")
+            segment_order = ["beginner", "intermediate", "advanced", "power"]
+            try:
+                expected_idx = segment_order.index(expected_segment)
+                actual_idx = segment_order.index(actual_segment)
+                if actual_idx < expected_idx:
+                    # Gating forced lower than expected
+                    output["false_conservatism"] = True
+                    output["false_conservatism_delta"] = expected_idx - actual_idx
+                    FeatureExposureFamily.GATE_HIT_COUNTS["false_conservatism"] = \
+                        FeatureExposureFamily.GATE_HIT_COUNTS.get("false_conservatism", 0) + 1
+                    gates_fired.append("false_conservatism")
+            except ValueError:
+                pass
+        
+        # Store gates fired for this case
+        output["gates_fired"] = gates_fired
+
         return output
+    
+    @classmethod
+    def get_gate_hit_report(cls) -> dict[str, Any]:
+        """Get gate hit-rate report.
+        
+        Returns:
+            Dict with gate hit counts, rates, and analysis.
+        """
+        total = cls.GATE_TOTAL_CASES
+        if total == 0:
+            return {"total_cases": 0, "gates": {}}
+        
+        gates = {}
+        for gate_name, count in sorted(cls.GATE_HIT_COUNTS.items()):
+            gates[gate_name] = {
+                "hits": count,
+                "rate": round(count / total, 3),
+                "percentage": f"{count/total:.1%}",
+            }
+        
+        # Analysis: which gates carry the most weight?
+        sorted_gates = sorted(cls.GATE_HIT_COUNTS.items(), key=lambda x: x[1], reverse=True)
+        top_gates = sorted_gates[:3]
+        
+        return {
+            "total_cases": total,
+            "gates": gates,
+            "top_gates": [{"name": name, "hits": count} for name, count in top_gates],
+            "false_conservatism_rate": round(cls.GATE_HIT_COUNTS.get("false_conservatism", 0) / total, 3) if total > 0 else 0,
+        }
+    
+    @classmethod
+    def reset_gate_stats(cls):
+        """Reset gate hit-rate tracking."""
+        cls.GATE_HIT_COUNTS = {}
+        cls.GATE_TOTAL_CASES = 0
     
     def _compute_automation_signals(self, user_context: dict) -> list[str]:
         """Compute automation signals from user context directly.

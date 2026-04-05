@@ -1,0 +1,138 @@
+{
+  "results": {
+    "holdout-ambiguous-001": {
+      "expected_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "low",
+      "automation_signals": [
+        "recurring_tasks_occasional"
+      ],
+      "score": 0.68,
+      "notes": "40 days active, uses recurring tasks occasionally (3 times). Has daily_plan but no advanced features. Should be intermediate."
+    },
+    "holdout-ambiguous-002": {
+      "expected_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "50 days active, uses recurring tasks repeatedly (8 times), has dependencies. Should be advanced."
+    },
+    "holdout-ambiguous-003": {
+      "expected_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "custom_views_used"
+      ],
+      "score": 0.68,
+      "notes": "80 days active, heavy usage, but NO automation rules, bulk edits, or power features. Should be advanced, not power."
+    },
+    "holdout-ambiguous-004": {
+      "expected_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": "power\u2192advanced: no power features used",
+      "confidence": 0.7,
+      "activity_level": "high",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "automation_rules_used",
+        "custom_views_used"
+      ],
+      "score": 0.74,
+      "notes": "100 days active, uses automation_rules and bulk_edits. But no agentic_planning, dependency_graph, or custom_automations. Borderline advanced/power."
+    },
+    "holdout-ambiguous-005": {
+      "expected_segment": "power",
+      "actual_segment": "power",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "confidence": 0.9,
+      "activity_level": "high",
+      "capability_level": "high",
+      "automation_signals": [
+        "recurring_tasks_repeated",
+        "bulk_edits_used",
+        "automation_rules_used",
+        "custom_views_used"
+      ],
+      "score": 0.78,
+      "notes": "150 days active, uses agentic_planning and dependency_graph. Should be power."
+    },
+    "holdout-ambiguous-006": {
+      "expected_segment": "intermediate",
+      "actual_segment": "intermediate",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "confidence": 0.85,
+      "activity_level": "medium",
+      "capability_level": "low",
+      "automation_signals": [],
+      "score": 0.68,
+      "notes": "60 days active, high task volume (300), but only uses core + projects. Low capability depth. Should be intermediate, not advanced."
+    },
+    "holdout-ambiguous-007": {
+      "expected_segment": "advanced",
+      "actual_segment": "advanced",
+      "correct": true,
+      "false_conservatism": false,
+      "gating_override": null,
+      "confidence": 0.85,
+      "activity_level": "low",
+      "capability_level": "medium",
+      "automation_signals": [
+        "recurring_tasks_repeated"
+      ],
+      "score": 0.68,
+      "notes": "Only 20 days active, low volume, but uses advanced features (dependencies, goals). Should be advanced despite low activity."
+    }
+  },
+  "gate_report": {
+    "total_cases": 7,
+    "gates": {
+      "gate_8_no_power_features": {
+        "hits": 1,
+        "rate": 0.143,
+        "percentage": "14.3%"
+      }
+    },
+    "top_gates": [
+      {
+        "name": "gate_8_no_power_features",
+        "hits": 1
+      }
+    ],
+    "false_conservatism_rate": 0.0
+  },
+  "summary": {
+    "total": 7,
+    "correct": 7,
+    "accuracy": 1.0,
+    "false_conservatism_count": 0,
+    "false_conservatism_rate": 0.0
+  }
+}
