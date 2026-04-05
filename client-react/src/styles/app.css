@@ -278,7 +278,6 @@ body {
   font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-tight);
   color: var(--text-strong);
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -293,6 +292,8 @@ body {
 .app-header__title-group {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .app-header__title-row {
@@ -2180,6 +2181,22 @@ body {
   white-space: nowrap;
 }
 
+/* ── Filter Menu ───────────────────────────── */
+
+.filter-menu {
+  position: relative;
+}
+
+.filter-menu__panel {
+  z-index: 200;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-elevated);
+  animation: viewMenuIn var(--dur-base) var(--ease-spring);
+  overflow: hidden;
+}
+
 /* ── View Menu ─────────────────────────────── */
 
 .view-menu {
@@ -2187,9 +2204,6 @@ body {
 }
 
 .view-menu__panel {
-  position: absolute;
-  top: calc(100% + var(--s-2));
-  right: 0;
   width: 320px;
   background: var(--surface);
   border: 1px solid var(--border);

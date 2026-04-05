@@ -1,3 +1,4 @@
+import { useRef, type CSSProperties } from "react";
 import type { Todo, User, CreateTodoDto } from "../../types";
 import { IconMoon, IconSun, IconMenu } from "../shared/Icons";
 import { Breadcrumb } from "../shared/Breadcrumb";
@@ -156,6 +157,7 @@ export function ListViewHeader({
   viewMenuOpen,
   onViewMenuOpenChange,
 }: ListViewHeaderProps) {
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
   const activeCount = visibleTodos.filter((t) => !t.completed).length;
   const showHorizonSegments =
     activeView === "horizon" &&
@@ -264,21 +266,43 @@ export function ListViewHeader({
             externalOpen={viewMenuOpen}
             onOpenChange={onViewMenuOpenChange}
           />
-          <Tooltip content="Filters" shortcut="f">
-            <button
-              id="moreFiltersToggle"
-              className={`btn${filtersOpen ? " btn--active" : ""}`}
-              onClick={onToggleFilters}
-              style={{ fontSize: "var(--fs-label)" }}
-            >
-              Filters
-              {(activeFilters.dateFilter !== "all" ||
-                activeFilters.priority ||
-                activeFilters.status) && (
-                <span className="filter-badge">●</span>
-              )}
-            </button>
-          </Tooltip>
+          <div className="filter-menu">
+            <Tooltip content="Filters" shortcut="f">
+              <button
+                id="moreFiltersToggle"
+                ref={filtersButtonRef}
+                className={`btn${filtersOpen ? " btn--active" : ""}`}
+                onClick={onToggleFilters}
+                style={{ fontSize: "var(--fs-label)" }}
+              >
+                Filters
+                {(activeFilters.dateFilter !== "all" ||
+                  activeFilters.priority ||
+                  activeFilters.status) && (
+                  <span className="filter-badge">●</span>
+                )}
+              </button>
+            </Tooltip>
+            {filtersOpen && filtersButtonRef.current && (() => {
+              const rect = filtersButtonRef.current!.getBoundingClientRect();
+              return (
+                <div
+                  className="filter-menu__panel"
+                  style={{
+                    position: "fixed",
+                    top: rect.bottom + 8,
+                    right: window.innerWidth - rect.right,
+                  } as CSSProperties}
+                >
+                  <FilterPanel
+                    filters={activeFilters}
+                    onChange={onFilterChange}
+                    onClose={onToggleFilters}
+                  />
+                </div>
+              );
+            })()}
+          </div>
           <Tooltip content={dark ? "Light mode" : "Dark mode"}>
             <button
               className="btn"
@@ -353,15 +377,6 @@ export function ListViewHeader({
             </div>
           ) : null;
         })()}
-
-      {/* Filter panel */}
-      {filtersOpen && (
-        <FilterPanel
-          filters={activeFilters}
-          onChange={onFilterChange}
-          onClose={onToggleFilters}
-        />
-      )}
 
       {/* Bulk actions toolbar */}
       {bulkMode && (
