@@ -1,0 +1,17 @@
+{
+  "category": "adversarial",
+  "expected_subtasks": [
+    {
+      "title": "Review remaining onboarding items",
+      "description": "Check what onboarding steps are still pending",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "1 subtask to check remaining items. Most subtasks are already completed.",
+  "common_failure_modes": [
+    "duplicates_completed_subtasks",
+    "invents_new_onboarding_steps"
+  ],
+  "acceptable_variation": "Should acknowledge completed subtasks. Should suggest checking remaining items.",
+  "notes": "Most onboarding subtasks are completed. Should not duplicate completed work."
+}

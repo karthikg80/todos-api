@@ -1,0 +1,8 @@
+{
+  "task_title": "Update README",
+  "task_description": "Update the project README with new setup instructions.",
+  "project_context": {
+    "name": "Documentation"
+  },
+  "existing_subtasks": []
+}

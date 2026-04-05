@@ -1,0 +1,14 @@
+{
+  "task_title": "Add export to CSV feature",
+  "task_description": "Allow users to export their task list and project data to CSV files.",
+  "project_context": {
+    "name": "Core Product",
+    "existing_export_formats": [],
+    "data_models": [
+      "tasks",
+      "projects",
+      "users"
+    ]
+  },
+  "existing_subtasks": []
+}

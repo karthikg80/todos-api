@@ -121,6 +121,14 @@ DIMENSION_MAP: dict[tuple[str, str], tuple[MetaDimension, str]] = {
     ("decision_assist", "appropriateness"): (COMPLIANCE, "Respects plan tier and limits"),
     ("decision_assist", "no_hallucination"): (SAFETY, "No invented tasks or false context"),
     ("decision_assist", "format_compliance"): (COMPLIANCE, "Valid output structure"),
+
+    # Task Breakdown
+    ("task_breakdown", "decomposition_quality"): (CORRECTNESS, "Subtasks appropriately scoped and sequenced"),
+    ("task_breakdown", "completeness"): (CORRECTNESS, "All aspects of parent task covered"),
+    ("task_breakdown", "non_redundancy"): (COMPLIANCE, "No duplicate or overlapping subtasks"),
+    ("task_breakdown", "context_awareness"): (ROBUSTNESS, "Respects project context and existing state"),
+    ("task_breakdown", "actionability"): (CORRECTNESS, "Each subtask is concrete and executable"),
+    ("task_breakdown", "format_compliance"): (COMPLIANCE, "Valid output structure"),
 }
 
 

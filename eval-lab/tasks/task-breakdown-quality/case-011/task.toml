@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-011"
+description = "4-5 subtasks that respect existing tech stack and features."
+
+[scoring]
+weight = 1.0

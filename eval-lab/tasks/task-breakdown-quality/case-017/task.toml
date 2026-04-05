@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-017"
+description = "1-2 subtasks focused on clarification. Too vague for detailed breakdown."
+
+[scoring]
+weight = 1.0

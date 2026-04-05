@@ -1,0 +1,8 @@
+{
+  "task_title": "Improve performance",
+  "task_description": "The app is slow. Make it faster.",
+  "project_context": {
+    "name": "Engineering"
+  },
+  "existing_subtasks": []
+}

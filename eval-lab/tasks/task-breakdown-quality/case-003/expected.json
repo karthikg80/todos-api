@@ -1,0 +1,33 @@
+{
+  "category": "simple_task",
+  "expected_subtasks": [
+    {
+      "title": "Create Dockerfile for microservice",
+      "description": "Containerize the application",
+      "priority": "high"
+    },
+    {
+      "title": "Configure CI pipeline with tests",
+      "description": "Set up automated testing on PR",
+      "priority": "high"
+    },
+    {
+      "title": "Configure CD pipeline for deployment",
+      "description": "Set up automated deployment to staging/production",
+      "priority": "medium"
+    },
+    {
+      "title": "Add monitoring and alerting",
+      "description": "Set up health checks and alerts",
+      "priority": "low"
+    }
+  ],
+  "what_good_breakdown_looks_like": "4 subtasks: Dockerfile, CI, CD, monitoring. Dockerfile first as prerequisite.",
+  "common_failure_modes": [
+    "misses_docker",
+    "misses_monitoring",
+    "wrong_order"
+  ],
+  "acceptable_variation": "May combine CI and CD. Should have 3-5 subtasks.",
+  "notes": "DevOps task. Should decompose into containerization, CI, CD, monitoring."
+}

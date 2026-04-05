@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-009"
+description = "4-5 subtasks covering scanning, pen testing, access review, compliance, reportin"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-014"
+description = "4-5 subtasks covering API, data generation, UI, testing."
+
+[scoring]
+weight = 1.0

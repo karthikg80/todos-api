@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-012"
+description = "4-5 subtasks that acknowledge completed email service setup."
+
+[scoring]
+weight = 1.0

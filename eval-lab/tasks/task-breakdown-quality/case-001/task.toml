@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-001"
+description = "4 subtasks covering venue, activities, meals, and invitations. Venue should be f"
+
+[scoring]
+weight = 1.0

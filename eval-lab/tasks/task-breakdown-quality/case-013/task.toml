@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-013"
+description = "4-5 subtasks covering palette, config, components, toggle, testing."
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,33 @@
+{
+  "category": "simple_task",
+  "expected_subtasks": [
+    {
+      "title": "Gather Q4 data and metrics",
+      "description": "Collect key numbers and achievements",
+      "priority": "high"
+    },
+    {
+      "title": "Draft blog post outline",
+      "description": "Structure the post with key sections",
+      "priority": "medium"
+    },
+    {
+      "title": "Write first draft",
+      "description": "Write full blog post content",
+      "priority": "high"
+    },
+    {
+      "title": "Review and edit",
+      "description": "Proofread and refine",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "4 subtasks: gather data, outline, write, review. Logical sequence.",
+  "common_failure_modes": [
+    "misses_data_gathering",
+    "misses_review",
+    "too_granular"
+  ],
+  "acceptable_variation": "May combine outline and draft. Should have 3-5 subtasks.",
+  "notes": "Content creation task. Should decompose into research, outline, write, review."
+}

@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-016"
+description = "2-3 subtasks: profile, prioritize, fix. Should not invent specific fixes."
+
+[scoring]
+weight = 1.0

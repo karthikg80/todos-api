@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-004"
+description = "2-3 subtasks: review, write, update. Simple task, not over-decomposed."
+
+[scoring]
+weight = 1.0

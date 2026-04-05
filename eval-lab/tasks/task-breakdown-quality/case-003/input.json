@@ -1,0 +1,9 @@
+{
+  "task_title": "Set up CI/CD pipeline",
+  "task_description": "Configure automated testing and deployment pipeline for the new microservice.",
+  "project_context": {
+    "name": "Infrastructure",
+    "tech_stack": "Python, Docker, Kubernetes"
+  },
+  "existing_subtasks": []
+}

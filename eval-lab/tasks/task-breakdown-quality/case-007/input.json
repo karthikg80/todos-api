@@ -1,0 +1,13 @@
+{
+  "task_title": "Implement OAuth2 SSO integration",
+  "task_description": "Add SSO support for enterprise clients using SAML and OAuth2. Must support multiple identity providers.",
+  "project_context": {
+    "name": "Security",
+    "idps": [
+      "Okta",
+      "Azure AD",
+      "Google Workspace"
+    ]
+  },
+  "existing_subtasks": []
+}

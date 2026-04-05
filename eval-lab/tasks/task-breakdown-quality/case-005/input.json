@@ -1,0 +1,11 @@
+{
+  "task_title": "Migrate database from PostgreSQL 14 to 16",
+  "task_description": "Upgrade production database with zero downtime. Includes schema compatibility checks, data migration, and rollback plan.",
+  "project_context": {
+    "name": "Infrastructure",
+    "current_version": "PostgreSQL 14",
+    "target_version": "PostgreSQL 16",
+    "downtime_window": "none"
+  },
+  "existing_subtasks": []
+}

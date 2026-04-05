@@ -1,0 +1,37 @@
+{
+  "category": "project_with_context",
+  "expected_subtasks": [
+    {
+      "title": "Design CSV export API endpoint",
+      "description": "Create endpoint that returns CSV data",
+      "priority": "high"
+    },
+    {
+      "title": "Implement CSV generation for tasks",
+      "description": "Convert task data to CSV format",
+      "priority": "high"
+    },
+    {
+      "title": "Implement CSV generation for projects",
+      "description": "Convert project data to CSV format",
+      "priority": "medium"
+    },
+    {
+      "title": "Add export button to UI",
+      "description": "Add download button to task list and project views",
+      "priority": "medium"
+    },
+    {
+      "title": "Test export with large datasets",
+      "description": "Verify export works with 1000+ tasks",
+      "priority": "medium"
+    }
+  ],
+  "what_good_breakdown_looks_like": "4-5 subtasks covering API, data generation, UI, testing.",
+  "common_failure_modes": [
+    "misses_testing",
+    "misses_UI_component"
+  ],
+  "acceptable_variation": "May have 4-6 subtasks. Should cover both tasks and projects.",
+  "notes": "CSV export feature. Should cover API, data generation, UI, and testing."
+}

@@ -1,0 +1,37 @@
+{
+  "category": "project_with_context",
+  "expected_subtasks": [
+    {
+      "title": "Design notification data model",
+      "description": "Define notification types and preferences",
+      "priority": "high"
+    },
+    {
+      "title": "Implement push notification service",
+      "description": "Build push notification delivery",
+      "priority": "high"
+    },
+    {
+      "title": "Integrate with existing email service",
+      "description": "Connect notification system to SendGrid",
+      "priority": "high"
+    },
+    {
+      "title": "Build notification preferences UI",
+      "description": "Allow users to configure notification settings",
+      "priority": "medium"
+    },
+    {
+      "title": "Add notification triggers",
+      "description": "Trigger notifications for assignments, due dates, mentions",
+      "priority": "high"
+    }
+  ],
+  "what_good_breakdown_looks_like": "4-5 subtasks that acknowledge completed email service setup.",
+  "common_failure_modes": [
+    "duplicates_completed_work",
+    "ignores_existing_services"
+  ],
+  "acceptable_variation": "Should not duplicate the completed email service setup task.",
+  "notes": "Notification system with email service already set up. Should not duplicate completed work."
+}

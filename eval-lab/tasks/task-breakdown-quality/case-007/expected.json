@@ -1,0 +1,43 @@
+{
+  "category": "complex_task",
+  "expected_subtasks": [
+    {
+      "title": "Research SAML and OAuth2 SSO requirements",
+      "description": "Document protocol requirements for each IdP",
+      "priority": "high"
+    },
+    {
+      "title": "Design SSO architecture",
+      "description": "Design authentication flow and data model",
+      "priority": "high"
+    },
+    {
+      "title": "Implement SAML integration",
+      "description": "Build SAML assertion handling and validation",
+      "priority": "high"
+    },
+    {
+      "title": "Implement OAuth2 integration",
+      "description": "Build OAuth2 flow for each IdP",
+      "priority": "high"
+    },
+    {
+      "title": "Test with each identity provider",
+      "description": "Verify Okta, Azure AD, and Google Workspace",
+      "priority": "medium"
+    },
+    {
+      "title": "Write admin documentation",
+      "description": "Document SSO setup for enterprise admins",
+      "priority": "low"
+    }
+  ],
+  "what_good_breakdown_looks_like": "5-6 subtasks covering research, design, SAML, OAuth2, testing, docs.",
+  "common_failure_modes": [
+    "misses_testing",
+    "misses_documentation",
+    "combines_SAML_and_OAuth2"
+  ],
+  "acceptable_variation": "May have 5-7 subtasks. Must cover both SAML and OAuth2 separately.",
+  "notes": "Complex security task. Must separate SAML and OAuth2 implementations."
+}

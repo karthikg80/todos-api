@@ -1,0 +1,13 @@
+{
+  "task_title": "Conduct security audit",
+  "task_description": "Perform comprehensive security audit of the application including penetration testing, dependency scanning, and access review.",
+  "project_context": {
+    "name": "Security",
+    "last_audit": "2025-06-01",
+    "compliance_requirements": [
+      "SOC2",
+      "GDPR"
+    ]
+  },
+  "existing_subtasks": []
+}

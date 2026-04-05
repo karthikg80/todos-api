@@ -1,0 +1,17 @@
+{
+  "category": "missing_context",
+  "expected_subtasks": [
+    {
+      "title": "Identify the issue",
+      "description": "Clarify what needs to be fixed",
+      "priority": "high"
+    }
+  ],
+  "what_good_breakdown_looks_like": "1-2 subtasks focused on clarification. Task is too vague to decompose.",
+  "common_failure_modes": [
+    "invents_specific_subtasks",
+    "overly_prescriptive"
+  ],
+  "acceptable_variation": "Should suggest clarification or identification step. Not invent specific fixes.",
+  "notes": "Extremely vague task. Should not invent specific subtasks."
+}

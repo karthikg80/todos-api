@@ -55,18 +55,20 @@ FAMILY_REGISTRY = {
     "structured_extraction": "families.structured_extraction:StructuredExtractionFamily",
     "feature_exposure": "families.feature_exposure:FeatureExposureFamily",
     "decision_assist": "families.decision_assist:DecisionAssistFamily",
+    "task_breakdown": "families.task_breakdown:TaskBreakdownFamily",
 }
 
 # Default family weights for aggregate scoring
 DEFAULT_FAMILY_WEIGHTS = {
-    "task_critic": 0.15,
-    "task_rewriter": 0.13,
-    "plan_from_goal": 0.13,
-    "clarification_policy": 0.10,
-    "prioritization": 0.11,
-    "structured_extraction": 0.11,
-    "feature_exposure": 0.10,
-    "decision_assist": 0.17,
+    "task_critic": 0.13,
+    "task_rewriter": 0.11,
+    "plan_from_goal": 0.11,
+    "clarification_policy": 0.09,
+    "prioritization": 0.09,
+    "structured_extraction": 0.09,
+    "feature_exposure": 0.09,
+    "decision_assist": 0.15,
+    "task_breakdown": 0.14,
 }
 
 # Guardrail thresholds

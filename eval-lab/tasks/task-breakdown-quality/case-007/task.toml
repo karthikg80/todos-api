@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-007"
+description = "5-6 subtasks covering research, design, SAML, OAuth2, testing, docs."
+
+[scoring]
+weight = 1.0

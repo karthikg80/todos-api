@@ -1,0 +1,34 @@
+{
+  "category": "simple_task",
+  "expected_subtasks": [
+    {
+      "title": "Research and book venue",
+      "description": "Find venue that accommodates 15 people for 2 days",
+      "priority": "high"
+    },
+    {
+      "title": "Plan activities and agenda",
+      "description": "Create schedule for 2 days",
+      "priority": "medium"
+    },
+    {
+      "title": "Arrange catering and meals",
+      "description": "Order meals for 15 people for 2 days",
+      "priority": "medium"
+    },
+    {
+      "title": "Send invitations and collect RSVPs",
+      "description": "Invite team and track attendance",
+      "priority": "low"
+    }
+  ],
+  "what_good_breakdown_looks_like": "4 subtasks covering venue, activities, meals, and invitations. Venue should be first (high priority).",
+  "common_failure_modes": [
+    "misses_venue",
+    "misses_meals",
+    "too_granular",
+    "not_actionable"
+  ],
+  "acceptable_variation": "May combine activities and agenda. Should have 3-5 subtasks.",
+  "notes": "Standard event planning task. Should decompose into venue, activities, meals, logistics."
+}

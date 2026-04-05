@@ -1,0 +1,17 @@
+{
+  "category": "adversarial",
+  "expected_subtasks": [
+    {
+      "title": "Buy milk",
+      "description": "",
+      "priority": "low"
+    }
+  ],
+  "what_good_breakdown_looks_like": "Single subtask. This is already atomic.",
+  "common_failure_modes": [
+    "over_decomposed",
+    "invents_steps_like_go_to_store"
+  ],
+  "acceptable_variation": "Should return single subtask. Should not invent steps like 'go to store'.",
+  "notes": "Already atomic task. Should not be decomposed."
+}

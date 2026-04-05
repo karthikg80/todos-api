@@ -1,0 +1,6 @@
+[task]
+name = "task-breakdown-case-005"
+description = "5-6 subtasks with clear dependencies. Testing and rollback plan are critical."
+
+[scoring]
+weight = 1.0
