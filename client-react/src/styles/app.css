@@ -379,11 +379,10 @@ body {
 .projects-rail-item {
   display: flex;
   align-items: center;
-  gap: var(--s-2);
-  padding: var(--s-2) var(--s-3);
+  padding: var(--s-1h) var(--s-2);
   border-radius: var(--r-sm);
-  font-size: var(--fs-meta);
-  color: var(--muted);
+  font-size: var(--fs-label);
+  color: var(--text);
   cursor: pointer;
   border: none;
   background: none;
@@ -404,13 +403,7 @@ body {
   color: var(--accent);
 }
 
-/* Status dot */
-.projects-rail-item__status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
+/* Status dot — removed, replaced by area left accent */
 
 /* --- Todo row --- */
 .todo-item {
@@ -1942,7 +1935,7 @@ body {
   flex: 1;
 }
 
-/* Area group headers */
+/* Area group headers — subtle separator, not competing with project names */
 .projects-rail-area-header {
   display: flex;
   align-items: center;
@@ -1950,29 +1943,39 @@ body {
   width: 100%;
   border: none;
   background: none;
-  padding: var(--s-2) var(--s-3);
-  font-size: var(--fs-label);
-  font-weight: var(--fw-semibold);
-  color: var(--muted);
+  padding: var(--s-1) var(--s-3);
+  margin-top: var(--s-2);
+  font-size: 10px;
+  font-weight: 500;
+  color: color-mix(in oklab, var(--muted) 70%, transparent);
   cursor: pointer;
   font-family: inherit;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+}
+
+.projects-rail-area-header:first-child {
+  margin-top: 0;
 }
 
 .projects-rail-area-header:hover {
-  color: var(--text);
+  color: var(--muted);
 }
 
 .projects-rail-area-header__chevron {
-  font-size: var(--fs-label);
-  width: 12px;
+  font-size: 9px;
+  width: 10px;
   text-align: center;
+  opacity: 0.6;
 }
 
+/* Area group — left accent bar for visual grouping */
 .projects-rail-area-group {
   display: flex;
   flex-direction: column;
+  margin-left: var(--s-3);
+  padding-left: var(--s-2);
+  border-left: 1px solid var(--border-light);
 }
 
 /* Spacer between projects and utilities */

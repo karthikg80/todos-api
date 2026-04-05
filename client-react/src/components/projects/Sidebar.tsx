@@ -65,10 +65,6 @@ function ProjectRailItem({
       data-project-key={p.name}
       onClick={onClick}
     >
-      <span
-        className="projects-rail-item__status-dot"
-        style={{ background: STATUS_COLORS[p.status] || "var(--muted)" }}
-      />
       <span className="nav-label">{p.name}</span>
     </button>
   );
