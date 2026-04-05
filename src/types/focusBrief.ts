@@ -102,16 +102,37 @@ export type PanelData =
 
 export type PanelType = PanelData["type"];
 
+export interface PanelProvenance {
+  source: "llm" | "deterministic";
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  generatedAt?: string;
+  cacheStatus?: "hit" | "miss" | "stale";
+  cacheExpiresAt?: string;
+  inputSummary?: string;
+  promptIntent?: string;
+  method?: string;
+  freshness?: "fresh" | "stale" | "cached";
+  filter?: string;
+  dataBreakdown?: Record<string, number>;
+  itemsShown?: number;
+  logic?: string;
+}
+
 export interface RankedPanel {
   type: PanelType;
   reason: string;
   data: PanelData;
+  provenance: PanelProvenance;
 }
 
 export interface FocusBriefResponse {
   pinned: {
     rightNow: RightNow;
     todayAgenda: AgendaItem[];
+    rightNowProvenance: PanelProvenance;
+    todayAgendaProvenance: PanelProvenance;
   };
   rankedPanels: RankedPanel[];
   generatedAt: string;
