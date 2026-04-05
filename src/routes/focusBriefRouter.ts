@@ -6,12 +6,14 @@
 
 import { Router, Request, Response } from "express";
 import { callLlm, LlmProviderNotConfiguredError } from "../services/llmService";
+import { config } from "../config";
 import { ITodoService } from "../interfaces/ITodoService";
 import { IProjectService } from "../interfaces/IProjectService";
 import {
   FocusBriefResponse,
   LlmFocusOutput,
   PanelData,
+  PanelProvenance,
   PanelType,
   RankedPanel,
   WhatNextPanelData,
@@ -40,6 +42,104 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+type DeterministicKey = Exclude<PanelType, "whatNext"> | "todayAgenda";
+
+// Static provenance metadata for each deterministic panel type
+const DETERMINISTIC_PROVENANCE: Record<
+  DeterministicKey,
+  Pick<PanelProvenance, "method" | "filter" | "promptIntent" | "logic">
+> = {
+  todayAgenda: {
+    method: "date-match",
+    filter: "dueDate=today OR scheduledDate=today OR doDate=today OR overdue",
+    promptIntent: "Show what needs attention today",
+    logic:
+      "Tasks due/scheduled today plus overdue tasks, sorted by priority then due date",
+  },
+  unsorted: {
+    method: "inbox-filter",
+    filter: "status=inbox OR no-project",
+    promptIntent: "Surface tasks that have not been triaged",
+    logic: "Tasks without a project or with inbox status",
+  },
+  dueSoon: {
+    method: "due-date-window",
+    filter: "dueDate within 7 days",
+    promptIntent: "Show upcoming deadlines grouped by day",
+    logic: "Tasks with due date in next 7 days, grouped by relative label",
+  },
+  backlogHygiene: {
+    method: "staleness-check",
+    filter: "updatedAt older than 30 days AND not completed",
+    promptIntent: "Identify tasks that have gone stale",
+    logic: "Open tasks not updated in 30+ days, sorted by staleness descending",
+  },
+  projectsToNudge: {
+    method: "project-health-scan",
+    filter: "projects with overdue or due-soon tasks",
+    promptIntent: "Surface projects that need attention",
+    logic:
+      "Projects with overdue, waiting, or due-soon task counts above threshold",
+  },
+  trackOverview: {
+    method: "rolling-window-buckets",
+    filter: "dueDate grouped into thisWeek / next14Days / later",
+    promptIntent: "Give a runway view of upcoming work",
+    logic: "Tasks bucketed by due date into three time horizons",
+  },
+  rescueMode: {
+    method: "overload-detector",
+    filter: "openCount and overdueCount aggregation",
+    promptIntent: "Detect when the user is overwhelmed",
+    logic:
+      "Counts open and overdue tasks; triggers if overdue ratio exceeds threshold",
+  },
+};
+
+function buildLlmProvenance(
+  generatedAt: string,
+  cacheStatus: PanelProvenance["cacheStatus"],
+  cacheExpiresAt: string,
+  freshness: PanelProvenance["freshness"],
+  todoCount: number,
+  projectCount: number,
+): PanelProvenance {
+  return {
+    source: "llm",
+    model: config.aiProviderModel,
+    temperature: 0.3,
+    maxTokens: 1500,
+    generatedAt,
+    cacheStatus,
+    cacheExpiresAt,
+    freshness,
+    inputSummary: `${todoCount} open tasks, ${projectCount} projects`,
+    promptIntent: "Rank panels and surface urgent items with AI reasoning",
+  };
+}
+
+function buildDeterministicProvenance(
+  key: DeterministicKey,
+  generatedAt: string,
+  cacheStatus: PanelProvenance["cacheStatus"],
+  cacheExpiresAt: string,
+  freshness: PanelProvenance["freshness"],
+  dataBreakdown: Record<string, number>,
+  itemsShown: number,
+): PanelProvenance {
+  const staticInfo = DETERMINISTIC_PROVENANCE[key];
+  return {
+    source: "deterministic",
+    generatedAt,
+    cacheStatus,
+    cacheExpiresAt,
+    freshness,
+    dataBreakdown,
+    itemsShown,
+    ...staticInfo,
+  };
+}
 
 function buildSystemPrompt(todayISO: string): string {
   return `You are a personal productivity assistant. Today is ${todayISO}.
@@ -148,15 +248,33 @@ function assembleBrief(
   generatedAt: string,
 ): FocusBriefResponse {
   const todayAgenda = computeTodayAgenda(todos, today);
+  const cacheExpiresAt = new Date(expiresAt).toISOString();
+  const cacheStatus: PanelProvenance["cacheStatus"] = cached
+    ? isStale
+      ? "stale"
+      : "hit"
+    : "miss";
+  const freshness: PanelProvenance["freshness"] = cached
+    ? isStale
+      ? "stale"
+      : "cached"
+    : "fresh";
 
   // Compute all server-side panels
+  const unsortedData = computeUnsorted(todos);
+  const dueSoonData = computeDueSoon(todos, today);
+  const backlogHygieneData = computeBacklogHygiene(todos, today);
+  const projectsToNudgeData = computeProjectsToNudge(projects, todos, today);
+  const trackOverviewData = computeTrackOverview(todos, today);
+  const rescueModeData = computeRescueMode(todos, today);
+
   const panelMap = new Map<PanelType, PanelData>([
-    ["unsorted", computeUnsorted(todos)],
-    ["dueSoon", computeDueSoon(todos, today)],
-    ["backlogHygiene", computeBacklogHygiene(todos, today)],
-    ["projectsToNudge", computeProjectsToNudge(projects, todos, today)],
-    ["trackOverview", computeTrackOverview(todos, today)],
-    ["rescueMode", computeRescueMode(todos, today)],
+    ["unsorted", unsortedData],
+    ["dueSoon", dueSoonData],
+    ["backlogHygiene", backlogHygieneData],
+    ["projectsToNudge", projectsToNudgeData],
+    ["trackOverview", trackOverviewData],
+    ["rescueMode", rescueModeData],
   ]);
 
   // Build whatNext panel from LLM output
@@ -166,6 +284,105 @@ function assembleBrief(
   };
   panelMap.set("whatNext", whatNextPanel);
 
+  // Precompute provenance for deterministic panels
+  const deterministicProvenanceMap = new Map<DeterministicKey, PanelProvenance>(
+    [
+      [
+        "unsorted",
+        buildDeterministicProvenance(
+          "unsorted",
+          generatedAt,
+          cacheStatus,
+          cacheExpiresAt,
+          freshness,
+          { items: unsortedData.items.length },
+          unsortedData.items.length,
+        ),
+      ],
+      [
+        "dueSoon",
+        buildDeterministicProvenance(
+          "dueSoon",
+          generatedAt,
+          cacheStatus,
+          cacheExpiresAt,
+          freshness,
+          {
+            groups: dueSoonData.groups.length,
+            items: dueSoonData.groups.reduce((s, g) => s + g.items.length, 0),
+          },
+          dueSoonData.groups.reduce((s, g) => s + g.items.length, 0),
+        ),
+      ],
+      [
+        "backlogHygiene",
+        buildDeterministicProvenance(
+          "backlogHygiene",
+          generatedAt,
+          cacheStatus,
+          cacheExpiresAt,
+          freshness,
+          { items: backlogHygieneData.items.length },
+          backlogHygieneData.items.length,
+        ),
+      ],
+      [
+        "projectsToNudge",
+        buildDeterministicProvenance(
+          "projectsToNudge",
+          generatedAt,
+          cacheStatus,
+          cacheExpiresAt,
+          freshness,
+          { projects: projectsToNudgeData.items.length },
+          projectsToNudgeData.items.length,
+        ),
+      ],
+      [
+        "trackOverview",
+        buildDeterministicProvenance(
+          "trackOverview",
+          generatedAt,
+          cacheStatus,
+          cacheExpiresAt,
+          freshness,
+          {
+            thisWeek: trackOverviewData.columns.thisWeek.length,
+            next14Days: trackOverviewData.columns.next14Days.length,
+            later: trackOverviewData.columns.later.length,
+          },
+          trackOverviewData.columns.thisWeek.length +
+            trackOverviewData.columns.next14Days.length +
+            trackOverviewData.columns.later.length,
+        ),
+      ],
+      [
+        "rescueMode",
+        buildDeterministicProvenance(
+          "rescueMode",
+          generatedAt,
+          cacheStatus,
+          cacheExpiresAt,
+          freshness,
+          {
+            open: rescueModeData.openCount,
+            overdue: rescueModeData.overdueCount,
+          },
+          rescueModeData.openCount,
+        ),
+      ],
+    ],
+  );
+
+  const llmProvenance = buildLlmProvenance(
+    generatedAt,
+    cacheStatus,
+    cacheExpiresAt,
+    freshness,
+    todos.length,
+    projects.length,
+  );
+
   // Build ranked panels using LLM ranking
   const ranking = llmOutput.panelRanking ?? [];
   const rankedPanels: RankedPanel[] = [];
@@ -174,7 +391,17 @@ function assembleBrief(
   for (const entry of ranking) {
     const data = panelMap.get(entry.type);
     if (data && !seen.has(entry.type)) {
-      rankedPanels.push({ type: entry.type, reason: entry.reason, data });
+      const provenance: PanelProvenance =
+        entry.type === "whatNext"
+          ? llmProvenance
+          : (deterministicProvenanceMap.get(entry.type as DeterministicKey) ??
+            llmProvenance);
+      rankedPanels.push({
+        type: entry.type,
+        reason: entry.reason,
+        data,
+        provenance,
+      });
       seen.add(entry.type);
     }
   }
@@ -182,9 +409,24 @@ function assembleBrief(
   // Append any panels not mentioned by LLM ranking
   for (const [type, data] of panelMap) {
     if (!seen.has(type)) {
-      rankedPanels.push({ type, reason: "", data });
+      const provenance: PanelProvenance =
+        type === "whatNext"
+          ? llmProvenance
+          : (deterministicProvenanceMap.get(type as DeterministicKey) ??
+            llmProvenance);
+      rankedPanels.push({ type, reason: "", data, provenance });
     }
   }
+
+  const todayAgendaProvenance = buildDeterministicProvenance(
+    "todayAgenda",
+    generatedAt,
+    cacheStatus,
+    cacheExpiresAt,
+    freshness,
+    { items: todayAgenda.length },
+    todayAgenda.length,
+  );
 
   return {
     pinned: {
@@ -193,10 +435,12 @@ function assembleBrief(
         topRecommendation: null,
       },
       todayAgenda,
+      rightNowProvenance: llmProvenance,
+      todayAgendaProvenance,
     },
     rankedPanels,
     generatedAt,
-    expiresAt: new Date(expiresAt).toISOString(),
+    expiresAt: cacheExpiresAt,
     cached,
     isStale,
   };
