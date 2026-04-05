@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-020"
+description = "3 tasks extracted. User milestone, office opening, and competitor funding are NO"
+
+[scoring]
+weight = 1.0

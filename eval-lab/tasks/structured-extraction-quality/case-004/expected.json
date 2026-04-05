@@ -1,0 +1,38 @@
+{
+  "category": "voice-transcript",
+  "expected_tasks": [
+    {
+      "title": "Send client proposal",
+      "description": "Due by Wednesday, been in drafts for 3 days",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Call dentist to reschedule appointment",
+      "description": "From next Tuesday to Thursday",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Start working on quarterly report",
+      "description": "Due next Friday",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Follow up with vendor about invoice",
+      "description": "Accounting keeps asking, invoice from last month",
+      "due_date": null,
+      "priority": "medium"
+    }
+  ],
+  "what_good_extraction_looks_like": "4 tasks extracted from rambling voice transcript. Client proposal should be high priority due to deadline.",
+  "common_failure_modes": [
+    "misses_vendor_invoice",
+    "misses_quarterly_report",
+    "combines_tasks",
+    "extracts_non_tasks"
+  ],
+  "acceptable_variation": "Voice transcripts are noisy. Task boundaries may vary but 4 tasks is correct.",
+  "notes": "Rambling voice transcript with filler words. Requires filtering noise."
+}

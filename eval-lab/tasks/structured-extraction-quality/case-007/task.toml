@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-007"
+description = "No tasks extracted. This is a status update with no actionable items."
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,32 @@
+{
+  "category": "adversarial",
+  "expected_tasks": [
+    {
+      "title": "Investigate server crashes and implement auto-scaling",
+      "description": "Server crashed twice on Tuesday",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Submit expense reports",
+      "description": "Due by end of month",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Prepare revised demo with client feedback",
+      "description": "By next Friday",
+      "due_date": null,
+      "priority": "high"
+    }
+  ],
+  "what_good_extraction_looks_like": "3 tasks extracted. User milestone, office opening, and competitor funding are NOT tasks.",
+  "common_failure_modes": [
+    "extracts_user_milestone_as_task",
+    "extracts_office_opening_as_task",
+    "extracts_competitor_funding_as_task",
+    "misses_expense_reports"
+  ],
+  "acceptable_variation": "Should only extract actionable items. 3 tasks is correct.",
+  "notes": "Mix of tasks, updates, and non-actionable information. Tests filtering."
+}

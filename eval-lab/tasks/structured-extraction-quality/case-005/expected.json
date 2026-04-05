@@ -1,0 +1,26 @@
+{
+  "category": "noisy",
+  "expected_tasks": [
+    {
+      "title": "Deploy hotfix to production",
+      "description": "Bug affecting checkout, ASAP",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Review new brand guidelines",
+      "description": "Design team wants review by Friday",
+      "due_date": null,
+      "priority": "medium"
+    }
+  ],
+  "what_good_extraction_looks_like": "Only 2 real tasks. Server room AC and team building event are NOT actionable tasks.",
+  "common_failure_modes": [
+    "extracts_server_ac_as_task",
+    "extracts_team_building_as_task",
+    "extracts_lunch_as_task",
+    "misses_hotfix"
+  ],
+  "acceptable_variation": "Should NOT extract non-actionable items. 2 tasks is correct.",
+  "notes": "Noisy text with non-tasks mixed in. Tests ability to distinguish tasks from observations."
+}

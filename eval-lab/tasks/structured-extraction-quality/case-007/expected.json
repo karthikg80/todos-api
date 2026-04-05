@@ -1,0 +1,12 @@
+{
+  "category": "adversarial",
+  "expected_tasks": [],
+  "what_good_extraction_looks_like": "No tasks extracted. This is a status update with no actionable items.",
+  "common_failure_modes": [
+    "invents_tasks",
+    "extracts_hit_milestone_as_task",
+    "extracts_have_great_weekend_as_task"
+  ],
+  "acceptable_variation": "Should return empty list. No tasks present.",
+  "notes": "Status update with no actionable tasks. Tests ability to return empty."
+}

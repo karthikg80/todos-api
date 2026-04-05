@@ -1,0 +1,56 @@
+{
+  "category": "clear-dates",
+  "expected_tasks": [
+    {
+      "title": "Complete user research phase",
+      "description": "Q1 project",
+      "due_date": "2025-01-15",
+      "priority": "medium"
+    },
+    {
+      "title": "Finish wireframes and get stakeholder approval",
+      "description": "Q1 project",
+      "due_date": "2025-01-22",
+      "priority": "medium"
+    },
+    {
+      "title": "Complete UI design and handoff to engineering",
+      "description": "Q1 project",
+      "due_date": "2025-02-05",
+      "priority": "medium"
+    },
+    {
+      "title": "Complete engineering sprint 1",
+      "description": "Q1 project",
+      "due_date": "2025-02-19",
+      "priority": "medium"
+    },
+    {
+      "title": "Beta launch",
+      "description": "Q1 project",
+      "due_date": "2025-03-05",
+      "priority": "high"
+    },
+    {
+      "title": "Address beta feedback",
+      "description": "Q1 project",
+      "due_date": "2025-03-19",
+      "priority": "medium"
+    },
+    {
+      "title": "Public launch",
+      "description": "Q1 project",
+      "due_date": "2025-04-02",
+      "priority": "high"
+    }
+  ],
+  "what_good_extraction_looks_like": "7 tasks with correct dates. All dates should be extracted accurately.",
+  "common_failure_modes": [
+    "misses_dates",
+    "combines_tasks",
+    "wrong_date_format",
+    "misses_beta_or_launch"
+  ],
+  "acceptable_variation": "All 7 tasks should be extracted. Dates should be in YYYY-MM-DD format.",
+  "notes": "Clear project plan with dates. Tests date extraction and task separation."
+}

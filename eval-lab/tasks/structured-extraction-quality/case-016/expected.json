@@ -1,0 +1,31 @@
+{
+  "category": "adversarial",
+  "expected_tasks": [
+    {
+      "title": "Investigate slow report generation",
+      "description": "Reports are taking too long",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Compile client feedback",
+      "description": "Before the meeting on Thursday",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Update deployment docs",
+      "description": "Switched to new CI system last month",
+      "due_date": null,
+      "priority": "low"
+    }
+  ],
+  "what_good_extraction_looks_like": "3 tasks extracted from polite questions. Each question implies an action.",
+  "common_failure_modes": [
+    "misses_deployment_docs",
+    "misses_client_feedback",
+    "extracts_questions_not_tasks"
+  ],
+  "acceptable_variation": "Tasks should be action-oriented, not restated as questions.",
+  "notes": "Tasks disguised as polite questions. Tests ability to convert questions to actions."
+}

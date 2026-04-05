@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-004"
+description = "4 tasks extracted from rambling voice transcript. Client proposal should be high"
+
+[scoring]
+weight = 1.0

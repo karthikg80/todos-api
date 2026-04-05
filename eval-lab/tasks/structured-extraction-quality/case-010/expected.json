@@ -1,0 +1,38 @@
+{
+  "category": "email-thread",
+  "expected_tasks": [
+    {
+      "title": "Finalize API documentation",
+      "description": "Missing authentication section, assigned to Bob, due next Friday",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Schedule client demo",
+      "description": "For next week, show new features, assigned to Carol",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Complete security review",
+      "description": "Must be done before launch, aim for end of month, assigned to Dave",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Handle budget review for steering committee",
+      "description": "Meeting on the 15th, assigned to Alice",
+      "due_date": null,
+      "priority": "medium"
+    }
+  ],
+  "what_good_extraction_looks_like": "4 tasks with assignees and deadlines extracted from email thread.",
+  "common_failure_modes": [
+    "misses_budget_review",
+    "misses_security_review",
+    "combines_tasks",
+    "extracts_greeting_as_task"
+  ],
+  "acceptable_variation": "Task titles may vary. Assignees and dates should be captured when present.",
+  "notes": "Email thread with tasks from multiple people. Tests assignee extraction."
+}

@@ -1,0 +1,31 @@
+{
+  "category": "implicit",
+  "expected_tasks": [
+    {
+      "title": "Investigate slow login page loading",
+      "description": "Takes 8 seconds, users complaining",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Fix password reset email delivery",
+      "description": "15 support tickets this week",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Investigate signup drop-off rate",
+      "description": "40% drop-off, higher than last month",
+      "due_date": null,
+      "priority": "medium"
+    }
+  ],
+  "what_good_extraction_looks_like": "3 tasks inferred from problem descriptions. Each problem implies a task to fix it.",
+  "common_failure_modes": [
+    "misses_signup_dropoff",
+    "combines_login_and_password",
+    "extracts_problems_not_tasks"
+  ],
+  "acceptable_variation": "Tasks should be action-oriented (investigate/fix), not just restating problems.",
+  "notes": "Implicit tasks from problem descriptions. Requires inference from problems to actions."
+}

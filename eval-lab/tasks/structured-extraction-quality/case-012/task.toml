@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-012"
+description = "5 tasks extracted from rambling prose. Search, mobile, and data pipeline should "
+
+[scoring]
+weight = 1.0

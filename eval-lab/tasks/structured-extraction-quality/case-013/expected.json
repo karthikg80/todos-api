@@ -1,0 +1,44 @@
+{
+  "category": "clear-todo",
+  "expected_tasks": [
+    {
+      "title": "Buy groceries for the week",
+      "description": "",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Call insurance company about claim #12345",
+      "description": "",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Schedule dentist appointment for annual cleaning",
+      "description": "",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Pay electricity bill",
+      "description": "Due March 1st",
+      "due_date": "2025-03-01",
+      "priority": "high"
+    },
+    {
+      "title": "Return library books",
+      "description": "3 overdue",
+      "due_date": null,
+      "priority": "high"
+    }
+  ],
+  "what_good_extraction_looks_like": "All 5 tasks extracted exactly. Electricity bill and library books should be higher priority.",
+  "common_failure_modes": [
+    "misses_library_books",
+    "misses_electricity_bill",
+    "combines_tasks",
+    "wrong_priority"
+  ],
+  "acceptable_variation": "Should extract all 5 tasks. Priority inference is subjective.",
+  "notes": "Clear TODO list. Easy case to validate basic extraction works."
+}

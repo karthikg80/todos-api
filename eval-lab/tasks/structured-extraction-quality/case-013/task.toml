@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-013"
+description = "All 5 tasks extracted exactly. Electricity bill and library books should be high"
+
+[scoring]
+weight = 1.0

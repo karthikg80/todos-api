@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-008"
+description = "1 task extracted (investigate performance). Onboarding improvement is too vague "
+
+[scoring]
+weight = 1.0

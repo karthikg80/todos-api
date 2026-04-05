@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-005"
+description = "Only 2 real tasks. Server room AC and team building event are NOT actionable tas"
+
+[scoring]
+weight = 1.0

@@ -1,0 +1,37 @@
+{
+  "category": "meeting-transcript",
+  "expected_tasks": [
+    {
+      "title": "Create project repo and set up initial scaffolding",
+      "description": "React frontend rewrite, assigned to Sarah, due end of week",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Evaluate PostgreSQL migration effort",
+      "description": "Report back by next Wednesday, assigned to Mike",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Review API contract and provide feedback",
+      "description": "By Friday, team task",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Prepare progress update presentation",
+      "description": "For client meeting on the 20th",
+      "due_date": null,
+      "priority": "medium"
+    }
+  ],
+  "what_good_extraction_looks_like": "4 ACTION items extracted. DECISIONs and NOTEs should NOT be extracted as tasks.",
+  "common_failure_modes": [
+    "extracts_decisions_as_tasks",
+    "extracts_note_as_task",
+    "misses_presentation_task"
+  ],
+  "acceptable_variation": "Should only extract ACTION items. 4 tasks is correct.",
+  "notes": "Structured meeting transcript with labeled decisions, actions, and notes."
+}

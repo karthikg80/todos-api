@@ -1,0 +1,4 @@
+{
+  "source_text": "From: Alice\nTo: Team\nSubject: Re: Project Updates\n\nThanks for the updates. A few things:\n\n@Bob - can you finalize the API documentation by next Friday? The current draft is missing the authentication section.\n@Carol - please schedule a demo with the client for next week. They want to see the new features.\n@Dave - the security review needs to be completed before we can launch. Let's aim for end of month.\n\nAlso, I'll handle the budget review for the steering committee meeting on the 15th.\n\nBest,\nAlice",
+  "source_type": "email_thread"
+}

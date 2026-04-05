@@ -1,0 +1,32 @@
+{
+  "category": "slack-message",
+  "expected_tasks": [
+    {
+      "title": "Complete security audit",
+      "description": "Due by end of week",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Update README with new setup instructions",
+      "description": "Old instructions are broken",
+      "due_date": null,
+      "priority": "medium"
+    },
+    {
+      "title": "Rotate API keys",
+      "description": "Expire tomorrow",
+      "due_date": null,
+      "priority": "high"
+    }
+  ],
+  "what_good_extraction_looks_like": "3 tasks extracted from casual Slack message. Security audit and API key rotation should be high priority.",
+  "common_failure_modes": [
+    "misses_api_keys",
+    "misses_readme_update",
+    "combines_all_into_one",
+    "invents_extra_tasks"
+  ],
+  "acceptable_variation": "Casual tone makes task boundaries fuzzy. 3 tasks is the right count.",
+  "notes": "Casual Slack message with tasks embedded in prose."
+}

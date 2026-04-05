@@ -1,0 +1,44 @@
+{
+  "category": "noisy",
+  "expected_tasks": [
+    {
+      "title": "Fix search filtering by date",
+      "description": "Users can't filter by date, big complaint",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Update mobile app",
+      "description": "Months since last release, reviews getting worse",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Fix data pipeline for analytics",
+      "description": "Numbers have been off for weeks",
+      "due_date": null,
+      "priority": "high"
+    },
+    {
+      "title": "Update terms of service",
+      "description": "New features added last quarter",
+      "due_date": null,
+      "priority": "low"
+    },
+    {
+      "title": "Clean up old feature flags",
+      "description": "50 flags, most unused",
+      "due_date": null,
+      "priority": "low"
+    }
+  ],
+  "what_good_extraction_looks_like": "5 tasks extracted from rambling prose. Search, mobile, and data pipeline should be high priority.",
+  "common_failure_modes": [
+    "misses_feature_flags",
+    "misses_terms_of_service",
+    "combines_tasks",
+    "extracts_non_tasks"
+  ],
+  "acceptable_variation": "Task titles may vary. 5 tasks is correct.",
+  "notes": "Tasks buried in rambling prose. Requires filtering signal from noise."
+}

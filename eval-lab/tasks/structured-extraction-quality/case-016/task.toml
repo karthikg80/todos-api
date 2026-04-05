@@ -1,0 +1,6 @@
+[task]
+name = "structured-extraction-case-016"
+description = "3 tasks extracted from polite questions. Each question implies an action."
+
+[scoring]
+weight = 1.0
