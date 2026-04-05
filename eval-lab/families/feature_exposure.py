@@ -257,6 +257,9 @@ class FeatureExposureFamily(BenchmarkFamily):
         llm_automation_signals = output.get("automation_signals", [])
         signals = output.get("signals", [])
         
+        # Store original LLM segment before gating
+        output["llm_segment"] = current_segment
+        
         # Track total cases for hit-rate calculation
         FeatureExposureFamily.GATE_TOTAL_CASES += 1
 
@@ -709,6 +712,7 @@ class FeatureExposureFamily(BenchmarkFamily):
                 "dimensions": dimensions,
                 "expected_segment": expected_segment,
                 "actual_segment": actual_segment,
+                "llm_segment": output.get("llm_segment", actual_segment),  # Before gating
                 "confidence": confidence,
             },
         )
