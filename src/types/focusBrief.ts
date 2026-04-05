@@ -104,7 +104,7 @@ export type PanelData =
 export type PanelType = PanelData["type"];
 
 export interface PanelProvenance {
-  source: "llm" | "deterministic";
+  source: "ai" | "deterministic";
   model?: string;
   temperature?: number;
   maxTokens?: number;
