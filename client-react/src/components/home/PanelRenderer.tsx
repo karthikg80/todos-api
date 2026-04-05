@@ -1,6 +1,7 @@
 // client-react/src/components/home/PanelRenderer.tsx
 import { FlipCard } from "./FlipCard";
-import { CardBack } from "./CardBack";
+import { TarotCardFront, TarotCardBack } from "./TarotCard";
+import { CardBackContent } from "./CardBack";
 import { PANEL_ART } from "./pixel-art";
 import type { RankedPanel, PanelProvenance } from "../../types/focusBrief";
 
@@ -11,7 +12,7 @@ interface Props {
   onEditTodo?: (id: string, updates: Record<string, unknown>) => void;
 }
 
-// ─── Unsorted Panel ────────────────────────────────────────────────────────
+// ─── Unsorted Panel (The Inbox, V, SYS) ──────────────────────────────────
 
 function UnsortedPanel({
   data,
@@ -30,15 +31,13 @@ function UnsortedPanel({
   const topItem = data.items[0];
 
   const front = (
-    <div className="panel-unsorted" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <Art size={120} />
-      </div>
-      <div className="panel-unsorted__header">
-        <Art size={18} />
-        <span className="panel-unsorted__title">Unsorted Items</span>
-        <span className="focus-panel__subtitle">{data.items.length} items</span>
-      </div>
+    <TarotCardFront
+      name="The Inbox"
+      numeral="V"
+      source="sys"
+      illustration={<Art size={48} />}
+      illustrationCaption={data.items.length + " unsorted"}
+    >
       <div className="inbox-stack">
         <div className="inbox-stack__shadow inbox-stack__shadow--far" />
         <div className="inbox-stack__shadow inbox-stack__shadow--near" />
@@ -112,21 +111,24 @@ function UnsortedPanel({
           ))}
         </div>
       )}
-    </div>
+    </TarotCardFront>
   );
 
   const back = (
-    <CardBack
-      provenance={provenance}
-      reason={reason}
-      pixelArt={<Art size={64} />}
-    />
+    <TarotCardBack
+      name="The Inbox"
+      numeral="V"
+      source="sys"
+      illustration={<Art size={80} />}
+    >
+      <CardBackContent provenance={provenance} reason={reason} />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;
 }
 
-// ─── Due Soon Panel ────────────────────────────────────────────────────────
+// ─── Due Soon Panel (The Hourglass, III, SYS) ────────────────────────────
 
 function DueSoonPanel({
   data,
@@ -147,15 +149,13 @@ function DueSoonPanel({
   const maxCount = Math.max(...data.groups.map((g: any) => g.items.length), 1);
 
   const front = (
-    <div className="panel-due-soon" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <Art size={120} />
-      </div>
-      <div className="panel-due-soon__header">
-        <Art size={18} />
-        <span className="panel-due-soon__title">Due Soon</span>
-        <span className="focus-panel__subtitle">{totalItems} tasks</span>
-      </div>
+    <TarotCardFront
+      name="The Hourglass"
+      numeral="III"
+      source="sys"
+      illustration={<Art size={48} />}
+      illustrationCaption={totalItems + " tasks due"}
+    >
       <div className="urgency-bars">
         {data.groups.map((group: any) => (
           <div key={group.label} className="urgency-bar">
@@ -163,14 +163,22 @@ function DueSoonPanel({
               <span>{group.label}</span>
               <span>{group.items.length}</span>
             </div>
-            <div className="urgency-bar__track">
+            <div
+              style={{
+                height: 4,
+                background: "var(--tarot-frame)",
+                borderRadius: 2,
+                overflow: "hidden",
+              }}
+            >
               <div
-                className="urgency-bar__fill"
                 style={{
                   width: `${Math.round((group.items.length / maxCount) * 100)}%`,
+                  height: "100%",
                   background: group.items.some((i: any) => i.overdue)
-                    ? "var(--danger)"
-                    : "var(--warning)",
+                    ? "var(--tarot-red)"
+                    : "var(--tarot-amber)",
+                  borderRadius: 2,
                 }}
               />
             </div>
@@ -198,21 +206,24 @@ function DueSoonPanel({
             </button>
           ))}
       </div>
-    </div>
+    </TarotCardFront>
   );
 
   const back = (
-    <CardBack
-      provenance={provenance}
-      reason={reason}
-      pixelArt={<Art size={64} />}
-    />
+    <TarotCardBack
+      name="The Hourglass"
+      numeral="III"
+      source="sys"
+      illustration={<Art size={80} />}
+    >
+      <CardBackContent provenance={provenance} reason={reason} />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;
 }
 
-// ─── What Next Panel ───────────────────────────────────────────────────────
+// ─── What Next Panel (The Compass, IV, AI) ───────────────────────────────
 
 function WhatNextPanel({
   data,
@@ -228,55 +239,78 @@ function WhatNextPanel({
   const Art = PANEL_ART["whatNext"];
 
   const front = (
-    <div className="panel-what-next" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <Art size={120} />
-      </div>
-      <div className="panel-what-next__header">
-        <Art size={18} />
-        <span className="panel-what-next__title">What Next</span>
-        <span className="focus-panel__subtitle">
-          {data.items.length} recommendations
-        </span>
-      </div>
-      <div className="focus-list">
-        {data.items.map((item: any) => (
-          <div
-            key={item.id}
-            className="impact-card"
-            onClick={() => onTaskClick(item.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && onTaskClick(item.id)}
-          >
-            <div className="impact-card__top">
-              <span className="focus-list__item-title">{item.title}</span>
-              <div style={{ display: "flex", gap: "var(--s-1)" }}>
-                <span className={`focus-badge focus-badge--${item.impact}`}>
-                  {item.impact}
-                </span>
-                <span className="focus-badge">{item.effort}</span>
-              </div>
-            </div>
-            <div className="impact-card__reason">{item.reason}</div>
+    <TarotCardFront
+      name="The Compass"
+      numeral="IV"
+      source="ai"
+      illustration={<Art size={48} />}
+      illustrationCaption={data.items.length + " paths forward"}
+    >
+      {data.items.map((item: any, i: number) => (
+        <div
+          key={item.id}
+          className="tarot-ranked-entry"
+          style={{
+            opacity: i === 0 ? 1 : i === 1 ? 0.85 : 0.65,
+            cursor: "pointer",
+          }}
+          onClick={() => onTaskClick(item.id)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => e.key === "Enter" && onTaskClick(item.id)}
+        >
+          <div className="tarot-ranked-entry__header">
+            <span
+              className="tarot-ranked-numeral"
+              style={{ fontSize: `${18 - i * 2}px` }}
+            >
+              {i + 1}
+            </span>
+            <span
+              style={{
+                fontSize: `${14 - i}px`,
+                fontWeight: 500,
+                color: "var(--tarot-text)",
+              }}
+            >
+              {item.title}
+            </span>
           </div>
-        ))}
-      </div>
-    </div>
+          <div className="tarot-ranked-entry__reason">{item.reason}</div>
+          <div className="tarot-ranked-entry__meta">
+            <span
+              className={`tarot-micro-label tarot-micro-label--${item.impact}`}
+            >
+              {item.impact}
+            </span>
+            <span className="tarot-micro-sep">{"\u00b7"}</span>
+            <span
+              className="tarot-micro-label"
+              style={{ color: "var(--tarot-muted)" }}
+            >
+              {item.effort}
+            </span>
+          </div>
+        </div>
+      ))}
+    </TarotCardFront>
   );
 
   const back = (
-    <CardBack
-      provenance={provenance}
-      reason={reason}
-      pixelArt={<Art size={64} />}
-    />
+    <TarotCardBack
+      name="The Compass"
+      numeral="IV"
+      source="ai"
+      illustration={<Art size={80} />}
+    >
+      <CardBackContent provenance={provenance} reason={reason} />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;
 }
 
-// ─── Backlog Hygiene Panel ─────────────────────────────────────────────────
+// ─── Backlog Hygiene Panel (The Web, VI, SYS) ────────────────────────────
 
 function BacklogHygienePanel({
   data,
@@ -292,54 +326,74 @@ function BacklogHygienePanel({
   const Art = PANEL_ART["backlogHygiene"];
 
   const front = (
-    <div className="panel-backlog" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <Art size={120} />
-      </div>
-      <div className="panel-backlog__header">
-        <Art size={18} />
-        <span className="panel-backlog__title">Backlog Hygiene</span>
-        <span className="focus-panel__subtitle">{data.items.length} stale</span>
-      </div>
+    <TarotCardFront
+      name="The Web"
+      numeral="VI"
+      source="sys"
+      illustration={<Art size={48} />}
+      illustrationCaption={data.items.length + " stale"}
+    >
       <div className="focus-list">
-        {data.items.map((item: any) => (
+        {data.items.map((item: any, i: number) => (
           <button
             key={item.id}
             className="focus-list__item decay-item"
             onClick={() => onTaskClick(item.id)}
           >
             <div className="decay-item__row">
+              <span
+                style={{
+                  fontFamily: "var(--tarot-serif, Georgia, serif)",
+                  marginRight: "var(--s-2)",
+                  color: "var(--tarot-muted)",
+                }}
+              >
+                {i + 1}.
+              </span>
               <span>{item.title}</span>
               <span className="focus-list__meta">
                 {item.staleDays}d untouched
               </span>
             </div>
-            <div className="decay-item__bar">
+            <div
+              style={{
+                height: 3,
+                background: "var(--tarot-frame)",
+                borderRadius: 2,
+                overflow: "hidden",
+                marginTop: 4,
+              }}
+            >
               <div
-                className="decay-item__fill"
                 style={{
                   width: `${Math.min(Math.round((item.staleDays / 30) * 100), 100)}%`,
+                  height: "100%",
+                  background: `linear-gradient(90deg, var(--tarot-amber), var(--tarot-red))`,
+                  borderRadius: 2,
                 }}
               />
             </div>
           </button>
         ))}
       </div>
-    </div>
+    </TarotCardFront>
   );
 
   const back = (
-    <CardBack
-      provenance={provenance}
-      reason={reason}
-      pixelArt={<Art size={64} />}
-    />
+    <TarotCardBack
+      name="The Web"
+      numeral="VI"
+      source="sys"
+      illustration={<Art size={80} />}
+    >
+      <CardBackContent provenance={provenance} reason={reason} />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;
 }
 
-// ─── Projects To Nudge Panel ───────────────────────────────────────────────
+// ─── Projects To Nudge Panel (The Guardian, VII, SYS) ────────────────────
 
 function ProjectsToNudgePanel({
   data,
@@ -355,14 +409,12 @@ function ProjectsToNudgePanel({
   const Art = PANEL_ART["projectsToNudge"];
 
   const front = (
-    <div className="panel-nudge" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <Art size={120} />
-      </div>
-      <div className="panel-nudge__header">
-        <Art size={18} />
-        <span className="panel-nudge__title">Projects to Nudge</span>
-      </div>
+    <TarotCardFront
+      name="The Guardian"
+      numeral="VII"
+      source="sys"
+      illustration={<Art size={48} />}
+    >
       <div className="focus-list">
         {data.items.map((item: any) => {
           const isCritical = item.overdueCount > 0;
@@ -386,28 +438,31 @@ function ProjectsToNudgePanel({
                     item.dueSoonCount > 0 && `${item.dueSoonCount} due soon`,
                   ]
                     .filter(Boolean)
-                    .join(" · ")}
+                    .join(" \u00b7 ")}
                 </div>
               </div>
             </button>
           );
         })}
       </div>
-    </div>
+    </TarotCardFront>
   );
 
   const back = (
-    <CardBack
-      provenance={provenance}
-      reason={reason}
-      pixelArt={<Art size={64} />}
-    />
+    <TarotCardBack
+      name="The Guardian"
+      numeral="VII"
+      source="sys"
+      illustration={<Art size={80} />}
+    >
+      <CardBackContent provenance={provenance} reason={reason} />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;
 }
 
-// ─── Track Overview Panel ──────────────────────────────────────────────────
+// ─── Track Overview Panel (The Road, VIII, SYS) ──────────────────────────
 
 function TrackOverviewPanel({
   data,
@@ -420,19 +475,26 @@ function TrackOverviewPanel({
 }) {
   const Art = PANEL_ART["trackOverview"];
 
+  const columnColors: Record<string, string> = {
+    thisWeek: "var(--tarot-warm, var(--tarot-amber))",
+    next14Days: "var(--tarot-sage, var(--tarot-text))",
+    later: "var(--tarot-muted)",
+  };
+
   const front = (
-    <div className="panel-track" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <Art size={120} />
-      </div>
-      <div className="panel-track__header">
-        <Art size={18} />
-        <span className="panel-track__title">Task Timeline</span>
-      </div>
+    <TarotCardFront
+      name="The Road"
+      numeral="VIII"
+      source="sys"
+      illustration={<Art size={48} />}
+    >
       <div className="focus-track">
         {(["thisWeek", "next14Days", "later"] as const).map((col) => (
           <div key={col} className="focus-track__column">
-            <div className={`focus-track__header focus-track__header--${col}`}>
+            <div
+              className="focus-track__header"
+              style={{ color: columnColors[col] }}
+            >
               {col === "thisWeek"
                 ? "This week"
                 : col === "next14Days"
@@ -447,21 +509,24 @@ function TrackOverviewPanel({
           </div>
         ))}
       </div>
-    </div>
+    </TarotCardFront>
   );
 
   const back = (
-    <CardBack
-      provenance={provenance}
-      reason={reason}
-      pixelArt={<Art size={64} />}
-    />
+    <TarotCardBack
+      name="The Road"
+      numeral="VIII"
+      source="sys"
+      illustration={<Art size={80} />}
+    >
+      <CardBackContent provenance={provenance} reason={reason} />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;
 }
 
-// ─── Rescue Mode Panel ─────────────────────────────────────────────────────
+// ─── Rescue Mode Panel (Rescue, SYS) ─────────────────────────────────────
 
 function RescueModePanel({
   data,
@@ -477,28 +542,29 @@ function RescueModePanel({
   const Art = PANEL_ART["rescueMode"];
 
   const front = (
-    <div className="panel-rescue" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <Art size={120} />
-      </div>
-      <div className="panel-rescue__header">
-        <Art size={18} />
-        <span className="panel-rescue__title">Rescue Mode</span>
-      </div>
+    <TarotCardFront
+      name="Rescue"
+      numeral=""
+      source="sys"
+      illustration={<Art size={48} />}
+    >
       <p className="focus-rescue__text">
         You have <strong>{data.openCount}</strong> open tasks and{" "}
         <strong>{data.overdueCount}</strong> are overdue. Consider triaging or
         deferring some tasks.
       </p>
-    </div>
+    </TarotCardFront>
   );
 
   const back = (
-    <CardBack
-      provenance={provenance}
-      reason={reason}
-      pixelArt={<Art size={64} />}
-    />
+    <TarotCardBack
+      name="Rescue"
+      numeral=""
+      source="sys"
+      illustration={<Art size={80} />}
+    >
+      <CardBackContent provenance={provenance} reason={reason} />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;

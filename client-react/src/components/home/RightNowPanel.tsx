@@ -1,6 +1,7 @@
 // client-react/src/components/home/RightNowPanel.tsx
 import { FlipCard } from "./FlipCard";
-import { CardBack } from "./CardBack";
+import { TarotCardFront, TarotCardBack } from "./TarotCard";
+import { CardBackContent } from "./CardBack";
 import { FlameArt } from "./pixel-art";
 import type { RightNow, PanelProvenance } from "../../types/focusBrief";
 
@@ -16,40 +17,46 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
   }
 
   const front = (
-    <div className="panel-right-now" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <FlameArt size={120} />
-      </div>
-      <div className="panel-right-now__header">
-        <FlameArt size={18} />
-        <span className="panel-right-now__title">Right Now</span>
-      </div>
-
-      {data.narrative && (
-        <p className="panel-right-now__narrative">{data.narrative}</p>
-      )}
-
+    <TarotCardFront
+      name="The Flame"
+      numeral="I"
+      source="ai"
+      illustration={<FlameArt size={64} />}
+      hero
+    >
+      {data.narrative && <p className="tarot-narrative">{data.narrative}</p>}
       {data.topRecommendation && (
         <button
-          className="focus-recommendation"
+          className="tarot-action-band"
           onClick={() => onTaskClick(data.topRecommendation!.taskId)}
+          style={{
+            border: "none",
+            cursor: "pointer",
+            textAlign: "left",
+            width: "100%",
+            fontFamily: "inherit",
+          }}
         >
-          <div className="focus-recommendation__label">→ Strongest next action</div>
-          <div className="focus-recommendation__title">{data.topRecommendation.title}</div>
-          <div className="focus-recommendation__reasoning">
-            {data.topRecommendation.reasoning}
-          </div>
+          <div className="tarot-action-band__label">Strongest action</div>
+          <div className="tarot-action-band__title">{data.topRecommendation.title}</div>
+          <div className="tarot-action-band__reason">{data.topRecommendation.reasoning}</div>
         </button>
       )}
-    </div>
+    </TarotCardFront>
   );
 
   const back = (
-    <CardBack
-      provenance={provenance}
-      reason="Pinned — always visible. Urgent items and your strongest next action."
-      pixelArt={<FlameArt size={64} />}
-    />
+    <TarotCardBack
+      name="The Flame"
+      numeral="I"
+      source="ai"
+      illustration={<FlameArt size={80} />}
+    >
+      <CardBackContent
+        provenance={provenance}
+        reason="Pinned — always visible. Urgent items and your strongest next action."
+      />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;

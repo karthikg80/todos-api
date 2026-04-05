@@ -45,8 +45,9 @@
   --s-8: 48px;
 
   /* --- Typography --- */
-  --font-sans: "Inter", "Avenir Next", "Segoe UI", -apple-system,
-    BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+  --font-sans:
+    "Inter", "Avenir Next", "Segoe UI", -apple-system, BlinkMacSystemFont,
+    "Helvetica Neue", Arial, sans-serif;
   --fs-xs: 0.688rem;
   --fs-label: 0.75rem;
   --fs-meta: 0.8125rem;
@@ -83,14 +84,16 @@
   --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
   --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08), 0 2px 4px rgb(15 23 42 / 0.04);
   --shadow-lg: 0 12px 24px rgb(15 23 42 / 0.1), 0 4px 8px rgb(15 23 42 / 0.06);
-  --shadow-xl: 0 20px 40px rgb(15 23 42 / 0.14), 0 8px 16px rgb(15 23 42 / 0.08);
+  --shadow-xl:
+    0 20px 40px rgb(15 23 42 / 0.14), 0 8px 16px rgb(15 23 42 / 0.08);
   /* Backward compat aliases */
   --shadow-hover: var(--shadow-sm);
   --shadow-card: var(--shadow-md);
   --shadow-elevated: var(--shadow-lg);
   /* Focus ring */
   --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
-  --shadow-focus-danger: 0 0 0 3px color-mix(in oklab, var(--danger) 20%, transparent);
+  --shadow-focus-danger: 0 0 0 3px
+    color-mix(in oklab, var(--danger) 20%, transparent);
 
   /* --- Motion --- */
   --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
@@ -100,6 +103,21 @@
   --dur-base: 180ms;
   --dur-slow: 280ms;
   --dur-view: var(--dur-slow);
+
+  /* ── Tarot Card Design System ──────────────── */
+  --tarot-parchment: #faf8f5;
+  --tarot-parchment-dark: #f7f4ee;
+  --tarot-frame: #e0dbd3;
+  --tarot-border: #e8e4de;
+  --tarot-text: #3d3730;
+  --tarot-muted: #8a7e6e;
+  --tarot-gold: #b8a080;
+  --tarot-sage: #8a9a8e;
+  --tarot-red: #c45a3c;
+  --tarot-amber: #d4864a;
+  --tarot-warm: #daa85c;
+  --tarot-faint: #d0c8b8;
+  --tarot-tabletop: #f0ece4;
 }
 
 /* --- Dark mode (warmer, more vibrant) --- */
@@ -134,7 +152,8 @@ body.dark-mode {
   --shadow-card: var(--shadow-md);
   --shadow-elevated: var(--shadow-lg);
   --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
-  --shadow-focus-danger: 0 0 0 3px color-mix(in oklab, var(--danger) 30%, transparent);
+  --shadow-focus-danger: 0 0 0 3px
+    color-mix(in oklab, var(--danger) 30%, transparent);
   --text-2: var(--muted);
   --border-strong: color-mix(in oklab, var(--border) 70%, var(--text));
 }
