@@ -103,20 +103,20 @@ export type PanelData =
 export type PanelType = PanelData["type"];
 
 export interface PanelProvenance {
-  source: "llm" | "deterministic";
+  source: "ai" | "deterministic";
   model?: string;
   temperature?: number;
   maxTokens?: number;
   generatedAt?: string;
-  cacheStatus?: "hit" | "miss" | "stale";
+  cacheStatus?: "fresh" | "stale" | "hit" | "miss";
   cacheExpiresAt?: string;
   inputSummary?: string;
   promptIntent?: string;
   method?: string;
-  freshness?: "fresh" | "stale" | "cached";
+  freshness?: string;
   filter?: string;
-  dataBreakdown?: Record<string, number>;
-  itemsShown?: number;
+  dataBreakdown?: string;
+  itemsShown?: string;
   logic?: string;
 }
 
