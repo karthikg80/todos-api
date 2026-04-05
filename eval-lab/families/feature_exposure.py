@@ -158,7 +158,17 @@ class FeatureExposureFamily(BenchmarkFamily):
             "- beginner: First-week users, low behavioral sophistication\n"
             "- intermediate: Users who use due dates, projects, daily planning\n"
             "- advanced: Users with repeated advanced behaviors, dependencies, goals\n"
-            "- power: Highly engaged users ready for automation and bulk workflows\n\n"
+            "  Advanced users are GOOD USERS — they use the system well but within it\n"
+            "- power: Users who CHANGE the system behavior — automation, bulk ops, meta-workflows\n"
+            "  Power users are SYSTEM-LEVEL USERS — they optimize workflows, not just tasks\n\n"
+            "CRITICAL: Advanced vs Power distinction:\n"
+            "- Advanced = consistently uses features correctly, organizes well, uses planning\n"
+            "- Power = uses automation/rules, bulk operations, integrations, system optimization\n"
+            "- High engagement or frequent usage alone is INSUFFICIENT for power classification\n"
+            "- Only classify as 'power' if there is clear evidence of workflow automation,\n"
+            "  bulk operations, or system-level optimization behavior\n"
+            "- Advanced users may be highly active and structured but do not necessarily\n"
+            "  use automation or advanced system features\n\n"
             "Feature exposure rules:\n"
             "- Never expose advanced features to beginners\n"
             "- Always expose core features to all users\n"
@@ -170,12 +180,23 @@ class FeatureExposureFamily(BenchmarkFamily):
             "- High activity volume does NOT equal sophistication if account is new\n"
             "- Reward progressive nudges more than full unlocks in ambiguous cases\n"
             "- It is better to under-expose than over-expose\n"
+            "- Upward misclassification (e.g., advanced→power) is MORE harmful than\n"
+            "  downward misclassification (e.g., power→advanced)\n"
             "- Only classify as 'advanced' or 'power' when there is clear evidence of\n"
             "  sustained advanced feature usage over multiple weeks\n\n"
+            "Automation signals to look for:\n"
+            "- Uses recurring tasks repeatedly (not just once)\n"
+            "- Uses batch edits or bulk operations\n"
+            "- Uses advanced filters or custom views\n"
+            "- Uses integrations or automation rules\n"
+            "- No automation signals → cannot be power user\n"
+            "- Weak automation signals → advanced at most\n"
+            "- Strong automation signals → power user candidate\n\n"
             "Return JSON with:\n"
             "- user_segment: beginner|intermediate|advanced|power\n"
             "- confidence: 0.0-1.0\n"
             "- signals: list of behavioral signals used for classification\n"
+            "- automation_signals: list of automation-specific signals observed\n"
             "- enabled_features: list of features to show\n"
             "- hidden_features: list of features to hide\n"
             "- nudges: list of growth nudges\n"
@@ -245,8 +266,39 @@ class FeatureExposureFamily(BenchmarkFamily):
         actual_hidden = set(output.get("hidden_features", []))
         confidence = output.get("confidence", 0.0)
 
-        # Classification accuracy
-        classification_accuracy = 1.0 if actual_segment == expected_segment else 0.0
+        # Classification accuracy with ASYMMETRIC PENALTIES
+        # Upward misclassification is MORE harmful than downward
+        # beginner→intermediate: mild confusion (penalty: 0.3)
+        # intermediate→advanced: feature overload risk (penalty: 0.5)
+        # advanced→power: system overload risk (penalty: 0.7)
+        # beginner→power: catastrophic exposure (penalty: 1.0)
+        # downward errors are less severe (penalty: 0.2)
+        segment_order = ["beginner", "intermediate", "advanced", "power"]
+        if actual_segment == expected_segment:
+            classification_accuracy = 1.0
+        else:
+            try:
+                expected_idx = segment_order.index(expected_segment)
+                actual_idx = segment_order.index(actual_segment)
+                direction = actual_idx - expected_idx  # positive = upward, negative = downward
+                distance = abs(direction)
+                
+                if direction > 0:
+                    # Upward misclassification - more harmful
+                    if distance == 1:
+                        # Adjacent tier upward (e.g., advanced→power)
+                        classification_accuracy = 0.3  # 70% penalty
+                    elif distance == 2:
+                        # Two tiers upward (e.g., intermediate→power)
+                        classification_accuracy = 0.1  # 90% penalty
+                    else:
+                        # Three tiers upward (e.g., beginner→power)
+                        classification_accuracy = 0.0  # 100% penalty
+                else:
+                    # Downward misclassification - less severe
+                    classification_accuracy = 0.8  # 20% penalty
+            except ValueError:
+                classification_accuracy = 0.0
 
         # Feature appropriateness (Jaccard similarity)
         if expected_enabled or actual_enabled:

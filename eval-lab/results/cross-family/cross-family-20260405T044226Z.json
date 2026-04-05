@@ -1,0 +1,317 @@
+{
+  "cross-001": {
+    "feature_exposure": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 0.0,
+          "under_exposure_avoidance": 0.0,
+          "nudge_quality": 0.0,
+          "confidence_calibration": 0.0,
+          "format_compliance": 0.0
+        },
+        "actual_segment": "unknown",
+        "confidence": 0
+      }
+    },
+    "prioritization": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "ordering_quality": 0.0,
+          "dependency_respect": 0.0,
+          "justification_quality": 0.0,
+          "tie_handling": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "goal_coverage": 0.0,
+          "step_quality": 0.0,
+          "sequencing": 0.0,
+          "feasibility": 0.0,
+          "granularity": 0.0,
+          "non_redundancy": 0.0,
+          "constraint_adherence": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "consistency": {
+      "issues": [],
+      "consistent": true,
+      "actual_segment": "unknown",
+      "expected_segment": "beginner",
+      "confidence": 0,
+      "downstream_impact": {
+        "impacts": [
+          "Plan quality degraded (score=0.20) due to misclassification"
+        ],
+        "severity": "medium",
+        "impact_count": 1,
+        "classification_correct": false
+      }
+    }
+  },
+  "cross-002": {
+    "feature_exposure": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 0.0,
+          "under_exposure_avoidance": 0.0,
+          "nudge_quality": 0.0,
+          "confidence_calibration": 0.0,
+          "format_compliance": 0.0
+        },
+        "actual_segment": "unknown",
+        "confidence": 0
+      }
+    },
+    "prioritization": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "ordering_quality": 0.0,
+          "dependency_respect": 0.0,
+          "justification_quality": 0.0,
+          "tie_handling": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "goal_coverage": 0.0,
+          "step_quality": 0.0,
+          "sequencing": 0.0,
+          "feasibility": 0.0,
+          "granularity": 0.0,
+          "non_redundancy": 0.0,
+          "constraint_adherence": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "consistency": {
+      "issues": [],
+      "consistent": true,
+      "actual_segment": "unknown",
+      "expected_segment": "intermediate",
+      "confidence": 0,
+      "downstream_impact": {
+        "impacts": [
+          "Plan quality degraded (score=0.20) due to misclassification"
+        ],
+        "severity": "medium",
+        "impact_count": 1,
+        "classification_correct": false
+      }
+    }
+  },
+  "cross-003": {
+    "feature_exposure": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 0.0,
+          "under_exposure_avoidance": 0.0,
+          "nudge_quality": 0.0,
+          "confidence_calibration": 0.0,
+          "format_compliance": 0.0
+        },
+        "actual_segment": "unknown",
+        "confidence": 0
+      }
+    },
+    "prioritization": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "ordering_quality": 0.0,
+          "dependency_respect": 0.0,
+          "justification_quality": 0.0,
+          "tie_handling": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "goal_coverage": 0.0,
+          "step_quality": 0.0,
+          "sequencing": 0.0,
+          "feasibility": 0.0,
+          "granularity": 0.0,
+          "non_redundancy": 0.0,
+          "constraint_adherence": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "consistency": {
+      "issues": [],
+      "consistent": true,
+      "actual_segment": "unknown",
+      "expected_segment": "advanced",
+      "confidence": 0,
+      "downstream_impact": {
+        "impacts": [
+          "Plan quality degraded (score=0.20) due to misclassification"
+        ],
+        "severity": "medium",
+        "impact_count": 1,
+        "classification_correct": false
+      }
+    }
+  },
+  "cross-004": {
+    "feature_exposure": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 0.0,
+          "under_exposure_avoidance": 0.0,
+          "nudge_quality": 0.0,
+          "confidence_calibration": 0.0,
+          "format_compliance": 0.0
+        },
+        "actual_segment": "unknown",
+        "confidence": 0
+      }
+    },
+    "prioritization": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "ordering_quality": 0.0,
+          "dependency_respect": 0.0,
+          "justification_quality": 0.0,
+          "tie_handling": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "goal_coverage": 0.0,
+          "step_quality": 0.0,
+          "sequencing": 0.0,
+          "feasibility": 0.0,
+          "granularity": 0.0,
+          "non_redundancy": 0.0,
+          "constraint_adherence": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "consistency": {
+      "issues": [],
+      "consistent": true,
+      "actual_segment": "unknown",
+      "expected_segment": "beginner",
+      "confidence": 0,
+      "downstream_impact": {
+        "impacts": [
+          "Plan quality degraded (score=0.20) due to misclassification"
+        ],
+        "severity": "medium",
+        "impact_count": 1,
+        "classification_correct": false
+      }
+    }
+  },
+  "cross-005": {
+    "feature_exposure": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "classification_accuracy": 0.0,
+          "feature_appropriateness": 0.0,
+          "over_exposure_avoidance": 0.0,
+          "under_exposure_avoidance": 0.0,
+          "nudge_quality": 0.0,
+          "confidence_calibration": 0.0,
+          "format_compliance": 0.0
+        },
+        "actual_segment": "unknown",
+        "confidence": 0
+      }
+    },
+    "prioritization": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "ordering_quality": 0.0,
+          "dependency_respect": 0.0,
+          "justification_quality": 0.0,
+          "tie_handling": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "plan_from_goal": {
+      "output": null,
+      "result": {
+        "score": 0.2,
+        "dimensions": {
+          "goal_coverage": 0.0,
+          "step_quality": 0.0,
+          "sequencing": 0.0,
+          "feasibility": 0.0,
+          "granularity": 0.0,
+          "non_redundancy": 0.0,
+          "constraint_adherence": 0.0,
+          "format_compliance": 0.0
+        }
+      }
+    },
+    "consistency": {
+      "issues": [],
+      "consistent": true,
+      "actual_segment": "unknown",
+      "expected_segment": "power",
+      "confidence": 0,
+      "downstream_impact": {
+        "impacts": [
+          "Plan quality degraded (score=0.20) due to misclassification"
+        ],
+        "severity": "medium",
+        "impact_count": 1,
+        "classification_correct": false
+      }
+    }
+  }
+}
