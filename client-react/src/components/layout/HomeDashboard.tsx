@@ -46,9 +46,14 @@ export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject, onEd
 
   return (
     <div data-testid="home-dashboard" className="home-dashboard">
-      <RightNowPanel data={brief.pinned.rightNow} onTaskClick={onTodoClick} />
+      <RightNowPanel
+        data={brief.pinned.rightNow}
+        provenance={brief.pinned.rightNowProvenance}
+        onTaskClick={onTodoClick}
+      />
       <TodayAgendaPanel
         items={brief.pinned.todayAgenda}
+        provenance={brief.pinned.todayAgendaProvenance}
         onTaskClick={onTodoClick}
         onToggle={onToggleTodo}
       />
