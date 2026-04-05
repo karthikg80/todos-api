@@ -22,6 +22,7 @@ import { createAdminRouter } from "./routes/adminRouter";
 import { createUsersRouter } from "./routes/usersRouter";
 import { createAiRouter } from "./routes/aiRouter";
 import { createPrioritiesBriefRouter } from "./routes/prioritiesBriefRouter";
+import { createFocusBriefRouter } from "./routes/focusBriefRouter";
 import { createAgentRouter } from "./routes/agentRouter";
 import { createMcpRouter } from "./routes/mcpRouter";
 import {
@@ -411,6 +412,14 @@ export function createApp(deps: AppDependencies = {}) {
   app.use(
     "/ai",
     createPrioritiesBriefRouter({
+      todoService,
+      projectService,
+      resolveUserId: resolveAiUserId,
+    }),
+  );
+  app.use(
+    "/ai",
+    createFocusBriefRouter({
       todoService,
       projectService,
       resolveUserId: resolveAiUserId,
