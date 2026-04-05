@@ -1,6 +1,6 @@
 // client-react/src/components/home/PanelRenderer.tsx
 import { FlipCard } from "./FlipCard";
-import { CardBack } from "./CardBack";
+import { CardBackContent as CardBack } from "./CardBack";
 import { PANEL_ART } from "./pixel-art";
 import type { RankedPanel, PanelProvenance } from "../../types/focusBrief";
 
