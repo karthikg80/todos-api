@@ -1944,3 +1944,132 @@
   font-family: var(--m-font);
   min-width: 120px;
 }
+
+/* ── Focus Carousel ───────────────────────────── */
+
+.m-carousel {
+  overflow: hidden;
+  position: relative;
+  touch-action: pan-y;
+  flex: 1;
+  min-height: 0;
+}
+
+/*
+ * Event model: Pointer Events (pointerdown/pointermove/pointerup).
+ * touch-action: pan-y lets the browser handle vertical scroll
+ * natively while JS captures horizontal movement.
+ */
+
+.m-carousel__track {
+  display: flex;
+  transition: transform 300ms ease;
+  will-change: transform;
+  height: 100%;
+}
+
+/*
+ * --dragging is applied to .m-carousel__track itself (the same
+ * element that has the transition). NOT a sibling or parent modifier.
+ */
+.m-carousel__track.m-carousel__track--dragging {
+  transition: none;
+}
+
+.m-carousel__slide {
+  flex: 0 0 100%;
+  min-width: 0;
+  padding: 0 var(--m-gutter, 16px);
+  box-sizing: border-box;
+}
+
+/* ── Card height tokens ───────────────────────── */
+
+.m-screen--focus {
+  --m-header-h: 52px;
+  --m-dots-h: 32px;
+  --m-tabbar-h: 56px;
+  --m-safe-b: env(safe-area-inset-bottom, 0px);
+  --m-card-gap: 24px;
+  display: flex;
+  flex-direction: column;
+  height: calc(
+    100dvh
+    - var(--m-tabbar-h)
+    - var(--m-safe-b)
+  );
+}
+
+.m-screen--focus .m-carousel {
+  flex: 1;
+  min-height: 0;
+}
+
+.m-screen--focus .flip-card {
+  height: 100%;
+}
+
+/* ── Dot Indicator ────────────────────────────── */
+
+.m-dot-indicator {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 4px;
+  height: var(--m-dots-h, 32px);
+  flex-shrink: 0;
+}
+
+/* Fixed 12px outer box prevents layout shift */
+.m-dot {
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.m-dot::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--m-muted);
+  transition: transform 200ms ease, background 200ms ease;
+}
+
+.m-dot--active::after {
+  transform: scale(1.33);
+  background: var(--m-accent);
+}
+
+/* ── Dog-ear mobile override ──────────────────── */
+
+.m-shell .dog-ear { width: 36px; height: 36px; }
+.m-shell .dog-ear__fold { border-width: 0 36px 36px 0; }
+.m-shell .dog-ear__under { border-width: 0 34px 34px 0; }
+
+/* ── Focus loading / error ────────────────────── */
+
+.m-carousel__skeleton {
+  flex: 1;
+  margin: 0 var(--m-gutter, 16px);
+  background: linear-gradient(165deg, var(--m-surface-2) 0%, var(--m-surface) 100%);
+  border: 1px solid var(--m-surface-3, rgba(255,255,255,0.06));
+  border-radius: var(--m-r-lg, 12px);
+  animation: m-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes m-skeleton-pulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.m-focus__error {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--m-muted);
+  font-size: 14px;
+}
