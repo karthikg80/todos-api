@@ -1,6 +1,7 @@
 // client-react/src/components/home/TodayAgendaPanel.tsx
 import { FlipCard } from "./FlipCard";
-import { CardBack } from "./CardBack";
+import { TarotCardFront, TarotCardBack } from "./TarotCard";
+import { CardBackContent } from "./CardBack";
 import { SunriseArt } from "./pixel-art";
 import type { AgendaItem, PanelProvenance } from "../../types/focusBrief";
 
@@ -12,78 +13,65 @@ interface Props {
 }
 
 function dotColor(item: AgendaItem): string {
-  if (item.overdue) return "var(--danger)";
-  if (item.estimateMinutes != null && item.estimateMinutes <= 15) return "var(--success, #4ade80)";
-  return "var(--accent)";
+  if (item.overdue) return "var(--tarot-red)";
+  if (item.estimateMinutes != null && item.estimateMinutes <= 15) return "var(--tarot-sage)";
+  return "var(--tarot-gold)";
 }
 
-export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle }: Props) {
-  const back = (
-    <CardBack
-      provenance={provenance}
-      reason="Pinned — your day at a glance."
-      pixelArt={<SunriseArt size={64} />}
-    />
+export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle: _onToggle }: Props) {
+  const front = (
+    <TarotCardFront
+      name="The Dawn"
+      numeral="II"
+      source="sys"
+      illustration={<SunriseArt size={64} />}
+      illustrationCaption={`${items.length} task${items.length !== 1 ? "s" : ""}`}
+      hero
+    >
+      {items.length === 0 ? (
+        <p className="tarot-light-day">All clear. Enjoy your day.</p>
+      ) : (
+        <>
+          <div className="timeline">
+            <div className="timeline__line" />
+            {items.map((item) => (
+              <div key={item.id} className="timeline__item">
+                <div className="timeline__dot" style={{ background: dotColor(item) }} />
+                <div className="timeline__content">
+                  <button className="timeline__title" onClick={() => onTaskClick(item.id)}>
+                    {item.title}
+                  </button>
+                  <span className="timeline__meta">
+                    {item.overdue ? (
+                      <span className="timeline__overdue">overdue</span>
+                    ) : item.estimateMinutes ? (
+                      `${item.estimateMinutes}m`
+                    ) : null}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          {items.length <= 2 && (
+            <p className="tarot-light-day">Light day — room to get ahead.</p>
+          )}
+        </>
+      )}
+    </TarotCardFront>
   );
 
-  if (items.length === 0) {
-    const front = (
-      <div className="panel-today-agenda" style={{ position: "relative" }}>
-        <div className="card-watermark">
-          <SunriseArt size={120} />
-        </div>
-        <div className="panel-today-agenda__header">
-          <SunriseArt size={18} />
-          <span className="panel-today-agenda__title">Today's Agenda</span>
-        </div>
-        <p className="focus-panel__empty">Nothing scheduled for today.</p>
-      </div>
-    );
-    return <FlipCard front={front} back={back} />;
-  }
-
-  const front = (
-    <div className="panel-today-agenda" style={{ position: "relative" }}>
-      <div className="card-watermark">
-        <SunriseArt size={120} />
-      </div>
-      <div className="panel-today-agenda__header">
-        <SunriseArt size={18} />
-        <span className="panel-today-agenda__title">Today's Agenda</span>
-        <span className="panel-today-agenda__subtitle">{items.length} tasks</span>
-      </div>
-
-      <div className="timeline">
-        <div className="timeline__line" />
-        {items.map((item) => (
-          <div key={item.id} className="timeline__item">
-            <div
-              className="timeline__dot"
-              style={{ background: dotColor(item) }}
-            />
-            <div className="timeline__content">
-              <button
-                className={`timeline__title${item.completed ? " timeline__title--done" : ""}`}
-                onClick={() => onTaskClick(item.id)}
-              >
-                {item.title}
-              </button>
-              <span className="timeline__meta">
-                {item.overdue ? (
-                  <span className="timeline__overdue">overdue</span>
-                ) : item.estimateMinutes ? (
-                  `${item.estimateMinutes}m`
-                ) : null}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {items.length <= 2 && items.length > 0 && (
-        <p className="panel-today-agenda__light-day">Light day — room to get ahead.</p>
-      )}
-    </div>
+  const back = (
+    <TarotCardBack
+      name="The Dawn"
+      numeral="II"
+      source="sys"
+      illustration={<SunriseArt size={80} />}
+    >
+      <CardBackContent
+        provenance={provenance}
+        reason="Pinned — your day at a glance."
+      />
+    </TarotCardBack>
   );
 
   return <FlipCard front={front} back={back} />;
