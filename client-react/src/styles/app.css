@@ -11642,12 +11642,33 @@ body.dark-mode {
   margin-top: 0;
 }
 .activity-feed--empty {
+  position: relative;
+  min-height: calc(100vh - 60px);
+  overflow: hidden;
+}
+.activity-feed__empty-overlay {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 200px;
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  background: rgba(250, 249, 246, 0.35);
 }
-.activity-feed__empty-text {
-  color: var(--text-muted, #999);
-  font-size: 14px;
+.activity-feed__empty-card {
+  font-size: 15px;
+  color: #555;
+  text-align: center;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+.activity-feed__empty-card span {
+  display: block;
+  font-size: 13px;
+  opacity: 0.7;
+  margin-top: 4px;
 }
