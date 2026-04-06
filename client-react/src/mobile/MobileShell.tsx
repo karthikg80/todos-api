@@ -6,6 +6,7 @@ import { useDarkMode } from "../hooks/useDarkMode";
 import { useTabBar } from "./hooks/useTabBar";
 import { useScrollPersistence } from "./hooks/useScrollPersistence";
 import { useBottomSheet } from "./hooks/useBottomSheet";
+import { useFocusBrief } from "../hooks/useFocusBrief";
 import { usePalette } from "./hooks/usePalette";
 import { TabBar } from "./components/TabBar";
 import { BottomSheet } from "./components/BottomSheet";
@@ -59,6 +60,7 @@ export function MobileShell() {
   const { palette, setPalette } = usePalette();
   const prevTabRef = useRef<string>(activeTab);
   const bottomSheet = useBottomSheet();
+  const focusBrief = useFocusBrief();
   const [captureOpen, setCaptureOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [snoozeTargetId, setSnoozeTargetId] = useState<string | null>(null);
@@ -245,7 +247,7 @@ export function MobileShell() {
       <InstallBanner />
       <div className="m-shell__content">
         <PullToRefresh onRefresh={handleRefresh}>
-          {activeTab === "focus" && <FocusScreen {...screenProps} />}
+          {activeTab === "focus" && <FocusScreen {...screenProps} brief={focusBrief.brief} briefLoading={focusBrief.loading} briefError={focusBrief.error} />}
           {activeTab === "today" && <TodayScreen {...screenProps} />}
           {activeTab === "projects" && <ProjectsScreen {...screenProps} />}
           {activeTab === "custom" && <CustomScreen view={customView} {...screenProps} />}
