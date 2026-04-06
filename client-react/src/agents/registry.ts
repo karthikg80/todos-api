@@ -37,6 +37,7 @@ const orla: AgentProfile = {
       "Something went wrong mid-analysis. Retrying.",
     ],
   },
+  avatarSeed: 42,
 };
 
 const finn: AgentProfile = {
@@ -66,6 +67,7 @@ const finn: AgentProfile = {
     ],
     errorLines: ["Failed. Retrying.", "Broke. Fixing."],
   },
+  avatarSeed: 55,
 };
 
 const mira: AgentProfile = {
@@ -102,6 +104,7 @@ const mira: AgentProfile = {
       "Something tripped up. Adjusting…",
     ],
   },
+  avatarSeed: 63,
 };
 
 const echo: AgentProfile = {
@@ -131,6 +134,7 @@ const echo: AgentProfile = {
     ],
     errorLines: ["Scan failed. Re-running.", "Missed something. Again."],
   },
+  avatarSeed: 77,
 };
 
 const sol: AgentProfile = {
@@ -167,6 +171,7 @@ const sol: AgentProfile = {
       "The reflection hit a wall. Trying once more.",
     ],
   },
+  avatarSeed: 99,
 };
 
 const kodo: AgentProfile = {
@@ -196,6 +201,7 @@ const kodo: AgentProfile = {
       "Failed. Doesn't matter right now.",
     ],
   },
+  avatarSeed: 111,
 };
 
 export const AGENTS: Record<AgentId, AgentProfile> = {

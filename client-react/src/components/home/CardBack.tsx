@@ -18,13 +18,22 @@ interface Props {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function CardBackContent({ provenance, reason, pixelArt: _pixelArt, agent }: Props) {
+export function CardBackContent({
+  provenance,
+  reason,
+  pixelArt: _pixelArt,
+  agent,
+}: Props) {
   if (!provenance) {
     return (
       <>
-        <div className="tarot-inscription__label tarot-inscription__label--sys">Source unknown</div>
+        <div className="tarot-inscription__label tarot-inscription__label--sys">
+          Source unknown
+        </div>
         <div className="tarot-inscription__rule" />
-        <div className="tarot-inscription__label tarot-inscription__label--sys">Surfaced because</div>
+        <div className="tarot-inscription__label tarot-inscription__label--sys">
+          Surfaced because
+        </div>
         <div className="tarot-inscription__text">{reason}</div>
       </>
     );
@@ -38,23 +47,65 @@ export function CardBackContent({ provenance, reason, pixelArt: _pixelArt, agent
         {agent && (
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <AgentSigil agentId={agent.id} color={agent.colors.stroke} bg={agent.colors.bg} size={48} />
+              <AgentSigil
+                agentId={agent.id}
+                color={agent.colors.stroke}
+                bg={agent.colors.bg}
+                size={48}
+              />
               <div>
-                <div style={{ fontWeight: 700, color: agent.colors.textDark, fontSize: 15 }}>{agent.name}</div>
-                <div style={{ fontSize: 11, color: agent.colors.textDark, opacity: 0.7 }}>{agent.role}</div>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    color: agent.colors.textDark,
+                    fontSize: 15,
+                  }}
+                >
+                  {agent.name}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: agent.colors.textDark,
+                    opacity: 0.7,
+                  }}
+                >
+                  {agent.role}
+                </div>
                 <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                   {agent.traits.map((t) => (
-                    <span key={t} style={{ fontSize: 9, background: agent.colors.traitBg, color: agent.colors.textDark, padding: "1px 5px", borderRadius: 6 }}>{t}</span>
+                    <span
+                      key={t}
+                      style={{
+                        fontSize: 9,
+                        background: agent.colors.traitBg,
+                        color: agent.colors.textDark,
+                        padding: "1px 5px",
+                        borderRadius: 6,
+                      }}
+                    >
+                      {t}
+                    </span>
                   ))}
                 </div>
               </div>
             </div>
-            <p style={{ fontSize: 11, color: agent.colors.textDark, fontStyle: "italic", margin: "8px 0 0", opacity: 0.8 }}>
+            <p
+              style={{
+                fontSize: 11,
+                color: agent.colors.textDark,
+                fontStyle: "italic",
+                margin: "8px 0 0",
+                opacity: 0.8,
+              }}
+            >
               "{agent.quote}"
             </p>
           </div>
         )}
-        <div className="tarot-inscription__label tarot-inscription__label--ai">{agent ? "Powered by" : "Divined by"}</div>
+        <div className="tarot-inscription__label tarot-inscription__label--ai">
+          {agent ? "Powered by" : "Divined by"}
+        </div>
         {provenance.model && (
           <div className="tarot-inscription__source">{provenance.model}</div>
         )}
@@ -71,15 +122,21 @@ export function CardBackContent({ provenance, reason, pixelArt: _pixelArt, agent
         {provenance.promptIntent && (
           <>
             <div className="tarot-inscription__rule" />
-            <div className="tarot-inscription__label tarot-inscription__label--ai">Intent</div>
-            <p className="tarot-inscription__intent">"{provenance.promptIntent}"</p>
+            <div className="tarot-inscription__label tarot-inscription__label--ai">
+              Intent
+            </div>
+            <p className="tarot-inscription__intent">
+              "{provenance.promptIntent}"
+            </p>
           </>
         )}
 
         {provenance.generatedAt && (
           <>
             <div className="tarot-inscription__rule" />
-            <div className="tarot-inscription__label tarot-inscription__label--ai">Cast at</div>
+            <div className="tarot-inscription__label tarot-inscription__label--ai">
+              Cast at
+            </div>
             <div className="tarot-inscription__text">
               {new Date(provenance.generatedAt).toLocaleTimeString([], {
                 hour: "numeric",
@@ -97,14 +154,22 @@ export function CardBackContent({ provenance, reason, pixelArt: _pixelArt, agent
   // Deterministic
   return (
     <>
-      <div className="tarot-inscription__label tarot-inscription__label--sys">Computed by</div>
-      <div className="tarot-inscription__source">{provenance.method || "System Query"}</div>
-      <div className="tarot-inscription__detail">{provenance.freshness || "real-time"}</div>
+      <div className="tarot-inscription__label tarot-inscription__label--sys">
+        Computed by
+      </div>
+      <div className="tarot-inscription__source">
+        {provenance.method || "System Query"}
+      </div>
+      <div className="tarot-inscription__detail">
+        {provenance.freshness || "real-time"}
+      </div>
 
       {provenance.filter && (
         <>
           <div className="tarot-inscription__rule" />
-          <div className="tarot-inscription__label tarot-inscription__label--sys">Rule</div>
+          <div className="tarot-inscription__label tarot-inscription__label--sys">
+            Rule
+          </div>
           <p className="tarot-inscription__mono">{provenance.filter}</p>
         </>
       )}
@@ -112,8 +177,12 @@ export function CardBackContent({ provenance, reason, pixelArt: _pixelArt, agent
       {provenance.dataBreakdown && (
         <>
           <div className="tarot-inscription__rule" />
-          <div className="tarot-inscription__label tarot-inscription__label--sys">Reading</div>
-          <div className="tarot-inscription__text">{provenance.dataBreakdown}</div>
+          <div className="tarot-inscription__label tarot-inscription__label--sys">
+            Reading
+          </div>
+          <div className="tarot-inscription__text">
+            {provenance.dataBreakdown}
+          </div>
         </>
       )}
 
@@ -123,7 +192,10 @@ export function CardBackContent({ provenance, reason, pixelArt: _pixelArt, agent
           <div className="tarot-inscription__label tarot-inscription__label--sys">
             Surfaced because
           </div>
-          <div className="tarot-inscription__text" style={{ fontStyle: "italic" }}>
+          <div
+            className="tarot-inscription__text"
+            style={{ fontStyle: "italic" }}
+          >
             "{reason}"
           </div>
         </>
