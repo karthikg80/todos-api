@@ -2009,6 +2009,20 @@
   height: 100%;
 }
 
+.m-screen--focus .flip-card__inner {
+  height: 100%;
+}
+
+.m-screen--focus .flip-card__front,
+.m-screen--focus .flip-card__back {
+  height: 100%;
+}
+
+/* Tarot frame fills the card face */
+.m-screen--focus .tarot-frame {
+  height: calc(100% - 16px);
+}
+
 /* ── Dot Indicator ────────────────────────────── */
 
 .m-dot-indicator {
