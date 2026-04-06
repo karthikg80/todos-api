@@ -1,4 +1,5 @@
 import { TarotCardFront } from "../../components/home/TarotCard";
+import { GenerativePattern } from "../../components/GenerativePattern";
 import { FlameArt, SunriseArt } from "../../components/home/pixel-art";
 import type { ReactNode } from "react";
 
@@ -30,6 +31,17 @@ export function SkeletonCard({ name, subtitle, numeral, source }: Props) {
 
   return (
     <div className="m-skeleton-card">
+      <GenerativePattern
+        mode="flowField"
+        seed={7}
+        color="#8a7e6e"
+        background="transparent"
+        opacity={0.06}
+        density={20}
+        width="100%"
+        height={600}
+        className="m-skeleton-card__pattern"
+      />
       <TarotCardFront
         name={name}
         subtitle={subtitle}

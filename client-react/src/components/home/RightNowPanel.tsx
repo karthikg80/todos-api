@@ -36,6 +36,7 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
       numeral="I"
       source="ai"
       illustration={<FlameArt size={64} />}
+      accentPattern={{ mode: "spiralField", seed: 101 }}
       hero
       agent={agent}
     >

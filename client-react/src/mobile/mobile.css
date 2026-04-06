@@ -2103,6 +2103,19 @@
 
 .m-skeleton-card {
   height: 100%;
+  position: relative;
+}
+
+.m-skeleton-card__pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.m-skeleton-card > .tarot-frame {
+  position: relative;
+  z-index: 1;
 }
 
 .m-skeleton-card .tarot-illustration {
@@ -2126,3 +2139,11 @@
 .m-shimmer-bar--wide { width: 90%; }
 .m-shimmer-bar--medium { width: 70%; animation-delay: 0.15s; }
 .m-shimmer-bar--narrow { width: 50%; animation-delay: 0.3s; }
+
+/* ── Empty state pattern ──────────────────────── */
+
+.m-empty__pattern {
+  margin-bottom: var(--s-3, 12px);
+  border-radius: var(--m-r-lg, 12px);
+  overflow: hidden;
+}

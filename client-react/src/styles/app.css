@@ -3212,10 +3212,17 @@ body {
 
 /* Central illustration */
 .tarot-illustration {
+  position: relative;
   display: flex;
   justify-content: center;
   align-items: center;
   padding: 8px 24px 12px;
+}
+
+.tarot-illustration__pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .tarot-illustration svg {

@@ -39,6 +39,7 @@ function UnsortedPanel({
       numeral="V"
       source="sys"
       illustration={<Art size={48} />}
+      accentPattern={{ mode: "flowField", seed: 105 }}
       illustrationCaption={data.items.length + " unsorted"}
     >
       <div className="inbox-stack">
@@ -158,6 +159,7 @@ function DueSoonPanel({
       numeral="III"
       source="sys"
       illustration={<Art size={48} />}
+      accentPattern={{ mode: "scatteredOrbits", seed: 103 }}
       illustrationCaption={totalItems + " tasks due"}
     >
       <div className="urgency-bars">
@@ -258,6 +260,7 @@ function WhatNextPanel({
       numeral="IV"
       source="ai"
       illustration={<Art size={48} />}
+      accentPattern={{ mode: "arcRivers", seed: 104 }}
       illustrationCaption={data.items.length + " paths forward"}
       agent={agent}
     >
@@ -348,6 +351,7 @@ function BacklogHygienePanel({
       numeral="VI"
       source="sys"
       illustration={<Art size={48} />}
+      accentPattern={{ mode: "spiralField", seed: 106 }}
       illustrationCaption={data.items.length + " stale"}
     >
       <div className="focus-list">
@@ -432,6 +436,7 @@ function ProjectsToNudgePanel({
       numeral="VII"
       source="sys"
       illustration={<Art size={48} />}
+      accentPattern={{ mode: "scatteredOrbits", seed: 107 }}
     >
       <div className="focus-list">
         {data.items.map((item: any) => {
@@ -506,6 +511,7 @@ function TrackOverviewPanel({
       numeral="VIII"
       source="sys"
       illustration={<Art size={48} />}
+      accentPattern={{ mode: "arcRivers", seed: 108 }}
     >
       <div className="focus-track">
         {(["thisWeek", "next14Days", "later"] as const).map((col) => (
@@ -567,6 +573,7 @@ function RescueModePanel({
       numeral=""
       source="sys"
       illustration={<Art size={48} />}
+      accentPattern={{ mode: "flowField", seed: 109 }}
     >
       <p className="focus-rescue__text">
         You have <strong>{data.openCount}</strong> open tasks and{" "}
