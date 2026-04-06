@@ -4,7 +4,10 @@ import { TarotCardFront, TarotCardBack } from "./TarotCard";
 import { CardBackContent } from "./CardBack";
 import { FlameArt } from "./pixel-art";
 import type { RightNow, PanelProvenance } from "../../types/focusBrief";
-import { useAgentProfiles, getAgentProfile } from "../../agents/useAgentProfiles";
+import {
+  useAgentProfiles,
+  getAgentProfile,
+} from "../../agents/useAgentProfiles";
 
 interface Props {
   data: RightNow;
@@ -25,7 +28,11 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
         quote: agentProfile.quote,
       }
     : undefined;
-  if (!data.narrative && data.urgentItems.length === 0 && !data.topRecommendation) {
+  if (
+    !data.narrative &&
+    data.urgentItems.length === 0 &&
+    !data.topRecommendation
+  ) {
     return null;
   }
 
@@ -54,8 +61,12 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
           }}
         >
           <div className="tarot-action-band__label">Strongest action</div>
-          <div className="tarot-action-band__title">{data.topRecommendation.title}</div>
-          <div className="tarot-action-band__reason">{data.topRecommendation.reasoning}</div>
+          <div className="tarot-action-band__title">
+            {data.topRecommendation.title}
+          </div>
+          <div className="tarot-action-band__reason">
+            {data.topRecommendation.reasoning}
+          </div>
         </button>
       )}
     </TarotCardFront>

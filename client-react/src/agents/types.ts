@@ -1,5 +1,7 @@
 export type AgentId = "orla" | "finn" | "mira" | "echo" | "sol" | "kodo";
 
+export type AvatarMode = "idle" | "thinking" | "speaking";
+
 export interface AgentColors {
   stroke: string;
   bg: string;
@@ -8,7 +10,7 @@ export interface AgentColors {
 }
 
 export interface AgentVoice {
-  tone: string;
+  tone: "measured" | "blunt" | "warm" | "rapid" | "reflective" | "terse";
   avgWordsPerSentence: number;
   openers: string[];
   closers: string[];
@@ -28,4 +30,5 @@ export interface AgentProfile {
   bestCalledWhen: string;
   colors: AgentColors;
   voice: AgentVoice;
+  avatarSeed: number;
 }

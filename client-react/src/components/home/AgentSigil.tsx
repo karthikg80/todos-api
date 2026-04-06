@@ -1,4 +1,6 @@
 import { useRef, useEffect } from "react";
+import type { AgentId } from "../../agents/types";
+import { AGENTS } from "../../agents/registry";
 import { drawAgentAvatar } from "../../agents/avatarEngine";
 
 interface Props {
@@ -20,9 +22,20 @@ export function AgentSigil({ agentId, color, bg, size }: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.scale(dpr, dpr);
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, size, size);
-    drawAgentAvatar(ctx, agentId, size / 2, size / 2, color);
+
+    const agent = AGENTS[agentId as AgentId];
+    if (agent) {
+      drawAgentAvatar(ctx, size, agent, "idle");
+    } else {
+      // Fallback for unknown agent IDs: draw a simple circle
+      ctx.fillStyle = bg;
+      ctx.beginPath();
+      ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }, [agentId, color, bg, size]);
 
   return (

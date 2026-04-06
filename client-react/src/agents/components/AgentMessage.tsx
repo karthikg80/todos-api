@@ -52,7 +52,11 @@ export function AgentMessage({
           marginBottom: 8,
         }}
       >
-        <AgentBadge agent={agent} size="sm" />
+        <AgentBadge
+          agent={agent}
+          size="sm"
+          mode={isStreaming ? "thinking" : "idle"}
+        />
         {timeStr && (
           <span style={{ fontSize: 11, color: "#999" }}>{timeStr}</span>
         )}

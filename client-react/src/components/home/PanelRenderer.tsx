@@ -4,7 +4,10 @@ import { TarotCardFront, TarotCardBack } from "./TarotCard";
 import { CardBackContent } from "./CardBack";
 import { PANEL_ART } from "./pixel-art";
 import type { RankedPanel, PanelProvenance } from "../../types/focusBrief";
-import { useAgentProfiles, getAgentProfile } from "../../agents/useAgentProfiles";
+import {
+  useAgentProfiles,
+  getAgentProfile,
+} from "../../agents/useAgentProfiles";
 import type { AgentProfile } from "../../agents/types";
 
 interface Props {
