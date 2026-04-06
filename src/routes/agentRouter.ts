@@ -1,19 +1,16 @@
 import { randomUUID } from "crypto";
 import { Request, Response, Router } from "express";
-import { PrismaClient } from "@prisma/client";
 import { AuthService } from "../services/authService";
 import { agentAuthMiddleware } from "../middleware/agentAuthMiddleware";
 import { getAgentRequestContext } from "../agent/agentContext";
 import { AgentActionName, AgentExecutor } from "../agent/agentExecutor";
 import { AgentJobRunService } from "../services/agentJobRunService";
-import { AgentAuditService } from "../services/agentAuditService";
 import { createAgentRunQueue } from "../domains/agent/runs/agentRunQueue";
 
 interface AgentRouterDeps {
   agentExecutor: AgentExecutor;
   authService?: AuthService;
   jobRunService?: AgentJobRunService;
-  persistencePrisma?: PrismaClient;
 }
 
 function getAgentUserId(req: Request): string {
@@ -49,10 +46,8 @@ export function createAgentRouter({
   agentExecutor,
   authService,
   jobRunService,
-  persistencePrisma,
 }: AgentRouterDeps): Router {
   const router = Router();
-  const auditService = new AgentAuditService(persistencePrisma);
 
   router.get("/manifest", (req: Request, res: Response) => {
     const requestContext = getAgentRequestContext(req);
@@ -485,6 +480,11 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "update_action_policy"),
   );
 
+  router.post(
+    "/write/record_job_narration",
+    createAgentActionHandler(agentExecutor, "record_job_narration"),
+  );
+
   // -------------------------------------------------------------------------
   // Async run endpoints — enqueue agent actions and return 202 Accepted.
   // The run executes outside the HTTP request cycle.
@@ -563,84 +563,6 @@ export function createAgentRouter({
       });
     });
   }
-
-  // ── Agent narration actions ─────────────────────────────────────────────
-
-  router.post(
-    "/write/record_job_narration",
-    async (req: Request, res: Response) => {
-      const ctx = buildExecutionContext(req);
-      const { jobName, periodKey, narration, metadata } = req.body;
-
-      if (!jobName || !periodKey || !narration) {
-        res.status(400).json({
-          ok: false,
-          action: "record_job_narration",
-          error: {
-            code: "INVALID_INPUT",
-            message: "jobName, periodKey, and narration are required",
-            retryable: false,
-          },
-          trace: {
-            requestId: ctx.requestId,
-            actor: ctx.actor,
-            timestamp: new Date().toISOString(),
-          },
-        });
-        return;
-      }
-
-      // The actor name from X-Agent-Name header IS the agentId
-      const agentId = ctx.actor;
-
-      try {
-        await auditService.record({
-          surface: "agent",
-          action: "record_job_narration",
-          readOnly: false,
-          outcome: "success",
-          status: 200,
-          userId: ctx.userId,
-          requestId: ctx.requestId,
-          actor: ctx.actor,
-          jobName,
-          jobPeriodKey: periodKey,
-          triggeredBy: "agent",
-          agentId,
-          narration,
-        });
-
-        res.json({
-          ok: true,
-          action: "record_job_narration",
-          readOnly: false,
-          data: { recorded: true },
-          trace: {
-            requestId: ctx.requestId,
-            actor: ctx.actor,
-            timestamp: new Date().toISOString(),
-          },
-        });
-      } catch (err: unknown) {
-        const message =
-          err instanceof Error ? err.message : "Failed to record narration";
-        res.status(500).json({
-          ok: false,
-          action: "record_job_narration",
-          error: {
-            code: "INTERNAL_ERROR",
-            message,
-            retryable: true,
-          },
-          trace: {
-            requestId: ctx.requestId,
-            actor: ctx.actor,
-            timestamp: new Date().toISOString(),
-          },
-        });
-      }
-    },
-  );
 
   return router;
 }

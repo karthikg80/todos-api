@@ -104,7 +104,8 @@ export type AgentActionName =
   | "create_day_plan"
   | "update_day_plan_task"
   | "finalize_day_plan"
-  | "review_day_plan";
+  | "review_day_plan"
+  | "record_job_narration";
 
 export interface AgentExecutionContext {
   userId: string;

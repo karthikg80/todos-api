@@ -438,7 +438,6 @@ export function createApp(deps: AppDependencies = {}) {
     createAgentRouter({
       agentExecutor,
       authService,
-      persistencePrisma,
     }),
   );
   app.use("/api", createInternalAgentProfileRouter());
