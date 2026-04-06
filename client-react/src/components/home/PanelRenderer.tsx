@@ -4,6 +4,8 @@ import { TarotCardFront, TarotCardBack } from "./TarotCard";
 import { CardBackContent } from "./CardBack";
 import { PANEL_ART } from "./pixel-art";
 import type { RankedPanel, PanelProvenance } from "../../types/focusBrief";
+import { useAgentProfiles, getAgentProfile } from "../../agents/useAgentProfiles";
+import type { AgentProfile } from "../../agents/types";
 
 interface Props {
   panel: RankedPanel;
@@ -232,11 +234,20 @@ function WhatNextPanel({
   provenance,
   reason,
   onTaskClick,
+  agent,
 }: {
   data: any;
   provenance?: PanelProvenance;
   reason: string;
   onTaskClick: (id: string) => void;
+  agent?: {
+    id: string;
+    name: string;
+    role: string;
+    colors: AgentProfile["colors"];
+    traits: AgentProfile["traits"];
+    quote: AgentProfile["quote"];
+  };
 }) {
   const Art = PANEL_ART["whatNext"];
 
@@ -248,6 +259,7 @@ function WhatNextPanel({
       source="ai"
       illustration={<Art size={48} />}
       illustrationCaption={data.items.length + " paths forward"}
+      agent={agent}
     >
       {data.items.map((item: any, i: number) => (
         <div
@@ -305,8 +317,9 @@ function WhatNextPanel({
       numeral="IV"
       source="ai"
       illustration={<Art size={80} />}
+      agent={agent}
     >
-      <CardBackContent provenance={provenance} reason={reason} />
+      <CardBackContent provenance={provenance} reason={reason} agent={agent} />
     </TarotCardBack>
   );
 
@@ -597,6 +610,19 @@ export function PanelRenderer({
   onSelectProject,
   onEditTodo,
 }: Props) {
+  const profiles = useAgentProfiles();
+  const agentProfile = getAgentProfile(profiles, panel.agentId);
+  const agent = agentProfile
+    ? {
+        id: agentProfile.id,
+        name: agentProfile.name,
+        role: agentProfile.role,
+        colors: agentProfile.colors,
+        traits: agentProfile.traits,
+        quote: agentProfile.quote,
+      }
+    : undefined;
+
   const Component = PANEL_MAP[panel.type];
   if (!Component) return null;
   return (
@@ -607,6 +633,7 @@ export function PanelRenderer({
       onTaskClick={onTaskClick}
       onSelectProject={onSelectProject}
       onEditTodo={onEditTodo}
+      agent={agent}
     />
   );
 }
