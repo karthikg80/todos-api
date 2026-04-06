@@ -66,6 +66,7 @@ export type TodoSortBy =
   | "priority"
   | "title";
 export type SortOrder = "asc" | "desc";
+export type AgentId = "orla" | "finn" | "mira" | "echo" | "sol" | "kodo";
 
 export interface TodoRecurrence {
   type: RecurrenceType;
