@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "../../auth/AuthProvider";
 import { apiCall } from "../../api/client";
 import type { McpSessionSummary, UserPlanningPreferences } from "../../types";
+import { AgentsPanel } from "../../features/settings/AgentsPanel";
 import {
   CHUNK_MINUTE_OPTIONS,
   DEFAULT_USER_PREFERENCES,
@@ -281,6 +282,8 @@ export function SettingsPage({
           <ArchivedProjectsSection />
         </div>
       </section>
+
+      <AgentsPanel />
 
       <McpSessionsSection />
     </div>
