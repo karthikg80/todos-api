@@ -2103,6 +2103,19 @@
 
 .m-skeleton-card {
   height: 100%;
+  position: relative;
+}
+
+.m-skeleton-card__pattern {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.m-skeleton-card > .tarot-frame {
+  position: relative;
+  z-index: 1;
 }
 
 .m-skeleton-card .tarot-illustration {
