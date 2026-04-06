@@ -1,4 +1,4 @@
-import type { AgentProfile, AvatarMode } from "../types";
+import type { AgentProfile } from "../types";
 import { AgentAvatar } from "./AgentAvatar";
 
 const SIZES = { sm: 32, md: 48, lg: 72 } as const;
@@ -8,7 +8,6 @@ interface Props {
   size?: "sm" | "md" | "lg";
   showRole?: boolean;
   showName?: boolean;
-  mode?: AvatarMode;
   onClick?: () => void;
 }
 
@@ -17,7 +16,6 @@ export function AgentBadge({
   size = "md",
   showRole = true,
   showName = true,
-  mode = "idle",
   onClick,
 }: Props) {
   const px = SIZES[size];
@@ -36,7 +34,7 @@ export function AgentBadge({
       tabIndex={onClick ? 0 : undefined}
       onKeyDown={onClick ? (e) => e.key === "Enter" && onClick() : undefined}
     >
-      <AgentAvatar agent={agent} size={px} mode={mode} />
+      <AgentAvatar agent={agent} size={px} />
       {showText && (
         <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
           {showName && (

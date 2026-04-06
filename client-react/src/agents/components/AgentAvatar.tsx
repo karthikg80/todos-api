@@ -1,15 +1,14 @@
 import { useRef, useEffect } from "react";
-import type { AgentProfile, AvatarMode } from "../types";
-import { drawAgentAvatar, startAnimation } from "../avatarEngine";
+import type { AgentProfile } from "../types";
+import { drawAgentAvatar } from "../avatarEngine";
 
 interface Props {
   agent: AgentProfile;
   size?: number;
-  mode?: AvatarMode;
   className?: string;
 }
 
-export function AgentAvatar({ agent, size = 48, mode = "idle", className }: Props) {
+export function AgentAvatar({ agent, size = 48, className }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -23,13 +22,11 @@ export function AgentAvatar({ agent, size = 48, mode = "idle", className }: Prop
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    if (mode === "thinking") {
-      return startAnimation(canvas, agent);
-    }
-
     ctx.scale(dpr, dpr);
-    drawAgentAvatar(ctx, size, agent, mode);
-  }, [agent, size, mode]);
+    const cx = size / 2;
+    const cy = size / 2;
+    drawAgentAvatar(ctx, agent.id, cx, cy, agent.colors.stroke);
+  }, [agent, size]);
 
   return (
     <canvas

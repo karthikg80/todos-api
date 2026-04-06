@@ -5,7 +5,9 @@ import type { AgentProfile } from "./types";
 let cachedProfiles: Record<string, AgentProfile> | null = null;
 
 export function useAgentProfiles(): Record<string, AgentProfile> {
-  const [profiles, setProfiles] = useState<Record<string, AgentProfile>>(cachedProfiles ?? {});
+  const [profiles, setProfiles] = useState<Record<string, AgentProfile>>(
+    cachedProfiles ?? {},
+  );
 
   useEffect(() => {
     if (cachedProfiles) return;

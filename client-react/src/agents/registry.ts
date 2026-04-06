@@ -37,7 +37,6 @@ const orla: AgentProfile = {
       "Something went wrong mid-analysis. Retrying.",
     ],
   },
-  avatarSeed: 42,
 };
 
 const finn: AgentProfile = {
@@ -67,7 +66,6 @@ const finn: AgentProfile = {
     ],
     errorLines: ["Failed. Retrying.", "Broke. Fixing."],
   },
-  avatarSeed: 55,
 };
 
 const mira: AgentProfile = {
@@ -93,10 +91,7 @@ const mira: AgentProfile = {
       "Let's map this out.",
       "Good news — this is more manageable than it looks.",
     ],
-    closers: [
-      "You've got this.",
-      "One step at a time — starting now.",
-    ],
+    closers: ["You've got this.", "One step at a time — starting now."],
     thinkingLines: ["Building your plan…", "Mapping the steps…"],
     emptyStateLines: [
       "No projects in flight. Time to dream one up.",
@@ -107,7 +102,6 @@ const mira: AgentProfile = {
       "Something tripped up. Adjusting…",
     ],
   },
-  avatarSeed: 63,
 };
 
 const echo: AgentProfile = {
@@ -137,7 +131,6 @@ const echo: AgentProfile = {
     ],
     errorLines: ["Scan failed. Re-running.", "Missed something. Again."],
   },
-  avatarSeed: 77,
 };
 
 const sol: AgentProfile = {
@@ -163,10 +156,7 @@ const sol: AgentProfile = {
       "There's a pattern worth naming here.",
       "Here's what the numbers don't show:",
     ],
-    closers: [
-      "Something to sit with.",
-      "The week spoke. Were you listening?",
-    ],
+    closers: ["Something to sit with.", "The week spoke. Were you listening?"],
     thinkingLines: ["Reflecting on the week…", "Finding the thread…"],
     emptyStateLines: [
       "No review data yet. Come back after your first full week.",
@@ -177,7 +167,6 @@ const sol: AgentProfile = {
       "The reflection hit a wall. Trying once more.",
     ],
   },
-  avatarSeed: 99,
 };
 
 const kodo: AgentProfile = {
@@ -201,13 +190,12 @@ const kodo: AgentProfile = {
     openers: ["Focus.", "Not now.", "Stay on task."],
     closers: [".", "Back to work."],
     thinkingLines: ["…", "Guarding."],
-    emptyStateLines: [
-      "No focus session active.",
-      "Ready when you are.",
+    emptyStateLines: ["No focus session active.", "Ready when you are."],
+    errorLines: [
+      "Error. Ignored. Keep working.",
+      "Failed. Doesn't matter right now.",
     ],
-    errorLines: ["Error. Ignored. Keep working.", "Failed. Doesn't matter right now."],
   },
-  avatarSeed: 111,
 };
 
 export const AGENTS: Record<AgentId, AgentProfile> = {
