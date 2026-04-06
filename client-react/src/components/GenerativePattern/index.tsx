@@ -1,11 +1,13 @@
 import { useRef, useEffect } from "react";
-import { ALGORITHMS, mkRng } from "./algorithms";
+import { ALGORITHMS, mkRng, hashSeed } from "./algorithms";
 import type { GenerativePatternProps, PatternBackgroundProps } from "./types";
 export type { GenerativePatternProps, PatternBackgroundProps, PatternMode } from "./types";
 
 export function useSeed() {
   return () => Math.floor(Math.random() * 1e9);
 }
+
+export { hashSeed };
 
 export function GenerativePattern({
   mode,
