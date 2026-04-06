@@ -5,6 +5,7 @@ import {
   getAgentProfile,
 } from "../../agents/useAgentProfiles";
 import { AgentSigil } from "./AgentSigil";
+import { AgentCompositionCanvas } from "../activity/AgentCompositionCanvas";
 
 interface ActivityEntry {
   agentId: string;
@@ -65,7 +66,9 @@ export function AgentActivityFeed({ standalone = false }: Props) {
   useEffect(() => {
     apiCall("/agent-activity")
       .then((res) => res.json())
-      .then((data: { entries?: ActivityEntry[] }) => setEntries(data.entries ?? []))
+      .then((data: { entries?: ActivityEntry[] }) =>
+        setEntries(data.entries ?? []),
+      )
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -89,9 +92,13 @@ export function AgentActivityFeed({ standalone = false }: Props) {
     if (standalone) {
       return (
         <div className="activity-feed activity-feed--empty">
-          <p className="activity-feed__empty-text">
-            No agent activity in the last 7 days.
-          </p>
+          <AgentCompositionCanvas />
+          <div className="activity-feed__empty-overlay">
+            <div className="activity-feed__empty-card">
+              Your agents are standing by.
+              <span>Activity from the last 7 days will appear here.</span>
+            </div>
+          </div>
         </div>
       );
     }
