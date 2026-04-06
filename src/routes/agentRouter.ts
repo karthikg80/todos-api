@@ -566,77 +566,81 @@ export function createAgentRouter({
 
   // ── Agent narration actions ─────────────────────────────────────────────
 
-  router.post("/write/record_job_narration", async (req: Request, res: Response) => {
-    const ctx = buildExecutionContext(req);
-    const { jobName, periodKey, narration, metadata } = req.body;
+  router.post(
+    "/write/record_job_narration",
+    async (req: Request, res: Response) => {
+      const ctx = buildExecutionContext(req);
+      const { jobName, periodKey, narration, metadata } = req.body;
 
-    if (!jobName || !periodKey || !narration) {
-      res.status(400).json({
-        ok: false,
-        action: "record_job_narration",
-        error: {
-          code: "INVALID_INPUT",
-          message: "jobName, periodKey, and narration are required",
-          retryable: false,
-        },
-        trace: {
+      if (!jobName || !periodKey || !narration) {
+        res.status(400).json({
+          ok: false,
+          action: "record_job_narration",
+          error: {
+            code: "INVALID_INPUT",
+            message: "jobName, periodKey, and narration are required",
+            retryable: false,
+          },
+          trace: {
+            requestId: ctx.requestId,
+            actor: ctx.actor,
+            timestamp: new Date().toISOString(),
+          },
+        });
+        return;
+      }
+
+      // The actor name from X-Agent-Name header IS the agentId
+      const agentId = ctx.actor;
+
+      try {
+        await auditService.record({
+          surface: "agent",
+          action: "record_job_narration",
+          readOnly: false,
+          outcome: "success",
+          status: 200,
+          userId: ctx.userId,
           requestId: ctx.requestId,
           actor: ctx.actor,
-          timestamp: new Date().toISOString(),
-        },
-      });
-      return;
-    }
+          jobName,
+          jobPeriodKey: periodKey,
+          triggeredBy: "agent",
+          agentId,
+          narration,
+        });
 
-    // The actor name from X-Agent-Name header IS the agentId
-    const agentId = ctx.actor;
-
-    try {
-      await auditService.record({
-        surface: "agent",
-        action: "record_job_narration",
-        readOnly: false,
-        outcome: "success",
-        status: 200,
-        userId: ctx.userId,
-        requestId: ctx.requestId,
-        actor: ctx.actor,
-        jobName,
-        jobPeriodKey: periodKey,
-        triggeredBy: "agent",
-        agentId,
-        narration,
-      });
-
-      res.json({
-        ok: true,
-        action: "record_job_narration",
-        readOnly: false,
-        data: { recorded: true },
-        trace: {
-          requestId: ctx.requestId,
-          actor: ctx.actor,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to record narration";
-      res.status(500).json({
-        ok: false,
-        action: "record_job_narration",
-        error: {
-          code: "INTERNAL_ERROR",
-          message,
-          retryable: true,
-        },
-        trace: {
-          requestId: ctx.requestId,
-          actor: ctx.actor,
-          timestamp: new Date().toISOString(),
-        },
-      });
-    }
-  });
+        res.json({
+          ok: true,
+          action: "record_job_narration",
+          readOnly: false,
+          data: { recorded: true },
+          trace: {
+            requestId: ctx.requestId,
+            actor: ctx.actor,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Failed to record narration";
+        res.status(500).json({
+          ok: false,
+          action: "record_job_narration",
+          error: {
+            code: "INTERNAL_ERROR",
+            message,
+            retryable: true,
+          },
+          trace: {
+            requestId: ctx.requestId,
+            actor: ctx.actor,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      }
+    },
+  );
 
   return router;
 }

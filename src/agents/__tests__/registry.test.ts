@@ -4,7 +4,14 @@ import type { AgentId } from "../../types";
 
 describe("agent registry", () => {
   it("exports all 6 agents", () => {
-    expect(ALL_AGENT_IDS).toEqual(["orla", "finn", "mira", "echo", "sol", "kodo"]);
+    expect(ALL_AGENT_IDS).toEqual([
+      "orla",
+      "finn",
+      "mira",
+      "echo",
+      "sol",
+      "kodo",
+    ]);
     expect(Object.keys(AGENTS)).toHaveLength(6);
   });
 

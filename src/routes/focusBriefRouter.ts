@@ -420,7 +420,13 @@ function assembleBrief(
           ? llmProvenance
           : (deterministicProvenanceMap.get(type as DeterministicKey) ??
             llmProvenance);
-      rankedPanels.push({ type, reason: "", data, provenance, ...(type === "whatNext" ? { agentId: "orla" as const } : {}) });
+      rankedPanels.push({
+        type,
+        reason: "",
+        data,
+        provenance,
+        ...(type === "whatNext" ? { agentId: "orla" as const } : {}),
+      });
     }
   }
 

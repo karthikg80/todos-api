@@ -43,7 +43,10 @@ import { CaptureService } from "./services/captureService";
 import { createCaptureRouter } from "./routes/captureRouter";
 import { createPreferencesRouter } from "./routes/preferencesRouter";
 import { createAgentEnrollmentRouter } from "./routes/agentEnrollmentRouter";
-import { createAgentProfileRouter, createInternalAgentProfileRouter } from "./routes/agentProfileRouter";
+import {
+  createAgentProfileRouter,
+  createInternalAgentProfileRouter,
+} from "./routes/agentProfileRouter";
 import { EmailService } from "./services/emailService";
 import { FeedbackService } from "./services/feedbackService";
 import { FeedbackDuplicateService } from "./services/feedbackDuplicateService";
