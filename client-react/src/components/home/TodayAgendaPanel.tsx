@@ -26,6 +26,7 @@ export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle: _on
       numeral="II"
       source="sys"
       illustration={<SunriseArt size={64} />}
+      accentPattern={{ mode: "flowField", seed: 102 }}
       illustrationCaption={`${items.length} task${items.length !== 1 ? "s" : ""}`}
       hero
     >
