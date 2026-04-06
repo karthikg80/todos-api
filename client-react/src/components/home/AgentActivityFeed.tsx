@@ -65,7 +65,7 @@ export function AgentActivityFeed({ standalone = false }: Props) {
   useEffect(() => {
     apiCall("/agent-activity")
       .then((res) => res.json())
-      .then((data: { entries: ActivityEntry[] }) => setEntries(data.entries))
+      .then((data: { entries?: ActivityEntry[] }) => setEntries(data.entries ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
