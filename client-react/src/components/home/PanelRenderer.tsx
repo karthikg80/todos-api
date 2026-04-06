@@ -33,6 +33,7 @@ function UnsortedPanel({
   const front = (
     <TarotCardFront
       name="The Inbox"
+      subtitle="Unsorted items"
       numeral="V"
       source="sys"
       illustration={<Art size={48} />}
@@ -151,6 +152,7 @@ function DueSoonPanel({
   const front = (
     <TarotCardFront
       name="The Hourglass"
+      subtitle="Due soon"
       numeral="III"
       source="sys"
       illustration={<Art size={48} />}
@@ -241,6 +243,7 @@ function WhatNextPanel({
   const front = (
     <TarotCardFront
       name="The Compass"
+      subtitle="What to do next"
       numeral="IV"
       source="ai"
       illustration={<Art size={48} />}
@@ -328,6 +331,7 @@ function BacklogHygienePanel({
   const front = (
     <TarotCardFront
       name="The Web"
+      subtitle="Stale tasks"
       numeral="VI"
       source="sys"
       illustration={<Art size={48} />}
@@ -411,6 +415,7 @@ function ProjectsToNudgePanel({
   const front = (
     <TarotCardFront
       name="The Guardian"
+      subtitle="Projects needing attention"
       numeral="VII"
       source="sys"
       illustration={<Art size={48} />}
@@ -484,6 +489,7 @@ function TrackOverviewPanel({
   const front = (
     <TarotCardFront
       name="The Road"
+      subtitle="Task timeline"
       numeral="VIII"
       source="sys"
       illustration={<Art size={48} />}
@@ -544,6 +550,7 @@ function RescueModePanel({
   const front = (
     <TarotCardFront
       name="Rescue"
+      subtitle="System overloaded"
       numeral=""
       source="sys"
       illustration={<Art size={48} />}

@@ -1976,11 +1976,22 @@
   transition: none;
 }
 
+/*
+ * Slide width is slightly less than 100% so the next card peeks
+ * from the right edge (~20px visible). This is the primary
+ * affordance signaling "swipe for more cards."
+ */
 .m-carousel__slide {
-  flex: 0 0 100%;
+  flex: 0 0 calc(100% - 20px);
   min-width: 0;
-  padding: 0 var(--m-gutter, 16px);
+  padding: 0 0 0 var(--m-gutter, 16px);
   box-sizing: border-box;
+}
+
+/* Last slide gets full width — no peek needed */
+.m-carousel__slide:last-child {
+  flex: 0 0 100%;
+  padding-right: var(--m-gutter, 16px);
 }
 
 /* ── Card height tokens ───────────────────────── */
@@ -2007,6 +2018,20 @@
 
 .m-screen--focus .flip-card {
   height: 100%;
+}
+
+.m-screen--focus .flip-card__inner {
+  height: 100%;
+}
+
+.m-screen--focus .flip-card__front,
+.m-screen--focus .flip-card__back {
+  height: 100%;
+}
+
+/* Tarot frame fills the card face */
+.m-screen--focus .tarot-frame {
+  height: calc(100% - 16px);
 }
 
 /* ── Dot Indicator ────────────────────────────── */

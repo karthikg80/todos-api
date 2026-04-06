@@ -22,6 +22,7 @@ export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle: _on
   const front = (
     <TarotCardFront
       name="The Dawn"
+      subtitle="Today's agenda"
       numeral="II"
       source="sys"
       illustration={<SunriseArt size={64} />}

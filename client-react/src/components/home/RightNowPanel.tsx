@@ -19,6 +19,7 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
   const front = (
     <TarotCardFront
       name="The Flame"
+      subtitle="Your priorities right now"
       numeral="I"
       source="ai"
       illustration={<FlameArt size={64} />}
