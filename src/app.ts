@@ -257,20 +257,23 @@ export function createApp(deps: AppDependencies = {}) {
   // React app (primary) at /app
   app.use("/app", express.static(path.join(__dirname, "../client-react/dist")));
 
-  // Landing page static assets (JS/CSS bundles at root /assets/)
-  app.use("/assets", express.static(path.join(__dirname, "../client-react/dist-landing/assets")));
-
-  // Favicon and manifest served from client-react/dist-landing
-  app.use(express.static(path.join(__dirname, "../client-react/dist-landing")));
-
-  // React landing page at / (serves dist-landing/landing.html)
-  const landingIndex = path.join(
-    __dirname,
-    "../client-react/dist-landing/landing.html",
-  );
+  // React landing page at / (serves dist-landing/)
+  const landingIndex = path.join(__dirname, "../client-react/dist-landing/landing.html");
   app.get("/", (_req: Request, res: Response) => {
     res.sendFile(landingIndex);
   });
+  // Landing static assets (favicon, manifest, JS/CSS bundles)
+  app.use(express.static(path.join(__dirname, "../client-react/dist-landing")));
+
+  // React auth page at /auth (serves dist-auth/auth.html)
+  const authIndex = path.join(__dirname, "../client-react/dist-auth/auth.html");
+  app.get("/auth", (_req: Request, res: Response) => {
+    res.sendFile(authIndex);
+  });
+  // Auth page static assets (only bundles + favicon — NOT API paths)
+  app.use("/auth/assets", express.static(path.join(__dirname, "../client-react/dist-auth/assets")));
+  // Serve auth favicon/manifest/sw from landing's dist (shared)
+  // No need for separate auth favicon — landing's /favicon.svg serves both
 
   // Vanilla classic — fallback client at /app-classic (retained for rollback)
   app.use(

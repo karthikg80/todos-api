@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "build:landing": "tsc -b && vite build --config vite.landing.config.ts",
-    "build:all": "npm run build && npm run build:landing",
+    "build:auth": "tsc -b && vite build --config vite.auth.config.ts",
+    "build:all": "npm run build && npm run build:landing && npm run build:auth",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"

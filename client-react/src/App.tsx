@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
+import { AuthPage } from "./auth/AuthPage";
 import { AppShell } from "./components/layout/AppShell";
 import { MobileShell } from "./mobile/MobileShell";
 import { useIsMobile } from "./hooks/useIsMobile";
@@ -49,10 +50,23 @@ function AuthGate() {
   );
 }
 
-export function App() {
+function AppContent() {
+  // If we're at /auth, render the auth page directly (no auth gate needed)
+  if (window.location.pathname === "/auth") {
+    return (
+      <AuthProvider>
+        <AuthPage />
+      </AuthProvider>
+    );
+  }
+
   return (
     <AuthProvider>
       <AuthGate />
     </AuthProvider>
   );
+}
+
+export function App() {
+  return <AppContent />;
 }

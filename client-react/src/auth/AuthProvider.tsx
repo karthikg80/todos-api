@@ -15,6 +15,7 @@ interface AuthContextValue {
   loading: boolean;
   logout: () => void;
   setUser: (user: User | null) => void;
+  setTokens: (token: string, refreshToken: string, user: User) => void;
   refreshUser: () => Promise<User | null>;
 }
 
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextValue>({
   loading: true,
   logout: () => {},
   setUser: () => {},
+  setTokens: () => {},
   refreshUser: async () => null,
 });
 
@@ -77,9 +79,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     navigateWithFade("/", { replace: true });
   }, [persistUser]);
 
+  const setTokens = useCallback((token: string, refreshToken: string, authUser: User) => {
+    localStorage.setItem("authToken", token);
+    localStorage.setItem("refreshToken", refreshToken);
+    persistUser(authUser);
+  }, [persistUser]);
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, logout, setUser: persistUser, refreshUser }}
+      value={{ user, loading, logout, setUser: persistUser, setTokens, refreshUser }}
     >
       {children}
     </AuthContext.Provider>
