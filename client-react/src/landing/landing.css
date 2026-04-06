@@ -1,0 +1,370 @@
+/* Pull in the design tokens so all CSS variables are available */
+@import "../styles/tokens.css";
+
+/* ==========================================================================
+   Landing Page Styles
+   Composed entirely from tokens.css design tokens.
+   No hex codes introduced here.
+   ========================================================================== */
+
+/* ── Page wrapper ────────────────────────────────────────────────────── */
+
+.landing-page {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Nav ─────────────────────────────────────────────────────────────── */
+
+.landing-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: color-mix(in oklab, var(--surface) 85%, transparent);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.landing-nav__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 var(--s-4);
+}
+
+.landing-nav__logo {
+  font-size: var(--fs-section);
+  font-weight: var(--fw-bold);
+  text-decoration: none;
+  color: var(--text-strong);
+}
+
+.landing-nav__links {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.landing-nav__link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-medium);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color var(--dur-base);
+}
+
+.landing-nav__link:hover {
+  color: var(--text);
+}
+
+.landing-nav__cta {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-2) var(--s-4);
+  border-radius: var(--r-full);
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform var(--dur-base) var(--ease-spring);
+}
+
+.landing-nav__cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in oklab, var(--accent) 30%, transparent);
+}
+
+/* ── Section layout ──────────────────────────────────────────────────── */
+
+.landing-section__inner {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 var(--s-4);
+}
+
+.landing-section__heading {
+  text-align: center;
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  margin-bottom: var(--s-6);
+  color: var(--text-strong);
+}
+
+/* ── Hero ────────────────────────────────────────────────────────────── */
+
+.landing-hero {
+  padding: 80px 0 60px;
+  text-align: center;
+}
+
+.landing-hero__title {
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: var(--fw-bold);
+  line-height: var(--lh-tight);
+  margin: 0 0 var(--s-3);
+  color: var(--text-strong);
+  letter-spacing: var(--tracking-tight);
+}
+
+.landing-hero__sub {
+  font-size: var(--fs-section);
+  line-height: var(--lh-relaxed);
+  color: var(--muted);
+  max-width: 600px;
+  margin: 0 auto var(--s-5);
+}
+
+.landing-hero__ctas {
+  display: flex;
+  gap: var(--s-2);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--s-6);
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────── */
+
+.landing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--r-full);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition:
+    background var(--dur-base),
+    transform var(--dur-base) var(--ease-spring),
+    box-shadow var(--dur-base);
+}
+
+.landing-btn--primary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.landing-btn--primary:hover {
+  background: var(--accent-3);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.landing-btn--secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.landing-btn--secondary:hover {
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+
+/* ── Hero screenshot ─────────────────────────────────────────────────── */
+
+.landing-hero__screenshot {
+  max-width: 960px;
+  margin: 0 auto;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
+}
+
+.landing-hero__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ── Features grid ───────────────────────────────────────────────────── */
+
+.landing-features {
+  padding: 80px 0;
+}
+
+.landing-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--s-4);
+}
+
+.landing-feature-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s-5);
+  transition: box-shadow var(--dur-base), border-color var(--dur-base);
+}
+
+.landing-feature-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent);
+}
+
+.landing-feature-card__icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: var(--accent-light);
+  color: var(--accent);
+  margin-bottom: var(--s-3);
+}
+
+.landing-feature-card h3 {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  margin: 0 0 var(--s-1);
+  color: var(--text-strong);
+}
+
+.landing-feature-card p {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-relaxed);
+  color: var(--muted);
+  margin: 0;
+}
+
+/* ── Capabilities grid ───────────────────────────────────────────────── */
+
+.landing-capabilities {
+  padding: 0 0 80px;
+}
+
+.landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s-3);
+}
+
+.landing-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: var(--s-4);
+  transition: box-shadow var(--dur-base);
+}
+
+.landing-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.landing-card__icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--r-sm);
+  background: var(--accent-light);
+  color: var(--accent);
+  margin-bottom: var(--s-2);
+}
+
+.landing-card h4 {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  line-height: var(--lh-tight);
+  margin: 0 0 var(--s-1);
+  color: var(--text-strong);
+}
+
+.landing-card p {
+  font-size: var(--fs-meta);
+  line-height: var(--lh-relaxed);
+  color: var(--muted);
+  margin: 0;
+}
+
+.landing-card__img {
+  margin-top: var(--s-3);
+  border-radius: var(--r-sm);
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.landing-card--wide {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+/* ── CTA section ─────────────────────────────────────────────────────── */
+
+.landing-cta-section {
+  padding: 80px 0;
+  text-align: center;
+}
+
+.landing-cta-section__sub {
+  font-size: var(--fs-section);
+  color: var(--muted);
+  margin: 0 0 var(--s-4);
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────── */
+
+.landing-footer {
+  border-top: 1px solid var(--border);
+  padding: var(--s-4) 0;
+  text-align: center;
+}
+
+.landing-footer__copy {
+  font-size: var(--fs-xs);
+  color: var(--muted-light);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .landing-hero {
+    padding: 48px 0 32px;
+  }
+
+  .landing-hero__title {
+    font-size: clamp(1.6rem, 6vw, 2.4rem);
+  }
+
+  .landing-features,
+  .landing-capabilities {
+    padding: 48px 0;
+  }
+
+  .landing-cta-section {
+    padding: 48px 0;
+  }
+
+  .landing-card--wide {
+    grid-column: auto;
+  }
+
+  .landing-features-grid {
+    grid-template-columns: 1fr;
+  }
+}
