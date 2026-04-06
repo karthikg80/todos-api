@@ -10,10 +10,4 @@ export {
   getEmptyState,
   formatWithVoice,
 } from "./voiceEngine";
-export type {
-  AgentId,
-  AgentProfile,
-  AgentVoice,
-  AgentColors,
-  AvatarMode,
-} from "./types";
+export type { AgentId, AgentProfile, AgentVoice, AgentColors } from "./types";

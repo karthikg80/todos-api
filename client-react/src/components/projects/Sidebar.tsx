@@ -14,12 +14,7 @@ import {
 import { ProfileLauncher } from "../shared/ProfileLauncher";
 
 // Internal keys match classic store.js currentWorkspaceView values
-export type WorkspaceView =
-  | "home"
-  | "all"
-  | "today"
-  | "horizon"
-  | "completed";
+export type WorkspaceView = "home" | "all" | "today" | "horizon" | "completed";
 
 // Display labels match classic app-shell.fragment
 const WORKSPACE_VIEWS: {
@@ -132,7 +127,9 @@ export function Sidebar({
     try {
       const stored = localStorage.getItem("todos:collapsed-areas");
       if (stored) return new Set(JSON.parse(stored));
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
     return new Set();
   });
 
@@ -142,7 +139,9 @@ export function Sidebar({
         "todos:collapsed-areas",
         JSON.stringify([...collapsedAreas]),
       );
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }, [collapsedAreas]);
 
   const isSimple = uiMode === "simple";

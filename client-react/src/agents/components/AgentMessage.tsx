@@ -18,7 +18,9 @@ export function AgentMessage({
   timestamp,
   className,
 }: Props) {
-  const [thinkingText, setThinkingText] = useState(() => getThinkingLine(agent));
+  const [thinkingText, setThinkingText] = useState(() =>
+    getThinkingLine(agent),
+  );
 
   useEffect(() => {
     if (!isStreaming) return;
@@ -50,11 +52,7 @@ export function AgentMessage({
           marginBottom: 8,
         }}
       >
-        <AgentBadge
-          agent={agent}
-          size="sm"
-          mode={isStreaming ? "thinking" : "idle"}
-        />
+        <AgentBadge agent={agent} size="sm" />
         {timeStr && (
           <span style={{ fontSize: 11, color: "#999" }}>{timeStr}</span>
         )}

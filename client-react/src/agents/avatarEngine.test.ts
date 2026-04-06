@@ -3,7 +3,14 @@ import { drawAgentAvatar, AVATAR_AGENTS } from "./avatarEngine";
 
 describe("avatarEngine", () => {
   it("exports draw functions for all 6 agents", () => {
-    expect(AVATAR_AGENTS).toEqual(["orla", "finn", "mira", "echo", "sol", "kodo"]);
+    expect(AVATAR_AGENTS).toEqual([
+      "orla",
+      "finn",
+      "mira",
+      "echo",
+      "sol",
+      "kodo",
+    ]);
   });
 
   it("drawAgentAvatar does not throw for any agent", () => {
@@ -14,11 +21,21 @@ describe("avatarEngine", () => {
       lineTo: () => ops.push("lineTo"),
       arc: () => ops.push("arc"),
       stroke: () => ops.push("stroke"),
-      set strokeStyle(_: string) { ops.push("strokeStyle"); },
-      set lineWidth(_: number) { ops.push("lineWidth"); },
-      set globalAlpha(_: number) { ops.push("globalAlpha"); },
-      set lineCap(_: string) { ops.push("lineCap"); },
-      set lineJoin(_: string) { ops.push("lineJoin"); },
+      set strokeStyle(_: string) {
+        ops.push("strokeStyle");
+      },
+      set lineWidth(_: number) {
+        ops.push("lineWidth");
+      },
+      set globalAlpha(_: number) {
+        ops.push("globalAlpha");
+      },
+      set lineCap(_: string) {
+        ops.push("lineCap");
+      },
+      set lineJoin(_: string) {
+        ops.push("lineJoin");
+      },
     } as unknown as CanvasRenderingContext2D;
 
     for (const id of AVATAR_AGENTS) {
