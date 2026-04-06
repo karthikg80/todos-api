@@ -12,7 +12,7 @@ export function useAgentProfiles(): Record<string, AgentProfile> {
   useEffect(() => {
     if (cachedProfiles) return;
 
-    apiCall("/agent-profiles")
+    apiCall("/api/agent-profiles")
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.json();
