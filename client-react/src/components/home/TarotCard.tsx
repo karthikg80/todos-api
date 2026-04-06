@@ -1,6 +1,8 @@
 // client-react/src/components/home/TarotCard.tsx
 import type { ReactNode } from "react";
 import { AgentSigil } from "./AgentSigil";
+import { GenerativePattern } from "../GenerativePattern";
+import type { PatternMode } from "../GenerativePattern";
 
 export interface TarotCardProps {
   name: string;
@@ -11,7 +13,7 @@ export interface TarotCardProps {
   subtitle?: string;
   children: ReactNode;
   hero?: boolean;
-  accentPattern?: { mode: string; seed: number };
+  accentPattern?: { mode: PatternMode; seed: number };
   agent?: {
     id: string;
     name: string;
@@ -29,8 +31,7 @@ export function TarotCardFront({
   subtitle,
   children,
   hero,
-  // accentPattern is reserved for future GenerativePattern canvas rendering
-  accentPattern: _accentPattern,
+  accentPattern,
   agent,
 }: TarotCardProps) {
   const cornerClass =
@@ -86,6 +87,19 @@ export function TarotCardFront({
       <div
         className={`tarot-illustration${hero ? " tarot-illustration--hero" : ""}`}
       >
+        {accentPattern && (
+          <GenerativePattern
+            mode={accentPattern.mode}
+            seed={accentPattern.seed}
+            color="#8a7e6e"
+            background="transparent"
+            opacity={0.08}
+            density={20}
+            width="100%"
+            height={80}
+            className="tarot-illustration__pattern"
+          />
+        )}
         {illustration}
       </div>
       {illustrationCaption && (
