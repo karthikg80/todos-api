@@ -303,6 +303,8 @@ model AgentActionAudit {
   jobName        String?  @map("job_name") @db.VarChar(100)
   jobPeriodKey   String?  @map("job_period_key") @db.VarChar(20)
   triggeredBy    String?  @map("triggered_by") @db.VarChar(20)
+  agentId        String?  @map("agent_id") @db.VarChar(20)
+  narration      String?  @map("narration") @db.VarChar(500)
   metadata       Json?
   createdAt      DateTime @default(now()) @map("created_at")
 
@@ -312,6 +314,7 @@ model AgentActionAudit {
   @@index([requestId])
   @@index([action, createdAt])
   @@index([jobName, jobPeriodKey])
+  @@index([userId, agentId, createdAt])
   @@map("agent_action_audits")
 }
 
