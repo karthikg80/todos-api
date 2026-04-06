@@ -66,6 +66,7 @@ const FeedbackForm = lazy(() =>
 const WeeklyReview = lazy(() =>
   import("./WeeklyReview").then((m) => ({ default: m.WeeklyReview })),
 );
+import { AgentActivityView } from "../activity/AgentActivityView";
 
 type AppPage =
   | "todos"
@@ -73,7 +74,8 @@ type AppPage =
   | "components"
   | "admin"
   | "feedback"
-  | "review";
+  | "review"
+  | "activity";
 type UiMode = "normal" | "simple";
 type HorizonSegment = "due" | "planned" | "pending" | "later";
 
@@ -853,7 +855,9 @@ export function AppShell() {
             ? "Admin"
             : page === "feedback"
               ? "Feedback"
-              : headerTitle;
+              : page === "activity"
+                ? "Agent Activity"
+                : headerTitle;
     document.title = `${pageLabel} — Todos`;
   }, [page, headerTitle]);
 
@@ -899,6 +903,11 @@ export function AppShell() {
         startTransition(() => setPage("admin"));
         setMobileNavOpen(false);
       }}
+      onOpenActivity={() => {
+        startTransition(() => setPage("activity"));
+        setMobileNavOpen(false);
+      }}
+      activePage={page}
       onToggleTheme={toggleDarkMode}
       onOpenShortcuts={() => setShortcutsOpen(true)}
       onOpenProfile={() => {
@@ -1034,6 +1043,10 @@ export function AppShell() {
                 }}
               />
             </Suspense>
+          ) : page === "activity" ? (
+            <AgentActivityView
+              onBack={() => startTransition(() => setPage("todos"))}
+            />
           ) : (
             <ViewRouter activeViewKey={activeViewKey} capacity={3}>
               <ViewRoute viewKey="home">
@@ -1308,9 +1321,12 @@ export function AppShell() {
                       loadProjects();
                     }}
                     onDeleteProject={async (id) => {
-                      await apiCall(`/projects/${id}?taskDisposition=unsorted`, {
-                        method: "DELETE",
-                      });
+                      await apiCall(
+                        `/projects/${id}?taskDisposition=unsorted`,
+                        {
+                          method: "DELETE",
+                        },
+                      );
                       handleSelectProject(null);
                       loadProjects();
                     }}
