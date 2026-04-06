@@ -231,6 +231,7 @@ function minimumRequiredScopesForAction(
     case "create_day_plan":
     case "update_day_plan_task":
     case "finalize_day_plan":
+    case "record_job_narration":
       return [TASK_WRITE_SCOPE];
   }
 }
