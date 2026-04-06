@@ -257,6 +257,20 @@ export function createApp(deps: AppDependencies = {}) {
   // React app (primary) at /app
   app.use("/app", express.static(path.join(__dirname, "../client-react/dist")));
 
+  // React SPA fallbacks — serve dist/index.html for app routes
+  const reactIndex = path.join(__dirname, "../client-react/dist/index.html");
+  app.get("/app/{*path}", (_req: Request, res: Response) =>
+    res.sendFile(reactIndex),
+  );
+
+  // React feedback page at /feedback and /feedback/new
+  app.get("/feedback", (_req: Request, res: Response) =>
+    res.sendFile(reactIndex),
+  );
+  app.get("/feedback/{*path}", (_req: Request, res: Response) =>
+    res.sendFile(reactIndex),
+  );
+
   // React landing page at / (serves dist-landing/)
   const landingIndex = path.join(__dirname, "../client-react/dist-landing/landing.html");
   app.get("/", (_req: Request, res: Response) => {

@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { AuthPage } from "./auth/AuthPage";
+import { FeedbackView } from "./views/FeedbackView";
 import { AppShell } from "./components/layout/AppShell";
 import { MobileShell } from "./mobile/MobileShell";
 import { useIsMobile } from "./hooks/useIsMobile";
@@ -51,8 +52,10 @@ function AuthGate() {
 }
 
 function AppContent() {
-  // If we're at /auth, render the auth page directly (no auth gate needed)
-  if (window.location.pathname === "/auth") {
+  const path = window.location.pathname;
+
+  // /auth — standalone auth page (no auth gate needed)
+  if (path === "/auth") {
     return (
       <AuthProvider>
         <AuthPage />
@@ -60,6 +63,16 @@ function AppContent() {
     );
   }
 
+  // /feedback or /feedback/new — feedback pages (auth-gated internally)
+  if (path === "/feedback" || path === "/feedback/new") {
+    return (
+      <AuthProvider>
+        <FeedbackView />
+      </AuthProvider>
+    );
+  }
+
+  // Everything else — main app with auth gate
   return (
     <AuthProvider>
       <AuthGate />

@@ -2,6 +2,9 @@
  * Static page routes — serves standalone HTML pages at product URLs.
  *
  * Extracted from app.ts to keep the factory focused on service wiring.
+ *
+ * NOTE: /auth, /feedback, /app are now served by React builds in app.ts.
+ * Only legacy fallbacks remain here until the client/ folder is fully retired.
  */
 
 import { Router, Request, Response } from "express";
@@ -9,32 +12,10 @@ import path from "path";
 
 const CLIENT_PUBLIC = path.join(__dirname, "../../client/public");
 
-const PAGE_ROUTES: Array<{ path: string; file: string }> = [
-  { path: "/auth", file: "auth.html" },
-  { path: "/feedback", file: "feedback.html" },
-  { path: "/feedback/new", file: "feedback-new.html" },
-];
-
 export function createStaticPagesRouter(): Router {
   const router = Router();
 
-  for (const route of PAGE_ROUTES) {
-    const filePath = path.join(CLIENT_PUBLIC, route.file);
-    router.get(route.path, (_req: Request, res: Response) =>
-      res.sendFile(filePath),
-    );
-  }
-
-  // React SPA — primary app at /app and /app/*
-  const reactIndex = path.join(__dirname, "../../client-react/dist/index.html");
-  router.get("/app", (_req: Request, res: Response) =>
-    res.sendFile(reactIndex),
-  );
-  router.get("/app/{*path}", (_req: Request, res: Response) =>
-    res.sendFile(reactIndex),
-  );
-
-  // Vanilla SPA — classic fallback at /app-classic and /app-classic/*
+  // Vanilla classic — SPA fallback at /app-classic and /app-classic/*
   const classicPage = path.join(CLIENT_PUBLIC, "app.html");
   router.get("/app-classic", (_req: Request, res: Response) =>
     res.sendFile(classicPage),
