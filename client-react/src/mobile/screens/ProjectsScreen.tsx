@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import type { Todo, Project, User } from "../../types";
 import { MobileHeader } from "../MobileHeader";
 import { SwipeRow } from "../components/SwipeRow";
-import { IllustrationFolders } from "../components/Illustrations";
+import { GenerativePattern, hashSeed } from "../../components/GenerativePattern";
 
 interface Props {
   todos: Todo[];
@@ -72,7 +72,17 @@ export function ProjectsScreen({ todos, projects, user, onTodoClick, onToggleTod
         <div className="m-today__pull-hint">↓ pull to search</div>
         {groups.length === 0 && (
           <div className="m-empty">
-            <IllustrationFolders />
+            <GenerativePattern
+              mode="scatteredOrbits"
+              seed={hashSeed("projects")}
+              color="#D85A30"
+              background="transparent"
+              opacity={0.18}
+              density={35}
+              width={200}
+              height={120}
+              className="m-empty__pattern"
+            />
             <div className="m-empty__title">No active projects yet</div>
             <div className="m-empty__hint">Tap + to create one</div>
           </div>
