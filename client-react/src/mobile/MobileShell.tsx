@@ -239,7 +239,7 @@ export function MobileShell() {
     </div>
   ) : null;
 
-  const screenProps = { todos, projects, user, onTodoClick: handleTodoClick, onToggleTodo: handleToggleTodo, onAvatarClick: handleAvatarClick, onSnoozeTodo: handleSnoozeTodo };
+  const screenProps = { todos, projects, user, onTodoClick: handleTodoClick, onToggleTodo: handleToggleTodo, onAvatarClick: handleAvatarClick };
 
   return (
     <div className="m-shell" data-density="normal" data-palette={palette}>
@@ -248,9 +248,9 @@ export function MobileShell() {
       <div className="m-shell__content">
         <PullToRefresh onRefresh={handleRefresh}>
           {activeTab === "focus" && <FocusScreen {...screenProps} brief={focusBrief.brief} briefLoading={focusBrief.loading} briefError={focusBrief.error} />}
-          {activeTab === "today" && <TodayScreen {...screenProps} />}
-          {activeTab === "projects" && <ProjectsScreen {...screenProps} />}
-          {activeTab === "custom" && <CustomScreen view={customView} {...screenProps} />}
+          {activeTab === "today" && <TodayScreen {...screenProps} onSnoozeTodo={handleSnoozeTodo} />}
+          {activeTab === "projects" && <ProjectsScreen {...screenProps} onSnoozeTodo={handleSnoozeTodo} />}
+          {activeTab === "custom" && <CustomScreen view={customView} {...screenProps} onSnoozeTodo={handleSnoozeTodo} />}
         </PullToRefresh>
       </div>
       <PullToSearch todos={todos} projects={projects} onSelectResult={handleTodoClick} />

@@ -425,16 +425,8 @@ export function ProjectWorkspaceView({
     [allProjectTodos, headings],
   );
 
-  // Set default workspace mode based on project complexity
-  useEffect(() => {
-    const defaultMode =
-      overviewProfile.mode === "simple"
-        ? "overview"
-        : overviewProfile.mode === "guided"
-          ? "sections"
-          : "tasks";
-    setWorkspaceMode(defaultMode as WorkspaceMode);
-  }, [project.id, overviewProfile.mode]);
+  // Note: workspaceMode defaults to "overview" and is user-controlled.
+  // No auto-switch on mount — let the user explore the overview first.
   const sectionStats = useMemo(() => {
     const stats = new Map<
       string,

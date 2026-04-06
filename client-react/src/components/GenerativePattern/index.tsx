@@ -1,6 +1,6 @@
 import { useRef, useEffect } from "react";
 import { ALGORITHMS, mkRng, hashSeed } from "./algorithms";
-import type { GenerativePatternProps, PatternBackgroundProps } from "./types";
+import type { GenerativePatternProps, PatternBackgroundProps, PatternMode } from "./types";
 export type { GenerativePatternProps, PatternBackgroundProps, PatternMode } from "./types";
 
 export function useSeed() {
@@ -8,6 +8,49 @@ export function useSeed() {
 }
 
 export { hashSeed };
+
+function drawPattern(
+  canvas: HTMLCanvasElement,
+  mode: PatternMode,
+  seed: number,
+  color: string,
+  background: string,
+  opacity: number,
+  density: number,
+  height: number,
+) {
+  const rect = canvas.getBoundingClientRect();
+  const W = rect.width;
+  const H = height;
+  const dpr = window.devicePixelRatio || 1;
+
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  ctx.scale(dpr, dpr);
+
+  // Background fill
+  if (background !== "transparent") {
+    ctx.fillStyle = background;
+    ctx.fillRect(0, 0, W, H);
+  } else {
+    ctx.clearRect(0, 0, W, H);
+  }
+
+  // Drawing setup
+  ctx.strokeStyle = color;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+
+  const rng = mkRng(seed);
+  const clampedDensity = Math.max(10, Math.min(100, density));
+  const clampedOpacity = Math.max(0, Math.min(1, opacity));
+
+  ALGORITHMS[mode](ctx, W, H, clampedOpacity, clampedDensity, rng);
+}
 
 export function GenerativePattern({
   mode,
@@ -27,37 +70,16 @@ export function GenerativePattern({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const W = rect.width;
-    const H = height;
-    const dpr = window.devicePixelRatio || 1;
+    drawPattern(canvas, mode, seed, color, background, opacity, density, height);
 
-    canvas.width = W * dpr;
-    canvas.height = H * dpr;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    ctx.scale(dpr, dpr);
-
-    // Background fill
-    if (background !== "transparent") {
-      ctx.fillStyle = background;
-      ctx.fillRect(0, 0, W, H);
-    } else {
-      ctx.clearRect(0, 0, W, H);
+    // Watch for parent width changes (e.g. carousel slide animation, resize)
+    if (typeof ResizeObserver !== "undefined") {
+      const ro = new ResizeObserver(() => {
+        drawPattern(canvas, mode, seed, color, background, opacity, density, height);
+      });
+      ro.observe(canvas);
+      return () => ro.disconnect();
     }
-
-    // Drawing setup
-    ctx.strokeStyle = color;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-
-    const rng = mkRng(seed);
-    const clampedDensity = Math.max(10, Math.min(100, density));
-    const clampedOpacity = Math.max(0, Math.min(1, opacity));
-
-    ALGORITHMS[mode](ctx, W, H, clampedOpacity, clampedDensity, rng);
   }, [mode, seed, color, background, opacity, density, height]);
 
   return (
