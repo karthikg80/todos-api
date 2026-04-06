@@ -68,6 +68,7 @@ import { createGoalsRouter } from "./routes/goalsRouter";
 import { createDayPlanRouter } from "./routes/dayPlanRouter";
 import { createStaticPagesRouter } from "./routes/staticPagesRouter";
 import { createAdaptationRouter } from "./routes/adaptationRouter";
+import { createAgentActivityRouter } from "./routes/agentActivityRouter";
 import { DayPlanService } from "./services/dayPlanService";
 import { UserAdaptationService } from "./services/userAdaptationService";
 import { AdaptationLlmInferenceService } from "./services/adaptationLlmInference";
@@ -359,6 +360,7 @@ export function createApp(deps: AppDependencies = {}) {
       "/goals",
       "/plans",
       "/adaptation",
+      "/agent-activity",
     ];
     for (const route of protectedRoutes) {
       app.use(route, auth);
@@ -531,6 +533,8 @@ export function createApp(deps: AppDependencies = {}) {
         resolveUserId,
       }),
     );
+
+    app.use(createAgentActivityRouter(persistencePrisma));
   }
 
   app.use(errorHandler);
