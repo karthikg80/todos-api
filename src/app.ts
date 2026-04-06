@@ -251,19 +251,35 @@ export function createApp(deps: AppDependencies = {}) {
       path.join(__dirname, "../node_modules/chrono-node/dist/esm"),
     ),
   );
-  // React app — primary client at /app (must precede vanilla root)
+
+  // ── Static assets ───────────────────────────────────────────────────
+
+  // React app (primary) at /app
   app.use("/app", express.static(path.join(__dirname, "../client-react/dist")));
 
-  // Vanilla classic — fallback client at /app-classic
+  // Landing page static assets (JS/CSS bundles at root /assets/)
+  app.use("/assets", express.static(path.join(__dirname, "../client-react/dist-landing/assets")));
+
+  // Favicon and manifest served from client-react/dist-landing
+  app.use(express.static(path.join(__dirname, "../client-react/dist-landing")));
+
+  // React landing page at / (serves dist-landing/landing.html)
+  const landingIndex = path.join(
+    __dirname,
+    "../client-react/dist-landing/landing.html",
+  );
+  app.get("/", (_req: Request, res: Response) => {
+    res.sendFile(landingIndex);
+  });
+
+  // Vanilla classic — fallback client at /app-classic (retained for rollback)
   app.use(
     "/app-classic",
     express.static(path.join(__dirname, "../client/public")),
   );
 
-  app.use(express.static(path.join(__dirname, "../client")));
+  // ── SPA fallbacks & standalone pages ────────────────────────────────
 
-  // Standalone page routes — must be registered before the /auth API router
-  // so GET /auth is intercepted.
   app.use(createStaticPagesRouter());
 
   app.use(
