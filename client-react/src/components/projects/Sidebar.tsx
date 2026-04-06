@@ -6,6 +6,7 @@ import {
   IconToday,
   IconUpcoming,
   IconCompleted,
+  IconActivity,
   IconPlus,
   IconSidebar,
   IconSearch,
@@ -82,6 +83,8 @@ interface Props {
   onOpenComponents: () => void;
   onOpenFeedback: () => void;
   onOpenAdmin: () => void;
+  onOpenActivity: () => void;
+  activePage: string;
   onToggleTheme: () => void;
   onOpenShortcuts: () => void;
   onOpenProfile: () => void;
@@ -109,6 +112,8 @@ export function Sidebar({
   onOpenComponents,
   onOpenFeedback,
   onOpenAdmin,
+  onOpenActivity,
+  activePage,
   onToggleTheme,
   onOpenShortcuts,
   onOpenProfile,
@@ -284,6 +289,16 @@ export function Sidebar({
               )}
             </button>
           ))}
+        </nav>
+
+        <nav className="projects-rail__primary" style={{ marginTop: 4 }}>
+          <button
+            className={`workspace-view-item${activePage === "activity" ? " projects-rail-item--active" : ""}`}
+            onClick={onOpenActivity}
+          >
+            <IconActivity />
+            <span className="nav-label">Activity</span>
+          </button>
         </nav>
 
         {/* Section 2: Projects grouped by area */}
