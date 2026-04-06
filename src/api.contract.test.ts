@@ -427,10 +427,17 @@ describe("API Contract", () => {
       );
     });
 
-    it("validates task critic payload", async () => {
+    it("accepts empty title — LLM scores it poorly", async () => {
       await request(app)
         .post("/ai/task-critic")
         .send({ title: "" })
+        .expect(200);
+    });
+
+    it("rejects invalid priority value", async () => {
+      await request(app)
+        .post("/ai/task-critic")
+        .send({ title: "Some task", priority: "critical" })
         .expect(400);
     });
 

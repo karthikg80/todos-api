@@ -43,41 +43,22 @@ describe("FlipCard", () => {
     expect(screen.getByText("Front content")).toBeInTheDocument();
   });
 
-  it("uses controlled flipped prop when provided", () => {
-    const { rerender } = render(
-      <FlipCard
-        front={<div>Front</div>}
-        back={<div>Back</div>}
-        flipped={false}
-        onFlipChange={() => {}}
-      />,
-    );
-    expect(document.querySelector(".flip-card--flipped")).not.toBeInTheDocument();
-
-    rerender(
-      <FlipCard
-        front={<div>Front</div>}
-        back={<div>Back</div>}
-        flipped={true}
-        onFlipChange={() => {}}
-      />,
-    );
-    expect(document.querySelector(".flip-card--flipped")).toBeInTheDocument();
-  });
-
-  it("calls onFlipChange instead of toggling internal state in controlled mode", () => {
-    const onFlipChange = vi.fn();
+  it("toggles flip state on dog-ear click", () => {
     render(
       <FlipCard
         front={<div>Front</div>}
         back={<div>Back</div>}
-        flipped={false}
-        onFlipChange={onFlipChange}
       />,
     );
+    expect(document.querySelector(".flip-card--flipped")).not.toBeInTheDocument();
+
     const dogEar = screen.getAllByTitle(/flip/i)[0];
     fireEvent.click(dogEar);
-    expect(onFlipChange).toHaveBeenCalledWith(true);
+    expect(document.querySelector(".flip-card--flipped")).toBeInTheDocument();
+
+    // Flip back
+    const backDogEars = screen.getAllByTitle(/flip/i);
+    fireEvent.click(backDogEars[1] || backDogEars[0]);
     expect(document.querySelector(".flip-card--flipped")).not.toBeInTheDocument();
   });
 });

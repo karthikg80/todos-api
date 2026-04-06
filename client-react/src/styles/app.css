@@ -3267,6 +3267,7 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
 }
 
 /* Bottom corners (mirrored) */
@@ -3636,6 +3637,14 @@ body {
 
 .focus-list__item-title {
   font-weight: 500;
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  box-shadow: none;
 }
 
 .focus-list__item-meta {
@@ -3660,6 +3669,10 @@ body {
 }
 
 .focus-action-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   padding: var(--s-1) var(--s-2);
   border: 1px solid var(--accent);
   border-radius: var(--r-full);
