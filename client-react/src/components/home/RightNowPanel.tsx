@@ -4,6 +4,7 @@ import { TarotCardFront, TarotCardBack } from "./TarotCard";
 import { CardBackContent } from "./CardBack";
 import { FlameArt } from "./pixel-art";
 import type { RightNow, PanelProvenance } from "../../types/focusBrief";
+import { useAgentProfiles, getAgentProfile } from "../../agents/useAgentProfiles";
 
 interface Props {
   data: RightNow;
@@ -12,6 +13,18 @@ interface Props {
 }
 
 export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
+  const profiles = useAgentProfiles();
+  const agentProfile = getAgentProfile(profiles, data.agentId);
+  const agent = agentProfile
+    ? {
+        id: agentProfile.id,
+        name: agentProfile.name,
+        role: agentProfile.role,
+        colors: agentProfile.colors,
+        traits: agentProfile.traits,
+        quote: agentProfile.quote,
+      }
+    : undefined;
   if (!data.narrative && data.urgentItems.length === 0 && !data.topRecommendation) {
     return null;
   }
@@ -25,6 +38,7 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
       illustration={<FlameArt size={64} />}
       accentPattern={{ mode: "spiralField", seed: 101 }}
       hero
+      agent={agent}
     >
       {data.narrative && <p className="tarot-narrative">{data.narrative}</p>}
       {data.topRecommendation && (
@@ -53,10 +67,12 @@ export function RightNowPanel({ data, provenance, onTaskClick }: Props) {
       numeral="I"
       source="ai"
       illustration={<FlameArt size={80} />}
+      agent={agent}
     >
       <CardBackContent
         provenance={provenance}
         reason="Pinned — always visible. Urgent items and your strongest next action."
+        agent={agent}
       />
     </TarotCardBack>
   );

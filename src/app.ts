@@ -43,6 +43,10 @@ import { CaptureService } from "./services/captureService";
 import { createCaptureRouter } from "./routes/captureRouter";
 import { createPreferencesRouter } from "./routes/preferencesRouter";
 import { createAgentEnrollmentRouter } from "./routes/agentEnrollmentRouter";
+import {
+  createAgentProfileRouter,
+  createInternalAgentProfileRouter,
+} from "./routes/agentProfileRouter";
 import { EmailService } from "./services/emailService";
 import { FeedbackService } from "./services/feedbackService";
 import { FeedbackDuplicateService } from "./services/feedbackDuplicateService";
@@ -275,7 +279,11 @@ export function createApp(deps: AppDependencies = {}) {
     res.send(swaggerSpec);
   });
 
+  app.use("/api", createAgentProfileRouter());
+
   app.use("/api", apiLimiter);
+  app.use("/api/agent-profiles", apiLimiter);
+  app.use("/api/internal", apiLimiter);
   app.use("/todos", apiLimiter);
   app.use("/users", apiLimiter);
   app.use("/ai", apiLimiter);
@@ -432,6 +440,7 @@ export function createApp(deps: AppDependencies = {}) {
       authService,
     }),
   );
+  app.use("/api", createInternalAgentProfileRouter());
   app.use(
     "/mcp",
     createMcpRouter({

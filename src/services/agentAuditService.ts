@@ -16,6 +16,8 @@ interface AgentAuditRecordInput {
   jobName?: string;
   jobPeriodKey?: string;
   triggeredBy?: "user" | "automation" | "agent";
+  agentId?: string;
+  narration?: string;
 }
 
 export class AgentAuditService {
@@ -92,6 +94,8 @@ export class AgentAuditService {
           jobName: input.jobName,
           jobPeriodKey: input.jobPeriodKey,
           triggeredBy: input.triggeredBy,
+          agentId: input.agentId,
+          narration: input.narration,
           metadata,
         },
       })

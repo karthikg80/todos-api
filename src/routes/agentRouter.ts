@@ -480,6 +480,11 @@ export function createAgentRouter({
     createAgentActionHandler(agentExecutor, "update_action_policy"),
   );
 
+  router.post(
+    "/write/record_job_narration",
+    createAgentActionHandler(agentExecutor, "record_job_narration"),
+  );
+
   // -------------------------------------------------------------------------
   // Async run endpoints — enqueue agent actions and return 202 Accepted.
   // The run executes outside the HTTP request cycle.

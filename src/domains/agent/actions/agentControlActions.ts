@@ -12,6 +12,7 @@
  * All services are already present in ActionRuntime — no extra deps needed.
  */
 
+import { Prisma } from "@prisma/client";
 import {
   validateAgentClaimJobRunInput,
   validateAgentCompleteJobRunInput,
@@ -356,6 +357,64 @@ export function registerAgentControlActions(registry: ActionRegistry): void {
       );
       return runtime.exec.success("update_action_policy", false, context, 200, {
         policies,
+      });
+    },
+  );
+
+  registry.registerRaw(
+    "record_job_narration",
+    async (
+      params: RawParams,
+      context: AgentExecutionContext,
+      runtime: ActionRuntime,
+    ): Promise<AgentExecutionResult> => {
+      const jobName = params.jobName as string | undefined;
+      const periodKey = params.periodKey as string | undefined;
+      const narration = params.narration as string | undefined;
+      const metadata = params.metadata as Record<string, unknown> | undefined;
+
+      if (!jobName || !periodKey || !narration) {
+        throw new AgentExecutionError(
+          400,
+          "INVALID_INPUT",
+          "jobName, periodKey, and narration are required",
+          false,
+        );
+      }
+
+      // The actor name from X-Agent-Name header IS the agentId
+      const agentId = context.actor;
+
+      // Record via the audit service on the persistence Prisma instance
+      if (runtime.persistencePrisma) {
+        await runtime.persistencePrisma.agentActionAudit.create({
+          data: {
+            surface: "agent",
+            action: "record_job_narration",
+            readOnly: false,
+            outcome: "success",
+            status: 200,
+            userId: context.userId,
+            requestId: context.requestId,
+            actor: context.actor,
+            replayed: false,
+            jobName,
+            jobPeriodKey: periodKey,
+            triggeredBy: "agent",
+            agentId,
+            narration,
+            metadata:
+              metadata !== undefined
+                ? (metadata as unknown as Prisma.InputJsonValue)
+                : undefined,
+          },
+        });
+      }
+
+      return runtime.exec.success("record_job_narration", false, context, 201, {
+        recorded: true,
+        jobName,
+        periodKey,
       });
     },
   );

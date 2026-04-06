@@ -406,6 +406,7 @@ function assembleBrief(
         reason: entry.reason,
         data,
         provenance,
+        ...(entry.type === "whatNext" ? { agentId: "orla" as const } : {}),
       });
       seen.add(entry.type);
     }
@@ -419,7 +420,13 @@ function assembleBrief(
           ? llmProvenance
           : (deterministicProvenanceMap.get(type as DeterministicKey) ??
             llmProvenance);
-      rankedPanels.push({ type, reason: "", data, provenance });
+      rankedPanels.push({
+        type,
+        reason: "",
+        data,
+        provenance,
+        ...(type === "whatNext" ? { agentId: "orla" as const } : {}),
+      });
     }
   }
 
@@ -435,10 +442,13 @@ function assembleBrief(
 
   return {
     pinned: {
-      rightNow: llmOutput.rightNow ?? {
-        narrative: "",
-        urgentItems: [],
-        topRecommendation: null,
+      rightNow: {
+        ...(llmOutput.rightNow ?? {
+          narrative: "",
+          urgentItems: [],
+          topRecommendation: null,
+        }),
+        agentId: "finn" as const,
       },
       todayAgenda,
       rightNowProvenance: llmProvenance,

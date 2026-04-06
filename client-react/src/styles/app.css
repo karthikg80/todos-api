@@ -11582,3 +11582,36 @@ body.dark-mode {
   color: var(--tarot-red);
   font-weight: 500;
 }
+
+/* Agent identity — Meet the Team */
+.agents-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--s-4, 16px);
+}
+.agent-card {
+  border: 2px solid;
+  border-radius: 12px;
+  padding: var(--s-4, 16px);
+}
+.agent-card__header {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3, 12px);
+  margin-bottom: var(--s-2, 8px);
+}
+.agent-card__name { font-weight: 700; font-size: 15px; }
+.agent-card__role { font-size: 11px; }
+.agent-card__quote { font-size: 12px; font-style: italic; margin: var(--s-2, 8px) 0; }
+.agent-card__traits { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: var(--s-2, 8px); }
+.agent-card__trait { font-size: 10px; padding: 2px 6px; border-radius: 8px; }
+.agent-card__details { font-size: 11px; line-height: 1.6; }
+
+/* Agent identity — Activity Feed */
+.activity-feed { display: flex; flex-direction: column; gap: var(--s-4, 16px); }
+.activity-entry { display: flex; gap: var(--s-3, 12px); align-items: flex-start; }
+.activity-entry__body { flex: 1; }
+.activity-entry__header { display: flex; align-items: baseline; gap: 6px; }
+.activity-entry__name { font-weight: 600; font-size: 13px; }
+.activity-entry__meta { font-size: 11px; color: var(--text-muted, #999); }
+.activity-entry__narration { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }

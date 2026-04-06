@@ -1,4 +1,6 @@
-export type AgentId = "orla" | "finn" | "mira" | "echo" | "sol" | "kodo";
+import type { AgentId } from "../types";
+
+export type { AgentId };
 
 export interface AgentColors {
   stroke: string;
@@ -8,13 +10,14 @@ export interface AgentColors {
 }
 
 export interface AgentVoice {
-  tone: string;
+  tone: "measured" | "blunt" | "warm" | "rapid" | "reflective" | "terse";
   avgWordsPerSentence: number;
   openers: string[];
   closers: string[];
   thinkingLines: string[];
   emptyStateLines: string[];
   errorLines: string[];
+  systemPromptFragment: string;
 }
 
 export interface AgentProfile {

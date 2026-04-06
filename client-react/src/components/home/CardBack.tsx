@@ -1,15 +1,24 @@
 import type { ReactNode } from "react";
 import type { PanelProvenance } from "../../types/focusBrief";
+import { AgentSigil } from "./AgentSigil";
 
 interface Props {
   provenance?: PanelProvenance;
   reason: string;
   /** @deprecated Use TarotCardBack illustration prop instead */
   pixelArt?: ReactNode;
+  agent?: {
+    id: string;
+    name: string;
+    role: string;
+    traits: [string, string, string];
+    quote: string;
+    colors: { stroke: string; bg: string; textDark: string; traitBg: string };
+  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function CardBackContent({ provenance, reason, pixelArt: _pixelArt }: Props) {
+export function CardBackContent({ provenance, reason, pixelArt: _pixelArt, agent }: Props) {
   if (!provenance) {
     return (
       <>
@@ -26,7 +35,26 @@ export function CardBackContent({ provenance, reason, pixelArt: _pixelArt }: Pro
   if (isAi) {
     return (
       <>
-        <div className="tarot-inscription__label tarot-inscription__label--ai">Divined by</div>
+        {agent && (
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <AgentSigil agentId={agent.id} color={agent.colors.stroke} bg={agent.colors.bg} size={48} />
+              <div>
+                <div style={{ fontWeight: 700, color: agent.colors.textDark, fontSize: 15 }}>{agent.name}</div>
+                <div style={{ fontSize: 11, color: agent.colors.textDark, opacity: 0.7 }}>{agent.role}</div>
+                <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                  {agent.traits.map((t) => (
+                    <span key={t} style={{ fontSize: 9, background: agent.colors.traitBg, color: agent.colors.textDark, padding: "1px 5px", borderRadius: 6 }}>{t}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: agent.colors.textDark, fontStyle: "italic", margin: "8px 0 0", opacity: 0.8 }}>
+              "{agent.quote}"
+            </p>
+          </div>
+        )}
+        <div className="tarot-inscription__label tarot-inscription__label--ai">{agent ? "Powered by" : "Divined by"}</div>
         {provenance.model && (
           <div className="tarot-inscription__source">{provenance.model}</div>
         )}

@@ -29,6 +29,7 @@ export interface RightNow {
   narrative: string; // 2-3 sentence prose summary
   urgentItems: UrgentItem[]; // kept for card back transparency
   topRecommendation: TopRecommendation | null;
+  agentId?: string;
 }
 
 export interface WhatNextItem {
@@ -126,6 +127,7 @@ export interface RankedPanel {
   reason: string;
   data: PanelData;
   provenance: PanelProvenance;
+  agentId?: string;
 }
 
 export interface FocusBriefResponse {
