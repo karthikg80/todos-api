@@ -3192,11 +3192,21 @@ body {
 /* Card name plate */
 .tarot-name {
   text-align: center;
-  padding: 4px 16px 8px;
+  padding: 4px 16px 2px;
   font-size: 11px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
   color: var(--tarot-muted);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.tarot-subtitle {
+  text-align: center;
+  padding: 0 16px 6px;
+  font-size: 11px;
+  color: var(--tarot-muted);
+  opacity: 0.7;
+  font-style: italic;
   font-family: Georgia, "Times New Roman", serif;
 }
 

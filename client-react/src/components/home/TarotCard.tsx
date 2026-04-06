@@ -7,6 +7,7 @@ export interface TarotCardProps {
   source: "ai" | "sys";
   illustration: ReactNode;
   illustrationCaption?: string;
+  subtitle?: string;
   children: ReactNode;
   hero?: boolean;
 }
@@ -17,6 +18,7 @@ export function TarotCardFront({
   source,
   illustration,
   illustrationCaption,
+  subtitle,
   children,
   hero,
 }: TarotCardProps) {
@@ -30,6 +32,7 @@ export function TarotCardFront({
         <span className={`tarot-corner ${cornerClass}`}>{numeral}</span>
       </div>
       <div className="tarot-name">{name}</div>
+      {subtitle && <div className="tarot-subtitle">{subtitle}</div>}
       <div className={`tarot-illustration${hero ? " tarot-illustration--hero" : ""}`}>
         {illustration}
       </div>
