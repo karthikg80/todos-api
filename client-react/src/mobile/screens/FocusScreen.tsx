@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import type { Todo, Project, User } from "../../types";
+import type { FocusBriefResponse } from "../../types/focusBrief";
 import { MobileHeader } from "../MobileHeader";
 import { CardCarousel } from "../components/CardCarousel";
-import { useFocusBrief } from "../../hooks/useFocusBrief";
+import { SkeletonCard } from "../components/SkeletonCard";
 import { RightNowPanel } from "../../components/home/RightNowPanel";
 import { TodayAgendaPanel } from "../../components/home/TodayAgendaPanel";
 import { PanelRenderer } from "../../components/home/PanelRenderer";
@@ -16,6 +17,9 @@ interface Props {
   onToggleTodo: (id: string, completed: boolean) => void;
   onAvatarClick: () => void;
   onSnoozeTodo: (id: string) => void;
+  brief: FocusBriefResponse | null;
+  briefLoading: boolean;
+  briefError: string | null;
 }
 
 function getGreeting(): string {
@@ -25,9 +29,12 @@ function getGreeting(): string {
   return "Good evening";
 }
 
-export function FocusScreen({ todos, projects, user, onTodoClick, onToggleTodo, onAvatarClick }: Props) {
-  const { brief, loading, error } = useFocusBrief();
+const SKELETON_CARDS: ReactNode[] = [
+  <SkeletonCard key="skel-flame" name="The Flame" subtitle="Your priorities right now" numeral="I" source="ai" />,
+  <SkeletonCard key="skel-dawn" name="The Dawn" subtitle="Today's agenda" numeral="II" source="sys" />,
+];
 
+export function FocusScreen({ todos, projects, user, onTodoClick, onToggleTodo, onAvatarClick, brief, briefLoading, briefError }: Props) {
   const openTodos = useMemo(() => todos.filter((t) => !t.completed && !t.archived), [todos]);
   const todayCount = useMemo(() => {
     const now = new Date(new Date().toDateString());
@@ -78,6 +85,8 @@ export function FocusScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
     return result;
   }, [brief, onTodoClick, onToggleTodo]);
 
+  const showSkeleton = briefLoading && !brief;
+
   return (
     <div className="m-screen m-screen--focus">
       <MobileHeader
@@ -86,12 +95,8 @@ export function FocusScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
         user={user}
         onAvatarClick={onAvatarClick}
       />
-      {loading && !brief && (
-        <div className="m-carousel">
-          <div className="m-carousel__skeleton" />
-        </div>
-      )}
-      {error && !brief && (
+      {showSkeleton && <CardCarousel>{SKELETON_CARDS}</CardCarousel>}
+      {briefError && !brief && (
         <div className="m-focus__error">
           <p>Failed to load focus brief.</p>
         </div>

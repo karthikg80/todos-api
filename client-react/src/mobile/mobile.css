@@ -2098,3 +2098,31 @@
   color: var(--m-muted);
   font-size: 14px;
 }
+
+/* ── Skeleton Card ────────────────────────────── */
+
+.m-skeleton-card {
+  height: 100%;
+}
+
+.m-skeleton-card .tarot-illustration {
+  opacity: 0.3;
+}
+
+.m-shimmer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.m-shimmer-bar {
+  height: 12px;
+  border-radius: 6px;
+  background: var(--tarot-frame, rgba(184, 168, 136, 0.12));
+  animation: m-skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.m-shimmer-bar--wide { width: 90%; }
+.m-shimmer-bar--medium { width: 70%; animation-delay: 0.15s; }
+.m-shimmer-bar--narrow { width: 50%; animation-delay: 0.3s; }
