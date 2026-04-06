@@ -11615,3 +11615,26 @@ body.dark-mode {
 .activity-entry__name { font-weight: 600; font-size: 13px; }
 .activity-entry__meta { font-size: 11px; color: var(--text-muted, #999); }
 .activity-entry__narration { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
+.activity-feed__date-header {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-muted, #999);
+  margin: var(--s-4, 16px) 0 var(--s-2, 8px);
+  padding-bottom: var(--s-1, 4px);
+  border-bottom: 1px solid var(--border, #eee);
+}
+.activity-feed__day:first-child .activity-feed__date-header {
+  margin-top: 0;
+}
+.activity-feed--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+.activity-feed__empty-text {
+  color: var(--text-muted, #999);
+  font-size: 14px;
+}
