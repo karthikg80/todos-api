@@ -4,7 +4,7 @@ import type { WorkspaceView } from "../../components/projects/Sidebar";
 import { MobileHeader } from "../MobileHeader";
 import { SwipeRow } from "../components/SwipeRow";
 import { CUSTOM_TAB_OPTIONS } from "../hooks/useTabBar";
-import { IllustrationWaves } from "../components/Illustrations";
+import { GenerativePattern, hashSeed } from "../../components/GenerativePattern";
 
 function getEmptyMessage(view: WorkspaceView): string {
   switch (view) {
@@ -75,7 +75,17 @@ export function CustomScreen({ view, todos, projects, user, onTodoClick, onToggl
           ))}
           {filteredTodos.length === 0 && (
             <div className="m-empty">
-              <IllustrationWaves />
+              <GenerativePattern
+                mode="arcRivers"
+                seed={hashSeed("custom")}
+                color="#D85A30"
+                background="transparent"
+                opacity={0.18}
+                density={35}
+                width={200}
+                height={120}
+                className="m-empty__pattern"
+              />
               <div className="m-empty__title">{getEmptyMessage(view)}</div>
             </div>
           )}

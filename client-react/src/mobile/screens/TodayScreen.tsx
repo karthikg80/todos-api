@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import type { Todo, Project, User } from "../../types";
 import { MobileHeader } from "../MobileHeader";
 import { SwipeRow } from "../components/SwipeRow";
-import { IllustrationSunny } from "../components/Illustrations";
+import { GenerativePattern, hashSeed } from "../../components/GenerativePattern";
 
 interface Props {
   todos: Todo[];
@@ -94,7 +94,17 @@ export function TodayScreen({ todos, projects, user, onTodoClick, onToggleTodo, 
         {renderGroup("Scheduled", groups.scheduled)}
         {openTodos.length === 0 && (
           <div className="m-empty">
-            <IllustrationSunny />
+            <GenerativePattern
+              mode="flowField"
+              seed={hashSeed("today")}
+              color="#D85A30"
+              background="transparent"
+              opacity={0.18}
+              density={35}
+              width={200}
+              height={120}
+              className="m-empty__pattern"
+            />
             <div className="m-empty__title">Nothing due today. Enjoy your day!</div>
             <div className="m-empty__hint">Tasks with today&apos;s due date will appear here</div>
           </div>
