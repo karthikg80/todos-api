@@ -286,14 +286,6 @@ export function createApp(deps: AppDependencies = {}) {
   });
   // Auth page static assets (only bundles + favicon — NOT API paths)
   app.use("/auth/assets", express.static(path.join(__dirname, "../client-react/dist-auth/assets")));
-  // Serve auth favicon/manifest/sw from landing's dist (shared)
-  // No need for separate auth favicon — landing's /favicon.svg serves both
-
-  // Vanilla classic — fallback client at /app-classic (retained for rollback)
-  app.use(
-    "/app-classic",
-    express.static(path.join(__dirname, "../client/public")),
-  );
 
   // ── SPA fallbacks & standalone pages ────────────────────────────────
 
