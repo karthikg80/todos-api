@@ -18,6 +18,12 @@ Canonical instructions live in **`CLAUDE.md`** (root) and **`AGENTS.md`** (Codex
 - Land work via **GitHub PR** (one PR per branch). Do not merge task work into the **primary** local `master` unless the user explicitly instructs you to; see **Local primary checkout** for ff-only refresh after remote merge.
 - **Scope:** change only what the task needs. No unrelated refactors or drive-by files.
 
+## Branch ownership
+
+- The **primary checkout** exclusively **owns `master`**—it is the only place local **`master`** should live for day-to-day sync (see **Local primary checkout**).
+- **Agent-created worktrees** must **never** check out **`master`**; they must use **task branches only** (`git worktree add … -b <task-branch> …`).
+- If work would start from **`master`** (e.g. before `worktree add`), create the **task branch immediately** and do **all** implementation work **only** on that branch—no commits or lingering edits on **`master`** inside the worktree.
+
 ## Agent execution contract (Codex-style)
 
 For **every** code change, follow this sequence unless the user explicitly overrides:
