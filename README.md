@@ -585,7 +585,7 @@ ISC
 2. Create a feature branch
 3. Make your changes
 4. Run tests: `npm test`
-5. Create a pull request
+5. From your linked task worktree, open a pull request: `scripts/open-task-pr.sh` (for example `scripts/open-task-pr.sh --fill`)
 
 ## Support
 

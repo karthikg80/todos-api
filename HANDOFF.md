@@ -19,7 +19,7 @@ All verification checks pass: typecheck, format, lint:html, lint:css, test:unit 
 ### 1. Create a pull request
 
 ```bash
-gh pr create \
+scripts/open-task-pr.sh \
   --base master \
   --head claude/fix-oauth-redirect-CkI20 \
   --title "fix(api): move OAuth redirect meta-refresh to <head> for webview compat" \

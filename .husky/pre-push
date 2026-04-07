@@ -1,0 +1,30 @@
+#!/bin/sh
+
+# Primary (main) checkout: no git push — feature delivery happens from linked worktrees only.
+# Linked worktrees may push task branches; primary is for ff-only master sync (pull) and
+# other approved maintenance, not pushing to remotes.
+
+if [ "${CI:-}" = "true" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  exit 0
+fi
+
+if [ "${TODOS_API_SKIP_WORKFLOW_GUARDS:-}" = "1" ]; then
+  exit 0
+fi
+
+git_dir=$(git rev-parse --git-dir)
+case "$git_dir" in
+  */worktrees/*)
+    exit 0
+    ;;
+esac
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  echo "ERROR: git push is not allowed from the primary checkout." >&2
+  echo "  Push your task branch from the linked worktree where you committed (for example /private/tmp/todos-api-<feature>)." >&2
+  echo "  After the PR merges, update local master with: scripts/sync-primary-master.sh" >&2
+  echo "  Emergency bypass (explicitly authorized maintenance only): TODOS_API_SKIP_WORKFLOW_GUARDS=1 git push ..." >&2
+  exit 1
+done
+
+exit 0
