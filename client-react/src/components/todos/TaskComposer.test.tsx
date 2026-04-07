@@ -35,8 +35,24 @@ vi.mock("../../hooks/useCaptureRoute", () => ({
 }));
 
 const defaultProjects: Project[] = [
-  { id: "p1", name: "Work", status: "active", archived: false },
-  { id: "p2", name: "Personal", status: "active", archived: false },
+  {
+    id: "p1",
+    name: "Work",
+    status: "active",
+    archived: false,
+    userId: "user-1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
+  {
+    id: "p2",
+    name: "Personal",
+    status: "active",
+    archived: false,
+    userId: "user-1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+  },
 ];
 
 const defaultProps = {
@@ -247,9 +263,17 @@ describe("TaskComposer", () => {
   });
 
   it("filters out archived projects from project select", () => {
-    const projectsWithArchived = [
+    const projectsWithArchived: Project[] = [
       ...defaultProjects,
-      { id: "p3", name: "Archived", status: "active", archived: true },
+      {
+        id: "p3",
+        name: "Archived",
+        status: "active",
+        archived: true,
+        userId: "user-1",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+      },
     ];
     render(
       createElement(TaskComposer, {

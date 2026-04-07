@@ -2,6 +2,8 @@ import { describe, it, expect, vi } from "vitest";
 import { applyFilters, type ActiveFilters, type DateFilter } from "./FilterPanel";
 
 interface MockTodo {
+  id: string;
+  title: string;
   completed: boolean;
   dueDate?: string | null;
   priority?: string | null;
@@ -10,6 +12,8 @@ interface MockTodo {
 }
 
 const makeTodo = (overrides: Partial<MockTodo> = {}): MockTodo => ({
+  id: overrides.id ?? "todo-default",
+  title: overrides.title ?? "Untitled",
   completed: false,
   dueDate: null,
   priority: null,

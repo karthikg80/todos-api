@@ -35,7 +35,7 @@ const makeTodo = (overrides: Partial<Todo> = {}): Todo => ({
   effortScore: overrides.effortScore ?? null,
   source: overrides.source ?? null,
   recurrence: overrides.recurrence ?? null,
-  subtasks: overrides.subtasks ?? null,
+  subtasks: overrides.subtasks ?? undefined,
   userId: overrides.userId ?? "user-1",
   createdAt: overrides.createdAt ?? "2026-01-01T00:00:00.000Z",
   updatedAt: overrides.updatedAt ?? "2026-01-01T00:00:00.000Z",
