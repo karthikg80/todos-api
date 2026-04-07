@@ -67,4 +67,4 @@ npm --prefix client-react ci
 echo
 echo "==> ready: cd ${WORKTREE_DIR}"
 echo "    branch: ${BRANCH_NAME}"
-echo "    optional: before 'gh pr create', run: scripts/validate-task-branch.sh --require-linked-worktree"
+echo "    open a PR with: scripts/open-task-pr.sh"

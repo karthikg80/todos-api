@@ -1,30 +1,32 @@
 #!/bin/sh
-# Validate that the current Git context is safe for task work (commits, pushes, PR prep).
-# Used by Husky hooks and can be run manually or from CI helpers.
+# Validate compliant context for feature work (commits, pushes, PR prep).
+# Compliant iff: linked Git worktree, non-detached HEAD, branch is not master.
+# Used by Husky hooks, scripts/open-task-pr.sh, and manual checks.
 #
 # Usage:
-#   scripts/validate-task-branch.sh [--require-linked-worktree]
+#   scripts/validate-task-branch.sh
 #
-# Environment (escape hatch for rare maintenance; use sparingly):
-#   TODOS_API_SKIP_WORKFLOW_GUARDS=1  — skip all checks (not recommended)
+# Skipped in CI/automation (checkout is never a linked worktree):
+#   CI=true or GITHUB_ACTIONS=true
+#
+# Emergency bypass — explicitly authorized maintenance only; not for routine development:
+#   TODOS_API_SKIP_WORKFLOW_GUARDS=1
 
 set -e
+
+if [ "${CI:-}" = "true" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  exit 0
+fi
 
 if [ "${TODOS_API_SKIP_WORKFLOW_GUARDS:-}" = "1" ]; then
   exit 0
 fi
 
-require_linked=0
-for arg in "$@"; do
-  case "$arg" in
-    --require-linked-worktree) require_linked=1 ;;
-    *)
-      echo "ERROR: unknown argument: $arg" >&2
-      echo "Usage: scripts/validate-task-branch.sh [--require-linked-worktree]" >&2
-      exit 1
-      ;;
-  esac
-done
+if [ "$#" -gt 0 ]; then
+  echo "ERROR: unknown argument: $1" >&2
+  echo "Usage: scripts/validate-task-branch.sh" >&2
+  exit 1
+fi
 
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || {
   echo "ERROR: not a Git repository." >&2
@@ -32,25 +34,23 @@ branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || {
 }
 
 if [ "$branch" = "HEAD" ]; then
-  echo "ERROR: Detached HEAD. Check out a task branch before continuing." >&2
+  echo "ERROR: Detached HEAD. Check out a task branch in a linked worktree." >&2
   exit 1
 fi
+
+git_dir=$(git rev-parse --git-dir)
+case "$git_dir" in
+  */worktrees/*) ;;
+  *)
+    echo "ERROR: Feature work must happen in a linked Git worktree, not the primary checkout." >&2
+    echo "  Create one with: scripts/new-task-worktree.sh <short-feature-name>" >&2
+    exit 1
+    ;;
+esac
 
 if [ "$branch" = "master" ]; then
-  echo "ERROR: Branch master is reserved for the integration branch. Use a task branch (for example codex/<feature>)." >&2
+  echo "ERROR: Branch master is reserved for the integration branch in the primary clone. Use a task branch in a linked worktree (for example codex/<feature>)." >&2
   exit 1
-fi
-
-if [ "$require_linked" -eq 1 ]; then
-  git_dir=$(git rev-parse --git-dir)
-  case "$git_dir" in
-    */worktrees/*) ;;
-    *)
-      echo "ERROR: This command must be run from a linked Git worktree (not the primary checkout)." >&2
-      echo "  Create one with: scripts/new-task-worktree.sh <short-feature-name>" >&2
-      exit 1
-      ;;
-  esac
 fi
 
 exit 0

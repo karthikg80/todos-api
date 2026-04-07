@@ -22,8 +22,9 @@ Full-stack todo application — monorepo with multiple clients consuming a share
 - gh CLI: `/opt/homebrew/bin/gh`.
 - Docker: `/usr/local/bin/docker`.
 - Git worktrees for feature branches live under `/private/tmp/todos-api-*`.
-- **Workflow scripts:** `scripts/new-task-worktree.sh` (bootstrap a task worktree), `scripts/validate-task-branch.sh` (sanity-check branch / worktree context; add `--require-linked-worktree` before `gh pr create` from a worktree), `scripts/sync-primary-master.sh` (ff-only `master` in the **primary** clone after a merge).
-- **Never commit directly to master.** Husky `pre-commit` runs `validate-task-branch.sh` (blocks `master` and detached `HEAD`). `pre-push` blocks updating remote `master` from the **primary** checkout so task work stays on linked worktrees + PRs. Always create a worktree and task branch first, merge via PR, then sync primary `master` with the sync script.
+- **Branch ownership:** the **primary** checkout exclusively owns local `master` and is only for fast-forward sync (`scripts/sync-primary-master.sh`) and other explicitly approved maintenance — not feature delivery. **Compliant feature work** happens only in a **linked worktree** on a **non-`master` task branch**.
+- **Workflow scripts:** `scripts/new-task-worktree.sh` (bootstrap a task worktree), `scripts/validate-task-branch.sh` (enforces linked worktree + task branch + non-detached `HEAD`), `scripts/open-task-pr.sh` (runs validate then `gh pr create`; prefer over raw `gh`), `scripts/sync-primary-master.sh` (ff-only `master` in the **primary** clone after a merge).
+- **Husky:** `pre-commit` runs `validate-task-branch.sh` (blocks feature commits from the primary checkout and any `master`/detached use in a worktree). `pre-push` blocks **any** `git push` from the primary checkout. Push from the linked worktree where you work. Hooks are skipped under `CI=true` / `GITHUB_ACTIONS=true`. Emergency bypass for explicitly authorized maintenance only: `TODOS_API_SKIP_WORKFLOW_GUARDS=1` (not for routine development).
 
 ## Clean Code + Architecture
 

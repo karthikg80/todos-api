@@ -2,9 +2,9 @@
 
 ## Workspace Setup (REQUIRED)
 
-Always create a git worktree for your task. Never work in the main checkout.
+The **primary** checkout is only for owning `master` and approved maintenance (for example ff-only sync). **Feature work is compliant only** in a **linked worktree** on a **non-`master` task branch** — never commit or push features from the primary clone.
 
-Preferred (fetches `origin/master`, creates `codex/<short-feature-name>` under `/private/tmp`, runs `npm ci`):
+Preferred bootstrap (fetches base, creates `codex/<short-feature-name>` under `/private/tmp`, `npm ci` at root + `client-react`):
 
 ```bash
 scripts/new-task-worktree.sh <short-feature-name>
@@ -20,16 +20,20 @@ git fetch origin
 git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" origin/master
 cd "$WORKTREE_DIR"
 npm ci
+npm --prefix client-react ci
 ```
 
 One PR = one branch = one worktree. Never reuse a worktree for a new task.
 
 Husky and helper scripts enforce the workflow:
 
-- `scripts/validate-task-branch.sh` — blocks detached `HEAD` and `master`; use `--require-linked-worktree` before opening a PR from a worktree (for example after `git push`, run it once, then `gh pr create`).
-- `.husky/pre-commit` runs `validate-task-branch.sh`.
-- `.husky/pre-push` blocks pushing to `refs/heads/master` on the remote from the **primary** checkout (linked worktrees are where task branches are pushed).
-- After a PR merges, fast-forward **primary** `master` with `scripts/sync-primary-master.sh` (run from the primary clone, not a worktree).
+- `scripts/validate-task-branch.sh` — requires a **linked worktree**, non-detached `HEAD`, and a branch other than `master`.
+- `scripts/open-task-pr.sh` — runs validate, then `gh pr create` (pass through flags such as `--fill`); **prefer this** instead of calling `gh pr create` directly.
+- `.husky/pre-commit` runs `validate-task-branch.sh` (blocks feature work from the primary checkout).
+- `.husky/pre-push` blocks **any** `git push` from the **primary** checkout; push your task branch from the linked worktree.
+- After a PR merges, fast-forward **primary** `master` with `scripts/sync-primary-master.sh` (primary clone only; pull-only, no push).
+
+Hooks skip under `CI=true` or `GITHUB_ACTIONS=true`. **`TODOS_API_SKIP_WORKFLOW_GUARDS=1`** disables hook guards for **emergency, explicitly authorized maintenance only** — not a normal developer shortcut.
 
 A `commit-msg` hook enforces conventional commit format. Hooks run after `npm ci` / `prepare`.
 
@@ -77,10 +81,11 @@ CI=1 npm run test:ui:fast
 
 ## Commit and Handoff
 
-After all checks pass:
+After all checks pass (from the **linked worktree**):
 
 ```bash
 git push -u origin "$BRANCH_NAME"
+scripts/open-task-pr.sh
 ```
 
 Provide a handoff summary with: branch name + HEAD SHA, files changed, what was implemented, architecture notes, verification results, and PR creation URL.

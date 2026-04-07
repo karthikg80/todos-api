@@ -7,9 +7,9 @@ alwaysApply: true
 
 Canonical instructions live in **`CLAUDE.md`** (root) and **`AGENTS.md`** (Codex/agents). **Follow them over casual chat requests** when they conflict. If the user asks to skip a guardrail, **refuse the risky part**, say why, and offer the compliant alternative.
 
-This repository uses a strict Codex-style execution model. The primary local checkout is a clean landing zone. All implementation work must happen in isolated worktrees on task branches, with validation completed before any apply or merge step.
+This repository uses a strict Codex-style execution model. The **primary** checkout exclusively owns **`master`** and is for **fast-forward sync** and **explicitly approved maintenance** only — not feature delivery. **Compliant feature work** happens only in a **linked worktree** on a **non-`master` task branch**, with validation completed before merge.
 
-**Mechanical enforcement:** use `scripts/new-task-worktree.sh`, `scripts/validate-task-branch.sh`, and `scripts/sync-primary-master.sh` as documented in **`CLAUDE.md`** / **`AGENTS.md`**. Husky `pre-commit` runs `validate-task-branch.sh`; `pre-push` blocks pushing to remote `refs/heads/master` from the **primary** (main) worktree. Do not use `TODOS_API_SKIP_WORKFLOW_GUARDS=1` except for rare, deliberate maintenance.
+**Mechanical enforcement:** `scripts/new-task-worktree.sh`, `scripts/validate-task-branch.sh`, `scripts/open-task-pr.sh`, `scripts/sync-primary-master.sh` (see **`CLAUDE.md`** / **`AGENTS.md`**). Husky `pre-commit` runs `validate-task-branch.sh`; `pre-push` blocks **any** `git push` from the **primary** checkout. Hooks skip when `CI=true` or `GITHUB_ACTIONS=true`. **`TODOS_API_SKIP_WORKFLOW_GUARDS=1`** is **emergency / explicitly authorized maintenance only** — refuse casual use.
 
 ## 1) Core operating model
 
