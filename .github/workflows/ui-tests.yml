@@ -63,6 +63,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+
+      - name: Install React client dependencies
+        run: npm --prefix client-react ci
+
+      - name: Build React client for Vite preview
+        run: npm --prefix client-react run build
       - name: Get Playwright version
         id: pw-version
         run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
