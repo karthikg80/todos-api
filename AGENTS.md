@@ -4,17 +4,34 @@
 
 Always create a git worktree for your task. Never work in the main checkout.
 
+Preferred (fetches `origin/master`, creates `codex/<short-feature-name>` under `/private/tmp`, runs `npm ci`):
+
+```bash
+scripts/new-task-worktree.sh <short-feature-name>
+cd /private/tmp/todos-api-<short-feature-name>
+```
+
+Manual equivalent:
+
 ```bash
 BRANCH_NAME="codex/<short-feature-name>"
 WORKTREE_DIR="/private/tmp/todos-api-<short-feature-name>"
-git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" master
+git fetch origin
+git worktree add "$WORKTREE_DIR" -b "$BRANCH_NAME" origin/master
 cd "$WORKTREE_DIR"
 npm ci
 ```
 
 One PR = one branch = one worktree. Never reuse a worktree for a new task.
 
-A Husky pre-commit hook blocks commits on `master` and detached `HEAD`. A commit-msg hook enforces conventional commit format. These hooks activate automatically after `npm ci`.
+Husky and helper scripts enforce the workflow:
+
+- `scripts/validate-task-branch.sh` — blocks detached `HEAD` and `master`; use `--require-linked-worktree` before opening a PR from a worktree (for example after `git push`, run it once, then `gh pr create`).
+- `.husky/pre-commit` runs `validate-task-branch.sh`.
+- `.husky/pre-push` blocks pushing to `refs/heads/master` on the remote from the **primary** checkout (linked worktrees are where task branches are pushed).
+- After a PR merges, fast-forward **primary** `master` with `scripts/sync-primary-master.sh` (run from the primary clone, not a worktree).
+
+A `commit-msg` hook enforces conventional commit format. Hooks run after `npm ci` / `prepare`.
 
 ## Project Structure
 

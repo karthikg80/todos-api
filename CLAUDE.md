@@ -22,7 +22,8 @@ Full-stack todo application — monorepo with multiple clients consuming a share
 - gh CLI: `/opt/homebrew/bin/gh`.
 - Docker: `/usr/local/bin/docker`.
 - Git worktrees for feature branches live under `/private/tmp/todos-api-*`.
-- **Never commit directly to master.** Enforced by a Husky pre-commit hook that blocks commits on `master` and detached `HEAD`. Always create a worktree/feature branch first, do all work there, and merge via PR.
+- **Workflow scripts:** `scripts/new-task-worktree.sh` (bootstrap a task worktree), `scripts/validate-task-branch.sh` (sanity-check branch / worktree context; add `--require-linked-worktree` before `gh pr create` from a worktree), `scripts/sync-primary-master.sh` (ff-only `master` in the **primary** clone after a merge).
+- **Never commit directly to master.** Husky `pre-commit` runs `validate-task-branch.sh` (blocks `master` and detached `HEAD`). `pre-push` blocks updating remote `master` from the **primary** checkout so task work stays on linked worktrees + PRs. Always create a worktree and task branch first, merge via PR, then sync primary `master` with the sync script.
 
 ## Clean Code + Architecture
 

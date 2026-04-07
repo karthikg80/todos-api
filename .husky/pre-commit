@@ -1,15 +1,6 @@
 #!/bin/sh
 
-branch=$(git rev-parse --abbrev-ref HEAD)
-
-if [ "$branch" = "HEAD" ]; then
-  echo "ERROR: Detached HEAD state detected. Check out a feature branch before committing."
+ROOT=$(cd "$(dirname "$0")/.." && pwd)
+if ! "$ROOT/scripts/validate-task-branch.sh"; then
   exit 1
 fi
-
-case "$branch" in
-  master)
-    echo "ERROR: Direct commits to $branch are not allowed. Create a feature branch first."
-    exit 1
-    ;;
-esac

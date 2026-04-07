@@ -1,0 +1,29 @@
+#!/bin/sh
+
+# Block updates to remote refs/heads/master from the primary (main) worktree.
+# Linked worktrees are the supported place to push task branches; primary should only ff-sync master via scripts/sync-primary-master.sh.
+
+if [ "${TODOS_API_SKIP_WORKFLOW_GUARDS:-}" = "1" ]; then
+  exit 0
+fi
+
+git_dir=$(git rev-parse --git-dir)
+case "$git_dir" in
+  */worktrees/*)
+    exit 0
+    ;;
+esac
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  case "$remote_ref" in
+    refs/heads/master)
+      echo "ERROR: pushing to origin master from the primary checkout is not allowed." >&2
+      echo "  Use a linked worktree + task branch for changes, merge via GitHub PR, then run:" >&2
+      echo "    scripts/sync-primary-master.sh" >&2
+      echo "  Escape hatch (not recommended): TODOS_API_SKIP_WORKFLOW_GUARDS=1 git push ..." >&2
+      exit 1
+      ;;
+  esac
+done
+
+exit 0

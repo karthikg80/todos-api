@@ -9,6 +9,8 @@ Canonical instructions live in **`CLAUDE.md`** (root) and **`AGENTS.md`** (Codex
 
 This repository uses a strict Codex-style execution model. The primary local checkout is a clean landing zone. All implementation work must happen in isolated worktrees on task branches, with validation completed before any apply or merge step.
 
+**Mechanical enforcement:** use `scripts/new-task-worktree.sh`, `scripts/validate-task-branch.sh`, and `scripts/sync-primary-master.sh` as documented in **`CLAUDE.md`** / **`AGENTS.md`**. Husky `pre-commit` runs `validate-task-branch.sh`; `pre-push` blocks pushing to remote `refs/heads/master` from the **primary** (main) worktree. Do not use `TODOS_API_SKIP_WORKFLOW_GUARDS=1` except for rare, deliberate maintenance.
+
 ## 1) Core operating model
 
 1. Treat the primary local checkout as the exclusive owner of `master`.
