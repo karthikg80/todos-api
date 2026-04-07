@@ -272,7 +272,10 @@ export function createApp(deps: AppDependencies = {}) {
   );
 
   // React landing page at / (serves dist-landing/)
-  const landingIndex = path.join(__dirname, "../client-react/dist-landing/landing.html");
+  const landingIndex = path.join(
+    __dirname,
+    "../client-react/dist-landing/landing.html",
+  );
   app.get("/", (_req: Request, res: Response) => {
     res.sendFile(landingIndex);
   });
@@ -285,7 +288,10 @@ export function createApp(deps: AppDependencies = {}) {
     res.sendFile(authIndex);
   });
   // Auth page static assets (only bundles + favicon — NOT API paths)
-  app.use("/auth/assets", express.static(path.join(__dirname, "../client-react/dist-auth/assets")));
+  app.use(
+    "/auth/assets",
+    express.static(path.join(__dirname, "../client-react/dist-auth/assets")),
+  );
 
   // ── SPA fallbacks & standalone pages ────────────────────────────────
 
