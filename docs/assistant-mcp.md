@@ -46,7 +46,7 @@ Detailed auth and scope behavior lives in `docs/remote-mcp-auth.md`.
 
 The public MCP adapter is generated from the current agent manifest and exposes
 the same underlying action catalog, filtered by token scopes. As of `v1.6.0`,
-the runtime manifest advertises 78 actions.
+the runtime manifest advertises 92 actions.
 
 Current public tool categories:
 
@@ -258,3 +258,101 @@ Those docs also record what remains manual from this sandboxed environment.
 - persisted audit records are lightweight operational traces, not a full analytics platform
 - the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access
 - the MCP catalog is broader than the end-user UI today; some control-plane and evaluation tools are intended for trusted agents and automation flows more than for conversational end-user prompting
+
+
+## Manifest action index (mechanical doc-sync)
+
+This section lists every action name from `src/agent/agent-manifest.json` so `npm run check:architecture` can verify this document stays aligned with the manifest. Update this list when actions change.
+
+- `add_subtask`
+- `analyze_project_health`
+- `analyze_task_quality`
+- `analyze_work_graph`
+- `apply_learning_recommendation`
+- `archive_project`
+- `archive_task`
+- `break_down_task`
+- `capture_inbox_item`
+- `claim_job_run`
+- `complete_job_run`
+- `complete_task`
+- `create_area`
+- `create_follow_up_for_waiting_task`
+- `create_goal`
+- `create_project`
+- `create_task`
+- `decide_next_work`
+- `delete_project`
+- `delete_subtask`
+- `delete_task`
+- `ensure_next_action`
+- `evaluate_daily_plan`
+- `evaluate_weekly_system`
+- `fail_job_run`
+- `feedback_summary`
+- `find_duplicate_tasks`
+- `find_stale_items`
+- `generate_morning_brief`
+- `get_action_policies`
+- `get_agent_config`
+- `get_area`
+- `get_availability_windows`
+- `get_day_context`
+- `get_goal`
+- `get_job_run_status`
+- `get_project`
+- `get_task`
+- `list_areas`
+- `list_audit_log`
+- `list_failed_actions`
+- `list_friction_patterns`
+- `list_goals`
+- `list_inbox_items`
+- `list_job_runs`
+- `list_learning_recommendations`
+- `list_metrics`
+- `list_next_actions`
+- `list_projects`
+- `list_projects_without_next_action`
+- `list_recommendation_feedback`
+- `list_routines`
+- `list_stale_tasks`
+- `list_tasks`
+- `list_today`
+- `list_upcoming`
+- `list_waiting_on`
+- `metrics_summary`
+- `move_task_to_project`
+- `plan_project`
+- `plan_today`
+- `prewarm_home_focus`
+- `project_health_intervention`
+- `promote_inbox_item`
+- `record_failed_action`
+- `record_learning_recommendation`
+- `record_metric`
+- `record_recommendation_feedback`
+- `rename_project`
+- `replay_job_run`
+- `resolve_failed_action`
+- `review_projects`
+- `run_data_retention`
+- `search_tasks`
+- `send_task_reminder`
+- `set_day_context`
+- `simulate_plan`
+- `suggest_capture_route`
+- `suggest_next_actions`
+- `taxonomy_cleanup_suggestions`
+- `triage_capture_item`
+- `triage_inbox`
+- `update_action_policy`
+- `update_agent_config`
+- `update_area`
+- `update_goal`
+- `update_project`
+- `update_subtask`
+- `update_task`
+- `weekly_executive_summary`
+- `weekly_review`
+- `weekly_review_summary`
