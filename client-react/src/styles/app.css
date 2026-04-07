@@ -4725,16 +4725,14 @@ body {
   opacity: 0.9;
 }
 
+/* User-authored project description only (omit block when empty). */
 .project-workspace__summary {
   font-size: var(--fs-body-lg);
-  color: color-mix(in oklab, var(--text) 84%, var(--surface));
   max-width: 60ch;
 }
 
-.project-workspace__hero-support {
-  max-width: 58ch;
-  font-size: var(--fs-meta);
-  color: color-mix(in oklab, var(--muted) 92%, var(--surface));
+.project-workspace__summary--user {
+  color: var(--text-strong);
 }
 
 .project-workspace__meta {
@@ -11333,12 +11331,6 @@ body.dark-mode {
 .project-workspace__snapshot-item--actionable
   .project-workspace__snapshot-value {
   color: var(--warning);
-}
-
-.project-workspace__metrics-text {
-  margin-top: var(--s-3);
-  font-size: var(--fs-xs);
-  color: var(--text-tertiary);
 }
 
 .project-workspace-card__empty-guidance {

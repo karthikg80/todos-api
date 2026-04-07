@@ -246,68 +246,6 @@ export function pickTopTasks(projectTodos: Todo[], now = new Date()) {
     .slice(0, 4);
 }
 
-export function getEnhancedMetricsText(
-  profile: ProjectOverviewProfile,
-  project: Project,
-  projectTodos: Todo[],
-  now = new Date(),
-): string {
-  const parts: string[] = [];
-
-  // Open tasks
-  if (profile.openTasks === 1) {
-    parts.push("1 open task");
-  } else if (profile.openTasks > 1) {
-    parts.push(`${profile.openTasks} open tasks`);
-  }
-
-  // Completion status
-  if (profile.completedTasks === 0 && profile.openTasks > 0) {
-    parts.push("Nothing completed yet");
-  } else if (profile.completedTasks > 0) {
-    const totalTasks = profile.openTasks + profile.completedTasks;
-    const percent = totalTasks > 0
-      ? Math.round((profile.completedTasks / totalTasks) * 100)
-      : 0;
-    parts.push(`${percent}% complete`);
-  }
-
-  // Next scheduled
-  const nextScheduled = projectTodos
-    .filter((todo) => !todo.completed && todo.dueDate)
-    .sort((a, b) => {
-      const dateA = new Date(a.dueDate ?? "").getTime();
-      const dateB = new Date(b.dueDate ?? "").getTime();
-      return dateA - dateB;
-    })[0];
-
-  if (nextScheduled?.dueDate) {
-    const dueDate = new Date(nextScheduled.dueDate);
-    const today = startOfToday(now);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
-
-    if (dueDate < today) {
-      parts.push("Overdue task(s)");
-    } else if (dueDate < tomorrow) {
-      parts.push("Due today");
-    } else if (dueDate < nextWeek) {
-      const dayName = dueDate.toLocaleDateString("en-US", { weekday: "short" });
-      parts.push(`Next: ${dayName}`);
-    } else {
-      const dateStr = dueDate.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-      parts.push(`Next: ${dateStr}`);
-    }
-  }
-
-  return parts.length > 0 ? parts.join(" · ") : "";
-}
-
 export function getEmptyStateGuidance(
   profile: ProjectOverviewProfile,
   project: Project,

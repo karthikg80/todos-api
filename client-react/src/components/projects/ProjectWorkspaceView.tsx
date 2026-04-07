@@ -44,7 +44,6 @@ import {
   estimateTaskEffort,
   formatProjectDate,
   getEmptyStateGuidance,
-  getEnhancedMetricsText,
   getTabDescription,
   getTaskNextReason,
   isOverdue,
@@ -189,19 +188,6 @@ function formatRelativeDate(date: string | null | undefined) {
   if (delta === 0) return "Due today";
   if (delta === 1) return "Due tomorrow";
   return `Due in ${delta}d`;
-}
-
-function buildOverviewTone(profile: ProjectOverviewProfile) {
-  if (profile.showStarter) {
-    return "Start with one real step and let the project grow from there.";
-  }
-  if (profile.mode === "simple") {
-    return "A light project should feel easy to resume.";
-  }
-  if (profile.mode === "guided") {
-    return "You have enough structure here to move confidently without overthinking it.";
-  }
-  return "This project has moving parts, but the overview should still bring you back in gently.";
 }
 
 function buildSnapshotItems(
@@ -469,10 +455,6 @@ export function ProjectWorkspaceView({
     () => buildSnapshotItemsEnhanced(overviewProfile, progress, project, allProjectTodos),
     [overviewProfile, progress, project, allProjectTodos],
   );
-  const enhancedMetricsText = useMemo(
-    () => getEnhancedMetricsText(overviewProfile, project, allProjectTodos),
-    [overviewProfile, project, allProjectTodos],
-  );
   const tabDescription = useMemo(
     () => getTabDescription(workspaceMode, overviewProfile),
     [workspaceMode, overviewProfile],
@@ -575,13 +557,11 @@ export function ProjectWorkspaceView({
                 onDelete={() => onDeleteProject(project.id)}
               />
             </div>
-            <p className="project-workspace__summary">
-              {project.description?.trim() ||
-                "A bounded personal outcome with just enough structure to keep you moving."}
-            </p>
-            <p className="project-workspace__hero-support">
-              {buildOverviewTone(overviewProfile)}
-            </p>
+            {project.description?.trim() ? (
+              <p className="project-workspace__summary project-workspace__summary--user">
+                {project.description.trim()}
+              </p>
+            ) : null}
             <div className="project-workspace__meta">
               <span
                 className="project-workspace__meta-pill project-workspace__meta-pill--derived"
@@ -628,11 +608,6 @@ export function ProjectWorkspaceView({
               </div>
             ))}
           </div>
-          {enhancedMetricsText && (
-            <div className="project-workspace__metrics-text">
-              {enhancedMetricsText}
-            </div>
-          )}
         </section>
 
         <div className="project-workspace__controls">
