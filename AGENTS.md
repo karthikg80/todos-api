@@ -24,6 +24,7 @@ A Husky pre-commit hook blocks commits on `master` and detached `HEAD`. A commit
 - **CLI:** `td` CLI tool in `src/cli/` (TypeScript, Commander.js).
 - **Agent Runner:** Python worker in `agent-runner/` — Railway cron deployment.
 - **Tests:** Unit (`src/*.test.ts`), Integration (`src/*.integration.test.ts`), UI (`tests/ui/*.spec.ts`)
+- **Archived:** Legacy vanilla JS web client previously in `client/` (removed from the tree). See `docs/reference/vanilla-client-archive.md` for details.
 
 ### Shared contract
 

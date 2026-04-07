@@ -10,6 +10,7 @@ Full-stack todo application — monorepo with multiple clients consuming a share
 - **CLI:** `td` CLI tool in `src/cli/` (TypeScript, Commander.js).
 - **Agent Runner:** Python worker in `agent-runner/` — Railway cron deployment.
 - **Tests:** Unit (`src/*.test.ts`), Integration (`src/*.integration.test.ts`), UI (`tests/ui/*.spec.ts` — see @.claude/skills/playwright-testing/SKILL.md)
+- **Archived:** Legacy vanilla JS web client previously in `client/` (removed from the tree). See `docs/reference/vanilla-client-archive.md` for context.
 
 ### Shared contract
 
