@@ -15,7 +15,8 @@ This session focused on systematically adding unit tests to the React client app
 | Phase 1 | 67 | 239 | 17.04% | 19.31% | +2.27 pts |
 | Phase 2 | 36 | 275 | 19.31% | 20.3% | +0.99 pts |
 | Phase 3 | 34 | 309 | 20.3% | 23.89% | +3.59 pts |
-| **Total** | **137** | **309** | **17.04%** | **23.89%** | **+6.85 pts** |
+| Phase 4 | 29 | 338 | 23.89% | 25.2% | +1.31 pts |
+| **Total** | **166** | **338** | **17.04%** | **25.2%** | **+8.16 pts** |
 
 ## PRs Merged
 
@@ -24,6 +25,7 @@ This session focused on systematically adding unit tests to the React client app
 | [#875](https://github.com/karthikg80/todos-api/pull/875) | Phase 1: Core hooks and stores | 67 | +2.27 pts |
 | [#877](https://github.com/karthikg80/todos-api/pull/877) | Phase 2: Todo components | 36 | +0.99 pts |
 | [#879](https://github.com/karthikg80/todos-api/pull/879) | Phase 3: FilterPanel and TodoDrawer | 34 | +3.59 pts |
+| [#882](https://github.com/karthikg80/todos-api/pull/882) | Phase 4: TaskComposer and SortableTodoList | 29 | +1.31 pts |
 
 ## Coverage by Directory (After Session)
 
@@ -67,20 +69,25 @@ This session focused on systematically adding unit tests to the React client app
 | `components/todos/FilterPanel.test.tsx` | 10 | UI: date tabs, selects, clear all, close button |
 | `components/todos/TodoDrawer.test.tsx` | 11 | Close interactions, save states, delete, no-save edge cases |
 
+### Phase 4: TaskComposer and SortableTodoList
+| File | Tests | Description |
+|------|-------|-------------|
+| `components/todos/TaskComposer.test.tsx` | 17 | Form rendering, submission, AI assist, archived projects, reset |
+| `components/todos/SortableTodoList.test.tsx` | 12 | States, row rendering, toggle, edit, grouping, density |
+
 ## Remaining Gaps (Uncovered or Low Coverage)
 
 ### High Priority (Large Components)
 | Component | Lines | Coverage | Why Hard |
 |-----------|-------|----------|----------|
 | `FieldRenderer.tsx` | 647 | 0% | Complex dispatch with 10+ field variants, async loading |
-| `SortableTodoList.tsx` | 354 | 0% | dnd-kit integration, drag-and-drop, grouping, sorting |
-| `TaskComposer.tsx` | 272 | 0% | Form state, AI assist integration, capture route |
 | `TaskFullPage.tsx` | 358 | 0% | Similar to TodoDrawer but with all fields |
 
 ### Medium Priority
 | Component | Lines | Coverage | Why Medium |
 |-----------|-------|----------|------------|
-| `FilterPanel.tsx` | 227 | 5.5% | Partially covered in Phase 3 |
+| `SortableTodoList.tsx` | 354 | ~15% | Partially covered in Phase 4, dnd-kit integration |
+| `TaskComposer.tsx` | 272 | ~40% | Partially covered in Phase 4 |
 | `components/layout/AppShell.tsx` | 1,450 | 0% | Massive component, mobile/desktop variants |
 | `components/shared/CommandPalette.tsx` | 439 | 0% | Complex keyboard navigation, fuzzy search |
 | `components/shared/OnboardingFlow.tsx` | 623 | 0% | Multi-step wizard with state machine |
@@ -139,6 +146,11 @@ This session focused on systematically adding unit tests to the React client app
 
 ## Conclusion
 
-The session achieved a **6.85 percentage point increase** in overall coverage (17.04% → 23.89%) with **137 new tests** across **13 test files**. The foundation is now solid with core infrastructure (stores, API client, hooks) well-tested at 46%+. The remaining work focuses on large, complex UI components that will require more time and specialized testing strategies.
+The session achieved an **8.16 percentage point increase** in overall coverage (17.04% → 25.2%) with **166 new tests** across **15 test files**. The foundation is now solid with core infrastructure (stores, API client, hooks) well-tested at 46%+, and major UI components (TodoRow, TodoList, FilterPanel, TodoDrawer, TaskComposer, SortableTodoList) now have meaningful test coverage.
 
-At the current pace of ~35 tests per phase, reaching 70% coverage would require approximately **10-12 more phases** (350-400 additional tests), primarily targeting the large uncovered components listed above.
+The remaining work focuses on the largest uncovered components:
+- **FieldRenderer.tsx** (647 lines) — The largest single gap, requires testing 10+ field variants
+- **TaskFullPage.tsx** (358 lines) — Similar to TodoDrawer but with all fields
+- **AppShell.tsx** (1,450 lines) — Massive component, may need strategic refactoring for testability
+
+At the current pace of ~35 tests per phase, reaching 40% coverage (a realistic near-term target) would require approximately **4-5 more phases** (140-175 additional tests). Reaching 70% would require significant architectural changes to make large components like AppShell more testable.
