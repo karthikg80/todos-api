@@ -15,7 +15,7 @@ Canonical instructions live in **`CLAUDE.md`** (root) and **`AGENTS.md`** (Codex
 - **Before branching or adding a worktree from `master`,** sync local `master` with the remote (e.g. `git fetch origin master`, `git checkout master`, `git pull --ff-only origin master`) so new work is not based on a stale `master`. If fast-forward is not possible, **stop** and tell the user to reconcile `master` (merge/rebase) before continuing.
 - **Cursor workspace must match the worktree.** Creating a worktree with `git worktree add` does not change the opened project folder. After adding (or choosing) a worktree for this task, **immediately** call the **cursor-app-control** MCP tool **`move_agent_to_root`** with that worktree’s absolute path, **before** editing or searching files for the task. If that MCP is unavailable, **stop** and tell the user to **File → Open Folder** on the worktree path so the session is not split between two trees.
 - **Never `git reset --hard` or similar destructive commands** in a checkout that might hold someone else’s uncommitted work. If the tree shows large deletes or unexpected churn, **stop** and confirm with the user (or use `git stash` / a WIP branch) instead of wiping the working tree.
-- Land work via **GitHub PR** (one PR per branch). Do not merge to `master` locally unless the user explicitly requests an exception **and** you have stated that it bypasses normal project rules.
+- Land work via **GitHub PR** (one PR per branch). Do not merge task work into the **primary** local `master` unless the user explicitly instructs you to; see **Local primary checkout** for ff-only refresh after remote merge.
 - **Scope:** change only what the task needs. No unrelated refactors or drive-by files.
 
 ## Agent execution contract (Codex-style)
@@ -37,6 +37,29 @@ For **every** code change, follow this sequence unless the user explicitly overr
 13. Prefer the **smallest safe diff**. No opportunistic refactors unless requested.
 14. **Never skip tests** because the change looks small.
 15. If **no tests** exist for the touched surface, say so explicitly and run the **closest** validation (lint, typecheck, build, or a focused smoke command).
+
+## Local primary checkout (`master` sync only)
+
+Applies to the user’s **primary local clone** (e.g. `~/dev/...`) when on **`master`**. Task work stays in **worktrees**; this section is only how that clone stays aligned with **remote**.
+
+1. Treat local **`master`** as a **clean landing zone** only—not where task edits happen.
+2. **Do not** make task edits on local **`master`**.
+3. **Do not** merge task branches into local **`master`** during the session **unless** the user **explicitly** instructs you to do so.
+4. Sync local **`master`** only by **fast-forwarding** from **`origin/master`** after a **remote PR merge**, or when the user **explicitly** requests a refresh.
+5. **Before** syncing local **`master`**, verify: current branch is **`master`**; **no** uncommitted changes; **no** untracked files that a checkout/pull would overwrite or confuse (clean working tree).
+6. **Preferred sync sequence** for local **`master`**: `git fetch origin --prune` → `git checkout master` → `git pull --ff-only origin master`.
+7. **Never rebase** local **`master`**.
+8. **Never** create **merge commits** on local **`master`**.
+9. **Never** sync local **`master`** by merging a task branch directly **unless** the user **explicitly** asks for that exact operation.
+10. **After** syncing local **`master`**, report: **previous HEAD**, **new HEAD**, and whether **fast-forward** succeeded.
+11. If **fast-forward** is not possible, **stop** and explain why—do **not** resolve it automatically (no merge/rebase to “fix” it without explicit user direction).
+12. Task branches/worktrees may **rebase** onto updated **`origin/master`** when needed; local primary **`master`** stays **clean** and **fast-forward-only**.
+
+**In practice**
+
+- **Do:** work in a worktree + task branch → push → open PR → merge on GitHub → then refresh local **`master`** with **ff-only** pull.
+- **Do not:** merge the task branch into local **`master`** “to help” unless the user asked for that merge.
+- **Do:** keep local **`master`** boring, clean, and matching **remote `master`**.
 
 ## Shared contract
 
