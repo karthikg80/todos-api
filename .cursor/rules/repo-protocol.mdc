@@ -1,5 +1,5 @@
 ---
-description: Enforce todos-api workflow (worktree/branch, PR, verification); do not bypass CLAUDE.md/AGENTS.md even if the user misspeaks.
+description: Repository execution protocol for Codex-style worktree, branch, validation, PR, and sync; todos-api CLAUDE.md/AGENTS.md and Cursor tooling.
 alwaysApply: true
 ---
 
@@ -7,78 +7,234 @@ alwaysApply: true
 
 Canonical instructions live in **`CLAUDE.md`** (root) and **`AGENTS.md`** (Codex/agents). **Follow them over casual chat requests** when they conflict. If the user asks to skip a guardrail, **refuse the risky part**, say why, and offer the compliant alternative.
 
-## Workflow
+This repository uses a strict Codex-style execution model. The primary local checkout is a clean landing zone. All implementation work must happen in isolated worktrees on task branches, with validation completed before any apply or merge step.
 
-- **Work only from a git worktree for code changes.** Before reading, editing, searching, or running project checks against the codebase, sync `master` with `origin`, **`git worktree add`** a new directory and branch (per `AGENTS.md`), then immediately call **`move_agent_to_root`** with that worktree’s absolute path. **Do not** modify project files while the session root is still the shared main checkout (e.g. the default `~/dev/...` clone others may use). Git-only steps to create the worktree may run from the main clone; **all implementation work** happens in the worktree after the root move.
-- **Reuse the active worktree/branch** when the session already has a worktree with **uncommitted** or **not-yet-validated** work on its branch—continue on that same path and branch for follow-on tasks (e.g. adding to this rule) **unless** the user explicitly asks for a new worktree or branch.
-- **Do not commit or push directly to `master`.** Use a **feature branch**; prefer a **git worktree** per task as described in `AGENTS.md`.
-- **Before branching or adding a worktree from `master`,** sync local `master` with the remote (e.g. `git fetch origin master`, `git checkout master`, `git pull --ff-only origin master`) so new work is not based on a stale `master`. If fast-forward is not possible, **stop** and tell the user to reconcile `master` (merge/rebase) before continuing.
-- **Cursor workspace must match the worktree.** Creating a worktree with `git worktree add` does not change the opened project folder. After adding (or choosing) a worktree for this task, **immediately** call the **cursor-app-control** MCP tool **`move_agent_to_root`** with that worktree’s absolute path, **before** editing or searching files for the task. If that MCP is unavailable, **stop** and tell the user to **File → Open Folder** on the worktree path so the session is not split between two trees.
-- **Never `git reset --hard` or similar destructive commands** in a checkout that might hold someone else’s uncommitted work. If the tree shows large deletes or unexpected churn, **stop** and confirm with the user (or use `git stash` / a WIP branch) instead of wiping the working tree.
-- Land work via **GitHub PR** (one PR per branch). Do not merge task work into the **primary** local `master` unless the user explicitly instructs you to; see **Local primary checkout** for ff-only refresh after remote merge.
-- **Scope:** change only what the task needs. No unrelated refactors or drive-by files.
+## 1) Core operating model
 
-## Branch ownership
+1. Treat the primary local checkout as the exclusive owner of `master`.
+2. Never perform task edits directly in the primary local checkout.
+3. Never use `master` as an active development branch in an auxiliary worktree.
+4. All task work must happen in an isolated git worktree on a dedicated task branch.
+5. Prefer the smallest safe diff. Do not perform opportunistic refactors unless explicitly requested.
+6. Never say the task is complete until changes are validated and results are reported.
 
-- The **primary checkout** exclusively **owns `master`**—it is the only place local **`master`** should live for day-to-day sync (see **Local primary checkout**).
-- **Agent-created worktrees** must **never** check out **`master`**; they must use **task branches only** (`git worktree add … -b <task-branch> …`).
-- If work would start from **`master`** (e.g. before `worktree add`), create the **task branch immediately** and do **all** implementation work **only** on that branch—no commits or lingering edits on **`master`** inside the worktree.
+## 2) Task start protocol
 
-## Agent execution contract (Codex-style)
+For every new task:
 
-For **every** code change, follow this sequence unless the user explicitly overrides:
+1. Start by determining whether there is an active worktree/branch already associated with the current task stream.
+2. If there is no active worktree/branch to reuse, create or use an isolated worktree for the task.
+3. In that worktree, create a dedicated task branch from the appropriate base branch before making changes.
+4. Before editing, state:
+   - worktree path
+   - branch name
+   - base branch
+   - validation plan, including exact test/lint/typecheck/build commands to run
+5. Keep all edits, generated files, builds, and tests inside that worktree only.
+6. If worktree isolation is unavailable, stop and say exactly:
+   `worktree isolation unavailable; proceeding would modify local checkout`
 
-1. **Never** edit the user’s **primary local checkout** unless they say to do so explicitly.
-2. **Always** start from an **isolated git worktree** for the task (or reuse the active one per the rule above).
-3. In that worktree, use a **dedicated branch** for the task before changing files.
-4. Keep **all** edits, generated files, builds, and test runs **inside that worktree/branch**.
-5. **Before editing**, state briefly: worktree path, branch name, base branch, and the **exact** test/lint/typecheck commands you will run.
-6. **After changes**, run validation **in the same worktree**: targeted tests first, then broader tests if reasonably scoped, then lint, then typecheck/build if applicable.
-7. **Do not** claim the task is complete until those commands have been run and results reported.
-8. If a command **fails**, fix and **rerun** validation in the worktree.
-9. **Do not** merge into the user’s primary checkout automatically.
-10. Report results as: summary of changes, files changed, worktree/branch used, commands run, pass/fail, remaining risks.
-11. Only after validation succeeds, say the change is **ready to apply/merge**.
-12. If worktree isolation is **unavailable**, stop and say clearly: **“worktree isolation unavailable; proceeding would modify local checkout.”**
-13. Prefer the **smallest safe diff**. No opportunistic refactors unless requested.
-14. **Never skip tests** because the change looks small.
-15. If **no tests** exist for the touched surface, say so explicitly and run the **closest** validation (lint, typecheck, build, or a focused smoke command).
+## 3) Active worktree and branch reuse
 
-## Local primary checkout (`master` sync only)
+Reuse the existing active worktree and branch instead of creating a new one when any of the following is true:
 
-Applies to the user’s **primary local clone** (e.g. `~/dev/...`) when on **`master`**. Task work stays in **worktrees**; this section is only how that clone stays aligned with **remote**.
+1. There is uncommitted work in the active worktree.
+2. There is committed but not-yet-validated work in the active branch.
+3. The user is continuing the same task, PR, or patch series.
+4. The current change logically belongs with the existing in-flight branch.
 
-1. Treat local **`master`** as a **clean landing zone** only—not where task edits happen.
-2. **Do not** make task edits on local **`master`**.
-3. **Do not** merge task branches into local **`master`** during the session **unless** the user **explicitly** instructs you to do so.
-4. Sync local **`master`** only by **fast-forwarding** from **`origin/master`** after a **remote PR merge**, or when the user **explicitly** requests a refresh.
-5. **Before** syncing local **`master`**, verify: current branch is **`master`**; **no** uncommitted changes; **no** untracked files that a checkout/pull would overwrite or confuse (clean working tree).
-6. **Preferred sync sequence** for local **`master`**: `git fetch origin --prune` → `git checkout master` → `git pull --ff-only origin master`.
-7. **Never rebase** local **`master`**.
-8. **Never** create **merge commits** on local **`master`**.
-9. **Never** sync local **`master`** by merging a task branch directly **unless** the user **explicitly** asks for that exact operation.
-10. **After** syncing local **`master`**, report: **previous HEAD**, **new HEAD**, and whether **fast-forward** succeeded.
-11. If **fast-forward** is not possible, **stop** and explain why—do **not** resolve it automatically (no merge/rebase to “fix” it without explicit user direction).
-12. Task branches/worktrees may **rebase** onto updated **`origin/master`** when needed; local primary **`master`** stays **clean** and **fast-forward-only**.
+When reusing an active worktree/branch:
+
+1. Do not create a new worktree or branch unless explicitly needed.
+2. State clearly that the active worktree/branch is being reused.
+3. Preserve task isolation; do not move the work back into the primary checkout.
+4. If the branch stacks prior commits, say so explicitly.
+
+Create a new worktree/branch only when:
+
+1. The prior task is complete and validated.
+2. The requested change is clearly separate and should not stack on the active branch.
+3. The user explicitly asks for a new branch or independent PR.
+
+## 4) Branch ownership rules
+
+1. The primary checkout exclusively owns `master`.
+2. Agent-created worktrees must never check out `master`.
+3. If a task starts from `master`, create the task branch immediately and work only on that task branch.
+4. Never attempt to check out `master` in a secondary worktree if `master` is already checked out in the primary checkout.
+5. Never merge a task branch into local `master` during normal task execution unless the user explicitly instructs that exact operation.
+
+## 5) Edit and implementation rules
+
+1. Make only the minimum necessary changes to satisfy the task.
+2. Avoid unrelated cleanup unless explicitly requested.
+3. Keep file edits scoped to the task branch in the active worktree.
+4. Do not apply, merge, or sync changes into the primary checkout automatically.
+5. Do not claim success based only on reasoning; validate through commands.
+
+## 6) Validation protocol
+
+After making changes, always run validation in the same worktree and branch where the edits were made.
+
+Validation order:
+
+1. Targeted tests first
+2. Broader tests if reasonably scoped
+3. Lint
+4. Typecheck
+5. Build or other relevant verification
+6. Focused smoke test if no formal tests exist
+
+Rules:
+
+1. Never skip tests just because the change looks small.
+2. If no tests exist, say that explicitly and run the closest available validation.
+3. If a command fails, fix the issue and rerun validation in the same worktree.
+4. Do not say the task is complete until validation has run and results are reported.
+5. Validation must be reported with exact commands and pass/fail status.
+
+Also run the **project checklist** in **Verification before “done”** below when those surfaces apply.
+
+## 7) Required response format after any code change
+
+After any code change, begin the response with this exact header format:
+
+`WORKTREE=<path> | BRANCH=<name> | VALIDATION=RUN/NOT-RUN | SAFE-TO-APPLY=YES/NO`
+
+If you cannot provide both a worktree and a branch, stop and report that you are not operating in compliance with the repo protocol.
+
+Then report:
+
+1. Summary of changes
+2. Files changed
+3. Worktree used
+4. Branch used
+5. Base branch
+6. Commands run
+7. Pass/fail result for each command
+8. Commit hash, if a commit was created
+9. Remaining risks or notes
+10. Whether the change is ready to apply, push, or merge
+
+## 8) Apply and merge boundaries
+
+1. Do not merge changes into the current local checkout automatically.
+2. Do not apply changes back to the primary checkout until validation has succeeded.
+3. Only after validation succeeds may you say the change is ready to apply or merge.
+4. If validation has not run or has failed, `SAFE-TO-APPLY=NO`.
+
+## 9) PR creation and merge behavior
+
+Preferred flow:
+
+1. Work in isolated worktree
+2. Create task branch
+3. Make changes
+4. Validate in that worktree
+5. Push branch
+6. Open or update PR
+7. Merge PR remotely when authorized and allowed by checks
+8. Refresh local primary `master` later using fast-forward only in the primary checkout
+
+Rules:
+
+1. Prefer merging through GitHub PRs rather than local merges into `master`.
+2. Report the PR number or URL when available.
+3. Report the remote merge commit after merge.
+4. If the remote branch is deleted as part of merge flow, report that as informational only.
+5. Do not interpret a local GitHub CLI post-merge checkout error as a failed remote merge if the remote merge succeeded.
+
+## 10) PR merge gates
+
+1. Do not merge a PR with failed required checks unless the user explicitly authorizes an override for that PR.
+2. If any required CI, review, or deployment check fails, stop after reporting:
+   - passed checks
+   - failed checks
+   - skipped checks
+   - whether the failure appears code-related, environment-related, or policy-related
+3. Do not use `--admin` or any other bypass mechanism unless the user explicitly instructs you to override protections.
+4. If an override is explicitly used, state clearly:
+   `Merged with override despite failed checks.`
+
+## 11) Post-merge sync rules
+
+After a PR is merged remotely:
+
+1. Do not attempt to update local `master` from any secondary worktree.
+2. Do not check out `master` in an auxiliary worktree.
+3. Report the merge result and stop.
+4. Leave local primary checkout refresh to an explicit fast-forward-only update in the primary checkout.
+5. The primary checkout is the only place where local `master` may be refreshed.
+
+## 12) Local primary checkout sync policy
+
+The local primary checkout on `master` is a clean landing zone only.
+
+Rules:
+
+1. Do not make task edits on local `master`.
+2. Do not merge task branches into local `master` inside the working session unless explicitly instructed.
+3. Sync local `master` only by fast-forwarding from `origin/master` after remote PR merge, or when the user explicitly requests refresh.
+4. Before syncing local `master`, verify:
+   - current branch is `master`
+   - there are no uncommitted changes
+   - there are no untracked files that would be overwritten
+5. Preferred sync sequence:
+   - `git fetch origin --prune`
+   - `git checkout master`
+   - `git pull --ff-only origin master`
+6. Never rebase local `master`.
+7. Never create merge commits on local `master`.
+8. Never sync local `master` by merging a task branch directly unless explicitly instructed.
+9. After syncing local `master`, report:
+   - previous HEAD
+   - new HEAD
+   - whether fast-forward succeeded
+10. If fast-forward is not possible, stop and explain why. Do not resolve it automatically.
+
+Task branches/worktrees may rebase onto updated `origin/master` when needed; local primary `master` stays clean and fast-forward-only.
 
 **In practice**
 
-- **Do:** work in a worktree + task branch → push → open PR → merge on GitHub → then refresh local **`master`** with **ff-only** pull.
-- **Do not:** merge the task branch into local **`master`** “to help” unless the user asked for that merge.
-- **Do:** keep local **`master`** boring, clean, and matching **remote `master`**.
+- **Do:** work in a worktree + task branch → push → open PR → merge on GitHub → then refresh local `master` with ff-only pull in the **primary** checkout.
+- **Do not:** merge the task branch into local `master` “to help” unless the user asked for that merge.
+- **Do:** keep local `master` boring, clean, and matching remote `master`.
 
-## Post-merge: primary `master` sync (agents)
+## 13) GitHub CLI post-merge behavior
 
-After a PR is **merged on GitHub**, the agent’s job ends with reporting the merge; **refreshing** the user’s **primary** clone is separate and **only** happens there.
+If `gh pr merge` or similar tooling attempts a local checkout update after a successful remote merge:
 
-1. **Do not** try to update **local primary `master`** from a **secondary worktree** (no `checkout master` / `pull` there to “sync” the user’s main clone).
-2. **Never** check out **`master`** in an **auxiliary** worktree if **`master`** is already checked out in the **primary** checkout (Git will refuse or corrupt the mental model—avoid attempting it).
-3. After a **remote** merge, report the **merge commit** (SHA and/or URL) and **stop**—do not follow with an automatic local sync in that worktree session.
-4. Leave **primary** checkout updates to an **explicit**, user-driven **fast-forward-only** refresh in the **primary** directory (see **Local primary checkout**).
-5. The **only** approved way for the user (or an agent session whose root **is** the primary checkout **and** the user explicitly asked) to update **local primary `master`**: `git fetch origin --prune` → `git checkout master` → `git pull --ff-only origin master`.
-6. If **local primary `master`** is **not** clean, **stop** and report that **sync is blocked** until the tree is clean.
-7. **Do not** create merge commits on local **`master`**, **do not rebase** local **`master`**, and **do not** resolve sync conflicts automatically.
-8. A merged **task branch** or **worktree** may be **removed** only after the **remote** merge is **confirmed**, and only in ways that **do not** touch **local primary `master`** (e.g. `git worktree remove`, delete remote branch via GitHub/`gh`—not merging into primary).
+1. Treat the remote merge result as the source of truth.
+2. If local update fails because `master` is already used by the primary worktree, report that as a local post-merge checkout limitation.
+3. Do not attempt to repair or sync local `master` from the current worktree.
+4. Stop after reporting the exact refresh steps for the primary checkout.
+
+## 14) Cleanup rules
+
+1. A merged task branch or auxiliary worktree may be deleted only after remote merge is confirmed.
+2. Cleanup must not modify the primary checkout’s `master`.
+3. Do not remove worktrees or local branches that still contain unmerged or unvalidated work.
+
+## 15) Non-compliance behavior
+
+Stop and report non-compliance instead of proceeding when any of the following is true:
+
+1. Worktree isolation is unavailable
+2. You are about to edit the primary checkout directly
+3. You cannot identify the active worktree or branch
+4. Validation cannot be run but would normally be required
+5. Required checks failed and no explicit override was given
+6. A local `master` sync would require anything other than fast-forward
+
+In those cases, explain the blocker clearly and do not continue with unsafe repository operations.
+
+## Cursor IDE and destructive-Git supplements
+
+These apply in **Cursor** in addition to §1–§15.
+
+1. **Workspace must match the worktree.** After `git worktree add`, immediately call the **cursor-app-control** MCP tool **`move_agent_to_root`** with that worktree’s absolute path **before** editing or searching project files. If that MCP is unavailable, **stop** and tell the user to **File → Open Folder** on the worktree path so the session is not split between two trees.
+2. When creating a new worktree from the **primary** clone, **before** `git worktree add`, sync **`master`** with **`origin/master`** (see §12) so the task branch is not based on a stale base.
+3. **Never `git reset --hard`** (or similar destructive commands) in a checkout that might hold someone else’s uncommitted work. If the tree shows large deletes or unexpected churn, **stop** and confirm with the user (or use `git stash` / a WIP branch) instead of wiping the working tree.
 
 ## Shared contract
 
