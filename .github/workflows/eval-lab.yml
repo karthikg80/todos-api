@@ -4,35 +4,35 @@ on:
   push:
     branches: [master]
     paths:
-      - 'eval-lab/**'
-      - 'src/services/aiService.ts'
-      - 'src/services/llmService.ts'
+      - "eval-lab/**"
+      - "src/services/aiService.ts"
+      - "src/services/llmService.ts"
   pull_request:
     branches: [master]
     paths:
-      - 'eval-lab/**'
-      - 'src/services/aiService.ts'
-      - 'src/services/llmService.ts'
+      - "eval-lab/**"
+      - "src/services/aiService.ts"
+      - "src/services/llmService.ts"
 
 jobs:
   eval-lab:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
+
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-          cache: 'pip'
-      
+          python-version: "3.10"
+          cache: "pip"
+
       - name: Install dependencies
         run: |
           cd eval-lab
           pip install -r requirements.txt 2>/dev/null || pip install pydantic httpx python-dotenv
-      
+
       - name: Run portfolio baseline
         id: baseline
         env:
@@ -43,11 +43,11 @@ jobs:
         run: |
           cd eval-lab
           python run_portfolio.py --output-dir /tmp/eval-results 2>&1 | tee /tmp/eval-output.txt
-          
+
           # Extract score from output
           SCORE=$(grep "Weighted score:" /tmp/eval-output.txt | awk '{print $3}')
           echo "score=$SCORE" >> $GITHUB_OUTPUT
-      
+
       - name: Check against baseline
         if: github.event_name == 'pull_request'
         env:
@@ -63,7 +63,7 @@ jobs:
           else
             echo "No baseline found, skipping CI gate check"
           fi
-      
+
       - name: Upload results
         if: always()
         uses: actions/upload-artifact@v4
