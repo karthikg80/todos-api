@@ -36,7 +36,7 @@ const makeTodo = (overrides: Partial<Todo> = {}): Todo => ({
   effortScore: overrides.effortScore ?? null,
   source: overrides.source ?? null,
   recurrence: overrides.recurrence ?? null,
-  subtasks: overrides.subtasks ?? null,
+  subtasks: overrides.subtasks ?? undefined,
   userId: "user-1",
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
@@ -44,13 +44,18 @@ const makeTodo = (overrides: Partial<Todo> = {}): Todo => ({
 
 const defaultTodo = makeTodo();
 const defaultProjects: Project[] = [
-  { id: "p1", name: "Work", status: "active", archived: false },
-  { id: "p2", name: "Personal", status: "active", archived: false },
+  { id: "p1", name: "Work", status: "active", archived: false, userId: "user-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+  { id: "p2", name: "Personal", status: "active", archived: false, userId: "user-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
 ];
 const defaultHeadings: Heading[] = [
   { id: "h1", projectId: "p1", name: "Planning", sortOrder: 0 },
   { id: "h2", projectId: "p1", name: "Execution", sortOrder: 1 },
 ];
+
+const makeFieldDef = (base: Partial<FieldDef> & Pick<FieldDef, 'key' | 'label' | 'type' | 'group'>): FieldDef => ({
+  defaultTier: 1,
+  ...base,
+});
 
 describe("FieldRenderer - variant dispatch", () => {
   const renderField = (fieldDef: FieldDef, todo: Todo = defaultTodo) =>
@@ -63,31 +68,31 @@ describe("FieldRenderer - variant dispatch", () => {
     }));
 
   it("renders chips variant", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "priority",
       label: "Priority",
       type: "select",
       variant: "chips",
       group: "status",
       options: [
-        { value: "low", label: "Low", tone: "muted" },
-        { value: "medium", label: "Medium", tone: "info" },
-        { value: "high", label: "High", tone: "warning" },
-        { value: "urgent", label: "Urgent", tone: "danger" },
+        { value: "low", label: "Low", tone: "muted" as const },
+        { value: "medium", label: "Medium", tone: "info" as const },
+        { value: "high", label: "High", tone: "warn" as const },
+        { value: "urgent", label: "Urgent", tone: "danger" as const },
       ],
-    };
+    });
     renderField(fieldDef, makeTodo({ priority: "medium" }));
     expect(screen.getByRole("radiogroup", { name: "Priority" })).toBeTruthy();
     expect(screen.getByRole("radio", { name: "Medium", checked: true })).toBeTruthy();
   });
 
   it("renders select variant with project options", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "projectId",
       label: "Project",
       type: "select",
       group: "project",
-    };
+    });
     const { container } = renderField(fieldDef, makeTodo({ projectId: "p1" }));
     const select = container.querySelector("#field-projectId");
     expect(select).toBeTruthy();
@@ -96,12 +101,12 @@ describe("FieldRenderer - variant dispatch", () => {
   });
 
   it("renders select variant with heading options", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "headingId",
       label: "Heading",
       type: "select",
       group: "project",
-    };
+    });
     const { container } = renderField(fieldDef, makeTodo({ headingId: "h1" }));
     const select = container.querySelector("#field-headingId");
     expect(select).toBeTruthy();
@@ -110,12 +115,12 @@ describe("FieldRenderer - variant dispatch", () => {
   });
 
   it("renders date variant", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "dueDate",
       label: "Due date",
       type: "date",
       group: "dates",
-    };
+    });
     const { container } = renderField(fieldDef, makeTodo({ dueDate: "2026-05-01T00:00:00.000Z" }));
     const input = container.querySelector("#field-dueDate");
     expect(input).toBeTruthy();
@@ -123,12 +128,12 @@ describe("FieldRenderer - variant dispatch", () => {
   });
 
   it("renders number variant", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "estimateMinutes",
       label: "Estimate",
       type: "number",
       group: "planning",
-    };
+    });
     const { container } = renderField(fieldDef, makeTodo({ estimateMinutes: 30 }));
     const input = container.querySelector("#field-estimateMinutes");
     expect(input).toBeTruthy();
@@ -136,13 +141,13 @@ describe("FieldRenderer - variant dispatch", () => {
   });
 
   it("renders textarea variant", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "notes",
       label: "Notes",
       type: "textarea",
       group: "planning",
       fullWidth: true,
-    };
+    });
     const { container } = renderField(fieldDef, makeTodo({ notes: "Some notes" }));
     const textarea = container.querySelector("#field-notes");
     expect(textarea).toBeTruthy();
@@ -150,12 +155,12 @@ describe("FieldRenderer - variant dispatch", () => {
   });
 
   it("renders text variant (default)", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "title",
       label: "Title",
       type: "text",
       group: "status",
-    };
+    });
     const { container } = renderField(fieldDef);
     const input = container.querySelector("#field-title");
     expect(input).toBeTruthy();
@@ -163,13 +168,13 @@ describe("FieldRenderer - variant dispatch", () => {
   });
 
   it("renders date-shortcuts variant", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "dueDate",
       label: "Due date",
       type: "date",
       variant: "date-shortcuts",
       group: "dates",
-    };
+    });
     const { container } = renderField(fieldDef, makeTodo({ dueDate: "2026-05-01T00:00:00.000Z" }));
     const input = container.querySelector("#field-dueDate");
     expect(input).toBeTruthy();
@@ -178,26 +183,26 @@ describe("FieldRenderer - variant dispatch", () => {
   });
 
   it("renders collapsible variant when empty", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "firstStep",
       label: "First step",
       type: "textarea",
       variant: "collapsible",
       group: "planning",
       emptyPrompt: "Add first step...",
-    };
+    });
     renderField(fieldDef);
     expect(screen.getByRole("button", { name: /Add first step/ })).toBeTruthy();
   });
 
   it("renders collapsible variant when has value", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "firstStep",
       label: "First step",
       type: "textarea",
       variant: "collapsible",
       group: "planning",
-    };
+    });
     const { container } = renderField(fieldDef, makeTodo({ firstStep: "Open the door" }));
     const textarea = container.querySelector("#field-firstStep");
     expect(textarea).toBeTruthy();
@@ -205,7 +210,7 @@ describe("FieldRenderer - variant dispatch", () => {
   });
 
   it("renders presets variant", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "estimateMinutes",
       label: "Estimate",
       type: "number",
@@ -216,7 +221,7 @@ describe("FieldRenderer - variant dispatch", () => {
         { value: 30, label: "30m" },
         { value: 60, label: "1h" },
       ],
-    };
+    });
     renderField(fieldDef, makeTodo({ estimateMinutes: 30 }));
     expect(screen.getByRole("button", { name: "30m" })).toBeTruthy();
   });
@@ -225,7 +230,7 @@ describe("FieldRenderer - variant dispatch", () => {
 describe("FieldRenderer - onSave behavior", () => {
   it("calls onSave when select value changes", () => {
     const onSave = vi.fn();
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "priority",
       label: "Priority",
       type: "select",
@@ -234,7 +239,7 @@ describe("FieldRenderer - onSave behavior", () => {
         { value: "low", label: "Low" },
         { value: "high", label: "High" },
       ],
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -247,12 +252,12 @@ describe("FieldRenderer - onSave behavior", () => {
 
   it("calls onSave when date value changes", () => {
     const onSave = vi.fn();
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "dueDate",
       label: "Due date",
       type: "date",
       group: "dates",
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -265,12 +270,12 @@ describe("FieldRenderer - onSave behavior", () => {
 
   it("calls onSave when number value blurs with change", () => {
     const onSave = vi.fn();
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "estimateMinutes",
       label: "Estimate",
       type: "number",
       group: "planning",
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: makeTodo({ estimateMinutes: 30 }),
@@ -284,12 +289,12 @@ describe("FieldRenderer - onSave behavior", () => {
 
   it("does not call onSave when number value blurs without change", () => {
     const onSave = vi.fn();
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "estimateMinutes",
       label: "Estimate",
       type: "number",
       group: "planning",
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: makeTodo({ estimateMinutes: 30 }),
@@ -302,12 +307,12 @@ describe("FieldRenderer - onSave behavior", () => {
 
   it("calls onSave when text value blurs with change", () => {
     const onSave = vi.fn();
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "title",
       label: "Title",
       type: "text",
       group: "status",
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -321,12 +326,12 @@ describe("FieldRenderer - onSave behavior", () => {
 
   it("calls onSave when textarea value blurs with change", () => {
     const onSave = vi.fn();
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "notes",
       label: "Notes",
       type: "textarea",
       group: "planning",
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: makeTodo({ notes: "Old notes" }),
@@ -341,7 +346,7 @@ describe("FieldRenderer - onSave behavior", () => {
 
 describe("FieldRenderer - special fields", () => {
   it("renders archived field with correct value", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "archived",
       label: "Archived",
       type: "select",
@@ -351,7 +356,7 @@ describe("FieldRenderer - special fields", () => {
         { value: "false", label: "No" },
         { value: "true", label: "Yes" },
       ],
-    };
+    });
     render(createElement(FieldRenderer, {
       fieldDef,
       todo: makeTodo({ archived: true }),
@@ -362,12 +367,12 @@ describe("FieldRenderer - special fields", () => {
   });
 
   it("renders effortScore field", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "effortScore",
       label: "Effort",
       type: "number",
       group: "planning",
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: makeTodo({ effortScore: 3 }),
@@ -379,15 +384,15 @@ describe("FieldRenderer - special fields", () => {
   });
 
   it("filters out archived projects from project select", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "projectId",
       label: "Project",
       type: "select",
       group: "project",
-    };
+    });
     const projects: Project[] = [
-      { id: "p1", name: "Active", status: "active", archived: false },
-      { id: "p2", name: "Archived", status: "active", archived: true },
+      { id: "p1", name: "Active", status: "active", archived: false, userId: "user-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
+      { id: "p2", name: "Archived", status: "active", archived: true, userId: "user-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
     ];
     render(createElement(FieldRenderer, {
       fieldDef,
@@ -403,12 +408,12 @@ describe("FieldRenderer - special fields", () => {
 
 describe("FieldRenderer - compact mode", () => {
   it("applies compact class when compact prop is true", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "title",
       label: "Title",
       type: "text",
       group: "status",
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -420,13 +425,13 @@ describe("FieldRenderer - compact mode", () => {
   });
 
   it("applies compact class when fieldDef.compact is true", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "title",
       label: "Title",
       type: "text",
       compact: true,
       group: "status",
-    };
+    });
     const { container } = render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -439,13 +444,13 @@ describe("FieldRenderer - compact mode", () => {
 
 describe("FieldRenderer - hints and placeholders", () => {
   it("shows hint when value is empty", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "context",
       label: "Context",
       type: "text",
       hint: "Where will this happen?",
       group: "project",
-    };
+    });
     render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -456,13 +461,13 @@ describe("FieldRenderer - hints and placeholders", () => {
   });
 
   it("hides hint when value is present", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "context",
       label: "Context",
       type: "text",
       hint: "Where will this happen?",
       group: "project",
-    };
+    });
     render(createElement(FieldRenderer, {
       fieldDef,
       todo: makeTodo({ context: "@home" }),
@@ -473,12 +478,12 @@ describe("FieldRenderer - hints and placeholders", () => {
   });
 
   it("shows context placeholder", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "context",
       label: "Context",
       type: "text",
       group: "project",
-    };
+    });
     render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -489,12 +494,12 @@ describe("FieldRenderer - hints and placeholders", () => {
   });
 
   it("shows waitingOn placeholder", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "waitingOn",
       label: "Waiting on",
       type: "text",
       group: "project",
-    };
+    });
     render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -505,12 +510,12 @@ describe("FieldRenderer - hints and placeholders", () => {
   });
 
   it("shows firstStep placeholder", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "firstStep",
       label: "First step",
       type: "text",
       group: "planning",
-    };
+    });
     render(createElement(FieldRenderer, {
       fieldDef,
       todo: defaultTodo,
@@ -523,7 +528,7 @@ describe("FieldRenderer - hints and placeholders", () => {
 
 describe("FieldRenderer - recurrence fields", () => {
   it("reads recurrenceType from todo.recurrence.type", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "recurrenceType",
       label: "Repeat",
       type: "select",
@@ -533,7 +538,7 @@ describe("FieldRenderer - recurrence fields", () => {
         { value: "daily", label: "Daily" },
         { value: "weekly", label: "Weekly" },
       ],
-    };
+    });
     render(createElement(FieldRenderer, {
       fieldDef,
       todo: makeTodo({ recurrence: { type: "weekly", interval: 1 } }),
@@ -544,12 +549,12 @@ describe("FieldRenderer - recurrence fields", () => {
   });
 
   it("reads recurrenceInterval from todo.recurrence.interval", () => {
-    const fieldDef: FieldDef = {
+    const fieldDef = makeFieldDef({
       key: "recurrenceInterval",
       label: "Every",
       type: "number",
       group: "dates",
-    };
+    });
     render(createElement(FieldRenderer, {
       fieldDef,
       todo: makeTodo({ recurrence: { type: "weekly", interval: 2 } }),
