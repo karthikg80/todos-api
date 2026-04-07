@@ -10,6 +10,7 @@ Canonical instructions live in **`CLAUDE.md`** (root) and **`AGENTS.md`** (Codex
 ## Workflow
 
 - **Do not commit or push directly to `master`.** Use a **feature branch**; prefer a **git worktree** per task as described in `AGENTS.md`.
+- **Before branching or adding a worktree from `master`,** sync local `master` with the remote (e.g. `git fetch origin master`, `git checkout master`, `git pull --ff-only origin master`) so new work is not based on a stale `master`. If fast-forward is not possible, **stop** and tell the user to reconcile `master` (merge/rebase) before continuing.
 - **Cursor workspace must match the worktree.** Creating a worktree with `git worktree add` does not change the opened project folder. After adding (or choosing) a worktree for this task, **immediately** call the **cursor-app-control** MCP tool **`move_agent_to_root`** with that worktree’s absolute path, **before** editing or searching files for the task. If that MCP is unavailable, **stop** and tell the user to **File → Open Folder** on the worktree path so the session is not split between two trees.
 - **Never `git reset --hard` or similar destructive commands** in a checkout that might hold someone else’s uncommitted work. If the tree shows large deletes or unexpected churn, **stop** and confirm with the user (or use `git stash` / a WIP branch) instead of wiping the working tree.
 - Land work via **GitHub PR** (one PR per branch). Do not merge to `master` locally unless the user explicitly requests an exception **and** you have stated that it bypasses normal project rules.
