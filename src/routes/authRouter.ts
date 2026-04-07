@@ -1218,6 +1218,8 @@ export function createAuthRouter({
           auth: "success",
           token: result.token,
           refreshToken: result.refreshToken,
+          userId: result.user.id,
+          email: result.user.email ?? "",
         });
         if (next) {
           params.set("next", next);
@@ -1377,6 +1379,8 @@ export function createAuthRouter({
           auth: "success",
           token: result.token,
           refreshToken: result.refreshToken,
+          userId: result.user.id,
+          email: result.user.email ?? "",
         });
         if (next) {
           params.set("next", next);
