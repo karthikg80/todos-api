@@ -18,6 +18,12 @@ Canonical instructions live in **`CLAUDE.md`** (root) and **`AGENTS.md`** (Codex
 - Land work via **GitHub PR** (one PR per branch). Do not merge task work into the **primary** local `master` unless the user explicitly instructs you to; see **Local primary checkout** for ff-only refresh after remote merge.
 - **Scope:** change only what the task needs. No unrelated refactors or drive-by files.
 
+## Branch ownership
+
+- The **primary checkout** exclusively **owns `master`**—it is the only place local **`master`** should live for day-to-day sync (see **Local primary checkout**).
+- **Agent-created worktrees** must **never** check out **`master`**; they must use **task branches only** (`git worktree add … -b <task-branch> …`).
+- If work would start from **`master`** (e.g. before `worktree add`), create the **task branch immediately** and do **all** implementation work **only** on that branch—no commits or lingering edits on **`master`** inside the worktree.
+
 ## Agent execution contract (Codex-style)
 
 For **every** code change, follow this sequence unless the user explicitly overrides:
@@ -60,6 +66,19 @@ Applies to the user’s **primary local clone** (e.g. `~/dev/...`) when on **`ma
 - **Do:** work in a worktree + task branch → push → open PR → merge on GitHub → then refresh local **`master`** with **ff-only** pull.
 - **Do not:** merge the task branch into local **`master`** “to help” unless the user asked for that merge.
 - **Do:** keep local **`master`** boring, clean, and matching **remote `master`**.
+
+## Post-merge: primary `master` sync (agents)
+
+After a PR is **merged on GitHub**, the agent’s job ends with reporting the merge; **refreshing** the user’s **primary** clone is separate and **only** happens there.
+
+1. **Do not** try to update **local primary `master`** from a **secondary worktree** (no `checkout master` / `pull` there to “sync” the user’s main clone).
+2. **Never** check out **`master`** in an **auxiliary** worktree if **`master`** is already checked out in the **primary** checkout (Git will refuse or corrupt the mental model—avoid attempting it).
+3. After a **remote** merge, report the **merge commit** (SHA and/or URL) and **stop**—do not follow with an automatic local sync in that worktree session.
+4. Leave **primary** checkout updates to an **explicit**, user-driven **fast-forward-only** refresh in the **primary** directory (see **Local primary checkout**).
+5. The **only** approved way for the user (or an agent session whose root **is** the primary checkout **and** the user explicitly asked) to update **local primary `master`**: `git fetch origin --prune` → `git checkout master` → `git pull --ff-only origin master`.
+6. If **local primary `master`** is **not** clean, **stop** and report that **sync is blocked** until the tree is clean.
+7. **Do not** create merge commits on local **`master`**, **do not rebase** local **`master`**, and **do not** resolve sync conflicts automatically.
+8. A merged **task branch** or **worktree** may be **removed** only after the **remote** merge is **confirmed**, and only in ways that **do not** touch **local primary `master`** (e.g. `git worktree remove`, delete remote branch via GitHub/`gh`—not merging into primary).
 
 ## Shared contract
 
