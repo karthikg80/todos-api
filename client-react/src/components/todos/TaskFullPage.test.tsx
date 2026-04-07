@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createElement } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import { TaskFullPage } from "./TaskFullPage";
 import type { Todo, Project } from "../../types";
 
@@ -35,7 +35,7 @@ const makeTodo = (overrides: Partial<Todo> = {}): Todo => ({
   effortScore: overrides.effortScore ?? null,
   source: overrides.source ?? null,
   recurrence: overrides.recurrence ?? null,
-  subtasks: overrides.subtasks ?? null,
+  subtasks: overrides.subtasks ?? undefined,
   userId: "user-1",
   createdAt: "2026-01-01T00:00:00.000Z",
   updatedAt: "2026-01-01T00:00:00.000Z",
@@ -43,7 +43,7 @@ const makeTodo = (overrides: Partial<Todo> = {}): Todo => ({
 
 const defaultTodo = makeTodo();
 const defaultProjects: Project[] = [
-  { id: "p1", name: "Work", status: "active", archived: false },
+  { id: "p1", name: "Work", status: "active", archived: false, userId: "user-1", createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z" },
 ];
 
 const defaultProps = {
