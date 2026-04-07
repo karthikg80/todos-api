@@ -1,7 +1,9 @@
 ---
 name: vanilla-client
-description: Conventions for the vanilla JS web client in client/
+description: Legacy conventions for the archived vanilla JS web client (no longer used for new development)
 ---
+
+> **Status:** The vanilla JS web client has been decommissioned and is no longer built, tested, or deployed. The guidance below is retained only for historical reference when reading legacy code that previously lived in `client/`. For any new work, use the React client in `client-react/` instead. See `docs/reference/vanilla-client-archive.md`.
 
 # Vanilla JS Client Conventions
 
