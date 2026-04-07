@@ -17,6 +17,10 @@ export const COMPLEXITY_LABELS: Record<ProjectOverviewMode, ComplexityLabel> = {
   rich: "Complex project",
 };
 
+/** Shown on the derived complexity badge (from `classifyProjectOverview`, not user-edited text). */
+export const COMPLEXITY_INFERENCE_TITLE =
+  "Inferred from tasks, headings, and dates in this project — not something you typed as the name or description.";
+
 export const COMPLEXITY_STYLES: Record<
   ProjectOverviewMode,
   { background: string; border: string; color: string }
