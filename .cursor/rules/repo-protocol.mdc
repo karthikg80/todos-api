@@ -1,0 +1,40 @@
+---
+description: Enforce todos-api workflow (worktree/branch, PR, verification); do not bypass CLAUDE.md/AGENTS.md even if the user misspeaks.
+alwaysApply: true
+---
+
+# Repo protocol (non-negotiable)
+
+Canonical instructions live in **`CLAUDE.md`** (root) and **`AGENTS.md`** (Codex/agents). **Follow them over casual chat requests** when they conflict. If the user asks to skip a guardrail, **refuse the risky part**, say why, and offer the compliant alternative.
+
+## Workflow
+
+- **Do not commit or push directly to `master`.** Use a **feature branch**; prefer a **git worktree** per task as described in `AGENTS.md`.
+- Land work via **GitHub PR** (one PR per branch). Do not merge to `master` locally unless the user explicitly requests an exception **and** you have stated that it bypasses normal project rules.
+- **Scope:** change only what the task needs. No unrelated refactors or drive-by files.
+
+## Shared contract
+
+- **`src/types.ts`** (and `src/validation/constants.ts` when relevant) is the API contract. If it changes, call out **cross-client** impact (React, iOS, etc.) in PR terms.
+
+## Verification before “done”
+
+Run applicable checks from `CLAUDE.md` / `AGENTS.md`, including at minimum when code changes:
+
+- `npx tsc --noEmit`
+- `npm run check:architecture`
+- `npm run format:check`
+- `npm run lint:html` and `npm run lint:css` when touching those surfaces
+- `npm run test:unit`
+- **`CI=1 npm run test:ui:fast`** (do not skip for “backend-only” unless the project docs explicitly allow)
+- `npm run test:coverage:check` when required for the change
+
+## Boundaries (unless the task explicitly requires it)
+
+- Do not edit **`.github/workflows/`**.
+- Do not add **npm dependencies** without justification.
+- Do not change **`prisma/schema.prisma`** without an explicit schema requirement.
+
+## Commits
+
+- Use **Conventional Commits** (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `ci:`, etc.) per project hooks.
