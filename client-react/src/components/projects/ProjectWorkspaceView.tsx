@@ -37,6 +37,7 @@ import {
   buildSectionGroups,
   buildSnapshotItemsEnhanced,
   classifyProjectOverview,
+  COMPLEXITY_INFERENCE_TITLE,
   COMPLEXITY_LABELS,
   COMPLEXITY_STYLES,
   daysUntil,
@@ -568,18 +569,6 @@ export function ProjectWorkspaceView({
                 editing={titleEditing}
                 onEditingChange={setTitleEditing}
               />
-              <div
-                className="project-complexity-badge"
-                style={{
-                  background: COMPLEXITY_STYLES[overviewProfile.mode].background,
-                  border: COMPLEXITY_STYLES[overviewProfile.mode].border,
-                  color: COMPLEXITY_STYLES[overviewProfile.mode].color,
-                }}
-              >
-                <span className="project-complexity-badge__label">
-                  {COMPLEXITY_LABELS[overviewProfile.mode]}
-                </span>
-              </div>
               <ProjectKebabMenu
                 onRename={() => setTitleEditing(true)}
                 onArchive={() => onArchiveProject(project.id)}
@@ -594,6 +583,19 @@ export function ProjectWorkspaceView({
               {buildOverviewTone(overviewProfile)}
             </p>
             <div className="project-workspace__meta">
+              <span
+                className="project-workspace__meta-pill project-workspace__meta-pill--derived"
+                style={{
+                  background: COMPLEXITY_STYLES[overviewProfile.mode].background,
+                  border: COMPLEXITY_STYLES[overviewProfile.mode].border,
+                  color: COMPLEXITY_STYLES[overviewProfile.mode].color,
+                }}
+                title={COMPLEXITY_INFERENCE_TITLE}
+                aria-label={`${COMPLEXITY_INFERENCE_TITLE} ${COMPLEXITY_LABELS[overviewProfile.mode]}.`}
+              >
+                <span className="project-workspace__derived-prefix">Inferred</span>
+                <span>{COMPLEXITY_LABELS[overviewProfile.mode]}</span>
+              </span>
               <span className="project-workspace__meta-pill">
                 <IconFolder size={13} className="app-icon" />
                 {titleCaseLabel(project.status)}

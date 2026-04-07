@@ -4594,6 +4594,7 @@ body {
   min-width: 0;
   font-size: clamp(2rem, 4vw, 3rem);
   line-height: 1.1;
+  font-weight: 700;
   color: var(--text-strong);
   word-break: break-word;
   overflow-wrap: break-word;
@@ -4612,11 +4613,8 @@ body {
 }
 
 .project-workspace__title--editing {
-  font-size: inherit;
-  font-weight: inherit;
+  /* Do not use font-size/weight inherit — parent row would shrink the field below the h1 scale. */
   font-family: inherit;
-  line-height: inherit;
-  color: inherit;
   background: transparent;
   border: none;
   border-bottom: 2px solid var(--accent);
@@ -4624,6 +4622,9 @@ body {
   padding: 0;
   margin: 0;
   width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 /* ── Project Kebab Menu ────────────────────── */
@@ -4757,6 +4758,23 @@ body {
   background: color-mix(in oklab, var(--surface) 75%, white 25%);
   border: 1px solid color-mix(in oklab, var(--border-light) 85%, white);
   color: var(--text-strong);
+}
+
+/* App-inferred complexity (not user-authored like name/description) */
+.project-workspace__meta-pill--derived {
+  flex-wrap: wrap;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  gap: var(--s-1);
+}
+
+.project-workspace__derived-prefix {
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: color-mix(in oklab, currentColor 72%, var(--surface));
+  white-space: nowrap;
 }
 
 .project-workspace__snapshot {
@@ -11248,27 +11266,9 @@ body.dark-mode {
 
 .project-workspace__title-row {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--s-3);
   flex-wrap: wrap;
-}
-
-.project-complexity-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s-1);
-  padding: var(--s-1) var(--s-3);
-  border-radius: var(--r-full);
-  font-size: var(--fs-label);
-  font-weight: 500;
-  margin: 0;
-  transition: all 0.15s ease;
-}
-
-/* (removed project-complexity-badge__icon since it's no longer used) */
-
-.project-complexity-badge__label {
-  letter-spacing: 0.01em;
 }
 
 /* ==========================================================================
