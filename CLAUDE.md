@@ -23,7 +23,7 @@ Full-stack todo application — monorepo with multiple clients consuming a share
 - Docker: `/usr/local/bin/docker`.
 - Git worktrees for feature branches live under `/private/tmp/todos-api-*`.
 - **Branch ownership:** the **primary** checkout exclusively owns local `master` and is only for fast-forward sync (`scripts/sync-primary-master.sh`) and other explicitly approved maintenance — not feature delivery. **Compliant feature work** happens only in a **linked worktree** on a **non-`master` task branch**.
-- **Workflow scripts:** `scripts/new-task-worktree.sh` (bootstrap a task worktree), `scripts/validate-task-branch.sh` (enforces linked worktree + task branch + non-detached `HEAD`), `scripts/open-task-pr.sh` (runs validate then `gh pr create`; prefer over raw `gh`), `scripts/sync-primary-master.sh` (ff-only `master` in the **primary** clone after a merge).
+- **Workflow scripts:** `scripts/new-task-worktree.sh` (bootstrap a task worktree), `scripts/validate-task-branch.sh` (enforces linked worktree + task branch + non-detached `HEAD`), `scripts/open-task-pr.sh` (**default** `gh pr create` entrypoint — validates, then passes args through to `gh pr create`), `scripts/sync-primary-master.sh` (ff-only `master` in the **primary** clone after a merge).
 - **Husky:** `pre-commit` runs `validate-task-branch.sh` (blocks feature commits from the primary checkout and any `master`/detached use in a worktree). `pre-push` blocks **any** `git push` from the primary checkout. Push from the linked worktree where you work. Hooks are skipped under `CI=true` / `GITHUB_ACTIONS=true`. Emergency bypass for explicitly authorized maintenance only: `TODOS_API_SKIP_WORKFLOW_GUARDS=1` (not for routine development).
 
 ## Clean Code + Architecture
@@ -46,6 +46,8 @@ CI=1 npm run test:ui:fast
 Conventional commit messages are enforced by a Husky `commit-msg` hook. Cross-client compatibility (iOS + React) is verified in CI when `src/types.ts` or `src/validation/constants.ts` change.
 
 **IMPORTANT: Do not skip `CI=1 npm run test:ui:fast`** — even for changes that seem backend-only. If port 4173 is in use: `lsof -ti:4173 | xargs kill -9`.
+
+If `npm run test:unit` fails once (for example on `src/api.contract.test.ts`), rerun before assuming a regression: a **first failure is often a likely unrelated flake, not caused by a shell/docs/hooks-only diff**.
 
 ## Definition of Done
 

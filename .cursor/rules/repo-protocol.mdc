@@ -134,7 +134,7 @@ Preferred flow:
 3. Make changes
 4. Validate in that worktree
 5. Push branch
-6. Open or update PR
+6. Open or update PR (default: `scripts/open-task-pr.sh` from the task worktree)
 7. Merge PR remotely when authorized and allowed by checks
 8. Refresh local primary `master` later using fast-forward only in the primary checkout
 

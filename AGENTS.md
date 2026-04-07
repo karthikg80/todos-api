@@ -28,7 +28,7 @@ One PR = one branch = one worktree. Never reuse a worktree for a new task.
 Husky and helper scripts enforce the workflow:
 
 - `scripts/validate-task-branch.sh` — requires a **linked worktree**, non-detached `HEAD`, and a branch other than `master`.
-- `scripts/open-task-pr.sh` — runs validate, then `gh pr create` (pass through flags such as `--fill`); **prefer this** instead of calling `gh pr create` directly.
+- `scripts/open-task-pr.sh` — **default command to open a PR** (validates linked worktree + task branch, then runs `gh pr create` with your flags, e.g. `--fill`).
 - `.husky/pre-commit` runs `validate-task-branch.sh` (blocks feature work from the primary checkout).
 - `.husky/pre-push` blocks **any** `git push` from the **primary** checkout; push your task branch from the linked worktree.
 - After a PR merges, fast-forward **primary** `master` with `scripts/sync-primary-master.sh` (primary clone only; pull-only, no push).
@@ -69,6 +69,8 @@ CI=1 npm run test:ui:fast
 ```
 
 **IMPORTANT: Do not skip `CI=1 npm run test:ui:fast`** — even for changes that seem backend-only. If port 4173 is in use: `lsof -ti:4173 | xargs kill -9`.
+
+If `npm run test:unit` fails once (for example on `src/api.contract.test.ts`), rerun the suite before assuming a regression: a **first failure is often a likely unrelated flake, not caused by a shell/docs/hooks-only diff**.
 
 ## Definition of Done
 
