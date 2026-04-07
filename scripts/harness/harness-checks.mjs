@@ -262,3 +262,6 @@ export async function writeCleanupReport() {
     report,
   };
 }
+
+/** Stable name for `npm run check:architecture` (scripts/check-architecture-invariants.mjs). */
+export { scanHarnessDrift as scanArchitectureInvariants };

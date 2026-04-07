@@ -10,9 +10,11 @@ if (result.errors.length > 0) {
   console.error("Architecture invariant check failed:");
   for (const error of result.errors) {
     console.error(`- [${error.code}] ${error.message}`);
-    if (Array.isArray(error.matches)) {
-      for (const match of error.matches) {
-        console.error(`  ${match}`);
+    const detailList =
+      error.matches ?? error.actions ?? error.files ?? error.rows;
+    if (Array.isArray(detailList)) {
+      for (const item of detailList) {
+        console.error(`  ${item}`);
       }
     }
     if (error.details) {
