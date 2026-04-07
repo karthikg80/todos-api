@@ -304,6 +304,10 @@ body {
 
 .app-content {
   flex: 1;
+  /* Allow this flex child to shrink inside .view-router__slot (overflow: hidden)
+     so overflow-y: auto creates a real scroll container instead of clipping content. */
+  min-height: 0;
+  min-width: 0;
   overflow-y: auto;
   padding: var(--s-4) var(--s-5);
   scroll-behavior: smooth;
@@ -4447,6 +4451,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--s-4);
+  min-height: 0;
   background:
     radial-gradient(
       circle at top right,
@@ -4479,7 +4484,8 @@ body {
     color-mix(in oklab, var(--surface) 95%, #efe7db) 100%
   );
   box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
-  overflow: hidden;
+  /* visible: avoid clipping multi-line titles, kebab menus, and focus rings */
+  overflow: visible;
 }
 
 .project-workspace__hero::before {
@@ -4550,6 +4556,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
+}
+
+.project-workspace__stack {
+  min-width: 0;
 }
 
 .project-workspace__hero-copy {
@@ -4961,6 +4971,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
+  min-width: 0;
 }
 
 .project-workspace__overview-grid,
@@ -5054,10 +5065,32 @@ body {
   gap: var(--s-3);
 }
 
+.project-workspace-card__header > div:first-child {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
 .project-workspace-card__title,
 .project-workspace__board-title,
 .project-workspace-section-card__title {
   color: var(--text-strong);
+}
+
+.project-workspace-card__title {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.project-workspace-section-card__title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.project-workspace-section-card__next {
+  align-self: stretch;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .project-workspace-card__badge {
@@ -5148,6 +5181,10 @@ body {
   font-weight: var(--fw-semibold);
   letter-spacing: var(--tracking-tight);
   color: var(--text-strong);
+  align-self: stretch;
+  text-align: left;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .project-workspace-risk-list {
@@ -5265,6 +5302,12 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+}
+
+.project-workspace-tasks-toolbar__label {
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .project-workspace-tasks-toolbar,
@@ -11205,7 +11248,7 @@ body.dark-mode {
 
 .project-workspace__title-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--s-3);
   flex-wrap: wrap;
 }
