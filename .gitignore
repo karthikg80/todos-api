@@ -10,12 +10,10 @@ blob-report/
 artifacts/evals/
 artifacts/harness/
 .playwright/.auth/
-client/vendor/chrono-node/
-artifacts/evals/
 .codex/context-ack.json
 .codex/progress.md
 .codex/feature-checklist.json
 
-/src/generated/prisma
+src/generated/prisma/
 .worktrees/
 .superpowers/

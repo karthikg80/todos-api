@@ -5,8 +5,7 @@ Full-stack todo application — monorepo with multiple clients consuming a share
 ## Project Structure
 
 - **Backend:** Express + Prisma + PostgreSQL in `src/`. Routes in `src/routes/`, services in `src/services/`.
-- **Web Client (vanilla):** Static HTML/CSS/JS in `client/` — see @.claude/skills/vanilla-client/SKILL.md
-- **Web Client (React):** Vite + React + TypeScript in `client-react/` — see @.claude/skills/react-client/SKILL.md
+- **Web Client:** Vite + React + TypeScript in `client-react/` — see @.claude/skills/react-client/SKILL.md
 - **iOS App:** SwiftUI (iOS 17+) in `ios/TodosApp/` — see @.claude/skills/ios-app/SKILL.md
 - **CLI:** `td` CLI tool in `src/cli/` (TypeScript, Commander.js).
 - **Agent Runner:** Python worker in `agent-runner/` — Railway cron deployment.
@@ -26,21 +25,17 @@ Full-stack todo application — monorepo with multiple clients consuming a share
 
 ## Clean Code + Architecture
 
-- **Keep orchestrators thin.** `client/app.js`, `src/routes/`, and entrypoints should coordinate, not accumulate logic.
-- **Put behavior in the right home.** Frontend → `client/features/` or `client/modules/`. Backend → services, not route handlers.
+- **Keep orchestrators thin.** `src/routes/` and entrypoints should coordinate, not accumulate logic.
+- **Put behavior in the right home.** Frontend → `client-react/src/components/` or `client-react/src/mobile/`. Backend → services, not route handlers.
 - **Prefer the canonical path.** Extend existing flows instead of introducing parallel paths.
-- **Do not widen legacy seams casually.** Extract cohesive logic into modules instead of growing large files.
 
 ## Verification Checks
 
-After any change, run all applicable checks. All must pass before committing. Typecheck, architecture check, and format check are also enforced by pre-commit hooks.
+After any change, run all applicable checks. All must pass before committing. Typecheck, format check, and unit tests are enforced by pre-commit hooks.
 
 ```bash
 npx tsc --noEmit
-npm run check:architecture
 npm run format:check
-npm run lint:html
-npm run lint:css
 npm run test:unit
 CI=1 npm run test:ui:fast
 ```
@@ -51,7 +46,7 @@ Conventional commit messages are enforced by a Husky `commit-msg` hook. Cross-cl
 
 ## Definition of Done
 
-- All verification checks pass (typecheck, architecture, format, lint, unit, UI tests)
+- All verification checks pass (typecheck, format, unit, UI tests)
 - Coverage ratchet passes: `npm run test:coverage:check` (coverage must not drop below baseline)
 - Changes are on a feature branch (never master), merged via PR
 - PR description mentions cross-client impact if `src/types.ts` changed
@@ -63,7 +58,7 @@ Conventional commit messages are enforced by a Husky `commit-msg` hook. Cross-cl
 
 - **unit** — typecheck + format + audit + unit tests.
 - **integration** — Prisma migrations + integration tests (Postgres service).
-- **ui-quality** — CSS lint + HTML validation + link crawl + fast UI tests.
+- **ui-quality** — fast UI tests (Playwright).
 - **Railway** — preview deploy.
 
 ## PR Workflow

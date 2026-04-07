@@ -19,8 +19,7 @@ A Husky pre-commit hook blocks commits on `master` and detached `HEAD`. A commit
 ## Project Structure
 
 - **Backend:** Express + Prisma + PostgreSQL in `src/`. Routes in `src/routes/`, services in `src/services/`.
-- **Web Client (vanilla):** Static HTML/CSS/JS in `client/` — see `client/AGENTS.md`
-- **Web Client (React):** Vite + React + TypeScript in `client-react/` — see `client-react/AGENTS.md`
+- **Web Client:** Vite + React + TypeScript in `client-react/` — see `client-react/AGENTS.md`
 - **iOS App:** SwiftUI (iOS 17+) in `ios/TodosApp/` — see `ios/AGENTS.md`
 - **CLI:** `td` CLI tool in `src/cli/` (TypeScript, Commander.js).
 - **Agent Runner:** Python worker in `agent-runner/` — Railway cron deployment.
@@ -28,14 +27,13 @@ A Husky pre-commit hook blocks commits on `master` and detached `HEAD`. A commit
 
 ### Shared contract
 
-`src/types.ts` is the canonical source of truth for all API types and enums. When this file changes, all clients (vanilla JS, React, iOS DTOs) must stay in sync. Mention cross-client impact in the PR description. CI will automatically verify that iOS compiles (`swift build`) and React typechecks (`tsc --noEmit`) when `src/types.ts` or `src/validation/constants.ts` change.
+`src/types.ts` is the canonical source of truth for all API types and enums. When this file changes, all clients (React, iOS DTOs) must stay in sync. Mention cross-client impact in the PR description. CI will automatically verify that iOS compiles (`swift build`) and React typechecks (`tsc --noEmit`) when `src/types.ts` or `src/validation/constants.ts` change.
 
 ## Clean Code + Architecture (REQUIRED)
 
-- **Keep orchestrators thin.** `client/app.js`, `src/routes/`, and entrypoints should coordinate, not accumulate logic.
-- **Put behavior in the right home.** Frontend → `client/features/` or `client/modules/`. Backend → services, not route handlers.
+- **Keep orchestrators thin.** `src/routes/` and entrypoints should coordinate, not accumulate logic.
+- **Put behavior in the right home.** Frontend → `client-react/src/components/` or `client-react/src/mobile/`. Backend → services, not route handlers.
 - **Prefer the canonical path.** Extend existing flows instead of introducing parallel paths.
-- **Do not widen legacy seams casually.** Extract cohesive logic into modules instead of growing large files.
 
 ## Verification Checks
 
@@ -43,10 +41,7 @@ After any change, run all applicable checks. All must pass before committing.
 
 ```bash
 npx tsc --noEmit
-npm run check:architecture
 npm run format:check
-npm run lint:html
-npm run lint:css
 npm run test:unit
 CI=1 npm run test:ui:fast
 ```

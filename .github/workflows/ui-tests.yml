@@ -22,7 +22,7 @@ jobs:
         with:
           filters: |
             ui:
-              - 'client/**'
+              - 'client-react/**'
               - 'tests/ui/**'
               - 'public/**'
               - 'package.json'
@@ -42,35 +42,7 @@ jobs:
 
       - name: No UI changes detected
         if: steps.run.outputs.run_ui != 'true'
-        run: echo "No client/tests/ui changes detected. Skipping UI quality checks."
-
-  # ── Lint job (CSS, HTML, links) — no browser needed ──────────────────
-  ui-lint:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.ui == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Lint CSS
-        run: npm run lint:css
-
-      - name: Validate HTML
-        run: npm run lint:html
-
-      - name: Crawl links
-        run: npm run test:links
+        run: echo "No client-react/tests/ui changes detected. Skipping UI quality checks."
 
   # ── UI test job (Playwright fast tier) ───────────────────────────────
   ui-test:
