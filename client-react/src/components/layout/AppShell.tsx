@@ -35,7 +35,11 @@ import { SettingsPage } from "./SettingsPage";
 import { TuneUpView } from "../tuneup/TuneUpView";
 import { HomeDashboard } from "./HomeDashboard";
 import { ProjectCrud } from "../projects/ProjectCrud";
-import { ProjectWorkspaceView } from "../projects/ProjectWorkspaceView";
+import {
+  ProjectEditorView,
+  type ProjectSavePayload,
+} from "../projects/ProjectEditorView";
+import { PROJECT_RAIL_BACKLOG_SENTINEL } from "../projects/projectEditorModels";
 import { OnboardingFlow } from "../shared/OnboardingFlow";
 import { useTaskNavigation } from "../../hooks/useTaskNavigation";
 import { useHashRoute } from "../../hooks/useHashRoute";
@@ -302,7 +306,11 @@ export function AppShell() {
     }
 
     if (activeHeadingId && selectedProjectId) {
-      filtered = filtered.filter((t) => t.headingId === activeHeadingId);
+      if (activeHeadingId === PROJECT_RAIL_BACKLOG_SENTINEL) {
+        filtered = filtered.filter((t) => !t.headingId);
+      } else {
+        filtered = filtered.filter((t) => t.headingId === activeHeadingId);
+      }
     }
 
     // Apply advanced filters
@@ -634,6 +642,23 @@ export function AppShell() {
     });
   }, []);
 
+  const handleSaveProject = useCallback(
+    async (id: string, payload: ProjectSavePayload) => {
+      const body: Record<string, unknown> = {};
+      if (payload.name !== undefined) body.name = payload.name;
+      if (payload.description !== undefined) body.description = payload.description;
+      if (payload.goal !== undefined) body.goal = payload.goal;
+      if (payload.targetDate !== undefined) body.targetDate = payload.targetDate;
+      if (payload.status !== undefined) body.status = payload.status;
+      await apiCall(`/projects/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+      loadProjects();
+    },
+    [loadProjects],
+  );
+
   const handleSelectView = useCallback((view: WorkspaceView) => {
     setActiveView(view);
     taskNav.collapse();
@@ -654,6 +679,7 @@ export function AppShell() {
 
   const handleSelectProject = useCallback((id: string | null) => {
     setSelectedProjectId(id);
+    setActiveHeadingId(null);
     taskNav.collapse();
     setBulkMode(false);
     setSelectedIds(new Set());
@@ -1251,7 +1277,7 @@ export function AppShell() {
               {/* Dynamic project view */}
               {selectedProjectId && selectedProject && (
                 <ViewRoute viewKey={`project:${selectedProjectId}`}>
-                  <ProjectWorkspaceView
+                  <ProjectEditorView
                     project={selectedProject}
                     projectTodos={todos}
                     visibleTodos={visibleTodos}
@@ -1305,13 +1331,8 @@ export function AppShell() {
                     }}
                     onDeferTask={handleProjectTaskDefer}
                     onReplaceNext={handleReplaceNextTask}
-                    onRenameProject={async (id, newName) => {
-                      await apiCall(`/projects/${id}`, {
-                        method: "PUT",
-                        body: JSON.stringify({ name: newName }),
-                      });
-                      loadProjects();
-                    }}
+                    onSaveProject={handleSaveProject}
+                    onRequestDeleteTodo={handleDeleteRequest}
                     onArchiveProject={async (id) => {
                       await apiCall(`/projects/${id}`, {
                         method: "PUT",

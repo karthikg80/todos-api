@@ -8,6 +8,11 @@ export default defineConfig({
     outDir: "dist",
     emptyOutDir: true,
   },
+  preview: {
+    host: "127.0.0.1",
+    port: 4173,
+    strictPort: true,
+  },
   server: {
     proxy: {
       "/auth": "http://localhost:3000",

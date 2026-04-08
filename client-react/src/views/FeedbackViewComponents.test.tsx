@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, expect, it, vi, beforeEach } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { createElement } from "react";
 import { ConfirmationView, FeedbackListView } from "./FeedbackView";
@@ -13,22 +13,34 @@ vi.mock("../utils/pageTransitions", () => ({
 describe("ConfirmationView", () => {
   const bugItem: FeedbackItem = {
     id: "fb-123",
+    userId: "user-1",
     type: "bug",
     title: "App crashes on login",
-    description: "Every time I try to login",
-    steps: "",
-    environment: "",
+    body: "Every time I try to login",
+    screenshotUrl: null,
+    pageUrl: null,
+    userAgent: null,
+    appVersion: null,
+    status: "new",
     githubIssueUrl: null,
     createdAt: "2026-04-07T00:00:00.000Z",
+    updatedAt: "2026-04-07T00:00:00.000Z",
   };
 
   const featureItem: FeedbackItem = {
     id: "fb-456",
+    userId: "user-1",
     type: "feature",
     title: "Add dark mode",
-    description: "Would be nice to have dark mode",
+    body: "Would be nice to have dark mode",
+    screenshotUrl: null,
+    pageUrl: null,
+    userAgent: null,
+    appVersion: null,
+    status: "new",
     githubIssueUrl: null,
     createdAt: "2026-04-07T00:00:00.000Z",
+    updatedAt: "2026-04-07T00:00:00.000Z",
   };
 
   it("shows bug report confirmation message", () => {
@@ -73,9 +85,33 @@ describe("ConfirmationView", () => {
 
 describe("FeedbackListView", () => {
   const sampleItems: UserFeedbackListItem[] = [
-    { id: "fb-1", title: "Login broken", type: "bug", status: "new", createdAt: "2026-04-01T00:00:00.000Z", githubIssueUrl: null as unknown as string | undefined },
-    { id: "fb-2", title: "Dark mode Please", type: "feature", status: "triaged", createdAt: "2026-03-15T00:00:00.000Z", githubIssueUrl: "https://github.com/example/1" },
-    { id: "fb-3", title: "General feedback", type: "general", status: "resolved", createdAt: "2026-02-20T00:00:00.000Z", githubIssueUrl: null as unknown as string | undefined },
+    {
+      id: "fb-1",
+      title: "Login broken",
+      type: "bug",
+      status: "new",
+      createdAt: "2026-04-01T00:00:00.000Z",
+      updatedAt: "2026-04-01T00:00:00.000Z",
+      githubIssueUrl: null,
+    },
+    {
+      id: "fb-2",
+      title: "Dark mode Please",
+      type: "feature",
+      status: "triaged",
+      createdAt: "2026-03-15T00:00:00.000Z",
+      updatedAt: "2026-03-15T00:00:00.000Z",
+      githubIssueUrl: "https://github.com/example/1",
+    },
+    {
+      id: "fb-3",
+      title: "General feedback",
+      type: "general",
+      status: "resolved",
+      createdAt: "2026-02-20T00:00:00.000Z",
+      updatedAt: "2026-02-20T00:00:00.000Z",
+      githubIssueUrl: null,
+    },
   ];
 
   it("renders empty state when no items", () => {

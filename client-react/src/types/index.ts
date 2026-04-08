@@ -76,6 +76,8 @@ export interface Project {
   id: string;
   name: string;
   description?: string | null;
+  /** Distinct from short `description`; shown as goal / planning notes in the project editor. */
+  goal?: string | null;
   status: "active" | "on_hold" | "completed" | "archived";
   priority?: Priority | null;
   area?: string | null;
@@ -149,6 +151,7 @@ export interface CreateTodoDto {
   status?: TodoStatus;
   completed?: boolean;
   projectId?: string | null;
+  headingId?: string | null;
   category?: string | null;
   dueDate?: string | null;
   startDate?: string | null;
