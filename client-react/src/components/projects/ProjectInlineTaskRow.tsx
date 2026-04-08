@@ -40,8 +40,7 @@ export function ProjectInlineTaskRow({
     setNotesDraft(todo.notes ?? "");
   }, [todo.id, todo.title, todo.notes]);
 
-  const moveValue =
-    todo.headingId ?? PROJECT_RAIL_BACKLOG_SENTINEL;
+  const moveValue = todo.headingId ?? PROJECT_RAIL_BACKLOG_SENTINEL;
 
   return (
     <div className="project-editor__task-row" data-task-id={todo.id}>
@@ -74,7 +73,6 @@ export function ProjectInlineTaskRow({
               <span className="project-editor__stat-label">Status</span>
               <select
                 className="project-editor__select"
-                style={{ marginTop: "0.25rem", border: "none", padding: 0 }}
                 value={todo.status}
                 onChange={(e) =>
                   void onSave(todo.id, {
@@ -102,15 +100,11 @@ export function ProjectInlineTaskRow({
             </label>
             <label className="project-editor__mini-field">
               <span className="project-editor__stat-label">Effort</span>
-              <span
-                className="project-editor__stat-value"
-                style={{ marginTop: "0.2rem", fontSize: "0.85rem" }}
-              >
+              <span className="project-editor__stat-value">
                 {effortDisplayLabel(todo)}
               </span>
               <select
                 className="project-editor__select"
-                style={{ marginTop: "0.35rem" }}
                 value={todo.energy ?? ""}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -127,25 +121,16 @@ export function ProjectInlineTaskRow({
             </label>
             <div className="project-editor__mini-field">
               <span className="project-editor__stat-label">Owner</span>
-              <span
-                className="project-editor__stat-value"
-                style={{ marginTop: "0.25rem", fontSize: "0.9rem" }}
-              >
-                Me
-              </span>
+              <span className="project-editor__stat-value">Me</span>
             </div>
             <label className="project-editor__mini-field">
               <span className="project-editor__stat-label">Due</span>
-              <span
-                className="project-editor__stat-value"
-                style={{ marginTop: "0.2rem", fontSize: "0.75rem" }}
-              >
+              <span className="project-editor__stat-value">
                 {formatDueFriendly(todo.dueDate)}
               </span>
               <input
                 type="date"
                 className="project-editor__input"
-                style={{ marginTop: "0.25rem" }}
                 value={todo.dueDate ? todo.dueDate.split("T")[0] : ""}
                 onChange={(e) => {
                   const v = e.target.value;
@@ -158,7 +143,6 @@ export function ProjectInlineTaskRow({
           </div>
           <textarea
             className="project-editor__desc-input"
-            style={{ minHeight: "3.5rem" }}
             value={notesDraft}
             placeholder="Notes…"
             onChange={(e) => setNotesDraft(e.target.value)}
@@ -172,7 +156,10 @@ export function ProjectInlineTaskRow({
           />
         </div>
         <div className="project-editor__task-side">
-          <label className="project-editor__field-label" htmlFor={`move-${todo.id}`}>
+          <label
+            className="project-editor__field-label"
+            htmlFor={`move-${todo.id}`}
+          >
             Section
           </label>
           <select
@@ -181,8 +168,7 @@ export function ProjectInlineTaskRow({
             value={moveValue}
             onChange={(e) => {
               const v = e.target.value;
-              const headingId =
-                v === PROJECT_RAIL_BACKLOG_SENTINEL ? null : v;
+              const headingId = v === PROJECT_RAIL_BACKLOG_SENTINEL ? null : v;
               void onSave(todo.id, { headingId });
             }}
           >
