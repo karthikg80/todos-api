@@ -1,0 +1,438 @@
+/* v1: Single-page project editor (replaces tabbed workspace). Uses app design tokens. */
+
+.project-editor {
+  --project-editor-radius: var(--radius-lg, 16px);
+  --project-editor-card-bg: var(--surface-elevated, var(--surface));
+  --project-editor-border: 1px solid var(--border-subtle, var(--border));
+  max-width: 112rem;
+  margin: 0 auto;
+  padding: var(--space-4, 1rem) var(--space-4, 1rem) var(--space-8, 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 1.25rem);
+}
+
+.project-editor__header-card {
+  background: var(--project-editor-card-bg);
+  border: var(--project-editor-border);
+  border-radius: calc(var(--project-editor-radius) * 1.5);
+  padding: var(--space-5, 1.25rem);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%));
+}
+
+.project-editor__header-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6, 1.5rem);
+}
+
+@media (min-width: 1024px) {
+  .project-editor__header-grid {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+}
+
+.project-editor__header-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 1rem);
+}
+
+.project-editor__eyebrow {
+  font-size: var(--fs-meta, 0.7rem);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.project-editor__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3, 0.75rem);
+}
+
+.project-editor__title-input {
+  flex: 1;
+  min-width: 12rem;
+  max-width: 36rem;
+  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: var(--project-editor-radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.project-editor__title-input:focus {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
+}
+
+.project-editor__pill {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: var(--fs-small, 0.85rem);
+  font-weight: 500;
+  background: var(--surface-muted, color-mix(in oklab, var(--text) 6%, transparent));
+  color: var(--text-secondary, var(--text));
+}
+
+.project-editor__pill--success {
+  background: color-mix(in oklab, var(--success) 12%, transparent);
+  color: var(--success);
+}
+
+.project-editor__desc-input {
+  width: 100%;
+  min-height: 5.5rem;
+  resize: vertical;
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: var(--project-editor-radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-body, 1rem);
+  line-height: 1.5;
+}
+
+.project-editor__stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3, 0.75rem);
+}
+
+@media (min-width: 768px) {
+  .project-editor__stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.project-editor__stat {
+  border: var(--project-editor-border);
+  border-radius: var(--project-editor-radius);
+  background: var(--surface-muted, color-mix(in oklab, var(--text) 4%, transparent));
+  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+}
+
+.project-editor__stat-label {
+  font-size: var(--fs-meta, 0.7rem);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.project-editor__stat-value {
+  display: block;
+  margin-top: var(--space-2, 0.5rem);
+  font-size: var(--fs-title-sm, 1.05rem);
+  font-weight: 600;
+}
+
+.project-editor__settings-column {
+  width: 100%;
+  max-width: 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 0.75rem);
+}
+
+@media (min-width: 1024px) {
+  .project-editor__settings-column {
+    flex-shrink: 0;
+  }
+}
+
+.project-editor__settings-card {
+  border: var(--project-editor-border);
+  border-radius: var(--project-editor-radius);
+  background: var(--surface-muted, color-mix(in oklab, var(--text) 4%, transparent));
+  padding: var(--space-4, 1rem);
+}
+
+.project-editor__settings-title {
+  font-size: var(--fs-small, 0.9rem);
+  font-weight: 600;
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.project-editor__field-label {
+  display: block;
+  font-size: var(--fs-small, 0.85rem);
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.project-editor__input,
+.project-editor__select,
+.project-editor__textarea {
+  width: 100%;
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: calc(var(--project-editor-radius) * 0.85);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--fs-small, 0.9rem);
+}
+
+.project-editor__textarea {
+  min-height: 6rem;
+  resize: vertical;
+}
+
+.project-editor__actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+}
+
+.project-editor__body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5, 1.25rem);
+  align-items: start;
+}
+
+@media (min-width: 1280px) {
+  .project-editor__body {
+    grid-template-columns: 17rem minmax(0, 1fr);
+  }
+}
+
+.project-editor__rail,
+.project-editor__panel {
+  background: var(--project-editor-card-bg);
+  border: var(--project-editor-border);
+  border-radius: calc(var(--project-editor-radius) * 1.5);
+  padding: var(--space-4, 1rem);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%));
+}
+
+.project-editor__rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2, 0.5rem);
+  margin-bottom: var(--space-3, 0.75rem);
+}
+
+.project-editor__rail-title {
+  font-size: var(--fs-title-sm, 1.05rem);
+  font-weight: 600;
+}
+
+.project-editor__section-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+.project-editor__section-btn {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2, 0.5rem);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-3, 0.75rem);
+  border: var(--project-editor-border);
+  border-radius: var(--project-editor-radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.project-editor__section-btn:hover {
+  border-color: var(--accent);
+}
+
+.project-editor__section-btn--active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.project-editor__section-count {
+  flex-shrink: 0;
+  font-size: var(--fs-meta, 0.75rem);
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: var(--surface-muted, color-mix(in oklab, var(--text) 6%, transparent));
+  color: var(--text-secondary);
+}
+
+.project-editor__add-section {
+  margin-top: var(--space-3, 0.75rem);
+}
+
+.project-editor__main-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 1.25rem);
+}
+
+.project-editor__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 0.75rem);
+}
+
+@media (min-width: 640px) {
+  .project-editor__toolbar {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.project-editor__toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+  align-items: center;
+}
+
+.project-editor__next-card {
+  border: 2px solid var(--text, currentColor);
+  border-radius: var(--project-editor-radius);
+  padding: var(--space-4, 1rem);
+  background: var(--surface-muted, color-mix(in oklab, var(--text) 4%, transparent));
+}
+
+.project-editor__next-title-input {
+  width: 100%;
+  font-size: var(--fs-title, 1.25rem);
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text);
+}
+
+.project-editor__next-title-input:focus {
+  outline: none;
+}
+
+.project-editor__mini-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2, 0.5rem);
+  margin-top: var(--space-3, 0.75rem);
+}
+
+@media (min-width: 768px) {
+  .project-editor__mini-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.project-editor__mini-field {
+  display: block;
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  border: 1px solid var(--border-subtle, var(--border));
+  border-radius: calc(var(--project-editor-radius) * 0.85);
+  background: var(--surface);
+}
+
+.project-editor__task-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 0.75rem);
+}
+
+.project-editor__task-row {
+  border: var(--project-editor-border);
+  border-radius: var(--project-editor-radius);
+  padding: var(--space-3, 0.75rem);
+}
+
+.project-editor__task-row-inner {
+  display: flex;
+  gap: var(--space-3, 0.75rem);
+  align-items: flex-start;
+}
+
+.project-editor__task-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+.project-editor__task-side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 0.5rem);
+}
+
+.project-editor__task-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
+.project-editor__task-index {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--surface-muted, color-mix(in oklab, var(--text) 6%, transparent));
+  font-size: var(--fs-small, 0.85rem);
+  font-weight: 600;
+}
+
+.project-editor__task-title-input {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: var(--fs-body, 1rem);
+}
+
+.project-editor__task-title-input:focus {
+  outline: 2px solid var(--focus-ring, var(--accent));
+  outline-offset: 1px;
+  border-radius: 4px;
+}
+
+.project-editor__quick-add {
+  border-style: dashed;
+}
+
+.project-editor__context-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+  margin-bottom: var(--space-2, 0.5rem);
+}
+
+.project-editor__context-pill {
+  font-size: var(--fs-meta, 0.75rem);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-muted, color-mix(in oklab, var(--text) 6%, transparent));
+}
+
+.project-editor__load,
+.project-editor__error {
+  padding: var(--space-4, 1rem);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.project-editor__error {
+  color: var(--danger);
+}

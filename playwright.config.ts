@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 const uiPort = Number.parseInt(process.env.UI_PORT || "4173", 10);
 const baseURL = process.env.PLAYWRIGHT_BASE_URL || `http://127.0.0.1:${uiPort}`;
+/** Health URL for webServer / reuse checks (Vite React app lives under /app/). */
+const webServerUrl =
+  process.env.PLAYWRIGHT_WEB_SERVER_URL || `http://127.0.0.1:${uiPort}/app/`;
 
 export default defineConfig({
   testDir: "./tests/ui",
@@ -48,8 +51,9 @@ export default defineConfig({
   ],
   webServer: {
     command: `UI_PORT=${uiPort} node scripts/ui-static-server.mjs`,
-    url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    url: webServerUrl,
+    // CI runs `start-server-and-test preview:react` first; reuse that server instead of double-binding 4173.
+    reuseExistingServer: true,
     timeout: 30_000,
   },
 });
