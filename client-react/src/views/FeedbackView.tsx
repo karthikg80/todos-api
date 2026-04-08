@@ -35,7 +35,6 @@ function statusClass(status: string): string {
     case "new": return "feedback-list__status--new";
     case "triaged": return "feedback-list__status--triaged";
     case "promoted": return "feedback-list__status--promoted";
-    case "rejected": return "feedback-list__status--rejected";
     default: return "feedback-list__status--new";
   }
 }
@@ -57,7 +56,7 @@ function typeClass(type: string): string {
   }
 }
 
-function ConfirmationView({
+export function ConfirmationView({
   item,
   onSendAnother,
 }: {
@@ -92,7 +91,7 @@ function ConfirmationView({
   );
 }
 
-function FeedbackListView({
+export function FeedbackListView({
   items,
   loading,
   onNew,
