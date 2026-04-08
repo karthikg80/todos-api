@@ -1414,71 +1414,94 @@ export async function addPlanTasksToTodos() {
   updatePlanGenerateButtonState();
   renderPlanPanel();
   try {
-    let created = 0;
-    const createdTempIds = new Set();
-    for (const task of selectedTasks) {
+    const taskPromises = selectedTasks.map(async (task) => {
       const payload = buildPlanTaskCreatePayload(task);
-      const response = await hooks.apiCall(`${hooks.API_URL}/todos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (response && response.ok) {
-        created += 1;
-        createdTempIds.add(task.tempId);
-      } else {
-        const data = response ? await hooks.parseApiBody(response) : {};
-        if (created > 0) {
-          removeAppliedPlanDraftTasks(createdTempIds);
-          await loadTodos();
-          showMessage(
-            "todosMessage",
-            `Created ${created} of ${selectedTasks.length} tasks. Suggestion not marked accepted; fix remaining items and retry.`,
-            "warning",
-          );
-          renderPlanPanel();
-          return;
+      try {
+        const response = await hooks.apiCall(`${hooks.API_URL}/todos`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (response && response.ok) {
+          return { ok: true, tempId: task.tempId };
         }
+        const data = response ? await hooks.parseApiBody(response) : {};
+        return {
+          ok: false,
+          tempId: task.tempId,
+          error: data.error || "Failed to create task",
+        };
+      } catch (err) {
+        return {
+          ok: false,
+          tempId: task.tempId,
+          error: err.message || "Network error",
+        };
+      }
+    });
+
+    const results = await Promise.all(taskPromises);
+    const createdTempIds = new Set();
+    let firstError = null;
+
+    for (const res of results) {
+      if (res.ok) {
+        createdTempIds.add(res.tempId);
+      } else if (!firstError) {
+        firstError = res.error;
+      }
+    }
+
+    const created = createdTempIds.size;
+
+    if (created > 0) {
+      removeAppliedPlanDraftTasks(createdTempIds);
+      await loadTodos();
+    }
+
+    if (created === selectedTasks.length) {
+      const accepted = await updateSuggestionStatus(
+        state.latestPlanSuggestionId,
+        "accepted",
+        getFeedbackReason("planFeedbackReasonInput", "Plan tasks were added"),
+      );
+
+      if (!accepted) {
+        if (state.planDraftState) {
+          state.planDraftState.statusSyncFailed = true;
+        }
+        renderPlanPanel();
         showMessage(
           "todosMessage",
-          data.error || "Failed to apply one or more planned tasks",
-          "error",
+          `Added ${created} AI-planned task(s), but could not mark suggestion accepted. Retry.`,
+          "warning",
         );
         return;
       }
-    }
 
-    removeAppliedPlanDraftTasks(createdTempIds);
-
-    const accepted = await updateSuggestionStatus(
-      state.latestPlanSuggestionId,
-      "accepted",
-      getFeedbackReason("planFeedbackReasonInput", "Plan tasks were added"),
-    );
-
-    await loadTodos();
-    if (!accepted) {
-      if (state.planDraftState) {
-        state.planDraftState.statusSyncFailed = true;
-      }
+      state.latestPlanSuggestionId = null;
+      state.latestPlanResult = null;
+      clearPlanDraftState();
       renderPlanPanel();
       showMessage(
         "todosMessage",
-        `Added ${created} AI-planned task(s), but could not mark suggestion accepted. Retry.`,
+        `Added ${created} AI-planned task(s)`,
+        "success",
+      );
+    } else if (created > 0) {
+      showMessage(
+        "todosMessage",
+        `Created ${created} of ${selectedTasks.length} tasks. Suggestion not marked accepted; fix remaining items and retry.`,
         "warning",
       );
-      return;
+      renderPlanPanel();
+    } else {
+      showMessage(
+        "todosMessage",
+        firstError || "Failed to apply one or more planned tasks",
+        "error",
+      );
     }
-
-    state.latestPlanSuggestionId = null;
-    state.latestPlanResult = null;
-    clearPlanDraftState();
-    renderPlanPanel();
-    showMessage(
-      "todosMessage",
-      `Added ${created} AI-planned task(s)`,
-      "success",
-    );
   } catch (error) {
     console.error("Apply planned tasks error:", error);
     showMessage("todosMessage", "Failed to apply AI suggestion", "error");
