@@ -1,0 +1,33 @@
+name: Production Release Train
+
+on:
+  schedule:
+    - cron: "13 9 * * 1-5" # 09:13 UTC Mon-Fri (off :00 to avoid GitHub queue congestion)
+  workflow_dispatch:
+    inputs:
+      is_hotfix:
+        description: "Bypass daily limit for emergency hotfix"
+        type: boolean
+        default: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Run Release Train
+        env:
+          IS_HOTFIX: ${{ inputs.is_hotfix }}
+        run: |
+          chmod +x scripts/create-production-release.sh
+          ./scripts/create-production-release.sh
