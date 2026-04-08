@@ -63,6 +63,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install client-react dependencies
+        run: npm ci --prefix client-react
+
+      - name: Build React app
+        run: npm run build:react
+
       - name: Get Playwright version
         id: pw-version
         run: echo "version=$(node -e "console.log(require('@playwright/test/package.json').version)")" >> "$GITHUB_OUTPUT"
