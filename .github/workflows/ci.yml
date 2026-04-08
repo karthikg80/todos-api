@@ -3,42 +3,83 @@ name: CI
 on:
   push:
     branches: [master]
+    tags: ["v*"]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
 
 jobs:
-  detect-changes:
+  # ─────────────────────────────────────────────────────────────
+  # 1. Change detection (single source of truth)
+  # ─────────────────────────────────────────────────────────────
+  changes:
     runs-on: ubuntu-latest
     outputs:
-      shared_contracts: ${{ steps.decide.outputs.shared_contracts }}
+      code: ${{ steps.filter.outputs.code }}
+      backend: ${{ steps.filter.outputs.backend }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      ui_tests: ${{ steps.filter.outputs.ui_tests }}
+      shared_contracts: ${{ steps.filter.outputs.shared_contracts }}
+      workflow: ${{ steps.filter.outputs.workflow }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Check for shared contract changes
-        id: filter
-        if: github.event_name == 'pull_request'
+      - name: Detect changed paths
         uses: dorny/paths-filter@v3
+        id: filter
         with:
           filters: |
+            code:
+              - 'src/**'
+              - 'prisma/**'
+              - 'scripts/**'
+              - 'client-react/**'
+              - 'tests/**'
+              - 'jest.*.js'
+              - 'jest.config.js'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'playwright.config.ts'
+            backend:
+              - 'src/**'
+              - 'prisma/**'
+              - 'scripts/**'
+              - 'jest.*.js'
+              - 'jest.config.js'
+              - 'package.json'
+              - 'package-lock.json'
+            frontend:
+              - 'client-react/**'
+              - 'playwright.config.ts'
+              - 'package.json'
+              - 'package-lock.json'
+            ui_tests:
+              - 'tests/ui/**'
             shared_contracts:
               - 'src/types.ts'
               - 'src/validation/constants.ts'
+            workflow:
+              - '.github/workflows/**'
 
-      - name: Decide whether to run cross-client sync
-        id: decide
-        run: |
-          if [ "${{ github.event_name }}" = "push" ]; then
-            echo "shared_contracts=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "shared_contracts=${{ steps.filter.outputs.shared_contracts }}" >> "$GITHUB_OUTPUT"
-          fi
-
-  cross-client-sync:
-    needs: detect-changes
-    if: needs.detect-changes.outputs.shared_contracts == 'true'
-    runs-on: macos-latest
-    timeout-minutes: 15
-
+  # ─────────────────────────────────────────────────────────────
+  # 2a. Fast feedback — lint (PRs: only when code changed)
+  # ─────────────────────────────────────────────────────────────
+  lint:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -46,7 +87,215 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+  # ─────────────────────────────────────────────────────────────
+  # 2b. Fast feedback — typecheck (PRs: only when code changed)
+  # ─────────────────────────────────────────────────────────────
+  typecheck:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck (backend)
+        run: npx tsc --noEmit
+
+  # ─────────────────────────────────────────────────────────────
+  # 2c. Fast feedback — architecture guard (PRs: code changes)
+  # ─────────────────────────────────────────────────────────────
+  architecture:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Architecture guard
+        run: npm run check:architecture
+
+  # ─────────────────────────────────────────────────────────────
+  # 2d. Fast feedback — audit prod deps (PRs: code changes)
+  # ─────────────────────────────────────────────────────────────
+  audit:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Audit production dependencies
+        run: npm run audit:prod
+
+  # ─────────────────────────────────────────────────────────────
+  # 2e. Fast feedback — unit tests (PRs: code changes)
+  # ─────────────────────────────────────────────────────────────
+  unit-tests:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Unit tests
+        run: npm run test:unit
+
+  # ─────────────────────────────────────────────────────────────
+  # 2f. Integration tests (PRs: backend/shared/workflow changes)
+  # ─────────────────────────────────────────────────────────────
+  integration:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.backend == 'true' ||
+      needs.changes.outputs.shared_contracts == 'true' ||
+      needs.changes.outputs.workflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: todos_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d todos_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/todos_test?schema=public
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/todos_test?schema=public
+      JWT_SECRET: ci-jwt-secret
+      NODE_ENV: test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Apply Prisma migrations
+        run: npm run prisma:migrate:deploy
+
+      - name: Integration tests
+        run: npm run test:integration
+
+  # ─────────────────────────────────────────────────────────────
+  # 2g. MCP tests (PRs: backend/shared/workflow changes)
+  # ─────────────────────────────────────────────────────────────
+  mcp:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.backend == 'true' ||
+      needs.changes.outputs.shared_contracts == 'true' ||
+      needs.changes.outputs.workflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: MCP tests
+        run: npm run test:mcp
+
+  # ─────────────────────────────────────────────────────────────
+  # 3. Cross-client sync (only when shared contracts change or on master)
+  # ─────────────────────────────────────────────────────────────
+  cross-client-sync:
+    needs: changes
+    if: >-
+      needs.changes.outputs.shared_contracts == 'true' ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/master')
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       - name: Install root dependencies
@@ -64,9 +313,19 @@ jobs:
         working-directory: client-react
         run: npx tsc --noEmit
 
-  unit:
+  # ─────────────────────────────────────────────────────────────
+  # 4. Build UI (once, upload artifact)
+  # Runs on master / tags / manual always; on PRs only when UI-relevant paths changed.
+  # ─────────────────────────────────────────────────────────────
+  build-ui:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.frontend == 'true' ||
+      needs.changes.outputs.ui_tests == 'true' ||
+      needs.changes.outputs.shared_contracts == 'true'
     runs-on: ubuntu-latest
-
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -74,30 +333,41 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - name: Install
+      - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck
-        run: npx tsc --noEmit
+      - name: Install client-react dependencies
+        run: npm ci --prefix client-react
 
-      - name: Architecture guard
-        run: npm run check:architecture
+      - name: Build React app
+        run: npm run build:react
 
-      - name: Format check
-        run: npm run format:check
+      - name: Upload UI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-build
+          path: |
+            client-react/dist/
+            client-react/dist-landing/
+            client-react/dist-auth/
+          retention-days: 1
+          if-no-files-found: error
 
-      - name: Audit production dependencies
-        run: npm run audit:prod
-
-      - name: Unit tests
-        run: npm run test:unit
-
-  mcp:
+  # ─────────────────────────────────────────────────────────────
+  # 5. UI smoke tests (PRs only, when relevant paths changed)
+  # ─────────────────────────────────────────────────────────────
+  ui-smoke:
+    needs: [changes, build-ui]
+    if: >-
+      github.event_name == 'pull_request' &&
+      (needs.changes.outputs.frontend == 'true' ||
+       needs.changes.outputs.ui_tests == 'true' ||
+       needs.changes.outputs.shared_contracts == 'true')
     runs-on: ubuntu-latest
-
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -105,39 +375,80 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - name: Install
+      - name: Install dependencies
         run: npm ci
 
-      - name: MCP tests
-        run: npm run test:mcp
+      - name: Download UI build
+        uses: actions/download-artifact@v4
+        with:
+          name: ui-build
 
-  integration:
+      - name: Verify tests/ui exists
+        id: check-ui-tests
+        run: |
+          if [ -d "tests/ui" ] && [ "$(find tests/ui -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) | head -1)" ]; then
+            echo "ui_tests_present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ui_tests_present=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::tests/ui/ is missing or has no spec/test files — smoke skipped"
+          fi
+
+      - name: Get Playwright version
+        if: steps.check-ui-tests.outputs.ui_tests_present == 'true'
+        id: pw-version
+        run: |
+          PW_VERSION=$(node -p "require('@playwright/test/package.json').version")
+          echo "version=$PW_VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        if: steps.check-ui-tests.outputs.ui_tests_present == 'true'
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.pw-version.outputs.version }}-chromium
+          restore-keys: |
+            playwright-chromium
+
+      - name: Install Playwright browser
+        if: steps.check-ui-tests.outputs.ui_tests_present == 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Run UI smoke (fast tier)
+        if: steps.check-ui-tests.outputs.ui_tests_present == 'true'
+        run: npm run test:ui:fast
+
+      - name: Upload Playwright report
+        if: always() && steps.check-ui-tests.outputs.ui_tests_present == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-smoke
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 1
+          if-no-files-found: ignore
+
+  # ─────────────────────────────────────────────────────────────
+  # 6. UI E2E (master, v* tags, workflow_dispatch — sharded 4 ways)
+  # Runs the full functional E2E suite minus @visual (visual regression is handled
+  # separately by ui-visual.yml on a schedule). test:ui:fast is the correct
+  # release-tier command here — @visual is excluded intentionally, not an accident.
+  # ─────────────────────────────────────────────────────────────
+  ui-e2e:
+    needs: [changes, build-ui]
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/master') ||
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: todos_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d todos_test"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 10
-
-    env:
-      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/todos_test?schema=public
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/todos_test?schema=public
-      JWT_SECRET: ci-jwt-secret
-      NODE_ENV: test
-
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/4, 2/4, 3/4, 4/4]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -145,20 +456,54 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
-      - name: Install
+      - name: Install dependencies
         run: npm ci
 
-      - name: Apply Prisma migrations
-        run: npm run prisma:migrate:deploy
+      - name: Download UI build
+        uses: actions/download-artifact@v4
+        with:
+          name: ui-build
 
-      - name: Prisma migration status
-        run: npm run prisma:migrate:status
+      - name: Verify tests/ui exists — must fail on release/manual
+        id: check-ui-tests
+        run: |
+          if [ -d "tests/ui" ] && [ "$(find tests/ui -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) | head -1)" ]; then
+            echo "ui_tests_present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::tests/ui/ is missing or has no spec/test files — E2E cannot run on release/manual trigger"
+            exit 1
+          fi
 
-      - name: Prisma migration consistency
-        run: npm run prisma:migrate:check
+      - name: Get Playwright version
+        id: pw-version
+        run: |
+          PW_VERSION=$(node -p "require('@playwright/test/package.json').version")
+          echo "version=$PW_VERSION" >> "$GITHUB_OUTPUT"
 
-      - name: Integration tests
-        run: npm run test:integration
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.pw-version.outputs.version }}-chromium
+          restore-keys: |
+            playwright-chromium
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Run UI E2E (shard ${{ matrix.shard }})
+        run: npm run test:ui:fast -- --shard=${{ matrix.shard }}
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-e2e-${{ strategy.job-index }}
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 1
+          if-no-files-found: ignore
