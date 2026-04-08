@@ -89,7 +89,6 @@ export function ProjectNextActionCard({
             <span className="project-editor__stat-label">Status</span>
             <select
               className="project-editor__select"
-              style={{ marginTop: "0.25rem", border: "none", padding: 0 }}
               value={nextTask.status}
               onChange={(e) =>
                 void onSave(nextTask.id, {
@@ -117,34 +116,22 @@ export function ProjectNextActionCard({
           </label>
           <div className="project-editor__mini-field">
             <span className="project-editor__stat-label">Effort</span>
-            <span
-              className="project-editor__stat-value"
-              style={{ marginTop: "0.25rem", fontSize: "0.9rem" }}
-            >
+            <span className="project-editor__stat-value">
               {effortDisplayLabel(nextTask)}
             </span>
           </div>
           <div className="project-editor__mini-field">
             <span className="project-editor__stat-label">Owner</span>
-            <span
-              className="project-editor__stat-value"
-              style={{ marginTop: "0.25rem", fontSize: "0.9rem" }}
-            >
-              Me
-            </span>
+            <span className="project-editor__stat-value">Me</span>
           </div>
           <label className="project-editor__mini-field">
             <span className="project-editor__stat-label">Due</span>
-            <span
-              className="project-editor__stat-value"
-              style={{ marginTop: "0.25rem", fontSize: "0.8rem" }}
-            >
+            <span className="project-editor__stat-value">
               {formatDueFriendly(nextTask.dueDate)}
             </span>
             <input
               type="date"
               className="project-editor__input"
-              style={{ marginTop: "0.35rem" }}
               value={nextTask.dueDate ? nextTask.dueDate.split("T")[0] : ""}
               onChange={(e) => {
                 const v = e.target.value;
@@ -157,7 +144,6 @@ export function ProjectNextActionCard({
         </div>
         <textarea
           className="project-editor__desc-input"
-          style={{ minHeight: "4rem", marginTop: "0.75rem" }}
           value={notesDraft}
           placeholder="Notes…"
           onChange={(e) => setNotesDraft(e.target.value)}

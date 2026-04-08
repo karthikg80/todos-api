@@ -39,8 +39,9 @@ export function ProjectEditorRail({
         <div className="project-editor__rail-head">
           <h2 className="project-editor__rail-title">Structure</h2>
         </div>
-        <p className="project-editor__field-label" style={{ marginBottom: "0.5rem" }}>
-          Filter tasks by section. &quot;All tasks&quot; clears the section filter.
+        <p className="project-editor__field-label">
+          Filter tasks by section. &quot;All tasks&quot; clears the section
+          filter.
         </p>
         <div className="project-editor__section-list">
           <button
@@ -49,9 +50,7 @@ export function ProjectEditorRail({
             id="projectEditorFilterAll"
             onClick={() => onSelectHeading(null)}
           >
-            <span className="project-editor__stat-value" style={{ margin: 0, fontSize: "0.95rem" }}>
-              All tasks
-            </span>
+            <span className="project-editor__stat-value">All tasks</span>
           </button>
           {rows.map((row) => {
             const isBacklog = row.key === PROJECT_RAIL_BACKLOG_SENTINEL;
@@ -67,11 +66,13 @@ export function ProjectEditorRail({
                 onClick={() => onSelectHeading(row.key)}
               >
                 <span>
-                  <span className="project-editor__stat-value" style={{ margin: 0, fontSize: "0.95rem" }}>
+                  <span className="project-editor__stat-value">
                     {row.label}
                   </span>
                 </span>
-                <span className="project-editor__section-count">{row.count}</span>
+                <span className="project-editor__section-count">
+                  {row.count}
+                </span>
               </button>
             );
           })}

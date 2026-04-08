@@ -87,19 +87,15 @@ export function ProjectInlineTaskList({
         ))}
       </div>
 
-      <div className="project-editor__panel project-editor__quick-add" style={{ marginTop: "1rem" }}>
+      <div className="project-editor__panel project-editor__quick-add">
         <h2 className="project-editor__rail-title">Quick add</h2>
         <p className="project-editor__field-label">
           Capture work without leaving the page.
         </p>
-        <div
-          className="project-editor__toolbar-actions"
-          style={{ marginTop: "0.75rem", alignItems: "stretch" }}
-        >
+        <div className="project-editor__toolbar-actions">
           <input
             type="text"
             className="project-editor__input"
-            style={{ flex: 1, minWidth: "12rem" }}
             placeholder="Add a task, reminder, or follow-up"
             value={quickAddTitle}
             onChange={(e) => onQuickAddTitleChange(e.target.value)}
@@ -109,7 +105,6 @@ export function ProjectInlineTaskList({
           />
           <select
             className="project-editor__select"
-            style={{ minWidth: "10rem" }}
             value={quickAddHeadingId ?? ""}
             onChange={(e) => {
               const v = e.target.value;
