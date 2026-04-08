@@ -3,7 +3,7 @@
 //
 // Usage:
 //   const store = createStore({ count: 0 });
-//   const unsub = store.subscribe((state) => console.log(state.count));
+//   const unsub = store.subscribe((state) => { /* handle state changes */ });
 //   store.update((s) => { s.count += 1; });      // notifies subscribers
 //   const current = store.getState();             // { count: 1 }
 //   unsub();                                       // removes listener
