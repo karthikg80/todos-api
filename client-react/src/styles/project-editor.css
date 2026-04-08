@@ -1,29 +1,28 @@
-/* v1: Single-page project editor (replaces tabbed workspace). Uses app design tokens. */
+/* Project editor — visual language aligned with main task list (Everything) via shared tokens. */
 
 .project-editor {
-  --project-editor-radius: var(--radius-lg, 16px);
-  --project-editor-card-bg: var(--surface-elevated, var(--surface));
-  --project-editor-border: 1px solid var(--border-subtle, var(--border));
   max-width: 112rem;
   margin: 0 auto;
-  padding: var(--space-4, 1rem) var(--space-4, 1rem) var(--space-8, 2rem);
+  padding: var(--s-3) var(--s-4) var(--s-5);
   display: flex;
   flex-direction: column;
-  gap: var(--space-5, 1.25rem);
+  gap: var(--s-3);
 }
 
+/* --- Header strip (soft; matches content flow + quick-entry adjacency) --- */
 .project-editor__header-card {
-  background: var(--project-editor-card-bg);
-  border: var(--project-editor-border);
-  border-radius: calc(var(--project-editor-radius) * 1.5);
-  padding: var(--space-5, 1.25rem);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%));
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  padding: var(--s-2) 0 var(--s-4);
+  box-shadow: none;
 }
 
 .project-editor__header-grid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6, 1.5rem);
+  gap: var(--s-4);
 }
 
 @media (min-width: 1024px) {
@@ -39,111 +38,171 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4, 1rem);
+  gap: var(--s-3);
 }
 
 .project-editor__eyebrow {
-  font-size: var(--fs-meta, 0.7rem);
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .project-editor__title-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3, 0.75rem);
+  gap: var(--s-2) var(--s-3);
 }
 
+/* Title: task-detail style — flat, not boxed */
 .project-editor__title-input {
   flex: 1;
   min-width: 12rem;
   max-width: 36rem;
-  font-size: clamp(1.5rem, 2.5vw, 2.25rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-  border: 1px solid var(--border-subtle, var(--border));
-  border-radius: var(--project-editor-radius);
-  background: var(--surface);
-  color: var(--text);
+  font-size: var(--fs-xl);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-tight);
+  padding: var(--s-2) var(--s-1);
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  background: transparent;
+  color: var(--text-strong);
+  font-family: inherit;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.project-editor__title-input:hover {
+  border-bottom-color: color-mix(in oklab, var(--border) 70%, var(--text));
 }
 
 .project-editor__title-input:focus {
-  outline: 2px solid var(--focus-ring, var(--accent));
-  outline-offset: 1px;
+  outline: none;
+  border-bottom-color: var(--accent);
+  box-shadow: var(--shadow-focus);
 }
 
+.project-editor__title-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-bottom-color: var(--accent);
+}
+
+/* Chips: match .todo-chip language */
 .project-editor__pill {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
-  padding: 0.2rem 0.65rem;
-  font-size: var(--fs-small, 0.85rem);
-  font-weight: 500;
-  background: var(--surface-muted, color-mix(in oklab, var(--text) 6%, transparent));
-  color: var(--text-secondary, var(--text));
+  gap: var(--s-1);
+  padding: var(--s-1) var(--s-2h);
+  border-radius: var(--r-full);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  border: 1px solid var(--border-light);
+  background: var(--surface-2);
+  color: var(--muted);
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast);
 }
 
 .project-editor__pill--success {
-  background: color-mix(in oklab, var(--success) 12%, transparent);
+  background: color-mix(in oklab, var(--success) 8%, var(--surface));
+  border-color: color-mix(in oklab, var(--success) 25%, var(--border));
   color: var(--success);
 }
 
+/* Description: soft surface like list context, not form chrome */
 .project-editor__desc-input {
   width: 100%;
-  min-height: 5.5rem;
+  min-height: 4.5rem;
   resize: vertical;
-  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
-  border: 1px solid var(--border-subtle, var(--border));
-  border-radius: var(--project-editor-radius);
-  background: var(--surface);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
   color: var(--text);
-  font-size: var(--fs-body, 1rem);
-  line-height: 1.5;
+  font-size: var(--fs-body);
+  line-height: var(--lh-base);
+  font-family: inherit;
+  transition:
+    border-color var(--dur-fast),
+    background var(--dur-fast),
+    box-shadow var(--dur-fast);
 }
 
+.project-editor__desc-input:hover {
+  border-color: var(--border-light);
+}
+
+.project-editor__desc-input:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+  background: var(--surface);
+  box-shadow: var(--shadow-focus);
+}
+
+.project-editor__desc-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Stats: text-led metadata, not dashboard tiles */
 .project-editor__stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3, 0.75rem);
+  gap: var(--s-2) var(--s-4);
+  padding-top: var(--s-2);
+  border-top: 1px solid var(--border-light);
 }
 
 @media (min-width: 768px) {
   .project-editor__stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--s-2) var(--s-5);
   }
 }
 
 .project-editor__stat {
-  border: var(--project-editor-border);
-  border-radius: var(--project-editor-radius);
-  background: var(--surface-muted, color-mix(in oklab, var(--text) 4%, transparent));
-  padding: var(--space-3, 0.75rem) var(--space-4, 1rem);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--s-1) 0;
+  min-width: 0;
 }
 
 .project-editor__stat-label {
-  font-size: var(--fs-meta, 0.7rem);
+  display: block;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  color: var(--muted);
 }
 
 .project-editor__stat-value {
   display: block;
-  margin-top: var(--space-2, 0.5rem);
-  font-size: var(--fs-title-sm, 1.05rem);
-  font-weight: 600;
+  margin-top: var(--s-1);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--text-strong);
+  line-height: var(--lh-tight);
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
+/* --- Settings column: continuous workspace, light sidebar --- */
 .project-editor__settings-column {
   width: 100%;
   max-width: 22rem;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3, 0.75rem);
+  gap: var(--s-3);
 }
 
 @media (min-width: 1024px) {
@@ -153,136 +212,253 @@
 }
 
 .project-editor__settings-card {
-  border: var(--project-editor-border);
-  border-radius: var(--project-editor-radius);
-  background: var(--surface-muted, color-mix(in oklab, var(--text) 4%, transparent));
-  padding: var(--space-4, 1rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-md);
+  background: color-mix(in oklab, var(--surface-2) 85%, transparent);
+  padding: var(--s-3);
+  box-shadow: none;
 }
 
 .project-editor__settings-title {
-  font-size: var(--fs-small, 0.9rem);
-  font-weight: 600;
-  margin-bottom: var(--space-3, 0.75rem);
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: var(--text-strong);
+  margin-bottom: var(--s-3);
+}
+
+.project-editor__settings-card .project-editor__field-label {
+  margin-top: var(--s-3);
+  margin-bottom: var(--s-1);
+}
+
+.project-editor__settings-card
+  .project-editor__settings-title
+  + .project-editor__field-label {
+  margin-top: 0;
+}
+
+.project-editor__settings-card > p.project-editor__field-label {
+  margin-top: var(--s-2);
+  margin-bottom: 0;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-regular);
+  color: var(--muted-light);
+  line-height: var(--lh-relaxed);
 }
 
 .project-editor__field-label {
   display: block;
-  font-size: var(--fs-small, 0.85rem);
-  color: var(--text-muted);
-  margin-bottom: 0.25rem;
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  color: var(--muted);
 }
 
+/* Native controls: softer, task-app tone */
 .project-editor__input,
 .project-editor__select,
 .project-editor__textarea {
   width: 100%;
-  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-  border: 1px solid var(--border-subtle, var(--border));
-  border-radius: calc(var(--project-editor-radius) * 0.85);
+  padding: var(--s-2) var(--s-3);
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-sm);
   background: var(--surface);
   color: var(--text);
-  font-size: var(--fs-small, 0.9rem);
+  font-size: var(--fs-body);
+  font-family: inherit;
+  line-height: var(--lh-base);
+  transition:
+    border-color var(--dur-fast),
+    box-shadow var(--dur-fast),
+    background var(--dur-fast);
+}
+
+.project-editor__input:hover,
+.project-editor__select:hover,
+.project-editor__textarea:hover {
+  border-color: color-mix(in oklab, var(--border) 75%, var(--text));
+}
+
+.project-editor__input:focus,
+.project-editor__select:focus,
+.project-editor__textarea:focus {
+  outline: none;
+  border-color: color-mix(in oklab, var(--accent) 35%, var(--border));
+  box-shadow: var(--shadow-focus);
 }
 
 .project-editor__textarea {
-  min-height: 6rem;
+  min-height: 5.5rem;
   resize: vertical;
 }
 
 .project-editor__actions-row {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--s-2);
 }
 
+.project-editor__actions-row .btn {
+  font-size: var(--fs-meta);
+}
+
+/* --- Body grid --- */
 .project-editor__body {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-5, 1.25rem);
+  gap: var(--s-4);
   align-items: start;
 }
 
 @media (min-width: 1280px) {
   .project-editor__body {
     grid-template-columns: 17rem minmax(0, 1fr);
+    gap: var(--s-5);
+  }
+
+  .project-editor__rail-stack {
+    padding-right: var(--s-4);
+    margin-right: var(--s-1);
+    border-right: 1px solid var(--border-light);
   }
 }
 
-.project-editor__rail,
-.project-editor__panel {
-  background: var(--project-editor-card-bg);
-  border: var(--project-editor-border);
-  border-radius: calc(var(--project-editor-radius) * 1.5);
-  padding: var(--space-4, 1rem);
-  box-shadow: var(--shadow-sm, 0 1px 2px rgb(0 0 0 / 6%));
+.project-editor__rail-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+/* Rail + panels: no floating cards; separation by spacing and light rules */
+.project-editor__rail {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .project-editor__rail-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2, 0.5rem);
-  margin-bottom: var(--space-3, 0.75rem);
+  gap: var(--s-2);
+  margin-bottom: var(--s-2);
 }
 
 .project-editor__rail-title {
-  font-size: var(--fs-title-sm, 1.05rem);
-  font-weight: 600;
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-strong);
 }
 
+.project-editor__rail > .project-editor__field-label {
+  margin-bottom: var(--s-2);
+}
+
+/* Structure nav: workspace-view-item / list filter feel */
 .project-editor__section-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--s-0);
 }
 
 .project-editor__section-btn {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--s-2);
   width: 100%;
   text-align: left;
-  padding: var(--space-3, 0.75rem);
-  border: var(--project-editor-border);
-  border-radius: var(--project-editor-radius);
-  background: var(--surface);
+  padding: var(--s-2) var(--s-3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
   color: var(--text);
   cursor: pointer;
+  font-family: inherit;
+  font-size: var(--fs-body);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
 
 .project-editor__section-btn:hover {
-  border-color: var(--accent);
+  background: var(--surface-2);
+  color: var(--text-strong);
 }
 
 .project-editor__section-btn--active {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px var(--accent);
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  color: var(--accent);
+  box-shadow: none;
+}
+
+.project-editor__section-btn--active:hover {
+  background: color-mix(in oklab, var(--accent) 14%, transparent);
+  color: var(--accent);
+}
+
+.project-editor__section-btn .project-editor__stat-value {
+  margin: 0;
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  color: inherit;
 }
 
 .project-editor__section-count {
   flex-shrink: 0;
-  font-size: var(--fs-meta, 0.75rem);
-  padding: 0.1rem 0.45rem;
-  border-radius: 999px;
-  background: var(--surface-muted, color-mix(in oklab, var(--text) 6%, transparent));
-  color: var(--text-secondary);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  padding: var(--s-1) var(--s-2h);
+  border-radius: var(--r-full);
+  border: 1px solid var(--border-light);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+.project-editor__section-btn--active .project-editor__section-count {
+  background: color-mix(in oklab, var(--accent) 12%, var(--surface));
+  border-color: color-mix(in oklab, var(--accent) 22%, var(--border));
+  color: var(--accent);
 }
 
 .project-editor__add-section {
-  margin-top: var(--space-3, 0.75rem);
+  margin-top: var(--s-2);
+}
+
+.project-editor__add-section .project-editor__input {
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  background: transparent;
+  padding: var(--s-2) var(--s-1);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+}
+
+.project-editor__add-section .project-editor__input::placeholder {
+  color: var(--muted-light);
+}
+
+.project-editor__add-section .project-editor__input:focus {
+  border-bottom-color: var(--accent);
+  box-shadow: none;
 }
 
 .project-editor__main-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--space-5, 1.25rem);
+  gap: var(--s-4);
 }
 
 .project-editor__toolbar {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3, 0.75rem);
+  gap: var(--s-2);
 }
 
 @media (min-width: 640px) {
@@ -296,35 +472,92 @@
 .project-editor__toolbar-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--s-2);
   align-items: center;
 }
 
+.project-editor > .project-editor__toolbar:first-of-type {
+  margin-bottom: var(--s-1);
+}
+
+.project-editor__toolbar:has(#projectEditorFiltersToggle)
+  .project-editor__toolbar-actions {
+  width: 100%;
+  justify-content: space-between;
+}
+
+.project-editor__toolbar-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.project-editor__toolbar-meta .project-editor__field-label {
+  margin: 0;
+}
+
+/* Panel sections in main column */
+.project-editor__main-stack > .project-editor__panel {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
+}
+
+.project-editor__main-stack > .project-editor__panel:first-child {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+.project-editor__main-stack > .project-editor__panel ~ .project-editor__panel {
+  border-top: 1px solid var(--border-light);
+  padding-top: var(--s-4);
+  margin-top: var(--s-1);
+}
+
+.project-editor__panel .project-editor__toolbar {
+  margin-bottom: var(--s-3);
+}
+
+/* Next action inner surface: expanded task row */
 .project-editor__next-card {
-  border: 2px solid var(--text, currentColor);
-  border-radius: var(--project-editor-radius);
-  padding: var(--space-4, 1rem);
-  background: var(--surface-muted, color-mix(in oklab, var(--text) 4%, transparent));
+  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border));
+  border-radius: var(--r-sm);
+  padding: var(--s-3) var(--s-4);
+  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
+  box-shadow: var(--shadow-xs);
 }
 
 .project-editor__next-title-input {
   width: 100%;
-  font-size: var(--fs-title, 1.25rem);
-  font-weight: 600;
+  font-size: var(--fs-section);
+  font-weight: var(--fw-semibold);
   border: none;
   background: transparent;
-  color: var(--text);
+  color: var(--text-strong);
+  font-family: inherit;
+  line-height: var(--lh-tight);
+  padding: var(--s-1) 0;
 }
 
 .project-editor__next-title-input:focus {
   outline: none;
 }
 
+.project-editor__next-title-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
 .project-editor__mini-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2, 0.5rem);
-  margin-top: var(--space-3, 0.75rem);
+  gap: var(--s-2) var(--s-4);
+  margin-top: var(--s-3);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--border-light);
 }
 
 @media (min-width: 768px) {
@@ -335,27 +568,99 @@
 
 .project-editor__mini-field {
   display: block;
-  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
-  border: 1px solid var(--border-subtle, var(--border));
-  border-radius: calc(var(--project-editor-radius) * 0.85);
+  padding: var(--s-2) 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  border-bottom: 1px solid var(--border-light);
+  min-width: 0;
+}
+
+.project-editor__mini-field .project-editor__stat-label {
+  margin-bottom: 0;
+}
+
+.project-editor__mini-field .project-editor__stat-value {
+  margin-top: var(--s-1);
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+
+.project-editor__mini-field .project-editor__select {
+  margin-top: var(--s-1);
+  border: none;
+  padding: var(--s-1) 0;
+  background: transparent;
+  font-size: var(--fs-meta);
+  box-shadow: none;
+}
+
+.project-editor__mini-field .project-editor__select:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+.project-editor__mini-field .project-editor__select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+.project-editor__mini-field .project-editor__input {
+  margin-top: var(--s-1);
+  padding: var(--s-1) 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--fs-meta);
+  box-shadow: none;
+}
+
+.project-editor__mini-field .project-editor__input:focus {
+  box-shadow: none;
+}
+
+.project-editor__mini-field .project-editor__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.project-editor__next-card .project-editor__desc-input {
+  min-height: 4rem;
+  margin-top: var(--s-3);
   background: var(--surface);
 }
 
+/* Task list rows: todo-item rhythm */
 .project-editor__task-list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3, 0.75rem);
+  gap: var(--s-1);
 }
 
 .project-editor__task-row {
-  border: var(--project-editor-border);
-  border-radius: var(--project-editor-radius);
-  padding: var(--space-3, 0.75rem);
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  padding: var(--s-3) var(--s-4);
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+
+.project-editor__task-row:hover {
+  background: var(--surface-2);
+  box-shadow: var(--shadow-xs);
+}
+
+.project-editor__task-row:focus-within {
+  border-color: color-mix(in oklab, var(--accent) 28%, transparent);
 }
 
 .project-editor__task-row-inner {
   display: flex;
-  gap: var(--space-3, 0.75rem);
+  gap: var(--s-3);
   align-items: flex-start;
 }
 
@@ -364,73 +669,138 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--s-2);
 }
 
 .project-editor__task-side {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--s-2);
 }
 
 .project-editor__task-title-row {
   display: flex;
   align-items: center;
-  gap: var(--space-2, 0.5rem);
+  gap: var(--s-2);
 }
 
 .project-editor__task-index {
   flex-shrink: 0;
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
-  background: var(--surface-muted, color-mix(in oklab, var(--text) 6%, transparent));
-  font-size: var(--fs-small, 0.85rem);
-  font-weight: 600;
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  border: 1px solid var(--border-light);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-semibold);
+  color: var(--muted);
 }
 
 .project-editor__task-title-input {
   flex: 1;
   min-width: 0;
-  font-weight: 600;
+  font-weight: var(--fw-semibold);
   border: none;
   background: transparent;
   color: var(--text);
-  font-size: var(--fs-body, 1rem);
+  font-size: var(--fs-body);
+  font-family: inherit;
 }
 
 .project-editor__task-title-input:focus {
-  outline: 2px solid var(--focus-ring, var(--accent));
-  outline-offset: 1px;
-  border-radius: 4px;
+  outline: none;
 }
 
-.project-editor__quick-add {
-  border-style: dashed;
+.project-editor__task-title-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
 }
 
+/* Quick add: top composer / quick-entry tone */
+.project-editor__panel.project-editor__quick-add {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  background: var(--surface);
+  padding: var(--s-3) var(--s-4);
+  margin-top: var(--s-3);
+  box-shadow: none;
+}
+
+.project-editor__quick-add .project-editor__rail-title {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-semibold);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.project-editor__quick-add .project-editor__field-label {
+  font-size: var(--fs-label);
+  margin-bottom: 0;
+}
+
+.project-editor__quick-add .project-editor__toolbar-actions {
+  margin-top: var(--s-2);
+  align-items: stretch;
+  gap: var(--s-3);
+}
+
+.project-editor__quick-add .project-editor__input {
+  flex: 1;
+  min-width: 12rem;
+  border: none;
+  border-bottom: 1px solid var(--border-light);
+  border-radius: 0;
+  background: transparent;
+  padding: var(--s-2) 0;
+}
+
+.project-editor__quick-add .project-editor__input:focus {
+  border-bottom-color: var(--accent);
+  box-shadow: none;
+}
+
+.project-editor__quick-add .project-editor__input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.project-editor__quick-add .project-editor__select {
+  min-width: 10rem;
+  flex-shrink: 0;
+}
+
+/* Filter / context chips */
 .project-editor__context-bar {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2, 0.5rem);
-  margin-bottom: var(--space-2, 0.5rem);
+  gap: var(--s-2);
+  margin-bottom: var(--s-1);
 }
 
 .project-editor__context-pill {
-  font-size: var(--fs-meta, 0.75rem);
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  background: var(--surface-muted, color-mix(in oklab, var(--text) 6%, transparent));
+  display: inline-flex;
+  align-items: center;
+  padding: var(--s-1) var(--s-2h);
+  border-radius: var(--r-full);
+  font-size: var(--fs-label);
+  font-weight: var(--fw-medium);
+  border: 1px solid var(--border-light);
+  background: var(--surface-2);
+  color: var(--muted);
 }
 
 .project-editor__load,
 .project-editor__error {
-  padding: var(--space-4, 1rem);
+  padding: var(--s-4);
   text-align: center;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .project-editor__error {

@@ -34,7 +34,10 @@ export function ProjectEditorSettingsCard({
     <div className="project-editor__settings-column">
       <div className="project-editor__settings-card">
         <div className="project-editor__settings-title">Project settings</div>
-        <label className="project-editor__field-label" htmlFor="projectEditorGoal">
+        <label
+          className="project-editor__field-label"
+          htmlFor="projectEditorGoal"
+        >
           Goal
         </label>
         <textarea
@@ -46,9 +49,13 @@ export function ProjectEditorSettingsCard({
           aria-describedby="projectEditorGoalHint"
         />
         <span id="projectEditorGoalHint" className="sr-only">
-          Planning notes for this project; the short description lives in the header card.
+          Planning notes for this project; the short description lives in the
+          header card.
         </span>
-        <label className="project-editor__field-label" htmlFor="projectEditorTarget">
+        <label
+          className="project-editor__field-label"
+          htmlFor="projectEditorTarget"
+        >
           Target timeframe
         </label>
         <input
@@ -61,7 +68,6 @@ export function ProjectEditorSettingsCard({
         <label
           className="project-editor__field-label"
           htmlFor="projectEditorStatus"
-          style={{ marginTop: "0.75rem" }}
         >
           Status
         </label>
@@ -81,7 +87,6 @@ export function ProjectEditorSettingsCard({
         <label
           className="project-editor__field-label"
           htmlFor="projectEditorDefaultView"
-          style={{ marginTop: "0.75rem" }}
         >
           Default view
         </label>
@@ -99,11 +104,9 @@ export function ProjectEditorSettingsCard({
           <option value="list">Task list</option>
           <option value="board">Board</option>
         </select>
-        <p
-          className="project-editor__field-label"
-          style={{ marginTop: "0.5rem", fontSize: "0.75rem" }}
-        >
-          Default view is local-only (per browser) until a server preference exists.
+        <p className="project-editor__field-label">
+          Default view is local-only (per browser) until a server preference
+          exists.
         </p>
       </div>
       <div className="project-editor__actions-row">

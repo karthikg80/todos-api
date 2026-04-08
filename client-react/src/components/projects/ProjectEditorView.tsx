@@ -2,7 +2,15 @@
  * v1 project surface: single-page editor-first layout (replaces overview/sections/tasks tabs).
  * Tradeoffs: no drag-and-drop reorder in the inline list; board only when default view is "board" (localStorage).
  */
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type {
   CreateTodoDto,
   Project,
@@ -175,14 +183,20 @@ export function ProjectEditorView({
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? "");
   const [goal, setGoal] = useState(project.goal ?? "");
-  const [targetDate, setTargetDate] = useState(toDateInputValue(project.targetDate));
-  const [projectStatus, setProjectStatus] = useState<Project["status"]>(project.status);
+  const [targetDate, setTargetDate] = useState(
+    toDateInputValue(project.targetDate),
+  );
+  const [projectStatus, setProjectStatus] = useState<Project["status"]>(
+    project.status,
+  );
   const [savingProject, setSavingProject] = useState(false);
   const [defaultView, setDefaultView] = useState<ProjectEditorDefaultView>(() =>
     readDefaultView(project.id),
   );
   const [quickAddTitle, setQuickAddTitle] = useState("");
-  const [quickAddHeadingId, setQuickAddHeadingId] = useState<string | null>(null);
+  const [quickAddHeadingId, setQuickAddHeadingId] = useState<string | null>(
+    null,
+  );
 
   const { headings, addHeading } = useProjectHeadings(project.id);
 
@@ -240,10 +254,7 @@ export function ProjectEditorView({
   ]);
 
   const allProjectTodos = useMemo(
-    () =>
-      projectTodos.filter(
-        (t) => !t.archived && t.projectId === project.id,
-      ),
+    () => projectTodos.filter((t) => !t.archived && t.projectId === project.id),
     [projectTodos, project.id],
   );
 
@@ -252,7 +263,10 @@ export function ProjectEditorView({
     [allProjectTodos],
   );
 
-  const nextUp = useMemo(() => pickTopTasks(allProjectTodos), [allProjectTodos]);
+  const nextUp = useMemo(
+    () => pickTopTasks(allProjectTodos),
+    [allProjectTodos],
+  );
   const nextTask = nextUp[0] ?? null;
 
   const handleSaveProject = async () => {
@@ -318,8 +332,11 @@ export function ProjectEditorView({
       )}
 
       <div className="app-content project-editor">
-        <div className="project-editor__toolbar" style={{ marginBottom: "0.5rem" }}>
-          <div className="project-workspace__crumbs" style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div className="project-editor__toolbar">
+          <div
+            className="project-workspace__crumbs"
+            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
+          >
             <button
               type="button"
               id="projectsRailMobileOpen"
@@ -341,7 +358,13 @@ export function ProjectEditorView({
         <section className="project-editor__header-card">
           <div className="project-editor__header-grid">
             <ProjectEditorHeader
-              project={{ ...project, name, description, goal, status: projectStatus }}
+              project={{
+                ...project,
+                name,
+                description,
+                goal,
+                status: projectStatus,
+              }}
               name={name}
               onNameChange={setName}
               description={description}
@@ -393,7 +416,7 @@ export function ProjectEditorView({
         )}
 
         <div className="project-editor__toolbar">
-          <div className="project-editor__toolbar-actions" style={{ width: "100%", justifyContent: "space-between" }}>
+          <div className="project-editor__toolbar-actions">
             <button
               type="button"
               id="projectEditorFiltersToggle"
@@ -402,13 +425,18 @@ export function ProjectEditorView({
             >
               Filters
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }} title="Preferred task layout for this project (local only)">
+            <div
+              className="project-editor__toolbar-meta"
+              title="Preferred task layout for this project (local only)"
+            >
               <IconMenu size={16} className="app-icon" aria-hidden />
-              <span className="project-editor__field-label" style={{ margin: 0 }}>
-                Layout
-              </span>
+              <span className="project-editor__field-label">Layout</span>
               <span className="project-editor__pill">
-                {defaultView === "board" ? "Board" : defaultView === "list" ? "List" : "Editor"}
+                {defaultView === "board"
+                  ? "Board"
+                  : defaultView === "list"
+                    ? "List"
+                    : "Editor"}
               </span>
             </div>
           </div>
@@ -422,7 +450,9 @@ export function ProjectEditorView({
               </span>
             )}
             {activeTagFilter && (
-              <span className="project-editor__context-pill">Tag: #{activeTagFilter}</span>
+              <span className="project-editor__context-pill">
+                Tag: #{activeTagFilter}
+              </span>
             )}
             {activeFilters.priority && (
               <span className="project-editor__context-pill">
@@ -440,7 +470,9 @@ export function ProjectEditorView({
               </span>
             )}
             {searchQuery && (
-              <span className="project-editor__context-pill">Search: {searchQuery}</span>
+              <span className="project-editor__context-pill">
+                Search: {searchQuery}
+              </span>
             )}
           </div>
         )}
@@ -458,7 +490,8 @@ export function ProjectEditorView({
             selectedCount={selectedIds.size}
             totalCount={visibleTodos.length}
             allSelected={
-              selectedIds.size === visibleTodos.length && visibleTodos.length > 0
+              selectedIds.size === visibleTodos.length &&
+              visibleTodos.length > 0
             }
             onSelectAll={onSelectAll}
             onComplete={onBulkComplete}
@@ -468,7 +501,7 @@ export function ProjectEditorView({
         )}
 
         <div className="project-editor__body">
-          <div className="project-editor__rail-stack" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div className="project-editor__rail-stack">
             <ProjectEditorRail
               headings={headings}
               projectTodos={allProjectTodos}
