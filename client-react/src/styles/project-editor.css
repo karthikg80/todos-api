@@ -152,6 +152,27 @@
   outline-offset: 2px;
 }
 
+/* Header description: inline workspace note, not a form block */
+.project-editor__header-main .project-editor__desc-input {
+  min-height: 3.25rem;
+  padding: var(--s-2) 0;
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--border-light);
+  background: transparent;
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+
+.project-editor__header-main .project-editor__desc-input:hover {
+  background: color-mix(in oklab, var(--surface-2) 40%, transparent);
+}
+
+.project-editor__header-main .project-editor__desc-input:focus,
+.project-editor__header-main .project-editor__desc-input:focus-visible {
+  background: color-mix(in oklab, var(--surface-2) 65%, transparent);
+}
+
 /* Stats: text-led metadata, not dashboard tiles */
 .project-editor__stats {
   display: grid;
@@ -178,11 +199,11 @@
 
 .project-editor__stat-label {
   display: block;
-  font-size: var(--fs-label);
+  font-size: var(--fs-meta);
   font-weight: var(--fw-medium);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
+  text-transform: none;
+  letter-spacing: var(--tracking-normal);
+  color: var(--muted-light);
 }
 
 .project-editor__stat-value {
@@ -215,18 +236,36 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  border: 1px solid var(--border-light);
-  border-radius: var(--r-md);
-  background: color-mix(in oklab, var(--surface-2) 85%, transparent);
-  padding: var(--s-3);
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--s-2) 0;
   box-shadow: none;
 }
 
+@media (min-width: 1024px) {
+  .project-editor__settings-card {
+    padding-left: var(--s-4);
+    margin-left: var(--s-2);
+    border-left: 1px solid var(--border-light);
+  }
+}
+
+@media (max-width: 1023px) {
+  .project-editor__settings-card {
+    padding-top: var(--s-3);
+    margin-top: var(--s-2);
+    border-top: 1px solid var(--border-light);
+  }
+}
+
 .project-editor__settings-title {
-  font-size: var(--fs-body);
+  font-size: var(--fs-meta);
   font-weight: var(--fw-semibold);
-  color: var(--text-strong);
-  margin-bottom: var(--s-3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: var(--s-2);
 }
 
 .project-editor__settings-card .project-editor__field-label {
@@ -243,10 +282,19 @@
 .project-editor__settings-card > p.project-editor__field-label {
   margin-top: var(--s-2);
   margin-bottom: 0;
-  font-size: var(--fs-label);
+  font-size: var(--fs-xs);
   font-weight: var(--fw-regular);
   color: var(--muted-light);
   line-height: var(--lh-relaxed);
+  opacity: 0.92;
+}
+
+.project-editor__settings-card .project-editor__field-label {
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  color: var(--muted-light);
+  letter-spacing: var(--tracking-normal);
+  text-transform: none;
 }
 
 .project-editor__field-label {
@@ -256,7 +304,7 @@
   color: var(--muted);
 }
 
-/* Native controls: softer, task-app tone */
+/* Default controls (rail, quick add, etc.) */
 .project-editor__input,
 .project-editor__select,
 .project-editor__textarea {
@@ -294,14 +342,89 @@
   resize: vertical;
 }
 
+/* Project metadata column: inline-edit, minimal rectangles */
+.project-editor__settings-card .project-editor__input,
+.project-editor__settings-card .project-editor__select,
+.project-editor__settings-card .project-editor__textarea {
+  padding: var(--s-2) var(--s-1);
+  border: 1px solid transparent;
+  border-bottom-color: var(--border-light);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: var(--fs-meta);
+}
+
+.project-editor__settings-card .project-editor__input:hover,
+.project-editor__settings-card .project-editor__select:hover,
+.project-editor__settings-card .project-editor__textarea:hover {
+  border-color: transparent;
+  border-bottom-color: color-mix(in oklab, var(--border) 70%, var(--text));
+  background: color-mix(in oklab, var(--surface-2) 50%, transparent);
+}
+
+.project-editor__settings-card .project-editor__input:focus,
+.project-editor__settings-card .project-editor__select:focus,
+.project-editor__settings-card .project-editor__textarea:focus {
+  border-color: transparent;
+  border-bottom-color: var(--accent);
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
+  box-shadow: none;
+}
+
+.project-editor__settings-card .project-editor__input:focus-visible,
+.project-editor__settings-card .project-editor__select:focus-visible,
+.project-editor__settings-card .project-editor__textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+.project-editor__settings-card .project-editor__textarea {
+  min-height: 4.5rem;
+  border: 1px solid var(--border-light);
+  border-radius: var(--r-sm);
+  padding: var(--s-2) var(--s-3);
+}
+
+.project-editor__settings-card .project-editor__textarea:hover {
+  border-color: var(--border-light);
+  background: color-mix(in oklab, var(--surface-2) 40%, transparent);
+}
+
+.project-editor__settings-card .project-editor__textarea:focus,
+.project-editor__settings-card .project-editor__textarea:focus-visible {
+  border-color: color-mix(in oklab, var(--accent) 30%, transparent);
+  background: var(--surface);
+}
+
 .project-editor__actions-row {
   display: flex;
   flex-wrap: wrap;
   gap: var(--s-2);
+  align-items: center;
 }
 
 .project-editor__actions-row .btn {
   font-size: var(--fs-meta);
+}
+
+.project-editor__actions-row .btn:not(.btn--primary) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.project-editor__actions-row .btn:not(.btn--primary):hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-light);
+  box-shadow: none;
+}
+
+.project-editor__actions-row .btn:not(.btn--primary):focus-visible {
+  box-shadow: var(--shadow-focus);
 }
 
 /* --- Body grid --- */
@@ -319,9 +442,9 @@
   }
 
   .project-editor__rail-stack {
-    padding-right: var(--s-4);
-    margin-right: var(--s-1);
-    border-right: 1px solid var(--border-light);
+    padding-right: var(--s-5);
+    margin-right: 0;
+    border-right: none;
   }
 }
 
@@ -511,8 +634,9 @@
 }
 
 .project-editor__main-stack > .project-editor__panel ~ .project-editor__panel {
-  border-top: 1px solid var(--border-light);
-  padding-top: var(--s-4);
+  border-top: 1px solid
+    color-mix(in oklab, var(--border-light) 70%, transparent);
+  padding-top: var(--s-3);
   margin-top: var(--s-1);
 }
 
@@ -522,11 +646,12 @@
 
 /* Next action inner surface: expanded task row */
 .project-editor__next-card {
-  border: 1px solid color-mix(in oklab, var(--accent) 22%, var(--border));
+  border: none;
   border-radius: var(--r-sm);
-  padding: var(--s-3) var(--s-4);
-  background: color-mix(in oklab, var(--accent) 6%, var(--surface));
-  box-shadow: var(--shadow-xs);
+  padding: var(--s-3) var(--s-2) var(--s-3) var(--s-3);
+  background: color-mix(in oklab, var(--accent) 5%, transparent);
+  box-shadow: none;
+  border-left: 3px solid color-mix(in oklab, var(--accent) 45%, var(--border));
 }
 
 .project-editor__next-title-input {
@@ -551,117 +676,153 @@
   border-radius: var(--r-xs);
 }
 
+/* Metadata strip: inline fields (next action + inline tasks), not a form grid */
 .project-editor__mini-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--s-2) var(--s-4);
-  margin-top: var(--s-3);
-  padding-top: var(--s-3);
-  border-top: 1px solid var(--border-light);
-}
-
-@media (min-width: 768px) {
-  .project-editor__mini-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--s-3) var(--s-5);
+  margin-top: var(--s-2);
+  padding-top: var(--s-2);
+  border-top: 1px solid
+    color-mix(in oklab, var(--border-light) 75%, transparent);
 }
 
 .project-editor__mini-field {
-  display: block;
-  padding: var(--s-2) 0;
-  border: none;
-  border-radius: 0;
-  background: transparent;
-  border-bottom: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-1);
   min-width: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .project-editor__mini-field .project-editor__stat-label {
-  margin-bottom: 0;
+  margin: 0;
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  color: var(--muted-light);
+  text-transform: none;
+  letter-spacing: var(--tracking-normal);
 }
 
 .project-editor__mini-field .project-editor__stat-value {
-  margin-top: var(--s-1);
+  margin: 0;
   font-size: var(--fs-meta);
   font-weight: var(--fw-medium);
   color: var(--text);
 }
 
-.project-editor__mini-field .project-editor__select {
-  margin-top: var(--s-1);
+/* Ghost selects / date in metadata strip */
+.project-editor__mini-field .project-editor__select,
+.project-editor__mini-field .project-editor__input {
+  margin: 0;
+  width: auto;
+  min-width: 5.5rem;
+  max-width: 11rem;
+  padding: var(--s-1) var(--s-1) var(--s-1) 0;
   border: none;
-  padding: var(--s-1) 0;
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--border-light) 85%, transparent);
+  border-radius: 0;
   background: transparent;
   font-size: var(--fs-meta);
+  color: var(--text-strong);
   box-shadow: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
-.project-editor__mini-field .project-editor__select:focus {
-  box-shadow: none;
+.project-editor__mini-field .project-editor__select:hover,
+.project-editor__mini-field .project-editor__input:hover {
+  border-bottom-color: var(--border-light);
+  background: transparent;
+}
+
+.project-editor__mini-field .project-editor__select:focus,
+.project-editor__mini-field .project-editor__input:focus {
   outline: none;
+  border-bottom-color: var(--accent);
+  box-shadow: none;
 }
 
-.project-editor__mini-field .project-editor__select:focus-visible {
+.project-editor__mini-field .project-editor__select:focus-visible,
+.project-editor__mini-field .project-editor__input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--r-xs);
 }
 
-.project-editor__mini-field .project-editor__input {
-  margin-top: var(--s-1);
-  padding: var(--s-1) 0;
+.project-editor__next-card .project-editor__desc-input {
+  min-height: 3.25rem;
+  margin-top: var(--s-3);
+  padding: var(--s-2) 0;
   border: none;
   border-radius: 0;
+  border-bottom: 1px solid var(--border-light);
   background: transparent;
   font-size: var(--fs-meta);
-  box-shadow: none;
+  color: var(--muted);
 }
 
-.project-editor__mini-field .project-editor__input:focus {
-  box-shadow: none;
+.project-editor__next-card .project-editor__desc-input:hover {
+  color: var(--text);
+  background: color-mix(in oklab, var(--surface) 40%, transparent);
 }
 
-.project-editor__mini-field .project-editor__input:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
+.project-editor__next-card .project-editor__desc-input:focus,
+.project-editor__next-card .project-editor__desc-input:focus-visible {
+  color: var(--text);
+  background: color-mix(in oklab, var(--surface) 65%, transparent);
 }
 
-.project-editor__next-card .project-editor__desc-input {
-  min-height: 4rem;
-  margin-top: var(--s-3);
-  background: var(--surface);
-}
-
-/* Task list rows: todo-item rhythm */
+/* Task list rows: expanded todo surface, not per-row forms */
 .project-editor__task-list {
   display: flex;
   flex-direction: column;
-  gap: var(--s-1);
+  gap: 0;
 }
 
 .project-editor__task-row {
-  border: 1px solid transparent;
-  border-radius: var(--r-sm);
-  padding: var(--s-3) var(--s-4);
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--border-light) 80%, transparent);
+  padding: var(--s-3) var(--s-2) var(--s-3) var(--s-1);
   transition:
     background var(--dur-fast) var(--ease-out),
-    border-color var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out);
 }
 
+.project-editor__task-row:last-child {
+  border-bottom: none;
+}
+
 .project-editor__task-row:hover {
-  background: var(--surface-2);
-  box-shadow: var(--shadow-xs);
+  background: color-mix(in oklab, var(--surface-2) 55%, transparent);
+  box-shadow: none;
 }
 
 .project-editor__task-row:focus-within {
-  border-color: color-mix(in oklab, var(--accent) 28%, transparent);
+  background: color-mix(in oklab, var(--surface-2) 70%, transparent);
 }
 
 .project-editor__task-row-inner {
   display: flex;
-  gap: var(--s-3);
-  align-items: flex-start;
+  flex-direction: column;
+  gap: var(--s-2);
+  align-items: stretch;
+}
+
+@media (min-width: 880px) {
+  .project-editor__task-row-inner {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: var(--s-4);
+  }
 }
 
 .project-editor__task-main {
@@ -672,10 +833,155 @@
   gap: var(--s-2);
 }
 
+.project-editor__task-main .project-editor__mini-grid {
+  margin-top: var(--s-1);
+  padding-top: var(--s-2);
+  border-top: none;
+  gap: var(--s-2) var(--s-4);
+}
+
+.project-editor__task-main > .project-editor__desc-input {
+  margin-top: var(--s-1);
+  padding: var(--s-1) 0 var(--s-2);
+  border: none;
+  border-radius: 0;
+  border-left: 2px solid transparent;
+  padding-left: var(--s-2);
+  background: transparent;
+  font-size: var(--fs-meta);
+  line-height: var(--lh-base);
+  color: var(--muted);
+  resize: none;
+  overflow: hidden;
+  min-height: 2.75rem;
+  max-height: 6rem;
+}
+
+.project-editor__task-main > .project-editor__desc-input::placeholder {
+  color: var(--muted-light);
+}
+
+.project-editor__task-main > .project-editor__desc-input:hover {
+  border-left-color: var(--border-light);
+  background: color-mix(in oklab, var(--surface-2) 35%, transparent);
+  color: var(--text);
+}
+
+.project-editor__task-main > .project-editor__desc-input:focus,
+.project-editor__task-main > .project-editor__desc-input:focus-visible {
+  border-left-color: color-mix(in oklab, var(--accent) 40%, transparent);
+  background: color-mix(in oklab, var(--surface-2) 50%, transparent);
+  color: var(--text);
+  resize: vertical;
+  overflow: auto;
+  max-height: none;
+}
+
 .project-editor__task-side {
   display: flex;
-  flex-direction: column;
-  gap: var(--s-2);
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2) var(--s-3);
+  padding-top: var(--s-2);
+  margin-top: var(--s-1);
+  border-top: 1px solid
+    color-mix(in oklab, var(--border-light) 65%, transparent);
+}
+
+@media (min-width: 880px) {
+  .project-editor__task-side {
+    flex: 0 0 10.5rem;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--s-2);
+    padding-top: 0;
+    margin-top: 0;
+    margin-left: var(--s-1);
+    padding-left: var(--s-3);
+    border-top: none;
+    border-left: 1px solid
+      color-mix(in oklab, var(--border-light) 70%, transparent);
+  }
+}
+
+.project-editor__task-side > .project-editor__field-label {
+  flex: 0 0 auto;
+  margin: 0;
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  color: var(--muted-light);
+  text-transform: none;
+  letter-spacing: var(--tracking-normal);
+}
+
+.project-editor__task-side > .project-editor__select {
+  flex: 1;
+  min-width: 6rem;
+  max-width: 100%;
+  margin: 0;
+  padding: var(--s-1) 0;
+  border: none;
+  border-bottom: 1px solid
+    color-mix(in oklab, var(--border-light) 85%, transparent);
+  border-radius: 0;
+  background: transparent;
+  font-size: var(--fs-meta);
+  color: var(--text-strong);
+  box-shadow: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.project-editor__task-side > .project-editor__select:hover {
+  border-bottom-color: var(--border-light);
+}
+
+.project-editor__task-side > .project-editor__select:focus,
+.project-editor__task-side > .project-editor__select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--r-xs);
+}
+
+/* Secondary row actions: calm; reveal weight on hover / row hover */
+.project-editor__task-side > .btn {
+  padding: var(--s-1) var(--s-2);
+  font-size: var(--fs-meta);
+  font-weight: var(--fw-medium);
+  border: none;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted-light);
+  box-shadow: none;
+  opacity: 0.72;
+}
+
+.project-editor__task-row:hover .project-editor__task-side > .btn {
+  opacity: 1;
+}
+
+.project-editor__task-side > .btn:hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+  box-shadow: none;
+}
+
+.project-editor__task-side > .btn.btn--danger {
+  background: transparent;
+  border: none;
+  color: var(--muted-light);
+}
+
+.project-editor__task-side > .btn.btn--danger:hover:not(:disabled) {
+  color: var(--danger);
+  background: color-mix(in oklab, var(--danger) 8%, transparent);
+}
+
+.project-editor__task-side > .btn.btn--danger:focus-visible {
+  color: var(--danger);
+  box-shadow: var(--shadow-focus-danger);
 }
 
 .project-editor__task-title-row {
@@ -686,17 +992,18 @@
 
 .project-editor__task-index {
   flex-shrink: 0;
-  width: 1.75rem;
-  height: 1.75rem;
+  min-width: 1.25rem;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--r-full);
-  background: var(--surface-2);
-  border: 1px solid var(--border-light);
-  font-size: var(--fs-label);
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  font-size: var(--fs-meta);
   font-weight: var(--fw-semibold);
-  color: var(--muted);
+  color: var(--muted-light);
+  font-variant-numeric: tabular-nums;
 }
 
 .project-editor__task-title-input {
@@ -805,4 +1112,46 @@
 
 .project-editor__error {
   color: var(--danger);
+}
+
+/* Kebab: title row uses project-editor__* not project-workspace__* */
+.project-editor__title-row:hover .project-kebab__trigger,
+.project-editor .project-kebab__trigger:focus-visible,
+.project-editor .project-kebab__trigger[aria-expanded="true"] {
+  opacity: 1;
+}
+
+/* Filters toggle: quieter until hover or active */
+.project-editor__toolbar:has(#projectEditorFiltersToggle)
+  .btn:not(.btn--primary) {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.project-editor__toolbar:has(#projectEditorFiltersToggle)
+  .btn:not(.btn--primary):hover:not(:disabled) {
+  background: var(--surface-2);
+  color: var(--text);
+  border-color: var(--border-light);
+}
+
+.project-editor__toolbar:has(#projectEditorFiltersToggle) .btn.btn--active {
+  background: color-mix(in oklab, var(--accent) 10%, transparent);
+  color: var(--accent);
+  border-color: color-mix(in oklab, var(--accent) 22%, transparent);
+}
+
+/* Section headings inside main panels: content-first */
+.project-editor__panel .project-editor__rail-title {
+  font-size: var(--fs-body);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.project-editor__panel .project-editor__toolbar .project-editor__field-label {
+  font-size: var(--fs-meta);
+  color: var(--muted-light);
+  font-weight: var(--fw-regular);
 }
