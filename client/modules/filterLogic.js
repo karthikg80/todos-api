@@ -71,6 +71,7 @@ import {
   renderTodoRowHtml,
   renderProjectHeadingGroupedRows,
 } from "./filtering/todoListRenderer.js";
+import { planTodayTaskIds } from "./planTodayAgent.js";
 
 // ---------------------------------------------------------------------------
 // Utility functions injected via hooks by app.js:
@@ -249,15 +250,10 @@ function filterTodosList(todosList, { searchQuery = "" } = {}) {
 
   filtered = filtered.filter((todo) => matchesDateView(todo));
 
-  // TODO(plan-filter): inject plan task IDs into filter pipeline
-  // When state.currentDateView === "today" and planTodayTaskIds.length > 0,
-  // filter filtered to only tasks whose id is in planTodayTaskIds, preserving
-  // the plan's rank order. Import planTodayTaskIds from planTodayAgent.js and
-  // add: if (state.currentDateView === "today" && planTodayTaskIds.length > 0) {
-  //   const idSet = new Set(planTodayTaskIds);
-  //   const byId = new Map(filtered.map(t => [String(t.id), t]));
-  //   filtered = planTodayTaskIds.map(id => byId.get(id)).filter(Boolean);
-  // }
+  if (state.currentDateView === "today" && planTodayTaskIds.length > 0) {
+    const byId = new Map(filtered.map((t) => [String(t.id), t]));
+    filtered = planTodayTaskIds.map((id) => byId.get(id)).filter(Boolean);
+  }
 
   // Exclude archived todos by default (unless viewing completed)
   if (state.currentDateView !== "completed") {
