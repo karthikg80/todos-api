@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -21,6 +21,7 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
+      code: ${{ steps.filter.outputs.code }}
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       ui_tests: ${{ steps.filter.outputs.ui_tests }}
@@ -37,6 +38,17 @@ jobs:
         id: filter
         with:
           filters: |
+            code:
+              - 'src/**'
+              - 'prisma/**'
+              - 'scripts/**'
+              - 'client-react/**'
+              - 'tests/**'
+              - 'jest.*.js'
+              - 'jest.config.js'
+              - 'package.json'
+              - 'package-lock.json'
+              - 'playwright.config.ts'
             backend:
               - 'src/**'
               - 'prisma/**'
@@ -59,9 +71,39 @@ jobs:
               - '.github/workflows/**'
 
   # ─────────────────────────────────────────────────────────────
-  # 2a. Fast feedback — lint & typecheck
+  # 2a. Fast feedback — lint (PRs: only when code changed)
   # ─────────────────────────────────────────────────────────────
-  lint-typecheck:
+  lint:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+  # ─────────────────────────────────────────────────────────────
+  # 2b. Fast feedback — typecheck (PRs: only when code changed)
+  # ─────────────────────────────────────────────────────────────
+  typecheck:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -80,19 +122,66 @@ jobs:
       - name: Typecheck (backend)
         run: npx tsc --noEmit
 
+  # ─────────────────────────────────────────────────────────────
+  # 2c. Fast feedback — architecture guard (PRs: code changes)
+  # ─────────────────────────────────────────────────────────────
+  architecture:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
       - name: Architecture guard
         run: npm run check:architecture
 
-      - name: Format check
-        run: npm run format:check
+  # ─────────────────────────────────────────────────────────────
+  # 2d. Fast feedback — audit prod deps (PRs: code changes)
+  # ─────────────────────────────────────────────────────────────
+  audit:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
 
       - name: Audit production dependencies
         run: npm run audit:prod
 
   # ─────────────────────────────────────────────────────────────
-  # 2b. Fast feedback — unit tests
+  # 2e. Fast feedback — unit tests (PRs: code changes)
   # ─────────────────────────────────────────────────────────────
   unit-tests:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -112,9 +201,15 @@ jobs:
         run: npm run test:unit
 
   # ─────────────────────────────────────────────────────────────
-  # 2c. Fast feedback — integration tests
+  # 2f. Integration tests (PRs: backend/shared/workflow changes)
   # ─────────────────────────────────────────────────────────────
   integration:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.backend == 'true' ||
+      needs.changes.outputs.shared_contracts == 'true' ||
+      needs.changes.outputs.workflow == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     services:
@@ -156,9 +251,15 @@ jobs:
         run: npm run test:integration
 
   # ─────────────────────────────────────────────────────────────
-  # 2d. MCP tests (server-side, backend-only)
+  # 2g. MCP tests (PRs: backend/shared/workflow changes)
   # ─────────────────────────────────────────────────────────────
   mcp:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.backend == 'true' ||
+      needs.changes.outputs.shared_contracts == 'true' ||
+      needs.changes.outputs.workflow == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -288,11 +389,11 @@ jobs:
       - name: Verify tests/ui exists
         id: check-ui-tests
         run: |
-          if [ -d "tests/ui" ] && [ "$(ls -A tests/ui/*.spec.ts 2>/dev/null)" ]; then
+          if [ -d "tests/ui" ] && [ "$(find tests/ui -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) | head -1)" ]; then
             echo "ui_tests_present=true" >> "$GITHUB_OUTPUT"
           else
             echo "ui_tests_present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::tests/ui/ is missing or has no spec files — smoke skipped"
+            echo "::warning::tests/ui/ is missing or has no spec/test files — smoke skipped"
           fi
 
       - name: Get Playwright version
@@ -308,6 +409,8 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ steps.pw-version.outputs.version }}-chromium
+          restore-keys: |
+            playwright-chromium
 
       - name: Install Playwright browser
         if: steps.check-ui-tests.outputs.ui_tests_present == 'true'
@@ -367,10 +470,10 @@ jobs:
       - name: Verify tests/ui exists — must fail on release/manual
         id: check-ui-tests
         run: |
-          if [ -d "tests/ui" ] && [ "$(ls -A tests/ui/*.spec.ts 2>/dev/null)" ]; then
+          if [ -d "tests/ui" ] && [ "$(find tests/ui -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) | head -1)" ]; then
             echo "ui_tests_present=true" >> "$GITHUB_OUTPUT"
           else
-            echo "::error::tests/ui/ is missing or has no spec files — E2E cannot run on release/manual trigger"
+            echo "::error::tests/ui/ is missing or has no spec/test files — E2E cannot run on release/manual trigger"
             exit 1
           fi
 
@@ -385,6 +488,8 @@ jobs:
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ steps.pw-version.outputs.version }}-chromium
+          restore-keys: |
+            playwright-chromium
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
