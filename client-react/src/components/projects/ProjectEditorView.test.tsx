@@ -1,12 +1,23 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Heading, Project, Todo } from "../../types";
+import { apiCall } from "../../api/client";
 import { ProjectEditorView } from "./ProjectEditorView";
 import { useProjectHeadings } from "../../hooks/useProjectHeadings";
 
 vi.mock("../../hooks/useProjectHeadings", () => ({
   useProjectHeadings: vi.fn(),
+}));
+
+vi.mock("../../api/client", () => ({
+  apiCall: vi.fn(),
 }));
 
 function makeProject(overrides: Partial<Project> = {}): Project {
@@ -79,27 +90,37 @@ function makeHeading(overrides: Partial<Heading> = {}): Heading {
 
 function renderEditor(opts: {
   project?: Project;
+  projects?: Project[];
   projectTodos?: Todo[];
   headings?: Heading[];
+  isDraft?: boolean;
 } = {}) {
   const project = opts.project ?? makeProject();
+  const projects = opts.projects ?? [project];
   const projectTodos = opts.projectTodos ?? [];
   const headings = opts.headings ?? [];
+  const updateHeading = vi.fn().mockResolvedValue(makeHeading());
+  const deleteHeading = vi.fn().mockResolvedValue(true);
 
   vi.mocked(useProjectHeadings).mockReturnValue({
     headings,
     loading: false,
     loadHeadings: vi.fn(),
     addHeading: vi.fn().mockResolvedValue(makeHeading()),
+    updateHeading,
+    deleteHeading,
     reorderHeadings: vi.fn().mockResolvedValue(headings),
   });
 
   const onSaveProject = vi.fn().mockResolvedValue(undefined);
   const onAddTodo = vi.fn().mockResolvedValue(undefined);
+  const onSave = vi.fn().mockResolvedValue(null);
 
   render(
     <ProjectEditorView
       project={project}
+      isDraft={opts.isDraft}
+      projects={projects}
       projectTodos={projectTodos}
       visibleTodos={projectTodos}
       loadState="loaded"
@@ -112,6 +133,7 @@ function renderEditor(opts: {
       onSearchChange={vi.fn()}
       onOpenNav={vi.fn()}
       onClearProject={vi.fn()}
+      onOpenProject={vi.fn()}
       viewLabels={{ focus: "Focus" }}
       activeView="focus"
       onNewTask={vi.fn()}
@@ -140,7 +162,7 @@ function renderEditor(opts: {
       onRetry={vi.fn()}
       onSelect={vi.fn()}
       onInlineEdit={vi.fn()}
-      onSave={vi.fn().mockResolvedValue(null)}
+      onSave={onSave}
       onTagClick={vi.fn()}
       onLifecycleAction={vi.fn()}
       onReorder={vi.fn()}
@@ -156,7 +178,7 @@ function renderEditor(opts: {
     />,
   );
 
-  return { onSaveProject, onAddTodo };
+  return { onSaveProject, onAddTodo, onSave, deleteHeading };
 }
 
 describe("ProjectEditorView", () => {
@@ -216,6 +238,25 @@ describe("ProjectEditorView", () => {
     );
   });
 
+  it("saves project area and priority from hidden settings", async () => {
+    const { onSaveProject } = renderEditor();
+
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /show settings/i }));
+    fireEvent.change(screen.getByLabelText("Area"), {
+      target: { value: "Work" },
+    });
+    fireEvent.change(screen.getByLabelText("Priority"), {
+      target: { value: "high" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /save project/i }));
+
+    expect(onSaveProject).toHaveBeenCalledWith(
+      "project-1",
+      expect.objectContaining({ area: "Work", priority: "high" }),
+    );
+  });
+
   it("adds tasks from the compact composer", async () => {
     const { onAddTodo } = renderEditor();
 
@@ -244,5 +285,89 @@ describe("ProjectEditorView", () => {
     fireEvent.mouseDown(document.body);
 
     expect(screen.queryByRole("button", { name: "Open" })).toBeNull();
+  });
+
+  it("renders a draft project editor state", () => {
+    renderEditor({
+      project: makeProject({
+        id: "draft-project",
+        name: "",
+        description: null,
+        goal: null,
+        area: null,
+      }),
+      isDraft: true,
+    });
+
+    expect(screen.getByPlaceholderText("Untitled project")).toBeTruthy();
+    expect(screen.getByText(/save the project first/i)).toBeTruthy();
+    expect(screen.getByText(/headings and tasks will appear here/i)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /show settings/i })).toBeTruthy();
+    expect(screen.queryByPlaceholderText("Add a task")).toBeNull();
+  });
+
+  it("renders heading inline editing and heading actions", () => {
+    renderEditor({
+      headings: [makeHeading({ id: "heading-1", name: "Backlog" })],
+      projectTodos: [
+        makeTodo({
+          id: "todo-1",
+          title: "Sort donation pile",
+          headingId: "heading-1",
+        }),
+      ],
+    });
+
+    expect(screen.getByDisplayValue("Backlog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Heading actions" }));
+    expect(screen.getByRole("button", { name: "Rename" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Archive" })).toBeTruthy();
+    expect(screen.getByText("Move to project")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Convert to project" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
+  });
+
+  it("moves heading tasks into a new same-named heading in the destination project", async () => {
+    vi.mocked(apiCall).mockResolvedValueOnce({
+      ok: true,
+      json: async () =>
+        makeHeading({
+          id: "heading-2",
+          projectId: "project-2",
+          name: "Backlog",
+        }),
+    } as Response);
+
+    const { onSave, deleteHeading } = renderEditor({
+      projects: [makeProject(), makeProject({ id: "project-2", name: "House Repairs" })],
+      headings: [makeHeading({ id: "heading-1", name: "Backlog" })],
+      projectTodos: [
+        makeTodo({
+          id: "todo-1",
+          title: "Sort donation pile",
+          headingId: "heading-1",
+        }),
+      ],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Heading actions" }));
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "project-2" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Move" }));
+
+    await waitFor(() => {
+      expect(apiCall).toHaveBeenCalledWith("/projects/project-2/headings", {
+        method: "POST",
+        body: JSON.stringify({ name: "Backlog" }),
+      });
+    });
+    await waitFor(() => {
+      expect(onSave).toHaveBeenCalledWith("todo-1", {
+        projectId: "project-2",
+        headingId: "heading-2",
+      });
+      expect(deleteHeading).toHaveBeenCalledWith("heading-1");
+    });
   });
 });

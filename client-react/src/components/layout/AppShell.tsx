@@ -22,7 +22,7 @@ import { apiCall } from "../../api/client";
 import { Sidebar, type WorkspaceView } from "../projects/Sidebar";
 import { SortableTodoList } from "../todos/SortableTodoList";
 import { TodoDrawer } from "../todos/TodoDrawer";
-import type { Todo } from "../../types";
+import type { Project, Todo } from "../../types";
 import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
@@ -88,6 +88,27 @@ interface UndoAction {
   onUndo?: () => void;
 }
 
+const DRAFT_PROJECT_ID = "draft-project";
+
+function createDraftProject(): Project {
+  const now = new Date().toISOString();
+  return {
+    id: DRAFT_PROJECT_ID,
+    name: "",
+    description: null,
+    goal: null,
+    status: "active",
+    priority: null,
+    area: null,
+    areaId: null,
+    targetDate: null,
+    archived: false,
+    userId: "draft-user",
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export function AppShell() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
@@ -109,6 +130,7 @@ export function AppShell() {
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
     null,
   );
+  const [draftProject, setDraftProject] = useState<Project | null>(null);
   const taskNav = useTaskNavigation();
   const hashRoute = useHashRoute();
   const activeTodoId = taskNav.activeTaskId;
@@ -179,7 +201,7 @@ export function AppShell() {
   // Build query params based on active view + project
   const queryParams = useMemo(() => {
     const params: Record<string, string | undefined> = {};
-    if (selectedProjectId) {
+    if (selectedProjectId && selectedProjectId !== DRAFT_PROJECT_ID) {
       params.projectId = selectedProjectId;
     } else {
       switch (activeView) {
@@ -648,8 +670,21 @@ export function AppShell() {
       if (payload.name !== undefined) body.name = payload.name;
       if (payload.description !== undefined) body.description = payload.description;
       if (payload.goal !== undefined) body.goal = payload.goal;
+      if (payload.area !== undefined) body.area = payload.area;
+      if (payload.priority !== undefined) body.priority = payload.priority;
       if (payload.targetDate !== undefined) body.targetDate = payload.targetDate;
       if (payload.status !== undefined) body.status = payload.status;
+      if (id === DRAFT_PROJECT_ID) {
+        const response = await apiCall("/projects", {
+          method: "POST",
+          body: JSON.stringify(body),
+        });
+        const created = (await response.json()) as Project;
+        setDraftProject(null);
+        setSelectedProjectId(created.id);
+        await loadProjects();
+        return;
+      }
       await apiCall(`/projects/${id}`, {
         method: "PUT",
         body: JSON.stringify(body),
@@ -678,12 +713,34 @@ export function AppShell() {
   );
 
   const handleSelectProject = useCallback((id: string | null) => {
+    if (id !== DRAFT_PROJECT_ID) {
+      setDraftProject(null);
+    }
     setSelectedProjectId(id);
     setActiveHeadingId(null);
     taskNav.collapse();
     setBulkMode(false);
     setSelectedIds(new Set());
   }, []);
+
+  const handleCreateProjectDraft = useCallback(() => {
+    startTransition(() => setPage("todos"));
+    setDraftProject(createDraftProject());
+    setSelectedProjectId(DRAFT_PROJECT_ID);
+    setActiveHeadingId(null);
+    taskNav.collapse();
+    setBulkMode(false);
+    setSelectedIds(new Set());
+    setMobileNavOpen(false);
+  }, [startTransition, taskNav]);
+
+  const handleOpenProject = useCallback(
+    async (id: string) => {
+      await loadProjects();
+      handleSelectProject(id);
+    },
+    [handleSelectProject, loadProjects],
+  );
 
   // --- Bulk actions ---
 
@@ -858,7 +915,9 @@ export function AppShell() {
   };
 
   const selectedProject = selectedProjectId
-    ? (projects.find((p) => p.id === selectedProjectId) ?? null)
+    ? selectedProjectId === DRAFT_PROJECT_ID
+      ? draftProject
+      : (projects.find((p) => p.id === selectedProjectId) ?? null)
     : null;
 
   const headerTitle = selectedProjectId
@@ -912,7 +971,7 @@ export function AppShell() {
         handleSelectProject(id);
         setMobileNavOpen(false);
       }}
-      onCreateProject={() => setProjectCrudMode("create")}
+      onCreateProject={handleCreateProjectDraft}
       onOpenSettings={() => {
         startTransition(() => setPage("settings"));
         setMobileNavOpen(false);
@@ -1279,6 +1338,7 @@ export function AppShell() {
                 <ViewRoute viewKey={`project:${selectedProjectId}`}>
                   <ProjectEditorView
                     project={selectedProject}
+                    projects={projects}
                     projectTodos={todos}
                     visibleTodos={visibleTodos}
                     loadState={loadState}
@@ -1291,6 +1351,9 @@ export function AppShell() {
                     onSearchChange={setSearchQuery}
                     onOpenNav={() => setMobileNavOpen(true)}
                     onClearProject={() => handleSelectProject(null)}
+                    onOpenProject={(id) => {
+                      void handleOpenProject(id);
+                    }}
                     viewLabels={VIEW_LABELS}
                     activeView={activeView}
                     onNewTask={() => setComposerOpen(true)}
@@ -1351,6 +1414,7 @@ export function AppShell() {
                       handleSelectProject(null);
                       loadProjects();
                     }}
+                    isDraft={selectedProject?.id === DRAFT_PROJECT_ID}
                   />
                 </ViewRoute>
               )}

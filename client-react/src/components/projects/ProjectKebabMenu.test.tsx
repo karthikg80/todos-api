@@ -6,6 +6,9 @@ const defaultProps = {
   onToggleSettings: vi.fn(),
   settingsOpen: false,
   onRename: vi.fn(),
+  onDuplicate: vi.fn(),
+  onRepeat: vi.fn(),
+  onComplete: vi.fn(),
   onArchive: vi.fn(),
   onDelete: vi.fn(),
 };
@@ -21,6 +24,9 @@ describe("ProjectKebabMenu", () => {
     fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
     expect(screen.getByRole("menuitem", { name: /show settings/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /rename/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /duplicate project/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /repeat project/i })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: /complete project/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /archive/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /delete/i })).toBeInTheDocument();
   });
@@ -66,6 +72,30 @@ describe("ProjectKebabMenu", () => {
     fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
     fireEvent.click(screen.getByRole("menuitem", { name: /archive/i }));
     expect(onArchive).toHaveBeenCalled();
+  });
+
+  it("calls onDuplicate and closes", () => {
+    const onDuplicate = vi.fn();
+    render(<ProjectKebabMenu {...defaultProps} onDuplicate={onDuplicate} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /duplicate project/i }));
+    expect(onDuplicate).toHaveBeenCalled();
+  });
+
+  it("calls onRepeat and closes", () => {
+    const onRepeat = vi.fn();
+    render(<ProjectKebabMenu {...defaultProps} onRepeat={onRepeat} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /repeat project/i }));
+    expect(onRepeat).toHaveBeenCalled();
+  });
+
+  it("calls onComplete and closes", () => {
+    const onComplete = vi.fn();
+    render(<ProjectKebabMenu {...defaultProps} onComplete={onComplete} />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /complete project/i }));
+    expect(onComplete).toHaveBeenCalled();
   });
 
   it("shows confirmation on delete click", () => {
