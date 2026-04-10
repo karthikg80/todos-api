@@ -1,13 +1,10 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { usePalette, PALETTES } from "./usePalette";
 
-const store: Record<string, string> = {};
 beforeEach(() => {
-  Object.keys(store).forEach((k) => delete store[k]);
-  vi.spyOn(Storage.prototype, "getItem").mockImplementation((k) => store[k] ?? null);
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation((k, v) => { store[k] = v; });
+  localStorage.clear();
 });
 
 describe("usePalette", () => {
@@ -25,17 +22,17 @@ describe("usePalette", () => {
   it("persists to localStorage", () => {
     const { result } = renderHook(() => usePalette());
     act(() => result.current.setPalette("teal"));
-    expect(store["mobile:palette"]).toBe("teal");
+    expect(localStorage.getItem("mobile:palette")).toBe("teal");
   });
 
   it("restores from localStorage", () => {
-    store["mobile:palette"] = "coral";
+    localStorage.setItem("mobile:palette", "coral");
     const { result } = renderHook(() => usePalette());
     expect(result.current.palette).toBe("coral");
   });
 
   it("falls back to amber for invalid stored value", () => {
-    store["mobile:palette"] = "invalid";
+    localStorage.setItem("mobile:palette", "invalid");
     const { result } = renderHook(() => usePalette());
     expect(result.current.palette).toBe("amber");
   });
