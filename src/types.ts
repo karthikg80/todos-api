@@ -194,6 +194,10 @@ export interface CreateHeadingDto {
   name: string;
 }
 
+export interface UpdateHeadingDto {
+  name?: string;
+}
+
 export interface CreateTodoDto {
   title: string;
   description?: string | null;

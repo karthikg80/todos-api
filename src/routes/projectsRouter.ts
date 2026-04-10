@@ -6,6 +6,7 @@ import {
   validateReorderHeadings,
   validateId,
   validateProjectTaskDisposition,
+  validateUpdateHeading,
   validateUpdateProject,
 } from "../validation/validation";
 import { DuplicateProjectNameError } from "../services/projectService";
@@ -203,6 +204,68 @@ export function createProjectsRouter({
           return res.status(404).json({ error: "Project not found" });
         }
         res.status(201).json(heading);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.put(
+    "/:id/headings/:headingId",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!headingService) {
+          return res.status(501).json({ error: "Headings not configured" });
+        }
+        const userId = resolveProjectUserId(req, res);
+        if (!userId) return;
+        const projectId = req.params.id as string;
+        const headingId = req.params.headingId as string;
+        validateId(projectId);
+        validateId(headingId);
+        const dto = validateUpdateHeading(req.body);
+        const updated = await headingService.update(
+          userId,
+          projectId,
+          headingId,
+          dto,
+        );
+        if (!updated) {
+          return res
+            .status(404)
+            .json({ error: "Project or heading not found" });
+        }
+        res.json(updated);
+      } catch (error) {
+        next(error);
+      }
+    },
+  );
+
+  router.delete(
+    "/:id/headings/:headingId",
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        if (!headingService) {
+          return res.status(501).json({ error: "Headings not configured" });
+        }
+        const userId = resolveProjectUserId(req, res);
+        if (!userId) return;
+        const projectId = req.params.id as string;
+        const headingId = req.params.headingId as string;
+        validateId(projectId);
+        validateId(headingId);
+        const deleted = await headingService.delete(
+          userId,
+          projectId,
+          headingId,
+        );
+        if (!deleted) {
+          return res
+            .status(404)
+            .json({ error: "Project or heading not found" });
+        }
+        res.status(204).send();
       } catch (error) {
         next(error);
       }

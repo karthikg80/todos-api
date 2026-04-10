@@ -5,6 +5,9 @@ interface Props {
   onToggleSettings?: () => void;
   settingsOpen?: boolean;
   onRename: () => void;
+  onDuplicate: () => void;
+  onRepeat: () => void;
+  onComplete: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }
@@ -13,6 +16,9 @@ export function ProjectKebabMenu({
   onToggleSettings,
   settingsOpen = false,
   onRename,
+  onDuplicate,
+  onRepeat,
+  onComplete,
   onArchive,
   onDelete,
 }: Props) {
@@ -92,6 +98,39 @@ export function ProjectKebabMenu({
             aria-label="Rename"
           >
             Rename
+          </button>
+          <button
+            className="project-kebab__item"
+            role="menuitem"
+            onClick={() => {
+              onDuplicate();
+              close();
+            }}
+            aria-label="Duplicate project"
+          >
+            Duplicate project
+          </button>
+          <button
+            className="project-kebab__item"
+            role="menuitem"
+            onClick={() => {
+              onRepeat();
+              close();
+            }}
+            aria-label="Repeat project"
+          >
+            Repeat project
+          </button>
+          <button
+            className="project-kebab__item"
+            role="menuitem"
+            onClick={() => {
+              onComplete();
+              close();
+            }}
+            aria-label="Complete project"
+          >
+            Complete project
           </button>
           <button
             className="project-kebab__item"

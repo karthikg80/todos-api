@@ -1,6 +1,11 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { IHeadingService } from "../interfaces/IHeadingService";
-import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "../types";
+import {
+  CreateHeadingDto,
+  Heading,
+  ReorderHeadingItemDto,
+  UpdateHeadingDto,
+} from "../types";
 import { hasPrismaCode } from "../errorHandling";
 
 type PrismaHeadingRecord = Prisma.HeadingGetPayload<{}>;
@@ -60,6 +65,69 @@ export class PrismaHeadingService implements IHeadingService {
         });
         return this.mapPrismaHeading(heading);
       });
+    } catch (error) {
+      if (hasPrismaCode(error, ["P2023"])) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async update(
+    userId: string,
+    projectId: string,
+    headingId: string,
+    dto: UpdateHeadingDto,
+  ): Promise<Heading | null> {
+    try {
+      const project = await this.prisma.project.findFirst({
+        where: { id: projectId, userId },
+        select: { id: true },
+      });
+      if (!project) return null;
+
+      const heading = await this.prisma.heading.findFirst({
+        where: { id: headingId, projectId },
+      });
+      if (!heading) return null;
+
+      const updated = await this.prisma.heading.update({
+        where: { id: headingId },
+        data: {
+          ...(dto.name !== undefined ? { name: dto.name } : {}),
+        },
+      });
+      return this.mapPrismaHeading(updated);
+    } catch (error) {
+      if (hasPrismaCode(error, ["P2023"])) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  async delete(
+    userId: string,
+    projectId: string,
+    headingId: string,
+  ): Promise<boolean | null> {
+    try {
+      const project = await this.prisma.project.findFirst({
+        where: { id: projectId, userId },
+        select: { id: true },
+      });
+      if (!project) return null;
+
+      const heading = await this.prisma.heading.findFirst({
+        where: { id: headingId, projectId },
+        select: { id: true },
+      });
+      if (!heading) return null;
+
+      await this.prisma.heading.delete({
+        where: { id: headingId },
+      });
+      return true;
     } catch (error) {
       if (hasPrismaCode(error, ["P2023"])) {
         return null;

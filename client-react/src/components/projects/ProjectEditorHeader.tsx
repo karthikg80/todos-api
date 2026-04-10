@@ -53,6 +53,9 @@ export function ProjectEditorHeader({
           ) : null}
           <ProjectKebabMenu
             onRename={onRenameMenu}
+            onDuplicate={() => {}}
+            onRepeat={() => {}}
+            onComplete={() => {}}
             onArchive={onArchiveProject}
             onDelete={onDeleteProject}
           />

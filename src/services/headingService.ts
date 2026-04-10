@@ -1,6 +1,11 @@
 import { randomUUID } from "crypto";
 import { IHeadingService } from "../interfaces/IHeadingService";
-import { CreateHeadingDto, Heading, ReorderHeadingItemDto } from "../types";
+import {
+  CreateHeadingDto,
+  Heading,
+  ReorderHeadingItemDto,
+  UpdateHeadingDto,
+} from "../types";
 import { IProjectService } from "../interfaces/IProjectService";
 
 export class HeadingService implements IHeadingService {
@@ -48,6 +53,38 @@ export class HeadingService implements IHeadingService {
     };
     this.headings.set(heading.id, heading);
     return heading;
+  }
+
+  async update(
+    userId: string,
+    projectId: string,
+    headingId: string,
+    dto: UpdateHeadingDto,
+  ): Promise<Heading | null> {
+    const list = await this.findAllByProject(userId, projectId);
+    if (list === null) return null;
+    const existing = list.find((heading) => heading.id === headingId);
+    if (!existing) return null;
+    const updated: Heading = {
+      ...existing,
+      name: dto.name ?? existing.name,
+      updatedAt: new Date(),
+    };
+    this.headings.set(headingId, updated);
+    return updated;
+  }
+
+  async delete(
+    userId: string,
+    projectId: string,
+    headingId: string,
+  ): Promise<boolean | null> {
+    const list = await this.findAllByProject(userId, projectId);
+    if (list === null) return null;
+    const existing = list.find((heading) => heading.id === headingId);
+    if (!existing) return null;
+    this.headings.delete(headingId);
+    return true;
   }
 
   async reorder(

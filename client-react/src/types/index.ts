@@ -99,6 +99,10 @@ export interface Heading {
   sortOrder: number;
 }
 
+export interface UpdateHeadingDto {
+  name?: string;
+}
+
 export interface User {
   id: string;
   email: string;

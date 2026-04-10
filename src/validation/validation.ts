@@ -9,6 +9,7 @@ import {
   RecurrenceType,
   ReviewCadence,
   UpdateProjectDto,
+  UpdateHeadingDto,
   UpdateSubtaskDto,
   UpdateTodoDto,
   ReorderTodoItemDto,
@@ -596,6 +597,24 @@ export function validateCreateHeading(data: unknown): CreateHeadingDto {
   return {
     name: validateHeadingName(body.name),
   };
+}
+
+export function validateUpdateHeading(data: unknown): UpdateHeadingDto {
+  if (!data || typeof data !== "object") {
+    throw new ValidationError("Request body must be an object");
+  }
+  const body = data as Record<string, unknown>;
+  const update: UpdateHeadingDto = {};
+
+  if (body.name !== undefined) {
+    update.name = validateHeadingName(body.name);
+  }
+
+  if (Object.keys(update).length === 0) {
+    throw new ValidationError("At least one field must be provided for update");
+  }
+
+  return update;
 }
 
 function parsePositiveInt(value: unknown, field: string): number {

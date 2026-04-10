@@ -31,6 +31,7 @@ import type {
 import type { LoadState } from "../../store/useTodosStore";
 import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import type { ActiveFilters } from "../todos/FilterPanel";
+import { apiCall } from "../../api/client";
 import { Breadcrumb } from "../shared/Breadcrumb";
 import {
   IconGrip,
@@ -58,10 +59,14 @@ export interface ProjectSavePayload {
   goal?: string | null;
   targetDate?: string | null;
   status?: Project["status"];
+  area?: string | null;
+  priority?: Project["priority"] | null;
 }
 
 interface Props {
   project: Project;
+  isDraft?: boolean;
+  projects: Project[];
   projectTodos: Todo[];
   visibleTodos: Todo[];
   loadState: LoadState;
@@ -74,6 +79,7 @@ interface Props {
   onSearchChange: (query: string) => void;
   onOpenNav: () => void;
   onClearProject: () => void;
+  onOpenProject: (id: string) => void;
   viewLabels: Record<string, string>;
   activeView: string;
   onNewTask: () => void;
@@ -311,6 +317,8 @@ function RowMenu({
 
 export function ProjectEditorView({
   project,
+  isDraft = false,
+  projects,
   projectTodos,
   visibleTodos: _visibleTodos,
   loadState,
@@ -318,6 +326,7 @@ export function ProjectEditorView({
   selectedIds,
   onOpenNav,
   onClearProject,
+  onOpenProject,
   viewLabels,
   activeView,
   user,
@@ -372,6 +381,10 @@ export function ProjectEditorView({
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? "");
   const [goal, setGoal] = useState(project.goal ?? "");
+  const [projectArea, setProjectArea] = useState(project.area ?? "");
+  const [projectPriority, setProjectPriority] = useState<Project["priority"]>(
+    project.priority ?? null,
+  );
   const [targetDate, setTargetDate] = useState(
     toDateInputValue(project.targetDate),
   );
@@ -387,13 +400,25 @@ export function ProjectEditorView({
   const [headingDraft, setHeadingDraft] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [headingNameDrafts, setHeadingNameDrafts] = useState<Record<string, string>>({});
+  const [moveTargetByHeadingId, setMoveTargetByHeadingId] = useState<
+    Record<string, string>
+  >({});
 
-  const { headings, addHeading, reorderHeadings } = useProjectHeadings(project.id);
+  const {
+    headings,
+    addHeading,
+    updateHeading,
+    deleteHeading,
+    reorderHeadings,
+  } = useProjectHeadings(project.id);
 
   useEffect(() => {
     setName(project.name);
     setDescription(project.description ?? "");
     setGoal(project.goal ?? "");
+    setProjectArea(project.area ?? "");
+    setProjectPriority(project.priority ?? null);
     setTargetDate(toDateInputValue(project.targetDate));
     setProjectStatus(project.status);
   }, [
@@ -402,6 +427,8 @@ export function ProjectEditorView({
     project.name,
     project.description,
     project.goal,
+    project.area,
+    project.priority,
     project.targetDate,
     project.status,
   ]);
@@ -412,16 +439,39 @@ export function ProjectEditorView({
     setQuickAddHeadingId(null);
   }, [project.id]);
 
+  useEffect(() => {
+    setHeadingNameDrafts(
+      Object.fromEntries(headings.map((heading) => [heading.id, heading.name])),
+    );
+    setMoveTargetByHeadingId({});
+  }, [headings, project.id]);
+
   const projectDirty = useMemo(() => {
     const nextDescription = description.trim() || null;
     const nextGoal = goal.trim() || null;
+    const nextArea = projectArea.trim() || null;
     const previousDescription = project.description?.trim() || null;
     const previousGoal = project.goal?.trim() || null;
+    const previousArea = project.area?.trim() || null;
+
+    if (isDraft) {
+      return Boolean(
+        name.trim() ||
+          nextDescription ||
+          nextGoal ||
+          nextArea ||
+          targetDate ||
+          projectPriority !== null ||
+          projectStatus !== "active",
+      );
+    }
 
     return (
       name.trim() !== project.name.trim() ||
       nextDescription !== previousDescription ||
       nextGoal !== previousGoal ||
+      nextArea !== previousArea ||
+      projectPriority !== (project.priority ?? null) ||
       targetDate !== toDateInputValue(project.targetDate) ||
       projectStatus !== project.status
     );
@@ -429,13 +479,18 @@ export function ProjectEditorView({
     description,
     goal,
     name,
+    project.area,
     project.description,
     project.goal,
     project.name,
+    project.priority,
     project.status,
     project.targetDate,
+    projectArea,
+    projectPriority,
     projectStatus,
     targetDate,
+    isDraft,
   ]);
 
   const allProjectTodos = useMemo(
@@ -454,6 +509,117 @@ export function ProjectEditorView({
   const activeViewLabel = viewLabels[activeView] ?? "Projects";
   const showStandaloneTasksLabel = sortedHeadings.length === 0;
   const showBacklogLabel = backlogTodos.length > 0 && sortedHeadings.length > 0;
+  const areaSuggestions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          projects
+            .map((candidate) => candidate.area?.trim())
+            .filter((value): value is string => Boolean(value)),
+        ),
+      ).sort((a, b) => a.localeCompare(b)),
+    [projects],
+  );
+
+  const buildDerivedProjectName = useCallback(
+    (suffix: string) => {
+      const base = project.name.trim() || "Untitled project";
+      const root = `${base} ${suffix}`;
+      const existingNames = new Set(
+        projects.map((candidate) => candidate.name.trim().toLowerCase()),
+      );
+      let candidate = root;
+      let index = 2;
+      while (existingNames.has(candidate.trim().toLowerCase())) {
+        candidate = `${root} ${index}`;
+        index += 1;
+      }
+      return candidate;
+    },
+    [project.name, projects],
+  );
+
+  const cloneProjectStructure = useCallback(
+    async (mode: "duplicate" | "repeat") => {
+      const response = await apiCall("/projects", {
+        method: "POST",
+        body: JSON.stringify({
+          name: buildDerivedProjectName(mode === "duplicate" ? "Copy" : "Repeat"),
+          description: description.trim() || null,
+          goal: goal.trim() || null,
+          area: projectArea.trim() || null,
+          priority: projectPriority,
+          status: "active",
+          targetDate: mode === "duplicate" ? fromDateInputValue(targetDate) : null,
+        }),
+      });
+      if (!response.ok) return;
+
+      const created = (await response.json()) as Project;
+      const headingMap = new Map<string, string>();
+
+      for (const heading of sortedHeadings) {
+        const headingResponse = await apiCall(`/projects/${created.id}/headings`, {
+          method: "POST",
+          body: JSON.stringify({ name: heading.name }),
+        });
+        if (!headingResponse.ok) continue;
+        const createdHeading = (await headingResponse.json()) as Heading;
+        headingMap.set(heading.id, createdHeading.id);
+      }
+
+      for (const todo of sortedTodos) {
+        const nextHeadingId = todo.headingId
+          ? (headingMap.get(todo.headingId) ?? null)
+          : null;
+        await apiCall("/todos", {
+          method: "POST",
+          body: JSON.stringify({
+            title: todo.title,
+            description: todo.description ?? null,
+            notes: todo.notes ?? null,
+            projectId: created.id,
+            headingId: nextHeadingId,
+            priority: todo.priority ?? null,
+            tags: todo.tags,
+            context: todo.context ?? null,
+            energy: todo.energy ?? null,
+            estimateMinutes: todo.estimateMinutes ?? null,
+            waitingOn: todo.waitingOn ?? null,
+            recurrence: todo.recurrence ?? undefined,
+            firstStep: todo.firstStep ?? null,
+            emotionalState: todo.emotionalState ?? null,
+            effortScore: todo.effortScore ?? null,
+            source: todo.source ?? null,
+            status: mode === "duplicate" ? todo.status : "inbox",
+            completed: mode === "duplicate" ? todo.completed : false,
+            dueDate: mode === "duplicate" ? todo.dueDate ?? null : null,
+            startDate: mode === "duplicate" ? todo.startDate ?? null : null,
+            scheduledDate: mode === "duplicate" ? todo.scheduledDate ?? null : null,
+            reviewDate: mode === "duplicate" ? todo.reviewDate ?? null : null,
+            doDate: mode === "duplicate" ? todo.doDate ?? null : null,
+          }),
+        });
+      }
+
+      onOpenProject(created.id);
+    },
+    [
+      buildDerivedProjectName,
+      description,
+      goal,
+      onOpenProject,
+      projectArea,
+      projectPriority,
+      sortedHeadings,
+      sortedTodos,
+      targetDate,
+    ],
+  );
+
+  const handleCompleteProject = useCallback(async () => {
+    await onSaveProject(project.id, { status: "completed" });
+  }, [onSaveProject, project.id]);
 
   const handleSaveProject = useCallback(async () => {
     setSavingProject(true);
@@ -462,6 +628,8 @@ export function ProjectEditorView({
         name: name.trim(),
         description: description.trim() || null,
         goal: goal.trim() || null,
+        area: projectArea.trim() || null,
+        priority: projectPriority,
         targetDate: fromDateInputValue(targetDate),
         status: projectStatus,
       });
@@ -474,6 +642,8 @@ export function ProjectEditorView({
     name,
     onSaveProject,
     project.id,
+    projectArea,
+    projectPriority,
     projectStatus,
     targetDate,
   ]);
@@ -502,6 +672,90 @@ export function ProjectEditorView({
     setHeadingDraftOpen(false);
     setQuickAddHeadingId(created.id);
   }, [addHeading, headingDraft]);
+
+  const handleSaveHeadingName = useCallback(
+    async (heading: Heading) => {
+      const nextName = (headingNameDrafts[heading.id] ?? heading.name).trim();
+      if (!nextName) {
+        setHeadingNameDrafts((current) => ({
+          ...current,
+          [heading.id]: heading.name,
+        }));
+        return;
+      }
+      if (nextName === heading.name) return;
+      const updated = await updateHeading(heading.id, { name: nextName });
+      if (!updated) {
+        setHeadingNameDrafts((current) => ({
+          ...current,
+          [heading.id]: heading.name,
+        }));
+      }
+    },
+    [headingNameDrafts, updateHeading],
+  );
+
+  const handleArchiveHeading = useCallback(
+    async (heading: Heading, headingTodos: Todo[]) => {
+      await Promise.all(
+        headingTodos.map((todo) => onSave(todo.id, { archived: true })),
+      );
+      await deleteHeading(heading.id);
+      setOpenMenuId(null);
+    },
+    [deleteHeading, onSave],
+  );
+
+  const handleDeleteHeading = useCallback(
+    async (heading: Heading) => {
+      await deleteHeading(heading.id);
+      setOpenMenuId(null);
+    },
+    [deleteHeading],
+  );
+
+  const handleMoveHeading = useCallback(
+    async (heading: Heading, headingTodos: Todo[], targetProjectId: string) => {
+      if (!targetProjectId || targetProjectId === project.id) return;
+      const response = await apiCall(`/projects/${targetProjectId}/headings`, {
+        method: "POST",
+        body: JSON.stringify({ name: heading.name }),
+      });
+      if (!response.ok) return;
+      const destinationHeading = (await response.json()) as Heading;
+      await Promise.all(
+        headingTodos.map((todo) =>
+          onSave(todo.id, {
+            projectId: targetProjectId,
+            headingId: destinationHeading.id,
+          }),
+        ),
+      );
+      await deleteHeading(heading.id);
+      setMoveTargetByHeadingId((current) => ({ ...current, [heading.id]: "" }));
+      setOpenMenuId(null);
+    },
+    [deleteHeading, onSave, project.id],
+  );
+
+  const handleConvertHeadingToProject = useCallback(
+    async (heading: Heading, headingTodos: Todo[]) => {
+      const response = await apiCall("/projects", {
+        method: "POST",
+        body: JSON.stringify({ name: heading.name }),
+      });
+      if (!response.ok) return;
+      const created = (await response.json()) as Project;
+      await Promise.all(
+        headingTodos.map((todo) =>
+          onSave(todo.id, { projectId: created.id, headingId: null }),
+        ),
+      );
+      await deleteHeading(heading.id);
+      onOpenProject(created.id);
+    },
+    [deleteHeading, onOpenProject, onSave],
+  );
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -619,19 +873,40 @@ export function ProjectEditorView({
             <Breadcrumb
               items={[
                 { label: activeViewLabel, onClick: onClearProject },
-                { label: project.name },
+                { label: project.name || "New Project" },
               ]}
             />
           </div>
 
           <div className="project-page__topbar-actions">
-            <ProjectKebabMenu
-              onToggleSettings={() => setSettingsOpen((open) => !open)}
-              settingsOpen={settingsOpen}
-              onRename={() => titleInputRef.current?.focus()}
-              onArchive={() => onArchiveProject(project.id)}
-              onDelete={() => onDeleteProject(project.id)}
-            />
+            {isDraft ? (
+              <button
+                type="button"
+                className="project-page__icon-btn"
+                aria-label={settingsOpen ? "Hide settings" : "Show settings"}
+                aria-expanded={settingsOpen}
+                onClick={() => setSettingsOpen((open) => !open)}
+              >
+                <IconMenu size={18} />
+              </button>
+            ) : (
+              <ProjectKebabMenu
+                onToggleSettings={() => setSettingsOpen((open) => !open)}
+                settingsOpen={settingsOpen}
+                onRename={() => titleInputRef.current?.focus()}
+                onDuplicate={() => {
+                  void cloneProjectStructure("duplicate");
+                }}
+                onRepeat={() => {
+                  void cloneProjectStructure("repeat");
+                }}
+                onComplete={() => {
+                  void handleCompleteProject();
+                }}
+                onArchive={() => onArchiveProject(project.id)}
+                onDelete={() => onDeleteProject(project.id)}
+              />
+            )}
           </div>
         </div>
 
@@ -641,9 +916,10 @@ export function ProjectEditorView({
             className="project-page__title"
             aria-label="Project name"
             value={name}
+            placeholder="Untitled project"
             onChange={(event) => setName(event.target.value)}
             onBlur={() => {
-              if (projectDirty) {
+              if (projectDirty && !isDraft) {
                 void handleSaveProject();
               }
             }}
@@ -652,6 +928,11 @@ export function ProjectEditorView({
             <span className="project-page__meta-pill">
               {projectStatusLabel(projectStatus)}
             </span>
+            {isDraft ? (
+              <span className="project-page__meta-pill project-page__meta-pill--accent">
+                New
+              </span>
+            ) : null}
             {projectDirty ? (
               <span className="project-page__meta-pill project-page__meta-pill--accent">
                 Unsaved
@@ -679,6 +960,41 @@ export function ProjectEditorView({
                 onChange={(event) => setGoal(event.target.value)}
                 placeholder="What done looks like"
               />
+            </label>
+            <label className="project-page__field">
+              <span className="project-page__field-label">Area</span>
+              <input
+                list="project-area-options"
+                className="project-page__input"
+                value={projectArea}
+                onChange={(event) => setProjectArea(event.target.value)}
+                placeholder="Home, Work, Health…"
+              />
+              <datalist id="project-area-options">
+                {areaSuggestions.map((area) => (
+                  <option key={area} value={area} />
+                ))}
+              </datalist>
+            </label>
+            <label className="project-page__field">
+              <span className="project-page__field-label">Priority</span>
+              <select
+                className="project-page__input"
+                value={projectPriority ?? ""}
+                onChange={(event) =>
+                  setProjectPriority(
+                    event.target.value
+                      ? (event.target.value as NonNullable<Project["priority"]>)
+                      : null,
+                  )
+                }
+              >
+                <option value="">None</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
             </label>
             <label className="project-page__field">
               <span className="project-page__field-label">Target date</span>
@@ -709,9 +1025,9 @@ export function ProjectEditorView({
                 type="button"
                 className="btn btn--primary"
                 onClick={() => void handleSaveProject()}
-                disabled={!projectDirty || savingProject}
+                disabled={!projectDirty || savingProject || !name.trim()}
               >
-                {savingProject ? "Saving…" : "Save project"}
+                {savingProject ? "Saving…" : isDraft ? "Create project" : "Save project"}
               </button>
             </div>
           </section>
@@ -731,49 +1047,55 @@ export function ProjectEditorView({
           />
         ) : null}
 
-        <section className="project-page__composer">
-          <input
-            ref={quickAddInputRef}
-            type="text"
-            className="project-page__quick-add"
-            value={quickAddTitle}
-            placeholder={
-              quickAddHeadingId
-                ? `Add a task to ${
-                    headings.find((heading) => heading.id === quickAddHeadingId)?.name ??
-                    "section"
-                  }`
-                : "Add a task"
-            }
-            onChange={(event) => setQuickAddTitle(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                void handleQuickAdd();
+        {isDraft ? (
+          <section className="project-page__draft-hint">
+            Save the project first, then add headings and tasks.
+          </section>
+        ) : (
+          <section className="project-page__composer">
+            <input
+              ref={quickAddInputRef}
+              type="text"
+              className="project-page__quick-add"
+              value={quickAddTitle}
+              placeholder={
+                quickAddHeadingId
+                  ? `Add a task to ${
+                      headings.find((heading) => heading.id === quickAddHeadingId)?.name ??
+                      "section"
+                    }`
+                  : "Add a task"
               }
-            }}
-          />
-          <button
-            type="button"
-            className="project-page__icon-btn"
-            aria-label="Add heading"
-            onClick={() => {
-              setHeadingDraftOpen((open) => !open);
-              setOpenMenuId(null);
-              requestAnimationFrame(() => headingInputRef.current?.focus());
-            }}
-          >
-            <IconPlus size={16} />
-          </button>
-          <button
-            type="button"
-            className="btn btn--primary"
-            onClick={() => void handleQuickAdd()}
-          >
-            Add
-          </button>
-        </section>
+              onChange={(event) => setQuickAddTitle(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  void handleQuickAdd();
+                }
+              }}
+            />
+            <button
+              type="button"
+              className="project-page__icon-btn"
+              aria-label="Add heading"
+              onClick={() => {
+                setHeadingDraftOpen((open) => !open);
+                setOpenMenuId(null);
+                requestAnimationFrame(() => headingInputRef.current?.focus());
+              }}
+            >
+              <IconPlus size={16} />
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary"
+              onClick={() => void handleQuickAdd()}
+            >
+              Add
+            </button>
+          </section>
+        )}
 
-        {headingDraftOpen ? (
+        {headingDraftOpen && !isDraft ? (
           <section className="project-page__heading-draft">
             <input
               ref={headingInputRef}
@@ -799,7 +1121,12 @@ export function ProjectEditorView({
         ) : null}
 
         <section className="project-page__list-shell">
-          {sortedTodos.length === 0 && sortedHeadings.length === 0 ? (
+          {isDraft ? (
+            <div className="project-page__empty">
+              Start with the project name and optional settings. Once you create it,
+              headings and tasks will appear here.
+            </div>
+          ) : sortedTodos.length === 0 && sortedHeadings.length === 0 ? (
             <div className="project-page__empty">
               No headings or tasks yet. Start with a task or add a heading.
             </div>
@@ -900,7 +1227,31 @@ export function ProjectEditorView({
                           className="project-page__heading-row"
                         >
                           <div className="project-page__heading-copy">
-                            <h2 className="project-page__heading-title">{heading.name}</h2>
+                            <input
+                              className="project-page__heading-input"
+                              data-heading-input-id={heading.id}
+                              aria-label={`Heading name: ${heading.name}`}
+                              value={headingNameDrafts[heading.id] ?? heading.name}
+                              onChange={(event) =>
+                                setHeadingNameDrafts((current) => ({
+                                  ...current,
+                                  [heading.id]: event.target.value,
+                                }))
+                              }
+                              onBlur={() => void handleSaveHeadingName(heading)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter") {
+                                  event.currentTarget.blur();
+                                }
+                                if (event.key === "Escape") {
+                                  setHeadingNameDrafts((current) => ({
+                                    ...current,
+                                    [heading.id]: heading.name,
+                                  }));
+                                  event.currentTarget.blur();
+                                }
+                              }}
+                            />
                             <span className="project-page__heading-count">
                               {headingTodos.length}
                             </span>
@@ -918,103 +1269,168 @@ export function ProjectEditorView({
                             <button
                               type="button"
                               onClick={() => {
-                                setQuickAddHeadingId(heading.id);
                                 setOpenMenuId(null);
-                                quickAddInputRef.current?.focus();
+                                requestAnimationFrame(() =>
+                                  document
+                                    .querySelector<HTMLInputElement>(
+                                      `[data-heading-input-id="${heading.id}"]`,
+                                    )
+                                    ?.focus(),
+                                );
                               }}
                             >
-                              Add task here
+                              Rename
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleArchiveHeading(heading, headingTodos)}
+                            >
+                              Archive
+                            </button>
+                            <label className="project-page__menu-field">
+                              <span>Move to project</span>
+                              <select
+                                className="project-page__menu-select"
+                                value={moveTargetByHeadingId[heading.id] ?? ""}
+                                onChange={(event) =>
+                                  setMoveTargetByHeadingId((current) => ({
+                                    ...current,
+                                    [heading.id]: event.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="">Select project</option>
+                                {projects
+                                  .filter(
+                                    (candidate) =>
+                                      !candidate.archived && candidate.id !== project.id,
+                                  )
+                                  .map((candidate) => (
+                                    <option key={candidate.id} value={candidate.id}>
+                                      {candidate.name}
+                                    </option>
+                                  ))}
+                              </select>
+                            </label>
+                            <button
+                              type="button"
+                              disabled={!moveTargetByHeadingId[heading.id]}
+                              onClick={() =>
+                                void handleMoveHeading(
+                                  heading,
+                                  headingTodos,
+                                  moveTargetByHeadingId[heading.id] ?? "",
+                                )
+                              }
+                            >
+                              Move
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                void handleConvertHeadingToProject(heading, headingTodos)
+                              }
+                            >
+                              Convert to project
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => void handleDeleteHeading(heading)}
+                            >
+                              Delete
                             </button>
                           </RowMenu>
                         </SortableRow>
 
-                        {headingTodos.length === 0 ? (
-                          <div className="project-page__section-empty">
-                            Empty heading. Drop a task here or add one from the menu.
-                          </div>
-                        ) : null}
+                        <div className="project-page__section-tasks">
+                          {headingTodos.length === 0 ? (
+                            <div className="project-page__section-empty">
+                              Empty heading. Drop a task here or add one from the menu.
+                            </div>
+                          ) : null}
 
-                        {headingTodos.map((todo) => {
-                          const menuId = `todo:${todo.id}`;
-                          const dueLabel = formatDueFriendly(todo.dueDate);
+                          {headingTodos.map((todo) => {
+                            const menuId = `todo:${todo.id}`;
+                            const dueLabel = formatDueFriendly(todo.dueDate);
 
-                          return (
-                            <SortableRow
-                              key={menuId}
-                              id={menuId}
-                              className="project-page__task-row project-page__task-row--nested"
-                            >
-                              <label className="project-page__task-check">
-                                <input
-                                  type="checkbox"
-                                  checked={
-                                    bulkMode ? selectedIds.has(todo.id) : todo.completed
-                                  }
-                                  onChange={() =>
-                                    bulkMode
-                                      ? onSelect(todo.id)
-                                      : onToggle(todo.id, !todo.completed)
-                                  }
-                                  aria-label={
-                                    bulkMode
-                                      ? `Select ${todo.title}`
-                                      : `Complete ${todo.title}`
-                                  }
-                                />
-                              </label>
-                              <button
-                                type="button"
-                                className={`project-page__task-title${
-                                  todo.completed ? " project-page__task-title--done" : ""
-                                }`}
-                                onClick={() => onTaskOpen(todo.id)}
+                            return (
+                              <SortableRow
+                                key={menuId}
+                                id={menuId}
+                                className="project-page__task-row project-page__task-row--nested"
                               >
-                                {todo.title}
-                              </button>
-                              {todo.dueDate ? (
-                                <span className="project-page__task-meta">{dueLabel}</span>
-                              ) : null}
-                              <RowMenu
-                                label="Task actions"
-                                open={openMenuId === menuId}
-                                onClose={() => setOpenMenuId(null)}
-                                onToggle={() =>
-                                  setOpenMenuId((current) =>
-                                    current === menuId ? null : menuId,
-                                  )
-                                }
-                              >
+                                <label className="project-page__task-check">
+                                  <input
+                                    type="checkbox"
+                                    checked={
+                                      bulkMode ? selectedIds.has(todo.id) : todo.completed
+                                    }
+                                    onChange={() =>
+                                      bulkMode
+                                        ? onSelect(todo.id)
+                                        : onToggle(todo.id, !todo.completed)
+                                    }
+                                    aria-label={
+                                      bulkMode
+                                        ? `Select ${todo.title}`
+                                        : `Complete ${todo.title}`
+                                    }
+                                  />
+                                </label>
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    onTaskOpen(todo.id);
-                                  }}
+                                  className={`project-page__task-title${
+                                    todo.completed ? " project-page__task-title--done" : ""
+                                  }`}
+                                  onClick={() => onTaskOpen(todo.id)}
                                 >
-                                  Open
+                                  {todo.title}
                                 </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    void onSave(todo.id, { headingId: null });
-                                  }}
+                                {todo.dueDate ? (
+                                  <span className="project-page__task-meta">{dueLabel}</span>
+                                ) : null}
+                                <RowMenu
+                                  label="Task actions"
+                                  open={openMenuId === menuId}
+                                  onClose={() => setOpenMenuId(null)}
+                                  onToggle={() =>
+                                    setOpenMenuId((current) =>
+                                      current === menuId ? null : menuId,
+                                    )
+                                  }
                                 >
-                                  Move to backlog
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setOpenMenuId(null);
-                                    onRequestDeleteTodo(todo.id);
-                                  }}
-                                >
-                                  Delete
-                                </button>
-                              </RowMenu>
-                            </SortableRow>
-                          );
-                        })}
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      onTaskOpen(todo.id);
+                                    }}
+                                  >
+                                    Open
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      void onSave(todo.id, { headingId: null });
+                                    }}
+                                  >
+                                    Move to backlog
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      onRequestDeleteTodo(todo.id);
+                                    }}
+                                  >
+                                    Delete
+                                  </button>
+                                </RowMenu>
+                              </SortableRow>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })}
