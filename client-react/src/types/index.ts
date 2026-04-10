@@ -179,6 +179,7 @@ export interface UpdateTodoDto {
   projectId?: string | null;
   category?: string | null;
   dueDate?: string | null;
+  order?: number;
   priority?: Priority | null;
   tags?: string[];
   notes?: string | null;
