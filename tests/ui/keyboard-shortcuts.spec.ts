@@ -53,7 +53,9 @@ test.describe("Keyboard shortcuts", () => {
     await context.close();
   });
 
-  test("shortcuts overlay lists all expected shortcuts", async ({ browser }) => {
+  test("shortcuts overlay lists all expected shortcuts", async ({
+    browser,
+  }) => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
@@ -77,8 +79,12 @@ test.describe("Keyboard shortcuts", () => {
     await expect(rows).toHaveCount(9); // 9 shortcuts defined in component
 
     // Verify specific keys by their text content.
-    await expect(page.locator(".shortcut-key").filter({ hasText: "Escape" })).toBeVisible();
-    await expect(page.locator(".shortcut-key").filter({ hasText: "j / k" })).toBeVisible();
+    await expect(
+      page.locator(".shortcut-key").filter({ hasText: "Escape" }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".shortcut-key").filter({ hasText: "j / k" }),
+    ).toBeVisible();
 
     await context.close();
   });
@@ -111,18 +117,24 @@ test.describe("Keyboard shortcuts", () => {
     const page = await openTodosViewWithStorageState(context);
 
     // The sidebar search input exists and is visible.
-    const searchInput = page.locator('textbox[name="Search tasks"], input[placeholder*="Search"]');
+    const searchInput = page.locator(
+      'textbox[name="Search tasks"], input[placeholder*="Search"]',
+    );
     await expect(searchInput.first()).toBeVisible();
 
     await context.close();
   });
 
-  test("new task flow can be triggered via keyboard shortcut", async ({ browser }) => {
+  test("new task flow can be triggered via keyboard shortcut", async ({
+    browser,
+  }) => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
     // The "+ New Task" button exists in the banner.
-    const newTaskBtn = page.locator('button:has-text("+ New Task"), button:has-text("New Task")');
+    const newTaskBtn = page.locator(
+      'button:has-text("+ New Task"), button:has-text("New Task")',
+    );
     await expect(newTaskBtn.first()).toBeVisible();
 
     await context.close();

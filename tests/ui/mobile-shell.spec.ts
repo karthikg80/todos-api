@@ -1,5 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { bootstrapTodosContext, waitForTodosViewIdle, MOCK_USER } from "./helpers/todos-view";
+import {
+  bootstrapTodosContext,
+  waitForTodosViewIdle,
+  MOCK_USER,
+} from "./helpers/todos-view";
 
 /**
  * Mobile shell tests — Pixel 7 viewport, tab navigation, responsive rendering.
@@ -9,7 +13,9 @@ test.describe("Mobile shell", () => {
   // Skip on desktop viewport — mobile-specific tests.
   test.skip(({ isMobile }) => !isMobile, "Mobile-only tests");
 
-  test("renders mobile shell instead of desktop sidebar at mobile viewport", async ({ page }) => {
+  test("renders mobile shell instead of desktop sidebar at mobile viewport", async ({
+    page,
+  }) => {
     await bootstrapTodosContext(page.context());
     await page.goto("/app/");
     await waitForTodosViewIdle(page);
@@ -33,9 +39,15 @@ test.describe("Mobile shell", () => {
     await expect(tabBar).toBeVisible();
 
     // All tab labels present.
-    await expect(page.locator(".m-tab-bar__label", { hasText: "Focus" })).toBeVisible();
-    await expect(page.locator(".m-tab-bar__label", { hasText: "Today" })).toBeVisible();
-    await expect(page.locator(".m-tab-bar__label", { hasText: "Projects" })).toBeVisible();
+    await expect(
+      page.locator(".m-tab-bar__label", { hasText: "Focus" }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".m-tab-bar__label", { hasText: "Today" }),
+    ).toBeVisible();
+    await expect(
+      page.locator(".m-tab-bar__label", { hasText: "Projects" }),
+    ).toBeVisible();
 
     // FAB (plus button) exists.
     const fab = page.locator(".m-tab-bar__fab");
@@ -58,7 +70,7 @@ test.describe("Mobile shell", () => {
     await waitForTodosViewIdle(page);
 
     // Tap Today tab.
-    const todayTab = page.locator('.m-tab-bar__tab', { hasText: "Today" });
+    const todayTab = page.locator(".m-tab-bar__tab", { hasText: "Today" });
     await todayTab.click({ force: true });
 
     // Today tab should now be active.
@@ -72,7 +84,9 @@ test.describe("Mobile shell", () => {
     await waitForTodosViewIdle(page);
 
     // Tap Projects tab.
-    const projectsTab = page.locator('.m-tab-bar__tab', { hasText: "Projects" });
+    const projectsTab = page.locator(".m-tab-bar__tab", {
+      hasText: "Projects",
+    });
     await projectsTab.click({ force: true });
 
     await expect(projectsTab).toHaveAttribute("aria-selected", "true");
@@ -106,7 +120,9 @@ test.describe("Mobile shell", () => {
     expect(count).toBeGreaterThanOrEqual(0);
   });
 
-  test("pull to search gesture does not crash (graceful absence)", async ({ page }) => {
+  test("pull to search gesture does not crash (graceful absence)", async ({
+    page,
+  }) => {
     await bootstrapTodosContext(page.context());
     await page.goto("/app/");
     await waitForTodosViewIdle(page);

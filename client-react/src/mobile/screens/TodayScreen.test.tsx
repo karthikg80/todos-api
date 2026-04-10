@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, createElement } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 import { TodayScreen } from "./TodayScreen";
 import type { Todo, Project, User } from "../../types";
@@ -19,13 +19,22 @@ const defaultProps = {
   onSnoozeTodo: vi.fn(),
 };
 
+const iso = "2024-01-01T00:00:00.000Z";
+
 function makeTodo(overrides: Partial<Todo> = {}): Todo {
+  const id = overrides.id ?? `todo-${Math.random()}`;
   return {
-    id: `todo-${Math.random()}`,
+    id,
     title: "Test task",
     completed: false,
     archived: false,
-    status: "next" as const,
+    status: "next",
+    tags: [],
+    dependsOnTaskIds: [],
+    order: 0,
+    userId: "u1",
+    createdAt: iso,
+    updatedAt: iso,
     ...overrides,
   };
 }
@@ -130,7 +139,15 @@ describe("TodayScreen", () => {
   });
 
   it("shows project name in todo row meta", () => {
-    const project: Project = { id: "p1", name: "Work", status: "active", archived: false };
+    const project: Project = {
+      id: "p1",
+      name: "Work",
+      status: "active",
+      archived: false,
+      userId: "u1",
+      createdAt: iso,
+      updatedAt: iso,
+    };
     const todo = makeTodo({ title: "With project", projectId: "p1" });
 
     render(ce(TodayScreen, { ...defaultProps, todos: [todo], projects: [project] }));

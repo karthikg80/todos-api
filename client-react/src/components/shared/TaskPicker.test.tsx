@@ -1,18 +1,37 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, fireEvent, createElement } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 import { TaskPicker } from "./TaskPicker";
 import type { Todo } from "../../types";
 
 const { createElement: ce } = React;
 
+const iso = "2024-01-01T00:00:00.000Z";
+
+function makeTodo(overrides: Partial<Todo> = {}): Todo {
+  return {
+    id: "t0",
+    title: "Task",
+    completed: false,
+    archived: false,
+    status: "next",
+    tags: [],
+    dependsOnTaskIds: [],
+    order: 0,
+    userId: "u1",
+    createdAt: iso,
+    updatedAt: iso,
+    ...overrides,
+  };
+}
+
 const mockTodos: Todo[] = [
-  { id: "t1", title: "Write report", completed: false, archived: false, status: "next" },
-  { id: "t2", title: "Review PR", completed: false, archived: false, status: "next" },
-  { id: "t3", title: "Fix bug", completed: false, archived: false, status: "next" },
-  { id: "t4", title: "Completed task", completed: true, archived: false, status: "next" },
-  { id: "t5", title: "Task with category", completed: false, archived: false, status: "next", category: "work" },
+  makeTodo({ id: "t1", title: "Write report" }),
+  makeTodo({ id: "t2", title: "Review PR" }),
+  makeTodo({ id: "t3", title: "Fix bug" }),
+  makeTodo({ id: "t4", title: "Completed task", completed: true }),
+  makeTodo({ id: "t5", title: "Task with category", category: "work" }),
 ];
 
 const defaultProps = {
@@ -119,13 +138,9 @@ describe("TaskPicker", () => {
   });
 
   it("limits results to 8", () => {
-    const manyTodos: Todo[] = Array.from({ length: 15 }, (_, i) => ({
-      id: `t-${i}`,
-      title: `Task ${i}`,
-      completed: false,
-      archived: false,
-      status: "next" as const,
-    }));
+    const manyTodos: Todo[] = Array.from({ length: 15 }, (_, i) =>
+      makeTodo({ id: `t-${i}`, title: `Task ${i}`, order: i }),
+    );
 
     render(ce(TaskPicker, { ...defaultProps, todos: manyTodos }));
     const input = screen.getByPlaceholderText("Search tasks to link…");

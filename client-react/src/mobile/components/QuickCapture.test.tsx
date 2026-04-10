@@ -1,17 +1,33 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, createElement } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import React from "react";
 import { QuickCapture } from "./QuickCapture";
+import type { Project } from "../../types";
 
 const { createElement: ce } = React;
+
+const iso = "2024-01-01T00:00:00.000Z";
+
+function makeProject(overrides: Partial<Project> = {}): Project {
+  return {
+    id: "p0",
+    name: "Project",
+    status: "active",
+    archived: false,
+    userId: "u1",
+    createdAt: iso,
+    updatedAt: iso,
+    ...overrides,
+  };
+}
 
 const defaultProps = {
   open: true,
   projects: [
-    { id: "p1", name: "Work", status: "active" as const, archived: false },
-    { id: "p2", name: "Personal", status: "active" as const, archived: false },
-    { id: "p3", name: "Archived", status: "archived" as const, archived: true },
+    makeProject({ id: "p1", name: "Work" }),
+    makeProject({ id: "p2", name: "Personal" }),
+    makeProject({ id: "p3", name: "Archived", status: "archived", archived: true }),
   ],
   onClose: vi.fn(),
   onCreateTask: vi.fn().mockResolvedValue(undefined),

@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { openTodosViewWithStorageState, waitForTodosViewIdle } from "./helpers/todos-view";
+import {
+  openTodosViewWithStorageState,
+  waitForTodosViewIdle,
+} from "./helpers/todos-view";
 
 /**
  * App shell tests — authenticated desktop rendering, sidebar navigation, view switching.
@@ -53,7 +56,9 @@ test.describe("App shell (desktop)", () => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
-    const activityBtn = page.locator("nav.projects-rail__primary button:has-text('Activity')");
+    const activityBtn = page.locator(
+      "nav.projects-rail__primary button:has-text('Activity')",
+    );
     await expect(activityBtn).toBeVisible();
 
     await context.close();
@@ -70,7 +75,9 @@ test.describe("App shell (desktop)", () => {
     await context.close();
   });
 
-  test("Focus view is active by default and renders home dashboard", async ({ browser }) => {
+  test("Focus view is active by default and renders home dashboard", async ({
+    browser,
+  }) => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
@@ -104,27 +111,37 @@ test.describe("App shell (desktop)", () => {
     await context.close();
   });
 
-  test("switching views preserves LRU cache (view state persists)", async ({ browser }) => {
+  test("switching views preserves LRU cache (view state persists)", async ({
+    browser,
+  }) => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
     // Start on Focus (home).
-    await expect(page.locator('button[data-workspace-view="home"]')).toHaveClass(/projects-rail-item--active/);
+    await expect(
+      page.locator('button[data-workspace-view="home"]'),
+    ).toHaveClass(/projects-rail-item--active/);
 
     // Switch to Today.
     await page.locator('button[data-workspace-view="today"]').click();
     await waitForTodosViewIdle(page);
-    await expect(page.locator('button[data-workspace-view="today"]')).toHaveClass(/projects-rail-item--active/);
+    await expect(
+      page.locator('button[data-workspace-view="today"]'),
+    ).toHaveClass(/projects-rail-item--active/);
 
     // Switch to Horizon.
     await page.locator('button[data-workspace-view="horizon"]').click();
     await waitForTodosViewIdle(page);
-    await expect(page.locator('button[data-workspace-view="horizon"]')).toHaveClass(/projects-rail-item--active/);
+    await expect(
+      page.locator('button[data-workspace-view="horizon"]'),
+    ).toHaveClass(/projects-rail-item--active/);
 
     // Switch back to Focus — should still be active.
     await page.locator('button[data-workspace-view="home"]').click();
     await waitForTodosViewIdle(page);
-    await expect(page.locator('button[data-workspace-view="home"]')).toHaveClass(/projects-rail-item--active/);
+    await expect(
+      page.locator('button[data-workspace-view="home"]'),
+    ).toHaveClass(/projects-rail-item--active/);
 
     await context.close();
   });
@@ -147,14 +164,18 @@ test.describe("App shell (desktop)", () => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 
-    const newTaskBtn = page.locator("button.sidebar-new-task-btn[data-new-task-trigger='true']");
+    const newTaskBtn = page.locator(
+      "button.sidebar-new-task-btn[data-new-task-trigger='true']",
+    );
     await expect(newTaskBtn).toBeVisible();
     await expect(newTaskBtn).toContainText("New Task");
 
     await context.close();
   });
 
-  test("profile launcher is visible at bottom of sidebar", async ({ browser }) => {
+  test("profile launcher is visible at bottom of sidebar", async ({
+    browser,
+  }) => {
     const context = await browser.newContext();
     const page = await openTodosViewWithStorageState(context);
 

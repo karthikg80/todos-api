@@ -5,7 +5,8 @@ import * as focusTargetsModule from "./focusTargets";
 // The focusTargets module checks getClientRects().length > 0 for visibility,
 // which doesn't work in jsdom. We need to mock getClientRects.
 function makeElementVisible(el: HTMLElement) {
-  vi.spyOn(el, "getClientRects").mockReturnValue([{ left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100, toJSON: () => ({}) } as DOMRect]);
+  const rect = { left: 0, top: 0, right: 100, bottom: 100, width: 100, height: 100, x: 0, y: 0, toJSON: () => ({}) } as DOMRect;
+  vi.spyOn(el, "getClientRects").mockReturnValue([rect] as unknown as DOMRectList);
   return el;
 }
 
