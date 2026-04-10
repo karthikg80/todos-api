@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Heading, Project, Todo } from "../../types";
@@ -94,6 +95,7 @@ function renderEditor(opts: {
   projectTodos?: Todo[];
   headings?: Heading[];
   isDraft?: boolean;
+  hookOverrides?: Partial<ReturnType<typeof useProjectHeadings>>;
 } = {}) {
   const project = opts.project ?? makeProject();
   const projects = opts.projects ?? [project];
@@ -110,6 +112,7 @@ function renderEditor(opts: {
     updateHeading,
     deleteHeading,
     reorderHeadings: vi.fn().mockResolvedValue(headings),
+    ...opts.hookOverrides,
   });
 
   const onSaveProject = vi.fn().mockResolvedValue(undefined);
@@ -257,13 +260,102 @@ describe("ProjectEditorView", () => {
     );
   });
 
-  it("adds tasks from the compact composer", async () => {
+  it("adds tasks from the inline composer", async () => {
     const { onAddTodo } = renderEditor();
 
-    fireEvent.change(screen.getByPlaceholderText("Add a task"), {
+    fireEvent.click(screen.getAllByRole("button", { name: "Add task" })[0]!);
+    const input = screen.getByPlaceholderText("Type a task");
+    fireEvent.change(input, {
       target: { value: "Sweep floor" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Add" }));
+    fireEvent.click(
+      within(input.closest(".project-page__task-composer-form") as HTMLElement).getByRole(
+        "button",
+        { name: "Add task" },
+      ),
+    );
+
+    expect(onAddTodo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Sweep floor",
+        projectId: "project-1",
+        headingId: null,
+      }),
+    );
+  });
+
+  it("adds headings from the inline composer", async () => {
+    const addHeading = vi.fn().mockResolvedValue(makeHeading({ id: "heading-2" }));
+    renderEditor({ hookOverrides: { addHeading } });
+
+    fireEvent.click(screen.getByRole("button", { name: "New heading" }));
+    fireEvent.change(screen.getByPlaceholderText("Type a heading and press Enter"), {
+      target: { value: "Second" },
+    });
+    fireEvent.keyDown(
+      screen.getByPlaceholderText("Type a heading and press Enter"),
+      { key: "Enter" },
+    );
+
+    expect(addHeading).toHaveBeenCalledWith("Second");
+  });
+
+  it("adds tasks inside a heading from that section composer", async () => {
+    const { onAddTodo } = renderEditor({
+      headings: [makeHeading({ id: "heading-1", name: "Backlog" })],
+      projectTodos: [
+        makeTodo({
+          id: "todo-1",
+          title: "Sort donation pile",
+          headingId: "heading-1",
+        }),
+      ],
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Add task" })[1]!);
+    const input = screen.getByPlaceholderText("Type a task");
+    fireEvent.change(input, {
+      target: { value: "Label storage bins" },
+    });
+    fireEvent.click(
+      within(input.closest(".project-page__task-composer-form") as HTMLElement).getByRole(
+        "button",
+        { name: "Add task" },
+      ),
+    );
+
+    expect(onAddTodo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Label storage bins",
+        projectId: "project-1",
+        headingId: "heading-1",
+      }),
+    );
+  });
+
+  it("keeps a project-level task composer before the first heading when backlog is empty", async () => {
+    const { onAddTodo } = renderEditor({
+      headings: [makeHeading({ id: "heading-1", name: "Backlog" })],
+      projectTodos: [
+        makeTodo({
+          id: "todo-1",
+          title: "Sort donation pile",
+          headingId: "heading-1",
+        }),
+      ],
+    });
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Add task" })[0]!);
+    const input = screen.getByPlaceholderText("Type a task");
+    fireEvent.change(input, {
+      target: { value: "Sweep floor" },
+    });
+    fireEvent.click(
+      within(input.closest(".project-page__task-composer-form") as HTMLElement).getByRole(
+        "button",
+        { name: "Add task" },
+      ),
+    );
 
     expect(onAddTodo).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -303,7 +395,7 @@ describe("ProjectEditorView", () => {
     expect(screen.getByText(/save the project first/i)).toBeTruthy();
     expect(screen.getByText(/headings and tasks will appear here/i)).toBeTruthy();
     expect(screen.getByRole("button", { name: /show settings/i })).toBeTruthy();
-    expect(screen.queryByPlaceholderText("Add a task")).toBeNull();
+    expect(screen.queryByPlaceholderText(/Type .*press Enter/i)).toBeNull();
   });
 
   it("renders heading inline editing and heading actions", () => {
@@ -325,6 +417,27 @@ describe("ProjectEditorView", () => {
     expect(screen.getByText("Move to project")).toBeTruthy();
     expect(screen.getByRole("button", { name: "Convert to project" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
+  });
+
+  it("collapses and expands tasks under a heading", () => {
+    renderEditor({
+      headings: [makeHeading({ id: "heading-1", name: "Backlog" })],
+      projectTodos: [
+        makeTodo({
+          id: "todo-1",
+          title: "Sort donation pile",
+          headingId: "heading-1",
+        }),
+      ],
+    });
+
+    expect(screen.getByRole("button", { name: "Sort donation pile" })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: "Collapse Backlog" }));
+    expect(screen.queryByRole("button", { name: "Sort donation pile" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Expand Backlog" }));
+    expect(screen.getByRole("button", { name: "Sort donation pile" })).toBeTruthy();
   });
 
   it("moves heading tasks into a new same-named heading in the destination project", async () => {

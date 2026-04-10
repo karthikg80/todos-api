@@ -1,9 +1,13 @@
 import {
   DndContext,
+  DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   closestCenter,
   useSensor,
   useSensors,
+  type DragOverEvent,
+  type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import {
@@ -37,7 +41,6 @@ import {
   IconGrip,
   IconKebab,
   IconMenu,
-  IconPlus,
 } from "../shared/Icons";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { BulkToolbar } from "../todos/BulkToolbar";
@@ -213,10 +216,12 @@ function buildFlatItems(headings: Heading[], todos: Todo[]) {
 function SortableRow({
   id,
   className,
+  isDropTarget = false,
   children,
 }: {
   id: string;
   className: string;
+  isDropTarget?: boolean;
   children: ReactNode;
 }) {
   const {
@@ -231,11 +236,14 @@ function SortableRow({
   return (
     <div
       ref={setNodeRef}
-      className={className}
+      className={`${className}${isDragging ? " project-page__sortable-row--dragging" : ""}${
+        isDropTarget ? " project-page__sortable-row--drop-target" : ""
+      }`}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0.55 : 1,
+        zIndex: isDragging ? 2 : undefined,
       }}
     >
       <button
@@ -375,8 +383,6 @@ export function ProjectEditorView({
   onReplaceNext: _onReplaceNext,
 }: Props) {
   const titleInputRef = useRef<HTMLInputElement>(null);
-  const quickAddInputRef = useRef<HTMLInputElement>(null);
-  const headingInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? "");
@@ -392,14 +398,19 @@ export function ProjectEditorView({
     project.status,
   );
   const [savingProject, setSavingProject] = useState(false);
-  const [quickAddTitle, setQuickAddTitle] = useState("");
-  const [quickAddHeadingId, setQuickAddHeadingId] = useState<string | null>(
+  const [activeTaskComposerScope, setActiveTaskComposerScope] = useState<string | null>(
     null,
   );
-  const [headingDraftOpen, setHeadingDraftOpen] = useState(false);
-  const [headingDraft, setHeadingDraft] = useState("");
+  const [taskComposerValue, setTaskComposerValue] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [activeDragId, setActiveDragId] = useState<string | null>(null);
+  const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
+  const [collapsedHeadingIds, setCollapsedHeadingIds] = useState<Set<string>>(
+    () => new Set(),
+  );
+  const [headingComposerOpen, setHeadingComposerOpen] = useState(false);
+  const [headingComposerValue, setHeadingComposerValue] = useState("");
   const [headingNameDrafts, setHeadingNameDrafts] = useState<Record<string, string>>({});
   const [moveTargetByHeadingId, setMoveTargetByHeadingId] = useState<
     Record<string, string>
@@ -435,8 +446,12 @@ export function ProjectEditorView({
 
   useEffect(() => {
     setOpenMenuId(null);
-    setHeadingDraftOpen(false);
-    setQuickAddHeadingId(null);
+    setActiveTaskComposerScope(null);
+    setTaskComposerValue("");
+    setActiveDropTargetId(null);
+    setCollapsedHeadingIds(new Set());
+    setHeadingComposerOpen(false);
+    setHeadingComposerValue("");
   }, [project.id]);
 
   useEffect(() => {
@@ -444,6 +459,13 @@ export function ProjectEditorView({
       Object.fromEntries(headings.map((heading) => [heading.id, heading.name])),
     );
     setMoveTargetByHeadingId({});
+    setCollapsedHeadingIds((current) => {
+      const next = new Set<string>();
+      for (const heading of headings) {
+        if (current.has(heading.id)) next.add(heading.id);
+      }
+      return next;
+    });
   }, [headings, project.id]);
 
   const projectDirty = useMemo(() => {
@@ -519,6 +541,22 @@ export function ProjectEditorView({
         ),
       ).sort((a, b) => a.localeCompare(b)),
     [projects],
+  );
+  const displayedFlatItems = useMemo(
+    () =>
+      flatItems.filter((item) =>
+        item.kind === "heading"
+          ? true
+          : !item.parentHeadingId || !collapsedHeadingIds.has(item.parentHeadingId),
+      ),
+    [collapsedHeadingIds, flatItems],
+  );
+  const activeDragItem = useMemo(
+    () =>
+      activeDragId
+        ? displayedFlatItems.find((item) => item.sortableId === activeDragId) ?? null
+        : null,
+    [activeDragId, displayedFlatItems],
   );
 
   const buildDerivedProjectName = useCallback(
@@ -648,30 +686,102 @@ export function ProjectEditorView({
     targetDate,
   ]);
 
-  const handleQuickAdd = useCallback(async () => {
-    const title = quickAddTitle.trim();
+  const handleAddTaskInline = useCallback(async () => {
+    const title = taskComposerValue.trim();
+    const headingId =
+      activeTaskComposerScope && activeTaskComposerScope !== "backlog"
+        ? activeTaskComposerScope
+        : null;
     if (!title) return;
 
     await onAddTodo({
       title,
       projectId: project.id,
-      headingId: quickAddHeadingId,
+      headingId,
     });
 
-    setQuickAddTitle("");
-  }, [onAddTodo, project.id, quickAddHeadingId, quickAddTitle]);
+    setTaskComposerValue("");
+  }, [activeTaskComposerScope, onAddTodo, project.id, taskComposerValue]);
 
-  const handleCreateHeading = useCallback(async () => {
-    const nextName = headingDraft.trim();
-    if (!nextName) return;
-
-    const created = await addHeading(nextName);
+  const handleAddHeadingInline = useCallback(async () => {
+    const name = headingComposerValue.trim();
+    if (!name) return;
+    const created = await addHeading(name);
     if (!created) return;
+    setHeadingComposerValue("");
+    setHeadingComposerOpen(false);
+  }, [addHeading, headingComposerValue]);
 
-    setHeadingDraft("");
-    setHeadingDraftOpen(false);
-    setQuickAddHeadingId(created.id);
-  }, [addHeading, headingDraft]);
+  const renderTaskComposer = useCallback(
+    (scope: string) => {
+      const open = activeTaskComposerScope === scope;
+      return (
+        <div
+          className={`project-page__task-composer${
+            open ? " project-page__task-composer--open" : ""
+          }`}
+        >
+          {open ? (
+            <div className="project-page__task-composer-form">
+              <input
+                type="text"
+                className="project-page__task-composer-input"
+                value={taskComposerValue}
+                placeholder="Type a task"
+                onChange={(event) => setTaskComposerValue(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    void handleAddTaskInline();
+                  }
+                  if (event.key === "Escape") {
+                    setTaskComposerValue("");
+                    setActiveTaskComposerScope(null);
+                  }
+                }}
+                autoFocus
+              />
+              <div className="project-page__task-composer-actions">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => void handleAddTaskInline()}
+                  disabled={!taskComposerValue.trim()}
+                >
+                  Add task
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--ghost"
+                  onClick={() => {
+                    setTaskComposerValue("");
+                    setActiveTaskComposerScope(null);
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              type="button"
+              className="project-page__task-composer-trigger"
+              onClick={() => {
+                setActiveTaskComposerScope(scope);
+                setTaskComposerValue("");
+              }}
+            >
+              <span className="project-page__task-composer-plus" aria-hidden="true">
+                +
+              </span>
+              <span className="project-page__task-composer-label">Add task</span>
+              <span className="project-page__heading-rule" aria-hidden="true" />
+            </button>
+          )}
+        </div>
+      );
+    },
+    [activeTaskComposerScope, handleAddTaskInline, taskComposerValue],
+  );
 
   const handleSaveHeadingName = useCallback(
     async (heading: Heading) => {
@@ -760,10 +870,12 @@ export function ProjectEditorView({
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const { active, over } = event;
+      setActiveDragId(null);
+      setActiveDropTargetId(null);
       if (!over || active.id === over.id) return;
 
-      const activeItem = flatItems.find((item) => item.sortableId === active.id);
-      const overItem = flatItems.find((item) => item.sortableId === over.id);
+      const activeItem = displayedFlatItems.find((item) => item.sortableId === active.id);
+      const overItem = displayedFlatItems.find((item) => item.sortableId === over.id);
       if (!activeItem || !overItem) return;
 
       if (activeItem.kind === "heading") {
@@ -787,7 +899,33 @@ export function ProjectEditorView({
         return;
       }
 
-      const flatWithoutActive = flatItems.filter(
+      if (overItem.kind === "heading" && collapsedHeadingIds.has(overItem.heading.id)) {
+        const targetHeadingId = overItem.heading.id;
+        const activeTodoId = activeItem.todo.id;
+        const targetFlatIndex = flatItems.findIndex(
+          (item) => item.kind === "heading" && item.heading.id === targetHeadingId,
+        );
+        const nextTodoAfterSection = flatItems
+          .slice(targetFlatIndex + 1)
+          .find((item): item is Extract<FlatItem, { kind: "todo" }> => {
+            if (item.kind !== "todo") return false;
+            return item.parentHeadingId !== targetHeadingId && item.todo.id !== activeTodoId;
+          });
+
+        if (nextTodoAfterSection) {
+          await onSave(activeTodoId, { headingId: targetHeadingId });
+          onReorder(activeTodoId, nextTodoAfterSection.todo.id);
+          return;
+        }
+
+        await onSave(activeTodoId, {
+          headingId: targetHeadingId,
+          order: sortedTodos.reduce((max, todo) => Math.max(max, todo.order), -1) + 1,
+        });
+        return;
+      }
+
+      const flatWithoutActive = displayedFlatItems.filter(
         (item) => item.sortableId !== activeItem.sortableId,
       );
       const overIndex = flatWithoutActive.findIndex(
@@ -830,8 +968,87 @@ export function ProjectEditorView({
 
       onReorder(activeItem.todo.id, overTodoId);
     },
-    [flatItems, onReorder, onSave, reorderHeadings, sortedHeadings, sortedTodos],
+    [
+      collapsedHeadingIds,
+      displayedFlatItems,
+      flatItems,
+      onReorder,
+      onSave,
+      reorderHeadings,
+      sortedHeadings,
+      sortedTodos,
+    ],
   );
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    setActiveDragId(String(event.active.id));
+    setActiveDropTargetId(String(event.active.id));
+  }, []);
+
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    setActiveDropTargetId(event.over ? String(event.over.id) : null);
+  }, []);
+
+  const handleDragCancel = useCallback(() => {
+    setActiveDragId(null);
+    setActiveDropTargetId(null);
+  }, []);
+
+  const toggleHeadingCollapsed = useCallback((headingId: string) => {
+    setCollapsedHeadingIds((current) => {
+      const next = new Set(current);
+      if (next.has(headingId)) {
+        next.delete(headingId);
+      } else {
+        next.add(headingId);
+      }
+      return next;
+    });
+  }, []);
+
+  const renderDragOverlay = useCallback(() => {
+    if (!activeDragItem) return null;
+
+    if (activeDragItem.kind === "heading") {
+      const headingTodos = todosByHeading.get(activeDragItem.heading.id) ?? [];
+      return (
+        <div className="project-page__drag-overlay project-page__drag-overlay--heading">
+          <div className="project-page__drag-handle project-page__drag-handle--overlay">
+            <IconGrip size={14} />
+          </div>
+          <div className="project-page__heading-copy">
+            <span className="project-page__heading-title">
+              {activeDragItem.heading.name}
+            </span>
+            <span className="project-page__heading-count">{headingTodos.length}</span>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="project-page__drag-overlay project-page__drag-overlay--task">
+        <div className="project-page__drag-handle project-page__drag-handle--overlay">
+          <IconGrip size={14} />
+        </div>
+        <label className="project-page__task-check">
+          <input type="checkbox" checked={activeDragItem.todo.completed} readOnly />
+        </label>
+        <span
+          className={`project-page__task-title${
+            activeDragItem.todo.completed ? " project-page__task-title--done" : ""
+          }`}
+        >
+          {activeDragItem.todo.title}
+        </span>
+        {activeDragItem.todo.dueDate ? (
+          <span className="project-page__task-meta">
+            {formatDueFriendly(activeDragItem.todo.dueDate)}
+          </span>
+        ) : null}
+      </div>
+    );
+  }, [activeDragItem, todosByHeading]);
 
   if (loadState === "loading" && sortedTodos.length === 0) {
     return (
@@ -1051,73 +1268,6 @@ export function ProjectEditorView({
           <section className="project-page__draft-hint">
             Save the project first, then add headings and tasks.
           </section>
-        ) : (
-          <section className="project-page__composer">
-            <input
-              ref={quickAddInputRef}
-              type="text"
-              className="project-page__quick-add"
-              value={quickAddTitle}
-              placeholder={
-                quickAddHeadingId
-                  ? `Add a task to ${
-                      headings.find((heading) => heading.id === quickAddHeadingId)?.name ??
-                      "section"
-                    }`
-                  : "Add a task"
-              }
-              onChange={(event) => setQuickAddTitle(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void handleQuickAdd();
-                }
-              }}
-            />
-            <button
-              type="button"
-              className="project-page__icon-btn"
-              aria-label="Add heading"
-              onClick={() => {
-                setHeadingDraftOpen((open) => !open);
-                setOpenMenuId(null);
-                requestAnimationFrame(() => headingInputRef.current?.focus());
-              }}
-            >
-              <IconPlus size={16} />
-            </button>
-            <button
-              type="button"
-              className="btn btn--primary"
-              onClick={() => void handleQuickAdd()}
-            >
-              Add
-            </button>
-          </section>
-        )}
-
-        {headingDraftOpen && !isDraft ? (
-          <section className="project-page__heading-draft">
-            <input
-              ref={headingInputRef}
-              type="text"
-              className="project-page__input"
-              value={headingDraft}
-              placeholder="New heading"
-              onChange={(event) => setHeadingDraft(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  void handleCreateHeading();
-                }
-              }}
-            />
-            <button
-              type="button"
-              className="btn"
-              onClick={() => void handleCreateHeading()}
-            >
-              Create heading
-            </button>
-          </section>
         ) : null}
 
         <section className="project-page__list-shell">
@@ -1126,21 +1276,23 @@ export function ProjectEditorView({
               Start with the project name and optional settings. Once you create it,
               headings and tasks will appear here.
             </div>
-          ) : sortedTodos.length === 0 && sortedHeadings.length === 0 ? (
-            <div className="project-page__empty">
-              No headings or tasks yet. Start with a task or add a heading.
-            </div>
           ) : (
             <DndContext
               sensors={sensors}
               collisionDetection={closestCenter}
+              measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragCancel={handleDragCancel}
               onDragEnd={(event) => void handleDragEnd(event)}
             >
               <SortableContext
-                items={flatItems.map((item) => item.sortableId)}
+                items={displayedFlatItems.map((item) => item.sortableId)}
                 strategy={verticalListSortingStrategy}
               >
                 <div className="project-page__list">
+                  {backlogTodos.length === 0 ? renderTaskComposer("backlog") : null}
+
                   {showStandaloneTasksLabel ? (
                     <div className="project-page__section-label">Tasks</div>
                   ) : null}
@@ -1158,6 +1310,7 @@ export function ProjectEditorView({
                         key={menuId}
                         id={menuId}
                         className="project-page__task-row"
+                        isDropTarget={activeDropTargetId === menuId}
                       >
                         <label className="project-page__task-check">
                           <input
@@ -1216,17 +1369,44 @@ export function ProjectEditorView({
                     );
                   })}
 
+                  {backlogTodos.length > 0 ? renderTaskComposer("backlog") : null}
+
                   {sortedHeadings.map((heading) => {
                     const headingTodos = todosByHeading.get(heading.id) ?? [];
                     const headingMenuId = `heading:${heading.id}`;
+                    const collapsed = collapsedHeadingIds.has(heading.id);
 
                     return (
-                      <div key={heading.id} className="project-page__section">
+                      <div
+                        key={heading.id}
+                        className={`project-page__section${
+                          activeDropTargetId === headingMenuId
+                            ? " project-page__section--drop-target"
+                            : ""
+                        }`}
+                      >
                         <SortableRow
                           id={headingMenuId}
                           className="project-page__heading-row"
+                          isDropTarget={activeDropTargetId === headingMenuId}
                         >
                           <div className="project-page__heading-copy">
+                            <button
+                              type="button"
+                              className="project-page__collapse-toggle"
+                              aria-label={`${collapsed ? "Expand" : "Collapse"} ${heading.name}`}
+                              aria-expanded={!collapsed}
+                              onClick={() => toggleHeadingCollapsed(heading.id)}
+                            >
+                              <span
+                                className={`project-page__collapse-glyph${
+                                  collapsed ? "" : " project-page__collapse-glyph--open"
+                                }`}
+                                aria-hidden="true"
+                              >
+                                ▾
+                              </span>
+                            </button>
                             <input
                               className="project-page__heading-input"
                               data-heading-input-id={heading.id}
@@ -1255,6 +1435,7 @@ export function ProjectEditorView({
                             <span className="project-page__heading-count">
                               {headingTodos.length}
                             </span>
+                            <span className="project-page__heading-rule" aria-hidden="true" />
                           </div>
                           <RowMenu
                             label="Heading actions"
@@ -1342,14 +1523,19 @@ export function ProjectEditorView({
                           </RowMenu>
                         </SortableRow>
 
-                        <div className="project-page__section-tasks">
-                          {headingTodos.length === 0 ? (
+                        <div
+                          className={`project-page__section-tasks${
+                            collapsed ? " project-page__section-tasks--collapsed" : ""
+                          }`}
+                        >
+                          {!collapsed && headingTodos.length === 0 ? (
                             <div className="project-page__section-empty">
                               Empty heading. Drop a task here or add one from the menu.
                             </div>
                           ) : null}
 
-                          {headingTodos.map((todo) => {
+                          {!collapsed
+                            ? headingTodos.map((todo) => {
                             const menuId = `todo:${todo.id}`;
                             const dueLabel = formatDueFriendly(todo.dueDate);
 
@@ -1358,6 +1544,7 @@ export function ProjectEditorView({
                                 key={menuId}
                                 id={menuId}
                                 className="project-page__task-row project-page__task-row--nested"
+                                isDropTarget={activeDropTargetId === menuId}
                               >
                                 <label className="project-page__task-check">
                                   <input
@@ -1429,13 +1616,61 @@ export function ProjectEditorView({
                                 </RowMenu>
                               </SortableRow>
                             );
-                          })}
+                            })
+                            : null}
+
+                          {!collapsed ? renderTaskComposer(heading.id) : null}
                         </div>
                       </div>
                     );
                   })}
+                  <div
+                    className={`project-page__heading-composer${
+                      headingComposerOpen ? " project-page__heading-composer--open" : ""
+                    }`}
+                  >
+                    {headingComposerOpen ? (
+                      <>
+                        <input
+                          type="text"
+                          className="project-page__heading-composer-input"
+                          value={headingComposerValue}
+                          placeholder="Type a heading and press Enter"
+                          onChange={(event) => setHeadingComposerValue(event.target.value)}
+                          onBlur={() => {
+                            if (!headingComposerValue.trim()) {
+                              setHeadingComposerOpen(false);
+                            }
+                          }}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              void handleAddHeadingInline();
+                            }
+                            if (event.key === "Escape") {
+                              setHeadingComposerValue("");
+                              setHeadingComposerOpen(false);
+                            }
+                          }}
+                          autoFocus
+                        />
+                        <span className="project-page__heading-rule" aria-hidden="true" />
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="project-page__heading-composer-trigger"
+                        onClick={() => setHeadingComposerOpen(true)}
+                      >
+                        <span className="project-page__heading-rule" aria-hidden="true" />
+                        <span className="project-page__heading-composer-label">New heading</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </SortableContext>
+              <DragOverlay dropAnimation={null}>
+                {renderDragOverlay()}
+              </DragOverlay>
             </DndContext>
           )}
         </section>

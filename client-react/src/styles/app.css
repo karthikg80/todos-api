@@ -4638,7 +4638,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: var(--s-1h);
-  border: none;
+  border: 1px solid transparent;
   border-radius: var(--r-sm);
   background: transparent;
   color: var(--muted);
@@ -4646,10 +4646,19 @@ body {
   opacity: 0;
   transition:
     opacity var(--dur-fast) ease,
-    background var(--dur-fast) ease;
+    background var(--dur-fast) ease,
+    border-color var(--dur-fast) ease,
+    color var(--dur-fast) ease;
+}
+
+.project-page .project-kebab__trigger {
+  opacity: 0.72;
+  border-color: color-mix(in oklab, var(--border-light) 88%, transparent);
+  background: color-mix(in oklab, var(--surface) 78%, transparent);
 }
 
 .project-workspace__title-row:hover .project-kebab__trigger,
+.project-page__topbar-actions:hover .project-kebab__trigger,
 .project-kebab__trigger:focus-visible,
 .project-kebab__trigger[aria-expanded="true"] {
   opacity: 1;
@@ -4658,6 +4667,7 @@ body {
 .project-kebab__trigger:hover {
   background: var(--surface-2);
   color: var(--text);
+  border-color: var(--border);
 }
 
 .project-kebab__menu {
