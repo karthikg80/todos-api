@@ -7,10 +7,12 @@ import type { Todo } from "../../types";
 
 const { createElement: ce } = React;
 
+const iso = "2024-01-01T00:00:00.000Z";
+
 function makeTodo(overrides: Partial<Todo> = {}): Todo {
   return {
-    id: "todo-1",
-    title: "Test task",
+    id: "t0",
+    title: "Task",
     description: null,
     notes: null,
     status: "next",
@@ -35,13 +37,10 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     archived: false,
     recurrence: null,
     source: null,
-    blockedReason: null,
     effortScore: null,
-    frustrationScore: null,
     userId: "u1",
-    createdAt: "2026-01-01T00:00:00.000Z" as unknown as Date,
-    updatedAt: "2026-01-01T00:00:00.000Z" as unknown as Date,
-    deletedAt: null,
+    createdAt: iso,
+    updatedAt: iso,
     ...overrides,
   };
 }
@@ -158,13 +157,9 @@ describe("TaskPicker", () => {
   });
 
   it("limits results to 8", () => {
-    const manyTodos: Todo[] = Array.from({ length: 15 }, (_, i) => ({
-      id: `t-${i}`,
-      title: `Task ${i}`,
-      completed: false,
-      archived: false,
-      status: "next" as const,
-    }));
+    const manyTodos: Todo[] = Array.from({ length: 15 }, (_, i) =>
+      makeTodo({ id: `t-${i}`, title: `Task ${i}`, order: i }),
+    );
 
     render(ce(TaskPicker, { ...defaultProps, todos: manyTodos }));
     const input = screen.getByPlaceholderText("Search tasks to link…");

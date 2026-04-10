@@ -17,3 +17,4 @@ artifacts/harness/
 src/generated/prisma/
 .worktrees/
 .superpowers/
+QWEN.md

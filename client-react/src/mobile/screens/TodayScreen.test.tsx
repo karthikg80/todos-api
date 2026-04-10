@@ -19,13 +19,16 @@ const defaultProps = {
   onSnoozeTodo: vi.fn(),
 };
 
+const iso = "2024-01-01T00:00:00.000Z";
+
 function makeTodo(overrides: Partial<Todo> = {}): Todo {
+  const id = overrides.id ?? `todo-${Math.random()}`;
   return {
-    id: `todo-${Math.random()}`,
+    id,
     title: "Test task",
     description: null,
     notes: null,
-    status: "next" as const,
+    status: "next",
     completed: false,
     completedAt: null,
     projectId: null,
@@ -47,13 +50,10 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     archived: false,
     recurrence: null,
     source: null,
-    blockedReason: null,
     effortScore: null,
-    frustrationScore: null,
     userId: "u1",
-    createdAt: "2026-01-01T00:00:00.000Z" as unknown as Date,
-    updatedAt: "2026-01-01T00:00:00.000Z" as unknown as Date,
-    deletedAt: null,
+    createdAt: iso,
+    updatedAt: iso,
     ...overrides,
   };
 }
@@ -158,7 +158,15 @@ describe("TodayScreen", () => {
   });
 
   it("shows project name in todo row meta", () => {
-    const project: Project = { id: "p1", name: "Work", status: "active", archived: false };
+    const project: Project = {
+      id: "p1",
+      name: "Work",
+      status: "active",
+      archived: false,
+      userId: "u1",
+      createdAt: iso,
+      updatedAt: iso,
+    };
     const todo = makeTodo({ title: "With project", projectId: "p1" });
 
     render(ce(TodayScreen, { ...defaultProps, todos: [todo], projects: [project] }));

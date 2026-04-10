@@ -18,7 +18,9 @@ export const MOCK_AUTH_TOKEN = "e2e-mock-auth-token";
  * After calling this, navigate to `/app/` and the app will render
  * as if the user is logged in with empty data. The static server mocks API responses.
  */
-export async function bootstrapTodosContext(context: BrowserContext): Promise<void> {
+export async function bootstrapTodosContext(
+  context: BrowserContext,
+): Promise<void> {
   // Seed localStorage before any page load.
   await context.addInitScript(() => {
     window.localStorage.setItem("authToken", "e2e-mock-auth-token");
@@ -30,7 +32,7 @@ export async function bootstrapTodosContext(context: BrowserContext): Promise<vo
         email: "e2e@example.com",
         onboardingCompletedAt: new Date().toISOString(),
         onboardingStep: 4,
-      })
+      }),
     );
     // Skip mobile onboarding carousel.
     window.localStorage.setItem("mobile:onboardingDone", "1");
@@ -41,7 +43,9 @@ export async function bootstrapTodosContext(context: BrowserContext): Promise<vo
  * Open the todos app with a bootstrapped context.
  * Convenience wrapper that calls `bootstrapTodosContext` then navigates to `/app/`.
  */
-export async function openTodosViewWithStorageState(context: BrowserContext): Promise<Page> {
+export async function openTodosViewWithStorageState(
+  context: BrowserContext,
+): Promise<Page> {
   await bootstrapTodosContext(context);
   const page = await context.newPage();
   await page.goto("/app/");
@@ -55,15 +59,38 @@ export async function openTodosViewWithStorageState(context: BrowserContext): Pr
  *
  * Checks for desktop (sidebar or app-main) or mobile (m-shell or m-tab-bar).
  */
-export async function waitForTodosViewIdle(page: Page, timeoutMs = 8000): Promise<void> {
+export async function waitForTodosViewIdle(
+  page: Page,
+  timeoutMs = 8000,
+): Promise<void> {
   // Wait for either desktop or mobile shell indicators.
-  const desktopPromise = page.waitForSelector("aside.app-sidebar", { state: "visible", timeout: timeoutMs }).catch(() => null);
-  const mobilePromise = page.waitForSelector(".m-shell", { state: "visible", timeout: timeoutMs }).catch(() => null);
-  const mainPromise = page.waitForSelector(".app-main", { state: "visible", timeout: timeoutMs }).catch(() => null);
-  const tabBarPromise = page.waitForSelector(".m-tab-bar", { state: "visible", timeout: timeoutMs }).catch(() => null);
+  const desktopPromise = page
+    .waitForSelector("aside.app-sidebar", {
+      state: "visible",
+      timeout: timeoutMs,
+    })
+    .catch(() => null);
+  const mobilePromise = page
+    .waitForSelector(".m-shell", { state: "visible", timeout: timeoutMs })
+    .catch(() => null);
+  const mainPromise = page
+    .waitForSelector(".app-main", { state: "visible", timeout: timeoutMs })
+    .catch(() => null);
+  const tabBarPromise = page
+    .waitForSelector(".m-tab-bar", { state: "visible", timeout: timeoutMs })
+    .catch(() => null);
 
-  await Promise.race([desktopPromise, mobilePromise, mainPromise, tabBarPromise]);
+  await Promise.race([
+    desktopPromise,
+    mobilePromise,
+    mainPromise,
+    tabBarPromise,
+  ]);
 
   // Small yield to let React state settle (no arbitrary sleep — just microtask drain).
-  await page.waitForFunction(() => document.readyState === "complete", undefined, { timeout: timeoutMs }).catch(() => {});
+  await page
+    .waitForFunction(() => document.readyState === "complete", undefined, {
+      timeout: timeoutMs,
+    })
+    .catch(() => {});
 }
