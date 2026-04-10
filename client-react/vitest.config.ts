@@ -5,6 +5,9 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    environmentOptions: {
+      url: "http://localhost:3000",
+    },
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     globals: true,
     setupFiles: ["src/test-setup.ts"],
