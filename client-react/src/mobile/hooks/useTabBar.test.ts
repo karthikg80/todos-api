@@ -1,13 +1,10 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { useTabBar } from "./useTabBar";
 
-const store: Record<string, string> = {};
 beforeEach(() => {
-  Object.keys(store).forEach((k) => delete store[k]);
-  vi.spyOn(Storage.prototype, "getItem").mockImplementation((k) => store[k] ?? null);
-  vi.spyOn(Storage.prototype, "setItem").mockImplementation((k, v) => { store[k] = v; });
+  localStorage.clear();
 });
 
 describe("useTabBar", () => {
@@ -31,11 +28,11 @@ describe("useTabBar", () => {
     const { result } = renderHook(() => useTabBar());
     act(() => result.current.setCustomView("horizon"));
     expect(result.current.customView).toBe("horizon");
-    expect(store["mobile:customTab"]).toBe("horizon");
+    expect(localStorage.getItem("mobile:customTab")).toBe("horizon");
   });
 
   it("restores custom view from localStorage", () => {
-    store["mobile:customTab"] = "completed";
+    localStorage.setItem("mobile:customTab", "completed");
     const { result } = renderHook(() => useTabBar());
     expect(result.current.customView).toBe("completed");
   });
