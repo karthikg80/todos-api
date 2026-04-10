@@ -39,8 +39,8 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
     effortScore: null,
     frustrationScore: null,
     userId: "u1",
-    createdAt: new Date(),
-    updatedAt: new Date(),
+    createdAt: "2026-01-01T00:00:00.000Z" as unknown as Date,
+    updatedAt: "2026-01-01T00:00:00.000Z" as unknown as Date,
     deletedAt: null,
     ...overrides,
   };
