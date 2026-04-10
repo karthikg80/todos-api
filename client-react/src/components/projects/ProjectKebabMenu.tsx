@@ -2,12 +2,20 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { IconKebab } from "../shared/Icons";
 
 interface Props {
+  onToggleSettings?: () => void;
+  settingsOpen?: boolean;
   onRename: () => void;
   onArchive: () => void;
   onDelete: () => void;
 }
 
-export function ProjectKebabMenu({ onRename, onArchive, onDelete }: Props) {
+export function ProjectKebabMenu({
+  onToggleSettings,
+  settingsOpen = false,
+  onRename,
+  onArchive,
+  onDelete,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -61,6 +69,19 @@ export function ProjectKebabMenu({ onRename, onArchive, onDelete }: Props) {
       </button>
       {open && (
         <div className="project-kebab__menu" role="menu">
+          {onToggleSettings ? (
+            <button
+              className="project-kebab__item"
+              role="menuitem"
+              onClick={() => {
+                onToggleSettings();
+                close();
+              }}
+              aria-label={settingsOpen ? "Hide settings" : "Show settings"}
+            >
+              {settingsOpen ? "Hide settings" : "Show settings"}
+            </button>
+          ) : null}
           <button
             className="project-kebab__item"
             role="menuitem"

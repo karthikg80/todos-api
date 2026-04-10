@@ -3,6 +3,8 @@ import { describe, it, expect, vi } from "vitest";
 import { ProjectKebabMenu } from "./ProjectKebabMenu";
 
 const defaultProps = {
+  onToggleSettings: vi.fn(),
+  settingsOpen: false,
   onRename: vi.fn(),
   onArchive: vi.fn(),
   onDelete: vi.fn(),
@@ -17,9 +19,16 @@ describe("ProjectKebabMenu", () => {
   it("opens menu on click", () => {
     render(<ProjectKebabMenu {...defaultProps} />);
     fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    expect(screen.getByRole("menuitem", { name: /show settings/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /rename/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /archive/i })).toBeInTheDocument();
     expect(screen.getByRole("menuitem", { name: /delete/i })).toBeInTheDocument();
+  });
+
+  it("can render a hide settings action", () => {
+    render(<ProjectKebabMenu {...defaultProps} settingsOpen />);
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    expect(screen.getByRole("menuitem", { name: /hide settings/i })).toBeInTheDocument();
   });
 
   it("closes on Escape", () => {
@@ -27,6 +36,19 @@ describe("ProjectKebabMenu", () => {
     fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("menuitem", { name: /rename/i })).not.toBeInTheDocument();
+  });
+
+  it("calls onToggleSettings and closes", () => {
+    const onToggleSettings = vi.fn();
+    render(
+      <ProjectKebabMenu {...defaultProps} onToggleSettings={onToggleSettings} />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /show settings/i }));
+    expect(onToggleSettings).toHaveBeenCalled();
+    expect(
+      screen.queryByRole("menuitem", { name: /show settings/i }),
+    ).not.toBeInTheDocument();
   });
 
   it("calls onRename and closes", () => {

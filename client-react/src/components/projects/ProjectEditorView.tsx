@@ -250,20 +250,56 @@ function RowMenu({
   label,
   open,
   onToggle,
+  onClose,
   children,
 }: {
   label: string;
   open: boolean;
   onToggle: () => void;
+  onClose: () => void;
   children: ReactNode;
 }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        panelRef.current?.contains(target) ||
+        triggerRef.current?.contains(target)
+      ) {
+        return;
+      }
+      onClose();
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        onClose();
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, open]);
+
   return (
-    <div className="project-page__menu">
+    <div className="project-page__menu" ref={panelRef}>
       <button
         type="button"
+        ref={triggerRef}
         className="project-page__icon-btn"
         aria-label={label}
         aria-expanded={open}
+        aria-haspopup="menu"
         onClick={onToggle}
       >
         <IconKebab size={14} />
@@ -574,7 +610,7 @@ export function ProjectEditorView({
             <button
               type="button"
               id="projectsRailMobileOpen"
-              className="project-page__icon-btn"
+              className="project-page__icon-btn project-page__nav-trigger"
               onClick={onOpenNav}
               aria-label="Open navigation"
             >
@@ -589,16 +625,9 @@ export function ProjectEditorView({
           </div>
 
           <div className="project-page__topbar-actions">
-            <button
-              type="button"
-              className="project-page__icon-btn"
-              aria-label="Project settings"
-              aria-expanded={settingsOpen}
-              onClick={() => setSettingsOpen((open) => !open)}
-            >
-              <IconMenu size={18} />
-            </button>
             <ProjectKebabMenu
+              onToggleSettings={() => setSettingsOpen((open) => !open)}
+              settingsOpen={settingsOpen}
               onRename={() => titleInputRef.current?.focus()}
               onArchive={() => onArchiveProject(project.id)}
               onDelete={() => onDeleteProject(project.id)}
@@ -832,16 +861,26 @@ export function ProjectEditorView({
                         <RowMenu
                           label="Task actions"
                           open={openMenuId === menuId}
+                          onClose={() => setOpenMenuId(null)}
                           onToggle={() =>
                             setOpenMenuId((current) => (current === menuId ? null : menuId))
                           }
                         >
-                          <button type="button" onClick={() => onTaskOpen(todo.id)}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              onTaskOpen(todo.id);
+                            }}
+                          >
                             Open
                           </button>
                           <button
                             type="button"
-                            onClick={() => onRequestDeleteTodo(todo.id)}
+                            onClick={() => {
+                              setOpenMenuId(null);
+                              onRequestDeleteTodo(todo.id);
+                            }}
                           >
                             Delete
                           </button>
@@ -869,6 +908,7 @@ export function ProjectEditorView({
                           <RowMenu
                             label="Heading actions"
                             open={openMenuId === headingMenuId}
+                            onClose={() => setOpenMenuId(null)}
                             onToggle={() =>
                               setOpenMenuId((current) =>
                                 current === headingMenuId ? null : headingMenuId,
@@ -937,24 +977,37 @@ export function ProjectEditorView({
                               <RowMenu
                                 label="Task actions"
                                 open={openMenuId === menuId}
+                                onClose={() => setOpenMenuId(null)}
                                 onToggle={() =>
                                   setOpenMenuId((current) =>
                                     current === menuId ? null : menuId,
                                   )
                                 }
                               >
-                                <button type="button" onClick={() => onTaskOpen(todo.id)}>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    onTaskOpen(todo.id);
+                                  }}
+                                >
                                   Open
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => void onSave(todo.id, { headingId: null })}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    void onSave(todo.id, { headingId: null });
+                                  }}
                                 >
                                   Move to backlog
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => onRequestDeleteTodo(todo.id)}
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    onRequestDeleteTodo(todo.id);
+                                  }}
                                 >
                                   Delete
                                 </button>

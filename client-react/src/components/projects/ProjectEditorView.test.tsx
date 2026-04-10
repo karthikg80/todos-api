@@ -193,8 +193,9 @@ describe("ProjectEditorView", () => {
   it("hides project settings behind the menu button", () => {
     renderEditor();
 
-    expect(screen.queryByLabelText("Description")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Project settings" }));
+    expect(screen.queryByText("Description")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /show settings/i }));
     expect(screen.getByText("Description")).toBeTruthy();
     expect(screen.getByRole("button", { name: /save project/i })).toBeTruthy();
   });
@@ -205,7 +206,8 @@ describe("ProjectEditorView", () => {
     fireEvent.change(screen.getByLabelText("Project name"), {
       target: { value: "Garage reset" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Project settings" }));
+    fireEvent.click(screen.getByRole("button", { name: /project actions/i }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /show settings/i }));
     fireEvent.click(screen.getByRole("button", { name: /save project/i }));
 
     expect(onSaveProject).toHaveBeenCalledWith(
@@ -229,5 +231,18 @@ describe("ProjectEditorView", () => {
         headingId: null,
       }),
     );
+  });
+
+  it("closes task action menus when clicking outside", () => {
+    renderEditor({
+      projectTodos: [makeTodo({ id: "todo-1", title: "Clear paint cans", order: 0 })],
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Task actions" }));
+    expect(screen.getByRole("button", { name: "Open" })).toBeTruthy();
+
+    fireEvent.mouseDown(document.body);
+
+    expect(screen.queryByRole("button", { name: "Open" })).toBeNull();
   });
 });
