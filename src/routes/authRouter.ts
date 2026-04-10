@@ -475,7 +475,9 @@ export function createAuthRouter({
         return res.status(501).json({ error: "Authentication not configured" });
       }
 
-      const wantsHtml = (req.get("accept") || "").includes("text/html");
+      const acceptHeader = req.get("accept") || "";
+      const wantsHtml =
+        req.accepts("html") === "html" || acceptHeader.includes("text/html");
 
       try {
         const token = req.query.token as string;

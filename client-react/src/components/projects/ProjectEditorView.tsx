@@ -1,18 +1,28 @@
-/**
- * v1 project surface: single-page editor-first layout (replaces overview/sections/tasks tabs).
- * Tradeoffs: no drag-and-drop reorder in the inline list; board only when default view is "board" (localStorage).
- */
 import {
-  lazy,
-  Suspense,
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
+  type ReactNode,
 } from "react";
 import type {
   CreateTodoDto,
+  Heading,
   Project,
   Todo,
   UpdateTodoDto,
@@ -22,32 +32,23 @@ import type { LoadState } from "../../store/useTodosStore";
 import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import type { ActiveFilters } from "../todos/FilterPanel";
 import { Breadcrumb } from "../shared/Breadcrumb";
-import { IconMenu } from "../shared/Icons";
-import { VerificationBanner } from "../shared/VerificationBanner";
-import { SearchBar } from "../shared/SearchBar";
-import { BulkToolbar } from "../todos/BulkToolbar";
-import { FilterPanel } from "../todos/FilterPanel";
-import { QuickEntry } from "../todos/QuickEntry";
-import { useProjectHeadings } from "../../hooks/useProjectHeadings";
-import { pickTopTasks } from "./projectWorkspaceModels";
 import {
-  buildProjectEditorStats,
+  IconGrip,
+  IconKebab,
+  IconMenu,
+  IconPlus,
+} from "../shared/Icons";
+import { VerificationBanner } from "../shared/VerificationBanner";
+import { BulkToolbar } from "../todos/BulkToolbar";
+import { ProjectKebabMenu } from "./ProjectKebabMenu";
+import { useProjectHeadings } from "../../hooks/useProjectHeadings";
+import {
+  formatDueFriendly,
   fromDateInputValue,
-  readDefaultView,
+  projectStatusLabel,
   toDateInputValue,
-  writeDefaultView,
-  type ProjectEditorDefaultView,
 } from "./projectEditorModels";
-import { ProjectEditorHeader } from "./ProjectEditorHeader";
-import { ProjectEditorSettingsCard } from "./ProjectEditorSettingsCard";
-import { ProjectEditorRail } from "./ProjectEditorRail";
-import { ProjectNextActionCard } from "./ProjectNextActionCard";
-import { ProjectInlineTaskList } from "./ProjectInlineTaskList";
 import "../../styles/project-editor.css";
-
-const BoardView = lazy(() =>
-  import("../todos/BoardView").then((m) => ({ default: m.BoardView })),
-);
 
 type UiMode = "normal" | "simple";
 
@@ -116,70 +117,222 @@ interface Props {
   onRequestDeleteTodo: (id: string) => void;
 }
 
-function titleCaseLabel(value: string) {
-  return value
-    .split("_")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
+type FlatItem =
+  | {
+      id: string;
+      sortableId: string;
+      kind: "heading";
+      heading: Heading;
+      parentHeadingId: string | null;
+    }
+  | {
+      id: string;
+      sortableId: string;
+      kind: "todo";
+      todo: Todo;
+      parentHeadingId: string | null;
+    };
+
+function sortByOrder<T extends { order?: number; sortOrder?: number; createdAt?: string }>(
+  items: T[],
+  orderKey: "order" | "sortOrder",
+) {
+  return [...items].sort((a, b) => {
+    const aOrder = orderKey === "order" ? (a.order ?? 0) : (a.sortOrder ?? 0);
+    const bOrder = orderKey === "order" ? (b.order ?? 0) : (b.sortOrder ?? 0);
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""));
+  });
+}
+
+function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
+  const next = [...items];
+  const [moved] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, moved);
+  return next;
+}
+
+function buildFlatItems(headings: Heading[], todos: Todo[]) {
+  const sortedHeadings = sortByOrder(headings, "sortOrder");
+  const sortedTodos = sortByOrder(todos, "order");
+  const todosByHeading = new Map<string | null, Todo[]>();
+
+  for (const todo of sortedTodos) {
+    const key = todo.headingId ?? null;
+    const existing = todosByHeading.get(key) ?? [];
+    existing.push(todo);
+    todosByHeading.set(key, existing);
+  }
+
+  const flat: FlatItem[] = [];
+  for (const todo of todosByHeading.get(null) ?? []) {
+    flat.push({
+      id: todo.id,
+      sortableId: `todo:${todo.id}`,
+      kind: "todo",
+      todo,
+      parentHeadingId: null,
+    });
+  }
+
+  for (const heading of sortedHeadings) {
+    flat.push({
+      id: heading.id,
+      sortableId: `heading:${heading.id}`,
+      kind: "heading",
+      heading,
+      parentHeadingId: null,
+    });
+
+    for (const todo of todosByHeading.get(heading.id) ?? []) {
+      flat.push({
+        id: todo.id,
+        sortableId: `todo:${todo.id}`,
+        kind: "todo",
+        todo,
+        parentHeadingId: heading.id,
+      });
+    }
+  }
+
+  return {
+    sortedHeadings,
+    sortedTodos,
+    flatItems: flat,
+    backlogTodos: todosByHeading.get(null) ?? [],
+    todosByHeading,
+  };
+}
+
+function SortableRow({
+  id,
+  className,
+  children,
+}: {
+  id: string;
+  className: string;
+  children: ReactNode;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={className}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.55 : 1,
+      }}
+    >
+      <button
+        type="button"
+        className="project-page__drag-handle"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        <IconGrip size={14} />
+      </button>
+      {children}
+    </div>
+  );
+}
+
+function RowMenu({
+  label,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <div className="project-page__menu">
+      <button
+        type="button"
+        className="project-page__icon-btn"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={onToggle}
+      >
+        <IconKebab size={14} />
+      </button>
+      {open ? <div className="project-page__menu-panel">{children}</div> : null}
+    </div>
+  );
 }
 
 export function ProjectEditorView({
   project,
   projectTodos,
-  visibleTodos,
+  visibleTodos: _visibleTodos,
   loadState,
   errorMessage,
   selectedIds,
-  activeHeadingId,
-  searchQuery,
-  onSearchChange,
   onOpenNav,
   onClearProject,
   viewLabels,
   activeView,
-  onNewTask,
   user,
-  uiMode,
-  quickEntryPlaceholder,
-  onAddTodo,
-  onCaptureToDesk,
-  filtersOpen,
-  onToggleFilters,
-  activeFilters,
-  onFilterChange,
-  activeTagFilter,
-  onClearTagFilter,
   bulkMode,
   onSelectAll,
   onBulkComplete,
   onBulkDelete,
   onCancelBulk,
-  onSelectHeading,
-  viewMode: _viewMode,
-  onViewModeChange: _onViewModeChange,
   onToggle,
-  onTaskClick: _onTaskClick,
   onTaskOpen,
   onRetry,
   onSelect,
-  onInlineEdit: _onInlineEdit,
   onSave,
-  onTagClick: _onTagClick,
-  onLifecycleAction: _onLifecycleAction,
-  onReorder: _onReorder,
-  sortBy: _sortBy,
-  sortOrder: _sortOrder,
-  onSortChange: _onSortChange,
-  activeTodoId: _activeTodoId,
-  expandedTodoId: _expandedTodoId,
-  onDeferTask,
-  onReplaceNext,
+  onReorder,
   onSaveProject,
   onArchiveProject,
   onDeleteProject,
   onRequestDeleteTodo,
+  onAddTodo,
+  activeTodoId: _activeTodoId,
+  expandedTodoId: _expandedTodoId,
+  activeHeadingId: _activeHeadingId,
+  searchQuery: _searchQuery,
+  onSearchChange: _onSearchChange,
+  onNewTask: _onNewTask,
+  uiMode: _uiMode,
+  quickEntryPlaceholder: _quickEntryPlaceholder,
+  onCaptureToDesk: _onCaptureToDesk,
+  filtersOpen: _filtersOpen,
+  onToggleFilters: _onToggleFilters,
+  activeFilters: _activeFilters,
+  onFilterChange: _onFilterChange,
+  activeTagFilter: _activeTagFilter,
+  onClearTagFilter: _onClearTagFilter,
+  onSelectHeading: _onSelectHeading,
+  viewMode: _viewMode,
+  onViewModeChange: _onViewModeChange,
+  onTaskClick: _onTaskClick,
+  onInlineEdit: _onInlineEdit,
+  onTagClick: _onTagClick,
+  onLifecycleAction: _onLifecycleAction,
+  sortBy: _sortBy,
+  sortOrder: _sortOrder,
+  onSortChange: _onSortChange,
+  onDeferTask: _onDeferTask,
+  onReplaceNext: _onReplaceNext,
 }: Props) {
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const quickAddInputRef = useRef<HTMLInputElement>(null);
+  const headingInputRef = useRef<HTMLInputElement>(null);
+
   const [name, setName] = useState(project.name);
   const [description, setDescription] = useState(project.description ?? "");
   const [goal, setGoal] = useState(project.goal ?? "");
@@ -190,15 +343,16 @@ export function ProjectEditorView({
     project.status,
   );
   const [savingProject, setSavingProject] = useState(false);
-  const [defaultView, setDefaultView] = useState<ProjectEditorDefaultView>(() =>
-    readDefaultView(project.id),
-  );
   const [quickAddTitle, setQuickAddTitle] = useState("");
   const [quickAddHeadingId, setQuickAddHeadingId] = useState<string | null>(
     null,
   );
+  const [headingDraftOpen, setHeadingDraftOpen] = useState(false);
+  const [headingDraft, setHeadingDraft] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
-  const { headings, addHeading } = useProjectHeadings(project.id);
+  const { headings, addHeading, reorderHeadings } = useProjectHeadings(project.id);
 
   useEffect(() => {
     setName(project.name);
@@ -217,59 +371,55 @@ export function ProjectEditorView({
   ]);
 
   useEffect(() => {
-    setDefaultView(readDefaultView(project.id));
+    setOpenMenuId(null);
+    setHeadingDraftOpen(false);
+    setQuickAddHeadingId(null);
   }, [project.id]);
 
-  const handleDefaultViewChange = useCallback(
-    (v: ProjectEditorDefaultView) => {
-      setDefaultView(v);
-      writeDefaultView(project.id, v);
-    },
-    [project.id],
-  );
-
   const projectDirty = useMemo(() => {
-    const desc = description.trim() || null;
-    const gl = goal.trim() || null;
-    const prevDesc = project.description?.trim() || null;
-    const prevGoal = project.goal?.trim() || null;
+    const nextDescription = description.trim() || null;
+    const nextGoal = goal.trim() || null;
+    const previousDescription = project.description?.trim() || null;
+    const previousGoal = project.goal?.trim() || null;
+
     return (
       name.trim() !== project.name.trim() ||
-      desc !== prevDesc ||
-      gl !== prevGoal ||
+      nextDescription !== previousDescription ||
+      nextGoal !== previousGoal ||
       targetDate !== toDateInputValue(project.targetDate) ||
       projectStatus !== project.status
     );
   }, [
-    name,
     description,
     goal,
-    targetDate,
-    projectStatus,
-    project.name,
+    name,
     project.description,
     project.goal,
-    project.targetDate,
+    project.name,
     project.status,
+    project.targetDate,
+    projectStatus,
+    targetDate,
   ]);
 
   const allProjectTodos = useMemo(
-    () => projectTodos.filter((t) => !t.archived && t.projectId === project.id),
-    [projectTodos, project.id],
+    () =>
+      projectTodos.filter((todo) => !todo.archived && todo.projectId === project.id),
+    [project.id, projectTodos],
   );
 
-  const stats = useMemo(
-    () => buildProjectEditorStats(allProjectTodos),
-    [allProjectTodos],
+  const { sortedHeadings, sortedTodos, flatItems, backlogTodos, todosByHeading } =
+    useMemo(() => buildFlatItems(headings, allProjectTodos), [allProjectTodos, headings]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
-  const nextUp = useMemo(
-    () => pickTopTasks(allProjectTodos),
-    [allProjectTodos],
-  );
-  const nextTask = nextUp[0] ?? null;
+  const activeViewLabel = viewLabels[activeView] ?? "Projects";
+  const showStandaloneTasksLabel = sortedHeadings.length === 0;
+  const showBacklogLabel = backlogTodos.length > 0 && sortedHeadings.length > 0;
 
-  const handleSaveProject = async () => {
+  const handleSaveProject = useCallback(async () => {
     setSavingProject(true);
     try {
       await onSaveProject(project.id, {
@@ -282,42 +432,129 @@ export function ProjectEditorView({
     } finally {
       setSavingProject(false);
     }
-  };
+  }, [
+    description,
+    goal,
+    name,
+    onSaveProject,
+    project.id,
+    projectStatus,
+    targetDate,
+  ]);
 
-  const handleQuickAdd = async () => {
-    const t = quickAddTitle.trim();
-    if (!t) return;
+  const handleQuickAdd = useCallback(async () => {
+    const title = quickAddTitle.trim();
+    if (!title) return;
+
     await onAddTodo({
-      title: t,
+      title,
       projectId: project.id,
       headingId: quickAddHeadingId,
     });
+
     setQuickAddTitle("");
-  };
+  }, [onAddTodo, project.id, quickAddHeadingId, quickAddTitle]);
 
-  const activeFilterCount =
-    Number(activeFilters.dateFilter !== "all") +
-    Number(Boolean(activeFilters.priority)) +
-    Number(Boolean(activeFilters.status)) +
-    Number(Boolean(searchQuery)) +
-    Number(Boolean(activeTagFilter));
+  const handleCreateHeading = useCallback(async () => {
+    const nextName = headingDraft.trim();
+    if (!nextName) return;
 
-  const activeViewLabel = viewLabels[activeView] ?? "Tasks";
+    const created = await addHeading(nextName);
+    if (!created) return;
 
-  const showBoard = defaultView === "board";
+    setHeadingDraft("");
+    setHeadingDraftOpen(false);
+    setQuickAddHeadingId(created.id);
+  }, [addHeading, headingDraft]);
 
-  if (loadState === "loading" && allProjectTodos.length === 0) {
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const activeItem = flatItems.find((item) => item.sortableId === active.id);
+      const overItem = flatItems.find((item) => item.sortableId === over.id);
+      if (!activeItem || !overItem) return;
+
+      if (activeItem.kind === "heading") {
+        const currentIndex = sortedHeadings.findIndex(
+          (heading) => heading.id === activeItem.heading.id,
+        );
+        const targetHeadingId =
+          overItem.kind === "heading" ? overItem.heading.id : overItem.parentHeadingId;
+
+        if (!targetHeadingId) return;
+
+        const targetIndex = sortedHeadings.findIndex(
+          (heading) => heading.id === targetHeadingId,
+        );
+
+        if (currentIndex < 0 || targetIndex < 0 || currentIndex === targetIndex) {
+          return;
+        }
+
+        await reorderHeadings(moveItem(sortedHeadings, currentIndex, targetIndex));
+        return;
+      }
+
+      const flatWithoutActive = flatItems.filter(
+        (item) => item.sortableId !== activeItem.sortableId,
+      );
+      const overIndex = flatWithoutActive.findIndex(
+        (item) => item.sortableId === overItem.sortableId,
+      );
+
+      if (overIndex < 0) return;
+
+      const insertIndex =
+        overItem.kind === "heading" ? overIndex + 1 : overIndex;
+      const reorderedFlat = [
+        ...flatWithoutActive.slice(0, insertIndex),
+        activeItem,
+        ...flatWithoutActive.slice(insertIndex),
+      ];
+
+      const nextHeading =
+        [...reorderedFlat]
+          .slice(0, reorderedFlat.findIndex((item) => item.id === activeItem.id))
+          .reverse()
+          .find((item) => item.kind === "heading") ?? null;
+
+      const nextHeadingId =
+        nextHeading && nextHeading.kind === "heading" ? nextHeading.heading.id : null;
+      const oldTodoIds = sortedTodos.map((todo) => todo.id);
+      const reorderedTodoIds = reorderedFlat
+        .filter((item): item is Extract<FlatItem, { kind: "todo" }> => item.kind === "todo")
+        .map((item) => item.todo.id);
+      const previousIndex = oldTodoIds.indexOf(activeItem.todo.id);
+      const nextIndex = reorderedTodoIds.indexOf(activeItem.todo.id);
+
+      if (nextHeadingId !== (activeItem.todo.headingId ?? null)) {
+        await onSave(activeItem.todo.id, { headingId: nextHeadingId });
+      }
+
+      if (previousIndex === nextIndex || nextIndex < 0) return;
+
+      const overTodoId = oldTodoIds[nextIndex];
+      if (!overTodoId || overTodoId === activeItem.todo.id) return;
+
+      onReorder(activeItem.todo.id, overTodoId);
+    },
+    [flatItems, onReorder, onSave, reorderHeadings, sortedHeadings, sortedTodos],
+  );
+
+  if (loadState === "loading" && sortedTodos.length === 0) {
     return (
-      <div className="app-content project-editor">
-        <div className="project-editor__load">Loading project…</div>
+      <div className="app-content project-page">
+        <div className="project-page__state">Loading project…</div>
       </div>
     );
   }
 
   if (errorMessage) {
     return (
-      <div className="app-content project-editor">
-        <div className="project-editor__error">{errorMessage}</div>
+      <div className="app-content project-page">
+        <div className="project-page__state">{errorMessage}</div>
         <button type="button" className="btn" onClick={onRetry}>
           Retry
         </button>
@@ -327,24 +564,21 @@ export function ProjectEditorView({
 
   return (
     <>
-      {user && !user.isVerified && (
+      {user && !user.isVerified ? (
         <VerificationBanner email={user.email} isVerified={!!user.isVerified} />
-      )}
+      ) : null}
 
-      <div className="app-content project-editor">
-        <div className="project-editor__toolbar">
-          <div
-            className="project-workspace__crumbs"
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
-          >
+      <div className="app-content project-page">
+        <div className="project-page__topbar">
+          <div className="project-page__crumbs">
             <button
               type="button"
               id="projectsRailMobileOpen"
-              className="project-workspace__mobile-nav"
+              className="project-page__icon-btn"
               onClick={onOpenNav}
               aria-label="Open navigation"
             >
-              <IconMenu />
+              <IconMenu size={18} />
             </button>
             <Breadcrumb
               items={[
@@ -353,218 +587,389 @@ export function ProjectEditorView({
               ]}
             />
           </div>
+
+          <div className="project-page__topbar-actions">
+            <button
+              type="button"
+              className="project-page__icon-btn"
+              aria-label="Project settings"
+              aria-expanded={settingsOpen}
+              onClick={() => setSettingsOpen((open) => !open)}
+            >
+              <IconMenu size={18} />
+            </button>
+            <ProjectKebabMenu
+              onRename={() => titleInputRef.current?.focus()}
+              onArchive={() => onArchiveProject(project.id)}
+              onDelete={() => onDeleteProject(project.id)}
+            />
+          </div>
         </div>
 
-        <section className="project-editor__header-card">
-          <div className="project-editor__header-grid">
-            <ProjectEditorHeader
-              project={{
-                ...project,
-                name,
-                description,
-                goal,
-                status: projectStatus,
-              }}
-              name={name}
-              onNameChange={setName}
-              description={description}
-              onDescriptionChange={setDescription}
-              stats={stats}
-              titleInputRef={titleInputRef}
-              onRenameMenu={() => titleInputRef.current?.focus()}
-              onArchiveProject={() => onArchiveProject(project.id)}
-              onDeleteProject={() => onDeleteProject(project.id)}
-            />
-            <ProjectEditorSettingsCard
-              goal={goal}
-              onGoalChange={setGoal}
-              targetDate={targetDate}
-              onTargetDateChange={setTargetDate}
-              projectStatus={projectStatus}
-              onProjectStatusChange={setProjectStatus}
-              defaultView={defaultView}
-              onDefaultViewChange={handleDefaultViewChange}
-              projectDirty={projectDirty}
-              saving={savingProject}
-              onSaveProject={handleSaveProject}
-              onArchiveProject={() => onArchiveProject(project.id)}
-            />
-          </div>
-        </section>
-
-        {uiMode === "normal" && (
-          <QuickEntry
-            projectId={project.id}
-            workspaceView={activeView}
-            onAddTask={onAddTodo}
-            onCaptureToDesk={onCaptureToDesk}
-            placeholder={quickEntryPlaceholder}
+        <header className="project-page__header">
+          <input
+            ref={titleInputRef}
+            className="project-page__title"
+            aria-label="Project name"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            onBlur={() => {
+              if (projectDirty) {
+                void handleSaveProject();
+              }
+            }}
           />
-        )}
-
-        {activeTagFilter && (
-          <div className="active-filter-bar">
-            Filtered by tag: <strong>#{activeTagFilter}</strong>
-            <button
-              type="button"
-              className="active-filter-bar__clear"
-              onClick={onClearTagFilter}
-            >
-              ✕ Clear
-            </button>
-          </div>
-        )}
-
-        <div className="project-editor__toolbar">
-          <div className="project-editor__toolbar-actions">
-            <button
-              type="button"
-              id="projectEditorFiltersToggle"
-              className={`btn${filtersOpen ? " btn--active" : ""}`}
-              onClick={onToggleFilters}
-            >
-              Filters
-            </button>
-            <div
-              className="project-editor__toolbar-meta"
-              title="Preferred task layout for this project (local only)"
-            >
-              <IconMenu size={16} className="app-icon" aria-hidden />
-              <span className="project-editor__field-label">Layout</span>
-              <span className="project-editor__pill">
-                {defaultView === "board"
-                  ? "Board"
-                  : defaultView === "list"
-                    ? "List"
-                    : "Editor"}
+          <div className="project-page__header-meta">
+            <span className="project-page__meta-pill">
+              {projectStatusLabel(projectStatus)}
+            </span>
+            {projectDirty ? (
+              <span className="project-page__meta-pill project-page__meta-pill--accent">
+                Unsaved
               </span>
+            ) : null}
+          </div>
+        </header>
+
+        {settingsOpen ? (
+          <section className="project-page__settings">
+            <label className="project-page__field">
+              <span className="project-page__field-label">Description</span>
+              <textarea
+                className="project-page__textarea"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="What this project is about"
+              />
+            </label>
+            <label className="project-page__field">
+              <span className="project-page__field-label">Goal</span>
+              <textarea
+                className="project-page__textarea"
+                value={goal}
+                onChange={(event) => setGoal(event.target.value)}
+                placeholder="What done looks like"
+              />
+            </label>
+            <label className="project-page__field">
+              <span className="project-page__field-label">Target date</span>
+              <input
+                type="date"
+                className="project-page__input"
+                value={targetDate}
+                onChange={(event) => setTargetDate(event.target.value)}
+              />
+            </label>
+            <label className="project-page__field">
+              <span className="project-page__field-label">Status</span>
+              <select
+                className="project-page__input"
+                value={projectStatus}
+                onChange={(event) =>
+                  setProjectStatus(event.target.value as Project["status"])
+                }
+              >
+                <option value="active">Active</option>
+                <option value="on_hold">On hold</option>
+                <option value="completed">Completed</option>
+                <option value="archived">Archived</option>
+              </select>
+            </label>
+            <div className="project-page__settings-actions">
+              <button
+                type="button"
+                className="btn btn--primary"
+                onClick={() => void handleSaveProject()}
+                disabled={!projectDirty || savingProject}
+              >
+                {savingProject ? "Saving…" : "Save project"}
+              </button>
             </div>
-          </div>
-        </div>
+          </section>
+        ) : null}
 
-        {(activeHeadingId || activeFilterCount > 0) && (
-          <div className="project-editor__context-bar">
-            {activeHeadingId && (
-              <span className="project-editor__context-pill">
-                Section filter active
-              </span>
-            )}
-            {activeTagFilter && (
-              <span className="project-editor__context-pill">
-                Tag: #{activeTagFilter}
-              </span>
-            )}
-            {activeFilters.priority && (
-              <span className="project-editor__context-pill">
-                Priority: {activeFilters.priority}
-              </span>
-            )}
-            {activeFilters.status && (
-              <span className="project-editor__context-pill">
-                Status: {titleCaseLabel(activeFilters.status)}
-              </span>
-            )}
-            {activeFilters.dateFilter !== "all" && (
-              <span className="project-editor__context-pill">
-                Date: {titleCaseLabel(activeFilters.dateFilter)}
-              </span>
-            )}
-            {searchQuery && (
-              <span className="project-editor__context-pill">
-                Search: {searchQuery}
-              </span>
-            )}
-          </div>
-        )}
-
-        {filtersOpen && (
-          <FilterPanel
-            filters={activeFilters}
-            onChange={onFilterChange}
-            onClose={onToggleFilters}
-          />
-        )}
-
-        {bulkMode && (
+        {bulkMode ? (
           <BulkToolbar
             selectedCount={selectedIds.size}
-            totalCount={visibleTodos.length}
+            totalCount={sortedTodos.length}
             allSelected={
-              selectedIds.size === visibleTodos.length &&
-              visibleTodos.length > 0
+              selectedIds.size === sortedTodos.length && sortedTodos.length > 0
             }
             onSelectAll={onSelectAll}
             onComplete={onBulkComplete}
             onDelete={onBulkDelete}
             onCancel={onCancelBulk}
           />
-        )}
+        ) : null}
 
-        <div className="project-editor__body">
-          <div className="project-editor__rail-stack">
-            <ProjectEditorRail
-              headings={headings}
-              projectTodos={allProjectTodos}
-              activeHeadingId={activeHeadingId}
-              onSelectHeading={onSelectHeading}
-              onAddHeading={addHeading}
+        <section className="project-page__composer">
+          <input
+            ref={quickAddInputRef}
+            type="text"
+            className="project-page__quick-add"
+            value={quickAddTitle}
+            placeholder={
+              quickAddHeadingId
+                ? `Add a task to ${
+                    headings.find((heading) => heading.id === quickAddHeadingId)?.name ??
+                    "section"
+                  }`
+                : "Add a task"
+            }
+            onChange={(event) => setQuickAddTitle(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                void handleQuickAdd();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="project-page__icon-btn"
+            aria-label="Add heading"
+            onClick={() => {
+              setHeadingDraftOpen((open) => !open);
+              setOpenMenuId(null);
+              requestAnimationFrame(() => headingInputRef.current?.focus());
+            }}
+          >
+            <IconPlus size={16} />
+          </button>
+          <button
+            type="button"
+            className="btn btn--primary"
+            onClick={() => void handleQuickAdd()}
+          >
+            Add
+          </button>
+        </section>
+
+        {headingDraftOpen ? (
+          <section className="project-page__heading-draft">
+            <input
+              ref={headingInputRef}
+              type="text"
+              className="project-page__input"
+              value={headingDraft}
+              placeholder="New heading"
+              onChange={(event) => setHeadingDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  void handleCreateHeading();
+                }
+              }}
             />
-          </div>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void handleCreateHeading()}
+            >
+              Create heading
+            </button>
+          </section>
+        ) : null}
 
-          <div className="project-editor__main-stack">
-            <ProjectNextActionCard
-              nextTask={nextTask}
-              projectTodos={allProjectTodos}
-              onSave={onSave}
-              onDeferTask={onDeferTask}
-              onReplaceNext={onReplaceNext}
-            />
+        <section className="project-page__list-shell">
+          {sortedTodos.length === 0 && sortedHeadings.length === 0 ? (
+            <div className="project-page__empty">
+              No headings or tasks yet. Start with a task or add a heading.
+            </div>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={(event) => void handleDragEnd(event)}
+            >
+              <SortableContext
+                items={flatItems.map((item) => item.sortableId)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="project-page__list">
+                  {showStandaloneTasksLabel ? (
+                    <div className="project-page__section-label">Tasks</div>
+                  ) : null}
 
-            {showBoard ? (
-              <section className="project-editor__panel">
-                <div className="project-editor__toolbar">
-                  <h2 className="project-editor__rail-title">Board</h2>
-                  <p className="project-editor__field-label">
-                    Status-focused view (v1: no inline edit grid here).
-                  </p>
+                  {showBacklogLabel ? (
+                    <div className="project-page__section-label">Backlog</div>
+                  ) : null}
+
+                  {backlogTodos.map((todo) => {
+                    const menuId = `todo:${todo.id}`;
+                    const dueLabel = formatDueFriendly(todo.dueDate);
+
+                    return (
+                      <SortableRow
+                        key={menuId}
+                        id={menuId}
+                        className="project-page__task-row"
+                      >
+                        <label className="project-page__task-check">
+                          <input
+                            type="checkbox"
+                            checked={bulkMode ? selectedIds.has(todo.id) : todo.completed}
+                            onChange={() =>
+                              bulkMode
+                                ? onSelect(todo.id)
+                                : onToggle(todo.id, !todo.completed)
+                            }
+                            aria-label={
+                              bulkMode ? `Select ${todo.title}` : `Complete ${todo.title}`
+                            }
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          className={`project-page__task-title${
+                            todo.completed ? " project-page__task-title--done" : ""
+                          }`}
+                          onClick={() => onTaskOpen(todo.id)}
+                        >
+                          {todo.title}
+                        </button>
+                        {todo.dueDate ? (
+                          <span className="project-page__task-meta">{dueLabel}</span>
+                        ) : null}
+                        <RowMenu
+                          label="Task actions"
+                          open={openMenuId === menuId}
+                          onToggle={() =>
+                            setOpenMenuId((current) => (current === menuId ? null : menuId))
+                          }
+                        >
+                          <button type="button" onClick={() => onTaskOpen(todo.id)}>
+                            Open
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onRequestDeleteTodo(todo.id)}
+                          >
+                            Delete
+                          </button>
+                        </RowMenu>
+                      </SortableRow>
+                    );
+                  })}
+
+                  {sortedHeadings.map((heading) => {
+                    const headingTodos = todosByHeading.get(heading.id) ?? [];
+                    const headingMenuId = `heading:${heading.id}`;
+
+                    return (
+                      <div key={heading.id} className="project-page__section">
+                        <SortableRow
+                          id={headingMenuId}
+                          className="project-page__heading-row"
+                        >
+                          <div className="project-page__heading-copy">
+                            <h2 className="project-page__heading-title">{heading.name}</h2>
+                            <span className="project-page__heading-count">
+                              {headingTodos.length}
+                            </span>
+                          </div>
+                          <RowMenu
+                            label="Heading actions"
+                            open={openMenuId === headingMenuId}
+                            onToggle={() =>
+                              setOpenMenuId((current) =>
+                                current === headingMenuId ? null : headingMenuId,
+                              )
+                            }
+                          >
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setQuickAddHeadingId(heading.id);
+                                setOpenMenuId(null);
+                                quickAddInputRef.current?.focus();
+                              }}
+                            >
+                              Add task here
+                            </button>
+                          </RowMenu>
+                        </SortableRow>
+
+                        {headingTodos.length === 0 ? (
+                          <div className="project-page__section-empty">
+                            Empty heading. Drop a task here or add one from the menu.
+                          </div>
+                        ) : null}
+
+                        {headingTodos.map((todo) => {
+                          const menuId = `todo:${todo.id}`;
+                          const dueLabel = formatDueFriendly(todo.dueDate);
+
+                          return (
+                            <SortableRow
+                              key={menuId}
+                              id={menuId}
+                              className="project-page__task-row project-page__task-row--nested"
+                            >
+                              <label className="project-page__task-check">
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    bulkMode ? selectedIds.has(todo.id) : todo.completed
+                                  }
+                                  onChange={() =>
+                                    bulkMode
+                                      ? onSelect(todo.id)
+                                      : onToggle(todo.id, !todo.completed)
+                                  }
+                                  aria-label={
+                                    bulkMode
+                                      ? `Select ${todo.title}`
+                                      : `Complete ${todo.title}`
+                                  }
+                                />
+                              </label>
+                              <button
+                                type="button"
+                                className={`project-page__task-title${
+                                  todo.completed ? " project-page__task-title--done" : ""
+                                }`}
+                                onClick={() => onTaskOpen(todo.id)}
+                              >
+                                {todo.title}
+                              </button>
+                              {todo.dueDate ? (
+                                <span className="project-page__task-meta">{dueLabel}</span>
+                              ) : null}
+                              <RowMenu
+                                label="Task actions"
+                                open={openMenuId === menuId}
+                                onToggle={() =>
+                                  setOpenMenuId((current) =>
+                                    current === menuId ? null : menuId,
+                                  )
+                                }
+                              >
+                                <button type="button" onClick={() => onTaskOpen(todo.id)}>
+                                  Open
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void onSave(todo.id, { headingId: null })}
+                                >
+                                  Move to backlog
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => onRequestDeleteTodo(todo.id)}
+                                >
+                                  Delete
+                                </button>
+                              </RowMenu>
+                            </SortableRow>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
                 </div>
-                <Suspense
-                  fallback={
-                    <div className="project-editor__load">Loading board…</div>
-                  }
-                >
-                  <BoardView
-                    todos={visibleTodos}
-                    loadState={loadState}
-                    onToggle={onToggle}
-                    onClick={onTaskOpen}
-                    onStatusChange={onSave}
-                  />
-                </Suspense>
-              </section>
-            ) : (
-              <ProjectInlineTaskList
-                projectId={project.id}
-                headings={headings}
-                visibleTodos={visibleTodos}
-                searchQuery={searchQuery}
-                onSearchChange={onSearchChange}
-                onNewTask={onNewTask}
-                selectedIds={selectedIds}
-                isBulkMode={bulkMode}
-                onSelect={onSelect}
-                onSave={onSave}
-                onAddTodo={onAddTodo}
-                onRequestDeleteTodo={onRequestDeleteTodo}
-                quickAddTitle={quickAddTitle}
-                onQuickAddTitleChange={setQuickAddTitle}
-                quickAddHeadingId={quickAddHeadingId}
-                onQuickAddHeadingChange={setQuickAddHeadingId}
-                onQuickAddSubmit={() => void handleQuickAdd()}
-              />
-            )}
-          </div>
-        </div>
+              </SortableContext>
+            </DndContext>
+          )}
+        </section>
       </div>
     </>
   );
