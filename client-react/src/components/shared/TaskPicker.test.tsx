@@ -7,12 +7,51 @@ import type { Todo } from "../../types";
 
 const { createElement: ce } = React;
 
+function makeTodo(overrides: Partial<Todo> = {}): Todo {
+  return {
+    id: "todo-1",
+    title: "Test task",
+    description: null,
+    notes: null,
+    status: "next",
+    completed: false,
+    completedAt: null,
+    projectId: null,
+    category: null,
+    headingId: null,
+    tags: [],
+    context: null,
+    energy: null,
+    dueDate: null,
+    startDate: null,
+    scheduledDate: null,
+    reviewDate: null,
+    doDate: null,
+    estimateMinutes: null,
+    waitingOn: null,
+    dependsOnTaskIds: [],
+    order: 0,
+    priority: null,
+    archived: false,
+    recurrence: null,
+    source: null,
+    blockedReason: null,
+    effortScore: null,
+    frustrationScore: null,
+    userId: "u1",
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    deletedAt: null,
+    ...overrides,
+  };
+}
+
 const mockTodos: Todo[] = [
-  { id: "t1", title: "Write report", completed: false, archived: false, status: "next" },
-  { id: "t2", title: "Review PR", completed: false, archived: false, status: "next" },
-  { id: "t3", title: "Fix bug", completed: false, archived: false, status: "next" },
-  { id: "t4", title: "Completed task", completed: true, archived: false, status: "next" },
-  { id: "t5", title: "Task with category", completed: false, archived: false, status: "next", category: "work" },
+  makeTodo({ id: "t1", title: "Write report" }),
+  makeTodo({ id: "t2", title: "Review PR" }),
+  makeTodo({ id: "t3", title: "Fix bug" }),
+  makeTodo({ id: "t4", title: "Completed task", completed: true }),
+  makeTodo({ id: "t5", title: "Task with category", category: "work" }),
 ];
 
 const defaultProps = {

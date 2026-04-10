@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from "vitest";
-import { useReducer, renderHook, act } from "@testing-library/react";
+import { useReducer } from "react";
+import { renderHook, act } from "@testing-library/react";
 import { useTaskNavigation, taskNavReducer, INITIAL_STATE } from "./useTaskNavigation";
 
 describe("taskNavReducer", () => {
