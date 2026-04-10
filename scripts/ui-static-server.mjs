@@ -1,12 +1,24 @@
 import http from "http";
 import fs from "fs/promises";
+import fsSync from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const root = path.resolve(__dirname, "../client");
-const reactRoot = path.resolve(__dirname, "../client-react/dist");
+const reactRoot = resolveFirstBuildRoot([
+  path.resolve(__dirname, "../client-react/dist"),
+  path.resolve(__dirname, "../dist"),
+], "index.html");
+const landingRoot = resolveFirstBuildRoot([
+  path.resolve(__dirname, "../client-react/dist-landing"),
+  path.resolve(__dirname, "../dist-landing"),
+], "index.html");
+const authRoot = resolveFirstBuildRoot([
+  path.resolve(__dirname, "../client-react/dist-auth"),
+  path.resolve(__dirname, "../dist-auth"),
+], "index.html");
 const vendorRoots = [
   {
     prefix: "/vendor/chrono-node/",
@@ -14,6 +26,36 @@ const vendorRoots = [
   },
 ];
 const port = Number.parseInt(process.env.UI_PORT || "4173", 10);
+
+function resolveFirstExistingPath(candidates) {
+  for (const candidate of candidates) {
+    if (fsSync.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates[0];
+}
+
+function resolveFirstBuildRoot(candidates, entryFile) {
+  for (const candidate of candidates) {
+    if (fsSync.existsSync(path.join(candidate, entryFile))) {
+      return candidate;
+    }
+  }
+
+  return resolveFirstExistingPath(candidates);
+}
+
+function resolveFirstExistingFile(candidates) {
+  for (const candidate of candidates) {
+    if (fsSync.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  return candidates[0];
+}
 
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
@@ -53,9 +95,18 @@ function safePath(requestPath) {
 
 // Standalone page routes — map product URLs to their HTML files
 const standaloneRoutes = {
-  "/auth": path.join(root, "public", "auth.html"),
-  "/feedback": path.join(root, "public", "feedback.html"),
-  "/feedback/new": path.join(root, "public", "feedback-new.html"),
+  "/auth": resolveFirstExistingFile([
+    path.join(authRoot, "index.html"),
+    path.join(root, "public", "auth.html"),
+  ]),
+  "/feedback": resolveFirstExistingFile([
+    path.join(landingRoot, "index.html"),
+    path.join(root, "public", "feedback.html"),
+  ]),
+  "/feedback/new": resolveFirstExistingFile([
+    path.join(landingRoot, "index.html"),
+    path.join(root, "public", "feedback-new.html"),
+  ]),
 };
 
 const server = http.createServer(async (req, res) => {
