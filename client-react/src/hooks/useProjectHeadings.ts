@@ -54,11 +54,43 @@ export function useProjectHeadings(projectId: string | null) {
     [projectId],
   );
 
+  const reorderHeadings = useCallback(
+    async (nextHeadings: Heading[]) => {
+      if (!projectId) return null;
+
+      const previous = headings;
+      setHeadings(nextHeadings);
+
+      try {
+        const res = await apiCall(`/projects/${projectId}/headings/reorder`, {
+          method: "PUT",
+          body: JSON.stringify(
+            nextHeadings.map((heading, index) => ({
+              id: heading.id,
+              sortOrder: index,
+            })),
+          ),
+        });
+        if (!res.ok) {
+          setHeadings(previous);
+          return null;
+        }
+        const reordered = (await res.json()) as Heading[];
+        setHeadings(Array.isArray(reordered) ? reordered : nextHeadings);
+        return reordered;
+      } catch {
+        setHeadings(previous);
+        return null;
+      }
+    },
+    [headings, projectId],
+  );
+
   return {
     headings,
     loading,
     loadHeadings,
     addHeading,
+    reorderHeadings,
   };
 }
-
