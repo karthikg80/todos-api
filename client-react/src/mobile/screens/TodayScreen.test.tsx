@@ -107,11 +107,13 @@ describe("TodayScreen", () => {
   it("groups scheduled tasks with future due dates", () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    const scheduled = makeTodo({ title: "Scheduled", dueDate: tomorrow.toISOString().split("T")[0] });
+    const scheduled = makeTodo({ title: "Future task", dueDate: tomorrow.toISOString().split("T")[0] });
 
     render(ce(TodayScreen, { ...defaultProps, todos: [scheduled] }));
+    // Group title exists
     expect(screen.getByText("Scheduled")).toBeTruthy();
-    expect(screen.getByText("Scheduled")).toBeTruthy();
+    // Task title exists in the group
+    expect(screen.getByText("Future task")).toBeTruthy();
   });
 
   it("excludes completed tasks", () => {
