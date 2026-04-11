@@ -271,6 +271,7 @@ That helper starts the local DB, backend, React dev server, and Caddy proxy toge
 
 - `BASE_URL=https://dev.todos.karthikg.in`
 - `GOOGLE_REDIRECT_URI=https://dev.todos.karthikg.in/auth/google/callback`
+- `EMAIL_FEATURES_ENABLED=false` unless you explicitly override it
 
 ### Testing
 

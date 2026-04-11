@@ -41,11 +41,15 @@ npm run db:start
 
 BASE_URL="${BASE_URL:-https://dev.todos.karthikg.in}"
 GOOGLE_REDIRECT_URI="${GOOGLE_REDIRECT_URI:-https://dev.todos.karthikg.in/auth/google/callback}"
+EMAIL_FEATURES_ENABLED="${EMAIL_FEATURES_ENABLED:-false}"
 
 declare -a PIDS=()
 
 echo "Starting backend on :3000..."
-BASE_URL="$BASE_URL" GOOGLE_REDIRECT_URI="$GOOGLE_REDIRECT_URI" npm run dev &
+BASE_URL="$BASE_URL" \
+GOOGLE_REDIRECT_URI="$GOOGLE_REDIRECT_URI" \
+EMAIL_FEATURES_ENABLED="$EMAIL_FEATURES_ENABLED" \
+npm run dev &
 PIDS+=($!)
 
 echo "Starting React dev server on :5173..."
