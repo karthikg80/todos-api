@@ -13,6 +13,7 @@ artifacts/harness/
 .codex/context-ack.json
 .codex/progress.md
 .codex/feature-checklist.json
+.local/
 
 src/generated/prisma/
 .worktrees/

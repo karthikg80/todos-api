@@ -1,0 +1,12 @@
+http://dev.todos.karthikg.in {
+	redir https://dev.todos.karthikg.in{uri} permanent
+}
+
+https://dev.todos.karthikg.in {
+	tls ./.local/certs/dev.todos.karthikg.in.pem ./.local/certs/dev.todos.karthikg.in-key.pem
+
+	@vite path /app* /@vite* /@id/* /@fs/* /src/* /node_modules/* /vite.svg /__vite_ping
+	reverse_proxy @vite 127.0.0.1:5173
+
+	reverse_proxy 127.0.0.1:3000
+}

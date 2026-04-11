@@ -214,6 +214,53 @@ BASE_URL=http://dev.todos.karthikg.in:3000
 GOOGLE_REDIRECT_URI=http://dev.todos.karthikg.in:3000/auth/google/callback
 ```
 
+### Local HTTPS Routing
+
+For a trusted local HTTPS endpoint on this laptop, use `mkcert` plus the repo-local Caddy proxy:
+
+1. Install local tools once:
+
+```bash
+brew install mkcert caddy
+mkcert -install
+```
+
+2. Add the host alias once:
+
+```bash
+echo '127.0.0.1 dev.todos.karthikg.in' | sudo tee -a /etc/hosts
+```
+
+3. Generate the local cert:
+
+```bash
+npm run https:certs
+```
+
+4. Start the backend and React dev server:
+
+```bash
+BASE_URL=https://dev.todos.karthikg.in \
+GOOGLE_REDIRECT_URI=https://dev.todos.karthikg.in/auth/google/callback \
+npm run dev
+
+npm run dev:react
+```
+
+5. Start the HTTPS reverse proxy:
+
+```bash
+npm run https:proxy
+```
+
+6. Open:
+
+```text
+https://dev.todos.karthikg.in/app/
+```
+
+The local proxy routes `/app` and Vite dev assets to `http://127.0.0.1:5173`, and routes `/auth`, `/todos`, `/users`, and the rest of the backend surface to `http://127.0.0.1:3000`.
+
 ### Testing
 
 - `npm test` - Run all tests
