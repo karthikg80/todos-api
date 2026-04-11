@@ -261,6 +261,17 @@ https://dev.todos.karthikg.in/app/
 
 The local proxy routes `/app` and Vite dev assets to `http://127.0.0.1:5173`, and routes `/auth`, `/todos`, `/users`, and the rest of the backend surface to `http://127.0.0.1:3000`.
 
+If you want one command after the one-time setup steps above, use:
+
+```bash
+npm run dev:https
+```
+
+That helper starts the local DB, backend, React dev server, and Caddy proxy together with:
+
+- `BASE_URL=https://dev.todos.karthikg.in`
+- `GOOGLE_REDIRECT_URI=https://dev.todos.karthikg.in/auth/google/callback`
+
 ### Testing
 
 - `npm test` - Run all tests
