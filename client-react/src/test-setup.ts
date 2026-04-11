@@ -1,4 +1,5 @@
 import "@testing-library/jest-dom";
+import { beforeEach } from "vitest";
 
 // Ensure localStorage is available in jsdom.
 // jsdom requires a non-opaque origin (URL) to enable localStorage,
