@@ -69,4 +69,12 @@ echo "  mkcert -install"
 echo "  echo '127.0.0.1 dev.todos.karthikg.in' | sudo tee -a /etc/hosts"
 echo
 
-wait -n "${PIDS[@]}"
+while true; do
+  for pid in "${PIDS[@]}"; do
+    if ! kill -0 "$pid" >/dev/null 2>&1; then
+      wait "$pid" || true
+      exit 1
+    fi
+  done
+  sleep 1
+done
