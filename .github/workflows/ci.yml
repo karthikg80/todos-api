@@ -470,6 +470,14 @@ jobs:
       - name: Verify tests/ui exists — must fail on release/manual
         id: check-ui-tests
         run: |
+          echo "=== Debug: working directory ==="
+          pwd
+          echo "=== Debug: ls -la ==="
+          ls -la
+          echo "=== Debug: tests/ui contents ==="
+          ls -la tests/ui/ 2>&1 || echo "tests/ui/ NOT FOUND"
+          echo "=== Debug: find spec files ==="
+          find tests/ui -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) 2>&1 || echo "find returned error"
           if [ -d "tests/ui" ] && [ "$(find tests/ui -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) | head -1)" ]; then
             echo "ui_tests_present=true" >> "$GITHUB_OUTPUT"
           else
