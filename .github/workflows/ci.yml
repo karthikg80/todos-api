@@ -279,6 +279,36 @@ jobs:
         run: npm run test:mcp
 
   # ─────────────────────────────────────────────────────────────
+  # 2h. React Vitest tests (PRs: frontend/workflow changes; master: always)
+  # ─────────────────────────────────────────────────────────────
+  react-tests:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.frontend == 'true' ||
+      needs.changes.outputs.workflow == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: client-react/package-lock.json
+
+      - name: Install dependencies
+        working-directory: client-react
+        run: npm ci
+
+      - name: Run Vitest
+        working-directory: client-react
+        run: npm test
+
+  # ─────────────────────────────────────────────────────────────
   # 3. Cross-client sync (only when shared contracts change or on master)
   # ─────────────────────────────────────────────────────────────
   cross-client-sync:
