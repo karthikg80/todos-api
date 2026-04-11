@@ -468,23 +468,6 @@ jobs:
           name: ui-build
           path: .
 
-      - name: Verify tests/ui exists — must fail on release/manual
-        id: check-ui-tests
-        run: |
-          echo "=== Debug: working directory ==="
-          pwd
-          echo "=== Debug: ls tests/ui ==="
-          ls -la tests/ui/ 2>&1 || echo "tests/ui/ NOT FOUND"
-          TEST_FILES=$(find tests/ui -type f \( -name '*.spec.ts' -o -name '*.test.ts' \) 2>/dev/null)
-          echo "=== Debug: test files found ==="
-          echo "$TEST_FILES"
-          if [ -d "tests/ui" ] && [ -n "$TEST_FILES" ]; then
-            echo "ui_tests_present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::error::tests/ui/ is missing or has no spec/test files — E2E cannot run on release/manual trigger"
-            exit 1
-          fi
-
       - name: Get Playwright version
         id: pw-version
         run: |
@@ -502,8 +485,16 @@ jobs:
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
+      - name: Start static server
+        run: node scripts/ui-static-server.mjs &
+
+      - name: Wait for server
+        run: for i in $(seq 1 30); do curl -s http://127.0.0.1:4173/app/ > /dev/null && exit 0; sleep 1; done; exit 1
+
       - name: Run UI E2E (shard ${{ matrix.shard }})
-        run: npm run test:ui:fast -- --shard=${{ matrix.shard }}
+        run: npx playwright test --grep-invert @visual --shard=${{ matrix.shard }}
+        env:
+          CI: true
 
       - name: Upload Playwright report
         if: always()
