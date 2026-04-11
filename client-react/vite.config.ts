@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+const localAllowedHosts = ["dev.todos.karthikg.in"];
+
 export default defineConfig({
   plugins: [react()],
   base: "/app/",
@@ -10,10 +12,12 @@ export default defineConfig({
   },
   preview: {
     host: "127.0.0.1",
+    allowedHosts: localAllowedHosts,
     port: 4173,
     strictPort: true,
   },
   server: {
+    allowedHosts: localAllowedHosts,
     proxy: {
       "/auth": "http://localhost:3000",
       "/todos": "http://localhost:3000",

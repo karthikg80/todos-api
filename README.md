@@ -177,6 +177,43 @@ Important current limitations:
 - `npm run docker:reset` - Reset Docker volumes (deletes all data)
 - `npm run docker:logs` - View PostgreSQL logs
 
+### Local Domain Routing
+
+To use a stable local host alias on this laptop without touching production or staging:
+
+1. Add an `/etc/hosts` entry:
+
+```bash
+echo '127.0.0.1 dev.todos.karthikg.in' | sudo tee -a /etc/hosts
+```
+
+2. Start the API on port `3000`:
+
+```bash
+npm run dev
+```
+
+3. Start the React dev server on port `5173`:
+
+```bash
+npm run dev:react
+```
+
+4. Open the app at:
+
+```text
+http://dev.todos.karthikg.in:5173/app/
+```
+
+The Vite config explicitly allows `dev.todos.karthikg.in`, and API requests continue to proxy to the backend on `http://localhost:3000`.
+
+If you need the backend to generate links for the local host alias, set:
+
+```bash
+BASE_URL=http://dev.todos.karthikg.in:3000
+GOOGLE_REDIRECT_URI=http://dev.todos.karthikg.in:3000/auth/google/callback
+```
+
 ### Testing
 
 - `npm test` - Run all tests
