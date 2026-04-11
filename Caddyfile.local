@@ -5,6 +5,8 @@ http://dev.todos.karthikg.in {
 https://dev.todos.karthikg.in {
 	tls ./.local/certs/dev.todos.karthikg.in.pem ./.local/certs/dev.todos.karthikg.in-key.pem
 
+	redir /app /app/ 308
+
 	@vite path /app* /@vite* /@id/* /@fs/* /src/* /node_modules/* /vite.svg /__vite_ping
 	reverse_proxy @vite 127.0.0.1:5173
 
