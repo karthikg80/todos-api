@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   getOpener,
   getThinkingLine,
@@ -7,24 +7,29 @@ import {
   getErrorLine,
   formatWithVoice,
 } from "./voiceEngine";
-import type { AgentProfile } from "./types";
+import type { AgentProfile, AgentId } from "./types";
 
 function makeAgent(overrides: Partial<AgentProfile> = {}): AgentProfile {
   return {
-    id: "test-agent",
+    id: "orla" as AgentId,
     name: "Test Agent",
     role: "test",
-    colors: { stroke: "#000", bg: "#fff", text: "#000" },
-    traits: { tone: "calm" as const },
+    traits: ["calm", "helpful", "thoughtful"],
     quote: "Test quote",
+    superpower: "Testing",
+    quirk: "None",
+    bestCalledWhen: "Testing",
+    colors: { stroke: "#000", bg: "#fff", textDark: "#000", traitBg: "#ccc" },
     voice: {
       openers: ["Hello!", "Hey there"],
+      closers: ["Goodbye", "See you"],
       thinkingLines: ["Thinking...", "Let me check"],
       emptyStateLines: ["Nothing here yet", "All clear"],
       errorLines: ["Something went wrong", "Error occurred"],
-      tone: "measured" as const,
+      tone: "measured",
       avgWordsPerSentence: 8,
     },
+    avatarSeed: 42,
     ...overrides,
   };
 }

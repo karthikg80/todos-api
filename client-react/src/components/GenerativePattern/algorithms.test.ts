@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   mkRng,
   flowField,
@@ -12,29 +12,37 @@ import {
 import type { DrawFn } from "./types";
 
 // Mock canvas context
-function mockCtx(): CanvasRenderingContext2D {
+function mockCtx() {
+  const calls = {
+    beginPath: 0,
+    stroke: 0,
+    arc: 0,
+    bezierCurveTo: 0,
+    lineTo: 0,
+  };
   return {
-    beginPath: vi.fn(),
-    moveTo: vi.fn(),
-    lineTo: vi.fn(),
-    bezierCurveTo: vi.fn(),
-    arc: vi.fn(),
-    stroke: vi.fn(),
-    fillRect: vi.fn(),
-    clearRect: vi.fn(),
-    setTransform: vi.fn(),
-    fill: vi.fn(),
-    save: vi.fn(),
-    restore: vi.fn(),
-    closePath: vi.fn(),
-    rect: vi.fn(),
+    beginPath: () => { calls.beginPath++; },
+    moveTo: () => {},
+    lineTo: () => { calls.lineTo++; },
+    bezierCurveTo: () => { calls.bezierCurveTo++; },
+    arc: () => { calls.arc++; },
+    stroke: () => { calls.stroke++; },
+    fillRect: () => {},
+    clearRect: () => {},
+    setTransform: () => {},
+    fill: () => {},
+    save: () => {},
+    restore: () => {},
+    closePath: () => {},
+    rect: () => {},
     lineWidth: 1,
     globalAlpha: 1,
     strokeStyle: "#000",
     fillStyle: "#000",
     lineCap: "butt",
     lineJoin: "miter",
-  } as unknown as CanvasRenderingContext2D;
+    calls,
+  } as unknown as CanvasRenderingContext2D & { calls: typeof calls };
 }
 
 describe("GenerativePattern algorithms", () => {
@@ -94,8 +102,8 @@ describe("GenerativePattern algorithms", () => {
       const ctx = mockCtx();
       const rng = mkRng(42);
       flowField(ctx, 200, 100, 0.5, 5, rng);
-      expect(ctx.beginPath).toHaveBeenCalled();
-      expect(ctx.stroke).toHaveBeenCalled();
+      expect(ctx.calls.beginPath).toBeGreaterThan(0);
+      expect(ctx.calls.stroke).toBeGreaterThan(0);
     });
 
     it("scales line count with density", () => {
@@ -105,10 +113,7 @@ describe("GenerativePattern algorithms", () => {
       const rng2 = mkRng(42);
       flowField(ctx1, 200, 100, 0.5, 2, rng1);
       flowField(ctx2, 200, 100, 0.5, 10, rng2);
-      // Higher density should result in more beginPath calls
-      expect(ctx2.beginPath.mock.calls.length).toBeGreaterThan(
-        ctx1.beginPath.mock.calls.length,
-      );
+      expect(ctx2.calls.beginPath).toBeGreaterThan(ctx1.calls.beginPath);
     });
   });
 
@@ -117,8 +122,8 @@ describe("GenerativePattern algorithms", () => {
       const ctx = mockCtx();
       const rng = mkRng(42);
       scatteredOrbits(ctx, 200, 100, 0.5, 5, rng);
-      expect(ctx.beginPath).toHaveBeenCalled();
-      expect(ctx.arc).toHaveBeenCalled();
+      expect(ctx.calls.beginPath).toBeGreaterThan(0);
+      expect(ctx.calls.arc).toBeGreaterThan(0);
     });
 
     it("scales orbit count with density", () => {
@@ -128,9 +133,7 @@ describe("GenerativePattern algorithms", () => {
       const rng2 = mkRng(42);
       scatteredOrbits(ctx1, 200, 100, 0.5, 2, rng1);
       scatteredOrbits(ctx2, 200, 100, 0.5, 10, rng2);
-      expect(ctx2.beginPath.mock.calls.length).toBeGreaterThan(
-        ctx1.beginPath.mock.calls.length,
-      );
+      expect(ctx2.calls.beginPath).toBeGreaterThan(ctx1.calls.beginPath);
     });
   });
 
@@ -139,8 +142,8 @@ describe("GenerativePattern algorithms", () => {
       const ctx = mockCtx();
       const rng = mkRng(42);
       arcRivers(ctx, 200, 100, 0.5, 5, rng);
-      expect(ctx.beginPath).toHaveBeenCalled();
-      expect(ctx.bezierCurveTo).toHaveBeenCalled();
+      expect(ctx.calls.beginPath).toBeGreaterThan(0);
+      expect(ctx.calls.bezierCurveTo).toBeGreaterThan(0);
     });
 
     it("scales river count with density", () => {
@@ -150,9 +153,7 @@ describe("GenerativePattern algorithms", () => {
       const rng2 = mkRng(42);
       arcRivers(ctx1, 200, 100, 0.5, 2, rng1);
       arcRivers(ctx2, 200, 100, 0.5, 10, rng2);
-      expect(ctx2.beginPath.mock.calls.length).toBeGreaterThan(
-        ctx1.beginPath.mock.calls.length,
-      );
+      expect(ctx2.calls.beginPath).toBeGreaterThan(ctx1.calls.beginPath);
     });
   });
 
@@ -161,8 +162,8 @@ describe("GenerativePattern algorithms", () => {
       const ctx = mockCtx();
       const rng = mkRng(42);
       spiralField(ctx, 200, 100, 0.5, 5, rng);
-      expect(ctx.beginPath).toHaveBeenCalled();
-      expect(ctx.lineTo).toHaveBeenCalled();
+      expect(ctx.calls.beginPath).toBeGreaterThan(0);
+      expect(ctx.calls.lineTo).toBeGreaterThan(0);
     });
 
     it("scales spiral count with density", () => {
@@ -172,9 +173,7 @@ describe("GenerativePattern algorithms", () => {
       const rng2 = mkRng(42);
       spiralField(ctx1, 200, 100, 0.5, 2, rng1);
       spiralField(ctx2, 200, 100, 0.5, 10, rng2);
-      expect(ctx2.beginPath.mock.calls.length).toBeGreaterThan(
-        ctx1.beginPath.mock.calls.length,
-      );
+      expect(ctx2.calls.beginPath).toBeGreaterThan(ctx1.calls.beginPath);
     });
   });
 });
