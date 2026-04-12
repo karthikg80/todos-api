@@ -295,8 +295,7 @@ describe("projectWorkspaceModels", () => {
       const today = new Date();
       // Use start of today + 2 days to avoid timezone edge cases
       const in2days = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
-      const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      expect(getTaskNextReason(makeTodo({ dueDate: in2days.toISOString() }), [], now)).toBe("due in 2 days");
+      expect(getTaskNextReason(makeTodo({ dueDate: in2days.toISOString() }), [])).toBe("due in 2 days");
     });
 
     it("returns unblocks N tasks for blocking tasks", () => {
