@@ -28,11 +28,119 @@ import {
   validateAgentApplyLearningRecInput,
   validateAgentUpdateActionPolicyInput,
 } from "../../../validation/agentValidation";
+import { getFailureNarrationForJob } from "../jobs/activityPolicy";
 import { AgentExecutionError } from "./agentExecutionError";
 import type { ActionRegistry, ActionRuntime } from "./actionRegistry";
 import type { AgentExecutionContext, AgentExecutionResult } from "./agentTypes";
 
 type RawParams = Record<string, unknown>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function formatScalar(value: unknown): string | null {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed ? trimmed : null;
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  return null;
+}
+
+function formatCountLabel(key: string): string {
+  return key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/_/g, " ")
+    .toLowerCase();
+}
+
+function buildSuccessNarration(jobName: string, metadata: unknown): string {
+  if (!isRecord(metadata)) {
+    return `${jobName} completed successfully.`;
+  }
+
+  const summaryParts: string[] = [];
+
+  for (const [key, rawValue] of Object.entries(metadata)) {
+    if (
+      key === "date" ||
+      key === "week" ||
+      key === "periodKey" ||
+      key === "runId"
+    ) {
+      continue;
+    }
+
+    const scalar = formatScalar(rawValue);
+    if (!scalar) {
+      continue;
+    }
+
+    if (key === "errorMessage") {
+      continue;
+    }
+
+    if (
+      /Count$/i.test(key) ||
+      /^count[A-Z_]/.test(key) ||
+      /^count$/i.test(key)
+    ) {
+      summaryParts.push(`${formatCountLabel(key)}: ${scalar}`);
+      continue;
+    }
+
+    if (summaryParts.length < 2) {
+      summaryParts.push(`${formatCountLabel(key)}: ${scalar}`);
+    }
+  }
+
+  if (summaryParts.length === 0) {
+    return `${jobName} completed successfully.`;
+  }
+
+  return `${jobName} completed successfully. ${summaryParts.join(" · ")}.`;
+}
+
+async function recordJobNarration(
+  runtime: ActionRuntime,
+  context: AgentExecutionContext,
+  input: {
+    jobName: string;
+    periodKey: string;
+    narration: string;
+    metadata?: Record<string, unknown>;
+  },
+): Promise<void> {
+  if (!runtime.persistencePrisma) {
+    return;
+  }
+
+  await runtime.persistencePrisma.agentActionAudit.create({
+    data: {
+      surface: "agent",
+      action: "record_job_narration",
+      readOnly: false,
+      outcome: "success",
+      status: 200,
+      userId: context.userId,
+      requestId: context.requestId,
+      actor: context.actor,
+      replayed: false,
+      jobName: input.jobName,
+      jobPeriodKey: input.periodKey,
+      triggeredBy: "agent",
+      agentId: context.actor,
+      narration: input.narration,
+      metadata:
+        input.metadata !== undefined
+          ? (input.metadata as unknown as Prisma.InputJsonValue)
+          : undefined,
+    },
+  });
+}
 
 export function registerAgentControlActions(registry: ActionRegistry): void {
   registry.registerRaw(
@@ -79,6 +187,12 @@ export function registerAgentControlActions(registry: ActionRegistry): void {
           "Ensure claim_job_run was called first for this job/period combination.",
         );
       }
+      await recordJobNarration(runtime, context, {
+        jobName,
+        periodKey,
+        narration: buildSuccessNarration(jobName, metadata),
+        metadata: isRecord(metadata) ? metadata : undefined,
+      });
       return runtime.exec.success("complete_job_run", false, context, 200, {
         completed: true,
         jobName,
@@ -110,6 +224,15 @@ export function registerAgentControlActions(registry: ActionRegistry): void {
           false,
           "Ensure claim_job_run was called first for this job/period combination.",
         );
+      }
+      const failureNarration = getFailureNarrationForJob(jobName, errorMessage);
+      if (failureNarration) {
+        await recordJobNarration(runtime, context, {
+          jobName,
+          periodKey,
+          narration: failureNarration,
+          metadata: { errorMessage },
+        });
       }
       return runtime.exec.success("fail_job_run", false, context, 200, {
         failed: true,
@@ -382,34 +505,12 @@ export function registerAgentControlActions(registry: ActionRegistry): void {
         );
       }
 
-      // The actor name from X-Agent-Name header IS the agentId
-      const agentId = context.actor;
-
-      // Record via the audit service on the persistence Prisma instance
-      if (runtime.persistencePrisma) {
-        await runtime.persistencePrisma.agentActionAudit.create({
-          data: {
-            surface: "agent",
-            action: "record_job_narration",
-            readOnly: false,
-            outcome: "success",
-            status: 200,
-            userId: context.userId,
-            requestId: context.requestId,
-            actor: context.actor,
-            replayed: false,
-            jobName,
-            jobPeriodKey: periodKey,
-            triggeredBy: "agent",
-            agentId,
-            narration,
-            metadata:
-              metadata !== undefined
-                ? (metadata as unknown as Prisma.InputJsonValue)
-                : undefined,
-          },
-        });
-      }
+      await recordJobNarration(runtime, context, {
+        jobName,
+        periodKey,
+        narration,
+        metadata,
+      });
 
       return runtime.exec.success("record_job_narration", false, context, 201, {
         recorded: true,
