@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+// @ts-nocheck — mocked apiCall returns plain objects, not Response
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   login,
