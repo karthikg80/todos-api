@@ -1,192 +1,427 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import type { Heading, Todo } from "../../types";
+// @vitest-environment jsdom
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
+  startOfToday,
+  formatProjectDate,
+  isOverdue,
+  daysUntil,
   buildSectionGroups,
-  classifyProjectOverview,
+  estimateTaskEffort,
+  getTaskNextReason,
   pickTopTasks,
+  classifyProjectOverview,
+  COMPLEXITY_LABELS,
+  COMPLEXITY_STYLES,
+  getEmptyStateGuidance,
 } from "./projectWorkspaceModels";
+import type { Todo, Heading, Project } from "../../types";
 
 function makeTodo(overrides: Partial<Todo> = {}): Todo {
   return {
-    id: overrides.id ?? "todo-1",
-    title: overrides.title ?? "Task",
+    id: overrides.id ?? "t1",
+    title: overrides.title ?? "Test task",
+    description: null,
+    notes: overrides.notes ?? null,
     status: overrides.status ?? "next",
     completed: overrides.completed ?? false,
-    tags: overrides.tags ?? [],
+    completedAt: null,
+    projectId: overrides.projectId ?? "p1",
+    category: null,
+    headingId: overrides.headingId ?? null,
+    tags: [],
+    context: null,
+    energy: null,
+    dueDate: overrides.dueDate ?? null,
+    startDate: null,
+    scheduledDate: null,
+    reviewDate: null,
+    doDate: null,
+    estimateMinutes: overrides.estimateMinutes ?? null,
+    waitingOn: null,
     dependsOnTaskIds: overrides.dependsOnTaskIds ?? [],
-    order: overrides.order ?? 0,
-    archived: overrides.archived ?? false,
-    userId: overrides.userId ?? "user-1",
-    createdAt: overrides.createdAt ?? "2026-04-01T09:00:00.000Z",
-    updatedAt: overrides.updatedAt ?? "2026-04-01T09:00:00.000Z",
-    ...overrides,
+    order: 0,
+    priority: overrides.priority ?? null,
+    archived: false,
+    firstStep: null,
+    emotionalState: null,
+    effortScore: null,
+    source: null,
+    recurrence: { type: "none" },
+    subtasks: overrides.subtasks ?? [],
+    userId: "u1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
   };
 }
 
 function makeHeading(overrides: Partial<Heading> = {}): Heading {
   return {
-    id: overrides.id ?? "heading-1",
-    projectId: overrides.projectId ?? "project-1",
+    id: overrides.id ?? "h1",
     name: overrides.name ?? "Section",
+    projectId: overrides.projectId ?? "p1",
     sortOrder: overrides.sortOrder ?? 0,
-    ...overrides,
+  };
+}
+
+function makeProject(overrides: Partial<Project> = {}): Project {
+  return {
+    id: overrides.id ?? "p1",
+    name: overrides.name ?? "Test Project",
+    description: null,
+    goal: null,
+    status: "active",
+    priority: null,
+    area: null,
+    areaId: null,
+    targetDate: overrides.targetDate ?? null,
+    archived: false,
+    userId: "u1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
   };
 }
 
 describe("projectWorkspaceModels", () => {
-  afterEach(() => {
-    vi.useRealTimers();
+  describe("COMPLEXITY_LABELS", () => {
+    it("maps each mode to a label", () => {
+      expect(COMPLEXITY_LABELS.simple).toBe("Simple project");
+      expect(COMPLEXITY_LABELS.guided).toBe("Structured project");
+      expect(COMPLEXITY_LABELS.rich).toBe("Complex project");
+    });
   });
 
-  it("buildSectionGroups keeps headings in order and surfaces unplaced work first", () => {
-    const headings = [
-      makeHeading({ id: "h1", name: "Prep", sortOrder: 0 }),
-      makeHeading({ id: "h2", name: "Launch", sortOrder: 1 }),
-    ];
-
-    const groups = buildSectionGroups(
-      [
-        makeTodo({ id: "t1", title: "Unplaced", headingId: undefined }),
-        makeTodo({ id: "t2", title: "Draft plan", headingId: "h1" }),
-        makeTodo({ id: "t3", title: "Ship", headingId: "h2" }),
-      ],
-      headings,
-    );
-
-    expect(groups.map((group) => group.label)).toEqual([
-      "Backlog",
-      "Prep",
-      "Launch",
-    ]);
-    expect(groups[0]?.todos.map((todo) => todo.id)).toEqual(["t1"]);
-    expect(groups[1]?.todos.map((todo) => todo.id)).toEqual(["t2"]);
-    expect(groups[2]?.todos.map((todo) => todo.id)).toEqual(["t3"]);
+  describe("COMPLEXITY_STYLES", () => {
+    it("defines styles for each mode", () => {
+      expect(COMPLEXITY_STYLES.simple).toHaveProperty("background");
+      expect(COMPLEXITY_STYLES.simple).toHaveProperty("border");
+      expect(COMPLEXITY_STYLES.simple).toHaveProperty("color");
+      expect(COMPLEXITY_STYLES.rich).toHaveProperty("background");
+    });
   });
 
-  it("pickTopTasks prioritizes overdue, then active status, then priority", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-04-03T12:00:00.000Z"));
+  describe("startOfToday", () => {
+    it("returns midnight of the given date", () => {
+      const input = new Date("2026-04-10T15:30:00.000Z");
+      const result = startOfToday(input);
+      expect(result.getHours()).toBe(0);
+      expect(result.getMinutes()).toBe(0);
+      expect(result.getSeconds()).toBe(0);
+    });
 
-    const ranked = pickTopTasks([
-      makeTodo({
-        id: "overdue",
-        title: "Fix blocker",
-        dueDate: "2026-04-02T09:00:00.000Z",
-        priority: "low",
-        status: "next",
-      }),
-      makeTodo({
-        id: "doing",
-        title: "Active work",
-        dueDate: "2026-04-05T09:00:00.000Z",
-        priority: "low",
-        status: "in_progress",
-      }),
-      makeTodo({
-        id: "next-urgent",
-        title: "Prepare launch",
-        dueDate: "2026-04-04T09:00:00.000Z",
-        priority: "urgent",
-        status: "next",
-      }),
-      makeTodo({
-        id: "backlog",
-        title: "Nice to have",
-        dueDate: "2026-04-04T09:00:00.000Z",
-        priority: "urgent",
-        status: "inbox",
-      }),
-      makeTodo({
-        id: "done",
-        title: "Completed",
-        completed: true,
-        status: "done",
-        dueDate: "2026-04-01T09:00:00.000Z",
-      }),
-    ]);
-
-    expect(ranked.map((todo) => todo.id)).toEqual([
-      "overdue",
-      "doing",
-      "next-urgent",
-      "backlog",
-    ]);
+    it("uses current time when no argument given", () => {
+      const result = startOfToday();
+      expect(result.getHours()).toBe(0);
+    });
   });
 
-  it("classifies a small low-signal project as simple", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-04-03T12:00:00.000Z"));
+  describe("formatProjectDate", () => {
+    it("returns null for empty input", () => {
+      expect(formatProjectDate(null)).toBeNull();
+      expect(formatProjectDate(undefined)).toBeNull();
+    });
 
-    const profile = classifyProjectOverview(
-      [
-        makeTodo({
-          id: "t1",
-          title: "Clear shelf",
-          updatedAt: "2026-04-03T08:00:00.000Z",
-        }),
-        makeTodo({
-          id: "t2",
-          title: "Donate boxes",
-          updatedAt: "2026-04-02T08:00:00.000Z",
-        }),
-      ],
-      [],
-    );
-
-    expect(profile.mode).toBe("simple");
-    expect(profile.primaryContent).toBe("tasks");
-    expect(profile.showInsights).toBe(false);
-    expect(profile.showStarter).toBe(true);
+    it("formats a date with short month and day", () => {
+      const result = formatProjectDate("2026-04-10T12:00:00.000Z");
+      expect(result).toMatch(/\w+ \d+/);
+    });
   });
 
-  it("classifies a moderately structured project as guided", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-04-03T12:00:00.000Z"));
+  describe("isOverdue", () => {
+    it("returns false for tasks without due date", () => {
+      expect(isOverdue(makeTodo())).toBe(false);
+    });
 
-    const profile = classifyProjectOverview(
-      [
-        makeTodo({ id: "t1", headingId: "h1", dueDate: "2026-04-10T09:00:00.000Z" }),
-        makeTodo({ id: "t2", headingId: "h1", priority: "high" }),
+    it("returns false for completed tasks", () => {
+      const today = new Date().toISOString();
+      expect(isOverdue(makeTodo({ completed: true, dueDate: today }))).toBe(false);
+    });
+
+    it("returns true for past due date", () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      expect(isOverdue(makeTodo({ dueDate: yesterday.toISOString() }), new Date())).toBe(true);
+    });
+
+    it("returns false for future due date", () => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      expect(isOverdue(makeTodo({ dueDate: tomorrow.toISOString() }), new Date())).toBe(false);
+    });
+  });
+
+  describe("daysUntil", () => {
+    it("returns null for empty date", () => {
+      expect(daysUntil(null)).toBeNull();
+    });
+
+    it("returns 0 for today", () => {
+      const today = new Date();
+      expect(daysUntil(today.toISOString(), today)).toBe(0);
+    });
+
+    it("returns positive for future dates", () => {
+      const today = new Date();
+      const future = new Date(today);
+      future.setDate(future.getDate() + 5);
+      expect(daysUntil(future.toISOString(), today)).toBe(5);
+    });
+
+    it("returns negative for past dates", () => {
+      const today = new Date();
+      const past = new Date(today);
+      past.setDate(past.getDate() - 3);
+      expect(daysUntil(past.toISOString(), today)).toBe(-3);
+    });
+  });
+
+  describe("buildSectionGroups", () => {
+    it("groups tasks by heading and adds Backlog for unplaced", () => {
+      const todos = [
+        makeTodo({ id: "t1", headingId: "h1" }),
+        makeTodo({ id: "t2", headingId: "h1" }),
         makeTodo({ id: "t3", headingId: "h2" }),
-        makeTodo({ id: "t4", headingId: "h2", completed: true, status: "done" }),
-        makeTodo({ id: "t5" }),
-        makeTodo({ id: "t6", dueDate: "2026-04-06T09:00:00.000Z" }),
-      ],
-      [makeHeading({ id: "h1", name: "Book" }), makeHeading({ id: "h2", name: "Pack" })],
-    );
+        makeTodo({ id: "t4", headingId: null }),
+      ];
+      const headings = [makeHeading({ id: "h1", name: "Phase 1" }), makeHeading({ id: "h2", name: "Phase 2" })];
+      const groups = buildSectionGroups(todos, headings);
+      expect(groups).toHaveLength(3); // Backlog, Phase 1, Phase 2
+      expect(groups[0].label).toBe("Backlog");
+      expect(groups[0].todos).toHaveLength(1);
+      expect(groups[1].label).toBe("Phase 1");
+      expect(groups[2].label).toBe("Phase 2");
+    });
 
-    expect(profile.mode).toBe("guided");
-    expect(profile.primaryContent).toBe("sections");
-    expect(profile.showSectionsPreview).toBe(true);
+    it("puts unplaced tasks in Backlog", () => {
+      const todos = [
+        makeTodo({ id: "t1", headingId: null }),
+        makeTodo({ id: "t2", headingId: "h1" }),
+      ];
+      const headings = [makeHeading({ id: "h1", name: "Phase 1" })];
+      const groups = buildSectionGroups(todos, headings);
+      expect(groups[0].label).toBe("Backlog");
+      expect(groups[0].todos).toHaveLength(1);
+    });
+
+    it("includes Backlog even when no headings exist", () => {
+      const todos = [makeTodo({ id: "t1", headingId: null })];
+      const groups = buildSectionGroups(todos, []);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].label).toBe("Backlog");
+    });
+
+    it("includes Backlog when there are headings but also unplaced tasks", () => {
+      const todos = [
+        makeTodo({ id: "t1", headingId: null }),
+        makeTodo({ id: "t2", headingId: "h1" }),
+      ];
+      const headings = [makeHeading({ id: "h1", name: "Phase 1" })];
+      const groups = buildSectionGroups(todos, headings);
+      expect(groups.some((g) => g.label === "Backlog")).toBe(true);
+    });
+
+    it("omits Backlog when all tasks have headings and headings exist", () => {
+      const todos = [makeTodo({ id: "t1", headingId: "h1" })];
+      const headings = [makeHeading({ id: "h1", name: "Phase 1" })];
+      const groups = buildSectionGroups(todos, headings);
+      // Backlog is only added when there are unplaced tasks OR no heading groups
+      expect(groups).toHaveLength(1);
+      expect(groups[0].label).toBe("Phase 1");
+    });
   });
 
-  it("classifies a large structured project as rich", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-04-03T12:00:00.000Z"));
+  describe("estimateTaskEffort", () => {
+    it("returns Quick win for basic task", () => {
+      const result = estimateTaskEffort(makeTodo());
+      expect(result.label).toBe("Quick win");
+      expect(result.minutes).toBe(5);
+    });
 
-    const todos = Array.from({ length: 12 }, (_, index) =>
-      makeTodo({
-        id: `t${index + 1}`,
-        headingId: index < 4 ? "h1" : index < 8 ? "h2" : "h3",
-        dueDate:
-          index < 5 ? `2026-04-${String(4 + index).padStart(2, "0")}T09:00:00.000Z` : undefined,
-        updatedAt: "2026-04-03T08:00:00.000Z",
-        completed: index === 10 || index === 11,
-        status: index === 10 || index === 11 ? "done" : "next",
-      }),
-    );
+    it("adjusts for urgent priority", () => {
+      const result = estimateTaskEffort(makeTodo({ priority: "urgent" }));
+      expect(result.label).toBe("Short"); // 5 * 1.5 = 7.5 -> rounds to 10
+    });
 
-    const profile = classifyProjectOverview(
-      todos,
-      [
-        makeHeading({ id: "h1", name: "Venue" }),
-        makeHeading({ id: "h2", name: "Guests" }),
-        makeHeading({ id: "h3", name: "Vendors" }),
-      ],
-    );
+    it("adjusts for high priority", () => {
+      const result = estimateTaskEffort(makeTodo({ priority: "high" }));
+      expect(result.label).toBe("Quick win"); // 5 * 1.2 = 6 -> rounds to 5
+    });
 
-    expect(profile.mode).toBe("rich");
-    expect(profile.showSectionsPreview).toBe(true);
-    expect(profile.showInsights).toBe(true);
+    it("adjusts for long notes", () => {
+      const result = estimateTaskEffort(makeTodo({ notes: "x".repeat(250) }));
+      expect(result.label).toBe("Short"); // 5 + 5 = 10
+    });
+
+    it("adjusts for subtasks", () => {
+      const result = estimateTaskEffort(makeTodo({
+        subtasks: [
+          { id: "s1", title: "Sub 1", completed: false, order: 0, todoId: "t1", createdAt: "2026-01-01", updatedAt: "2026-01-01" },
+          { id: "s2", title: "Sub 2", completed: false, order: 1, todoId: "t1", createdAt: "2026-01-01", updatedAt: "2026-01-01" },
+        ],
+      }));
+      // 5 + 2*3 = 11 -> rounds to 10
+      expect(result.label).toBe("Short");
+    });
+
+    it("handles null todo", () => {
+      const result = estimateTaskEffort(null as any);
+      expect(result).toEqual({ minutes: 0, label: "Unknown" });
+    });
+
+    it("returns Extended for very long tasks", () => {
+      const subtasks = Array.from({ length: 20 }, (_, i) => ({
+        id: `s${i}`, title: `Sub ${i}`, completed: false, order: i, todoId: "t1", createdAt: "2026-01-01", updatedAt: "2026-01-01",
+      }));
+      const result = estimateTaskEffort(makeTodo({ subtasks, priority: "urgent", notes: "x".repeat(300) }));
+      // 5 + 20*3 = 65, *1.5 = 97.5, +5 = 102.5 -> rounds to 105
+      expect(result.label).toBe("Extended");
+    });
+  });
+
+  describe("getTaskNextReason", () => {
+    it("returns next in queue for basic task", () => {
+      expect(getTaskNextReason(makeTodo(), [])).toBe("next in queue");
+    });
+
+    it("returns urgent priority for urgent tasks", () => {
+      expect(getTaskNextReason(makeTodo({ priority: "urgent" }), [])).toBe("urgent priority");
+    });
+
+    it("returns due soon for tasks due today", () => {
+      const today = new Date();
+      expect(getTaskNextReason(makeTodo({ dueDate: today.toISOString() }), [])).toBe("due soon");
+    });
+
+    it("returns due in N days for tasks due in 2 days", () => {
+      const today = new Date();
+      // Use start of today + 2 days to avoid timezone edge cases
+      const in2days = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 2);
+      const now = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      expect(getTaskNextReason(makeTodo({ dueDate: in2days.toISOString() }), [], now)).toBe("due in 2 days");
+    });
+
+    it("returns unblocks N tasks for blocking tasks", () => {
+      const task = makeTodo({ id: "t1" });
+      const blocked = makeTodo({ id: "t2", dependsOnTaskIds: ["t1"] });
+      expect(getTaskNextReason(task, [blocked])).toBe("unblocks 1 other task");
+    });
+
+    it("returns next in queue when no reasons apply", () => {
+      const future = new Date();
+      future.setDate(future.getDate() + 30);
+      expect(getTaskNextReason(makeTodo({ dueDate: future.toISOString() }), [])).toBe("next in queue");
+    });
+  });
+
+  describe("pickTopTasks", () => {
+    it("returns empty array for empty input", () => {
+      expect(pickTopTasks([])).toEqual([]);
+    });
+
+    it("excludes completed tasks", () => {
+      const todos = [makeTodo({ id: "t1", completed: true })];
+      expect(pickTopTasks(todos)).toEqual([]);
+    });
+
+    it("prioritizes overdue tasks", () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const todos = [
+        makeTodo({ id: "t1", title: "Future", dueDate: tomorrow.toISOString() }),
+        makeTodo({ id: "t2", title: "Overdue", dueDate: yesterday.toISOString() }),
+      ];
+      const top = pickTopTasks(todos);
+      expect(top[0].title).toBe("Overdue");
+    });
+
+    it("prioritizes in_progress over next", () => {
+      const todos = [
+        makeTodo({ id: "t1", title: "Next", status: "next" }),
+        makeTodo({ id: "t2", title: "In Progress", status: "in_progress" }),
+      ];
+      const top = pickTopTasks(todos);
+      expect(top[0].title).toBe("In Progress");
+    });
+
+    it("limits to 4 tasks", () => {
+      const todos = Array.from({ length: 10 }, (_, i) => makeTodo({ id: `t${i}`, title: `Task ${i}` }));
+      expect(pickTopTasks(todos)).toHaveLength(4);
+    });
+  });
+
+  describe("classifyProjectOverview", () => {
+    it("returns simple for empty project", () => {
+      const profile = classifyProjectOverview([], []);
+      expect(profile.mode).toBe("simple");
+      expect(profile.totalTasks).toBe(0);
+      expect(profile.showStarter).toBe(true);
+    });
+
+    it("returns simple for small project", () => {
+      const todos = [makeTodo({ id: "t1" }), makeTodo({ id: "t2" })];
+      const profile = classifyProjectOverview(todos, []);
+      expect(profile.mode).toBe("simple");
+    });
+
+    it("returns rich for large project", () => {
+      const todos = Array.from({ length: 15 }, (_, i) => makeTodo({ id: `t${i}` }));
+      const headings = [makeHeading({ id: "h1" }), makeHeading({ id: "h2" }), makeHeading({ id: "h3" })];
+      const profile = classifyProjectOverview(todos, headings);
+      expect(profile.mode).toBe("rich");
+    });
+
+    it("returns guided for medium project", () => {
+      const todos = Array.from({ length: 8 }, (_, i) => makeTodo({ id: `t${i}` }));
+      const headings = [makeHeading({ id: "h1" }), makeHeading({ id: "h2" })];
+      const profile = classifyProjectOverview(todos, headings);
+      expect(profile.mode).toBe("guided");
+    });
+
+    it("counts overdue tasks", () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const todos = [makeTodo({ id: "t1", dueDate: yesterday.toISOString() })];
+      const profile = classifyProjectOverview(todos, [], new Date());
+      expect(profile.overdueTasks).toBe(1);
+    });
+
+    it("counts waiting tasks", () => {
+      const todos = [makeTodo({ id: "t1", status: "waiting" })];
+      const profile = classifyProjectOverview(todos, []);
+      expect(profile.waitingTasks).toBe(1);
+    });
+
+    it("counts unplaced tasks", () => {
+      const todos = [makeTodo({ id: "t1", headingId: null })];
+      const headings = [makeHeading({ id: "h1" })];
+      const profile = classifyProjectOverview(todos, headings);
+      expect(profile.unplacedTasks).toBe(1);
+    });
+
+    it("counts sections with tasks", () => {
+      const todos = [makeTodo({ id: "t1", headingId: "h1" })];
+      const headings = [makeHeading({ id: "h1" }), makeHeading({ id: "h2" })];
+      const profile = classifyProjectOverview(todos, headings);
+      expect(profile.sectionsWithTasks).toBe(1);
+    });
+  });
+
+  describe("getEmptyStateGuidance", () => {
+    it("returns starter guidance for empty project", () => {
+      const profile = classifyProjectOverview([], []);
+      const project = makeProject({ name: "My Project" });
+      const guidance = getEmptyStateGuidance(profile, project);
+      expect(guidance.title).toContain("concrete step");
+      expect(guidance.showAdd).toBe(true);
+    });
+
+    it("returns lightweight guidance for simple project", () => {
+      const todos = [makeTodo({ id: "t1" })];
+      const profile = classifyProjectOverview(todos, []);
+      const project = makeProject();
+      const guidance = getEmptyStateGuidance(profile, project);
+      expect(guidance.title).toContain("lightweight");
+    });
   });
 });
