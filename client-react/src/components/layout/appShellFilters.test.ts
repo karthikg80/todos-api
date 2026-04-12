@@ -49,9 +49,8 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
 
 const defaultFilters = {
   dateFilter: "all" as const,
-  priority: null as string | null,
-  status: null as string | null,
-  tag: null as string | null,
+  priority: "" as const,
+  status: "" as const,
 };
 
 describe("appShellFilters", () => {
