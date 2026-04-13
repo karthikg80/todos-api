@@ -219,19 +219,23 @@ const mockUseDarkMode = vi.mocked(useDarkMode);
 function setupOverrides(overrides: {
   user?: any;
   todos?: any[];
-  loadState?: string;
+  loadState?: "idle" | "loading" | "loaded" | "error";
   projects?: any[];
   isMobile?: boolean;
   dark?: boolean;
 } = {}) {
   mockUseAuth.mockReturnValue({
-    user: overrides.user ?? { id: "u1", name: "Test User", email: "test@example.com", isVerified: true },
+    user: overrides.user ?? { id: "u1", name: "Test User", email: "test@example.com" },
+    loading: false,
     logout: vi.fn(),
+    setUser: vi.fn(),
+    setTokens: vi.fn(),
+    refreshUser: vi.fn().mockResolvedValue(null),
   });
   mockUseTodosStore.mockReturnValue({
     todos: overrides.todos ?? [],
-    loadState: overrides.loadState ?? "loaded",
-    errorMessage: null,
+    loadState: (overrides.loadState ?? "loaded") as "idle" | "loading" | "loaded" | "error",
+    errorMessage: "",
     loadTodos: vi.fn(),
     addTodo: vi.fn(),
     toggleTodo: vi.fn(),
@@ -240,6 +244,7 @@ function setupOverrides(overrides: {
   });
   mockUseProjectsStore.mockReturnValue({
     projects: overrides.projects ?? [],
+    loading: false,
     loadProjects: vi.fn(),
   });
   mockUseIsMobile.mockReturnValue(overrides.isMobile ?? false);
@@ -456,7 +461,11 @@ describe("AppShell", () => {
       const logout = vi.fn();
       mockUseAuth.mockReturnValue({
         user: { id: "u1", name: "Test User", email: "test@example.com" },
+        loading: false,
         logout,
+        setUser: vi.fn(),
+        setTokens: vi.fn(),
+        refreshUser: vi.fn().mockResolvedValue(null),
       });
       render(ce(AppShell));
       await act(async () => {
