@@ -60,6 +60,13 @@ import {
   getQuickEntryPlaceholder,
   type HorizonSegment,
 } from "./appShellFilters";
+import {
+  buildQueryParams,
+  getViewTitle,
+  shouldShowListViewHeader,
+  isBlockingOverlayOpen,
+  DRAFT_PROJECT_ID,
+} from "./appShellViews";
 
 // Lazy-loaded heavy components (code splitting)
 const BoardView = lazy(() =>
@@ -93,8 +100,6 @@ interface UndoAction {
   message: string;
   onUndo?: () => void;
 }
-
-const DRAFT_PROJECT_ID = "draft-project";
 
 function createDraftProject(): Project {
   const now = new Date().toISOString();
@@ -205,35 +210,16 @@ export function AppShell() {
   const { projects, loadProjects } = useProjectsStore();
 
   // Build query params based on active view + project
-  const queryParams = useMemo(() => {
-    const params: Record<string, string | undefined> = {};
-    if (selectedProjectId && selectedProjectId !== DRAFT_PROJECT_ID) {
-      params.projectId = selectedProjectId;
-    } else {
-      switch (activeView) {
-        case "home":
-          // Focus dashboard fetches all active todos for tiles
-          break;
-        case "today":
-          params.sortBy = "dueDate";
-          params.sortOrder = "asc";
-          break;
-        case "completed":
-          params.completed = "true";
-          break;
-        case "horizon":
-          params.sortBy = "dueDate";
-          params.sortOrder = "asc";
-          break;
-      }
-    }
-    // User sort overrides view defaults
-    if (sortBy !== "order") {
-      params.sortBy = sortBy;
-      params.sortOrder = sortOrder;
-    }
-    return params;
-  }, [activeView, selectedProjectId, sortBy, sortOrder]);
+  const queryParams = useMemo(
+    () =>
+      buildQueryParams({
+        activeView,
+        selectedProjectId,
+        sortBy,
+        sortOrder,
+      }),
+    [activeView, selectedProjectId, sortBy, sortOrder],
+  );
 
   // Load data on mount and when filters change
   useEffect(() => {
@@ -339,51 +325,10 @@ export function AppShell() {
     };
   }, [hasBlockingOverlay]);
 
-  const horizonCounts = useMemo(() => {
-    const active = todos.filter((t) => !t.completed);
-    const today = new Date().toISOString().split("T")[0];
-    const upcomingEnd = new Date();
-    upcomingEnd.setDate(upcomingEnd.getDate() + 14);
-    const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
-    return {
-      due: active.filter(
-        (t) =>
-          !!t.dueDate &&
-          t.dueDate.split("T")[0] > today &&
-          t.dueDate.split("T")[0] <= upcomingEndIso,
-      ).length,
-      pending: active.filter((t) => t.status === "waiting").length,
-      planned: active.filter((t) => !!t.scheduledDate).length,
-      later: active.filter((t) => t.status === "someday").length,
-    };
-  }, [todos]);
+  const horizonCounts = useMemo(() => computeHorizonCounts(todos), [todos]);
 
   // Count badges for workspace views
-  const viewCounts = useMemo(() => {
-    const active = todos.filter((t) => !t.completed);
-    const horizonIds = new Set<string>();
-    const today = new Date().toISOString().split("T")[0];
-    const upcomingEnd = new Date();
-    upcomingEnd.setDate(upcomingEnd.getDate() + 14);
-    const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
-    for (const todo of active) {
-      if (
-        (todo.dueDate &&
-          todo.dueDate.split("T")[0] > today &&
-          todo.dueDate.split("T")[0] <= upcomingEndIso) ||
-        todo.status === "waiting" ||
-        !!todo.scheduledDate ||
-        todo.status === "someday"
-      ) {
-        horizonIds.add(todo.id);
-      }
-    }
-    return {
-      today: active.filter((t) => t.dueDate && t.dueDate.split("T")[0] <= today)
-        .length,
-      horizon: horizonIds.size,
-    };
-  }, [todos]);
+  const viewCounts = useMemo(() => computeViewCounts(todos), [todos]);
 
   // Context-aware quick entry placeholder
   const quickEntryPlaceholder = useMemo(() => {
