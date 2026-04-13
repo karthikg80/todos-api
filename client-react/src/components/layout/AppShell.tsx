@@ -28,7 +28,7 @@ import { UndoToast } from "../shared/UndoToast";
 import { ConfirmDialog } from "../shared/ConfirmDialog";
 import { CommandPalette } from "../shared/CommandPalette";
 import { ShortcutsOverlay } from "../shared/ShortcutsOverlay";
-import { applyFilters, type ActiveFilters } from "../todos/FilterPanel";
+import { type ActiveFilters } from "../todos/FilterPanel";
 import { ErrorBoundary } from "../shared/ErrorBoundary";
 import { ComponentGalleryPage } from "./ComponentGalleryPage";
 import { SettingsPage } from "./SettingsPage";
@@ -53,6 +53,13 @@ import {
 } from "../../utils/focusTargets";
 import { useOverlayFocusTrap } from "../shared/useOverlayFocusTrap";
 import * as todosApi from "../../api/todos";
+import {
+  filterVisibleTodos,
+  computeHorizonCounts,
+  computeViewCounts,
+  getQuickEntryPlaceholder,
+  type HorizonSegment,
+} from "./appShellFilters";
 
 // Lazy-loaded heavy components (code splitting)
 const BoardView = lazy(() =>
@@ -273,78 +280,18 @@ export function AppShell() {
     }, []),
   );
 
-  // Client-side filtering: date view + search
+  // Client-side filtering: delegated to extracted pure utility
   const visibleTodos = useMemo(() => {
-    let filtered = todos;
-
-    if (!selectedProjectId) {
-      const today = new Date().toISOString().split("T")[0];
-      if (activeView === "today") {
-        filtered = filtered.filter(
-          (t) => !t.completed && t.dueDate && t.dueDate.split("T")[0] <= today,
-        );
-      } else if (activeView === "horizon") {
-        const upcomingEnd = new Date();
-        upcomingEnd.setDate(upcomingEnd.getDate() + 14);
-        const upcomingEndIso = upcomingEnd.toISOString().split("T")[0];
-        if (horizonSegment === "due") {
-          filtered = filtered.filter(
-            (t) =>
-              !t.completed &&
-              !!t.dueDate &&
-              t.dueDate.split("T")[0] > today &&
-              t.dueDate.split("T")[0] <= upcomingEndIso,
-          );
-        } else if (horizonSegment === "pending") {
-          filtered = filtered.filter(
-            (t) => !t.completed && t.status === "waiting",
-          );
-        } else if (horizonSegment === "planned") {
-          filtered = filtered.filter((t) => !t.completed && !!t.scheduledDate);
-        } else if (horizonSegment === "later") {
-          filtered = filtered.filter(
-            (t) => !t.completed && t.status === "someday",
-          );
-        }
-      }
-    }
-
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (t) =>
-          t.title.toLowerCase().includes(q) ||
-          t.description?.toLowerCase().includes(q) ||
-          t.category?.toLowerCase().includes(q) ||
-          t.notes?.toLowerCase().includes(q) ||
-          t.tags.some((tag) => tag.toLowerCase().includes(q)),
-      );
-    }
-
-    if (activeTagFilter) {
-      filtered = filtered.filter((t) =>
-        t.tags.some((tag) => tag === activeTagFilter),
-      );
-    }
-
-    if (activeHeadingId && selectedProjectId) {
-      if (activeHeadingId === PROJECT_RAIL_BACKLOG_SENTINEL) {
-        filtered = filtered.filter((t) => !t.headingId);
-      } else {
-        filtered = filtered.filter((t) => t.headingId === activeHeadingId);
-      }
-    }
-
-    // Apply advanced filters
-    if (
-      activeFilters.dateFilter !== "all" ||
-      activeFilters.priority ||
-      activeFilters.status
-    ) {
-      filtered = applyFilters(filtered, activeFilters);
-    }
-
-    return filtered;
+    return filterVisibleTodos({
+      todos,
+      activeView,
+      horizonSegment,
+      selectedProjectId,
+      searchQuery,
+      activeTagFilter,
+      activeHeadingId,
+      activeFilters,
+    });
   }, [
     todos,
     activeView,
