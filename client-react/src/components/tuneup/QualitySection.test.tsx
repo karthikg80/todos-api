@@ -1,12 +1,10 @@
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
+import { ce } from "../../test-helpers";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
 import { QualitySection } from "./QualitySection";
 import type { QualityIssue } from "../../types/tuneup";
 
-const { createElement: ce } = React;
 
 function makeIssue(overrides: Partial<QualityIssue> = {}): QualityIssue {
   return {
@@ -14,6 +12,7 @@ function makeIssue(overrides: Partial<QualityIssue> = {}): QualityIssue {
     title: overrides.title ?? "Test issue",
     issues: overrides.issues ?? ["short"],
     suggestions: overrides.suggestions ?? [],
+    qualityScore: overrides.qualityScore ?? 0.5,
   };
 }
 

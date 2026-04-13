@@ -1,11 +1,9 @@
 // @vitest-environment jsdom
-// @ts-nocheck — component uses TouchEvent which jsdom doesn't fully support
+import { ce } from "../../test-helpers";
 import { describe, it, expect } from "vitest";
 import { render } from "@testing-library/react";
-import React from "react";
 import { PullToSearch } from "./PullToSearch";
 
-const { createElement: ce } = React;
 
 const mockTodos = [
   { id: "t1", title: "Write report", description: "Important", completed: false, tags: ["work"], projectId: "p1" },

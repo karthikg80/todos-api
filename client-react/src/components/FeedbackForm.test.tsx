@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
+import { ce } from "../test-helpers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import React from "react";
 
 vi.mock("../auth/AuthProvider", () => ({
   useAuth: () => ({ user: { id: "u1", email: "test@example.com", name: "Test User" } }),
@@ -19,7 +18,6 @@ vi.mock("../utils/pageTransitions", () => ({
 import { submitFeedback } from "../api/feedbackApi";
 import { FeedbackForm } from "./FeedbackForm";
 
-const { createElement: ce } = React;
 
 describe("FeedbackForm", () => {
   beforeEach(() => {

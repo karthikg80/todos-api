@@ -1,13 +1,11 @@
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
+import { ce } from "../../test-helpers";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import React from "react";
 import type { Todo, Heading } from "../../types";
 
 import { ProjectInlineTaskRow } from "./ProjectInlineTaskRow";
 
-const { createElement: ce } = React;
 
 function makeTodo(overrides: Partial<Todo> = {}): Todo {
   return {

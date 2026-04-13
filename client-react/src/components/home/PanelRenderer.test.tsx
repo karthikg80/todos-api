@@ -1,24 +1,22 @@
 // @vitest-environment jsdom
-// @ts-nocheck — createElement overload issues with complex mocked props
+import { ce } from "../../test-helpers";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
 import { PanelRenderer } from "./PanelRenderer";
 
-const { createElement: ce } = React;
 
 // Mock sub-components
 vi.mock("./FlipCard", () => ({
-  FlipCard: ({ front, back }) => ce("div", { "data-testid": "flip-card" }, front, back),
+  FlipCard: ({ front, back }: any) => ce("div", { "data-testid": "flip-card" }, front, back),
 }));
 
 vi.mock("./TarotCard", () => ({
-  TarotCardFront: ({ name, children, illustrationCaption }) => ce("div", { "data-testid": "tarot-front", "data-name": name }, ce("h2", null, name), illustrationCaption && ce("span", { "data-testid": "illustration-caption" }, illustrationCaption), children),
-  TarotCardBack: ({ name, children }) => ce("div", { "data-testid": "tarot-back", "data-name": name }, ce("h2", null, "Back: " + name), children),
+  TarotCardFront: ({ name, children, illustrationCaption }: any) => ce("div", { "data-testid": "tarot-front", "data-name": name }, ce("h2", null, name), illustrationCaption && ce("span", { "data-testid": "illustration-caption" }, illustrationCaption), children),
+  TarotCardBack: ({ name, children }: any) => ce("div", { "data-testid": "tarot-back", "data-name": name }, ce("h2", null, "Back: " + name), children),
 }));
 
 vi.mock("./CardBack", () => ({
-  CardBackContent: ({ reason }) => ce("div", { "data-testid": "card-back-content" }, reason),
+  CardBackContent: ({ reason }: any) => ce("div", { "data-testid": "card-back-content" }, reason),
 }));
 
 vi.mock("./pixel-art", () => ({

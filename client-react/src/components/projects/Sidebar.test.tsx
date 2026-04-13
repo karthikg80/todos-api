@@ -1,12 +1,10 @@
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
+import { ce } from "../../test-helpers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
 import { Sidebar } from "./Sidebar";
 import type { Project, User } from "../../types";
 
-const { createElement: ce } = React;
 
 vi.mock("../shared/ProfileLauncher", () => ({
   ProfileLauncher: () => ce("div", { "data-testid": "profile-launcher" }, "Profile"),
@@ -25,8 +23,9 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     targetDate: null,
     archived: overrides.archived ?? false,
     userId: "u1",
-    createdAt: "2026-01-01T00:00:00.000Z",
+    
     updatedAt: "2026-01-01T00:00:00.000Z",
+    createdAt: "2026-01-01T00:00:00.000Z",
   };
 }
 
@@ -36,9 +35,8 @@ const mockUser: User = {
   name: "Test User",
   onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
   onboardingStep: 4,
-  emailVerifiedAt: "2026-01-01T00:00:00.000Z",
   plan: "free",
-  createdAt: "2026-01-01T00:00:00.000Z",
+  
 };
 
 const defaultProps = {

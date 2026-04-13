@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
+import { ce } from "../../test-helpers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import React from "react";
 
 // Mock ALL complex sub-components before importing SettingsPage
 vi.mock("../../api/client", () => ({
@@ -24,7 +23,7 @@ vi.mock("../../features/settings/AgentsPanel", () => ({
 }));
 
 vi.mock("../shared/ToggleSwitch", () => ({
-  ToggleSwitch: ({ checked, label, onChange }) =>
+  ToggleSwitch: ({ checked, label, onChange }: any) =>
     ce("button", {
       "data-testid": "toggle-" + label.replace(/\s+/g, "-").toLowerCase(),
       "data-checked": String(checked),
@@ -37,7 +36,7 @@ vi.mock("../shared/SearchBar", () => ({
 }));
 
 vi.mock("../shared/SegmentedControl", () => ({
-  SegmentedControl: ({ options }) =>
+  SegmentedControl: ({ options }: any) =>
     ce("div", { "data-testid": "segmented" },
       options.map((o: any) => ce("button", { key: o.value }, o.label)),
     ),
@@ -60,7 +59,6 @@ vi.mock("./AdminFeedbackWorkflow", () => ({
 
 import { SettingsPage } from "./SettingsPage";
 
-const { createElement: ce } = React;
 
 const defaultProps = {
   dark: false,

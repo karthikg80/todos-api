@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// @ts-nocheck — heavy mocking of AppShell's many dependencies
+import { ce } from "../../test-helpers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import React from "react";
@@ -169,7 +169,6 @@ vi.mock("../todos/TaskFullPage", () => ({
 
 import { AppShell } from "./AppShell";
 
-const { createElement: ce } = React;
 
 describe("AppShell", () => {
   beforeEach(() => {
