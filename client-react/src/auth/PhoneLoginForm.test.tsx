@@ -1,5 +1,4 @@
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import React from "react";
@@ -57,7 +56,7 @@ describe("PhoneLoginForm", () => {
       render(ce(PhoneLoginForm, defaultProps));
       fireEvent.change(screen.getByLabelText("Phone Number"), { target: { value: "+15550001234" } });
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       await waitFor(() => {
@@ -71,7 +70,7 @@ describe("PhoneLoginForm", () => {
       vi.mocked(sendOtp).mockRejectedValueOnce(new Error("Invalid phone"));
       render(ce(PhoneLoginForm, defaultProps));
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       await waitFor(() => {
@@ -83,7 +82,7 @@ describe("PhoneLoginForm", () => {
       vi.mocked(sendOtp).mockImplementationOnce(() => new Promise(() => {}));
       render(ce(PhoneLoginForm, defaultProps));
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       expect(screen.getByRole("button", { name: "Sending…" })).toBeTruthy();
@@ -94,7 +93,7 @@ describe("PhoneLoginForm", () => {
     it("renders OTP input after sending code", async () => {
       render(ce(PhoneLoginForm, defaultProps));
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       await waitFor(() => {
@@ -106,7 +105,7 @@ describe("PhoneLoginForm", () => {
     it("strips non-digit characters from OTP input", async () => {
       render(ce(PhoneLoginForm, defaultProps));
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       await waitFor(() => {
@@ -124,7 +123,7 @@ describe("PhoneLoginForm", () => {
 
       render(ce(PhoneLoginForm, defaultProps));
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       await waitFor(() => {
@@ -132,7 +131,7 @@ describe("PhoneLoginForm", () => {
       });
       fireEvent.change(screen.getByLabelText("6-digit code"), { target: { value: "123456" } });
       await act(async () => {
-        fireEvent.submit(screen.getByText("Enter verification code").closest("form"));
+        fireEvent.submit(screen.getByText("Enter verification code").closest("form")!);
       });
 
       await waitFor(() => {
@@ -148,7 +147,7 @@ describe("PhoneLoginForm", () => {
       vi.mocked(verifyOtp).mockRejectedValueOnce(new Error("Invalid code"));
       render(ce(PhoneLoginForm, defaultProps));
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       await waitFor(() => {
@@ -156,7 +155,7 @@ describe("PhoneLoginForm", () => {
       });
       fireEvent.change(screen.getByLabelText("6-digit code"), { target: { value: "000000" } });
       await act(async () => {
-        fireEvent.submit(screen.getByText("Enter verification code").closest("form"));
+        fireEvent.submit(screen.getByText("Enter verification code").closest("form")!);
       });
 
       await waitFor(() => {
@@ -168,7 +167,7 @@ describe("PhoneLoginForm", () => {
       vi.mocked(verifyOtp).mockImplementationOnce(() => new Promise(() => {}));
       render(ce(PhoneLoginForm, defaultProps));
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       await waitFor(() => {
@@ -176,26 +175,21 @@ describe("PhoneLoginForm", () => {
       });
       fireEvent.change(screen.getByLabelText("6-digit code"), { target: { value: "123456" } });
       await act(async () => {
-        fireEvent.submit(screen.getByText("Enter verification code").closest("form"));
+        fireEvent.submit(screen.getByText("Enter verification code").closest("form")!);
       });
 
       expect(screen.getByRole("button", { name: "Verifying…" })).toBeTruthy();
     });
   });
 
-  // Note: Resend cooldown tests require fake timers which conflict with the component's
-  // async state updates. These are covered by manual testing and E2E tests.
-  describe.skip("resend cooldown", () => {
-    it("shows resend button with countdown after sending OTP", async () => {});
-    it("enables resend after cooldown expires", async () => {});
-    it("resends OTP when resend button is clicked", async () => {});
-  });
+  // Resend cooldown tests deferred to E2E — fake timers conflict with
+  // the component's async setState patterns. Tracked separately.
 
   describe("navigation", () => {
     it("calls onBack when Use different number is clicked", async () => {
       render(ce(PhoneLoginForm, defaultProps));
       await act(async () => {
-        fireEvent.submit(screen.getByText("Sign in with phone").closest("form"));
+        fireEvent.submit(screen.getByText("Sign in with phone").closest("form")!);
       });
 
       await waitFor(() => {
