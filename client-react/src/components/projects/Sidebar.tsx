@@ -12,9 +12,15 @@ import {
   IconSearch,
 } from "../shared/Icons";
 import { ProfileLauncher } from "../shared/ProfileLauncher";
+import {
+  groupProjectsByArea,
+  getVisibleViews,
+  VIEW_LABELS,
+  STATUS_COLORS,
+} from "./sidebarModels";
+import type { WorkspaceView } from "./sidebarModels";
 
-// Internal keys match classic store.js currentWorkspaceView values
-export type WorkspaceView = "home" | "all" | "today" | "horizon" | "completed";
+export type { WorkspaceView } from "./sidebarModels";
 
 // Display labels match classic app-shell.fragment
 const WORKSPACE_VIEWS: {
@@ -28,23 +34,6 @@ const WORKSPACE_VIEWS: {
   { key: "horizon", label: "Horizon", icon: IconUpcoming },
   { key: "completed", label: "Completed", icon: IconCompleted },
 ];
-
-// Area labels and order match classic railUi.js
-const AREA_ORDER = ["home", "family", "work", "finance", "side-projects"];
-const AREA_LABELS: Record<string, string> = {
-  home: "Focus",
-  family: "Family",
-  work: "Work",
-  finance: "Finance",
-  "side-projects": "Side projects",
-};
-
-const STATUS_COLORS: Record<string, string> = {
-  active: "var(--success)",
-  on_hold: "var(--warning)",
-  completed: "var(--muted)",
-  archived: "var(--muted)",
-};
 
 function ProjectRailItem({
   project: p,
@@ -147,50 +136,7 @@ export function Sidebar({
   const isSimple = uiMode === "simple";
 
   // Group active projects by area (matching classic railUi.js logic)
-  const projectGroups = useMemo(() => {
-    const active = projects.filter((p) => !p.archived);
-    const groups = new Map<string, Project[]>();
-
-    for (const p of active) {
-      const area = p.area || "";
-      const list = groups.get(area) || [];
-      list.push(p);
-      groups.set(area, list);
-    }
-
-    const sorted: Array<{ area: string; label: string; projects: Project[] }> =
-      [];
-
-    for (const area of AREA_ORDER) {
-      const list = groups.get(area);
-      if (list?.length) {
-        sorted.push({
-          area,
-          label: AREA_LABELS[area] || area,
-          projects: list,
-        });
-        groups.delete(area);
-      }
-    }
-
-    const unknownAreas = [...groups.entries()]
-      .filter(([a]) => a !== "")
-      .sort(([a], [b]) => a.localeCompare(b));
-    for (const [area, list] of unknownAreas) {
-      sorted.push({
-        area,
-        label: area.charAt(0).toUpperCase() + area.slice(1),
-        projects: list,
-      });
-    }
-
-    const ungrouped = groups.get("");
-    if (ungrouped?.length) {
-      sorted.push({ area: "", label: "", projects: ungrouped });
-    }
-
-    return sorted;
-  }, [projects]);
+  const projectGroups = useMemo(() => groupProjectsByArea(projects), [projects]);
 
   const toggleArea = (area: string) => {
     setCollapsedAreas((prev) => {
