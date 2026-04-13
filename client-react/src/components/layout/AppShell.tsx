@@ -88,7 +88,6 @@ type AppPage =
   | "review"
   | "activity";
 type UiMode = "normal" | "simple";
-type HorizonSegment = "due" | "planned" | "pending" | "later";
 
 interface UndoAction {
   message: string;
