@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, act } from "@testing-library/react";
-import React from "react";
+import { apiCall } from "../../api/client";
+import { AgentActivityFeed } from "./AgentActivityFeed";
+import { ce, mockResponse } from "../../test-helpers";
 
 vi.mock("../../api/client", () => ({
   apiCall: vi.fn(),
@@ -12,11 +13,6 @@ vi.mock("../../agents/useAgentProfiles", () => ({
   useAgentProfiles: () => [],
   getAgentProfile: () => undefined,
 }));
-
-import { apiCall } from "../../api/client";
-import { AgentActivityFeed } from "./AgentActivityFeed";
-
-const { createElement: ce } = React;
 
 const mockEntries = [
   {
@@ -35,16 +31,15 @@ describe("AgentActivityFeed", () => {
   });
 
   it("returns null when not standalone and loading", () => {
-    vi.mocked(apiCall).mockResolvedValue(new Promise(() => {}));
+    vi.mocked(apiCall).mockResolvedValue(mockResponse({ ok: true, body: {} }));
     const { container } = render(ce(AgentActivityFeed, { standalone: false }));
     expect(container.firstChild).toBeNull();
   });
 
   it("returns null when not standalone and empty", async () => {
-    vi.mocked(apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => ({ entries: [] }),
-    });
+    vi.mocked(apiCall).mockResolvedValue(
+      mockResponse({ ok: true, body: { entries: [] } }),
+    );
     const { container } = await act(async () =>
       render(ce(AgentActivityFeed, { standalone: false })),
     );
@@ -52,16 +47,15 @@ describe("AgentActivityFeed", () => {
   });
 
   it("shows loading skeleton when standalone and loading", () => {
-    vi.mocked(apiCall).mockResolvedValue(new Promise(() => {}));
+    vi.mocked(apiCall).mockResolvedValue(mockResponse({ ok: true, body: {} }));
     const { container } = render(ce(AgentActivityFeed, { standalone: true }));
     expect(container.querySelector(".loading-skeleton")).toBeTruthy();
   });
 
   it("shows empty state when standalone and no entries", async () => {
-    vi.mocked(apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => ({ entries: [] }),
-    });
+    vi.mocked(apiCall).mockResolvedValue(
+      mockResponse({ ok: true, body: { entries: [] } }),
+    );
     const { container } = await act(async () =>
       render(ce(AgentActivityFeed, { standalone: true })),
     );
@@ -69,10 +63,9 @@ describe("AgentActivityFeed", () => {
   });
 
   it("renders entries with jobName and narration", async () => {
-    vi.mocked(apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => ({ entries: mockEntries }),
-    });
+    vi.mocked(apiCall).mockResolvedValue(
+      mockResponse({ ok: true, body: { entries: mockEntries } }),
+    );
     const { container } = await act(async () =>
       render(ce(AgentActivityFeed, { standalone: true })),
     );
@@ -81,23 +74,20 @@ describe("AgentActivityFeed", () => {
   });
 
   it("groups entries by day", async () => {
-    vi.mocked(apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => ({ entries: mockEntries }),
-    });
+    vi.mocked(apiCall).mockResolvedValue(
+      mockResponse({ ok: true, body: { entries: mockEntries } }),
+    );
     const { container } = await act(async () =>
       render(ce(AgentActivityFeed, { standalone: true })),
     );
-    // Entries should be grouped under date headers
     const dateHeaders = container.querySelectorAll(".activity-feed__date-header");
     expect(dateHeaders.length).toBeGreaterThan(0);
   });
 
   it("renders non-standalone entries list", async () => {
-    vi.mocked(apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => ({ entries: mockEntries }),
-    });
+    vi.mocked(apiCall).mockResolvedValue(
+      mockResponse({ ok: true, body: { entries: mockEntries } }),
+    );
     const { container } = await act(async () =>
       render(ce(AgentActivityFeed, { standalone: false })),
     );

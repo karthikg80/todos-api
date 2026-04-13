@@ -1,8 +1,7 @@
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
+import { ce } from "../../test-helpers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
-import React from "react";
 
 // Mock dependencies before importing QuickEntry
 vi.mock("../../hooks/useCaptureRoute", () => ({
@@ -20,7 +19,6 @@ vi.mock("../ai/AiOnCreateAssist", () => ({
 
 import { QuickEntry } from "./QuickEntry";
 
-const { createElement: ce } = React;
 
 describe("QuickEntry", () => {
   beforeEach(() => {

@@ -1,8 +1,7 @@
+import { ce, mockResponse } from "../../test-helpers";
 // @vitest-environment jsdom
-// @ts-nocheck — complex mocked props cause createElement overload issues
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import React from "react";
 
 vi.mock("../../api/client", () => ({
   apiCall: vi.fn(),
@@ -15,7 +14,6 @@ vi.mock("../shared/useOverlayFocusTrap", () => ({
 import { apiCall } from "../../api/client";
 import { ProjectCrud } from "./ProjectCrud";
 
-const { createElement: ce } = React;
 
 describe("ProjectCrud", () => {
   beforeEach(() => {
@@ -55,7 +53,7 @@ describe("ProjectCrud", () => {
     });
 
     it("creates project on submit", async () => {
-      vi.mocked(apiCall).mockResolvedValue({ ok: true });
+      vi.mocked(apiCall).mockResolvedValue(mockResponse({ ok: true }));
       render(ce(ProjectCrud, defaultCreateProps));
       fireEvent.change(screen.getByPlaceholderText("Project name"), { target: { value: "New Project" } });
       fireEvent.click(screen.getByRole("button", { name: "Create" }));
@@ -72,7 +70,7 @@ describe("ProjectCrud", () => {
     });
 
     it("calls onDone after successful creation", async () => {
-      vi.mocked(apiCall).mockResolvedValue({ ok: true });
+      vi.mocked(apiCall).mockResolvedValue(mockResponse({ ok: true }));
       const onDone = vi.fn();
       render(ce(ProjectCrud, { ...defaultCreateProps, onDone }));
       fireEvent.change(screen.getByPlaceholderText("Project name"), { target: { value: "New Project" } });
@@ -84,10 +82,9 @@ describe("ProjectCrud", () => {
     });
 
     it("shows error on creation failure", async () => {
-      vi.mocked(apiCall).mockResolvedValue({
+      vi.mocked(apiCall).mockResolvedValue(mockResponse({
         ok: false,
-        json: async () => ({ error: "Name taken" }),
-      });
+        jsonFn: async () => ({ error: "Name taken" }), }));
       render(ce(ProjectCrud, defaultCreateProps));
       fireEvent.change(screen.getByPlaceholderText("Project name"), { target: { value: "Existing" } });
       fireEvent.click(screen.getByRole("button", { name: "Create" }));
@@ -121,7 +118,7 @@ describe("ProjectCrud", () => {
     });
 
     it("creates on Enter key", async () => {
-      vi.mocked(apiCall).mockResolvedValue({ ok: true });
+      vi.mocked(apiCall).mockResolvedValue(mockResponse({ ok: true }));
       render(ce(ProjectCrud, defaultCreateProps));
       fireEvent.change(screen.getByPlaceholderText("Project name"), { target: { value: "New Project" } });
       fireEvent.keyDown(screen.getByPlaceholderText("Project name"), { key: "Enter" });
@@ -146,7 +143,7 @@ describe("ProjectCrud", () => {
     });
 
     it("renames project on submit", async () => {
-      vi.mocked(apiCall).mockResolvedValue({ ok: true });
+      vi.mocked(apiCall).mockResolvedValue(mockResponse({ ok: true }));
       render(ce(ProjectCrud, defaultRenameProps));
       fireEvent.change(screen.getByPlaceholderText("Project name"), { target: { value: "New Name" } });
       fireEvent.click(screen.getByRole("button", { name: "Rename" }));
@@ -163,7 +160,7 @@ describe("ProjectCrud", () => {
     });
 
     it("calls onDone after successful rename", async () => {
-      vi.mocked(apiCall).mockResolvedValue({ ok: true });
+      vi.mocked(apiCall).mockResolvedValue(mockResponse({ ok: true }));
       const onDone = vi.fn();
       render(ce(ProjectCrud, { ...defaultRenameProps, onDone }));
       fireEvent.change(screen.getByPlaceholderText("Project name"), { target: { value: "New Name" } });

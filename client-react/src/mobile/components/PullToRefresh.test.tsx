@@ -1,11 +1,9 @@
 // @vitest-environment jsdom
-// @ts-nocheck — createElement overload issues with mocked async callbacks
+import { ce } from "../../test-helpers";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
-import React from "react";
 import { PullToRefresh } from "./PullToRefresh";
 
-const { createElement: ce } = React;
 
 const noopRefresh = vi.fn().mockResolvedValue(undefined);
 
