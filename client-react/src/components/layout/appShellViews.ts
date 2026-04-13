@@ -4,7 +4,7 @@ import type { WorkspaceView, HorizonSegment } from "./appShellFilters";
 
 export const DRAFT_PROJECT_ID = "draft-project";
 
-export interface QueryParams {
+export interface QueryParams extends Record<string, string | undefined> {
   projectId?: string;
   sortBy?: string;
   sortOrder?: SortOrder;
