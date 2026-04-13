@@ -1,10 +1,10 @@
-// @ts-nocheck — mocked apiCall returns plain objects, not Response
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, waitFor } from "@testing-library/react";
 import * as apiClient from "../api/client";
 import { useProjectHeadings } from "./useProjectHeadings";
 import type { Heading } from "../types";
+import { mockResponse } from "../test-helpers";
 
 vi.mock("../api/client", () => ({
   apiCall: vi.fn(),
@@ -33,10 +33,9 @@ describe("useProjectHeadings", () => {
   });
 
   it("fetches headings for a real project", async () => {
-    vi.mocked(apiClient.apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => mockHeadings,
-    });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse<Heading[]>({ ok: true, body: mockHeadings }),
+    );
 
     const { result } = renderHook(() => useProjectHeadings("p1"));
 
@@ -58,7 +57,9 @@ describe("useProjectHeadings", () => {
   });
 
   it("returns empty headings when API returns non-ok", async () => {
-    vi.mocked(apiClient.apiCall).mockResolvedValue({ ok: false });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse({ ok: false }),
+    );
 
     const { result } = renderHook(() => useProjectHeadings("p1"));
 
@@ -70,10 +71,9 @@ describe("useProjectHeadings", () => {
 
   it("addHeading creates a new heading", async () => {
     const created: Heading = { id: "h3", name: "New", projectId: "p1", sortOrder: 2 };
-    vi.mocked(apiClient.apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => created,
-    });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse<Heading>({ ok: true, body: created }),
+    );
 
     const { result } = renderHook(() => useProjectHeadings("p1"));
 
@@ -102,10 +102,9 @@ describe("useProjectHeadings", () => {
 
   it("updateHeading updates an existing heading", async () => {
     const updated: Heading = { id: "h1", name: "Updated", projectId: "p1", sortOrder: 0 };
-    vi.mocked(apiClient.apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => updated,
-    });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse<Heading>({ ok: true, body: updated }),
+    );
 
     const { result } = renderHook(() => useProjectHeadings("p1"));
     await waitFor(() => {
@@ -117,17 +116,16 @@ describe("useProjectHeadings", () => {
   });
 
   it("deleteHeading removes a heading", async () => {
-    vi.mocked(apiClient.apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => mockHeadings,
-    });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse<Heading[]>({ ok: true, body: mockHeadings }),
+    );
 
     const { result } = renderHook(() => useProjectHeadings("p1"));
     await waitFor(() => {
       expect(result.current.loading).toBe(false);
     });
 
-    vi.mocked(apiClient.apiCall).mockResolvedValue({ ok: true });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(mockResponse({ ok: true }));
     const deleted = await result.current.deleteHeading("h1");
     expect(deleted).toBe(true);
     await waitFor(() => {
@@ -138,10 +136,9 @@ describe("useProjectHeadings", () => {
   });
 
   it("reorderHeadings updates order optimistically", async () => {
-    vi.mocked(apiClient.apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => mockHeadings,
-    });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse<Heading[]>({ ok: true, body: mockHeadings }),
+    );
 
     const { result } = renderHook(() => useProjectHeadings("p1"));
     await waitFor(() => {
@@ -149,20 +146,18 @@ describe("useProjectHeadings", () => {
     });
 
     const reordered = [...mockHeadings].reverse();
-    vi.mocked(apiClient.apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => reordered,
-    });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse<Heading[]>({ ok: true, body: reordered }),
+    );
 
     const result2 = await result.current.reorderHeadings(reordered);
     expect(result2).toEqual(reordered);
   });
 
   it("reorderHeadings rolls back on failure", async () => {
-    vi.mocked(apiClient.apiCall).mockResolvedValue({
-      ok: true,
-      json: async () => mockHeadings,
-    });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse<Heading[]>({ ok: true, body: mockHeadings }),
+    );
 
     const { result } = renderHook(() => useProjectHeadings("p1"));
     await waitFor(() => {
@@ -170,7 +165,9 @@ describe("useProjectHeadings", () => {
     });
 
     const reordered = [...mockHeadings].reverse();
-    vi.mocked(apiClient.apiCall).mockResolvedValue({ ok: false });
+    vi.mocked(apiClient.apiCall).mockResolvedValue(
+      mockResponse({ ok: false }),
+    );
 
     await result.current.reorderHeadings(reordered);
     expect(result.current.headings).toEqual(mockHeadings);

@@ -65,27 +65,19 @@ describe("FeedbackForm", () => {
     expect(screen.getByLabelText("Screenshot URL (optional)")).toBeTruthy();
   });
 
-  it.skip("shows error when submitting without title", async () => {
+  it("shows error when submitting without title", () => {
     render(ce(FeedbackForm, defaultProps));
-    const submitBtn = screen.getByRole("button", { name: "Send feedback" });
-    await act(async () => {
-      fireEvent.click(submitBtn);
-    });
-    await vi.waitFor(() => {
-      expect(screen.getByText("Please add a short title.")).toBeTruthy();
-    });
+    const form = document.querySelector(".feedback-form");
+    fireEvent.submit(form!);
+    expect(screen.getByText("Please add a short title.")).toBeTruthy();
   });
 
-  it.skip("shows error when submitting without first answer", async () => {
+  it("shows error when submitting without first answer", () => {
     render(ce(FeedbackForm, defaultProps));
     fireEvent.change(screen.getByLabelText("Title"), { target: { value: "Test title" } });
-    const submitBtn = screen.getByRole("button", { name: "Send feedback" });
-    await act(async () => {
-      fireEvent.click(submitBtn);
-    });
-    await vi.waitFor(() => {
-      expect(screen.getByText("Please answer the first question before sending.")).toBeTruthy();
-    });
+    const form = document.querySelector(".feedback-form");
+    fireEvent.submit(form!);
+    expect(screen.getByText("Please answer the first question before sending.")).toBeTruthy();
   });
 
   it("submits feedback when form is valid", async () => {
