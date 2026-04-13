@@ -1,40 +1,25 @@
 // @vitest-environment jsdom
 import { ce } from "../../test-helpers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { render, screen, fireEvent, act } from "@testing-library/react";
 import React from "react";
 
 // ─── Mock all heavy dependencies before importing AppShell ──────────
 
 vi.mock("../../auth/AuthProvider", () => ({
-  useAuth: () => ({
-    user: { id: "u1", name: "Test User", email: "test@example.com", isVerified: true },
-    logout: vi.fn(),
-  }),
+  useAuth: vi.fn(),
 }));
 
 vi.mock("../../store/useTodosStore", () => ({
-  useTodosStore: () => ({
-    todos: [],
-    loadState: "loaded",
-    errorMessage: null,
-    loadTodos: vi.fn(),
-    addTodo: vi.fn(),
-    toggleTodo: vi.fn(),
-    editTodo: vi.fn(),
-    removeTodo: vi.fn(),
-  }),
+  useTodosStore: vi.fn(),
 }));
 
 vi.mock("../../store/useProjectsStore", () => ({
-  useProjectsStore: () => ({
-    projects: [],
-    loadProjects: vi.fn(),
-  }),
+  useProjectsStore: vi.fn(),
 }));
 
 vi.mock("../../hooks/useDarkMode", () => ({
-  useDarkMode: () => ({ dark: false, toggle: vi.fn() }),
+  useDarkMode: vi.fn(),
 }));
 
 vi.mock("../../hooks/useDensity", () => ({
@@ -50,7 +35,7 @@ vi.mock("../../hooks/useServiceWorker", () => ({
 }));
 
 vi.mock("../../hooks/useIsMobile", () => ({
-  useIsMobile: () => false,
+  useIsMobile: vi.fn(),
 }));
 
 vi.mock("../../hooks/useIcsExport", () => ({
@@ -94,10 +79,10 @@ vi.mock("../../api/todos", () => ({
   reorderTodos: vi.fn().mockResolvedValue(undefined),
 }));
 
-// Mock child components to avoid rendering their full trees
+// Mock child components
 vi.mock("../projects/Sidebar", () => ({
-  Sidebar: ({ onBack, onCreateProject, onOpenSettings, onOpenActivity, onToggleTheme, onOpenShortcuts, onLogout, user, dark, onNewTask, onSearchChange, searchQuery }: any) =>
-    React.createElement("aside", { "data-testid": "sidebar" },
+  Sidebar: ({ onNewTask, onOpenSettings, onOpenActivity, onToggleTheme, onOpenShortcuts, onLogout, onSearchChange, searchQuery, isCollapsed }: any) =>
+    React.createElement("aside", { "data-testid": "sidebar", "data-collapsed": isCollapsed ? "true" : "false" },
       React.createElement("button", { "data-testid": "sidebar-new-task", onClick: onNewTask }, "New Task"),
       React.createElement("button", { "data-testid": "sidebar-settings", onClick: onOpenSettings }, "Settings"),
       React.createElement("button", { "data-testid": "sidebar-activity", onClick: onOpenActivity }, "Activity"),
@@ -113,7 +98,9 @@ vi.mock("../todos/SortableTodoList", () => ({
 }));
 
 vi.mock("../todos/TodoDrawer", () => ({
-  TodoDrawer: () => null,
+  TodoDrawer: ({ todo }: any) => todo
+    ? React.createElement("div", { "data-testid": "todo-drawer" })
+    : null,
 }));
 
 vi.mock("../shared/UndoToast", () => ({
@@ -121,15 +108,19 @@ vi.mock("../shared/UndoToast", () => ({
 }));
 
 vi.mock("../shared/ConfirmDialog", () => ({
-  ConfirmDialog: () => null,
+  ConfirmDialog: () => React.createElement("div", { "data-testid": "confirm-dialog" }),
 }));
 
 vi.mock("../shared/CommandPalette", () => ({
-  CommandPalette: () => null,
+  CommandPalette: ({ isOpen }: any) => isOpen
+    ? React.createElement("div", { "data-testid": "command-palette" })
+    : null,
 }));
 
 vi.mock("../shared/ShortcutsOverlay", () => ({
-  ShortcutsOverlay: () => null,
+  ShortcutsOverlay: ({ isOpen }: any) => isOpen
+    ? React.createElement("div", { "data-testid": "shortcuts-overlay" })
+    : null,
 }));
 
 vi.mock("../todos/FilterPanel", () => ({
@@ -160,69 +151,335 @@ vi.mock("../../utils/focusTargets", () => ({
 }));
 
 vi.mock("../shared/OnboardingFlow", () => ({
-  OnboardingFlow: () => null,
+  OnboardingFlow: () => React.createElement("div", { "data-testid": "onboarding-flow" }),
 }));
 
 vi.mock("../todos/TaskFullPage", () => ({
-  TaskFullPage: () => null,
+  TaskFullPage: () => React.createElement("div", { "data-testid": "task-full-page" }),
 }));
 
+vi.mock("../todos/TaskComposer", () => ({
+  TaskComposer: ({ isOpen }: any) => isOpen
+    ? React.createElement("div", { "data-testid": "task-composer" })
+    : null,
+}));
+
+vi.mock("../projects/ProjectCrud", () => ({
+  ProjectCrud: () => React.createElement("div", { "data-testid": "project-crud" }),
+}));
+
+vi.mock("./ComponentGalleryPage", () => ({
+  ComponentGalleryPage: () => React.createElement("div", { "data-testid": "component-gallery" }),
+}));
+
+vi.mock("./SettingsPage", () => ({
+  SettingsPage: () => React.createElement("div", { "data-testid": "settings-page" }),
+}));
+
+vi.mock("../tuneup/TuneUpView", () => ({
+  TuneUpView: () => React.createElement("div", { "data-testid": "tuneup-view" }),
+}));
+
+vi.mock("./WeeklyReview", () => ({
+  WeeklyReview: () => React.createElement("div", { "data-testid": "weekly-review" }),
+}));
+
+vi.mock("../activity/AgentActivityView", () => ({
+  AgentActivityView: () => React.createElement("div", { "data-testid": "agent-activity-view" }),
+}));
+
+vi.mock("../projects/ProjectEditorView", () => ({
+  ProjectEditorView: () => React.createElement("div", { "data-testid": "project-editor-view" }),
+}));
+
+vi.mock("../projects/projectEditorModels", () => ({
+  PROJECT_RAIL_BACKLOG_SENTINEL: "__unplaced__",
+}));
+
+vi.mock("../shared/Icons", () => ({
+  IconMoon: () => React.createElement("span", { "data-testid": "icon-moon" }),
+  IconSun: () => React.createElement("span", { "data-testid": "icon-sun" }),
+  IconMenu: () => React.createElement("span", { "data-testid": "icon-menu" }),
+  IconPlus: () => React.createElement("span", { "data-testid": "icon-plus" }),
+}));
+
+import { useAuth } from "../../auth/AuthProvider";
+import { useTodosStore } from "../../store/useTodosStore";
+import { useProjectsStore } from "../../store/useProjectsStore";
+import { useIsMobile } from "../../hooks/useIsMobile";
+import { useDarkMode } from "../../hooks/useDarkMode";
 import { AppShell } from "./AppShell";
 
+const mockUseAuth = vi.mocked(useAuth);
+const mockUseTodosStore = vi.mocked(useTodosStore);
+const mockUseProjectsStore = vi.mocked(useProjectsStore);
+const mockUseIsMobile = vi.mocked(useIsMobile);
+const mockUseDarkMode = vi.mocked(useDarkMode);
+
+function setupOverrides(overrides: {
+  user?: any;
+  todos?: any[];
+  loadState?: string;
+  projects?: any[];
+  isMobile?: boolean;
+  dark?: boolean;
+} = {}) {
+  mockUseAuth.mockReturnValue({
+    user: overrides.user ?? { id: "u1", name: "Test User", email: "test@example.com", isVerified: true },
+    logout: vi.fn(),
+  });
+  mockUseTodosStore.mockReturnValue({
+    todos: overrides.todos ?? [],
+    loadState: overrides.loadState ?? "loaded",
+    errorMessage: null,
+    loadTodos: vi.fn(),
+    addTodo: vi.fn(),
+    toggleTodo: vi.fn(),
+    editTodo: vi.fn(),
+    removeTodo: vi.fn(),
+  });
+  mockUseProjectsStore.mockReturnValue({
+    projects: overrides.projects ?? [],
+    loadProjects: vi.fn(),
+  });
+  mockUseIsMobile.mockReturnValue(overrides.isMobile ?? false);
+  mockUseDarkMode.mockReturnValue({ dark: overrides.dark ?? false, toggle: vi.fn() });
+}
 
 describe("AppShell", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    setupOverrides();
   });
 
-  it("renders the app shell container", () => {
-    const { container } = render(ce(AppShell));
-    // The root element has class "app-shell"
-    expect(container.querySelector(".app-shell")).toBeTruthy();
+  describe("core structure", () => {
+    it("renders the app shell container", () => {
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".app-shell")).toBeTruthy();
+    });
+
+    it("renders the sidebar", () => {
+      render(ce(AppShell));
+      expect(screen.getByTestId("sidebar")).toBeTruthy();
+    });
+
+    it("renders the main content area", () => {
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".app-main")).toBeTruthy();
+    });
+
+    it("renders the view router", () => {
+      render(ce(AppShell));
+      expect(screen.getByTestId("view-router")).toBeTruthy();
+    });
+
+    it("renders view routes for all workspace views", () => {
+      render(ce(AppShell));
+      expect(screen.getByTestId("view-route-home")).toBeTruthy();
+      expect(screen.getByTestId("view-route-all")).toBeTruthy();
+      expect(screen.getByTestId("view-route-today")).toBeTruthy();
+      expect(screen.getByTestId("view-route-horizon")).toBeTruthy();
+      expect(screen.getByTestId("view-route-completed")).toBeTruthy();
+    });
+
+    it("renders the undo toast", () => {
+      render(ce(AppShell));
+      expect(screen.getByTestId("undo-toast")).toBeTruthy();
+    });
+
+    it("renders the list header", () => {
+      render(ce(AppShell));
+      expect(screen.getAllByTestId("list-header").length).toBeGreaterThanOrEqual(1);
+    });
+
+    it("renders the todo list", () => {
+      render(ce(AppShell));
+      expect(screen.getAllByTestId("todo-list").length).toBeGreaterThanOrEqual(1);
+    });
   });
 
-  it("renders the sidebar", () => {
-    render(ce(AppShell));
-    expect(screen.getByTestId("sidebar")).toBeTruthy();
+  describe("loading state", () => {
+    it("shows loading bar when loadState is loading", () => {
+      setupOverrides({ loadState: "loading" });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".loading-bar")).toBeTruthy();
+    });
+
+    it("hides loading bar when loadState is loaded", () => {
+      setupOverrides({ loadState: "loaded" });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".loading-bar")).toBeNull();
+    });
   });
 
-  it("renders the main content area", () => {
-    const { container } = render(ce(AppShell));
-    expect(container.querySelector(".app-main")).toBeTruthy();
+  describe("page routing", () => {
+    it("shows home dashboard on todos page", () => {
+      render(ce(AppShell));
+      expect(screen.getByTestId("home-dashboard")).toBeTruthy();
+    });
   });
 
-  it("renders the home dashboard by default", () => {
-    render(ce(AppShell));
-    expect(screen.getByTestId("home-dashboard")).toBeTruthy();
+  describe("mobile responsiveness", () => {
+    it("renders desktop sidebar when not mobile", () => {
+      setupOverrides({ isMobile: false });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector("aside.app-sidebar")).toBeTruthy();
+    });
+
+    it("does not render mobile sheet when not mobile", () => {
+      setupOverrides({ isMobile: false });
+      render(ce(AppShell));
+      expect(screen.queryByRole("dialog")).toBeNull();
+    });
   });
 
-  it("renders the view router", () => {
-    render(ce(AppShell));
-    expect(screen.getByTestId("view-router")).toBeTruthy();
+  describe("sidebar state", () => {
+    it("sidebar is not collapsed by default", () => {
+      render(ce(AppShell));
+      const sidebar = screen.getByTestId("sidebar");
+      expect(sidebar.getAttribute("data-collapsed")).toBe("false");
+    });
   });
 
-  it("renders view routes for all workspace views", () => {
-    render(ce(AppShell));
-    expect(screen.getByTestId("view-route-home")).toBeTruthy();
-    expect(screen.getByTestId("view-route-all")).toBeTruthy();
-    expect(screen.getByTestId("view-route-today")).toBeTruthy();
-    expect(screen.getByTestId("view-route-horizon")).toBeTruthy();
-    expect(screen.getByTestId("view-route-completed")).toBeTruthy();
+  describe("overlays and dialogs", () => {
+    it("does not render confirm dialog by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+
+    it("does not render command palette by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("command-palette")).toBeNull();
+    });
+
+    it("does not render shortcuts overlay by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("shortcuts-overlay")).toBeNull();
+    });
+
+    it("does not render task composer by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("task-composer")).toBeNull();
+    });
+
+    it("does not render project CRUD by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("project-crud")).toBeNull();
+    });
+
+    it("does not render onboarding flow when user is onboarded", () => {
+      setupOverrides({
+        user: { id: "u1", name: "Test User", email: "test@example.com", onboardingCompletedAt: "2026-01-01" },
+      });
+      render(ce(AppShell));
+      expect(screen.queryByTestId("onboarding-flow")).toBeNull();
+    });
+
+    it("renders onboarding flow when user is not onboarded", () => {
+      setupOverrides({
+        user: { id: "u1", name: "Test User", email: "test@example.com", onboardingCompletedAt: null },
+      });
+      render(ce(AppShell));
+      expect(screen.getByTestId("onboarding-flow")).toBeTruthy();
+    });
+
+    it("does not render task full page by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("task-full-page")).toBeNull();
+    });
+
+    it("does not render todo drawer by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("todo-drawer")).toBeNull();
+    });
+
+    it("does not render agent activity view by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("agent-activity-view")).toBeNull();
+    });
+
+    it("does not render weekly review by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("weekly-review")).toBeNull();
+    });
+
+    it("does not render tuneup view by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("tuneup-view")).toBeNull();
+    });
   });
 
-  it("renders the undo toast", () => {
-    render(ce(AppShell));
-    expect(screen.getByTestId("undo-toast")).toBeTruthy();
+  describe("bulk mode", () => {
+    it("app shell does not have bulk class by default", () => {
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".is-bulk-selecting")).toBeNull();
+    });
   });
 
-  it("renders the list header", () => {
-    render(ce(AppShell));
-    expect(screen.getAllByTestId("list-header").length).toBeGreaterThanOrEqual(1);
-  });
+  describe("sidebar navigation", () => {
+    it("shows settings page when sidebar settings button clicked", async () => {
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-settings"));
+      });
+      expect(screen.getByTestId("settings-page")).toBeTruthy();
+    });
 
-  it("renders the todo list", () => {
-    render(ce(AppShell));
-    expect(screen.getAllByTestId("todo-list").length).toBeGreaterThanOrEqual(1);
+    it("shows agent activity view when sidebar activity button clicked", async () => {
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-activity"));
+      });
+      expect(screen.getByTestId("agent-activity-view")).toBeTruthy();
+    });
+
+    it("toggles dark mode when sidebar dark mode button clicked", async () => {
+      const toggleDark = vi.fn();
+      mockUseDarkMode.mockReturnValue({ dark: false, toggle: toggleDark });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-dark-mode"));
+      });
+      expect(toggleDark).toHaveBeenCalled();
+    });
+
+    it("opens shortcuts overlay when sidebar shortcuts button clicked", async () => {
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-shortcuts"));
+      });
+      expect(screen.getByTestId("shortcuts-overlay")).toBeTruthy();
+    });
+
+    it("logs out when sidebar logout button clicked", async () => {
+      const logout = vi.fn();
+      mockUseAuth.mockReturnValue({
+        user: { id: "u1", name: "Test User", email: "test@example.com" },
+        logout,
+      });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-logout"));
+      });
+      expect(logout).toHaveBeenCalled();
+    });
+
+    it("updates search query when sidebar search input changes", async () => {
+      render(ce(AppShell));
+      const searchInput = screen.getByTestId("sidebar-search");
+      await act(async () => {
+        fireEvent.change(searchInput, { target: { value: "test query" } });
+      });
+      expect(searchInput).toHaveValue("test query");
+    });
+
+    it("opens task composer when sidebar new task button clicked", async () => {
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-new-task"));
+      });
+      expect(screen.getByTestId("task-composer")).toBeTruthy();
+    });
   });
 });
