@@ -1,7 +1,7 @@
 // Pure utility functions for Sidebar project grouping.
 import type { Project } from "../../types";
-
-export type WorkspaceView = "home" | "all" | "today" | "horizon" | "completed";
+// Re-export from canonical source (appShellFilters) to avoid duplicate declarations.
+export type { WorkspaceView } from "../layout/appShellFilters";
 
 // Area labels and order match classic railUi.js
 export const AREA_ORDER = [
