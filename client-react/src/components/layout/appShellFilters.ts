@@ -109,7 +109,7 @@ export function filterVisibleTodos(options: FilterTodosOptions): Todo[] {
   return filtered;
 }
 
-interface HorizonCounts {
+interface HorizonCounts extends Record<string, number> {
   due: number;
   pending: number;
   planned: number;
@@ -136,7 +136,7 @@ export function computeHorizonCounts(todos: Todo[]): HorizonCounts {
   };
 }
 
-interface ViewCounts {
+interface ViewCounts extends Record<string, number> {
   today: number;
   horizon: number;
 }
