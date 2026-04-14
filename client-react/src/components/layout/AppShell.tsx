@@ -67,6 +67,18 @@ import {
   isBlockingOverlayOpen,
   DRAFT_PROJECT_ID,
 } from "./appShellViews";
+import {
+  computeSnoozePayload,
+  getLifecycleUndoMessage,
+  buildDocumentTitle,
+  getHeaderTitle,
+  getActiveViewKey,
+  computeNextNavIndex,
+  computeSelectAllResult,
+  createDraftProject,
+  VIEW_LABELS,
+  type SnoozeAction,
+} from "./appShellLogic";
 
 // Lazy-loaded heavy components (code splitting)
 const BoardView = lazy(() =>
@@ -99,25 +111,6 @@ type UiMode = "normal" | "simple";
 interface UndoAction {
   message: string;
   onUndo?: () => void;
-}
-
-function createDraftProject(): Project {
-  const now = new Date().toISOString();
-  return {
-    id: DRAFT_PROJECT_ID,
-    name: "",
-    description: null,
-    goal: null,
-    status: "active",
-    priority: null,
-    area: null,
-    areaId: null,
-    targetDate: null,
-    archived: false,
-    userId: "draft-user",
-    createdAt: now,
-    updatedAt: now,
-  };
 }
 
 export function AppShell() {
@@ -422,46 +415,35 @@ export function AppShell() {
       const nextMonth = new Date();
       nextMonth.setMonth(nextMonth.getMonth() + 1);
 
-      switch (action) {
-        case "cancel":
-          await editTodo(id, { status: "cancelled" as "cancelled" });
-          setUndoAction({
-            message: "Task cancelled",
-            onUndo: () => editTodo(id, { status: "inbox" as "inbox" }),
-          });
-          break;
-        case "reopen":
-          await editTodo(id, { status: "inbox" as "inbox" });
-          setUndoAction({ message: "Task reopened" });
-          break;
-        case "archive":
-          await editTodo(id, { archived: true });
-          setUndoAction({
-            message: "Task archived",
-            onUndo: () => editTodo(id, { archived: false }),
-          });
-          break;
-        case "snooze-tomorrow":
-          await editTodo(id, {
-            scheduledDate: tomorrow.toISOString().split("T")[0],
-            status: "scheduled" as "scheduled",
-          });
-          setUndoAction({ message: "Snoozed until tomorrow" });
-          break;
-        case "snooze-next-week":
-          await editTodo(id, {
-            scheduledDate: nextWeek.toISOString().split("T")[0],
-            status: "scheduled" as "scheduled",
-          });
-          setUndoAction({ message: "Snoozed until next week" });
-          break;
-        case "snooze-next-month":
-          await editTodo(id, {
-            scheduledDate: nextMonth.toISOString().split("T")[0],
-            status: "scheduled" as "scheduled",
-          });
-          setUndoAction({ message: "Snoozed until next month" });
-          break;
+      const todo = todos.find((t) => t.id === id);
+      const payload = computeSnoozePayload(action as SnoozeAction);
+      const message = getLifecycleUndoMessage(action as SnoozeAction, todo?.title ?? "Task");
+
+      if (payload.status) {
+        await editTodo(id, { status: payload.status as Todo["status"] });
+      }
+      if (payload.archived !== undefined) {
+        await editTodo(id, { archived: payload.archived });
+      }
+      if (payload.scheduledDate) {
+        await editTodo(id, {
+          scheduledDate: payload.scheduledDate,
+          status: "scheduled" as "scheduled",
+        });
+      }
+
+      if (action === "cancel") {
+        setUndoAction({
+          message,
+          onUndo: () => editTodo(id, { status: "inbox" as "inbox" }),
+        });
+      } else if (action === "archive") {
+        setUndoAction({
+          message,
+          onUndo: () => editTodo(id, { archived: false }),
+        });
+      } else {
+        setUndoAction({ message });
       }
     },
     [editTodo],
@@ -646,12 +628,10 @@ export function AppShell() {
   }, []);
 
   const handleSelectAll = useCallback(() => {
-    if (selectedIds.size === visibleTodos.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(visibleTodos.map((t) => t.id)));
-    }
-  }, [selectedIds.size, visibleTodos]);
+    setSelectedIds(
+      computeSelectAllResult(selectedIds, visibleTodos.map((t) => t.id)),
+    );
+  }, [selectedIds, visibleTodos]);
 
   const handleBulkComplete = useCallback(async () => {
     const ids = [...selectedIds];
@@ -740,15 +720,9 @@ export function AppShell() {
         e.preventDefault();
         const ids = visibleTodos.map((t) => t.id);
         if (ids.length === 0) return;
-        const currentIdx = activeTodoId ? ids.indexOf(activeTodoId) : -1;
-        let nextIdx: number;
-        if (e.key === "j") {
-          nextIdx = currentIdx < ids.length - 1 ? currentIdx + 1 : 0;
-        } else {
-          nextIdx = currentIdx > 0 ? currentIdx - 1 : ids.length - 1;
-        }
+        const direction = e.key === "j" ? "down" : "up";
+        const nextIdx = computeNextNavIndex(activeTodoId, direction, ids);
         taskNav.openQuickEdit(ids[nextIdx]);
-        // Scroll the item into view
         document
           .querySelector(`[data-todo-id="${ids[nextIdx]}"]`)
           ?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -797,44 +771,24 @@ export function AppShell() {
 
   // --- Derived ---
 
-  const VIEW_LABELS: Record<string, string> = {
-    home: "Focus",
-    all: "Everything",
-    today: "Today",
-    horizon: "Horizon",
-    completed: "Completed",
-  };
-
   const selectedProject = selectedProjectId
     ? selectedProjectId === DRAFT_PROJECT_ID
       ? draftProject
       : (projects.find((p) => p.id === selectedProjectId) ?? null)
     : null;
 
-  const headerTitle = selectedProjectId
-    ? (selectedProject?.name ?? "Project")
-    : (VIEW_LABELS[activeView] ?? activeView);
+  const headerTitle = getHeaderTitle(
+    activeView,
+    selectedProjectId,
+    selectedProject?.name ?? null,
+  );
 
   // ViewRouter active key: projects get a dynamic composite key
-  const activeViewKey = selectedProjectId
-    ? `project:${selectedProjectId}`
-    : activeView;
+  const activeViewKey = getActiveViewKey(activeView, selectedProjectId);
 
   // Dynamic page title
   useEffect(() => {
-    const pageLabel =
-      page === "settings"
-        ? "Settings"
-        : page === "components"
-          ? "Component Gallery"
-          : page === "admin"
-            ? "Admin"
-            : page === "feedback"
-              ? "Feedback"
-              : page === "activity"
-                ? "Agent Activity"
-                : headerTitle;
-    document.title = `${pageLabel} — Todos`;
+    document.title = buildDocumentTitle(page, headerTitle);
   }, [page, headerTitle]);
 
   const handlePaletteNavigate = useCallback(

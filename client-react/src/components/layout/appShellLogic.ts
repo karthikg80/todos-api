@@ -3,6 +3,7 @@
 // that previously lived inline in AppShell's handler callbacks.
 
 import type { WorkspaceView, HorizonSegment } from "./appShellFilters";
+import type { Project } from "../../types";
 import { DRAFT_PROJECT_ID } from "./appShellViews";
 
 // Re-export for test consumers (avoids circular imports)
@@ -287,23 +288,7 @@ export function computeExportCalendarResult(
 
 // ── Draft project creation ─────────────────────────────────────────────────
 
-export interface ProjectLike {
-  id: string;
-  name: string;
-  description: string | null;
-  goal: string | null;
-  status: string;
-  priority: string | null;
-  area: string | null;
-  areaId: string | null;
-  targetDate: string | null;
-  archived: boolean;
-  userId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export function createDraftProject(now = new Date()): ProjectLike {
+export function createDraftProject(now = new Date()): Project {
   const nowIso = now.toISOString();
   return {
     id: DRAFT_PROJECT_ID,
