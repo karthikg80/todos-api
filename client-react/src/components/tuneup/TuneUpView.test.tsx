@@ -1,3 +1,4 @@
+// @ts-nocheck — complex mocked useTuneUp returns functions that do not match exact production types
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
