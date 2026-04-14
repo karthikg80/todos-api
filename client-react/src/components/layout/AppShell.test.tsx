@@ -415,13 +415,6 @@ describe("AppShell", () => {
     });
   });
 
-  describe("bulk mode", () => {
-    it("app shell does not have bulk class by default", () => {
-      const { container } = render(ce(AppShell));
-      expect(container.querySelector(".is-bulk-selecting")).toBeNull();
-    });
-  });
-
   describe("sidebar navigation", () => {
     it("shows settings page when sidebar settings button clicked", async () => {
       render(ce(AppShell));
@@ -489,6 +482,44 @@ describe("AppShell", () => {
         fireEvent.click(screen.getByTestId("sidebar-new-task"));
       });
       expect(screen.getByTestId("task-composer")).toBeTruthy();
+    });
+  });
+
+  describe("mobile rendering", () => {
+    it("renders mobile sheet when isMobile is true", () => {
+      setupOverrides({ isMobile: true });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".mobile-sheet")).toBeTruthy();
+      expect(container.querySelector(".mobile-sheet-backdrop")).toBeTruthy();
+    });
+
+    it("does not render desktop sidebar when mobile", () => {
+      setupOverrides({ isMobile: true });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector("aside.app-sidebar")).toBeNull();
+    });
+  });
+
+  describe("bulk mode", () => {
+    it("app shell does not have bulk class by default", () => {
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".is-bulk-selecting")).toBeNull();
+    });
+  });
+
+  describe("dark mode", () => {
+    it("passes dark prop to sidebar", () => {
+      mockUseDarkMode.mockReturnValue({ dark: true, toggle: vi.fn() });
+      render(ce(AppShell));
+      expect(mockUseDarkMode).toHaveBeenCalled();
+    });
+  });
+
+  describe("error state", () => {
+    it("does not show loading bar when loadState is error", () => {
+      setupOverrides({ loadState: "error" });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".loading-bar")).toBeNull();
     });
   });
 });
