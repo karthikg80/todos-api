@@ -4,6 +4,7 @@ import { render, screen, fireEvent, waitFor, act } from "@testing-library/react"
 import React from "react";
 import { OnboardingFlow } from "./OnboardingFlow";
 import * as apiClient from "../../api/client";
+import { mockResponse } from "../../test-helpers";
 
 vi.mock("../../api/client", () => ({
   apiCall: vi.fn(),
@@ -30,7 +31,7 @@ function setupAuth(overrides: {
       onboardingStep: 1,
       onboardingCompletedAt: null,
     },
-    setUser: overrides.setUser ?? vi.fn(),
+    setUser: (overrides.setUser ?? vi.fn()) as (user: any) => void,
     logout: vi.fn(),
     loading: false,
     setTokens: vi.fn(),
@@ -46,10 +47,7 @@ const defaultProps = {
 describe("OnboardingFlow", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockApiCall.mockResolvedValue({
-      ok: true,
-      json: async () => ({ soulProfile: {} }),
-    });
+    mockApiCall.mockResolvedValue(mockResponse({ body: { soulProfile: {} } }));
     setupAuth();
   });
 
@@ -88,7 +86,8 @@ describe("OnboardingFlow", () => {
 
   describe("loading state", () => {
     it("shows loading message while preferences are loading", () => {
-      mockApiCall.mockResolvedValue(new Promise(() => {}));
+      // Return a pending promise to keep loading state active
+      mockApiCall.mockReturnValue(new Promise<Response>(() => {}));
       render(React.createElement(OnboardingFlow, defaultProps));
       expect(screen.getByText("Loading onboarding")).toBeTruthy();
       expect(screen.getByText("Reading your current preferences.")).toBeTruthy();
@@ -376,7 +375,7 @@ describe("OnboardingFlow", () => {
 
   describe("error handling", () => {
     it("shows error message when preferences load fails", async () => {
-      mockApiCall.mockResolvedValueOnce({ ok: false });
+      mockApiCall.mockResolvedValueOnce(mockResponse({ ok: false }) as any);
       await act(async () => {
         render(React.createElement(OnboardingFlow, defaultProps));
       });
@@ -388,9 +387,9 @@ describe("OnboardingFlow", () => {
     it("shows error message when step persistence fails", async () => {
       mockApiCall.mockImplementation(async (url: string) => {
         if (url.includes("/onboarding/step")) {
-          return { ok: false };
+          return mockResponse({ ok: false }) as any;
         }
-        return { ok: true, json: async () => ({ soulProfile: {} }) };
+        return mockResponse({ body: { soulProfile: {} } });
       });
       await act(async () => {
         render(React.createElement(OnboardingFlow, defaultProps));
