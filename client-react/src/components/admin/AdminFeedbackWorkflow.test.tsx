@@ -30,6 +30,8 @@ function setupMocks(overrides: {
   feedbackList?: any[];
   config?: any;
   decisions?: any[];
+  /** When true, `/admin/feedback?status=promoted` returns []. */
+  emptyPromotedFilter?: boolean;
 } = {}) {
   const {
     feedbackList = mockFeedbackList,
@@ -40,10 +42,14 @@ function setupMocks(overrides: {
       allowlistedClassifications: ["bug", "feature"],
     },
     decisions = [],
+    emptyPromotedFilter = false,
   } = overrides;
 
-  mockApiCall.mockImplementation(async (url: string) => {
+  mockApiCall.mockImplementation(async (url: string, init?: RequestInit) => {
     if (url.includes("/feedback/automation/config")) {
+      if (init?.method === "PATCH") {
+        return { ok: true, json: async () => ({}) };
+      }
       return { ok: true, json: async () => config };
     }
     if (url.includes("/feedback/automation/decisions")) {
@@ -52,8 +58,21 @@ function setupMocks(overrides: {
     if (url.includes("/feedback/automation/run")) {
       return { ok: true, json: async () => ({}) };
     }
+    if (url.includes("/admin/feedback/") && url.includes("/triage")) {
+      return { ok: true, json: async () => ({}) };
+    }
+    if (
+      url.includes("/admin/feedback/") &&
+      init?.method === "PATCH" &&
+      !url.includes("/automation")
+    ) {
+      return { ok: true, json: async () => ({}) };
+    }
     if (url.includes("/admin/feedback") && !url.includes("/automation")) {
       if (!url.includes("/fb-")) {
+        if (emptyPromotedFilter && url.includes("status=promoted")) {
+          return { ok: true, json: async () => [] };
+        }
         return { ok: true, json: async () => feedbackList };
       }
       const feedbackId = url.split("/feedback/")[1]?.split("/")[0];
@@ -192,6 +211,82 @@ describe("AdminFeedbackWorkflow", () => {
       await waitFor(() => {
         expect(screen.getByText("Feedback Queue")).toBeTruthy();
       });
+    });
+  });
+
+  describe("queue filters and empty filtered state", () => {
+    it("shows empty filter message when API returns no rows for a filter", async () => {
+      setupMocks({ emptyPromotedFilter: true });
+      render(React.createElement(AdminFeedbackWorkflow));
+      await waitFor(() => {
+        expect(screen.getByText("Bug report 1")).toBeTruthy();
+      });
+      const promotedChip = screen.getAllByRole("button", { name: "promoted" })[0]!;
+      fireEvent.click(promotedChip);
+      await waitFor(() => {
+        expect(
+          screen.getByText("No feedback matches the current filters."),
+        ).toBeTruthy();
+      });
+    });
+  });
+
+  describe("quick reject", () => {
+    it("removes an item after quick reject succeeds", async () => {
+      setupMocks();
+      render(React.createElement(AdminFeedbackWorkflow));
+      await waitFor(() => {
+        expect(screen.getByText("Bug report 1")).toBeTruthy();
+      });
+      const rejectBtn = screen.getAllByLabelText("Quick reject")[0]!;
+      fireEvent.click(rejectBtn);
+      await waitFor(() => {
+        expect(screen.queryByText("Bug report 1")).toBeNull();
+      });
+    });
+  });
+
+  describe("batch triage", () => {
+    it("triages selected items and shows a success toast", async () => {
+      setupMocks();
+      render(React.createElement(AdminFeedbackWorkflow));
+      await waitFor(() => {
+        expect(screen.getByText("Bug report 1")).toBeTruthy();
+      });
+      fireEvent.click(screen.getByLabelText("Select Bug report 1"));
+      fireEvent.click(screen.getByLabelText("Select Feature request"));
+      fireEvent.click(screen.getByRole("button", { name: "Triage all" }));
+      await waitFor(() => {
+        expect(screen.getByText(/Triaged 2 of 2 items/)).toBeTruthy();
+      });
+    });
+  });
+
+  describe("automation panel", () => {
+    it("loads controls after expanding automation settings", async () => {
+      setupMocks({
+        decisions: [
+          {
+            id: "d1",
+            type: "bug",
+            promotionDecision: "approved",
+            title: "Auto item",
+            promotionReason: "tests",
+            promotionDecidedAt: "2026-04-10T12:00:00Z",
+            githubIssueNumber: null,
+            triageConfidence: 0.9,
+          },
+        ],
+      });
+      render(React.createElement(AdminFeedbackWorkflow));
+      await waitFor(() => {
+        expect(screen.getByText("Feedback Queue")).toBeTruthy();
+      });
+      fireEvent.click(screen.getByRole("button", { name: /Automation settings/i }));
+      await waitFor(() => {
+        expect(screen.getByText("Enable feedback automation")).toBeTruthy();
+      });
+      expect(screen.getByText("Auto item")).toBeTruthy();
     });
   });
 });
