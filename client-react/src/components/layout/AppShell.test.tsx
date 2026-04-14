@@ -179,11 +179,26 @@ vi.mock("../todos/TodoDrawer", () => ({
 }));
 
 vi.mock("../shared/UndoToast", () => ({
-  UndoToast: ({ action }: { action?: { message?: string } | null }) =>
+  UndoToast: ({
+    action,
+    onDismiss,
+  }: {
+    action?: { message?: string } | null;
+    onDismiss?: () => void;
+  }) =>
     React.createElement(
       "div",
       { "data-testid": "undo-toast" },
       action?.message ?? "",
+      React.createElement(
+        "button",
+        {
+          type: "button",
+          "data-testid": "undo-dismiss",
+          onClick: () => onDismiss?.(),
+        },
+        "Dismiss toast",
+      ),
     ),
 }));
 
@@ -206,7 +221,18 @@ vi.mock("../shared/ConfirmDialog", () => ({
 }));
 
 vi.mock("../shared/CommandPalette", () => ({
-  CommandPalette: ({ isOpen, onExportCalendar, onClose }: any) =>
+  CommandPalette: ({
+    isOpen,
+    onExportCalendar,
+    onClose,
+    onNavigateHorizonSegment,
+    onWeeklyReview,
+    onOpenFeedback,
+    onOpenShortcuts,
+    onTodoClick,
+    onProjectOpen,
+    onLogout,
+  }: any) =>
     isOpen
       ? React.createElement(
           "div",
@@ -222,6 +248,69 @@ vi.mock("../shared/CommandPalette", () => ({
           ),
           React.createElement(
             "button",
+            {
+              type: "button",
+              "data-testid": "cmd-horizon-pending",
+              onClick: () => onNavigateHorizonSegment?.("pending"),
+            },
+            "Horizon pending",
+          ),
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "cmd-weekly-review",
+              onClick: onWeeklyReview,
+            },
+            "Weekly review",
+          ),
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "cmd-open-feedback",
+              onClick: onOpenFeedback,
+            },
+            "Feedback",
+          ),
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "cmd-open-shortcuts",
+              onClick: onOpenShortcuts,
+            },
+            "Shortcuts",
+          ),
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "cmd-todo-click",
+              onClick: () => onTodoClick?.("t-palette"),
+            },
+            "Open todo",
+          ),
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "cmd-project-open",
+              onClick: () => onProjectOpen?.("p-palette"),
+            },
+            "Open project",
+          ),
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "cmd-logout",
+              onClick: onLogout,
+            },
+            "Logout",
+          ),
+          React.createElement(
+            "button",
             { type: "button", "data-testid": "cmd-close", onClick: onClose },
             "Close palette",
           ),
@@ -230,9 +319,22 @@ vi.mock("../shared/CommandPalette", () => ({
 }));
 
 vi.mock("../shared/ShortcutsOverlay", () => ({
-  ShortcutsOverlay: ({ isOpen }: any) => isOpen
-    ? React.createElement("div", { "data-testid": "shortcuts-overlay" })
-    : null,
+  ShortcutsOverlay: ({ isOpen, onClose }: any) =>
+    isOpen
+      ? React.createElement(
+          "div",
+          { "data-testid": "shortcuts-overlay" },
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "shortcuts-overlay-close",
+              onClick: onClose,
+            },
+            "Close shortcuts",
+          ),
+        )
+      : null,
 }));
 
 vi.mock("../todos/FilterPanel", () => ({
@@ -344,9 +446,22 @@ vi.mock("../todos/TaskFullPage", () => ({
 }));
 
 vi.mock("../todos/TaskComposer", () => ({
-  TaskComposer: ({ isOpen }: any) => isOpen
-    ? React.createElement("div", { "data-testid": "task-composer" })
-    : null,
+  TaskComposer: ({ isOpen, onClose }: any) =>
+    isOpen
+      ? React.createElement(
+          "div",
+          { "data-testid": "task-composer" },
+          React.createElement(
+            "button",
+            {
+              type: "button",
+              "data-testid": "task-composer-close",
+              onClick: onClose,
+            },
+            "Close composer",
+          ),
+        )
+      : null,
 }));
 
 vi.mock("../projects/ProjectCrud", () => ({
@@ -367,6 +482,15 @@ vi.mock("../tuneup/TuneUpView", () => ({
 
 vi.mock("./WeeklyReview", () => ({
   WeeklyReview: () => React.createElement("div", { "data-testid": "weekly-review" }),
+}));
+
+vi.mock("../feedback/FeedbackForm", () => ({
+  FeedbackForm: ({ onBack }: any) =>
+    React.createElement(
+      "div",
+      { "data-testid": "feedback-form" },
+      React.createElement("button", { type: "button", onClick: onBack }, "Back"),
+    ),
 }));
 
 vi.mock("../activity/AgentActivityView", () => ({
@@ -1104,6 +1228,162 @@ describe("AppShell", () => {
       });
       expect(mockExportIcs).toHaveBeenCalledTimes(1);
       expect(screen.getByTestId("undo-toast").textContent).toMatch(/Exported/);
+    });
+  });
+
+  describe("command palette navigation callbacks", () => {
+    it("navigates horizon segment from palette", async () => {
+      setupOverrides();
+      localStorage.setItem("todos:horizon-segment", "due");
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("cmd-horizon-pending"));
+      });
+      await waitFor(() => {
+        expect(localStorage.getItem("todos:horizon-segment")).toBe("pending");
+      });
+    });
+
+    it("opens weekly review page from palette", async () => {
+      setupOverrides();
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("cmd-weekly-review"));
+      });
+      expect(screen.getByTestId("weekly-review")).toBeTruthy();
+    });
+
+    it("opens feedback page from palette", async () => {
+      setupOverrides();
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("cmd-open-feedback"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("feedback-form")).toBeTruthy();
+      });
+    });
+
+    it("opens shortcuts from palette then closes overlay", async () => {
+      setupOverrides();
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("cmd-open-shortcuts"));
+      });
+      expect(screen.getByTestId("shortcuts-overlay")).toBeTruthy();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("shortcuts-overlay-close"));
+      });
+      expect(screen.queryByTestId("shortcuts-overlay")).toBeNull();
+    });
+
+    it("opens drawer for todo and closes palette", async () => {
+      setupOverrides({
+        todos: [baseTodo("t-palette", "Palette todo")],
+      });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("cmd-todo-click"));
+      });
+      expect(screen.getByTestId("todo-drawer")).toBeTruthy();
+      expect(screen.queryByTestId("command-palette")).toBeNull();
+    });
+
+    it("selects project from palette", async () => {
+      setupOverrides({
+        projects: [
+          {
+            id: "p-palette",
+            name: "Palette Project",
+            slug: "pp",
+            status: "active" as const,
+            archived: false,
+            userId: "u1",
+            createdAt: "2026-01-01T00:00:00.000Z",
+            updatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        ],
+      });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("cmd-project-open"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("project-editor-view")).toBeTruthy();
+      });
+      expect(screen.queryByTestId("command-palette")).toBeNull();
+    });
+
+    it("logs out from palette", async () => {
+      const logout = vi.fn();
+      setupOverrides();
+      mockUseAuth.mockReturnValue({
+        user: {
+          id: "u1",
+          name: "Test User",
+          email: "test@example.com",
+          onboardingCompletedAt: "2026-01-01T00:00:00.000Z",
+        },
+        loading: false,
+        logout,
+        setUser: vi.fn(),
+        setTokens: vi.fn(),
+        refreshUser: vi.fn().mockResolvedValue(null),
+      });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("cmd-logout"));
+      });
+      expect(logout).toHaveBeenCalled();
+    });
+  });
+
+  describe("undo toast and composer", () => {
+    it("dismisses undo toast", async () => {
+      setupOverrides();
+      render(ce(AppShell));
+      await act(async () => {
+        serviceWorkerCallback!(1, 0);
+      });
+      expect(screen.getByTestId("undo-toast").textContent).toMatch(/Synced/);
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("undo-dismiss"));
+      });
+      expect(screen.getByTestId("undo-toast").textContent).not.toMatch(/Synced/);
+    });
+
+    it("closes task composer", async () => {
+      setupOverrides();
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-new-task"));
+      });
+      expect(screen.getByTestId("task-composer")).toBeTruthy();
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("task-composer-close"));
+      });
+      expect(screen.queryByTestId("task-composer")).toBeNull();
     });
   });
 
