@@ -81,8 +81,40 @@ vi.mock("../../api/todos", () => ({
 
 // Mock child components
 vi.mock("../projects/Sidebar", () => ({
-  Sidebar: ({ onNewTask, onOpenSettings, onOpenActivity, onToggleTheme, onOpenShortcuts, onLogout, onSearchChange, searchQuery, isCollapsed }: any) =>
-    React.createElement("aside", { "data-testid": "sidebar", "data-collapsed": isCollapsed ? "true" : "false" },
+  Sidebar: ({
+    onNewTask,
+    onOpenSettings,
+    onOpenActivity,
+    onToggleTheme,
+    onOpenShortcuts,
+    onLogout,
+    onSearchChange,
+    searchQuery,
+    isCollapsed,
+    onSelectView,
+  }: any) =>
+    React.createElement(
+      "aside",
+      {
+        "data-testid": "sidebar",
+        "data-collapsed": isCollapsed ? "true" : "false",
+      },
+      React.createElement(
+        "button",
+        {
+          "data-testid": "sidebar-view-home",
+          onClick: () => onSelectView?.("home"),
+        },
+        "Focus",
+      ),
+      React.createElement(
+        "button",
+        {
+          "data-testid": "sidebar-view-all",
+          onClick: () => onSelectView?.("all"),
+        },
+        "Everything",
+      ),
       React.createElement("button", { "data-testid": "sidebar-new-task", onClick: onNewTask }, "New Task"),
       React.createElement("button", { "data-testid": "sidebar-settings", onClick: onOpenSettings }, "Settings"),
       React.createElement("button", { "data-testid": "sidebar-activity", onClick: onOpenActivity }, "Activity"),
@@ -537,6 +569,7 @@ function setupOverrides(overrides: {
   removeTodo?: ReturnType<typeof vi.fn>;
   addTodo?: ReturnType<typeof vi.fn>;
   loadTodos?: ReturnType<typeof vi.fn>;
+  toggleTodo?: ReturnType<typeof vi.fn>;
 } = {}) {
   mockUseAuth.mockReturnValue({
     user: overrides.user ?? {
@@ -561,7 +594,9 @@ function setupOverrides(overrides: {
     addTodo: (overrides.addTodo ?? vi.fn()) as ReturnType<
       typeof useTodosStore
     >["addTodo"],
-    toggleTodo: vi.fn(),
+    toggleTodo: (overrides.toggleTodo ?? vi.fn()) as ReturnType<
+      typeof useTodosStore
+    >["toggleTodo"],
     editTodo: vi.fn(),
     removeTodo: (overrides.removeTodo ?? vi.fn()) as ReturnType<
       typeof useTodosStore
@@ -820,6 +855,19 @@ describe("AppShell", () => {
         fireEvent.click(screen.getByTestId("sidebar-new-task"));
       });
       expect(screen.getByTestId("task-composer")).toBeTruthy();
+    });
+  });
+
+  describe("workspace navigation from sidebar", () => {
+    it("switching to Everything surfaces list vs board controls for the todo workspace", async () => {
+      setupOverrides({ todos: [baseTodo("t-a", "One task")] });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-view-all"));
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("hdr-view-board")).toBeTruthy();
+      });
     });
   });
 
@@ -1121,6 +1169,112 @@ describe("AppShell", () => {
         fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
       });
       expect(screen.queryByTestId("command-palette")).toBeNull();
+    });
+
+    it("Escape closes the command palette without a second shortcut", async () => {
+      setupOverrides();
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "k", metaKey: true, bubbles: true });
+      });
+      expect(screen.getByTestId("command-palette")).toBeTruthy();
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "Escape", bubbles: true });
+      });
+      expect(screen.queryByTestId("command-palette")).toBeNull();
+    });
+
+    it("Escape dismisses delete confirmation before touching task navigation", async () => {
+      const removeTodo = vi.fn().mockResolvedValue(undefined);
+      setupOverrides({
+        todos: [baseTodo("t-a", "Do not delete")],
+        removeTodo,
+      });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "j", bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "d", bubbles: true });
+      });
+      expect(screen.getByTestId("confirm-dialog")).toBeTruthy();
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "Escape", bubbles: true });
+      });
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+      expect(removeTodo).not.toHaveBeenCalled();
+      const list = screen.getAllByTestId("todo-list")[0]!;
+      expect(list.getAttribute("data-expanded-todo")).toBe("t-a");
+    });
+
+    it("Cancel on delete confirmation leaves the task in place", async () => {
+      const removeTodo = vi.fn().mockResolvedValue(undefined);
+      setupOverrides({
+        todos: [baseTodo("t-a", "Keep me")],
+        removeTodo,
+      });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "j", bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "d", bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("confirm-delete-cancel"));
+      });
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+      expect(removeTodo).not.toHaveBeenCalled();
+    });
+
+    it("x marks the focused task complete via the store", async () => {
+      const toggleTodo = vi.fn().mockResolvedValue(undefined);
+      setupOverrides({
+        todos: [baseTodo("t-a", "Do it")],
+        toggleTodo,
+      });
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "j", bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "x", bubbles: true });
+      });
+      expect(toggleTodo).toHaveBeenCalledWith("t-a", true);
+    });
+
+    it("Escape from drawer returns to quick edit with the same task focused", async () => {
+      setupOverrides({ todos: [baseTodo("t-a", "In drawer")] });
+      render(ce(AppShell));
+      const list = screen.getAllByTestId("todo-list")[0]!;
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "j", bubbles: true });
+      });
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "e", bubbles: true });
+      });
+      expect(screen.getByTestId("todo-drawer")).toBeTruthy();
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "Escape", bubbles: true });
+      });
+      expect(screen.queryByTestId("todo-drawer")).toBeNull();
+      expect(list.getAttribute("data-expanded-todo")).toBe("t-a");
+    });
+
+    it("n focuses quick entry when the primary control exists, otherwise opens composer", async () => {
+      const trigger = vi.mocked(focusTargets.triggerPrimaryNewTask);
+      setupOverrides();
+      render(ce(AppShell));
+      trigger.mockReturnValueOnce(true);
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "n", bubbles: true });
+      });
+      expect(screen.queryByTestId("task-composer")).toBeNull();
+      trigger.mockReturnValueOnce(false);
+      await act(async () => {
+        fireEvent.keyDown(document, { key: "n", bubbles: true });
+      });
+      expect(screen.getByTestId("task-composer")).toBeTruthy();
     });
   });
 
