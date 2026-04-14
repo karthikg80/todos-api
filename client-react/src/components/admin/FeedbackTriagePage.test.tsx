@@ -165,8 +165,24 @@ describe("FeedbackTriagePage", () => {
       });
     });
 
-    it.skip("calls reject API when Reject button clicked", async () => {
-      // Flaky due to async rendering timing
+    it("calls reject API when Reject button clicked", async () => {
+      render(React.createElement(FeedbackTriagePage, defaultProps));
+      await waitFor(() => {
+        expect(screen.getByText("Test feedback")).toBeTruthy();
+      });
+      const rejectBtns = screen.getAllByText("Reject");
+      await act(async () => {
+        fireEvent.click(rejectBtns[0]);
+      });
+      await waitFor(() => {
+        expect(mockApiCall).toHaveBeenCalledWith(
+          `/admin/feedback/${encodeURIComponent("fb-1")}`,
+          expect.objectContaining({
+            method: "PATCH",
+            body: expect.stringContaining("rejected"),
+          }),
+        );
+      });
     });
   });
 
@@ -252,8 +268,21 @@ describe("FeedbackTriagePage", () => {
       });
     });
 
-    it.skip("shows success toast after reject", async () => {
-      // Flaky due to async rendering timing
+    it("shows success toast after reject", async () => {
+      render(React.createElement(FeedbackTriagePage, defaultProps));
+      await waitFor(() => {
+        expect(screen.getByText("Test feedback")).toBeTruthy();
+      });
+      const rejectBtns = screen.getAllByText("Reject");
+      await act(async () => {
+        fireEvent.click(rejectBtns[0]);
+      });
+      await waitFor(() => {
+        expect(defaultProps.showToast).toHaveBeenCalledWith(
+          "Item rejected",
+          "success",
+        );
+      });
     });
 
     it("shows error toast when triage fails", async () => {
