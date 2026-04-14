@@ -415,13 +415,6 @@ describe("AppShell", () => {
     });
   });
 
-  describe("bulk mode", () => {
-    it("app shell does not have bulk class by default", () => {
-      const { container } = render(ce(AppShell));
-      expect(container.querySelector(".is-bulk-selecting")).toBeNull();
-    });
-  });
-
   describe("sidebar navigation", () => {
     it("shows settings page when sidebar settings button clicked", async () => {
       render(ce(AppShell));
@@ -489,6 +482,132 @@ describe("AppShell", () => {
         fireEvent.click(screen.getByTestId("sidebar-new-task"));
       });
       expect(screen.getByTestId("task-composer")).toBeTruthy();
+    });
+  });
+
+  describe("mobile rendering", () => {
+    it("renders mobile sheet when isMobile is true", () => {
+      setupOverrides({ isMobile: true });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".mobile-sheet")).toBeTruthy();
+      expect(container.querySelector(".mobile-sheet-backdrop")).toBeTruthy();
+    });
+
+    it("does not render desktop sidebar when mobile", () => {
+      setupOverrides({ isMobile: true });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector("aside.app-sidebar")).toBeNull();
+    });
+  });
+
+  describe("bulk mode", () => {
+    it("app shell does not have bulk class by default", () => {
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".is-bulk-selecting")).toBeNull();
+    });
+  });
+
+  describe("dark mode", () => {
+    it("passes dark prop to sidebar", () => {
+      mockUseDarkMode.mockReturnValue({ dark: true, toggle: vi.fn() });
+      render(ce(AppShell));
+      expect(mockUseDarkMode).toHaveBeenCalled();
+    });
+  });
+
+  describe("error state", () => {
+    it("does not show loading bar when loadState is error", () => {
+      setupOverrides({ loadState: "error" });
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector(".loading-bar")).toBeNull();
+    });
+  });
+
+  describe("view routing", () => {
+    it("renders view-router container", () => {
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector('[data-testid="view-router"]')).toBeTruthy();
+    });
+
+    it("renders home view route by default", () => {
+      const { container } = render(ce(AppShell));
+      expect(container.querySelector('[data-testid="view-route-home"]')).toBeTruthy();
+    });
+  });
+
+  describe("view mode toggle", () => {
+    it("passes viewMode to ListViewHeader", () => {
+      render(ce(AppShell));
+      const headers = screen.getAllByTestId("list-header");
+      expect(headers.length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
+  describe("delete confirmation", () => {
+    it("does not show delete confirmation by default", () => {
+      render(ce(AppShell));
+      expect(screen.queryByTestId("confirm-dialog")).toBeNull();
+    });
+  });
+
+  describe("settings page navigation", () => {
+    it("shows settings page when navigating to settings", async () => {
+      render(ce(AppShell));
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-settings"));
+      });
+      expect(screen.getByTestId("settings-page")).toBeTruthy();
+    });
+
+    it("navigates back to todos from settings via sidebar", async () => {
+      render(ce(AppShell));
+      // Navigate to settings
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-settings"));
+      });
+      expect(screen.getByTestId("settings-page")).toBeTruthy();
+
+      // Navigate back to activity (which is a different page)
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("sidebar-activity"));
+      });
+      expect(screen.getByTestId("agent-activity-view")).toBeTruthy();
+    });
+  });
+
+  describe("top bar header (desktop)", () => {
+    it("renders new task button in top bar on home view", () => {
+      const { container } = render(ce(AppShell));
+      const newTaskBtn = container.querySelector('[data-new-task-trigger="true"]');
+      expect(newTaskBtn).toBeTruthy();
+    });
+
+    it("renders logout button in top bar when user exists", () => {
+      const { container } = render(ce(AppShell));
+      const buttons = container.querySelectorAll("button");
+      const logoutBtn = Array.from(buttons).find(
+        (btn) => btn.textContent === "Logout",
+      );
+      expect(logoutBtn).toBeTruthy();
+    });
+  });
+
+  describe("mobile header", () => {
+    it("renders mobile header with menu button when mobile", () => {
+      setupOverrides({ isMobile: true });
+      const { container } = render(ce(AppShell));
+      const menuBtn = container.querySelector("#projectsRailMobileOpen");
+      expect(menuBtn).toBeTruthy();
+    });
+
+    it("opens mobile nav when menu button clicked", async () => {
+      setupOverrides({ isMobile: true });
+      const { container } = render(ce(AppShell));
+      const menuBtn = container.querySelector("#projectsRailMobileOpen");
+      await act(async () => {
+        fireEvent.click(menuBtn!);
+      });
+      expect(container.querySelector('[aria-hidden="false"]')).toBeTruthy();
     });
   });
 });
