@@ -660,11 +660,18 @@ export function AppShell() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      // Escape: close palette, close drawer, cancel bulk, close mobile nav
+      // Escape: close palette, cancel delete confirm, de-escalate task UI,
+      // cancel bulk, close mobile nav
       if (e.key === "Escape") {
         if (paletteOpen) {
+          setPaletteOpen(false);
           return;
-        } else if (activeTodoId) {
+        }
+        if (deleteTarget) {
+          setDeleteTarget(null);
+          return;
+        }
+        if (activeTodoId) {
           taskNav.deescalate();
         } else if (bulkMode) {
           handleCancelBulk();
@@ -759,6 +766,7 @@ export function AppShell() {
     bulkMode,
     mobileNavOpen,
     paletteOpen,
+    deleteTarget,
     viewMenuOpen,
     handleCancelBulk,
     focusQuickEntryOrOpenComposer,
