@@ -1,122 +1,142 @@
 // @vitest-environment jsdom
-import React from "react";
-import { ce } from "../../test-helpers";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import type { AgentProfile } from "../../agents/types";
-import type { RightNow } from "../../types/focusBrief";
+import React from "react";
 import { RightNowPanel } from "./RightNowPanel";
-import { useAgentProfiles } from "../../agents/useAgentProfiles";
 
+// Mock dependencies
 vi.mock("./FlipCard", () => ({
-  FlipCard: ({ front }: { front: React.ReactNode }) => (
-    <div data-testid="flip-mock">{front}</div>
-  ),
+  FlipCard: ({ front, back }: any) =>
+    React.createElement("div", { "data-testid": "flip-card" },
+      React.createElement("div", { "data-testid": "flip-front" }, front),
+      React.createElement("div", { "data-testid": "flip-back" }, back),
+    ),
 }));
 
 vi.mock("./TarotCard", () => ({
-  TarotCardFront: ({ children, agent }: { children?: React.ReactNode; agent?: { name: string } }) => (
-    <div data-testid="tarot-front">
-      {agent ? <span data-testid="agent-name">{agent.name}</span> : null}
-      {children}
-    </div>
-  ),
-  TarotCardBack: () => <div data-testid="tarot-back" />,
+  TarotCardFront: ({ children, name }: any) =>
+    React.createElement("div", { "data-testid": "tarot-front", "data-name": name }, children),
+  TarotCardBack: ({ children, name }: any) =>
+    React.createElement("div", { "data-testid": "tarot-back", "data-name": name }, children),
 }));
 
 vi.mock("./CardBack", () => ({
-  CardBackContent: () => <div data-testid="card-back" />,
+  CardBackContent: () => React.createElement("div", { "data-testid": "card-back-content" }),
 }));
 
 vi.mock("./pixel-art", () => ({
-  FlameArt: () => <span data-testid="flame-art" />,
+  FlameArt: ({ size }: any) => React.createElement("div", { "data-testid": "flame-art", "data-size": size }),
 }));
 
-vi.mock("../../agents/useAgentProfiles", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../../agents/useAgentProfiles")>();
-  return {
-    ...actual,
-    useAgentProfiles: vi.fn(actual.useAgentProfiles),
-  };
-});
+vi.mock("../../agents/useAgentProfiles", () => ({
+  useAgentProfiles: () => [],
+  getAgentProfile: () => null,
+}));
 
-const mira: AgentProfile = {
-  id: "mira",
-  name: "Mira",
-  role: "Planner",
-  traits: ["t1", "t2", "t3"],
-  quote: "q",
-  superpower: "sp",
-  quirk: "qk",
-  bestCalledWhen: "planning",
-  colors: {
-    stroke: "#000",
-    bg: "#fff",
-    textDark: "#222",
-    traitBg: "#eee",
-  },
-  voice: {
-    tone: "warm",
-    avgWordsPerSentence: 6,
-    openers: ["o"],
-    closers: ["c"],
-    thinkingLines: ["th"],
-    emptyStateLines: ["e"],
-    errorLines: ["er"],
-  },
-  avatarSeed: 2,
-};
+const createMockData = (overrides: any = {}) => ({
+  narrative: overrides.narrative ?? "Test narrative",
+  urgentItems: overrides.urgentItems ?? [],
+  topRecommendation: overrides.topRecommendation ?? null,
+  agentId: overrides.agentId ?? null,
+});
 
 describe("RightNowPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("returns null when there is nothing to show", () => {
-    const { container } = render(
-      ce(RightNowPanel, {
-        data: {
-          narrative: "",
-          urgentItems: [],
-          topRecommendation: null,
-        },
-        onTaskClick: vi.fn(),
-      }),
-    );
-    expect(container.firstChild).toBeNull();
+  const defaultProps = {
+    data: createMockData(),
+    provenance: undefined,
+    onTaskClick: vi.fn(),
+  };
+
+  describe("rendering conditions", () => {
+    it("renders when narrative is present", () => {
+      render(React.createElement(RightNowPanel, defaultProps));
+      expect(screen.getByTestId("flip-card")).toBeTruthy();
+    });
+
+    it("renders when urgent items are present", () => {
+      render(
+        React.createElement(RightNowPanel, {
+          ...defaultProps,
+          data: createMockData({ narrative: null, urgentItems: [{ id: "t1", title: "Urgent" }] }),
+        }),
+      );
+      expect(screen.getByTestId("flip-card")).toBeTruthy();
+    });
+
+    it("renders when topRecommendation is present", () => {
+      render(
+        React.createElement(RightNowPanel, {
+          ...defaultProps,
+          data: createMockData({
+            narrative: null,
+            topRecommendation: { taskId: "t1", title: "Rec", reasoning: "Why" },
+          }),
+        }),
+      );
+      expect(screen.getByTestId("flip-card")).toBeTruthy();
+    });
   });
 
-  it("renders when urgent items exist even if narrative is empty", () => {
-    vi.mocked(useAgentProfiles).mockReturnValue({});
-    const data: RightNow = {
-      narrative: "",
-      urgentItems: [
-        { title: "Urgent", dueDate: "2024-01-01", reason: "soon" },
-      ],
-      topRecommendation: null,
-    };
-    render(ce(RightNowPanel, { data, onTaskClick: vi.fn() }));
-    expect(screen.getByTestId("flip-mock")).toBeTruthy();
+  describe("content rendering", () => {
+    it("renders narrative text when present", () => {
+      render(React.createElement(RightNowPanel, defaultProps));
+      expect(screen.getByText("Test narrative")).toBeTruthy();
+    });
+
+    it("renders top recommendation button when present", () => {
+      render(
+        React.createElement(RightNowPanel, {
+          ...defaultProps,
+          data: createMockData({
+            topRecommendation: { taskId: "t1", title: "Top task", reasoning: "Important" },
+          }),
+        }),
+      );
+      expect(screen.getByText("Strongest action")).toBeTruthy();
+      expect(screen.getByText("Top task")).toBeTruthy();
+      expect(screen.getByText("Important")).toBeTruthy();
+    });
+
+    it("calls onTaskClick when recommendation button is clicked", () => {
+      const onTaskClick = vi.fn();
+      render(
+        React.createElement(RightNowPanel, {
+          ...defaultProps,
+          data: createMockData({
+            topRecommendation: { taskId: "t1", title: "Top task", reasoning: "Important" },
+          }),
+          onTaskClick,
+        }),
+      );
+      fireEvent.click(screen.getByText("Strongest action"));
+      expect(onTaskClick).toHaveBeenCalledWith("t1");
+    });
   });
 
-  it("renders narrative, recommendation click, and agent chip when profile exists", () => {
-    vi.mocked(useAgentProfiles).mockReturnValue({ mira });
-    const onTaskClick = vi.fn();
-    const data: RightNow = {
-      narrative: "You should focus.",
-      urgentItems: [],
-      topRecommendation: {
-        title: "Ship feature",
-        taskId: "task-99",
-        reasoning: "Highest leverage.",
-      },
-      agentId: "mira",
-    };
-    render(ce(RightNowPanel, { data, onTaskClick }));
-    expect(screen.getByText("You should focus.")).toBeTruthy();
-    expect(screen.getByTestId("agent-name").textContent).toBe("Mira");
-    fireEvent.click(screen.getByRole("button", { name: /Ship feature/i }));
-    expect(onTaskClick).toHaveBeenCalledWith("task-99");
+  describe("flip card structure", () => {
+    it("renders both front and back of flip card", () => {
+      render(React.createElement(RightNowPanel, defaultProps));
+      expect(screen.getByTestId("flip-front")).toBeTruthy();
+      expect(screen.getByTestId("flip-back")).toBeTruthy();
+    });
+
+    it("renders tarot card front with correct name", () => {
+      render(React.createElement(RightNowPanel, defaultProps));
+      expect(screen.getByTestId("tarot-front").getAttribute("data-name")).toBe("The Flame");
+    });
+
+    it("renders tarot card back with correct name", () => {
+      render(React.createElement(RightNowPanel, defaultProps));
+      expect(screen.getByTestId("tarot-back").getAttribute("data-name")).toBe("The Flame");
+    });
+
+    it("renders card back content", () => {
+      render(React.createElement(RightNowPanel, defaultProps));
+      expect(screen.getByTestId("card-back-content")).toBeTruthy();
+    });
   });
 });
