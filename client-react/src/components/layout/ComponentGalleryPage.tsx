@@ -13,6 +13,11 @@ import { ProfileLauncher } from "../shared/ProfileLauncher";
 import { SearchBar } from "../shared/SearchBar";
 import { UndoToast, type ToastVariant } from "../shared/UndoToast";
 import { TodoRow } from "../todos/TodoRow";
+import { Button, type ButtonVariant } from "../ui/Button";
+import { Chip, type ChipFamily } from "../ui/Chip";
+import { Input } from "../ui/Input";
+import { Skeleton } from "../ui/Skeleton";
+import { useToast } from "../ui/ToastProvider";
 
 type PreviewMode = "list" | "board";
 
@@ -210,6 +215,24 @@ function SectionCard({
   );
 }
 
+const BUTTON_VARIANTS: ButtonVariant[] = [
+  "primary",
+  "secondary",
+  "ghost",
+  "danger",
+  "ai",
+];
+
+const CHIP_FAMILIES: ChipFamily[] = [
+  "status",
+  "meta",
+  "tag",
+  "danger",
+  "warning",
+  "success",
+  "ai",
+];
+
 export function ComponentGalleryPage({ dark, onBack }: Props) {
   const [filterText, setFilterText] = useState("");
   const [searchPreviewValue, setSearchPreviewValue] = useState("overdue");
@@ -221,6 +244,9 @@ export function ComponentGalleryPage({ dark, onBack }: Props) {
   const [toastAction, setToastAction] = useState<GalleryToastAction | null>(
     null,
   );
+  const [inputValue, setInputValue] = useState("design@todos.app");
+  const [invalidInputValue, setInvalidInputValue] = useState("not-an-email");
+  const toast = useToast();
   const deferredFilter = useDeferredValue(filterText.trim().toLowerCase());
 
   const handlePreviewToast = (
@@ -416,6 +442,198 @@ export function ComponentGalleryPage({ dark, onBack }: Props) {
               }}
             />
           ))}
+        </div>
+      ),
+    },
+    {
+      id: "ds-buttons",
+      eyebrow: "Design System · Buttons",
+      title: "Button variants and states",
+      keywords: [
+        "button",
+        "btn",
+        "primary",
+        "secondary",
+        "ghost",
+        "danger",
+        "ai",
+        "pill",
+        "disabled",
+      ],
+      content: (
+        <div className="component-gallery__ds-grid">
+          <div className="component-gallery__ds-row">
+            {BUTTON_VARIANTS.map((variant) => (
+              <Button key={variant} variant={variant}>
+                {variant[0].toUpperCase() + variant.slice(1)}
+              </Button>
+            ))}
+          </div>
+          <div className="component-gallery__ds-row">
+            {BUTTON_VARIANTS.map((variant) => (
+              <Button key={variant} variant={variant} pill>
+                Pill · {variant}
+              </Button>
+            ))}
+          </div>
+          <div className="component-gallery__ds-row">
+            {BUTTON_VARIANTS.map((variant) => (
+              <Button key={variant} variant={variant} disabled>
+                Disabled · {variant}
+              </Button>
+            ))}
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "ds-chips",
+      eyebrow: "Design System · Chips",
+      title: "One axis — family drives color, label is content",
+      keywords: [
+        "chip",
+        "chips",
+        "family",
+        "status",
+        "meta",
+        "tag",
+        "danger",
+        "warning",
+        "success",
+        "ai",
+      ],
+      content: (
+        <div className="component-gallery__ds-row">
+          {CHIP_FAMILIES.map((family) => (
+            <Chip key={family} family={family}>
+              {family}
+            </Chip>
+          ))}
+        </div>
+      ),
+    },
+    {
+      id: "ds-inputs",
+      eyebrow: "Design System · Inputs",
+      title: "Input with label, hint, and inline error",
+      keywords: [
+        "input",
+        "field",
+        "label",
+        "error",
+        "aria-invalid",
+        "disabled",
+      ],
+      content: (
+        <div className="component-gallery__ds-grid">
+          <Input
+            label="Email"
+            hint="Used for task assignments and notifications."
+            value={inputValue}
+            onChange={(event) => setInputValue(event.target.value)}
+            placeholder="you@team.app"
+          />
+          <Input
+            label="Email (invalid)"
+            error="Enter a valid email address."
+            value={invalidInputValue}
+            onChange={(event) => setInvalidInputValue(event.target.value)}
+          />
+          <Input
+            label="Disabled"
+            value="read-only handle"
+            disabled
+            readOnly
+          />
+        </div>
+      ),
+    },
+    {
+      id: "ds-skeletons",
+      eyebrow: "Design System · Skeletons",
+      title: "Loading placeholders shaped like the real layout",
+      keywords: ["skeleton", "loading", "shimmer", "placeholder"],
+      content: (
+        <div className="component-gallery__ds-grid">
+          <div className="component-gallery__ds-row">
+            <Skeleton shape="title" />
+            <Skeleton shape="line" />
+            <Skeleton shape="line" style={{ width: "70%" }} />
+          </div>
+          <div className="component-gallery__ds-row">
+            <Skeleton shape="circle" />
+            <Skeleton shape="chip" />
+            <Skeleton shape="chip" />
+            <Skeleton shape="chip" />
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "ds-toasts",
+      eyebrow: "Design System · Toasts",
+      title: "Variants, action slot, and persistent patterns",
+      keywords: ["toast", "notification", "alert", "success", "warning", "ai"],
+      content: (
+        <div className="component-gallery__ds-row">
+          <Button
+            variant="secondary"
+            onClick={() =>
+              toast.info("Catalog synced", {
+                description: "We refreshed the upcoming view just now.",
+              })
+            }
+          >
+            Info
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              toast.success("Task saved", {
+                description: "Your changes are live.",
+                action: {
+                  label: "Undo",
+                  onClick: () => toast.info("Reverted"),
+                },
+              })
+            }
+          >
+            Success · undo
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              toast.warning("Check offline", {
+                description: "Some changes may be unsynced.",
+              })
+            }
+          >
+            Warning
+          </Button>
+          <Button
+            variant="danger"
+            onClick={() =>
+              toast.danger("Save failed", {
+                description: "We couldn't reach the server.",
+              })
+            }
+          >
+            Danger
+          </Button>
+          <Button
+            variant="ai"
+            onClick={() =>
+              toast.ai("Planner suggestion", {
+                description: "Move 2 overdue items to tomorrow?",
+                action: {
+                  label: "Apply",
+                  onClick: () => toast.success("Plan applied"),
+                },
+              })
+            }
+          >
+            AI
+          </Button>
         </div>
       ),
     },

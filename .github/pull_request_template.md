@@ -29,6 +29,10 @@ Summarize the user-facing and technical changes.
 - [ ] `CI=1 npm run test:ui:fast`
 - [ ] Additional manual validation notes, if applicable
 
+## Design system check
+
+For PRs that add or change a shared UI primitive under `client-react/src/components/ui/`, walk through the [Gallery PR checklist](../UX.md#gallery-pr-checklist) in `UX.md`. Skip otherwise.
+
 ## Brief / Protocol Impact
 
 - [ ] No
