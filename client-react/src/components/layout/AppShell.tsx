@@ -117,11 +117,21 @@ export function AppShell() {
   const { user, logout } = useAuth();
   const isMobile = useIsMobile();
   const { dark, toggle: toggleDarkMode } = useDarkMode();
-  const { density, setDensity, cycle: cycleDensity } = useDensity();
-  const { groupBy, setGroupBy } = useGroupBy();
-  const { startTransition } = useViewTransition();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("home");
+  // Per-view density: Today, Inbox, Upcoming each remember their own row
+  // density. Other views share the global key so they behave as before.
+  const densityViewKey =
+    activeView === "today" ||
+    activeView === "inbox" ||
+    activeView === "upcoming"
+      ? activeView
+      : undefined;
+  const { density, setDensity, cycle: cycleDensity } = useDensity(
+    densityViewKey,
+  );
+  const { groupBy, setGroupBy } = useGroupBy();
+  const { startTransition } = useViewTransition();
   const [horizonSegment, setHorizonSegment] = useState<HorizonSegment>(() => {
     const stored = localStorage.getItem("todos:horizon-segment");
     return stored === "due" ||
