@@ -186,6 +186,30 @@ Use this checklist for UI-affecting changes.
 - In React and iOS, preserve the same product semantics even when platform-native controls differ
 - When a UI change introduces a new repeated pattern, document it here or promote it into the local surface guide
 
+## Design system v2 — cascade architecture
+
+The React client serves its CSS through a single `@layer` cascade declared at the top of `client-react/src/styles/app.css`:
+
+```
+@layer tokens, base, components, views;
+```
+
+Layer responsibilities:
+
+| Layer        | File                                                                | Contains                                                                                                                                         |
+| ------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tokens`     | `styles/tokens.css`                                                 | `:root` + `body.dark-mode` custom properties, density modes, reduced-motion overrides. **Only custom properties live here** — no concrete rules. |
+| `base`       | `styles/base.css`                                                   | Global resets and the single `:focus-visible { box-shadow: var(--ring) }` recipe.                                                                |
+| `components` | `styles/components.css`                                             | Shared primitives rendered by `components/ui/` (`.btn`, `.chip`, `.input`, `.field`, `.toast*`, `.skel`, etc.).                                  |
+| `views`      | `styles/app.css` body (everything past the `@layer views {` opener) | Page scaffolds, feature surfaces, one-off view styles.                                                                                           |
+
+Rules of thumb when adding CSS:
+
+1. Touching a shared primitive? Edit `components.css`. A new primitive? Add the class there, render it from a typed component under `components/ui/`, and register it in `ComponentGalleryPage` so the Gallery PR checklist passes.
+2. Page- or feature-specific styling goes in `app.css` **inside the `@layer views { … }` wrapper**. Unlayered rules win over every declared layer — avoid them.
+3. iOS stays in sync via `npm run tokens:check`: any token change in `tokens.css` regenerates `ios/TodosApp/TodosApp/Core/Theme/DesignTokens.swift`.
+4. Legacy `.btn` / `.chip` rules still live inside `@layer views` (app.css) for historical reasons. They override the v2 primitives in those places because `views` has higher layer precedence than `components`. Net-new work should prefer the typed `<Button>` / `<Chip>` / `<Input>` components; a base-rule extraction is tracked as separate design-system cleanup.
+
 ## Gallery PR checklist
 
 Any PR that adds or changes a shared UI primitive in `client-react/src/components/ui/` must walk through the checklist below. Reviewers open `ComponentGalleryPage` and confirm each item.
