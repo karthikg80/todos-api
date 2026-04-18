@@ -1,0 +1,23 @@
+/* ════════════════════════════════════════════════════════════════════
+   Design System v2 — base layer
+   Global focus-ring recipe + element resets that pair with tokens.css.
+   The box-shadow-based ring clips cleanly on rounded corners and
+   supersedes the earlier outline-based rule.
+   ════════════════════════════════════════════════════════════════════ */
+
+@layer base {
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--ring);
+    border-radius: var(--r-xs);
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  .cbx:focus-visible {
+    box-shadow: var(--ring);
+  }
+}

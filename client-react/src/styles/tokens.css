@@ -1,192 +1,217 @@
-:root {
-  /* --- Colors (light) --- */
-  --bg: #f4f7fb;
-  --surface: #ffffff;
-  --surface-2: #f8fafc;
-  --surface-3: #edf1f5;
-  --text: #1f2937;
-  --text-strong: #111827;
-  --muted: #6b7280;
-  --muted-light: #9ca3af;
-  --border: #dbe3ed;
-  --border-light: color-mix(in oklab, #dbe3ed 60%, transparent);
-  --accent: #4f6ef7;
-  --accent-2: #6983ff;
-  --accent-3: #3b5cdb;
-  --accent-light: color-mix(in oklab, #4f6ef7 8%, #ffffff);
-  --danger: #e05260;
-  --danger-2: #c94855;
-  --success: #2f9e6a;
-  --warning: #d97706;
-  --overlay: rgb(15 23 42 / 55%);
-  --scrim: rgb(15 23 42 / 35%);
+/* ════════════════════════════════════════════════════════════════════
+   Design System v2 — tokens
+   One source of truth, no legacy aliases, deterministic cascade via
+   the layer order declared in app.css: tokens → base → components → views.
+   ════════════════════════════════════════════════════════════════════ */
 
-  /* --- Radius --- */
-  --r-xs: 4px;
-  --r-sm: 8px;
-  --r-md: 12px;
-  --r-lg: 16px;
-  --r-xl: 20px;
-  --r-2xl: 24px;
-  --r-full: 999px;
-
-  /* --- Spacing --- */
-  --s-0: 2px;
-  --s-1: 4px;
-  --s-1h: 6px;
-  --s-2: 8px;
-  --s-2h: 10px;
-  --s-3: 12px;
-  --s-3h: 14px;
-  --s-4: 16px;
-  --s-5: 24px;
-  --s-6: 32px;
-  --s-7: 40px;
-  --s-8: 48px;
-
-  /* --- Typography --- */
-  --font-sans:
-    "Inter", "Avenir Next", "Segoe UI", -apple-system, BlinkMacSystemFont,
-    "Helvetica Neue", Arial, sans-serif;
-  --fs-xs: 0.688rem;
-  --fs-label: 0.75rem;
-  --fs-meta: 0.8125rem;
-  --fs-body: 1rem;
-  --fs-md: 1.125rem;
-  --fs-section: 1.25rem;
-  --fs-lg: 1.375rem;
-  --fs-xl: 1.75rem;
-  --lh-tight: 1.25;
-  --lh-base: 1.5;
-  --lh-relaxed: 1.7;
-  --fw-regular: 400;
-  --fw-medium: 500;
-  --fw-semibold: 600;
-  --fw-bold: 700;
-  --tracking-tight: -0.01em;
-  --tracking-normal: 0;
-  --tracking-wide: 0.025em;
-
-  /* --- Aliases (used by FieldRenderer variants) --- */
-  --fs-sm: 0.75rem;
-  --fs-base: var(--fs-body);
-  --text-2: var(--muted);
-  --border-strong: color-mix(in oklab, var(--border) 70%, var(--text));
-
-  /* --- Controls --- */
-  --control-sm: 32px;
-  --control-md: 40px;
-  --row-height: 48px;
-
-  /* --- Shadows (6-level system) --- */
-  --shadow-0: none;
-  --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
-  --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
-  --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08), 0 2px 4px rgb(15 23 42 / 0.04);
-  --shadow-lg: 0 12px 24px rgb(15 23 42 / 0.1), 0 4px 8px rgb(15 23 42 / 0.06);
-  --shadow-xl:
-    0 20px 40px rgb(15 23 42 / 0.14), 0 8px 16px rgb(15 23 42 / 0.08);
-  /* Backward compat aliases */
-  --shadow-hover: var(--shadow-sm);
-  --shadow-card: var(--shadow-md);
-  --shadow-elevated: var(--shadow-lg);
-  /* Focus ring */
-  --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--accent) 20%, transparent);
-  --shadow-focus-danger: 0 0 0 3px
-    color-mix(in oklab, var(--danger) 20%, transparent);
-
-  /* --- Motion --- */
-  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.45, 0.05, 0.55, 0.95);
-  --dur-fast: 120ms;
-  --dur-base: 180ms;
-  --dur-slow: 280ms;
-  --dur-view: var(--dur-slow);
-
-  /* ── Tarot Card Design System ──────────────── */
-  --tarot-parchment: #faf8f5;
-  --tarot-parchment-dark: #f7f4ee;
-  --tarot-frame: #e0dbd3;
-  --tarot-border: #e8e4de;
-  --tarot-text: #3d3730;
-  --tarot-muted: #8a7e6e;
-  --tarot-gold: #b8a080;
-  --tarot-sage: #8a9a8e;
-  --tarot-red: #c45a3c;
-  --tarot-amber: #d4864a;
-  --tarot-warm: #daa85c;
-  --tarot-faint: #d0c8b8;
-  --tarot-tabletop: #f0ece4;
-}
-
-/* --- Dark mode (warmer, more vibrant) --- */
-body.dark-mode {
-  --bg: #0f1419;
-  --surface: #1a232f;
-  --surface-2: #232f3d;
-  --surface-3: #2d3d4d;
-  --text: #f1f3f5;
-  --text-strong: #ffffff;
-  --muted: #a0a8b3;
-  --muted-light: #6b7580;
-  --border: #3a4a5a;
-  --border-light: color-mix(in oklab, #3a4a5a 60%, transparent);
-  --accent: #7fa8ff;
-  --accent-2: #5f89ff;
-  --accent-3: #a0c0ff;
-  --accent-light: color-mix(in oklab, #7fa8ff 12%, #1a232f);
-  --danger: #ff8a96;
-  --danger-2: #ef6f7b;
-  --success: #5dd99f;
-  --warning: #ffb74d;
-  --overlay: rgb(2 6 23 / 75%);
-  --scrim: rgb(2 6 23 / 60%);
-
-  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.2);
-  --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.15);
-  --shadow-md: 0 4px 12px rgb(0 0 0 / 0.3), 0 2px 4px rgb(0 0 0 / 0.2);
-  --shadow-lg: 0 12px 24px rgb(0 0 0 / 0.35), 0 4px 8px rgb(0 0 0 / 0.25);
-  --shadow-xl: 0 20px 40px rgb(0 0 0 / 0.4), 0 8px 16px rgb(0 0 0 / 0.3);
-  --shadow-hover: var(--shadow-sm);
-  --shadow-card: var(--shadow-md);
-  --shadow-elevated: var(--shadow-lg);
-  --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--accent) 30%, transparent);
-  --shadow-focus-danger: 0 0 0 3px
-    color-mix(in oklab, var(--danger) 30%, transparent);
-  --text-2: var(--muted);
-  --border-strong: color-mix(in oklab, var(--border) 70%, var(--text));
-}
-
-/* --- Density modes --- */
-[data-density="compact"] {
-  --row-height: 36px;
-  --control-sm: 28px;
-  --control-md: 34px;
-  --s-3: 10px;
-  --s-4: 12px;
-  --s-5: 18px;
-  --fs-body: 0.875rem;
-  --fs-meta: 0.75rem;
-  --fs-label: 0.688rem;
-}
-
-[data-density="spacious"] {
-  --row-height: 56px;
-  --control-sm: 36px;
-  --control-md: 44px;
-  --s-3: 14px;
-  --s-4: 20px;
-  --s-5: 28px;
-  --fs-body: 1.0625rem;
-  --fs-meta: 0.875rem;
-}
-
-/* --- Reduced motion --- */
-@media (prefers-reduced-motion: reduce) {
+@layer tokens {
   :root {
-    --dur-fast: 0ms;
-    --dur-base: 0ms;
-    --dur-slow: 0ms;
+    /* ── Neutrals (light) ─────────────────── */
+    --bg: #f4f7fb;
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --surface-3: #edf1f5;
+    --text: #1f2937;
+    --text-strong: #111827;
+    --muted: #6b7280;
+    --muted-strong: #858b93; /* AA on white for small text (3.6:1) */
+    --muted-light: #9ca3af; /* display-only: ≥14pt semibold */
+    --border: #dbe3ed;
+    --border-light: color-mix(in oklab, #dbe3ed 60%, transparent);
+    --border-strong: color-mix(in oklab, var(--border) 70%, var(--text));
+
+    /* ── Accent primary ─────────────────────── */
+    --accent: #4f6ef7;
+    --accent-2: #6983ff;
+    --accent-3: #3b5cdb;
+    --accent-light: color-mix(in oklab, #4f6ef7 8%, #ffffff);
+
+    /* ── Accent secondary (AI / planning) ───── */
+    --accent-secondary: #b8892f;
+    --accent-secondary-2: #cfa04b;
+    --accent-secondary-3: #9a7124;
+    --accent-secondary-light: color-mix(in oklab, #b8892f 9%, #ffffff);
+
+    /* ── Semantic ────────────────────────── */
+    --success: #2f9e6a;
+    --warning: #d97706;
+    --danger: #e05260;
+    --danger-2: #c94855;
+
+    --overlay: rgb(15 23 42 / 55%);
+    --scrim: rgb(15 23 42 / 35%);
+
+    /* ── Data-viz palette ────────────────── */
+    /* Categorical — colorblind-safe (Okabe-Ito adapted) */
+    --viz-1: #4f6ef7; /* accent blue */
+    --viz-2: #b8892f; /* amber */
+    --viz-3: #2f9e6a; /* green */
+    --viz-4: #c94855; /* red */
+    --viz-5: #7b5bc7; /* purple */
+    --viz-6: #2e7a8a; /* teal */
+    /* Sequential (5-step on accent hue) */
+    --viz-seq-1: #e6ecff;
+    --viz-seq-2: #b8c7ff;
+    --viz-seq-3: #8aa2ff;
+    --viz-seq-4: #4f6ef7;
+    --viz-seq-5: #2a42a8;
+
+    /* ── Radius ──────────────────────────── */
+    --r-xs: 4px;
+    --r-sm: 8px;
+    --r-md: 12px;
+    --r-lg: 16px;
+    --r-xl: 20px;
+    --r-2xl: 24px;
+    --r-full: 999px;
+
+    /* ── Spacing (4pt) ───────────────────── */
+    --s-0: 2px;
+    --s-1: 4px;
+    --s-1h: 6px;
+    --s-2: 8px;
+    --s-2h: 10px;
+    --s-3: 12px;
+    --s-3h: 14px;
+    --s-4: 16px;
+    --s-5: 24px;
+    --s-6: 32px;
+    --s-7: 40px;
+    --s-8: 48px;
+
+    /* ── Typography ──────────────────────── */
+    --font-sans:
+      "Inter", "Avenir Next", "Segoe UI", -apple-system, BlinkMacSystemFont,
+      "Helvetica Neue", Arial, sans-serif;
+    --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+    --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --fs-xs: 0.688rem;
+    --fs-label: 0.75rem;
+    --fs-meta: 0.8125rem;
+    --fs-body: 1rem;
+    --fs-md: 1.125rem;
+    --fs-section: 1.25rem;
+    --fs-lg: 1.375rem;
+    --fs-xl: 1.75rem;
+    --lh-tight: 1.25;
+    --lh-base: 1.5;
+    --lh-relaxed: 1.7;
+    --fw-regular: 400;
+    --fw-medium: 500;
+    --fw-semibold: 600;
+    --fw-bold: 700;
+    --tracking-tight: -0.01em;
+    --tracking-normal: 0;
+    --tracking-wide: 0.025em;
+
+    /* ── Controls ─────────────────────────── */
+    --control-sm: 32px;
+    --control-md: 40px;
+    --row-height: 48px;
+
+    /* ── Shadows (6-level system) ─────────── */
+    --shadow-0: none;
+    --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
+    --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
+    --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08), 0 2px 4px rgb(15 23 42 / 0.04);
+    --shadow-lg: 0 12px 24px rgb(15 23 42 / 0.1), 0 4px 8px rgb(15 23 42 / 0.06);
+    --shadow-xl:
+      0 20px 40px rgb(15 23 42 / 0.14), 0 8px 16px rgb(15 23 42 / 0.08);
+
+    /* ── Focus ring (single recipe) ───────── */
+    --ring: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent);
+    --ring-danger: 0 0 0 3px
+      color-mix(in oklab, var(--danger) 25%, transparent);
+
+    /* ── Motion ──────────────────────────── */
+    --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in-out: cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    --dur-fast: 120ms;
+    --dur-base: 180ms;
+    --dur-slow: 280ms;
+    --dur-view: var(--dur-slow);
   }
+
+  /* ── Dark mode (warmer, more vibrant) ───── */
+  body.dark-mode {
+    --bg: #0f1419;
+    --surface: #1a232f;
+    --surface-2: #232f3d;
+    --surface-3: #2d3d4d;
+    --text: #f1f3f5;
+    --text-strong: #ffffff;
+    --muted: #a0a8b3;
+    --muted-strong: #b8bec7;
+    --muted-light: #6b7580;
+    --border: #3a4a5a;
+    --border-light: color-mix(in oklab, #3a4a5a 60%, transparent);
+    --border-strong: color-mix(in oklab, var(--border) 80%, #ffffff);
+
+    --accent: #7fa8ff;
+    --accent-2: #5f89ff;
+    --accent-3: #a0c0ff;
+    --accent-light: color-mix(in oklab, #7fa8ff 12%, #1a232f);
+
+    --accent-secondary: #e0b468;
+    --accent-secondary-2: #c99a45;
+    --accent-secondary-3: #f0cd8a;
+    --accent-secondary-light: color-mix(in oklab, #e0b468 14%, #1a232f);
+
+    --danger: #ff8a96;
+    --danger-2: #ef6f7b;
+    --success: #5dd99f;
+    --warning: #ffb74d;
+
+    --overlay: rgb(2 6 23 / 75%);
+    --scrim: rgb(2 6 23 / 60%);
+
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.2);
+    --shadow-sm: 0 1px 3px rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.15);
+    --shadow-md: 0 4px 12px rgb(0 0 0 / 0.3), 0 2px 4px rgb(0 0 0 / 0.2);
+    --shadow-lg: 0 12px 24px rgb(0 0 0 / 0.35), 0 4px 8px rgb(0 0 0 / 0.25);
+    --shadow-xl: 0 20px 40px rgb(0 0 0 / 0.4), 0 8px 16px rgb(0 0 0 / 0.3);
+
+    --ring: 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent);
+    --ring-danger: 0 0 0 3px
+      color-mix(in oklab, var(--danger) 35%, transparent);
+  }
+
+  /* ── Density modes ────────────────────── */
+  [data-density="compact"] {
+    --row-height: 36px;
+    --control-sm: 28px;
+    --control-md: 34px;
+    --s-3: 10px;
+    --s-4: 12px;
+    --s-5: 18px;
+    --fs-body: 0.875rem;
+    --fs-meta: 0.75rem;
+    --fs-label: 0.688rem;
+  }
+
+  [data-density="spacious"] {
+    --row-height: 56px;
+    --control-sm: 36px;
+    --control-md: 44px;
+    --s-3: 14px;
+    --s-4: 20px;
+    --s-5: 28px;
+    --fs-body: 1.0625rem;
+    --fs-meta: 0.875rem;
+  }
+
+  /* ── Reduced motion ───────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --dur-fast: 0ms;
+      --dur-base: 0ms;
+      --dur-slow: 0ms;
+    }
+  }
+
 }
+
+/* NOTE: the card/dashboard palette (previously inside :root here) has
+   been relocated to app.css next to its consuming selectors so it is
+   scoped to a single surface and no longer leaks into generic UI. */
