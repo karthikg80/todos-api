@@ -12,10 +12,15 @@ interface Props {
   onToggle: (id: string, completed: boolean) => void;
 }
 
+// Data-viz palette (Okabe-Ito adapted, colorblind-safe) — categorical
+// token mapping: overdue → viz-4 (red), quick-win → viz-3 (green),
+// regular → viz-2 (amber). Pulled from tokens.css so light/dark and
+// cross-platform iOS stay in lockstep.
 function dotColor(item: AgendaItem): string {
-  if (item.overdue) return "var(--tarot-red)";
-  if (item.estimateMinutes != null && item.estimateMinutes <= 15) return "var(--tarot-sage)";
-  return "var(--tarot-gold)";
+  if (item.overdue) return "var(--viz-4)";
+  if (item.estimateMinutes != null && item.estimateMinutes <= 15)
+    return "var(--viz-3)";
+  return "var(--viz-2)";
 }
 
 export function TodayAgendaPanel({ items, provenance, onTaskClick, onToggle: _onToggle }: Props) {
