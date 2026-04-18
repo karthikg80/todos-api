@@ -17,7 +17,10 @@ import { DensitySegmentedControl } from "../ui/DensitySegmentedControl";
 import { ViewMenu } from "./ViewMenu";
 import { ViewSubtitle } from "./ViewSubtitle";
 
-const VIEWS_WITH_INLINE_DENSITY = new Set(["today", "inbox", "upcoming"]);
+// List surfaces where the inline density control is worthwhile. Values
+// must match the active view ids (see WorkspaceView) — "inbox" /
+// "upcoming" are UX names, the actual ids are "all" / "horizon".
+const VIEWS_WITH_INLINE_DENSITY = new Set(["today", "horizon", "all"]);
 
 type UiMode = "normal" | "simple";
 type HorizonSegment = "due" | "planned" | "pending" | "later";
