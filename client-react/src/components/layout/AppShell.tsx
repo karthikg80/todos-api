@@ -119,12 +119,13 @@ export function AppShell() {
   const { dark, toggle: toggleDarkMode } = useDarkMode();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [activeView, setActiveView] = useState<WorkspaceView>("home");
-  // Per-view density: Today, Inbox, Upcoming each remember their own row
-  // density. Other views share the global key so they behave as before.
+  // Per-view density: list surfaces (today / horizon / all) each remember
+  // their own row density. Other views share the global key so they
+  // behave as before. Values must stay a subset of WorkspaceView.
   const densityViewKey =
     activeView === "today" ||
-    activeView === "inbox" ||
-    activeView === "upcoming"
+    activeView === "horizon" ||
+    activeView === "all"
       ? activeView
       : undefined;
   const { density, setDensity, cycle: cycleDensity } = useDensity(
