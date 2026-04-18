@@ -11,6 +11,7 @@ import {
   IconSidebar,
   IconSearch,
 } from "../shared/Icons";
+import { BrandMark } from "../ui/BrandMark";
 import { ProfileLauncher } from "../shared/ProfileLauncher";
 import {
   groupProjectsByArea,
@@ -155,7 +156,10 @@ export function Sidebar({
     <>
       {/* Sidebar header: app name + collapse toggle (like Claude.ai) */}
       <div className="sidebar-header">
-        <span className="sidebar-header__logo">Todos</span>
+        <div className="sidebar-header__brand">
+          <BrandMark size={24} className="sidebar-header__mark" />
+          <span className="sidebar-header__logo">Todos</span>
+        </div>
         <button
           className="sidebar-header__collapse"
           onClick={onToggleCollapse}
