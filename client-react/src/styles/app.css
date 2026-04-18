@@ -10397,6 +10397,23 @@ body.dark-mode {
   min-width: 0;
 }
 
+.list-header-density-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-2) var(--s-5);
+}
+.list-header-density-bar__label {
+  color: var(--muted);
+  font:
+    500 var(--fs-label) / 1 var(--font-sans);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.list-header-density-bar__control {
+  min-width: 0;
+}
+
 .toggle-switch {
   display: flex;
   align-items: center;

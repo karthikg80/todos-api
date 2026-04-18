@@ -13,8 +13,11 @@ import { QuickEntry } from "../todos/QuickEntry";
 import { SearchBar } from "../shared/SearchBar";
 import { SegmentedControl } from "../shared/SegmentedControl";
 import { VerificationBanner } from "../shared/VerificationBanner";
+import { DensitySegmentedControl } from "../ui/DensitySegmentedControl";
 import { ViewMenu } from "./ViewMenu";
 import { ViewSubtitle } from "./ViewSubtitle";
+
+const VIEWS_WITH_INLINE_DENSITY = new Set(["today", "inbox", "upcoming"]);
 
 type UiMode = "normal" | "simple";
 type HorizonSegment = "due" | "planned" | "pending" | "later";
@@ -355,6 +358,19 @@ export function ListViewHeader({
           }))}
         />
       )}
+
+      {!isMobile &&
+        !selectedProjectId &&
+        VIEWS_WITH_INLINE_DENSITY.has(activeView) && (
+          <div className="list-header-density-bar">
+            <span className="list-header-density-bar__label">Density</span>
+            <DensitySegmentedControl
+              value={density}
+              onChange={onDensityChange}
+              className="list-header-density-bar__control"
+            />
+          </div>
+        )}
 
       {/* Today view coaching */}
       {activeView === "today" &&
