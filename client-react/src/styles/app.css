@@ -11141,6 +11141,19 @@ body.dark-mode {
   gap: var(--s-2);
 }
 
+.component-gallery__ds-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-4);
+}
+
+.component-gallery__ds-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  align-items: center;
+}
+
 .component-gallery__rows {
   display: grid;
   gap: var(--s-2);

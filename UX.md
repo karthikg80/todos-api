@@ -185,3 +185,16 @@ Use this checklist for UI-affecting changes.
 - In the vanilla web client, prefer extending shared tokens and patterns in `client/styles.css` over adding one-off values
 - In React and iOS, preserve the same product semantics even when platform-native controls differ
 - When a UI change introduces a new repeated pattern, document it here or promote it into the local surface guide
+
+## Gallery PR checklist
+
+Any PR that adds or changes a shared UI primitive in `client-react/src/components/ui/` must walk through the checklist below. Reviewers open `ComponentGalleryPage` and confirm each item.
+
+- [ ] All component states shown in `ComponentGalleryPage` (rest / hover / focus / active / disabled / loading / error)
+- [ ] Dark mode verified — no hardcoded colors leak
+- [ ] Compact + spacious density verified where applicable
+- [ ] Keyboard-only navigation works; `--ring` is visible on focus for every interactive element
+- [ ] No new raw hex codes — every color is a token reference
+- [ ] No body text rendered on `--muted-light` (display-only token, not AA)
+- [ ] If color carries state, a label or icon reinforces it
+- [ ] When tokens change, the iOS catalog is regenerated in the same PR (`npm run tokens:check` stays green, once wired)

@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
-import { createElement } from "react";
+import { createElement, type ComponentProps } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ComponentGalleryPage } from "./ComponentGalleryPage";
+import { ToastProvider } from "../ui/ToastProvider";
+
+function renderGallery(props: ComponentProps<typeof ComponentGalleryPage>) {
+  return render(
+    createElement(ToastProvider, null, createElement(ComponentGalleryPage, props)),
+  );
+}
 
 // Mock complex sub-components
 vi.mock("../home/FlipCard", () => ({
@@ -63,17 +70,17 @@ const defaultProps = {
 
 describe("ComponentGalleryPage", () => {
   it("renders with data-testid='component-gallery-page'", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     expect(screen.getByTestId("component-gallery-page")).toBeTruthy();
   });
 
   it("shows hero title 'Component gallery'", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     expect(screen.getByText("Component gallery")).toBeTruthy();
   });
 
   it("renders navigation preview items (Focus, Today, Upcoming, Tune-up)", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     expect(screen.getByText("Focus")).toBeTruthy();
     expect(screen.getByText("Today")).toBeTruthy();
     expect(screen.getByText("Upcoming")).toBeTruthy();
@@ -81,14 +88,14 @@ describe("ComponentGalleryPage", () => {
   });
 
   it("shows filter input", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     const input = screen.getByPlaceholderText(PLACEHOLDER);
     expect(input).toBeTruthy();
     expect(input.tagName).toBe("INPUT");
   });
 
   it("filters sections when filter text is typed", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     // All 6 sections visible initially (check by counting section cards)
     const initialSections = screen.getAllByText(/Actions and affordances|Workspace rail items|Search and view switching|Task chips and metadata|Live list row specimens|Account launcher and color tokens/);
     expect(initialSections.length).toBeGreaterThan(0);
@@ -103,7 +110,7 @@ describe("ComponentGalleryPage", () => {
   });
 
   it("shows empty state when filter matches nothing", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     const filterInput = screen.getByPlaceholderText(PLACEHOLDER);
     fireEvent.change(filterInput, { target: { value: "xyznonexistent" } });
 
@@ -112,7 +119,7 @@ describe("ComponentGalleryPage", () => {
   });
 
   it("clear filter button resets filter", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     const filterInput = screen.getByPlaceholderText(PLACEHOLDER);
     fireEvent.change(filterInput, { target: { value: "xyznonexistent" } });
 
@@ -128,18 +135,18 @@ describe("ComponentGalleryPage", () => {
   });
 
   it("renders task row specimens (TodoRow components)", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     expect(screen.getByTestId("todo-row-preview-rich-row")).toBeTruthy();
     expect(screen.getByTestId("todo-row-preview-done-row")).toBeTruthy();
   });
 
   it("ProfileLauncher renders with sample user", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     expect(screen.getByTestId("mock-profile-launcher")).toBeTruthy();
   });
 
   it("view toggle buttons render (list/board mode)", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     const listButton = screen.getByRole("button", { name: "List preview" });
     const boardButton = screen.getByRole("button", { name: "Board preview" });
     expect(listButton).toBeTruthy();
@@ -147,12 +154,12 @@ describe("ComponentGalleryPage", () => {
   });
 
   it("UndoToast renders", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     expect(screen.getByTestId("mock-undo-toast")).toBeTruthy();
   });
 
   it("section count displays correctly (6)", () => {
-    render(createElement(ComponentGalleryPage, defaultProps));
+    renderGallery(defaultProps);
     // The hero stats show "6" for Live modules
     const stats = screen.getAllByText("6");
     expect(stats.length).toBeGreaterThan(0);

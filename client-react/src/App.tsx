@@ -4,6 +4,7 @@ import { AuthPage } from "./auth/AuthPage";
 import { FeedbackView } from "./views/FeedbackView";
 import { AppShell } from "./components/layout/AppShell";
 import { MobileShell } from "./mobile/MobileShell";
+import { ToastProvider } from "./components/ui/ToastProvider";
 import { useIsMobile } from "./hooks/useIsMobile";
 import "./styles/app.css";
 import { navigateWithFade } from "./utils/pageTransitions";
@@ -81,5 +82,9 @@ function AppContent() {
 }
 
 export function App() {
-  return <AppContent />;
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
 }
