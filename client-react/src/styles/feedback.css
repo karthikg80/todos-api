@@ -41,7 +41,7 @@
 .feedback-standalone__back {
   color: var(--muted);
   text-decoration: none;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   background: none;
   border: none;
   cursor: pointer;
@@ -67,7 +67,7 @@
 
 .feedback-standalone__lede {
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   margin: 0 0 var(--s-5);
   line-height: var(--lh-relaxed);
 }
@@ -80,7 +80,7 @@
   justify-content: center;
   padding: var(--s-2) var(--s-4);
   border-radius: var(--r-sm);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: var(--fw-semibold);
   font-family: inherit;
   cursor: pointer;
@@ -127,7 +127,7 @@
   text-align: center;
   color: var(--muted);
   padding: var(--s-8) 0;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
 }
 
 .feedback-list__item {
@@ -168,7 +168,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--text);
 }
 
@@ -232,7 +232,7 @@
 }
 
 .feedback-form__label {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: var(--fw-medium);
   color: var(--text);
 }
@@ -256,7 +256,7 @@
 .feedback-form__textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: var(--shadow-focus);
+  box-shadow: var(--ring);
 }
 
 .feedback-form__input::placeholder,
@@ -283,7 +283,7 @@
   background: color-mix(in oklab, var(--danger) 10%, transparent);
   color: var(--danger);
   border: 1px solid color-mix(in oklab, var(--danger) 20%, transparent);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
 }
 
 .feedback-form__context {
@@ -350,7 +350,7 @@
   background: none;
   border: none;
   color: var(--accent);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: var(--fw-medium);
   cursor: pointer;
   font-family: inherit;
@@ -372,7 +372,7 @@
 .feedback-confirmation p {
   margin: 0 0 var(--s-3);
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   line-height: var(--lh-relaxed);
 }
 

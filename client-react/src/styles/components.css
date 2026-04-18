@@ -1,0 +1,11 @@
+/* ════════════════════════════════════════════════════════════════════
+   Design System v2 — components layer
+   Reserved for shared component primitives (.btn, .chip, .input, .cbx,
+   .toast, .skel, .todo-row, …). Populated in PR 2; kept as an empty
+   layer today so the cascade order is established and later additions
+   slot in without reshuffling existing view-layer styles.
+   ════════════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* intentionally empty — see PR 2 */
+}

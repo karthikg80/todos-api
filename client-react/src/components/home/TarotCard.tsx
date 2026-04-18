@@ -40,7 +40,7 @@ export function TarotCardFront({
 
   return (
     <div
-      className="tarot-frame"
+      className="tarot-card tarot-frame"
       style={
         agent
           ? { borderColor: agent.colors.stroke, background: agent.colors.bg }
@@ -130,7 +130,7 @@ export function TarotCardBack({
 
   return (
     <div
-      className="tarot-frame"
+      className="tarot-card tarot-frame"
       style={
         agent
           ? { borderColor: agent.colors.stroke, background: agent.colors.bg }

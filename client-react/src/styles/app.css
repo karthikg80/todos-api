@@ -1,19 +1,25 @@
+/* ════════════════════════════════════════════════════════════════════
+   Design System v2 — cascade entry point
+   Layer order (low → high precedence): tokens → base → components → views.
+   Token declarations, global resets and the focus-ring recipe live in
+   their own layers; this file wraps view / page styling in @layer views.
+   ════════════════════════════════════════════════════════════════════ */
+
+@layer tokens, base, components, views;
+
 @import "./tokens.css";
+@import "./base.css";
+@import "./components.css";
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-  margin: 0;
-}
+@layer views {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+  }
 
-/* Global focus-visible — consistent accent ring on keyboard nav */
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-/* Smooth scrollbars */
+  /* Smooth scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -444,7 +450,7 @@ body {
 .todo-item:focus-visible {
   outline: none;
   border-color: color-mix(in oklab, var(--accent) 30%, transparent);
-  box-shadow: var(--shadow-focus);
+  box-shadow: var(--ring);
 }
 
 /* Custom checkbox — replaces native browser checkbox */
@@ -490,7 +496,7 @@ body {
 
 .todo-checkbox:focus-visible {
   outline: none;
-  box-shadow: var(--shadow-focus);
+  box-shadow: var(--ring);
   outline-offset: 2px;
 }
 
@@ -826,7 +832,7 @@ body {
 .todo-drawer__textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: var(--shadow-focus);
+  box-shadow: var(--ring);
   background: var(--accent-light);
 }
 
@@ -1232,7 +1238,7 @@ body {
 
 .btn:focus-visible {
   outline: none;
-  box-shadow: var(--shadow-focus);
+  box-shadow: var(--ring);
 }
 
 .btn:disabled {
@@ -1264,7 +1270,7 @@ body {
 }
 
 .btn--danger:focus-visible {
-  box-shadow: var(--shadow-focus-danger);
+  box-shadow: var(--ring-danger);
 }
 
 /* --- Filter bar --- */
@@ -1447,7 +1453,7 @@ body {
   color: #fff;
   padding: var(--s-3) var(--s-5);
   border-radius: var(--r-sm);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   display: flex;
   align-items: center;
   gap: var(--s-4);
@@ -2077,7 +2083,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   z-index: 200;
   overflow: hidden;
   animation: profilePanelIn var(--dur-base) var(--ease-spring);
@@ -2199,7 +2205,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   animation: viewMenuIn var(--dur-base) var(--ease-spring);
   overflow: hidden;
 }
@@ -2215,7 +2221,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   z-index: 200;
   overflow: hidden;
   animation: viewMenuIn var(--dur-base) var(--ease-spring);
@@ -2361,7 +2367,7 @@ body {
   background: var(--surface);
   border-radius: var(--r-md);
   width: min(420px, calc(100vw - var(--s-6)));
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
 }
 
@@ -2639,7 +2645,7 @@ body {
   padding: var(--s-3);
   background: var(--surface);
   border-radius: var(--r-sm);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-sm);
   cursor: grab;
   transition:
     transform var(--dur-fast) var(--ease-spring),
@@ -2647,12 +2653,12 @@ body {
 }
 
 .board__card:hover {
-  box-shadow: var(--shadow-card);
+  box-shadow: var(--shadow-md);
 }
 
 .board__card:focus-visible {
   outline: none;
-  box-shadow: var(--shadow-focus), var(--shadow-card);
+  box-shadow: var(--ring), var(--shadow-md);
 }
 
 .board__card:active {
@@ -3058,7 +3064,7 @@ body {
 .focus-panel {
   background: var(--surface);
   border-radius: var(--r-lg);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   padding: var(--s-4);
 }
 
@@ -3160,6 +3166,28 @@ body {
   inset: 0;
   background: var(--tarot-parchment-dark);
   overflow-y: auto;
+}
+
+/* ── Tarot-card palette (scoped) ───────────
+   Previously global in tokens.css; moved here to keep the palette
+   bounded to the tarot card surface and the home-dashboard container
+   so descendants (`.tarot-*`, `.flip-card`, `.timeline`, `.dog-ear`, …)
+   still resolve, without leaking colors into generic UI. */
+.tarot-card,
+.home-dashboard {
+  --tarot-parchment: #faf8f5;
+  --tarot-parchment-dark: #f7f4ee;
+  --tarot-frame: #e0dbd3;
+  --tarot-border: #e8e4de;
+  --tarot-text: #3d3730;
+  --tarot-muted: #8a7e6e;
+  --tarot-gold: #b8a080;
+  --tarot-sage: #8a9a8e;
+  --tarot-red: #c45a3c;
+  --tarot-amber: #d4864a;
+  --tarot-warm: #daa85c;
+  --tarot-faint: #d0c8b8;
+  --tarot-tabletop: #f0ece4;
 }
 
 /* Inner frame — printed margin effect */
@@ -4007,7 +4035,7 @@ body {
   background: var(--surface);
   border-radius: var(--r-md);
   width: min(560px, calc(100vw - var(--s-6)));
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
 }
@@ -4114,7 +4142,7 @@ body {
   padding: var(--s-7) var(--s-6);
   max-width: 480px;
   width: calc(100% - var(--s-6));
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   text-align: center;
 }
 
@@ -4678,7 +4706,7 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--r-md);
-  box-shadow: var(--shadow-elevated);
+  box-shadow: var(--shadow-lg);
   z-index: 200;
   overflow: hidden;
   animation: viewMenuIn var(--dur-base) var(--ease-spring);
@@ -8108,7 +8136,7 @@ body {
 .task-picker__search:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: var(--shadow-focus);
+  box-shadow: var(--ring);
 }
 
 .task-picker__dropdown {
@@ -8503,12 +8531,12 @@ body {
 .chip {
   padding: 3px 10px;
   border-radius: 20px;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: 500;
   cursor: pointer;
   border: 1.5px solid transparent;
   background: var(--surface-3);
-  color: var(--text-2);
+  color: var(--muted);
   transition:
     background var(--dur-fast),
     color var(--dur-fast),
@@ -8529,7 +8557,7 @@ body {
 
 /* Chip tone colors */
 .chip--muted {
-  color: var(--text-2);
+  color: var(--muted);
 }
 .chip--muted.chip--selected {
   background: var(--surface-3);
@@ -8601,12 +8629,12 @@ body {
 .date-shortcut {
   padding: 2px 8px;
   border-radius: var(--r-sm);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: 500;
   cursor: pointer;
   border: 1.5px solid var(--border);
   background: var(--surface-2);
-  color: var(--text-2);
+  color: var(--muted);
   transition:
     background var(--dur-fast),
     border-color var(--dur-fast),
@@ -8624,7 +8652,7 @@ body {
   flex: 1;
   min-width: 120px;
   padding: 3px 6px;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   border: 1.5px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
@@ -8635,7 +8663,7 @@ body {
 .field-date-shortcuts__clear {
   padding: 2px 6px;
   border-radius: var(--r-sm);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   cursor: pointer;
   border: none;
   background: none;
@@ -8663,7 +8691,7 @@ body {
   background: none;
   padding: var(--s-1) 0;
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   text-align: left;
   transition: color var(--dur-fast);
 }
@@ -8692,7 +8720,7 @@ body {
 .field-collapsible__textarea {
   width: 100%;
   padding: var(--s-2) var(--s-3);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   border: 1.5px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
@@ -8739,12 +8767,12 @@ body {
 .estimate-preset {
   padding: 2px 8px;
   border-radius: var(--r-sm);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: 500;
   cursor: pointer;
   border: 1.5px solid var(--border);
   background: var(--surface-2);
-  color: var(--text-2);
+  color: var(--muted);
   transition:
     background var(--dur-fast),
     border-color var(--dur-fast),
@@ -8761,7 +8789,7 @@ body {
 .field-estimate-presets__input {
   width: 70px;
   padding: 3px 6px;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   border: 1.5px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
@@ -8770,7 +8798,7 @@ body {
 }
 
 .field-estimate-presets__unit {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--muted);
 }
 
@@ -8807,8 +8835,8 @@ body {
   border: none;
   background: none;
   cursor: pointer;
-  color: var(--text-2);
-  font-size: var(--fs-sm);
+  color: var(--muted);
+  font-size: var(--fs-meta);
   font-weight: 500;
   transition:
     background var(--dur-fast),
@@ -8822,7 +8850,7 @@ body {
 
 .task-full-page__save-status {
   margin-left: auto;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--muted);
 }
 
@@ -8887,7 +8915,7 @@ body {
 .task-full-page__textarea {
   width: 100%;
   padding: var(--s-3) var(--s-4);
-  font-size: var(--fs-base);
+  font-size: var(--fs-body);
   border: 1.5px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
@@ -8916,7 +8944,7 @@ body {
 .task-full-page__input {
   width: 100%;
   padding: var(--s-2) var(--s-3);
-  font-size: var(--fs-base);
+  font-size: var(--fs-body);
   border: 1.5px solid var(--border);
   border-radius: var(--r-sm);
   background: var(--surface);
@@ -8966,7 +8994,7 @@ body {
 }
 
 .task-full-page__meta {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--muted);
 }
 
@@ -9029,7 +9057,7 @@ body {
   border: 1.5px solid var(--border);
   background: var(--surface);
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: var(--fw-medium);
   font-family: inherit;
   cursor: pointer;
@@ -9223,7 +9251,7 @@ body {
 
 .field-preset-custom:focus {
   outline: none;
-  box-shadow: var(--shadow-focus);
+  box-shadow: var(--ring);
 }
 
 /* ── Collapsible prompt variant ─────────────────────────────────── */
@@ -9443,7 +9471,7 @@ body {
 }
 
 .tuneup-view__refresh {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--accent);
   background: none;
   border: 1px solid var(--accent);
@@ -9482,7 +9510,7 @@ body {
   border: none;
   cursor: pointer;
   text-align: left;
-  font-size: var(--fs-base);
+  font-size: var(--fs-body);
   color: var(--text);
 }
 
@@ -9537,7 +9565,7 @@ body {
 .tuneup-section__retry {
   padding: var(--s-1) var(--s-3);
   margin-right: var(--s-2);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--accent);
   background: none;
   border: 1px solid var(--accent);
@@ -9555,13 +9583,13 @@ body {
 
 .tuneup-section__error {
   color: var(--danger);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   padding: var(--s-2) 0;
 }
 
 .tuneup-section__placeholder {
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   padding: var(--s-2) 0;
 }
 
@@ -9572,7 +9600,7 @@ body {
   align-items: center;
   gap: var(--s-2);
   color: var(--success, #27ae60);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   padding: var(--s-2) 0;
 }
 
@@ -9630,7 +9658,7 @@ body {
 
 .tuneup-row__title {
   flex: 1;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--text);
   line-height: var(--lh-snug);
   min-width: 0;
@@ -9673,7 +9701,7 @@ body {
 
 .tuneup-row__edit-input {
   flex: 1;
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--text);
   background: var(--surface-1);
   border: 1px solid var(--accent);
@@ -9729,12 +9757,12 @@ body {
   align-items: center;
   gap: var(--s-2);
   color: var(--muted);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   animation: tuneup-pulse 1.4s ease-in-out infinite;
 }
 
 .tuneup-tile__finding {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--text);
   line-height: var(--lh-snug);
 }
@@ -9783,11 +9811,11 @@ body {
   align-items: center;
   gap: var(--s-2);
   color: var(--success, #27ae60);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
 }
 
 .tuneup-tile__error {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   color: var(--danger);
 }
 
@@ -11300,7 +11328,7 @@ body.dark-mode {
 }
 
 .project-workspace-card__next-effort-value {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--text-primary);
 }
@@ -11383,7 +11411,7 @@ body.dark-mode {
 }
 
 .panel-right-now__title {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--text);
 }
@@ -11407,7 +11435,7 @@ body.dark-mode {
 }
 
 .panel-today-agenda__title {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--text);
 }
@@ -11442,7 +11470,7 @@ body.dark-mode {
 .panel-nudge__title,
 .panel-track__title,
 .panel-rescue__title {
-  font-size: var(--fs-sm);
+  font-size: var(--fs-meta);
   font-weight: 600;
   color: var(--text);
 }
@@ -11729,3 +11757,5 @@ body.dark-mode {
   opacity: 0.7;
   margin-top: 4px;
 }
+}
+/* ── end @layer views ───────────────────── */
