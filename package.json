@@ -12,6 +12,8 @@
     "postinstall": "npm run build",
     "check:architecture": "node scripts/check-architecture-invariants.mjs",
     "check:harness-drift": "node scripts/check-harness-drift.mjs",
+    "tokens:to-swift": "ts-node scripts/tokens-to-swift.ts",
+    "tokens:check": "ts-node scripts/tokens-to-swift.ts --check",
     "harness:cleanup-report": "node scripts/harness/cleanup-report.mjs",
     "test": "npm run test:unit",
     "test:all": "NODE_ENV=test jest --runInBand",

@@ -26,6 +26,7 @@ jobs:
       frontend: ${{ steps.filter.outputs.frontend }}
       ui_tests: ${{ steps.filter.outputs.ui_tests }}
       shared_contracts: ${{ steps.filter.outputs.shared_contracts }}
+      tokens: ${{ steps.filter.outputs.tokens }}
       workflow: ${{ steps.filter.outputs.workflow }}
     steps:
       - name: Checkout
@@ -67,6 +68,10 @@ jobs:
             shared_contracts:
               - 'src/types.ts'
               - 'src/validation/constants.ts'
+            tokens:
+              - 'client-react/src/styles/tokens.css'
+              - 'ios/TodosApp/TodosApp/Core/Theme/DesignTokens.swift'
+              - 'scripts/tokens-to-swift.ts'
             workflow:
               - '.github/workflows/**'
 
@@ -147,6 +152,32 @@ jobs:
 
       - name: Architecture guard
         run: npm run check:architecture
+
+  # ─────────────────────────────────────────────────────────────
+  # 2c-bis. Design-system tokens — verify iOS catalog matches web
+  # ─────────────────────────────────────────────────────────────
+  tokens-check:
+    needs: changes
+    if: >-
+      github.event_name != 'pull_request' ||
+      needs.changes.outputs.tokens == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Tokens drift check
+        run: npm run tokens:check
 
   # ─────────────────────────────────────────────────────────────
   # 2d. Fast feedback — audit prod deps (PRs: code changes)
