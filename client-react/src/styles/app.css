@@ -131,11 +131,23 @@ body {
   padding-bottom: var(--s-2);
 }
 
+.sidebar-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2h);
+  min-width: 0;
+}
+
+.sidebar-header__mark {
+  flex-shrink: 0;
+}
+
 .sidebar-header__logo {
   font-size: var(--fs-md);
   font-weight: var(--fw-bold);
   letter-spacing: var(--tracking-tight);
   color: var(--text-strong);
+  font-family: var(--font-display, inherit);
 }
 
 .sidebar-header__collapse {
