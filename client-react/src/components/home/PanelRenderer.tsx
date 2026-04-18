@@ -185,8 +185,8 @@ function DueSoonPanel({
                   width: `${Math.round((group.items.length / maxCount) * 100)}%`,
                   height: "100%",
                   background: group.items.some((i: any) => i.overdue)
-                    ? "var(--tarot-red)"
-                    : "var(--tarot-amber)",
+                    ? "var(--viz-4)"
+                    : "var(--viz-2)",
                   borderRadius: 2,
                 }}
               />

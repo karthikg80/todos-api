@@ -233,6 +233,23 @@ const CHIP_FAMILIES: ChipFamily[] = [
   "ai",
 ];
 
+const VIZ_CATEGORICAL = [
+  { token: "--viz-1", label: "viz-1 · accent" },
+  { token: "--viz-2", label: "viz-2 · amber" },
+  { token: "--viz-3", label: "viz-3 · green" },
+  { token: "--viz-4", label: "viz-4 · red" },
+  { token: "--viz-5", label: "viz-5 · purple" },
+  { token: "--viz-6", label: "viz-6 · teal" },
+];
+
+const VIZ_SEQUENTIAL = [
+  "--viz-seq-1",
+  "--viz-seq-2",
+  "--viz-seq-3",
+  "--viz-seq-4",
+  "--viz-seq-5",
+];
+
 export function ComponentGalleryPage({ dark, onBack }: Props) {
   const [filterText, setFilterText] = useState("");
   const [searchPreviewValue, setSearchPreviewValue] = useState("overdue");
@@ -566,6 +583,87 @@ export function ComponentGalleryPage({ dark, onBack }: Props) {
             <Skeleton shape="chip" />
             <Skeleton shape="chip" />
           </div>
+        </div>
+      ),
+    },
+    {
+      id: "ds-dataviz",
+      eyebrow: "Design System · Data-viz",
+      title: "Categorical + sequential palettes",
+      keywords: [
+        "data-viz",
+        "chart",
+        "palette",
+        "viz",
+        "sequential",
+        "categorical",
+        "colorblind",
+        "okabe-ito",
+      ],
+      content: (
+        <div className="component-gallery__ds-grid">
+          <div
+            className="component-gallery__ds-row"
+            style={{ alignItems: "flex-end", gap: "var(--s-2)" }}
+          >
+            {VIZ_CATEGORICAL.map((swatch, index) => (
+              <div
+                key={swatch.token}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: "var(--s-1)",
+                }}
+              >
+                <div
+                  aria-hidden="true"
+                  style={{
+                    width: 32,
+                    height: 16 + index * 12,
+                    background: `var(${swatch.token})`,
+                    borderRadius: "var(--r-xs)",
+                  }}
+                />
+                <span
+                  style={{
+                    color: "var(--muted-strong)",
+                    fontSize: "var(--fs-xs)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  {swatch.label}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div
+            className="component-gallery__ds-row"
+            style={{ gap: 0, borderRadius: "var(--r-xs)", overflow: "hidden" }}
+            aria-label="Sequential palette"
+          >
+            {VIZ_SEQUENTIAL.map((token) => (
+              <div
+                key={token}
+                aria-hidden="true"
+                style={{
+                  flex: 1,
+                  height: 20,
+                  background: `var(${token})`,
+                }}
+              />
+            ))}
+          </div>
+          <span
+            style={{
+              color: "var(--muted)",
+              fontSize: "var(--fs-label)",
+            }}
+          >
+            Categorical palette is Okabe-Ito adapted — colorblind-safe for
+            comparing up to six series. Sequential steps follow the accent hue
+            for magnitude-ordered data (heatmaps, gradients).
+          </span>
         </div>
       ),
     },
