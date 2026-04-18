@@ -1,5 +1,10 @@
 // Set NODE_ENV before any imports
 process.env.NODE_ENV = "test";
+// Ensure GITHUB_TOKEN is set before modules transitively import ./config.
+// GitHubIssueSearchService.createIssue() early-throws when the token is
+// missing (#643). Feedback integration tests mock `global.fetch`, so the
+// value here just needs to be truthy — no real network is reached.
+process.env.GITHUB_TOKEN = process.env.GITHUB_TOKEN || "test-github-token";
 
 import { prisma } from "../src/prismaClient";
 import { isDbRequiredTestPath } from "./dbTestConfig";
