@@ -1,0 +1,138 @@
+version: 2
+updates:
+  # Backend (Node/Express/Prisma)
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - area/backend
+    commit-message:
+      prefix: "chore(deps)"
+      include: scope
+    groups:
+      prisma:
+        patterns:
+          - "@prisma/*"
+          - "prisma"
+      types:
+        patterns:
+          - "@types/*"
+      jest:
+        patterns:
+          - "jest"
+          - "ts-jest"
+          - "@types/jest"
+      linting:
+        patterns:
+          - "prettier"
+          - "stylelint*"
+          - "html-validate"
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - "@prisma/*"
+          - "prisma"
+          - "@types/*"
+          - "jest"
+          - "ts-jest"
+
+  # React client
+  - package-ecosystem: npm
+    directory: "/client-react"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - area/web
+    commit-message:
+      prefix: "chore(deps-react)"
+      include: scope
+    groups:
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+          - "@types/react"
+          - "@types/react-dom"
+      vite:
+        patterns:
+          - "vite"
+          - "@vitejs/*"
+      testing:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+          - "@testing-library/*"
+          - "jsdom"
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # CLI package
+  - package-ecosystem: npm
+    directory: "/cli"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - area/cli
+    commit-message:
+      prefix: "chore(deps-cli)"
+      include: scope
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Python agent-runner
+  - package-ecosystem: pip
+    directory: "/agent-runner"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    labels:
+      - dependencies
+      - area/agent-runner
+    commit-message:
+      prefix: "chore(deps-py)"
+      include: scope
+    groups:
+      minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - area/ci
+    commit-message:
+      prefix: "chore(deps-ci)"
+      include: scope
+    groups:
+      actions:
+        patterns:
+          - "*"
