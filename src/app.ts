@@ -72,6 +72,9 @@ import { createAgentActivityRouter } from "./routes/agentActivityRouter";
 import { DayPlanService } from "./services/dayPlanService";
 import { UserAdaptationService } from "./services/userAdaptationService";
 import { AdaptationLlmInferenceService } from "./services/adaptationLlmInference";
+import { AdaptationProjectInferenceService } from "./services/adaptationProjectInferenceService";
+import { PlanningPreferencesService } from "./services/planningPreferencesService";
+import { AgentActivityService } from "./services/agentActivityService";
 import { AreaService } from "./services/areaService";
 import { GoalService } from "./services/goalService";
 import {
@@ -492,7 +495,13 @@ export function createApp(deps: AppDependencies = {}) {
   }
 
   if (persistencePrisma) {
-    app.use("/preferences", createPreferencesRouter(persistencePrisma));
+    const planningPreferencesService = new PlanningPreferencesService(
+      persistencePrisma,
+    );
+    app.use(
+      "/preferences",
+      createPreferencesRouter(planningPreferencesService),
+    );
 
     const areaService = new AreaService(persistencePrisma);
     app.use(
@@ -546,12 +555,17 @@ export function createApp(deps: AppDependencies = {}) {
       activityEventService,
     );
     const llmInferenceService = new AdaptationLlmInferenceService();
+    const adaptationProjectInferenceService =
+      new AdaptationProjectInferenceService(
+        persistencePrisma,
+        adaptationService,
+        llmInferenceService,
+      );
     app.use(
       "/adaptation",
       createAdaptationRouter({
         adaptationService,
-        llmInferenceService,
-        prisma: persistencePrisma,
+        projectInferenceService: adaptationProjectInferenceService,
         resolveUserId: resolveAiUserId,
       }),
     );
@@ -565,7 +579,8 @@ export function createApp(deps: AppDependencies = {}) {
       }),
     );
 
-    app.use(createAgentActivityRouter(persistencePrisma));
+    const agentActivityService = new AgentActivityService(persistencePrisma);
+    app.use(createAgentActivityRouter(agentActivityService));
   }
 
   app.use(errorHandler);
