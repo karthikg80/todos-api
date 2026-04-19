@@ -49,7 +49,7 @@ A `commit-msg` hook enforces conventional commit format. Hooks run after `npm ci
 
 ### Shared contract
 
-`src/types.ts` is the canonical source of truth for all API types and enums. When this file changes, all clients (React, iOS DTOs) must stay in sync. Mention cross-client impact in the PR description. CI will automatically verify that iOS compiles (`swift build`) and React typechecks (`tsc --noEmit`) when `src/types.ts` or `src/validation/constants.ts` change.
+`src/types.ts` is canonical for **backend domain types** (internal shapes used by services — e.g. `createdAt: Date`). Client-facing **transport DTOs** live in `src/transport/` and are defined by Zod schemas; their inferred types are what React, iOS, and Python consume on the wire (ISO strings, not `Date`). See [docs/adr/006-transport-contract-source-of-truth.md](docs/adr/006-transport-contract-source-of-truth.md) for the split and the iOS/Python sync paths. When the shared contract changes, mention cross-client impact in the PR description. CI runs `swift build` and React `tsc --noEmit` when `src/types.ts` or `src/validation/constants.ts` change.
 
 ## Clean Code + Architecture (REQUIRED)
 

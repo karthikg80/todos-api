@@ -23,12 +23,15 @@ description: Conventions for the SwiftUI iOS app in ios/TodosApp/
 
 ## Shared Contract
 
-`src/types.ts` is the source of truth. iOS models live in `ios/TodosApp/TodosApp/Core/Models/`.
+iOS DTOs mirror the backend's **transport contract**, not `src/types.ts` directly. Per [ADR-006](../../../docs/adr/006-transport-contract-source-of-truth.md), transport is defined by Zod schemas in `src/transport/` (backend); date fields are ISO 8601 strings on the wire and `src/types.ts` is canonical for backend domain types only. iOS models live in `ios/TodosApp/TodosApp/Core/Models/` and remain hand-maintained.
 
-When `src/types.ts` changes (new enums, new fields):
+When the transport contract changes (new enums, new fields):
+
 1. Update `Enums.swift` for new enum cases
 2. Update the relevant DTO file for new fields (as optionals to avoid decoding failures)
 3. Verify `swift build` passes
+
+Story 1.3 will add a CI check that compares iOS DTO field names against the generated OpenAPI spec to catch drift before merge.
 
 ## Build & Test
 
