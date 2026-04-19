@@ -7,6 +7,12 @@ import {
   projectHasNextAction,
   projectTasksForProject,
 } from "./services/plannerHeuristics";
+import {
+  buildCriticalPath,
+  buildDecisionReason,
+  clampHealthScore,
+  scoreTaskForDecision,
+} from "./services/planner/plannerHeuristics";
 
 const USER_ID = "user-1";
 
@@ -124,6 +130,56 @@ describe("plannerHeuristics", () => {
     expect(suggestion?.status).toBe("next");
   });
 
+  it("derives a review action from the oldest open task when nothing is waiting", () => {
+    const project = makeProject("project-1", "Platform");
+    const tasks = [
+      makeTask("task-1", "Recently updated task", {
+        projectId: project.id,
+        category: project.name,
+        status: "scheduled",
+        updatedAt: new Date("2026-03-10T12:00:00.000Z"),
+        priority: "low",
+      }),
+      makeTask("task-2", "Oldest task", {
+        projectId: project.id,
+        category: project.name,
+        status: "scheduled",
+        updatedAt: new Date("2026-03-01T12:00:00.000Z"),
+        priority: "high",
+      }),
+    ];
+
+    const suggestion = deriveNextAction(project, tasks);
+
+    expect(suggestion).toEqual({
+      title: "Review Oldest task and choose the next step",
+      description:
+        "Use the current project state to turn Oldest task into one concrete action for Platform.",
+      priority: "high",
+      status: "next",
+      reason:
+        "The project has open work but nothing explicitly actionable right now.",
+    });
+  });
+
+  it("creates a first-step suggestion when the project has no open tasks", () => {
+    const project = makeProject("project-1", "Platform", {
+      goal: "Ship planner improvements",
+      priority: "urgent",
+    });
+
+    const suggestion = deriveNextAction(project, []);
+
+    expect(suggestion).toEqual({
+      title: "Define the first concrete step for Ship planner improvements",
+      description:
+        "Capture the first action that would move Platform forward this week.",
+      priority: "urgent",
+      status: "next",
+      reason: "The project has no open tasks yet and needs a starting action.",
+    });
+  });
+
   it("uses canonical projectId when matching project tasks", () => {
     const project = makeProject("project-1", "Platform");
     const matchingTask = makeTask("task-1", "Canonical task", {
@@ -186,5 +242,90 @@ describe("plannerHeuristics", () => {
         "follow_up_waiting_task",
       ]),
     );
+  });
+
+  it("scores decision candidates higher when they fit context, time, and project goals", () => {
+    const now = new Date("2026-03-12T12:00:00.000Z");
+    const project = makeProject("project-1", "Platform");
+    const alignedTask = makeTask("task-1", "Ship planner update", {
+      projectId: project.id,
+      status: "next",
+      priority: "high",
+      dueDate: new Date("2026-03-13T12:00:00.000Z"),
+      context: "office",
+      energy: "medium",
+      estimateMinutes: 30,
+    });
+    const blockedTask = makeTask("task-2", "Unblock analytics", {
+      status: "scheduled",
+      priority: "high",
+      dueDate: new Date("2026-03-20T12:00:00.000Z"),
+      context: "home",
+      energy: "high",
+      estimateMinutes: 120,
+    });
+
+    const alignedScore = scoreTaskForDecision({
+      task: alignedTask,
+      now,
+      blocked: false,
+      availableMinutes: 45,
+      availableEnergy: "medium",
+      contexts: ["office"],
+      dependentCount: 2,
+      goalIndex: new Map([
+        ["goal-1", { targetDate: new Date("2026-03-20T12:00:00.000Z") }],
+      ]),
+      projectGoalMap: new Map([[project.id, "goal-1"]]),
+      soulModifiers: {
+        statusBoosts: {
+          next: 7,
+        },
+      },
+    });
+    const blockedScore = scoreTaskForDecision({
+      task: blockedTask,
+      now,
+      blocked: true,
+      availableMinutes: 45,
+      availableEnergy: "medium",
+      contexts: ["office"],
+      dependentCount: 0,
+    });
+
+    expect(alignedScore).toBeGreaterThan(blockedScore);
+  });
+
+  it("explains why a task is recommended and computes the critical path", () => {
+    const blockedTask = makeTask("task-1", "Blocked dependency", {
+      status: "next",
+      priority: "high",
+      dueDate: new Date("2026-03-13T12:00:00.000Z"),
+    });
+    const middleTask = makeTask("task-2", "Middle task", {
+      dependsOnTaskIds: ["task-1"],
+    });
+    const endTask = makeTask("task-3", "End task", {
+      dependsOnTaskIds: ["task-2"],
+    });
+
+    expect(
+      buildDecisionReason({
+        task: blockedTask,
+        now: new Date("2026-03-12T12:00:00.000Z"),
+        blocked: true,
+        dependentCount: 2,
+      }),
+    ).toBe(
+      "It is still blocked by an open dependency and it is due soon, it unblocks 2 other tasks, it has elevated priority.",
+    );
+    expect(
+      buildCriticalPath([blockedTask, middleTask, endTask]).map(
+        (task) => task.id,
+      ),
+    ).toEqual(["task-1", "task-2", "task-3"]);
+    expect(clampHealthScore(-4.6)).toBe(0);
+    expect(clampHealthScore(42.4)).toBe(42);
+    expect(clampHealthScore(120)).toBe(100);
   });
 });
