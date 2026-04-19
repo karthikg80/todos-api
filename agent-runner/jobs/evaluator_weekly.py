@@ -6,7 +6,7 @@ Called from main.py once per enrolled user. Runs weekly (Railway cron 0 3 * * 1)
 from __future__ import annotations
 
 import logging
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import Any
 
 from mcp_client import AgentApiError, AgentClient
