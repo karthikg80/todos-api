@@ -19,6 +19,7 @@ Navigation map for this directory.
 | `assistant-mcp.md`                      | Remote MCP adapter for assistant clients                                      |
 | `remote-mcp-auth.md`                    | Account linking, auth, scopes, and local testing for the remote MCP surface   |
 | `planner-runtime.md`                    | Planner runtime architecture and tool-to-engine mapping                       |
+| `engineering-backlog.md`                | GitHub-ready engineering backlog grounded in verified repo state              |
 | `harness/`                              | Repo harness docs: session flow, evals, and invariant matrix                  |
 | `ops/railway-remote-mcp-deploy.md`      | Railway deployment runbook for the public MCP surface                         |
 | `ops/connector-smoke-checklist.md`      | Manual ChatGPT / Claude connector smoke checklist                             |
