@@ -30,7 +30,8 @@ vi.mock("./authApi", () => ({
 
 // Mock SocialButtons
 vi.mock("./SocialButtons", () => ({
-  SocialButtons: () => createElement("div", { "data-testid": "social-buttons" }),
+  SocialButtons: () =>
+    createElement("div", { "data-testid": "social-buttons" }),
 }));
 
 // Mock pageTransitions
@@ -73,7 +74,9 @@ describe("RegisterForm", () => {
 
   it("updates name input value on change", () => {
     render(createElement(RegisterForm, defaultProps));
-    const nameInput = screen.getByLabelText("Name (optional)") as HTMLInputElement;
+    const nameInput = screen.getByLabelText(
+      "Name (optional)",
+    ) as HTMLInputElement;
     fireEvent.change(nameInput, { target: { value: "Jane Doe" } });
     expect(nameInput.value).toBe("Jane Doe");
   });
@@ -139,7 +142,9 @@ describe("RegisterForm", () => {
 
   it("has correct autocomplete attributes", () => {
     render(createElement(RegisterForm, defaultProps));
-    const nameInput = screen.getByLabelText("Name (optional)") as HTMLInputElement;
+    const nameInput = screen.getByLabelText(
+      "Name (optional)",
+    ) as HTMLInputElement;
     const emailInput = screen.getByLabelText("Email") as HTMLInputElement;
     const passwordInput = screen.getByLabelText("Password") as HTMLInputElement;
     expect(nameInput.autocomplete).toBe("name");
@@ -149,12 +154,33 @@ describe("RegisterForm", () => {
 
   it("renders with 'Create your account' heading", () => {
     render(createElement(RegisterForm, defaultProps));
-    expect(screen.getByRole("heading", { name: "Create your account" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Create your account" }),
+    ).toBeTruthy();
   });
 
   it("has password minLength attribute", () => {
     render(createElement(RegisterForm, defaultProps));
     const passwordInput = screen.getByLabelText("Password") as HTMLInputElement;
     expect(passwordInput.minLength).toBe(8);
+  });
+
+  it("shows the backend error when registration fails", async () => {
+    vi.mocked(authApi.register).mockRejectedValueOnce(
+      new Error("Email already registered"),
+    );
+
+    render(createElement(RegisterForm, defaultProps));
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "taken@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "password123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Create Account" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).toBe("Email already registered");
   });
 });
