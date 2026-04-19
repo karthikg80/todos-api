@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { AuthService } from "../services/authService";
 import { isValidEmail } from "../validation/authValidation";
 import { DataExportService } from "../services/dataExportService";
@@ -21,7 +21,7 @@ export function createUsersRouter({
       windowMs: 60 * 60 * 1000,
       max: 1,
       keyGenerator: (req: Request) =>
-        (req as any).user?.userId || req.ip || "anon",
+        (req as any).user?.userId || ipKeyGenerator(req.ip || "anon"),
       message: { error: "Export limited to once per hour" },
     });
     const exportService = new DataExportService(persistencePrisma);

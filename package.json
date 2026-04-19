@@ -56,6 +56,9 @@
     "db:setup": "npm run docker:up && npm run db:wait && npm run prisma:migrate",
     "db:seed": "ts-node prisma/seed.ts",
     "dev:react": "npm --prefix client-react run dev",
+    "dev:https": "bash scripts/dev-https.sh",
+    "https:certs": "bash scripts/generate-local-https-certs.sh",
+    "https:proxy": "caddy run --config Caddyfile.local",
     "build:react": "npm --prefix client-react install --include=dev && npm --prefix client-react run build:all",
     "preview:react": "UI_PORT=4173 node scripts/ui-static-server.mjs",
     "prepare": "husky || true"

@@ -15,10 +15,16 @@ export function RegisterForm({ onSwitchToLogin, onSwitchToPhone }: Props) {
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [providers, setProviders] = useState<AuthProviders>({ google: false, apple: false, phone: false });
+  const [providers, setProviders] = useState<AuthProviders>({
+    google: false,
+    apple: false,
+    phone: false,
+  });
 
   useEffect(() => {
-    fetchProviders().then(setProviders).catch(() => {});
+    fetchProviders()
+      .then(setProviders)
+      .catch(() => {});
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -26,10 +32,15 @@ export function RegisterForm({ onSwitchToLogin, onSwitchToPhone }: Props) {
     setError(null);
     setSubmitting(true);
     try {
-      const result = await register({ email, password, name: name || undefined });
+      const result = await register({
+        email,
+        password,
+        name: name || undefined,
+      });
       setTokens(result.token, result.refreshToken, result.user);
       const next = new URLSearchParams(window.location.search).get("next");
-      const target = (next === "/app" || next?.startsWith("/app/")) ? next : "/app";
+      const target =
+        next === "/app" || next?.startsWith("/app/") ? next : "/app";
       window.location.href = target;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
@@ -78,15 +89,32 @@ export function RegisterForm({ onSwitchToLogin, onSwitchToPhone }: Props) {
         />
       </div>
       <div className="auth-form__actions">
-        <button type="submit" className="auth-form__submit" disabled={submitting}>
+        <button
+          type="submit"
+          className="auth-form__submit"
+          disabled={submitting}
+        >
           {submitting ? "Creating account…" : "Create Account"}
         </button>
       </div>
-      <button type="button" className="auth-form__link" onClick={onSwitchToLogin}>
+      {error && (
+        <p className="auth-form__error" role="alert">
+          {error}
+        </p>
+      )}
+      <button
+        type="button"
+        className="auth-form__link"
+        onClick={onSwitchToLogin}
+      >
         Already have an account? Log in
       </button>
       {providers.phone && (
-        <button type="button" className="auth-form__link" onClick={onSwitchToPhone}>
+        <button
+          type="button"
+          className="auth-form__link"
+          onClick={onSwitchToPhone}
+        >
           Sign up with phone
         </button>
       )}
