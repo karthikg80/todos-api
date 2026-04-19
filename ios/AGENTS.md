@@ -11,12 +11,15 @@ SwiftUI (iOS 17+) in `TodosApp/`. Swift Package — zero third-party dependencie
 
 ## Shared Contract
 
-`src/types.ts` (repo root) is the source of truth. iOS DTOs live in `TodosApp/TodosApp/Core/Models/`.
+iOS DTOs mirror the backend's **transport contract**, not `src/types.ts` directly. Per [ADR-006](../docs/adr/006-transport-contract-source-of-truth.md), transport is defined by Zod schemas in `src/transport/` (backend) and date fields are ISO 8601 strings on the wire. iOS DTOs live in `TodosApp/TodosApp/Core/Models/` and remain hand-maintained.
 
-When `src/types.ts` changes:
+When the transport contract changes:
+
 1. Update `Enums.swift` for new enum cases
 2. Update the relevant DTO file for new fields (as optionals)
 3. Verify `swift build` passes
+
+Story 1.3 will add a CI drift check that compares iOS DTO field names against the generated OpenAPI spec.
 
 ## Build
 

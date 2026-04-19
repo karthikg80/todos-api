@@ -27,6 +27,7 @@ Navigation map for this directory.
 | `agent-ops/`                            | Dual-agent protocol (state machine, review contract)                          |
 | `agent-queue/`                          | Legacy markdown task archive and historical prompts                           |
 | `architecture/`                         | Architecture invariants (structural rules)                                    |
+| `adr/`                                  | Architecture Decision Records (numbered, dated, reviewed)                     |
 | `memory/`                               | Canon / Brief / Index / Archive for context compaction                        |
 
 Task state lives in GitHub Issues and GitHub Projects. Docs are for durable guidance only.
