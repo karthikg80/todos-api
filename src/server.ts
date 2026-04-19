@@ -115,11 +115,38 @@ process.on("SIGINT", () => {
   void gracefulShutdown("SIGINT");
 });
 
-process.on("uncaughtException", (err) => {
-  console.error("uncaughtException", err);
+// Installing a listener on these events suppresses Node's default exit
+// behavior, so we must terminate explicitly. Flush Sentry with a short budget,
+// then exit non-zero. A force-exit timer guards against a hung flush.
+// Sentry.captureException / Sentry.close are no-ops when init was skipped, so
+// this preserves the pre-Sentry crash-on-fatal semantics when SENTRY_DSN is
+// unset.
+const FATAL_FLUSH_TIMEOUT_MS = 2000;
+const FATAL_FORCE_EXIT_MS = 3000;
+
+let terminating = false;
+
+function fatal(source: string, err: unknown): void {
+  if (terminating) return;
+  terminating = true;
+
+  console.error(source, err);
   Sentry.captureException(err);
-});
-process.on("unhandledRejection", (reason) => {
-  console.error("unhandledRejection", reason);
-  Sentry.captureException(reason);
-});
+
+  const forceExit = setTimeout(() => {
+    process.exit(1);
+  }, FATAL_FORCE_EXIT_MS);
+  forceExit.unref();
+
+  Sentry.close(FATAL_FLUSH_TIMEOUT_MS)
+    .catch(() => {})
+    .finally(() => {
+      clearTimeout(forceExit);
+      process.exit(1);
+    });
+}
+
+process.on("uncaughtException", (err) => fatal("uncaughtException", err));
+process.on("unhandledRejection", (reason) =>
+  fatal("unhandledRejection", reason),
+);
