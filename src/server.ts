@@ -1,3 +1,5 @@
+import "./instrument";
+import * as Sentry from "@sentry/node";
 import { createApp } from "./app";
 import { PrismaTodoService } from "./services/prismaTodoService";
 import { AuthService } from "./services/authService";
@@ -64,17 +66,41 @@ server.requestTimeout = config.requestTimeoutMs;
 server.headersTimeout = config.headersTimeoutMs;
 server.keepAliveTimeout = config.keepAliveTimeoutMs;
 
-// Graceful shutdown handlers
-async function gracefulShutdown(signal: string) {
+// Graceful shutdown: drain in-flight requests before closing Prisma. Protected
+// by a force-exit timer so a hung connection can't block a deploy.
+const SHUTDOWN_TIMEOUT_MS = (() => {
+  const raw = Number.parseInt(process.env.SHUTDOWN_TIMEOUT_MS ?? "25000", 10);
+  return Number.isFinite(raw) && raw > 0 ? raw : 25000;
+})();
+
+let shuttingDown = false;
+
+async function gracefulShutdown(signal: string): Promise<void> {
+  if (shuttingDown) return;
+  shuttingDown = true;
+
   console.log(`\n${signal} received. Starting graceful shutdown...`);
 
-  server.close(() => {
-    console.log("HTTP server closed");
-  });
+  const forceExit = setTimeout(() => {
+    console.error(
+      `Graceful shutdown timed out after ${SHUTDOWN_TIMEOUT_MS}ms; forcing exit`,
+    );
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+  forceExit.unref();
 
   try {
+    await new Promise<void>((resolve, reject) => {
+      server.close((err) => (err ? reject(err) : resolve()));
+    });
+    console.log("HTTP server closed");
+
     await disconnectPrisma();
     console.log("Database connections closed");
+
+    await Sentry.close(2000);
+
+    clearTimeout(forceExit);
     process.exit(0);
   } catch (error) {
     console.error("Error during shutdown:", error);
@@ -82,5 +108,18 @@ async function gracefulShutdown(signal: string) {
   }
 }
 
-process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
-process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+process.on("SIGTERM", () => {
+  void gracefulShutdown("SIGTERM");
+});
+process.on("SIGINT", () => {
+  void gracefulShutdown("SIGINT");
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("uncaughtException", err);
+  Sentry.captureException(err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("unhandledRejection", reason);
+  Sentry.captureException(reason);
+});

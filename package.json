@@ -72,6 +72,7 @@
   },
   "dependencies": {
     "@prisma/client": "^6.19.2",
+    "@sentry/node": "^8.55.1",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
