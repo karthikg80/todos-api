@@ -7,6 +7,7 @@ import {
   projectHasNextAction,
   projectTasksForProject,
 } from "./services/plannerHeuristics";
+import { scoreTaskForDecision } from "./services/planner/plannerHeuristics";
 
 const USER_ID = "user-1";
 
@@ -186,5 +187,48 @@ describe("plannerHeuristics", () => {
         "follow_up_waiting_task",
       ]),
     );
+  });
+
+  it("scores directly-linked goals higher than project fallback goals", () => {
+    const now = new Date("2026-03-12T12:00:00.000Z");
+    const targetDate = new Date("2026-03-20T12:00:00.000Z");
+    const directTask = makeTask("task-1", "Direct goal task", {
+      projectId: "project-1",
+      goalId: "goal-1",
+      status: "next",
+      priority: "high",
+    });
+    const fallbackTask = makeTask("task-2", "Project goal fallback task", {
+      projectId: "project-2",
+      status: "next",
+      priority: "high",
+    });
+
+    const goalIndex = new Map([
+      ["goal-1", { targetDate }],
+      ["goal-2", { targetDate }],
+    ]);
+    const projectGoalMap = new Map([["project-2", "goal-2"]]);
+
+    const directScore = scoreTaskForDecision({
+      task: directTask,
+      now,
+      blocked: false,
+      contexts: [],
+      dependentCount: 0,
+      goalIndex,
+      projectGoalMap,
+    });
+    const fallbackScore = scoreTaskForDecision({
+      task: fallbackTask,
+      now,
+      blocked: false,
+      contexts: [],
+      dependentCount: 0,
+      goalIndex,
+      projectGoalMap,
+    });
+
+    expect(directScore).toBeGreaterThan(fallbackScore);
   });
 });
