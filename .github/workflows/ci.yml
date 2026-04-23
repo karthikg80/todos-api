@@ -25,6 +25,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
       agent_runner: ${{ steps.filter.outputs.agent_runner }}
+      ios: ${{ steps.filter.outputs.ios }}
       ui_tests: ${{ steps.filter.outputs.ui_tests }}
       shared_contracts: ${{ steps.filter.outputs.shared_contracts }}
       tokens: ${{ steps.filter.outputs.tokens }}
@@ -68,6 +69,8 @@ jobs:
               - 'package-lock.json'
             agent_runner:
               - 'agent-runner/**'
+            ios:
+              - 'ios/**'
             ui_tests:
               - 'tests/ui/**'
             shared_contracts:
@@ -345,6 +348,7 @@ jobs:
         run: npm test
 
   # ─────────────────────────────────────────────────────────────
+<<<<<<< HEAD
   # 2i. Agent runner Python checks (PRs: agent-runner/workflow changes; master: always)
   # ─────────────────────────────────────────────────────────────
   agent-runner-checks:
@@ -384,12 +388,12 @@ jobs:
         working-directory: agent-runner
         run: python -m pytest
 
-  # ─────────────────────────────────────────────────────────────
-  # 3. Cross-client sync (only when shared contracts change or on master)
+  # 3. Cross-client sync (shared contracts, iOS changes, or master)
   # ─────────────────────────────────────────────────────────────
   cross-client-sync:
     needs: changes
     if: >-
+      needs.changes.outputs.ios == 'true' ||
       needs.changes.outputs.shared_contracts == 'true' ||
       (github.event_name == 'push' && github.ref == 'refs/heads/master')
     runs-on: macos-latest
@@ -411,11 +415,21 @@ jobs:
         working-directory: ios/TodosApp
         run: swift build
 
+      - name: iOS Swift test
+        working-directory: ios/TodosApp
+        run: swift test
+
       - name: Install React client dependencies
+        if: >-
+          needs.changes.outputs.shared_contracts == 'true' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/master')
         working-directory: client-react
         run: npm ci
 
       - name: React client typecheck
+        if: >-
+          needs.changes.outputs.shared_contracts == 'true' ||
+          (github.event_name == 'push' && github.ref == 'refs/heads/master')
         working-directory: client-react
         run: npx tsc --noEmit
 
