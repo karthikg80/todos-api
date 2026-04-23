@@ -20,6 +20,7 @@ module.exports = {
     "**/src/mcpOAuthService.test.ts",
     "**/src/agentIdempotencyService.test.ts",
     "**/src/ai/recommendationSchema.test.ts",
+    "**/src/transport/contracts.test.ts",
     "**/tests/eval/recommendation-quality.test.ts",
     "**/src/cli/**/*.test.ts",
     // Adaptation system

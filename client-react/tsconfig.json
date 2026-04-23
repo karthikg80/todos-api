@@ -5,6 +5,11 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@transport": ["../src/transport/index.ts"],
+      "@transport/*": ["../src/transport/*"]
+    },
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,5 +18,5 @@
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src", "../src/transport/**/*.ts"]
 }

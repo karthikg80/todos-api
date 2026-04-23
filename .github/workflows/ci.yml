@@ -69,6 +69,7 @@ jobs:
               - 'tests/ui/**'
             shared_contracts:
               - 'src/types.ts'
+              - 'src/transport/**'
               - 'src/validation/constants.ts'
             tokens:
               - 'client-react/src/styles/tokens.css'
