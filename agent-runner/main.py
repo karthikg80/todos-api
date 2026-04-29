@@ -30,6 +30,8 @@ Environment variables:
 import logging
 import os
 import sys
+from importlib import import_module
+from typing import Any, Callable
 
 _log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
 logging.basicConfig(
@@ -43,6 +45,21 @@ logger = logging.getLogger(__name__)
 
 COMMANDS = ("daily", "weekly", "inbox", "watchdog", "decomposer", "prewarm", "evaluator_daily", "evaluator_weekly", "reminder", "retention", "morning_brief", "project_health", "insights")
 USAGE = f"Usage: python main.py <{'|'.join(COMMANDS)}>"
+RUNNER_SPECS: dict[str, tuple[str, str, str]] = {
+    "daily": ("jobs.daily", "run_daily_for_user", "daily_enabled"),
+    "weekly": ("jobs.weekly", "run_weekly_for_user", "weekly_enabled"),
+    "inbox": ("jobs.inbox", "run_inbox_for_user", "daily_enabled"),
+    "watchdog": ("jobs.watchdog", "run_watchdog_for_user", "daily_enabled"),
+    "decomposer": ("jobs.decomposer", "run_decomposer_for_user", "weekly_enabled"),
+    "prewarm": ("jobs.prewarm", "run_prewarm_for_user", "daily_enabled"),
+    "evaluator_daily": ("jobs.evaluator_daily", "run_evaluator_daily_for_user", "daily_enabled"),
+    "evaluator_weekly": ("jobs.evaluator_weekly", "run_evaluator_weekly_for_user", "weekly_enabled"),
+    "reminder": ("jobs.reminder", "run_reminder_for_user", "daily_enabled"),
+    "retention": ("jobs.retention", "run_retention_for_user", "weekly_enabled"),
+    "morning_brief": ("jobs.morning_brief", "run_morning_brief_for_user", "daily_enabled"),
+    "project_health": ("jobs.project_health", "run_project_health_for_user", "weekly_enabled"),
+    "insights": ("jobs.insights", "run_insights_for_user", "daily_enabled"),
+}
 
 
 def main() -> None:
@@ -77,46 +94,12 @@ def main() -> None:
         logger.info("no enrolled users — nothing to do")
         return
 
-    # Import the runner and filter eligible enrollments per command.
-    if command == "daily":
-        from jobs.daily import run_daily_for_user as run_for_user
-        eligible = [e for e in enrollments if e.daily_enabled]
-    elif command == "weekly":
-        from jobs.weekly import run_weekly_for_user as run_for_user
-        eligible = [e for e in enrollments if e.weekly_enabled]
-    elif command == "inbox":
-        from jobs.inbox import run_inbox_for_user as run_for_user
-        eligible = [e for e in enrollments if e.daily_enabled]  # same gate as daily
-    elif command == "watchdog":
-        from jobs.watchdog import run_watchdog_for_user as run_for_user
-        eligible = [e for e in enrollments if e.daily_enabled]
-    elif command == "decomposer":
-        from jobs.decomposer import run_decomposer_for_user as run_for_user
-        eligible = [e for e in enrollments if e.weekly_enabled]  # same gate as weekly
-    elif command == "prewarm":
-        from jobs.prewarm import run_prewarm_for_user as run_for_user
-        eligible = [e for e in enrollments if e.daily_enabled]
-    elif command == "evaluator_daily":
-        from jobs.evaluator_daily import run_evaluator_daily_for_user as run_for_user
-        eligible = [e for e in enrollments if e.daily_enabled]
-    elif command == "evaluator_weekly":
-        from jobs.evaluator_weekly import run_evaluator_weekly_for_user as run_for_user
-        eligible = [e for e in enrollments if e.weekly_enabled]
-    elif command == "reminder":
-        from jobs.reminder import run_reminder_for_user as run_for_user
-        eligible = [e for e in enrollments if e.daily_enabled]
-    elif command == "retention":
-        from jobs.retention import run_retention_for_user as run_for_user
-        eligible = [e for e in enrollments if e.weekly_enabled]
-    elif command == "morning_brief":
-        from jobs.morning_brief import run_morning_brief_for_user as run_for_user
-        eligible = [e for e in enrollments if e.daily_enabled]
-    elif command == "project_health":
-        from jobs.project_health import run_project_health_for_user as run_for_user
-        eligible = [e for e in enrollments if e.weekly_enabled]
-    else:  # insights
-        from jobs.insights import run_insights_for_user as run_for_user
-        eligible = [e for e in enrollments if e.daily_enabled]
+    module_name, function_name, enabled_attr = RUNNER_SPECS[command]
+    run_for_user: Callable[..., Any] = getattr(
+        import_module(module_name),
+        function_name,
+    )
+    eligible = [e for e in enrollments if getattr(e, enabled_attr)]
 
     logger.info("%d user(s) eligible for %s", len(eligible), command)
 
