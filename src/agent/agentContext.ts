@@ -34,7 +34,10 @@ export function getAgentRequestContext(req: Request): AgentRequestContext {
     readOptionalHeader(req, "user-agent") ||
     "unknown-agent";
   const requestId =
-    readOptionalHeader(req, "x-agent-request-id") || randomUUID();
+    req.requestId ||
+    readOptionalHeader(req, "x-request-id") ||
+    readOptionalHeader(req, "x-agent-request-id") ||
+    randomUUID();
   const idempotencyKey = readOptionalHeader(req, "idempotency-key");
 
   req.agentContext = {

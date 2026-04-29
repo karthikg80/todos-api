@@ -43,20 +43,24 @@ class AgentClient:
         token: str,
         timeout: float = 60.0,
         actor_name: str = "todo-agent-runner",
+        request_id: Optional[str] = None,
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._token = token
         self._timeout = timeout
         self._actor_name = actor_name
+        self._request_id = request_id
 
     # ── Private ───────────────────────────────────────────────────────────────
 
     def _headers(self, idempotency_key: Optional[str] = None) -> dict[str, str]:
+        request_id = self._request_id or str(uuid.uuid4())
         headers: dict[str, str] = {
             "Authorization": f"Bearer {self._token}",
             "Content-Type": "application/json",
             "X-Agent-Name": self._actor_name,
-            "X-Agent-Request-Id": str(uuid.uuid4()),
+            "X-Request-Id": request_id,
+            "X-Agent-Request-Id": request_id,
         }
         if idempotency_key:
             headers["Idempotency-Key"] = idempotency_key
@@ -123,6 +127,7 @@ class AgentClient:
         base_url: str,
         refresh_token: str,
         timeout: float = 60.0,
+        request_id: Optional[str] = None,
     ) -> "AgentClient":
         """
         Exchange an enrollment refresh token for a short-lived access JWT
@@ -137,7 +142,17 @@ class AgentClient:
                 response = http.post(
                     url,
                     json={"refreshToken": refresh_token},
-                    headers={"Content-Type": "application/json"},
+                    headers={
+                        "Content-Type": "application/json",
+                        **(
+                            {
+                                "X-Request-Id": request_id,
+                                "X-Agent-Request-Id": request_id,
+                            }
+                            if request_id
+                            else {}
+                        ),
+                    },
                 )
         except httpx.RequestError as exc:
             raise AgentApiError(0, "NETWORK_ERROR", str(exc), retryable=True) from exc
@@ -155,7 +170,12 @@ class AgentClient:
 
         token: str = data["accessToken"]
         logger.debug("Token exchange successful (expires_in=%ss)", data.get("expiresIn"))
-        return cls(base_url=base_url, token=token, timeout=timeout)
+        return cls(
+            base_url=base_url,
+            token=token,
+            timeout=timeout,
+            request_id=request_id,
+        )
 
     def post_api(
         self,
