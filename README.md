@@ -36,12 +36,15 @@ A calm workspace for turning scattered tasks into focused days, reviewed weeks, 
 
 ## Technical Stack
 
-- Static single-page frontend in `client/` (vanilla HTML/CSS/JS, no build step)
-- Express + Prisma + PostgreSQL backend in `src/`
+- Express + Prisma + PostgreSQL backend in `src/` (TypeScript, input validation, structured errors)
+- Vite + React + TypeScript web client in `client-react/`
+- SwiftUI iOS app (iOS 17+) in `ios/TodosApp/` — zero third-party dependencies
+- `td` CLI (Commander.js) in `cli/` + `src/cli/`
+- Python agent runner in `agent-runner/` (scheduled jobs on Railway cron)
 - JWT auth with refresh-token rotation, email verification, Google/Apple/phone login
 - Remote MCP surface and internal `/agent` surface for assistant connectors
-- TypeScript backend with input validation, structured errors, and automated tests
 - Docker Compose for local PostgreSQL development
+- Legacy vanilla JS web client in `client/` has been removed; see [`docs/reference/vanilla-client-archive.md`](docs/reference/vanilla-client-archive.md) for context
 
 ## Prerequisites
 
@@ -514,24 +517,30 @@ Tests automatically use a separate test database (`todos_test`) to avoid affecti
 
 ```
 todos-api/
-├── client/                  # Static frontend shell + modular vanilla JS
-│   ├── modules/             # Domain JS modules
-│   ├── utils/               # Shared frontend utilities
-│   └── vendor/              # Synced vendor assets
-├── prisma/                  # Prisma schema + migrations
-├── src/
-│   ├── services/            # Domain/services (todos, projects, auth, AI)
-│   ├── middleware/          # Express middleware modules
-│   ├── validation/          # Validation/contracts
-│   ├── routes/              # Express routers (auth/todos/projects/ai/users/admin)
+├── src/                     # Express + Prisma backend (TypeScript)
+│   ├── routes/              # Express routers
+│   ├── services/            # Domain services (todos, projects, auth, AI)
+│   ├── domains/             # Domain-oriented backend modules
+│   ├── middleware/          # Express middleware
+│   ├── validation/          # Request validation
 │   ├── interfaces/          # Service contracts
+│   ├── cli/                 # `td` CLI implementation
 │   ├── app.ts               # App composition
 │   └── server.ts            # Entrypoint
+├── client-react/            # Vite + React + TypeScript web client
+├── ios/TodosApp/            # SwiftUI iOS app (iOS 17+), zero third-party deps
+├── cli/                     # `td` CLI package wrapper
+├── agent-runner/            # Python worker (Railway cron) — scheduled jobs
+├── prisma/                  # Prisma schema + migrations
 ├── test/                    # Jest setup/teardown helpers
 ├── tests/ui/                # Playwright UI specs
-├── scripts/                 # Utility scripts (lint/test helpers)
-└── docs/                    # Architecture + agent protocol docs
+├── evals/ + eval-lab/       # AI evaluator suites
+├── scripts/                 # Build, deploy, workflow-guard scripts
+├── docs/                    # Architecture, runbooks, ADRs, agent protocol
+└── .github/workflows/       # CI, release-train, secret-scan, eval-lab
 ```
+
+The legacy vanilla JS web client previously in `client/` has been removed; its historical structure is preserved in [`docs/reference/vanilla-client-archive.md`](docs/reference/vanilla-client-archive.md).
 
 ## Architecture
 

@@ -3,29 +3,31 @@
 **Repository:** `todos-api`  
 **Version:** 1.6.0  
 **Last Updated:** 2026-03-25  
-**Stack:** Express 5 + TypeScript + Prisma + PostgreSQL + Vanilla JS (no framework)
+**Stack:** Express 5 + TypeScript + Prisma + PostgreSQL backend; React + Vite web client in `client-react/`; SwiftUI iOS app in `ios/TodosApp/`; Python agent-runner on Railway cron
 
 ---
 
 ## Quick Reference
 
-| Aspect       | Value                                                                    |
-| ------------ | ------------------------------------------------------------------------ |
-| **Frontend** | `client/` — Multi-page vanilla ES6 modules, no build step, no framework  |
-| **Backend**  | `src/` — TypeScript, Express 5, Prisma ORM                               |
-| **Database** | PostgreSQL 16 (26 models, 15+ enums)                                     |
-| **Testing**  | Jest (unit/integration/MCP), Playwright (UI), Custom (AI evals)          |
-| **Auth**     | JWT + refresh rotation, Google OAuth, Apple Sign-In, Phone SMS OTP       |
-| **AI**       | OpenAI-compatible API (planning, critique, suggestions, decision assist) |
-| **MCP**      | Remote Model Context Protocol for AI assistant connectors                |
-| **Worker**   | Python (`agent-runner/`) — scheduled automation jobs on Railway cron     |
-| **API Docs** | Swagger/OpenAPI at `/api-docs`                                           |
+| Aspect       | Value                                                                                                                                                                                                                            |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend** | `client-react/` — Vite + React + TypeScript (primary). iOS app in `ios/TodosApp/` consumes the same API. The legacy vanilla JS client at `client/` has been removed; see `docs/reference/vanilla-client-archive.md` for history. |
+| **Backend**  | `src/` — TypeScript, Express 5, Prisma ORM                                                                                                                                                                                       |
+| **Database** | PostgreSQL 16 (26 models, 15+ enums)                                                                                                                                                                                             |
+| **Testing**  | Jest (unit/integration/MCP), Playwright (UI), Custom (AI evals)                                                                                                                                                                  |
+| **Auth**     | JWT + refresh rotation, Google OAuth, Apple Sign-In, Phone SMS OTP                                                                                                                                                               |
+| **AI**       | OpenAI-compatible API (planning, critique, suggestions, decision assist)                                                                                                                                                         |
+| **MCP**      | Remote Model Context Protocol for AI assistant connectors                                                                                                                                                                        |
+| **Worker**   | Python (`agent-runner/`) — scheduled automation jobs on Railway cron                                                                                                                                                             |
+| **API Docs** | Swagger/OpenAPI at `/api-docs`                                                                                                                                                                                                   |
 
 ---
 
 ## Load-Bearing Patterns (DO NOT BREAK)
 
-### Frontend
+### Frontend (Historical — vanilla JS client)
+
+> **Historical.** The patterns in this subsection describe the removed vanilla JS web client (previously in `client/`). They are preserved here for context on legacy code and prior ADRs (001–004). For the current web client, see `client-react/` and `.claude/skills/react-client/SKILL.md`. Full archive: [`docs/reference/vanilla-client-archive.md`](docs/reference/vanilla-client-archive.md).
 
 1. **Event Delegation** — `app.js` uses delegated listeners via `data-onclick` attributes. Never attach listeners directly to dynamic child elements.
 
@@ -59,35 +61,20 @@
 
 ## Directory Structure
 
+> The tree below summarizes top-level directories; it is not exhaustive. The legacy `client/` vanilla JS tree has been removed; for its historical layout see [`docs/reference/vanilla-client-archive.md`](docs/reference/vanilla-client-archive.md).
+
 ```
 todos-api/
-├── client/                          # Frontend (static, no build step)
-│   ├── app.js                       # Main composition root (1,733 lines)
-│   ├── index.html                   # Landing page with embedded auth (4,010 lines)
-│   ├── styles.css                   # All styles (10,778 lines, 216KB)
-│   ├── manifest.json                # PWA manifest
-│   ├── service-worker.js            # PWA service worker
-│   ├── public/                      # Standalone pages (added Mar 2026)
-│   │   ├── app.html                 # Standalone app workspace (3,241 lines)
-│   │   ├── app-page.js              # App page bootstrap shim (139 lines)
-│   │   ├── auth.html                # Standalone auth page (392 lines)
-│   │   ├── auth-page.js             # Auth page handlers (779 lines)
-│   │   └── auth-page.css            # Auth page styles (89 lines)
-│   ├── bootstrap/                   # App initialization modules
-│   │   └── initGlobalListeners.js   # Global event listeners (5.5KB)
-│   ├── features/                    # Feature-domain modules (6 dirs)
-│   │   ├── agent/                   # Agent polling, store, actions
-│   │   ├── assistant/               # AI assistant surfaces
-│   │   ├── command-palette/         # Ctrl+K navigation
-│   │   ├── drawer/                  # Todo edit drawer
-│   │   ├── projects/                # Project management
-│   │   └── todos/                   # Todo CRUD, filtering
-│   ├── modules/                     # Domain JS modules (38 files, 1.5MB)
-│   ├── utils/                       # Shared utilities (14 files)
-│   ├── platform/                    # Platform abstractions (events, state)
-│   ├── images/                      # Static assets
-│   ├── illustrations-preview.html   # Illustration preview (dev only)
-│   └── vendor/                      # Synced vendor assets (chrono-node)
+├── client-react/                    # Primary web client — Vite + React + TypeScript
+│   ├── src/                         # Components, features, hooks, mobile, views
+│   ├── public/                      # Static assets
+│   └── vite*.config.ts              # Separate build targets (main, landing, auth)
+│
+├── ios/TodosApp/                    # SwiftUI iOS app (iOS 17+), zero third-party deps
+│   ├── TodosApp/                    # App/Core/Features/Components
+│   └── TodosAppTests/               # XCTest suites
+│
+├── cli/                             # `td` CLI package wrapper
 │
 ├── src/                             # Backend TypeScript source (175 files)
 │   ├── server.ts                    # Entry point
@@ -110,8 +97,12 @@ todos-api/
 │   ├── schema.prisma                # Database schema (26 models, 15+ enums)
 │   └── migrations/                  # Database migrations
 │
-├── agent-runner/                    # Python worker (scheduled jobs)
-│   └── agent_runner/                # 7 job types: daily, weekly, inbox, etc.
+├── agent-runner/                    # Python worker (scheduled jobs, Railway cron)
+│   ├── main.py                      # Command router
+│   ├── jobs/                        # Job modules: daily, weekly, inbox, decomposer,
+│   │                                # watchdog, evaluators, project_health, retention, etc.
+│   ├── storage/                     # Enrollment, state, audit
+│   └── mcp_client.py                # Backend API client
 │
 ├── tests/
 │   └── ui/                          # Playwright specs (40+ files)

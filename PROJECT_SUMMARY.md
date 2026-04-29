@@ -1,43 +1,61 @@
-# Todos API - Project Summary
+# Todos API — Project Summary
 
 ## Status
 
-Active and production-oriented. The repository contains:
+Active and production-oriented. The repository is a multi-client monorepo sharing one Express/Prisma/PostgreSQL backend.
 
-- An Express + TypeScript backend with Prisma/PostgreSQL persistence.
-- A static frontend (`client/`) that consumes the API.
-- Auth, project management, todo CRUD/reordering, and AI-assist flows.
-- Unit, integration, and Playwright UI test suites.
+## Surfaces
 
-## Current Architecture Snapshot
+- **Backend API** — Express + TypeScript + Prisma in `src/`. Route modules in `src/routes/`, business logic in `src/services/` and `src/domains/`. Prisma-backed persistence against PostgreSQL (see `prisma/schema.prisma`).
+- **Web client** — Vite + React + TypeScript in `client-react/`. Separate `package.json`, consumes the REST API. See `.claude/skills/react-client/SKILL.md`.
+- **iOS app** — SwiftUI (iOS 17+) in `ios/TodosApp/`. Zero third-party dependencies, actor-based networking (`APIClient`, `SessionCoordinator`), Keychain-backed token storage. See `.claude/skills/ios-app/SKILL.md`.
+- **CLI (`td`)** — Commander.js-based TypeScript CLI in `cli/` + `src/cli/`. Distributed as an npm `bin` entry.
+- **Agent runner** — Python 3 worker in `agent-runner/`. Deployed on Railway cron. Hosts scheduled job modules (daily planning, weekly review, inbox triage, decomposer, evaluators, watchdog, project health, retention, and others — see `agent-runner/jobs/`).
+- **Remote MCP surface** — OAuth-gated Model Context Protocol endpoint (at `/mcp/*`) for ChatGPT/Claude connector integrations.
 
-- `src/server.ts` boots the API; `src/app.ts` composes middleware and routes.
-- Route modules live in `src/routes/` (`auth`, `todos`, `projects`, `ai`, `users`, `admin`).
-- Persistence is Prisma-backed (`src/services/prismaTodoService.ts`, `src/services/projectService.ts`) with interfaces in `src/interfaces/`.
-- A deterministic in-memory todo service exists for focused unit flows (`src/services/todoService.ts`).
-- Data model is defined in `prisma/schema.prisma` and includes `User`, `RefreshToken`, `Project`, `Todo`, `Subtask`, and AI suggestion tables.
-- Frontend UI is framework-free (`client/index.html`, `client/app.js`, `client/styles.css`).
+The legacy vanilla JS web client previously in `client/` has been removed. See `docs/reference/vanilla-client-archive.md` for historical context.
 
-## Testing Snapshot
+## Shared Contract
 
-The test footprint is no longer the original small in-memory-only set. Current coverage includes:
+- `src/types.ts` is canonical for **backend domain types** (internal shapes used by services).
+- Transport DTOs are a separate concern — see [ADR-006](docs/adr/006-transport-contract-source-of-truth.md) for the domain-vs-transport split and the per-client sync path.
+- CI runs `swift build` and React `tsc --noEmit` when `src/types.ts` or `src/validation/constants.ts` change.
 
-- Unit tests (`npm run test:unit`)
-- Integration API tests (`npm run test:integration`)
-- UI regression tests with Playwright (`npm run test:ui:fast` and `npm run test:ui`)
+## Testing
 
-For exact test counts, use current command output instead of fixed numbers in docs.
+- **Unit** — `npm run test:unit` (Jest, `jest.unit.config.js`)
+- **Integration** — `npm run test:integration` (Jest, real Postgres via Docker Compose)
+- **MCP** — `npm run test:mcp` (MCP-surface tests)
+- **UI regression** — `CI=1 npm run test:ui:fast` (Playwright, 4-way sharded in CI)
+- **React** — `cd client-react && npm test` (Vitest)
+- **iOS** — `cd ios/TodosApp && swift test` (XCTest, macOS SPM build)
+- **AI evals** — `npm run eval:all` (custom evaluator under `evals/` + `eval-lab/`)
 
-## Operational Checks Used in Practice
+Coverage ratchet enforced via `npm run test:coverage:check` and `.coverage-baseline.json`.
 
-- `npx tsc --noEmit`
-- `npm run format:check`
-- `npm run lint:html`
-- `npm run lint:css`
-- `npm run test:unit`
-- `CI=1 npm run test:ui:fast`
+## Day-to-day verification checks
 
-## Notes
+```bash
+npx tsc --noEmit
+npm run format:check
+npm run test:unit
+CI=1 npm run test:ui:fast
+```
 
-- AI provider integration is optional and controlled via environment flags.
-- The codebase uses explicit docs/task protocols under `docs/agent-queue/` for planning and delivery.
+See [CLAUDE.md](CLAUDE.md) for the full verification matrix, worktree workflow, and husky hook behavior.
+
+## Operational
+
+- Deployment: Railway (NIXPACKS builder). `/readyz` serves as the platform health probe.
+- Release cadence: daily fast-forward release-train workflow (`.github/workflows/release-train.yml`) on weekdays; manual staging/UAT promotion.
+- Observability: structured JSON logs, request-ID middleware, route-latency logging, optional Sentry (backend + React) gated on `SENTRY_DSN`.
+- Local Postgres: `npm run docker:up` + `npm run db:setup`.
+
+## Docs
+
+- [README.md](README.md) — setup, scripts, endpoints, directory map.
+- [CLAUDE.md](CLAUDE.md) — developer workflow and verification matrix.
+- [CONTRIBUTING.md](CONTRIBUTING.md) — single entry point that links the rest.
+- [ARCHITECTURE_SUMMARY.md](ARCHITECTURE_SUMMARY.md) — deeper architecture reference (some sub-sections still describe the removed vanilla client and are marked historical).
+- [docs/adr/](docs/adr/) — numbered Architecture Decision Records.
+- [docs/engineering-backlog.md](docs/engineering-backlog.md) — repo-grounded engineering backlog.
