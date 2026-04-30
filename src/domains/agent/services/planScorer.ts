@@ -179,11 +179,10 @@ export function scorePlan(
 
     // Goal alignment boost
     const taskGoalId =
-      (t as any).goalId ||
-      (t.projectId ? projectGoalMap?.get(t.projectId) : undefined);
+      t.goalId || (t.projectId ? projectGoalMap?.get(t.projectId) : undefined);
     if (taskGoalId && goalIndex?.has(taskGoalId)) {
       const goal = goalIndex.get(taskGoalId)!;
-      const directGoal = !!(t as any).goalId;
+      const directGoal = !!t.goalId;
       const baseBoost = directGoal ? 12 : 9;
       score += baseBoost;
       breakdown.goalAlignment = baseBoost;
