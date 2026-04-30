@@ -71,7 +71,7 @@
     "node": ">=20.19.0 <23"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.2",
+    "@prisma/client": "^7.8.0",
     "@sentry/node": "^8.55.1",
     "@types/bcrypt": "^6.0.0",
     "@types/cors": "^2.8.19",
@@ -94,7 +94,7 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^8.0.7",
     "picocolors": "^1.1.1",
-    "prisma": "^6.19.2",
+    "prisma": "^7.8.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "twilio": "^5.13.0",
