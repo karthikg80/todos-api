@@ -14,6 +14,8 @@ import {
   parsePreferredContexts,
 } from "./settingsModels";
 import { ToggleSwitch } from "../shared/ToggleSwitch";
+import { ViewHeader } from "./ViewHeader";
+import { SectionHeader } from "./SectionHeader";
 
 interface Props {
   dark: boolean;
@@ -116,15 +118,10 @@ export function SettingsPage({
 
   return (
     <div id="settingsPane" className="settings-page">
-      <div className="settings-page__header">
-        <button className="btn" onClick={onBack}>
-          ← Back
-        </button>
-        <h2 className="settings-page__title">Settings</h2>
-      </div>
+      <ViewHeader title="Settings" back={{ onClick: onBack }} />
 
       <section className="settings-section">
-        <h3 className="settings-section__title">Profile</h3>
+        <SectionHeader title="Profile" />
         <div className="settings-grid">
           <div className="settings-field">
             <label className="settings-field__label" htmlFor="settingsName">
@@ -202,7 +199,7 @@ export function SettingsPage({
       <PlanningPreferencesSection />
 
       <section className="settings-section">
-        <h3 className="settings-section__title">Appearance</h3>
+        <SectionHeader title="Appearance" />
         <ToggleSwitch
           checked={dark}
           label="Dark mode"
@@ -233,7 +230,7 @@ export function SettingsPage({
       </section>
 
       <section className="settings-section">
-        <h3 className="settings-section__title">Account</h3>
+        <SectionHeader title="Account" />
         <p className="settings-meta">
           Logged in as <strong>{user?.email}</strong>
         </p>
@@ -258,7 +255,7 @@ export function SettingsPage({
       </section>
 
       <section className="settings-section">
-        <h3 className="settings-section__title">Project Management</h3>
+        <SectionHeader title="Project Management" />
 
         <div className="settings-field settings-field--row">
           <span className="settings-field__label">
@@ -448,7 +445,7 @@ function PlanningPreferencesSection() {
 
   return (
     <section className="settings-section">
-      <h3 className="settings-section__title">Planning preferences</h3>
+      <SectionHeader title="Planning preferences" />
       {loading ? (
         <p className="settings-meta">Loading…</p>
       ) : (
@@ -799,7 +796,7 @@ function McpSessionsSection() {
 
   return (
     <section className="settings-section">
-      <h3 className="settings-section__title">MCP sessions</h3>
+      <SectionHeader title="MCP sessions" />
       <p className="settings-meta">
         Review connected assistants and revoke access when you no longer need
         it.

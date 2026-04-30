@@ -11,7 +11,7 @@ describe("SectionHeader", () => {
       ce(SectionHeader, {
         title: "Stale",
         count: 3,
-        isCollapsed: true,
+        collapsed: true,
         onToggle,
       }),
     );
@@ -27,12 +27,14 @@ describe("SectionHeader", () => {
       ce(SectionHeader, {
         title: "Quality",
         count: 0,
-        isCollapsed: false,
+        collapsed: false,
         onToggle: vi.fn(),
       }),
     );
     expect(
-      screen.getByRole("button", { name: /Quality/i }).getAttribute("aria-expanded"),
+      screen
+        .getByRole("button", { name: /Quality/i })
+        .getAttribute("aria-expanded"),
     ).toBe("true");
   });
 
@@ -41,7 +43,7 @@ describe("SectionHeader", () => {
       ce(SectionHeader, {
         title: "Taxonomy",
         count: 9,
-        isCollapsed: false,
+        collapsed: false,
         onToggle: vi.fn(),
         loading: true,
       }),
@@ -55,13 +57,27 @@ describe("SectionHeader", () => {
       ce(SectionHeader, {
         title: "Duplicates",
         count: 1,
-        isCollapsed: false,
+        collapsed: false,
         onToggle: vi.fn(),
         error: "boom",
         onRetry,
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: /Retry loading Duplicates/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: /Retry loading Duplicates/i }),
+    );
     expect(onRetry).toHaveBeenCalled();
+  });
+
+  it("renders as a static heading (no toggle button) when onToggle is omitted", () => {
+    render(ce(SectionHeader, { title: "Profile" }));
+    expect(screen.queryByRole("button", { name: /Profile/i })).toBeNull();
+    expect(screen.getByText("Profile")).toBeTruthy();
+  });
+
+  it("renders the title and count without a toggle in static mode", () => {
+    render(ce(SectionHeader, { title: "Inbox", count: 5 }));
+    expect(screen.getByText("Inbox")).toBeTruthy();
+    expect(screen.getByText("5")).toBeTruthy();
   });
 });

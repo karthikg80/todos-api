@@ -1635,30 +1635,11 @@ body {
   min-height: 0;
 }
 
-.settings-page__header {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  margin-bottom: var(--s-6);
-}
-
-.settings-page__title {
-  font-size: var(--fs-section);
-  font-weight: var(--fw-semibold);
-}
-
 .settings-section {
   margin-bottom: var(--s-6);
   display: flex;
   flex-direction: column;
   gap: var(--s-3);
-}
-
-.settings-section__title {
-  font-size: var(--fs-body);
-  font-weight: var(--fw-semibold);
-  padding-bottom: var(--s-2);
-  border-bottom: 1px solid var(--border);
 }
 
 .settings-field {
@@ -8258,18 +8239,6 @@ body {
   min-height: 0;
 }
 
-.weekly-review__header {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  margin-bottom: var(--s-6);
-}
-
-.weekly-review__title {
-  font-size: var(--fs-lg);
-  font-weight: var(--fw-semibold);
-}
-
 .weekly-review__start {
   text-align: center;
   padding: var(--s-8);
@@ -9469,19 +9438,6 @@ body {
   padding: var(--s-4) var(--s-4) var(--s-8);
 }
 
-.tuneup-view__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--s-4);
-}
-
-.tuneup-view__title {
-  font-size: var(--fs-xl);
-  font-weight: 600;
-  margin: 0;
-}
-
 .tuneup-view__refresh {
   font-size: var(--fs-meta);
   color: var(--accent);
@@ -9506,13 +9462,23 @@ body {
   overflow: hidden;
 }
 
-.tuneup-section__header {
+.section-header {
   display: flex;
   align-items: center;
   background: var(--surface-2);
 }
 
-.tuneup-section__toggle {
+.section-header__static {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+
+.section-header__toggle {
   flex: 1;
   display: flex;
   align-items: center;
@@ -9526,11 +9492,11 @@ body {
   color: var(--text);
 }
 
-.tuneup-section__toggle:hover {
+.section-header__toggle:hover {
   background: var(--surface-3);
 }
 
-.tuneup-section__chevron {
+.section-header__chevron {
   display: inline-block;
   font-size: var(--fs-lg);
   line-height: 1;
@@ -9539,12 +9505,12 @@ body {
   flex-shrink: 0;
 }
 
-.tuneup-section__title {
+.section-header__title {
   font-weight: 600;
   flex: 1;
 }
 
-.tuneup-section__badge {
+.section-header__badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -9558,23 +9524,23 @@ body {
   font-weight: 600;
 }
 
-.tuneup-section__loading-indicator {
+.section-header__loading-indicator {
   display: inline-block;
   width: 14px;
   height: 14px;
   border-radius: var(--r-full);
   border: 2px solid var(--border);
   border-top-color: var(--accent);
-  animation: tuneup-spin 0.7s linear infinite;
+  animation: section-header-spin 0.7s linear infinite;
 }
 
-@keyframes tuneup-spin {
+@keyframes section-header-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
-.tuneup-section__retry {
+.section-header__retry {
   padding: var(--s-1) var(--s-3);
   margin-right: var(--s-2);
   font-size: var(--fs-meta);
@@ -9585,7 +9551,7 @@ body {
   cursor: pointer;
 }
 
-.tuneup-section__retry:hover {
+.section-header__retry:hover {
   background: var(--accent-tint);
 }
 
@@ -11798,6 +11764,162 @@ body.dark-mode {
   font-size: 13px;
   opacity: 0.7;
   margin-top: 4px;
+}
+
+/* ============================================================
+   VIEW HEADER + VIEW STATE PRIMITIVES
+   ============================================================ */
+
+.view-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+  padding: var(--s-3h) var(--s-5);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.view-header__top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-4);
+  min-height: 36px;
+}
+
+.view-header__back {
+  flex-shrink: 0;
+  font-size: var(--fs-label);
+  align-self: center;
+}
+
+.view-header__titles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.view-header__crumb {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  font-size: var(--fs-meta);
+  color: var(--muted);
+}
+
+.view-header__crumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+.view-header__crumb-sep {
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+.view-header__crumb-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  transition: text-decoration-color var(--dur-fast) var(--ease-out);
+}
+
+.view-header__crumb-link:hover {
+  text-decoration-color: var(--muted);
+}
+
+.view-header__crumb-label {
+  color: var(--muted);
+}
+
+.view-header__title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.view-header__title {
+  font-size: var(--fs-lg);
+  font-weight: var(--fw-semibold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-strong);
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.view-header__count {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.view-header__subtitle {
+  font-size: var(--fs-meta);
+  color: var(--muted);
+  line-height: var(--lh-relaxed);
+}
+
+.view-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.view-header__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.view-state {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.view-state__loading,
+.view-state__empty,
+.view-state__error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-3);
+  padding: var(--s-6) var(--s-4);
+  color: var(--muted);
+  text-align: center;
+}
+
+.view-state__error {
+  color: var(--danger);
+}
+
+.view-state__retry {
+  padding: var(--s-1) var(--s-3);
+  font-size: var(--fs-meta);
+  color: var(--accent);
+  background: none;
+  border: 1px solid var(--accent);
+  border-radius: var(--r-md);
+  cursor: pointer;
+}
+
+.view-state__retry:hover {
+  background: var(--accent-tint);
 }
 }
 /* ── end @layer views ───────────────────── */

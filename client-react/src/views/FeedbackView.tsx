@@ -1,8 +1,13 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../auth/AuthProvider";
 import { FeedbackForm } from "../components/FeedbackForm";
-import { fetchUserFeedback, type FeedbackItem, type UserFeedbackListItem } from "../api/feedbackApi";
+import {
+  fetchUserFeedback,
+  type FeedbackItem,
+  type UserFeedbackListItem,
+} from "../api/feedbackApi";
 import { navigateWithFade } from "../utils/pageTransitions";
+import { ViewHeader } from "../components/layout/ViewHeader";
 import "../styles/feedback.css";
 
 type FeedbackViewMode = "list" | "form" | "confirmation";
@@ -21,38 +26,55 @@ function formatDate(iso: string): string {
 
 function statusLabel(status: string): string {
   switch (status) {
-    case "new": return "Submitted";
-    case "triaged": return "Under review";
-    case "promoted": return "Tracked";
-    case "rejected": return "Closed";
-    case "resolved": return "Resolved";
-    default: return status;
+    case "new":
+      return "Submitted";
+    case "triaged":
+      return "Under review";
+    case "promoted":
+      return "Tracked";
+    case "rejected":
+      return "Closed";
+    case "resolved":
+      return "Resolved";
+    default:
+      return status;
   }
 }
 
 function statusClass(status: string): string {
   switch (status) {
-    case "new": return "feedback-list__status--new";
-    case "triaged": return "feedback-list__status--triaged";
-    case "promoted": return "feedback-list__status--promoted";
-    default: return "feedback-list__status--new";
+    case "new":
+      return "feedback-list__status--new";
+    case "triaged":
+      return "feedback-list__status--triaged";
+    case "promoted":
+      return "feedback-list__status--promoted";
+    default:
+      return "feedback-list__status--new";
   }
 }
 
 function typeLabel(type: string): string {
   switch (type) {
-    case "bug": return "Bug";
-    case "feature": return "Feature";
-    case "general": return "Feedback";
-    default: return type;
+    case "bug":
+      return "Bug";
+    case "feature":
+      return "Feature";
+    case "general":
+      return "Feedback";
+    default:
+      return type;
   }
 }
 
 function typeClass(type: string): string {
   switch (type) {
-    case "bug": return "feedback-list__type--bug";
-    case "feature": return "feedback-list__type--feature";
-    default: return "feedback-list__type--bug";
+    case "bug":
+      return "feedback-list__type--bug";
+    case "feature":
+      return "feedback-list__type--feature";
+    default:
+      return "feedback-list__type--bug";
   }
 }
 
@@ -66,15 +88,15 @@ export function ConfirmationView({
   const isBug = item.type === "bug";
   return (
     <div className="feedback-confirmation">
-      <h3>{isBug ? "Bug report sent" : "Feature request sent"}</h3>
+      <p className="feedback-confirmation__headline">
+        {isBug ? "Bug report sent" : "Feature request sent"}
+      </p>
       <p>
         {isBug
           ? "Thanks for the report. We'll review it and get back to you."
           : "Thanks for the idea. We'll review it and consider it for the roadmap."}
       </p>
-      <p className="feedback-confirmation__meta">
-        Reference ID: {item.id}
-      </p>
+      <p className="feedback-confirmation__meta">Reference ID: {item.id}</p>
       <div className="feedback-confirmation__actions">
         <button
           type="button"
@@ -83,7 +105,11 @@ export function ConfirmationView({
         >
           View your submissions
         </button>
-        <button type="button" className="btn btn--secondary" onClick={onSendAnother}>
+        <button
+          type="button"
+          className="btn btn--secondary"
+          onClick={onSendAnother}
+        >
           Send another
         </button>
       </div>
@@ -123,10 +149,14 @@ export function FeedbackListView({
               <span className="feedback-list__title" title={item.title}>
                 {item.title}
               </span>
-              <span className={`feedback-list__status ${statusClass(item.status)}`}>
+              <span
+                className={`feedback-list__status ${statusClass(item.status)}`}
+              >
                 {statusLabel(item.status)}
               </span>
-              <span className="feedback-list__date">{formatDate(item.createdAt)}</span>
+              <span className="feedback-list__date">
+                {formatDate(item.createdAt)}
+              </span>
               {item.githubIssueUrl && (
                 <a
                   href={item.githubIssueUrl}
@@ -196,35 +226,40 @@ export function FeedbackView() {
     setMode("form");
   };
 
+  const headerTitle =
+    mode === "form"
+      ? "Submit feedback"
+      : mode === "confirmation"
+        ? "Feedback received"
+        : "Your submissions";
+  const headerSubtitle =
+    mode === "form"
+      ? "Tell us what's broken, what's missing, or what could be better. Your feedback helps shape the product."
+      : mode === "list"
+        ? "Track the status of your bug reports and feature requests."
+        : undefined;
+
   return (
     <div className="feedback-page">
       <div className="feedback-standalone">
-        {/* Header */}
-        <div className="feedback-standalone__header">
-          <button className="feedback-standalone__back" onClick={goHome}>
-            ← Workspace
-          </button>
-          <span className="feedback-standalone__logo">Todos</span>
-        </div>
+        <ViewHeader
+          crumb="Settings › Feedback"
+          title={headerTitle}
+          subtitle={headerSubtitle}
+          back={{ onClick: goHome, label: "Workspace" }}
+        />
 
         {/* Content */}
         {mode === "list" && (
-          <>
-            <h2>Your submissions</h2>
-            <p className="feedback-standalone__lede">
-              Track the status of your bug reports and feature requests.
-            </p>
-            <FeedbackListView items={items} loading={listLoading} onNew={goForm} />
-          </>
+          <FeedbackListView
+            items={items}
+            loading={listLoading}
+            onNew={goForm}
+          />
         )}
 
         {mode === "form" && (
           <>
-            <h2>Submit feedback</h2>
-            <p className="feedback-standalone__lede">
-              Tell us what's broken, what's missing, or what could be better.
-              Your feedback helps shape the product.
-            </p>
             {lastSubmitted ? (
               <ConfirmationView
                 item={lastSubmitted}
