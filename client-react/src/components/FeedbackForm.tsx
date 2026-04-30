@@ -1,29 +1,35 @@
 import { useState, useCallback, useMemo } from "react";
 import { useAuth } from "../auth/AuthProvider";
-import { submitFeedback, type FeedbackType, type FeedbackItem } from "../api/feedbackApi";
+import {
+  submitFeedback,
+  type FeedbackType,
+  type FeedbackItem,
+} from "../api/feedbackApi";
 import { navigateWithFade } from "../utils/pageTransitions";
+import { Field } from "./shared/Field";
 
 interface Props {
   onSuccess: (item: FeedbackItem) => void;
 }
 
-const QUESTIONS: Record<FeedbackType, { q1: string; q2: string; q3: string }> = {
-  bug: {
-    q1: "What happened?",
-    q2: "What did you expect?",
-    q3: "What were you doing right before it happened?",
-  },
-  feature: {
-    q1: "What are you trying to do?",
-    q2: "What is hard today?",
-    q3: "What would make this better?",
-  },
-  general: {
-    q1: "What's on your mind?",
-    q2: "Any suggestions?",
-    q3: "Anything else?",
-  },
-};
+const QUESTIONS: Record<FeedbackType, { q1: string; q2: string; q3: string }> =
+  {
+    bug: {
+      q1: "What happened?",
+      q2: "What did you expect?",
+      q3: "What were you doing right before it happened?",
+    },
+    feature: {
+      q1: "What are you trying to do?",
+      q2: "What is hard today?",
+      q3: "What would make this better?",
+    },
+    general: {
+      q1: "What's on your mind?",
+      q2: "Any suggestions?",
+      q3: "Anything else?",
+    },
+  };
 
 function buildBody(
   type: FeedbackType,
@@ -46,7 +52,8 @@ function buildBody(
 }
 
 const APP_VERSION =
-  (document.querySelector('meta[name="app-version"]') as HTMLMetaElement | null)?.content ?? "unknown";
+  (document.querySelector('meta[name="app-version"]') as HTMLMetaElement | null)
+    ?.content ?? "unknown";
 
 export function FeedbackForm({ onSuccess }: Props) {
   const { user } = useAuth();
@@ -110,11 +117,7 @@ export function FeedbackForm({ onSuccess }: Props) {
 
   return (
     <form className="feedback-form" onSubmit={handleSubmit}>
-      {/* Type selector */}
-      <div className="feedback-form__field">
-        <label htmlFor="feedback-type" className="feedback-form__label">
-          Submission type
-        </label>
+      <Field label="Submission type" htmlFor="feedback-type">
         <select
           id="feedback-type"
           className="feedback-form__select"
@@ -125,13 +128,9 @@ export function FeedbackForm({ onSuccess }: Props) {
           <option value="feature">Feature request</option>
           <option value="general">General feedback</option>
         </select>
-      </div>
+      </Field>
 
-      {/* Title */}
-      <div className="feedback-form__field">
-        <label htmlFor="feedback-title" className="feedback-form__label">
-          Title
-        </label>
+      <Field label="Title" htmlFor="feedback-title">
         <input
           id="feedback-title"
           type="text"
@@ -142,13 +141,9 @@ export function FeedbackForm({ onSuccess }: Props) {
           value={title}
           onChange={(e) => setTitle(e.target.value)}
         />
-      </div>
+      </Field>
 
-      {/* Question 1 */}
-      <div className="feedback-form__field">
-        <label htmlFor="feedback-q1" className="feedback-form__label">
-          {q.q1}
-        </label>
+      <Field label={q.q1} htmlFor="feedback-q1">
         <textarea
           id="feedback-q1"
           className="feedback-form__textarea"
@@ -158,13 +153,9 @@ export function FeedbackForm({ onSuccess }: Props) {
           value={a1}
           onChange={(e) => setA1(e.target.value)}
         />
-      </div>
+      </Field>
 
-      {/* Question 2 */}
-      <div className="feedback-form__field">
-        <label htmlFor="feedback-q2" className="feedback-form__label">
-          {q.q2}
-        </label>
+      <Field label={q.q2} htmlFor="feedback-q2">
         <textarea
           id="feedback-q2"
           className="feedback-form__textarea"
@@ -173,13 +164,9 @@ export function FeedbackForm({ onSuccess }: Props) {
           value={a2}
           onChange={(e) => setA2(e.target.value)}
         />
-      </div>
+      </Field>
 
-      {/* Question 3 */}
-      <div className="feedback-form__field">
-        <label htmlFor="feedback-q3" className="feedback-form__label">
-          {q.q3}
-        </label>
+      <Field label={q.q3} htmlFor="feedback-q3">
         <textarea
           id="feedback-q3"
           className="feedback-form__textarea"
@@ -188,13 +175,9 @@ export function FeedbackForm({ onSuccess }: Props) {
           value={a3}
           onChange={(e) => setA3(e.target.value)}
         />
-      </div>
+      </Field>
 
-      {/* Screenshot URL */}
-      <div className="feedback-form__field">
-        <label htmlFor="feedback-screenshot" className="feedback-form__label">
-          Screenshot URL (optional)
-        </label>
+      <Field label="Screenshot URL (optional)" htmlFor="feedback-screenshot">
         <input
           id="feedback-screenshot"
           type="url"
@@ -204,7 +187,7 @@ export function FeedbackForm({ onSuccess }: Props) {
           value={screenshotUrl}
           onChange={(e) => setScreenshotUrl(e.target.value)}
         />
-      </div>
+      </Field>
 
       {/* Error message */}
       {error && (

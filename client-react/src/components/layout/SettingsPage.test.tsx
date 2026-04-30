@@ -13,7 +13,12 @@ vi.mock("../../api/client", () => ({
 
 vi.mock("../../auth/AuthProvider", () => ({
   useAuth: () => ({
-    user: { id: "u1", name: "Test User", email: "test@example.com", isVerified: true },
+    user: {
+      id: "u1",
+      name: "Test User",
+      email: "test@example.com",
+      isVerified: true,
+    },
     setUser: vi.fn(),
   }),
 }));
@@ -24,11 +29,15 @@ vi.mock("../../features/settings/AgentsPanel", () => ({
 
 vi.mock("../shared/ToggleSwitch", () => ({
   ToggleSwitch: ({ checked, label, onChange }: any) =>
-    ce("button", {
-      "data-testid": "toggle-" + label.replace(/\s+/g, "-").toLowerCase(),
-      "data-checked": String(checked),
-      onClick: onChange,
-    }, label),
+    ce(
+      "button",
+      {
+        "data-testid": "toggle-" + label.replace(/\s+/g, "-").toLowerCase(),
+        "data-checked": String(checked),
+        onClick: onChange,
+      },
+      label,
+    ),
 }));
 
 vi.mock("../shared/SearchBar", () => ({
@@ -36,29 +45,56 @@ vi.mock("../shared/SearchBar", () => ({
 }));
 
 vi.mock("../shared/SegmentedControl", () => ({
-  SegmentedControl: ({ options }: any) =>
-    ce("div", { "data-testid": "segmented" },
-      options.map((o: any) => ce("button", { key: o.value }, o.label)),
+  SegmentedControl: ({ options, onChange, value }: any) =>
+    ce(
+      "div",
+      { "data-testid": "segmented" },
+      options.map((o: any) =>
+        ce(
+          "button",
+          {
+            key: o.value,
+            "data-active": String(o.value === value),
+            onClick: () => onChange?.(o.value),
+          },
+          o.label,
+        ),
+      ),
     ),
 }));
 
 vi.mock("./settingsModels", () => ({
   CHUNK_MINUTE_OPTIONS: [{ value: 15, label: "15 min" }],
-  DEFAULT_USER_PREFERENCES: { maxDailyTasks: 5, preferredChunkMinutes: null, waitingFollowUpDays: 3, weekendsActive: false, preferredContexts: [], soulProfile: null },
+  DEFAULT_USER_PREFERENCES: {
+    maxDailyTasks: 5,
+    preferredChunkMinutes: null,
+    waitingFollowUpDays: 3,
+    weekendsActive: false,
+    preferredContexts: [],
+    soulProfile: null,
+  },
   SOUL_DAILY_RITUAL_OPTIONS: [{ value: "neither", label: "Neither" }],
   SOUL_ENERGY_PATTERN_OPTIONS: [{ value: "variable", label: "Variable" }],
   SOUL_PLANNING_STYLE_OPTIONS: [{ value: "both", label: "Both" }],
   SOUL_TONE_OPTIONS: [{ value: "calm", label: "Calm" }],
-  mergePlanningPreferences: (data: any) => ({ ...data, preferredContexts: data.preferredContexts || [], soulProfile: data.soulProfile || null }),
-  parsePreferredContexts: (input: string) => input.split(",").map((s: string) => s.trim()).filter(Boolean),
+  mergePlanningPreferences: (data: any) => ({
+    ...data,
+    preferredContexts: data.preferredContexts || [],
+    soulProfile: data.soulProfile || null,
+  }),
+  parsePreferredContexts: (input: string) =>
+    input
+      .split(",")
+      .map((s: string) => s.trim())
+      .filter(Boolean),
 }));
 
 vi.mock("./AdminFeedbackWorkflow", () => ({
-  AdminFeedbackWorkflow: () => ce("div", { "data-testid": "feedback-workflow" }),
+  AdminFeedbackWorkflow: () =>
+    ce("div", { "data-testid": "feedback-workflow" }),
 }));
 
 import { SettingsPage } from "./SettingsPage";
-
 
 const defaultProps = {
   dark: false,
@@ -83,62 +119,76 @@ describe("SettingsPage", () => {
 
   it("renders back button and calls onBack", () => {
     render(ce(SettingsPage, defaultProps));
-    const backBtn = screen.getAllByRole("button").find((b) => b.textContent?.includes("Back"));
+    const backBtn = screen
+      .getAllByRole("button")
+      .find((b) => b.textContent?.includes("Back"));
     if (backBtn) fireEvent.click(backBtn);
     expect(defaultProps.onBack).toHaveBeenCalled();
   });
 
-  it("renders profile section", () => {
+  it("renders the Profile tab label", () => {
     render(ce(SettingsPage, defaultProps));
     expect(screen.getByText("Profile")).toBeTruthy();
   });
 
   it("pre-fills name and email from user", () => {
     render(ce(SettingsPage, defaultProps));
-    expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe("Test User");
-    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe("test@example.com");
+    expect((screen.getByLabelText("Name") as HTMLInputElement).value).toBe(
+      "Test User",
+    );
+    expect((screen.getByLabelText("Email") as HTMLInputElement).value).toBe(
+      "test@example.com",
+    );
   });
 
-  it("renders appearance section", () => {
+  it("renders the Appearance tab label", () => {
     render(ce(SettingsPage, defaultProps));
     expect(screen.getByText("Appearance")).toBeTruthy();
   });
 
-  it("toggles dark mode", () => {
+  it("toggles dark mode after switching to the Appearance tab", () => {
     render(ce(SettingsPage, defaultProps));
+    fireEvent.click(screen.getByText("Appearance"));
     fireEvent.click(screen.getByTestId("toggle-dark-mode"));
     expect(defaultProps.onToggleDark).toHaveBeenCalled();
   });
 
-  it("renders account section", () => {
+  it("shows the Logged in as line on the Profile tab", () => {
     render(ce(SettingsPage, defaultProps));
-    expect(screen.getByText("Account")).toBeTruthy();
+    expect(screen.getByText("test@example.com")).toBeTruthy();
   });
 
-  it("renders tune-up button and calls onOpenTuneUp", () => {
+  it("renders tune-up button and calls onOpenTuneUp from the Danger tab", () => {
     render(ce(SettingsPage, defaultProps));
+    fireEvent.click(screen.getByText("Danger"));
     fireEvent.click(screen.getByText("Open Tune-up"));
     expect(defaultProps.onOpenTuneUp).toHaveBeenCalled();
   });
 
-  it("renders agents panel", () => {
+  it("renders agents panel after switching to the Agents tab", () => {
     render(ce(SettingsPage, defaultProps));
+    fireEvent.click(screen.getByText("Agents"));
     expect(screen.getByTestId("agents-panel")).toBeTruthy();
   });
 
-  it("renders data export button", () => {
+  it("renders data export button on the Profile tab", () => {
     render(ce(SettingsPage, defaultProps));
     expect(screen.getByText("Download JSON")).toBeTruthy();
   });
 
-  it("renders archived projects section", () => {
+  it("renders archived projects section after switching to the Danger tab", () => {
     render(ce(SettingsPage, defaultProps));
+    fireEvent.click(screen.getByText("Danger"));
     expect(screen.getByText("Archived Projects")).toBeTruthy();
   });
 
   it("enables save when name is changed", () => {
     render(ce(SettingsPage, defaultProps));
-    fireEvent.change(screen.getByLabelText("Name"), { target: { value: "New Name" } });
-    expect(screen.getByRole("button", { name: "Save profile" })).not.toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Name"), {
+      target: { value: "New Name" },
+    });
+    expect(
+      screen.getByRole("button", { name: "Save profile" }),
+    ).not.toBeDisabled();
   });
 });
