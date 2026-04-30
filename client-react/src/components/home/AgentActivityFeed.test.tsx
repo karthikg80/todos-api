@@ -49,7 +49,7 @@ describe("AgentActivityFeed", () => {
   it("shows loading skeleton when standalone and loading", () => {
     vi.mocked(apiCall).mockResolvedValue(mockResponse({ ok: true, body: {} }));
     const { container } = render(ce(AgentActivityFeed, { standalone: true }));
-    expect(container.querySelector(".loading-skeleton")).toBeTruthy();
+    expect(container.querySelector(".skeleton")).toBeTruthy();
   });
 
   it("shows empty state when standalone and no entries", async () => {
@@ -80,7 +80,9 @@ describe("AgentActivityFeed", () => {
     const { container } = await act(async () =>
       render(ce(AgentActivityFeed, { standalone: true })),
     );
-    const dateHeaders = container.querySelectorAll(".activity-feed__date-header");
+    const dateHeaders = container.querySelectorAll(
+      ".activity-feed__date-header",
+    );
     expect(dateHeaders.length).toBeGreaterThan(0);
   });
 

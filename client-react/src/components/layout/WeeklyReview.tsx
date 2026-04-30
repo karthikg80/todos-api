@@ -1,6 +1,10 @@
 import { useState, useCallback } from "react";
 import { apiCall } from "../../api/client";
 import { ViewHeader } from "./ViewHeader";
+import { ViewState } from "./ViewState";
+import { Skeleton } from "../shared/Skeleton";
+import { Panel } from "../shared/Panel";
+import { EmptyState } from "../shared/EmptyState";
 import {
   normalizeWeeklyReviewResponse,
   type ReviewData,
@@ -83,29 +87,29 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
       )}
 
       {state === "loading" && (
-        <div className="weekly-review__loading">
-          <div className="loading-bar">
-            <div className="loading-bar__fill" />
-          </div>
-          <p>Analyzing your week…</p>
-        </div>
+        <ViewState
+          loading
+          loadingContent={
+            <>
+              <Skeleton
+                variant="row"
+                count={3}
+                aria-label="Analyzing your week"
+              />
+              <p>Analyzing your week…</p>
+            </>
+          }
+        />
       )}
 
       {state === "error" && (
-        <div className="weekly-review__error">
-          <p>{error}</p>
-          <button className="btn" onClick={() => void runReview("suggest")}>
-            Try again
-          </button>
-        </div>
+        <ViewState error={error} onRetry={() => void runReview("suggest")} />
       )}
 
       {state === "reviewing" && data && (
         <div className="weekly-review__content">
-          {/* Step 1: Summary metrics */}
           {data.summary && (
-            <section className="weekly-review__section">
-              <h3 className="weekly-review__section-title">Summary</h3>
+            <Panel title="Summary">
               <div className="weekly-review__metrics">
                 <div className="weekly-review__metric">
                   <span className="weekly-review__metric-value">
@@ -138,21 +142,17 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
                   <span className="weekly-review__metric-label">Upcoming</span>
                 </div>
               </div>
-            </section>
+            </Panel>
           )}
 
-          {/* Step 2: Reflection */}
           {data.reflectionSummary && (
-            <section className="weekly-review__section">
-              <h3 className="weekly-review__section-title">Reflection</h3>
+            <Panel title="Reflection">
               <p className="weekly-review__text">{data.reflectionSummary}</p>
-            </section>
+            </Panel>
           )}
 
-          {/* Step 3: Rollover review */}
           {data.rolloverGroups.length > 0 && (
-            <section className="weekly-review__section">
-              <h3 className="weekly-review__section-title">Rolled Over</h3>
+            <Panel title="Rolled Over">
               {data.rolloverGroups.map((group, i) => (
                 <div key={i} className="weekly-review__group">
                   <div className="weekly-review__group-label">
@@ -165,13 +165,11 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
                   ))}
                 </div>
               ))}
-            </section>
+            </Panel>
           )}
 
-          {/* Step 4: Findings */}
           {data.findings.length > 0 && (
-            <section className="weekly-review__section">
-              <h3 className="weekly-review__section-title">What got stuck</h3>
+            <Panel title="What got stuck">
               {data.findings.map((f, i) => (
                 <div key={i} className="weekly-review__finding">
                   <span className="weekly-review__finding-title">
@@ -182,13 +180,11 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
                   </span>
                 </div>
               ))}
-            </section>
+            </Panel>
           )}
 
-          {/* Step 5: Next week focus */}
           {data.anchorSuggestions.length > 0 && (
-            <section className="weekly-review__section">
-              <h3 className="weekly-review__section-title">Next Week Focus</h3>
+            <Panel title="Next Week Focus">
               {data.anchorSuggestions.map((s, i) => (
                 <div key={i} className="weekly-review__anchor">
                   <span className="weekly-review__anchor-title">{s.title}</span>
@@ -199,23 +195,17 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
                   )}
                 </div>
               ))}
-            </section>
+            </Panel>
           )}
 
-          {/* Step 6: Behavioral adjustment */}
           {data.behaviorAdjustment && (
-            <section className="weekly-review__section">
-              <h3 className="weekly-review__section-title">Recommendation</h3>
+            <Panel title="Recommendation">
               <p className="weekly-review__text">{data.behaviorAdjustment}</p>
-            </section>
+            </Panel>
           )}
 
-          {/* Step 7: Actions */}
           {data.actions.length > 0 && (
-            <section className="weekly-review__section">
-              <h3 className="weekly-review__section-title">
-                Suggested Actions ({data.actions.length})
-              </h3>
+            <Panel title={`Suggested Actions (${data.actions.length})`}>
               {data.actions.map((a, i) => (
                 <div key={i} className="weekly-review__action">
                   <span className="weekly-review__action-type">{a.type}</span>
@@ -235,22 +225,20 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
                   Apply All Actions
                 </button>
               )}
-            </section>
+            </Panel>
           )}
 
           {data.actions.length === 0 && (
-            <section className="weekly-review__empty">
-              <h3>Nothing urgent to reset this week.</h3>
-              <p>Your weekly review is clear.</p>
-            </section>
+            <EmptyState
+              headline="Nothing urgent to reset this week."
+              copy="Your weekly review is clear."
+            />
           )}
         </div>
       )}
 
       {state === "applying" && (
-        <div className="weekly-review__loading">
-          <p>Applying actions…</p>
-        </div>
+        <ViewState loading loadingContent={<p>Applying actions…</p>} />
       )}
     </div>
   );

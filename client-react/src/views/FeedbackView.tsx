@@ -8,7 +8,8 @@ import {
 } from "../api/feedbackApi";
 import { navigateWithFade } from "../utils/pageTransitions";
 import { ViewHeader } from "../components/layout/ViewHeader";
-import "../styles/feedback.css";
+import { Badge, type BadgeTone } from "../components/shared/Badge";
+import { EmptyState } from "../components/shared/EmptyState";
 
 type FeedbackViewMode = "list" | "form" | "confirmation";
 
@@ -41,16 +42,19 @@ function statusLabel(status: string): string {
   }
 }
 
-function statusClass(status: string): string {
+function statusTone(status: string): BadgeTone {
   switch (status) {
-    case "new":
-      return "feedback-list__status--new";
     case "triaged":
-      return "feedback-list__status--triaged";
+      return "info";
     case "promoted":
-      return "feedback-list__status--promoted";
+      return "success";
+    case "rejected":
+      return "muted";
+    case "resolved":
+      return "success";
+    case "new":
     default:
-      return "feedback-list__status--new";
+      return "muted";
   }
 }
 
@@ -87,33 +91,38 @@ export function ConfirmationView({
 }) {
   const isBug = item.type === "bug";
   return (
-    <div className="feedback-confirmation">
-      <p className="feedback-confirmation__headline">
-        {isBug ? "Bug report sent" : "Feature request sent"}
-      </p>
-      <p>
-        {isBug
-          ? "Thanks for the report. We'll review it and get back to you."
-          : "Thanks for the idea. We'll review it and consider it for the roadmap."}
-      </p>
-      <p className="feedback-confirmation__meta">Reference ID: {item.id}</p>
-      <div className="feedback-confirmation__actions">
-        <button
-          type="button"
-          className="btn btn--secondary"
-          onClick={() => navigateWithFade("/feedback")}
-        >
-          View your submissions
-        </button>
-        <button
-          type="button"
-          className="btn btn--secondary"
-          onClick={onSendAnother}
-        >
-          Send another
-        </button>
-      </div>
-    </div>
+    <EmptyState
+      className="feedback-confirmation"
+      headline={isBug ? "Bug report sent" : "Feature request sent"}
+      copy={
+        <>
+          {isBug
+            ? "Thanks for the report. We'll review it and get back to you."
+            : "Thanks for the idea. We'll review it and consider it for the roadmap."}
+          <span className="feedback-confirmation__meta">
+            Reference ID: {item.id}
+          </span>
+        </>
+      }
+      cta={
+        <div className="feedback-confirmation__actions">
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={() => navigateWithFade("/feedback")}
+          >
+            View your submissions
+          </button>
+          <button
+            type="button"
+            className="btn btn--secondary"
+            onClick={onSendAnother}
+          >
+            Send another
+          </button>
+        </div>
+      }
+    />
   );
 }
 
@@ -149,11 +158,13 @@ export function FeedbackListView({
               <span className="feedback-list__title" title={item.title}>
                 {item.title}
               </span>
-              <span
-                className={`feedback-list__status ${statusClass(item.status)}`}
+              <Badge
+                tone={statusTone(item.status)}
+                size="sm"
+                className="feedback-list__status"
               >
                 {statusLabel(item.status)}
-              </span>
+              </Badge>
               <span className="feedback-list__date">
                 {formatDate(item.createdAt)}
               </span>

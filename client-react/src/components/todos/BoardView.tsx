@@ -2,6 +2,7 @@ import { useMemo, useCallback } from "react";
 import type { Todo, TodoStatus, UpdateTodoDto } from "../../types";
 import type { LoadState } from "../../store/useTodosStore";
 import { IllustrationBoardEmpty } from "../shared/Illustrations";
+import { Skeleton } from "../shared/Skeleton";
 
 interface Props {
   todos: Todo[];
@@ -59,7 +60,10 @@ export function BoardView({
         {BOARD_COLUMNS.map((col) => (
           <div key={col.status} className="board__column">
             <div className="board__column-header">{col.label}</div>
-            <div className="loading-skeleton__row" />
+            <Skeleton
+              variant="board-column"
+              aria-label={`Loading ${col.label}`}
+            />
           </div>
         ))}
       </div>

@@ -4,7 +4,6 @@ import { createElement } from "react";
 import {
   formatDate,
   statusLabel,
-  statusClass,
   typeLabel,
   typeClass,
 } from "../utils/feedbackHelpers";
@@ -48,28 +47,6 @@ describe("FeedbackView helper functions", () => {
 
     it("returns unknown statuses as-is", () => {
       expect(statusLabel("unknown")).toBe("unknown");
-    });
-  });
-
-  describe("statusClass", () => {
-    it("returns correct class for 'new'", () => {
-      expect(statusClass("new")).toBe("feedback-list__status--new");
-    });
-
-    it("returns correct class for 'triaged'", () => {
-      expect(statusClass("triaged")).toBe("feedback-list__status--triaged");
-    });
-
-    it("returns correct class for 'promoted'", () => {
-      expect(statusClass("promoted")).toBe("feedback-list__status--promoted");
-    });
-
-    it("returns default class for 'rejected'", () => {
-      expect(statusClass("rejected")).toBe("feedback-list__status--new");
-    });
-
-    it("returns default class for unknown", () => {
-      expect(statusClass("unknown")).toBe("feedback-list__status--new");
     });
   });
 
