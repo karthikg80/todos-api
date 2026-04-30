@@ -38,6 +38,23 @@
     --danger: #e05260;
     --danger-2: #c94855;
 
+    /* ── Task status palette ─────────────── */
+    --status-inbox: #6b7280;
+    --status-next: #4f6ef7;
+    --status-in-progress: #d97706;
+    --status-waiting: #7b5bc7;
+    --status-done: #2f9e6a;
+
+    --status-inbox-bg: color-mix(in oklab, var(--status-inbox) 10%, white);
+    --status-next-bg: color-mix(in oklab, var(--status-next) 10%, white);
+    --status-in-progress-bg: color-mix(
+      in oklab,
+      var(--status-in-progress) 10%,
+      white
+    );
+    --status-waiting-bg: color-mix(in oklab, var(--status-waiting) 10%, white);
+    --status-done-bg: color-mix(in oklab, var(--status-done) 10%, white);
+
     --overlay: rgb(15 23 42 / 55%);
     --scrim: rgb(15 23 42 / 35%);
 
@@ -113,15 +130,16 @@
     --shadow-0: none;
     --shadow-xs: 0 1px 2px rgb(15 23 42 / 0.05);
     --shadow-sm: 0 1px 3px rgb(15 23 42 / 0.08), 0 1px 2px rgb(15 23 42 / 0.04);
-    --shadow-md: 0 4px 12px rgb(15 23 42 / 0.08), 0 2px 4px rgb(15 23 42 / 0.04);
-    --shadow-lg: 0 12px 24px rgb(15 23 42 / 0.1), 0 4px 8px rgb(15 23 42 / 0.06);
+    --shadow-md:
+      0 4px 12px rgb(15 23 42 / 0.08), 0 2px 4px rgb(15 23 42 / 0.04);
+    --shadow-lg:
+      0 12px 24px rgb(15 23 42 / 0.1), 0 4px 8px rgb(15 23 42 / 0.06);
     --shadow-xl:
       0 20px 40px rgb(15 23 42 / 0.14), 0 8px 16px rgb(15 23 42 / 0.08);
 
     /* ── Focus ring (single recipe) ───────── */
     --ring: 0 0 0 3px color-mix(in oklab, var(--accent) 25%, transparent);
-    --ring-danger: 0 0 0 3px
-      color-mix(in oklab, var(--danger) 25%, transparent);
+    --ring-danger: 0 0 0 3px color-mix(in oklab, var(--danger) 25%, transparent);
 
     /* ── Motion ──────────────────────────── */
     --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
@@ -163,6 +181,39 @@
     --success: #5dd99f;
     --warning: #ffb74d;
 
+    /* Task status palette — dark mode tints land on surface, not white. */
+    --status-inbox: #9ca3af;
+    --status-next: #7fa8ff;
+    --status-in-progress: #ffb74d;
+    --status-waiting: #b89fdf;
+    --status-done: #5dd99f;
+
+    --status-inbox-bg: color-mix(
+      in oklab,
+      var(--status-inbox) 14%,
+      var(--surface)
+    );
+    --status-next-bg: color-mix(
+      in oklab,
+      var(--status-next) 14%,
+      var(--surface)
+    );
+    --status-in-progress-bg: color-mix(
+      in oklab,
+      var(--status-in-progress) 14%,
+      var(--surface)
+    );
+    --status-waiting-bg: color-mix(
+      in oklab,
+      var(--status-waiting) 14%,
+      var(--surface)
+    );
+    --status-done-bg: color-mix(
+      in oklab,
+      var(--status-done) 14%,
+      var(--surface)
+    );
+
     --overlay: rgb(2 6 23 / 75%);
     --scrim: rgb(2 6 23 / 60%);
 
@@ -173,8 +224,7 @@
     --shadow-xl: 0 20px 40px rgb(0 0 0 / 0.4), 0 8px 16px rgb(0 0 0 / 0.3);
 
     --ring: 0 0 0 3px color-mix(in oklab, var(--accent) 35%, transparent);
-    --ring-danger: 0 0 0 3px
-      color-mix(in oklab, var(--danger) 35%, transparent);
+    --ring-danger: 0 0 0 3px color-mix(in oklab, var(--danger) 35%, transparent);
   }
 
   /* ── Density modes ────────────────────── */
@@ -209,7 +259,6 @@
       --dur-slow: 0ms;
     }
   }
-
 }
 
 /* NOTE: the card/dashboard palette (previously inside :root here) has
