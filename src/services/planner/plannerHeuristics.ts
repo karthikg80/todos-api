@@ -366,11 +366,11 @@ export function scoreTaskForDecision(input: {
 
   // Goal alignment boost
   const taskGoalId =
-    (task as any).goalId ||
+    task.goalId ||
     (task.projectId ? projectGoalMap?.get(task.projectId) : undefined);
   if (taskGoalId && goalIndex?.has(taskGoalId)) {
     const goal = goalIndex.get(taskGoalId)!;
-    const direct = !!(task as any).goalId;
+    const direct = !!task.goalId;
     score += direct ? 12 : 9;
     if (goal.targetDate) {
       const daysToGoal =

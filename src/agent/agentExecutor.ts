@@ -752,10 +752,10 @@ export class AgentExecutor {
             for (const t of allTasks) {
               if (
                 t.projectId &&
-                (t as any).goalId &&
+                t.goalId &&
                 !planProjectGoalMap.has(t.projectId)
               ) {
-                planProjectGoalMap.set(t.projectId, (t as any).goalId);
+                planProjectGoalMap.set(t.projectId, t.goalId);
               }
             }
           }
@@ -1724,10 +1724,10 @@ export class AgentExecutor {
           for (const t of allTasks) {
             if (
               t.projectId &&
-              (t as any).goalId &&
+              t.goalId &&
               !simProjectGoalMap.has(t.projectId)
             ) {
-              simProjectGoalMap.set(t.projectId, (t as any).goalId);
+              simProjectGoalMap.set(t.projectId, t.goalId);
             }
           }
           const simInsightMap = new Map<string, number>();
