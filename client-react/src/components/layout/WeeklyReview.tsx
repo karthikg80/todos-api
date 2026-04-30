@@ -1,9 +1,24 @@
 import { useState, useCallback } from "react";
 import { apiCall } from "../../api/client";
+import { ViewHeader } from "./ViewHeader";
 import {
   normalizeWeeklyReviewResponse,
   type ReviewData,
 } from "./weeklyReviewModels";
+
+function isoWeekLabel(date: Date = new Date()): string {
+  // ISO 8601 week number (Mon-start, weeks containing Thursday).
+  const target = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
+  const dayNum = target.getUTCDay() || 7;
+  target.setUTCDate(target.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(target.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil(
+    ((target.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
+  );
+  return `Week ${weekNum} · ${target.getUTCFullYear()}`;
+}
 
 type ReviewState = "idle" | "loading" | "reviewing" | "applying" | "error";
 type ReviewMode = "suggest" | "apply";
@@ -19,36 +34,39 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
   const [reviewMode, setReviewMode] = useState<ReviewMode>("suggest");
   const [error, setError] = useState("");
 
-  const runReview = useCallback(async (mode: ReviewMode = "suggest") => {
-    setState(mode === "apply" ? "applying" : "loading");
-    setError("");
-    try {
-      const res = await apiCall("/agent/write/weekly_review", {
-        method: "POST",
-        body: JSON.stringify({ mode }),
-      });
-      if (!res.ok) throw new Error("Failed to run review");
-      const result = await res.json();
-      setData(normalizeWeeklyReviewResponse(result));
-      setReviewMode(mode);
-      setState("reviewing");
-      if (mode === "apply") {
-        onApplied?.();
+  const runReview = useCallback(
+    async (mode: ReviewMode = "suggest") => {
+      setState(mode === "apply" ? "applying" : "loading");
+      setError("");
+      try {
+        const res = await apiCall("/agent/write/weekly_review", {
+          method: "POST",
+          body: JSON.stringify({ mode }),
+        });
+        if (!res.ok) throw new Error("Failed to run review");
+        const result = await res.json();
+        setData(normalizeWeeklyReviewResponse(result));
+        setReviewMode(mode);
+        setState("reviewing");
+        if (mode === "apply") {
+          onApplied?.();
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong");
+        setState("error");
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setState("error");
-    }
-  }, [onApplied]);
+    },
+    [onApplied],
+  );
 
   return (
     <div className="weekly-review">
-      <div className="weekly-review__header">
-        <button className="btn" onClick={onBack}>
-          ← Back
-        </button>
-        <h2 className="weekly-review__title">Weekly Review</h2>
-      </div>
+      <ViewHeader
+        crumb="Settings › Weekly Review"
+        title="Weekly Review"
+        subtitle={isoWeekLabel()}
+        back={{ onClick: onBack }}
+      />
 
       {state === "idle" && (
         <div className="weekly-review__start">
@@ -101,13 +119,17 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
                   <span className="weekly-review__metric-value">
                     {data.summary.staleTasks}
                   </span>
-                  <span className="weekly-review__metric-label">Stale tasks</span>
+                  <span className="weekly-review__metric-label">
+                    Stale tasks
+                  </span>
                 </div>
                 <div className="weekly-review__metric">
                   <span className="weekly-review__metric-value">
                     {data.summary.waitingTasks}
                   </span>
-                  <span className="weekly-review__metric-label">Waiting on</span>
+                  <span className="weekly-review__metric-label">
+                    Waiting on
+                  </span>
                 </div>
                 <div className="weekly-review__metric">
                   <span className="weekly-review__metric-value">
@@ -132,7 +154,7 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
             <section className="weekly-review__section">
               <h3 className="weekly-review__section-title">Rolled Over</h3>
               {data.rolloverGroups.map((group, i) => (
-                  <div key={i} className="weekly-review__group">
+                <div key={i} className="weekly-review__group">
                   <div className="weekly-review__group-label">
                     {group.label} ({group.tasks.length})
                   </div>
@@ -152,8 +174,12 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
               <h3 className="weekly-review__section-title">What got stuck</h3>
               {data.findings.map((f, i) => (
                 <div key={i} className="weekly-review__finding">
-                  <span className="weekly-review__finding-title">{f.taskTitle}</span>
-                  <span className="weekly-review__finding-reason">{f.reason}</span>
+                  <span className="weekly-review__finding-title">
+                    {f.taskTitle}
+                  </span>
+                  <span className="weekly-review__finding-reason">
+                    {f.reason}
+                  </span>
                 </div>
               ))}
             </section>
@@ -167,7 +193,9 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
                 <div key={i} className="weekly-review__anchor">
                   <span className="weekly-review__anchor-title">{s.title}</span>
                   {s.reason && (
-                    <span className="weekly-review__anchor-reason">{s.reason}</span>
+                    <span className="weekly-review__anchor-reason">
+                      {s.reason}
+                    </span>
                   )}
                 </div>
               ))}
@@ -192,7 +220,9 @@ export function WeeklyReview({ onBack, onApplied }: Props) {
                 <div key={i} className="weekly-review__action">
                   <span className="weekly-review__action-type">{a.type}</span>
                   <span className="weekly-review__action-title">{a.title}</span>
-                  <span className="weekly-review__action-reason">{a.reason}</span>
+                  <span className="weekly-review__action-reason">
+                    {a.reason}
+                  </span>
                 </div>
               ))}
               {reviewMode === "apply" ? (

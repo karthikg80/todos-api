@@ -4,7 +4,8 @@ import { useViewActivity } from "../../components/layout/ViewActivityContext";
 import { apiCall } from "../../api/client";
 import { dupGroupKey, taxSimilarKey } from "../../utils/topFinding";
 import { titlePassesQuality } from "../../utils/qualityHeuristic";
-import { SectionHeader } from "./SectionHeader";
+import { SectionHeader } from "../layout/SectionHeader";
+import { ViewHeader } from "../layout/ViewHeader";
 import { DuplicatesSection } from "./DuplicatesSection";
 import { StaleSection } from "./StaleSection";
 import { QualitySection } from "./QualitySection";
@@ -110,16 +111,21 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
   const dupCount = data.duplicates
     ? data.duplicates.groups.filter((g) => {
         const key = dupGroupKey(g.tasks.map((t) => t.id));
-        return !dismissed.has(key) && !g.tasks.some((t) => patchedTaskIds.has(t.id));
+        return (
+          !dismissed.has(key) && !g.tasks.some((t) => patchedTaskIds.has(t.id))
+        );
       }).length
     : 0;
 
   const staleCount = data.stale
     ? data.stale.staleTasks.filter(
-        (t) => !dismissed.has(`stale:task:${t.id}`) && !patchedTaskIds.has(t.id),
+        (t) =>
+          !dismissed.has(`stale:task:${t.id}`) && !patchedTaskIds.has(t.id),
       ).length +
       data.stale.staleProjects.filter(
-        (p) => !dismissed.has(`stale:project:${p.id}`) && !patchedProjectIds.has(p.id),
+        (p) =>
+          !dismissed.has(`stale:project:${p.id}`) &&
+          !patchedProjectIds.has(p.id),
       ).length
     : 0;
 
@@ -131,11 +137,19 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
 
   const taxonomyCount = data.taxonomy
     ? data.taxonomy.similarProjects.filter((p) => {
-        const key = taxSimilarKey(p.projectAId, p.projectBId, p.projectAName, p.projectBName);
+        const key = taxSimilarKey(
+          p.projectAId,
+          p.projectBId,
+          p.projectAName,
+          p.projectBName,
+        );
         return !dismissed.has(key);
       }).length +
       data.taxonomy.smallProjects.filter(
-        (p) => !(p.id ? dismissed.has(`tax:low:${p.id}`) || patchedProjectIds.has(p.id) : false),
+        (p) =>
+          !(p.id
+            ? dismissed.has(`tax:low:${p.id}`) || patchedProjectIds.has(p.id)
+            : false),
       ).length
     : 0;
 
@@ -364,17 +378,20 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
 
   return (
     <div className="tuneup-view">
-      <div className="tuneup-view__header">
-        <h1 className="tuneup-view__title">Tune-up</h1>
-        <button
-          className="tuneup-view__refresh"
-          type="button"
-          onClick={refresh}
-          aria-label="Refresh all analyses"
-        >
-          Refresh
-        </button>
-      </div>
+      <ViewHeader
+        crumb="Settings › Tune-up"
+        title="Tune-up"
+        actions={
+          <button
+            className="tuneup-view__refresh"
+            type="button"
+            onClick={refresh}
+            aria-label="Refresh all analyses"
+          >
+            Refresh
+          </button>
+        }
+      />
 
       {/* Duplicates section */}
       <section
@@ -385,7 +402,7 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
         <SectionHeader
           title="Duplicates"
           count={dupCount}
-          isCollapsed={collapsed.duplicates}
+          collapsed={collapsed.duplicates}
           onToggle={() => toggleSection("duplicates")}
           loading={loading.duplicates}
           error={error.duplicates}
@@ -428,7 +445,7 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
         <SectionHeader
           title="Stale"
           count={staleCount}
-          isCollapsed={collapsed.stale}
+          collapsed={collapsed.stale}
           onToggle={() => toggleSection("stale")}
           loading={loading.stale}
           error={error.stale}
@@ -469,7 +486,7 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
         <SectionHeader
           title="Quality"
           count={qualityCount}
-          isCollapsed={collapsed.quality}
+          collapsed={collapsed.quality}
           onToggle={() => toggleSection("quality")}
           loading={loading.quality}
           error={error.quality}
@@ -505,7 +522,7 @@ export function TuneUpView({ onOpenTask, onUndo }: Props) {
         <SectionHeader
           title="Taxonomy"
           count={taxonomyCount}
-          isCollapsed={collapsed.taxonomy}
+          collapsed={collapsed.taxonomy}
           onToggle={() => toggleSection("taxonomy")}
           loading={loading.taxonomy}
           error={error.taxonomy}

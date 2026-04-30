@@ -1,5 +1,6 @@
 import { useAgentProfiles } from "../../agents/useAgentProfiles";
 import { AgentSigil } from "../../components/home/AgentSigil";
+import { SectionHeader } from "../../components/layout/SectionHeader";
 
 export function AgentsPanel() {
   const profiles = useAgentProfiles();
@@ -9,7 +10,7 @@ export function AgentsPanel() {
 
   return (
     <section className="settings-section">
-      <h2 className="settings-section__title">Your Agents</h2>
+      <SectionHeader title="Your Agents" />
       <p className="settings-section__subtitle">
         Six specialists working behind the scenes
       </p>
