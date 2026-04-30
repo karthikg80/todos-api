@@ -13,6 +13,10 @@ import { QuickEntry } from "../todos/QuickEntry";
 import { SearchBar } from "../shared/SearchBar";
 import { SegmentedControl } from "../shared/SegmentedControl";
 import { VerificationBanner } from "../shared/VerificationBanner";
+import {
+  BannerOverflowMenu,
+  type SuppressedBanner,
+} from "../shared/BannerOverflowMenu";
 import { DensitySegmentedControl } from "../ui/DensitySegmentedControl";
 import { ViewMenu } from "./ViewMenu";
 import { ViewSubtitle } from "./ViewSubtitle";
@@ -337,11 +341,10 @@ export function ListViewHeader({
 
       {/* Banner stack — only one banner ever renders. Priority order:
           VerificationBanner > active-filter > today-coaching. The lower
-          priority banners are suppressed (rather than dismissed) so the
-          user can still act on the highest-priority signal first. */}
+          priority banners are suppressed and surfaced via BannerOverflowMenu. */}
       {(() => {
         const showVerification = !!user && !user.isVerified;
-        const showActiveFilter = !showVerification && !!activeTagFilter;
+        const hasActiveFilter = !!activeTagFilter;
         const overdueToday =
           activeView === "today" && !selectedProjectId
             ? visibleTodos.filter(
@@ -351,30 +354,55 @@ export function ListViewHeader({
                     new Date().toISOString().split("T")[0],
               ).length
             : 0;
+        const hasTodayCoaching = visibleTodos.length > 0 && overdueToday > 0;
+
+        const showActiveFilter = !showVerification && hasActiveFilter;
         const showTodayCoaching =
-          !showVerification &&
-          !showActiveFilter &&
-          visibleTodos.length > 0 &&
-          overdueToday > 0;
+          !showVerification && !showActiveFilter && hasTodayCoaching;
+
+        const suppressed: SuppressedBanner[] = [];
+        if (showVerification && hasActiveFilter) {
+          suppressed.push({
+            id: "active-filter",
+            label: `Filtered by tag: #${activeTagFilter}`,
+            actionLabel: "Clear",
+            onAction: onClearTagFilter,
+          });
+        }
+        if ((showVerification || showActiveFilter) && hasTodayCoaching) {
+          suppressed.push({
+            id: "today-coaching",
+            label:
+              overdueToday === 1
+                ? "1 task rolled over."
+                : `${overdueToday} tasks rolled over.`,
+          });
+        }
 
         if (showVerification && user) {
           return (
-            <VerificationBanner
-              email={user.email}
-              isVerified={!!user.isVerified}
-            />
+            <div className="banner-row">
+              <VerificationBanner
+                email={user.email}
+                isVerified={!!user.isVerified}
+              />
+              <BannerOverflowMenu suppressed={suppressed} />
+            </div>
           );
         }
         if (showActiveFilter) {
           return (
-            <div className="active-filter-bar">
-              Filtered by tag: <strong>#{activeTagFilter}</strong>
-              <button
-                className="active-filter-bar__clear"
-                onClick={onClearTagFilter}
-              >
-                ✕ Clear
-              </button>
+            <div className="banner-row">
+              <div className="active-filter-bar">
+                Filtered by tag: <strong>#{activeTagFilter}</strong>
+                <button
+                  className="active-filter-bar__clear"
+                  onClick={onClearTagFilter}
+                >
+                  ✕ Clear
+                </button>
+              </div>
+              <BannerOverflowMenu suppressed={suppressed} />
             </div>
           );
         }
