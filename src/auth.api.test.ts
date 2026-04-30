@@ -29,6 +29,17 @@ describe("Authentication API", () => {
     await prisma.todo.deleteMany();
     await prisma.project.deleteMany();
     await prisma.user.deleteMany();
+
+    jest
+      .spyOn(authService, "dispatchVerificationEmail")
+      .mockImplementation(() => {});
+    jest
+      .spyOn((authService as any).emailService, "sendPasswordResetEmail")
+      .mockResolvedValue(undefined);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   describe("POST /auth/register", () => {
@@ -228,6 +239,26 @@ describe("Authentication API", () => {
       expect(response.body.error).toBe("Invalid credentials");
     });
 
+    it("should return 401 for passwordless accounts", async () => {
+      await prisma.user.create({
+        data: {
+          email: "social-only@example.com",
+          password: null,
+          name: "Social Only",
+        },
+      });
+
+      const response = await request(app)
+        .post("/auth/login")
+        .send({
+          email: "social-only@example.com",
+          password: "password123",
+        })
+        .expect(401);
+
+      expect(response.body.error).toBe("Invalid credentials");
+    });
+
     it("should return 400 for missing email", async () => {
       const response = await request(app)
         .post("/auth/login")
@@ -334,6 +365,33 @@ describe("Authentication API", () => {
         .expect(401);
 
       expect(refreshAfterLogout.body.error).toBe("Invalid refresh token");
+    });
+
+    it("should reject refresh tokens with an invalid signature without revoking the stored token", async () => {
+      const register = await request(app).post("/auth/register").send({
+        email: "tampered-refresh@example.com",
+        password: "password123",
+      });
+      const userId = register.body.user.id as string;
+      const refreshToken = register.body.refreshToken as string;
+      const [header, payload, signature] = refreshToken.split(".");
+      const tamperedToken = [
+        header,
+        payload,
+        `${signature.slice(0, -1)}${signature.endsWith("a") ? "b" : "a"}`,
+      ].join(".");
+
+      const response = await request(app)
+        .post("/auth/refresh")
+        .send({ refreshToken: tamperedToken })
+        .expect(401);
+
+      expect(response.body.error).toBe("Invalid refresh token");
+      await expect(
+        prisma.refreshToken.count({
+          where: { userId },
+        }),
+      ).resolves.toBe(1);
     });
 
     it("should return 409 and remove token when refresh token is expired", async () => {

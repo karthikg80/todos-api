@@ -7,11 +7,12 @@ import { prisma } from "./prismaClient";
 describe("Preferences API Integration", () => {
   let app: ReturnType<typeof createApp>;
   let authToken: string;
+  let authService: AuthService;
 
   beforeAll(() => {
     process.env.JWT_SECRET = "test-secret-for-preferences-api-tests";
     const todoService = new PrismaTodoService(prisma);
-    const authService = new AuthService(prisma);
+    authService = new AuthService(prisma);
     app = createApp({ todoService, authService });
   });
 
@@ -20,6 +21,10 @@ describe("Preferences API Integration", () => {
     await prisma.refreshToken.deleteMany();
     await prisma.user.deleteMany();
 
+    jest
+      .spyOn(authService, "dispatchVerificationEmail")
+      .mockImplementation(() => {});
+
     const registerResponse = await request(app).post("/auth/register").send({
       email: "prefs-test@example.com",
       password: "password123",
@@ -27,6 +32,10 @@ describe("Preferences API Integration", () => {
     });
 
     authToken = registerResponse.body.token;
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it("GET /preferences returns defaults when none set", async () => {
@@ -108,6 +117,34 @@ describe("Preferences API Integration", () => {
       energyPattern: "variable",
       goodDayThemes: [],
       tone: "focused",
+      dailyRitual: "neither",
+    });
+  });
+
+  it("PATCH /preferences sanitizes soul profile values and falls back invalid enums", async () => {
+    const response = await request(app)
+      .patch("/preferences")
+      .set("Authorization", `Bearer ${authToken}`)
+      .send({
+        soulProfile: {
+          lifeAreas: ["WORK", "invalid", "personal", "work", "health"],
+          failureModes: ["forgetful", "unknown", "forgetful"],
+          planningStyle: "chaos",
+          energyPattern: "night",
+          goodDayThemes: ["important_work", "made_up", "avoid_overload"],
+          tone: "LOUD",
+          dailyRitual: "sometimes",
+        },
+      })
+      .expect(200);
+
+    expect(response.body.soulProfile).toEqual({
+      lifeAreas: ["work", "personal", "health"],
+      failureModes: ["forgetful"],
+      planningStyle: "both",
+      energyPattern: "variable",
+      goodDayThemes: ["important_work", "avoid_overload"],
+      tone: "calm",
       dailyRitual: "neither",
     });
   });
