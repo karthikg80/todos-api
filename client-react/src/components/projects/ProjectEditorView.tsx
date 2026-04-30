@@ -37,14 +37,11 @@ import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import type { ActiveFilters } from "../todos/FilterPanel";
 import { apiCall } from "../../api/client";
 import { Breadcrumb } from "../shared/Breadcrumb";
-import {
-  IconGrip,
-  IconKebab,
-  IconMenu,
-} from "../shared/Icons";
+import { IconGrip, IconKebab, IconMenu } from "../shared/Icons";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { ProjectKebabMenu } from "./ProjectKebabMenu";
+import { ProjectMetaBar } from "./ProjectMetaBar";
 import { useProjectHeadings } from "../../hooks/useProjectHeadings";
 import {
   formatDueFriendly,
@@ -142,10 +139,9 @@ type FlatItem =
       parentHeadingId: string | null;
     };
 
-function sortByOrder<T extends { order?: number; sortOrder?: number; createdAt?: string }>(
-  items: T[],
-  orderKey: "order" | "sortOrder",
-) {
+function sortByOrder<
+  T extends { order?: number; sortOrder?: number; createdAt?: string },
+>(items: T[], orderKey: "order" | "sortOrder") {
   return [...items].sort((a, b) => {
     const aOrder = orderKey === "order" ? (a.order ?? 0) : (a.sortOrder ?? 0);
     const bOrder = orderKey === "order" ? (b.order ?? 0) : (b.sortOrder ?? 0);
@@ -398,20 +394,24 @@ export function ProjectEditorView({
     project.status,
   );
   const [savingProject, setSavingProject] = useState(false);
-  const [activeTaskComposerScope, setActiveTaskComposerScope] = useState<string | null>(
-    null,
-  );
+  const [activeTaskComposerScope, setActiveTaskComposerScope] = useState<
+    string | null
+  >(null);
   const [taskComposerValue, setTaskComposerValue] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [activeDragId, setActiveDragId] = useState<string | null>(null);
-  const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(null);
+  const [activeDropTargetId, setActiveDropTargetId] = useState<string | null>(
+    null,
+  );
   const [collapsedHeadingIds, setCollapsedHeadingIds] = useState<Set<string>>(
     () => new Set(),
   );
   const [headingComposerOpen, setHeadingComposerOpen] = useState(false);
   const [headingComposerValue, setHeadingComposerValue] = useState("");
-  const [headingNameDrafts, setHeadingNameDrafts] = useState<Record<string, string>>({});
+  const [headingNameDrafts, setHeadingNameDrafts] = useState<
+    Record<string, string>
+  >({});
   const [moveTargetByHeadingId, setMoveTargetByHeadingId] = useState<
     Record<string, string>
   >({});
@@ -479,12 +479,12 @@ export function ProjectEditorView({
     if (isDraft) {
       return Boolean(
         name.trim() ||
-          nextDescription ||
-          nextGoal ||
-          nextArea ||
-          targetDate ||
-          projectPriority !== null ||
-          projectStatus !== "active",
+        nextDescription ||
+        nextGoal ||
+        nextArea ||
+        targetDate ||
+        projectPriority !== null ||
+        projectStatus !== "active",
       );
     }
 
@@ -517,12 +517,22 @@ export function ProjectEditorView({
 
   const allProjectTodos = useMemo(
     () =>
-      projectTodos.filter((todo) => !todo.archived && todo.projectId === project.id),
+      projectTodos.filter(
+        (todo) => !todo.archived && todo.projectId === project.id,
+      ),
     [project.id, projectTodos],
   );
 
-  const { sortedHeadings, sortedTodos, flatItems, backlogTodos, todosByHeading } =
-    useMemo(() => buildFlatItems(headings, allProjectTodos), [allProjectTodos, headings]);
+  const {
+    sortedHeadings,
+    sortedTodos,
+    flatItems,
+    backlogTodos,
+    todosByHeading,
+  } = useMemo(
+    () => buildFlatItems(headings, allProjectTodos),
+    [allProjectTodos, headings],
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -547,14 +557,17 @@ export function ProjectEditorView({
       flatItems.filter((item) =>
         item.kind === "heading"
           ? true
-          : !item.parentHeadingId || !collapsedHeadingIds.has(item.parentHeadingId),
+          : !item.parentHeadingId ||
+            !collapsedHeadingIds.has(item.parentHeadingId),
       ),
     [collapsedHeadingIds, flatItems],
   );
   const activeDragItem = useMemo(
     () =>
       activeDragId
-        ? displayedFlatItems.find((item) => item.sortableId === activeDragId) ?? null
+        ? (displayedFlatItems.find(
+            (item) => item.sortableId === activeDragId,
+          ) ?? null)
         : null,
     [activeDragId, displayedFlatItems],
   );
@@ -582,13 +595,16 @@ export function ProjectEditorView({
       const response = await apiCall("/projects", {
         method: "POST",
         body: JSON.stringify({
-          name: buildDerivedProjectName(mode === "duplicate" ? "Copy" : "Repeat"),
+          name: buildDerivedProjectName(
+            mode === "duplicate" ? "Copy" : "Repeat",
+          ),
           description: description.trim() || null,
           goal: goal.trim() || null,
           area: projectArea.trim() || null,
           priority: projectPriority,
           status: "active",
-          targetDate: mode === "duplicate" ? fromDateInputValue(targetDate) : null,
+          targetDate:
+            mode === "duplicate" ? fromDateInputValue(targetDate) : null,
         }),
       });
       if (!response.ok) return;
@@ -597,10 +613,13 @@ export function ProjectEditorView({
       const headingMap = new Map<string, string>();
 
       for (const heading of sortedHeadings) {
-        const headingResponse = await apiCall(`/projects/${created.id}/headings`, {
-          method: "POST",
-          body: JSON.stringify({ name: heading.name }),
-        });
+        const headingResponse = await apiCall(
+          `/projects/${created.id}/headings`,
+          {
+            method: "POST",
+            body: JSON.stringify({ name: heading.name }),
+          },
+        );
         if (!headingResponse.ok) continue;
         const createdHeading = (await headingResponse.json()) as Heading;
         headingMap.set(heading.id, createdHeading.id);
@@ -631,11 +650,12 @@ export function ProjectEditorView({
             source: todo.source ?? null,
             status: mode === "duplicate" ? todo.status : "inbox",
             completed: mode === "duplicate" ? todo.completed : false,
-            dueDate: mode === "duplicate" ? todo.dueDate ?? null : null,
-            startDate: mode === "duplicate" ? todo.startDate ?? null : null,
-            scheduledDate: mode === "duplicate" ? todo.scheduledDate ?? null : null,
-            reviewDate: mode === "duplicate" ? todo.reviewDate ?? null : null,
-            doDate: mode === "duplicate" ? todo.doDate ?? null : null,
+            dueDate: mode === "duplicate" ? (todo.dueDate ?? null) : null,
+            startDate: mode === "duplicate" ? (todo.startDate ?? null) : null,
+            scheduledDate:
+              mode === "duplicate" ? (todo.scheduledDate ?? null) : null,
+            reviewDate: mode === "duplicate" ? (todo.reviewDate ?? null) : null,
+            doDate: mode === "duplicate" ? (todo.doDate ?? null) : null,
           }),
         });
       }
@@ -770,10 +790,15 @@ export function ProjectEditorView({
                 setTaskComposerValue("");
               }}
             >
-              <span className="project-page__task-composer-plus" aria-hidden="true">
+              <span
+                className="project-page__task-composer-plus"
+                aria-hidden="true"
+              >
                 +
               </span>
-              <span className="project-page__task-composer-label">Add task</span>
+              <span className="project-page__task-composer-label">
+                Add task
+              </span>
               <span className="project-page__heading-rule" aria-hidden="true" />
             </button>
           )}
@@ -874,8 +899,12 @@ export function ProjectEditorView({
       setActiveDropTargetId(null);
       if (!over || active.id === over.id) return;
 
-      const activeItem = displayedFlatItems.find((item) => item.sortableId === active.id);
-      const overItem = displayedFlatItems.find((item) => item.sortableId === over.id);
+      const activeItem = displayedFlatItems.find(
+        (item) => item.sortableId === active.id,
+      );
+      const overItem = displayedFlatItems.find(
+        (item) => item.sortableId === over.id,
+      );
       if (!activeItem || !overItem) return;
 
       if (activeItem.kind === "heading") {
@@ -883,7 +912,9 @@ export function ProjectEditorView({
           (heading) => heading.id === activeItem.heading.id,
         );
         const targetHeadingId =
-          overItem.kind === "heading" ? overItem.heading.id : overItem.parentHeadingId;
+          overItem.kind === "heading"
+            ? overItem.heading.id
+            : overItem.parentHeadingId;
 
         if (!targetHeadingId) return;
 
@@ -891,25 +922,38 @@ export function ProjectEditorView({
           (heading) => heading.id === targetHeadingId,
         );
 
-        if (currentIndex < 0 || targetIndex < 0 || currentIndex === targetIndex) {
+        if (
+          currentIndex < 0 ||
+          targetIndex < 0 ||
+          currentIndex === targetIndex
+        ) {
           return;
         }
 
-        await reorderHeadings(moveItem(sortedHeadings, currentIndex, targetIndex));
+        await reorderHeadings(
+          moveItem(sortedHeadings, currentIndex, targetIndex),
+        );
         return;
       }
 
-      if (overItem.kind === "heading" && collapsedHeadingIds.has(overItem.heading.id)) {
+      if (
+        overItem.kind === "heading" &&
+        collapsedHeadingIds.has(overItem.heading.id)
+      ) {
         const targetHeadingId = overItem.heading.id;
         const activeTodoId = activeItem.todo.id;
         const targetFlatIndex = flatItems.findIndex(
-          (item) => item.kind === "heading" && item.heading.id === targetHeadingId,
+          (item) =>
+            item.kind === "heading" && item.heading.id === targetHeadingId,
         );
         const nextTodoAfterSection = flatItems
           .slice(targetFlatIndex + 1)
           .find((item): item is Extract<FlatItem, { kind: "todo" }> => {
             if (item.kind !== "todo") return false;
-            return item.parentHeadingId !== targetHeadingId && item.todo.id !== activeTodoId;
+            return (
+              item.parentHeadingId !== targetHeadingId &&
+              item.todo.id !== activeTodoId
+            );
           });
 
         if (nextTodoAfterSection) {
@@ -920,7 +964,9 @@ export function ProjectEditorView({
 
         await onSave(activeTodoId, {
           headingId: targetHeadingId,
-          order: sortedTodos.reduce((max, todo) => Math.max(max, todo.order), -1) + 1,
+          order:
+            sortedTodos.reduce((max, todo) => Math.max(max, todo.order), -1) +
+            1,
         });
         return;
       }
@@ -944,15 +990,23 @@ export function ProjectEditorView({
 
       const nextHeading =
         [...reorderedFlat]
-          .slice(0, reorderedFlat.findIndex((item) => item.id === activeItem.id))
+          .slice(
+            0,
+            reorderedFlat.findIndex((item) => item.id === activeItem.id),
+          )
           .reverse()
           .find((item) => item.kind === "heading") ?? null;
 
       const nextHeadingId =
-        nextHeading && nextHeading.kind === "heading" ? nextHeading.heading.id : null;
+        nextHeading && nextHeading.kind === "heading"
+          ? nextHeading.heading.id
+          : null;
       const oldTodoIds = sortedTodos.map((todo) => todo.id);
       const reorderedTodoIds = reorderedFlat
-        .filter((item): item is Extract<FlatItem, { kind: "todo" }> => item.kind === "todo")
+        .filter(
+          (item): item is Extract<FlatItem, { kind: "todo" }> =>
+            item.kind === "todo",
+        )
         .map((item) => item.todo.id);
       const previousIndex = oldTodoIds.indexOf(activeItem.todo.id);
       const nextIndex = reorderedTodoIds.indexOf(activeItem.todo.id);
@@ -1020,7 +1074,9 @@ export function ProjectEditorView({
             <span className="project-page__heading-title">
               {activeDragItem.heading.name}
             </span>
-            <span className="project-page__heading-count">{headingTodos.length}</span>
+            <span className="project-page__heading-count">
+              {headingTodos.length}
+            </span>
           </div>
         </div>
       );
@@ -1032,11 +1088,17 @@ export function ProjectEditorView({
           <IconGrip size={14} />
         </div>
         <label className="project-page__task-check">
-          <input type="checkbox" checked={activeDragItem.todo.completed} readOnly />
+          <input
+            type="checkbox"
+            checked={activeDragItem.todo.completed}
+            readOnly
+          />
         </label>
         <span
           className={`project-page__task-title${
-            activeDragItem.todo.completed ? " project-page__task-title--done" : ""
+            activeDragItem.todo.completed
+              ? " project-page__task-title--done"
+              : ""
           }`}
         >
           {activeDragItem.todo.title}
@@ -1159,95 +1221,26 @@ export function ProjectEditorView({
         </header>
 
         {settingsOpen ? (
-          <section className="project-page__settings">
-            <label className="project-page__field">
-              <span className="project-page__field-label">Description</span>
-              <textarea
-                className="project-page__textarea"
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="What this project is about"
-              />
-            </label>
-            <label className="project-page__field">
-              <span className="project-page__field-label">Goal</span>
-              <textarea
-                className="project-page__textarea"
-                value={goal}
-                onChange={(event) => setGoal(event.target.value)}
-                placeholder="What done looks like"
-              />
-            </label>
-            <label className="project-page__field">
-              <span className="project-page__field-label">Area</span>
-              <input
-                list="project-area-options"
-                className="project-page__input"
-                value={projectArea}
-                onChange={(event) => setProjectArea(event.target.value)}
-                placeholder="Home, Work, Health…"
-              />
-              <datalist id="project-area-options">
-                {areaSuggestions.map((area) => (
-                  <option key={area} value={area} />
-                ))}
-              </datalist>
-            </label>
-            <label className="project-page__field">
-              <span className="project-page__field-label">Priority</span>
-              <select
-                className="project-page__input"
-                value={projectPriority ?? ""}
-                onChange={(event) =>
-                  setProjectPriority(
-                    event.target.value
-                      ? (event.target.value as NonNullable<Project["priority"]>)
-                      : null,
-                  )
-                }
-              >
-                <option value="">None</option>
-                <option value="low">Low</option>
-                <option value="medium">Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </label>
-            <label className="project-page__field">
-              <span className="project-page__field-label">Target date</span>
-              <input
-                type="date"
-                className="project-page__input"
-                value={targetDate}
-                onChange={(event) => setTargetDate(event.target.value)}
-              />
-            </label>
-            <label className="project-page__field">
-              <span className="project-page__field-label">Status</span>
-              <select
-                className="project-page__input"
-                value={projectStatus}
-                onChange={(event) =>
-                  setProjectStatus(event.target.value as Project["status"])
-                }
-              >
-                <option value="active">Active</option>
-                <option value="on_hold">On hold</option>
-                <option value="completed">Completed</option>
-                <option value="archived">Archived</option>
-              </select>
-            </label>
-            <div className="project-page__settings-actions">
-              <button
-                type="button"
-                className="btn btn--primary"
-                onClick={() => void handleSaveProject()}
-                disabled={!projectDirty || savingProject || !name.trim()}
-              >
-                {savingProject ? "Saving…" : isDraft ? "Create project" : "Save project"}
-              </button>
-            </div>
-          </section>
+          <ProjectMetaBar
+            description={description}
+            onDescriptionChange={setDescription}
+            goal={goal}
+            onGoalChange={setGoal}
+            area={projectArea}
+            onAreaChange={setProjectArea}
+            areaSuggestions={areaSuggestions}
+            priority={projectPriority}
+            onPriorityChange={setProjectPriority}
+            targetDate={targetDate}
+            onTargetDateChange={setTargetDate}
+            status={projectStatus}
+            onStatusChange={setProjectStatus}
+            saving={savingProject}
+            dirty={projectDirty}
+            isDraft={isDraft}
+            hasName={Boolean(name.trim())}
+            onSave={() => void handleSaveProject()}
+          />
         ) : null}
 
         {bulkMode ? (
@@ -1273,8 +1266,8 @@ export function ProjectEditorView({
         <section className="project-page__list-shell">
           {isDraft ? (
             <div className="project-page__empty">
-              Start with the project name and optional settings. Once you create it,
-              headings and tasks will appear here.
+              Start with the project name and optional settings. Once you create
+              it, headings and tasks will appear here.
             </div>
           ) : (
             <DndContext
@@ -1291,7 +1284,9 @@ export function ProjectEditorView({
                 strategy={verticalListSortingStrategy}
               >
                 <div className="project-page__list">
-                  {backlogTodos.length === 0 ? renderTaskComposer("backlog") : null}
+                  {backlogTodos.length === 0
+                    ? renderTaskComposer("backlog")
+                    : null}
 
                   {showStandaloneTasksLabel ? (
                     <div className="project-page__section-label">Tasks</div>
@@ -1315,35 +1310,47 @@ export function ProjectEditorView({
                         <label className="project-page__task-check">
                           <input
                             type="checkbox"
-                            checked={bulkMode ? selectedIds.has(todo.id) : todo.completed}
+                            checked={
+                              bulkMode
+                                ? selectedIds.has(todo.id)
+                                : todo.completed
+                            }
                             onChange={() =>
                               bulkMode
                                 ? onSelect(todo.id)
                                 : onToggle(todo.id, !todo.completed)
                             }
                             aria-label={
-                              bulkMode ? `Select ${todo.title}` : `Complete ${todo.title}`
+                              bulkMode
+                                ? `Select ${todo.title}`
+                                : `Complete ${todo.title}`
                             }
                           />
                         </label>
                         <button
                           type="button"
                           className={`project-page__task-title${
-                            todo.completed ? " project-page__task-title--done" : ""
+                            todo.completed
+                              ? " project-page__task-title--done"
+                              : ""
                           }`}
                           onClick={() => onTaskOpen(todo.id)}
                         >
                           {todo.title}
                         </button>
                         {todo.dueDate ? (
-                          <span className="project-page__task-meta">{dueLabel}</span>
+                          <span className="project-page__task-meta">
+                            {dueLabel}
+                          </span>
                         ) : null}
                         <RowMenu
                           label="Task actions"
                           open={openMenuId === menuId}
                           onClose={() => setOpenMenuId(null)}
                           onToggle={() =>
-                            setOpenMenuId((current) => (current === menuId ? null : menuId))
+                            setOpenMenuId((current) =>
+                              current === menuId ? null : menuId,
+                            )
                           }
                         >
                           <button
@@ -1369,7 +1376,9 @@ export function ProjectEditorView({
                     );
                   })}
 
-                  {backlogTodos.length > 0 ? renderTaskComposer("backlog") : null}
+                  {backlogTodos.length > 0
+                    ? renderTaskComposer("backlog")
+                    : null}
 
                   {sortedHeadings.map((heading) => {
                     const headingTodos = todosByHeading.get(heading.id) ?? [];
@@ -1400,7 +1409,9 @@ export function ProjectEditorView({
                             >
                               <span
                                 className={`project-page__collapse-glyph${
-                                  collapsed ? "" : " project-page__collapse-glyph--open"
+                                  collapsed
+                                    ? ""
+                                    : " project-page__collapse-glyph--open"
                                 }`}
                                 aria-hidden="true"
                               >
@@ -1411,7 +1422,9 @@ export function ProjectEditorView({
                               className="project-page__heading-input"
                               data-heading-input-id={heading.id}
                               aria-label={`Heading name: ${heading.name}`}
-                              value={headingNameDrafts[heading.id] ?? heading.name}
+                              value={
+                                headingNameDrafts[heading.id] ?? heading.name
+                              }
                               onChange={(event) =>
                                 setHeadingNameDrafts((current) => ({
                                   ...current,
@@ -1435,7 +1448,10 @@ export function ProjectEditorView({
                             <span className="project-page__heading-count">
                               {headingTodos.length}
                             </span>
-                            <span className="project-page__heading-rule" aria-hidden="true" />
+                            <span
+                              className="project-page__heading-rule"
+                              aria-hidden="true"
+                            />
                           </div>
                           <RowMenu
                             label="Heading actions"
@@ -1443,7 +1459,9 @@ export function ProjectEditorView({
                             onClose={() => setOpenMenuId(null)}
                             onToggle={() =>
                               setOpenMenuId((current) =>
-                                current === headingMenuId ? null : headingMenuId,
+                                current === headingMenuId
+                                  ? null
+                                  : headingMenuId,
                               )
                             }
                           >
@@ -1464,7 +1482,9 @@ export function ProjectEditorView({
                             </button>
                             <button
                               type="button"
-                              onClick={() => void handleArchiveHeading(heading, headingTodos)}
+                              onClick={() =>
+                                void handleArchiveHeading(heading, headingTodos)
+                              }
                             >
                               Archive
                             </button>
@@ -1484,10 +1504,14 @@ export function ProjectEditorView({
                                 {projects
                                   .filter(
                                     (candidate) =>
-                                      !candidate.archived && candidate.id !== project.id,
+                                      !candidate.archived &&
+                                      candidate.id !== project.id,
                                   )
                                   .map((candidate) => (
-                                    <option key={candidate.id} value={candidate.id}>
+                                    <option
+                                      key={candidate.id}
+                                      value={candidate.id}
+                                    >
                                       {candidate.name}
                                     </option>
                                   ))}
@@ -1509,7 +1533,10 @@ export function ProjectEditorView({
                             <button
                               type="button"
                               onClick={() =>
-                                void handleConvertHeadingToProject(heading, headingTodos)
+                                void handleConvertHeadingToProject(
+                                  heading,
+                                  headingTodos,
+                                )
                               }
                             >
                               Convert to project
@@ -1525,98 +1552,111 @@ export function ProjectEditorView({
 
                         <div
                           className={`project-page__section-tasks${
-                            collapsed ? " project-page__section-tasks--collapsed" : ""
+                            collapsed
+                              ? " project-page__section-tasks--collapsed"
+                              : ""
                           }`}
                         >
                           {!collapsed && headingTodos.length === 0 ? (
                             <div className="project-page__section-empty">
-                              Empty heading. Drop a task here or add one from the menu.
+                              Empty heading. Drop a task here or add one from
+                              the menu.
                             </div>
                           ) : null}
 
                           {!collapsed
                             ? headingTodos.map((todo) => {
-                            const menuId = `todo:${todo.id}`;
-                            const dueLabel = formatDueFriendly(todo.dueDate);
+                                const menuId = `todo:${todo.id}`;
+                                const dueLabel = formatDueFriendly(
+                                  todo.dueDate,
+                                );
 
-                            return (
-                              <SortableRow
-                                key={menuId}
-                                id={menuId}
-                                className="project-page__task-row project-page__task-row--nested"
-                                isDropTarget={activeDropTargetId === menuId}
-                              >
-                                <label className="project-page__task-check">
-                                  <input
-                                    type="checkbox"
-                                    checked={
-                                      bulkMode ? selectedIds.has(todo.id) : todo.completed
-                                    }
-                                    onChange={() =>
-                                      bulkMode
-                                        ? onSelect(todo.id)
-                                        : onToggle(todo.id, !todo.completed)
-                                    }
-                                    aria-label={
-                                      bulkMode
-                                        ? `Select ${todo.title}`
-                                        : `Complete ${todo.title}`
-                                    }
-                                  />
-                                </label>
-                                <button
-                                  type="button"
-                                  className={`project-page__task-title${
-                                    todo.completed ? " project-page__task-title--done" : ""
-                                  }`}
-                                  onClick={() => onTaskOpen(todo.id)}
-                                >
-                                  {todo.title}
-                                </button>
-                                {todo.dueDate ? (
-                                  <span className="project-page__task-meta">{dueLabel}</span>
-                                ) : null}
-                                <RowMenu
-                                  label="Task actions"
-                                  open={openMenuId === menuId}
-                                  onClose={() => setOpenMenuId(null)}
-                                  onToggle={() =>
-                                    setOpenMenuId((current) =>
-                                      current === menuId ? null : menuId,
-                                    )
-                                  }
-                                >
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenMenuId(null);
-                                      onTaskOpen(todo.id);
-                                    }}
+                                return (
+                                  <SortableRow
+                                    key={menuId}
+                                    id={menuId}
+                                    className="project-page__task-row project-page__task-row--nested"
+                                    isDropTarget={activeDropTargetId === menuId}
                                   >
-                                    Open
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenMenuId(null);
-                                      void onSave(todo.id, { headingId: null });
-                                    }}
-                                  >
-                                    Move to backlog
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setOpenMenuId(null);
-                                      onRequestDeleteTodo(todo.id);
-                                    }}
-                                  >
-                                    Delete
-                                  </button>
-                                </RowMenu>
-                              </SortableRow>
-                            );
-                            })
+                                    <label className="project-page__task-check">
+                                      <input
+                                        type="checkbox"
+                                        checked={
+                                          bulkMode
+                                            ? selectedIds.has(todo.id)
+                                            : todo.completed
+                                        }
+                                        onChange={() =>
+                                          bulkMode
+                                            ? onSelect(todo.id)
+                                            : onToggle(todo.id, !todo.completed)
+                                        }
+                                        aria-label={
+                                          bulkMode
+                                            ? `Select ${todo.title}`
+                                            : `Complete ${todo.title}`
+                                        }
+                                      />
+                                    </label>
+                                    <button
+                                      type="button"
+                                      className={`project-page__task-title${
+                                        todo.completed
+                                          ? " project-page__task-title--done"
+                                          : ""
+                                      }`}
+                                      onClick={() => onTaskOpen(todo.id)}
+                                    >
+                                      {todo.title}
+                                    </button>
+                                    {todo.dueDate ? (
+                                      <span className="project-page__task-meta">
+                                        {dueLabel}
+                                      </span>
+                                    ) : null}
+                                    <RowMenu
+                                      label="Task actions"
+                                      open={openMenuId === menuId}
+                                      onClose={() => setOpenMenuId(null)}
+                                      onToggle={() =>
+                                        setOpenMenuId((current) =>
+                                          current === menuId ? null : menuId,
+                                        )
+                                      }
+                                    >
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null);
+                                          onTaskOpen(todo.id);
+                                        }}
+                                      >
+                                        Open
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null);
+                                          void onSave(todo.id, {
+                                            headingId: null,
+                                          });
+                                        }}
+                                      >
+                                        Move to backlog
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          setOpenMenuId(null);
+                                          onRequestDeleteTodo(todo.id);
+                                        }}
+                                      >
+                                        Delete
+                                      </button>
+                                    </RowMenu>
+                                  </SortableRow>
+                                );
+                              })
                             : null}
 
                           {!collapsed ? renderTaskComposer(heading.id) : null}
@@ -1626,7 +1666,9 @@ export function ProjectEditorView({
                   })}
                   <div
                     className={`project-page__heading-composer${
-                      headingComposerOpen ? " project-page__heading-composer--open" : ""
+                      headingComposerOpen
+                        ? " project-page__heading-composer--open"
+                        : ""
                     }`}
                   >
                     {headingComposerOpen ? (
@@ -1636,7 +1678,9 @@ export function ProjectEditorView({
                           className="project-page__heading-composer-input"
                           value={headingComposerValue}
                           placeholder="Type a heading and press Enter"
-                          onChange={(event) => setHeadingComposerValue(event.target.value)}
+                          onChange={(event) =>
+                            setHeadingComposerValue(event.target.value)
+                          }
                           onBlur={() => {
                             if (!headingComposerValue.trim()) {
                               setHeadingComposerOpen(false);
@@ -1653,7 +1697,10 @@ export function ProjectEditorView({
                           }}
                           autoFocus
                         />
-                        <span className="project-page__heading-rule" aria-hidden="true" />
+                        <span
+                          className="project-page__heading-rule"
+                          aria-hidden="true"
+                        />
                       </>
                     ) : (
                       <button
@@ -1661,8 +1708,13 @@ export function ProjectEditorView({
                         className="project-page__heading-composer-trigger"
                         onClick={() => setHeadingComposerOpen(true)}
                       >
-                        <span className="project-page__heading-rule" aria-hidden="true" />
-                        <span className="project-page__heading-composer-label">New heading</span>
+                        <span
+                          className="project-page__heading-rule"
+                          aria-hidden="true"
+                        />
+                        <span className="project-page__heading-composer-label">
+                          New heading
+                        </span>
                       </button>
                     )}
                   </div>
