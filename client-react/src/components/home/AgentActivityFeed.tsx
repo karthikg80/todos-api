@@ -6,6 +6,7 @@ import {
 } from "../../agents/useAgentProfiles";
 import { AgentSigil } from "./AgentSigil";
 import { AgentCompositionCanvas } from "../activity/AgentCompositionCanvas";
+import { Skeleton } from "../shared/Skeleton";
 
 interface ActivityEntry {
   agentId: string;
@@ -77,11 +78,11 @@ export function AgentActivityFeed({ standalone = false }: Props) {
     if (standalone) {
       return (
         <div className="activity-feed activity-feed--loading">
-          <div className="loading-skeleton">
-            <div className="loading-skeleton__row" />
-            <div className="loading-skeleton__row" />
-            <div className="loading-skeleton__row" />
-          </div>
+          <Skeleton
+            variant="row"
+            count={3}
+            aria-label="Loading agent activity"
+          />
         </div>
       );
     }

@@ -4,6 +4,8 @@ import { useFocusBrief } from "../../hooks/useFocusBrief";
 import { RightNowPanel } from "../home/RightNowPanel";
 import { TodayAgendaPanel } from "../home/TodayAgendaPanel";
 import { PanelRenderer } from "../home/PanelRenderer";
+import { ViewState } from "./ViewState";
+import { Skeleton } from "../shared/Skeleton";
 
 interface Props {
   todos?: Todo[];
@@ -16,22 +18,24 @@ interface Props {
   onUndo?: (action: { message: string; onUndo: () => void }) => void;
 }
 
-export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject, onEditTodo }: Props) {
+export function HomeDashboard({
+  onTodoClick,
+  onToggleTodo,
+  onSelectProject,
+  onEditTodo,
+}: Props) {
   const { brief, loading, error, refreshing } = useFocusBrief();
   const [showMore, setShowMore] = useState(false);
 
   if (loading && !brief) {
     return (
       <div className="home-dashboard">
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (error && !brief) {
-    return (
-      <div className="home-dashboard">
-        <p>Failed to load focus brief.</p>
+        <ViewState
+          loading
+          loadingContent={
+            <Skeleton variant="panel" aria-label="Loading focus brief" />
+          }
+        />
       </div>
     );
   }
@@ -39,7 +43,7 @@ export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject, onEd
   if (!brief) {
     return (
       <div className="home-dashboard">
-        <p>Failed to load focus brief.</p>
+        <ViewState error={error ?? "Failed to load focus brief."} />
       </div>
     );
   }
@@ -74,15 +78,17 @@ export function HomeDashboard({ onTodoClick, onToggleTodo, onSelectProject, onEd
               />
             ))}
             {showMore &&
-              brief.rankedPanels.slice(3).map((panel) => (
-                <PanelRenderer
-                  key={panel.type}
-                  panel={panel}
-                  onTaskClick={onTodoClick}
-                  onSelectProject={onSelectProject}
-                  onEditTodo={onEditTodo}
-                />
-              ))}
+              brief.rankedPanels
+                .slice(3)
+                .map((panel) => (
+                  <PanelRenderer
+                    key={panel.type}
+                    panel={panel}
+                    onTaskClick={onTodoClick}
+                    onSelectProject={onSelectProject}
+                    onEditTodo={onEditTodo}
+                  />
+                ))}
           </div>
           {brief.rankedPanels.length > 3 && (
             <button

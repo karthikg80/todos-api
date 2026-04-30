@@ -195,7 +195,7 @@ describe("TuneUpView", () => {
       });
       render(ce(TuneUpView, defaultProps));
       // Each loading section renders SkeletonRows (3 rows each)
-      const skeletons = document.querySelectorAll(".tuneup-skeleton__row");
+      const skeletons = document.querySelectorAll(".skeleton__row");
       expect(skeletons.length).toBeGreaterThan(0);
     });
   });

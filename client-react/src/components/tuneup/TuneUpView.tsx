@@ -6,6 +6,7 @@ import { dupGroupKey, taxSimilarKey } from "../../utils/topFinding";
 import { titlePassesQuality } from "../../utils/qualityHeuristic";
 import { SectionHeader } from "../layout/SectionHeader";
 import { ViewHeader } from "../layout/ViewHeader";
+import { Skeleton } from "../shared/Skeleton";
 import { DuplicatesSection } from "./DuplicatesSection";
 import { StaleSection } from "./StaleSection";
 import { QualitySection } from "./QualitySection";
@@ -26,13 +27,7 @@ type CollapsedState = {
 };
 
 function SkeletonRows() {
-  return (
-    <div className="tuneup-skeleton" aria-busy="true" aria-label="Loading...">
-      <div className="tuneup-skeleton__row" />
-      <div className="tuneup-skeleton__row" />
-      <div className="tuneup-skeleton__row" />
-    </div>
-  );
+  return <Skeleton variant="row" count={3} />;
 }
 
 export function TuneUpView({ onOpenTask, onUndo }: Props) {
