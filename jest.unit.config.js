@@ -28,5 +28,6 @@ module.exports = {
     "**/src/services/surfacePolicy.test.ts",
     "**/src/services/adaptationLlmInference.test.ts",
     "**/src/services/adaptationFlags.test.ts",
+    "**/src/services/planningPreferencesService.test.ts",
   ],
 };

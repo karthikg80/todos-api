@@ -42,6 +42,7 @@ import { createMcpPublicRouter } from "./routes/mcpPublicRouter";
 import { CaptureService } from "./services/captureService";
 import { createCaptureRouter } from "./routes/captureRouter";
 import { createPreferencesRouter } from "./routes/preferencesRouter";
+import { PlanningPreferencesService } from "./services/planningPreferencesService";
 import { createAgentEnrollmentRouter } from "./routes/agentEnrollmentRouter";
 import {
   createAgentProfileRouter,
@@ -493,7 +494,13 @@ export function createApp(deps: AppDependencies = {}) {
   }
 
   if (persistencePrisma) {
-    app.use("/preferences", createPreferencesRouter(persistencePrisma));
+    const planningPreferencesService = new PlanningPreferencesService(
+      persistencePrisma,
+    );
+    app.use(
+      "/preferences",
+      createPreferencesRouter(planningPreferencesService),
+    );
 
     const areaService = new AreaService(persistencePrisma);
     app.use(
