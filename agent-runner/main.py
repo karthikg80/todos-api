@@ -30,6 +30,7 @@ Environment variables:
 import logging
 import os
 import sys
+import uuid
 from importlib import import_module
 from typing import Any, Callable
 
@@ -60,6 +61,11 @@ RUNNER_SPECS: dict[str, tuple[str, str, str]] = {
     "project_health": ("jobs.project_health", "run_project_health_for_user", "weekly_enabled"),
     "insights": ("jobs.insights", "run_insights_for_user", "daily_enabled"),
 }
+
+
+def build_job_request_id(command: str, user_id: str) -> str:
+    user_fragment = "".join(char for char in user_id if char.isalnum())[:8] or "unknown"
+    return f"agent-runner-{command}-{user_fragment}-{uuid.uuid4().hex[:12]}"
 
 
 def main() -> None:
@@ -109,6 +115,15 @@ def main() -> None:
     for enrollment in eligible:
         user_id = enrollment.user_id
         timezone = enrollment.timezone
+        request_id = build_job_request_id(command, user_id)
+
+        logger.info(
+            "starting %s workflow user=%s request_id=%s tz=%s",
+            command,
+            user_id[:8],
+            request_id,
+            timezone,
+        )
 
         # Exchange the stored refresh token for a fresh 15-min access JWT.
         try:
@@ -116,14 +131,28 @@ def main() -> None:
                 base_url=config.AGENT_BASE_URL,
                 refresh_token=enrollment.refresh_token,
                 timeout=config.HTTP_TIMEOUT_SECONDS,
+                request_id=request_id,
             )
         except AgentApiError as exc:
-            logger.error("token exchange failed user=%s: %s", user_id[:8], exc)
+            logger.error(
+                "token exchange failed user=%s request_id=%s: %s",
+                user_id[:8],
+                request_id,
+                exc,
+            )
             enrollment_store.record_run_outcome(user_id, "error", str(exc))
             total_err += 1
             continue
 
         outcome = run_for_user(client, user_id, timezone, state_store, audit_store)
+
+        logger.info(
+            "finished %s workflow user=%s request_id=%s outcome=%s",
+            command,
+            user_id[:8],
+            request_id,
+            outcome,
+        )
 
         enrollment_store.record_run_outcome(
             user_id,

@@ -71,7 +71,7 @@ def install_main_dependencies(
         pass
 
     class FakeAgentClient:
-        calls: list[tuple[str, str, int]] = []
+        calls: list[tuple[str, str, int, str | None]] = []
 
         @classmethod
         def from_enrollment_token(
@@ -80,8 +80,9 @@ def install_main_dependencies(
             base_url: str,
             refresh_token: str,
             timeout: int,
+            request_id: str | None = None,
         ) -> str:
-            cls.calls.append((base_url, refresh_token, timeout))
+            cls.calls.append((base_url, refresh_token, timeout, request_id))
             if token_exchange_error_message is not None:
                 raise FakeAgentApiError(token_exchange_error_message)
             return "client-token"
@@ -141,6 +142,7 @@ def test_main_dispatches_daily_command_for_eligible_enrollment(monkeypatch) -> N
             )
         ],
     )
+    monkeypatch.setattr(main, "build_job_request_id", lambda command, user_id: "job-req-123")
     monkeypatch.setattr(sys, "argv", ["main.py", "daily"])
 
     main.main()
@@ -148,6 +150,9 @@ def test_main_dispatches_daily_command_for_eligible_enrollment(monkeypatch) -> N
     assert len(run_calls) == 1
     assert run_calls[0][0] == "client-token"
     assert run_calls[0][1:] and run_calls[0][1] == "user-12345678"
+    assert sys.modules["mcp_client"].AgentClient.calls == [
+        ("https://api.example.com", "refresh-1", 12, "job-req-123")
+    ]
     assert FakeEnrollmentStore.instances[0].recorded_outcomes == [
         ("user-12345678", "success", None)
     ]
@@ -171,6 +176,7 @@ def test_main_exits_non_zero_when_every_token_exchange_fails(monkeypatch) -> Non
         ],
         token_exchange_error_message="token exchange failed",
     )
+    monkeypatch.setattr(main, "build_job_request_id", lambda command, user_id: "job-req-456")
     monkeypatch.setattr(sys, "argv", ["main.py", "daily"])
 
     with pytest.raises(SystemExit) as exc:
@@ -180,3 +186,14 @@ def test_main_exits_non_zero_when_every_token_exchange_fails(monkeypatch) -> Non
     assert FakeEnrollmentStore.instances[0].recorded_outcomes == [
         ("user-12345678", "error", "token exchange failed")
     ]
+
+
+def test_build_job_request_id_includes_command_and_user_fragment(monkeypatch) -> None:
+    class FakeUuid:
+        hex = "abcd1234efgh5678"
+
+    monkeypatch.setattr(main.uuid, "uuid4", lambda: FakeUuid())
+
+    request_id = main.build_job_request_id("daily", "user-1234-5678")
+
+    assert request_id == "agent-runner-daily-user1234-abcd1234efgh"

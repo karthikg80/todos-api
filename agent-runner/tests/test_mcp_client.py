@@ -45,6 +45,7 @@ def test_from_enrollment_token_exchanges_refresh_token(monkeypatch) -> None:
         base_url="https://api.example.com/",
         refresh_token="refresh-123",
         timeout=5.0,
+        request_id="job-req-123",
     )
 
     assert isinstance(client, AgentClient)
@@ -52,7 +53,11 @@ def test_from_enrollment_token_exchanges_refresh_token(monkeypatch) -> None:
         {
             "url": "https://api.example.com/api/agent-enrollment/exchange",
             "json": {"refreshToken": "refresh-123"},
-            "headers": {"Content-Type": "application/json"},
+            "headers": {
+                "Content-Type": "application/json",
+                "X-Request-Id": "job-req-123",
+                "X-Agent-Request-Id": "job-req-123",
+            },
         }
     ]
 
@@ -71,6 +76,33 @@ def test_read_targets_agent_read_endpoint(monkeypatch) -> None:
     assert fake_client.calls[0]["json"] == {"limit": 5}
     assert fake_client.calls[0]["headers"]["Authorization"] == "Bearer token-123"
     assert fake_client.calls[0]["headers"]["Idempotency-Key"] == "ikey-1"
+    assert "X-Request-Id" in fake_client.calls[0]["headers"]
+    assert (
+        fake_client.calls[0]["headers"]["X-Agent-Request-Id"]
+        == fake_client.calls[0]["headers"]["X-Request-Id"]
+    )
+
+
+def test_write_reuses_explicit_request_id_across_calls(monkeypatch) -> None:
+    fake_client = FakeHttpClient(
+        [
+            FakeResponse(200, {"ok": True, "data": {"status": "ok"}}),
+            FakeResponse(200, {"ok": True, "data": {"status": "ok"}}),
+        ]
+    )
+    monkeypatch.setattr("mcp_client.httpx.Client", lambda **kwargs: fake_client)
+
+    client = AgentClient(
+        base_url="https://api.example.com",
+        token="token-123",
+        request_id="job-req-789",
+    )
+
+    client.write("ensure_next_action", {"projectId": "project-1"})
+    client.write("weekly_review", {"dryRun": True})
+
+    assert fake_client.calls[0]["headers"]["X-Request-Id"] == "job-req-789"
+    assert fake_client.calls[1]["headers"]["X-Request-Id"] == "job-req-789"
 
 
 def test_write_raises_on_structured_api_error(monkeypatch) -> None:
