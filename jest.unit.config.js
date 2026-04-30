@@ -27,5 +27,6 @@ module.exports = {
     "**/src/services/userAdaptationService.test.ts",
     "**/src/services/surfacePolicy.test.ts",
     "**/src/services/adaptationLlmInference.test.ts",
+    "**/src/services/adaptationFlags.test.ts",
   ],
 };
