@@ -69,6 +69,7 @@ import { createDayPlanRouter } from "./routes/dayPlanRouter";
 import { createStaticPagesRouter } from "./routes/staticPagesRouter";
 import { createAdaptationRouter } from "./routes/adaptationRouter";
 import { createAgentActivityRouter } from "./routes/agentActivityRouter";
+import { AgentActivityService } from "./services/agentActivityService";
 import { DayPlanService } from "./services/dayPlanService";
 import { UserAdaptationService } from "./services/userAdaptationService";
 import { AdaptationLlmInferenceService } from "./services/adaptationLlmInference";
@@ -565,7 +566,8 @@ export function createApp(deps: AppDependencies = {}) {
       }),
     );
 
-    app.use(createAgentActivityRouter(persistencePrisma));
+    const agentActivityService = new AgentActivityService(persistencePrisma);
+    app.use(createAgentActivityRouter(agentActivityService));
   }
 
   app.use(errorHandler);
