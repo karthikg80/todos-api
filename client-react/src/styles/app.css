@@ -2586,6 +2586,8 @@ body {
   overflow-x: auto;
   padding-bottom: var(--s-4);
   min-height: 380px;
+  container-type: inline-size;
+  container-name: board-surface;
 }
 
 .board__column {
@@ -2608,6 +2610,22 @@ body {
   border-bottom: 1px solid var(--border);
 }
 
+.board__column-collapse {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  color: var(--muted);
+  font-size: var(--fs-lg);
+  line-height: 1;
+}
+
+.board__column-chevron {
+  display: inline-block;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
 .board__column-dot {
   width: 8px;
   height: 8px;
@@ -2615,11 +2633,69 @@ body {
   flex-shrink: 0;
 }
 
+.board__column-label {
+  flex: 1;
+  min-width: 0;
+}
+
 .board__column-count {
   margin-left: auto;
   font-size: var(--fs-label);
   color: var(--muted);
   font-weight: var(--fw-regular);
+}
+
+.board__column[data-status="inbox"] {
+  border-top: 2px solid var(--status-inbox);
+}
+.board__column[data-status="next"] {
+  border-top: 2px solid var(--status-next);
+}
+.board__column[data-status="in_progress"] {
+  border-top: 2px solid var(--status-in-progress);
+}
+.board__column[data-status="waiting"] {
+  border-top: 2px solid var(--status-waiting);
+}
+.board__column[data-status="done"] {
+  border-top: 2px solid var(--status-done);
+}
+
+/* Mobile: collapse the board into vertical stacked sections. The
+   container query lets the board respond to its own surface width
+   even when the viewport itself is wider. */
+@container board-surface (max-width: 640px) {
+  .board {
+    flex-direction: column;
+    overflow-x: hidden;
+  }
+
+  .board__column {
+    flex: 1 1 auto;
+  }
+
+  .board__column-collapse {
+    display: inline-flex;
+  }
+}
+
+/* Density-aware board card content: compact = title only,
+   normal = title + meta, spacious = title + meta + first chip. */
+[data-density="compact"] .board__card-meta,
+[data-density="compact"] .board__card .todo-chip {
+  display: none;
+}
+
+[data-density="normal"] .board__card .todo-chip {
+  display: none;
+}
+
+[data-density="compact"] .board__card {
+  padding: var(--s-2);
+}
+
+[data-density="spacious"] .board__card {
+  padding: var(--s-4);
 }
 
 .board__column-body {

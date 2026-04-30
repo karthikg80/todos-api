@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import type { Todo, TodoStatus, UpdateTodoDto } from "../../types";
 import type { LoadState } from "../../store/useTodosStore";
 import { IllustrationBoardEmpty } from "../shared/Illustrations";
@@ -12,12 +12,22 @@ interface Props {
   onStatusChange: (id: string, dto: UpdateTodoDto) => Promise<unknown>;
 }
 
-const BOARD_COLUMNS: { status: TodoStatus; label: string; color: string }[] = [
-  { status: "inbox", label: "Inbox", color: "var(--muted)" },
-  { status: "next", label: "Next", color: "var(--accent)" },
-  { status: "in_progress", label: "In Progress", color: "var(--warning)" },
-  { status: "waiting", label: "Waiting", color: "var(--muted)" },
-  { status: "done", label: "Done", color: "var(--success)" },
+interface BoardColumn {
+  status: TodoStatus;
+  label: string;
+  token: string;
+}
+
+const BOARD_COLUMNS: ReadonlyArray<BoardColumn> = [
+  { status: "inbox", label: "Inbox", token: "var(--status-inbox)" },
+  { status: "next", label: "Next", token: "var(--status-next)" },
+  {
+    status: "in_progress",
+    label: "In Progress",
+    token: "var(--status-in-progress)",
+  },
+  { status: "waiting", label: "Waiting", token: "var(--status-waiting)" },
+  { status: "done", label: "Done", token: "var(--status-done)" },
 ];
 
 export function BoardView({
@@ -27,6 +37,10 @@ export function BoardView({
   onClick,
   onStatusChange,
 }: Props) {
+  const [collapsed, setCollapsed] = useState<
+    Partial<Record<TodoStatus, boolean>>
+  >({});
+
   const columns = useMemo(() => {
     const map = new Map<TodoStatus, Todo[]>();
     for (const col of BOARD_COLUMNS) {
@@ -36,7 +50,6 @@ export function BoardView({
       const list = map.get(todo.status);
       if (list) list.push(todo);
       else {
-        // Statuses not in BOARD_COLUMNS go to inbox
         map.get("inbox")?.push(todo);
       }
     }
@@ -58,7 +71,11 @@ export function BoardView({
     return (
       <div className="board loading">
         {BOARD_COLUMNS.map((col) => (
-          <div key={col.status} className="board__column">
+          <div
+            key={col.status}
+            className="board__column"
+            data-status={col.status}
+          >
             <div className="board__column-header">{col.label}</div>
             <Skeleton
               variant="board-column"
@@ -74,85 +91,124 @@ export function BoardView({
     <div className="board">
       {BOARD_COLUMNS.map((col) => {
         const items = columns.get(col.status) || [];
+        const isCollapsed = !!collapsed[col.status];
         return (
           <div
             key={col.status}
             className="board__column"
+            data-status={col.status}
             onDragOver={(e) => e.preventDefault()}
             onDrop={(e) => handleDrop(e, col.status)}
           >
             <div className="board__column-header">
               <span
                 className="board__column-dot"
-                style={{ background: col.color }}
+                style={{ background: col.token }}
+                aria-hidden="true"
               />
-              {col.label}
+              <span className="board__column-label">{col.label}</span>
               <span className="board__column-count">{items.length}</span>
-            </div>
-            <div className="board__column-body">
-              {items.map((todo) => (
-                <div
-                  key={todo.id}
-                  className={`board__card${todo.completed ? " board__card--done" : ""}`}
-                  data-todo-id={todo.id}
-                  draggable
-                  tabIndex={0}
-                  role="button"
-                  aria-label={`Open task ${todo.title}`}
-                  onDragStart={(e) =>
-                    e.dataTransfer.setData("text/plain", todo.id)
-                  }
-                  onClick={() => onClick(todo.id)}
-                  onKeyDown={(e) => {
-                    if (e.target !== e.currentTarget) return;
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onClick(todo.id);
-                    }
+              <button
+                type="button"
+                className="board__column-collapse"
+                aria-expanded={!isCollapsed}
+                aria-label={`${isCollapsed ? "Expand" : "Collapse"} ${col.label}`}
+                onClick={() =>
+                  setCollapsed((prev) => ({
+                    ...prev,
+                    [col.status]: !prev[col.status],
+                  }))
+                }
+              >
+                <span
+                  className="board__column-chevron"
+                  aria-hidden="true"
+                  style={{
+                    transform: isCollapsed ? "rotate(0deg)" : "rotate(90deg)",
                   }}
                 >
-                  <input
-                    type="checkbox"
-                    className="todo-checkbox"
-                    checked={todo.completed}
-                    aria-label={`Mark "${todo.title}" as ${todo.completed ? "incomplete" : "complete"}`}
-                    onChange={(e) => {
-                      e.stopPropagation();
-                      onToggle(todo.id, e.target.checked);
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                  <div className="board__card-content">
-                    <span className="board__card-title">{todo.title}</span>
-                    {todo.dueDate && (
-                      <span className="board__card-meta">
-                        {new Date(todo.dueDate).toLocaleDateString(undefined, {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                      </span>
-                    )}
-                    {todo.priority &&
-                      todo.priority !== "low" &&
-                      todo.priority !== "medium" && (
-                        <span
-                          className={`todo-chip todo-chip--priority ${todo.priority}`}
-                        >
-                          {todo.priority}
-                        </span>
-                      )}
-                  </div>
-                </div>
-              ))}
-              {items.length === 0 && (
-                <div className="board__empty">
-                  <IllustrationBoardEmpty />
-                </div>
-              )}
+                  ›
+                </span>
+              </button>
             </div>
+            {!isCollapsed && (
+              <div className="board__column-body">
+                {items.map((todo) => (
+                  <BoardCard
+                    key={todo.id}
+                    todo={todo}
+                    onClick={onClick}
+                    onToggle={onToggle}
+                  />
+                ))}
+                {items.length === 0 && (
+                  <div className="board__empty">
+                    <IllustrationBoardEmpty />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         );
       })}
+    </div>
+  );
+}
+
+interface BoardCardProps {
+  todo: Todo;
+  onClick: (id: string) => void;
+  onToggle: (id: string, completed: boolean) => void;
+}
+
+function BoardCard({ todo, onClick, onToggle }: BoardCardProps) {
+  const showHighPriority =
+    todo.priority && todo.priority !== "low" && todo.priority !== "medium";
+  return (
+    <div
+      className={`board__card${todo.completed ? " board__card--done" : ""}`}
+      data-todo-id={todo.id}
+      draggable
+      tabIndex={0}
+      role="button"
+      aria-label={`Open task ${todo.title}`}
+      onDragStart={(e) => e.dataTransfer.setData("text/plain", todo.id)}
+      onClick={() => onClick(todo.id)}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onClick(todo.id);
+        }
+      }}
+    >
+      <input
+        type="checkbox"
+        className="todo-checkbox"
+        checked={todo.completed}
+        aria-label={`Mark "${todo.title}" as ${todo.completed ? "incomplete" : "complete"}`}
+        onChange={(e) => {
+          e.stopPropagation();
+          onToggle(todo.id, e.target.checked);
+        }}
+        onClick={(e) => e.stopPropagation()}
+      />
+      <div className="board__card-content">
+        <span className="board__card-title">{todo.title}</span>
+        {todo.dueDate && (
+          <span className="board__card-meta">
+            {new Date(todo.dueDate).toLocaleDateString(undefined, {
+              month: "short",
+              day: "numeric",
+            })}
+          </span>
+        )}
+        {showHighPriority && (
+          <span className={`todo-chip todo-chip--priority ${todo.priority}`}>
+            {todo.priority}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

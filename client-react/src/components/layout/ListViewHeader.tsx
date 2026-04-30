@@ -289,25 +289,29 @@ export function ListViewHeader({
                 )}
               </button>
             </Tooltip>
-            {filtersOpen && filtersButtonRef.current && (() => {
-              const rect = filtersButtonRef.current!.getBoundingClientRect();
-              return (
-                <div
-                  className="filter-menu__panel"
-                  style={{
-                    position: "fixed",
-                    top: rect.bottom + 8,
-                    right: window.innerWidth - rect.right,
-                  } as CSSProperties}
-                >
-                  <FilterPanel
-                    filters={activeFilters}
-                    onChange={onFilterChange}
-                    onClose={onToggleFilters}
-                  />
-                </div>
-              );
-            })()}
+            {filtersOpen &&
+              filtersButtonRef.current &&
+              (() => {
+                const rect = filtersButtonRef.current!.getBoundingClientRect();
+                return (
+                  <div
+                    className="filter-menu__panel"
+                    style={
+                      {
+                        position: "fixed",
+                        top: rect.bottom + 8,
+                        right: window.innerWidth - rect.right,
+                      } as CSSProperties
+                    }
+                  >
+                    <FilterPanel
+                      filters={activeFilters}
+                      onChange={onFilterChange}
+                      onClose={onToggleFilters}
+                    />
+                  </div>
+                );
+              })()}
           </div>
           <Tooltip content={dark ? "Light mode" : "Dark mode"}>
             <button
@@ -331,21 +335,63 @@ export function ListViewHeader({
         </header>
       )}
 
-      {user && !user.isVerified && (
-        <VerificationBanner email={user.email} isVerified={!!user.isVerified} />
-      )}
+      {/* Banner stack — only one banner ever renders. Priority order:
+          VerificationBanner > active-filter > today-coaching. The lower
+          priority banners are suppressed (rather than dismissed) so the
+          user can still act on the highest-priority signal first. */}
+      {(() => {
+        const showVerification = !!user && !user.isVerified;
+        const showActiveFilter = !showVerification && !!activeTagFilter;
+        const overdueToday =
+          activeView === "today" && !selectedProjectId
+            ? visibleTodos.filter(
+                (t) =>
+                  t.dueDate &&
+                  t.dueDate.split("T")[0] <
+                    new Date().toISOString().split("T")[0],
+              ).length
+            : 0;
+        const showTodayCoaching =
+          !showVerification &&
+          !showActiveFilter &&
+          visibleTodos.length > 0 &&
+          overdueToday > 0;
 
-      {activeTagFilter && (
-        <div className="active-filter-bar">
-          Filtered by tag: <strong>#{activeTagFilter}</strong>
-          <button
-            className="active-filter-bar__clear"
-            onClick={onClearTagFilter}
-          >
-            ✕ Clear
-          </button>
-        </div>
-      )}
+        if (showVerification && user) {
+          return (
+            <VerificationBanner
+              email={user.email}
+              isVerified={!!user.isVerified}
+            />
+          );
+        }
+        if (showActiveFilter) {
+          return (
+            <div className="active-filter-bar">
+              Filtered by tag: <strong>#{activeTagFilter}</strong>
+              <button
+                className="active-filter-bar__clear"
+                onClick={onClearTagFilter}
+              >
+                ✕ Clear
+              </button>
+            </div>
+          );
+        }
+        if (showTodayCoaching) {
+          return (
+            <div className="today-coaching-banner">
+              <span>
+                {overdueToday === 1
+                  ? "1 task rolled over."
+                  : `${overdueToday} tasks rolled over.`}{" "}
+                Let&apos;s make the day smaller.
+              </span>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       {showHorizonSegments && (
         <SegmentedControl
@@ -357,7 +403,9 @@ export function ListViewHeader({
             value: key,
             label,
             buttonId: `horizonSegment${label}`,
-            badge: horizonSegmentCounts?.[key] ? horizonSegmentCounts[key] : undefined,
+            badge: horizonSegmentCounts?.[key]
+              ? horizonSegmentCounts[key]
+              : undefined,
           }))}
         />
       )}
@@ -374,28 +422,6 @@ export function ListViewHeader({
             />
           </div>
         )}
-
-      {/* Today view coaching */}
-      {activeView === "today" &&
-        !selectedProjectId &&
-        visibleTodos.length > 0 &&
-        (() => {
-          const overdue = visibleTodos.filter(
-            (t) =>
-              t.dueDate &&
-              t.dueDate.split("T")[0] < new Date().toISOString().split("T")[0],
-          ).length;
-          return overdue > 0 ? (
-            <div className="today-coaching-banner">
-              <span>
-                {overdue === 1
-                  ? "1 task rolled over."
-                  : `${overdue} tasks rolled over.`}{" "}
-                Let&apos;s make the day smaller.
-              </span>
-            </div>
-          ) : null;
-        })()}
 
       {/* Bulk actions toolbar */}
       {bulkMode && (
