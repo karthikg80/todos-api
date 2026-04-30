@@ -29,5 +29,6 @@ module.exports = {
     "**/src/services/adaptationLlmInference.test.ts",
     "**/src/services/adaptationFlags.test.ts",
     "**/src/services/planningPreferencesService.test.ts",
+    "**/src/services/adaptationProjectInferenceService.test.ts",
   ],
 };

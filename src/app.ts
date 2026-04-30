@@ -74,6 +74,7 @@ import { AgentActivityService } from "./services/agentActivityService";
 import { DayPlanService } from "./services/dayPlanService";
 import { UserAdaptationService } from "./services/userAdaptationService";
 import { AdaptationLlmInferenceService } from "./services/adaptationLlmInference";
+import { AdaptationProjectInferenceService } from "./services/adaptationProjectInferenceService";
 import { AreaService } from "./services/areaService";
 import { GoalService } from "./services/goalService";
 import {
@@ -554,12 +555,16 @@ export function createApp(deps: AppDependencies = {}) {
       activityEventService,
     );
     const llmInferenceService = new AdaptationLlmInferenceService();
+    const projectInferenceService = new AdaptationProjectInferenceService(
+      persistencePrisma,
+      adaptationService,
+      llmInferenceService,
+    );
     app.use(
       "/adaptation",
       createAdaptationRouter({
         adaptationService,
-        llmInferenceService,
-        prisma: persistencePrisma,
+        projectInferenceService,
         resolveUserId: resolveAiUserId,
       }),
     );
