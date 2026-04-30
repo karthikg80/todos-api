@@ -1,10 +1,12 @@
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
 import { config } from "./config";
 
 // Singleton Prisma Client instance
 const prismaClientSingleton = () => {
+  const adapter = new PrismaPg({ connectionString: config.databaseUrl });
   return new PrismaClient({
-    datasourceUrl: config.databaseUrl,
+    adapter,
     log:
       config.nodeEnv === "development" ? ["query", "error", "warn"] : ["error"],
   });
