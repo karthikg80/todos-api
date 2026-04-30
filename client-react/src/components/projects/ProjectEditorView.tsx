@@ -12,18 +12,9 @@ import {
 } from "@dnd-kit/core";
 import {
   SortableContext,
-  useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   CreateTodoDto,
   Heading,
@@ -37,7 +28,7 @@ import type { SortField, SortOrder, ViewMode } from "../../types/viewTypes";
 import type { ActiveFilters } from "../todos/FilterPanel";
 import { apiCall } from "../../api/client";
 import { Breadcrumb } from "../shared/Breadcrumb";
-import { IconGrip, IconKebab, IconMenu } from "../shared/Icons";
+import { IconGrip, IconMenu } from "../shared/Icons";
 import { VerificationBanner } from "../shared/VerificationBanner";
 import { BulkToolbar } from "../todos/BulkToolbar";
 import { ProjectKebabMenu } from "./ProjectKebabMenu";
@@ -49,6 +40,16 @@ import {
   projectStatusLabel,
   toDateInputValue,
 } from "./projectEditorModels";
+import {
+  type FlatItem,
+  sortByOrder,
+  moveItem,
+  buildFlatItems,
+} from "./projectEditorUtils";
+import { SortableRow, RowMenu } from "./projectEditorRows";
+import { ProjectTaskRow } from "./ProjectTaskRow";
+import { TaskComposer } from "./TaskComposer";
+import { HeadingComposer } from "./HeadingComposer";
 import "../../styles/project-editor.css";
 
 type UiMode = "normal" | "simple";
@@ -121,202 +122,6 @@ interface Props {
   onArchiveProject: (id: string) => void;
   onDeleteProject: (id: string) => void;
   onRequestDeleteTodo: (id: string) => void;
-}
-
-type FlatItem =
-  | {
-      id: string;
-      sortableId: string;
-      kind: "heading";
-      heading: Heading;
-      parentHeadingId: string | null;
-    }
-  | {
-      id: string;
-      sortableId: string;
-      kind: "todo";
-      todo: Todo;
-      parentHeadingId: string | null;
-    };
-
-function sortByOrder<
-  T extends { order?: number; sortOrder?: number; createdAt?: string },
->(items: T[], orderKey: "order" | "sortOrder") {
-  return [...items].sort((a, b) => {
-    const aOrder = orderKey === "order" ? (a.order ?? 0) : (a.sortOrder ?? 0);
-    const bOrder = orderKey === "order" ? (b.order ?? 0) : (b.sortOrder ?? 0);
-    if (aOrder !== bOrder) return aOrder - bOrder;
-    return String(a.createdAt ?? "").localeCompare(String(b.createdAt ?? ""));
-  });
-}
-
-function moveItem<T>(items: T[], fromIndex: number, toIndex: number) {
-  const next = [...items];
-  const [moved] = next.splice(fromIndex, 1);
-  next.splice(toIndex, 0, moved);
-  return next;
-}
-
-function buildFlatItems(headings: Heading[], todos: Todo[]) {
-  const sortedHeadings = sortByOrder(headings, "sortOrder");
-  const sortedTodos = sortByOrder(todos, "order");
-  const todosByHeading = new Map<string | null, Todo[]>();
-
-  for (const todo of sortedTodos) {
-    const key = todo.headingId ?? null;
-    const existing = todosByHeading.get(key) ?? [];
-    existing.push(todo);
-    todosByHeading.set(key, existing);
-  }
-
-  const flat: FlatItem[] = [];
-  for (const todo of todosByHeading.get(null) ?? []) {
-    flat.push({
-      id: todo.id,
-      sortableId: `todo:${todo.id}`,
-      kind: "todo",
-      todo,
-      parentHeadingId: null,
-    });
-  }
-
-  for (const heading of sortedHeadings) {
-    flat.push({
-      id: heading.id,
-      sortableId: `heading:${heading.id}`,
-      kind: "heading",
-      heading,
-      parentHeadingId: null,
-    });
-
-    for (const todo of todosByHeading.get(heading.id) ?? []) {
-      flat.push({
-        id: todo.id,
-        sortableId: `todo:${todo.id}`,
-        kind: "todo",
-        todo,
-        parentHeadingId: heading.id,
-      });
-    }
-  }
-
-  return {
-    sortedHeadings,
-    sortedTodos,
-    flatItems: flat,
-    backlogTodos: todosByHeading.get(null) ?? [],
-    todosByHeading,
-  };
-}
-
-function SortableRow({
-  id,
-  className,
-  isDropTarget = false,
-  children,
-}: {
-  id: string;
-  className: string;
-  isDropTarget?: boolean;
-  children: ReactNode;
-}) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={`${className}${isDragging ? " project-page__sortable-row--dragging" : ""}${
-        isDropTarget ? " project-page__sortable-row--drop-target" : ""
-      }`}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-        opacity: isDragging ? 0.55 : 1,
-        zIndex: isDragging ? 2 : undefined,
-      }}
-    >
-      <button
-        type="button"
-        className="project-page__drag-handle"
-        aria-label="Drag to reorder"
-        {...attributes}
-        {...listeners}
-      >
-        <IconGrip size={14} />
-      </button>
-      {children}
-    </div>
-  );
-}
-
-function RowMenu({
-  label,
-  open,
-  onToggle,
-  onClose,
-  children,
-}: {
-  label: string;
-  open: boolean;
-  onToggle: () => void;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const panelRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handlePointerDown = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (
-        panelRef.current?.contains(target) ||
-        triggerRef.current?.contains(target)
-      ) {
-        return;
-      }
-      onClose();
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.stopPropagation();
-        onClose();
-      }
-    };
-
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [onClose, open]);
-
-  return (
-    <div className="project-page__menu" ref={panelRef}>
-      <button
-        type="button"
-        ref={triggerRef}
-        className="project-page__icon-btn"
-        aria-label={label}
-        aria-expanded={open}
-        aria-haspopup="menu"
-        onClick={onToggle}
-      >
-        <IconKebab size={14} />
-      </button>
-      {open ? <div className="project-page__menu-panel">{children}</div> : null}
-    </div>
-  );
 }
 
 export function ProjectEditorView({
@@ -731,82 +536,6 @@ export function ProjectEditorView({
     setHeadingComposerValue("");
     setHeadingComposerOpen(false);
   }, [addHeading, headingComposerValue]);
-
-  const renderTaskComposer = useCallback(
-    (scope: string) => {
-      const open = activeTaskComposerScope === scope;
-      return (
-        <div
-          className={`project-page__task-composer${
-            open ? " project-page__task-composer--open" : ""
-          }`}
-        >
-          {open ? (
-            <div className="project-page__task-composer-form">
-              <input
-                type="text"
-                className="project-page__task-composer-input"
-                value={taskComposerValue}
-                placeholder="Type a task"
-                onChange={(event) => setTaskComposerValue(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    void handleAddTaskInline();
-                  }
-                  if (event.key === "Escape") {
-                    setTaskComposerValue("");
-                    setActiveTaskComposerScope(null);
-                  }
-                }}
-                autoFocus
-              />
-              <div className="project-page__task-composer-actions">
-                <button
-                  type="button"
-                  className="btn btn--primary"
-                  onClick={() => void handleAddTaskInline()}
-                  disabled={!taskComposerValue.trim()}
-                >
-                  Add task
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--ghost"
-                  onClick={() => {
-                    setTaskComposerValue("");
-                    setActiveTaskComposerScope(null);
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              className="project-page__task-composer-trigger"
-              onClick={() => {
-                setActiveTaskComposerScope(scope);
-                setTaskComposerValue("");
-              }}
-            >
-              <span
-                className="project-page__task-composer-plus"
-                aria-hidden="true"
-              >
-                +
-              </span>
-              <span className="project-page__task-composer-label">
-                Add task
-              </span>
-              <span className="project-page__heading-rule" aria-hidden="true" />
-            </button>
-          )}
-        </div>
-      );
-    },
-    [activeTaskComposerScope, handleAddTaskInline, taskComposerValue],
-  );
 
   const handleSaveHeadingName = useCallback(
     async (heading: Heading) => {
@@ -1284,9 +1013,22 @@ export function ProjectEditorView({
                 strategy={verticalListSortingStrategy}
               >
                 <div className="project-page__list">
-                  {backlogTodos.length === 0
-                    ? renderTaskComposer("backlog")
-                    : null}
+                  {backlogTodos.length === 0 ? (
+                    <TaskComposer
+                      open={activeTaskComposerScope === "backlog"}
+                      value={taskComposerValue}
+                      onChange={setTaskComposerValue}
+                      onAdd={() => void handleAddTaskInline()}
+                      onOpen={() => {
+                        setActiveTaskComposerScope("backlog");
+                        setTaskComposerValue("");
+                      }}
+                      onCancel={() => {
+                        setTaskComposerValue("");
+                        setActiveTaskComposerScope(null);
+                      }}
+                    />
+                  ) : null}
 
                   {showStandaloneTasksLabel ? (
                     <div className="project-page__section-label">Tasks</div>
@@ -1298,87 +1040,40 @@ export function ProjectEditorView({
 
                   {backlogTodos.map((todo) => {
                     const menuId = `todo:${todo.id}`;
-                    const dueLabel = formatDueFriendly(todo.dueDate);
-
                     return (
-                      <SortableRow
+                      <ProjectTaskRow
                         key={menuId}
-                        id={menuId}
-                        className="project-page__task-row"
+                        todo={todo}
+                        menuId={menuId}
+                        bulkMode={bulkMode}
+                        selectedIds={selectedIds}
+                        openMenuId={openMenuId}
                         isDropTarget={activeDropTargetId === menuId}
-                      >
-                        <label className="project-page__task-check">
-                          <input
-                            type="checkbox"
-                            checked={
-                              bulkMode
-                                ? selectedIds.has(todo.id)
-                                : todo.completed
-                            }
-                            onChange={() =>
-                              bulkMode
-                                ? onSelect(todo.id)
-                                : onToggle(todo.id, !todo.completed)
-                            }
-                            aria-label={
-                              bulkMode
-                                ? `Select ${todo.title}`
-                                : `Complete ${todo.title}`
-                            }
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          className={`project-page__task-title${
-                            todo.completed
-                              ? " project-page__task-title--done"
-                              : ""
-                          }`}
-                          onClick={() => onTaskOpen(todo.id)}
-                        >
-                          {todo.title}
-                        </button>
-                        {todo.dueDate ? (
-                          <span className="project-page__task-meta">
-                            {dueLabel}
-                          </span>
-                        ) : null}
-                        <RowMenu
-                          label="Task actions"
-                          open={openMenuId === menuId}
-                          onClose={() => setOpenMenuId(null)}
-                          onToggle={() =>
-                            setOpenMenuId((current) =>
-                              current === menuId ? null : menuId,
-                            )
-                          }
-                        >
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              onTaskOpen(todo.id);
-                            }}
-                          >
-                            Open
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setOpenMenuId(null);
-                              onRequestDeleteTodo(todo.id);
-                            }}
-                          >
-                            Delete
-                          </button>
-                        </RowMenu>
-                      </SortableRow>
+                        onToggle={onToggle}
+                        onSelect={onSelect}
+                        onTaskOpen={onTaskOpen}
+                        onRequestDeleteTodo={onRequestDeleteTodo}
+                        onSetOpenMenuId={setOpenMenuId}
+                      />
                     );
                   })}
 
-                  {backlogTodos.length > 0
-                    ? renderTaskComposer("backlog")
-                    : null}
+                  {backlogTodos.length > 0 ? (
+                    <TaskComposer
+                      open={activeTaskComposerScope === "backlog"}
+                      value={taskComposerValue}
+                      onChange={setTaskComposerValue}
+                      onAdd={() => void handleAddTaskInline()}
+                      onOpen={() => {
+                        setActiveTaskComposerScope("backlog");
+                        setTaskComposerValue("");
+                      }}
+                      onCancel={() => {
+                        setTaskComposerValue("");
+                        setActiveTaskComposerScope(null);
+                      }}
+                    />
+                  ) : null}
 
                   {sortedHeadings.map((heading) => {
                     const headingTodos = todosByHeading.get(heading.id) ?? [];
@@ -1567,157 +1262,57 @@ export function ProjectEditorView({
                           {!collapsed
                             ? headingTodos.map((todo) => {
                                 const menuId = `todo:${todo.id}`;
-                                const dueLabel = formatDueFriendly(
-                                  todo.dueDate,
-                                );
-
                                 return (
-                                  <SortableRow
+                                  <ProjectTaskRow
                                     key={menuId}
-                                    id={menuId}
-                                    className="project-page__task-row project-page__task-row--nested"
+                                    todo={todo}
+                                    menuId={menuId}
+                                    bulkMode={bulkMode}
+                                    selectedIds={selectedIds}
+                                    openMenuId={openMenuId}
                                     isDropTarget={activeDropTargetId === menuId}
-                                  >
-                                    <label className="project-page__task-check">
-                                      <input
-                                        type="checkbox"
-                                        checked={
-                                          bulkMode
-                                            ? selectedIds.has(todo.id)
-                                            : todo.completed
-                                        }
-                                        onChange={() =>
-                                          bulkMode
-                                            ? onSelect(todo.id)
-                                            : onToggle(todo.id, !todo.completed)
-                                        }
-                                        aria-label={
-                                          bulkMode
-                                            ? `Select ${todo.title}`
-                                            : `Complete ${todo.title}`
-                                        }
-                                      />
-                                    </label>
-                                    <button
-                                      type="button"
-                                      className={`project-page__task-title${
-                                        todo.completed
-                                          ? " project-page__task-title--done"
-                                          : ""
-                                      }`}
-                                      onClick={() => onTaskOpen(todo.id)}
-                                    >
-                                      {todo.title}
-                                    </button>
-                                    {todo.dueDate ? (
-                                      <span className="project-page__task-meta">
-                                        {dueLabel}
-                                      </span>
-                                    ) : null}
-                                    <RowMenu
-                                      label="Task actions"
-                                      open={openMenuId === menuId}
-                                      onClose={() => setOpenMenuId(null)}
-                                      onToggle={() =>
-                                        setOpenMenuId((current) =>
-                                          current === menuId ? null : menuId,
-                                        )
-                                      }
-                                    >
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          onTaskOpen(todo.id);
-                                        }}
-                                      >
-                                        Open
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          void onSave(todo.id, {
-                                            headingId: null,
-                                          });
-                                        }}
-                                      >
-                                        Move to backlog
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setOpenMenuId(null);
-                                          onRequestDeleteTodo(todo.id);
-                                        }}
-                                      >
-                                        Delete
-                                      </button>
-                                    </RowMenu>
-                                  </SortableRow>
+                                    nested
+                                    onToggle={onToggle}
+                                    onSelect={onSelect}
+                                    onTaskOpen={onTaskOpen}
+                                    onRequestDeleteTodo={onRequestDeleteTodo}
+                                    onSetOpenMenuId={setOpenMenuId}
+                                    onMoveToBacklog={() =>
+                                      void onSave(todo.id, { headingId: null })
+                                    }
+                                  />
                                 );
                               })
                             : null}
 
-                          {!collapsed ? renderTaskComposer(heading.id) : null}
+                          {!collapsed ? (
+                            <TaskComposer
+                              open={activeTaskComposerScope === heading.id}
+                              value={taskComposerValue}
+                              onChange={setTaskComposerValue}
+                              onAdd={() => void handleAddTaskInline()}
+                              onOpen={() => {
+                                setActiveTaskComposerScope(heading.id);
+                                setTaskComposerValue("");
+                              }}
+                              onCancel={() => {
+                                setTaskComposerValue("");
+                                setActiveTaskComposerScope(null);
+                              }}
+                            />
+                          ) : null}
                         </div>
                       </div>
                     );
                   })}
-                  <div
-                    className={`project-page__heading-composer${
-                      headingComposerOpen
-                        ? " project-page__heading-composer--open"
-                        : ""
-                    }`}
-                  >
-                    {headingComposerOpen ? (
-                      <>
-                        <input
-                          type="text"
-                          className="project-page__heading-composer-input"
-                          value={headingComposerValue}
-                          placeholder="Type a heading and press Enter"
-                          onChange={(event) =>
-                            setHeadingComposerValue(event.target.value)
-                          }
-                          onBlur={() => {
-                            if (!headingComposerValue.trim()) {
-                              setHeadingComposerOpen(false);
-                            }
-                          }}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              void handleAddHeadingInline();
-                            }
-                            if (event.key === "Escape") {
-                              setHeadingComposerValue("");
-                              setHeadingComposerOpen(false);
-                            }
-                          }}
-                          autoFocus
-                        />
-                        <span
-                          className="project-page__heading-rule"
-                          aria-hidden="true"
-                        />
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        className="project-page__heading-composer-trigger"
-                        onClick={() => setHeadingComposerOpen(true)}
-                      >
-                        <span
-                          className="project-page__heading-rule"
-                          aria-hidden="true"
-                        />
-                        <span className="project-page__heading-composer-label">
-                          New heading
-                        </span>
-                      </button>
-                    )}
-                  </div>
+                  <HeadingComposer
+                    open={headingComposerOpen}
+                    value={headingComposerValue}
+                    onChange={setHeadingComposerValue}
+                    onAdd={() => void handleAddHeadingInline()}
+                    onOpen={() => setHeadingComposerOpen(true)}
+                    onClose={() => setHeadingComposerOpen(false)}
+                  />
                 </div>
               </SortableContext>
               <DragOverlay dropAnimation={null}>
