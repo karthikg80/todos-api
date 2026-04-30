@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 
 describe("AuthService", () => {
   let authService: AuthService;
+  let dispatchVerificationEmailSpy: jest.SpyInstance;
   const TEST_JWT_SECRET = "test-secret-key";
 
   beforeAll(() => {
@@ -16,6 +17,13 @@ describe("AuthService", () => {
   beforeEach(async () => {
     // Clean up users before each test
     await prisma.user.deleteMany();
+    dispatchVerificationEmailSpy = jest
+      .spyOn(authService, "dispatchVerificationEmail")
+      .mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    dispatchVerificationEmailSpy.mockRestore();
   });
 
   describe("register", () => {
@@ -95,6 +103,7 @@ describe("AuthService", () => {
     });
 
     it("should not block registration on verification email delivery", async () => {
+      dispatchVerificationEmailSpy.mockRestore();
       let resolveEmail!: () => void;
       const emailDeferred = new Promise<void>((resolve) => {
         resolveEmail = resolve;
@@ -308,6 +317,47 @@ describe("AuthService", () => {
       resolveEmail();
       await emailDeferred;
       sendPasswordResetEmailSpy.mockRestore();
+    });
+  });
+
+  describe("resetPassword", () => {
+    it("should update the password and revoke active refresh tokens", async () => {
+      const user = await prisma.user.create({
+        data: {
+          email: "reset-revokes-sessions@example.com",
+          password: await bcrypt.hash("old-password", 10),
+          resetToken: "valid-reset-token",
+          resetTokenExpiry: new Date(Date.now() + 60 * 60 * 1000),
+        },
+      });
+      const firstSession = await authService.issueTokens(user.id, user.email);
+      const secondSession = await authService.issueTokens(user.id, user.email);
+
+      await authService.resetPassword("valid-reset-token", "new-password");
+
+      await expect(
+        authService.login({
+          email: "reset-revokes-sessions@example.com",
+          password: "old-password",
+        }),
+      ).rejects.toThrow("Invalid credentials");
+      await expect(
+        authService.login({
+          email: "reset-revokes-sessions@example.com",
+          password: "new-password",
+        }),
+      ).resolves.toMatchObject({
+        user: { id: user.id, email: "reset-revokes-sessions@example.com" },
+      });
+      await expect(
+        authService.refreshAccessToken(firstSession.refreshToken),
+      ).rejects.toThrow("Invalid refresh token");
+      await expect(
+        authService.refreshAccessToken(secondSession.refreshToken),
+      ).rejects.toThrow("Invalid refresh token");
+      await expect(
+        prisma.refreshToken.count({ where: { userId: user.id } }),
+      ).resolves.toBe(1);
     });
   });
 

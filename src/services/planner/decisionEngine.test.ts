@@ -82,4 +82,62 @@ describe("DecisionEngine", () => {
     expect(result.recommendedTasks[0].reason).toContain("overdue");
     expect(result.recommendedTasks[0].impact).toBe("high");
   });
+
+  it("excludes blocked, future, and unavailable tasks from next-work recommendations", () => {
+    const engine = new DecisionEngine();
+    const project = makeProject("project-1", "Platform");
+    const now = new Date("2026-03-12T12:00:00.000Z");
+    const dependency = makeTask("task-1", "Open dependency", {
+      projectId: project.id,
+      status: "next",
+      priority: "low",
+    });
+
+    const result = engine.decideNextWork({
+      projects: [project],
+      tasks: [
+        dependency,
+        makeTask("task-2", "Blocked launch task", {
+          projectId: project.id,
+          status: "next",
+          priority: "urgent",
+          dependsOnTaskIds: [dependency.id],
+        }),
+        makeTask("task-3", "Future start task", {
+          projectId: project.id,
+          status: "next",
+          priority: "urgent",
+          startDate: new Date("2026-03-13T12:00:00.000Z"),
+        }),
+        makeTask("task-4", "Future scheduled task", {
+          projectId: project.id,
+          status: "scheduled",
+          priority: "urgent",
+          scheduledDate: new Date("2026-03-13T12:00:00.000Z"),
+        }),
+        makeTask("task-5", "Wrong context task", {
+          projectId: project.id,
+          status: "next",
+          priority: "urgent",
+          context: "office",
+        }),
+        makeTask("task-6", "Available task", {
+          projectId: project.id,
+          status: "next",
+          priority: "high",
+          context: "computer",
+          energy: "medium",
+          estimateMinutes: 30,
+        }),
+      ],
+      now,
+      availableMinutes: 45,
+      energy: "medium",
+      context: ["computer"],
+    });
+
+    expect(result.recommendedTasks.map((task) => task.taskId)).toEqual([
+      "task-6",
+    ]);
+  });
 });
