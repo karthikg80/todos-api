@@ -124,6 +124,7 @@ Current behavior:
 - same key + same input => replay the original success response
 - same key + different input => structured conflict error
 - production/runtime storage is durable across restarts and multiple app instances
+- idempotency records expire after 30 days
 
 Current limitation:
 
@@ -150,7 +151,6 @@ This is enough for operational debugging without introducing a separate analytic
 - add destructive confirmation patterns before exposing broader delete or bulk write actions
 - add richer audit reporting or revocation UI if operational needs outgrow the current trace tables
 - keep the new MCP assistant-session revoke APIs aligned with any future in-app assistant management UI
-
 
 ## Manifest action index (mechanical doc-sync)
 
