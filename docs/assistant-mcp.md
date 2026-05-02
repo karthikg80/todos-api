@@ -236,6 +236,7 @@ Current behavior:
 - same key + same input => replay the original success response
 - same key + different input => structured conflict error
 - production/runtime storage is durable across restarts and multiple app instances
+- idempotency records expire after 30 days
 
 Current limitation:
 
@@ -258,7 +259,6 @@ Those docs also record what remains manual from this sandboxed environment.
 - persisted audit records are lightweight operational traces, not a full analytics platform
 - the public deployment and real ChatGPT/Claude connector validation must be completed from a networked environment with Railway access
 - the MCP catalog is broader than the end-user UI today; some control-plane and evaluation tools are intended for trusted agents and automation flows more than for conversational end-user prompting
-
 
 ## Manifest action index (mechanical doc-sync)
 

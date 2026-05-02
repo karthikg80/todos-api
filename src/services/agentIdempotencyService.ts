@@ -49,7 +49,7 @@ function cloneJsonSafe<T>(value: T): T {
 export class AgentIdempotencyService {
   constructor(private readonly prisma?: PrismaClient) {}
 
-  private readonly ttlMs = 24 * 60 * 60 * 1000;
+  private readonly ttlMs = 30 * 24 * 60 * 60 * 1000;
   private readonly entries = new Map<string, CachedAgentResponse>();
 
   private makeCacheKey(action: string, userId: string, idempotencyKey: string) {
