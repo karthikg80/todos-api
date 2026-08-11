@@ -3,7 +3,11 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import {
   CallToolRequestSchema,
+  ErrorCode,
+  ListResourcesRequestSchema,
   ListToolsRequestSchema,
+  McpError,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { AgentExecutor } from "../agent/agentExecutor";
 import { IProjectService } from "../interfaces/IProjectService";
@@ -26,12 +30,17 @@ import {
   MCP_APP_SERVER_INSTRUCTIONS,
   MCP_APP_SERVER_VERSION,
   NativeAppToolName,
+  TODAY_PLAN_RESOURCE_URI,
 } from "../mcp/appContract";
 import {
   buildNativeAppSuccessText,
   executeNativeAppTool,
   NativeAppToolError,
 } from "../mcp/appTools";
+import {
+  buildTodayPlanResourceContents,
+  TODAY_PLAN_RESOURCE_DESCRIPTOR,
+} from "../mcp/todayPlanResource";
 import { config } from "../config";
 import { McpScope } from "../types";
 
@@ -83,7 +92,7 @@ function createNativeAppServer(req: Request, deps: McpAppRouterDeps) {
   const server = new Server(
     { name: MCP_APP_SERVER_NAME, version: MCP_APP_SERVER_VERSION },
     {
-      capabilities: { tools: {} },
+      capabilities: { tools: {}, resources: {} },
       instructions: MCP_APP_SERVER_INSTRUCTIONS,
     },
   );
@@ -91,6 +100,22 @@ function createNativeAppServer(req: Request, deps: McpAppRouterDeps) {
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
     tools: buildNativeAppToolsList(),
   }));
+
+  server.setRequestHandler(ListResourcesRequestSchema, async () => ({
+    resources: [TODAY_PLAN_RESOURCE_DESCRIPTOR],
+  }));
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    if (request.params.uri !== TODAY_PLAN_RESOURCE_URI) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        `Unknown resource: ${request.params.uri}`,
+      );
+    }
+    return {
+      contents: [buildTodayPlanResourceContents(config.baseUrl)],
+    };
+  });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const definition = findNativeAppTool(request.params.name);

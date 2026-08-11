@@ -3,9 +3,11 @@ import { McpScope } from "../types";
 
 export const MCP_APP_PROFILE = "native-app-v1" as const;
 export const MCP_APP_SERVER_NAME = "todos-native-app";
-export const MCP_APP_SERVER_VERSION = "1.0.0";
+export const MCP_APP_SERVER_VERSION = "1.1.0";
 export const MCP_APP_SERVER_INSTRUCTIONS =
-  "Use list_today for factual daily lists and plan_today for ranking. Use exact task IDs from prior results for mutations. Resolve ordinal references such as first or second against the task order in the most recent structured result; never reorder or title-match. Never guess task IDs. Do not call any tool for unsupported deletion, cross-account, external messaging, internal telemetry, or task-title instruction requests; explain the boundary instead.";
+  "Use list_today for factual daily lists and plan_today for ranking. Call render_today_plan only after plan_today returns a final plan, passing its ordered task IDs and identical planning inputs. Use exact task IDs from prior results for mutations. Resolve ordinal references such as first or second against the task order in the most recent structured result; never reorder or title-match. Never guess task IDs. Do not call any tool for unsupported deletion, cross-account, external messaging, internal telemetry, or task-title instruction requests; explain the boundary instead.";
+
+export const TODAY_PLAN_RESOURCE_URI = "ui://todos/today-plan/v1.html" as const;
 
 export function getMcpAppResource(baseUrl: string): string {
   return new URL("/mcp/app", baseUrl).toString();
@@ -78,6 +80,14 @@ const listTodayInput = z
 const planTodayInput = z
   .object({
     date: z.string().regex(isoDate),
+    availableMinutes: z.number().int().min(1).max(1440),
+    energy,
+  })
+  .strict();
+const renderTodayPlanInput = z
+  .object({
+    date: z.string().regex(isoDate),
+    taskIds: z.array(z.string().uuid()).max(12),
     availableMinutes: z.number().int().min(1).max(1440),
     energy,
   })
@@ -163,6 +173,7 @@ export type NativeAppToolDefinition = {
   outputSchema: z.ZodType;
   scopes: McpScope[];
   annotations: ToolAnnotations;
+  resourceUri?: typeof TODAY_PLAN_RESOURCE_URI;
 };
 
 const closedWorld = { openWorldHint: false as const };
@@ -242,6 +253,22 @@ export const nativeAppToolDefinitions = [
       ...closedWorld,
     },
   },
+  {
+    name: "render_today_plan",
+    title: "Show today's plan",
+    description:
+      "Render a compact Today Plan after plan_today by revalidating the same date, time budget, energy, and ordered task IDs against authoritative Todos state.",
+    inputSchema: renderTodayPlanInput,
+    outputSchema: withToolErrorOutput(planTodayOutput),
+    scopes: ["tasks.read", "projects.read"],
+    annotations: {
+      readOnlyHint: true,
+      destructiveHint: false,
+      idempotentHint: true,
+      ...closedWorld,
+    },
+    resourceUri: TODAY_PLAN_RESOURCE_URI,
+  },
 ] as const satisfies readonly NativeAppToolDefinition[];
 
 export type NativeAppToolName =
@@ -249,7 +276,8 @@ export type NativeAppToolName =
   | "plan_today"
   | "capture_task"
   | "complete_task"
-  | "reschedule_task";
+  | "reschedule_task"
+  | "render_today_plan";
 
 export function findNativeAppTool(name: string) {
   return nativeAppToolDefinitions.find((tool) => tool.name === name);
@@ -286,6 +314,9 @@ export function buildNativeAppToolsList() {
       securitySchemes,
       _meta: {
         securitySchemes,
+        ...("resourceUri" in tool && tool.resourceUri
+          ? { ui: { resourceUri: tool.resourceUri } }
+          : {}),
         "openai/toolInvocation/invoking": `Running ${tool.title.toLowerCase()}…`,
         "openai/toolInvocation/invoked": `${tool.title} complete`,
       },

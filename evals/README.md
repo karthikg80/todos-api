@@ -11,6 +11,9 @@ Current suites:
 - `mcp`: auth, scope, discovery, and representative write-flow evals for `/mcp`
   plus the frozen Phase 1 native-app golden prompts in
   `mcp/native-golden-prompts.json`
+- `plugin`: Phase 2 six-tool/resource contract checks plus Today Plan direct,
+  indirect, follow-up, write, negative, prompt-injection, fallback, and
+  component-sequence fixtures in `plugin/today-plan-golden-prompts.json`
 - `planner`: deterministic planner behavior evals for suggest/apply flows
 
 Commands:
@@ -18,6 +21,7 @@ Commands:
 - `npm run eval:agent`
 - `npm run eval:decision-assist`
 - `npm run eval:mcp`
+- `npm run eval:plugin`
 - `npm run eval:planner`
 - `npm run eval:all`
 

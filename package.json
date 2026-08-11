@@ -24,6 +24,7 @@
     "eval:agent": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js agent",
     "eval:decision-assist": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js decision-assist",
     "eval:mcp": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js mcp",
+    "eval:plugin": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js plugin",
     "eval:planner": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js planner",
     "eval:all": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js all",
     "test:watch": "NODE_ENV=test jest --watch",
@@ -41,6 +42,7 @@
     "prisma:migrate:deploy": "npx prisma migrate deploy",
     "prisma:migrate:status": "npx prisma migrate status",
     "prisma:migrate:check": "npx prisma validate",
+    "snapshot:mcp-app:phase2": "tsc && node scripts/generate-mcp-app-phase2-snapshot.mjs",
     "prisma:studio": "npx prisma studio",
     "prisma:reset": "npx prisma migrate reset",
     "docker:up": "docker compose up -d postgres",
@@ -71,6 +73,7 @@
     "node": ">=20.19.0 <23"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",

@@ -8,6 +8,7 @@ import {
   MCP_APP_SERVER_NAME,
   MCP_APP_SERVER_VERSION,
   nativeAppToolDefinitions,
+  TODAY_PLAN_RESOURCE_URI,
 } from "./mcp/appContract";
 import {
   executeNativeAppTool,
@@ -15,6 +16,12 @@ import {
   isValidIanaTimezone,
   resolveNativeAppTimezone,
 } from "./mcp/appTools";
+import {
+  buildTodayPlanResourceContents,
+  TODAY_PLAN_RESOURCE_DESCRIPTOR,
+  TODAY_PLAN_RESOURCE_META,
+  TODAY_PLAN_RESOURCE_MIME_TYPE,
+} from "./mcp/todayPlanResource";
 import { AuthService } from "./services/authService";
 import { TodoService } from "./services/todoService";
 
@@ -58,7 +65,7 @@ describe("ChatGPT-native MCP app profile", () => {
     actor: "ChatGPT",
   });
 
-  test("metadata matches the committed human-readable Phase 1 snapshot", () => {
+  test("preserves the committed Phase 1 tool metadata exactly", () => {
     const snapshot = JSON.parse(
       fs.readFileSync(
         path.join(
@@ -69,14 +76,7 @@ describe("ChatGPT-native MCP app profile", () => {
       ),
     );
 
-    expect({
-      server: {
-        name: MCP_APP_SERVER_NAME,
-        version: MCP_APP_SERVER_VERSION,
-        instructions: MCP_APP_SERVER_INSTRUCTIONS,
-      },
-      tools: buildNativeAppToolsList(),
-    }).toEqual(snapshot);
+    expect(buildNativeAppToolsList().slice(0, 5)).toEqual(snapshot.tools);
     expect(snapshot.tools.map((tool: { name: string }) => tool.name)).toEqual([
       "list_today",
       "plan_today",
@@ -88,6 +88,49 @@ describe("ChatGPT-native MCP app profile", () => {
       expect(tool.outputSchema.type).toBe("object");
       expect(tool._meta.securitySchemes).toEqual(tool.securitySchemes);
     }
+  });
+
+  test("metadata matches the committed human-readable Phase 2 snapshot", () => {
+    const snapshot = JSON.parse(
+      fs.readFileSync(
+        path.join(process.cwd(), "test/fixtures/mcp-app-metadata.phase2.json"),
+        "utf8",
+      ),
+    );
+    const tools = buildNativeAppToolsList();
+
+    expect({
+      server: {
+        name: MCP_APP_SERVER_NAME,
+        version: MCP_APP_SERVER_VERSION,
+        instructions: MCP_APP_SERVER_INSTRUCTIONS,
+      },
+      tools,
+      resources: [TODAY_PLAN_RESOURCE_DESCRIPTOR],
+      resourceContents: [
+        {
+          uri: TODAY_PLAN_RESOURCE_URI,
+          mimeType: TODAY_PLAN_RESOURCE_MIME_TYPE,
+          _meta: TODAY_PLAN_RESOURCE_META,
+        },
+      ],
+    }).toEqual(snapshot);
+    expect(tools.map((tool) => tool.name)).toEqual([
+      "list_today",
+      "plan_today",
+      "capture_task",
+      "complete_task",
+      "reschedule_task",
+      "render_today_plan",
+    ]);
+    expect(tools.filter((tool) => "ui" in tool._meta)).toEqual([
+      expect.objectContaining({
+        name: "render_today_plan",
+        _meta: expect.objectContaining({
+          ui: { resourceUri: TODAY_PLAN_RESOURCE_URI },
+        }),
+      }),
+    ]);
   });
 
   test("every advertised output schema accepts the shared tool error contract", () => {
@@ -133,6 +176,38 @@ describe("ChatGPT-native MCP app profile", () => {
     expect(list.status).toBe(200);
     expect(parseMcpResponse(list).result.tools).toEqual(
       buildNativeAppToolsList(),
+    );
+
+    const resources = await request(app)
+      .post("/mcp/app")
+      .set(mcpHeaders)
+      .send({ jsonrpc: "2.0", id: 21, method: "resources/list", params: {} });
+    expect(resources.status).toBe(200);
+    expect(parseMcpResponse(resources).result.resources).toEqual([
+      TODAY_PLAN_RESOURCE_DESCRIPTOR,
+    ]);
+
+    const read = await request(app)
+      .post("/mcp/app")
+      .set(mcpHeaders)
+      .send({
+        jsonrpc: "2.0",
+        id: 22,
+        method: "resources/read",
+        params: { uri: TODAY_PLAN_RESOURCE_URI },
+      });
+    expect(read.status).toBe(200);
+    const resource = parseMcpResponse(read).result.contents[0];
+    expect(resource).toMatchObject({
+      uri: TODAY_PLAN_RESOURCE_URI,
+      mimeType: TODAY_PLAN_RESOURCE_MIME_TYPE,
+      _meta: TODAY_PLAN_RESOURCE_META,
+    });
+    expect(resource.text).toContain('request("ui/initialize"');
+    expect(resource.text).toContain('request("tools/call"');
+    expect(resource.text).not.toMatch(/fetch\s*\(|XMLHttpRequest|<iframe/i);
+    expect(resource.text).not.toMatch(
+      /access[_-]?token|refresh[_-]?token|sessionId|userId|window\.openai/i,
     );
   });
 
@@ -387,6 +462,163 @@ describe("ChatGPT-native MCP app profile", () => {
     expect(JSON.stringify(result)).not.toMatch(
       /score|attribution|decisionRunId|trace|must-not-leak/,
     );
+  });
+
+  test("reruns the planner with identical inputs and intersects authoritative tasks in requested order", async () => {
+    const secondTaskId = "00000000-0000-4000-8000-000000000011";
+    const staleTaskId = "00000000-0000-4000-8000-000000000099";
+    const execute = jest.fn().mockResolvedValue({
+      status: 200,
+      body: {
+        ok: true,
+        data: {
+          plan: {
+            recommendedTasks: [
+              {
+                ...task,
+                explanation: { rank: 1, whyIncluded: "Due today" },
+              },
+              {
+                ...task,
+                id: secondTaskId,
+                title: "Draft release notes",
+                estimatedMinutes: 20,
+                explanation: { rank: 2, whyIncluded: "Fits the budget" },
+              },
+            ],
+            availableMinutes: 90,
+            totalMinutes: 50,
+            remainingMinutes: 40,
+          },
+        },
+        trace: { requestId: "must-not-leak" },
+      },
+    });
+
+    const result = (await executeNativeAppTool(
+      "render_today_plan",
+      {
+        date: "2026-08-11",
+        taskIds: [secondTaskId, taskId, staleTaskId],
+        availableMinutes: 90,
+        energy: "medium",
+      },
+      runtime(execute),
+    )) as any;
+
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      "plan_today",
+      {
+        date: "2026-08-11",
+        availableMinutes: 90,
+        energy: "medium",
+      },
+      expect.objectContaining({ effectiveDate: "2026-08-11" }),
+    );
+    expect(result.tasks.map((entry: { id: string }) => entry.id)).toEqual([
+      secondTaskId,
+      taskId,
+    ]);
+    expect(result.tasks.map((entry: { rank: number }) => entry.rank)).toEqual([
+      1, 2,
+    ]);
+    expect(result.totalMinutes).toBe(50);
+    expect(result.remainingMinutes).toBe(40);
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        expect.stringMatching(/1 selected task was omitted/),
+        expect.stringMatching(/authoritative plan order changed/),
+      ]),
+    );
+    expect(JSON.stringify(result)).not.toMatch(
+      /score|attribution|decisionRunId|trace|must-not-leak|userId/,
+    );
+  });
+
+  test("omits a cross-user or missing task ID without probing or leaking it", async () => {
+    const foreignTaskId = "00000000-0000-4000-8000-000000000099";
+    const execute = jest.fn().mockResolvedValue({
+      status: 200,
+      body: {
+        ok: true,
+        data: {
+          plan: {
+            recommendedTasks: [],
+            availableMinutes: 60,
+            totalMinutes: 0,
+            remainingMinutes: 60,
+          },
+        },
+        trace: {},
+      },
+    });
+
+    const result = (await executeNativeAppTool(
+      "render_today_plan",
+      {
+        date: "2026-08-11",
+        taskIds: [foreignTaskId],
+        availableMinutes: 60,
+        energy: "low",
+      },
+      runtime(execute),
+    )) as any;
+
+    expect(result.tasks).toEqual([]);
+    expect(result.warnings).toEqual([
+      expect.stringMatching(/1 selected task was omitted/),
+    ]);
+    expect(JSON.stringify(result)).not.toContain(foreignTaskId);
+    expect(execute).toHaveBeenCalledTimes(1);
+    expect(execute).toHaveBeenCalledWith(
+      "plan_today",
+      expect.any(Object),
+      expect.any(Object),
+    );
+  });
+
+  test("never trusts render display fields or admits more than twelve task IDs", () => {
+    const renderTool = nativeAppToolDefinitions.find(
+      (definition) => definition.name === "render_today_plan",
+    )!;
+    const validId = "00000000-0000-4000-8000-000000000010";
+    const base = {
+      date: "2026-08-11",
+      taskIds: [validId],
+      availableMinutes: 60,
+      energy: "low",
+    };
+
+    expect(
+      renderTool.inputSchema.safeParse({
+        ...base,
+        tasks: [{ id: validId, title: "Client-controlled title" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      renderTool.inputSchema.safeParse({
+        ...base,
+        taskIds: Array.from(
+          { length: 13 },
+          (_, index) =>
+            `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        ),
+      }).success,
+    ).toBe(false);
+  });
+
+  test("builds a self-contained resource with an exact no-network CSP", () => {
+    const resource = buildTodayPlanResourceContents("https://todos.example/");
+
+    expect(resource._meta).toEqual({
+      ui: {
+        prefersBorder: true,
+        csp: { connectDomains: [], resourceDomains: [] },
+      },
+    });
+    expect(resource.text).toContain('href="https://todos.example/app"');
+    expect(resource.text).not.toContain("window.openai");
   });
 
   test("preserves idempotent capture semantics and fixes the internal source", async () => {

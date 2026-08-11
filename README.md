@@ -10,7 +10,7 @@ A calm workspace for turning scattered tasks into focused days, reviewed weeks, 
 
 **Review your weeks** — A structured weekly review surfaces stale tasks, missing next actions, and forgotten commitments. One click to clean up.
 
-**Connect your AI assistant** — Claude, ChatGPT, or any MCP-compatible client can manage your tasks conversationally. The legacy `/mcp` connector exposes the broad 92-tool catalog; the ChatGPT-native Phase 1 profile at `/mcp/app` exposes exactly five focused, schema-stable tools.
+**Connect your AI assistant** — Claude, ChatGPT, or any MCP-compatible client can manage your tasks conversationally. The legacy `/mcp` connector exposes the broad 92-tool catalog; the ChatGPT-native profile at `/mcp/app` exposes six focused, schema-stable tools, including an optional interactive Today Plan component.
 
 **Automate the routine** — Daily plans, weekly reviews, inbox triage, and stale task cleanup run on schedule in the background.
 
