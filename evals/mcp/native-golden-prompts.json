@@ -1,0 +1,46 @@
+[
+  {
+    "prompt": "Plan my day. I have four hours and low energy.",
+    "expectedTools": ["plan_today"],
+    "expectedArguments": { "availableMinutes": 240, "energy": "low" },
+    "notes": "The explicit date is supplied by the host workflow in the resolved account timezone."
+  },
+  {
+    "prompt": "What is due or overdue today?",
+    "expectedTools": ["list_today"],
+    "forbiddenTools": ["plan_today", "capture_task"]
+  },
+  {
+    "prompt": "Capture: call the dentist tomorrow.",
+    "expectedTools": ["capture_task"],
+    "expectedArguments": { "text": "call the dentist tomorrow" },
+    "notes": "Exactly one call with a stable host-generated idempotency key."
+  },
+  {
+    "prompt": "Mark the second task complete.",
+    "expectedTools": ["complete_task"],
+    "expectedArguments": { "completed": true },
+    "notes": "Use the second exact task ID from the prior structured result; never title-match."
+  },
+  {
+    "prompt": "Undo that completion.",
+    "expectedTools": ["complete_task"],
+    "expectedArguments": { "completed": false }
+  },
+  {
+    "prompt": "Move the budget review to tomorrow at 9.",
+    "expectedTools": ["reschedule_task"],
+    "notes": "Resolve the exact prior task ID and send an ISO 8601 scheduledDate."
+  },
+  {
+    "prompt": "I am wiped out. What is a realistic day?",
+    "expectedTools": ["plan_today"],
+    "expectedArguments": { "energy": "low" },
+    "notes": "Ask for or conservatively establish a time budget before calling."
+  },
+  {
+    "prompt": "Actually I have another hour.",
+    "expectedTools": ["plan_today"],
+    "notes": "Rerun with the updated budget; Phase 1 advertises no render tool."
+  }
+]

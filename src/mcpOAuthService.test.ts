@@ -7,6 +7,9 @@ function createMockPrisma() {
   const refreshTokens = new Map<string, any>();
 
   return {
+    agentEnrollment: {
+      findUnique: jest.fn().mockResolvedValue(null),
+    },
     mcpAuthorizationCode: {
       create: jest.fn(async ({ data }) => {
         authorizationCodes.set(data.code, { ...data, usedAt: null });
@@ -200,5 +203,58 @@ describe("McpOAuthService durability", () => {
         clientId: "chatgpt-client",
       }),
     ).rejects.toThrow("Assistant session revoked");
+  });
+
+  it("binds authorization codes to the exact MCP resource", async () => {
+    const service = new McpOAuthService();
+    const resource = "https://api.example.com/mcp/app";
+    const created = await service.createAuthorizationCode({
+      userId: "user-1",
+      email: "user-1@example.com",
+      clientId: "chatgpt-client",
+      redirectUri: "https://chat.openai.com/aip/callback",
+      scopes: ["tasks.read"],
+      codeChallenge: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabc",
+      codeChallengeMethod: "S256",
+      resource,
+    });
+
+    await expect(
+      service.exchangeAuthorizationCode({
+        code: created.code,
+        clientId: "chatgpt-client",
+        redirectUri: "https://chat.openai.com/aip/callback",
+        codeVerifier: "pkce-verifier-1111111111111111111111111111111111111",
+        resource: "https://api.example.com/mcp",
+      }),
+    ).rejects.toThrow("Authorization code resource mismatch");
+  });
+
+  it("preserves resource binding across refresh rotation", async () => {
+    const service = new McpOAuthService();
+    const resource = "https://api.example.com/mcp/app";
+    const issued = await service.createRefreshToken({
+      userId: "user-1",
+      email: "user-1@example.com",
+      scopes: ["tasks.read"],
+      clientId: "chatgpt-client",
+      resource,
+    });
+
+    await expect(
+      service.exchangeRefreshToken({
+        refreshToken: issued.refreshToken,
+        clientId: "chatgpt-client",
+        resource: "https://api.example.com/mcp",
+      }),
+    ).rejects.toThrow("Refresh token resource mismatch");
+
+    await expect(
+      service.exchangeRefreshToken({
+        refreshToken: issued.refreshToken,
+        clientId: "chatgpt-client",
+        resource,
+      }),
+    ).resolves.toMatchObject({ resource });
   });
 });

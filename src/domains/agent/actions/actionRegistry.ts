@@ -38,6 +38,8 @@ export interface ActionContext {
   actor: string;
   surface: "agent" | "mcp";
   idempotencyKey?: string;
+  effectiveDate?: string;
+  timezone?: string;
 }
 
 /**

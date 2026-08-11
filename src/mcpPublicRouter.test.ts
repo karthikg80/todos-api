@@ -321,6 +321,43 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(token.body.refresh_token_expires_in).toBe(2592000);
   });
 
+  it("preserves the native resource binding after a failed OAuth login", async () => {
+    const register = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        client_name: "ChatGPT",
+      })
+      .expect(201);
+    const pkce = createPkcePair(
+      "oauth-verifier-native-resource-11111111111111111111111111",
+    );
+    const resource = "http://localhost:3000/mcp/app";
+    mockAuthService.login.mockRejectedValueOnce(
+      new Error("Invalid credentials"),
+    );
+
+    const response = await request(app)
+      .post("/oauth/authorize/login")
+      .type("form")
+      .send({
+        email: "user-1@example.com",
+        password: "incorrect-password",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        scope: "tasks.read projects.read",
+        state: "state-native-resource",
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+        resource,
+      })
+      .expect(401);
+
+    expect(response.text).toContain('name="resource"');
+    expect(response.text).toContain(`value="${resource}"`);
+  });
+
   it("defaults authorize scopes when the connector omits scope", async () => {
     const register = await request(app)
       .post("/oauth/register")

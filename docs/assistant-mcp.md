@@ -5,7 +5,8 @@ Thin remote MCP layer for connecting registered Todos app users from ChatGPT, Cl
 ## What This Layer Does
 
 - keeps `/agent` as the internal task-oriented capability surface
-- exposes `/mcp` as the public remote MCP adapter over that internal layer
+- exposes `/mcp` as the broad legacy remote adapter and `/mcp/app` as the
+  focused ChatGPT-native data-only profile
 - reuses the shared internal agent executor instead of duplicating todo or project rules
 - requires every MCP call to resolve to a concrete authenticated app user
 
@@ -19,8 +20,15 @@ Runtime endpoints:
   SSE-style stream endpoint for remote MCP clients that expect long-lived transport.
 - `POST /mcp`
   Streamable HTTP JSON-RPC endpoint for MCP methods and tool calls.
+- `POST /mcp/app`
+  Stateless SDK-backed Streamable HTTP endpoint advertising exactly
+  `list_today`, `plan_today`, `capture_task`, `complete_task`, and
+  `reschedule_task` in Phase 1.
 - `GET /.well-known/oauth-protected-resource`
   OAuth protected-resource metadata for remote clients.
+- `GET /.well-known/oauth-protected-resource/mcp/app`
+  Protected-resource metadata whose resource identifier is the exact
+  `/mcp/app` endpoint.
 - `GET /.well-known/oauth-authorization-server`
   Authorization server metadata.
 - `POST /oauth/register`
@@ -43,6 +51,12 @@ Runtime endpoints:
 Detailed auth and scope behavior lives in `docs/remote-mcp-auth.md`.
 
 ## Supported Tools
+
+The `/mcp/app` profile is a separately versioned public contract. It uses
+strict public input/output DTOs, per-tool OAuth schemes, 60-minute
+resource-audience-bound access tokens, tool-result authorization challenges,
+and a committed metadata snapshot. The broad `/mcp` contract below remains
+available for existing connectors.
 
 The public MCP adapter is generated from the current agent manifest and exposes
 the same underlying action catalog, filtered by token scopes. As of `v1.6.0`,

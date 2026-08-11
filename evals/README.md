@@ -9,6 +9,8 @@ Current suites:
 - `decision-assist`: output-contract and telemetry evals for decision-assist
   surfaces
 - `mcp`: auth, scope, discovery, and representative write-flow evals for `/mcp`
+  plus the frozen Phase 1 native-app golden prompts in
+  `mcp/native-golden-prompts.json`
 - `planner`: deterministic planner behavior evals for suggest/apply flows
 
 Commands:

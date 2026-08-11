@@ -204,6 +204,8 @@ model McpAssistantSession {
   userId                  String    @map("user_id")
   clientId                String?   @map("client_id") @db.VarChar(5000)
   assistantName           String?   @map("assistant_name") @db.VarChar(100)
+  resource                String?   @db.VarChar(1000)
+  timezone                String?   @db.VarChar(100)
   scopes                  String[]  @default([])
   source                  String    @db.VarChar(20)
   revokedAt               DateTime? @map("revoked_at")
@@ -217,6 +219,7 @@ model McpAssistantSession {
 
   @@index([userId, revokedAt])
   @@index([clientId])
+  @@index([resource])
   @@map("mcp_assistant_sessions")
 }
 
@@ -228,6 +231,8 @@ model McpAuthorizationCode {
   redirectUri         String    @map("redirect_uri") @db.VarChar(1000)
   scopes              String[]  @default([])
   assistantName       String?   @map("assistant_name") @db.VarChar(100)
+  resource            String?   @db.VarChar(1000)
+  timezone            String?   @db.VarChar(100)
   state               String?   @db.VarChar(200)
   codeChallenge       String    @map("code_challenge") @db.VarChar(128)
   codeChallengeMethod String    @map("code_challenge_method") @db.VarChar(10)
@@ -251,6 +256,8 @@ model McpRefreshToken {
   scopes        String[]  @default([])
   assistantName String?   @map("assistant_name") @db.VarChar(100)
   clientId      String?   @map("client_id") @db.VarChar(5000)
+  resource      String?   @db.VarChar(1000)
+  timezone      String?   @db.VarChar(100)
   expiresAt     DateTime  @map("expires_at")
   revokedAt     DateTime? @map("revoked_at")
   rotatedAt     DateTime? @map("rotated_at")

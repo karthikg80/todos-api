@@ -65,6 +65,7 @@ export async function resolveMcpAuthContext(input: {
   authService?: AuthService;
   mcpOAuthService?: McpOAuthService;
   requestId: string;
+  requiredResource?: string;
 }): Promise<{
   httpStatus: number;
   context?: ResolvedMcpAuthContext;
@@ -110,7 +111,10 @@ export async function resolveMcpAuthContext(input: {
 
   let session: McpTokenPayload;
   try {
-    session = await input.authService.verifyMcpToken(parts[1]);
+    session = await input.authService.verifyMcpToken(parts[1], {
+      resource: input.requiredResource,
+      requireResource: Boolean(input.requiredResource),
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
     if (message === "Token expired") {
@@ -205,12 +209,14 @@ export function hasRequiredToolScopes(
 }
 
 export function buildMcpWwwAuthenticateHeader(input?: {
-  error?: "invalid_token";
+  error?: "invalid_token" | "insufficient_scope";
   errorDescription?: string;
+  resourceMetadataUrl?: string;
+  scopes?: McpScope[];
 }) {
   const parts = [
     'Bearer realm="todos-api-mcp"',
-    `resource_metadata="${config.baseUrl}/.well-known/oauth-protected-resource"`,
+    `resource_metadata="${input?.resourceMetadataUrl || `${config.baseUrl}/.well-known/oauth-protected-resource`}"`,
   ];
 
   if (input?.error) {
@@ -220,6 +226,9 @@ export function buildMcpWwwAuthenticateHeader(input?: {
     parts.push(
       `error_description="${input.errorDescription.replace(/"/g, "")}"`,
     );
+  }
+  if (input?.scopes?.length) {
+    parts.push(`scope="${input.scopes.join(" ")}"`);
   }
 
   return parts.join(", ");

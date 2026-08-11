@@ -283,7 +283,37 @@ export class AgentService {
   async listToday(
     userId: string,
     input: { includeOverdue: boolean; includeCompleted: boolean },
+    calendar?: { date?: string; timezone?: string },
   ): Promise<Todo[]> {
+    if (calendar?.date && calendar.timezone) {
+      const formatter = new Intl.DateTimeFormat("en-CA", {
+        timeZone: calendar.timezone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
+      const dateKey = (value: Date) => {
+        const parts = formatter.formatToParts(value);
+        const part = (type: Intl.DateTimeFormatPartTypes) =>
+          parts.find((entry) => entry.type === type)?.value ?? "";
+        return `${part("year")}-${part("month")}-${part("day")}`;
+      };
+      const tasks = await this.deps.todoService.findAll(userId, {
+        archived: false,
+        ...(input.includeCompleted ? {} : { completed: false }),
+      });
+      return tasks.filter((task) => {
+        const dueKey = task.dueDate ? dateKey(task.dueDate) : null;
+        const scheduledKey = task.scheduledDate
+          ? dateKey(task.scheduledDate)
+          : null;
+        const dueMatch =
+          dueKey === calendar.date ||
+          (input.includeOverdue && dueKey !== null && dueKey < calendar.date!);
+        return dueMatch || scheduledKey === calendar.date;
+      });
+    }
+
     const now = new Date();
     const start = this.startOfDay(now);
     const end = this.endOfDay(now);

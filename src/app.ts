@@ -25,6 +25,7 @@ import { createPrioritiesBriefRouter } from "./routes/prioritiesBriefRouter";
 import { createFocusBriefRouter } from "./routes/focusBriefRouter";
 import { createAgentRouter } from "./routes/agentRouter";
 import { createMcpRouter } from "./routes/mcpRouter";
+import { createMcpAppRouter } from "./routes/mcpAppRouter";
 import {
   IAiSuggestionStore,
   InMemoryAiSuggestionStore,
@@ -477,6 +478,15 @@ export function createApp(deps: AppDependencies = {}) {
     }),
   );
   app.use("/api", createInternalAgentProfileRouter());
+  app.use(
+    "/mcp/app",
+    createMcpAppRouter({
+      agentExecutor,
+      authService,
+      mcpOAuthService,
+      projectService,
+    }),
+  );
   app.use(
     "/mcp",
     createMcpRouter({

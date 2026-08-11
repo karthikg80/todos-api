@@ -93,5 +93,6 @@ Todos combines:
 
 - [README.md](../README.md)
 - [Assistant MCP](assistant-mcp.md)
+- [ChatGPT-Native Plugin Phase 0](specs/chatgpt-native-app-phase-0.md)
 - [Planner Runtime](planner-runtime.md)
 - [Architecture Current State](architecture/current-state.md)

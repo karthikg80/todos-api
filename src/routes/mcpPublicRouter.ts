@@ -21,6 +21,7 @@ import { config } from "../config";
 import { validateRegister } from "../validation/authValidation";
 import { GoogleAuthService } from "../services/googleAuthService";
 import { SocialAuthService } from "../services/socialAuthService";
+import { getMcpAppResource } from "../mcp/appContract";
 
 interface McpPublicRouterDeps {
   authService?: AuthService;
@@ -108,6 +109,7 @@ function buildAuthorizeSearchParams(input: {
   state?: string;
   codeChallenge: string;
   codeChallengeMethod: "S256";
+  resource?: string;
 }) {
   const params = new URLSearchParams({
     client_id: input.clientId,
@@ -119,6 +121,9 @@ function buildAuthorizeSearchParams(input: {
   });
   if (input.state) {
     params.set("state", input.state);
+  }
+  if (input.resource) {
+    params.set("resource", input.resource);
   }
   return params.toString();
 }
@@ -269,6 +274,8 @@ function renderRegistrationError(
       typeof req.body.code_challenge_method === "string"
         ? req.body.code_challenge_method
         : undefined,
+    resource:
+      typeof req.body.resource === "string" ? req.body.resource : undefined,
   };
   setOAuthHtmlCsp(res);
   return res.status(200).send(
@@ -341,6 +348,14 @@ function mapTokenExchangeError(error: unknown) {
         code: "MCP_AUTH_CODE_BINDING_MISMATCH",
         hint: "Retry with the same client_id and redirect_uri used during authorization.",
       };
+    case "Authorization code resource mismatch":
+      return {
+        status: 401,
+        error: "invalid_target",
+        description: "Authorization code resource binding mismatch",
+        code: "MCP_AUTH_CODE_RESOURCE_MISMATCH",
+        hint: "Repeat the exact resource value from the authorization request.",
+      };
     case "Invalid code verifier":
       return {
         status: 401,
@@ -380,6 +395,14 @@ function mapTokenExchangeError(error: unknown) {
         description: "Refresh token client binding mismatch",
         code: "MCP_REFRESH_TOKEN_CLIENT_MISMATCH",
         hint: "Use the same client_id that originally received the refresh token.",
+      };
+    case "Refresh token resource mismatch":
+      return {
+        status: 401,
+        error: "invalid_target",
+        description: "Refresh token resource binding mismatch",
+        code: "MCP_REFRESH_TOKEN_RESOURCE_MISMATCH",
+        hint: "Repeat the exact resource value bound to the refresh token.",
       };
     case "Assistant session revoked":
       return {
@@ -489,6 +512,15 @@ export function createMcpPublicRouter({
     });
   });
 
+  router.get("/.well-known/oauth-protected-resource/mcp/app", (_req, res) => {
+    res.status(200).json({
+      resource: getMcpAppResource(config.baseUrl),
+      authorization_servers: [config.baseUrl],
+      bearer_methods_supported: ["header"],
+      scopes_supported: ["tasks.read", "tasks.write", "projects.read"],
+    });
+  });
+
   router.get("/.well-known/oauth-authorization-server", (_req, res) => {
     res.status(200).json({
       issuer: config.baseUrl,
@@ -586,6 +618,7 @@ export function createMcpPublicRouter({
         state: authorize.state,
         code_challenge: authorize.codeChallenge,
         code_challenge_method: authorize.codeChallengeMethod,
+        resource: authorize.resource,
       };
 
       const linkSession = resolveLinkSession(req, authService);
@@ -605,6 +638,7 @@ export function createMcpPublicRouter({
           state: authorize.state,
           codeChallenge: authorize.codeChallenge,
           codeChallengeMethod: authorize.codeChallengeMethod,
+          resource: authorize.resource,
         });
         const registerUrl = buildPublicOauthUrl(
           `/oauth/authorize/register?${authorizeSearchParams}`,
@@ -703,6 +737,7 @@ export function createMcpPublicRouter({
           state: authorize.state,
           codeChallenge: authorize.codeChallenge,
           codeChallengeMethod: authorize.codeChallengeMethod,
+          resource: authorize.resource,
         })}`,
       );
     } catch (error) {
@@ -772,6 +807,10 @@ export function createMcpPublicRouter({
               typeof req.body.code_challenge_method === "string"
                 ? req.body.code_challenge_method
                 : undefined,
+            resource:
+              typeof req.body.resource === "string"
+                ? req.body.resource
+                : undefined,
           },
           clientName,
         }),
@@ -808,6 +847,7 @@ export function createMcpPublicRouter({
         state: authorize.state,
         code_challenge: authorize.codeChallenge,
         code_challenge_method: authorize.codeChallengeMethod,
+        resource: authorize.resource,
       };
 
       const regAuthorizeSearchParams = buildAuthorizeSearchParams({
@@ -818,6 +858,7 @@ export function createMcpPublicRouter({
         state: authorize.state,
         codeChallenge: authorize.codeChallenge,
         codeChallengeMethod: authorize.codeChallengeMethod,
+        resource: authorize.resource,
       });
       const loginUrl = buildPublicOauthUrl(
         `/oauth/authorize?${regAuthorizeSearchParams}`,
@@ -928,6 +969,7 @@ export function createMcpPublicRouter({
         state: authorize.state,
         codeChallenge: authorize.codeChallenge,
         codeChallengeMethod: authorize.codeChallengeMethod,
+        resource: authorize.resource,
       });
 
       logMcpOauthEvent({
@@ -1015,6 +1057,7 @@ export function createMcpPublicRouter({
         state: authorize.state,
         code_challenge: authorize.codeChallenge,
         code_challenge_method: authorize.codeChallengeMethod,
+        resource: authorize.resource,
       });
       cookies.push(
         serializeCookie(MCP_GOOGLE_PARAMS_COOKIE, oauthParams, {
@@ -1171,6 +1214,7 @@ export function createMcpPublicRouter({
         state: authorize.state,
         codeChallenge: authorize.codeChallenge,
         codeChallengeMethod: authorize.codeChallengeMethod,
+        resource: authorize.resource,
       });
 
       logMcpOauthEvent({
@@ -1276,6 +1320,7 @@ export function createMcpPublicRouter({
         state: authorize.state,
         codeChallenge: authorize.codeChallenge,
         codeChallengeMethod: authorize.codeChallengeMethod,
+        resource: authorize.resource,
       });
 
       logMcpOauthEvent({
@@ -1350,6 +1395,7 @@ export function createMcpPublicRouter({
         redirectUri: req.body.redirect_uri || req.body.redirectUri,
         codeVerifier: req.body.code_verifier || req.body.codeVerifier,
         refreshToken: req.body.refresh_token || req.body.refreshToken,
+        resource: req.body.resource,
       });
       const client =
         input.grantType === "authorization_code"
@@ -1365,6 +1411,7 @@ export function createMcpPublicRouter({
               clientId: input.clientId,
               redirectUri: input.redirectUri,
               codeVerifier: input.codeVerifier,
+              resource: input.resource,
             })
           : null;
       const refreshExchange =
@@ -1372,6 +1419,7 @@ export function createMcpPublicRouter({
           ? await mcpOAuthService.exchangeRefreshToken({
               refreshToken: input.refreshToken,
               clientId: input.clientId,
+              resource: input.resource,
             })
           : null;
       const linkedSession = exchange || refreshExchange!;
@@ -1390,6 +1438,8 @@ export function createMcpPublicRouter({
             assistantName: linkedSession.assistantName || client.clientName,
             clientId: linkedSession.clientId,
             source: "oauth",
+            resource: linkedSession.resource,
+            timezone: linkedSession.timezone,
           });
       const token = authService.createMcpToken({
         userId: linkedSession.userId,
@@ -1398,6 +1448,7 @@ export function createMcpPublicRouter({
         assistantName: linkedSession.assistantName || client.clientName,
         clientId: linkedSession.clientId,
         sessionId: session.id,
+        resource: linkedSession.resource,
       });
       await mcpOAuthService.recordAccessTokenIssued(session.id);
       const shouldIssueRefreshToken =
@@ -1412,6 +1463,8 @@ export function createMcpPublicRouter({
               assistantName: linkedSession.assistantName || client.clientName,
               clientId: linkedSession.clientId,
               sessionId: session.id,
+              resource: linkedSession.resource,
+              timezone: linkedSession.timezone,
             })
           : null;
       const rotatedRefreshToken =
