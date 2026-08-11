@@ -268,22 +268,27 @@ function jsonSchema(
 }
 
 export function buildNativeAppToolsList() {
-  return nativeAppToolDefinitions.map((tool) => ({
-    name: tool.name,
-    title: tool.title,
-    description: tool.description,
-    inputSchema: jsonSchema(tool.inputSchema),
-    outputSchema: jsonSchema(tool.outputSchema, { objectRoot: true }),
-    annotations: tool.annotations,
-    securitySchemes: [
+  return nativeAppToolDefinitions.map((tool) => {
+    const securitySchemes = [
       {
-        type: "oauth2",
+        type: "oauth2" as const,
         scopes: tool.scopes,
       },
-    ],
-    _meta: {
-      "openai/toolInvocation/invoking": `Running ${tool.title.toLowerCase()}…`,
-      "openai/toolInvocation/invoked": `${tool.title} complete`,
-    },
-  }));
+    ];
+
+    return {
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      inputSchema: jsonSchema(tool.inputSchema),
+      outputSchema: jsonSchema(tool.outputSchema, { objectRoot: true }),
+      annotations: tool.annotations,
+      securitySchemes,
+      _meta: {
+        securitySchemes,
+        "openai/toolInvocation/invoking": `Running ${tool.title.toLowerCase()}…`,
+        "openai/toolInvocation/invoked": `${tool.title} complete`,
+      },
+    };
+  });
 }

@@ -208,6 +208,12 @@
         }
       ],
       "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": ["tasks.read", "projects.read"]
+          }
+        ],
         "openai/toolInvocation/invoking": "Running list today's tasks…",
         "openai/toolInvocation/invoked": "List today's tasks complete"
       }
@@ -467,6 +473,12 @@
         }
       ],
       "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": ["tasks.read", "projects.read"]
+          }
+        ],
         "openai/toolInvocation/invoking": "Running plan my day…",
         "openai/toolInvocation/invoked": "Plan my day complete"
       }
@@ -570,6 +582,12 @@
         }
       ],
       "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": ["tasks.write"]
+          }
+        ],
         "openai/toolInvocation/invoking": "Running capture a task…",
         "openai/toolInvocation/invoked": "Capture a task complete"
       }
@@ -773,6 +791,12 @@
         }
       ],
       "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": ["tasks.read", "tasks.write", "projects.read"]
+          }
+        ],
         "openai/toolInvocation/invoking": "Running complete or reopen a task…",
         "openai/toolInvocation/invoked": "Complete or reopen a task complete"
       }
@@ -1030,6 +1054,12 @@
         }
       ],
       "_meta": {
+        "securitySchemes": [
+          {
+            "type": "oauth2",
+            "scopes": ["tasks.read", "tasks.write", "projects.read"]
+          }
+        ],
         "openai/toolInvocation/invoking": "Running reschedule a task…",
         "openai/toolInvocation/invoked": "Reschedule a task complete"
       }

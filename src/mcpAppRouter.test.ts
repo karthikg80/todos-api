@@ -86,6 +86,7 @@ describe("ChatGPT-native MCP app profile", () => {
     ]);
     for (const tool of snapshot.tools) {
       expect(tool.outputSchema.type).toBe("object");
+      expect(tool._meta.securitySchemes).toEqual(tool.securitySchemes);
     }
   });
 
