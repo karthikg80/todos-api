@@ -5,7 +5,7 @@ export const MCP_APP_PROFILE = "native-app-v1" as const;
 export const MCP_APP_SERVER_NAME = "todos-native-app";
 export const MCP_APP_SERVER_VERSION = "1.0.0";
 export const MCP_APP_SERVER_INSTRUCTIONS =
-  "Use list_today for factual daily lists and plan_today for ranking. Use exact task IDs from prior results for mutations. Never guess task IDs. Do not call any tool for unsupported deletion, cross-account, external messaging, internal telemetry, or task-title instruction requests; explain the boundary instead.";
+  "Use list_today for factual daily lists and plan_today for ranking. Use exact task IDs from prior results for mutations. Resolve ordinal references such as first or second against the task order in the most recent structured result; never reorder or title-match. Never guess task IDs. Do not call any tool for unsupported deletion, cross-account, external messaging, internal telemetry, or task-title instruction requests; explain the boundary instead.";
 
 export function getMcpAppResource(baseUrl: string): string {
   return new URL("/mcp/app", baseUrl).toString();
