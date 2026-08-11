@@ -69,16 +69,29 @@ network or external static-resource origins.
 
 ## Local Plugin Installation
 
-The Phase 3 installable package lives at `plugins/todos`. It references the
-deployed `https://todos.theafoundry.com/mcp/app` connection and does not copy
-the MCP runtime or Today Plan component into the package. The package contains
-the `today-planning` workflow skill, a composer icon, logo, and a screenshot
-rendered from the real component with synthetic task data.
+The Phase 3 installable package lives at `plugins/todos`. It uses ChatGPT's
+registered-app mapping for the deployed `https://todos.theafoundry.com/mcp/app`
+connection and does not copy the MCP runtime or Today Plan component into the
+package. The package contains the `today-planning` workflow skill, a composer
+icon, logo, and a screenshot rendered from the real component with synthetic
+task data.
 
-From a clean repository checkout, validate and install it as a local Codex
-marketplace:
+First register `https://todos.theafoundry.com/mcp/app` in ChatGPT developer
+mode. Copy the resulting `plugin_asdk_app_...` ID, then generate the local app
+mapping. The generated file is ignored because the registered ID belongs to a
+specific ChatGPT environment.
+
+The generated mapping derives the canonical `dev-...` app key from the
+registered ID. This keeps the mapping aligned with ChatGPT's developer-mode
+package shape and avoids a friendly-name collision with an older registration
+named `todos`. The key is package plumbing only; the product and plugin remain
+named Todos.
+
+From a clean repository checkout, configure, validate, and install the package
+as a local Codex marketplace:
 
 ```bash
+npm run configure:plugin-app -- plugin_asdk_app_<registered-id>
 npm run validate:plugin
 codex plugin marketplace add .
 codex plugin add todos@personal
@@ -92,10 +105,12 @@ codex plugin remove todos@personal
 codex plugin add todos@personal
 ```
 
-The checked-in `.mcp.json` uses the stable HTTPS resource URL supported by the
-accepted runtime. No personal connector or integration ID is required. Local
-`.app.json` or `.mcp.local.json` mappings are ignored so live identifiers cannot
-be committed accidentally.
+The manifest points to the generated `.app.json`. Do not replace it with a
+direct remote URL in `.mcp.json`: `.mcp.json` is for an MCP server distributed
+inside a plugin, while this package uses an already deployed and registered
+remote app. `plugins/todos/.app.json` stays ignored so a live app ID cannot be
+committed accidentally. Run the configuration command again whenever the
+registered app ID changes.
 
 The current plugin manifest supports three starter prompts, so it carries the
 first three approved prompts. The fourth approved prompt—“Help me work through

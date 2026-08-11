@@ -1,6 +1,6 @@
 {
   "name": "todos",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Turn your tasks into a realistic daily plan and act on it from ChatGPT.",
   "author": {
     "name": "Thea Foundry"
@@ -9,7 +9,7 @@
   "repository": "https://github.com/theafoundry/todos-api",
   "keywords": ["todos", "daily planning", "tasks", "productivity"],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
+  "apps": "./.app.json",
   "interface": {
     "displayName": "Todos",
     "shortDescription": "Turn your tasks into a realistic daily plan and act on it from ChatGPT.",

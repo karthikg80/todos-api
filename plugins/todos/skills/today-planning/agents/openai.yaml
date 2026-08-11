@@ -2,12 +2,5 @@ interface:
   display_name: "Today Planning"
   short_description: "Plan and work through today's Todos tasks"
   default_prompt: "Help me work through today's plan one task at a time."
-dependencies:
-  tools:
-    - type: "mcp"
-      value: "todos"
-      description: "The six-tool Todos daily planning connection"
-      transport: "streamable_http"
-      url: "https://todos.theafoundry.com/mcp/app"
 policy:
   allow_implicit_invocation: true

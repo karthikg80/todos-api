@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -7,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const pluginDir = path.join(root, "plugins", "todos");
 const manifestPath = path.join(pluginDir, ".codex-plugin", "plugin.json");
 const skillPath = path.join(pluginDir, "skills", "today-planning", "SKILL.md");
+const appPath = path.join(pluginDir, ".app.json");
 const marketplacePath = path.join(
   root,
   ".agents",
@@ -53,6 +55,9 @@ function packageFiles(directory) {
 
 const manifest = parseJson(manifestPath);
 assert.equal(manifest.name, "todos");
+assert.equal(manifest.version, "0.1.1");
+assert.equal(manifest.apps, "./.app.json");
+assert.equal(manifest.mcpServers, undefined);
 assert.equal(manifest.interface.displayName, "Todos");
 assert.equal(
   manifest.interface.shortDescription,
@@ -69,7 +74,6 @@ assert.deepEqual(manifest.interface.defaultPrompt, [
 ]);
 
 resolveInsidePlugin(manifest.skills);
-const mcpPath = resolveInsidePlugin(manifest.mcpServers);
 const composerIcon = resolveInsidePlugin(manifest.interface.composerIcon);
 const logo = resolveInsidePlugin(manifest.interface.logo);
 const screenshots = manifest.interface.screenshots.map(resolveInsidePlugin);
@@ -77,15 +81,43 @@ assert.deepEqual(pngDimensions(composerIcon), { width: 256, height: 256 });
 assert.deepEqual(pngDimensions(logo), { width: 512, height: 512 });
 assert.deepEqual(pngDimensions(screenshots[0]), { width: 720, height: 870 });
 
-const mcp = parseJson(mcpPath);
-assert.deepEqual(mcp, {
-  mcpServers: {
-    todos: {
-      type: "http",
-      url: "https://todos.theafoundry.com/mcp/app",
-    },
-  },
-});
+if (fs.existsSync(appPath)) {
+  const app = parseJson(appPath);
+  const appKeys = Object.keys(app.apps);
+  assert.equal(appKeys.length, 1);
+  assert.match(appKeys[0], /^dev-[a-f0-9]{32}$/);
+  assert.deepEqual(Object.keys(app.apps[appKeys[0]]), ["id"]);
+  assert.equal(
+    app.apps[appKeys[0]].id,
+    `asdk_app_${appKeys[0].slice("dev-".length)}`,
+  );
+}
+assert.equal(
+  fs.existsSync(path.join(pluginDir, ".mcp.json")),
+  false,
+  "Remote registered apps must not be declared through .mcp.json",
+);
+
+const trackedApp = spawnSync(
+  "git",
+  ["ls-files", "--error-unmatch", "plugins/todos/.app.json"],
+  { cwd: root, encoding: "utf8" },
+);
+assert.notEqual(
+  trackedApp.status,
+  0,
+  "plugins/todos/.app.json must remain untracked because it contains a live app ID",
+);
+
+const packageJson = parseJson(path.join(root, "package.json"));
+assert.equal(
+  packageJson.scripts["configure:plugin-app"],
+  "node scripts/configure-todos-plugin-app.mjs",
+);
+assert.ok(
+  fs.existsSync(path.join(root, "scripts", "configure-todos-plugin-app.mjs")),
+  "Registered app mapping generator is missing",
+);
 
 const skill = fs.readFileSync(skillPath, "utf8");
 const referencedTools = [...skill.matchAll(/`([a-z][a-z0-9_]+)`/g)]
@@ -108,7 +140,7 @@ assert.match(
   openAiYaml,
   /Help me work through today's plan one task at a time\./,
 );
-assert.match(openAiYaml, /https:\/\/todos\.theafoundry\.com\/mcp\/app/);
+assert.doesNotMatch(openAiYaml, /dependencies:|transport:|https?:\/\//);
 
 const marketplace = parseJson(marketplacePath);
 const marketplacePlugin = marketplace.plugins.find(
@@ -121,7 +153,8 @@ assert.deepEqual(marketplacePlugin.source, {
 });
 
 const textFiles = packageFiles(pluginDir).filter(
-  (filePath) => !filePath.endsWith(".png"),
+  (filePath) =>
+    !filePath.endsWith(".png") && path.basename(filePath) !== ".app.json",
 );
 const forbidden = [
   [/\/Users\//, "absolute user path"],

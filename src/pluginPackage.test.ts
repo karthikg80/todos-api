@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import {
@@ -20,6 +21,38 @@ describe("Phase 3 installable plugin package", () => {
     expect(result.stderr).toBe("");
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("Todos plugin package valid");
+  });
+
+  it("generates the ignored registered-app mapping used by the plugin", () => {
+    const temporaryDirectory = mkdtempSync(
+      path.join(tmpdir(), "todos-plugin-app-"),
+    );
+    const outputPath = path.join(temporaryDirectory, ".app.json");
+
+    try {
+      const result = spawnSync(
+        process.execPath,
+        [
+          path.join(root, "scripts", "configure-todos-plugin-app.mjs"),
+          `plugin_asdk_app_${"a".repeat(32)}`,
+          "--output",
+          outputPath,
+        ],
+        { cwd: root, encoding: "utf8" },
+      );
+
+      expect(result.stderr).toBe("");
+      expect(result.status).toBe(0);
+      expect(JSON.parse(readFileSync(outputPath, "utf8"))).toEqual({
+        apps: {
+          [`dev-${"a".repeat(32)}`]: {
+            id: `asdk_app_${"a".repeat(32)}`,
+          },
+        },
+      });
+    } finally {
+      rmSync(temporaryDirectory, { recursive: true, force: true });
+    }
   });
 
   it("does not alter the accepted Phase 2 runtime contract", () => {

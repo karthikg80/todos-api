@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "todos": {
-      "type": "http",
-      "url": "https://todos.theafoundry.com/mcp/app"
-    }
-  }
-}
