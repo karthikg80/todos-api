@@ -204,14 +204,20 @@ export function registerCaptureActions(registry: ActionRegistry): void {
         );
       }
       const { text, source } = validateAgentCaptureInboxItemInput(params);
-      const item = await runtime.captureService.create(
-        context.userId,
-        text,
-        source,
+      return runtime.exec.handleIdempotent(
+        "capture_inbox_item",
+        context,
+        { text, source },
+        async () => {
+          const item = await runtime.captureService!.create(
+            context.userId,
+            text,
+            source,
+          );
+          return { item };
+        },
+        201,
       );
-      return runtime.exec.success("capture_inbox_item", false, context, 201, {
-        item,
-      });
     },
   );
 

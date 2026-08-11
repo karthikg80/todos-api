@@ -25,6 +25,10 @@ export function registerViewListActions(registry: ActionRegistry): void {
       const tasks = await runtime.agentService.listToday(
         context.userId,
         filters,
+        {
+          date: context.effectiveDate,
+          timezone: context.timezone,
+        },
       );
       return { status: 200, data: { tasks } };
     },

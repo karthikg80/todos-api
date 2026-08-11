@@ -14,6 +14,8 @@ export interface CreateMcpAuthorizationCodeInput {
   state?: string;
   codeChallenge: string;
   codeChallengeMethod: "S256";
+  resource?: string;
+  timezone?: string;
 }
 
 export interface ExchangeMcpAuthorizationCodeInput {
@@ -21,6 +23,7 @@ export interface ExchangeMcpAuthorizationCodeInput {
   clientId: string;
   redirectUri: string;
   codeVerifier: string;
+  resource?: string;
 }
 
 export interface CreateMcpAssistantSessionInput {
@@ -29,6 +32,8 @@ export interface CreateMcpAssistantSessionInput {
   assistantName?: string;
   clientId?: string;
   source: "oauth" | "local";
+  resource?: string;
+  timezone?: string;
 }
 
 export interface McpAssistantSessionSummary {
@@ -43,6 +48,8 @@ export interface McpAssistantSessionSummary {
   lastUsedAt?: string;
   createdAt: string;
   updatedAt: string;
+  resource?: string;
+  timezone?: string;
 }
 
 export interface CreateMcpRefreshTokenInput {
@@ -52,11 +59,14 @@ export interface CreateMcpRefreshTokenInput {
   assistantName?: string;
   clientId?: string;
   sessionId?: string;
+  resource?: string;
+  timezone?: string;
 }
 
 export interface ExchangeMcpRefreshTokenInput {
   refreshToken: string;
   clientId?: string;
+  resource?: string;
 }
 
 interface AuthorizationCodeRecord extends CreateMcpAuthorizationCodeInput {
@@ -145,6 +155,8 @@ export class McpOAuthService {
       ...(session.assistantName
         ? { assistantName: session.assistantName }
         : {}),
+      ...(session.resource ? { resource: session.resource } : {}),
+      ...(session.timezone ? { timezone: session.timezone } : {}),
       ...(session.revokedAt ? { revokedAt: toIso(session.revokedAt) } : {}),
       ...(session.lastAccessTokenIssuedAt
         ? { lastAccessTokenIssuedAt: toIso(session.lastAccessTokenIssuedAt) }
@@ -160,6 +172,18 @@ export class McpOAuthService {
 
     const code = randomUUID();
     const expiresAt = Date.now() + this.AUTH_CODE_TTL_MS;
+    const enrollment =
+      this.prisma && !input.timezone
+        ? await this.prisma.agentEnrollment.findUnique({
+            where: { userId: input.userId },
+            select: { timezone: true },
+          })
+        : null;
+    const timezone =
+      input.timezone ||
+      enrollment?.timezone ||
+      process.env.TODOS_DEFAULT_TIMEZONE ||
+      "America/New_York";
 
     if (this.prisma) {
       await this.prisma.mcpAuthorizationCode.create({
@@ -174,12 +198,15 @@ export class McpOAuthService {
           state: input.state,
           codeChallenge: input.codeChallenge,
           codeChallengeMethod: input.codeChallengeMethod,
+          ...(input.resource ? { resource: input.resource } : {}),
+          timezone,
           expiresAt: new Date(expiresAt),
         },
       });
     } else {
       const record: AuthorizationCodeRecord = {
         ...input,
+        timezone,
         code,
         expiresAt,
         used: false,
@@ -195,6 +222,8 @@ export class McpOAuthService {
       scopes: [...input.scopes],
       ...(input.assistantName ? { assistantName: input.assistantName } : {}),
       ...(input.state ? { state: input.state } : {}),
+      ...(input.resource ? { resource: input.resource } : {}),
+      timezone,
     };
   }
 
@@ -211,6 +240,8 @@ export class McpOAuthService {
           assistantName?: string;
           codeChallenge: string;
           codeChallengeMethod: "S256";
+          resource?: string;
+          timezone?: string;
           expiresAt: number;
           used: boolean;
         }
@@ -234,6 +265,8 @@ export class McpOAuthService {
           : {}),
         codeChallenge: persisted.codeChallenge,
         codeChallengeMethod: persisted.codeChallengeMethod as "S256",
+        ...(persisted.resource ? { resource: persisted.resource } : {}),
+        ...(persisted.timezone ? { timezone: persisted.timezone } : {}),
         expiresAt: persisted.expiresAt.getTime(),
         used: Boolean(persisted.usedAt),
       };
@@ -251,6 +284,8 @@ export class McpOAuthService {
             : {}),
           codeChallenge: memoryRecord.codeChallenge,
           codeChallengeMethod: memoryRecord.codeChallengeMethod,
+          ...(memoryRecord.resource ? { resource: memoryRecord.resource } : {}),
+          ...(memoryRecord.timezone ? { timezone: memoryRecord.timezone } : {}),
           expiresAt: memoryRecord.expiresAt,
           used: memoryRecord.used,
         };
@@ -277,6 +312,9 @@ export class McpOAuthService {
       record.redirectUri !== input.redirectUri
     ) {
       throw new Error("Authorization code binding mismatch");
+    }
+    if (record.resource !== input.resource) {
+      throw new Error("Authorization code resource mismatch");
     }
     if (record.codeChallengeMethod !== "S256") {
       throw new Error("Unsupported code challenge method");
@@ -308,6 +346,8 @@ export class McpOAuthService {
       scopes: [...record.scopes],
       clientId: record.clientId,
       ...(record.assistantName ? { assistantName: record.assistantName } : {}),
+      ...(record.resource ? { resource: record.resource } : {}),
+      ...(record.timezone ? { timezone: record.timezone } : {}),
     };
   }
 
@@ -320,6 +360,8 @@ export class McpOAuthService {
           assistantName: input.assistantName,
           scopes: [...input.scopes],
           source: input.source,
+          ...(input.resource ? { resource: input.resource } : {}),
+          ...(input.timezone ? { timezone: input.timezone } : {}),
         },
       });
 
@@ -332,6 +374,8 @@ export class McpOAuthService {
         ...(session.assistantName
           ? { assistantName: session.assistantName }
           : {}),
+        ...(session.resource ? { resource: session.resource } : {}),
+        ...(session.timezone ? { timezone: session.timezone } : {}),
         createdAt: session.createdAt.toISOString(),
         updatedAt: session.updatedAt.toISOString(),
       };
@@ -345,6 +389,8 @@ export class McpOAuthService {
       source: input.source,
       ...(input.clientId ? { clientId: input.clientId } : {}),
       ...(input.assistantName ? { assistantName: input.assistantName } : {}),
+      ...(input.resource ? { resource: input.resource } : {}),
+      ...(input.timezone ? { timezone: input.timezone } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -373,6 +419,8 @@ export class McpOAuthService {
         ...(session.assistantName
           ? { assistantName: session.assistantName }
           : {}),
+        ...(session.resource ? { resource: session.resource } : {}),
+        ...(session.timezone ? { timezone: session.timezone } : {}),
         ...(session.revokedAt
           ? { revokedAt: session.revokedAt.toISOString() }
           : {}),
@@ -535,6 +583,8 @@ export class McpOAuthService {
     clientId?: string;
     sessionId?: string | null;
     tokenHash: string;
+    resource?: string;
+    timezone?: string;
   }) {
     if (input.sessionId) {
       return input.sessionId;
@@ -546,6 +596,8 @@ export class McpOAuthService {
       assistantName: input.assistantName,
       clientId: input.clientId,
       source: "oauth",
+      resource: input.resource,
+      timezone: input.timezone,
     });
 
     if (this.prisma) {
@@ -584,6 +636,8 @@ export class McpOAuthService {
           assistantName: input.assistantName,
           clientId: input.clientId,
           expiresAt: new Date(expiresAt),
+          ...(input.resource ? { resource: input.resource } : {}),
+          ...(input.timezone ? { timezone: input.timezone } : {}),
         },
       });
     } else {
@@ -619,6 +673,8 @@ export class McpOAuthService {
           rotated: boolean;
           sessionRevoked: boolean;
           tokenHash: string;
+          resource?: string;
+          timezone?: string;
         }
       | undefined;
 
@@ -647,6 +703,8 @@ export class McpOAuthService {
           rotated: Boolean(persisted.rotatedAt),
           sessionRevoked: Boolean(persisted.session?.revokedAt),
           tokenHash,
+          ...(persisted.resource ? { resource: persisted.resource } : {}),
+          ...(persisted.timezone ? { timezone: persisted.timezone } : {}),
         };
       }
     } else {
@@ -671,6 +729,8 @@ export class McpOAuthService {
           rotated: memoryRecord.rotated,
           sessionRevoked: Boolean(session?.revokedAt),
           tokenHash: input.refreshToken,
+          ...(memoryRecord.resource ? { resource: memoryRecord.resource } : {}),
+          ...(memoryRecord.timezone ? { timezone: memoryRecord.timezone } : {}),
         };
       }
     }
@@ -697,6 +757,9 @@ export class McpOAuthService {
     ) {
       throw new Error("Refresh token client mismatch");
     }
+    if (record.resource !== input.resource) {
+      throw new Error("Refresh token resource mismatch");
+    }
 
     const sessionId = await this.ensureSessionForRefreshTokenRecord({
       userId: record.userId,
@@ -705,6 +768,8 @@ export class McpOAuthService {
       clientId: record.clientId,
       sessionId: record.sessionId,
       tokenHash: record.tokenHash,
+      resource: record.resource,
+      timezone: record.timezone,
     });
 
     const nextRefreshToken = await this.createRefreshToken({
@@ -714,6 +779,8 @@ export class McpOAuthService {
       assistantName: record.assistantName,
       clientId: record.clientId,
       sessionId,
+      resource: record.resource,
+      timezone: record.timezone,
     });
 
     if (this.prisma) {
@@ -742,6 +809,8 @@ export class McpOAuthService {
       sessionId,
       ...(record.assistantName ? { assistantName: record.assistantName } : {}),
       ...(record.clientId ? { clientId: record.clientId } : {}),
+      ...(record.resource ? { resource: record.resource } : {}),
+      ...(record.timezone ? { timezone: record.timezone } : {}),
       refreshToken: nextRefreshToken.refreshToken,
       refreshTokenExpiresAt: nextRefreshToken.expiresAt,
       refreshTokenExpiresIn: nextRefreshToken.expiresIn,

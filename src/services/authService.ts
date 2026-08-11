@@ -39,6 +39,7 @@ export interface McpTokenPayload extends JwtPayload {
   assistantName?: string;
   clientId?: string;
   sessionId?: string;
+  resource?: string;
 }
 
 export interface McpTokenResponse {
@@ -64,6 +65,8 @@ export class AuthService {
   private readonly JWT_EXPIRES_IN = "15m"; // Short-lived access token
   private readonly MCP_JWT_EXPIRES_IN = "30d";
   private readonly MCP_JWT_EXPIRES_IN_MS = 30 * 24 * 60 * 60 * 1000;
+  private readonly MCP_APP_JWT_EXPIRES_IN = "60m";
+  private readonly MCP_APP_JWT_EXPIRES_IN_MS = 60 * 60 * 1000;
   private readonly REFRESH_TOKEN_EXPIRES_IN = 7 * 24 * 60 * 60 * 1000; // 7 days in milliseconds
   private emailService: EmailService;
 
@@ -253,10 +256,17 @@ export class AuthService {
     assistantName?: string;
     clientId?: string;
     sessionId?: string;
+    resource?: string;
   }): McpTokenResponse {
     const normalizedScopes = normalizeMcpScopes(input.scopes, {
       requireNonEmpty: true,
     });
+    const expiresIn = input.resource
+      ? this.MCP_APP_JWT_EXPIRES_IN
+      : this.MCP_JWT_EXPIRES_IN;
+    const expiresInMs = input.resource
+      ? this.MCP_APP_JWT_EXPIRES_IN_MS
+      : this.MCP_JWT_EXPIRES_IN_MS;
     const token = jwt.sign(
       {
         userId: input.userId,
@@ -266,10 +276,19 @@ export class AuthService {
         ...(input.assistantName ? { assistantName: input.assistantName } : {}),
         ...(input.clientId ? { clientId: input.clientId } : {}),
         ...(input.sessionId ? { sessionId: input.sessionId } : {}),
+        ...(input.resource ? { resource: input.resource } : {}),
       },
       this.ACCESS_JWT_SECRET,
       {
-        expiresIn: this.MCP_JWT_EXPIRES_IN,
+        expiresIn,
+        ...(input.resource
+          ? {
+              issuer: config.baseUrl,
+              audience: input.resource,
+              subject: input.userId,
+              jwtid: randomUUID(),
+            }
+          : {}),
       },
     );
 
@@ -278,23 +297,25 @@ export class AuthService {
       tokenType: "Bearer",
       scope: formatMcpScopes(normalizedScopes),
       scopes: [...normalizedScopes],
-      expiresAt: new Date(
-        Date.now() + this.MCP_JWT_EXPIRES_IN_MS,
-      ).toISOString(),
-      expiresIn: Math.floor(this.MCP_JWT_EXPIRES_IN_MS / 1000),
+      expiresAt: new Date(Date.now() + expiresInMs).toISOString(),
+      expiresIn: Math.floor(expiresInMs / 1000),
       ...(input.assistantName ? { assistantName: input.assistantName } : {}),
       ...(input.clientId ? { clientId: input.clientId } : {}),
     };
   }
 
-  private decodeVerifiedMcpToken(token: string): McpTokenPayload & {
+  private decodeVerifiedMcpToken(
+    token: string,
+    options?: { resource?: string; requireResource?: boolean },
+  ): McpTokenPayload & {
     issuedAt: number;
   } {
     try {
-      const payload = jwt.verify(
-        token,
-        this.ACCESS_JWT_SECRET,
-      ) as Partial<McpTokenPayload> & { iat?: unknown };
+      const payload = jwt.verify(token, this.ACCESS_JWT_SECRET, {
+        ...(options?.resource
+          ? { issuer: config.baseUrl, audience: options.resource }
+          : {}),
+      }) as Partial<McpTokenPayload> & { iat?: unknown; sub?: unknown };
 
       if (payload.tokenType !== "mcp") {
         throw new Error("Invalid MCP token");
@@ -319,6 +340,13 @@ export class AuthService {
       if (typeof payload.iat !== "number") {
         throw new Error("Invalid MCP token");
       }
+      if (
+        options?.requireResource &&
+        (payload.resource !== options.resource ||
+          payload.sub !== payload.userId)
+      ) {
+        throw new Error("Invalid MCP token");
+      }
 
       return {
         userId: payload.userId,
@@ -336,6 +364,9 @@ export class AuthService {
         ...(typeof payload.sessionId === "string" && payload.sessionId.trim()
           ? { sessionId: payload.sessionId.trim() }
           : {}),
+        ...(typeof payload.resource === "string" && payload.resource.trim()
+          ? { resource: payload.resource.trim() }
+          : {}),
       };
     } catch (error: any) {
       if (error?.name === "TokenExpiredError") {
@@ -351,8 +382,11 @@ export class AuthService {
     return this.decodeVerifiedMcpToken(token);
   }
 
-  async verifyMcpToken(token: string): Promise<McpTokenPayload> {
-    const decoded = this.decodeVerifiedMcpToken(token);
+  async verifyMcpToken(
+    token: string,
+    options?: { resource?: string; requireResource?: boolean },
+  ): Promise<McpTokenPayload> {
+    const decoded = this.decodeVerifiedMcpToken(token, options);
     const issuedAt = decoded.issuedAt * 1000;
 
     const userRevocation = await this.prisma.user.findUnique({
@@ -373,12 +407,14 @@ export class AuthService {
         select: {
           userId: true,
           revokedAt: true,
+          resource: true,
         },
       });
       if (
         !session ||
         session.userId !== decoded.userId ||
-        session.revokedAt !== null
+        session.revokedAt !== null ||
+        (options?.requireResource && session.resource !== decoded.resource)
       ) {
         throw new Error("MCP token revoked");
       }
@@ -394,6 +430,7 @@ export class AuthService {
         : {}),
       ...(decoded.clientId ? { clientId: decoded.clientId } : {}),
       ...(decoded.sessionId ? { sessionId: decoded.sessionId } : {}),
+      ...(decoded.resource ? { resource: decoded.resource } : {}),
     };
   }
 

@@ -6,6 +6,8 @@ import {
   normalizeMcpScopes,
 } from "../mcp/mcpScopes";
 import { ValidationError, validateId } from "./validation";
+import { config } from "../config";
+import { getMcpAppResource } from "../mcp/appContract";
 
 const MAX_ASSISTANT_NAME_LENGTH = 100;
 const MAX_CLIENT_ID_LENGTH = 5000;
@@ -30,6 +32,7 @@ export interface CreateMcpAuthorizationCodeDto {
   state?: string;
   codeChallenge: string;
   codeChallengeMethod: "S256";
+  resource?: string;
 }
 
 export type ExchangeMcpTokenDto =
@@ -39,11 +42,13 @@ export type ExchangeMcpTokenDto =
       clientId: string;
       redirectUri: string;
       codeVerifier: string;
+      resource?: string;
     }
   | {
       grantType: "refresh_token";
       refreshToken: string;
       clientId: string;
+      resource?: string;
     };
 
 export interface RegisterMcpClientDto {
@@ -62,6 +67,7 @@ export interface OAuthAuthorizeRequestDto {
   state?: string;
   codeChallenge: string;
   codeChallengeMethod: "S256";
+  resource?: string;
 }
 
 export type RevokeMcpSessionDto =
@@ -215,6 +221,30 @@ function normalizeState(value: unknown): string | undefined {
   });
 }
 
+function normalizeOAuthResource(value: unknown): string | undefined {
+  const resource = normalizeStringField({
+    value,
+    field: "resource",
+    maxLength: 1000,
+  });
+  if (!resource) return undefined;
+  let parsed: URL;
+  try {
+    parsed = new URL(resource);
+  } catch (_error) {
+    throw new ValidationError("resource must be a valid absolute URL");
+  }
+  const canonical = parsed.toString();
+  const supported = new Set([
+    new URL("/mcp", config.baseUrl).toString(),
+    getMcpAppResource(config.baseUrl),
+  ]);
+  if (!supported.has(canonical)) {
+    throw new ValidationError("resource is not a supported MCP resource");
+  }
+  return canonical;
+}
+
 function normalizeGrantTypes(value: unknown): string[] {
   if (value === undefined) {
     return [OAUTH_CLIENT_GRANT_AUTHORIZATION_CODE];
@@ -350,6 +380,7 @@ export function validateCreateMcpAuthorizationCodeInput(
     "state",
     "codeChallenge",
     "codeChallengeMethod",
+    "resource",
   ];
   const unknownKeys = Object.keys(body).filter(
     (key) => !allowedKeys.includes(key),
@@ -380,6 +411,7 @@ export function validateCreateMcpAuthorizationCodeInput(
       field: "codeChallenge",
     }),
     codeChallengeMethod: "S256",
+    resource: normalizeOAuthResource(body.resource),
   };
 }
 
@@ -394,6 +426,7 @@ export function validateExchangeMcpAuthorizationCodeInput(
     "redirectUri",
     "codeVerifier",
     "refreshToken",
+    "resource",
   ];
   const unknownKeys = Object.keys(body).filter(
     (key) => !allowedKeys.includes(key),
@@ -428,6 +461,7 @@ export function validateExchangeMcpAuthorizationCodeInput(
         maxLength: 500,
       })!,
       clientId: normalizeClientId(body.clientId, true)!,
+      resource: normalizeOAuthResource(body.resource),
     };
   }
 
@@ -445,6 +479,7 @@ export function validateExchangeMcpAuthorizationCodeInput(
       value: body.codeVerifier,
       field: "codeVerifier",
     }),
+    resource: normalizeOAuthResource(body.resource),
   };
 }
 
@@ -561,6 +596,7 @@ export function validateOAuthAuthorizeRequest(
       field: "codeChallenge",
     }),
     codeChallengeMethod: "S256",
+    resource: normalizeOAuthResource(input.resource),
   };
 }
 
