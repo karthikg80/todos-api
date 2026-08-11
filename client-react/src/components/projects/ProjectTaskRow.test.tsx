@@ -35,6 +35,8 @@ const todo = {
   tags: [],
   notes: null,
   scheduledFor: null,
+  dependsOnTaskIds: [],
+  archived: false,
 };
 
 const baseProps = {
