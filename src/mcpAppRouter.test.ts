@@ -7,6 +7,7 @@ import {
   MCP_APP_SERVER_INSTRUCTIONS,
   MCP_APP_SERVER_NAME,
   MCP_APP_SERVER_VERSION,
+  nativeAppToolDefinitions,
 } from "./mcp/appContract";
 import {
   executeNativeAppTool,
@@ -83,6 +84,24 @@ describe("ChatGPT-native MCP app profile", () => {
       "complete_task",
       "reschedule_task",
     ]);
+    for (const tool of snapshot.tools) {
+      expect(tool.outputSchema.type).toBe("object");
+    }
+  });
+
+  test("every advertised output schema accepts the shared tool error contract", () => {
+    const errorResult = {
+      error: {
+        code: "MCP_UNAUTHENTICATED",
+        message: "Authorization header missing",
+        retryable: false,
+        hint: "Complete account linking and retry.",
+      },
+    };
+
+    for (const tool of nativeAppToolDefinitions) {
+      expect(tool.outputSchema.safeParse(errorResult).success).toBe(true);
+    }
   });
 
   test("supports unauthenticated initialize and tool discovery", async () => {

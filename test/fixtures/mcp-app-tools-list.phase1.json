@@ -23,146 +23,177 @@
       },
       "outputSchema": {
         "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-          },
-          "timezone": {
-            "type": "string"
-          },
-          "tasks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "status": {
-                  "type": "string",
-                  "enum": [
-                    "inbox",
-                    "next",
-                    "in_progress",
-                    "waiting",
-                    "scheduled",
-                    "someday",
-                    "done",
-                    "cancelled"
-                  ]
-                },
-                "completed": {
-                  "type": "boolean"
-                },
-                "dueDate": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "scheduledDate": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "priority": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "enum": ["low", "medium", "high", "urgent"]
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "estimateMinutes": {
-                  "anyOf": [
-                    {
-                      "type": "integer",
-                      "minimum": 0,
-                      "maximum": 9007199254740991
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "energy": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "enum": ["low", "medium", "high"]
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "overdue": {
-                  "type": "boolean"
-                },
-                "project": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["id", "name"],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                }
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
               },
-              "required": [
-                "id",
-                "title",
-                "status",
-                "completed",
-                "dueDate",
-                "scheduledDate",
-                "priority",
-                "estimateMinutes",
-                "energy",
-                "overdue",
-                "project"
-              ],
-              "additionalProperties": false
-            }
+              "timezone": {
+                "type": "string"
+              },
+              "tasks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                    },
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "inbox",
+                        "next",
+                        "in_progress",
+                        "waiting",
+                        "scheduled",
+                        "someday",
+                        "done",
+                        "cancelled"
+                      ]
+                    },
+                    "completed": {
+                      "type": "boolean"
+                    },
+                    "dueDate": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "scheduledDate": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "priority": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["low", "medium", "high", "urgent"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "estimateMinutes": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "energy": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["low", "medium", "high"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "overdue": {
+                      "type": "boolean"
+                    },
+                    "project": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["id", "name"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "status",
+                    "completed",
+                    "dueDate",
+                    "scheduledDate",
+                    "priority",
+                    "estimateMinutes",
+                    "energy",
+                    "overdue",
+                    "project"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": ["date", "timezone", "tasks"],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "retryable": {
+                    "type": "boolean"
+                  },
+                  "hint": {
+                    "type": "string"
+                  }
+                },
+                "required": ["code", "message", "retryable"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["error"],
+            "additionalProperties": false
           }
-        },
-        "required": ["date", "timezone", "tasks"],
-        "additionalProperties": false
+        ]
       },
       "annotations": {
         "readOnlyHint": true,
@@ -207,190 +238,221 @@
       },
       "outputSchema": {
         "type": "object",
-        "properties": {
-          "date": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
-          },
-          "timezone": {
-            "type": "string"
-          },
-          "availableMinutes": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "energy": {
-            "type": "string",
-            "enum": ["low", "medium", "high"]
-          },
-          "tasks": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "format": "uuid",
-                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                },
-                "title": {
-                  "type": "string"
-                },
-                "status": {
-                  "type": "string",
-                  "enum": [
-                    "inbox",
-                    "next",
-                    "in_progress",
-                    "waiting",
-                    "scheduled",
-                    "someday",
-                    "done",
-                    "cancelled"
-                  ]
-                },
-                "completed": {
-                  "type": "boolean"
-                },
-                "dueDate": {
-                  "anyOf": [
-                    {
+        "anyOf": [
+          {
+            "type": "object",
+            "properties": {
+              "date": {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              "timezone": {
+                "type": "string"
+              },
+              "availableMinutes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "energy": {
+                "type": "string",
+                "enum": ["low", "medium", "high"]
+              },
+              "tasks": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
                       "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      "format": "uuid",
+                      "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                     },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "scheduledDate": {
-                  "anyOf": [
-                    {
+                    "title": {
+                      "type": "string"
+                    },
+                    "status": {
                       "type": "string",
-                      "format": "date-time",
-                      "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      "enum": [
+                        "inbox",
+                        "next",
+                        "in_progress",
+                        "waiting",
+                        "scheduled",
+                        "someday",
+                        "done",
+                        "cancelled"
+                      ]
                     },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "priority": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "enum": ["low", "medium", "high", "urgent"]
+                    "completed": {
+                      "type": "boolean"
                     },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "estimateMinutes": {
-                  "anyOf": [
-                    {
+                    "dueDate": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "scheduledDate": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "format": "date-time",
+                          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "priority": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["low", "medium", "high", "urgent"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "estimateMinutes": {
+                      "anyOf": [
+                        {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 9007199254740991
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "energy": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": ["low", "medium", "high"]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "overdue": {
+                      "type": "boolean"
+                    },
+                    "project": {
+                      "anyOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "format": "uuid",
+                              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                            },
+                            "name": {
+                              "type": "string"
+                            }
+                          },
+                          "required": ["id", "name"],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "rank": {
                       "type": "integer",
-                      "minimum": 0,
+                      "exclusiveMinimum": 0,
                       "maximum": 9007199254740991
                     },
-                    {
-                      "type": "null"
+                    "reason": {
+                      "type": "string"
                     }
-                  ]
-                },
-                "energy": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "enum": ["low", "medium", "high"]
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "overdue": {
-                  "type": "boolean"
-                },
-                "project": {
-                  "anyOf": [
-                    {
-                      "type": "object",
-                      "properties": {
-                        "id": {
-                          "type": "string",
-                          "format": "uuid",
-                          "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-                        },
-                        "name": {
-                          "type": "string"
-                        }
-                      },
-                      "required": ["id", "name"],
-                      "additionalProperties": false
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ]
-                },
-                "rank": {
-                  "type": "integer",
-                  "exclusiveMinimum": 0,
-                  "maximum": 9007199254740991
-                },
-                "reason": {
-                  "type": "string"
+                  },
+                  "required": [
+                    "id",
+                    "title",
+                    "status",
+                    "completed",
+                    "dueDate",
+                    "scheduledDate",
+                    "priority",
+                    "estimateMinutes",
+                    "energy",
+                    "overdue",
+                    "project",
+                    "rank",
+                    "reason"
+                  ],
+                  "additionalProperties": false
                 }
               },
-              "required": [
-                "id",
-                "title",
-                "status",
-                "completed",
-                "dueDate",
-                "scheduledDate",
-                "priority",
-                "estimateMinutes",
-                "energy",
-                "overdue",
-                "project",
-                "rank",
-                "reason"
-              ],
-              "additionalProperties": false
-            }
+              "totalMinutes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "remainingMinutes": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "warnings": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "date",
+              "timezone",
+              "availableMinutes",
+              "energy",
+              "tasks",
+              "totalMinutes",
+              "remainingMinutes",
+              "warnings"
+            ],
+            "additionalProperties": false
           },
-          "totalMinutes": {
-            "type": "integer",
-            "minimum": 0,
-            "maximum": 9007199254740991
-          },
-          "remainingMinutes": {
-            "type": "integer",
-            "minimum": -9007199254740991,
-            "maximum": 9007199254740991
-          },
-          "warnings": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
+          {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "retryable": {
+                    "type": "boolean"
+                  },
+                  "hint": {
+                    "type": "string"
+                  }
+                },
+                "required": ["code", "message", "retryable"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["error"],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "date",
-          "timezone",
-          "availableMinutes",
-          "energy",
-          "tasks",
-          "totalMinutes",
-          "remainingMinutes",
-          "warnings"
-        ],
-        "additionalProperties": false
+        ]
       },
       "annotations": {
         "readOnlyHint": true,
@@ -432,37 +494,68 @@
       },
       "outputSchema": {
         "type": "object",
-        "properties": {
-          "capture": {
+        "anyOf": [
+          {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              "capture": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                  },
+                  "text": {
+                    "type": "string"
+                  },
+                  "lifecycle": {
+                    "type": "string",
+                    "const": "new"
+                  },
+                  "capturedAt": {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  }
+                },
+                "required": ["id", "text", "lifecycle", "capturedAt"],
+                "additionalProperties": false
               },
-              "text": {
-                "type": "string"
-              },
-              "lifecycle": {
-                "type": "string",
-                "const": "new"
-              },
-              "capturedAt": {
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+              "created": {
+                "type": "boolean"
               }
             },
-            "required": ["id", "text", "lifecycle", "capturedAt"],
+            "required": ["capture", "created"],
             "additionalProperties": false
           },
-          "created": {
-            "type": "boolean"
+          {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "retryable": {
+                    "type": "boolean"
+                  },
+                  "hint": {
+                    "type": "string"
+                  }
+                },
+                "required": ["code", "message", "retryable"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["error"],
+            "additionalProperties": false
           }
-        },
-        "required": ["capture", "created"],
-        "additionalProperties": false
+        ]
       },
       "annotations": {
         "readOnlyHint": false,
@@ -502,139 +595,170 @@
       },
       "outputSchema": {
         "type": "object",
-        "properties": {
-          "task": {
+        "anyOf": [
+          {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-              },
-              "title": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string",
-                "enum": [
-                  "inbox",
-                  "next",
-                  "in_progress",
-                  "waiting",
-                  "scheduled",
-                  "someday",
-                  "done",
-                  "cancelled"
-                ]
-              },
-              "completed": {
-                "type": "boolean"
-              },
-              "dueDate": {
-                "anyOf": [
-                  {
+              "task": {
+                "type": "object",
+                "properties": {
+                  "id": {
                     "type": "string",
-                    "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "scheduledDate": {
-                "anyOf": [
-                  {
+                  "title": {
+                    "type": "string"
+                  },
+                  "status": {
                     "type": "string",
-                    "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    "enum": [
+                      "inbox",
+                      "next",
+                      "in_progress",
+                      "waiting",
+                      "scheduled",
+                      "someday",
+                      "done",
+                      "cancelled"
+                    ]
                   },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "priority": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": ["low", "medium", "high", "urgent"]
+                  "completed": {
+                    "type": "boolean"
                   },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "estimateMinutes": {
-                "anyOf": [
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "energy": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": ["low", "medium", "high"]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "overdue": {
-                "type": "boolean"
-              },
-              "project": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "id": {
+                  "dueDate": {
+                    "anyOf": [
+                      {
                         "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                       },
-                      "name": {
-                        "type": "string"
+                      {
+                        "type": "null"
                       }
-                    },
-                    "required": ["id", "name"],
-                    "additionalProperties": false
+                    ]
                   },
-                  {
-                    "type": "null"
+                  "scheduledDate": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "priority": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["low", "medium", "high", "urgent"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "estimateMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "energy": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "overdue": {
+                    "type": "boolean"
+                  },
+                  "project": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "name"],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
                   }
-                ]
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "status",
+                  "completed",
+                  "dueDate",
+                  "scheduledDate",
+                  "priority",
+                  "estimateMinutes",
+                  "energy",
+                  "overdue",
+                  "project"
+                ],
+                "additionalProperties": false
+              },
+              "changed": {
+                "type": "boolean"
               }
             },
-            "required": [
-              "id",
-              "title",
-              "status",
-              "completed",
-              "dueDate",
-              "scheduledDate",
-              "priority",
-              "estimateMinutes",
-              "energy",
-              "overdue",
-              "project"
-            ],
+            "required": ["task", "changed"],
             "additionalProperties": false
           },
-          "changed": {
-            "type": "boolean"
+          {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "retryable": {
+                    "type": "boolean"
+                  },
+                  "hint": {
+                    "type": "string"
+                  }
+                },
+                "required": ["code", "message", "retryable"],
+                "additionalProperties": false
+              }
+            },
+            "required": ["error"],
+            "additionalProperties": false
           }
-        },
-        "required": ["task", "changed"],
-        "additionalProperties": false
+        ]
       },
       "annotations": {
         "readOnlyHint": false,
@@ -695,172 +819,203 @@
       },
       "outputSchema": {
         "type": "object",
-        "properties": {
-          "task": {
+        "anyOf": [
+          {
             "type": "object",
             "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid",
-                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
-              },
-              "title": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string",
-                "enum": [
-                  "inbox",
-                  "next",
-                  "in_progress",
-                  "waiting",
-                  "scheduled",
-                  "someday",
-                  "done",
-                  "cancelled"
-                ]
-              },
-              "completed": {
-                "type": "boolean"
-              },
-              "dueDate": {
-                "anyOf": [
-                  {
+              "task": {
+                "type": "object",
+                "properties": {
+                  "id": {
                     "type": "string",
-                    "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    "format": "uuid",
+                    "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
                   },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "scheduledDate": {
-                "anyOf": [
-                  {
+                  "title": {
+                    "type": "string"
+                  },
+                  "status": {
                     "type": "string",
-                    "format": "date-time",
-                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                    "enum": [
+                      "inbox",
+                      "next",
+                      "in_progress",
+                      "waiting",
+                      "scheduled",
+                      "someday",
+                      "done",
+                      "cancelled"
+                    ]
                   },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "priority": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": ["low", "medium", "high", "urgent"]
+                  "completed": {
+                    "type": "boolean"
                   },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "estimateMinutes": {
-                "anyOf": [
-                  {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 9007199254740991
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "energy": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "enum": ["low", "medium", "high"]
-                  },
-                  {
-                    "type": "null"
-                  }
-                ]
-              },
-              "overdue": {
-                "type": "boolean"
-              },
-              "project": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "properties": {
-                      "id": {
+                  "dueDate": {
+                    "anyOf": [
+                      {
                         "type": "string",
-                        "format": "uuid",
-                        "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                       },
-                      "name": {
-                        "type": "string"
+                      {
+                        "type": "null"
                       }
-                    },
-                    "required": ["id", "name"],
-                    "additionalProperties": false
+                    ]
+                  },
+                  "scheduledDate": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "format": "date-time",
+                        "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "priority": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["low", "medium", "high", "urgent"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "estimateMinutes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 9007199254740991
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "energy": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": ["low", "medium", "high"]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "overdue": {
+                    "type": "boolean"
+                  },
+                  "project": {
+                    "anyOf": [
+                      {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid",
+                            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": ["id", "name"],
+                        "additionalProperties": false
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "title",
+                  "status",
+                  "completed",
+                  "dueDate",
+                  "scheduledDate",
+                  "priority",
+                  "estimateMinutes",
+                  "energy",
+                  "overdue",
+                  "project"
+                ],
+                "additionalProperties": false
+              },
+              "changed": {
+                "type": "boolean"
+              },
+              "previousScheduledDate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
                   },
                   {
                     "type": "null"
                   }
                 ]
+              },
+              "previousDueDate": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date-time",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "timezone": {
+                "type": "string"
               }
             },
             "required": [
-              "id",
-              "title",
-              "status",
-              "completed",
-              "dueDate",
-              "scheduledDate",
-              "priority",
-              "estimateMinutes",
-              "energy",
-              "overdue",
-              "project"
+              "task",
+              "changed",
+              "previousScheduledDate",
+              "previousDueDate",
+              "timezone"
             ],
             "additionalProperties": false
           },
-          "changed": {
-            "type": "boolean"
-          },
-          "previousScheduledDate": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-              },
-              {
-                "type": "null"
+          {
+            "type": "object",
+            "properties": {
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "retryable": {
+                    "type": "boolean"
+                  },
+                  "hint": {
+                    "type": "string"
+                  }
+                },
+                "required": ["code", "message", "retryable"],
+                "additionalProperties": false
               }
-            ]
-          },
-          "previousDueDate": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time",
-                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "timezone": {
-            "type": "string"
+            },
+            "required": ["error"],
+            "additionalProperties": false
           }
-        },
-        "required": [
-          "task",
-          "changed",
-          "previousScheduledDate",
-          "previousDueDate",
-          "timezone"
-        ],
-        "additionalProperties": false
+        ]
       },
       "annotations": {
         "readOnlyHint": false,

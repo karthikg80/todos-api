@@ -33,6 +33,23 @@ const priority = z.enum(["low", "medium", "high", "urgent"]);
 const energy = z.enum(["low", "medium", "high"]);
 const nullableIsoDateTime = z.string().datetime({ offset: true }).nullable();
 
+export const nativeToolErrorSchema = z
+  .object({
+    error: z
+      .object({
+        code: z.string(),
+        message: z.string(),
+        retryable: z.boolean(),
+        hint: z.string().optional(),
+      })
+      .strict(),
+  })
+  .strict();
+
+function withToolErrorOutput(successSchema: z.ZodType) {
+  return z.union([successSchema, nativeToolErrorSchema]);
+}
+
 export const nativeProjectSummarySchema = z
   .object({ id: z.string().uuid(), name: z.string() })
   .strict();
@@ -156,7 +173,7 @@ export const nativeAppToolDefinitions = [
     description:
       "List tasks due, scheduled, or overdue today without ranking them into a plan.",
     inputSchema: listTodayInput,
-    outputSchema: listTodayOutput,
+    outputSchema: withToolErrorOutput(listTodayOutput),
     scopes: ["tasks.read", "projects.read"],
     annotations: {
       readOnlyHint: true,
@@ -171,7 +188,7 @@ export const nativeAppToolDefinitions = [
     description:
       "Rank and sequence a realistic day plan for an explicit date, time budget, and energy level.",
     inputSchema: planTodayInput,
-    outputSchema: planTodayOutput,
+    outputSchema: withToolErrorOutput(planTodayOutput),
     scopes: ["tasks.read", "projects.read"],
     annotations: {
       readOnlyHint: true,
@@ -186,7 +203,7 @@ export const nativeAppToolDefinitions = [
     description:
       "Capture an idea or action in the inbox without guessing its full task organization.",
     inputSchema: captureTaskInput,
-    outputSchema: captureTaskOutput,
+    outputSchema: withToolErrorOutput(captureTaskOutput),
     scopes: ["tasks.write"],
     annotations: {
       readOnlyHint: false,
@@ -201,7 +218,7 @@ export const nativeAppToolDefinitions = [
     description:
       "Complete or reopen a task using an exact task ID from prior conversation context.",
     inputSchema: completeTaskInput,
-    outputSchema: taskMutationOutput,
+    outputSchema: withToolErrorOutput(taskMutationOutput),
     scopes: ["tasks.read", "tasks.write", "projects.read"],
     annotations: {
       readOnlyHint: false,
@@ -216,7 +233,7 @@ export const nativeAppToolDefinitions = [
     description:
       "Change only the scheduled or due date of a task identified by an exact prior task ID.",
     inputSchema: rescheduleTaskInput,
-    outputSchema: rescheduleTaskOutput,
+    outputSchema: withToolErrorOutput(rescheduleTaskOutput),
     scopes: ["tasks.read", "tasks.write", "projects.read"],
     annotations: {
       readOnlyHint: false,
@@ -238,13 +255,16 @@ export function findNativeAppTool(name: string) {
   return nativeAppToolDefinitions.find((tool) => tool.name === name);
 }
 
-function jsonSchema(schema: z.ZodType): Record<string, unknown> {
+function jsonSchema(
+  schema: z.ZodType,
+  options: { objectRoot?: boolean } = {},
+): Record<string, unknown> {
   const converted = z.toJSONSchema(schema, { target: "draft-7" }) as Record<
     string,
     unknown
   >;
   const { $schema: _schema, ...contract } = converted;
-  return contract;
+  return options.objectRoot ? { type: "object", ...contract } : contract;
 }
 
 export function buildNativeAppToolsList() {
@@ -253,7 +273,7 @@ export function buildNativeAppToolsList() {
     title: tool.title,
     description: tool.description,
     inputSchema: jsonSchema(tool.inputSchema),
-    outputSchema: jsonSchema(tool.outputSchema),
+    outputSchema: jsonSchema(tool.outputSchema, { objectRoot: true }),
     annotations: tool.annotations,
     securitySchemes: [
       {
