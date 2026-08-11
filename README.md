@@ -20,6 +20,7 @@ A calm workspace for turning scattered tasks into focused days, reviewed weeks, 
 - [UX Principles](UX.md)
 - [Docs Index](docs/README.md)
 - [Assistant MCP](docs/assistant-mcp.md)
+- [Installable Todos Plugin](docs/assistant-mcp.md#local-plugin-installation)
 - [Planner Runtime](docs/planner-runtime.md)
 - [Product Review Specs](docs/specs/)
 

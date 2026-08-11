@@ -14,6 +14,8 @@ artifacts/harness/
 .codex/progress.md
 .codex/feature-checklist.json
 .local/
+plugins/todos/.app.json
+plugins/todos/.mcp.local.json
 
 src/generated/prisma/
 .worktrees/

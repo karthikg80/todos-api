@@ -67,6 +67,42 @@ and `plan_today` through the portable MCP Apps bridge, while the five data and
 action tools remain complete in text-only clients. Its CSP allows no direct
 network or external static-resource origins.
 
+## Local Plugin Installation
+
+The Phase 3 installable package lives at `plugins/todos`. It references the
+deployed `https://todos.theafoundry.com/mcp/app` connection and does not copy
+the MCP runtime or Today Plan component into the package. The package contains
+the `today-planning` workflow skill, a composer icon, logo, and a screenshot
+rendered from the real component with synthetic task data.
+
+From a clean repository checkout, validate and install it as a local Codex
+marketplace:
+
+```bash
+npm run validate:plugin
+codex plugin marketplace add .
+codex plugin add todos@personal
+```
+
+Confirm discovery with `codex plugin list`. The development surface supports
+an uninstall/reinstall check with:
+
+```bash
+codex plugin remove todos@personal
+codex plugin add todos@personal
+```
+
+The checked-in `.mcp.json` uses the stable HTTPS resource URL supported by the
+accepted runtime. No personal connector or integration ID is required. Local
+`.app.json` or `.mcp.local.json` mappings are ignored so live identifiers cannot
+be committed accidentally.
+
+The current plugin manifest supports three starter prompts, so it carries the
+first three approved prompts. The fourth approved prompt—“Help me work through
+today's plan one task at a time.”—is the `today-planning` skill's default
+prompt. This package is for local/developer installation only; Phase 3 does not
+submit or publish it publicly.
+
 The public MCP adapter is generated from the current agent manifest and exposes
 the same underlying action catalog, filtered by token scopes. As of `v1.6.0`,
 the runtime manifest advertises 92 actions.

@@ -25,6 +25,7 @@
     "eval:decision-assist": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js decision-assist",
     "eval:mcp": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js mcp",
     "eval:plugin": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js plugin",
+    "validate:plugin": "node scripts/validate-todos-plugin-package.mjs",
     "eval:planner": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js planner",
     "eval:all": "./node_modules/.bin/tsc && NODE_ENV=test node evals/run-suite.js all",
     "test:watch": "NODE_ENV=test jest --watch",
