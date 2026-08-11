@@ -149,6 +149,54 @@ export interface NativeAppToolRuntime {
   actor: string;
 }
 
+async function executeNativeDayPlan(input: {
+  args: Record<string, unknown>;
+  runtime: NativeAppToolRuntime;
+  timezone: string;
+  effectiveDate: string;
+  context: AgentExecutionContext;
+}) {
+  const projects = await projectMap(
+    input.runtime.userId,
+    input.runtime.projectService,
+  );
+  const result = executionData(
+    await input.runtime.agentExecutor.execute(
+      "plan_today",
+      {
+        date: input.args.date,
+        availableMinutes: input.args.availableMinutes,
+        energy: input.args.energy,
+      },
+      input.context,
+    ),
+  );
+  const plan = asRecord(result.data.plan);
+  const tasks = Array.isArray(plan.recommendedTasks)
+    ? plan.recommendedTasks
+    : [];
+  return {
+    date: input.effectiveDate,
+    timezone: input.timezone,
+    availableMinutes: Number(
+      plan.availableMinutes ?? input.args.availableMinutes,
+    ),
+    energy: input.args.energy,
+    tasks: tasks.map((task, index) => {
+      const record = asRecord(task);
+      const explanation = asRecord(record.explanation ?? {});
+      return {
+        ...nativeTask(record, projects, input.effectiveDate, input.timezone),
+        rank: Number(explanation.rank ?? index + 1),
+        reason: String(explanation.whyIncluded ?? "Selected for today's plan."),
+      };
+    }),
+    totalMinutes: Number(plan.totalMinutes ?? 0),
+    remainingMinutes: Number(plan.remainingMinutes ?? 0),
+    warnings: [] as string[],
+  };
+}
+
 export function buildNativeAppSuccessText(
   name: NativeAppToolName,
   output: Record<string, unknown>,
@@ -161,7 +209,7 @@ export function buildNativeAppSuccessText(
     const suffix = overdue > 0 ? `, including ${overdue} overdue` : "";
     return `Found ${tasks.length} ${tasks.length === 1 ? "task" : "tasks"} for ${String(output.date)}${suffix}.`;
   }
-  if (name === "plan_today") {
+  if (name === "plan_today" || name === "render_today_plan") {
     return `Planned ${tasks.length} ${tasks.length === 1 ? "task" : "tasks"} across ${Number(output.totalMinutes)} of ${Number(output.availableMinutes)} available minutes.`;
   }
   if (name === "capture_task") {
@@ -245,42 +293,58 @@ export async function executeNativeAppTool(
     };
   }
 
-  if (name === "plan_today") {
-    const projects = await projectMap(runtime.userId, runtime.projectService);
-    const result = executionData(
-      await runtime.agentExecutor.execute(
-        "plan_today",
-        {
-          date: args.date,
-          availableMinutes: args.availableMinutes,
-          energy: args.energy,
-        },
-        context,
-      ),
-    );
-    const plan = asRecord(result.data.plan);
-    const tasks = Array.isArray(plan.recommendedTasks)
-      ? plan.recommendedTasks
-      : [];
-    return {
-      date: effectiveDate,
+  if (name === "plan_today" || name === "render_today_plan") {
+    const freshPlan = await executeNativeDayPlan({
+      args,
+      runtime,
       timezone,
-      availableMinutes: Number(plan.availableMinutes ?? args.availableMinutes),
-      energy: args.energy,
-      tasks: tasks.map((task, index) => {
-        const record = asRecord(task);
-        const explanation = asRecord(record.explanation ?? {});
-        return {
-          ...nativeTask(record, projects, effectiveDate, timezone),
-          rank: Number(explanation.rank ?? index + 1),
-          reason: String(
-            explanation.whyIncluded ?? "Selected for today's plan.",
-          ),
-        };
-      }),
-      totalMinutes: Number(plan.totalMinutes ?? 0),
-      remainingMinutes: Number(plan.remainingMinutes ?? 0),
-      warnings: [],
+      effectiveDate,
+      context,
+    });
+    if (name === "plan_today") return freshPlan;
+
+    const requestedTaskIds = Array.from(
+      new Set((args.taskIds as string[]) ?? []),
+    );
+    const freshById = new Map(
+      freshPlan.tasks.map((task) => [task.id, task] as const),
+    );
+    const tasks = requestedTaskIds
+      .flatMap((taskId) => {
+        const task = freshById.get(taskId);
+        return task ? [task] : [];
+      })
+      .map((task, index) => ({ ...task, rank: index + 1 }));
+    const omittedCount = requestedTaskIds.length - tasks.length;
+    const requestedSet = new Set(requestedTaskIds);
+    const authoritativeOrder = freshPlan.tasks
+      .filter((task) => requestedSet.has(task.id))
+      .map((task) => task.id);
+    const renderedOrder = tasks.map((task) => task.id);
+    const orderChanged = authoritativeOrder.some(
+      (taskId, index) => taskId !== renderedOrder[index],
+    );
+    const warnings = [...freshPlan.warnings];
+    if (omittedCount > 0) {
+      warnings.push(
+        `${omittedCount} selected ${omittedCount === 1 ? "task was" : "tasks were"} omitted because the authoritative plan changed. Refresh the plan to review current work.`,
+      );
+    }
+    if (orderChanged) {
+      warnings.push(
+        "The authoritative plan order changed after this plan was prepared. Refresh to review the latest order.",
+      );
+    }
+    const totalMinutes = tasks.reduce(
+      (sum, task) => sum + (task.estimateMinutes ?? 0),
+      0,
+    );
+    return {
+      ...freshPlan,
+      tasks,
+      totalMinutes,
+      remainingMinutes: freshPlan.availableMinutes - totalMinutes,
+      warnings,
     };
   }
 

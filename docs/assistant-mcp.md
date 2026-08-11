@@ -6,7 +6,7 @@ Thin remote MCP layer for connecting registered Todos app users from ChatGPT, Cl
 
 - keeps `/agent` as the internal task-oriented capability surface
 - exposes `/mcp` as the broad legacy remote adapter and `/mcp/app` as the
-  focused ChatGPT-native data-only profile
+  focused ChatGPT-native profile with an optional Today Plan component
 - reuses the shared internal agent executor instead of duplicating todo or project rules
 - requires every MCP call to resolve to a concrete authenticated app user
 
@@ -21,9 +21,9 @@ Runtime endpoints:
 - `POST /mcp`
   Streamable HTTP JSON-RPC endpoint for MCP methods and tool calls.
 - `POST /mcp/app`
-  Stateless SDK-backed Streamable HTTP endpoint advertising exactly
+  Stateless SDK-backed Streamable HTTP endpoint advertising exactly six tools:
   `list_today`, `plan_today`, `capture_task`, `complete_task`, and
-  `reschedule_task` in Phase 1.
+  `reschedule_task` from Phase 1 plus Phase 2's `render_today_plan`.
 - `GET /.well-known/oauth-protected-resource`
   OAuth protected-resource metadata for remote clients.
 - `GET /.well-known/oauth-protected-resource/mcp/app`
@@ -57,6 +57,15 @@ strict public input/output DTOs, per-tool OAuth schemes, 60-minute
 resource-audience-bound access tokens, tool-result authorization challenges,
 and a committed metadata snapshot. The broad `/mcp` contract below remains
 available for existing connectors.
+
+Phase 2 associates only `render_today_plan` with the versioned MCP Apps
+resource `ui://todos/today-plan/v1.html`. The render handler reruns the same
+canonical planner inputs and intersects its fresh authorized result with the
+ordered task IDs from `plan_today`; it does not accept client-provided display
+fields. The self-contained component calls `complete_task`, `reschedule_task`,
+and `plan_today` through the portable MCP Apps bridge, while the five data and
+action tools remain complete in text-only clients. Its CSP allows no direct
+network or external static-resource origins.
 
 The public MCP adapter is generated from the current agent manifest and exposes
 the same underlying action catalog, filtered by token scopes. As of `v1.6.0`,
@@ -201,6 +210,8 @@ connectors do not get a parallel business-logic path.
   - `tools/list`
   - `tools/call`
   - `notifications/initialized`
+- `/mcp/app` additionally implements static `resources/list` and
+  `resources/read` for the versioned Today Plan resource
 
 ## Error Shape
 
