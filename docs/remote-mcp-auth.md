@@ -11,6 +11,8 @@ Public flow:
 1. The connector discovers metadata from:
    - `GET /.well-known/oauth-protected-resource`
    - `GET /.well-known/oauth-authorization-server`
+   - `GET /.well-known/openid-configuration` when verified identity claims
+     are needed
 2. The connector registers a public PKCE client at `POST /oauth/register`.
 3. The user is sent to `GET /oauth/authorize`.
 4. The user signs in with their existing Todos account and approves scopes.
@@ -48,6 +50,43 @@ Returns:
 - `token_endpoint_auth_methods_supported`
 - `code_challenge_methods_supported`
 - `scopes_supported`
+
+The authorization server advertises both Todos application scopes and the
+standard `openid` and `email` identity scopes. The protected-resource metadata
+continues to advertise only the permissions accepted by its MCP resource.
+
+### `GET /.well-known/openid-configuration`
+
+OpenID Connect discovery for ChatGPT workspace-domain restrictions. It
+advertises the same authorization, token, revocation, registration, and PKCE
+capabilities as the OAuth metadata plus:
+
+- `userinfo_endpoint`
+- `openid` and `email` in `scopes_supported`
+- `sub`, `email`, and `email_verified` in `claims_supported`
+
+This contract intentionally does not advertise ID-token or JWKS capabilities;
+the authorization-code response remains an OAuth access-token response and
+verified identity is exposed through UserInfo.
+
+### `GET|POST /oauth/userinfo`
+
+Returns the linked account's verified identity for an audience-bound
+`/mcp/app` access token carrying both `openid` and `email`:
+
+```json
+{
+  "sub": "<stable-user-subject>",
+  "email": "person@example.com",
+  "email_verified": true
+}
+```
+
+The endpoint revalidates token signature, issuer, audience, expiry, revocation,
+assistant-session state, current user existence, current email, and current
+verification state. It returns `401 invalid_token` for invalid identity and
+`403 insufficient_scope` when either identity scope is absent. Responses are
+never cached.
 
 ### `POST /oauth/register`
 
@@ -167,51 +206,61 @@ No MCP tool trusts a client-provided user ID.
 
 ## Supported Scopes
 
-Initial assistant-facing scopes:
+Todos application-authorization scopes:
 
 - `tasks.read`
 - `tasks.write`
 - `projects.read`
 - `projects.write`
 
+Identity scopes:
+
+- `openid`
+- `email` (requires `openid`)
+
+Identity scopes are persisted through authorization-code exchange and refresh
+rotation, but they grant no task or project permission. Tool authorization
+extracts and checks only the four Todos application scopes above. An
+identity-only token therefore cannot call any MCP tool.
+
 The older `read` / `write` aliases are still accepted by validation and expanded to explicit scopes, but new connector setup should use the explicit names above.
 
 ## Tool to Scope Mapping
 
-| Tool             | Read only | Required scopes  |
-| ---------------- | --------- | ---------------- |
-| `list_tasks`     | Yes       | `tasks.read`     |
-| `search_tasks`   | Yes       | `tasks.read`     |
-| `get_task`       | Yes       | `tasks.read`     |
-| `list_today`     | Yes       | `tasks.read`     |
-| `list_next_actions` | Yes    | `tasks.read`     |
-| `list_waiting_on` | Yes      | `tasks.read`     |
-| `list_upcoming`  | Yes       | `tasks.read`     |
-| `list_stale_tasks` | Yes     | `tasks.read`     |
-| `create_task`    | No        | `tasks.write`    |
-| `update_task`    | No        | `tasks.write`    |
-| `complete_task`  | No        | `tasks.write`    |
-| `archive_task`   | No        | `tasks.write`    |
-| `delete_task`    | No        | `tasks.write`    |
-| `add_subtask`    | No        | `tasks.write`    |
-| `update_subtask` | No        | `tasks.write`    |
-| `delete_subtask` | No        | `tasks.write`    |
-| `move_task_to_project` | No  | `tasks.write`    |
-| `list_projects`  | Yes       | `projects.read`  |
-| `get_project`    | Yes       | `projects.read`  |
-| `review_projects` | Yes      | `projects.read`  |
-| `list_projects_without_next_action` | Yes | `projects.read`, `tasks.read` |
-| `plan_project` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
-| `ensure_next_action` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
-| `weekly_review` | No | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
-| `decide_next_work` | Yes | `projects.read`, `tasks.read` |
-| `analyze_project_health` | Yes | `projects.read`, `tasks.read` |
-| `analyze_work_graph` | Yes | `projects.read`, `tasks.read` |
-| `create_project` | No        | `projects.write` |
-| `update_project` | No        | `projects.write` |
-| `rename_project` | No        | `projects.write` |
-| `delete_project` | No        | `projects.write` |
-| `archive_project` | No       | `projects.write` |
+| Tool                                | Read only | Required scopes                                                                                 |
+| ----------------------------------- | --------- | ----------------------------------------------------------------------------------------------- |
+| `list_tasks`                        | Yes       | `tasks.read`                                                                                    |
+| `search_tasks`                      | Yes       | `tasks.read`                                                                                    |
+| `get_task`                          | Yes       | `tasks.read`                                                                                    |
+| `list_today`                        | Yes       | `tasks.read`                                                                                    |
+| `list_next_actions`                 | Yes       | `tasks.read`                                                                                    |
+| `list_waiting_on`                   | Yes       | `tasks.read`                                                                                    |
+| `list_upcoming`                     | Yes       | `tasks.read`                                                                                    |
+| `list_stale_tasks`                  | Yes       | `tasks.read`                                                                                    |
+| `create_task`                       | No        | `tasks.write`                                                                                   |
+| `update_task`                       | No        | `tasks.write`                                                                                   |
+| `complete_task`                     | No        | `tasks.write`                                                                                   |
+| `archive_task`                      | No        | `tasks.write`                                                                                   |
+| `delete_task`                       | No        | `tasks.write`                                                                                   |
+| `add_subtask`                       | No        | `tasks.write`                                                                                   |
+| `update_subtask`                    | No        | `tasks.write`                                                                                   |
+| `delete_subtask`                    | No        | `tasks.write`                                                                                   |
+| `move_task_to_project`              | No        | `tasks.write`                                                                                   |
+| `list_projects`                     | Yes       | `projects.read`                                                                                 |
+| `get_project`                       | Yes       | `projects.read`                                                                                 |
+| `review_projects`                   | Yes       | `projects.read`                                                                                 |
+| `list_projects_without_next_action` | Yes       | `projects.read`, `tasks.read`                                                                   |
+| `plan_project`                      | No        | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
+| `ensure_next_action`                | No        | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
+| `weekly_review`                     | No        | `suggest`: `projects.read`, `tasks.read`; `apply`: `projects.read`, `tasks.read`, `tasks.write` |
+| `decide_next_work`                  | Yes       | `projects.read`, `tasks.read`                                                                   |
+| `analyze_project_health`            | Yes       | `projects.read`, `tasks.read`                                                                   |
+| `analyze_work_graph`                | Yes       | `projects.read`, `tasks.read`                                                                   |
+| `create_project`                    | No        | `projects.write`                                                                                |
+| `update_project`                    | No        | `projects.write`                                                                                |
+| `rename_project`                    | No        | `projects.write`                                                                                |
+| `delete_project`                    | No        | `projects.write`                                                                                |
+| `archive_project`                   | No        | `projects.write`                                                                                |
 
 `tools/list` only returns tools the token is allowed to use.
 

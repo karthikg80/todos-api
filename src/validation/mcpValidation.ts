@@ -1,8 +1,10 @@
 import { McpScope } from "../types";
 import {
   DEFAULT_MCP_SCOPES,
-  formatMcpScopes,
+  formatMcpOAuthScopes,
   hasAllMcpScopes,
+  McpOAuthScope,
+  normalizeMcpOAuthScopes,
   normalizeMcpScopes,
 } from "../mcp/mcpScopes";
 import { ValidationError, validateId } from "./validation";
@@ -63,7 +65,7 @@ export interface OAuthAuthorizeRequestDto {
   responseType: "code";
   clientId: string;
   redirectUri: string;
-  scopes: McpScope[];
+  scopes: McpOAuthScope[];
   state?: string;
   codeChallenge: string;
   codeChallengeMethod: "S256";
@@ -331,7 +333,7 @@ function normalizeTokenEndpointAuthMethod(value: unknown): "none" {
   return "none";
 }
 
-function normalizeScopesFromOAuthField(value: unknown): McpScope[] {
+function normalizeScopesFromOAuthField(value: unknown): McpOAuthScope[] {
   if (value === undefined) {
     return [...DEFAULT_MCP_SCOPES];
   }
@@ -344,7 +346,7 @@ function normalizeScopesFromOAuthField(value: unknown): McpScope[] {
     .map((entry) => entry.trim())
     .filter((entry) => entry.length > 0);
 
-  return normalizeMcpScopes(entries, {
+  return normalizeMcpOAuthScopes(entries, {
     defaultScopes: DEFAULT_MCP_SCOPES,
   });
 }
@@ -601,7 +603,7 @@ export function validateOAuthAuthorizeRequest(
 }
 
 export function hasMcpScope(
-  availableScopes: McpScope[],
+  availableScopes: McpOAuthScope[],
   requiredScopes: McpScope | McpScope[],
 ): boolean {
   return hasAllMcpScopes(
@@ -610,6 +612,6 @@ export function hasMcpScope(
   );
 }
 
-export function describeMcpScopes(scopes: McpScope[]): string {
-  return formatMcpScopes(scopes);
+export function describeMcpScopes(scopes: McpOAuthScope[]): string {
+  return formatMcpOAuthScopes(scopes);
 }

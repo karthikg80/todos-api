@@ -4,8 +4,13 @@ import jwt from "jsonwebtoken";
 import { createHash, createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { EmailService } from "./emailService";
 import { config } from "../config";
+import {
+  formatMcpOAuthScopes,
+  getMcpApplicationScopes,
+  McpOAuthScope,
+  normalizeMcpOAuthScopes,
+} from "../mcp/mcpScopes";
 import { McpScope } from "../types";
-import { formatMcpScopes, normalizeMcpScopes } from "../mcp/mcpScopes";
 
 export interface RegisterDto {
   email: string;
@@ -36,6 +41,7 @@ export interface JwtPayload {
 export interface McpTokenPayload extends JwtPayload {
   tokenType: "mcp";
   scopes: McpScope[];
+  oauthScopes?: McpOAuthScope[];
   assistantName?: string;
   clientId?: string;
   sessionId?: string;
@@ -46,7 +52,7 @@ export interface McpTokenResponse {
   token: string;
   tokenType: "Bearer";
   scope: string;
-  scopes: McpScope[];
+  scopes: McpOAuthScope[];
   expiresAt: string;
   expiresIn: number;
   assistantName?: string;
@@ -252,13 +258,13 @@ export class AuthService {
   createMcpToken(input: {
     userId: string;
     email: string;
-    scopes: McpScope[];
+    scopes: McpOAuthScope[];
     assistantName?: string;
     clientId?: string;
     sessionId?: string;
     resource?: string;
   }): McpTokenResponse {
-    const normalizedScopes = normalizeMcpScopes(input.scopes, {
+    const normalizedScopes = normalizeMcpOAuthScopes(input.scopes, {
       requireNonEmpty: true,
     });
     const expiresIn = input.resource
@@ -295,7 +301,7 @@ export class AuthService {
     return {
       token,
       tokenType: "Bearer",
-      scope: formatMcpScopes(normalizedScopes),
+      scope: formatMcpOAuthScopes(normalizedScopes),
       scopes: [...normalizedScopes],
       expiresAt: new Date(Date.now() + expiresInMs).toISOString(),
       expiresIn: Math.floor(expiresInMs / 1000),
@@ -321,9 +327,9 @@ export class AuthService {
         throw new Error("Invalid MCP token");
       }
 
-      let scopes: McpScope[];
+      let oauthScopes: McpOAuthScope[];
       try {
-        scopes = normalizeMcpScopes(payload.scopes, {
+        oauthScopes = normalizeMcpOAuthScopes(payload.scopes, {
           requireNonEmpty: true,
         });
       } catch (_error) {
@@ -352,7 +358,8 @@ export class AuthService {
         userId: payload.userId,
         email: payload.email,
         tokenType: "mcp",
-        scopes,
+        scopes: getMcpApplicationScopes(oauthScopes),
+        oauthScopes,
         issuedAt: payload.iat,
         ...(typeof payload.assistantName === "string" &&
         payload.assistantName.trim()
@@ -425,6 +432,7 @@ export class AuthService {
       email: decoded.email,
       tokenType: "mcp",
       scopes: decoded.scopes,
+      oauthScopes: decoded.oauthScopes,
       ...(decoded.assistantName
         ? { assistantName: decoded.assistantName }
         : {}),

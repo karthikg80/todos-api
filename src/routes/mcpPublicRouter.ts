@@ -22,6 +22,7 @@ import { validateRegister } from "../validation/authValidation";
 import { GoogleAuthService } from "../services/googleAuthService";
 import { SocialAuthService } from "../services/socialAuthService";
 import { getMcpAppResource } from "../mcp/appContract";
+import { ALL_MCP_OAUTH_SCOPES, McpOAuthScope } from "../mcp/mcpScopes";
 
 interface McpPublicRouterDeps {
   authService?: AuthService;
@@ -158,6 +159,56 @@ function setRequestId(res: Response, requestId: string) {
 function setNoStoreHeaders(res: Response) {
   res.setHeader("Cache-Control", "no-store");
   res.setHeader("Pragma", "no-cache");
+}
+
+function requestsVerifiedEmail(scopes: readonly McpOAuthScope[]): boolean {
+  return scopes.includes("email");
+}
+
+async function assertIdentityScopeEligibility(input: {
+  authService: AuthService;
+  userId: string;
+  scopes: readonly McpOAuthScope[];
+}) {
+  const user = await input.authService.getUserById(input.userId);
+  if (!user) {
+    throw new Error("Linked user account no longer exists");
+  }
+  if (
+    requestsVerifiedEmail(input.scopes) &&
+    (!user.email || !user.isVerified)
+  ) {
+    throw new Error("Verified email required");
+  }
+  return user;
+}
+
+function readBearerToken(req: Request): string | undefined {
+  const authorization = req.header("authorization");
+  if (!authorization) {
+    return undefined;
+  }
+  const match = /^Bearer ([^\s]+)$/i.exec(authorization.trim());
+  return match?.[1];
+}
+
+function setUserInfoChallenge(
+  res: Response,
+  input: {
+    error: "invalid_token" | "insufficient_scope";
+    description: string;
+    scopes?: string[];
+  },
+) {
+  const parts = [
+    'Bearer realm="todos-api-userinfo"',
+    `error="${input.error}"`,
+    `error_description="${input.description.replace(/"/g, "")}"`,
+  ];
+  if (input.scopes?.length) {
+    parts.push(`scope="${input.scopes.join(" ")}"`);
+  }
+  res.setHeader("WWW-Authenticate", parts.join(", "));
 }
 
 function resolveLinkSession(
@@ -429,6 +480,14 @@ function mapTokenExchangeError(error: unknown) {
         code: "MCP_INVALID_SESSION",
         hint: "Have the user sign in again and reconnect the assistant.",
       };
+    case "Verified email required":
+      return {
+        status: 401,
+        error: "invalid_grant",
+        description: "The linked Todos account needs a verified email address",
+        code: "MCP_VERIFIED_EMAIL_REQUIRED",
+        hint: "Verify the account email, then restart the connector auth flow.",
+      };
     default:
       return {
         status: 500,
@@ -460,6 +519,13 @@ function mapAuthorizeError(message: string): {
           "The redirect URI does not match the assistant client registration.",
         code: "MCP_REDIRECT_URI_MISMATCH",
       };
+    case "Verified email required":
+      return {
+        title: "Verified Email Required",
+        description:
+          "Verify the email address on this Todos account, then restart the connection flow.",
+        code: "MCP_VERIFIED_EMAIL_REQUIRED",
+      };
     default:
       return {
         title: "Authorization Error",
@@ -485,6 +551,75 @@ export function createMcpPublicRouter({
   socialAuthService,
 }: McpPublicRouterDeps): Router {
   const router = Router();
+
+  const handleUserInfo = async (req: Request, res: Response) => {
+    const requestId = buildRequestId(req);
+    setRequestId(res, requestId);
+    setNoStoreHeaders(res);
+
+    if (!authService) {
+      return res.status(501).json({
+        error: "server_error",
+        error_description: "Authentication not configured",
+      });
+    }
+
+    const token = readBearerToken(req);
+    if (!token) {
+      setUserInfoChallenge(res, {
+        error: "invalid_token",
+        description: "A bearer access token is required",
+      });
+      return res.status(401).json({
+        error: "invalid_token",
+        error_description: "A bearer access token is required",
+      });
+    }
+
+    try {
+      const session = await authService.verifyMcpToken(token, {
+        resource: getMcpAppResource(config.baseUrl),
+        requireResource: true,
+      });
+      const oauthScopes = session.oauthScopes ?? session.scopes;
+      const requiredScopes = ["openid", "email"] as const;
+      if (requiredScopes.some((scope) => !oauthScopes.includes(scope))) {
+        setUserInfoChallenge(res, {
+          error: "insufficient_scope",
+          description: "UserInfo requires the openid and email scopes",
+          scopes: [...requiredScopes],
+        });
+        return res.status(403).json({
+          error: "insufficient_scope",
+          error_description: "UserInfo requires the openid and email scopes",
+        });
+      }
+
+      const user = await assertIdentityScopeEligibility({
+        authService,
+        userId: session.userId,
+        scopes: oauthScopes,
+      });
+      if (session.sessionId) {
+        await mcpOAuthService.recordAssistantSessionUsage(session.sessionId);
+      }
+
+      return res.status(200).json({
+        sub: user.id,
+        email: user.email,
+        email_verified: true,
+      });
+    } catch (_error) {
+      setUserInfoChallenge(res, {
+        error: "invalid_token",
+        description: "The access token is invalid, expired, or revoked",
+      });
+      return res.status(401).json({
+        error: "invalid_token",
+        error_description: "The access token is invalid, expired, or revoked",
+      });
+    }
+  };
 
   router.get("/oauth/logout", (_req, res) => {
     clearLinkSession(res);
@@ -532,14 +667,29 @@ export function createMcpPublicRouter({
       grant_types_supported: ["authorization_code", "refresh_token"],
       token_endpoint_auth_methods_supported: ["none"],
       code_challenge_methods_supported: ["S256"],
-      scopes_supported: [
-        "tasks.read",
-        "tasks.write",
-        "projects.read",
-        "projects.write",
-      ],
+      scopes_supported: ALL_MCP_OAUTH_SCOPES,
     });
   });
+
+  router.get("/.well-known/openid-configuration", (_req, res) => {
+    res.status(200).json({
+      issuer: config.baseUrl,
+      authorization_endpoint: `${config.baseUrl}/oauth/authorize`,
+      token_endpoint: `${config.baseUrl}/oauth/token`,
+      userinfo_endpoint: `${config.baseUrl}/oauth/userinfo`,
+      revocation_endpoint: `${config.baseUrl}/oauth/revoke`,
+      registration_endpoint: `${config.baseUrl}/oauth/register`,
+      response_types_supported: ["code"],
+      grant_types_supported: ["authorization_code", "refresh_token"],
+      token_endpoint_auth_methods_supported: ["none"],
+      code_challenge_methods_supported: ["S256"],
+      scopes_supported: ALL_MCP_OAUTH_SCOPES,
+      claims_supported: ["sub", "email", "email_verified"],
+    });
+  });
+
+  router.get("/oauth/userinfo", handleUserInfo);
+  router.post("/oauth/userinfo", handleUserInfo);
 
   router.post("/oauth/register", (req, res) => {
     const requestId = buildRequestId(req);
@@ -958,6 +1108,12 @@ export function createMcpPublicRouter({
         );
       }
 
+      await assertIdentityScopeEligibility({
+        authService,
+        userId: registeredUser.id,
+        scopes: authorize.scopes,
+      });
+
       // Issue authorization code for the newly registered user
       const authCode = await mcpOAuthService.createAuthorizationCode({
         userId: registeredUser.id,
@@ -1203,6 +1359,12 @@ export function createMcpPublicRouter({
         (userId, email) => authService!.issueTokens(userId, email),
       );
 
+      await assertIdentityScopeEligibility({
+        authService,
+        userId: socialResult.user.id,
+        scopes: authorize.scopes,
+      });
+
       // Issue MCP authorization code directly (implicit consent for Google sign-in)
       const authCode = await mcpOAuthService.createAuthorizationCode({
         userId: socialResult.user.id,
@@ -1309,6 +1471,12 @@ export function createMcpPublicRouter({
           }),
         );
       }
+
+      await assertIdentityScopeEligibility({
+        authService,
+        userId: linkSession.userId,
+        scopes: authorize.scopes,
+      });
 
       const authCode = await mcpOAuthService.createAuthorizationCode({
         userId: linkSession.userId,
@@ -1423,10 +1591,11 @@ export function createMcpPublicRouter({
             })
           : null;
       const linkedSession = exchange || refreshExchange!;
-      const user = await authService.getUserById(linkedSession.userId);
-      if (!user) {
-        throw new Error("Linked user account no longer exists");
-      }
+      await assertIdentityScopeEligibility({
+        authService,
+        userId: linkedSession.userId,
+        scopes: linkedSession.scopes,
+      });
 
       const existingSessionId =
         "sessionId" in linkedSession ? linkedSession.sessionId : undefined;

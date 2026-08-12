@@ -147,6 +147,128 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(response.body.revocation_endpoint).toMatch(/\/oauth\/revoke$/);
     expect(response.body.registration_endpoint).toMatch(/\/oauth\/register$/);
     expect(response.body.code_challenge_methods_supported).toContain("S256");
+    expect(response.body.scopes_supported).toEqual(
+      expect.arrayContaining(["openid", "email", "tasks.read"]),
+    );
+  });
+
+  it("publishes OIDC discovery with the verified-email UserInfo contract", async () => {
+    const response = await request(app)
+      .get("/.well-known/openid-configuration")
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      issuer: "http://localhost:3000",
+      authorization_endpoint: "http://localhost:3000/oauth/authorize",
+      token_endpoint: "http://localhost:3000/oauth/token",
+      userinfo_endpoint: "http://localhost:3000/oauth/userinfo",
+      scopes_supported: expect.arrayContaining([
+        "openid",
+        "email",
+        "tasks.read",
+      ]),
+      claims_supported: ["sub", "email", "email_verified"],
+    });
+  });
+
+  it("returns verified identity claims from UserInfo", async () => {
+    currentSession = {
+      ...buildMcpSession("user-1", ["tasks.read"]),
+      oauthScopes: ["openid", "email", "tasks.read"],
+      sessionId: "session-1",
+      resource: "http://localhost:3000/mcp/app",
+    } as any;
+
+    const response = await request(app)
+      .get("/oauth/userinfo")
+      .set("Authorization", "Bearer mcp-token-user-1")
+      .expect(200);
+
+    expect(response.body).toEqual({
+      sub: "user-1",
+      email: "user-1@example.com",
+      email_verified: true,
+    });
+    expect(response.headers["cache-control"]).toBe("no-store");
+    expect(mockAuthService.verifyMcpToken).toHaveBeenCalledWith(
+      "mcp-token-user-1",
+      {
+        resource: "http://localhost:3000/mcp/app",
+        requireResource: true,
+      },
+    );
+  });
+
+  it("supports POST at the UserInfo endpoint", async () => {
+    currentSession = {
+      ...buildMcpSession("user-1", []),
+      oauthScopes: ["openid", "email"],
+      resource: "http://localhost:3000/mcp/app",
+    } as any;
+
+    const response = await request(app)
+      .post("/oauth/userinfo")
+      .set("Authorization", "Bearer mcp-token-user-1")
+      .expect(200);
+
+    expect(response.body).toMatchObject({
+      sub: "user-1",
+      email_verified: true,
+    });
+  });
+
+  it("rejects UserInfo tokens without both identity scopes", async () => {
+    currentSession = {
+      ...buildMcpSession("user-1", ["tasks.read"]),
+      oauthScopes: ["openid", "tasks.read"],
+    } as any;
+
+    const response = await request(app)
+      .get("/oauth/userinfo")
+      .set("Authorization", "Bearer mcp-token-user-1")
+      .expect(403);
+
+    expect(response.body.error).toBe("insufficient_scope");
+    expect(response.headers["www-authenticate"]).toContain(
+      'scope="openid email"',
+    );
+  });
+
+  it("rejects UserInfo when the current account email is not verified", async () => {
+    currentSession = {
+      ...buildMcpSession("user-1", []),
+      oauthScopes: ["openid", "email"],
+    } as any;
+    mockAuthService.getUserById.mockResolvedValueOnce({
+      id: "user-1",
+      email: "user-1@example.com",
+      name: "User One",
+      isVerified: false,
+      role: "user",
+      plan: "free",
+    });
+
+    const response = await request(app)
+      .get("/oauth/userinfo")
+      .set("Authorization", "Bearer mcp-token-user-1")
+      .expect(401);
+
+    expect(response.body.error).toBe("invalid_token");
+    expect(response.body).not.toHaveProperty("email");
+  });
+
+  it("rejects missing and invalid UserInfo bearer tokens", async () => {
+    const missing = await request(app).get("/oauth/userinfo").expect(401);
+    expect(missing.body.error).toBe("invalid_token");
+
+    mockAuthService.verifyMcpToken.mockRejectedValueOnce(
+      new Error("Invalid MCP token"),
+    );
+    const invalid = await request(app)
+      .get("/oauth/userinfo")
+      .set("Authorization", "Bearer invalid-token")
+      .expect(401);
+    expect(invalid.body.error).toBe("invalid_token");
   });
 
   it("registers a public PKCE client for connector use", async () => {
@@ -319,6 +441,168 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(token.body.refresh_token).toEqual(expect.any(String));
     expect(token.body.refresh_token_expires_at).toEqual(expect.any(String));
     expect(token.body.refresh_token_expires_in).toBe(2592000);
+  });
+
+  it("preserves OIDC identity scopes through code exchange and refresh rotation", async () => {
+    const register = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        client_name: "ChatGPT",
+        grant_types: ["authorization_code", "refresh_token"],
+      })
+      .expect(201);
+    const pkce = createPkcePair(
+      "oauth-verifier-oidc-flow-11111111111111111111111111111111",
+    );
+    const scope = "openid email tasks.read";
+    const resource = "http://localhost:3000/mcp/app";
+    const agent = request.agent(app);
+
+    const authorizeUrl = `/oauth/authorize?client_id=${encodeURIComponent(
+      register.body.client_id,
+    )}&redirect_uri=${encodeURIComponent(
+      "https://chat.openai.com/aip/callback",
+    )}&response_type=code&scope=${encodeURIComponent(
+      scope,
+    )}&code_challenge=${encodeURIComponent(
+      pkce.challenge,
+    )}&code_challenge_method=S256&resource=${encodeURIComponent(resource)}`;
+
+    await agent.get(authorizeUrl).expect(200);
+    const login = await agent
+      .post("/oauth/authorize/login")
+      .type("form")
+      .send({
+        email: "user-1@example.com",
+        password: "password123",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        scope,
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+        resource,
+      })
+      .expect(303);
+    await agent.get(login.headers.location).expect(200);
+    const approve = await agent
+      .post("/oauth/authorize/decision")
+      .type("form")
+      .send({
+        decision: "approve",
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        scope,
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+        resource,
+      })
+      .expect(303);
+
+    const code = new URL(approve.headers.location).searchParams.get("code");
+    const token = await request(app)
+      .post("/oauth/token")
+      .type("form")
+      .send({
+        grant_type: "authorization_code",
+        code,
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        code_verifier: pkce.verifier,
+        resource,
+      })
+      .expect(200);
+
+    expect(token.body.scope).toBe("email openid tasks.read");
+    expect(mockAuthService.createMcpToken).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        scopes: ["email", "openid", "tasks.read"],
+        resource,
+      }),
+    );
+
+    const refreshed = await request(app)
+      .post("/oauth/token")
+      .type("form")
+      .send({
+        grant_type: "refresh_token",
+        refresh_token: token.body.refresh_token,
+        client_id: register.body.client_id,
+        resource,
+      })
+      .expect(200);
+
+    expect(refreshed.body.scope).toBe("email openid tasks.read");
+    expect(mockAuthService.createMcpToken).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        scopes: ["email", "openid", "tasks.read"],
+        resource,
+      }),
+    );
+  });
+
+  it("does not let identity-only scopes authorize native Todos tools", async () => {
+    currentSession = {
+      ...buildMcpSession("user-1", []),
+      oauthScopes: ["openid", "email"],
+      resource: "http://localhost:3000/mcp/app",
+    } as any;
+
+    const response = await request(app)
+      .post("/mcp/app")
+      .set("Accept", "application/json, text/event-stream")
+      .set("Content-Type", "application/json")
+      .set("Authorization", "Bearer mcp-token-user-1")
+      .send({
+        jsonrpc: "2.0",
+        id: 91,
+        method: "tools/call",
+        params: { name: "list_today", arguments: {} },
+      })
+      .expect(200);
+
+    const body =
+      response.body && Object.keys(response.body).length > 0
+        ? response.body
+        : JSON.parse(
+            response.text
+              .split("\n")
+              .find((line) => line.startsWith("data: "))!
+              .slice("data: ".length),
+          );
+    expect(body.result.isError).toBe(true);
+    expect(body.result.structuredContent.error.code).toBe(
+      "MCP_INSUFFICIENT_SCOPE",
+    );
+  });
+
+  it("rejects the email identity scope without openid", async () => {
+    const register = await request(app)
+      .post("/oauth/register")
+      .send({
+        redirect_uris: ["https://chat.openai.com/aip/callback"],
+        client_name: "ChatGPT",
+      })
+      .expect(201);
+    const pkce = createPkcePair(
+      "oauth-verifier-email-without-openid-1111111111111111111111",
+    );
+
+    const response = await request(app)
+      .get("/oauth/authorize")
+      .query({
+        client_id: register.body.client_id,
+        redirect_uri: "https://chat.openai.com/aip/callback",
+        response_type: "code",
+        scope: "email tasks.read",
+        code_challenge: pkce.challenge,
+        code_challenge_method: "S256",
+      })
+      .expect(400);
+
+    expect(response.text).toContain("scope &quot;email&quot; requires scope");
   });
 
   it("preserves the native resource binding after a failed OAuth login", async () => {

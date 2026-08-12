@@ -1,15 +1,14 @@
 import { createHash, createHmac, randomUUID } from "crypto";
 import { PrismaClient } from "@prisma/client";
-import { McpScope } from "../types";
 import { config } from "../config";
-import { normalizeMcpScopes } from "../mcp/mcpScopes";
+import { McpOAuthScope, normalizeMcpOAuthScopes } from "../mcp/mcpScopes";
 
 export interface CreateMcpAuthorizationCodeInput {
   userId: string;
   email: string;
   clientId: string;
   redirectUri: string;
-  scopes: McpScope[];
+  scopes: McpOAuthScope[];
   assistantName?: string;
   state?: string;
   codeChallenge: string;
@@ -28,7 +27,7 @@ export interface ExchangeMcpAuthorizationCodeInput {
 
 export interface CreateMcpAssistantSessionInput {
   userId: string;
-  scopes: McpScope[];
+  scopes: McpOAuthScope[];
   assistantName?: string;
   clientId?: string;
   source: "oauth" | "local";
@@ -39,7 +38,7 @@ export interface CreateMcpAssistantSessionInput {
 export interface McpAssistantSessionSummary {
   id: string;
   userId: string;
-  scopes: McpScope[];
+  scopes: McpOAuthScope[];
   source: "oauth" | "local";
   clientId?: string;
   assistantName?: string;
@@ -55,7 +54,7 @@ export interface McpAssistantSessionSummary {
 export interface CreateMcpRefreshTokenInput {
   userId: string;
   email: string;
-  scopes: McpScope[];
+  scopes: McpOAuthScope[];
   assistantName?: string;
   clientId?: string;
   sessionId?: string;
@@ -234,7 +233,7 @@ export class McpOAuthService {
       | {
           userId: string;
           email: string;
-          scopes: McpScope[];
+          scopes: McpOAuthScope[];
           clientId: string;
           redirectUri: string;
           assistantName?: string;
@@ -257,7 +256,7 @@ export class McpOAuthService {
       record = {
         userId: persisted.userId,
         email: persisted.email,
-        scopes: normalizeMcpScopes(persisted.scopes),
+        scopes: normalizeMcpOAuthScopes(persisted.scopes),
         clientId: persisted.clientId,
         redirectUri: persisted.redirectUri,
         ...(persisted.assistantName
@@ -368,7 +367,7 @@ export class McpOAuthService {
       return {
         id: session.id,
         userId: session.userId,
-        scopes: normalizeMcpScopes(session.scopes),
+        scopes: normalizeMcpOAuthScopes(session.scopes),
         source: session.source as "oauth" | "local",
         ...(session.clientId ? { clientId: session.clientId } : {}),
         ...(session.assistantName
@@ -413,7 +412,7 @@ export class McpOAuthService {
       return sessions.map((session) => ({
         id: session.id,
         userId: session.userId,
-        scopes: normalizeMcpScopes(session.scopes),
+        scopes: normalizeMcpOAuthScopes(session.scopes),
         source: session.source as "oauth" | "local",
         ...(session.clientId ? { clientId: session.clientId } : {}),
         ...(session.assistantName
@@ -578,7 +577,7 @@ export class McpOAuthService {
 
   private async ensureSessionForRefreshTokenRecord(input: {
     userId: string;
-    scopes: McpScope[];
+    scopes: McpOAuthScope[];
     assistantName?: string;
     clientId?: string;
     sessionId?: string | null;
@@ -664,7 +663,7 @@ export class McpOAuthService {
       | {
           userId: string;
           email: string;
-          scopes: McpScope[];
+          scopes: McpOAuthScope[];
           assistantName?: string;
           clientId?: string;
           sessionId?: string;
@@ -692,7 +691,7 @@ export class McpOAuthService {
         record = {
           userId: persisted.userId,
           email: persisted.email,
-          scopes: normalizeMcpScopes(persisted.scopes),
+          scopes: normalizeMcpOAuthScopes(persisted.scopes),
           ...(persisted.assistantName
             ? { assistantName: persisted.assistantName }
             : {}),
