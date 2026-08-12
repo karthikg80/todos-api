@@ -1,0 +1,31 @@
+{
+  "name": "todos",
+  "version": "0.1.1",
+  "description": "Turn your tasks into a realistic daily plan and act on it from ChatGPT.",
+  "author": {
+    "name": "Thea Foundry"
+  },
+  "homepage": "https://todos.theafoundry.com/app",
+  "repository": "https://github.com/theafoundry/todos-api",
+  "keywords": ["todos", "daily planning", "tasks", "productivity"],
+  "skills": "./skills/",
+  "apps": "./.app.json",
+  "interface": {
+    "displayName": "Todos",
+    "shortDescription": "Turn your tasks into a realistic daily plan and act on it from ChatGPT.",
+    "longDescription": "Connect your Todos account to see what is due, build a time- and energy-aware plan, capture new work, complete tasks, and reschedule the day without leaving your conversation.",
+    "developerName": "Thea Foundry",
+    "category": "Productivity",
+    "capabilities": ["Interactive", "Read", "Write"],
+    "websiteURL": "https://todos.theafoundry.com/app",
+    "defaultPrompt": [
+      "Plan my day. I have four hours and low energy.",
+      "What is due or overdue today?",
+      "Capture: call the dentist tomorrow."
+    ],
+    "brandColor": "#276450",
+    "composerIcon": "./assets/composer-icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": ["./assets/screenshot-today-plan.png"]
+  }
+}

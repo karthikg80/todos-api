@@ -1,0 +1,6 @@
+interface:
+  display_name: "Today Planning"
+  short_description: "Plan and work through today's Todos tasks"
+  default_prompt: "Help me work through today's plan one task at a time."
+policy:
+  allow_implicit_invocation: true
