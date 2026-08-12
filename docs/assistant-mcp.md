@@ -31,6 +31,12 @@ Runtime endpoints:
   `/mcp/app` endpoint.
 - `GET /.well-known/oauth-authorization-server`
   Authorization server metadata.
+- `GET /.well-known/openid-configuration`
+  OIDC discovery advertising `openid`, `email`, and UserInfo for verified
+  workspace-domain identity.
+- `GET|POST /oauth/userinfo`
+  Audience-bound verified-email identity for access tokens carrying both
+  identity scopes. These scopes never authorize Todos tools.
 - `POST /oauth/register`
   Dynamic client registration for public PKCE clients.
 - `GET /oauth/authorize`

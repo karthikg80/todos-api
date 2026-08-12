@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { McpOAuthService } from "./services/mcpOAuthService";
 
 function createMockPrisma() {
@@ -124,6 +124,38 @@ function createMockPrisma() {
 }
 
 describe("McpOAuthService durability", () => {
+  it("persists identity scopes independently from Todos permissions", async () => {
+    const prisma = createMockPrisma();
+    const first = new McpOAuthService(prisma as any);
+    const second = new McpOAuthService(prisma as any);
+    const verifier = "pkce-verifier-oidc-persistence-111111111111111111111111";
+    const challenge = createHash("sha256")
+      .update(verifier, "utf8")
+      .digest("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/g, "");
+
+    const created = await first.createAuthorizationCode({
+      userId: "user-1",
+      email: "user-1@example.com",
+      clientId: "chatgpt-client",
+      redirectUri: "https://chat.openai.com/aip/callback",
+      scopes: ["openid", "email"],
+      codeChallenge: challenge,
+      codeChallengeMethod: "S256",
+    });
+
+    const exchanged = await second.exchangeAuthorizationCode({
+      code: created.code,
+      clientId: "chatgpt-client",
+      redirectUri: "https://chat.openai.com/aip/callback",
+      codeVerifier: verifier,
+    });
+
+    expect(exchanged.scopes).toEqual(["email", "openid"]);
+  });
+
   it("exchanges authorization codes across service instances when backed by Prisma", async () => {
     const prisma = createMockPrisma();
     const first = new McpOAuthService(prisma as any);

@@ -424,6 +424,29 @@ describe("ChatGPT-native MCP app profile", () => {
     ).rejects.toThrow("Invalid MCP token");
   });
 
+  test("keeps OIDC identity scopes out of native tool authorization", async () => {
+    const authService = new AuthService({
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ mcpRevokedAfter: null }),
+      },
+    } as any);
+    const resource = "http://localhost:3000/mcp/app";
+    const issued = authService.createMcpToken({
+      userId: "00000000-0000-4000-8000-000000000001",
+      email: "user@example.com",
+      scopes: ["openid", "email"],
+      resource,
+    });
+
+    const verified = await authService.verifyMcpToken(issued.token, {
+      resource,
+      requireResource: true,
+    });
+    expect(issued.scopes).toEqual(["email", "openid"]);
+    expect(verified.oauthScopes).toEqual(["email", "openid"]);
+    expect(verified.scopes).toEqual([]);
+  });
+
   test("sanitizes planner results and omits internal attribution", async () => {
     const execute = jest.fn().mockResolvedValue({
       status: 200,
