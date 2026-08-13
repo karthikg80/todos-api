@@ -343,6 +343,7 @@ describe("Public MCP OAuth and discovery routes", () => {
       "oauth-verifier-public-flow-1111111111111111111111111111111",
     );
     const scope = "tasks.read tasks.write";
+    const state = `openai_platform_oauth_relay__${"a".repeat(512)}`;
     const agent = request.agent(app);
 
     const authorizeUrl = `/oauth/authorize?client_id=${encodeURIComponent(
@@ -351,7 +352,7 @@ describe("Public MCP OAuth and discovery routes", () => {
       "https://chat.openai.com/aip/callback",
     )}&response_type=code&scope=${encodeURIComponent(
       scope,
-    )}&state=state-123&code_challenge=${encodeURIComponent(
+    )}&state=${encodeURIComponent(state)}&code_challenge=${encodeURIComponent(
       pkce.challenge,
     )}&code_challenge_method=S256`;
 
@@ -374,7 +375,7 @@ describe("Public MCP OAuth and discovery routes", () => {
         redirect_uri: "https://chat.openai.com/aip/callback",
         response_type: "code",
         scope,
-        state: "state-123",
+        state,
         code_challenge: pkce.challenge,
         code_challenge_method: "S256",
       })
@@ -402,7 +403,7 @@ describe("Public MCP OAuth and discovery routes", () => {
         redirect_uri: "https://chat.openai.com/aip/callback",
         response_type: "code",
         scope,
-        state: "state-123",
+        state,
         code_challenge: pkce.challenge,
         code_challenge_method: "S256",
       })
@@ -419,7 +420,7 @@ describe("Public MCP OAuth and discovery routes", () => {
     expect(redirectUrl.origin + redirectUrl.pathname).toBe(
       "https://chat.openai.com/aip/callback",
     );
-    expect(redirectUrl.searchParams.get("state")).toBe("state-123");
+    expect(redirectUrl.searchParams.get("state")).toBe(state);
     expect(code).toEqual(expect.any(String));
 
     const token = await request(app)
