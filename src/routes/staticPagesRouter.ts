@@ -7,6 +7,7 @@
  */
 
 import { Router, Request, Response } from "express";
+import path from "path";
 import {
   buildPrivacyPage,
   buildSupportPage,
@@ -35,6 +36,17 @@ export function createStaticPagesRouter(
   const domainVerificationToken = normalizeVerificationToken(
     configuredVerificationToken,
   );
+
+  router.get("/review/todos-chatgpt-demo-v1.mp4", (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.type("video/mp4");
+    res.sendFile(
+      path.join(
+        __dirname,
+        "../../docs/review/assets/todos-chatgpt-demo-v1.mp4",
+      ),
+    );
+  });
 
   router.get(
     "/.well-known/openai-apps-challenge",

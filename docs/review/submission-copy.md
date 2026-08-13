@@ -27,6 +27,12 @@ send external messages.
 - Privacy: `https://todos.theafoundry.com/privacy`
 - Terms: `https://todos.theafoundry.com/terms`
 - MCP: `https://todos.theafoundry.com/mcp/app`
+- Demo recording: `https://todos.theafoundry.com/review/todos-chatgpt-demo-v1.mp4`
+
+The demo recording uses synthetic or redacted task data. It shows the verified
+ChatGPT developer-mode planning flow, the Today Plan component, completion and
+rescheduling behavior, task capture, and the unsupported-delete boundary without
+exposing private account content.
 
 ## Reviewer notes
 
